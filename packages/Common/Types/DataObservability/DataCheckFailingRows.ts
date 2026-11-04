@@ -11,7 +11,7 @@ import {
  * A SAMPLE OF THE ROWS A CHECK FOUND FAILING, MASKED.
  *
  * Knowing how many rows fail says something is wrong; seeing a few says what.
- * A self-hosted project can choose to keep them. OneUptime Cloud keeps none.
+ * A project can choose to keep them: off until it does, deleted when it stops.
  * Every value of a column that holds sensitive data - by what a scan found in
  * it or, failing that, by its name - is masked where the row is read, so what
  * leaves the database, and a probe, is already masked. The server masks again

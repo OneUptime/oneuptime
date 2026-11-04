@@ -43327,7 +43327,7 @@
   "No pipeline yet. Send OpenLineage events, Fivetran or Airbyte webhooks, or traces from a scheduled job: each job appears with its first run.": "还没有管道。发送 OpenLineage 事件、Fivetran 或 Airbyte 的 Webhook，或定时作业的追踪：每个作业会随其首次运行出现。",
   "Metabase, Superset, Tableau, Looker and Power BI dashboards, and Hightouch and Census syncs, read every hour, so a table's alerts list what is built on it.": "每小时读取 Metabase、Superset、Tableau、Looker 和 Power BI 的仪表板，以及 Hightouch 和 Census 的同步，使表的告警列出基于该表构建的内容。",
   "A column that says when each row was written, such as updated_at. The table's last change is then its newest value, not what the database's catalog says. The login needs to read this column.": "记录每一行写入时间的列，例如 updated_at。此时表的最近变更取这一列的最新值，而不是数据库目录所显示的值。登录账号需要能读取此列。",
-  "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. Self-hosted installs only.": "失败的检查最多保留 20 条导致失败的行，敏感列会被遮盖。仅限自托管安装。",
+  "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. They are stored in OneUptime. Turning this off deletes them.": "失败的检查最多保留 20 条导致失败的行，敏感列会被遮盖。这些行存储在 OneUptime 中。关闭此项会将其删除。",
   "A few of the rows the last run found failing. Columns that hold sensitive data are masked.": "上次运行发现失败的部分行。包含敏感数据的列会被遮盖。",
   "A storage path has no columns: only its objects' names, sizes and times are read.": "存储路径没有列：只读取其对象的名称、大小和时间。",
   "A storage path has no rows to check. It is watched by when its newest object landed, how many objects it holds and their size.": "存储路径没有可检查的行。它通过最新对象到达的时间、所含对象数量及其大小来监控。",

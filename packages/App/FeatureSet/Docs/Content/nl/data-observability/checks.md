@@ -1,6 +1,6 @@
 # Controles en reconciliaties
 
-Tabelgezondheid zegt of een tabel verandert. Een **controle** zegt of wat ze bevat klopt, een **reconciliatie** zegt of twee kopieën van de gegevens overeenkomen, en de **tests van dbt** rapporteren over de tabellen die dbt bouwt. Elk daarvan draait waar de verzamelronde van de database draait, door OneUptime of door haar sonde, en alleen een getal verlaat de database, tenzij een zelf gehost project ervoor kiest een gemaskeerde steekproef van mislukte rijen te bewaren.
+Tabelgezondheid zegt of een tabel verandert. Een **controle** zegt of wat ze bevat klopt, een **reconciliatie** zegt of twee kopieën van de gegevens overeenkomen, en de **tests van dbt** rapporteren over de tabellen die dbt bouwt. Elk daarvan draait waar de verzamelronde van de database draait, door OneUptime of door haar sonde, en alleen een getal verlaat de database, tenzij een project ervoor kiest een gemaskeerde steekproef van mislukte rijen te bewaren.
 
 ## Controles
 
@@ -52,7 +52,9 @@ Een controle concurreert met je applicatie om de database, en op een warehouse d
 
 ## Mislukte rijen
 
-Een getal zegt dat er iets mis is; een paar rijen zeggen wat. Op een zelf gehoste OneUptime bewaart **Mislukte rijen bewaren** onder **Instellingen** maximaal 20 van de rijen die een controle Failing Rows, Invalid Percent, Format Mismatch Percent of Orphan Count vond, en **Mislukte rijen** op de controle toont ze. Gevoelige kolommen worden gemaskeerd op de plek waar de rij wordt gelezen, op basis van wat Gegevensbeveiliging erin vond of van hun namen, dus wat de database of een sonde verlaat, is al gemaskeerd. OneUptime Cloud bewaart er geen.
+Een getal zegt dat er iets mis is; een paar rijen zeggen wat. **Mislukte rijen bewaren** onder **Instellingen** bewaart maximaal 20 van de rijen die een controle Failing Rows, Invalid Percent, Format Mismatch Percent of Orphan Count vond, en **Mislukte rijen** op de controle toont ze. Deze instelling staat uit tot je ze inschakelt. Gevoelige kolommen worden gemaskeerd op de plek waar de rij wordt gelezen, op basis van wat Gegevensbeveiliging erin vond of van hun namen, dus wat de database of een sonde verlaat, is al gemaskeerd. Een gevoelige kolom die geen scan heeft gevonden en waarvan de naam niets verraadt, wordt bewaard zoals ze is.
+
+De rijen worden opgeslagen in OneUptime: op de servers van OneUptime bij OneUptime Cloud, en op je eigen servers bij een zelf gehoste installatie. Iedereen die de controles van het project mag lezen, kan ze zien. Een controle bewaart alleen de rijen van de laatste uitvoering, en als je **Mislukte rijen bewaren** uitschakelt, wordt verwijderd wat elke controle heeft bewaard.
 
 ## Controles in een bestand
 

@@ -26,7 +26,6 @@ import DataTableSensitivity from "./DataTableSensitivity";
 import DataObservabilitySetting from "../../../Models/DatabaseModels/DataObservabilitySetting";
 import { MaskedColumns } from "../../../Types/DataObservability/DataCheckFailingRows";
 import { getDataTableKey } from "../../../Types/DataObservability/DataObservabilityMetric";
-import { IsBillingEnabled } from "../../EnvironmentConfig";
 
 /*
  * THE CHECKS A STORE'S COLLECTION RUNS.
@@ -165,9 +164,7 @@ export default class DataCheckPlanner {
       setting,
       data.engine,
     );
-    // Refused on OneUptime Cloud when it is saved; checked here too, as the row may be older.
-    const keepsFailingRows: boolean =
-      setting.keepFailingRows === true && !IsBillingEnabled;
+    const keepsFailingRows: boolean = setting.keepFailingRows === true;
 
     plan.waitWhenBusy = setting.waitWhenDatabaseIsBusy !== false;
     plan.freshnessReads = this.planFreshnessReads({

@@ -1,6 +1,6 @@
 # Comprobaciones y conciliaciones
 
-La salud de las tablas dice si una tabla cambia. Una **comprobación** dice si lo que contiene es correcto, una **conciliación** dice si dos copias de los datos coinciden, y las **pruebas de dbt** informan sobre las tablas que construye dbt. Cada una se ejecuta donde se ejecuta la recopilación de la base de datos, en OneUptime o en su sonda, y lo único que sale de la base de datos es un número, salvo que un proyecto autoalojado decida guardar una muestra enmascarada de las filas que fallan.
+La salud de las tablas dice si una tabla cambia. Una **comprobación** dice si lo que contiene es correcto, una **conciliación** dice si dos copias de los datos coinciden, y las **pruebas de dbt** informan sobre las tablas que construye dbt. Cada una se ejecuta donde se ejecuta la recopilación de la base de datos, en OneUptime o en su sonda, y lo único que sale de la base de datos es un número, salvo que un proyecto decida guardar una muestra enmascarada de las filas que fallan.
 
 ## Comprobaciones
 
@@ -52,7 +52,9 @@ Una comprobación compite con tu aplicación por la base de datos, y en un almac
 
 ## Filas que fallan
 
-Un número dice que algo va mal; unas pocas filas dicen qué. En un OneUptime autoalojado, **Guardar filas que fallan** en **Ajustes** guarda hasta 20 de las filas que encontró una comprobación Failing Rows, Invalid Percent, Format Mismatch Percent u Orphan Count, y **Filas con error** en la comprobación las muestra. Las columnas sensibles se enmascaran donde se lee la fila, según lo que Seguridad de datos encontró en ellas o según sus nombres, así que lo que sale de la base de datos, o de una sonda, ya está enmascarado. OneUptime Cloud no guarda ninguna.
+Un número dice que algo va mal; unas pocas filas dicen qué. **Guardar filas que fallan** en **Ajustes** guarda hasta 20 de las filas que encontró una comprobación Failing Rows, Invalid Percent, Format Mismatch Percent u Orphan Count, y **Filas con error** en la comprobación las muestra. Está desactivado hasta que lo actives. Las columnas sensibles se enmascaran donde se lee la fila, según lo que Seguridad de datos encontró en ellas o según sus nombres, así que lo que sale de la base de datos, o de una sonda, ya está enmascarado. Una columna sensible que ningún análisis haya encontrado y cuyo nombre no la delate se guarda tal cual.
+
+Las filas se almacenan en OneUptime: en los servidores de OneUptime con OneUptime Cloud, y en los tuyos con una instalación autoalojada. Cualquiera que pueda leer las comprobaciones del proyecto puede verlas. Una comprobación guarda solo las filas de su última ejecución, y al desactivar **Guardar filas que fallan** se elimina lo que guardó cada comprobación.
 
 ## Comprobaciones en un archivo
 

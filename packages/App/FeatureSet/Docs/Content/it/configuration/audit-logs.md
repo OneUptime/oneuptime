@@ -107,6 +107,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Cacce | `Hunt` |
 | Attività e prove dei casi di sicurezza | `Security Case Task`, `Security Case Evidence` |
 | Gli archivi dati e i loro risultati, e i problemi, le impostazioni, le impostazioni dei controlli, i tipi di dati personalizzati e le regole di residenza di Sicurezza dei dati | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Impostazioni di Osservabilità dei dati | `Data Observability Setting` |
 | Esportazioni del registro di audit | `Audit Log Export` |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.

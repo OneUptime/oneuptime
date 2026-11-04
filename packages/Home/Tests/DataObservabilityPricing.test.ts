@@ -31,7 +31,9 @@ function textContent(html: string): string {
   return markupAsSpaces(html).replace(/\s+/g, " ").trim();
 }
 
-function pageLocals(watchedTables: WatchedTablePricingContent): object {
+function pageLocals(
+  watchedTables: WatchedTablePricingContent,
+): Record<string, unknown> {
   const seo: PageSEOData = getPageSEO("/pricing");
 
   return {
