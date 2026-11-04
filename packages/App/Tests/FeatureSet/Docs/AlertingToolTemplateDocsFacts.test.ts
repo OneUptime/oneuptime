@@ -305,9 +305,11 @@ describe("the Datadog page's templates", () => {
       "Way",
     );
 
-    expect(rows.map((row: Array<string>): string => {
-      return row[0] as string;
-    })).toEqual([
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
       "The workflow template (recommended)",
       "An Incoming Request monitor",
     ]);
@@ -614,7 +616,9 @@ describe("what the Datadog page says about priorities and paging", () => {
     expect(section()).toContain(
       "when its monitor is P1 or P2, or has no priority",
     );
-    expect(section()).toContain("P3, P4 and P5 open an incident and page nobody.");
+    expect(section()).toContain(
+      "P3, P4 and P5 open an incident and page nobody.",
+    );
     expect(section()).toContain(
       "With severities of your own, P1, P2 and no priority go to your most severe, P3 to the middle one, and P4 and P5 to your least severe.",
     );
@@ -835,7 +839,9 @@ describe("the New Relic page's templates", () => {
       expect(script).toContain("go to Alerts → Destinations");
       expect(script).toContain("under Alerts → Workflows");
       expect(script).toContain("activated, acknowledged and closed");
-      expect(script).toContain("Its filter decides which issues reach OneUptime");
+      expect(script).toContain(
+        "Its filter decides which issues reach OneUptime",
+      );
     }
 
     expect(configure).toContain(
@@ -959,9 +965,11 @@ describe("the New Relic page's payload", () => {
         })
         .sort(),
     ).toEqual(Object.keys(newRelicPostedBody()).sort());
-    expect(keys.filter((key: string): boolean => {
-      return key === "isAcknowledged";
-    })).toHaveLength(1);
+    expect(
+      keys.filter((key: string): boolean => {
+        return key === "isAcknowledged";
+      }),
+    ).toHaveLength(1);
     expect(fenceIn(configure(), "json")).toContain(
       '"isAcknowledged": {{ json isAcknowledged }},',
     );
@@ -1198,9 +1206,11 @@ describe("what the New Relic page says about priorities and paging", () => {
   it("says every new issue pages, and why, with the Page step right after the step that opens the record", () => {
     for (const kind of KINDS) {
       expect(
-        specOf(kind.newRelicTemplateId).edges.find((edge: SpecEdge): boolean => {
-          return edge.toComponentId === "page-on-call-policy-1";
-        }),
+        specOf(kind.newRelicTemplateId).edges.find(
+          (edge: SpecEdge): boolean => {
+            return edge.toComponentId === "page-on-call-policy-1";
+          },
+        ),
       ).toEqual({
         fromComponentId: kind.step,
         toComponentId: "page-on-call-policy-1",
@@ -1380,12 +1390,14 @@ describe("the New Relic page's test and troubleshooting", () => {
 
     for (const kind of KINDS) {
       expect(
-        specOf(kind.newRelicTemplateId).edges.some((edge: SpecEdge): boolean => {
-          return (
-            edge.toComponentId === "page-on-call-policy-1" &&
-            edge.fromPort === FROM_ANOTHER_TOOL_PORT_IDS.opened
-          );
-        }),
+        specOf(kind.newRelicTemplateId).edges.some(
+          (edge: SpecEdge): boolean => {
+            return (
+              edge.toComponentId === "page-on-call-policy-1" &&
+              edge.fromPort === FROM_ANOTHER_TOOL_PORT_IDS.opened
+            );
+          },
+        ),
       ).toBe(true);
     }
 
