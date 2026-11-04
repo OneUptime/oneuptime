@@ -2942,7 +2942,15 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         .getByTestId("resource-overview-identifier-value")
         .evaluate(
           (element: Element): { direction: string; startVisible: boolean } => {
-            const box: DOMRect = element.getBoundingClientRect();
+            /*
+             * What is seen of it: its own box and its line's, either of
+             * which may be the one that cuts it.
+             */
+            const own: DOMRect = element.getBoundingClientRect();
+            const line: DOMRect =
+              element.parentElement!.getBoundingClientRect();
+            const left: number = Math.max(own.left, line.left);
+            const right: number = Math.min(own.right, line.right);
             const range: Range = document.createRange();
             range.setStart(element.firstChild!, 0);
             range.setEnd(element.firstChild!, "Elastic".length);
@@ -2950,7 +2958,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
             return {
               direction: getComputedStyle(element).direction,
               startVisible:
-                word.left >= box.left - 0.5 && word.right <= box.right + 0.5,
+                word.left >= left - 0.5 && word.right <= right + 0.5,
             };
           },
         );
