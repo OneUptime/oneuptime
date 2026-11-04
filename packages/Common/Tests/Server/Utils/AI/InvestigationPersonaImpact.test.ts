@@ -57,9 +57,7 @@ describe("the investigation is asked to work out the impact", () => {
     expect(INVESTIGATION_PERSONA).toContain(
       `the SLOs the context lists under ${IMPACT_SECTION_TITLE}, read with query_slos (status, error budget left, burn rate)`,
     );
-    expect(INVESTIGATION_PERSONA).toContain(
-      "Keep how you worked each out.",
-    );
+    expect(INVESTIGATION_PERSONA).toContain("Keep how you worked each out.");
   });
 });
 

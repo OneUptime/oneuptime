@@ -459,7 +459,9 @@ describe("RemediationStep Approve & Run", () => {
     await renderWaitingPlan();
 
     act(() => {
-      (screen.getByText("Dismiss fix").closest("button") as HTMLElement).click();
+      (
+        screen.getByText("Dismiss fix").closest("button") as HTMLElement
+      ).click();
     });
     expect(actionPosts(DISMISS_ROUTE)).toHaveLength(1);
 

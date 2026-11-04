@@ -87,7 +87,9 @@ function caller(
   };
 }
 
-function holding(...permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function holding(
+  ...permissions: Array<Permission>
+): DatabaseCommonInteractionProps {
   return caller(
     permissions.map((permission: Permission) => {
       return { permission };
@@ -211,9 +213,11 @@ describe("who may dismiss a fix", () => {
     ).rejects.toThrow(FIX_DISMISS_REFUSED_MESSAGE);
   });
 
-  test.each(RUNBOOK_RUN_PERMISSIONS.map((permission: Permission) => {
-    return [permission];
-  }))("%s may dismiss it", async (permission: Permission) => {
+  test.each(
+    RUNBOOK_RUN_PERMISSIONS.map((permission: Permission) => {
+      return [permission];
+    }),
+  )("%s may dismiss it", async (permission: Permission) => {
     const result: JSONObject = await RemediationApproval.dismiss({
       props: holding(permission),
       suggestionId: SUGGESTION_ID.toString(),
@@ -227,7 +231,9 @@ describe("who may dismiss a fix", () => {
     expect((claimed["set"] as JSONObject)["dismissedByUserId"]).toBe(
       USER_ID.toString(),
     );
-    expect(String((feedSpy.mock.calls[0]![0] as JSONObject)["feedInfoInMarkdown"])).toBe(
+    expect(
+      String((feedSpy.mock.calls[0]![0] as JSONObject)["feedInfoInMarkdown"]),
+    ).toBe(
       '⚡ Dismissed the **auto-remediation suggestion**: runbook "Restart checkout" will not be run.',
     );
   });

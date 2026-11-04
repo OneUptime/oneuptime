@@ -118,7 +118,9 @@ describe("which rows are environments", () => {
   });
 
   test("each is called by its own noun", () => {
-    expect(describeLinkedResourceNoun(ENVIRONMENT)).toBe(CLOUD_ENVIRONMENT_NOUN);
+    expect(describeLinkedResourceNoun(ENVIRONMENT)).toBe(
+      CLOUD_ENVIRONMENT_NOUN,
+    );
     expect(describeLinkedResourceNoun(RESOURCE)).toBe("Cloud resource");
     expect(describeLinkedResourceNoun(OLD_ROW)).toBe("Cloud resource");
     expect(describeLinkedResourceNoun(HOST)).toBe("Host");
@@ -181,7 +183,9 @@ describe("the linked infrastructure's activity", () => {
     expect(
       LinkedInfrastructureContext.buildActivityNote(linkedTo([ENVIRONMENT], 2))
         ?.message,
-    ).toBe("Read 2 open or recent alerts on Cloud environment checkout · us-east-1");
+    ).toBe(
+      "Read 2 open or recent alerts on Cloud environment checkout · us-east-1",
+    );
   });
 
   test("every other kind reads as it did", () => {

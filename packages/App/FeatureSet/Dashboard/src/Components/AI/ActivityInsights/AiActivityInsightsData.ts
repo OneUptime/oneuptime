@@ -2140,13 +2140,19 @@ export function getFixApprovalPlaces(
   return [
     { label: translationKey("In OneUptime"), count: sources.dashboard },
     { label: translationKey("In Slack"), count: sources.slack },
-    { label: translationKey("In Microsoft Teams"), count: sources.microsoftTeams },
+    {
+      label: translationKey("In Microsoft Teams"),
+      count: sources.microsoftTeams,
+    },
   ]
     .filter((place: AiInsightsFixApprovalPlace): boolean => {
       return place.count > 0;
     })
     .sort(
-      (a: AiInsightsFixApprovalPlace, b: AiInsightsFixApprovalPlace): number => {
+      (
+        a: AiInsightsFixApprovalPlace,
+        b: AiInsightsFixApprovalPlace,
+      ): number => {
         return b.count - a.count;
       },
     );

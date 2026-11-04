@@ -199,7 +199,8 @@ export function describeTrackRecordLine(
   record: RemediationTrackRecord,
   links?: TrackRecordRunLinks | undefined,
 ): MarkdownText {
-  const mark: string = TRACK_RECORD_MARKS[getRemediationTrackRecordTone(record)];
+  const mark: string =
+    TRACK_RECORD_MARKS[getRemediationTrackRecordTone(record)];
   const sentence: string = describeRemediationTrackRecord(record);
   const named: Array<MarkdownText> = record.runs
     .filter((run: RemediationTrackRecordRun): boolean => {

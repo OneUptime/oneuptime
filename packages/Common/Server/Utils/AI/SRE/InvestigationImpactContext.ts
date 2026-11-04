@@ -264,8 +264,7 @@ export default class InvestigationImpactContext {
         monitorNames: (slo.monitors || [])
           .map((monitor: Monitor): string => {
             return (
-              monitorNames.get(monitor.id?.toString().toLowerCase() || "") ||
-              ""
+              monitorNames.get(monitor.id?.toString().toLowerCase() || "") || ""
             );
           })
           .filter((name: string): boolean => {

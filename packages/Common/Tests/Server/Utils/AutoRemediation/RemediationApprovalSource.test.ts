@@ -235,45 +235,79 @@ describe("where a fix was approved is kept with its approval", () => {
     jest.restoreAllMocks();
   });
 
-  for (const [kind, build] of Object.entries(ROWS)) {
-    for (const [from, source] of [
-      [undefined, AutoRemediationApprovalSource.Dashboard],
-      [WorkspaceType.Slack, AutoRemediationApprovalSource.Slack],
-      [WorkspaceType.MicrosoftTeams, AutoRemediationApprovalSource.MicrosoftTeams],
-    ] as Array<[WorkspaceType | undefined, AutoRemediationApprovalSource]>) {
-      test(`${kind}, approved ${from ? `from ${from}` : "on the card"}, keeps ${source}`, async () => {
-        row = build();
+  // Where each kind of fix can be approved: on the card, or from a chat.
+  const PLACES: Array<
+    [WorkspaceType | undefined, AutoRemediationApprovalSource]
+  > = [
+    [undefined, AutoRemediationApprovalSource.Dashboard],
+    [WorkspaceType.Slack, AutoRemediationApprovalSource.Slack],
+    [
+      WorkspaceType.MicrosoftTeams,
+      AutoRemediationApprovalSource.MicrosoftTeams,
+    ],
+  ];
 
-        await RemediationApproval.approve({
-          props: caller(),
-          suggestionId: SUGGESTION_ID.toString(),
-          ...(from
-            ? {
-                from,
-                expectedPlanFingerprint: getRemediationPlanFingerprint({
-                  suggestionType:
-                    row["suggestionType"] as AutoRemediationSuggestionType,
-                  commandPlan: row["commandPlan"] as JSONObject | undefined,
-                  mcpToolCallPlan: row["mcpToolCallPlan"] as
-                    | JSONObject
-                    | undefined,
-                  runbookId: row["runbookId"] as ObjectID | undefined,
-                }),
-              }
-            : {}),
-        });
+  // [the kind of fix, where it was approved, what is kept, the chat it came from]
+  type ApprovalCase = [
+    string,
+    string,
+    AutoRemediationApprovalSource,
+    WorkspaceType | undefined,
+  ];
 
-        expect(claims).toHaveLength(1);
-        expect(claims[0]!.set["status"]).toBe(
-          AutoRemediationSuggestionStatus.Approved,
-        );
-        expect(claims[0]!.set["approvedFrom"]).toBe(source);
-        // With who approved it and when, in the same claim.
-        expect(claims[0]!.set["approvedByUserId"]).toBe(USER_ID.toString());
-        expect(claims[0]!.set["approvedAt"]).toBeInstanceOf(Date);
+  const APPROVALS: Array<ApprovalCase> = Object.keys(ROWS).flatMap(
+    (kind: string): Array<ApprovalCase> => {
+      return PLACES.map(
+        ([from, source]: [
+          WorkspaceType | undefined,
+          AutoRemediationApprovalSource,
+        ]): ApprovalCase => {
+          return [kind, from ? `from ${from}` : "on the card", source, from];
+        },
+      );
+    },
+  );
+
+  test.each(APPROVALS)(
+    "%s, approved %s, keeps %s",
+    async (
+      kind: string,
+      _where: string,
+      source: AutoRemediationApprovalSource,
+      from: WorkspaceType | undefined,
+    ) => {
+      row = ROWS[kind]!();
+
+      await RemediationApproval.approve({
+        props: caller(),
+        suggestionId: SUGGESTION_ID.toString(),
+        ...(from
+          ? {
+              from,
+              expectedPlanFingerprint: getRemediationPlanFingerprint({
+                suggestionType: row[
+                  "suggestionType"
+                ] as AutoRemediationSuggestionType,
+                commandPlan: row["commandPlan"] as JSONObject | undefined,
+                mcpToolCallPlan: row["mcpToolCallPlan"] as
+                  | JSONObject
+                  | undefined,
+                runbookId: row["runbookId"] as ObjectID | undefined,
+              }),
+            }
+          : {}),
       });
-    }
-  }
+
+      expect(claims).toHaveLength(1);
+      expect(claims[0]!.set["status"]).toBe(
+        AutoRemediationSuggestionStatus.Approved,
+      );
+      expect(claims[0]!.set["approvedFrom"]).toBe(source);
+      // With who approved it and when, in the same claim.
+      expect(claims[0]!.set["approvedByUserId"]).toBe(USER_ID.toString());
+      expect(claims[0]!.set["approvedAt"]).toBeInstanceOf(Date);
+    },
+  );
 
   test("a refused approval keeps nothing of where", async () => {
     row = ROWS["a fix through MCP servers"]!();
@@ -330,11 +364,13 @@ describe("the places a fix is approved", () => {
     for (const value of ["slack", "Discord", "", null, undefined, 3, {}]) {
       expect(readRemediationApprovalSource(value)).toBeUndefined();
     }
-    expect(isRemediationApprovedFromChat(AutoRemediationApprovalSource.Slack)).toBe(
-      true,
-    );
     expect(
-      isRemediationApprovedFromChat(AutoRemediationApprovalSource.MicrosoftTeams),
+      isRemediationApprovedFromChat(AutoRemediationApprovalSource.Slack),
+    ).toBe(true);
+    expect(
+      isRemediationApprovedFromChat(
+        AutoRemediationApprovalSource.MicrosoftTeams,
+      ),
     ).toBe(true);
     expect(
       isRemediationApprovedFromChat(AutoRemediationApprovalSource.Dashboard),
@@ -347,9 +383,8 @@ describe("the columns", () => {
   const model: AutoRemediationSuggestion = new AutoRemediationSuggestion();
 
   test("approvedFrom is the server's, read as the other approval columns are, one of the three places", () => {
-    const column: TableColumnMetadata = model.getTableColumnMetadata(
-      "approvedFrom",
-    );
+    const column: TableColumnMetadata =
+      model.getTableColumnMetadata("approvedFrom");
 
     expect(column.required).toBe(false);
     expect(column.allowedValues).toEqual(
@@ -371,9 +406,8 @@ describe("the columns", () => {
   });
 
   test("runbookTrackRecord is the server's JSON, read as the command plan is", () => {
-    const column: TableColumnMetadata = model.getTableColumnMetadata(
-      "runbookTrackRecord",
-    );
+    const column: TableColumnMetadata =
+      model.getTableColumnMetadata("runbookTrackRecord");
 
     expect(column.required).toBe(false);
     expect((column.description || "").length).toBeLessThanOrEqual(150);

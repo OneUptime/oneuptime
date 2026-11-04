@@ -137,7 +137,8 @@ function verifiedFix(data: {
         runnerId: CLUSTER_ID,
         runnerNameSnapshot: "Kubernetes AI agent",
         kubernetesClusterId: CLUSTER_ID,
-        command: data.command || "kubectl rollout restart deployment/web -n shop",
+        command:
+          data.command || "kubectl rollout restart deployment/web -n shop",
         timeoutInMs: 60000,
         rationale: "the pool ran dry",
         expectedEffect: "requests pass",
@@ -174,24 +175,30 @@ describe("an alert's recurrence context", () => {
     });
     jest
       .spyOn(AlertService, "findOneBy")
-      .mockImplementation(async (_: FindOneBy<Alert>): Promise<Alert | null> => {
-        return current;
-      });
+      .mockImplementation(
+        async (_: FindOneBy<Alert>): Promise<Alert | null> => {
+          return current;
+        },
+      );
     jest
       .spyOn(AlertStateService, "getResolvedAlertStateIds")
       .mockResolvedValue([RESOLVED_STATE]);
     alertFind = jest
       .spyOn(AlertService, "findBy")
-      .mockImplementation(async (findBy: FindBy<Alert>): Promise<Array<Alert>> => {
-        const query: JSONObject = findBy.query as unknown as JSONObject;
+      .mockImplementation(
+        async (findBy: FindBy<Alert>): Promise<Array<Alert>> => {
+          const query: JSONObject = findBy.query as unknown as JSONObject;
 
-        return query["monitorId"] !== undefined ? sameMonitor : recent;
-      });
+          return query["monitorId"] !== undefined ? sameMonitor : recent;
+        },
+      );
     fixFind = jest
       .spyOn(AutoRemediationSuggestionService, "findBy")
-      .mockImplementation(async (): Promise<Array<AutoRemediationSuggestion>> => {
-        return fixes;
-      });
+      .mockImplementation(
+        async (): Promise<Array<AutoRemediationSuggestion>> => {
+          return fixes;
+        },
+      );
   });
 
   afterEach(() => {
@@ -446,9 +453,11 @@ describe("the verified fixes of past alerts", () => {
     expect((findBy.mock.calls[0]![0].query as JSONObject)["projectId"]).toBe(
       PROJECT_ID,
     );
-    expect(await AIMemory.readVerifiedAlertFixes({
-      projectId: PROJECT_ID,
-      alertIds: [],
-    })).toEqual(new Map<string, string>());
+    expect(
+      await AIMemory.readVerifiedAlertFixes({
+        projectId: PROJECT_ID,
+        alertIds: [],
+      }),
+    ).toEqual(new Map<string, string>());
   });
 });

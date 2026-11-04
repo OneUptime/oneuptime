@@ -117,9 +117,11 @@ describe("a runbook's track record", () => {
     });
     fixFind = jest
       .spyOn(AutoRemediationSuggestionService, "findBy")
-      .mockImplementation(async (): Promise<Array<AutoRemediationSuggestion>> => {
-        return fixes;
-      });
+      .mockImplementation(
+        async (): Promise<Array<AutoRemediationSuggestion>> => {
+          return fixes;
+        },
+      );
     // Each fix's incident or alert, as the project has it.
     jest
       .spyOn(IncidentService, "findBy")
@@ -255,7 +257,9 @@ describe("a runbook's track record", () => {
     ]);
     expect(a.runs[0]?.subjectNumber).toMatch(/^INC-/);
     expect(a.runs[2]?.subjectNumber).toMatch(/^#30/);
-    expect(records.get(RUNBOOK_B.toString().toLowerCase())?.workedCount).toBe(1);
+    expect(records.get(RUNBOOK_B.toString().toLowerCase())?.workedCount).toBe(
+      1,
+    );
   });
 
   test("never the round's own suggestion or signal, never a private incident or alert", async () => {

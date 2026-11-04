@@ -314,7 +314,10 @@ describe("describeLinkedInfrastructure", () => {
       expect(line).not.toContain(resource);
       expect(
         describeFollowUpCheck(
-          followUp({ resourceKind: "CloudEnvironment", resourceName: "checkout" }),
+          followUp({
+            resourceKind: "CloudEnvironment",
+            resourceName: "checkout",
+          }),
           translator,
         ),
       ).toContain(environment);

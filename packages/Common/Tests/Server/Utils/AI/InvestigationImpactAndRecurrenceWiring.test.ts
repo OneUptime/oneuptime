@@ -196,7 +196,9 @@ describe("the runners wire the Impact block and an alert's recurrence", () => {
   });
 
   test("an SLO read that fails never fails the run: it investigates without the block", async () => {
-    readImpactForIncident.mockRejectedValue(new Error("Database not connected"));
+    readImpactForIncident.mockRejectedValue(
+      new Error("Database not connected"),
+    );
     readImpactForAlert.mockRejectedValue(new Error("Database not connected"));
 
     const incidentRequest: InvestigationRequest = await investigateIncident();
@@ -238,9 +240,9 @@ describe("the runners wire the Impact block and an alert's recurrence", () => {
     );
     // Right after the alert itself, before what it is linked to.
     expect(request.contextSummary.startsWith("# Alert")).toBe(true);
-    expect(request.contextSummary.indexOf(PAST_RESOLVED_ALERTS_HEADING)).toBeLessThan(
-      request.contextSummary.indexOf(`# ${IMPACT_SECTION_TITLE}`),
-    );
+    expect(
+      request.contextSummary.indexOf(PAST_RESOLVED_ALERTS_HEADING),
+    ).toBeLessThan(request.contextSummary.indexOf(`# ${IMPACT_SECTION_TITLE}`));
   });
 
   test("an alert with no past adds nothing, and an incident's run never reads alerts' past", async () => {

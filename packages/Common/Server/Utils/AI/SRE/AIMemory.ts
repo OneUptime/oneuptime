@@ -399,18 +399,16 @@ export default class AIMemory {
         return "";
       }
 
-      const fixes: Map<string, string> = await AIMemory.readVerifiedAlertFixes(
-        {
-          projectId: data.projectId,
-          alertIds: scored
-            .map((item: { alert: Alert }): ObjectID | undefined => {
-              return item.alert.id || undefined;
-            })
-            .filter((id: ObjectID | undefined): id is ObjectID => {
-              return Boolean(id);
-            }),
-        },
-      );
+      const fixes: Map<string, string> = await AIMemory.readVerifiedAlertFixes({
+        projectId: data.projectId,
+        alertIds: scored
+          .map((item: { alert: Alert }): ObjectID | undefined => {
+            return item.alert.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
 
       const chosen: Array<{ alert: Alert; score: number }> = scored
         .filter((item: { alert: Alert }): boolean => {
@@ -472,7 +470,9 @@ export default class AIMemory {
 
       return markdown;
     } catch (error) {
-      logger.error(`AI: failed to load an alert's recurrence context: ${error}`);
+      logger.error(
+        `AI: failed to load an alert's recurrence context: ${error}`,
+      );
       return "";
     }
   }

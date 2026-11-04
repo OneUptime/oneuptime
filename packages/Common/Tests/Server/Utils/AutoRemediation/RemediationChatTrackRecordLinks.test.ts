@@ -271,7 +271,9 @@ describe("the pages a fix's track records name", () => {
     expect(links.size).toBe(0);
     expect(incidentLinks).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining("could not build the link of a track record's run"),
+      expect.stringContaining(
+        "could not build the link of a track record's run",
+      ),
     );
   });
 });
@@ -385,8 +387,9 @@ describe("a runbook fix says how its runbook went before", () => {
   });
 
   test("the suggestion's stored record is read back for the message and the dialog", () => {
-    const suggestion: AutoRemediationSuggestion =
-      new AutoRemediationSuggestion(SUGGESTION_ID);
+    const suggestion: AutoRemediationSuggestion = new AutoRemediationSuggestion(
+      SUGGESTION_ID,
+    );
     suggestion.projectId = PROJECT_ID;
     suggestion.incidentId = INCIDENT_ID;
     suggestion.suggestionType = AutoRemediationSuggestionType.Runbook;

@@ -124,16 +124,18 @@ function mockRound(data: {
   };
 
   jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
-  jest.spyOn(AutoRemediationSuggestionService, "findOneById").mockResolvedValue({
-    id: SUGGESTION_ID,
-    _id: SUGGESTION_ID.toString(),
-    projectId: PROJECT_ID,
-    status: AutoRemediationSuggestionStatus.Planning,
-    incidentId: INCIDENT_ID,
-    autoRemediationRuleId: RULE_ID,
-    ruleNameSnapshot: "Restart API pods",
-    executionMode: data.executionMode || AutoRemediationExecutionMode.Suggest,
-  } as unknown as AutoRemediationSuggestion);
+  jest
+    .spyOn(AutoRemediationSuggestionService, "findOneById")
+    .mockResolvedValue({
+      id: SUGGESTION_ID,
+      _id: SUGGESTION_ID.toString(),
+      projectId: PROJECT_ID,
+      status: AutoRemediationSuggestionStatus.Planning,
+      incidentId: INCIDENT_ID,
+      autoRemediationRuleId: RULE_ID,
+      ruleNameSnapshot: "Restart API pods",
+      executionMode: data.executionMode || AutoRemediationExecutionMode.Suggest,
+    } as unknown as AutoRemediationSuggestion);
 
   const rule: AutoRemediationRule = {
     id: RULE_ID,
@@ -175,9 +177,7 @@ function mockRound(data: {
   jest
     .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
     .mockImplementation(async (transition: unknown): Promise<number> => {
-      recorded.transitions.push(
-        transition as Recorded["transitions"][number],
-      );
+      recorded.transitions.push(transition as Recorded["transitions"][number]);
       return 1;
     });
   jest
@@ -281,9 +281,9 @@ describe("a runbook OneUptime AI proposes, and how it went before", () => {
       );
 
     expect(proposed?.set["runbookId"]).toBe(RUNBOOK_A.toString());
-    expect(parseRemediationTrackRecord(proposed?.set["runbookTrackRecord"])).toEqual(
-      RECORD,
-    );
+    expect(
+      parseRemediationTrackRecord(proposed?.set["runbookTrackRecord"]),
+    ).toEqual(RECORD);
 
     // The picked runbook's record is read again, for it alone.
     const picked: Record<string, unknown> = recorded.reads.mock
@@ -346,9 +346,9 @@ describe("a runbook OneUptime AI proposes, and how it went before", () => {
         },
       );
 
-    expect(parseRemediationTrackRecord(reverted?.set["runbookTrackRecord"])).toEqual(
-      RECORD,
-    );
+    expect(
+      parseRemediationTrackRecord(reverted?.set["runbookTrackRecord"]),
+    ).toEqual(RECORD);
     expect(recorded.proposals).toHaveBeenCalledWith(
       expect.objectContaining({ runbookTrackRecord: RECORD }),
     );

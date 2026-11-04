@@ -167,7 +167,9 @@ describe("an Impact section is a section of its own", () => {
       InvestigationReportSectionKind.Summary,
       InvestigationReportSectionKind.RootCause,
     ]);
-    expect(asSubHeading.rootCause).toContain("### Impact\nCheckout fails [C2].");
+    expect(asSubHeading.rootCause).toContain(
+      "### Impact\nCheckout fails [C2].",
+    );
     expect(asSubHeading.impact).toBeUndefined();
 
     const firstUnderBodiless: ParsedInvestigationReport =
@@ -347,9 +349,12 @@ describe("parseImpactLines", () => {
 
   test(`at most ${MAX_IMPACT_LINES_SHOWN} lines are read`, () => {
     const lines: Array<InvestigationImpactLine> = parseImpactLines(
-      Array.from({ length: MAX_IMPACT_LINES_SHOWN + 5 }, (_: unknown, i) => {
-        return `- **Line ${i}:** ${i}`;
-      }).join("\n"),
+      Array.from(
+        { length: MAX_IMPACT_LINES_SHOWN + 5 },
+        (_: unknown, i: number): string => {
+          return `- **Line ${i}:** ${i}`;
+        },
+      ).join("\n"),
     );
 
     expect(lines).toHaveLength(MAX_IMPACT_LINES_SHOWN);
@@ -376,10 +381,19 @@ describe("reading an Impact section takes time in line with its length", () => {
 
   test.each([
     ["one bullet of asterisks", `- **${"*".repeat(LENGTH)}`],
-    ["a label that never closes, again and again", "- **Users ".repeat(LENGTH / 10)],
+    [
+      "a label that never closes, again and again",
+      "- **Users ".repeat(LENGTH / 10),
+    ],
     ["a list of markers", "- \n".repeat(LENGTH / 3)],
-    ["one long continued line", `- **Users:** x\n${"  y\n".repeat(LENGTH / 4)}`],
-    ["labels of every aspect", "- **Users:** a\n- **SLOs:** b\n".repeat(LENGTH / 28)],
+    [
+      "one long continued line",
+      `- **Users:** x\n${"  y\n".repeat(LENGTH / 4)}`,
+    ],
+    [
+      "labels of every aspect",
+      "- **Users:** a\n- **SLOs:** b\n".repeat(LENGTH / 28),
+    ],
   ])("%s", (_label: string, markdown: string) => {
     const timed: FastestRun<Array<InvestigationImpactLine>> = fastestRun({
       run: (): Array<InvestigationImpactLine> => {
