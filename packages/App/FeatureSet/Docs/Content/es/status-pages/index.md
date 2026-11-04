@@ -191,7 +191,7 @@ Elegir una opción pide confirmación, indicando qué cambia para los visitantes
 
 ### Usuarios privados
 
-Añade a las personas que pueden iniciar sesión en **Páginas de estado → tu página → Seguridad → Usuarios privados**. Hay una acción **Añadir en masa**: pega una lista de direcciones de correo electrónico y cada una recibe un correo de invitación. Los usuarios privados tienen su propio flujo de contraseña olvidada y de restablecimiento, independiente de las cuentas de tu proyecto de OneUptime.
+Añade a las personas que pueden iniciar sesión en **Páginas de estado → tu página → Seguridad → Usuarios privados**. Hay una acción **Añadir en masa**: pega una lista de direcciones de correo electrónico y cada una recibe un correo de invitación. Los usuarios privados tienen su propio flujo de contraseña olvidada y de restablecimiento, independiente de las cuentas de tu proyecto de OneUptime. Una contraseña nueva cierra su sesión en todos los dispositivos, y cualquier enlace de inicio de sesión o de restablecimiento ya enviado deja de funcionar.
 
 **Los usuarios privados y la contraseña no se suman.** Mientras **Cualquiera con la contraseña** es la elección, los usuarios privados no pueden iniciar sesión (también introducen la contraseña), y la pantalla **Usuarios privados** lo indica, con un enlace de vuelta a **Acceso**.
 

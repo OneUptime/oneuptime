@@ -191,7 +191,7 @@ Scegliere un'opzione chiede conferma, indicando che cosa cambia per i visitatori
 
 ### Utenti privati
 
-Aggiungete le persone che possono accedere in **Pagine di stato → la vostra pagina → Sicurezza → Utenti privati**. C'è un'azione **Aggiungi in blocco**: incollate un elenco di indirizzi email e ciascuno riceve un'email di invito. Gli utenti privati hanno un proprio flusso di password dimenticata e di reimpostazione, separato dagli account del vostro progetto OneUptime.
+Aggiungete le persone che possono accedere in **Pagine di stato → la vostra pagina → Sicurezza → Utenti privati**. C'è un'azione **Aggiungi in blocco**: incollate un elenco di indirizzi email e ciascuno riceve un'email di invito. Gli utenti privati hanno un proprio flusso di password dimenticata e di reimpostazione, separato dagli account del vostro progetto OneUptime. Una nuova password li disconnette su tutti i dispositivi, e qualsiasi link di accesso o di reimpostazione già inviato smette di funzionare.
 
 **Utenti privati e password non si sommano.** Finché **Chiunque abbia la password** è la scelta in vigore, gli utenti privati non possono accedere (inseriscono anche loro la password), e la schermata **Utenti privati** lo dice, con un link per tornare ad **Accesso**.
 

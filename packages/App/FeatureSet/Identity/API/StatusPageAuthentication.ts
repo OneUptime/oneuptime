@@ -852,6 +852,13 @@ router.post(
         statusPage.id!,
       );
 
+      /*
+       * The write's own hooks end a sign-in link sent before the reset, in this
+       * same statement, and every session of this user, as they do for every
+       * new password: somebody resetting their password may be locking out
+       * whoever read their mail (StatusPagePrivateUserService.onUpdatePermitted,
+       * onUpdateSuccess).
+       */
       await StatusPagePrivateUserService.updateOneById({
         id: alreadySavedUser.id!,
         data: {

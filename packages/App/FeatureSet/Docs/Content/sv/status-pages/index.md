@@ -191,7 +191,7 @@ Att välja ett alternativ ber om bekräftelse och säger vad som ändras för be
 
 ### Privata användare
 
-Lägg till personerna som får logga in under **Statussidor → din sida → Säkerhet → Privata användare**. Det finns en åtgärd **Lägg till i bulk**: klistra in en lista med e-postadresser så får varje adress ett inbjudningsmejl. Privata användare har ett eget flöde för glömt lösenord och återställning, skilt från kontona i ditt OneUptime-projekt.
+Lägg till personerna som får logga in under **Statussidor → din sida → Säkerhet → Privata användare**. Det finns en åtgärd **Lägg till i bulk**: klistra in en lista med e-postadresser så får varje adress ett inbjudningsmejl. Privata användare har ett eget flöde för glömt lösenord och återställning, skilt från kontona i ditt OneUptime-projekt. Ett nytt lösenord loggar ut dem på alla enheter, och varje inloggningslänk eller återställningslänk som redan skickats slutar fungera.
 
 **Privata användare och lösenordet läggs inte ihop.** Så länge **Alla med lösenordet** är valet kan privata användare inte logga in (de anger också lösenordet), och skärmen **Privata användare** säger det, med en länk tillbaka till **Åtkomst**.
 
