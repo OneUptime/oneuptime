@@ -48,7 +48,7 @@ I browser sono Chromium e Firefox.
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Synthetic Monitor** sotto **Synthetic Monitoring**, oppure digitate `playwright` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Synthetic Monitor** sotto **Monitoraggio sintetico**, oppure digitate `playwright` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Aggiungere lo script
 

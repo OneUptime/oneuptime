@@ -4,9 +4,9 @@
 
 :::cards
 - [アプリケーションの計装](#アプリケーションの計装): OpenTelemetry の計装がすでに送信しているメッセージングスパン。
-- [ブローカーの正常性メトリクス](#ブローカーの正常性メトリクス): ブローカーからのバックログ、ラグ、デッドレターを、システムごとに。
+- [ブローカーのヘルスメトリクス](#ブローカーのヘルスメトリクス): ブローカーからのバックログ、ラグ、デッドレターを、システムごとに。
 - [アラート](#アラート): 用意されたテンプレートと、遅れて届くメトリクスやカウンター。
-- [トラブルシューティング](#トラブルシューティング): 作成されなかったキューや、空のままのブローカーの正常性。
+- [トラブルシューティング](#トラブルシューティング): 作成されなかったキューや、空のままのブローカーのヘルス。
 :::
 
 ## 仕組み
@@ -16,7 +16,7 @@ Apache Kafka、RabbitMQ、Apache ActiveMQ とその他の JMS ブローカー、
 | ソース | 必要なもの | キューのページに加わるもの |
 | --- | --- | --- |
 | **アプリケーショントレース** | 計装済みのアプリケーション (OpenTelemetry)。[アプリケーションの計装](#アプリケーションの計装) を参照 | パブリッシュおよびコンシュームされたメッセージ、エラーと処理時間、両側のサービス、トレースそのもの |
-| **ブローカーメトリクス** (OpenTelemetry Collector) | ブローカー用の Collector レシーバーまたはスクレイプ。[ブローカーの正常性メトリクス](#ブローカーの正常性メトリクス) を参照 | **ブローカーの正常性**: バックログ、コンシューマーラグ、デッドレター、最も古いメッセージの経過時間、スロットリング、ブローカー自身のメッセージレート |
+| **ブローカーメトリクス** (OpenTelemetry Collector) | ブローカー用の Collector レシーバーまたはスクレイプ。[ブローカーのヘルスメトリクス](#ブローカーのヘルスメトリクス) を参照 | **ブローカーのヘルス**: バックログ、コンシューマーラグ、デッドレター、最も古いメッセージの経過時間、スロットリング、ブローカー自身のメッセージレート |
 
 ```mermaid title="2 つのソースと 1 つのキューページ"
 flowchart TB
@@ -38,7 +38,7 @@ flowchart TB
 
 ### ブローカーのメトリクスを送信する
 
-[ブローカーの正常性メトリクス](#ブローカーの正常性メトリクス) でメッセージングシステムを探し、取り込みキーを使ってその Collector 構成を実行します。各キューの **ドキュメント** タブには、そのキュー用の構成がコピーできる状態で用意されています。
+[ブローカーのヘルスメトリクス](#ブローカーのヘルスメトリクス) でメッセージングシステムを探し、取り込みキーを使ってその Collector 構成を実行します。各キューの **ドキュメント** タブには、そのキュー用の構成がコピーできる状態で用意されています。
 
 ### キューを開く
 
@@ -94,7 +94,7 @@ OpenTelemetry のメッセージング属性はすべて、まだ開発中とさ
 
 ### ブローカーメトリクスから
 
-[ブローカーの正常性メトリクス](#ブローカーの正常性メトリクス) の一覧にあるブローカーメトリクスは、ブローカー独自の属性 (Kafka の `topic`、RabbitMQ の `rabbitmq.queue.name`、Azure Monitor の `EntityName` ディメンション、CloudWatch の `QueueName`) でキューを示し、OneUptime は取り込み時にそのキューと照合します。ブローカーメトリクスは `messaging.system` を持ちません。それぞれ名前 (`kafka.consumer_group.lag_sum`) で認識され、2 つのシステムが同じ名前を使う場合 (Azure Monitor は Service Bus と Event Hubs のメトリクスに同じ名前を付けます) は、データポイントが持つリソースタイプで認識されます。
+[ブローカーのヘルスメトリクス](#ブローカーのヘルスメトリクス) の一覧にあるブローカーメトリクスは、ブローカー独自の属性 (Kafka の `topic`、RabbitMQ の `rabbitmq.queue.name`、Azure Monitor の `EntityName` ディメンション、CloudWatch の `QueueName`) でキューを示し、OneUptime は取り込み時にそのキューと照合します。ブローカーメトリクスは `messaging.system` を持ちません。それぞれ名前 (`kafka.consumer_group.lag_sum`) で認識され、2 つのシステムが同じ名前を使う場合 (Azure Monitor は Service Bus と Event Hubs のメトリクスに同じ名前を付けます) は、データポイントが持つリソースタイプで認識されます。
 
 次の検出の実行で、まだ存在しないキューが作成されます。[自動作成の上限](#自動作成の上限) の範囲内であれば、ブローカーメトリクス 1 つで十分です。そのため、計装されたアプリケーションがまったく触れないキューも、ブローカーが報告すれば表示されます。
 
@@ -208,11 +208,11 @@ builder.Services.AddOpenTelemetry()
 - OpenTelemetry の Go contrib ライブラリには、Kafka、RabbitMQ、NATS の計装がありません。ほかのクライアントでは、クライアントライブラリ自身の OpenTelemetry サポートを使うか、送信処理とハンドラーを囲むスパンに `messaging.system`、`messaging.destination.name`、スパンの種別を設定します。
 :::
 
-## ブローカーの正常性メトリクス
+## ブローカーのヘルスメトリクス
 
 ブローカーは、どのアプリケーションにも見えないことを知っています。待機しているメッセージの数、各コンシューマーグループの遅れ、デッドレターキューに送られたものです。以下の各セクションには、1 つのシステム用の Collector 構成があります。OneUptime に送信する OTLP エクスポーターで終わる、完全な OpenTelemetry Collector の構成です。テレメトリの取り込みキー (**プロジェクト設定 → テレメトリと APM → 取り込みキー**) を `x-oneuptime-token` に入れ、セルフホストの場合は `https://oneuptime.com` を自分のホストに置き換え、`otel/opentelemetry-collector-contrib` 0.161.0 以降で実行します (ここにあるすべての構成は 0.161.0 で検証済みです)。最近の Collector は、`otlphttp` は非推奨で `otlp_http` を使うようにとログに出力しますが、どちらの名前も同じエクスポーターです。複数のシステムを収集するには、それらのレシーバーを 1 つの Collector にまとめます。
 
-各キューの **ブローカーの正常性** セクションは、そのシステムについて一覧にあるメトリクスをグラフにします (ゲージはその値、期間ごとの件数は間隔ごとの合計、カウンターは毎秒のレート)。キューの系列は、メトリクスごとに必要な方法で組み合わせます (RabbitMQ キューの準備完了メッセージと未確認メッセージは合計され、最も遅れているコンシューマーグループがラグになります)。Collector が送信するものは、すべて **メトリクス** エクスプローラーにもあります。一覧にあるメトリクスがまだキューに届いていない間は、このセクションにそのシステムのメトリクスの入手元が、ここでの該当セクションへのリンクとともに表示されます。
+各キューの **ブローカーのヘルス** セクションは、そのシステムについて一覧にあるメトリクスをグラフにします (ゲージはその値、期間ごとの件数は間隔ごとの合計、カウンターは毎秒のレート)。キューの系列は、メトリクスごとに必要な方法で組み合わせます (RabbitMQ キューの準備完了メッセージと未確認メッセージは合計され、最も遅れているコンシューマーグループがラグになります)。Collector が送信するものは、すべて **メトリクス** エクスプローラーにもあります。一覧にあるメトリクスがまだキューに届いていない間は、このセクションにそのシステムのメトリクスの入手元が、ここでの該当セクションへのリンクとともに表示されます。
 
 ### Amazon SNS
 
@@ -256,10 +256,10 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON ストリーム: `numberofmessagespublished`) | Messages published | 期間ごとの件数 |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON ストリーム: `numberofnotificationsdelivered`) | Notifications delivered | 期間ごとの件数 |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON ストリーム: `numberofnotificationsfailed`) | Notifications failed | 期間ごとの件数 |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON ストリーム: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON ストリーム: `numberofmessagespublished`) | パブリッシュされたメッセージ | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON ストリーム: `numberofnotificationsdelivered`) | 配信された通知 | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON ストリーム: `numberofnotificationsfailed`) | 失敗した通知 | 期間ごとの件数 |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON ストリーム: `numberofnotificationsredriventodlq`) | デッドレターキューに再送 | 期間ごとの件数 |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON ストリーム: `approximatenumberofmessagesvisible`) | Messages visible | ゲージ |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON ストリーム: `approximateageofoldestmessage`) | Oldest message age | ゲージ |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON ストリーム: `approximatenumberofmessagesnotvisible`) | Messages in flight | ゲージ |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON ストリーム: `numberofmessagessent`) | Messages sent | 期間ごとの件数 |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON ストリーム: `numberofmessagesreceived`) | Messages received | 期間ごとの件数 |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON ストリーム: `numberofmessagesdeleted`) | Messages deleted | 期間ごとの件数 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON ストリーム: `approximatenumberofmessagesvisible`) | 表示可能なメッセージ | ゲージ |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON ストリーム: `approximateageofoldestmessage`) | 最も古いメッセージの経過時間 | ゲージ |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON ストリーム: `approximatenumberofmessagesnotvisible`) | 処理中のメッセージ | ゲージ |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON ストリーム: `numberofmessagessent`) | 送信されたメッセージ | 期間ごとの件数 |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON ストリーム: `numberofmessagesreceived`) | 受信されたメッセージ | 期間ごとの件数 |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON ストリーム: `numberofmessagesdeleted`) | 削除されたメッセージ | 期間ごとの件数 |
 
 ### Apache ActiveMQ
 
@@ -380,18 +380,18 @@ java -jar opentelemetry-jmx-scraper.jar
 
 `OTEL_JMX_TARGET_SOURCE=instrumentation` は、スクレイパーが 1.53.0-alpha 以降使っているメトリクス名 (`activemq.message.queue.size`。宛先は `messaging.destination.name`) を維持します。OneUptime は、古いスクレイパーの名前と `OTEL_JMX_TARGET_SOURCE=legacy` の名前 (`activemq.message.current`。宛先は `destination`) も読み取ります。
 
-ブローカーのメトリクスは、その JMS クライアントのスパンが作成したキューに加わり、それ以降キューは Apache ActiveMQ として表示されます ([2 つの観測が 1 つのキューになる条件](#2-つの観測が-1-つのキューになる条件) を参照)。スクレイパーはすべての宛先を報告します: OneUptime はアドバイザリートピックを無視しますが、デッドレターキュー (`ActiveMQ.DLQ`、または個別のデッドレター戦略での `DLQ.<destination>`) は独立したキューです。ActiveMQ Artemis は異なる MBean を持ち、これらのルールでは読み取りません: Artemis のキューは引き続き JMS スパンから作られますが、ブローカーの正常性はありません。
+ブローカーのメトリクスは、その JMS クライアントのスパンが作成したキューに加わり、それ以降キューは Apache ActiveMQ として表示されます ([2 つの観測が 1 つのキューになる条件](#2-つの観測が-1-つのキューになる条件) を参照)。スクレイパーはすべての宛先を報告します: OneUptime はアドバイザリートピックを無視しますが、デッドレターキュー (`ActiveMQ.DLQ`、または個別のデッドレター戦略での `DLQ.<destination>`) は独立したキューです。ActiveMQ Artemis は異なる MBean を持ち、これらのルールでは読み取りません: Artemis のキューは引き続き JMS スパンから作られますが、ブローカーのヘルスはありません。
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | ゲージ |
-| `activemq.message.current` | Queue size (legacy names) | ゲージ |
-| `activemq.message.enqueued` | Enqueued | カウンター (毎秒で表示) |
-| `activemq.message.dequeued` | Dequeued | カウンター (毎秒で表示) |
-| `activemq.message.expired` | Expired | カウンター (毎秒で表示) |
-| `activemq.consumer.count` | Consumers | ゲージ |
-| `activemq.message.enqueue.average_duration` | Average time in queue | ゲージ |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | ゲージ |
+| `activemq.message.queue.size` | キューのサイズ | ゲージ |
+| `activemq.message.current` | キューのサイズ (旧名称) | ゲージ |
+| `activemq.message.enqueued` | キューに追加 | カウンター (毎秒で表示) |
+| `activemq.message.dequeued` | キューから取り出し | カウンター (毎秒で表示) |
+| `activemq.message.expired` | 期限切れ | カウンター (毎秒で表示) |
+| `activemq.consumer.count` | コンシューマー | ゲージ |
+| `activemq.message.enqueue.average_duration` | キュー内の平均時間 | ゲージ |
+| `activemq.message.wait_time.avg` | キュー内の平均時間 (旧名称) | ゲージ |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ SASL または TLS を使うクラスターでは、`auth` と `tls` のコメ�
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | ゲージ |
-| `kafka.consumer_group.lag` | Partition lag | ゲージ |
-| `kafka.consumer_group.offset_sum` | Consumed | カウンター (毎秒で表示) |
-| `kafka.partition.current_offset` | Produced | カウンター (毎秒で表示) |
+| `kafka.consumer_group.lag_sum` | コンシューマーラグ | ゲージ |
+| `kafka.consumer_group.lag` | パーティションのラグ | ゲージ |
+| `kafka.consumer_group.offset_sum` | コンシューム | カウンター (毎秒で表示) |
+| `kafka.partition.current_offset` | プロデュース | カウンター (毎秒で表示) |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | ゲージ |
-| `pulsar_subscription_back_log` | Subscription backlog | ゲージ |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | ゲージ |
-| `pulsar_in_messages_total` | Messages in | カウンター (毎秒で表示) |
-| `pulsar_out_messages_total` | Messages out | カウンター (毎秒で表示) |
+| `pulsar_msg_backlog` | バックログ | ゲージ |
+| `pulsar_subscription_back_log` | サブスクリプションのバックログ | ゲージ |
+| `pulsar_storage_backlog_age_seconds` | バックログの経過時間 | ゲージ |
+| `pulsar_in_messages_total` | 受信メッセージ | カウンター (毎秒で表示) |
+| `pulsar_out_messages_total` | 送信メッセージ | カウンター (毎秒で表示) |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | ゲージ |
-| `rocketmq_consumer_ready_messages` | Ready messages | ゲージ |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | カウンター (毎秒で表示) |
-| `rocketmq_messages_in_total` | Messages in | カウンター (毎秒で表示) |
+| `rocketmq_consumer_lag_messages` | コンシューマーラグ | ゲージ |
+| `rocketmq_consumer_ready_messages` | 準備完了のメッセージ | ゲージ |
+| `rocketmq_send_to_dlq_messages_total` | デッドレターキューに送信 | カウンター (毎秒で表示) |
+| `rocketmq_messages_in_total` | 受信メッセージ | カウンター (毎秒で表示) |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor には Event Hubs のコンシューマーラグのメトリクス
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | 期間ごとの件数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 期間ごとの件数 |
-| `azure_servererrors_total` | Server errors | 期間ごとの件数 |
-| `azure_usererrors_total` | User errors | 期間ごとの件数 |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | 期間ごとの件数 |
-| `azure_throttledrequests_total` | Throttled requests | 期間ごとの件数 |
+| `azure_incomingmessages_total` | 受信メッセージ | 期間ごとの件数 |
+| `azure_outgoingmessages_total` | 送信メッセージ | 期間ごとの件数 |
+| `azure_servererrors_total` | サーバーエラー | 期間ごとの件数 |
+| `azure_usererrors_total` | ユーザーエラー | 期間ごとの件数 |
+| `azure_quotaexceedederrors_total` | クォータ超過エラー | 期間ごとの件数 |
+| `azure_throttledrequests_total` | スロットリングされた要求 | 期間ごとの件数 |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | ゲージ |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | ゲージ |
-| `azure_incomingmessages_total` | Incoming messages | 期間ごとの件数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 期間ごとの件数 |
-| `azure_completemessage_total` | Completed messages | 期間ごとの件数 |
-| `azure_abandonmessage_total` | Abandoned messages | 期間ごとの件数 |
-| `azure_servererrors_total` | Server errors | 期間ごとの件数 |
-| `azure_usererrors_total` | User errors | 期間ごとの件数 |
-| `azure_throttledrequests_total` | Throttled requests | 期間ごとの件数 |
+| `azure_activemessages_average` | アクティブなメッセージ | ゲージ |
+| `azure_deadletteredmessages_average` | デッドレターメッセージ | ゲージ |
+| `azure_incomingmessages_total` | 受信メッセージ | 期間ごとの件数 |
+| `azure_outgoingmessages_total` | 送信メッセージ | 期間ごとの件数 |
+| `azure_completemessage_total` | 完了したメッセージ | 期間ごとの件数 |
+| `azure_abandonmessage_total` | 破棄されたメッセージ | 期間ごとの件数 |
+| `azure_servererrors_total` | サーバーエラー | 期間ごとの件数 |
+| `azure_usererrors_total` | ユーザーエラー | 期間ごとの件数 |
+| `azure_throttledrequests_total` | スロットリングされた要求 | 期間ごとの件数 |
 
 ### BullMQ
 
@@ -793,7 +793,7 @@ metrics
   });
 ```
 
-これはキューの **メトリクス** タブに表示されます。OneUptime には、**ブローカーの正常性** にグラフ表示する BullMQ 独自のメトリクスはありません。
+これはキューの **メトリクス** タブに表示されます。OneUptime には、**ブローカーのヘルス** にグラフ表示する BullMQ 独自のメトリクスはありません。
 
 ### Google Cloud Pub/Sub
 
@@ -837,11 +837,11 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | ゲージ |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | ゲージ |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | 期間ごとの件数 |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | 期間ごとの件数 |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | 期間ごとの件数 |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | 未配信のメッセージ | ゲージ |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | 最も古い未確認メッセージの経過時間 | ゲージ |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | デッドレターメッセージ | 期間ごとの件数 |
+| `pubsub.googleapis.com/subscription/ack_message_count` | 確認済みのメッセージ | 期間ごとの件数 |
+| `pubsub.googleapis.com/topic/send_request_count` | パブリッシュ要求 | 期間ごとの件数 |
 
 ### JMS
 
@@ -936,20 +936,20 @@ service:
 
 | メトリクス | 表示名 | 種類 |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | ゲージ |
-| `rabbitmq.message.published` | Published | カウンター (毎秒で表示) |
-| `rabbitmq.message.delivered` | Delivered | カウンター (毎秒で表示) |
-| `rabbitmq.message.acknowledged` | Acknowledged | カウンター (毎秒で表示) |
-| `rabbitmq.message.dropped` | Dropped | カウンター (毎秒で表示) |
-| `rabbitmq.consumer.count` | Consumers | ゲージ |
+| `rabbitmq.message.current` | キューの深さ | ゲージ |
+| `rabbitmq.message.published` | パブリッシュ | カウンター (毎秒で表示) |
+| `rabbitmq.message.delivered` | 配信済み | カウンター (毎秒で表示) |
+| `rabbitmq.message.acknowledged` | 確認済み | カウンター (毎秒で表示) |
+| `rabbitmq.message.dropped` | 破棄済み | カウンター (毎秒で表示) |
+| `rabbitmq.consumer.count` | コンシューマー | ゲージ |
 
 ## アラート
 
 キューは、ブローカーメトリクスに対する **メトリクス** モニターで監視します ([メトリクス モニター](/docs/monitor/metrics-monitor) を参照)。
 
-**キューのページから**。**ブローカーの正常性** の各ゲージと期間ごとの各件数には **モニターを作成** があります: そのメトリクスに対する新しいメトリクスモニターを開き、そのメトリクスでこのキューを示す属性値に正確に絞り込み、悪化の方向が明らかなものを測るメトリクス (バックログ、デッドレター、コンシューマーラグ、最も古いメッセージの経過時間、スロットリング、エラー) には初期しきい値を設定します。そのうち 4 つはしきい値なしで始まります。固定のしきい値では誤解を招くためです: Kafka のパーティションラグ (`kafka.consumer_group.lag`。コンシューマーグループのラグですでにカバーされます)、ActiveMQ のキュー内の平均時間 (`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`。ブローカーの起動以降の平均で、停滞が解消した後も長く高いままです)、Pulsar のバックログの経過時間 (`pulsar_storage_backlog_age_seconds`。ブローカーが判断できない間は `-1` を示します) です。カウンターにはモニターがありません: そのグラフはレートを示しますが、モニターにはレート関数がないためです。
+**キューのページから**。**ブローカーのヘルス** の各ゲージと期間ごとの各件数には **モニターを作成** があります: そのメトリクスに対する新しいメトリクスモニターを開き、そのメトリクスでこのキューを示す属性値に正確に絞り込み、悪化の方向が明らかなものを測るメトリクス (バックログ、デッドレター、コンシューマーラグ、最も古いメッセージの経過時間、スロットリング、エラー) には初期しきい値を設定します。そのうち 4 つはしきい値なしで始まります。固定のしきい値では誤解を招くためです: Kafka のパーティションラグ (`kafka.consumer_group.lag`。コンシューマーグループのラグですでにカバーされます)、ActiveMQ のキュー内の平均時間 (`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`。ブローカーの起動以降の平均で、停滞が解消した後も長く高いままです)、Pulsar のバックログの経過時間 (`pulsar_storage_backlog_age_seconds`。ブローカーが判断できない間は `-1` を示します) です。カウンターにはモニターがありません: そのグラフはレートを示しますが、モニターにはレート関数がないためです。
 
-**カウンター**。RabbitMQ、Apache ActiveMQ、Apache RocketMQ のカウンターは累積和として Collector に届き、`cumulative_to_delta` プロセッサー (古い Collector では `cumulativetodelta`) がそれを、モニターでアラートできる差分に変換します。カウンター自体ではなく、別の名前を付けたコピーを変換してください: キューのページはこれらのカウンターをそれぞれ累計として読み取り、その増加の速さをグラフにするため、差分に変換されたカウンターは **ブローカーの正常性** と **メトリクス** タブで意味のない値になり、一定のトラフィックが毎秒 0 メッセージとして表示されます。Apache Kafka のオフセット (`kafka.consumer_group.offset_sum`、`kafka.partition.current_offset`) と、Apache Pulsar の `pulsar_in_messages_total` と `pulsar_out_messages_total` はゲージとして届き、`cumulative_to_delta` はそれを変更しません: これらのシステムでは、代わりにラグとバックログのゲージでアラートします。
+**カウンター**。RabbitMQ、Apache ActiveMQ、Apache RocketMQ のカウンターは累積和として Collector に届き、`cumulative_to_delta` プロセッサー (古い Collector では `cumulativetodelta`) がそれを、モニターでアラートできる差分に変換します。カウンター自体ではなく、別の名前を付けたコピーを変換してください: キューのページはこれらのカウンターをそれぞれ累計として読み取り、その増加の速さをグラフにするため、差分に変換されたカウンターは **ブローカーのヘルス** と **メトリクス** タブで意味のない値になり、一定のトラフィックが毎秒 0 メッセージとして表示されます。Apache Kafka のオフセット (`kafka.consumer_group.offset_sum`、`kafka.partition.current_offset`) と、Apache Pulsar の `pulsar_in_messages_total` と `pulsar_out_messages_total` はゲージとして届き、`cumulative_to_delta` はそれを変更しません: これらのシステムでは、代わりにラグとバックログのゲージでアラートします。
 
 アラート用に `rabbitmq.message.published` のコピーを追加した [RabbitMQ](#rabbitmq) の構成:
 
@@ -1016,7 +1016,7 @@ service:
 - **RabbitMQ のスパンは通常エクスチェンジを示し、ブローカーのメトリクスはキューを示します**。ほとんどの計装 (デフォルトの Java エージェント、Node.js 用の amqplib、Python 用の pika と aio-pika、.NET 用の RabbitMQ.Client) は、パブリッシュ側でもコンシューム側でも、メッセージが通過したエクスチェンジを示します。そのスパンはエクスチェンジにちなんだ名前のキューに入り、`rabbitmq` レシーバーのメトリクスはキューそのものに入ります。両者が一致するのは、ルーティングキーがキュー名であるデフォルトエクスチェンジ経由で送信されたメッセージと、`OTEL_SEMCONV_STABILITY_OPT_IN=messaging` を指定した Java エージェント 2.31.0 以降がトレースするコンシューマーの場合です。後者のスパンはエクスチェンジ、ルーティングキー、キュー (`shop:new-order:orders`) を示し、OneUptime はそこからキューを取り出します。MassTransit はメッセージタイプごとに 1 つのエクスチェンジ (`Namespace:Type`) を示し、その名前はそのまま保持されます。また、その受信スパンは `messaging.system` を設定しないため、キューを作成せず、そのコンシューマーとしても表示されません。
 - **Pub/Sub のパブリッシャーはトピックを示し、サブスクライバーはサブスクリプションを示します**。Google のすべてのクライアントライブラリは、パブリッシュ側でトピックを、コンシューム側でサブスクリプションを報告するため、トピックとその各サブスクリプションは別々のキューになります: パブリッシュのスパンとトピックのメトリクスが一方に、コンシュームのスパンとサブスクリプションのメトリクスがほかのキューに入ります。
 - **Pulsar のコンシューマーごとの系列はグラフから除外されます**。そのため、サブスクリプションに配信されたメッセージが 2 回数えられることはありません。
-- **Azure Storage Queues にはキューごとのメトリクスがありません**。Azure Monitor はストレージアカウント全体のメッセージ数しか報告せず、それも 1 時間に 1 回なので、ブローカーの正常性はありません。
+- **Azure Storage Queues にはキューごとのメトリクスがありません**。Azure Monitor はストレージアカウント全体のメッセージ数しか報告せず、それも 1 時間に 1 回なので、ブローカーのヘルスはありません。
 - **RocketMQ の再試行トピックとシステムトピックは、ブローカーメトリクスから除外されません**。RocketMQ が `is_retry` または `is_system` でマークする系列も、ほかと同じように数えられます。
 
 ## セルフホストでの調整
@@ -1039,7 +1039,7 @@ service:
 
 スパンがキューを示しているなら、同じシステムと宛先で手動で作成します (**キュー → キューを作成**): その **トレース** タブには、すでに保存されているスパンが表示されます。
 
-### ブローカーの正常性が空のまま
+### ブローカーのヘルスが空のまま
 
 - Collector のログを確認します。OneUptime は誤った取り込みキーを `401` で拒否し (無効化されたキーやブラウザーキーの場合は `422`)、Collector は破棄するバッチごとに `Exporting failed` をログに出力します。
 - メトリクスがスパンとは異なる名前でキューを示しています。RabbitMQ のスパンは通常エクスチェンジを示しますが、ブローカーのメトリクスはキューを表します。Pub/Sub のトピックにはトピックのメトリクスが、そのサブスクリプションにはサブスクリプションのメトリクスが付きます。名前空間のホストがない Service Bus と Event Hubs のスパンは、Azure Monitor のメトリクスとは別のキューに入ります ([制限事項](#制限事項) を参照)。

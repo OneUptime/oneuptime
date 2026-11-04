@@ -256,10 +256,10 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (поток JSON: `numberofmessagespublished`) | Messages published | Количество за период |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (поток JSON: `numberofnotificationsdelivered`) | Notifications delivered | Количество за период |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (поток JSON: `numberofnotificationsfailed`) | Notifications failed | Количество за период |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (поток JSON: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | Количество за период |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (поток JSON: `numberofmessagespublished`) | Опубликованные сообщения | Количество за период |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (поток JSON: `numberofnotificationsdelivered`) | Доставленные уведомления | Количество за период |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (поток JSON: `numberofnotificationsfailed`) | Неудачные уведомления | Количество за период |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (поток JSON: `numberofnotificationsredriventodlq`) | Перенаправлено в очередь недоставленных | Количество за период |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (поток JSON: `approximatenumberofmessagesvisible`) | Messages visible | Gauge |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (поток JSON: `approximateageofoldestmessage`) | Oldest message age | Gauge |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (поток JSON: `approximatenumberofmessagesnotvisible`) | Messages in flight | Gauge |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (поток JSON: `numberofmessagessent`) | Messages sent | Количество за период |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (поток JSON: `numberofmessagesreceived`) | Messages received | Количество за период |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (поток JSON: `numberofmessagesdeleted`) | Messages deleted | Количество за период |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (поток JSON: `approximatenumberofmessagesvisible`) | Видимые сообщения | Gauge |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (поток JSON: `approximateageofoldestmessage`) | Возраст самого старого сообщения | Gauge |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (поток JSON: `approximatenumberofmessagesnotvisible`) | Сообщения в обработке | Gauge |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (поток JSON: `numberofmessagessent`) | Отправленные сообщения | Количество за период |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (поток JSON: `numberofmessagesreceived`) | Полученные сообщения | Количество за период |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (поток JSON: `numberofmessagesdeleted`) | Удалённые сообщения | Количество за период |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ java -jar opentelemetry-jmx-scraper.jar
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | Gauge |
-| `activemq.message.current` | Queue size (legacy names) | Gauge |
-| `activemq.message.enqueued` | Enqueued | Счётчик, отображается в секунду |
-| `activemq.message.dequeued` | Dequeued | Счётчик, отображается в секунду |
-| `activemq.message.expired` | Expired | Счётчик, отображается в секунду |
-| `activemq.consumer.count` | Consumers | Gauge |
-| `activemq.message.enqueue.average_duration` | Average time in queue | Gauge |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | Gauge |
+| `activemq.message.queue.size` | Размер очереди | Gauge |
+| `activemq.message.current` | Размер очереди (устаревшие имена) | Gauge |
+| `activemq.message.enqueued` | Поставлено в очередь | Счётчик, отображается в секунду |
+| `activemq.message.dequeued` | Извлечено из очереди | Счётчик, отображается в секунду |
+| `activemq.message.expired` | Истёк | Счётчик, отображается в секунду |
+| `activemq.consumer.count` | Потребители | Gauge |
+| `activemq.message.enqueue.average_duration` | Среднее время в очереди | Gauge |
+| `activemq.message.wait_time.avg` | Среднее время в очереди (устаревшие имена) | Gauge |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | Gauge |
-| `kafka.consumer_group.lag` | Partition lag | Gauge |
-| `kafka.consumer_group.offset_sum` | Consumed | Счётчик, отображается в секунду |
-| `kafka.partition.current_offset` | Produced | Счётчик, отображается в секунду |
+| `kafka.consumer_group.lag_sum` | Отставание потребителей | Gauge |
+| `kafka.consumer_group.lag` | Отставание раздела | Gauge |
+| `kafka.consumer_group.offset_sum` | Получено | Счётчик, отображается в секунду |
+| `kafka.partition.current_offset` | Произведено | Счётчик, отображается в секунду |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | Gauge |
-| `pulsar_subscription_back_log` | Subscription backlog | Gauge |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | Gauge |
-| `pulsar_in_messages_total` | Messages in | Счётчик, отображается в секунду |
-| `pulsar_out_messages_total` | Messages out | Счётчик, отображается в секунду |
+| `pulsar_msg_backlog` | Накопившиеся сообщения | Gauge |
+| `pulsar_subscription_back_log` | Накопившиеся сообщения подписки | Gauge |
+| `pulsar_storage_backlog_age_seconds` | Возраст накопившихся сообщений | Gauge |
+| `pulsar_in_messages_total` | Входящие сообщения | Счётчик, отображается в секунду |
+| `pulsar_out_messages_total` | Исходящие сообщения | Счётчик, отображается в секунду |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | Gauge |
-| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Счётчик, отображается в секунду |
-| `rocketmq_messages_in_total` | Messages in | Счётчик, отображается в секунду |
+| `rocketmq_consumer_lag_messages` | Отставание потребителей | Gauge |
+| `rocketmq_consumer_ready_messages` | Готовые сообщения | Gauge |
+| `rocketmq_send_to_dlq_messages_total` | Отправлено в очередь недоставленных | Счётчик, отображается в секунду |
+| `rocketmq_messages_in_total` | Входящие сообщения | Счётчик, отображается в секунду |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | Количество за период |
-| `azure_outgoingmessages_total` | Outgoing messages | Количество за период |
-| `azure_servererrors_total` | Server errors | Количество за период |
-| `azure_usererrors_total` | User errors | Количество за период |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | Количество за период |
-| `azure_throttledrequests_total` | Throttled requests | Количество за период |
+| `azure_incomingmessages_total` | Входящие сообщения | Количество за период |
+| `azure_outgoingmessages_total` | Исходящие сообщения | Количество за период |
+| `azure_servererrors_total` | Ошибки сервера | Количество за период |
+| `azure_usererrors_total` | Ошибки пользователя | Количество за период |
+| `azure_quotaexceedederrors_total` | Ошибки превышения квоты | Количество за период |
+| `azure_throttledrequests_total` | Ограниченные запросы | Количество за период |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | Gauge |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | Gauge |
-| `azure_incomingmessages_total` | Incoming messages | Количество за период |
-| `azure_outgoingmessages_total` | Outgoing messages | Количество за период |
-| `azure_completemessage_total` | Completed messages | Количество за период |
-| `azure_abandonmessage_total` | Abandoned messages | Количество за период |
-| `azure_servererrors_total` | Server errors | Количество за период |
-| `azure_usererrors_total` | User errors | Количество за период |
-| `azure_throttledrequests_total` | Throttled requests | Количество за период |
+| `azure_activemessages_average` | Активные сообщения | Gauge |
+| `azure_deadletteredmessages_average` | Сообщения в очереди недоставленных | Gauge |
+| `azure_incomingmessages_total` | Входящие сообщения | Количество за период |
+| `azure_outgoingmessages_total` | Исходящие сообщения | Количество за период |
+| `azure_completemessage_total` | Завершённые сообщения | Количество за период |
+| `azure_abandonmessage_total` | Отклонённые сообщения | Количество за период |
+| `azure_servererrors_total` | Ошибки сервера | Количество за период |
+| `azure_usererrors_total` | Ошибки пользователя | Количество за период |
+| `azure_throttledrequests_total` | Ограниченные запросы | Количество за период |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | Gauge |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | Gauge |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | Количество за период |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | Количество за период |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | Количество за период |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Недоставленные сообщения | Gauge |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Возраст самого старого неподтверждённого сообщения | Gauge |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Сообщения в очереди недоставленных | Количество за период |
+| `pubsub.googleapis.com/subscription/ack_message_count` | Подтверждённые сообщения | Количество за период |
+| `pubsub.googleapis.com/topic/send_request_count` | Запросы публикации | Количество за период |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | Метрика | Отображается как | Тип |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | Gauge |
-| `rabbitmq.message.published` | Published | Счётчик, отображается в секунду |
-| `rabbitmq.message.delivered` | Delivered | Счётчик, отображается в секунду |
-| `rabbitmq.message.acknowledged` | Acknowledged | Счётчик, отображается в секунду |
-| `rabbitmq.message.dropped` | Dropped | Счётчик, отображается в секунду |
-| `rabbitmq.consumer.count` | Consumers | Gauge |
+| `rabbitmq.message.current` | Глубина очереди | Gauge |
+| `rabbitmq.message.published` | Опубликовано | Счётчик, отображается в секунду |
+| `rabbitmq.message.delivered` | Доставлено | Счётчик, отображается в секунду |
+| `rabbitmq.message.acknowledged` | Подтверждён | Счётчик, отображается в секунду |
+| `rabbitmq.message.dropped` | Отброшено | Счётчик, отображается в секунду |
+| `rabbitmq.consumer.count` | Потребители | Gauge |
 
 ## Оповещения
 

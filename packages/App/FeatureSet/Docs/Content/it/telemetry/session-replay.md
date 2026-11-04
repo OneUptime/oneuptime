@@ -43,7 +43,7 @@ La riproduzione delle sessioni è attiva per impostazione predefinita. Le sue im
 
 | Dove | Cosa c'è |
 | --- | --- |
-| La pagina **Replay Policy** dell'applicazione | La policy (registrazione, mascheramento, consenso, tracciamento e limiti), un riepilogo di **Stato della registrazione**, la scheda **Cosa contiene una registrazione**, il pannello **Test your installation** e **Record a specific user's next session**. |
+| La pagina **Policy di riproduzione** dell'applicazione | La policy (registrazione, mascheramento, consenso, tracciamento e limiti), un riepilogo di **Stato della registrazione**, la scheda **Cosa contiene una registrazione**, il pannello **Test your installation** e **Record a specific user's next session**. |
 | La pagina **Integrità** dell'applicazione | Se le registrazioni arrivano, e perché non arrivano quando non arrivano. Vedi [Stato della registrazione](#stato-della-registrazione). |
 | **Monitoraggio degli utenti reali → Impostazioni → Riproduzione delle sessioni** | L'interruttore dell'intero progetto che ferma tutte le applicazioni insieme, e un elenco in sola lettura della policy di ogni applicazione. |
 
@@ -290,7 +290,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Privacy
 
-**Il mascheramento avviene alla cattura, sul dispositivo dell'utente finale, prima che venga inviato qualsiasi cosa.** Il server non riceve mai ciò che è stato mascherato, quindi una decisione di mascheramento non si può annullare a posteriori, né applicare retroattivamente. Sul web, ciò che viene mascherato dipende dalla modalità; React Native invia sempre la struttura wireframe più rigida descritta in [Privacy e mascheramento in React Native](#privacy-e-mascheramento-in-react-native). La scheda **Cosa contiene una registrazione** nella pagina **Replay Policy** dell'applicazione riformula queste decisioni in frasi semplici per ciò che hai configurato.
+**Il mascheramento avviene alla cattura, sul dispositivo dell'utente finale, prima che venga inviato qualsiasi cosa.** Il server non riceve mai ciò che è stato mascherato, quindi una decisione di mascheramento non si può annullare a posteriori, né applicare retroattivamente. Sul web, ciò che viene mascherato dipende dalla modalità; React Native invia sempre la struttura wireframe più rigida descritta in [Privacy e mascheramento in React Native](#privacy-e-mascheramento-in-react-native). La scheda **Cosa contiene una registrazione** nella pagina **Policy di riproduzione** dell'applicazione riformula queste decisioni in frasi semplici per ciò che hai configurato.
 
 Le impostazioni di privacy della policy, con il nome che dà loro **Modifica policy**:
 
@@ -333,7 +333,7 @@ La riproduzione delle sessioni funziona subito con un elenco di origini consenti
 Il tuo token di acquisizione viene consegnato al client — nel JavaScript della pagina o nel binario mobile — quindi ci sono due barriere, e si combinano:
 
 - **Sulla chiave.** Crea la chiave di acquisizione con **Browser** come **Tipo di chiave**. Per il web, elenca i suoi **Origini consentite** (`https://app.example.com`, o `https://*.example.com` per un livello di sottodominio). Per React Native, aggiungi l'identità esatta dell'app come `app://com.example.storefront`. Dai alla chiave anche un **Scade il**: così un token copiato smette di funzionare in una data che scegli tu invece che mai.
-- **Sull'applicazione.** **Replay Policy → Origini consentite** limita chi può scrivere registrazioni in questa applicazione, qualunque chiave presenti. Aggiungi qui le stesse origini web e le identità mobile `app://` esatte.
+- **Sull'applicazione.** **Policy di riproduzione → Origini consentite** limita chi può scrivere registrazioni in questa applicazione, qualunque chiave presenti. Aggiungi qui le stesse origini web e le identità mobile `app://` esatte.
 
 Una voce `app://` è il prefisso letterale più l'application id Android o il bundle identifier iOS normalizzato fornito come `mobileAppIdentifier`. Il confronto non distingue maiuscole e minuscole, dopo aver tolto gli spazi e convertito in minuscolo un identificatore reverse-DNS valido. Le identità mobile **non** accettano caratteri jolly: `app://*.example.com` non è valido. L'SDK mobile non invia alcun `Origin` del browser; invia il suo tipo di registratore e l'identità dell'app in intestazioni dedicate. Se una richiesta porta un vero `Origin`, quell'origine vince sempre — le intestazioni mobile non possono mai essere usate per aggirare il controllo dell'origine del browser.
 
@@ -370,7 +370,7 @@ I valori mascherati non conservano la lunghezza. Un campo mascherato è un segna
 <div class="oneuptime-ignore">...</div>
 ```
 
-Puoi anche aggiungere **Selettori di mascheramento aggiuntivi** e **Selettori di blocco** nella pagina **Replay Policy** della tua applicazione, senza cambiare il tuo markup. Con la modalità di mascheramento predefinita, sono lo strumento principale per proteggere contenuti che il tuo markup non dichiara sensibili.
+Puoi anche aggiungere **Selettori di mascheramento aggiuntivi** e **Selettori di blocco** nella pagina **Policy di riproduzione** della tua applicazione, senza cambiare il tuo markup. Con la modalità di mascheramento predefinita, sono lo strumento principale per proteggere contenuti che il tuo markup non dichiara sensibili.
 
 ### Cosa portano le tue richieste
 
@@ -387,7 +387,7 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **Cosa collega.** Uno span, un log o un'eccezione del backend che indica l'utente (un attributo `enduser.id`, un'email in una riga di log) è ora a un clic dalla registrazione, anche con **Acquisisci l'identità dell'utente finale** disattivato: quell'interruttore decide ciò che conserva la registrazione, non ciò che registra il tuo backend. Se le registrazioni non devono poter essere collegate a chi era l'utente, disattiva anche **Propagazione delle tracce stessa origine**.
 - **Chi può dichiararlo.** Come qualsiasi contesto di traccia, il membro è scritto dal client. Chi conoscesse un id di sessione potrebbe inviarlo alla tua API e far archiviare sotto quella sessione gli span delle proprie richieste. Gli id di sessione sono valori casuali a 128 bit, quindi prima gli servirebbe l'id. Lo stesso vale per la traccia indicata da un client: una richiesta che invia un `traceparent` di una traccia che conosce, insieme al membro della propria sessione, porta le righe del backend di quella traccia nel pannello eventi della sua sessione e nella portata della cancellazione di quella sessione. La cancellazione rimuove un'intera traccia solo quando appartiene unicamente alle sessioni cancellate; da una traccia condivisa con altre sessioni rimuove solo le righe marcate con gli id cancellati (vedi [Cancellare le sessioni](#cancellare-le-sessioni)).
 
-Disattivalo per applicazione con **Propagazione delle tracce stessa origine** nella pagina **Replay Policy**; vedi [Disattivare il collegamento automatico](#disattivare-il-collegamento-automatico).
+Disattivalo per applicazione con **Propagazione delle tracce stessa origine** nella pagina **Policy di riproduzione**; vedi [Disattivare il collegamento automatico](#disattivare-il-collegamento-automatico).
 
 ### Consenso
 
@@ -438,7 +438,7 @@ Se ospiti OneUptime in autonomia, usa invece il tuo host.
 
 Un ultimo dettaglio legato alla CSP, che riguarda i fogli di stile e non la tua policy: il registratore può conservare solo un foglio di stile che riesce a leggere. Un foglio di stile di un'altra origine è leggibile solo quando il suo server invia un'intestazione `Access-Control-Allow-Origin` che consente il tuo sito **e** il tuo `<link>` porta `crossorigin="anonymous"`. Altrimenti la registrazione conserva solo il suo indirizzo, e la riproduzione lo carica da lì nel browser di chi guarda; vedi [Immagini, stili e font durante la riproduzione](#immagini-stili-e-font-durante-la-riproduzione). Aggiungi l'attributo solo quando l'intestazione è al suo posto: `crossorigin` senza l'intestazione fa sì che la tua pagina rifiuti il foglio di stile.
 
-Usa il pannello **Test your installation** nella pagina **Replay Policy** dell'applicazione per confermare dal lato server il token, gli interruttori della policy e gli elenchi delle origini consentite. Non può verificare la tua CSP: una CSP è un'intestazione che il tuo sito invia ai tuoi visitatori, e nulla dal lato server la vede mai. Un blocco della CSP si nota lì solo in modo indiretto: `script-src` blocca il registratore, quindi la riga _Recorder loaded on your site_ del pannello resta in attesa; `connect-src` blocca l'invio, quindi quella riga passa mentre la riga della registrazione ricevuta, sotto, resta in attesa. In entrambi i casi la console del browser sulla pagina bloccata registra il rifiuto, ed è l'unica prova certa.
+Usa il pannello **Test your installation** nella pagina **Policy di riproduzione** dell'applicazione per confermare dal lato server il token, gli interruttori della policy e gli elenchi delle origini consentite. Non può verificare la tua CSP: una CSP è un'intestazione che il tuo sito invia ai tuoi visitatori, e nulla dal lato server la vede mai. Un blocco della CSP si nota lì solo in modo indiretto: `script-src` blocca il registratore, quindi la riga _Recorder loaded on your site_ del pannello resta in attesa; `connect-src` blocca l'invio, quindi quella riga passa mentre la riga della registrazione ricevuta, sotto, resta in attesa. In entrambi i casi la console del browser sulla pagina bloccata registra il rifiuto, ed è l'unica prova certa.
 
 ## Correlare con il resto della tua telemetria
 
@@ -466,7 +466,7 @@ Le schede **Registri**, **Tracce** ed **Errori** del lettore mostrano allora que
 
 ### API su un'altra origine
 
-Una richiesta verso un'altra origine non riceve nulla per impostazione predefinita: aggiungere qualsiasi intestazione trasforma una semplice richiesta cross-origin in una con richiesta preliminare, e un'API che non consente l'intestazione comincerebbe a fallire perché hai installato un registratore. Per collegarne una, aggiungi la sua origine a **Origini di propagazione delle tracce** nella pagina **Replay Policy**, al passaggio **Prestazioni e tracciamento** di **Modifica policy**. Elenca solo un'origine la cui API consenta `traceparent` in `Access-Control-Allow-Headers`; è proprio questo il motivo per cui si tratta di un elenco esplicito.
+Una richiesta verso un'altra origine non riceve nulla per impostazione predefinita: aggiungere qualsiasi intestazione trasforma una semplice richiesta cross-origin in una con richiesta preliminare, e un'API che non consente l'intestazione comincerebbe a fallire perché hai installato un registratore. Per collegarne una, aggiungi la sua origine a **Origini di propagazione delle tracce** nella pagina **Policy di riproduzione**, al passaggio **Prestazioni e tracciamento** di **Modifica policy**. Elenca solo un'origine la cui API consenta `traceparent` in `Access-Control-Allow-Headers`; è proprio questo il motivo per cui si tratta di un elenco esplicito.
 
 Le richieste verso un'origine dell'elenco ricevono solo un `traceparent`, senza `tracestate` e quindi senza id di sessione, e la telemetria del loro backend viene associata alla registrazione **per id di traccia**, tramite gli id di traccia osservati dalla registrazione. Le richieste che portano già un `traceparent`, e le chiamate `fetch` fatte con un oggetto `Request` invece che con un URL, non vengono toccate su questo percorso.
 
@@ -519,7 +519,7 @@ Una traccia che il tuo backend scarta non arriva mai a OneUptime, quindi non vie
 
 ### Disattivare il collegamento automatico
 
-**Propagazione delle tracce stessa origine**, nella pagina **Replay Policy** accanto a **Origini di propagazione delle tracce**, è attivo per impostazione predefinita su ogni applicazione. Se lo disattivi, il registratore non aggiunge nulla alle richieste della stessa origine a partire dal caricamento di pagina successivo, e **Origini di propagazione delle tracce** continua a funzionare come prima, per ogni origine che contiene. Quindi, se avevi inserito lì la tua origine (le versioni precedenti di questa pagina lo indicavano), toglila anche da lì, altrimenti le tue richieste continueranno a ricevere un `traceparent`. Con la diagnostica attiva, il registratore dice quale si applica all'avvio: `same-origin-propagation`, con `enabled` e una `reason` (vedi [Risoluzione dei problemi della riproduzione delle sessioni](/docs/rum/session-replay-troubleshooting#codici)).
+**Propagazione delle tracce stessa origine**, nella pagina **Policy di riproduzione** accanto a **Origini di propagazione delle tracce**, è attivo per impostazione predefinita su ogni applicazione. Se lo disattivi, il registratore non aggiunge nulla alle richieste della stessa origine a partire dal caricamento di pagina successivo, e **Origini di propagazione delle tracce** continua a funzionare come prima, per ogni origine che contiene. Quindi, se avevi inserito lì la tua origine (le versioni precedenti di questa pagina lo indicavano), toglila anche da lì, altrimenti le tue richieste continueranno a ricevere un `traceparent`. Con la diagnostica attiva, il registratore dice quale si applica all'avvio: `same-origin-propagation`, con `enabled` e una `reason` (vedi [Risoluzione dei problemi della riproduzione delle sessioni](/docs/rum/session-replay-troubleshooting#codici)).
 
 ### Reindirizzamenti verso un'altra origine
 
@@ -572,7 +572,7 @@ Un processore di span marca ogni span con l'id in vigore quando è iniziato. Scr
 
 ### Dove sono i collegamenti
 
-Un'eccezione nella dashboard mostra una scheda **Watch what the user saw** quando esiste una registrazione di una sessione che ha avuto quell'errore, e apre il lettore dieci secondi prima dell'eccezione con la scheda Errors selezionata. I dettagli di uno span offrono **Guarda la sessione a questo span**; i dettagli di una riga di log offrono **View session replay** al momento della riga quando il log stesso porta l'id di sessione, e un log collegato per id di traccia raggiunge la registrazione tramite la sua traccia. Nell'altra direzione, ogni riga di rete, log, traccia ed errore del lettore porta alla vista della traccia, all'esploratore dei log limitato alla sessione in quel momento, o al gruppo di eccezioni.
+Un'eccezione nella dashboard mostra una scheda **Guarda cosa ha visto l'utente** quando esiste una registrazione di una sessione che ha avuto quell'errore, e apre il lettore dieci secondi prima dell'eccezione con la scheda Errors selezionata. I dettagli di uno span offrono **Guarda la sessione a questo span**; i dettagli di una riga di log offrono **View session replay** al momento della riga quando il log stesso porta l'id di sessione, e un log collegato per id di traccia raggiunge la registrazione tramite la sua traccia. Nell'altra direzione, ogni riga di rete, log, traccia ed errore del lettore porta alla vista della traccia, all'esploratore dei log limitato alla sessione in quel momento, o al gruppo di eccezioni.
 
 ## Guardare una sessione
 
@@ -589,7 +589,7 @@ Ogni riga mostra:
 | **Durata** | Durata, pagine, clic e la quota di inattività («idle 40%»). I conteggi vengono mostrati solo una volta misurati; una sessione non ancora finalizzata dice «counting». |
 | **Segnali** | Errori, rage click / dead click / error click, rage reload, tracce, gruppi di eccezioni e _Slow_ (è scattato un budget di prestazioni). Ogni badge apre il lettore sulla scheda corrispondente del pannello eventi. Una sessione finalizzata senza nulla da segnalare dice _Clean_; una non ancora finalizzata, _Not counted yet_. |
 | **Registrazione** | Un badge che dice onestamente se c'è una registrazione da guardare, più il motivo del trigger («Always-on», «Sampled (25%)», «Error», «Frustration», «Slow page», «Manual»). |
-| **Azioni** | **Watch** è il pulsante della riga. Il suo menu **⋯** ha **Mostra ID**, l'ID completo della sessione da copiare, e, quando la sessione ha avuto un errore, **Watch from first error**, che apre il lettore al primo errore con la scheda Errors selezionata. **Watch** viene offerto solo dove esiste una registrazione; altrimenti la riga dice _Signals only_. Fai clic in qualsiasi punto di una riga per aprirla; Cmd/Ctrl-clic apre una nuova scheda. **View journey**, nel menu **⋯**, mostra le pagine della sessione in ordine in User Flows. |
+| **Azioni** | **Guarda** è il pulsante della riga. Il suo menu **⋯** ha **Mostra ID**, l'ID completo della sessione da copiare, e, quando la sessione ha avuto un errore, **Watch from first error**, che apre il lettore al primo errore con la scheda Errors selezionata. **Guarda** viene offerto solo dove esiste una registrazione; altrimenti la riga dice _Signals only_. Fai clic in qualsiasi punto di una riga per aprirla; Cmd/Ctrl-clic apre una nuova scheda. **View journey**, nel menu **⋯**, mostra le pagine della sessione in ordine in User Flows. |
 
 Gli stati del badge Registrazione:
 
@@ -684,7 +684,7 @@ Ogni controllo resta nell'URL, quindi una mappa è un link che puoi condividere.
 
 **Un utente o una sessione.** **Filter by user or session ID** restringe l'intera pagina a una persona o a una sessione, così l'attività di nessun altro si mescola. Si apre sulle persone viste nell'intervallo, e `Enter` cerca ciò che digiti, trovando anche chi la lista non mostra: il riferimento di un utente, `user:<reference>` per uno con la forma di un id di sessione, un id di sessione completo o `id:<sessionId>`, oppure `visitor:<id>` per un browser. **View journey**, nel menu **⋯** di una riga della pagina Utenti o dell'elenco delle sessioni, apre la stessa vista sull'intervallo di quella pagina. **Show all users** torna a tutti, e **See all their journeys** allarga da una sessione alla persona a cui appartiene.
 
-**Journeys** elenca una riga per sessione, la più recente per prima: quando è iniziata, quanto è durata, su cosa, e i suoi conteggi di errori e frustrazione, poi le sue pagine in ordine da **Landing page** a **Exit page**. Una pagina in ambra con una freccia è un ritorno a una pagina che la sessione aveva già visto, un punto rosso segna una pagina con un errore e un punto ambra una con un segnale di frustrazione. **Watch** apre la registrazione; una sessione senza registrazione lo dice. Una sessione di più di 100 pagine viene tagliata lì, lo dice e non nomina alcuna pagina di uscita. I riquadri, la mappa e le tabelle sottostanti funzionano come sempre, solo su queste sessioni.
+**Journeys** elenca una riga per sessione, la più recente per prima: quando è iniziata, quanto è durata, su cosa, e i suoi conteggi di errori e frustrazione, poi le sue pagine in ordine da **Landing page** a **Exit page**. Una pagina in ambra con una freccia è un ritorno a una pagina che la sessione aveva già visto, un punto rosso segna una pagina con un errore e un punto ambra una con un segnale di frustrazione. **Guarda** apre la registrazione; una sessione senza registrazione lo dice. Una sessione di più di 100 pagine viene tagliata lì, lo dice e non nomina alcuna pagina di uscita. I riquadri, la mappa e le tabelle sottostanti funzionano come sempre, solo su queste sessioni.
 
 L'URL non contiene mai un riferimento. Contiene `userKey`, la chiave pseudonima con cui la persona è memorizzata, oppure `visitor` o `sessionId`. Solo un ruolo che può leggere l'identità dell'utente finale può cercare un riferimento; a qualsiasi altro ruolo viene detto, invece di rispondere per tutti, e può comunque scegliere la persona dalla lista, con il nome nascosto. Una persona viene riconosciuta come fanno i filtri dell'elenco delle sessioni, quindi le sessioni registrate prima di `identify()` si raggiungono tramite l'id visitatore.
 
@@ -781,12 +781,12 @@ Premi `?` nel lettore per questo elenco. Le scorciatoie non si attivano mai ment
 
 ## Stato della registrazione
 
-La pagina **Integrità** dell'applicazione, nella sezione **Riproduzione delle sessioni** del suo menu laterale, risponde dal lato server a «viene registrato qualcosa e, se no, perché?», e la pagina **Replay Policy** ripete la sua diagnosi di una riga sopra la policy. La diagnosi indica una causa, la quantifica e offre un'azione; non dice mai «disconnected» senza un motivo. Gli stati, nell'ordine in cui vengono verificati:
+La pagina **Integrità** dell'applicazione, nella sezione **Riproduzione delle sessioni** del suo menu laterale, risponde dal lato server a «viene registrato qualcosa e, se no, perché?», e la pagina **Policy di riproduzione** ripete la sua diagnosi di una riga sopra la policy. La diagnosi indica una causa, la quantifica e offre un'azione; non dice mai «disconnected» senza un motivo. Gli stati, nell'ordine in cui vengono verificati:
 
 | Stato | Cosa significa | Cosa fare |
 | --- | --- | --- |
 | `disabled-project` | L'interruttore generale dell'intero progetto è spento. | Attivalo in **Monitoraggio degli utenti reali → Impostazioni → Riproduzione delle sessioni**. |
-| `disabled-app` | La riproduzione delle sessioni è disattivata per questa applicazione. | Attivala in **Replay Policy**. |
+| `disabled-app` | La riproduzione delle sessioni è disattivata per questa applicazione. | Attivala in **Policy di riproduzione**. |
 | `budget-paused` | Il budget mensile dell'applicazione o il limite giornaliero di byte del deployment è esaurito; ai registratori attivi è stato detto di fermarsi. | Aumenta il budget, oppure attendi il giorno / mese successivo. Configura gli [avvisi sul budget di archiviazione](#avvisi-sul-budget-di-archiviazione) per saperlo prima che accada. |
 | `refusing` | Stanno arrivando invii che vengono rifiutati — la diagnosi indica il motivo principale e il conteggio nelle ultime 24 ore, per esempio `origin-not-allowed` (212 invii da un'origine che non è tra le tue origini consentite) o `not-sampled`. | Segui il motivo: modifica le origini consentite, aumenta la percentuale di campionamento e così via. |
 | `never-loaded` | Nessun browser ha mai recuperato la policy di questa applicazione. Il tag script non è sulla pagina, oppure l'identificatore non corrisponde. | La guida di configurazione nella pagina **Documentazione** dell'applicazione, nella sua sezione **Riproduzione delle sessioni**, ti guida passo dopo passo. |
@@ -811,7 +811,7 @@ I due budget di archiviazione — il limite giornaliero di invio del progetto e 
 | **Session Replay Monthly Budget Nearly Spent** | Avviso | L'applicazione ha usato l'80% del suo budget mensile. |
 | **Session Replay Monthly Budget Spent** | Critico | Il budget mensile dell'applicazione è esaurito: ai suoi registratori è stato detto di fermarsi fino al giorno 1 del mese successivo (UTC) o finché il budget non viene aumentato. |
 
-Finché la riproduzione delle sessioni è attiva per l'applicazione, la coppia giornaliera viene offerta non appena l'applicazione ha registrato una riproduzione, e la coppia mensile non appena ha anche un **Budget mensile (GB)** nella sua pagina **Replay Policy**; se ne manca una su un'applicazione in cui usi la riproduzione delle sessioni, la scheda dice perché. Non appena viene offerta la coppia giornaliera, **Configura gli avvisi** nel pannello **Storage budget** della pagina **Integrità** apre la scheda filtrata sugli avvisi di budget, compresi quelli che hai già creato. Ognuno che crei è un normale monitor metriche sull'applicazione, e l'incidente e l'avviso che apre dicono cosa fare. Per far durare un budget, abbassa la **Percentuale di campionamento**, invia solo _On error or frustration_ o restringi gli **Origini consentite** in **Replay Policy** — ognuno ferma un invio prima che venga contato — oppure aumenta il **Budget mensile (GB)**. Il limite giornaliero non si può aumentare dalla dashboard; su un'installazione self-hosted è `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (vedi [Note per l'installazione self-hosted](#note-per-linstallazione-self-hosted)).
+Finché la riproduzione delle sessioni è attiva per l'applicazione, la coppia giornaliera viene offerta non appena l'applicazione ha registrato una riproduzione, e la coppia mensile non appena ha anche un **Budget mensile (GB)** nella sua pagina **Policy di riproduzione**; se ne manca una su un'applicazione in cui usi la riproduzione delle sessioni, la scheda dice perché. Non appena viene offerta la coppia giornaliera, **Configura gli avvisi** nel pannello **Storage budget** della pagina **Integrità** apre la scheda filtrata sugli avvisi di budget, compresi quelli che hai già creato. Ognuno che crei è un normale monitor metriche sull'applicazione, e l'incidente e l'avviso che apre dicono cosa fare. Per far durare un budget, abbassa la **Percentuale di campionamento**, invia solo _On error or frustration_ o restringi gli **Origini consentite** in **Policy di riproduzione** — ognuno ferma un invio prima che venga contato — oppure aumenta il **Budget mensile (GB)**. Il limite giornaliero non si può aumentare dalla dashboard; su un'installazione self-hosted è `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (vedi [Note per l'installazione self-hosted](#note-per-linstallazione-self-hosted)).
 
 **Un solo monitor giornaliero copre il progetto.** Il limite giornaliero appartiene al progetto, non a un'applicazione: tutte le sue applicazioni lo consumano insieme, e ogni applicazione che registra porta il valore del progetto, quindi la coppia giornaliera viene offerta su ciascuna di esse, e un monitor giornaliero su una qualsiasi le copre tutte. Crea la coppia giornaliera su una sola applicazione, una che mantiene attiva la riproduzione delle sessioni (il suo monitor vede solo i punti scritti per quell'applicazione), e ignora le schede giornaliere sulle altre; altrimenti un giorno esaurito genera un avviso per applicazione. La coppia mensile è propria di ogni applicazione: creala ovunque imposti un budget.
 
@@ -840,7 +840,7 @@ La coppia giornaliera porta solo `projectId`: il suo valore è quello del proget
 
 - Non è ancora stato contato alcun invio oggi, o questo mese per la coppia mensile — per esempio tra le 00:00 UTC e il primo invio della giornata.
 - I contatori di utilizzo non possono essere letti da Valkey. Un valore sconosciuto non viene mai scritto come 0, così come la pagina Health mostra **sconosciuto** invece di 0. Gli avvisi aperti si risolvono non appena la loro finestra non contiene più punti, e si riaprono, notificando di nuovo, quando i contatori possono essere letti e il budget è ancora oltre la soglia.
-- La riproduzione delle sessioni è disattivata per l'applicazione (**Replay Policy**) o per l'intero progetto (**Monitoraggio degli utenti reali → Impostazioni → Riproduzione delle sessioni**).
+- La riproduzione delle sessioni è disattivata per l'applicazione (**Policy di riproduzione**) o per l'intero progetto (**Monitoraggio degli utenti reali → Impostazioni → Riproduzione delle sessioni**).
 - L'applicazione non ha mai registrato una riproduzione.
 - L'applicazione non ha un budget mensile: non viene contato nulla su un budget che non è impostato, quindi non c'è alcuna coppia mensile. Rimuovere il budget silenzia i suoi monitor mensili, e il valore mensile conta solo gli invii fatti mentre un budget è impostato: uno impostato per la prima volta a metà mese conta da quel momento, non dal giorno 1, mentre uno rimosso e impostato di nuovo nello stesso mese riprende il conteggio precedente di quel mese.
 
@@ -859,7 +859,7 @@ La coppia giornaliera porta solo `projectId`: il suo valore è quello del proget
 
 ## Trigger di cattura sulle prestazioni
 
-Con il trigger _Always_ predefinito ogni sessione campionata viene inviata, quindi questi budget non cambiano nulla di ciò che viene registrato — segnano solo, sulla cronologia e nella scheda **Perf**, gli eventi che li hanno superati. Quando il trigger è _On error or frustration_, estendono i trigger alle sessioni che sono state semplicemente *lente*. Impostali nella pagina **Replay Policy**, al passaggio **Prestazioni e tracciamento** di **Modifica policy**:
+Con il trigger _Always_ predefinito ogni sessione campionata viene inviata, quindi questi budget non cambiano nulla di ciò che viene registrato — segnano solo, sulla cronologia e nella scheda **Perf**, gli eventi che li hanno superati. Quando il trigger è _On error or frustration_, estendono i trigger alle sessioni che sono state semplicemente *lente*. Impostali nella pagina **Policy di riproduzione**, al passaggio **Prestazioni e tracciamento** di **Modifica policy**:
 
 | Budget | Scatta quando | Punto di partenza suggerito |
 | --- | --- | --- |
@@ -888,7 +888,7 @@ Quando un cliente con nome segnala un problema che non riesci a riprodurre, arma
 :::steps
 ### Aprire la policy
 
-Apri la pagina **Replay Policy** dell'applicazione e trova **Record a specific user's next session**.
+Apri la pagina **Policy di riproduzione** dell'applicazione e trova **Record a specific user's next session**.
 
 ### Armare il target
 
@@ -1069,7 +1069,7 @@ Con il trigger _Always_ predefinito, una pagina funzionante invia un frammento c
 
 Due cose ti dicono quale delle due hai davanti:
 
-- **Dal lato server**, la pagina **Integrità** dell'applicazione (vedi [Stato della registrazione](#stato-della-registrazione)) e il pannello **Test your installation** di **Replay Policy**.
+- **Dal lato server**, la pagina **Integrità** dell'applicazione (vedi [Stato della registrazione](#stato-della-registrazione)) e il pannello **Test your installation** di **Policy di riproduzione**.
 - **Dal lato browser**, la diagnostica del registratore stesso. Attivala e ricarica:
 
   ```js

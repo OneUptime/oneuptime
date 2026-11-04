@@ -72,7 +72,7 @@ De schakelaar heeft een bereikbaarheidsregel voor incidenten en een voor waarsch
 
 ### Kiezen hoe u bereikt wordt
 
-Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te krijgen, opent u **Gebruikersinstellingen** in de balk onder de bovenste balk, gaat u naar **Meldingsmethoden** en voegt u op het tabblad **Direct Contact** uw nummer toe onder **Telefoonnummers voor SMS-meldingen** of **Telefoonnummers voor oproepmeldingen**. Klik op **Verifiëren** en voer de code in die OneUptime u stuurt. Een geverifieerd nummer wordt direct gebruikt voor oproepen vanuit bereikbaarheidsdiensten.
+Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te krijgen, opent u **Gebruikersinstellingen** in de balk onder de bovenste balk, gaat u naar **Meldingsmethoden** en voegt u op het tabblad **Direct contact** uw nummer toe onder **Telefoonnummers voor SMS-meldingen** of **Telefoonnummers voor oproepmeldingen**. Klik op **Verifiëren** en voer de code in die OneUptime u stuurt. Een geverifieerd nummer wordt direct gebruikt voor oproepen vanuit bereikbaarheidsdiensten.
 :::
 
 > [!NOTE]

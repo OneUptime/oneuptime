@@ -33,7 +33,7 @@ O gateway toma o lugar da conta do Twilio do próprio servidor em tudo o que pas
 4. Clique em **Send Test**. O seu gateway deve responder com um status 2xx e não enviar nada.
 :::
 
-Para substituir o segredo, apague **Signing Secret** em **Mais campos** e salve: o OneUptime cria um novo. Para voltar ao Twilio, escolha **Twilio** e salve.
+Para substituir o segredo, apague **Segredo de assinatura** em **Mais campos** e salve: o OneUptime cria um novo. Para voltar ao Twilio, escolha **Twilio** e salve.
 
 ## O que o seu gateway recebe
 
@@ -116,7 +116,7 @@ O registro de SMS ou de chamadas, e para um acionamento de plantão o registro d
 
 ## Solicitações de teste
 
-**Send test** envia uma solicitação com `event` definido como `test`, e `to`, `project` e `actions` definidos como `null`. Responda com um status 2xx e não envie nada.
+**Enviar teste** envia uma solicitação com `event` definido como `test`, e `to`, `project` e `actions` definidos como `null`. Responda com um status 2xx e não envie nada.
 
 ## Próximos passos
 

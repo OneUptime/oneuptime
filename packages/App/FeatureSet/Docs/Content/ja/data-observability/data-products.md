@@ -32,6 +32,6 @@
 ## 次のステップ
 
 :::cards
-- [テーブルの健全性](/docs/data-observability/table-health): 各テーブルの鮮度を学習する方法。
+- [テーブルのヘルス](/docs/data-observability/table-health): 各テーブルの鮮度を学習する方法。
 - [OneUptime AI と API](/docs/data-observability/ai-and-api): AI エージェントに、プロダクトのテーブルを使う前に確認させます。
 :::

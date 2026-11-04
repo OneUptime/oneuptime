@@ -283,7 +283,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
   }, [descriptor, observedSeries, props.identity, props.queueName]);
 
   const title: string = descriptor
-    ? getMessageQueueBrokerMetricChartTitle(descriptor)
+    ? getMessageQueueBrokerMetricChartTitle(descriptor, translator)
     : spec
       ? spec.title
       : props.metricName;

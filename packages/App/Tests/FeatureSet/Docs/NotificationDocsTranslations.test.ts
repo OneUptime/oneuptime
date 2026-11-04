@@ -975,9 +975,9 @@ describe("the helpers, on these pages' shapes", () => {
     );
     // A list item's lead is prose.
     expect(dashboardLabels(NOTIFICATION_METHODS)).not.toContain("A phone.");
-    // A tab the Dashboard still draws in English is a label all the same.
+    // A tab of the Notification Methods page is a label, drawn in German.
     expect(dashboardLabels(NOTIFICATION_METHODS)).toContain("Direct Contact");
-    expect(drawnActionLabel("de", "Direct Contact")).toBe("Direct Contact");
+    expect(drawnActionLabel("de", "Direct Contact")).toBe("Direkter Kontakt");
     // An add button is drawn from "Add {{itemName}}".
     expect(drawnActionLabel("de", "Add Notification Rule")).not.toBe(
       "Add Notification Rule",

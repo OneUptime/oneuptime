@@ -180,6 +180,6 @@ sequenceDiagram
 :::cards
 - [Ping मॉनिटर](/docs/monitor/ping-monitor): जांचें कि होस्ट तक खुद पहुंचा जा सकता है।
 - [SSL प्रमाणपत्र मॉनिटर](/docs/monitor/ssl-certificate-monitor): किसी TLS पोर्ट पर प्रमाणपत्र की जांच करें।
-- [डेटाबेस हेल्थ मॉनिटर](/docs/monitor/database-health-monitor): खुले पोर्ट से आगे जाकर डेटाबेस की सेहत पर नज़र रखें।
+- [डेटाबेस स्वास्थ्य मॉनिटर](/docs/monitor/database-health-monitor): खुले पोर्ट से आगे जाकर डेटाबेस के स्वास्थ्य पर नज़र रखें।
 - [कस्टम प्रोब](/docs/probe/custom-probe): अपने नेटवर्क के पोर्ट जांचें।
 :::

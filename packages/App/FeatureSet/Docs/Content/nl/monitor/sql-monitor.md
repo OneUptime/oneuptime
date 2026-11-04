@@ -108,7 +108,7 @@ Voor een nauwere toekenning geeft u de gebruiker `SELECT` op alleen de tabellen 
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **SQL Query** onder **Database Monitoring**, of typ `query` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **SQL Query** onder **Databasebewaking**, of typ `query` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
 
 ### De verbindingsgegevens invoeren
 

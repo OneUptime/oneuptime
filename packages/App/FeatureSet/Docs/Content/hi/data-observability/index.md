@@ -17,7 +17,7 @@
 flowchart TB
     db["आपके डेटाबेस<br/>और वेयरहाउस"] --> collect["हर पांच मिनट में कैटलॉग पढ़ा जाता है,<br/>OneUptime या किसी प्रोब द्वारा"]
     pipes["Airflow, dbt, Spark,<br/>Fivetran, Airbyte"] --> runs["पाइपलाइन रन<br/>और लाइनेज"]
-    collect --> health["टेबल की सेहत:<br/>ताज़गी, वॉल्यूम, स्कीमा"]
+    collect --> health["टेबल का स्वास्थ्य:<br/>ताज़गी, वॉल्यूम, स्कीमा"]
     collect --> checks["जांचें और<br/>मिलान"]
     health --> alerts["अलर्ट, उनके पीछे के<br/>रन या डिप्लॉय के साथ"]
     checks --> alerts
@@ -63,7 +63,7 @@ flowchart TB
 
 :::cards
 - [डेटाबेस कनेक्ट करें](/docs/data-observability/connect): हर इंजन का न्यूनतम अधिकारों वाला लॉगिन, और निजी नेटवर्क के लिए प्रोब।
-- [टेबल की सेहत](/docs/data-observability/table-health): ताज़गी, वॉल्यूम, स्कीमा बदलाव, अप्रयुक्त टेबल और हर टेबल के लिखे मेट्रिक।
+- [टेबल का स्वास्थ्य](/docs/data-observability/table-health): ताज़गी, वॉल्यूम, स्कीमा बदलाव, अप्रयुक्त टेबल और हर टेबल के लिखे मेट्रिक।
 - [जांचें और मिलान](/docs/data-observability/checks): किसी टेबल के मानों पर नियम, किसी टेबल की उसकी कॉपी से तुलना, और dbt के टेस्ट।
 - [लाइनेज और पाइपलाइन](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran और Airbyte, और हर कारण के लिए एक समस्या।
 - [डेटा प्रोडक्ट](/docs/data-observability/data-products): डेटा का उपयोग करने वालों के लिए ताज़गी SLA, स्थिति पृष्ठों पर और SLO के रूप में।

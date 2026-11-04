@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-應用程式 **工作階段重播** 區段中的 **健康狀況** 頁面，以及 **Replay Policy** 上的 **Test your installation** 面板，會從伺服器端檢查金鑰、允許清單與策略，並說明為什麼沒有資料抵達。瀏覽器的主控台則告訴你伺服器看不到的那一半。
+應用程式 **工作階段重播** 區段中的 **健康狀況** 頁面，以及 **重播政策** 上的 **Test your installation** 面板，會從伺服器端檢查金鑰、允許清單與策略，並說明為什麼沒有資料抵達。瀏覽器的主控台則告訴你伺服器看不到的那一半。
 
 在預設策略下，使用者與頁面互動時，錄製器大約每 15 秒傳送一個區塊。閒置的分頁沒有東西可傳送，所以請先按一下或移動滑鼠；如果之後仍然完全沒有區塊請求，就是出了問題。如果應用程式只在 _On error or frustration_ 時上傳，那麼在出問題之前保持靜默是正常的。呼叫 `OneUptimeReplay.captureSession()` 強制上傳，無論哪種情況都能驗證這條路徑。
 

@@ -55,7 +55,7 @@ De app toont meldingen via zijn browser, zodra u de browser registreert voor pus
 
 :::steps
 ### Uw pushapparaten openen
-Open in de app **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **Push Notifications**.
+Open in de app **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **Pushmeldingen**.
 
 ### Deze browser registreren
 Klik op **Apparaat registreren**, houd de voorgestelde **Apparaatnaam**, zoals `Edge on Windows`, of wijzig hem, en klik opnieuw op **Apparaat registreren**. Wanneer de browser vraagt of OneUptime meldingen mag tonen, kiest u **Toestaan**.
@@ -83,7 +83,7 @@ Open in het venster van de app het menu **⋮**, kies het item dat de app verwij
 
 Windows toont de app ook onder **Instellingen → Apps → Geïnstalleerde apps**, waar **Verwijderen** hem ook weghaalt.
 
-Het verwijderen van de app heft de registratie van zijn browser niet op: die krijgt nog steeds meldingen. Om ze te stoppen, verwijdert u de browser onder **Gebruikersinstellingen → Meldingsmethoden**, op het tabblad **Push Notifications**, met **Verwijderen**.
+Het verwijderen van de app heft de registratie van zijn browser niet op: die krijgt nog steeds meldingen. Om ze te stoppen, verwijdert u de browser onder **Gebruikersinstellingen → Meldingsmethoden**, op het tabblad **Pushmeldingen**, met **Verwijderen**.
 
 ## Probleemoplossing
 
@@ -92,7 +92,7 @@ Open na het aanmelden een dashboardpagina, niet de aanmeldpagina, en controleer 
 :::
 
 :::details Er verschijnen geen meldingen
-- Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Push Notifications**, of deze browser in de lijst staat, en stuur hem een **Testmelding**.
+- Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Pushmeldingen**, of deze browser in de lijst staat, en stuur hem een **Testmelding**.
 - Open in Windows **Instellingen → Systeem → Meldingen**: meldingen moeten aanstaan, ook voor de browser, en Niet storen uit. Windows 10 noemt de pagina „Meldingen en acties”.
 - Blokkeert de browser meldingen voor OneUptime, klik dan op het pictogram links in de adresbalk, sta meldingen voor de site toe en registreer de browser opnieuw.
 - Bij een zelf gehost OneUptime zegt het dialoogvenster **Apparaat registreren** wanneer de server geen VAPID-sleutels heeft.

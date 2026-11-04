@@ -33,7 +33,7 @@ flowchart TB
 4. 按一下 **Send Test**。你的閘道應以 2xx 狀態回應，且不傳送任何內容。
 :::
 
-若要更換密鑰，請在 **更多欄位** 下清空 **Signing Secret** 並儲存：OneUptime 會產生新的密鑰。若要改回 Twilio，請選擇 **Twilio** 並儲存。
+若要更換密鑰，請在 **更多欄位** 下清空 **簽署密鑰** 並儲存：OneUptime 會產生新的密鑰。若要改回 Twilio，請選擇 **Twilio** 並儲存。
 
 ## 你的閘道會收到什麼
 
@@ -116,7 +116,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 
 ## 測試要求
 
-**Send test** 會傳送一個 `event` 設為 `test`，且 `to`、`project` 和 `actions` 設為 `null` 的要求。請以 2xx 狀態回應，並且不要傳送任何內容。
+**傳送測試** 會傳送一個 `event` 設為 `test`，且 `to`、`project` 和 `actions` 設為 `null` 的要求。請以 2xx 狀態回應，並且不要傳送任何內容。
 
 ## 後續步驟
 

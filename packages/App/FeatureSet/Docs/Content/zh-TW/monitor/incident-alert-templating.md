@@ -40,7 +40,7 @@ flowchart TB
 
 ### 撰寫標題
 
-在 **事件標題** 或 **警示標題** 中輸入標題，例如 `{{monitorName}} is down`。旁邊的 **Learn about dynamic templates** 會開啟 **Dynamic Template Variables**：列出此監測器類型的所有變數及其內容。點選變數即可複製。
+在 **事件標題** 或 **警示標題** 中輸入標題，例如 `{{monitorName}} is down`。旁邊的 **了解動態範本** 會開啟 **動態範本變數**：列出此監測器類型的所有變數及其內容。點選變數即可複製。
 
 ### 撰寫描述和補救備註
 
@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | 狀態頁面的類型：Atlassian Statuspage、incident.io、RSS 或 Atom。 | `string` |
 | `componentGroup` | 監測器關注的元件群組(如果有)。 | `string` |
 | `componentName` | 監測器關注的元件，以逗號分隔(如果選擇了元件)。 | `string` |
+| `componentNames` | 以清單形式提供的同一組元件，可用 `{{#each componentNames}}` 為每個元件重複一行。 | `Array<string>` |
 | `isOnline` | 狀態頁面是否有回應。 | `boolean` |
 | `responseTimeInMs` | 狀態頁面回應所用的時間，以毫秒為單位。 | `number` |
 | `failureCause` | 檢查失敗時的原因。 | `string` |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## 疑難排解
 
 :::details 標題中顯示了預留位置，連同大括號
-這次檢查中路徑沒有通往任何值。請對照上面的表格檢查變數的名稱和大小寫，或在條件中開啟 **Learn about dynamic templates**：它會列出此監測器類型的變數。進入回應或請求本文的路徑必須與傳送時的本文相符，而 `[*]` 和 `[-1]` 之類的負數索引什麼也讀不到：請使用 `[0]` 或 `[last]`。
+這次檢查中路徑沒有通往任何值。請對照上面的表格檢查變數的名稱和大小寫，或在條件中開啟 **了解動態範本**：它會列出此監測器類型的變數。進入回應或請求本文的路徑必須與傳送時的本文相符，而 `[*]` 和 `[-1]` 之類的負數索引什麼也讀不到：請使用 `[0]` 或 `[last]`。
 :::
 
 :::details 某個值顯示為 JSON

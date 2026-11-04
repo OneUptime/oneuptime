@@ -143,7 +143,7 @@ Para recibir avisos por mensaje directo cuando estás de guardia, añade Slack c
 
 :::steps
 1. Conecta tu propia cuenta de Slack (consulta [Conectar Slack](#conectar-slack)).
-2. Ve a **Ajustes de usuario** > **Métodos de notificación**, abre la pestaña **Workspace Apps** y haz clic en **Añadir cuenta de Slack**.
+2. Ve a **Ajustes de usuario** > **Métodos de notificación**, abre la pestaña **Aplicaciones del espacio de trabajo** y haz clic en **Añadir cuenta de Slack**.
 3. Haz clic en **Enviar mensaje de prueba** en su fila. El mensaje llega a tus mensajes directos de Slack.
 :::
 

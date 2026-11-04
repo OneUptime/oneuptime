@@ -48,7 +48,7 @@ Les requêtes RDAP respectent les réglages `HTTP_PROXY_URL` / `HTTPS_PROXY_URL`
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Domaine** sous **Basic Monitoring**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Domaine** sous **Surveillance de base**.
 
 ### Le nommer
 

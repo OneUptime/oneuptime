@@ -14,6 +14,8 @@ import {
   RESOURCE_AI_LOGS_EMPTY_TITLE,
   RESOURCE_AI_LOGS_PAGE_TITLE,
   RESOURCE_COMMAND_JOB_ORIGIN_LABELS,
+  getResourceAiLogsFixAnchor,
+  readResourceAiLogsFixAnchor,
   ResourceAiLogs,
   ResourceAiLogsFix,
   ResourceAiLogsInvestigation,
@@ -23,6 +25,8 @@ import {
   describeResourceInvestigationSubject,
   getResourceAiLogsEmptyDescription,
   getResourceAiLogsPageSubtitle,
+  getResourceCommandStatusLook,
+  getResourceCommandStatusOptions,
   getResourceCommandsCardDescription,
   getResourceCommandsEmptyMessage,
   getResourceFixStatusLook,
@@ -39,8 +43,6 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Color from "Common/Types/Color";
-import { Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -48,11 +50,9 @@ import ObjectID from "Common/Types/ObjectID";
 import { ResourceAiAccessStatus } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
-import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -74,7 +74,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
   translatableTerm,
   translateTemplate,
@@ -202,7 +202,11 @@ function InvestigationRow(props: {
   );
 }
 
-function FixRow(props: { fix: ResourceAiLogsFix }): ReactElement {
+function FixRow(props: {
+  fix: ResourceAiLogsFix;
+  // The entry a link opened the page on (#fix-<id>): marked.
+  isLinkedTo: boolean;
+}): ReactElement {
   const translator: Translator = useTranslator();
   const look: ResourceAiStatusLook | null = props.fix.status
     ? getResourceFixStatusLook(props.fix.status)
@@ -215,7 +219,18 @@ function FixRow(props: { fix: ResourceAiLogsFix }): ReactElement {
       : null;
 
   return (
-    <li className="py-3" data-testid="ai-logs-fix">
+    <li
+      id={getResourceAiLogsFixAnchor(props.fix.id)}
+      className={`py-3 ${
+        props.isLinkedTo
+          ? "-mx-2 rounded-md bg-indigo-50 px-2 ring-1 ring-indigo-200"
+          : ""
+      }`}
+      data-testid="ai-logs-fix"
+      data-linked={props.isLinkedTo ? "true" : undefined}
+      // The one the link came for, said to a screen reader as it is shown.
+      aria-current={props.isLinkedTo ? "true" : undefined}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {look ? <Pill text={look.label} color={look.color} /> : null}
@@ -264,6 +279,10 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const descriptor: ResourceAiAgentDescriptor = props.descriptor;
   const { id } = useParams();
+  // The fix a link opened the page on (a change OneUptime AI made, on Changes).
+  const linkedFixId: string | null = readResourceAiLogsFixAnchor(
+    useLocation().hash,
+  );
   /*
    * Memoized on the string it was read from: a fresh ObjectID every render
    * would recreate the loaders (which depend on it) and re-run the load
@@ -379,6 +398,25 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
     });
   }, [fetchLogs, fetchStatus, refresher]);
 
+  /*
+   * Opened on one fix's entry: brought into view once the fixes are in.
+   * One the page does not list (older than its newest fixes) leaves the
+   * page where it opens.
+   */
+  useEffect(() => {
+    if (!linkedFixId || isLoading || !logs) {
+      return;
+    }
+
+    const entry: HTMLElement | null = document.getElementById(
+      getResourceAiLogsFixAnchor(linkedFixId),
+    );
+
+    if (entry && typeof entry.scrollIntoView === "function") {
+      entry.scrollIntoView({ block: "center" });
+    }
+  }, [linkedFixId, isLoading, logs]);
+
   const hint: string | null = getResourceAiAgentPageHint(status, descriptor);
   const isEmpty: boolean = Boolean(
     logs && logs.investigations.length === 0 && logs.fixes.length === 0,
@@ -484,7 +522,13 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
           {logs.fixes.length > 0 ? (
             <ul className="divide-y divide-gray-100">
               {logs.fixes.map((fix: ResourceAiLogsFix): ReactElement => {
-                return <FixRow key={fix.id} fix={fix} />;
+                return (
+                  <FixRow
+                    key={fix.id}
+                    fix={fix}
+                    isLinkedTo={fix.id.toLowerCase() === linkedFixId}
+                  />
+                );
               })}
             </ul>
           ) : (
@@ -558,8 +602,7 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
               field: { status: true },
               title: "Result",
               type: FieldType.Dropdown,
-              filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(RunnerJobStatus),
+              filterDropdownOptions: getResourceCommandStatusOptions(),
             },
             {
               field: { origin: true },
@@ -629,30 +672,30 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
               type: FieldType.Element,
               getElement: (item: RunnerJob): ReactElement => {
                 const statusText: string = String(item.status || "");
-                const color: Color =
-                  statusText === RunnerJobStatus.Succeeded
-                    ? Green500
-                    : statusText === RunnerJobStatus.Pending ||
-                        statusText === RunnerJobStatus.Claimed ||
-                        statusText === RunnerJobStatus.Running
-                      ? Yellow500
-                      : Red500;
+                // How it ended in words: "Not picked up in time", never "TimedOut".
+                const look: ResourceAiStatusLook | null = statusText
+                  ? getResourceCommandStatusLook(statusText)
+                  : null;
                 return (
                   <div>
-                    <Pill
-                      text={
-                        typeof item.exitCode === "number"
-                          ? translator.translateTemplate(
-                              "{{status}} (exit {{exitCode}})",
-                              {
-                                status: translatableTerm(statusText),
-                                exitCode: item.exitCode,
-                              },
-                            )
-                          : statusText
-                      }
-                      color={color}
-                    />
+                    {look ? (
+                      <Pill
+                        text={
+                          typeof item.exitCode === "number"
+                            ? translator.translateTemplate(
+                                "{{status}} (exit {{exitCode}})",
+                                {
+                                  status: translatableTerm(look.label),
+                                  exitCode: item.exitCode,
+                                },
+                              )
+                            : look.label
+                        }
+                        color={look.color}
+                      />
+                    ) : (
+                      <></>
+                    )}
                     {item.errorMessage ? (
                       <p className="mt-1 max-w-md break-words text-xs text-rose-600">
                         {item.errorMessage}

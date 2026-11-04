@@ -42,7 +42,7 @@ On the **Delivery** step, **Page everyone through this channel** is on. OneUptim
 
 People see the channel under **User Settings**, then **Notification Methods**, then **Custom Channels**, with a **Send test** button, and pick it in their on-call rules as `Custom Channel: CorpoApp`. They set nothing up: your service is told who each page is for.
 
-To stop sending without changing anyone's rules, edit the channel and turn off **On**. Pages that would have gone to it are recorded in the on-call log as not sent. Deleting a channel deletes every on-call rule that uses it.
+To stop sending without changing anyone's rules, choose **Disable** in the channel's ⋯ menu, or edit the channel and turn off **On**; **Enable** in the same menu turns it back on. Pages that would have gone to it are recorded in the on-call log as not sent. Deleting a channel deletes every on-call rule that uses it.
 
 ## What Your Service Receives
 
@@ -194,6 +194,7 @@ Custom channels work during the Enterprise Edition's 14-day trial and the 30-day
 
 - **Nothing is sent to a custom channel.** A page that would have gone to one is recorded in the person's on-call log as not sent, and so is a test.
 - **Channels are no longer offered.** They leave people's notification methods, on-call rules and notification settings, and readiness and the fallback stop counting them.
+- **Team compliance does not check custom channels.** A team's compliance rule that asks for a custom channel shows **Not checked**, and members are not checked for one until a custom channel can carry a page again.
 - **The page is read-only.** You can see and delete channels, but not add or change them, and no one can point a rule or a notification setting at one.
 - **Nothing is deleted.** The channels, and the on-call rules and settings that use them, are kept.
 

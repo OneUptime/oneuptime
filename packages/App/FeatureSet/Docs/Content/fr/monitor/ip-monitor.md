@@ -47,7 +47,7 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **IP** sous **Basic Monitoring**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **IP** sous **Surveillance de base**.
 
 ### Le nommer
 

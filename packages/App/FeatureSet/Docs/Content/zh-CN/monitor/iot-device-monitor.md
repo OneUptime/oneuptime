@@ -34,7 +34,7 @@ flowchart TB
 ## 开始之前
 
 - **让你的设备开始上报。** [IoT 设备指南](/docs/telemetry/iot-devices) 介绍了如何用 OpenTelemetry SDK 或 Collector，或通过 MQTT 发送指标。
-- **确认机群已注册。** 它会以设备发送的 `iot.fleet.name` 命名，出现在 **产品 → 基础设施 → IoT → All Fleets** 下。
+- **确认机群已注册。** 它会以设备发送的 `iot.fleet.name` 命名，出现在 **产品 → 基础设施 → IoT → 所有设备群** 下。
 - **注册你预期的设备**，在机群的 **设备注册表** 下注册，这样设备静默时你会收到通知：请参阅 [离线检测](#离线检测)。
 
 ## 创建 IoT 设备监视器
@@ -50,7 +50,7 @@ flowchart TB
 
 ### 选择机群
 
-在 **IoT Monitor Configuration** 下，从 **IoT Fleet** 中选择机群。每个发送过数据的机群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 IoT 设备群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
+在 **IoT Monitor Configuration** 下，从 **IoT 设备群** 中选择机群。每个发送过数据的机群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 IoT 设备群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监视的内容
 
@@ -76,7 +76,7 @@ flowchart TB
 
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
-| **IoT Fleet** | 全部 | 必填。把每个查询限定到 `resource.iot.fleet.name`。 |
+| **IoT 设备群** | 全部 | 必填。把每个查询限定到 `resource.iot.fleet.name`。 |
 | **Device ID** | Custom Metric、高级 | 可选。一个设备，按其 `device.id`，例如 `sensor-001`。 |
 | **设备类型** | Custom Metric、高级 | 可选。上报该 `iot.device.type` 的设备，例如 `sensor` 或 `gateway`。 |
 | **IoT Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。 |

@@ -527,7 +527,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 엔드포인트는 서비스 계정 토큰으로 HTTPS를 통해 스크레이프되지만, `http://`로 시작하는 엔드포인트는 일반 HTTP로 스크레이프됩니다. 한 구성 요소의 엔드포인트는 같은 스킴을 공유합니다. 구성 요소에 엔드포인트로 도달할 수 없으면 그 스크레이프는 매 간격마다 실패합니다. Collector는 스크레이프 오류를 기록하고 대상을 다운으로 보고하며, 그 밖에는 아무것도 바뀌지 않습니다.
 
 - **스케줄러**(`10259`)와 **컨트롤러 매니저**(`10257`)는 HTTPS를 제공하고 토큰을 받지만, kubeadm은 컨트롤 플레인 노드에서 이들을 `127.0.0.1`에 바인딩합니다. 에이전트의 Pod가 도달할 수 있는 `--bind-address`가 필요합니다.
-- **etcd**는 `2381`에서 일반 HTTP로 메트릭을 제공합니다(kubeadm의 `--listen-metrics-urls`, 노드의 주소를 추가하기 전까지는 `127.0.0.1`에 바인딩됨). 위 예시와 같습니다. 클라이언트 포트 `2379`는 HTTPS를 제공하며 클라이언트 인증서를 요구합니다. 인증서를 에이전트 네임스페이스의 Secret에 `ca.crt`, `tls.crt`, `tls.key` 키로 넣고, 그 Secret을 `controlPlane.etcd.clientCertSecret`에 지정하세요. kubeadm 컨트롤 플레인 노드에서는 헬스 체크 클라이언트의 인증서를 쓸 수 있습니다:
+- **etcd**는 `2381`에서 일반 HTTP로 메트릭을 제공합니다(kubeadm의 `--listen-metrics-urls`, 노드의 주소를 추가하기 전까지는 `127.0.0.1`에 바인딩됨). 위 예시와 같습니다. 클라이언트 포트 `2379`는 HTTPS를 제공하며 클라이언트 인증서를 요구합니다. 인증서를 에이전트 네임스페이스의 Secret에 `ca.crt`, `tls.crt`, `tls.key` 키로 넣고, 그 Secret을 `controlPlane.etcd.clientCertSecret`에 지정하세요. kubeadm 컨트롤 플레인 노드에서는 상태 확인 클라이언트의 인증서를 쓸 수 있습니다:
 
 ```bash
 kubectl -n oneuptime-agent create secret generic etcd-client-cert \

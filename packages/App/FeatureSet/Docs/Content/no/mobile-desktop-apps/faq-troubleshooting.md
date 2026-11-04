@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo melder en telefon borte når appen er fjernet fra den, eller når push-tokenet ikke lenger er gyldig. Telefonen slettes ikke: **Brukerinnstillinger → Varselmetoder** viser den på fanen **Push Notifications** som **Mottar ikke varsler**, og vakttidslinjen for et varsel som ikke nådde den, sier hvorfor. De andre telefonene og varselmetodene dine varsles som vanlig.
+Expo melder en telefon borte når appen er fjernet fra den, eller når push-tokenet ikke lenger er gyldig. Telefonen slettes ikke: **Brukerinnstillinger → Varselmetoder** viser den på fanen **Push-varsler** som **Mottar ikke varsler**, og vakttidslinjen for et varsel som ikke nådde den, sier hvorfor. De andre telefonene og varselmetodene dine varsles som vanlig.
 
 Appen registrerer telefonen hver gang den starter, når du logger inn, og når du går tilbake til den, høyst én gang hvert femte minutt. Registreringen ber Expo om push-tokenet på nytt, noe som fornyer det, og telefonen får varsler igjen med reglene den hadde.
 
@@ -124,7 +124,7 @@ Tilgangsnøkler krever at adressen til ditt OneUptime begynner med `https://`, o
 
 :::details Ingen varsler på telefonen
 - Sjekk at telefonen tillater varsler fra OneUptime On-Call, og at Ikke forstyrr eller et Fokus ikke holder dem tilbake.
-- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, at telefonen står i listen, og send den et **Testvarsel**.
+- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, at telefonen står i listen, og send den et **Testvarsel**.
 - Er den merket **Mottar ikke varsler**, åpner du appen mens du er logget inn: se [Når en telefon må registreres på nytt](#når-en-telefon-må-registreres-på-nytt).
 - Sjekk vaktreglene dine under **Brukerinnstillinger → Vaktregler**: de bestemmer hvilke varsler som når hvilken metode.
 - På et selvdriftet OneUptime sjekker du at serveren når push-reléet sitt: se [Push-varsler](/docs/self-hosted/push-notifications#nettverkstilgang).
@@ -145,7 +145,7 @@ Installer fra en dashbordside etter innlogging, over `https://`, i Edge eller Ch
 :::
 
 :::details Ingen skrivebordsvarsler
-Registrer nettleseren under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, med **Registrer enhet**, tillat varsler når du blir spurt, og sjekk datamaskinens egne varslingsinnstillinger. Et selvdriftet OneUptime trenger VAPID-nøklene sine for nettleservarsler.
+Registrer nettleseren under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, med **Registrer enhet**, tillat varsler når du blir spurt, og sjekk datamaskinens egne varslingsinnstillinger. Et selvdriftet OneUptime trenger VAPID-nøklene sine for nettleservarsler.
 :::
 
 ## Få hjelp
