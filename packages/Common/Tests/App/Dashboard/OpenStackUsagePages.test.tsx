@@ -298,11 +298,12 @@ describe("a hypervisor's page", () => {
         "openstack-hypervisor-host-throughput",
       );
       // A partition's bytes are its disk's, and a tap's are its interface's.
+      // Six million bytes over the minute between its two readings.
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes(100 * 1024)}/s read`,
+        `${formatOpenStackBytes((6 * 1024 * 1024) / 60)}/s read`,
       );
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes(200 * 1024)}/s written`,
+        `${formatOpenStackBytes((12 * 1024 * 1024) / 60)}/s written`,
       );
       expect(throughput).toHaveTextContent(
         `${formatOpenStackBytes(1024 * 1024)}/s in`,
@@ -852,7 +853,11 @@ describe("a cloud's settings", () => {
     ).toHaveTextContent("This cloud has 100 instances");
     expect(
       screen.getByTestId("openstack-instance-metrics-cost"),
-    ).toHaveTextContent("180,000");
+    ).toHaveTextContent("180,000 rows an hour, about $13 a month");
+    // What Ceilometer costs, which is less: only a poll's worth of rows gets worked out.
+    expect(
+      screen.getByTestId("openstack-instance-metrics-cost"),
+    ).toHaveTextContent("86,400 rows an hour, about $6 a month");
   });
 
   test("only ask which projects and aggregates once that is the choice", async () => {

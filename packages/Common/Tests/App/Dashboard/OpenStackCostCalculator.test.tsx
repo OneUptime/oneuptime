@@ -11,6 +11,11 @@ import {
 } from "../../../Types/OpenStack/OpenStackProbeCollection";
 import { OpenStackServiceType } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
+  OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+  OpenStackInstanceMetricSource,
+  estimateOpenStackInstanceMetricsVolume,
+} from "../../../Types/OpenStack/OpenStackInstanceMetrics";
+import {
   OPENSTACK_LARGE_CLOUD,
   OPENSTACK_MEDIUM_CLOUD,
   OPENSTACK_SMALL_CLOUD,
@@ -77,9 +82,93 @@ describe("the numbers behind the card", () => {
     );
     expect(view.isDatabasePathOffered).toBe(true);
   });
+
+  describe("real usage per instance", () => {
+    test.each([
+      [100, true],
+      [OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT, true],
+      [OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT + 1, false],
+      [5000, false],
+    ])(
+      "%i instances are on by default: %s, at the size the agent stops by itself",
+      (instances: number, isOn: boolean) => {
+        expect(
+          getOpenStackCostView({
+            hypervisors: 10,
+            instances,
+            projects: 10,
+          }).instanceMetrics.isOnByDefault,
+        ).toBe(isOn);
+      },
+    );
+
+    test("costs what the row count comes to, at the same row size and price as the rest", () => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: 10,
+        instances: 100,
+        projects: 10,
+      });
+      const rows: number = estimateOpenStackInstanceMetricsVolume({
+        source: OpenStackInstanceMetricSource.Libvirt,
+        instances: 100,
+      }).rowsPerHour;
+      const expected: number = (rows * 24 * 1024) / (1024 * 1024 * 1024);
+      expect(view.instanceMetrics.libvirt.gigabytesPerDay).toBeCloseTo(
+        expected,
+        6,
+      );
+      // $0.10 a GB kept 15 days, for 30 days.
+      expect(view.instanceMetrics.libvirt.costInUSDPerMonth).toBeCloseTo(
+        expected * 0.1 * 30,
+        6,
+      );
+    });
+
+    test("Ceilometer costs less than libvirt, because it adds rows once a poll", () => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: 10,
+        instances: 100,
+        projects: 10,
+      });
+      expect(view.instanceMetrics.ceilometer.rowsPerHour).toBeLessThan(
+        view.instanceMetrics.libvirt.rowsPerHour,
+      );
+    });
+
+    test("an empty cloud costs nothing", () => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: 0,
+        instances: 0,
+        projects: 0,
+      });
+      expect(view.instanceMetrics.libvirt.costInUSDPerMonth).toBe(0);
+    });
+  });
 });
 
 describe("the card", () => {
+  test("says what real usage per instance costs from each exporter, and whether a cloud this size gets it", () => {
+    render(<OpenStackCostCalculator />);
+    // It starts at 2,000 instances, which is past where it stops by itself.
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-libvirt").textContent,
+    ).toContain("GB a day");
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-ceilometer")
+        .textContent,
+    ).toContain("a month");
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-default").textContent,
+    ).toContain("keeps only each hypervisor's totals until you choose");
+
+    fireEvent.change(screen.getByTestId("openstack-cost-instances"), {
+      target: { value: "100" },
+    });
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-default").textContent,
+    ).toContain("until it passes 500");
+  });
+
   test("starts on a cloud someone could have, and follows what is typed", () => {
     render(<OpenStackCostCalculator />);
 

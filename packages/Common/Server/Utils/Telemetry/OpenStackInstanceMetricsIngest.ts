@@ -31,6 +31,7 @@ import {
   readOpenStackInstanceMetricSamples,
   removeOpenStackInstanceOriginals,
 } from "./OpenStackInstanceMetricsScan";
+import { getOpenStackFlavorRowExternalId } from "./OpenStackSnapshotScan";
 
 /*
  * What OpenStackInstanceMetricsScan needs from outside a batch, around its pure work: the
@@ -291,6 +292,7 @@ export default class OpenStackInstanceMetricsIngest {
           hypervisorName: true,
           regionName: true,
           openStackProjectId: true,
+          facts: true,
         },
         limit: toRead.length,
         skip: 0,
@@ -314,6 +316,22 @@ export default class OpenStackInstanceMetricsIngest {
         ),
       });
 
+    const flavorVcpus: Map<string, number> = await this.readFlavorVcpus({
+      projectId: data.projectId,
+      openStackCloudId: data.openStackCloudId,
+      flavorExternalIds: Array.from(
+        new Set(
+          rows
+            .map((row: OpenStackResource): string | null => {
+              return this.getFlavorExternalIdOf(row);
+            })
+            .filter((id: string | null): id is string => {
+              return Boolean(id);
+            }),
+        ),
+      ),
+    });
+
     const read: Set<string> = new Set();
     for (const row of rows) {
       if (!row.externalId) {
@@ -329,6 +347,7 @@ export default class OpenStackInstanceMetricsIngest {
         projectId: row.openStackProjectId || null,
         aggregates: hypervisor?.aggregates || [],
         hypervisorCapacity: hypervisor?.capacity,
+        vcpus: flavorVcpus.get(this.getFlavorExternalIdOf(row) || "") ?? null,
       };
       known.set(row.externalId, placement);
       placements.set(
@@ -348,6 +367,45 @@ export default class OpenStackInstanceMetricsIngest {
     }
 
     return known;
+  }
+
+  private static getFlavorExternalIdOf(row: OpenStackResource): string | null {
+    const flavorId: unknown = (row.facts as JSONObject | undefined)?.[
+      "flavorId"
+    ];
+    return typeof flavorId === "string" && flavorId
+      ? getOpenStackFlavorRowExternalId(row.regionName || null, flavorId)
+      : null;
+  }
+
+  private static async readFlavorVcpus(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    flavorExternalIds: Array<string>;
+  }): Promise<Map<string, number>> {
+    const vcpus: Map<string, number> = new Map();
+    if (data.flavorExternalIds.length === 0) {
+      return vcpus;
+    }
+    const rows: Array<OpenStackResource> =
+      await OpenStackResourceService.findBy({
+        query: {
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          kind: OpenStackResourceKind.Flavor,
+          externalId: QueryHelper.any(data.flavorExternalIds),
+        },
+        select: { externalId: true, vcpuCapacity: true },
+        limit: data.flavorExternalIds.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    for (const row of rows) {
+      if (row.externalId && row.vcpuCapacity) {
+        vcpus.set(row.externalId, row.vcpuCapacity);
+      }
+    }
+    return vcpus;
   }
 
   private static async readHypervisors(data: {

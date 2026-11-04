@@ -1202,6 +1202,56 @@ if [ "$CONTROL_PLANE_NAMED" = 0 ]; then
 fi
 
 # ----------------------------------------------------------------------------
+section "Real usage per instance"
+# ----------------------------------------------------------------------------
+# Whichever of these a cloud runs, read only when someone named it. What Ceilometer says is
+# up to its polling.yaml, and the file it ships leaves out some of what the pages read.
+USAGE_NAMED=0
+for TARGET in $(target_addresses "$(agent_env OPENSTACK_LIBVIRT_EXPORTER_TARGETS)"); do
+  USAGE_NAMED=1
+  USAGE_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 30 "http://${TARGET}/metrics")
+  USAGE_EXIT=$?
+  if [ "$USAGE_EXIT" != "0" ]; then
+    fail "prometheus-libvirt-exporter at $TARGET does not answer from the agent's network: $(explain_curl_exit "$USAGE_EXIT")."
+    add_finding "The collector cannot scrape prometheus-libvirt-exporter at $TARGET (OPENSTACK_LIBVIRT_EXPORTER_TARGETS), so that compute node's instances have no real usage. Check the address, and that this machine has a route to it."
+  elif ! printf '%s\n' "$USAGE_OUT" | grep -Eq '^libvirt_up '; then
+    fail "$TARGET answers, but with no libvirt_up: it is not prometheus-libvirt-exporter."
+    add_finding "OPENSTACK_LIBVIRT_EXPORTER_TARGETS names $TARGET, and what answers there is not prometheus-libvirt-exporter. Check the port: it is usually 9177."
+  elif printf '%s\n' "$USAGE_OUT" | grep -Eq '^libvirt_up 0'; then
+    warn "prometheus-libvirt-exporter at $TARGET answers, and says it cannot reach libvirt (libvirt_up 0)."
+  else
+    USAGE_COUNT=$(printf '%s\n' "$USAGE_OUT" | grep -c '^libvirt_domain_openstack_info' 2>/dev/null || true)
+    pass "prometheus-libvirt-exporter at $TARGET answers, and says which instance each of its $USAGE_COUNT domains is."
+  fi
+done
+for TARGET in $(target_addresses "$(agent_env OPENSTACK_CEILOMETER_EXPORTER_TARGETS)"); do
+  USAGE_NAMED=1
+  USAGE_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 30 "http://${TARGET}/metrics")
+  USAGE_EXIT=$?
+  if [ "$USAGE_EXIT" != "0" ]; then
+    fail "Ceilometer's exporter at $TARGET does not answer from the agent's network: $(explain_curl_exit "$USAGE_EXIT")."
+    add_finding "The collector cannot scrape Ceilometer's exporter at $TARGET (OPENSTACK_CEILOMETER_EXPORTER_TARGETS), so that compute node's instances have no real usage. Check enable_prometheus_exporter and prometheus_listen_addresses under [polling] in ceilometer.conf."
+  elif ! printf '%s\n' "$USAGE_OUT" | grep -Eq '^ceilometer_cpu\{'; then
+    warn "Ceilometer's exporter at $TARGET answers, but says nothing about any instance's CPU. It says nothing until its first polling cycle, and only what polling.yaml asks for."
+  else
+    pass "Ceilometer's exporter at $TARGET answers."
+    for USAGE_METER in "ceilometer_memory_resident|memory.resident|nothing says what its instances hold on the hypervisor, and Hypervisor Memory Pressure stays quiet" \
+      "ceilometer_disk_device_write_latency|disk.device.write.latency|it has no disk latency, and Instance Disk Latency High stays quiet"; do
+      if ! printf '%s\n' "$USAGE_OUT" | grep -Eq "^${USAGE_METER%%|*}\{"; then
+        USAGE_REST="${USAGE_METER#*|}"
+        warn "Ceilometer at $TARGET isn't polling ${USAGE_REST%%|*}, so ${USAGE_REST#*|}. Add it to polling.yaml."
+      fi
+    done
+    if ! printf '%s\n' "$USAGE_OUT" | grep -Eq '^ceilometer_vcpus\{'; then
+      info "Ceilometer at $TARGET isn't polling vcpus, so an instance's CPU is measured against what its flavor says. Epoxy has no such meter."
+    fi
+  fi
+done
+if [ "$USAGE_NAMED" = 0 ]; then
+  info "None named, so an instance's and a hypervisor's pages say what is promised and not what is busy. Set OPENSTACK_LIBVIRT_EXPORTER_TARGETS or OPENSTACK_CEILOMETER_EXPORTER_TARGETS: README.md says how."
+fi
+
+# ----------------------------------------------------------------------------
 section "6. Cloud-name stamping"
 # ----------------------------------------------------------------------------
 # A missing openstack.cloud.name means metrics ingest into the project but no
