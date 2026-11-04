@@ -191,7 +191,7 @@ Een optie kiezen vraagt om bevestiging, met wat er voor bezoekers verandert, en 
 
 ### Privégebruikers
 
-Voeg de mensen die mogen inloggen toe onder **Statuspagina's → uw pagina → Beveiliging → Privégebruikers**. Er is een actie **In bulk toevoegen**: plak een lijst e-mailadressen en elk adres krijgt een uitnodigingsmail. Privégebruikers hebben hun eigen proces voor een vergeten wachtwoord en het opnieuw instellen ervan, los van de accounts in uw OneUptime-project.
+Voeg de mensen die mogen inloggen toe onder **Statuspagina's → uw pagina → Beveiliging → Privégebruikers**. Er is een actie **In bulk toevoegen**: plak een lijst e-mailadressen en elk adres krijgt een uitnodigingsmail. Privégebruikers hebben hun eigen proces voor een vergeten wachtwoord en het opnieuw instellen ervan, los van de accounts in uw OneUptime-project. Een nieuw wachtwoord meldt hen af op elk apparaat, en elke al verzonden inloglink of resetlink werkt niet meer.
 
 **Privégebruikers en het wachtwoord tellen niet op.** Zolang **Iedereen met het wachtwoord** de keuze is, kunnen privégebruikers niet inloggen (ook zij voeren het wachtwoord in), en het scherm **Privégebruikers** vermeldt dat, met een link terug naar **Toegang**.
 
