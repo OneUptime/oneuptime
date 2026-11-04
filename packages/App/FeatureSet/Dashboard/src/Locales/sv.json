@@ -42084,6 +42084,8 @@
   "The rule, in a sentence": "Regeln, i en mening",
   "Write a Check from a Sentence": "Skriv en kontroll utifrån en mening",
   "Write the Check": "Skriv kontrollen",
+  "ClickHouse": "ClickHouse",
+  "Databricks": "Databricks",
   "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}",
   "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.": "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.",
   "Last Written": "Last Written",

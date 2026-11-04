@@ -42084,6 +42084,8 @@
   "The rule, in a sentence": "Правило одной фразой",
   "Write a Check from a Sentence": "Написать проверку по фразе",
   "Write the Check": "Написать проверку",
+  "ClickHouse": "ClickHouse",
+  "Databricks": "Databricks",
   "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}",
   "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.": "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.",
   "Last Written": "Last Written",

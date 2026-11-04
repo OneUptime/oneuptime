@@ -9,6 +9,14 @@ import {
   SnowflakeConnection,
 } from "./SnowflakeSqlApi";
 import { BigQueryConnection, readBigQueryConnection } from "./BigQueryApi";
+import {
+  ClickHouseConnection,
+  readClickHouseConnection,
+} from "./ClickHouseHttpApi";
+import {
+  DatabricksConnection,
+  readDatabricksConnection,
+} from "./DatabricksApi";
 
 /*
  * WHICH DATABASE A COLLECTION READ: ITS NAME, HOST AND PORT.
@@ -128,6 +136,36 @@ export function readConnectionTarget(
       return {
         databaseName: readName(snowflake.database),
         host: readName(getSnowflakeHost(snowflake.account)),
+        port: 443,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // ClickHouse's: its host and port, and the database when the connection names one.
+  if (connection.engine === "clickhouse") {
+    try {
+      const clickhouse: ClickHouseConnection = readClickHouseConnection(value);
+
+      return {
+        databaseName: readName(clickhouse.database),
+        host: readName(clickhouse.host),
+        port: readPort(clickhouse.port),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // Databricks': the workspace and the catalog, as OpenLineage and dbt name them. Never the token.
+  if (connection.engine === "databricks") {
+    try {
+      const databricks: DatabricksConnection = readDatabricksConnection(value);
+
+      return {
+        databaseName: readName(databricks.catalog),
+        host: readName(databricks.host),
         port: 443,
       };
     } catch {

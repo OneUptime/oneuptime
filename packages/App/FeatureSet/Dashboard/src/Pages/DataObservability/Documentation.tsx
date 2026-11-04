@@ -91,6 +91,31 @@ Google BigQuery: every dataset your Google Cloud connection found is watched alr
 { "projectId": "my-project", "dataset": "analytics", "location": "US", "serviceAccountJson": { "type": "service_account", "...": "..." } }
 \`\`\`
 
+ClickHouse: connect over its HTTP interface, port 8443 with TLS (ClickHouse Cloud) or 8123 without, for example \`clickhouse://oneuptime_reader:...@abc123.us-east-1.aws.clickhouse.cloud:8443/analytics\`. Name a database to watch only it; leave it out to watch every database but the server's own. \`system.parts\` lets OneUptime see each insert between collections (a merge does not count), \`system.part_log\`, where the server keeps it, gives each insert's time, and \`system.query_log\` gives each table's last read and lineage from \`INSERT ... SELECT\`, once an hour. Every statement runs with \`readonly\` set, so even a login that could write cannot.
+
+\`\`\`sql
+CREATE USER oneuptime_reader IDENTIFIED BY '...' SETTINGS readonly = 2;
+GRANT SHOW TABLES, SHOW COLUMNS ON *.* TO oneuptime_reader;
+GRANT SELECT ON system.parts TO oneuptime_reader;
+GRANT SELECT ON system.part_log TO oneuptime_reader;
+GRANT SELECT ON system.query_log TO oneuptime_reader;
+-- Checks read rows: SELECT on the tables they check.
+\`\`\`
+
+Databricks: one Unity Catalog catalog is a database. Its schemas, tables, views and columns, and each Delta table's last commit, are read from Unity Catalog's REST API with no SQL warehouse, so collection costs no compute. Data checks, and lineage, last writes and last reads from the \`system.access.table_lineage\` system table (once an hour), run on the SQL warehouse you name. Connect with a service principal (or a personal access token in place of \`clientId\` and \`clientSecret\`: \`"token": "dapi..."\`):
+
+\`\`\`json
+{ "host": "adb-1234567890123456.7.azuredatabricks.net", "clientId": "...", "clientSecret": "...", "catalog": "main", "warehouseId": "abc123def456" }
+\`\`\`
+
+\`\`\`sql
+GRANT USE CATALOG, BROWSE ON CATALOG main TO \`oneuptime-reader\`;
+GRANT USE SCHEMA ON CATALOG main TO \`oneuptime-reader\`;
+GRANT USE CATALOG ON CATALOG system TO \`oneuptime-reader\`;
+GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO \`oneuptime-reader\`;
+-- Checks read rows: SELECT on the tables they check. And CAN USE on the SQL warehouse.
+\`\`\`
+
 ## Metrics every table writes
 
 Each collection writes these for every table, so you can chart them, put them on dashboards and alert on them like any other metric:
@@ -208,7 +233,7 @@ For any OpenLineage client, set \`OPENLINEAGE_URL\` and \`OPENLINEAGE_API_KEY\`.
 
 Each job appears under **Pipelines**, with its latest run: when it started and ended, how long it took, and the error of a failed run. A run that reads and writes tables OneUptime watches becomes **lineage**: a table's **Lineage** tab shows the tables it is built from, the pipelines that write it with their latest run, and the tables built from it.
 
-Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, \`sqlserver://host:1433\` and \`redshift://cluster:5439\` with \`database.schema.table\`, \`snowflake://account\` with \`database.schema.table\`, and \`bigquery\` with \`project.dataset.table\`.
+Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, \`sqlserver://host:1433\` and \`redshift://cluster:5439\` with \`database.schema.table\`, \`snowflake://account\` with \`database.schema.table\`, \`bigquery\` with \`project.dataset.table\`, \`clickhouse://host:8443\` with \`database.table\`, and \`databricks://workspace-host\` with \`catalog.schema.table\`.
 
 Each pipeline learns from its own runs how long a run usually takes (the median of its last 20 completed runs) and how long it goes between runs on its schedule (the longest gap between its last 50 starts that is not a one-off). Both are known after five runs, and fit a job that runs every five minutes as well as one that runs nightly. When your scheduler sends OpenLineage's \`nominalTime\` facet, as Airflow does, a run's scheduled time stands for its start, so a backfill still reads as the schedule.
 
@@ -261,7 +286,7 @@ oneuptime dbt upload
 In CI, run \`oneuptime dbt upload\` as the step after the build, even when the build fails, so failed tests are recorded. For a dbt Cloud job, download its artifacts with dbt Cloud's API, then upload them with \`--manifest\` and \`--run-results\`. Or post them yourself: \`POST /telemetry/dbt/v1/artifacts\` with \`{ "manifest": ..., "run_results": ... }\` and the key in \`x-oneuptime-token\`.
 
 What each upload does:
-- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL, SQL Server, Redshift, Snowflake and BigQuery. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched, unless only one of them holds the table.
+- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse and Databricks. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched, unless only one of them holds the table.
 - **Lineage:** what each model is built from becomes lineage on the table's **Lineage** tab, through the project's pipeline.
 - **Tests:** each test of a watched table shows on its **Checks** tab, with its last result and the rows it found failing. Click **Alert on Failures** to have a failing test open an alert.
 - **Builds:** each build is a run of the project's pipeline under **Pipelines** (namespace \`dbt\`). A build with an error or a failed test is a failed run, so the pipeline alerts work on dbt builds too: failed, unusually long and late.

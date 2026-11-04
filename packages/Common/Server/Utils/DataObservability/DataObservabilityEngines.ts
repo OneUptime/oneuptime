@@ -11,9 +11,11 @@ import {
  * Every database Data Security samples - PostgreSQL, MySQL and MariaDB, SQL
  * Server - and the warehouses it does not: Amazon Redshift, read over the
  * PostgreSQL protocol with its own catalog views; Snowflake, over its SQL API
- * (SnowflakeSqlApi); and Google BigQuery, each dataset with its Google Cloud
- * connection's service account (BigQueryApi). Data Security's own list and
- * engine mapping are left as they are: it does not sample a warehouse.
+ * (SnowflakeSqlApi); Google BigQuery, each dataset with its Google Cloud
+ * connection's service account (BigQueryApi); ClickHouse, over its HTTP
+ * interface (ClickHouseHttpApi); and Databricks, a Unity Catalog catalog at
+ * a time (DatabricksApi). Data Security's own list and engine mapping are
+ * left as they are: it does not sample a warehouse.
  */
 
 export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
@@ -21,6 +23,8 @@ export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.AwsRedshiftCluster,
   DataStoreKind.Snowflake,
   DataStoreKind.GcpBigQueryDataset,
+  DataStoreKind.ClickHouse,
+  DataStoreKind.Databricks,
 ];
 
 export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
@@ -30,6 +34,8 @@ export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "redshift",
   "snowflake",
   "bigquery",
+  "clickhouse",
+  "databricks",
 ];
 
 export function getCollectorEngineOfKind(
@@ -45,6 +51,14 @@ export function getCollectorEngineOfKind(
 
   if (kind === DataStoreKind.GcpBigQueryDataset) {
     return "bigquery";
+  }
+
+  if (kind === DataStoreKind.ClickHouse) {
+    return "clickhouse";
+  }
+
+  if (kind === DataStoreKind.Databricks) {
+    return "databricks";
   }
 
   return getDatabaseEngineOfKind(kind);

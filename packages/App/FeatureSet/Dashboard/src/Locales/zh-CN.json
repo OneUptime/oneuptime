@@ -42084,6 +42084,8 @@
   "The rule, in a sentence": "用一句话描述规则",
   "Write a Check from a Sentence": "用一句话编写检查",
   "Write the Check": "编写检查",
+  "ClickHouse": "ClickHouse",
+  "Databricks": "Databricks",
   "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}",
   "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.": "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.",
   "Last Written": "Last Written",
