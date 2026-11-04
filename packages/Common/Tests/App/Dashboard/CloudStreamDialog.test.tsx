@@ -784,11 +784,11 @@ describe("the dialog", () => {
   test("the template downloads as the file the command writes", async () => {
     const created: Array<Blob> = [];
     const urlApi: {
-      createObjectURL?: (blob: Blob) => string;
-      revokeObjectURL?: (url: string) => void;
+      createObjectURL?: ((blob: Blob) => string) | undefined;
+      revokeObjectURL?: ((url: string) => void) | undefined;
     } = window.URL as unknown as {
-      createObjectURL?: (blob: Blob) => string;
-      revokeObjectURL?: (url: string) => void;
+      createObjectURL?: ((blob: Blob) => string) | undefined;
+      revokeObjectURL?: ((url: string) => void) | undefined;
     };
     const originalCreate: ((blob: Blob) => string) | undefined =
       urlApi.createObjectURL;

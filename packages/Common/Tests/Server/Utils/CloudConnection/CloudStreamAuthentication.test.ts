@@ -68,7 +68,9 @@ function row(data: {
   connection.projectId = data.projectId;
   connection.provider = data.provider || CloudProvider.AWS;
   connection.isEnabled = data.isEnabled !== false;
-  connection.streamKeyHashes = data.hashes || undefined;
+  if (data.hashes) {
+    connection.streamKeyHashes = data.hashes;
+  }
 
   if (data.serviceName !== null) {
     const service: Service = new Service();
