@@ -161,19 +161,18 @@ function emptyModels(): NotificationMethodModels {
 const ID: Record<
   "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j",
   string
-> =
-  {
-    a: "aaaaaaaaaaaaaaaaaaaaaaaa",
-    b: "bbbbbbbbbbbbbbbbbbbbbbbb",
-    c: "cccccccccccccccccccccccc",
-    d: "dddddddddddddddddddddddd",
-    e: "eeeeeeeeeeeeeeeeeeeeeeee",
-    f: "ffffffffffffffffffffffff",
-    g: "abcabcabcabcabcabcabcabc",
-    h: "cdecdecdecdecdecdecdecde",
-    i: "fabfabfabfabfabfabfabfab",
-    j: "abababababababababababab",
-  };
+> = {
+  a: "aaaaaaaaaaaaaaaaaaaaaaaa",
+  b: "bbbbbbbbbbbbbbbbbbbbbbbb",
+  c: "cccccccccccccccccccccccc",
+  d: "dddddddddddddddddddddddd",
+  e: "eeeeeeeeeeeeeeeeeeeeeeee",
+  f: "ffffffffffffffffffffffff",
+  g: "abcabcabcabcabcabcabcabc",
+  h: "cdecdecdecdecdecdecdecde",
+  i: "fabfabfabfabfabfabfabfab",
+  j: "abababababababababababab",
+};
 
 /*
  * A minimal stand-in for a model row: getDisplayItems only needs getColumnValue,
