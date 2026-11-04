@@ -60,6 +60,12 @@ Cada motor que cuenta lecturas dice cuándo se leyó por última vez cada tabla:
 
 **Tablas sin uso** enumera las tablas que nadie ha leído en 90 días, de la más grande a la más pequeña, con la última vez que se escribió cada una: una tabla que se sigue escribiendo pero nunca se lee cuesta sus escrituras y su almacenamiento. Un contador a 0 en la primera recopilación de una tabla significa que no se ha leído desde que empezaron las estadísticas del motor, así que una tabla sin uso aparece como sin uso desde el principio.
 
+## Gasto del almacén
+
+Una vez por hora, Observabilidad de datos lee lo que cada almacén de Snowflake y BigQuery gastó en el último día, trabajo por trabajo: los créditos de cómputo de Snowflake, de `QUERY_ATTRIBUTION_HISTORY`, y los bytes facturados de BigQuery, de su vista de trabajos, que necesita **BigQuery Resource Viewer**. Un trabajo es una consulta que se ejecuta una y otra vez, nombrada por su etiqueta de consulta o label, o por lo que hace y la tabla que escribe: nunca por el texto de la consulta.
+
+**Gasto del almacén** muestra los totales por equipo (el `team` de la etiqueta o label de un trabajo, o quien lo ejecuta), las tablas cuyas escrituras cuestan más, los trabajos que fallaron y lo que se gasta en trabajos que solo escriben tablas que nadie ha leído en 90 días.
+
 ## Servicios que usan cada tabla
 
 La pestaña **Servicios** de una tabla enumera los servicios que se han visto escribiéndola y leyéndola, con las sentencias que ejecutó cada uno, sus llamadas y fallos de la última hora y la última vez que se vio. Sale de los spans de base de datos que tus servicios ya envían con OpenTelemetry: un span de cliente con `db.system.name`, `db.namespace` y `db.collection.name`. No hay nada más que instalar.

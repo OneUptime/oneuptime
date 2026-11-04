@@ -124,6 +124,11 @@ export function getDataObservabilityBreadcrumbs(
       "Data Observability",
       "BI Dashboards",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SPEND, [
+      "Project",
+      "Data Observability",
+      "Warehouse Spend",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
       ["Project", "Data Observability", "Data Products", "Data Product"],

@@ -24,6 +24,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   tableFreshness: string;
   biSync: (dataBiConnectionId: string) => string;
   tableDashboards: string;
+  spendSummary: string;
 } = {
   overview: "/data-observability/overview",
   stores: "/data-observability/stores",
@@ -69,7 +70,38 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   // The dashboards built on a table, and on the tables built from it.
   tableDashboards: "/data-observability/tables/dashboards",
+  // What the project's warehouses spent over the last day: by team, by table, and where it is wasted.
+  spendSummary: "/data-observability/spend/summary",
 };
+
+export interface DataObservabilitySpendTable {
+  dataAssetId: string;
+  table: string;
+  database: string;
+  credits: number | null;
+  bytesBilled: number | null;
+  // Unread for 90 days: what writing it spends, nobody uses.
+  isUnused: boolean;
+}
+
+export interface DataObservabilitySpendSummary {
+  credits: number;
+  bytesBilled: number;
+  jobCount: number;
+  failingJobCount: number;
+  // Jobs whose every table has gone unread for 90 days, and what they spent.
+  unusedJobCount: number;
+  unusedCredits: number;
+  unusedBytesBilled: number;
+  // By the team a job's tag names, else whoever runs it.
+  byTeam: Array<{
+    team: string;
+    credits: number;
+    bytesBilled: number;
+    jobCount: number;
+  }>;
+  topTables: Array<DataObservabilitySpendTable>;
+}
 
 export interface DataObservabilityBiSyncResponse {
   dashboardCount: number;

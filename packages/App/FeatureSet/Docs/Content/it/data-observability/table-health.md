@@ -60,6 +60,12 @@ Ogni motore che conta le letture dice quando ogni tabella è stata letta l'ultim
 
 **Tabelle inutilizzate** elenca le tabelle che nessuno ha letto da 90 giorni, dalla più grande, con il momento in cui ciascuna è stata scritta l'ultima volta: una tabella ancora scritta ma mai letta costa le sue scritture e il suo spazio di archiviazione. Un contatore a 0 alla prima raccolta di una tabella significa che non è stata letta da quando sono partite le statistiche del motore, quindi una tabella inutilizzata risulta inutilizzata fin dall'inizio.
 
+## Spesa del warehouse
+
+Ogni ora l'Osservabilità dei dati legge quanto ha speso nell'ultimo giorno ogni warehouse Snowflake e BigQuery, job per job: i crediti di calcolo di Snowflake, da `QUERY_ATTRIBUTION_HISTORY`, e i byte fatturati di BigQuery, dalla sua vista dei job, che richiede **BigQuery Resource Viewer**. Un job è una query eseguita più e più volte, chiamata col suo tag o label, oppure con ciò che fa e la tabella che scrive: mai col testo della query.
+
+**Spesa del warehouse** mostra i totali per team (il `team` nel tag o nel label di un job, altrimenti chi lo esegue), le tabelle le cui scritture costano di più, i job non riusciti e quanto va ai job che scrivono solo tabelle che nessuno legge da 90 giorni.
+
 ## Servizi che usano ogni tabella
 
 La scheda **Servizi** di una tabella elenca i servizi visti scriverla e leggerla, con le istruzioni eseguite da ciascuno, le sue chiamate e i suoi errori nell'ultima ora, e il momento in cui è stato visto l'ultima volta. I dati arrivano dagli span di database che i tuoi servizi già inviano con OpenTelemetry: uno span client con `db.system.name`, `db.namespace` e `db.collection.name`. Non c'è nulla in più da installare.

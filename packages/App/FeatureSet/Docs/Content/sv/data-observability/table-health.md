@@ -60,6 +60,12 @@ Varje motor som räknar läsningar visar när varje tabell senast lästes: Postg
 
 **Oanvända tabeller** listar de tabeller som ingen har läst på 90 dagar, de största först, med när var och en senast skrevs till: en tabell som fortfarande skrivs till men aldrig läses kostar sina skrivningar och sin lagring. En räknare på 0 vid en tabells första insamling betyder att den inte har lästs sedan motorns statistik startade, så en oanvänd tabell visas som oanvänd från början.
 
+## Lagerkostnad
+
+En gång i timmen läser Dataobserverbarhet vad varje Snowflake- och BigQuery-lager har spenderat det senaste dygnet, jobb för jobb: Snowflakes beräkningskrediter från `QUERY_ATTRIBUTION_HISTORY` och BigQuerys fakturerade byte från dess jobbvy, som kräver **BigQuery Resource Viewer**. Ett jobb är en fråga som körs om och om igen, namngiven efter sin frågetagg eller label, eller efter vad den gör och tabellen den skriver: aldrig efter frågans text.
+
+**Lagerkostnad** visar summorna per team (`team` i ett jobbs frågetagg eller label, annars den som kör det), tabellerna vars skrivningar kostar mest, jobben som misslyckades och vad som går till jobb som bara skriver tabeller som ingen har läst på 90 dagar.
+
 ## Tjänster som använder varje tabell
 
 En tabells flik **Tjänster** listar de tjänster som har setts skriva till och läsa från den, med de satser var och en körde, dess anrop och fel under den senaste timmen, och när den senast sågs. Den bygger på de databasspans som dina tjänster redan skickar med OpenTelemetry: ett klientspan med `db.system.name`, `db.namespace` och `db.collection.name`. Inget extra att installera.
