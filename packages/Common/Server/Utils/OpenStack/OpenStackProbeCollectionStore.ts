@@ -1,0 +1,986 @@
+import { IsBillingEnabled } from "../../EnvironmentConfig";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import logger from "../Logger";
+import { SubscriptionStatusUtil } from "../../../Types/Billing/SubscriptionStatus";
+import ColumnLength from "../../../Types/Database/ColumnLength";
+import OneUptimeDate from "../../../Types/Date";
+import ObjectID from "../../../Types/ObjectID";
+import OpenStackCollectionErrorCode, {
+  OpenStackCollectionErrorUtil,
+} from "../../../Types/OpenStack/OpenStackCollectionError";
+import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
+import OpenStackCollectionStatus from "../../../Types/OpenStack/OpenStackCollectionStatus";
+import {
+  DEFAULT_OPENSTACK_ENDPOINT_INTERFACE,
+  OpenStackAccessRead,
+  OpenStackCollectionJob,
+  OpenStackCollectionOptions,
+  OpenStackCollectionReport,
+  OpenStackCollectionSummary,
+  OpenStackConnectionTestSummary,
+  OpenStackCredential,
+  OpenStackPresentedCertificate,
+  OpenStackServiceSummary,
+} from "../../../Types/OpenStack/OpenStackProbeCollection";
+import VMwareCertificateFingerprint from "../../../Utils/VMware/VMwareCertificateFingerprint";
+import OpenStackCollectionSettings, {
+  DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+  MAX_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+  MIN_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+} from "../../../Utils/OpenStack/OpenStackCollectionSettings";
+
+/*
+ * The database half of probe collection: which clouds a probe collects now, and what
+ * it found. It is VMware's store (VMwareProbeCollectionStore) for what a cloud is.
+ *
+ * Claiming is atomic (FOR UPDATE SKIP LOCKED) and moves each claimed cloud's
+ * nextCollectionAt an interval on, so two work requests - the same probe's overlapping
+ * ticks, or two server replicas - never hand one cloud out twice. The clouds a probe
+ * says it is still collecting are left out, so a collection slower than its interval
+ * is skipped, not stacked.
+ *
+ * Only a probe that may collect a cloud is ever handed one: the cloud names it, and it
+ * is the project's own probe - or, on a self-hosted install, one of the instance's own
+ * (OpenStackCollectionSettings.getProbeRefusal). The save hooks hold every write to
+ * this, and the claim holds rows written before them to it as well, so a stale row can
+ * be made uncollectable but never hand its credential to the wrong probe.
+ *
+ * Written against OpenStackCollectionCloudService, which DatabaseService<OpenStackCloud>
+ * meets: the columns below come with the phase's model, and nothing here needs more of
+ * the database than that.
+ */
+
+// What the store reads of a cloud: OpenStackCloud's collection columns.
+export interface OpenStackCollectionCloudRecord {
+  _id?: string | undefined;
+  id?: ObjectID | null | undefined;
+  projectId?: ObjectID | undefined;
+  name?: string | undefined;
+  collectionMethod?: OpenStackCollectionMethod | undefined;
+  collectionProbeId?: ObjectID | undefined;
+  collectionProbe?:
+    | { isGlobalProbe?: boolean | undefined; projectId?: ObjectID | undefined }
+    | undefined;
+  collectionSettingsVersion?: number | undefined;
+  collectionIntervalInMinutes?: number | undefined;
+  authUrl?: string | undefined;
+  endpointInterface?: string | undefined;
+  collectionRegions?: Array<string> | undefined;
+  credentialKind?: string | undefined;
+  applicationCredentialId?: string | undefined;
+  keystoneUsername?: string | undefined;
+  userDomainName?: string | undefined;
+  projectName?: string | undefined;
+  projectDomainName?: string | undefined;
+  credentialSecret?: string | undefined;
+  trustedCertificateFingerprints?: Array<string> | undefined;
+  collectionOptions?: OpenStackCollectionOptions | undefined;
+}
+
+export interface OpenStackSqlManager {
+  query: (sql: string, parameters: Array<unknown>) => Promise<unknown>;
+}
+
+// What the store needs of the service that owns the table.
+export interface OpenStackCollectionCloudService {
+  executeTransaction: <T>(
+    run: (manager: OpenStackSqlManager) => Promise<T>,
+  ) => Promise<T>;
+  findBy: (options: {
+    query: Record<string, unknown>;
+    select: Record<string, unknown>;
+    limit: number;
+    skip: number;
+    props: { isRoot: boolean };
+  }) => Promise<Array<OpenStackCollectionCloudRecord>>;
+  findOneById: (options: {
+    id: ObjectID;
+    select: Record<string, unknown>;
+    props: { isRoot: boolean };
+  }) => Promise<OpenStackCollectionCloudRecord | null>;
+  updateColumnsByIdWithoutHooks: (options: {
+    id: ObjectID;
+    data: Record<string, unknown>;
+  }) => Promise<unknown>;
+}
+
+// What recordCollectionReport made of a report.
+export interface OpenStackCollectionReportOutcome {
+  accepted: boolean;
+  // Why a report was not accepted, for the probe's log.
+  reason?: string | undefined;
+  projectId?: ObjectID | undefined;
+  cloudName?: string | undefined;
+  /*
+   * The report is for the cloud's current settings, so its status is the cloud's status
+   * now. A report for older settings still delivers its data, but leaves the status to
+   * the collection of the new ones.
+   */
+  isCurrent?: boolean | undefined;
+}
+
+const MAX_SUMMARY_WARNINGS: number = 20;
+const MAX_SUMMARY_SERVICES: number = 512;
+const MAX_SUMMARY_READS: number = 2048;
+const MAX_TEXT_LENGTH: number = 1000;
+
+export default class OpenStackProbeCollectionStore {
+  public static async claimDueClouds(
+    service: OpenStackCollectionCloudService,
+    data: {
+      probeId: ObjectID;
+      runningOpenStackCloudIds: Array<string>;
+      limit: number;
+    },
+  ): Promise<Array<OpenStackCollectionJob>> {
+    if (data.limit <= 0) {
+      return [];
+    }
+
+    const currentDate: Date = OneUptimeDate.getCurrentDate();
+
+    const runningIds: Array<string> = data.runningOpenStackCloudIds.filter(
+      (id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      },
+    );
+
+    const claimedIds: Array<string> = await service.executeTransaction(
+      async (manager: OpenStackSqlManager): Promise<Array<string>> => {
+        const selectedRows: Array<{
+          _id: string;
+          collectionIntervalInMinutes: number | null;
+        }> = (await manager.query(
+          `
+        SELECT c."_id", c."collectionIntervalInMinutes"
+        FROM "OpenStackCloud" c
+        INNER JOIN "Project" p ON c."projectId" = p."_id"
+        INNER JOIN "Probe" pr ON c."collectionProbeId" = pr."_id"
+        WHERE c."collectionProbeId" = $1
+          AND c."collectionMethod" = $5
+          AND c."deletedAt" IS NULL
+          AND c."isArchived" = false
+          AND c."isCredentialSet" = true
+          AND c."authUrl" IS NOT NULL
+          AND (c."nextCollectionAt" IS NULL OR c."nextCollectionAt" <= $2)
+          AND NOT (c."_id" = ANY($6::uuid[]))
+          -- The tenancy backstop: the project's own probe, or a global
+          -- probe on an instance where those are the operator's own.
+          AND (
+            (pr."isGlobalProbe" = false AND pr."projectId" = c."projectId")
+            OR (pr."isGlobalProbe" = true AND $7::boolean = false)
+          )
+          AND pr."deletedAt" IS NULL
+          AND p."deletedAt" IS NULL
+          -- A project a master admin blocked is not collected until it is unblocked.
+          AND p."isBlocked" = false
+          AND (p."paymentProviderSubscriptionStatus" IS NULL
+               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
+          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
+               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
+        ORDER BY c."nextCollectionAt" ASC NULLS FIRST
+        LIMIT $3
+        FOR UPDATE OF c SKIP LOCKED
+      `,
+          [
+            data.probeId.toString(),
+            currentDate,
+            data.limit,
+            SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+            OpenStackCollectionMethod.Probe,
+            runningIds,
+            IsBillingEnabled,
+          ],
+        )) as Array<{
+          _id: string;
+          collectionIntervalInMinutes: number | null;
+        }>;
+
+        if (selectedRows.length === 0) {
+          return [];
+        }
+
+        const caseFragments: Array<string> = [];
+        const parameters: Array<string | Date> = [];
+        let parameterIndex: number = 1;
+
+        for (const row of selectedRows) {
+          const nextCollectionAt: Date = OneUptimeDate.addRemoveMinutes(
+            currentDate,
+            OpenStackProbeCollectionStore.getSafeInterval(
+              row.collectionIntervalInMinutes,
+            ),
+          );
+
+          /*
+           * ::timestamptz - see NetworkDeviceService.claimDevicesForPolling for why a
+           * ::timestamp cast skews the schedule.
+           */
+          caseFragments.push(
+            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamptz`,
+          );
+          parameters.push(row._id, nextCollectionAt);
+          parameterIndex += 2;
+        }
+
+        const ids: Array<string> = selectedRows.map(
+          (row: { _id: string }): string => {
+            return row._id;
+          },
+        );
+
+        const idPlaceholders: Array<string> = ids.map(
+          (_id: string, index: number): string => {
+            return `$${parameterIndex + index}`;
+          },
+        );
+        parameters.push(...ids);
+
+        await manager.query(
+          `UPDATE "OpenStackCloud" SET "nextCollectionAt" = CASE "_id" ${caseFragments.join(
+            " ",
+          )} END WHERE "_id" IN (${idPlaceholders.join(", ")})`,
+          parameters,
+        );
+
+        return ids;
+      },
+    );
+
+    if (claimedIds.length === 0) {
+      return [];
+    }
+
+    // Read as OneUptime: the secret is decrypted on read.
+    const clouds: Array<OpenStackCollectionCloudRecord> = await service.findBy({
+      query: {
+        _id: QueryHelper.any(claimedIds),
+      },
+      select: {
+        _id: true,
+        name: true,
+        authUrl: true,
+        endpointInterface: true,
+        collectionRegions: true,
+        credentialKind: true,
+        applicationCredentialId: true,
+        keystoneUsername: true,
+        userDomainName: true,
+        projectName: true,
+        projectDomainName: true,
+        credentialSecret: true,
+        trustedCertificateFingerprints: true,
+        collectionIntervalInMinutes: true,
+        collectionSettingsVersion: true,
+        collectionOptions: true,
+      },
+      limit: claimedIds.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const jobs: Array<OpenStackCollectionJob> = [];
+
+    // In the order they were claimed: the longest overdue first.
+    for (const cloud of OpenStackProbeCollectionStore.inClaimOrder(
+      clouds,
+      claimedIds,
+    )) {
+      const credential: OpenStackCredential | null =
+        OpenStackProbeCollectionStore.readCredential(cloud);
+
+      if (!cloud._id || !cloud.authUrl || !credential) {
+        continue;
+      }
+
+      jobs.push({
+        openStackCloudId: cloud._id.toString(),
+        cloudName: cloud.name || "",
+        authUrl: cloud.authUrl,
+        credential: credential,
+        regions: Array.isArray(cloud.collectionRegions)
+          ? cloud.collectionRegions
+          : [],
+        endpointInterface: OpenStackCollectionSettings.isEndpointInterface(
+          cloud.endpointInterface,
+        )
+          ? cloud.endpointInterface
+          : DEFAULT_OPENSTACK_ENDPOINT_INTERFACE,
+        trustedCertificateFingerprints:
+          OpenStackProbeCollectionStore.readFingerprints(
+            cloud.trustedCertificateFingerprints,
+          ),
+        collectionIntervalInMinutes:
+          OpenStackProbeCollectionStore.getSafeInterval(
+            cloud.collectionIntervalInMinutes,
+          ),
+        settingsVersion: cloud.collectionSettingsVersion || 0,
+        options: cloud.collectionOptions || undefined,
+      });
+    }
+
+    return jobs;
+  }
+
+  /*
+   * The credential a row holds, or null when the row holds none it can use. The secret
+   * is one column for either kind, because only one kind is ever saved.
+   */
+  public static readCredential(record: {
+    credentialKind?: string | undefined;
+    applicationCredentialId?: string | undefined;
+    keystoneUsername?: string | undefined;
+    userDomainName?: string | undefined;
+    projectName?: string | undefined;
+    projectDomainName?: string | undefined;
+    credentialSecret?: string | undefined;
+  }): OpenStackCredential | null {
+    if (!record.credentialSecret) {
+      return null;
+    }
+
+    if (
+      record.credentialKind === "applicationCredential" &&
+      record.applicationCredentialId
+    ) {
+      return {
+        kind: "applicationCredential",
+        id: record.applicationCredentialId,
+        secret: record.credentialSecret,
+      };
+    }
+
+    if (
+      record.credentialKind === "password" &&
+      record.keystoneUsername &&
+      record.projectName
+    ) {
+      return {
+        kind: "password",
+        username: record.keystoneUsername,
+        password: record.credentialSecret,
+        userDomainName: record.userDomainName || "Default",
+        projectName: record.projectName,
+        projectDomainName: record.projectDomainName || "Default",
+      };
+    }
+
+    return null;
+  }
+
+  public static readFingerprints(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const fingerprints: Array<string> = [];
+
+    for (const item of value) {
+      const fingerprint: string | null = VMwareCertificateFingerprint.normalize(
+        typeof item === "string" ? item : "",
+      );
+
+      if (fingerprint && !fingerprints.includes(fingerprint)) {
+        fingerprints.push(fingerprint);
+      }
+    }
+
+    return fingerprints;
+  }
+
+  /*
+   * Record what a probe found for a cloud it collected: the status, and - for a report
+   * of the current settings - the error, the certificate it did not trust, and the
+   * summary. Only the cloud's own probe is heard, and only while a probe collects it.
+   */
+  public static async recordCollectionReport(
+    service: OpenStackCollectionCloudService,
+    data: {
+      probeId: ObjectID;
+      report: OpenStackCollectionReport;
+    },
+  ): Promise<OpenStackCollectionReportOutcome> {
+    const report: OpenStackCollectionReport = data.report;
+
+    if (
+      !report.openStackCloudId ||
+      !ObjectID.isValidUUID(report.openStackCloudId)
+    ) {
+      return { accepted: false, reason: "The report names no cloud." };
+    }
+
+    const cloud: OpenStackCollectionCloudRecord | null =
+      await service.findOneById({
+        id: new ObjectID(report.openStackCloudId),
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          collectionMethod: true,
+          collectionProbeId: true,
+          collectionSettingsVersion: true,
+          collectionProbe: {
+            _id: true,
+            isGlobalProbe: true,
+            projectId: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      !cloud ||
+      !cloud.projectId ||
+      cloud.collectionMethod !== OpenStackCollectionMethod.Probe ||
+      !cloud.collectionProbeId ||
+      cloud.collectionProbeId.toString().toLowerCase() !==
+        data.probeId.toString().toLowerCase()
+    ) {
+      return {
+        accepted: false,
+        reason:
+          "This probe does not collect that cloud (any more): it was deleted, switched to the OpenStack agent, or moved to another probe.",
+      };
+    }
+
+    const refusal: string | null = OpenStackCollectionSettings.getProbeRefusal({
+      probe: {
+        isGlobalProbe: cloud.collectionProbe?.isGlobalProbe,
+        projectId: cloud.collectionProbe?.projectId?.toString() || null,
+      },
+      projectId: cloud.projectId.toString(),
+      isBillingEnabled: IsBillingEnabled,
+    });
+
+    if (refusal) {
+      return { accepted: false, reason: refusal };
+    }
+
+    const isCurrent: boolean =
+      Number(report.settingsVersion) ===
+      Number(cloud.collectionSettingsVersion || 0);
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const values: Record<string, unknown> = {
+      lastCollectionAt: now,
+    };
+
+    if (isCurrent) {
+      const status: OpenStackCollectionStatus =
+        report.status === OpenStackCollectionStatus.Succeeded
+          ? OpenStackCollectionStatus.Succeeded
+          : report.status === OpenStackCollectionStatus.PartiallySucceeded
+            ? OpenStackCollectionStatus.PartiallySucceeded
+            : OpenStackCollectionStatus.Failed;
+
+      values["collectionStatus"] = status;
+
+      if (status !== OpenStackCollectionStatus.Failed) {
+        values["lastSuccessfulCollectionAt"] = now;
+      }
+
+      const summary: OpenStackCollectionSummary | null =
+        OpenStackProbeCollectionStore.sanitizeSummary(report.summary);
+
+      if (summary) {
+        values["collectionSummary"] = summary;
+      }
+
+      if (status === OpenStackCollectionStatus.Succeeded) {
+        values["collectionErrorCode"] = null;
+        values["collectionError"] = null;
+        values["presentedCertificate"] = null;
+      } else {
+        const errorCode: OpenStackCollectionErrorCode =
+          OpenStackCollectionErrorUtil.isValid(report.errorCode)
+            ? report.errorCode
+            : OpenStackCollectionErrorCode.Internal;
+
+        values["collectionErrorCode"] = errorCode;
+        values["collectionError"] = OpenStackProbeCollectionStore.getErrorText({
+          errorCode: errorCode,
+          errorMessage: report.errorMessage,
+        });
+        values["presentedCertificate"] =
+          OpenStackCollectionErrorUtil.isCertificateTrustProblem(errorCode)
+            ? OpenStackProbeCollectionStore.sanitizePresentedCertificate(
+                report.presentedCertificate,
+              )
+            : null;
+      }
+    }
+
+    try {
+      await service.updateColumnsByIdWithoutHooks({
+        id: cloud.id || new ObjectID(report.openStackCloudId),
+        data: values,
+      });
+    } catch (error) {
+      logger.error(
+        `Could not record the collection of cloud ${report.openStackCloudId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw error;
+    }
+
+    return {
+      accepted: true,
+      projectId: cloud.projectId,
+      cloudName: cloud.name || undefined,
+      isCurrent: isCurrent,
+    };
+  }
+
+  public static getSafeInterval(value: number | null | undefined): number {
+    const interval: number = Number(value);
+
+    if (!Number.isFinite(interval) || interval <= 0) {
+      return DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES;
+    }
+
+    return Math.min(
+      Math.max(
+        Math.round(interval),
+        MIN_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+      ),
+      MAX_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+    );
+  }
+
+  /*
+   * Rows read back by id, in the order their ids were claimed (a read by id comes back
+   * in whatever order Postgres finds them). Rows whose id was not claimed are left out.
+   */
+  public static inClaimOrder<T extends { _id?: string | undefined }>(
+    rows: Array<T>,
+    claimedIds: Array<string>,
+  ): Array<T> {
+    const byId: Map<string, T> = new Map();
+
+    for (const row of rows) {
+      if (row._id) {
+        byId.set(row._id.toString().toLowerCase(), row);
+      }
+    }
+
+    const ordered: Array<T> = [];
+
+    for (const id of claimedIds) {
+      const row: T | undefined = byId.get(id.toLowerCase());
+
+      if (row) {
+        ordered.push(row);
+      }
+    }
+
+    return ordered;
+  }
+
+  /*
+   * The sentence stored for a failure: the probe's own, bounded - or, when it sent none
+   * (or only blanks), the code's title.
+   */
+  public static getErrorText(data: {
+    errorCode: OpenStackCollectionErrorCode;
+    errorMessage: unknown;
+  }): string | null {
+    return (
+      OpenStackProbeCollectionStore.boundText(
+        data.errorMessage,
+        ColumnLength.LongText,
+      ) ||
+      OpenStackProbeCollectionStore.boundText(
+        OpenStackCollectionErrorUtil.getAdvice(data.errorCode).title,
+        ColumnLength.LongText,
+      )
+    );
+  }
+
+  public static boundText(value: unknown, maxLength: number): string | null {
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    const trimmed: string = value.trim();
+
+    if (!trimmed) {
+      return null;
+    }
+
+    return trimmed.length > maxLength
+      ? `${trimmed.substring(0, maxLength - 1)}…`
+      : trimmed;
+  }
+
+  /*
+   * A presented certificate as the probe reported it, held to the shape the dashboard
+   * reads: a fingerprint in the canonical spelling, and bounded strings. Null when the
+   * fingerprint is not one.
+   */
+  public static sanitizePresentedCertificate(
+    value: unknown,
+  ): OpenStackPresentedCertificate | null {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const raw: Record<string, unknown> = value as Record<string, unknown>;
+
+    const fingerprint: string | null = VMwareCertificateFingerprint.normalize(
+      typeof raw["fingerprint256"] === "string"
+        ? (raw["fingerprint256"] as string)
+        : null,
+    );
+
+    if (!fingerprint) {
+      return null;
+    }
+
+    const certificate: OpenStackPresentedCertificate = {
+      fingerprint256: fingerprint,
+      subject:
+        OpenStackProbeCollectionStore.boundText(
+          raw["subject"],
+          MAX_TEXT_LENGTH,
+        ) || "",
+      issuer:
+        OpenStackProbeCollectionStore.boundText(
+          raw["issuer"],
+          MAX_TEXT_LENGTH,
+        ) || "",
+      isSelfSigned: raw["isSelfSigned"] === true,
+    };
+
+    for (const key of [
+      "validFrom",
+      "validTo",
+      "subjectAltName",
+      "verificationError",
+      "host",
+    ] as const) {
+      const text: string | null = OpenStackProbeCollectionStore.boundText(
+        raw[key],
+        MAX_TEXT_LENGTH,
+      );
+
+      if (text) {
+        certificate[key] = text;
+      }
+    }
+
+    const port: number = Number(raw["port"]);
+
+    if (Number.isInteger(port) && port > 0 && port <= 65535) {
+      certificate.port = port;
+    }
+
+    return certificate;
+  }
+
+  private static wholeCount(value: unknown): number {
+    const number: number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+  }
+
+  private static boundList(value: unknown, max: number): Array<string> {
+    return (Array.isArray(value) ? value : [])
+      .map((item: unknown): string | null => {
+        return OpenStackProbeCollectionStore.boundText(item, MAX_TEXT_LENGTH);
+      })
+      .filter((item: string | null): item is string => {
+        return item !== null;
+      })
+      .slice(0, max);
+  }
+
+  // A summary as the probe reported it: whole counts, bounded strings and lists.
+  public static sanitizeSummary(
+    value: unknown,
+  ): OpenStackCollectionSummary | null {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const raw: Record<string, unknown> = value as Record<string, unknown>;
+
+    const count: (key: string) => number = (key: string): number => {
+      return OpenStackProbeCollectionStore.wholeCount(raw[key]);
+    };
+
+    const summary: OpenStackCollectionSummary = {
+      credentialKind:
+        raw["credentialKind"] === "password"
+          ? "password"
+          : "applicationCredential",
+      regionNames: OpenStackProbeCollectionStore.boundList(
+        raw["regionNames"],
+        MAX_SUMMARY_SERVICES,
+      ),
+      services: (Array.isArray(raw["services"]) ? raw["services"] : [])
+        .slice(0, MAX_SUMMARY_SERVICES)
+        .map((item: unknown): OpenStackServiceSummary | null => {
+          return OpenStackProbeCollectionStore.sanitizeServiceSummary(item);
+        })
+        .filter(
+          (
+            item: OpenStackServiceSummary | null,
+          ): item is OpenStackServiceSummary => {
+            return item !== null;
+          },
+        ),
+      hypervisorCount: count("hypervisorCount"),
+      instanceCount: count("instanceCount"),
+      networkCount: count("networkCount"),
+      volumeCount: count("volumeCount"),
+      projectCount: count("projectCount"),
+      warnings: OpenStackProbeCollectionStore.boundList(
+        raw["warnings"],
+        MAX_SUMMARY_WARNINGS,
+      ),
+    };
+
+    const projectName: string | null = OpenStackProbeCollectionStore.boundText(
+      raw["projectName"],
+      ColumnLength.ShortText * 2,
+    );
+
+    if (projectName) {
+      summary.projectName = projectName;
+    }
+
+    if (Array.isArray(raw["roleNames"])) {
+      summary.roleNames = OpenStackProbeCollectionStore.boundList(
+        raw["roleNames"],
+        MAX_SUMMARY_WARNINGS,
+      );
+    }
+
+    for (const key of [
+      "resourceCount",
+      "datapointCount",
+      "requestCount",
+    ] as const) {
+      if (raw[key] !== undefined) {
+        summary[key] = count(key);
+      }
+    }
+
+    for (const key of ["computeMicroversions", "instanceReadModes"] as const) {
+      const map: Record<string, string> | null =
+        OpenStackProbeCollectionStore.boundMap(raw[key]);
+
+      if (map) {
+        (summary as unknown as Record<string, unknown>)[key] = map;
+      }
+    }
+
+    return summary;
+  }
+
+  private static boundMap(value: unknown): Record<string, string> | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return null;
+    }
+
+    const map: Record<string, string> = {};
+
+    for (const key of Object.keys(value).slice(0, MAX_SUMMARY_SERVICES)) {
+      const text: string | null = OpenStackProbeCollectionStore.boundText(
+        (value as Record<string, unknown>)[key],
+        MAX_TEXT_LENGTH,
+      );
+
+      if (text) {
+        map[key.substring(0, MAX_TEXT_LENGTH)] = text;
+      }
+    }
+
+    return map;
+  }
+
+  private static sanitizeServiceSummary(
+    value: unknown,
+  ): OpenStackServiceSummary | null {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const raw: Record<string, unknown> = value as Record<string, unknown>;
+
+    const service: string | null = OpenStackProbeCollectionStore.boundText(
+      raw["service"],
+      ColumnLength.ShortText,
+    );
+    const outcome: string | null = OpenStackProbeCollectionStore.boundText(
+      raw["outcome"],
+      ColumnLength.ShortText,
+    );
+
+    if (!service || !outcome) {
+      return null;
+    }
+
+    const summary: OpenStackServiceSummary = {
+      service: service as OpenStackServiceSummary["service"],
+      regionName:
+        OpenStackProbeCollectionStore.boundText(
+          raw["regionName"],
+          MAX_TEXT_LENGTH,
+        ) || "",
+      outcome: outcome as OpenStackServiceSummary["outcome"],
+      durationInMs: OpenStackProbeCollectionStore.wholeCount(
+        raw["durationInMs"],
+      ),
+      requestCount: OpenStackProbeCollectionStore.wholeCount(
+        raw["requestCount"],
+      ),
+    };
+
+    if (OpenStackCollectionErrorUtil.isValid(raw["errorCode"])) {
+      summary.errorCode = raw["errorCode"];
+    }
+
+    const message: string | null = OpenStackProbeCollectionStore.boundText(
+      raw["errorMessage"],
+      MAX_TEXT_LENGTH,
+    );
+
+    if (message) {
+      summary.errorMessage = message;
+    }
+
+    const backingOffUntil: string | null =
+      OpenStackProbeCollectionStore.boundText(
+        raw["backingOffUntil"],
+        ColumnLength.ShortText,
+      );
+
+    if (backingOffUntil) {
+      summary.backingOffUntil = backingOffUntil;
+    }
+
+    return summary;
+  }
+
+  // A connection test's summary as the probe reported it, held to the same bounds.
+  public static sanitizeTestSummary(
+    value: unknown,
+  ): OpenStackConnectionTestSummary | null {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const raw: Record<string, unknown> = value as Record<string, unknown>;
+
+    const reads: Array<OpenStackAccessRead> = [];
+
+    for (const item of (Array.isArray(raw["reads"]) ? raw["reads"] : []).slice(
+      0,
+      MAX_SUMMARY_READS,
+    )) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      const read: Record<string, unknown> = item as Record<string, unknown>;
+
+      reads.push({
+        regionName:
+          OpenStackProbeCollectionStore.boundText(
+            read["regionName"],
+            MAX_TEXT_LENGTH,
+          ) || "",
+        service: (OpenStackProbeCollectionStore.boundText(
+          read["service"],
+          ColumnLength.ShortText,
+        ) || "") as OpenStackAccessRead["service"],
+        read:
+          OpenStackProbeCollectionStore.boundText(
+            read["read"],
+            MAX_TEXT_LENGTH,
+          ) || "",
+        access: (OpenStackProbeCollectionStore.boundText(
+          read["access"],
+          ColumnLength.ShortText,
+        ) || "Failing") as OpenStackAccessRead["access"],
+        reason:
+          OpenStackProbeCollectionStore.boundText(
+            read["reason"],
+            MAX_TEXT_LENGTH,
+          ) || undefined,
+        goesWithout:
+          OpenStackProbeCollectionStore.boundText(
+            read["goesWithout"],
+            MAX_TEXT_LENGTH,
+          ) || undefined,
+        fix:
+          OpenStackProbeCollectionStore.boundText(
+            read["fix"],
+            MAX_TEXT_LENGTH,
+          ) || undefined,
+      });
+    }
+
+    const servicesByRegion: Record<string, Array<string>> = {};
+
+    if (
+      raw["servicesByRegion"] &&
+      typeof raw["servicesByRegion"] === "object"
+    ) {
+      const byRegion: Record<string, unknown> = raw[
+        "servicesByRegion"
+      ] as Record<string, unknown>;
+
+      for (const region of Object.keys(byRegion).slice(
+        0,
+        MAX_SUMMARY_SERVICES,
+      )) {
+        servicesByRegion[region.substring(0, MAX_TEXT_LENGTH)] =
+          OpenStackProbeCollectionStore.boundList(
+            byRegion[region],
+            MAX_SUMMARY_WARNINGS,
+          );
+      }
+    }
+
+    return {
+      credentialKind:
+        raw["credentialKind"] === "password"
+          ? "password"
+          : "applicationCredential",
+      projectName:
+        OpenStackProbeCollectionStore.boundText(
+          raw["projectName"],
+          ColumnLength.ShortText * 2,
+        ) || undefined,
+      roleNames: OpenStackProbeCollectionStore.boundList(
+        raw["roleNames"],
+        MAX_SUMMARY_WARNINGS,
+      ),
+      hasAccessRules: raw["hasAccessRules"] === true,
+      isUnrestricted: raw["isUnrestricted"] === true,
+      canProbablyWrite: raw["canProbablyWrite"] === true,
+      regionsInCatalog: OpenStackProbeCollectionStore.boundList(
+        raw["regionsInCatalog"],
+        MAX_SUMMARY_SERVICES,
+      ),
+      servicesByRegion:
+        servicesByRegion as OpenStackConnectionTestSummary["servicesByRegion"],
+      accessLevel: (OpenStackProbeCollectionStore.boundText(
+        raw["accessLevel"],
+        ColumnLength.ShortText,
+      ) || "Other") as OpenStackConnectionTestSummary["accessLevel"],
+      reads: reads,
+      warnings: OpenStackProbeCollectionStore.boundList(
+        raw["warnings"],
+        MAX_SUMMARY_WARNINGS,
+      ),
+    };
+  }
+}

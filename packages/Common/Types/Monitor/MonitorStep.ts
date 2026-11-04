@@ -101,6 +101,9 @@ import MonitorStepPodmanMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "./MonitorStepProxmoxMonitor";
+import MonitorStepOpenStackMonitor, {
+  MonitorStepOpenStackMonitorUtil,
+} from "./MonitorStepOpenStackMonitor";
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
 } from "./MonitorStepVMwareMonitor";
@@ -275,6 +278,9 @@ export interface MonitorStepType {
   // Proxmox monitor
   proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
 
+  // OpenStack monitor
+  openstackMonitor?: MonitorStepOpenStackMonitor | undefined;
+
   // VMware monitor
   vmwareMonitor?: MonitorStepVMwareMonitor | undefined;
 
@@ -339,6 +345,7 @@ export default class MonitorStep extends DatabaseProperty {
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      openstackMonitor: undefined,
       vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
@@ -445,6 +452,7 @@ export default class MonitorStep extends DatabaseProperty {
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      openstackMonitor: undefined,
       vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
@@ -492,6 +500,7 @@ export default class MonitorStep extends DatabaseProperty {
       data.hostMonitor?.metricViewConfig ||
       data.podmanMonitor?.metricViewConfig ||
       data.proxmoxMonitor?.metricViewConfig ||
+      data.openstackMonitor?.metricViewConfig ||
       data.vmwareMonitor?.metricViewConfig ||
       data.cephMonitor?.metricViewConfig ||
       data.storageArrayMonitor?.metricViewConfig
@@ -797,6 +806,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setOpenStackMonitor(
+    openstackMonitor: MonitorStepOpenStackMonitor,
+  ): MonitorStep {
+    this.data!.openstackMonitor = openstackMonitor;
+    return this;
+  }
+
   public setVMwareMonitor(
     vmwareMonitor: MonitorStepVMwareMonitor,
   ): MonitorStep {
@@ -869,6 +885,7 @@ export default class MonitorStep extends DatabaseProperty {
         hostMonitor: undefined,
         podmanMonitor: undefined,
         proxmoxMonitor: undefined,
+        openstackMonitor: undefined,
         vmwareMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
@@ -1195,6 +1212,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.OpenStack) {
+      if (!value.data.openstackMonitor) {
+        return "OpenStack monitor configuration is required";
+      }
+
+      if (!value.data.openstackMonitor.cloudIdentifier) {
+        return "OpenStack cloud is required";
+      }
+    }
+
     if (monitorType === MonitorType.VMware) {
       if (!value.data.vmwareMonitor) {
         return "VMware monitor configuration is required";
@@ -1393,6 +1420,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           proxmoxMonitor: this.data.proxmoxMonitor
             ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          openstackMonitor: this.data.openstackMonitor
+            ? MonitorStepOpenStackMonitorUtil.toJSON(this.data.openstackMonitor)
             : undefined,
           vmwareMonitor: this.data.vmwareMonitor
             ? MonitorStepVMwareMonitorUtil.toJSON(this.data.vmwareMonitor)
@@ -1630,6 +1660,9 @@ export default class MonitorStep extends DatabaseProperty {
         : undefined,
       proxmoxMonitor: json["proxmoxMonitor"]
         ? (json["proxmoxMonitor"] as JSONObject)
+        : undefined,
+      openstackMonitor: json["openstackMonitor"]
+        ? (json["openstackMonitor"] as JSONObject)
         : undefined,
       vmwareMonitor: json["vmwareMonitor"]
         ? (json["vmwareMonitor"] as JSONObject)

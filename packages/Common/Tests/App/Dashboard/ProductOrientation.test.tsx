@@ -442,6 +442,7 @@ describe("Products menu sections", () => {
       "Docker Swarm",
       "Podman",
       "Proxmox",
+      "OpenStack",
       "VMware",
       "Ceph",
       "Storage Arrays",
@@ -555,7 +556,7 @@ describe("the Products menu opens on the essentials", () => {
 
     expect(infrastructure).toHaveAttribute("aria-expanded", "false");
     expect(infrastructure).toHaveAccessibleDescription(
-      "11 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, VMware, Ceph, Storage Arrays, Network, IoT",
+      "12 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Storage Arrays, Network, IoT",
     );
     expect(
       within(productsMenu()).getByRole("button", { name: "Cloud" }),

@@ -88,7 +88,9 @@ export enum RuleRunType {
   PodmanHostLabelRule = "PodmanHostLabelRule",
   PodmanHostOwnerRule = "PodmanHostOwnerRule",
   ProxmoxClusterLabelRule = "ProxmoxClusterLabelRule",
+  OpenStackCloudLabelRule = "OpenStackCloudLabelRule",
   ProxmoxClusterOwnerRule = "ProxmoxClusterOwnerRule",
+  OpenStackCloudOwnerRule = "OpenStackCloudOwnerRule",
   RumApplicationLabelRule = "RumApplicationLabelRule",
   RumApplicationOwnerRule = "RumApplicationOwnerRule",
   RunbookLabelRule = "RunbookLabelRule",
@@ -321,10 +323,20 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
     "Proxmox cluster",
     "Proxmox clusters",
   ),
+  [RuleRunType.OpenStackCloudLabelRule]: metadata(
+    Labels,
+    "OpenStack cloud",
+    "OpenStack clouds",
+  ),
   [RuleRunType.ProxmoxClusterOwnerRule]: metadata(
     Owners,
     "Proxmox cluster",
     "Proxmox clusters",
+  ),
+  [RuleRunType.OpenStackCloudOwnerRule]: metadata(
+    Owners,
+    "OpenStack cloud",
+    "OpenStack clouds",
   ),
   [RuleRunType.RumApplicationLabelRule]: metadata(
     Labels,

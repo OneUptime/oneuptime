@@ -40,6 +40,7 @@ export interface MaintainedResourceKeys {
    * the name set is ever matched; the id set exists for shape parity.
    */
   proxmoxClusters: ResourceKeySet;
+  openStackClouds: ResourceKeySet;
   /*
    * vCenters, like Proxmox/Ceph clusters, have no `oneuptime.*.id`
    * label stamp (the VMware Agent stamps `vmware.vcenter.name` only),
@@ -271,6 +272,7 @@ export default class MonitorMaintenanceSuppression {
       },
       { ids: resolved.serviceIds, keys: maintained.services },
       { ids: resolved.proxmoxClusterIds, keys: maintained.proxmoxClusters },
+      { ids: resolved.openStackCloudIds, keys: maintained.openStackClouds },
       { ids: resolved.vmwareVCenterIds, keys: maintained.vmwareVCenters },
       { ids: resolved.cephClusterIds, keys: maintained.cephClusters },
       { ids: resolved.storageArrayIds, keys: maintained.storageArrays },
@@ -411,6 +413,10 @@ export default class MonitorMaintenanceSuppression {
           input.maintained.proxmoxClusters.names,
         ) ||
         this.intersects(
+          refs.openStackCloudNames,
+          input.maintained.openStackClouds.names,
+        ) ||
+        this.intersects(
           refs.vmwareVCenterNames,
           input.maintained.vmwareVCenters.names,
         ) ||
@@ -465,6 +471,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.kubernetesClusters.names.size > 0 ||
       maintained.proxmoxClusters.ids.size > 0 ||
       maintained.proxmoxClusters.names.size > 0 ||
+      maintained.openStackClouds.ids.size > 0 ||
+      maintained.openStackClouds.names.size > 0 ||
       maintained.vmwareVCenters.ids.size > 0 ||
       maintained.vmwareVCenters.names.size > 0 ||
       maintained.cephClusters.ids.size > 0 ||
@@ -503,6 +511,7 @@ export default class MonitorMaintenanceSuppression {
       podmanHosts: { ids: new Set<string>(), names: new Set<string>() },
       kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
       proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
+      openStackClouds: { ids: new Set<string>(), names: new Set<string>() },
       vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
       cephClusters: { ids: new Set<string>(), names: new Set<string>() },
       storageArrays: { ids: new Set<string>(), names: new Set<string>() },
@@ -538,6 +547,7 @@ export default class MonitorMaintenanceSuppression {
           podmanHosts: { _id: true, hostIdentifier: true },
           kubernetesClusters: { _id: true, clusterIdentifier: true },
           proxmoxClusters: { _id: true, name: true },
+          openStackClouds: { _id: true, name: true },
           vmwareVCenters: { _id: true, name: true },
           cephClusters: { _id: true, name: true },
           storageArrays: { _id: true, name: true },
@@ -583,6 +593,14 @@ export default class MonitorMaintenanceSuppression {
           maintained.proxmoxClusters,
           proxmoxCluster._id,
           proxmoxCluster.name,
+        );
+      }
+
+      for (const openStackCloud of event.openStackClouds || []) {
+        this.addKey(
+          maintained.openStackClouds,
+          openStackCloud._id,
+          openStackCloud.name,
         );
       }
       for (const vmwareVCenter of event.vmwareVCenters || []) {

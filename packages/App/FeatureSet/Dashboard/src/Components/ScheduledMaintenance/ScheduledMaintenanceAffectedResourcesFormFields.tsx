@@ -11,6 +11,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Service from "Common/Models/DatabaseModels/Service";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -192,6 +193,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
             dockerHosts={values.dockerHosts as Array<DockerHost>}
             podmanHosts={values.podmanHosts as Array<PodmanHost>}
             proxmoxClusters={values.proxmoxClusters as Array<ProxmoxCluster>}
+            openStackClouds={values.openStackClouds as Array<OpenStackCloud>}
             vmwareVCenters={values.vmwareVCenters as Array<VMwareVCenter>}
             cephClusters={values.cephClusters as Array<CephCluster>}
             storageArrays={values.storageArrays as Array<StorageArray>}
@@ -208,6 +210,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
               "DockerHost",
               "PodmanHost",
               "ProxmoxCluster",
+              "OpenStackCloud",
               "VMwareVCenter",
               "CephCluster",
               "StorageArray",
@@ -240,6 +243,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
               dockerHosts: payload.dockerHosts,
               podmanHosts: payload.podmanHosts,
               proxmoxClusters: payload.proxmoxClusters,
+              openStackClouds: payload.openStackClouds,
               vmwareVCenters: payload.vmwareVCenters,
               cephClusters: payload.cephClusters,
               storageArrays: payload.storageArrays,
@@ -288,6 +292,15 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
     },
     {
       field: { proxmoxClusters: true },
+      title: "",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      showIf: () => {
+        return false;
+      },
+    },
+    {
+      field: { openStackClouds: true },
       title: "",
       fieldType: FormFieldSchemaType.Text,
       required: false,

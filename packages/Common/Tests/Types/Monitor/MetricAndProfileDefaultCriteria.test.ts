@@ -82,6 +82,7 @@ const METRIC_BACKED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.OpenStack,
   MonitorType.VMware,
   MonitorType.Ceph,
   MonitorType.StorageArray,
@@ -109,6 +110,7 @@ const NEWLY_SEEDED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.OpenStack,
   MonitorType.VMware,
   MonitorType.Ceph,
   // Added after this change, on the same metric-backed defaults from day one.

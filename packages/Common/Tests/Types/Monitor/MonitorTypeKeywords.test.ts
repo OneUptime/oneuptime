@@ -283,6 +283,8 @@ describe("MonitorType keywords", () => {
       ["javascript", MonitorType.CustomJavaScriptCode],
       ["rootless", MonitorType.Podman],
       ["lxc", MonitorType.Proxmox],
+      ["keystone", MonitorType.OpenStack],
+      ["neutron", MonitorType.OpenStack],
       ["esxi", MonitorType.VMware],
       ["vcenter", MonitorType.VMware],
       ["osd", MonitorType.Ceph],

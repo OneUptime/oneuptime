@@ -234,6 +234,13 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.Proxmox,
     description: "A Proxmox VE cluster.",
   },
+  [EntityType.OpenStackCloud]: {
+    label: "OpenStack Cloud",
+    pluralLabel: "OpenStack Clouds",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.Cloud,
+    description: "An OpenStack cloud: one Keystone, with all its regions.",
+  },
   [EntityType.ProxmoxNode]: {
     label: "Proxmox Node",
     pluralLabel: "Proxmox Nodes",
@@ -241,12 +248,26 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.Server,
     description: "A hypervisor node in a Proxmox cluster.",
   },
+  [EntityType.OpenStackHypervisor]: {
+    label: "OpenStack Hypervisor",
+    pluralLabel: "OpenStack Hypervisors",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.Server,
+    description: "A compute host running instances in an OpenStack cloud.",
+  },
   [EntityType.ProxmoxGuest]: {
     label: "Proxmox Guest",
     pluralLabel: "Proxmox Guests",
     category: InventoryCategory.Clusters,
     icon: IconProp.ComputerDesktop,
     description: "A VM or container guest running on Proxmox.",
+  },
+  [EntityType.OpenStackInstance]: {
+    label: "OpenStack Instance",
+    pluralLabel: "OpenStack Instances",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.ComputerDesktop,
+    description: "A virtual machine running in an OpenStack project.",
   },
   [EntityType.VMwareVCenter]: {
     label: "vCenter",

@@ -91,6 +91,9 @@ record_api() {
     call keystone-services "$keystone/v3/services"
     call keystone-endpoints "$keystone/v3/endpoints"
     call keystone-roles "$keystone/v3/roles"
+    # The probe's collector reads these for their counts, and its parity tests replay them.
+    call keystone-users "$keystone/v3/users"
+    call keystone-groups "$keystone/v3/groups"
   fi
 
   nova="$(endpoint_of compute)"
@@ -106,6 +109,7 @@ record_api() {
     call nova-hypervisors-before-2-88 "$nova/os-hypervisors/detail" "OpenStack-API-Version: compute 2.87"
     call nova-aggregates "$nova/os-aggregates" "$mv"
     call nova-azs "$nova/os-availability-zone/detail" "$mv"
+    call nova-azs-list "$nova/os-availability-zone" "$mv"
     call nova-flavors "$nova/flavors/detail?is_public=None" "$mv"
     call nova-limits "$nova/limits" "$mv"
     call nova-usage "$nova/os-simple-tenant-usage?detailed=1&start=2000-01-01T00:00:00" "$mv"
@@ -129,6 +133,7 @@ record_api() {
       call placement-inventories "$placement/resource_providers/$provider/inventories" "$pmv"
       call placement-usages "$placement/resource_providers/$provider/usages" "$pmv"
       call placement-aggregates "$placement/resource_providers/$provider/aggregates" "$pmv"
+      call placement-allocations "$placement/resource_providers/$provider/allocations" "$pmv"
     fi
   fi
 
@@ -144,6 +149,12 @@ record_api() {
     call neutron-ports-limited "$neutron/v2.0/ports?limit=100"
     call neutron-quotas "$neutron/v2.0/quotas"
     call neutron-extensions "$neutron/v2.0/extensions"
+    local router
+    router="$( (openstack router list -f value -c ID 2>/dev/null || true) | head -1)"
+    if [ -n "$router" ]; then
+      # OVN has no such agents, and answers with an empty list.
+      call neutron-router-l3-agents "$neutron/v2.0/routers/$router/l3-agents"
+    fi
   fi
 
   # A current catalog calls it block-storage, an older one volumev3.

@@ -1,0 +1,870 @@
+{
+  "reads": [
+    {
+      "service": "identity",
+      "read": "projects",
+      "path": "/v3/projects",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "domains",
+      "path": "/v3/domains",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "regions",
+      "path": "/v3/regions",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "services",
+      "path": "/v3/services",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "endpoints",
+      "path": "/v3/endpoints",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "servers, all projects",
+      "path": "/servers/detail?all_tenants=1&limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "services",
+      "path": "/os-services",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "hypervisors",
+      "path": "/os-hypervisors/detail",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "aggregates",
+      "path": "/os-aggregates",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "availability zones, detail",
+      "path": "/os-availability-zone/detail",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "flavors",
+      "path": "/flavors/detail?is_public=None",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 12,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 12,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 12,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "usage per project",
+      "path": "/os-simple-tenant-usage?start=2000-01-01T00:00:00",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "placement",
+      "read": "resource providers",
+      "path": "/resource_providers",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "agents",
+      "path": "/v2.0/agents",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "networks",
+      "path": "/v2.0/networks",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 2,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "subnets",
+      "path": "/v2.0/subnets",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 6,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 3,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 3,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "routers",
+      "path": "/v2.0/routers",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "floating IPs",
+      "path": "/v2.0/floatingips",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "IP availabilities",
+      "path": "/v2.0/network-ip-availabilities",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "security groups",
+      "path": "/v2.0/security-groups",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 6,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 2,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "ports",
+      "path": "/v2.0/ports?limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 14,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 4,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 4,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "quotas",
+      "path": "/v2.0/quotas",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "block-storage",
+      "read": "volumes, all projects",
+      "path": "/volumes/detail?all_tenants=1&limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 3,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 3,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 3,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "block-storage",
+      "read": "services",
+      "path": "/os-services",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "block-storage",
+      "read": "pools",
+      "path": "/scheduler-stats/get_pools?detail=true",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "block-storage",
+      "read": "snapshots, all projects",
+      "path": "/snapshots/detail?all_tenants=1&limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "block-storage",
+      "read": "backups, all projects",
+      "path": "/backups/detail?all_tenants=1&limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "block-storage",
+      "read": "volume types",
+      "path": "/types",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "image",
+      "read": "images",
+      "path": "/v2/images?limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 401,
+          "count": null,
+          "seesAll": false
+        }
+      }
+    }
+  ],
+  "writes": [
+    {
+      "service": "compute",
+      "write": "create a flavor",
+      "results": {
+        "reader": {
+          "status": 403
+        },
+        "monitoring-role": {
+          "status": 403
+        },
+        "monitoring-admin-get": {
+          "status": 401
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "write": "create an aggregate",
+      "results": {
+        "reader": {
+          "status": 403
+        },
+        "monitoring-role": {
+          "status": 403
+        },
+        "monitoring-admin-get": {
+          "status": 401
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a network",
+      "results": {
+        "reader": {
+          "status": 403
+        },
+        "monitoring-role": {
+          "status": 403
+        },
+        "monitoring-admin-get": {
+          "status": 401
+        }
+      }
+    },
+    {
+      "service": "block-storage",
+      "write": "create a volume",
+      "results": {
+        "reader": {
+          "status": 403
+        },
+        "monitoring-role": {
+          "status": 403
+        },
+        "monitoring-admin-get": {
+          "status": 401
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "write": "create a project",
+      "results": {
+        "reader": {
+          "status": 403
+        },
+        "monitoring-role": {
+          "status": 403
+        },
+        "monitoring-admin-get": {
+          "status": 401
+        }
+      }
+    }
+  ],
+  "credentials": [
+    "admin",
+    "reader",
+    "monitoring-role",
+    "monitoring-admin-get"
+  ]
+}

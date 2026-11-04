@@ -75,7 +75,9 @@ import MetricMonitorResponse, {
   KubernetesResourceBreakdown,
   KubernetesAffectedResource,
   ProxmoxResourceBreakdown,
+  OpenStackResourceBreakdown,
   ProxmoxAffectedResource,
+  OpenStackAffectedResource,
   VMwareResourceBreakdown,
   VMwareAffectedResource,
   CephResourceBreakdown,
@@ -147,6 +149,13 @@ import MonitorStepProxmoxMonitor, {
   ProxmoxResourceFilters,
   ProxmoxResourceScope,
 } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepOpenStackMonitor, {
+  OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE,
+  alignOpenStackSeriesLabels,
+  getOpenStackFilterAttributes,
+  getOpenStackGroupByKeysForMetric,
+} from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
+import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "Common/Types/Monitor/OpenStackAlertTemplates";
 import MonitorStepVMwareMonitor, {
   VMwareResourceFilters,
 } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
@@ -169,6 +178,7 @@ import MonitorStepIoTMonitor, {
 import { escapeWildcards } from "Common/Types/BaseDatabase/WildcardPattern";
 import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import { getOpenStackMetricByMetricName } from "Common/Types/Monitor/OpenStackMetricCatalog";
 import { getVMwareMetricByMetricName } from "Common/Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "Common/Types/Monitor/CephMetricCatalog";
 import {
@@ -1406,6 +1416,15 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Proxmox) {
     return monitorProxmox({
+      monitorStep,
+      monitorId,
+      projectId,
+      evaluateUntil,
+    });
+  }
+
+  if (monitorType === MonitorType.OpenStack) {
+    return monitorOpenStack({
       monitorStep,
       monitorId,
       projectId,
@@ -2745,6 +2764,13 @@ type MonitorProxmoxFunction = (data: {
   evaluateUntil?: Date | undefined;
 }) => Promise<MetricMonitorResponse>;
 
+type MonitorOpenStackFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}) => Promise<MetricMonitorResponse>;
+
 export const monitorProxmox: MonitorProxmoxFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
@@ -2951,6 +2977,211 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     proxmoxResourceBreakdowns:
       proxmoxResourceBreakdowns.length > 0
         ? proxmoxResourceBreakdowns
+        : undefined,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
+  };
+};
+
+export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}): Promise<MetricMonitorResponse> => {
+  const openstackMonitorConfig: MonitorStepOpenStackMonitor | undefined =
+    data.monitorStep.data?.openstackMonitor;
+
+  if (!openstackMonitorConfig) {
+    throw new BadDataException("OpenStack monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
+      data.evaluateUntil,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const openStackResourceBreakdowns: Array<OpenStackResourceBreakdown> = [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    openstackMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of openstackMonitorConfig.metricViewConfig
+    .queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the cloud via the `openstack.cloud.name` resource attribute
+     * the OpenStack Agent stamps on every batch.
+     */
+    if (openstackMonitorConfig.cloudIdentifier) {
+      attributes[OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE] =
+        openstackMonitorConfig.cloudIdentifier;
+    }
+
+    /*
+     * Each filter is equality on the exporter label it maps to on this series,
+     * since the exporter does not spell a label the same way on every one.
+     */
+    Object.assign(
+      attributes,
+      getOpenStackFilterAttributes({
+        resourceFilters: openstackMonitorConfig.resourceFilters,
+        seriesLabels:
+          getOpenStackMetricByMetricName(metricName)?.identityAttributes,
+      }),
+    );
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Max;
+
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: getOpenStackGroupByKeysForMetric({
+        metricName: metricName,
+        groupByAttributeKeys: groupByAttributeKeys,
+      }),
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
+
+    const aggregatedResults: AggregatedResult = alignOpenStackSeriesLabels({
+      metricName: metricName,
+      aggregatedResult: dataPoints.aggregatedResult,
+    });
+
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
+
+    logger.debug("OpenStack monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+    readAttributes.push(getReadAttributes(query));
+
+    // The anchor names no part of the cloud, so there is nothing of it to list.
+    const affectedResources: Array<OpenStackAffectedResource> | undefined =
+      queryConfig.metricAliasData?.metricVariable ===
+      OPENSTACK_ANCHOR_METRIC_ALIAS
+        ? undefined
+        : await scanAffectedResources({
+            query: query,
+            projectId: data.projectId,
+            platformName: "OpenStack",
+            getIdentity: PlatformResourceIdentity.openstack,
+            getIdentityKey: PlatformResourceIdentity.openstackKey,
+          });
+
+    if (affectedResources) {
+      openStackResourceBreakdowns.push({
+        cloudName: openstackMonitorConfig.cloudIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getOpenStackMetricByMetricName(metricName)?.friendlyName ||
+          metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
+      });
+    }
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.OpenStack,
+    queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: openStackResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      openstackMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            openstackMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: openstackMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
+    metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
+    openStackResourceBreakdowns:
+      openStackResourceBreakdowns.length > 0
+        ? openStackResourceBreakdowns
         : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,

@@ -212,6 +212,7 @@ describe("MonitorAlert drops criteria references the project cannot use", () => 
         kubernetesClusterIds: [],
         serviceIds: [],
         proxmoxClusterIds: [],
+        openStackCloudIds: [],
         vmwareVCenterIds: [],
         cephClusterIds: [],
         dockerSwarmClusterIds: [],

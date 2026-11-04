@@ -25,6 +25,7 @@ enum ServiceType {
   PodmanHost = "PodmanHost",
   KubernetesCluster = "KubernetesCluster",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",

@@ -111,10 +111,15 @@ import PodmanHostOwnerRule from "../../../../Models/DatabaseModels/PodmanHostOwn
 import PodmanHostOwnerTeam from "../../../../Models/DatabaseModels/PodmanHostOwnerTeam";
 import PodmanHostOwnerUser from "../../../../Models/DatabaseModels/PodmanHostOwnerUser";
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
 import ProxmoxClusterLabelRule from "../../../../Models/DatabaseModels/ProxmoxClusterLabelRule";
+import OpenStackCloudLabelRule from "../../../../Models/DatabaseModels/OpenStackCloudLabelRule";
 import ProxmoxClusterOwnerRule from "../../../../Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import OpenStackCloudOwnerRule from "../../../../Models/DatabaseModels/OpenStackCloudOwnerRule";
 import ProxmoxClusterOwnerTeam from "../../../../Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import OpenStackCloudOwnerTeam from "../../../../Models/DatabaseModels/OpenStackCloudOwnerTeam";
 import ProxmoxClusterOwnerUser from "../../../../Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import OpenStackCloudOwnerUser from "../../../../Models/DatabaseModels/OpenStackCloudOwnerUser";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
 import RumApplicationLabelRule from "../../../../Models/DatabaseModels/RumApplicationLabelRule";
 import RumApplicationOwnerRule from "../../../../Models/DatabaseModels/RumApplicationOwnerRule";
@@ -281,10 +286,15 @@ import PodmanHostOwnerRuleEngineService from "../../../Services/PodmanHostOwnerR
 import PodmanHostOwnerRuleService from "../../../Services/PodmanHostOwnerRuleService";
 import PodmanHostService from "../../../Services/PodmanHostService";
 import ProxmoxClusterLabelRuleEngineService from "../../../Services/ProxmoxClusterLabelRuleEngineService";
+import OpenStackCloudLabelRuleEngineService from "../../../Services/OpenStackCloudLabelRuleEngineService";
 import ProxmoxClusterLabelRuleService from "../../../Services/ProxmoxClusterLabelRuleService";
+import OpenStackCloudLabelRuleService from "../../../Services/OpenStackCloudLabelRuleService";
 import ProxmoxClusterOwnerRuleEngineService from "../../../Services/ProxmoxClusterOwnerRuleEngineService";
+import OpenStackCloudOwnerRuleEngineService from "../../../Services/OpenStackCloudOwnerRuleEngineService";
 import ProxmoxClusterOwnerRuleService from "../../../Services/ProxmoxClusterOwnerRuleService";
+import OpenStackCloudOwnerRuleService from "../../../Services/OpenStackCloudOwnerRuleService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import RumApplicationLabelRuleEngineService from "../../../Services/RumApplicationLabelRuleEngineService";
 import RumApplicationLabelRuleService from "../../../Services/RumApplicationLabelRuleService";
 import RumApplicationOwnerRuleEngineService from "../../../Services/RumApplicationOwnerRuleEngineService";
@@ -767,6 +777,13 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: ProxmoxClusterService,
     engine: ProxmoxClusterLabelRuleEngineService,
   }),
+  [RuleRunType.OpenStackCloudLabelRule]: defineRuleRun({
+    ruleModelType: OpenStackCloudLabelRule,
+    resourceModelType: OpenStackCloud,
+    ruleService: OpenStackCloudLabelRuleService,
+    resourceService: OpenStackCloudService,
+    engine: OpenStackCloudLabelRuleEngineService,
+  }),
   [RuleRunType.ProxmoxClusterOwnerRule]: defineRuleRun({
     ruleModelType: ProxmoxClusterOwnerRule,
     resourceModelType: ProxmoxCluster,
@@ -774,6 +791,14 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: ProxmoxClusterService,
     engine: ProxmoxClusterOwnerRuleEngineService,
     ownerModelTypes: [ProxmoxClusterOwnerUser, ProxmoxClusterOwnerTeam],
+  }),
+  [RuleRunType.OpenStackCloudOwnerRule]: defineRuleRun({
+    ruleModelType: OpenStackCloudOwnerRule,
+    resourceModelType: OpenStackCloud,
+    ruleService: OpenStackCloudOwnerRuleService,
+    resourceService: OpenStackCloudService,
+    engine: OpenStackCloudOwnerRuleEngineService,
+    ownerModelTypes: [OpenStackCloudOwnerUser, OpenStackCloudOwnerTeam],
   }),
   [RuleRunType.RumApplicationLabelRule]: defineRuleRun({
     ruleModelType: RumApplicationLabelRule,

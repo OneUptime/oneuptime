@@ -3172,6 +3172,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    id: "openstack",
+    title: "OpenStack",
+    productPage: PageMap.OPENSTACK_CLOUDS,
+    icon: IconProp.Cloud,
+    iconColor: "blue",
+    sections: [
+      {
+        title: "OpenStack",
+        pages: [
+          allListPage(PageMap.OPENSTACK_CLOUDS, "All Clouds"),
+          documentation(PageMap.OPENSTACK_DOCUMENTATION),
+        ],
+      },
+      ...resourceSettingsSections({
+        ownerRules: PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
+        labelRules: PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
+        archived: PageMap.OPENSTACK_ARCHIVED,
+      }),
+    ],
+  },
+  {
     id: "vmware",
     title: "VMware",
     productPage: PageMap.VMWARE_VCENTERS,

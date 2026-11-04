@@ -390,10 +390,20 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "proxmoxClusterNamePattern",
     "proxmoxClusterDescriptionPattern",
   ],
+  OpenStackCloudLabelRule: [
+    "openStackCloudLabels",
+    "openStackCloudNamePattern",
+    "openStackCloudDescriptionPattern",
+  ],
   ProxmoxClusterOwnerRule: [
     "proxmoxClusterLabels",
     "proxmoxClusterNamePattern",
     "proxmoxClusterDescriptionPattern",
+  ],
+  OpenStackCloudOwnerRule: [
+    "openStackCloudLabels",
+    "openStackCloudNamePattern",
+    "openStackCloudDescriptionPattern",
   ],
   RumApplicationLabelRule: [
     "matchLabels",

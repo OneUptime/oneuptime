@@ -346,6 +346,7 @@ import "./Jobs/Host/CleanupStaleHosts";
 
 // Proxmox cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Proxmox/CleanupStaleResources";
+import "./Jobs/OpenStack/CleanupStaleResources";
 
 // VMware vCenter disconnection sweeper + inventory cleanup.
 import "./Jobs/VMware/CleanupStaleResources";

@@ -93,20 +93,26 @@ import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
 import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
 import PodmanHostLabelRuleService from "./PodmanHostLabelRuleService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import OpenStackCloudService from "./OpenStackCloudService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
+import OpenStackResourceService from "./OpenStackResourceService";
 import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
+import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
 import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
+import OpenStackCloudOwnerRuleService from "./OpenStackCloudOwnerRuleService";
 import DockerSwarmClusterOwnerRuleService from "./DockerSwarmClusterOwnerRuleService";
 import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
+import OpenStackCloudOwnerTeamService from "./OpenStackCloudOwnerTeamService";
 import DockerSwarmClusterOwnerTeamService from "./DockerSwarmClusterOwnerTeamService";
 import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
+import OpenStackCloudOwnerUserService from "./OpenStackCloudOwnerUserService";
 import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserService";
 import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
 import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
@@ -181,6 +187,7 @@ import StorageArrayFeedService from "./StorageArrayFeedService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
@@ -686,20 +693,26 @@ const services: Array<BaseService> = [
   PodmanHostOwnerTeamService,
   PodmanHostLabelRuleService,
   ProxmoxClusterService,
+  OpenStackCloudService,
   DockerSwarmClusterService,
   CephClusterService,
   ProxmoxResourceService,
+  OpenStackResourceService,
   DockerSwarmResourceService,
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
   ProxmoxClusterLabelRuleService,
+  OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,
   ProxmoxClusterOwnerRuleService,
+  OpenStackCloudOwnerRuleService,
   DockerSwarmClusterOwnerRuleService,
   ProxmoxClusterOwnerTeamService,
+  OpenStackCloudOwnerTeamService,
   DockerSwarmClusterOwnerTeamService,
   ProxmoxClusterOwnerUserService,
+  OpenStackCloudOwnerUserService,
   DockerSwarmClusterOwnerUserService,
   CephClusterLabelRuleService,
   CephClusterOwnerRuleService,
@@ -757,6 +770,7 @@ const services: Array<BaseService> = [
   DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
+  OpenStackCloudFeedService,
   VMwareVCenterFeedService,
   HostFeedService,
   CloudResourceFeedService,

@@ -87,6 +87,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
     all: translationKey("All Proxmox clusters"),
     matching: translationKey("Only Proxmox clusters that match conditions"),
   },
+  [RuleCriteriaSubject.OpenStackClouds]: {
+    all: translationKey("All OpenStack clouds"),
+    matching: translationKey("Only OpenStack clouds that match conditions"),
+  },
   [RuleCriteriaSubject.VMwareVCenters]: {
     all: translationKey("All vCenters"),
     matching: translationKey("Only vCenters that match conditions"),

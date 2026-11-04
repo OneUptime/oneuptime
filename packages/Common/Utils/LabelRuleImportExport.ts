@@ -23,6 +23,7 @@ import OnCallDutyPolicyLabelRule from "../Models/DatabaseModels/OnCallDutyPolicy
 import OnCallDutyPolicyScheduleLabelRule from "../Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
 import PodmanHostLabelRule from "../Models/DatabaseModels/PodmanHostLabelRule";
 import ProxmoxClusterLabelRule from "../Models/DatabaseModels/ProxmoxClusterLabelRule";
+import OpenStackCloudLabelRule from "../Models/DatabaseModels/OpenStackCloudLabelRule";
 import RumApplicationLabelRule from "../Models/DatabaseModels/RumApplicationLabelRule";
 import RunbookLabelRule from "../Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceLabelRule from "../Models/DatabaseModels/ScheduledMaintenanceLabelRule";
@@ -83,6 +84,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   OnCallDutyPolicyScheduleLabelRule,
   PodmanHostLabelRule,
   ProxmoxClusterLabelRule,
+  OpenStackCloudLabelRule,
   RumApplicationLabelRule,
   RunbookLabelRule,
   ScheduledMaintenanceLabelRule,

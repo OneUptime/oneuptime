@@ -190,6 +190,11 @@ const RECORD_TABS: Array<RecordTabShape> = [
     INCIDENTS_ALERTS_AND_MAINTENANCE,
   ),
   ...kindTabs(
+    "OpenStack",
+    CreateFromRecordKind.OpenStackCloud,
+    INCIDENTS_ALERTS_AND_MAINTENANCE,
+  ),
+  ...kindTabs(
     "VMware",
     CreateFromRecordKind.VMwareVCenter,
     INCIDENTS_ALERTS_AND_MAINTENANCE,

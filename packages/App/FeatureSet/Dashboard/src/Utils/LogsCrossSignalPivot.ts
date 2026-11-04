@@ -442,6 +442,7 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
   kubernetesClusterId: "Kubernetes clusters",
   dockerSwarmClusterId: "Docker Swarm clusters",
   proxmoxClusterId: "Proxmox clusters",
+  openStackCloudId: "OpenStack clouds",
   vmwareVCenterId: "vCenters",
   cephClusterId: "Ceph clusters",
   storageArrayId: "storage arrays",

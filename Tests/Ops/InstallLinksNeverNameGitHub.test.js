@@ -11,9 +11,9 @@
  * runs. GitHub's master branch is newer than most OneUptimes, and its
  * address names neither a self-hosted install's host nor its version.
  *
- * This reads every tracked text file for an address that downloads from
- * the repository on GitHub (raw.githubusercontent.com/OneUptime/oneuptime/
- * or github.com/OneUptime/oneuptime/raw/) and allows one only where it is
+ * This reads every text file git tracks, or would add, for an address that
+ * downloads from the repository on GitHub (raw.githubusercontent.com/OneUptime/
+ * oneuptime/ or github.com/OneUptime/oneuptime/raw/) and allows one only where it is
  * written on purpose, below, each with its reason and the number of times
  * it is written. Tests may name such an address to refuse it, or to stand
  * in for GitHub. A file that no longer names GitHub leaves the list, so the
@@ -103,12 +103,20 @@ const ALLOWED = {
   },
 };
 
-function trackedTextFiles() {
-  const result = spawnSync("git", ["ls-files", "-z"], {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-  });
+/*
+ * What git tracks, and what it would add: an agent's new install.sh is held to
+ * this before its first commit, the same as after.
+ */
+function textFiles() {
+  const result = spawnSync(
+    "git",
+    ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    },
+  );
 
   if (result.status !== 0) {
     throw new Error(`git ls-files failed: ${result.stderr}`);
@@ -137,7 +145,7 @@ function timesNamed(text) {
 }
 
 describe("downloads from GitHub's copy of the repository", () => {
-  const files = trackedTextFiles();
+  const files = textFiles();
   const named = {};
 
   for (const file of files) {
@@ -223,6 +231,7 @@ describe("downloads from GitHub's copy of the repository", () => {
       "agents/DatabaseAgent/install.sh",
       "agents/DockerSwarmAgent/install.sh",
       "agents/HostAIAgent/install.sh",
+      "agents/OpenStackAgent/install.sh",
       "agents/ProxmoxAgent/install.sh",
       "agents/StorageArrayAgent/install.sh",
       "agents/VMwareAgent/install.sh",

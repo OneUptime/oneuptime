@@ -107,6 +107,8 @@
       "proxmoxDescription": "Monitor Proxmox clusters, nodes and guests.",
       "vmwareTitle": "VMware",
       "vmwareDescription": "Monitor vCenter, ESXi hosts, virtual machines and datastores.",
+      "openstackTitle": "OpenStack",
+      "openstackDescription": "Monitor OpenStack clouds, services, hypervisors and instances.",
       "cephTitle": "Ceph",
       "cephDescription": "Monitor Ceph clusters, OSDs and pools.",
       "hostsTitle": "Hosts",

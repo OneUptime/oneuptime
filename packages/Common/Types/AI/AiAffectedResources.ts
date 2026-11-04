@@ -49,6 +49,7 @@ export enum AiAffectedResourceKind {
   KubernetesCluster = "KubernetesCluster",
   DockerSwarmCluster = "DockerSwarmCluster",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
@@ -68,7 +69,7 @@ export type AiAffectedResourceRelation =
   | "podmanHosts"
   | "kubernetesClusters"
   | "dockerSwarmClusters"
-  | "proxmoxClusters"
+  | "proxmoxClusters" | "openStackClouds"
   | "vmwareVCenters"
   | "cephClusters"
   | "storageArrays"
@@ -140,6 +141,12 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       kind: AiAffectedResourceKind.ProxmoxCluster,
       relation: "proxmoxClusters",
       noun: translationKey("Proxmox cluster"),
+      isFixedByOneUptimeAi: true,
+    },
+    {
+      kind: AiAffectedResourceKind.OpenStackCloud,
+      relation: "openStackClouds",
+      noun: translationKey("OpenStack cloud"),
       isFixedByOneUptimeAi: true,
     },
     {

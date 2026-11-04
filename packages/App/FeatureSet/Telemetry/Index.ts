@@ -26,6 +26,7 @@ import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import ProbeIngestSyslogAPI from "./API/ProbeIngest/Syslog";
 import ProbeIngestNetworkFlowAPI from "./API/ProbeIngest/NetworkFlow";
 import ProbeIngestVMwareCollectionAPI from "./API/ProbeIngest/VMwareCollection";
+import ProbeIngestOpenStackCollectionAPI from "./API/ProbeIngest/OpenStackCollection";
 import ProbeIngestDataSecurityAPI from "./API/ProbeIngest/DataSecurity";
 import ProbeIngestDataObservabilityAPI from "./API/ProbeIngest/DataObservability";
 import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
@@ -142,6 +143,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestSyslogAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkFlowAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestVMwareCollectionAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestOpenStackCollectionAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDataSecurityAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDataObservabilityAPI);
       app.use(["/probe-ingest", "/"], IncomingEmailAPI);

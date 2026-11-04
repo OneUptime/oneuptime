@@ -1,0 +1,27 @@
+# HELP openstack_identity_domains domains
+# TYPE openstack_identity_domains gauge
+openstack_identity_domains 1
+# HELP openstack_identity_groups groups
+# TYPE openstack_identity_groups gauge
+openstack_identity_groups 2
+# HELP openstack_identity_project_info project_info
+# TYPE openstack_identity_project_info gauge
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="2177e6c7710b4c25b3ad618df0cb1eef",is_domain="false",name="invisible_to_admin",parent_id="default"} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="3160d31539134f70a8d3fa1194ca0632",is_domain="false",name="demo",parent_id="default"} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="320cab24ef014af5abf726a2ec1e0c4b",is_domain="false",name="alt_demo",parent_id="default"} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="eef4a5c85e7a41e496b6c0bb68b0217d",is_domain="false",name="service",parent_id="default"} 1
+openstack_identity_project_info{description="Bootstrap project for initializing the cloud.",domain_id="default",enabled="true",id="51ea2ef16fc645b486a69c83cb76195d",is_domain="false",name="admin",parent_id="default"} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="63e97fad68944ac486391e7a1bd61fde",is_domain="false",name="ou-payments",parent_id="default"} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="bfb570b13d12406fb7c6361634b7e11d",is_domain="false",name="ou-research",parent_id="default"} 1
+# HELP openstack_identity_projects projects
+# TYPE openstack_identity_projects gauge
+openstack_identity_projects 7
+# HELP openstack_identity_regions regions
+# TYPE openstack_identity_regions gauge
+openstack_identity_regions 1
+# HELP openstack_identity_up up
+# TYPE openstack_identity_up gauge
+openstack_identity_up 1
+# HELP openstack_identity_users users
+# TYPE openstack_identity_users gauge
+openstack_identity_users 15

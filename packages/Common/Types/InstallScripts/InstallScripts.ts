@@ -36,6 +36,7 @@ export enum InstallScriptName {
   DockerSwarmAgent = "docker-swarm-agent",
   HostAiAgent = "host-ai-agent",
   KubernetesAgent = "kubernetes-agent",
+  OpenStackAgent = "openstack-agent",
   PodmanAgent = "podman-agent",
   ProxmoxAgent = "proxmox-agent",
   StorageArrayAgent = "storage-array-agent",
@@ -181,6 +182,33 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
     sourceDirectory: "HelmChart/Public/kubernetes-agent",
     script: null,
     files: [TROUBLESHOOT_SCRIPT_FILE],
+  },
+  /*
+   * clouds.yaml holds the credential, so it is generated on the agent's machine
+   * and never served. The access files are for whoever makes the credential, who
+   * may have no OneUptime checkout to hand: install.sh downloads neither.
+   */
+  {
+    name: InstallScriptName.OpenStackAgent,
+    title: "OpenStack agent",
+    sourceDirectory: "agents/OpenStackAgent",
+    script: INSTALL_SCRIPT_FILE,
+    files: [
+      INSTALL_SCRIPT_FILE,
+      "docker-compose.yml",
+      "otel-collector-config.yaml",
+      "systemd/oneuptime-openstack-agent.service",
+      "systemd/oneuptime-openstack-agent-native.service",
+      "systemd/oneuptime-openstack-exporter-native.service",
+      "access/application-credential-access-rules.json",
+      "access/access-rules-for-cloud.py",
+      "access/policy/cinder.yaml",
+      "access/policy/keystone.yaml",
+      "access/policy/neutron.yaml",
+      "access/policy/nova.yaml",
+      "access/policy/placement.yaml",
+      TROUBLESHOOT_SCRIPT_FILE,
+    ],
   },
   {
     name: InstallScriptName.PodmanAgent,

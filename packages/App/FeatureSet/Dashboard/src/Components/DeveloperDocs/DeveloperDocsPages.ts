@@ -342,6 +342,16 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       tableName: "ProxmoxCluster",
     },
     {
+      pageKey: PageMap.OPENSTACK_CLOUDS,
+      scope: DeveloperDocsScope.List,
+      tableName: "OpenStackCloud",
+    },
+    {
+      pageKey: PageMap.OPENSTACK_CLOUD_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "OpenStackCloud",
+    },
+    {
       pageKey: PageMap.VMWARE_VCENTERS,
       scope: DeveloperDocsScope.List,
       tableName: "VMwareVCenter",

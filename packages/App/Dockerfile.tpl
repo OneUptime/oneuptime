@@ -238,6 +238,7 @@ COPY ./agents/DatabaseAgent /usr/src/agents/DatabaseAgent
 COPY ./agents/DockerAgent /usr/src/agents/DockerAgent
 COPY ./agents/DockerSwarmAgent /usr/src/agents/DockerSwarmAgent
 COPY ./agents/HostAIAgent /usr/src/agents/HostAIAgent
+COPY ./agents/OpenStackAgent /usr/src/agents/OpenStackAgent
 COPY ./agents/PodmanAgent /usr/src/agents/PodmanAgent
 COPY ./agents/ProxmoxAgent /usr/src/agents/ProxmoxAgent
 COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent

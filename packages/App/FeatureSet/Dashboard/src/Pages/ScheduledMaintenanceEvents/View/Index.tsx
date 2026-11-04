@@ -1194,6 +1194,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    openStackClouds: {
+                      name: true,
+                      _id: true,
+                    },
                     vmwareVCenters: {
                       name: true,
                       _id: true,
@@ -1239,6 +1243,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        openStackClouds={item.openStackClouds || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         storageArrays={item.storageArrays || []}

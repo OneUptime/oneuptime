@@ -1,0 +1,9 @@
+# HELP openstack_glance_image_bytes image_bytes
+# TYPE openstack_glance_image_bytes gauge
+openstack_glance_image_bytes{id="083ccab7-dec7-4ea6-82b2-4860b82d758f",name="cirros-0.6.3-x86_64-disk",tenant_id="1f31ecbc711746408b75110b41ff8b8f"} 2.1692416e+07
+# HELP openstack_glance_images images
+# TYPE openstack_glance_images gauge
+openstack_glance_images 1
+# HELP openstack_glance_up up
+# TYPE openstack_glance_up gauge
+openstack_glance_up 1

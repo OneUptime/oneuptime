@@ -387,6 +387,217 @@ describe("SeriesDebugHints", () => {
     });
   });
 
+  describe("OpenStack", () => {
+    const REGION: string = "openstack --os-region-name RegionOne";
+
+    function openstackCommands(seriesLabels: JSONObject): Array<string> {
+      return getCommandStrings({
+        monitorType: MonitorType.OpenStack,
+        seriesLabels: { "openstack.region.name": "RegionOne", ...seriesLabels },
+      });
+    }
+
+    test("a nova-compute worker is looked up by its short name, with what runs on it", () => {
+      expect(
+        openstackCommands({ hostname: "compute-01", service: "nova-compute" }),
+      ).toEqual([
+        `${REGION} compute service list --host compute-01 --service nova-compute --long`,
+        `${REGION} server list --all-projects --host compute-01`,
+        `${REGION} hypervisor list --matching compute-01 --long`,
+      ]);
+    });
+
+    test("a scheduler has no instances or hypervisor to offer", () => {
+      expect(
+        openstackCommands({ hostname: "ctl-01", service: "nova-scheduler" }),
+      ).toEqual([
+        `${REGION} compute service list --host ctl-01 --service nova-scheduler --long`,
+      ]);
+    });
+
+    test("a worker's service without a host asks about every host", () => {
+      expect(openstackCommands({ service: "nova-conductor" })).toEqual([
+        `${REGION} compute service list --service nova-conductor --long`,
+      ]);
+    });
+
+    test("a Neutron agent is looked up among the host's agents", () => {
+      expect(
+        openstackCommands({ hostname: "net-01", service: "neutron-l3-agent" }),
+      ).toEqual([`${REGION} network agent list --host net-01 --long`]);
+    });
+
+    test("a Cinder service keeps its backend in its host, and shows its pools", () => {
+      expect(
+        openstackCommands({ hostname: "ctl-01@lvm", service: "cinder-volume" }),
+      ).toEqual([
+        `${REGION} volume service list --host ctl-01@lvm --service cinder-volume --long`,
+        `${REGION} volume backend pool list --long`,
+      ]);
+    });
+
+    test("a hypervisor is looked up by its full name", () => {
+      expect(
+        openstackCommands({ hostname: "compute-01.example.internal" }),
+      ).toEqual([
+        `${REGION} hypervisor show compute-01.example.internal`,
+      ]);
+    });
+
+    test("an instance shows its fault and what was done to it", () => {
+      expect(openstackCommands({ uuid: "3f1c", name: "web-01" })).toEqual([
+        `${REGION} server show 3f1c`,
+        `${REGION} server event list 3f1c --long`,
+      ]);
+    });
+
+    test("a router shows its gateway and the agents holding it", () => {
+      expect(openstackCommands({ router_id: "r-1" })).toEqual([
+        `${REGION} router show r-1`,
+        `${REGION} network agent list --router r-1 --long`,
+      ]);
+    });
+
+    test("a network shows its addresses and the floating IPs taken from it", () => {
+      expect(
+        openstackCommands({ network_id: "n-1", network_name: "public" }),
+      ).toEqual([
+        `${REGION} ip availability show n-1`,
+        `${REGION} floating ip list --network n-1 --long`,
+      ]);
+    });
+
+    test("a volume is named by its id only on a series that is a volume's", () => {
+      expect(
+        openstackCommands({ id: "v-1", name: "data", volume_type: "ssd" }),
+      ).toEqual([`${REGION} volume show v-1`]);
+
+      // An empty label is still the label: a volume with no type is a volume.
+      expect(openstackCommands({ id: "v-1", volume_type: "" })).toEqual([
+        `${REGION} volume show v-1`,
+      ]);
+
+      // `id` is a router's, a floating IP's or an image's on another series.
+      expect(openstackCommands({ id: "x-1" })).toEqual([
+        `${REGION} endpoint list`,
+      ]);
+    });
+
+    test("a storage pool shows every pool and the service behind them", () => {
+      expect(
+        openstackCommands({ name: "ctl@lvm#pool", volume_backend_name: "lvm" }),
+      ).toEqual([
+        `${REGION} volume backend pool list --long`,
+        `${REGION} volume service list --service cinder-volume --long`,
+      ]);
+    });
+
+    test("a project shows what it has used and its quotas", () => {
+      expect(
+        openstackCommands({ tenant_id: "4f2d", tenant: "payments" }),
+      ).toEqual([
+        `${REGION} limits show --absolute --project 4f2d`,
+        `${REGION} quota show 4f2d`,
+      ]);
+    });
+
+    test("a status word says whose it is: Nova's are capitals, Cinder's are not", () => {
+      expect(openstackCommands({ status: "ERROR" })).toEqual([
+        `${REGION} server list --all-projects --status ERROR --long`,
+      ]);
+      expect(openstackCommands({ status: "error_deleting" })).toEqual([
+        `${REGION} volume list --all-projects --status error_deleting --long`,
+      ]);
+    });
+
+    test.each([
+      ["identity", "token issue"],
+      ["compute", "compute service list --long"],
+      ["volume", "volume service list --long"],
+      ["image", "image list --limit 1"],
+      ["placement", "endpoint list --service placement"],
+    ])(
+      "a whole %s API asks whether it answers",
+      (openstackService: string, command: string) => {
+        expect(
+          openstackCommands({ openstack_service: openstackService }),
+        ).toEqual([`${REGION} ${command}`]);
+      },
+    );
+
+    test("a whole network API also shows what Neutron only counts per region", () => {
+      expect(openstackCommands({ openstack_service: "network" })).toEqual([
+        `${REGION} network agent list --long`,
+        `${REGION} router list --long`,
+        `${REGION} floating ip list --long`,
+      ]);
+    });
+
+    test("a series nothing recognises still gets a first command", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.OpenStack,
+          seriesLabels: { something_else: "x" },
+        }),
+      ).toEqual(["openstack endpoint list"]);
+    });
+
+    test("no region asks the shell's own", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.OpenStack,
+          seriesLabels: { router_id: "r-1" },
+        }),
+      ).toEqual([
+        "openstack router show r-1",
+        "openstack network agent list --router r-1 --long",
+      ]);
+    });
+
+    test("labels read the same off the resource, as a region does there", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.OpenStack,
+          seriesLabels: {
+            "resource.openstack.region.name": "RegionOne",
+            router_id: "r-1",
+          },
+        }),
+      ).toContain(`${REGION} router show r-1`);
+    });
+
+    test("a region, host or status with shell metacharacters stays one inert argument", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.OpenStack,
+        seriesLabels: {
+          "openstack.region.name": "Region One",
+          hostname: "h; rm -rf /",
+          service: "nova-compute",
+        },
+      });
+
+      expect(commands[0]).toBe(
+        "openstack --os-region-name 'Region One' compute service list --host 'h; rm -rf /' --service nova-compute --long",
+      );
+
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.OpenStack,
+          seriesLabels: { status: "$(reboot)" },
+        }),
+      ).toEqual([
+        "openstack volume list --all-projects --status '$(reboot)' --long",
+      ]);
+
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.OpenStack,
+          seriesLabels: { uuid: "a'b" },
+        })[0],
+      ).toBe("openstack server show 'a'\\''b'");
+    });
+  });
+
   describe("Proxmox and Ceph", () => {
     test("Proxmox covers both the VM and the LXC spelling of a bare guest id", () => {
       /*
@@ -786,6 +997,26 @@ describe("SeriesDebugHints", () => {
       {
         monitorType: MonitorType.Proxmox,
         seriesLabels: { vmid: "100", node: "pve1", storage: "local-lvm" },
+      },
+      {
+        monitorType: MonitorType.OpenStack,
+        seriesLabels: {
+          "openstack.region.name": "RegionOne",
+          hostname: "compute-01",
+          service: "nova-compute",
+          uuid: "3f1c",
+          router_id: "r-1",
+          network_id: "n-1",
+          id: "v-1",
+          volume_type: "ssd",
+          volume_backend_name: "lvm",
+          tenant_id: "4f2d",
+          status: "ERROR",
+        },
+      },
+      {
+        monitorType: MonitorType.OpenStack,
+        seriesLabels: { openstack_service: "network" },
       },
       {
         monitorType: MonitorType.VMware,

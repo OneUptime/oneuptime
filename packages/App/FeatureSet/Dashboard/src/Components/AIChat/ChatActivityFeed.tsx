@@ -556,6 +556,7 @@ export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   KubernetesCluster: translationKey("Kubernetes cluster"),
   DockerSwarmCluster: translationKey("Docker Swarm cluster"),
   ProxmoxCluster: translationKey("Proxmox cluster"),
+  OpenStackCloud: translationKey("OpenStack cloud"),
   VMwareVCenter: translationKey("VMware vCenter"),
   CephCluster: translationKey("Ceph cluster"),
   StorageArray: translationKey("Storage array"),
