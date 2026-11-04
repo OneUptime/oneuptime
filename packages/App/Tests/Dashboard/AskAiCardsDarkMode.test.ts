@@ -45,9 +45,10 @@ const SOURCES: Array<[string, string]> = [
     "Widgets/ResourceCardWidget.tsx",
     path.join(AI_CHAT_DIR, "Widgets", "ResourceCardWidget.tsx"),
   ],
-  // The dialog: everything Ask AI draws around its cards.
+  // The panel: everything Ask AI draws around its cards.
   ...[
-    "AskAiDialog.tsx",
+    "AskAiPanel.tsx",
+    "AskAiResizeHandle.tsx",
     "AskAiConversation.tsx",
     "AskAiHistory.tsx",
     "AskAiMark.tsx",
@@ -278,7 +279,7 @@ describe("Ask AI in the dark theme", () => {
     }
   });
 
-  test("every colour class the dialog and its cards draw with is remapped for dark mode", () => {
+  test("every colour class the panel and its cards draw with is remapped for dark mode", () => {
     const tokens: Set<string> = new Set();
     const unmapped: Array<string> = [];
 
@@ -315,11 +316,14 @@ describe("Ask AI in the dark theme", () => {
         "hover:text-emerald-800",
         // The keyboard's focus ring on Open.
         "focus-visible:ring-indigo-500",
-        // The dialog's backdrop, its mark, and the composer's box.
+        // The sheet's backdrop, the mark, and the composer's box and its send.
         "bg-gray-950/40",
         "from-indigo-500",
         "to-violet-600",
-        "focus-within:border-gray-300",
+        "focus-within:border-indigo-500",
+        // The panel's edge, lit by the pointer or the keyboard's focus.
+        "group-hover:bg-indigo-500",
+        "group-focus-visible:bg-indigo-500",
       ]),
     );
     expect(unmapped).toEqual([]);
@@ -329,7 +333,7 @@ describe("Ask AI in the dark theme", () => {
    * The large mark over Ask AI's start glows in its own indigo. Written as
    * `shadow-lg shadow-indigo-500/25`, the dark theme redrew it with the
    * deep black shadow Theme.css gives every shadow-lg, and the mark sat in
-   * a dark smudge on the dark dialog (#5349's UI review).
+   * a dark smudge on the dark panel (#5349's UI review).
    */
   test("the start's mark glows indigo in both themes, with no shadow the dark theme turns black", () => {
     const mark: string = readCodeAt(path.join(AI_CHAT_DIR, "AskAiMark.tsx"));

@@ -534,7 +534,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * An answer reads as prose on the dialog's own surface: no bubble, no
+   * An answer reads as prose on the panel's own surface: no bubble, no
    * avatar beside every message. What it made - charts, tables, an action
    * waiting for approval, the card a write left - sits under its words.
    */

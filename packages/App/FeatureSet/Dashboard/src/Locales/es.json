@@ -12429,7 +12429,7 @@
   "Manufacturer": "Fabricante",
   "Map": "Mapa",
   "Shortest": "La más corta",
-  "Connect Slack or Teams": "Conectar Slack o Teams",
+  "Connect a workspace": "Conectar un espacio de trabajo",
   "Post notifications to your Slack channels and act on them from Slack.": "Publica notificaciones en tus canales de Slack y actúa sobre ellas desde Slack.",
   "Map Value From": "Tomar el valor de",
   "Map Value From Field": "Asignar valor desde el campo",
@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Conecta tu cuenta de Mattermost",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Crea una cuenta de bot para OneUptime en Mattermost, añádela a tu equipo y pega aquí su token de acceso.",
   "Disconnect Mattermost": "Desconectar Mattermost",
+  "Drag to resize": "Arrastra para cambiar el tamaño",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Si Mattermost ya tiene un canal con este nombre, OneUptime añade -2 al final.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "En Mattermost, ve a Integraciones → Cuentas de bot, añade un bot para OneUptime y copia su token de acceso. Después añade el bot a tu equipo.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Publica como @{{bot}} en {{server}}: lo que envían tus reglas de notificación y un canal para cada incidente con sus personas añadidas. Cada miembro conecta su propia cuenta de Mattermost para actuar en su propio nombre.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime envió un enlace a @{{username}} en Mattermost. Ábrelo en este navegador para terminar de conectarla. Funciona una sola vez, durante 15 minutos.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Publica incidentes, alertas y mantenimientos programados en tus canales de Mattermost, da a cada incidente un canal propio y deja que tu equipo los reconozca y resuelva desde Mattermost.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Publica notificaciones en tus canales de Mattermost y actúa sobre ellas desde Mattermost.",
+  "Resize Ask AI": "Cambiar el tamaño de Preguntar a la IA",
   "Send a link to your Mattermost account": "Enviar un enlace a tu cuenta de Mattermost",
   "Send link": "Enviar enlace",
   "Send link to @{{username}}": "Enviar enlace a @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "En Slack",
   "Runbook Track Record": "Historial de resultados del runbook",
   "Where fixes were approved": "Dónde se aprobaron las correcciones",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "No tienes permiso para descartar esta corrección. Descartar una corrección requiere el mismo permiso que aprobarla: iniciar ejecuciones de runbooks en este proyecto."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "No tienes permiso para descartar esta corrección. Descartar una corrección requiere el mismo permiso que aprobarla: iniciar ejecuciones de runbooks en este proyecto.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

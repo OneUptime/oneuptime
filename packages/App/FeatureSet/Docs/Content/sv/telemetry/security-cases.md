@@ -234,7 +234,7 @@ WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öp
 
 ### Posta i kanaler i Slack och Microsoft Teams
 
-För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut Slack eller Teams**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
+För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut en arbetsyta**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
 
 | Villkor | Matchar på |
 | --- | --- |

@@ -1063,7 +1063,7 @@ describe("what an event affects", () => {
       "Slack",
       "Microsoft Teams",
       "Mattermost",
-      "Connect Slack or Teams",
+      "Connect a workspace",
     ]);
     expect(affects).toContain(
       "the Slack, Microsoft Teams and Mattermost rules under **Workspace** post it to your channels.",

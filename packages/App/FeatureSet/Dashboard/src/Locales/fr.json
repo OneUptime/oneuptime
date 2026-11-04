@@ -12429,7 +12429,7 @@
   "Manufacturer": "Fabricant",
   "Map": "Carte",
   "Shortest": "La plus courte",
-  "Connect Slack or Teams": "Connecter Slack ou Teams",
+  "Connect a workspace": "Connecter un espace de travail",
   "Post notifications to your Slack channels and act on them from Slack.": "Publiez des notifications dans vos canaux Slack et agissez dessus depuis Slack.",
   "Map Value From": "Reprendre la valeur de",
   "Map Value From Field": "Mapper la valeur depuis le champ",
@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Connectez votre compte Mattermost",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Créez un compte bot pour OneUptime dans Mattermost, ajoutez-le à votre équipe et collez ici son jeton d'accès.",
   "Disconnect Mattermost": "Déconnecter Mattermost",
+  "Drag to resize": "Faites glisser pour redimensionner",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Si Mattermost a déjà un canal de ce nom, OneUptime ajoute -2 à la fin.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "Dans Mattermost, allez dans Intégrations → Comptes bot, ajoutez un bot pour OneUptime et copiez son jeton d'accès. Ajoutez ensuite le bot à votre équipe.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Il publie en tant que @{{bot}} sur {{server}} : ce que vos règles de notification envoient, et un canal pour chaque incident où ses personnes sont ajoutées. Chaque membre connecte son propre compte Mattermost pour agir en son nom.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime a envoyé un lien à @{{username}} dans Mattermost. Ouvrez-le dans ce navigateur pour terminer la connexion. Il fonctionne une seule fois, pendant 15 minutes.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Publiez les incidents, les alertes et les maintenances planifiées dans vos canaux Mattermost, donnez à chaque incident son propre canal et laissez votre équipe les acquitter et les résoudre depuis Mattermost.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Publiez des notifications dans vos canaux Mattermost et agissez dessus depuis Mattermost.",
+  "Resize Ask AI": "Redimensionner Demander à l'IA",
   "Send a link to your Mattermost account": "Envoyer un lien à votre compte Mattermost",
   "Send link": "Envoyer le lien",
   "Send link to @{{username}}": "Envoyer le lien à @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "Dans Slack",
   "Runbook Track Record": "Historique des résultats du runbook",
   "Where fixes were approved": "Où les correctifs ont été approuvés",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Vous n'avez pas l'autorisation d'ignorer ce correctif. Ignorer un correctif demande la même autorisation que l'approuver : démarrer des exécutions de runbook dans ce projet."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Vous n'avez pas l'autorisation d'ignorer ce correctif. Ignorer un correctif demande la même autorisation que l'approuver : démarrer des exécutions de runbook dans ce projet.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

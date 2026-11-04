@@ -5,10 +5,9 @@ import { RefObject, useLayoutEffect, useState } from "react";
  * and the "what Ask AI may do" picker's.
  *
  * The side asked for, unless the menu does not fit there and fits better
- * on the other. Ask AI's start draws its composer in the middle of the
- * dialog and asks for "bottom", but on a laptop window 800 px tall the
- * permission menu ran 70 px past the dialog's foot, which cut its last
- * choice in half. A composer at the foot asks for "top" and keeps it.
+ * on the other: a composer near the foot of its surface asks for "top" and
+ * keeps it, and in a window too short for that the menu opens the other way
+ * rather than being cut in half at the window's edge.
  */
 export type MenuSide = "top" | "bottom";
 
@@ -57,8 +56,8 @@ const CLIPPING_OVERFLOW: Set<string> = new Set([
 
 /*
  * The part of the window an element's menu can be seen in: the window, cut
- * by every ancestor that clips what overflows it (the dialog, which rounds
- * its corners with overflow: hidden, and the start's scrolling column).
+ * by every ancestor that clips what overflows it (a surface that rounds its
+ * corners with overflow: hidden, a scrolling column).
  */
 export function getVisibleBounds(element: Element): {
   top: number;

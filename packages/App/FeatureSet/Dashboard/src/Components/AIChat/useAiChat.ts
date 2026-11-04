@@ -134,13 +134,13 @@ export interface UseAiChat {
 }
 
 /*
- * The whole Ask AI experience as a headless hook, behind the Ask AI dialog
- * (AskAiDialog): optimistic sends, and change-detected polling accelerated
+ * The whole Ask AI experience as a headless hook, behind the Ask AI panel
+ * (AskAiPanel): optimistic sends, and change-detected polling accelerated
  * by AIRunEvent realtime pings.
  *
  * `enabled` gates every fetch: nothing is read until Ask AI is first
  * opened. It stays on after that, so an answer still being written arrives
- * while the dialog is closed. `isVisible` - the dialog is on screen - gates
+ * while the panel is closed. `isVisible` - the panel is on screen - gates
  * what only matters to someone looking at it: which page they are on, and
  * that record's title.
  */

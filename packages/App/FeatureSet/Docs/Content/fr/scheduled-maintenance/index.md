@@ -56,7 +56,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Vue d'ensemble** | **Tous les événements** et **Événements en cours**, dont le badge compte les événements en cours en ce moment.         |
 | **Calendrier** | **Calendrier de maintenance** : chaque événement sur un mois, une semaine ou un jour, à côté des calendriers extérieurs au projet que vous ajoutez. |
-| **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost**, selon ce que le projet a connecté, ou **Connecter Slack ou Teams** s'il n'en a aucun. |
+| **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost**, selon ce que le projet a connecté, ou **Connecter un espace de travail** s'il n'en a aucun. |
 | **Règles**    | **Règles de propriétaire**, **Règles de runbook**, **Règles d'étiquettes**, **Règles de rappel**.                              |
 | **Paramètres** | **État de l'événement**, **Modèles d'événement**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
 

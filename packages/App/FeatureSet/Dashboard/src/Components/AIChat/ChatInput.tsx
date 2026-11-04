@@ -103,7 +103,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
   return (
     <div
       data-testid="ai-chat-composer"
-      className="rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow duration-150 focus-within:border-gray-300 focus-within:shadow-md motion-reduce:transition-none"
+      className="rounded-2xl border border-gray-200 bg-white shadow-sm transition-[border-color,box-shadow] duration-150 focus-within:border-indigo-500 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] motion-reduce:transition-none"
     >
       {props.contextChip && (
         <div className="flex min-w-0 px-3 pt-3">{props.contextChip}</div>
@@ -130,7 +130,11 @@ const ChatInput: FunctionComponent<ComponentProps> = (
         }}
         className="block max-h-40 min-h-[2.5rem] w-full resize-none overscroll-contain border-0 bg-transparent px-4 pb-1 pt-3 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
       />
-      <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+      {/*
+       * What the controls' menus are placed against: the panel is too narrow
+       * for one that starts at the second control and runs its own width.
+       */}
+      <div className="relative flex items-center justify-between gap-2 px-2 pb-2 pt-1">
         <div className="flex min-w-0 flex-wrap items-center gap-1">
           {props.leading}
         </div>
@@ -162,9 +166,9 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             onClick={() => {
               trySend();
             }}
-            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
               isSendable
-                ? "bg-gray-900 text-white hover:bg-gray-800"
+                ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white hover:brightness-110"
                 : "bg-gray-100 text-gray-400"
             }`}
           >

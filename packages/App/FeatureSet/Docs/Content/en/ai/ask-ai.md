@@ -33,9 +33,9 @@ In **Read-only** mode the actions are never offered to the model, so the convers
 | Any page | Click **Ask AI** in the header, or press `Ctrl` + `I` (`Cmd` + `I` on a Mac). While you type in a text box or an editor, the keys stay the editor's italics shortcut. |
 | The command palette | Press `Ctrl` + `K` (`Cmd` + `K` on a Mac) and choose **Ask AI**. |
 | A log error pattern, or a chart's findings | Click **Explain with AI**: Ask AI opens with the evidence as a question you can edit before you send it. |
-| The products menu | Open **Products → AI → Chat**. Ask AI opens over the page you were on. Each conversation has its own address, so you can bookmark it and come back to it. |
+| The products menu | Open **Products → AI → Chat**. Ask AI opens beside the page you were on. Each conversation has its own address, so you can bookmark it and come back to it. |
 
-Ask AI opens in the middle of the screen, over the page you were on, and on a phone it fills the screen. Press `Esc`, or click beside it, to go back to the page. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it.
+Ask AI opens at the side of the window, and the page makes room for it: nothing is hidden behind it, so you can keep working on the page, move to other pages and ask again. Drag its edge to make it wider or narrower. Press `Esc` in it, or click **Ask AI** again, to give the page the whole window back. With it open, `Ctrl` + `I` (`Cmd` + `I` on a Mac) goes from the page to the box you type in, and from there closes it. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it. On a tablet or a phone, where there is no room for both, it opens over the page, and on a phone it fills the screen.
 
 On an incident or an alert, the **OneUptime AI** card has a conversation of its own, **Ask OneUptime AI**, shared with everyone who can see that incident or alert: see [Talk to OneUptime AI about the incident](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
 
