@@ -1,4 +1,8 @@
 import CodeEditor, { CODE_EDITOR_VALIDATION_DEBOUNCE_MS } from "./CodeEditor";
+import {
+  YAML_EDITOR_MAX_HEIGHT,
+  YAML_EDITOR_MIN_LINES,
+} from "./CodeEditorSize";
 import CodeType from "../../../Types/Code/CodeType";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -63,9 +67,8 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
         ariaLabelledby={props.ariaLabelledby}
         ariaDescribedby={props.ariaDescribedby}
         height={props.height}
-        // A rule is the whole point of the form it sits in: give it room.
-        minLines={12}
-        maxHeight="min(70vh, 36rem)"
+        minLines={YAML_EDITOR_MIN_LINES}
+        maxHeight={YAML_EDITOR_MAX_HEIGHT}
       />
     </div>
   );

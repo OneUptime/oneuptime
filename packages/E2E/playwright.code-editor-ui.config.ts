@@ -6,14 +6,15 @@ import path from "path";
  * CodeEditor/Fixture/server.js bundles it with the app's esbuild config,
  * Tailwind and theme. jsdom has no layout, no execCommand and no undo stack,
  * so what this suite checks - the textarea's glyphs landing exactly on the
- * highlighted ones, the caret staying in view, native undo - cannot be
- * checked anywhere else.
+ * highlighted ones, the caret staying in view, native undo, and a form that
+ * does not move when a field's control arrives - cannot be checked anywhere
+ * else.
  */
 const port: string = process.env["CODE_EDITOR_FIXTURE_PORT"] || "4246";
 
 export default defineConfig({
   testDir: "./CodeEditor",
-  testMatch: "CodeEditor.spec.ts",
+  testMatch: ["CodeEditor.spec.ts", "FormFieldLoading.spec.ts"],
   timeout: 60000,
   expect: { timeout: 10000 },
   workers: 1,

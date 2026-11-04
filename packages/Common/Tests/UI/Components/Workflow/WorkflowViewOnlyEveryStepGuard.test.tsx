@@ -149,7 +149,8 @@ import {
   findLiveControls,
   isHeldStill,
 } from "./ViewOnlyControls";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import { loadAllFormFieldControls } from "../../../../UI/Components/Forms/Fields/FormFieldControls";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 
@@ -368,6 +369,10 @@ const settled: (
     }
   });
 };
+
+beforeAll(async () => {
+  await loadAllFormFieldControls();
+});
 
 afterEach(() => {
   cleanup();
