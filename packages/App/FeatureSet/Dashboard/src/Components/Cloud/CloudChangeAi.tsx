@@ -222,7 +222,7 @@ export const CloudChangeAiActor: FunctionComponent<{ actor: string }> = (props: 
       <AiMark />
       {props.actor ? (
         <div
-          className="truncate text-xs text-gray-500"
+          className="max-w-[8rem] truncate text-xs text-gray-500"
           title={props.actor}
           data-testid={`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-session`}
         >
