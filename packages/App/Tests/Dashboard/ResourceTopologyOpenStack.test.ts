@@ -689,7 +689,7 @@ describe("real clouds' odd rows", () => {
       instance("i-unplaced", "", {
         status: "ERROR",
         hypervisorName: undefined,
-      }),
+      } as unknown as Partial<OpenStackResource>),
     ]);
 
     expect(node(graph, "instance:i-unplaced").parentId).toBe(
@@ -699,7 +699,9 @@ describe("real clouds' odd rows", () => {
 
   test("a hypervisor no zone is known for says so, and is still drawn", () => {
     const graph: ResourceTopologyGraph = build([
-      hypervisor(FULL_NAME, { availabilityZone: undefined }),
+      hypervisor(FULL_NAME, {
+        availabilityZone: undefined,
+      } as unknown as Partial<OpenStackResource>),
     ]);
     const parent: ResourceTopologyNode = node(
       graph,
@@ -715,7 +717,7 @@ describe("real clouds' odd rows", () => {
       row(OpenStackResourceKind.Network, "n-1", {
         name: undefined,
         regionName: undefined,
-      }),
+      } as unknown as Partial<OpenStackResource>),
     ]);
 
     expect(node(graph, "network:n-1").name).toBe("n-1");

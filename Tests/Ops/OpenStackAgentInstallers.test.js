@@ -1482,6 +1482,230 @@ describe("bring your own exporter", () => {
   });
 });
 
+/* ======================== an exporter without --multi-cloud, and what the cloud stands on */
+
+describe("an exporter already running without --multi-cloud, as Kolla-Ansible runs it", () => {
+  const KOLLA = "10.0.0.254:9198";
+
+  function kolla(dir, env = {}, input = answers(URL, KEY, "prod")) {
+    return install(dir, {
+      input,
+      env: {
+        OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: KOLLA,
+        OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+        ...env,
+      },
+    });
+  }
+
+  test("asks for no credential, starts no exporter, and asks it for nothing by region", () => {
+    const run = kolla(scratch());
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile)).toMatchObject({
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: `[${KOLLA}]`,
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+      // The per-service jobs read this list, and this exporter has no /probe to ask.
+      OPENSTACK_EXPORTER_CLOUDS: "[]",
+      OPENSTACK_AUTH_URL: "",
+      COMPOSE_PROFILES: "",
+    });
+    expect(fs.existsSync(path.join(run.installDir, "clouds.yaml"))).toBe(false);
+    expect(run.curlLog).not.toContain("/auth/tokens");
+  });
+
+  test("says what it reads, and that 1.7.0 says less", () => {
+    const run = kolla(scratch());
+
+    expect(run.output).toContain(
+      `NOTE: the agent reads your exporter at [${KOLLA}] on /metrics, for region`,
+    );
+    expect(run.output).toContain(
+      "Exporter 1.7.0 says less than the bundled one: README.md says what the pages go without.",
+    );
+  });
+
+  test("asks which region it reads, because a series from it does not say", () => {
+    const run = install(scratch(), {
+      input: answers(URL, KEY, "prod", "RegionTwo"),
+      env: { OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: KOLLA },
+    });
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile).OPENSTACK_CONTROL_PLANE_REGION).toBe(
+      "RegionTwo",
+    );
+  });
+
+  test("it reads one region, so two is refused, and how to do two is said", () => {
+    const run = kolla(scratch(), {
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne,RegionTwo",
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      "an exporter in single-cloud mode reads one region",
+    );
+    expect(run.output).toContain("Run one agent for each region");
+    expect(run.envFile).toBe("");
+  });
+
+  test("a re-run keeps it, and asks nothing", () => {
+    const dir = scratch();
+    const first = kolla(dir);
+    expect(first.status).toBe(0);
+
+    const rerun = install(dir);
+
+    expect(rerun.status).toBe(0);
+    expect(rerun.envFile).toBe(first.envFile);
+    expect(rerun.output).toContain("on /metrics, for region");
+  });
+
+  test("the plain bring-your-own note points to it, for whoever has this kind", () => {
+    const run = install(scratch(), {
+      input: answers(URL, KEY, "prod", "RegionOne"),
+      env: { OPENSTACK_EXPORTER_ADDRESS: "10.0.0.5:9180" },
+    });
+
+    expect(run.output).toContain(
+      "Started without --multi-cloud, as Kolla-Ansible starts it? Set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS instead.",
+    );
+  });
+});
+
+describe("what the cloud stands on, as lists of targets", () => {
+  const LISTS = [
+    "OPENSTACK_RABBITMQ_TARGETS",
+    "OPENSTACK_MARIADB_TARGETS",
+    "OPENSTACK_MEMCACHED_TARGETS",
+    "OPENSTACK_HAPROXY_TARGETS",
+    "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+    "OPENSTACK_LIBVIRT_HEALTH_TARGETS",
+  ];
+
+  function withLists(dir, lists) {
+    return install(dir, {
+      input: FRESH,
+      env: lists,
+    });
+  }
+
+  test("nothing named is an empty list in .env, and nothing is asked", () => {
+    const run = withLists(scratch(), {});
+
+    expect(run.status).toBe(0);
+    for (const name of LISTS) {
+      expect(composeReadAll(run.envFile)[name]).toBe("[]");
+    }
+    expect(run.output).not.toContain("15692");
+  });
+
+  test.each([
+    ["10.0.0.11:15692", "[10.0.0.11:15692]"],
+    ["[10.0.0.11:15692]", "[10.0.0.11:15692]"],
+    [
+      " 10.0.0.11:15692 , 10.0.0.12:15692 ",
+      "[10.0.0.11:15692,10.0.0.12:15692]",
+    ],
+    [
+      "[10.0.0.11:15692,RegionTwo@10.1.0.11:15692]",
+      "[10.0.0.11:15692,RegionTwo@10.1.0.11:15692]",
+    ],
+    ["rabbit-1.example.com:15692", "[rabbit-1.example.com:15692]"],
+    ["[fd00::11]:15692", '["[fd00::11]:15692"]'],
+    [
+      '["[fd00::11]:15692","[fd00::12]:15692"]',
+      '["[fd00::11]:15692","[fd00::12]:15692"]',
+    ],
+  ])("%s is written as the collector reads a list: %s", (typed, written) => {
+    const run = withLists(scratch(), { OPENSTACK_RABBITMQ_TARGETS: typed });
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile).OPENSTACK_RABBITMQ_TARGETS).toBe(written);
+    // It is valid YAML with one entry per target.
+    expect(yaml.load(written).length).toBe(written.split(",").length);
+  });
+
+  test.each([
+    ["10.0.0.11", "which has no port"],
+    ["10.0.0.11:", "which is not a host:port to scrape"],
+    ["http://10.0.0.11:15692", "which is not a host:port to scrape"],
+    ["10.0.0.11:15692;reboot", "which is not a host:port to scrape"],
+  ])("%s stops the install, and says why", (typed, why) => {
+    const run = withLists(scratch(), { OPENSTACK_RABBITMQ_TARGETS: typed });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      `Error: OPENSTACK_RABBITMQ_TARGETS holds "${typed}", ${why}`,
+    );
+    expect(run.envFile).toBe("");
+  });
+
+  test.each([["localhost:15692"], ["127.0.0.1:15692"]])(
+    "%s is the agent's own container, so it is refused",
+    (typed) => {
+      const run = withLists(scratch(), { OPENSTACK_MARIADB_TARGETS: typed });
+
+      expect(run.status).not.toBe(0);
+      expect(run.output).toContain("OPENSTACK_MARIADB_TARGETS");
+      expect(run.output).toContain("where that is the");
+      expect(run.envFile).toBe("");
+    },
+  );
+
+  test("a re-run keeps every list, the VM agent's too", () => {
+    const dir = scratch();
+    const first = withLists(dir, {
+      OPENSTACK_RABBITMQ_TARGETS: "10.0.0.11:15692",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "10.0.0.11:1981",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "10.0.0.21:9177",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "10.0.0.21:9101",
+    });
+    expect(first.status).toBe(0);
+
+    const rerun = install(dir);
+
+    expect(rerun.status).toBe(0);
+    expect(composeReadAll(rerun.envFile)).toMatchObject({
+      OPENSTACK_RABBITMQ_TARGETS: "[10.0.0.11:15692]",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "[10.0.0.11:1981]",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[10.0.0.21:9177]",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[10.0.0.21:9101]",
+    });
+  });
+
+  test("a target's region defaults to the cloud's first", () => {
+    const run = withLists(scratch(), {});
+
+    expect(composeReadAll(run.envFile).OPENSTACK_CONTROL_PLANE_REGION).toBe(
+      "RegionOne",
+    );
+  });
+
+  test("a region given by hand is kept", () => {
+    const run = withLists(scratch(), {
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionTwo",
+    });
+
+    expect(composeReadAll(run.envFile).OPENSTACK_CONTROL_PLANE_REGION).toBe(
+      "RegionTwo",
+    );
+  });
+
+  test("the compose file reads every one of them", () => {
+    const compose = agentFile("docker-compose.yml");
+
+    for (const name of [
+      ...LISTS,
+      "OPENSTACK_CONTROL_PLANE_REGION",
+      "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS",
+    ]) {
+      expect(compose).toContain(`\${${name}:-`);
+    }
+  });
+});
+
 /* =================================================================== a re-run */
 
 describe("install.sh, as the upgrade", () => {

@@ -28,6 +28,12 @@ Environment=OPENSTACK_HAPROXY_TARGETS=[]
 Environment=OPENSTACK_NETWORK_EXPORTER_TARGETS=[]
 Environment=OPENSTACK_LIBVIRT_HEALTH_TARGETS=[]
 Environment=OPENSTACK_CONTROL_PLANE_REGION=RegionOne
+Environment=OPENSTACK_AGENT_SERVICES=.*
+Environment=OPENSTACK_AGENT_MEMORY_LIMIT_MIB=512
+Environment=OPENSTACK_DATABASE_EXPORTER_TARGETS=[]
+Environment=OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX=
+Environment=OPENSTACK_WORKER_STATE_CLOUDS=[]
+Environment=OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9181
 Environment=OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[]
 # The agent's settings: the variables the Docker install keeps in its .env.
 # Root's alone (mode 0600): systemd reads it before the collector starts, and

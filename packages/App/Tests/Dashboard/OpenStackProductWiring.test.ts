@@ -1,7 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import yaml from "js-yaml";
 import {
   InstallScriptEntry,
   InstallScriptName,
@@ -31,6 +30,28 @@ import {
   getSetupGuideMarkdown,
 } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import OPENSTACK_CLOUD_SHOWCASE from "../../FeatureSet/Dashboard/src/Components/OpenStack/OpenStackCloudShowcase";
+
+/*
+ * js-yaml from Common/node_modules, as OpenTelemetryCollectorExampleDocs.test.ts loads it
+ * and for the same reason: Common declares js-yaml 4, App declares no YAML parser.
+ */
+interface JsYamlModule {
+  load: (text: string) => unknown;
+}
+
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+const yaml: JsYamlModule = require(
+  path.resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "node_modules",
+    "js-yaml",
+  ),
+);
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 /*
  * The OpenStack product is a lazy-loaded route group built on the shape of the
@@ -127,9 +148,15 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Projects.tsx", "OPENSTACK_CLOUD_VIEW_PROJECTS"],
   ["ProjectDetail.tsx", "OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL"],
   ["Domains.tsx", "OPENSTACK_CLOUD_VIEW_DOMAINS"],
+  ["ControlPlane.tsx", "OPENSTACK_CLOUD_VIEW_CONTROL_PLANE"],
+  [
+    "ControlPlaneDependency.tsx",
+    "OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY",
+  ],
   ["Topology.tsx", "OPENSTACK_CLOUD_VIEW_TOPOLOGY"],
   ["Metrics.tsx", "OPENSTACK_CLOUD_VIEW_METRICS"],
   ["Logs.tsx", "OPENSTACK_CLOUD_VIEW_LOGS"],
+  ["Traces.tsx", "OPENSTACK_CLOUD_VIEW_TRACES"],
   ["Incidents.tsx", "OPENSTACK_CLOUD_VIEW_INCIDENTS"],
   ["Alerts.tsx", "OPENSTACK_CLOUD_VIEW_ALERTS"],
   ["ScheduledMaintenance.tsx", "OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE"],
@@ -177,12 +204,6 @@ const EVERY_PAGE_KEY: ReadonlyArray<string> = [
   "OPENSTACK_SETTINGS_OWNER_RULE_VIEW",
   "OPENSTACK_SETTINGS_LABEL_RULE_VIEW",
   ...LATER_PAGE_KEYS,
-];
-
-const EVERY_ROUTED_FILE: ReadonlyArray<string> = [
-  "Routes/OpenStackRoutes.tsx",
-  "Pages/OpenStack/SideMenu.tsx",
-  "Pages/OpenStack/View/SideMenu.tsx",
 ];
 
 function linkedPageKeysOf(source: string): Array<string> {
@@ -1023,7 +1044,7 @@ describe("the setup guide is true for agents/OpenStackAgent", () => {
   });
 
   test("every file it downloads is served at /install/openstack-agent", () => {
-    const entry: InstallScriptEntry | undefined = getInstallScriptEntry(
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
       InstallScriptName.OpenStackAgent,
     );
     const pattern: RegExp =

@@ -17,6 +17,7 @@ import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTil
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
 import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
+import OpenStackStoragePoolCephCard from "../../../Components/OpenStack/Part/OpenStackStoragePoolCephCard";
 import OpenStackForecastTile from "../../../Components/OpenStack/Part/OpenStackForecastTile";
 import { getOpenStackMetricQuery } from "../../../Components/OpenStack/Part/OpenStackMetricQueries";
 import {
@@ -180,6 +181,12 @@ const StoragePoolOverview: FunctionComponent<{
         description="Unresolved incidents and alerts about this pool, incidents first."
         part={part}
         row={row}
+      />
+
+      <OpenStackStoragePoolCephCard
+        openStackCloudId={part.openStackCloudId}
+        externalId={part.externalId}
+        refreshToken={part.refreshToken}
       />
 
       <OpenStackBlastRadiusCard

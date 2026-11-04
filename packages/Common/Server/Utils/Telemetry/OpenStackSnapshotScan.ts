@@ -13,7 +13,15 @@ import {
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SUMMARY_MODE_SERIES,
+  isOpenStackSeriesKeptInSummaryMode,
+} from "../../../Types/OpenStack/OpenStackScale";
 import logger from "../Logger";
+import {
+  foldOpenStackControlPlaneDatapoint,
+  isOpenStackControlPlaneDatapoint,
+} from "./OpenStackControlPlaneScan";
 
 /*
  * ------------------------------------------------------------------
@@ -216,13 +224,19 @@ export function isOpenStackSnapshotDatapoint(data: {
   metricName: string;
   datapoint: JSONObject;
 }): boolean {
+  if (isOpenStackControlPlaneDatapoint(data)) {
+    return true;
+  }
   if (
     data.metricName === OPENSTACK_SCRAPE_UP_METRIC_NAME ||
     data.metricName === OPENSTACK_SCRAPE_DURATION_METRIC_NAME
   ) {
     const attributes: JSONArray =
       (data.datapoint["attributes"] as JSONArray) || [];
-    const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
+    const service: string | null = getLabel(
+      attributes,
+      OPENSTACK_SERVICE_LABEL,
+    );
     // The agent's VM metric jobs read compute nodes: they are no OpenStack API to list.
     return service !== null && !OPENSTACK_INSTANCE_METRIC_JOBS.has(service);
   }
@@ -440,6 +454,12 @@ function foldApiUp(data: {
   observedAt: Date;
   // The exporter's own reading, or the receiver's report that the scrape failed.
   source: "api" | "scrape";
+  /*
+   * On a cloud whose unchanged rows a probe sends in turns, how long a turn takes. The stale-row
+   * rule waits that much longer for a row of this service. Always written, so a cloud that left
+   * summary mode stops waiting.
+   */
+  refreshCycleMinutes?: number | null | undefined;
 }): void {
   const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
     buffer: data.buffer,
@@ -466,6 +486,7 @@ function foldApiUp(data: {
     data.isUp ? OPENSTACK_SERVICE_STATUS_UP : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
+  entry.facts["refreshCycleMinutes"] = data.refreshCycleMinutes ?? null;
   /*
    * The time of the last good read, which the stale-row rule measures from: a part
    * is gone only when its service answered after the part was last seen. Written
@@ -915,6 +936,14 @@ function foldStoragePool(data: {
   setIdentity(entry, { name, regionName: data.region });
   setFact(entry, "backend", getLabel(data.attributes, "volume_backend_name"));
   setFact(entry, "vendor", getLabel(data.attributes, "vendor_name"));
+  // Only a probe says these, and then what links this pool to a Ceph cluster is a fact.
+  setFact(
+    entry,
+    "storageProtocol",
+    getLabel(data.attributes, "storage_protocol"),
+  );
+  setFact(entry, "cephFsid", getLabel(data.attributes, "ceph_fsid"));
+  setFact(entry, "cephPool", getLabel(data.attributes, "ceph_pool"));
   const bytes: number = data.value * BYTES_PER_GIB;
   if (data.metricName === "openstack_cinder_pool_capacity_total_gb") {
     entry.diskCapacityBytes = bytes;
@@ -1297,6 +1326,27 @@ export function bufferOpenStackSnapshotMetric(data: {
   );
   const { metricName, buffer } = data;
 
+  // What the cloud stands on is told apart by its own label, and has its own fold.
+  if (
+    foldOpenStackControlPlaneDatapoint({
+      metricName,
+      attributes,
+      value,
+      observedAt,
+      region,
+      entryFor: (externalId: string): OpenStackResourceBufferEntry => {
+        return getOrCreateEntry({
+          buffer,
+          kind: OpenStackResourceKind.ControlPlane,
+          externalId,
+          observedAt,
+        });
+      },
+    })
+  ) {
+    return;
+  }
+
   if (metricName === OPENSTACK_SCRAPE_DURATION_METRIC_NAME) {
     const service: string | null = getLabel(
       attributes,
@@ -1343,6 +1393,9 @@ export function bufferOpenStackSnapshotMetric(data: {
       isUp: value > 0,
       observedAt,
       source: "api",
+      refreshCycleMinutes: toNumberOrNull(
+        getLabel(attributes, "refresh_cycle_minutes"),
+      ),
     });
     return;
   }
@@ -1555,6 +1608,17 @@ export function finishOpenStackResource(
         allocationRatios[resource] = ratio;
         entry.facts["allocationRatios"] = allocationRatios;
       }
+      /*
+       * What the hypervisor really has, before a ratio: what real load is measured
+       * against, as apart from what is promised on it.
+       */
+      const total: number | undefined = entry.placement[resource]?.total;
+      if (total !== undefined) {
+        const resourceTotals: JSONObject =
+          (entry.facts["resourceTotals"] as JSONObject) || {};
+        resourceTotals[resource] = total;
+        entry.facts["resourceTotals"] = resourceTotals;
+      }
     }
 
     delete entry.facts["novaVcpusUsed"];
@@ -1632,6 +1696,72 @@ export function finishOpenStackResource(
  * say which zone a hypervisor is in unless an aggregate put it there, and a cloud with
  * one zone has no such aggregate, but its nova-compute always knows.
  */
+/*
+ * The hosts a batch holds half of: a hypervisor's numbers with no nova-compute beside them, or a
+ * nova-compute with no hypervisor. A collector that sends a large scrape in several batches can
+ * part them, and then OpenStackResourceService.reconcileHypervisorStates joins them from the rows.
+ * A batch that holds both of each, which is every small cloud's, has none, and costs nothing.
+ */
+export function getOpenStackHostsToReconcile(
+  finished: ReadonlyArray<OpenStackResourceBufferEntry>,
+): Array<string> {
+  const hypervisors: Set<string> = new Set();
+  const computes: Set<string> = new Set();
+
+  for (const entry of finished) {
+    if (entry.kind === OpenStackResourceKind.Hypervisor) {
+      hypervisors.add(getOpenStackShortHostName(entry.hypervisorName));
+    } else if (
+      entry.kind === OpenStackResourceKind.Service &&
+      entry.name === "nova-compute" &&
+      typeof entry.facts["host"] === "string"
+    ) {
+      computes.add(getOpenStackShortHostName(entry.facts["host"] as string));
+    }
+  }
+
+  const hosts: Array<string> = [];
+
+  for (const host of hypervisors) {
+    if (!computes.has(host)) {
+      hosts.push(host);
+    }
+  }
+
+  for (const host of computes) {
+    if (!hypervisors.has(host)) {
+      hosts.push(host);
+    }
+  }
+
+  return hosts;
+}
+
+/*
+ * Whether a datapoint of a cloud in summary mode goes on to the metric store. Its row has already
+ * been folded by now, so this only decides whether it also keeps a series. Most datapoints are of
+ * series summary mode has no say in, and those cost one set lookup.
+ */
+export function isOpenStackDatapointKept(data: {
+  metricName: string;
+  datapoint: JSONObject;
+  keptProjectIds: ReadonlySet<string>;
+}): boolean {
+  if (!OPENSTACK_SUMMARY_MODE_SERIES.has(data.metricName)) {
+    return true;
+  }
+
+  const attributes: JSONArray =
+    (data.datapoint["attributes"] as JSONArray) || [];
+
+  return isOpenStackSeriesKeptInSummaryMode({
+    metricName: data.metricName,
+    status: getLabel(attributes, "status"),
+    projectId: getLabel(attributes, "tenant_id"),
+    keptProjectIds: data.keptProjectIds,
+  });
+}
+
 export function finishOpenStackBatch(
   entries: Iterable<OpenStackResourceBufferEntry>,
 ): Array<OpenStackResourceBufferEntry> {

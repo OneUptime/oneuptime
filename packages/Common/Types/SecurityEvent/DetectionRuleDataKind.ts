@@ -61,6 +61,8 @@ export enum DetectionRuleDataKind {
   WebRequests = "web-requests",
   // Kubernetes audit logs, which "Your logs" reads.
   KubernetesAuditLogs = "kubernetes-audit-logs",
+  // An OpenStack cloud's audit trail, which "Your logs" reads.
+  OpenStackAuditTrail = "openstack-audit-trail",
   /*
    * The rest of "Your OneUptime data" (SecurityTelemetrySource): what the
    * project's traces, network flows, audit log and session replays show.
@@ -93,6 +95,7 @@ export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleData
     DetectionRuleDataKind.NetworkActivity,
     DetectionRuleDataKind.WebRequests,
     DetectionRuleDataKind.KubernetesAuditLogs,
+    DetectionRuleDataKind.OpenStackAuditTrail,
     DetectionRuleDataKind.OneUptimeTraces,
     DetectionRuleDataKind.NetworkFlows,
     DetectionRuleDataKind.OneUptimeAuditLog,
@@ -267,6 +270,12 @@ export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefin
       classNames: [],
       vendorNames: [],
       productNames: logFormatProduct(SecurityLogFormat.KubernetesAudit),
+    },
+    {
+      kind: DetectionRuleDataKind.OpenStackAuditTrail,
+      classNames: [],
+      vendorNames: [],
+      productNames: logFormatProduct(SecurityLogFormat.OpenStackAudit),
     },
     {
       kind: DetectionRuleDataKind.OneUptimeTraces,

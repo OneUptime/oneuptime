@@ -68,7 +68,7 @@ describe("a certificate", () => {
   test.each([
     ["untrusted", OpenStackCollectionErrorCode.UntrustedCertificate],
     ["changed", OpenStackCollectionErrorCode.CertificateChanged],
-  ] as const)(
+  ] as Array<["untrusted" | "changed", OpenStackCollectionErrorCode]>)(
     "%s carries what was presented, for a person to judge",
     (kind: "untrusted" | "changed", code: OpenStackCollectionErrorCode) => {
       expect(
@@ -93,7 +93,9 @@ describe("a URL the catalog named", () => {
     ["insecure", OpenStackCollectionErrorCode.InsecureEndpoint],
     ["forbidden", OpenStackCollectionErrorCode.AddressNotAllowed],
     ["invalid", OpenStackCollectionErrorCode.InvalidAddress],
-  ] as const)(
+  ] as Array<
+    ["insecure" | "forbidden" | "invalid", OpenStackCollectionErrorCode]
+  >)(
     "%s has its own code",
     (
       kind: "insecure" | "forbidden" | "invalid",
@@ -116,7 +118,7 @@ describe("what an API said", () => {
     ["failing", 500, OpenStackCollectionErrorCode.ApiError],
     ["malformed", 200, OpenStackCollectionErrorCode.ApiError],
     ["absent", 404, OpenStackCollectionErrorCode.ApiError],
-  ] as const)(
+  ] as Array<[OpenStackApiErrorKind, number, OpenStackCollectionErrorCode]>)(
     "%s (%s)",
     (
       kind: OpenStackApiErrorKind,

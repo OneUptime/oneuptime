@@ -1019,6 +1019,8 @@ function getReportedTopic(method: HostInstallMethod): SetupGuideTopic {
 
 …and starts populating the Overview, Metrics, Processes, and Logs tabs. \`host.id\` or \`host.arch\` alone do not register a host, and telemetry that carries a Kubernetes identity (\`k8s.cluster.name\`, \`k8s.node.name\`, \`k8s.pod.name\`, …) is filed under its Kubernetes cluster instead.
 
+**Running on OpenStack?** Use \`detectors: [nova, system, env]\`, so \`host.id\` is the instance's UUID and OneUptime links this host to its instance, and set \`host.name\` to \`enabled: false\` under \`nova: resource_attributes:\` so its name stays the one \`system\` reports.
+
 The same resource attributes become the machine's **Inventory** item, which is what a CMDB export reads. \`host.ip\`, \`host.mac\`, \`host.arch\`, \`host.id\`, \`os.type\`, \`os.description\` and \`os.version\` all come from the \`resourcedetection\` processor; serial number, make, model and firmware version have no detector and are stamped on separately (see **Record the serial number, make, model and firmware version**).
 
 Once the host is reporting:

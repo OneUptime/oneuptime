@@ -21,11 +21,16 @@ import OpenStackServiceClient, {
   OpenStackListAnswer,
   OpenStackQuery,
 } from "../OpenStackServiceClient";
+import OpenStackReadTurns from "../OpenStackReadTurns";
 import {
   OpenStackCollectorContext,
   OpenStackProjectRef,
 } from "./OpenStackCollectorContext";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  OPENSTACK_PER_PART_READS_PER_COLLECTION,
+  OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
+} from "Common/Types/OpenStack/OpenStackScale";
 
 /*
  * Neutron: its agents, networks, subnets, routers, floating IPs and address pools.
@@ -41,7 +46,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
  *
  * Routers say which L3 agents hold them with a call per router, which a cloud on OVN
  * has no use for: it has no L3 agents. So the agent list decides whether to ask, as it
- * does for the exporter.
+ * does for the exporter. A cloud with thousands of routers asks in turns (OpenStackReadTurns).
  */
 
 const NETWORK_FIELDS: Array<string> = [
@@ -331,40 +336,64 @@ async function collectL3Agents(
     return;
   }
 
-  const l3Agents: Array<NeutronL3AgentRecord> = [];
+  const routerIds: Array<string> = [];
+
+  for (const router of inventory.routers || []) {
+    if (router.id) {
+      routerIds.push(router.id);
+    }
+  }
+
+  const idOf: (routerId: string) => string = (routerId: string): string => {
+    return routerId;
+  };
+
+  const turns: OpenStackReadTurns<Array<NeutronL3AgentRecord>> =
+    new OpenStackReadTurns({
+      memory: context.memory,
+      memoryKey: `${context.memoryKey}/${run.regionName}/l3-agents`,
+      now: client.now(),
+    });
 
   await run.read({
     name: "L3 agents of routers",
     isInventory: false,
     run: async () => {
-      for (const router of inventory.routers || []) {
-        if (!router.id) {
-          continue;
-        }
-
-        const answer: OpenStackListAnswer = await client.list({
-          read: "a router's L3 agents",
-          path: `/routers/${encodeURIComponent(router.id)}/l3-agents`,
-          key: "agents",
-          paging: "none",
-        });
-
-        for (const agent of answer.items) {
-          l3Agents.push({
-            routerId: router.id,
-            agentId: typeof agent["id"] === "string" ? agent["id"] : null,
-            host: typeof agent["host"] === "string" ? agent["host"] : null,
-            haState:
-              typeof agent["ha_state"] === "string" ? agent["ha_state"] : null,
-            isAlive: agent["alive"] === true,
-            isAdminUp: agent["admin_state_up"] === true,
+      await turns.read({
+        items: routerIds,
+        limit: OPENSTACK_PER_PART_READS_PER_COLLECTION,
+        idOf: idOf,
+        read: async (
+          routerId: string,
+        ): Promise<Array<NeutronL3AgentRecord>> => {
+          const answer: OpenStackListAnswer = await client.list({
+            read: "a router's L3 agents",
+            path: `/routers/${encodeURIComponent(routerId)}/l3-agents`,
+            key: "agents",
+            paging: "none",
           });
-        }
-      }
+
+          return answer.items.map((agent: JSONObject): NeutronL3AgentRecord => {
+            return {
+              routerId: routerId,
+              agentId: typeof agent["id"] === "string" ? agent["id"] : null,
+              host: typeof agent["host"] === "string" ? agent["host"] : null,
+              haState:
+                typeof agent["ha_state"] === "string"
+                  ? agent["ha_state"]
+                  : null,
+              isAlive: agent["alive"] === true,
+              isAdminUp: agent["admin_state_up"] === true,
+            };
+          });
+        },
+      });
     },
   });
 
-  inventory.l3Agents = l3Agents;
+  inventory.l3Agents = turns
+    .getRecords({ items: routerIds, idOf: idOf })
+    .flat();
 }
 
 /*
@@ -571,22 +600,39 @@ async function collectProjectQuotas(
     return;
   }
 
-  const quotas: Array<NeutronQuotaRecord> = [];
+  const idOf: (project: OpenStackProjectRef) => string = (
+    project: OpenStackProjectRef,
+  ): string => {
+    return project.id;
+  };
+
+  const turns: OpenStackReadTurns<NeutronQuotaRecord> = new OpenStackReadTurns({
+    memory: context.memory,
+    memoryKey: `${context.memoryKey}/${run.regionName}/neutron-quotas`,
+    now: client.now(),
+  });
 
   await run.read({
     name: "project quotas",
     isInventory: false,
     run: async () => {
-      for (const project of projects) {
-        const answer: OpenStackJsonAnswer = await client.get({
-          read: "a project's quotas",
-          path: `/quotas/${encodeURIComponent(project.id)}/details.json`,
-        });
+      await turns.read({
+        items: projects,
+        limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
+        idOf: idOf,
+        read: async (
+          project: OpenStackProjectRef,
+        ): Promise<NeutronQuotaRecord> => {
+          const answer: OpenStackJsonAnswer = await client.get({
+            read: "a project's quotas",
+            path: `/quotas/${encodeURIComponent(project.id)}/details.json`,
+          });
 
-        quotas.push(toNeutronQuota(project, answer.body));
-      }
+          return toNeutronQuota(project, answer.body);
+        },
+      });
     },
   });
 
-  inventory.quotas = quotas;
+  inventory.quotas = turns.getRecords({ items: projects, idOf: idOf });
 }

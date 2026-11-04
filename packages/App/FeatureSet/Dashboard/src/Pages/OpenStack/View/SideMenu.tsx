@@ -155,6 +155,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Activity}
           badge={counts.services}
         />
+        <SideMenuItem
+          link={{
+            title: "What It Stands On",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Layers}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Compute">
@@ -194,7 +204,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Availability Zones",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES] as Route,
+              RouteMap[
+                PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES
+              ] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -356,6 +368,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Logs}
+        />
+        <SideMenuItem
+          link={{
+            title: "Traces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_TRACES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Workflow}
         />
         <RecommendationsSideMenuItem
           link={{

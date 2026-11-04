@@ -4,6 +4,7 @@ import {
   OpenStackBlastRadiusProject,
   isOpenStackBlastRadiusEmpty,
 } from "Common/Types/OpenStack/OpenStackBlastRadius";
+import { isOpenStackReachEmpty } from "Common/Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
@@ -13,6 +14,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { fetchOpenStackBlastRadius } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
+import { OpenStackReachList } from "./OpenStackInstanceLinksCard";
 import { OpenStackPartRoutes } from "./OpenStackPartRoutes";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
@@ -263,6 +265,19 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
+        )}
+        {data.acrossProducts && !isOpenStackReachEmpty(data.acrossProducts) ? (
+          <div data-testid={`${props.testId}-across-products`}>
+            <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
+              {translator.translateText("Beyond this cloud")}
+            </p>
+            <OpenStackReachList
+              testId={`${props.testId}-across-products-list`}
+              reach={data.acrossProducts}
+            />
+          </div>
+        ) : (
+          <></>
         )}
       </Card>
     </div>

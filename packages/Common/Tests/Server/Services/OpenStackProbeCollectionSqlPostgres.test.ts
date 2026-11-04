@@ -470,6 +470,8 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
         endpointInterface: "internal",
         trustedCertificateFingerprints: [FINGERPRINT],
         collectionIntervalInMinutes: 7,
+        // Which instances keep metrics goes with every job, whatever else it reads.
+        options: { instanceSeriesMode: "automatic", keptProjectIds: [] },
         settingsVersion: 4,
       });
 

@@ -3,9 +3,11 @@ import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource"
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  OpenStackHypervisorCapacity,
   OpenStackInstanceMetricsOptions,
   OpenStackInstanceMetricSource,
   getDefaultOpenStackInstanceMetricsOptions,
+  getOpenStackHypervisorCapacity,
   isOpenStackInstanceMetricsKept,
   normalizeOpenStackInstanceMetricsOptions,
 } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
@@ -55,6 +57,11 @@ const UNKNOWN_PLACEMENT_CACHE_MS: number = 60 * 1000;
 interface CloudChoice {
   options: OpenStackInstanceMetricsOptions;
   instanceCount: number;
+}
+
+interface HypervisorFacts {
+  aggregates: Array<string>;
+  capacity: OpenStackHypervisorCapacity;
 }
 
 const choices: InMemoryTTLCache<CloudChoice> =
@@ -150,14 +157,12 @@ export default class OpenStackInstanceMetricsIngest {
   }): Promise<Map<string, OpenStackInstanceMetricsHostState>> {
     const keys: Array<string> = Array.from(
       new Set(
-        data.samples.map(
-          (sample: OpenStackInstanceMetricSample): string => {
-            return getOpenStackInstanceMetricsStateKey({
-              source: sample.source as OpenStackInstanceMetricSource,
-              exporterHost: sample.exporterHost,
-            });
-          },
-        ),
+        data.samples.map((sample: OpenStackInstanceMetricSample): string => {
+          return getOpenStackInstanceMetricsStateKey({
+            source: sample.source as OpenStackInstanceMetricSource,
+            exporterHost: sample.exporterHost,
+          });
+        }),
       ),
     );
 
@@ -273,8 +278,8 @@ export default class OpenStackInstanceMetricsIngest {
       return known;
     }
 
-    const rows: Array<OpenStackResource> = await OpenStackResourceService.findBy(
-      {
+    const rows: Array<OpenStackResource> =
+      await OpenStackResourceService.findBy({
         query: {
           projectId: data.projectId,
           openStackCloudId: data.openStackCloudId,
@@ -290,11 +295,10 @@ export default class OpenStackInstanceMetricsIngest {
         limit: toRead.length,
         skip: 0,
         props: { isRoot: true },
-      },
-    );
+      });
 
-    const aggregatesByHost: Map<string, Array<string>> =
-      await this.readAggregatesOfHosts({
+    const hypervisors: Map<string, HypervisorFacts> =
+      await this.readHypervisors({
         projectId: data.projectId,
         openStackCloudId: data.openStackCloudId,
         hypervisorNames: Array.from(
@@ -316,11 +320,15 @@ export default class OpenStackInstanceMetricsIngest {
         continue;
       }
       read.add(row.externalId);
+      const hypervisor: HypervisorFacts | undefined = hypervisors.get(
+        row.hypervisorName || "",
+      );
       const placement: OpenStackInstancePlacement = {
         hypervisorName: row.hypervisorName || null,
         regionName: row.regionName || null,
         projectId: row.openStackProjectId || null,
-        aggregates: aggregatesByHost.get(row.hypervisorName || "") || [],
+        aggregates: hypervisor?.aggregates || [],
+        hypervisorCapacity: hypervisor?.capacity,
       };
       known.set(row.externalId, placement);
       placements.set(
@@ -342,47 +350,59 @@ export default class OpenStackInstanceMetricsIngest {
     return known;
   }
 
-  private static async readAggregatesOfHosts(data: {
+  private static async readHypervisors(data: {
     projectId: ObjectID;
     openStackCloudId: ObjectID;
     hypervisorNames: Array<string>;
-  }): Promise<Map<string, Array<string>>> {
-    const aggregates: Map<string, Array<string>> = new Map();
+  }): Promise<Map<string, HypervisorFacts>> {
+    const hypervisors: Map<string, HypervisorFacts> = new Map();
     if (data.hypervisorNames.length === 0) {
-      return aggregates;
+      return hypervisors;
     }
-    const rows: Array<OpenStackResource> = await OpenStackResourceService.findBy(
-      {
+    const rows: Array<OpenStackResource> =
+      await OpenStackResourceService.findBy({
         query: {
           projectId: data.projectId,
           openStackCloudId: data.openStackCloudId,
           kind: OpenStackResourceKind.Hypervisor,
           hypervisorName: QueryHelper.any(data.hypervisorNames),
         },
-        select: { hypervisorName: true, facts: true },
+        select: {
+          hypervisorName: true,
+          facts: true,
+          vcpuCapacity: true,
+          memoryCapacityBytes: true,
+        },
         limit: data.hypervisorNames.length,
         skip: 0,
         props: { isRoot: true },
-      },
-    );
+      });
     for (const row of rows) {
+      if (!row.hypervisorName) {
+        continue;
+      }
       const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
       const text: unknown = facts["aggregates"];
-      if (row.hypervisorName && typeof text === "string") {
-        aggregates.set(
-          row.hypervisorName,
-          text
-            .split(",")
-            .map((name: string): string => {
-              return name.trim();
-            })
-            .filter((name: string): boolean => {
-              return Boolean(name);
-            }),
-        );
-      }
+      hypervisors.set(row.hypervisorName, {
+        aggregates:
+          typeof text === "string"
+            ? text
+                .split(",")
+                .map((name: string): string => {
+                  return name.trim();
+                })
+                .filter((name: string): boolean => {
+                  return Boolean(name);
+                })
+            : [],
+        capacity: getOpenStackHypervisorCapacity({
+          facts,
+          vcpuCapacity: row.vcpuCapacity,
+          memoryCapacityBytes: row.memoryCapacityBytes,
+        }),
+      });
     }
-    return aggregates;
+    return hypervisors;
   }
 
   private static async readCloudChoice(
@@ -401,10 +421,10 @@ export default class OpenStackInstanceMetricsIngest {
         props: { isRoot: true },
       });
 
-    const normalized: { options?: OpenStackInstanceMetricsOptions } =
-      normalizeOpenStackInstanceMetricsOptions(cloud?.instanceMetricsOptions);
     const choice: CloudChoice = {
-      options: normalized.options || getDefaultOpenStackInstanceMetricsOptions(),
+      options:
+        normalizeOpenStackInstanceMetricsOptions(cloud?.instanceMetricsOptions)
+          .options || getDefaultOpenStackInstanceMetricsOptions(),
       instanceCount: cloud?.instanceCount || 0,
     };
     choices.set(key, choice, OPTIONS_CACHE_MS);

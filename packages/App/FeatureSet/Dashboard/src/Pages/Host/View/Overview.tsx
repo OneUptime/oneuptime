@@ -24,6 +24,7 @@ import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/
 import { getHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { OpenStackPlacementOfHost } from "../../../Components/OpenStack/Part/OpenStackPlacementOfHost";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
@@ -2237,6 +2238,7 @@ const HostOverview: FunctionComponent<
        * What Security Events found about it this week, for whoever
        * may read it (Components/SecurityConnections).
        */}
+      <OpenStackPlacementOfHost hostId={modelId} />
       <ResourceSecurityCard
         kind={SecurityConnectionKind.Host}
         modelId={modelId}

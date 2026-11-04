@@ -948,7 +948,7 @@ describe("every failure a connection test names", () => {
   }
 
   test("a name DNS has never heard of", async () => {
-    const lookup: jest.SpiedFunction<typeof dns.promises.lookup> = jest
+    const lookup: unknown = jest
       .spyOn(dns.promises, "lookup")
       .mockRejectedValue(
         Object.assign(new Error("getaddrinfo ENOTFOUND no-such-cloud.test"), {

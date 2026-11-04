@@ -243,6 +243,10 @@ jobs:
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
       - name: Upload the recordings
         if: always()
         uses: actions/upload-artifact@v4

@@ -17,6 +17,10 @@ import {
   OpenStackPartAlerts,
   OpenStackPartOpenEvents,
 } from "../../../Components/OpenStack/Part/OpenStackPartActivity";
+import OpenStackInstanceLinksCard from "../../../Components/OpenStack/Part/OpenStackInstanceLinksCard";
+import OpenStackInstanceUsageTiles, {
+  OpenStackInstanceUsageCharts,
+} from "../../../Components/OpenStack/Part/OpenStackInstanceUsage";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import useOpenStackPart, {
@@ -360,6 +364,14 @@ const InstanceOverview: FunctionComponent<{
         )}
       </div>
 
+      <OpenStackInstanceUsageTiles part={part} row={row} flavor={flavor} />
+
+      <OpenStackInstanceLinksCard
+        openStackCloudId={part.openStackCloudId}
+        instanceId={part.externalId}
+        refreshToken={part.refreshToken}
+      />
+
       <OpenStackPartOpenEvents
         testId="openstack-instance-open"
         title="Open on this instance"
@@ -435,6 +447,10 @@ const OpenStackCloudInstanceDetail: FunctionComponent<
       tabs={(): Array<Tab> => {
         const facts: JSONObject = { attachedToInstance: part.externalId };
         return [
+          {
+            name: "Usage",
+            children: <OpenStackInstanceUsageCharts part={part} />,
+          },
           {
             name: "Volumes",
             children: (

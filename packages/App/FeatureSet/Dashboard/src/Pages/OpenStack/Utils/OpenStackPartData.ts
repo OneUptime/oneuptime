@@ -12,7 +12,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
@@ -333,25 +332,23 @@ export async function fetchOpenStackComputeServiceOf(data: {
 
 /*
  * The host running OneUptime's agent on this machine, when exactly one does. No link on a
- * guess: a name that matches two hosts links to neither.
+ * guess, in either direction: a name two hosts could be links to neither, and neither does a
+ * host two hypervisors could both be. That takes every host and hypervisor in the project to
+ * say, so the server does, the same way it does for a blast radius.
  */
 export async function fetchOpenStackHostOf(
-  hypervisorName: string,
+  machineName: string,
 ): Promise<Host | null> {
-  const short: string = getOpenStackShortHostName(hypervisorName);
-  const result: ListResult<Host> = await ModelAPI.getList<Host>({
-    modelType: Host,
-    query: {
-      hostIdentifier: new Includes(
-        short === hypervisorName ? [short] : [short, hypervisorName],
-      ),
-    },
-    limit: 2,
-    skip: 0,
-    select: { _id: true, name: true, hostIdentifier: true },
-    sort: { hostIdentifier: SortOrder.Ascending },
+  const answer: JSONObject = await postToCloud({
+    path: "/openstack-resource/host-of-machine",
+    openStackCloudId: ProjectUtil.getCurrentProjectId()!,
+    body: { machineName },
   });
-  return result.data.length === 1 ? result.data[0]! : null;
+  const found: JSONObject | null | undefined = answer["host"] as
+    | JSONObject
+    | null
+    | undefined;
+  return found ? Object.assign(new Host(), found) : null;
 }
 
 /*

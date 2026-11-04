@@ -28,6 +28,8 @@ import {
   formatOpenStackCount,
 } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
+import OpenStackHostThroughput from "../../../Components/OpenStack/Part/OpenStackHostThroughput";
+import OpenStackHypervisorUsage from "../../../Components/OpenStack/Part/OpenStackHypervisorUsage";
 import {
   OpenStackPartAlerts,
   OpenStackPartOpenEvents,
@@ -417,6 +419,14 @@ const HypervisorOverview: FunctionComponent<{
         <></>
       )}
 
+      {host.data?.host.hostIdentifier ? (
+        <OpenStackHostThroughput
+          hostIdentifier={host.data.host.hostIdentifier}
+        />
+      ) : (
+        <></>
+      )}
+
       {host.data ? (
         <div className="mb-6">
           <Card
@@ -444,6 +454,12 @@ const HypervisorOverview: FunctionComponent<{
       ) : (
         <></>
       )}
+
+      <OpenStackHypervisorUsage
+        part={part}
+        row={row}
+        hasHostAgent={Boolean(host.data)}
+      />
 
       <OpenStackPartOpenEvents
         testId="openstack-hypervisor-open"

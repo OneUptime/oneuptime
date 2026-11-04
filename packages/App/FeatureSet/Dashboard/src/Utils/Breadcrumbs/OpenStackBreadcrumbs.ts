@@ -129,27 +129,43 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL,
-      ["Project", "OpenStack", "View Cloud", "Availability Zones", "Availability Zone Detail"],
+      [
+        "Project",
+        "OpenStack",
+        "View Cloud",
+        "Availability Zones",
+        "Availability Zone Detail",
+      ],
     ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES,
-      ["Project", "OpenStack", "View Cloud", "Aggregates"],
-    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Aggregates",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL,
       ["Project", "OpenStack", "View Cloud", "Aggregates", "Aggregate Detail"],
     ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS,
-      ["Project", "OpenStack", "View Cloud", "Subnets"],
-    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Subnets",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL,
       ["Project", "OpenStack", "View Cloud", "Subnets", "Subnet Detail"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL,
-      ["Project", "OpenStack", "View Cloud", "Floating IPs", "Floating IP Detail"],
+      [
+        "Project",
+        "OpenStack",
+        "View Cloud",
+        "Floating IPs",
+        "Floating IP Detail",
+      ],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS,
@@ -157,15 +173,34 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL,
-      ["Project", "OpenStack", "View Cloud", "Network Agents", "Network Agent Detail"],
+      [
+        "Project",
+        "OpenStack",
+        "View Cloud",
+        "Network Agents",
+        "Network Agent Detail",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Snapshots and Backups",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Images",
+      "Image Detail",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE,
+      ["Project", "OpenStack", "View Cloud", "What It Stands On"],
     ),
     ...BuildBreadcrumbLinksByTitles(
-      PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS,
-      ["Project", "OpenStack", "View Cloud", "Snapshots and Backups"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL,
-      ["Project", "OpenStack", "View Cloud", "Images", "Image Detail"],
+      PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+      ["Project", "OpenStack", "View Cloud", "What It Stands On", "Dependency"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS, [
       "Project",
@@ -225,6 +260,12 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "OpenStack",
       "View Cloud",
       "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_TRACES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Traces",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, [
       "Project",

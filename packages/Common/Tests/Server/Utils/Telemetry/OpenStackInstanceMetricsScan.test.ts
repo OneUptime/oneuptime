@@ -21,9 +21,7 @@ import {
   readOpenStackInstanceMetricSamples,
   removeOpenStackInstanceOriginals,
 } from "../../../../Server/Utils/Telemetry/OpenStackInstanceMetricsScan";
-import {
-  isOpenStackSnapshotDatapoint,
-} from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import { isOpenStackSnapshotDatapoint } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
@@ -31,6 +29,7 @@ import {
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
   OPENSTACK_INSTANCE_PROJECT_ATTRIBUTE,
   OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
+  OpenStackHypervisorCapacity,
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
   OpenStackInstanceMetricSource,
@@ -178,7 +177,8 @@ function valueOf(
   const point: JSONObject | undefined = pointsOf(decision, name).find(
     (one: JSONObject): boolean => {
       return (
-        !device || attribute(one, OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE) === device
+        !device ||
+        attribute(one, OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE) === device
       );
     },
   );
@@ -230,9 +230,9 @@ describe("rates", () => {
       expect(retried.rate).toBeNull();
       expect(retried.next).toEqual(second.next);
       // The next real reading is still measured from the last one.
-      expect(step(retried.next, START_MS + 2 * MINUTE_MS, 220).rate).toBeCloseTo(
-        1,
-      );
+      expect(
+        step(retried.next, START_MS + 2 * MINUTE_MS, 220).rate,
+      ).toBeCloseTo(1);
     });
 
     test("a batch that lost a race and came late changes nothing", () => {
@@ -251,9 +251,9 @@ describe("rates", () => {
         9000,
       );
       expect(later.rate).toBeNull();
-      expect(step(later.next, later.next[0] + MINUTE_MS, 9060).rate).toBeCloseTo(
-        1,
-      );
+      expect(
+        step(later.next, later.next[0] + MINUTE_MS, 9060).rate,
+      ).toBeCloseTo(1);
     });
 
     test("just inside the longest gap it is still a rate", () => {
@@ -340,7 +340,8 @@ describe("rates", () => {
       expect(quiet.rate).toBe(0);
       // And no sooner.
       expect(
-        step(first.next, START_MS + OPENSTACK_CEILOMETER_QUIET_MS - 1, 100).rate,
+        step(first.next, START_MS + OPENSTACK_CEILOMETER_QUIET_MS - 1, 100)
+          .rate,
       ).toBeNull();
     });
 
@@ -372,8 +373,11 @@ describe("rates", () => {
     test("past the longest gap it starts again", () => {
       const first: CounterStep = step(null, START_MS, 0);
       expect(
-        step(first.next, START_MS + OPENSTACK_CEILOMETER_LONGEST_GAP_MS + 1, 999)
-          .rate,
+        step(
+          first.next,
+          START_MS + OPENSTACK_CEILOMETER_LONGEST_GAP_MS + 1,
+          999,
+        ).rate,
       ).toBeNull();
     });
 
@@ -481,7 +485,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({ cpuSeconds: 1000 }),
       truthOf({ cpuSeconds: 1090 }),
     );
-    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(1.5);
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(
+      1.5,
+    );
     expect(
       valueOf(decision, OpenStackInstanceMetric.CpuUtilization),
     ).toBeCloseTo(75);
@@ -616,9 +622,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({}),
       truthOf({}),
     );
-    expect(
-      pointsOf(decision, OpenStackInstanceMetric.DiskReadLatency),
-    ).toEqual([]);
+    expect(pointsOf(decision, OpenStackInstanceMetric.DiskReadLatency)).toEqual(
+      [],
+    );
     expect(valueOf(decision, OpenStackInstanceMetric.DiskReadRate, "vda")).toBe(
       0,
     );
@@ -629,7 +635,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({ cpuSeconds: 90000 }),
       truthOf({ cpuSeconds: 30 }),
     );
-    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(0.5);
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(
+      0.5,
+    );
   });
 
   test("every series names its instance, its source, its project, its hypervisor and its region", () => {
@@ -827,9 +835,7 @@ describe("a scrape the collector split across batches", () => {
       OpenStackInstanceMetric.CpuContention,
       OpenStackInstanceMetric.MemoryUsage,
     ]) {
-      expect(valueOf(b.decision, name)).toBeCloseTo(
-        valueOf(a.decision, name)!,
-      );
+      expect(valueOf(b.decision, name)).toBeCloseTo(valueOf(a.decision, name)!);
     }
     expect(
       valueOf(b.decision, OpenStackInstanceMetric.DiskReadLatency, "vda"),
@@ -850,13 +856,17 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
       readOpenStackInstanceMetricSamples(envelope);
     expect(
       samples.every(
-        (sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number]) => {
+        (
+          sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number],
+        ) => {
           return sample.instanceId === BURNER_ID;
         },
       ),
     ).toBe(true);
     const devices: Array<string | null> = samples.map(
-      (sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number]) => {
+      (
+        sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number],
+      ) => {
         return sample.device;
       },
     );
@@ -1068,6 +1078,99 @@ describe("a hypervisor's totals", () => {
     ];
   }
 
+  function withCapacity(
+    capacity: OpenStackHypervisorCapacity,
+  ): Map<string, OpenStackInstancePlacement> {
+    return new Map(
+      Array.from(known.entries()).map(
+        ([id, placement]: [string, OpenStackInstancePlacement]): [
+          string,
+          OpenStackInstancePlacement,
+        ] => {
+          return [id, { ...placement, hypervisorCapacity: capacity }];
+        },
+      ),
+    );
+  }
+
+  test("say what share of the hypervisor that is, in the same batch, so an alert can't miss it", () => {
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    const capacity: Map<string, OpenStackInstancePlacement> = withCapacity({
+      cores: 4,
+      memoryBytes: 2000 * 1024 * 1024,
+    });
+    runBatch({
+      text: libvirtText(estate(0)),
+      timeMs: START_MS,
+      states,
+      known: capacity,
+    });
+    const { decision }: Run = runBatch({
+      text: libvirtText(estate(1)),
+      timeMs: START_MS + MINUTE_MS,
+      states,
+      known: capacity,
+    });
+
+    // 2.1 threads of 4, and 1000 MiB of 2000.
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUtilization),
+    ).toBeCloseTo(52.5);
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesMemoryUtilization),
+    ).toBeCloseTo(50);
+    const point: JSONObject = pointsOf(
+      decision,
+      OpenStackHypervisorMetric.InstancesCpuUtilization,
+    )[0]!;
+    const total: JSONObject = pointsOf(
+      decision,
+      OpenStackHypervisorMetric.InstancesCpuUsage,
+    )[0]!;
+    expect(point["timeUnixNano"]).toBe(total["timeUnixNano"]);
+    expect(attribute(point, OPENSTACK_HYPERVISOR_ATTRIBUTE)).toBe(HYPERVISOR);
+  });
+
+  test.each([
+    ["no capacity read yet", undefined],
+    ["a capacity of nothing", { cores: 0, memoryBytes: 0 }],
+    ["only what is unknown", { cores: null, memoryBytes: null }],
+  ])(
+    "say no share with %s: a number against nothing is no number",
+    (_name: string, capacity: OpenStackHypervisorCapacity | undefined) => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      const given: Map<string, OpenStackInstancePlacement> = capacity
+        ? withCapacity(capacity)
+        : known;
+      runBatch({
+        text: libvirtText(estate(0)),
+        timeMs: START_MS,
+        states,
+        known: given,
+      });
+      const { decision }: Run = runBatch({
+        text: libvirtText(estate(1)),
+        timeMs: START_MS + MINUTE_MS,
+        states,
+        known: given,
+      });
+      expect(
+        pointsOf(decision, OpenStackHypervisorMetric.InstancesCpuUtilization),
+      ).toHaveLength(0);
+      expect(
+        pointsOf(
+          decision,
+          OpenStackHypervisorMetric.InstancesMemoryUtilization,
+        ),
+      ).toHaveLength(0);
+      // What it adds up to is still known, and still said.
+      expect(
+        valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
+      ).toBeCloseTo(2.1);
+    },
+  );
+
   test("add up what its instances use, and name it by Nova's own word for it", () => {
     const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
     runBatch({ text: libvirtText(estate(0)), timeMs: START_MS, states, known });
@@ -1214,7 +1317,9 @@ describe("a hypervisor's totals", () => {
       pointsOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
     ).toEqual([]);
     // Each instance's own series don't need it.
-    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(2);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(
+      2,
+    );
   });
 });
 
@@ -1282,16 +1387,17 @@ describe("cost is a choice", () => {
       [BURNER_ID, { ...PLACEMENT, projectId: "chosen" }],
       [IDLE_ID, { ...PLACEMENT, projectId: "other" }],
     ]);
-    const isKept: (instance: { projectId: string | null }) => boolean = (
-      instance: { projectId: string | null },
-    ): boolean => {
+    const isKept: (instance: {
+      projectId: string | null;
+    }) => boolean = (instance: { projectId: string | null }): boolean => {
       return instance.projectId !== PROJECT_ID;
     };
     // Its series say which project it is in, so the labels decide it here.
     const text: (minute: number) => string = (minute: number): string => {
-      return libvirtText([
-        truthOf({ cpuSeconds: 1000 + minute * 60 }),
-      ]).replace(`project_id="${PROJECT_ID}"`, 'project_id="chosen"');
+      return libvirtText([truthOf({ cpuSeconds: 1000 + minute * 60 })]).replace(
+        `project_id="${PROJECT_ID}"`,
+        'project_id="chosen"',
+      );
     };
     runBatch({ text: text(0), timeMs: START_MS, states, known, isKept });
     const { decision }: Run = runBatch({
@@ -1301,7 +1407,9 @@ describe("cost is a choice", () => {
       known,
       isKept,
     });
-    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(1);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(
+      1,
+    );
     expect(decision.droppedInstanceIds.size).toBe(0);
   });
 });
@@ -1351,9 +1459,9 @@ describe("the batch it hands back", () => {
       timeMs: START_MS + MINUTE_MS,
       states,
     });
-    expect(pointsOf(retried.decision, OpenStackInstanceMetric.CpuUsage)).toEqual(
-      [],
-    );
+    expect(
+      pointsOf(retried.decision, OpenStackInstanceMetric.CpuUsage),
+    ).toEqual([]);
   });
 
   test("a batch with nothing of either's isn't read at all", () => {
@@ -1418,13 +1526,22 @@ describe("the batch it hands back", () => {
 
 describe("what the agent keeps of each exporter", () => {
   const config: string = fs.readFileSync(
-    path.join(REPO_ROOT, "agents", "OpenStackAgent", "otel-collector-config.yaml"),
+    path.join(
+      REPO_ROOT,
+      "agents",
+      "OpenStackAgent",
+      "otel-collector-config.yaml",
+    ),
     "utf8",
   );
 
   function keepRegexOf(jobName: string): RegExp {
-    const job: string = config.substring(config.indexOf(`job_name: ${jobName}`));
-    const match: RegExpMatchArray | null = job.match(/regex: (\S+)\n\s+action: keep/);
+    const job: string = config.substring(
+      config.indexOf(`job_name: ${jobName}`),
+    );
+    const match: RegExpMatchArray | null = job.match(
+      /regex: (\S+)\n\s+action: keep/,
+    );
     expect(match).not.toBeNull();
     return new RegExp(`^(?:${match![1]!})$`);
   }

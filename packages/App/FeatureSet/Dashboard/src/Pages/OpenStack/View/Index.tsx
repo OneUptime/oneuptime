@@ -6,6 +6,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import { OpenStackBlastRadius } from "Common/Types/OpenStack/OpenStackBlastRadius";
 import { isOpenStackServiceDown } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
@@ -42,6 +43,7 @@ import { OPENSTACK_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescrip
 import OpenStackDocumentationCard from "../../../Components/OpenStack/DocumentationCard";
 import OpenStackAccessNotice from "../../../Components/OpenStack/OpenStackAccessNotice";
 import OpenStackCollectionStatusCard from "../../../Components/OpenStack/OpenStackCollectionStatusCard";
+import OpenStackControlPlaneCard from "../../../Components/OpenStack/OpenStackControlPlaneCard";
 import { isOpenStackProbeCollected } from "../../../Components/OpenStack/OpenStackProbeCollectionView";
 import {
   OpenStackRegionState,
@@ -50,6 +52,7 @@ import {
 import OpenStackRegionsCard from "../../../Components/OpenStack/OpenStackRegionsCard";
 import OpenStackServicesCard from "../../../Components/OpenStack/OpenStackServicesCard";
 import OpenStackTopConsumersCard from "../../../Components/OpenStack/OpenStackTopConsumersCard";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
 import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
@@ -1394,6 +1397,21 @@ const OpenStackCloudOverview: FunctionComponent<
           servicesRoute={routes.getServicesRoute()}
           getRowRoute={routes.routeFor}
           showRegion={!region && regionSummaries.length > 1}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isCurrent ? <OpenStackControlPlaneCard modelId={modelId} /> : <></>}
+
+      {/*
+       * What Security Events found about this cloud this week, for whoever may read it:
+       * its audit trail, once the agent's logs profile sends one.
+       */}
+      {isConnected ? (
+        <ResourceSecurityCard
+          kind={SecurityConnectionKind.OpenStackCloud}
+          modelId={modelId}
         />
       ) : (
         <></>

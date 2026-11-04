@@ -53,6 +53,7 @@ const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
   EntityType.TelemetrySdk,
   EntityType.DatabaseServer,
   EntityType.MessageQueue,
+  EntityType.OpenStackResource,
 ]);
 
 /*

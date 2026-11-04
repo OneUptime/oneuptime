@@ -581,11 +581,13 @@ describe("a hypervisor's page", () => {
       "vCPU Allocation High",
       "Memory Allocation High",
       "Local Disk Allocation High",
+      "Hypervisor CPU Saturated",
+      "Hypervisor Memory Pressure",
     ]);
     const turnOn: HTMLElement = within(alerts).getByTestId(
       "openstack-hypervisor-alerts-turn-on",
     );
-    expect(turnOn).toHaveTextContent("Turn on 4 alerts");
+    expect(turnOn).toHaveTextContent("Turn on 6 alerts");
     expect(turnOn).toHaveAttribute(
       "href",
       expect.stringContaining(`${CLOUD_PATH}/recommendations?`),
@@ -1034,6 +1036,8 @@ describe("an instance's page", () => {
         }),
     ).toEqual([
       "Instances in Error",
+      "Instance CPU Saturated",
+      "Instance Disk Latency High",
       "Instance Stuck Building",
       "Instance Stuck Transitioning",
       "Instance Stuck in Verify Resize",

@@ -1,0 +1,46 @@
+# The OpenStack agent's optional traces profile without Docker: the upstream otelcol-contrib
+# release, run by systemd with otel-collector-traces.yaml. `install-traces.sh native`
+# installs it as /etc/systemd/system/oneuptime-openstack-traces.service, on each controller
+# and compute node whose services you want traced, with its files in
+# /opt/oneuptime-openstack-traces.
+[Unit]
+Description=OneUptime OpenStack Traces (OpenTelemetry Collector, taking OSProfiler's spans)
+Documentation=https://oneuptime.com/docs/telemetry/openstack
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=OPENSTACK_CLOUD_NAME=openstack
+Environment=OPENSTACK_REGION_NAME=RegionOne
+# On this machine alone, because OSProfiler's driver posts plain HTTP and what it posts is
+# not for the network. .env overrides this for a service in a container of its own.
+Environment=OPENSTACK_TRACES_LISTEN_ADDRESS=127.0.0.1:4318
+# Root's alone (mode 0600): systemd reads it before the collector starts, and the collector
+# never opens it.
+EnvironmentFile=/opt/oneuptime-openstack-traces/.env
+# Its own metrics on a port of its own, as the other collectors do: whichever starts second
+# on a machine would otherwise restart forever. The agent's takes 8891, the logs profile's
+# 8892.
+ExecStart=/opt/oneuptime-openstack-traces/otelcol-contrib --config=/opt/oneuptime-openstack-traces/otel-collector-traces.yaml "--set=service::telemetry::metrics::readers=[{pull: {exporter: {prometheus: {host: 127.0.0.1, port: 8893}}}}]"
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+# It takes spans from this machine and talks to OneUptime, so it runs as a throwaway
+# unprivileged user and writes nothing.
+DynamicUser=yes
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

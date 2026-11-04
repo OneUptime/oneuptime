@@ -7,6 +7,8 @@ import DockerHostService from "Common/Server/Services/DockerHostService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import OpenStackAcrossProducts from "Common/Server/Utils/OpenStack/OpenStackAcrossProducts";
+import { OpenStackPlacement } from "Common/Types/OpenStack/OpenStackLinks";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import { stampStoredIoTFleetName } from "../Utils/StoredIoTFleetName";
@@ -1415,8 +1417,9 @@ export default abstract class OtelIngestBaseService {
     }
 
     if (data.openStackCloudId) {
-      const cloudName: string | null =
-        this.getOpenStackCloudNameFromAttributes(data.attributes);
+      const cloudName: string | null = this.getOpenStackCloudNameFromAttributes(
+        data.attributes,
+      );
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: cloudName ? `openstack/${cloudName}` : "OpenStack Cloud",
         resourceId: data.openStackCloudId,
@@ -2114,12 +2117,11 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const cloudIdStr: string | null =
-        await this.resolveDiscoveredResourceId({
-          kindName: "OpenStackCloud",
-          projectId: data.projectId,
-          identity: data.cloudName,
-        });
+      const cloudIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "OpenStackCloud",
+        projectId: data.projectId,
+        identity: data.cloudName,
+      });
 
       if (!cloudIdStr) {
         return null;
@@ -5762,6 +5764,17 @@ export default abstract class OtelIngestBaseService {
             hostName,
           });
 
+          /*
+           * The same for OpenStack: this host is one of a cloud's hypervisors, or the
+           * instance its host.id names. Best effort, on the same fence.
+           */
+          await this.tryLinkHostToOpenStack({
+            projectId: data.projectId,
+            hostId: hostId,
+            hostName,
+            hostIdAttribute: hostIdAttr,
+          });
+
           return heartbeat;
         },
       });
@@ -5778,7 +5791,6 @@ export default abstract class OtelIngestBaseService {
     "host-proxmox-guest-link";
   private static readonly HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60;
-
 
   /**
    * WI-17 ingest heuristic: a Host whose hostIdentifier
@@ -5869,6 +5881,102 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Host → Proxmox guest link failed for host ${data.hostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private static readonly HOST_OPENSTACK_LINK_CACHE_NAMESPACE: string =
+    "host-openstack-link";
+  private static readonly HOST_OPENSTACK_LINK_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60;
+
+  /**
+   * A Host that is a part of an OpenStack cloud: an instance, when its host.id
+   * is that instance's UUID (the collector's `nova` resource detector), or a
+   * hypervisor, when its name matches one. Stamps Host.openStackCloudId, the
+   * way tryLinkHostToProxmoxGuest stamps its own:
+   *
+   *   - NEVER overwrites a value already set.
+   *   - No link on a guess: a UUID or a name that two clouds hold links to
+   *     neither (OpenStackLinks), and is tried again on the next window, by
+   *     when one of them may be gone.
+   *   - A link already made is cached for a day. A miss is not: the inventory
+   *     may not have been scraped yet.
+   *   - Failures are logged and swallowed. Host discovery never depends on
+   *     the OpenStack inventory.
+   *
+   * It also tells the entity graph where the host's services run, so
+   * Topology's Infrastructure view can draw them under the instance. That
+   * part runs every window rather than once a day: a map leaves out what
+   * hasn't reported inside its time range, and an instance can move.
+   */
+  protected static async tryLinkHostToOpenStack(data: {
+    projectId: ObjectID;
+    hostId: ObjectID;
+    hostName: string;
+    hostIdAttribute: string | null;
+  }): Promise<void> {
+    try {
+      const cacheKey: string = `${data.projectId.toString()}:${data.hostId.toString()}`;
+      const isLinked: boolean = Boolean(
+        await GlobalCache.getString(
+          this.HOST_OPENSTACK_LINK_CACHE_NAMESPACE,
+          cacheKey,
+        ),
+      );
+
+      if (!isLinked) {
+        const host: Host | null = await HostService.findOneById({
+          id: data.hostId,
+          select: { _id: true, openStackCloudId: true },
+          props: { isRoot: true },
+        });
+        if (!host) {
+          return;
+        }
+
+        if (!host.openStackCloudId) {
+          const openStackCloudId: ObjectID | null =
+            await OpenStackAcrossProducts.findCloudOfHost({
+              projectId: data.projectId,
+              hostIdAttribute: data.hostIdAttribute,
+              hostIdentifier: data.hostName,
+            });
+          if (!openStackCloudId) {
+            return; // Nothing matches, or two do. Next fence window.
+          }
+          await HostService.updateOneById({
+            id: data.hostId,
+            data: { openStackCloudId },
+            props: { isRoot: true },
+          });
+        }
+
+        await GlobalCache.setString(
+          this.HOST_OPENSTACK_LINK_CACHE_NAMESPACE,
+          cacheKey,
+          "1",
+          { expiresInSeconds: this.HOST_OPENSTACK_LINK_CACHE_EXPIRY_SECONDS },
+        );
+      }
+
+      const placement: OpenStackPlacement | null =
+        await OpenStackAcrossProducts.getPlacementOfHost({
+          projectId: data.projectId,
+          hostId: data.hostId,
+        });
+      if (placement) {
+        await OpenStackAcrossProducts.reconcilePlacementInTopology({
+          projectId: data.projectId,
+          host: { hostIdentifier: data.hostName },
+          placement,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        `Host → OpenStack link failed for host ${data.hostId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

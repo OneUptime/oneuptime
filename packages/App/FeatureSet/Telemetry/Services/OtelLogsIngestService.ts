@@ -123,6 +123,15 @@ import ProxmoxResourceService, {
   ProxmoxGuestBackupResult,
 } from "Common/Server/Services/ProxmoxResourceService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import {
+  OpenStackLogStamp,
+  isOpenStackLogRecord,
+  stampOpenStackLogRecord,
+} from "Common/Utils/OpenStack/OpenStackLogs";
+import OpenStackEventRecorder, {
+  OpenStackEventBufferEntry,
+} from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
+import OpenStackLogDefaults from "Common/Server/Utils/OpenStack/OpenStackLogDefaults";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -420,6 +429,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       > = new Map();
       const proxmoxNotificationTimes: Map<string, Date> = new Map();
 
+      /*
+       * An OpenStack cloud's notifications, keyed by cloud ID: what each one said
+       * happened to which part, for its feed, its charts and its inventory.
+       */
+      const openStackEventBuffer: Map<string, OpenStackEventBufferEntry> =
+        new Map();
+      let holdsOpenStackRecords: boolean = false;
+
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       /*
@@ -496,12 +513,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             dockerHostId,
             podmanHostId,
             proxmoxClusterId,
+            openStackCloudId,
             vmwareVCenterId,
             cephClusterId,
             storageArrayId,
             dockerSwarmClusterId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -525,6 +544,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverOpenStackCloud({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -647,6 +670,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
+              openStackCloudId,
               vmwareVCenterId,
               cephClusterId,
               storageArrayId,
@@ -973,6 +997,42 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * A line an OpenStack service wrote: what it says as attributes,
+                   * its level as its severity, its secrets gone from its body before
+                   * anything else reads it, and what it says happened if it is a
+                   * notification. Before the drop filters, which read the level and
+                   * the event it is stamped with. Any other log costs one lookup.
+                   */
+                  let openStackStamp: OpenStackLogStamp | null = null;
+
+                  if (isOpenStackLogRecord(attributesObject)) {
+                    holdsOpenStackRecords = true;
+                    openStackStamp = stampOpenStackLogRecord({
+                      attributes: attributesObject,
+                      body: body,
+                      severityNumber: logSeverityNumber,
+                    });
+
+                    Object.assign(attributesObject, openStackStamp.attributes);
+
+                    for (const removed of openStackStamp.removedAttributes) {
+                      delete attributesObject[removed];
+                    }
+
+                    attributeKeys = Object.keys(attributesObject);
+                    body = openStackStamp.body;
+
+                    if (openStackStamp.severityNumber !== null) {
+                      logSeverityNumber = openStackStamp.severityNumber;
+                    }
+
+                    if (openStackStamp.time && !hasRecordTime) {
+                      timeDate = openStackStamp.time;
+                      timeUnixNano = OneUptimeDate.toUnixNano(timeDate);
+                    }
+                  }
+
                   const severityText: LogSeverity =
                     this.getSeverityText(logSeverityNumber);
 
@@ -1275,6 +1335,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     continue;
                   }
 
+                  if (openStackCloudId && openStackStamp?.event) {
+                    this.bufferOpenStackEvent({
+                      cloudIdStr: openStackCloudId.toString(),
+                      attributes: attributesObject,
+                      stamp: openStackStamp,
+                      at: timeDate,
+                      buffer: openStackEventBuffer,
+                    });
+                  }
+
                   /*
                    * The record survived the drop filter — now stamp the
                    * ingest-generated fields. The spread keeps the
@@ -1441,6 +1511,18 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         backupBuffer: proxmoxBackupBuffer,
         notificationTimes: proxmoxNotificationTimes,
       });
+
+      if (holdsOpenStackRecords) {
+        await OpenStackLogDefaults.ensureForProject(projectId);
+      }
+
+      for (const [cloudIdStr, entry] of openStackEventBuffer.entries()) {
+        await OpenStackEventRecorder.record({
+          projectId: projectId,
+          cloudId: new ObjectID(cloudIdStr),
+          entry: entry,
+        });
+      }
 
       /*
        * Flush the k8s inventory buffer — one upsert per cluster. Failures
@@ -1972,6 +2054,50 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       });
     }
     data.backupBuffer.set(data.clusterIdStr, results);
+  }
+
+  /*
+   * Remembers what one OpenStack notification says for the flush, with the time it
+   * says it happened. Only for a record the drop filters kept: a routine notification
+   * a project chose to keep is still routine, and OpenStackEventRecorder knows that.
+   */
+  public static bufferOpenStackEvent(data: {
+    cloudIdStr: string;
+    attributes: Dictionary<AttributeType | Array<AttributeType>>;
+    stamp: OpenStackLogStamp;
+    at: Date;
+    buffer: Map<string, OpenStackEventBufferEntry>;
+  }): void {
+    const event: OpenStackLogStamp["event"] = data.stamp.event;
+
+    if (!event || isNaN(data.at.getTime())) {
+      return;
+    }
+
+    const readText: (key: string) => string = (key: string): string => {
+      const value: unknown = data.attributes[key];
+      return typeof value === "string" ? value : "";
+    };
+
+    let entry: OpenStackEventBufferEntry | undefined = data.buffer.get(
+      data.cloudIdStr,
+    );
+
+    if (!entry) {
+      entry = {
+        cloudName: readText("resource.openstack.cloud.name"),
+        events: [],
+      };
+      data.buffer.set(data.cloudIdStr, entry);
+    }
+
+    entry.events.push({
+      event: event,
+      time: event.time || data.at,
+      region: readText("resource.openstack.region.name"),
+      service: readText("openstack.service"),
+      host: readText("openstack.host"),
+    });
   }
 
   /*

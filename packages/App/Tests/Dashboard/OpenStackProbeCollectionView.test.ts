@@ -271,9 +271,12 @@ describe("what a connection test found", () => {
     ["InfrastructureOnly", "This credential is Infrastructure only"],
     ["ProjectView", "This credential has the Project view"],
     ["Other", "This credential reads part of what monitoring needs"],
-  ] as const)(
+  ] as Array<[OpenStackConnectionTestSummary["accessLevel"], string]>)(
     "a login that worked says the access level %s in the docs' words",
-    (accessLevel: OpenStackConnectionTestSummary["accessLevel"], words: string) => {
+    (
+      accessLevel: OpenStackConnectionTestSummary["accessLevel"],
+      words: string,
+    ) => {
       const view: OpenStackConnectionTestView = testView({
         status: OpenStackConnectionTestStatus.Succeeded,
         summary: testSummary({ accessLevel: accessLevel }),
@@ -585,6 +588,7 @@ describe("how the last collection went", () => {
             service: OpenStackServiceType.Compute,
             regionName: "RegionOne",
             outcome: "Succeeded",
+            durationInMs: 10,
             requestCount: 3,
           },
           {
@@ -592,36 +596,42 @@ describe("how the last collection went", () => {
             regionName: "RegionOne",
             outcome: "Failed",
             errorMessage: "Neutron answered HTTP 500.",
+            durationInMs: 10,
             requestCount: 3,
           },
           {
             service: OpenStackServiceType.Volume,
             regionName: "RegionOne",
             outcome: "Refused",
+            durationInMs: 10,
             requestCount: 1,
           },
           {
             service: OpenStackServiceType.Image,
             regionName: "RegionOne",
             outcome: "NotDeployed",
+            durationInMs: 10,
             requestCount: 0,
           },
           {
             service: OpenStackServiceType.Placement,
             regionName: "RegionOne",
             outcome: "NotDue",
+            durationInMs: 10,
             requestCount: 0,
           },
           {
             service: OpenStackServiceType.Identity,
             regionName: "RegionOne",
             outcome: "BackingOff",
+            durationInMs: 10,
             requestCount: 0,
           },
           {
             service: OpenStackServiceType.Compute,
             regionName: "RegionTwo",
             outcome: "Partial",
+            durationInMs: 10,
             requestCount: 3,
           },
         ],
@@ -649,9 +659,7 @@ describe("how the last collection went", () => {
   });
 
   test("says what was read in short phrases, with the plural right", () => {
-    expect(
-      getOpenStackInventoryPhrases(collectionSummary(), ENGLISH),
-    ).toEqual([
+    expect(getOpenStackInventoryPhrases(collectionSummary(), ENGLISH)).toEqual([
       "48 hypervisors",
       "1 instance",
       "2 networks",

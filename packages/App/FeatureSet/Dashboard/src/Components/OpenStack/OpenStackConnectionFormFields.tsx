@@ -280,9 +280,10 @@ function getCredentialFields(data: {
       stepId: "credential",
       fieldType: FormFieldSchemaType.Password,
       required: data.isSecretRequired,
-      description: data.isSecretRequired
-        ? "Encrypted, never shown again, and sent only to the probe you picked."
-        : "Encrypted, never shown again, and sent only to the probe you picked. Leave it empty to keep the saved one.",
+      // An edit leaves it empty to keep the saved one, and the form says so under it.
+      hasNothingStoredWhenEditing: data.isSecretRequired,
+      description:
+        "Encrypted, never shown again, and sent only to the probe you picked.",
       dataTestId: "openstack-credential-secret",
       autoComplete: "new-password",
     },

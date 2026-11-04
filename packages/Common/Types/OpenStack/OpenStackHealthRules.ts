@@ -47,6 +47,28 @@ export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
 export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 
 /*
+ * What a hypervisor's instances really use, as apart from what is promised on it. Past
+ * these its instances are competing with each other, whatever Placement allows.
+ */
+export const OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT: number = 90;
+export const OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT: number = 90;
+
+// An instance using all of its vCPUs for this long is limited by its flavor.
+export const OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT: number = 95;
+
+/*
+ * The same line the VMware templates draw for a host. A guest's disk at this latency is
+ * slow enough for its users to notice, and past what a healthy backend does when busy.
+ */
+export const OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS: number = 50;
+
+/*
+ * A share of its vCPUs an instance spent waiting for the hypervisor. Past this a neighbour
+ * is the problem, rather than the instance itself.
+ */
+export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
+
+/*
  * A service someone disabled is planned work, until it has been so long that
  * somebody probably forgot it.
  */
@@ -78,11 +100,13 @@ export function isOpenStackServiceDown(data: {
  * `compute-01.example.internal` are one machine. Anything joining the two compares
  * this. An IP address has no short form, so it is left whole.
  */
+const IPV4_ADDRESS: RegExp = /^[0-9.]+$/;
+
 export function getOpenStackShortHostName(
   hostName: string | null | undefined,
 ): string {
   const name: string = (hostName || "").trim();
-  if (/^[0-9.]+$/.test(name) || name.includes(":")) {
+  if (IPV4_ADDRESS.test(name) || name.includes(":")) {
     return name;
   }
   const dot: number = name.indexOf(".");

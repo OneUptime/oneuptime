@@ -8,6 +8,10 @@ import ObjectID from "../../../Types/ObjectID";
 import OpenStackCollectionErrorCode, {
   OpenStackCollectionErrorUtil,
 } from "../../../Types/OpenStack/OpenStackCollectionError";
+import {
+  OpenStackInstanceMetricsOptions,
+  normalizeOpenStackInstanceMetricsOptions,
+} from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import OpenStackCollectionStatus from "../../../Types/OpenStack/OpenStackCollectionStatus";
 import {
@@ -74,6 +78,7 @@ export interface OpenStackCollectionCloudRecord {
   credentialSecret?: string | undefined;
   trustedCertificateFingerprints?: Array<string> | undefined;
   collectionOptions?: OpenStackCollectionOptions | undefined;
+  instanceMetricsOptions?: unknown;
 }
 
 export interface OpenStackSqlManager {
@@ -272,6 +277,7 @@ export default class OpenStackProbeCollectionStore {
         collectionIntervalInMinutes: true,
         collectionSettingsVersion: true,
         collectionOptions: true,
+        instanceMetricsOptions: true,
       },
       limit: claimedIds.length,
       skip: 0,
@@ -316,11 +322,37 @@ export default class OpenStackProbeCollectionStore {
             cloud.collectionIntervalInMinutes,
           ),
         settingsVersion: cloud.collectionSettingsVersion || 0,
-        options: cloud.collectionOptions || undefined,
+        options: OpenStackProbeCollectionStore.getJobOptions(cloud),
       });
     }
 
     return jobs;
+  }
+
+  /*
+   * What a job is handed: what was saved for the probe, and which instances this cloud chose to
+   * keep series for, which is saved apart because ingest reads it too.
+   */
+  public static getJobOptions(
+    cloud: Pick<
+      OpenStackCollectionCloudRecord,
+      "collectionOptions" | "instanceMetricsOptions"
+    >,
+  ): OpenStackCollectionOptions | undefined {
+    const instanceMetrics: OpenStackInstanceMetricsOptions | undefined =
+      normalizeOpenStackInstanceMetricsOptions(
+        cloud.instanceMetricsOptions,
+      ).options;
+
+    if (!instanceMetrics) {
+      return cloud.collectionOptions || undefined;
+    }
+
+    return {
+      ...(cloud.collectionOptions || {}),
+      instanceSeriesMode: instanceMetrics.mode,
+      keptProjectIds: instanceMetrics.projectIds,
+    };
   }
 
   /*
@@ -770,6 +802,11 @@ export default class OpenStackProbeCollectionStore {
       }
     }
 
+    if (raw["isSummaryMode"] === true) {
+      summary.isSummaryMode = true;
+      summary.refreshCycleInMinutes = count("refreshCycleInMinutes");
+    }
+
     for (const key of ["computeMicroversions", "instanceReadModes"] as const) {
       const map: Record<string, string> | null =
         OpenStackProbeCollectionStore.boundMap(raw[key]);
@@ -840,6 +877,15 @@ export default class OpenStackProbeCollectionStore {
         raw["requestCount"],
       ),
     };
+
+    if (raw["pausedForInMs"] !== undefined) {
+      summary.pausedForInMs = OpenStackProbeCollectionStore.wholeCount(
+        raw["pausedForInMs"],
+      );
+      summary.slowestAnswerInMs = OpenStackProbeCollectionStore.wholeCount(
+        raw["slowestAnswerInMs"],
+      );
+    }
 
     if (OpenStackCollectionErrorUtil.isValid(raw["errorCode"])) {
       summary.errorCode = raw["errorCode"];

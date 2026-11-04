@@ -6,6 +6,7 @@ import {
   OPENSTACK_INSTANCE_METRIC_UNITS,
   OPENSTACK_INSTANCE_PROJECT_ATTRIBUTE,
   OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
+  OpenStackHypervisorCapacity,
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
   OpenStackInstanceMetricSource,
@@ -148,7 +149,11 @@ export const OPENSTACK_LIBVIRT_SERIES: ReadonlyMap<string, SeriesReading> =
     ],
     [
       "libvirt_domain_block_stats_read_bytes_total",
-      { reading: Reading.DiskReadBytes, scale: 1, deviceLabel: "target_device" },
+      {
+        reading: Reading.DiskReadBytes,
+        scale: 1,
+        deviceLabel: "target_device",
+      },
     ],
     [
       "libvirt_domain_block_stats_write_bytes_total",
@@ -180,7 +185,11 @@ export const OPENSTACK_LIBVIRT_SERIES: ReadonlyMap<string, SeriesReading> =
     ],
     [
       "libvirt_domain_block_stats_write_time_seconds_total",
-      { reading: Reading.DiskWriteTime, scale: 1, deviceLabel: "target_device" },
+      {
+        reading: Reading.DiskWriteTime,
+        scale: 1,
+        deviceLabel: "target_device",
+      },
     ],
     [
       "libvirt_domain_interface_stats_receive_bytes_total",
@@ -473,7 +482,8 @@ export function readOpenStackInstanceMetricSamples(
 
         samples.push({
           source,
-          exporterHost: readLabel(attributes, OPENSTACK_EXPORTER_HOST_LABEL) || "",
+          exporterHost:
+            readLabel(attributes, OPENSTACK_EXPORTER_HOST_LABEL) || "",
           domain,
           instanceId,
           projectId: isLibvirt
@@ -639,6 +649,14 @@ export interface OpenStackInstancePlacement {
   projectId: string | null;
   // The Nova host aggregates its hypervisor is in, for a selection made by aggregate.
   aggregates: Array<string>;
+  // What its hypervisor has, before any ratio, for what its totals come to as a share.
+  hypervisorCapacity?: OpenStackHypervisorCapacity | undefined;
+}
+
+interface HypervisorSeen {
+  count: number;
+  region: string | null;
+  capacity: OpenStackHypervisorCapacity | null;
 }
 
 /*
@@ -773,19 +791,14 @@ export function applyOpenStackInstanceMetricSamples(data: {
       if (sample.projectId) {
         instance.p = sample.projectId;
       }
-      instance.s[Reading.Identity] = [
-        sample.timeMs,
-        1,
-        sample.timeMs,
-        null,
-      ];
+      instance.s[Reading.Identity] = [sample.timeMs, 1, sample.timeMs, null];
     }
   }
 
   const touched: Map<string, TouchedInstance> = new Map();
   const hypervisorByExporter: Map<
     string,
-    Map<string, { count: number; region: string | null }>
+    Map<string, HypervisorSeen>
   > = new Map();
 
   for (const sample of samples) {
@@ -850,11 +863,13 @@ export function applyOpenStackInstanceMetricSamples(data: {
     }
 
     if (placement?.hypervisorName) {
-      const named: Map<string, { count: number; region: string | null }> =
+      const named: Map<string, HypervisorSeen> =
         hypervisorByExporter.get(stateKey) || new Map();
-      const known: { count: number; region: string | null } = named.get(
-        placement.hypervisorName,
-      ) || { count: 0, region: placement.regionName };
+      const known: HypervisorSeen = named.get(placement.hypervisorName) || {
+        count: 0,
+        region: placement.regionName,
+        capacity: placement.hypervisorCapacity || null,
+      };
       known.count += 1;
       named.set(placement.hypervisorName, known);
       hypervisorByExporter.set(stateKey, named);
@@ -937,10 +952,7 @@ export function applyOpenStackInstanceMetricSamples(data: {
 function writeHypervisorTotals(data: {
   output: OutputSeries;
   states: Map<string, OpenStackInstanceMetricsHostState>;
-  hypervisorByExporter: Map<
-    string,
-    Map<string, { count: number; region: string | null }>
-  >;
+  hypervisorByExporter: Map<string, Map<string, HypervisorSeen>>;
   touched: Map<string, TouchedInstance>;
 }): void {
   for (const [stateKey, named] of data.hypervisorByExporter) {
@@ -969,12 +981,14 @@ function writeHypervisorTotals(data: {
     // On a compute node they all say one name. Mid-migration, the most of them win.
     let hypervisorName: string | null = null;
     let regionName: string | null = null;
+    let capacity: OpenStackHypervisorCapacity | null = null;
     let most: number = 0;
     for (const [name, known] of named) {
       if (known.count > most) {
         most = known.count;
         hypervisorName = name;
         regionName = known.region;
+        capacity = known.capacity;
       }
     }
     if (!hypervisorName) {
@@ -1021,9 +1035,21 @@ function writeHypervisorTotals(data: {
     };
     if (sawCores) {
       emitTotal(OpenStackHypervisorMetric.InstancesCpuUsage, cores);
+      if (capacity?.cores) {
+        emitTotal(
+          OpenStackHypervisorMetric.InstancesCpuUtilization,
+          (cores / capacity.cores) * 100,
+        );
+      }
     }
     if (sawResident) {
       emitTotal(OpenStackHypervisorMetric.InstancesMemoryResident, resident);
+      if (capacity?.memoryBytes) {
+        emitTotal(
+          OpenStackHypervisorMetric.InstancesMemoryUtilization,
+          (resident / capacity.memoryBytes) * 100,
+        );
+      }
     }
     emitTotal(OpenStackHypervisorMetric.InstancesReporting, reporting);
   }
@@ -1046,7 +1072,10 @@ function getContention(
   for (const key of Object.keys(instance.s)) {
     if (key === Reading.CpuDelay || key.startsWith(`${Reading.CpuDelay}:`)) {
       const state: CounterState = instance.s[key]!;
-      if (state[3] !== null && atMs - state[2] <= OPENSTACK_LIBVIRT_LONGEST_GAP_MS) {
+      if (
+        state[3] !== null &&
+        atMs - state[2] <= OPENSTACK_LIBVIRT_LONGEST_GAP_MS
+      ) {
         total += state[3];
         found = true;
       }
@@ -1137,19 +1166,25 @@ function seriesAttributes(data: {
   ];
 }
 
-const DISK_RATE_SERIES: Readonly<Partial<Record<Reading, OpenStackInstanceMetric>>> =
-  {
-    [Reading.DiskReadBytes]: OpenStackInstanceMetric.DiskReadRate,
-    [Reading.DiskWriteBytes]: OpenStackInstanceMetric.DiskWriteRate,
-    [Reading.DiskReadRequests]: OpenStackInstanceMetric.DiskReadOperations,
-    [Reading.DiskWriteRequests]: OpenStackInstanceMetric.DiskWriteOperations,
-    [Reading.NetworkReceiveBytes]: OpenStackInstanceMetric.NetworkReceiveRate,
-    [Reading.NetworkTransmitBytes]: OpenStackInstanceMetric.NetworkTransmitRate,
-  };
+const DISK_RATE_SERIES: Readonly<
+  Partial<Record<Reading, OpenStackInstanceMetric>>
+> = {
+  [Reading.DiskReadBytes]: OpenStackInstanceMetric.DiskReadRate,
+  [Reading.DiskWriteBytes]: OpenStackInstanceMetric.DiskWriteRate,
+  [Reading.DiskReadRequests]: OpenStackInstanceMetric.DiskReadOperations,
+  [Reading.DiskWriteRequests]: OpenStackInstanceMetric.DiskWriteOperations,
+  [Reading.NetworkReceiveBytes]: OpenStackInstanceMetric.NetworkReceiveRate,
+  [Reading.NetworkTransmitBytes]: OpenStackInstanceMetric.NetworkTransmitRate,
+};
 
 // Time spent in a device's requests, and the count of them it is divided by.
 const LATENCY_PAIRS: Readonly<
-  Partial<Record<Reading, { time: Reading; requests: Reading; name: OpenStackInstanceMetric }>>
+  Partial<
+    Record<
+      Reading,
+      { time: Reading; requests: Reading; name: OpenStackInstanceMetric }
+    >
+  >
 > = {
   [Reading.DiskReadTime]: {
     time: Reading.DiskReadTime,
@@ -1176,7 +1211,9 @@ const LATENCY_PAIRS: Readonly<
 function behaviourOf(
   source: OpenStackInstanceMetricSource,
 ): OpenStackRateBehaviour {
-  return source === OpenStackInstanceMetricSource.Libvirt ? "counter" : "polled";
+  return source === OpenStackInstanceMetricSource.Libvirt
+    ? "counter"
+    : "polled";
 }
 
 function advanceCounterOf(
@@ -1349,7 +1386,8 @@ function pruneStates(
     newest.set(key, Math.max(newest.get(key) || 0, sample.timeMs));
   }
   for (const [key, newestMs] of newest) {
-    const state: OpenStackInstanceMetricsHostState | undefined = states.get(key);
+    const state: OpenStackInstanceMetricsHostState | undefined =
+      states.get(key);
     if (!state) {
       continue;
     }

@@ -5,15 +5,14 @@ import OpenStackResourceService, {
   OpenStackStateChange,
 } from "../../Services/OpenStackResourceService";
 import GlobalCache from "../../Infrastructure/GlobalCache";
-import OpenStackCloudFeed, {
-  OpenStackCloudFeedEventType,
-} from "../../../Models/DatabaseModels/OpenStackCloudFeed";
+import { OpenStackCloudFeedEventType } from "../../../Models/DatabaseModels/OpenStackCloudFeed";
 import { Red500 } from "../../../Types/BrandColors";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
+  OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX,
   OpenStackEventImportance,
   OpenStackEventOutcome,
 } from "../../../Utils/OpenStack/OpenStackNotifications";
@@ -61,9 +60,38 @@ const PENDING_NAMESPACE: string = "openstack-event-pending-state";
 const PENDING_TTL_IN_SECONDS: number = 15 * 60;
 const MAX_PENDING_STATE_CHANGES: number = 500;
 
+/*
+ * A cloud that sends Nova's notifications says what its instances did itself, and a probe's
+ * reading of the same thing would say it twice. A probe's own repeats, after it restarts,
+ * are caught by their message IDs, which stand still for the same action.
+ */
+const NOTIFIED_NAMESPACE: string = "openstack-event-nova-notifying";
+const NOTIFIED_MEMORY_IN_SECONDS: number = 60 * 60;
+const PROBE_ACTION_NAMESPACE: string = "openstack-event-probe-action";
+const PROBE_ACTION_MEMORY_IN_SECONDS: number = 24 * 60 * 60;
+
 export interface OpenStackEventBufferEntry {
   cloudName: string;
   events: Array<OpenStackRecordedEvent>;
+}
+
+export function isOpenStackProbeAction(
+  recorded: OpenStackRecordedEvent,
+): boolean {
+  return recorded.event.messageId.startsWith(
+    OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX,
+  );
+}
+
+// Whether this is Nova itself speaking about an instance.
+export function isNovaInstanceNotification(
+  recorded: OpenStackRecordedEvent,
+): boolean {
+  return (
+    !isOpenStackProbeAction(recorded) &&
+    recorded.event.part !== null &&
+    recorded.event.part.kind === OpenStackResourceKind.Instance
+  );
 }
 
 function readEventKey(recorded: OpenStackRecordedEvent): string {
@@ -150,20 +178,30 @@ export default class OpenStackEventRecorder {
     cloudId: ObjectID;
     entry: OpenStackEventBufferEntry;
   }): Promise<void> {
-    const changes: Array<OpenStackRecordedEvent> = data.entry.events.filter(
+    const events: Array<OpenStackRecordedEvent> =
+      await this.withoutProbeRepeats({
+        cloudId: data.cloudId,
+        events: data.entry.events,
+      });
+
+    const changes: Array<OpenStackRecordedEvent> = events.filter(
       (recorded: OpenStackRecordedEvent): boolean => {
         return recorded.event.importance === OpenStackEventImportance.Change;
       },
     );
 
-    await this.attempt("change events", data.cloudId, async (): Promise<void> => {
-      await this.writeChangeEvents({
-        projectId: data.projectId,
-        cloudId: data.cloudId,
-        cloudName: data.entry.cloudName,
-        events: changes,
-      });
-    });
+    await this.attempt(
+      "change events",
+      data.cloudId,
+      async (): Promise<void> => {
+        await this.writeChangeEvents({
+          projectId: data.projectId,
+          cloudId: data.cloudId,
+          cloudName: data.entry.cloudName,
+          events: changes,
+        });
+      },
+    );
 
     await this.attempt("feed lines", data.cloudId, async (): Promise<void> => {
       await this.writeFeedLines({
@@ -173,13 +211,77 @@ export default class OpenStackEventRecorder {
       });
     });
 
-    await this.attempt("state changes", data.cloudId, async (): Promise<void> => {
-      await this.writeStateChanges({
-        projectId: data.projectId,
-        cloudId: data.cloudId,
-        events: data.entry.events,
-      });
-    });
+    await this.attempt(
+      "state changes",
+      data.cloudId,
+      async (): Promise<void> => {
+        await this.writeStateChanges({
+          projectId: data.projectId,
+          cloudId: data.cloudId,
+          events: events,
+        });
+      },
+    );
+  }
+
+  /*
+   * The batch without what a probe says that has been said already. If the cache cannot
+   * answer, a repeat on a feed is better than a failure left off it, so all of it is kept.
+   */
+  private static async withoutProbeRepeats(data: {
+    cloudId: ObjectID;
+    events: Array<OpenStackRecordedEvent>;
+  }): Promise<Array<OpenStackRecordedEvent>> {
+    const cloudKey: string = data.cloudId.toString();
+
+    try {
+      if (data.events.some(isNovaInstanceNotification)) {
+        await GlobalCache.setString(NOTIFIED_NAMESPACE, cloudKey, "1", {
+          expiresInSeconds: NOTIFIED_MEMORY_IN_SECONDS,
+        });
+      }
+
+      if (!data.events.some(isOpenStackProbeAction)) {
+        return data.events;
+      }
+
+      const isNotified: boolean = Boolean(
+        await GlobalCache.getString(NOTIFIED_NAMESPACE, cloudKey),
+      );
+      const kept: Array<OpenStackRecordedEvent> = [];
+
+      for (const recorded of data.events) {
+        if (!isOpenStackProbeAction(recorded)) {
+          kept.push(recorded);
+          continue;
+        }
+
+        if (isNotified) {
+          continue;
+        }
+
+        const isFirstTime: boolean = await GlobalCache.setStringIfNotExists(
+          PROBE_ACTION_NAMESPACE,
+          `${cloudKey}:${hashOf([recorded.event.messageId])}`,
+          "1",
+          { expiresInSeconds: PROBE_ACTION_MEMORY_IN_SECONDS },
+        );
+
+        if (isFirstTime) {
+          kept.push(recorded);
+        }
+      }
+
+      return kept;
+    } catch (error) {
+      logger.warn(
+        `OpenStack probe actions could not be checked for repeats on cloud ${cloudKey}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return data.events;
+    }
   }
 
   private static async attempt(
@@ -330,18 +432,22 @@ export default class OpenStackEventRecorder {
      * length late, which is what every part had before this.
      */
     const key: string = data.cloudId.toString();
-    const pending: unknown = await GlobalCache.getJSONArray(
+    const pending: JSONObject | null = await GlobalCache.getJSONObject(
       PENDING_NAMESPACE,
       key,
     );
-    const known: Array<JSONObject> = Array.isArray(pending)
-      ? (pending as Array<JSONObject>)
+    const known: Array<JSONObject> = Array.isArray(pending?.["changes"])
+      ? (pending["changes"] as Array<JSONObject>)
       : [];
 
     await GlobalCache.setJSON(
       PENDING_NAMESPACE,
       key,
-      [...known, ...unmatched.map(toJson)].slice(-MAX_PENDING_STATE_CHANGES),
+      {
+        changes: [...known, ...unmatched.map(toJson)].slice(
+          -MAX_PENDING_STATE_CHANGES,
+        ),
+      },
       { expiresInSeconds: PENDING_TTL_IN_SECONDS },
     );
   }
@@ -360,18 +466,19 @@ export default class OpenStackEventRecorder {
       data.cloudId,
       async (): Promise<void> => {
         const key: string = data.cloudId.toString();
-        const pending: unknown = await GlobalCache.getJSONArray(
+        const pending: JSONObject | null = await GlobalCache.getJSONObject(
           PENDING_NAMESPACE,
           key,
         );
+        const stored: unknown = pending ? pending["changes"] : null;
 
-        if (!Array.isArray(pending) || pending.length === 0) {
+        if (!Array.isArray(stored) || stored.length === 0) {
           return;
         }
 
         const changes: Array<OpenStackStateChange> = [];
 
-        for (const value of pending) {
+        for (const value of stored) {
           const change: OpenStackStateChange | null = fromJson(value);
 
           if (change) {
@@ -396,20 +503,19 @@ export default class OpenStackEventRecorder {
         await GlobalCache.setJSON(
           PENDING_NAMESPACE,
           key,
-          unmatched
-            .filter((change: OpenStackStateChange): boolean => {
-              return (
-                now.getTime() - change.at.getTime() <
-                PENDING_TTL_IN_SECONDS * 1000
-              );
-            })
-            .map(toJson),
+          {
+            changes: unmatched
+              .filter((change: OpenStackStateChange): boolean => {
+                return (
+                  now.getTime() - change.at.getTime() <
+                  PENDING_TTL_IN_SECONDS * 1000
+                );
+              })
+              .map(toJson),
+          },
           { expiresInSeconds: PENDING_TTL_IN_SECONDS },
         );
       },
     );
   }
 }
-
-// Only so a test can name the feed's model without reading the service.
-export { OpenStackCloudFeed };

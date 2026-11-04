@@ -415,7 +415,7 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
                 }}
               />
               {canEdit && isOptionsChanged ? (
-                <div className="mt-3">
+                <div className="mt-3 flex justify-end">
                   <Button
                     title="Save Options"
                     buttonStyle={ButtonStyleType.NORMAL}

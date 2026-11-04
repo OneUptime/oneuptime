@@ -33,10 +33,13 @@ import {
   OPENSTACK_STATUS_POLL_INTERVAL_IN_MS,
   OpenStackCollectionStatusView,
   OpenStackCollectionTone,
+  OpenStackGentlerRow,
   OpenStackServiceRow,
   getOpenStackCollectionStatusView,
+  getOpenStackGentlerRows,
   getOpenStackInventoryPhrases,
   getOpenStackServiceRows,
+  getOpenStackSummaryModeLine,
   isOpenStackProbeCollected,
   readOpenStackNames,
 } from "./OpenStackProbeCollectionView";
@@ -221,6 +224,14 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
     translator,
   );
   const warnings: Array<string> = cloud.collectionSummary?.warnings || [];
+  const gentler: Array<OpenStackGentlerRow> = getOpenStackGentlerRows(
+    cloud.collectionSummary,
+    translator,
+  );
+  const summaryModeLine: string | null = getOpenStackSummaryModeLine(
+    cloud.collectionSummary,
+    translator,
+  );
 
   return (
     <div className="mb-5" data-testid="openstack-data-collection-status">
@@ -341,6 +352,43 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
                 })}
               </ul>
             </div>
+          ) : (
+            <></>
+          )}
+
+          {gentler.length > 0 ? (
+            <div data-testid="openstack-collection-gentler">
+              <div className="text-xs font-medium text-gray-700">
+                {translator.translateText(
+                  "Asked more gently, because it answered slowly",
+                )}
+              </div>
+              <ul className="mt-1 divide-y divide-gray-200">
+                {gentler.map((row: OpenStackGentlerRow) => {
+                  return (
+                    <li key={row.key} className="py-2">
+                      <div className="break-words text-sm text-gray-900">
+                        {row.title}
+                      </div>
+                      <p className="mt-1 break-words text-xs text-gray-600">
+                        {row.message}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {summaryModeLine ? (
+            <p
+              className="text-xs text-gray-600"
+              data-testid="openstack-collection-summary-mode"
+            >
+              {summaryModeLine}
+            </p>
           ) : (
             <></>
           )}

@@ -975,7 +975,9 @@ describe("a catalog on plain HTTP", () => {
     });
 
     expect(report.status).toBe("Failed");
-    expect(report.errorCode).toBe(OpenStackCollectionErrorCode.InsecureEndpoint);
+    expect(report.errorCode).toBe(
+      OpenStackCollectionErrorCode.InsecureEndpoint,
+    );
     expect(report.errorMessage).toBe(
       "The catalog puts Networking (Neutron) on plain HTTP, such as http://10.0.0.5:9696. A credential's token is never sent unencrypted, so the probe read none of them. Turn on TLS for these APIs, pick another endpoint interface, or use the OpenStack agent for this cloud.",
     );
@@ -1011,7 +1013,9 @@ describe("a catalog on plain HTTP", () => {
       tokenOverrides: catalogOn("http://10.0.0.5:9696", "http://10.0.0.5:8774"),
     });
 
-    expect(report.errorCode).toBe(OpenStackCollectionErrorCode.InsecureEndpoint);
+    expect(report.errorCode).toBe(
+      OpenStackCollectionErrorCode.InsecureEndpoint,
+    );
     expect(report.errorMessage).toContain(
       "The catalog puts Compute (Nova), Networking (Neutron) on plain HTTP, such as http://10.0.0.5:8774.",
     );
@@ -1691,7 +1695,14 @@ describe("classifyAccessFailure", () => {
     ["overloaded", 503, "Failing", "HTTP 503"],
     ["failing", 500, "Failing", "HTTP 500"],
     ["malformed", 200, "Failing", "HTTP 200"],
-  ] as const)(
+  ] as Array<
+    [
+      ConstructorParameters<typeof OpenStackApiError>[0]["kind"],
+      number,
+      string,
+      string,
+    ]
+  >)(
     "%s %s",
     (
       kind: ConstructorParameters<typeof OpenStackApiError>[0]["kind"],
@@ -1744,7 +1755,13 @@ describe("getOpenStackAccessLevel", () => {
     ["OwnProjectOnly", "OwnProjectOnly", "ProjectView"],
     // Nothing of its own to show for it either.
     ["Refused", "Refused", "Other"],
-  ] as const)(
+  ] as Array<
+    [
+      "ReadsEverything" | "Refused" | "OwnProjectOnly",
+      "ReadsEverything" | "OwnProjectOnly" | "Refused",
+      string,
+    ]
+  >)(
     "infrastructure %s, projects %s: %s",
     (
       infrastructure: "ReadsEverything" | "Refused" | "OwnProjectOnly",
