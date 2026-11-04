@@ -82,7 +82,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import SeriesPoint from "../../../UI/Components/Charts/Types/SeriesPoints";
 import {
   getTileTitleWordsClassName,
-  TILE_TITLE_LONG_WORD_CLASS_NAME,
+  TILE_TITLE_LONG_WORDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TileTitleWords";
 
 const DASHBOARD: string = path.resolve(
@@ -495,10 +495,15 @@ describe("a golden metric tile", () => {
         return word.length >= 10;
       });
 
+    /*
+     * Each long word is a span of its own: hyphenated in its language, and
+     * a box no wider than its line, so it moves whole to the next line when
+     * it fits one (TILE_TITLE_LONG_WORDS).
+     */
     if (longWords.length > 0 && longWords.length < german.split(" ").length) {
       expect(
         titleElement().querySelector(
-          `span[class="${TILE_TITLE_LONG_WORD_CLASS_NAME}"]`,
+          `span[class="${TILE_TITLE_LONG_WORDS.longWordClassName}"]`,
         ),
       ).not.toBeNull();
     }

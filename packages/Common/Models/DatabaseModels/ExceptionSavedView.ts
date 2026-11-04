@@ -175,15 +175,15 @@ export default class ExceptionSavedView extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.Name,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Friendly name for this saved exceptions view.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
   public name?: string = undefined;
 

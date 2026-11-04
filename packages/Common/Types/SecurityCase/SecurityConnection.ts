@@ -1,4 +1,5 @@
 import { SecurityEntity } from "./SecurityEntity";
+import type { CloudChangeTitleFacts } from "../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * SECURITY CONNECTIONS: where the users, hosts and addresses Security Events
@@ -232,6 +233,14 @@ export interface SecurityConnectionChangeJson {
   time: string;
   title: string;
   eventType: string;
+  /*
+   * What an operation a cloud account's activity log recorded is worded
+   * from - its operation, resource and outcome - so a page says its title
+   * in the reader's language (Utils/Telemetry/CloudChangeTitle); `title`
+   * is the English the change was stored with. Left out for any other
+   * change.
+   */
+  cloudChange?: CloudChangeTitleFacts | undefined;
 }
 
 // One on-call schedule a member is on, and whether they are on call for it now.

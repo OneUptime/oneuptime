@@ -82,6 +82,10 @@ export const BREAKDOWN_TITLE: string = translationKey("Where the money goes");
 export const BREAKDOWN_DESCRIPTION: string = translationKey(
   "What cost the most, by service, Region, account or resource.",
 );
+// On an account's own Costs, which has no Accounts choice.
+export const BREAKDOWN_DESCRIPTION_ONE_ACCOUNT: string = translationKey(
+  "What cost the most, by service, Region or resource.",
+);
 export const BREAKDOWN_EMPTY: string = translationKey(
   "Nothing cost anything in this period.",
 );
@@ -247,7 +251,14 @@ const CloudCostBreakdownCard: FunctionComponent<{
       : (shares || []).slice(0, BREAKDOWN_SHOWN);
 
   return (
-    <Card title={BREAKDOWN_TITLE} description={BREAKDOWN_DESCRIPTION}>
+    <Card
+      title={BREAKDOWN_TITLE}
+      description={
+        props.isOneAccount
+          ? BREAKDOWN_DESCRIPTION_ONE_ACCOUNT
+          : BREAKDOWN_DESCRIPTION
+      }
+    >
       <div data-testid="cloud-cost-breakdown" data-dimension={dimension}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           {/*

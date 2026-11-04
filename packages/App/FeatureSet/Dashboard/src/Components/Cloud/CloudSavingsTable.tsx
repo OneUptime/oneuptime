@@ -13,6 +13,7 @@ import {
 import {
   CLOUD_SAVING_KIND_LABELS,
   CloudSavingKind,
+  getCloudSavingActionText,
 } from "Common/Types/Cloud/CloudCost";
 import {
   CloudProvider,
@@ -127,6 +128,8 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
       sortOrder={SortOrder.Descending}
       selectMoreFields={{
         currency: true,
+        // What an empty action is drawn as (getCloudSavingActionText).
+        kind: true,
         resourceName: true,
         resourceId: true,
         resourceType: true,
@@ -190,7 +193,11 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
             return (
               <div className="min-w-0" data-testid="cloud-saving-row">
                 <div className="break-words text-sm font-medium text-gray-900">
-                  {item.action || ""}
+                  {getCloudSavingActionText({
+                    action: item.action,
+                    kind: item.kind as CloudSavingKind | undefined,
+                    translateText: translator.translateText,
+                  })}
                 </div>
                 {change ? (
                   <div

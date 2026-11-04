@@ -28,14 +28,23 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
+  getGlobalTranslator,
   translatableTerm,
   translateTemplate,
+  translateText,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
   ChangeEventAttribute,
   ChangeEventSource,
 } from "Common/Utils/Telemetry/ChangeEventFields";
+import {
+  CloudChangeTitleFacts,
+  getCloudChangeTitle,
+  readCloudChangeTitleFacts,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
+import { JSONObject } from "Common/Types/JSON";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { isPublicDashboard } from "../../Dashboard/Utils/PublicDashboardContext";
@@ -103,6 +112,33 @@ export function getChangeEventTypeLabel(eventType: string | undefined): string {
     translationKey("Change")
   );
 }
+
+/*
+ * What a change's marker calls it: an operation a cloud account's activity
+ * log recorded in the reader's language, worded from its operation,
+ * resource and outcome (CloudChangeTitle), as the cloud Changes lists say
+ * it; any other change by its own title.
+ */
+export function getChangeEventMarkerTitle(
+  change: {
+    title?: string | undefined;
+    attributes?: JSONObject | undefined;
+  },
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const facts: CloudChangeTitleFacts | null = readCloudChangeTitleFacts({
+    title: change.title,
+    attributes: change.attributes,
+  });
+
+  return facts
+    ? getCloudChangeTitle(facts, translator, { setsValuesApart: true })
+    : change.title || "";
+}
+
+// The line under a change marker's title in its hover card.
+export const CHANGE_EVENT_MARKER_SUBTITLE: string =
+  translationKey("Change event");
 
 export function getChangeEventMarkerLabel(
   eventType: string | undefined,
@@ -342,6 +378,8 @@ export default function useEventTimeReferenceLines(input: {
                 time: true,
                 title: true,
                 eventType: true,
+                // A cloud change's title is worded from what it keeps.
+                attributes: true,
               },
               sort: {
                 time: SortOrder.Descending,
@@ -418,10 +456,15 @@ export default function useEventTimeReferenceLines(input: {
           date: OneUptimeDate.fromString(changeEvent.time as unknown as string),
           label: getChangeEventMarkerLabel(
             changeEvent.eventType,
-            changeEvent.title || "",
+            getChangeEventMarkerTitle({
+              title: changeEvent.title,
+              attributes: changeEvent.attributes as JSONObject | undefined,
+            }),
           ),
           kind: ChartEventKind.Change,
-          subtitle: "Change event",
+          subtitle:
+            translateText(CHANGE_EVENT_MARKER_SUBTITLE) ||
+            CHANGE_EVENT_MARKER_SUBTITLE,
           color: CHANGE_EVENT_MARKER_COLOR,
           strokeDasharray: "4 4",
         });
