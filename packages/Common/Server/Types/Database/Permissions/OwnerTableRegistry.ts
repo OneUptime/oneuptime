@@ -28,6 +28,8 @@ import ServerlessFunctionOwnerTeamService from "../../../Services/ServerlessFunc
 import ServerlessFunctionOwnerUserService from "../../../Services/ServerlessFunctionOwnerUserService";
 import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
 import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
+import DataAssetOwnerTeamService from "../../../Services/DataAssetOwnerTeamService";
+import DataAssetOwnerUserService from "../../../Services/DataAssetOwnerUserService";
 import DataStoreOwnerTeamService from "../../../Services/DataStoreOwnerTeamService";
 import DataStoreOwnerUserService from "../../../Services/DataStoreOwnerUserService";
 import RumApplicationOwnerTeamService from "../../../Services/RumApplicationOwnerTeamService";
@@ -326,6 +328,16 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       // A store is what scans read, not a source of telemetry of its own.
       canOwnTelemetry: false,
       modelService: DataStoreService,
+    },
+  ],
+  [
+    "DataAsset",
+    {
+      ownerUserService: DataAssetOwnerUserService,
+      ownerTeamService: DataAssetOwnerTeamService,
+      fkColumn: "dataAssetId",
+      // A table is read through its store: telemetry rows name the store, not it.
+      canOwnTelemetry: false,
     },
   ],
   [

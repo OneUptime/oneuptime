@@ -85,6 +85,8 @@ L'onglet **Propriétaires** d'une table nomme les personnes et les équipes auxq
 
 Vous ne devriez pas avoir à le faire des centaines de fois. Les **Règles de propriétaire** et les **Règles d'étiquettes** s'appliquent à chaque table dès son apparition, selon ses étiquettes, ou selon une expression régulière sur son nom, son schéma ou sa base de données : tout ce qui est dans `finance` va à l'équipe finance, et tout ce qui s'appelle `*_pii` reçoit une étiquette.
 
+Une autorisation limitée à `Owned` n'atteint que les tables dont son titulaire ou ses équipes sont propriétaires, ainsi que leurs contrôles, leur activité et les problèmes signalés. Être propriétaire d'une base de données ne rend pas propriétaire de ses tables : utilisez une règle de propriétaires pour confier toute une base de données à une équipe.
+
 ## Quand une alerte s'ouvre
 
 L'alerte d'une table a une carte **Données** qui dit pourquoi elle s'est le plus probablement produite, classée : une alerte en amont, une exécution en échec, un déploiement d'un service qui y écrit, ses écritures en échec, une colonne qui a changé, la base de données elle-même ou le serveur sur lequel elle tourne. En dessous se trouve ce qui en dépend : les tables en aval dans son lignage, les tableaux de bord, les services et les personnes qui en sont propriétaires.

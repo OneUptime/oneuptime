@@ -85,6 +85,8 @@ Fanen **Eiere** for en tabell nevner menneskene og teamene den tilhører, og et 
 
 Du skal ikke måtte gjøre dette hundrevis av ganger. **Eierregler** og **Etikettregler** gjelder for hver tabell første gang den dukker opp, matchet etter etikettene, eller etter et regulært uttrykk på navnet, skjemaet eller databasen: alt i `finance` går til økonomiteamet, og alt som heter `*_pii`, får en etikett.
 
+En tillatelse begrenset til `Owned` når bare tabellene som innehaveren eller teamene deres eier, med sjekkene, aktiviteten og de rapporterte problemene deres. Å eie en database gjør deg ikke til eier av tabellene: bruk en eierregel for å gi et team en hel database.
+
 ## Når et varsel åpnes
 
 Et varsel på en tabell har et **Data**-kort som sier hvorfor det mest sannsynlig skjedde, rangert: et varsel oppstrøms, en mislykket kjøring, en utrulling av en tjeneste som skriver til den, de mislykkede skrivingene, en kolonne som endret seg, databasen selv eller serveren den kjører på. Under det står det som avhenger av den: tabeller nedover avstamningen, dashbord, tjenester og menneskene som eier dem.

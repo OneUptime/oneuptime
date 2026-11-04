@@ -85,6 +85,8 @@ La scheda **Proprietari** di una tabella indica le persone e i team a cui appart
 
 Non dovresti doverlo fare centinaia di volte. Le **Regole del proprietario** e le **Regole etichette** si applicano a ogni tabella quando compare per la prima volta, in base alle sue etichette, oppure a un'espressione regolare sul suo nome, schema o database: tutto ciò che è in `finance` va al team finance, e tutto ciò che si chiama `*_pii` riceve un'etichetta.
 
+Un'autorizzazione limitata a `Owned` raggiunge solo le tabelle di cui sono proprietari il suo titolare o i suoi team, con i relativi controlli, attività e problemi segnalati. Essere proprietario di un database non rende proprietario delle sue tabelle: usa una regola sui proprietari per affidare un intero database a un team.
+
 ## Quando si apre un avviso
 
 L'avviso di una tabella ha una scheda **Dati** che dice perché è più probabilmente successo, in ordine di probabilità: un avviso a monte, un'esecuzione non riuscita, un deploy di un servizio che la scrive, le sue scritture in errore, una colonna che è cambiata, il database stesso o il server su cui gira. Sotto c'è ciò che ne dipende: le tabelle più a valle nella sua derivazione, le dashboard, i servizi e le persone che ne sono proprietarie.

@@ -43433,7 +43433,7 @@
   "Was this alert useful?": "क्या यह अलर्ट उपयोगी था?",
   "Watched Paths": "देखे जा रहे पाथ",
   "What Looks Wrong": "क्या गलत लग रहा है",
-  "What a check may cost a database. Table health reads only the catalog, so these never apply to it.": "एक जांच डेटाबेस पर कितना बोझ डाल सकती है। टेबल हेल्थ केवल कैटलॉग पढ़ती है, इसलिए ये उस पर कभी लागू नहीं होते।",
+  "What a check may cost a database. Table health reads only the catalog, so these never apply to it.": "एक जांच डेटाबेस पर कितना बोझ डाल सकती है। टेबल स्वास्थ्य केवल कैटलॉग पढ़ता है, इसलिए ये उस पर कभी लागू नहीं होते।",
   "What looks wrong, in the words of whoever noticed.": "क्या गलत लग रहा है, ध्यान देने वाले के अपने शब्दों में।",
   "What the facts around this alert say, most telling first, what depends on what it is about, and what you make of it.": "इस अलर्ट के आसपास के तथ्य क्या कहते हैं, सबसे अहम पहले, यह किस बारे में है उस पर क्या निर्भर है, और आप इससे क्या समझते हैं।",
   "What this table is about. Owner rules and alert routing can match on them, and Label Rules can set them for you.": "यह टेबल किस बारे में है। स्वामी नियम और अलर्ट रूटिंग इन पर मेल कर सकते हैं, और लेबल नियम इन्हें आपके लिए सेट कर सकते हैं।",
