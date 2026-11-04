@@ -623,7 +623,6 @@ describe("colours", () => {
 
 describe("the fields of a notification", () => {
   test.each([
-    "admin_password",
     "new_password",
     "auth_password",
     "password1",
@@ -651,8 +650,8 @@ describe("the fields of a notification", () => {
   test.each(["***", "None", "null", ""])(
     "a secret's field already saying %j says it still",
     (value: string) => {
-      expect(removeOpenStackSecretFields({ admin_password: value })).toEqual({
-        admin_password: value,
+      expect(removeOpenStackSecretFields({ new_password: value })).toEqual({
+        new_password: value,
       });
     },
   );

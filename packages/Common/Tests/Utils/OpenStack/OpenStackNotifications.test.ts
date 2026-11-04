@@ -163,6 +163,41 @@ describe("Nova's versioned notifications", () => {
     expect(eventOf(notification(type, INSTANCE_FIELDS)).title).toBe(title);
   });
 
+  /*
+   * What a real cloud sends for one action, read off a recording: one line on a part's feed for
+   * what happened, and the steps on the way kept as logs.
+   */
+  test.each([
+    ["instance.shutdown.end"],
+    ["instance.resize_prep.end"],
+    ["instance.resize.end"],
+    ["instance.rebuild_scheduled"],
+    ["instance.live_migration_pre.end"],
+    ["instance.live_migration_post_dest.end"],
+  ])("%s is a step of something bigger", (type: string) => {
+    expect(eventOf(notification(type, INSTANCE_FIELDS)).importance).toBe(
+      OpenStackEventImportance.Trail,
+    );
+  });
+
+  test.each([
+    ["instance.resize_finish.end"],
+    ["instance.resize_confirm.end"],
+    ["instance.resize_revert.end"],
+    ["instance.live_migration_post.end"],
+    ["instance.live_migration_rollback.end"],
+  ])("%s is what a person waited for", (type: string) => {
+    expect(eventOf(notification(type, INSTANCE_FIELDS)).importance).toBe(
+      OpenStackEventImportance.Change,
+    );
+  });
+
+  test("what has only started does not say it is done", () => {
+    expect(
+      eventOf(notification("instance.create.start", INSTANCE_FIELDS)).title,
+    ).toBe("Instance web-1: instance.create.start");
+  });
+
   test("a word it has no word for says the event's own", () => {
     expect(
       eventOf(notification("instance.frobnicate.end", INSTANCE_FIELDS)).title,
@@ -258,7 +293,7 @@ describe("what failed, and why", () => {
     expect(event.exception).toBe("MigrationPreCheckError");
     expect(event.reason).toBe("Migration pre-check error");
     expect(event.title).toBe(
-      "Instance web-1: live_migration_pre failed: Migration pre-check error",
+      "Instance web-1: live migration failed: Migration pre-check error",
     );
     expect(event.movesState).toBe(true);
   });
@@ -320,6 +355,24 @@ describe("what failed, and why", () => {
     expect(event.failure).toBe(OpenStackEventFailure.Scheduling);
     expect(event.part?.id).toBe(INSTANCE);
     expect(event.reason).toContain("No valid host");
+  });
+
+  test.each([
+    ["compute_task.build_instances.error", "build"],
+    ["compute_task.migrate_server.error", "migration"],
+    ["compute_task.rebuild_server.error", "rebuild"],
+    ["compute_task.unshelve_instance.error", "unshelve"],
+    ["scheduler.select_destinations.error", "scheduling"],
+    ["instance.live_migration_pre.error", "live migration"],
+    ["instance.power_off.error", "stop"],
+    ["instance.volume_attach.error", "volume attach"],
+    ["instance.frobnicate.error", "frobnicate"],
+  ])("%s says %s failed, as a person says it", (type: string, word: string) => {
+    expect(
+      eventOf(
+        notification(type, { instance_uuid: INSTANCE }, { priority: "ERROR" }),
+      ).title,
+    ).toBe(`Instance ${INSTANCE}: ${word} failed`);
   });
 
   test("the older form, whose reason is words", () => {
@@ -452,6 +505,85 @@ describe("Neutron's, Cinder's and Glance's", () => {
     ).toBe("abc");
   });
 
+  /*
+   * Read off a real recording: an interface is the router's own id under another word, and what
+   * Neutron says of a project is on the resource, not beside it.
+   */
+  test("adding an interface to a router is the router's", () => {
+    const event: OpenStackEvent = eventOf({
+      event_type: "router.interface.create",
+      priority: "INFO",
+      publisher_id: "network.controller",
+      payload: {
+        router_interface: {
+          id: "the-router",
+          tenant_id: PROJECT,
+          port_id: "the-port",
+          subnet_id: "the-subnet",
+        },
+      },
+    });
+
+    expect(event.part?.kind).toBe(OpenStackResourceKind.Router);
+    expect(event.part?.id).toBe("the-router");
+    expect(event.title).toBe("Router the-router: interface added");
+    expect(event.projectId).toBe(PROJECT);
+    expect(event.importance).toBe(OpenStackEventImportance.Change);
+  });
+
+  test("and taking it away", () => {
+    expect(
+      eventOf({
+        event_type: "router.interface.delete",
+        payload: { router_interface: { id: "the-router" } },
+      }).title,
+    ).toBe("Router the-router: interface removed");
+  });
+
+  test("a resource says whose it is", () => {
+    expect(
+      eventOf({
+        event_type: "network.create.end",
+        payload: {
+          network: { id: "abc", name: "n", project_id: PROJECT, tenant_id: "x" },
+        },
+      }).projectId,
+    ).toBe(PROJECT);
+  });
+
+  test.each([
+    ["security_group.create.end", "security_group", { name: "web" }, "Security group web: created"],
+    ["security_group.delete.end", "security_group", {}, "Security group: deleted"],
+    ["security_group_rule.create.end", "security_group_rule", {}, "Security group rule: created"],
+    ["subnetpool.update.end", "subnetpool", { name: "pool" }, "Subnet pool pool: updated"],
+    ["trunk.create.end", "trunk", { name: "t" }, "Trunk t: created"],
+  ])(
+    "%s has no page, and still reads as what it is",
+    (
+      type: string,
+      resource: string,
+      fields: Record<string, unknown>,
+      title: string,
+    ) => {
+      const event: OpenStackEvent = eventOf({
+        event_type: type,
+        payload: { [resource]: fields },
+      });
+
+      expect(event.part).toBeNull();
+      expect(event.title).toBe(title);
+    },
+  );
+
+  test("Nova's key pairs and server groups", () => {
+    expect(
+      eventOf(notification("keypair.create.end", { name: "deploy" })).title,
+    ).toBe("Key pair deploy: created");
+    expect(
+      eventOf(notification("server_group.delete", { name: "ha" })).title,
+    ).toBe("Server group ha: deleted");
+  });
+
   test("a port is a step of what uses it", () => {
     const event: OpenStackEvent = eventOf({
       event_type: "port.update.end",
@@ -520,6 +652,57 @@ describe("Neutron's, Cinder's and Glance's", () => {
     expect(event.publisherHost).toBe("controller");
   });
 
+  /*
+   * Read off a real recording: cinder-volume names itself host@backend#pool, and Glance
+   * localhost wherever it runs. Neither is what the machine is called.
+   */
+  test.each([
+    ["volume.create.end", { volume_id: "abc", host: "controller@lvm#pool" }, "volume.controller@lvm", "controller"],
+    ["snapshot.create.end", { snapshot_id: "abc" }, "snapshot.controller@lvm", "controller"],
+    ["image.activate", { id: "abc" }, "image.localhost", ""],
+    ["image.activate", { id: "abc" }, "image.controller", "controller"],
+  ])(
+    "%s with %j from %s is on %j",
+    (
+      type: string,
+      payload: Record<string, unknown>,
+      publisher: string,
+      host: string,
+    ) => {
+      expect(
+        eventOf({ event_type: type, publisher_id: publisher, payload }).host,
+      ).toBe(host);
+    },
+  );
+
+  /*
+   * An image being uploaded says update for each step, and an image made public says it once.
+   * Read off a real recording, where one upload said created, updated, uploaded, activated.
+   */
+  test.each([
+    ["queued", OpenStackEventImportance.Trail],
+    ["saving", OpenStackEventImportance.Trail],
+    ["importing", OpenStackEventImportance.Trail],
+    ["active", OpenStackEventImportance.Change],
+    ["deactivated", OpenStackEventImportance.Change],
+  ])(
+    "an image's update while it is %s",
+    (status: string, importance: OpenStackEventImportance) => {
+      expect(
+        eventOf({
+          event_type: "image.update",
+          payload: { id: "abc", name: "n", status },
+        }).importance,
+      ).toBe(importance);
+    },
+  );
+
+  test("its upload is a step of being activated", () => {
+    expect(
+      eventOf({ event_type: "image.upload", payload: { id: "abc" } }).importance,
+    ).toBe(OpenStackEventImportance.Trail);
+  });
+
   test("Nova's flavors", () => {
     expect(
       eventOf(notification("flavor.create", { flavorid: "f1", name: "tiny" }))
@@ -551,6 +734,9 @@ describe("what says nothing happened", () => {
     "instance.exists",
     "volume.usage",
     "snapshot.exists",
+    "capacity.pool",
+    "capacity.backend",
+    "l3.meter",
   ])("%s is routine", (type: string) => {
     expect(eventOf({ event_type: type, payload: {} }).importance).toBe(
       OpenStackEventImportance.Routine,
