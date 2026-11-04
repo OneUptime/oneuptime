@@ -389,7 +389,7 @@ const OpenStackCloudProjectDetail: FunctionComponent<
         </ul>
       </Card>
 
-      <OpenStackQuotaCard quotas={quotas} />
+      <OpenStackQuotaCard openStackCloudId={modelId} quotas={quotas} />
 
       <ResourcePartOpenEventsCard
         testId="openstack-project-open"

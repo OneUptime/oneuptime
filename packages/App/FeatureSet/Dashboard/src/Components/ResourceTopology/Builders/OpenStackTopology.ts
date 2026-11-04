@@ -911,7 +911,7 @@ export function buildOpenStackTopology(
  * it opens. Few of them: this is what still reads at the zoom every map is held to, on a
  * laptop. Needs attention, one click away, narrows the map to all of the rest.
  */
-export const OPENSTACK_TOPOLOGY_OPENS_ON: number = 3;
+export const OPENSTACK_TOPOLOGY_OPENS_ON: number = 2;
 
 export function getOpenStackTopologyFocus(
   graph: ResourceTopologyGraph,
@@ -957,10 +957,10 @@ export function getOpenStackTopologyFocus(
  * about something this cloud holds: a cloud with no instances lacks nothing.
  */
 export const OPENSTACK_TOPOLOGY_GAP_NETWORKS: string = translationKey(
-  "Instances are not joined to their networks: the agent's exporter does not say which network an instance is on.",
+  "Instances are not joined to their networks: what this cloud reports does not say which network an instance is on.",
 );
 export const OPENSTACK_TOPOLOGY_GAP_NETWORKS_AND_POOLS: string = translationKey(
-  "Instances are not joined to their networks, nor volumes to their storage pools: the agent's exporter says neither.",
+  "Instances are not joined to their networks, nor volumes to their storage pools: what this cloud reports says neither.",
 );
 export const OPENSTACK_TOPOLOGY_SUMMARIZED: string = translationKey(
   "This cloud has more than {{limit}} parts, more than a map can usefully draw, so it opens on what has failed and what that affects. Every hypervisor still says how many instances it holds.",

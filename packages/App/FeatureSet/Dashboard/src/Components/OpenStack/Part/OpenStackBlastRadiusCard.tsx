@@ -85,7 +85,7 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
     return (
       <div className="mb-6" data-testid={props.testId} data-known="false">
         <Card title={BLAST_RADIUS_TITLE} description={props.description}>
-          <p className="px-5 pb-5 text-sm text-gray-600 md:px-6">
+          <p className="text-sm text-gray-600">
             {translator.translateText(props.unknownText) || props.unknownText}
           </p>
         </Card>
@@ -151,7 +151,7 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
       <Card title={BLAST_RADIUS_TITLE} description={props.description}>
         {isOpenStackBlastRadiusEmpty(data) ? (
           <p
-            className="px-5 pb-5 text-sm text-gray-600 md:px-6"
+            className="text-sm text-gray-600"
             data-testid={`${props.testId}-empty`}
           >
             {translator.translateText("Nothing depends on it right now.")}
@@ -159,7 +159,7 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
         ) : (
           <div>
             <div
-              className="flex flex-wrap gap-1.5 px-5 pb-4 md:px-6"
+              className="flex flex-wrap gap-1.5 pb-4"
               data-testid={`${props.testId}-counts`}
             >
               {counts.map(

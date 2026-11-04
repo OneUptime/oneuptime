@@ -1,3 +1,4 @@
+import Route from "Common/Types/API/Route";
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
@@ -91,20 +92,21 @@ const AgentRows: FunctionComponent<{
         <ul className={listClassName}>
           {agents.map(
             (agent: OpenStackL3AgentFact, index: number): ReactElement => {
-              const route: ReturnType<OpenStackPartRoutes["getNetworkAgentRoute"]> =
-                agent.host
-                  ? props.routes.getNetworkAgentRoute(
-                      getOpenStackL3AgentExternalId(
-                        props.row.regionName,
-                        agent.host,
-                      ),
-                    )
-                  : undefined;
+              const route: Route | undefined = agent.host
+                ? props.routes.getNetworkAgentRoute(
+                    getOpenStackL3AgentExternalId(
+                      props.row.regionName,
+                      agent.host,
+                    ),
+                  )
+                : undefined;
               return (
                 <li
                   key={`${agent.host || ""}-${index}`}
                   data-testid="openstack-router-agent"
-                  data-alive={agent.isAlive && agent.isAdminUp ? "true" : "false"}
+                  data-alive={
+                    agent.isAlive && agent.isAdminUp ? "true" : "false"
+                  }
                   className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
                 >
                   {route ? (

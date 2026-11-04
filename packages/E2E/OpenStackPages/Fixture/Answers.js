@@ -473,6 +473,38 @@ export function getBlastRadius(allRows, part) {
 }
 
 // Who holds the most of a region or the cloud, as POST /top-consumers answers.
+// How many of a kind there are by what they hold, as OpenStackResourceService.getCounts.
+export function getCounts(allRows, kind, by) {
+  const valueOf = {
+    flavor: (row) => {
+      return row.facts?.flavorId ?? null;
+    },
+    volumeType: (row) => {
+      return row.facts?.volumeType ?? null;
+    },
+    project: (row) => {
+      return row.openStackProjectId ?? null;
+    },
+  }[by];
+  const groups = new Map();
+  for (const row of ofKind(allRows, kind)) {
+    const value = valueOf(row);
+    const key = JSON.stringify([value, row.regionName ?? null]);
+    const group = groups.get(key) || {
+      value,
+      regionName: row.regionName ?? null,
+      count: 0,
+      sizeBytes: 0,
+    };
+    group.count += 1;
+    group.sizeBytes += row.diskCapacityBytes || 0;
+    groups.set(key, group);
+  }
+  return Array.from(groups.values()).sort((first, second) => {
+    return second.count - first.count;
+  });
+}
+
 export function getTopConsumers(allRows, regionName) {
   const rows = ofRegion(allRows, regionName);
   const names = {};

@@ -201,10 +201,12 @@ async function postToCloud(data: {
  */
 export async function fetchOpenStackAttentionRows(
   openStackCloudId: ObjectID,
+  regionName?: string | null | undefined,
 ): Promise<Array<OpenStackResource>> {
   const answer: JSONObject = await postToCloud({
     path: "/openstack-resource/needs-attention/",
     openStackCloudId,
+    ...(regionName ? { body: { regionName } } : {}),
   });
   return toRows((answer["rows"] as Array<JSONObject>) || []);
 }
@@ -317,9 +319,7 @@ export async function fetchOpenStackComputeServiceOf(data: {
     query: {
       name: "nova-compute",
       hypervisorName: new Includes(
-        short === data.hypervisorName
-          ? [short]
-          : [short, data.hypervisorName],
+        short === data.hypervisorName ? [short] : [short, data.hypervisorName],
       ),
     },
     limit: 8,
@@ -607,36 +607,40 @@ export async function fetchOpenStackHostUsage(
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const startDate: Date = OneUptimeDate.addRemoveMinutes(endDate, -5);
 
-  const read: (metricName: string, state: string) => Promise<number | null> =
-    async (metricName: string, state: string): Promise<number | null> => {
-      const result: AggregatedResult =
-        await AnalyticsModelAPI.aggregate<Metric>({
-          modelType: Metric,
-          aggregateBy: {
-            query: metricQuery({
-              metricName,
-              attributes: {
-                "resource.host.name": hostIdentifier,
-                state,
-              },
-              startDate,
-              endDate,
-            }),
-            aggregationType: AggregationType.Avg,
-            aggregationInterval: AggregationInterval.Total,
-            aggregateColumnName: "value",
-            aggregationTimestampColumnName: "time",
-            startTimestamp: startDate,
-            endTimestamp: endDate,
-            limit: 1,
-            skip: 0,
+  const read: (
+    metricName: string,
+    state: string,
+  ) => Promise<number | null> = async (
+    metricName: string,
+    state: string,
+  ): Promise<number | null> => {
+    const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: {
+        query: metricQuery({
+          metricName,
+          attributes: {
+            "resource.host.name": hostIdentifier,
+            state,
           },
-        });
-      const value: number = Number(
-        ((result.data || [])[0] as AggregatedModel | undefined)?.["value"],
-      );
-      return Number.isFinite(value) ? value * 100 : null;
-    };
+          startDate,
+          endDate,
+        }),
+        aggregationType: AggregationType.Avg,
+        aggregationInterval: AggregationInterval.Total,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp: startDate,
+        endTimestamp: endDate,
+        limit: 1,
+        skip: 0,
+      },
+    });
+    const value: number = Number(
+      ((result.data || [])[0] as AggregatedModel | undefined)?.["value"],
+    );
+    return Number.isFinite(value) ? value * 100 : null;
+  };
 
   const [user, system, memory]: [number | null, number | null, number | null] =
     await Promise.all([
@@ -646,7 +650,8 @@ export async function fetchOpenStackHostUsage(
     ]);
 
   return {
-    cpuPercent: user === null && system === null ? null : (user || 0) + (system || 0),
+    cpuPercent:
+      user === null && system === null ? null : (user || 0) + (system || 0),
     memoryPercent: memory,
   };
 }

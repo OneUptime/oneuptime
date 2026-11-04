@@ -15,6 +15,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OpenStackCloudImageDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
 import OpenStackCloudImages from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Images";
@@ -235,7 +236,7 @@ describe("the Volumes list", () => {
       "data-tone",
       "positive",
     );
-    expect(within(row).getByText("10.0 GiB")).toBeInTheDocument();
+    expect(within(row).getByText("10 GiB")).toBeInTheDocument();
     expect(within(row).getByText("ceph")).toBeInTheDocument();
     expect(within(row).getByText("5m")).toBeInTheDocument();
     expect(
@@ -325,8 +326,39 @@ describe("the Volumes list", () => {
       return type.textContent || "";
     });
     expect(types).toEqual(
-      expect.arrayContaining(["ceph2 volumes30.0 GiB", "ssd1 volume10.0 GiB"]),
+      expect.arrayContaining(["ceph2 volumes30 GiB", "ssd1 volume10 GiB"]),
     );
+  });
+
+  test("two regions' volumes of one type add up, and a region chosen reads only itself", async () => {
+    server.rows = [
+      volumeRow({ _id: id(), externalId: "v-1", diskCapacityBytes: 10 * GIB }),
+      volumeRow({
+        _id: id(),
+        externalId: "v-2",
+        regionName: "RegionTwo",
+        diskCapacityBytes: 20 * GIB,
+      }),
+    ];
+
+    await renderPage(OpenStackCloudVolumes, "/volumes");
+    expect(
+      (await screen.findAllByTestId("openstack-volume-type")).map(
+        (type: HTMLElement) => {
+          return type.textContent;
+        },
+      ),
+    ).toEqual([expect.stringContaining("2 volumes")]);
+    cleanup();
+
+    await renderPage(OpenStackCloudVolumes, "/volumes?region=RegionTwo");
+    expect(
+      (await screen.findAllByTestId("openstack-volume-type")).map(
+        (type: HTMLElement) => {
+          return type.textContent;
+        },
+      ),
+    ).toEqual([expect.stringMatching(/1 volume.*20 GiB/)]);
   });
 
   test("no volumes and a read of the types that failed leave the card out", async () => {
@@ -383,16 +415,13 @@ describe("a volume's page", () => {
     await screen.findByTestId("openstack-volume-overview");
     expect(screen.queryByTestId("openstack-volume-explanation")).toBeNull();
     expect(screen.queryByTestId("openstack-volume-attention")).toBeNull();
-    expect(tile("openstack-volume-tiles", "Size")).toHaveTextContent(
-      "10.0 GiB",
-    );
+    expect(tile("openstack-volume-tiles", "Size")).toHaveTextContent("10 GiB");
     const attached: HTMLElement = screen.getByTestId(
       "openstack-volume-details-attached-to",
     );
-    expect((await within(attached).findByText("web-01")).closest("a")).toHaveAttribute(
-      "href",
-      `${CLOUD_PATH}/instances/${INSTANCE_ID}`,
-    );
+    expect(
+      (await within(attached).findByText("web-01")).closest("a"),
+    ).toHaveAttribute("href", `${CLOUD_PATH}/instances/${INSTANCE_ID}`);
   });
 
   test("a spare one is attached to nothing", async () => {
@@ -460,7 +489,9 @@ describe("the Storage Pools list", () => {
         "tr",
       ) as HTMLElement;
       expect(within(row).getByText(word)).toHaveAttribute("data-tone", tone);
-      expect(within(row).getByText(`${percent}.0 GiB of 100 GiB`)).toBeInTheDocument();
+      expect(
+        within(row).getByText(`${percent} GiB of 100 GiB`),
+      ).toBeInTheDocument();
     },
   );
 
@@ -501,10 +532,10 @@ describe("a storage pool's page", () => {
 
     await screen.findByTestId("openstack-storage-pool-tiles");
     expect(tile("openstack-storage-pool-tiles", "Used")).toHaveTextContent(
-      "50%50.0 GiB of 100 GiB",
+      "50%50 GiB of 100 GiB",
     );
     expect(tile("openstack-storage-pool-tiles", "Free")).toHaveTextContent(
-      "50.0 GiBof 100 GiB",
+      "50 GiBof 100 GiB",
     );
     expect(
       await within(
@@ -602,7 +633,9 @@ describe("snapshots and backups", () => {
 
     expect(
       await screen.findByTestId("openstack-snapshots-source"),
-    ).toHaveTextContent(/counts snapshots per region and has nothing on backups/);
+    ).toHaveTextContent(
+      /counts snapshots per region and has nothing on backups/,
+    );
     expect(tile("openstack-snapshots-tiles", "Snapshots")).toHaveTextContent(
       "7counted by the agent's exporter",
     );
@@ -614,6 +647,61 @@ describe("snapshots and backups", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("No backups listed")).toBeInTheDocument();
     expect(screen.queryByTestId("openstack-snapshots-by-project")).toBeNull();
+  });
+
+  test("with a region chosen, its count, its rows and its totals are that region's alone", async () => {
+    const snapshot: (
+      externalId: string,
+      regionName: string,
+      diskCapacityBytes: number,
+    ) => Row = (
+      externalId: string,
+      regionName: string,
+      diskCapacityBytes: number,
+    ): Row => {
+      return {
+        _id: id(),
+        kind: OpenStackResourceKind.Snapshot,
+        name: externalId,
+        externalId,
+        status: "available",
+        regionName,
+        openStackProjectId: PROJECT_A,
+        diskCapacityBytes,
+        stateChangedAt: minutesAgo(10),
+        facts: {},
+      };
+    };
+    server.rows = [
+      snapshot("one-a", "RegionOne", 2 * GIB),
+      snapshot("one-b", "RegionOne", 2 * GIB),
+      snapshot("two-a", "RegionTwo", 3 * GIB),
+    ];
+    server.metrics["openstack_cinder_snapshots"] = [
+      { group: "RegionOne", value: 2 },
+      { group: "RegionTwo", value: 1 },
+    ];
+
+    await renderPage(OpenStackCloudSnapshots, "/snapshots?region=RegionTwo");
+
+    expect(await screen.findByText("two-a")).toBeInTheDocument();
+    expect(screen.queryByText("one-a")).not.toBeInTheDocument();
+    expect(
+      await screen.findByTestId("openstack-snapshots-by-project-row"),
+    ).toHaveTextContent("1 item, 3.0 GiB");
+    expect(tile("openstack-snapshots-tiles", "Snapshots")).toHaveTextContent(
+      "1counted by the agent's exporter",
+    );
+    cleanup();
+
+    // The whole cloud: one project in two regions is one line, added up.
+    await renderPage(OpenStackCloudSnapshots, "/snapshots");
+    expect(
+      await screen.findByTestId("openstack-snapshots-by-project-row"),
+    ).toHaveTextContent("3 items, 7.0 GiB");
+    expect(tile("openstack-snapshots-tiles", "Snapshots")).toHaveTextContent(
+      "3counted by the agent's exporter",
+    );
   });
 
   test("through a probe: each one's status and age, a link to its volume, and totals per project", async () => {
@@ -694,7 +782,7 @@ describe("images", () => {
       "positive",
     );
     expect(within(row).getByText("public")).toBeInTheDocument();
-    expect(within(row).getByText("20.7 MiB")).toBeInTheDocument();
+    expect(within(row).getByText("21 MiB")).toBeInTheDocument();
     // Only a probe sends this: no column of dashes through the agent.
     expect(screen.queryByText("Type")).not.toBeInTheDocument();
   });
@@ -749,7 +837,7 @@ describe("images", () => {
     expect(
       screen.getByTestId("openstack-image-details-hidden"),
     ).toHaveTextContent("No");
-    expect(tile("openstack-image-tiles", "Size")).toHaveTextContent("20.7 MiB");
+    expect(tile("openstack-image-tiles", "Size")).toHaveTextContent("21 MiB");
   });
 });
 
@@ -760,12 +848,14 @@ describe("on what real clouds said", () => {
   );
 
   function load(): void {
-    server.rows = recording.rows.map((row, index: number) => {
-      return {
-        ...row,
-        _id: `6c1b2a3d-4e5f-4a6b-8c7d-${String(index).padStart(12, "0")}`,
-      } as Row;
-    });
+    server.rows = recording.rows.map(
+      (row: OpenStackResource, index: number) => {
+        return {
+          ...row,
+          _id: `6c1b2a3d-4e5f-4a6b-8c7d-${String(index).padStart(12, "0")}`,
+        } as Row;
+      },
+    );
   }
 
   test("the estate's volumes read as it left them, and the failed one is by name", async () => {
@@ -781,7 +871,9 @@ describe("on what real clouds said", () => {
     const used: HTMLElement = tableRow("ou-vol-used");
     expect(within(used).getByText("in-use")).toBeInTheDocument();
     expect(await within(used).findByText("ou-running")).toBeInTheDocument();
-    expect(within(tableRow("ou-vol-free")).getByText("available")).toBeInTheDocument();
+    expect(
+      within(tableRow("ou-vol-free")).getByText("available"),
+    ).toBeInTheDocument();
   });
 
   test("a real pool has room, and says it can't list its volumes", async () => {

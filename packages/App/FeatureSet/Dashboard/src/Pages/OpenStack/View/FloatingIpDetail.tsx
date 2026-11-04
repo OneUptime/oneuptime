@@ -5,9 +5,7 @@ import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceK
 import Link from "Common/UI/Components/Link/Link";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
-import {
-  OpenStackPartAlerts,
-} from "../../../Components/OpenStack/Part/OpenStackPartActivity";
+import { OpenStackPartAlerts } from "../../../Components/OpenStack/Part/OpenStackPartActivity";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import useOpenStackPart, {
@@ -57,10 +55,7 @@ const ASSOCIATION_TONES: Record<
 const FloatingIpOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-}): ReactElement => {
+}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
   const routerId: string = getOpenStackFactText(row, "routerId");

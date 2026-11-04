@@ -4,6 +4,7 @@ import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_SERVICE_DISABLED_WARNING_DAYS,
@@ -15,6 +16,7 @@ import {
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackResourceKind,
+  OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
@@ -24,6 +26,7 @@ import {
   assessOpenStackApi,
   assessOpenStackFloatingIp,
   assessOpenStackHypervisor,
+  assessOpenStackImage,
   assessOpenStackInstance,
   assessOpenStackNetwork,
   assessOpenStackResource,
@@ -108,12 +111,19 @@ describe("an API", () => {
 });
 
 describe("a service", () => {
-  const service = (
+  const service: (
+    fields: Partial<OpenStackResource> & { facts?: JSONObject },
+  ) => OpenStackResource = (
     fields: Partial<OpenStackResource> & { facts?: JSONObject },
   ): OpenStackResource => {
-    return row(OpenStackResourceKind.Service, { name: "nova-compute", ...fields });
+    return row(OpenStackResourceKind.Service, {
+      name: "nova-compute",
+      ...fields,
+    });
   };
-  const assess = (r: OpenStackResource): OpenStackAssessment => {
+  const assess: (r: OpenStackResource) => OpenStackAssessment = (
+    r: OpenStackResource,
+  ): OpenStackAssessment => {
     return assessOpenStackService({ row: r, now: NOW });
   };
 
@@ -157,7 +167,7 @@ describe("a service", () => {
   });
 
   test("a service disabled so long someone forgot gets a look, exactly past the line", () => {
-    const days = (count: number): Date => {
+    const days: (count: number) => Date = (count: number): Date => {
       return ago(count * 24 * 60);
     };
     expect(
@@ -247,7 +257,9 @@ describe("a service", () => {
 });
 
 describe("a hypervisor", () => {
-  const hypervisor = (
+  const hypervisor: (
+    fields: Partial<OpenStackResource>,
+  ) => OpenStackResource = (
     fields: Partial<OpenStackResource>,
   ): OpenStackResource => {
     return row(OpenStackResourceKind.Hypervisor, fields);
@@ -335,7 +347,10 @@ describe("a hypervisor", () => {
 });
 
 describe("an instance", () => {
-  const assess = (
+  const assess: (
+    status: string,
+    minutes: number | null,
+  ) => OpenStackAssessment = (
     status: string,
     minutes: number | null,
   ): OpenStackAssessment => {
@@ -380,7 +395,10 @@ describe("an instance", () => {
 });
 
 describe("a volume", () => {
-  const assess = (
+  const assess: (
+    status: string,
+    minutes: number | null,
+  ) => OpenStackAssessment = (
     status: string,
     minutes: number | null,
   ): OpenStackAssessment => {
@@ -419,8 +437,110 @@ describe("a volume", () => {
   );
 });
 
+describe("an image", () => {
+  const assess: (
+    status: string,
+    minutes: number | null,
+  ) => OpenStackAssessment = (
+    status: string,
+    minutes: number | null,
+  ): OpenStackAssessment => {
+    return assessOpenStackImage({
+      row: row(OpenStackResourceKind.Image, {
+        status,
+        stateChangedAt: minutes === null ? undefined : ago(minutes),
+      }),
+      now: NOW,
+    });
+  };
+
+  test.each(["active", "deactivated", "deleted"])(
+    "%s is fine, however long",
+    (status: string) => {
+      expect(assess(status, 100000).severity).toBeNull();
+    },
+  );
+
+  test.each(Array.from(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES))(
+    "%s is fine until it has been too long",
+    (status: string) => {
+      expect(
+        assess(status, OPENSTACK_IMAGE_STUCK_MINUTES - 1).severity,
+      ).toBeNull();
+      const stuck: OpenStackAssessment = assess(
+        status,
+        OPENSTACK_IMAGE_STUCK_MINUTES,
+      );
+      expect(stuck.severity).toBe(WARNING);
+      expect(stuck.reasons[0]?.values?.["status"]).toBe(status);
+    },
+  );
+
+  test("without knowing since when, it does not guess it is stuck", () => {
+    expect(assess("saving", null).severity).toBeNull();
+  });
+
+  test("reaches Needs attention by name", () => {
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [
+        row(OpenStackResourceKind.Image, {
+          name: "windows-2022",
+          status: "saving",
+          stateChangedAt: ago(OPENSTACK_IMAGE_STUCK_MINUTES),
+        }),
+      ],
+      now: NOW,
+      routeFor: (): Route => {
+        return new Route("/image");
+      },
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0]?.name).toBe("windows-2022");
+  });
+});
+
+describe("what the probe adds to an item", () => {
+  test("a failed instance carries Nova's fault message as it was written", () => {
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [
+        row(OpenStackResourceKind.Instance, {
+          name: "web-01",
+          status: "ERROR",
+          stateChangedAt: ago(5),
+          facts: { faultMessage: "No valid host was found." },
+        }),
+      ],
+      now: NOW,
+      routeFor: (): Route => {
+        return new Route("/instance");
+      },
+    });
+    expect(items[0]?.message).toBe("No valid host was found.");
+  });
+
+  test("with none said, it says none", () => {
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [
+        row(OpenStackResourceKind.Instance, {
+          name: "web-01",
+          status: "ERROR",
+          stateChangedAt: ago(5),
+        }),
+      ],
+      now: NOW,
+      routeFor: (): Route => {
+        return new Route("/instance");
+      },
+    });
+    expect(items[0]?.message).toBeFalsy();
+  });
+});
+
 describe("a storage pool", () => {
-  const assess = (used: number, total: number = 100): OpenStackAssessment => {
+  const assess: (used: number, total?: number) => OpenStackAssessment = (
+    used: number,
+    total: number = 100,
+  ): OpenStackAssessment => {
     return assessOpenStackStoragePool(
       row(OpenStackResourceKind.StoragePool, {
         diskCapacityBytes: total,
@@ -451,12 +571,18 @@ describe("a storage pool", () => {
 });
 
 describe("a network", () => {
-  const assess = (facts: JSONObject): OpenStackAssessment => {
-    return assessOpenStackNetwork(row(OpenStackResourceKind.Network, { facts }));
+  const assess: (facts: JSONObject) => OpenStackAssessment = (
+    facts: JSONObject,
+  ): OpenStackAssessment => {
+    return assessOpenStackNetwork(
+      row(OpenStackResourceKind.Network, { facts }),
+    );
   };
 
   test("an external network, on each side of each line", () => {
-    const external = (used: number): OpenStackAssessment => {
+    const external: (used: number) => OpenStackAssessment = (
+      used: number,
+    ): OpenStackAssessment => {
       return assess({ isExternal: true, ipsUsed: used, ipsTotal: 100 });
     };
     expect(external(OPENSTACK_IP_POOL_WARNING_PERCENT).severity).toBeNull();
@@ -479,14 +605,20 @@ describe("a network", () => {
 });
 
 describe("a router", () => {
-  const agent = (
+  const agent: (
+    haState: string | null,
+    isAlive?: boolean,
+    isAdminUp?: boolean,
+  ) => JSONObject = (
     haState: string | null,
     isAlive: boolean = true,
     isAdminUp: boolean = true,
   ): JSONObject => {
     return { host: "network-01", isAlive, isAdminUp, haState };
   };
-  const assess = (
+  const assess: (
+    fields: Partial<OpenStackResource> & { facts?: JSONObject },
+  ) => OpenStackAssessment = (
     fields: Partial<OpenStackResource> & { facts?: JSONObject },
   ): OpenStackAssessment => {
     return assessOpenStackRouter(
@@ -550,14 +682,12 @@ describe("a router", () => {
   });
 
   test("a router someone took down is planned work", () => {
-    expect(
-      assess({ status: "DOWN", adminState: "down" }).severity,
-    ).toBeNull();
+    expect(assess({ status: "DOWN", adminState: "down" }).severity).toBeNull();
   });
 });
 
 describe("a floating IP", () => {
-  const assess = (
+  const assess: (status: string, facts?: JSONObject) => OpenStackAssessment = (
     status: string,
     facts: JSONObject = {},
   ): OpenStackAssessment => {
@@ -634,7 +764,13 @@ describe("assessOpenStackResource", () => {
 });
 
 describe("Needs attention", () => {
-  const service = (
+  const service: (
+    name: string,
+    host: string,
+    status: string,
+    regionName?: string,
+    adminState?: string,
+  ) => OpenStackResource = (
     name: string,
     host: string,
     status: string,
@@ -679,7 +815,15 @@ describe("Needs attention", () => {
   test("a service someone disabled never reaches it", () => {
     expect(
       getOpenStackAttentionItems({
-        rows: [service("nova-compute", "compute-01", "down", "RegionOne", "disabled")],
+        rows: [
+          service(
+            "nova-compute",
+            "compute-01",
+            "down",
+            "RegionOne",
+            "disabled",
+          ),
+        ],
         now: NOW,
       }),
     ).toEqual([]);
@@ -734,7 +878,11 @@ describe("Needs attention", () => {
   });
 
   test("a read blast radius wins over the hypervisor's own count, and says whose", () => {
-    const down: OpenStackResource = service("nova-compute", "compute-01", "down");
+    const down: OpenStackResource = service(
+      "nova-compute",
+      "compute-01",
+      "down",
+    );
     const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
       rows: [
         down,
@@ -761,9 +909,9 @@ describe("Needs attention", () => {
       name: "compute",
       status: "down",
     });
-    expect(
-      getOpenStackAttentionItems({ rows: [api], now: NOW })[0]?.name,
-    ).toBe("compute");
+    expect(getOpenStackAttentionItems({ rows: [api], now: NOW })[0]?.name).toBe(
+      "compute",
+    );
     expect(
       getOpenStackAttentionItems({
         rows: [api],

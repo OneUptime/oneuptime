@@ -8,7 +8,16 @@ import { JSONObject } from "Common/Types/JSON";
 import { parseInflatedJsonBody } from "../../FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection";
 import { PassThrough } from "stream";
 import zlib from "zlib";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
+
+// Nothing here reaches the database, and the services take minutes to load on a busy machine.
+jest.mock("Common/Server/Services/OpenStackCloudService", () => {
+  return { __esModule: true, default: {} };
+});
+
+jest.mock("Common/Server/Services/OpenStackCloudConnectionTestService", () => {
+  return { __esModule: true, default: {} };
+});
 
 /*
  * A probe posts a collection gzip-compressed: several megabytes of metrics for a large cloud.

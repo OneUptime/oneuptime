@@ -46,8 +46,7 @@ import OpenStackCollectionSettings, {
  * be made uncollectable but never hand its credential to the wrong probe.
  *
  * Written against OpenStackCollectionCloudService, which DatabaseService<OpenStackCloud>
- * meets: the columns below come with the phase's model, and nothing here needs more of
- * the database than that.
+ * meets, because nothing here needs more of the database than that.
  */
 
 // What the store reads of a cloud: OpenStackCloud's collection columns.

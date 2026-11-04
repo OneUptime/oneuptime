@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
@@ -13,6 +15,10 @@ import {
   OpenStackSnapshotList,
 } from "../../../Components/OpenStack/OpenStackLists";
 import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackProjectTotalsCard from "../../../Components/OpenStack/Part/OpenStackProjectTotalsCard";
 import useOpenStackCloudName from "../../../Components/OpenStack/Part/UseOpenStackCloudName";
@@ -25,6 +31,7 @@ import {
   fetchOpenStackCounts,
   fetchOpenStackLatestByLabel,
 } from "../Utils/OpenStackPartData";
+import { getOpenStackCountTotals } from "../Utils/OpenStackPartFacts";
 
 /*
  * Snapshots and backups, and which of what is here comes from where, because the two
@@ -45,6 +52,10 @@ const OpenStackCloudSnapshots: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const cloudName: string = useOpenStackCloudName(modelId);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
+  const inRegion: Query<OpenStackResource> | undefined = region
+    ? { regionName: region }
+    : undefined;
 
   const snapshotTotals: OpenStackRead<Array<OpenStackLatestReading>> =
     useOpenStackRead<Array<OpenStackLatestReading>>(async () => {
@@ -53,9 +64,10 @@ const OpenStackCloudSnapshots: FunctionComponent<
             cloudName,
             metricName: "openstack_cinder_snapshots",
             groupByLabel: REGION_LABEL,
+            attributes: region ? { [REGION_LABEL]: region } : undefined,
           })
         : [];
-    }, [cloudName]);
+    }, [cloudName, region]);
 
   const listed: OpenStackRead<{ snapshots: number; backups: number }> =
     useOpenStackRead<{ snapshots: number; backups: number }>(async () => {
@@ -63,14 +75,16 @@ const OpenStackCloudSnapshots: FunctionComponent<
         countOpenStackRows({
           openStackCloudId: modelId,
           kind: OpenStackResourceKind.Snapshot,
+          query: inRegion,
         }),
         countOpenStackRows({
           openStackCloudId: modelId,
           kind: OpenStackResourceKind.Backup,
+          query: inRegion,
         }),
       ]);
       return { snapshots, backups };
-    }, [modelId.toString()]);
+    }, [modelId.toString(), region]);
 
   const snapshotByProject: OpenStackRead<Array<OpenStackCountRow>> =
     useOpenStackRead<Array<OpenStackCountRow>>(() => {
@@ -90,6 +104,15 @@ const OpenStackCloudSnapshots: FunctionComponent<
       });
     }, [modelId.toString()]);
 
+  const snapshotProjects: Array<OpenStackCountRow> = getOpenStackCountTotals(
+    snapshotByProject.data || [],
+    region,
+  );
+  const backupProjects: Array<OpenStackCountRow> = getOpenStackCountTotals(
+    backupByProject.data || [],
+    region,
+  );
+
   const snapshotTotal: number | null =
     snapshotTotals.data && snapshotTotals.data.length > 0
       ? snapshotTotals.data.reduce(
@@ -101,13 +124,10 @@ const OpenStackCloudSnapshots: FunctionComponent<
       : null;
 
   const backupBytes: number | null =
-    backupByProject.data && backupByProject.data.length > 0
-      ? backupByProject.data.reduce(
-          (sum: number, row: OpenStackCountRow): number => {
-            return sum + row.sizeBytes;
-          },
-          0,
-        )
+    backupProjects.length > 0
+      ? backupProjects.reduce((sum: number, row: OpenStackCountRow): number => {
+          return sum + row.sizeBytes;
+        }, 0)
       : null;
 
   return (
@@ -165,7 +185,7 @@ const OpenStackCloudSnapshots: FunctionComponent<
         title="Snapshots by project"
         description="How many snapshots each project holds, and what they add up to, from a probe's collection."
         openStackCloudId={modelId}
-        rows={snapshotByProject.data}
+        rows={snapshotProjects}
       />
       <OpenStackSnapshotList openStackCloudId={modelId} />
       <OpenStackProjectTotalsCard
@@ -173,7 +193,7 @@ const OpenStackCloudSnapshots: FunctionComponent<
         title="Backups by project"
         description="How many backups each project holds, and what they add up to, from a probe's collection."
         openStackCloudId={modelId}
-        rows={backupByProject.data}
+        rows={backupProjects}
       />
       <OpenStackBackupList openStackCloudId={modelId} />
     </Fragment>

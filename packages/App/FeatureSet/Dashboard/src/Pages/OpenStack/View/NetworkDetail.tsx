@@ -55,7 +55,10 @@ import {
   isOpenStackNetworkExternal,
   isOpenStackNetworkShared,
 } from "../Utils/OpenStackPartFacts";
-import { getOpenStackFactNumber, getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
+import {
+  getOpenStackFactNumber,
+  getOpenStackFactText,
+} from "../Utils/OpenStackResourceUtils";
 
 /*
  * One network: how many of its addresses are in use, subnet by subnet, because a full
@@ -67,10 +70,7 @@ import { getOpenStackFactNumber, getOpenStackFactText } from "../Utils/OpenStack
 const NetworkOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-}): ReactElement => {
+}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const translator: Translator = useTranslator();
   const listClassName: string = useCardRuledListClassName();
   const { part, row } = props;
@@ -118,9 +118,9 @@ const NetworkOverview: FunctionComponent<{
       detailRows.push({ key, label, value });
     }
   };
-  addFact("type", "Type", "networkType");
-  addFact("physical", "Physical network", "physicalNetwork");
-  addFact("mtu", "MTU", "mtu");
+  addFact("type", translationKey("Type"), "networkType");
+  addFact("physical", translationKey("Physical network"), "physicalNetwork");
+  addFact("mtu", translationKey("MTU"), "mtu");
   if (row.regionName) {
     detailRows.push({ key: "region", label: "Region", value: row.regionName });
   }
@@ -157,9 +157,7 @@ const NetworkOverview: FunctionComponent<{
           iconColor="blue"
           value={percent === null ? "—" : `${Math.round(percent)}%`}
           sublabel={
-            percent === null
-              ? "Not reported"
-              : getOpenStackAddressesText(row)
+            percent === null ? "Not reported" : getOpenStackAddressesText(row)
           }
           percent={percent}
           // Only an external network ever asks anyone for anything.
@@ -191,44 +189,42 @@ const NetworkOverview: FunctionComponent<{
             description="A full subnet stops an instance booting on it, whatever the network's total says."
           >
             <ul className={listClassName}>
-              {subnets.map(
-                (subnet: OpenStackSubnetAddresses): ReactElement => {
-                  return (
-                    <li
-                      key={subnet.name}
-                      data-testid="openstack-network-subnet"
-                      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
-                    >
-                      <span className="min-w-0">
-                        <span className="font-medium text-gray-900">
-                          <bdi>{subnet.name}</bdi>
+              {subnets.map((subnet: OpenStackSubnetAddresses): ReactElement => {
+                return (
+                  <li
+                    key={subnet.name}
+                    data-testid="openstack-network-subnet"
+                    className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium text-gray-900">
+                        <bdi>{subnet.name}</bdi>
+                      </span>
+                      {subnet.cidr ? (
+                        <span className="ml-2 font-mono text-xs text-gray-500">
+                          <bdi>{subnet.cidr}</bdi>
                         </span>
-                        {subnet.cidr ? (
-                          <span className="ml-2 font-mono text-xs text-gray-500">
-                            <bdi>{subnet.cidr}</bdi>
-                          </span>
-                        ) : (
-                          <></>
-                        )}
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        {subnet.percent === null
-                          ? translator.translateTemplate("{{used}} used", {
+                      ) : (
+                        <></>
+                      )}
+                    </span>
+                    <span className="text-xs text-gray-600">
+                      {subnet.percent === null
+                        ? translator.translateTemplate("{{used}} used", {
+                            used: formatOpenStackCount(subnet.used || 0),
+                          })
+                        : translator.translateTemplate(
+                            "{{used}} of {{total}} ({{percent}})",
+                            {
                               used: formatOpenStackCount(subnet.used || 0),
-                            })
-                          : translator.translateTemplate(
-                              "{{used}} of {{total}} ({{percent}})",
-                              {
-                                used: formatOpenStackCount(subnet.used || 0),
-                                total: formatOpenStackCount(subnet.total || 0),
-                                percent: `${Math.round(subnet.percent)}%`,
-                              },
-                            )}
-                      </span>
-                    </li>
-                  );
-                },
-              )}
+                              total: formatOpenStackCount(subnet.total || 0),
+                              percent: `${Math.round(subnet.percent)}%`,
+                            },
+                          )}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </Card>
         </div>

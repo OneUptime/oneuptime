@@ -38,13 +38,15 @@ const OpenStackPartNotice: FunctionComponent<ComponentProps> = (
       className={`mb-6 flex items-start gap-2 rounded-lg border px-4 py-3 text-sm ${TONE_CLASS_NAMES[tone]}`}
     >
       <Icon
-        icon={
-          tone === "warning" ? IconProp.ExclaimationCircle : IconProp.Info
-        }
+        icon={tone === "warning" ? IconProp.ExclaimationCircle : IconProp.Info}
         className="mt-0.5 h-4 w-4 flex-shrink-0"
       />
       <div className="min-w-0">
-        {props.text ? translator.translateText(props.text) || props.text : <></>}
+        {props.text ? (
+          translator.translateText(props.text) || props.text
+        ) : (
+          <></>
+        )}
         {props.children}
       </div>
     </div>

@@ -1,10 +1,14 @@
-import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import { OpenStackInventorySummary } from "./OpenStackResourceService";
 import OpenStackCloudLabelRuleEngineService from "./OpenStackCloudLabelRuleEngineService";
 import OpenStackCloudOwnerRuleEngineService from "./OpenStackCloudOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/OpenStackCloud";
 import Label from "../../Models/DatabaseModels/Label";
+import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
 import { OpenStackCloudFeedEventType } from "../../Models/DatabaseModels/OpenStackCloudFeed";
@@ -30,6 +34,17 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import OpenStackCloudConnection, {
+  OPENSTACK_CONNECTION_SAVED_SELECT,
+  OpenStackConnectionChange,
+} from "../Utils/OpenStack/OpenStackCloudConnection";
+import OpenStackProbeCollectionStore, {
+  OpenStackCollectionReportOutcome,
+} from "../Utils/OpenStack/OpenStackProbeCollectionStore";
+import {
+  OpenStackCollectionJob,
+  OpenStackCollectionReport,
+} from "../../Types/OpenStack/OpenStackProbeCollection";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "openstack-cloud-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -75,9 +90,169 @@ const OPENSTACK_CLOUD_SNAPSHOT_COLUMNS: ReadonlyArray<
     "storageUsedBytes",
   ];
 
+/*
+ * What OpenStackCloudService's write hooks hand on to their success hooks: the collection
+ * settings changes.
+ */
+interface OpenStackCloudWriteCarryForward {
+  openStackConnectionChanges?: Array<OpenStackConnectionChange> | undefined;
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The collection probe is checked by OpenStackCloudConnection: a probe of the project's
+   * own, or, on a self-hosted install, one of the instance's global probes, with another
+   * project's probe answered like one that does not exist. The generic check would refuse
+   * every global probe.
+   */
+  protected override getRelationsCheckedByService(
+    _write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return ["collectionProbe"];
+  }
+
+  /*
+   * Claim the clouds a probe collects that are due, and hand them out with their
+   * credentials (OpenStackProbeCollectionStore).
+   */
+  public async claimForCollection(data: {
+    probeId: ObjectID;
+    runningOpenStackCloudIds: Array<string>;
+    limit: number;
+  }): Promise<Array<OpenStackCollectionJob>> {
+    return await OpenStackProbeCollectionStore.claimDueClouds(this, data);
+  }
+
+  // Record what a probe found for a cloud it collected.
+  public async recordCollectionReport(data: {
+    probeId: ObjectID;
+    report: OpenStackCollectionReport;
+  }): Promise<OpenStackCollectionReportOutcome> {
+    return await OpenStackProbeCollectionStore.recordCollectionReport(
+      this,
+      data,
+    );
+  }
+
+  /*
+   * The server-only columns a collection settings write decides, written after the save
+   * without hooks (see OpenStackCloudConnection.afterWrite).
+   */
+  private async writeConnectionServerColumns(write: {
+    openStackCloudId: ObjectID;
+    values: Record<string, unknown>;
+    bumpSettingsVersion: boolean;
+  }): Promise<void> {
+    if (write.bumpSettingsVersion) {
+      await this.atomicAddToColumnsByIdWithoutHooks({
+        id: write.openStackCloudId,
+        add: { collectionSettingsVersion: 1 },
+        set: write.values as never,
+      });
+      return;
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: write.openStackCloudId,
+      data: write.values as never,
+    });
+  }
+
+  private async afterConnectionWrites(data: {
+    changes: Array<OpenStackConnectionChange>;
+    userId?: ObjectID | undefined;
+  }): Promise<void> {
+    for (const change of data.changes) {
+      await OpenStackCloudConnection.afterWrite({
+        change: change,
+        userId: data.userId,
+        writeServerColumns: async (write: {
+          openStackCloudId: ObjectID;
+          values: Record<string, unknown>;
+          bumpSettingsVersion: boolean;
+        }): Promise<void> => {
+          await this.writeConnectionServerColumns(write);
+        },
+      });
+    }
+  }
+
+  // Probe collection settings, checked and normalized in place.
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    const connectionChange: OpenStackConnectionChange | null =
+      await OpenStackCloudConnection.prepareCreate(createBy);
+
+    // Nothing to carry for a cloud that names no collection setting.
+    const carryForward: OpenStackCloudWriteCarryForward | null =
+      connectionChange
+        ? { openStackConnectionChanges: [connectionChange] }
+        : null;
+
+    return { createBy, carryForward: carryForward };
+  }
+
+  /*
+   * Probe collection settings: checked against the row they change (the saved credential is
+   * bound to its address, probe and certificates), and normalized in place.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    if (
+      !OpenStackCloudConnection.isConnectionWrite(
+        updateBy.data as unknown as Record<string, unknown>,
+      )
+    ) {
+      return { updateBy, carryForward: null };
+    }
+
+    const saved: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      OPENSTACK_CONNECTION_SAVED_SELECT as Select<Model>,
+    );
+
+    const changes: Array<OpenStackConnectionChange> =
+      await OpenStackCloudConnection.prepareUpdate({
+        updateBy: updateBy,
+        saved: saved.map((row: Model) => {
+          return {
+            _id: row._id?.toString(),
+            projectId: row.projectId,
+            collectionMethod: row.collectionMethod,
+            authUrl: row.authUrl,
+            credentialKind: row.credentialKind,
+            applicationCredentialId: row.applicationCredentialId,
+            keystoneUsername: row.keystoneUsername,
+            userDomainName: row.userDomainName,
+            projectName: row.projectName,
+            projectDomainName: row.projectDomainName,
+            isCredentialSet: row.isCredentialSet,
+            collectionProbeId: row.collectionProbeId,
+            collectionRegions: row.collectionRegions,
+            collectionOptions: row.collectionOptions,
+            trustedCertificateFingerprints: row.trustedCertificateFingerprints,
+            presentedCertificate: row.presentedCertificate,
+          };
+        }),
+      });
+
+    const carryForward: OpenStackCloudWriteCarryForward = {
+      openStackConnectionChanges: changes,
+    };
+
+    return { updateBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
@@ -134,6 +309,29 @@ export class Service extends ProjectReferencesService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * A cloud created for probe collection: whether its credential is saved, and that its
+     * probe collects it now (OpenStackCloudConnection).
+     */
+    const carryForward: OpenStackCloudWriteCarryForward | null =
+      (onCreate.carryForward as OpenStackCloudWriteCarryForward | null) || null;
+
+    if (createdItem.id && carryForward?.openStackConnectionChanges?.length) {
+      await this.afterConnectionWrites({
+        changes: carryForward.openStackConnectionChanges.map(
+          (change: OpenStackConnectionChange): OpenStackConnectionChange => {
+            return {
+              ...change,
+              openStackCloudId: createdItem.id!,
+              // The created feed item already says the cloud exists.
+              feedLines: [],
+            };
+          },
+        ),
+        userId: onCreate.createBy.props.userId,
+      });
+    }
 
     return createdItem;
   }
@@ -554,6 +752,30 @@ export class Service extends ProjectReferencesService<Model> {
         logger.error(error);
       },
     );
+
+    // Probe collection settings: what only the server writes, and the feed.
+    const carryForward: OpenStackCloudWriteCarryForward | null =
+      (onUpdate.carryForward as OpenStackCloudWriteCarryForward | null) || null;
+
+    if (carryForward?.openStackConnectionChanges?.length) {
+      const updatedIds: Set<string> = new Set(
+        updatedItemIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      await this.afterConnectionWrites({
+        changes: carryForward.openStackConnectionChanges.filter(
+          (change: OpenStackConnectionChange): boolean => {
+            return (
+              Boolean(change.openStackCloudId) &&
+              updatedIds.has(change.openStackCloudId!.toString())
+            );
+          },
+        ),
+        userId: onUpdate.updateBy.props.userId,
+      });
+    }
 
     return onUpdate;
   }

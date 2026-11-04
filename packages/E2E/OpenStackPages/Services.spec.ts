@@ -68,9 +68,9 @@ test.describe("on ML2/OVS and on OVN, as real clouds answer", () => {
     await openServices(page, "recording=gazpacho-ovs/healthy");
 
     const network: Locator = group(page, "network");
-    await expect(network.getByTestId("openstack-service-group-title")).toHaveText(
-      "Networking (Neutron)",
-    );
+    await expect(
+      network.getByTestId("openstack-service-group-title"),
+    ).toHaveText("Networking (Neutron)");
     await expect(
       network.getByTestId("openstack-service-group-backend"),
     ).toHaveText("ML2/OVS");
@@ -248,10 +248,9 @@ test.describe("on ML2/OVS and on OVN, as real clouds answer", () => {
       await openServices(page, `recording=${release}/compute-api-down`);
 
       const compute: Locator = group(page, "compute");
-      await expect(compute.getByTestId("openstack-service-api")).toHaveAttribute(
-        "data-status",
-        "down",
-      );
+      await expect(
+        compute.getByTestId("openstack-service-api"),
+      ).toHaveAttribute("data-status", "down");
       await expect(
         compute.getByTestId("openstack-service-group-last-known"),
       ).toContainText("They read as they last did");
@@ -270,9 +269,9 @@ test.describe("on ML2/OVS and on OVN, as real clouds answer", () => {
       const compute: Locator = group(page, "compute");
       const row: Locator = worker(compute, "nova-compute", "compute-01");
       await expect(row).toHaveAttribute("data-admin-state", "disabled");
-      await expect(row.getByTestId("openstack-service-worker-admin")).toContainText(
-        "disabled",
-      );
+      await expect(
+        row.getByTestId("openstack-service-worker-admin"),
+      ).toContainText("disabled");
       const state: Locator = row.getByTestId("openstack-service-worker-state");
       await expect(state).toContainText("Disabled");
       await expect(state).toContainText("OneUptime drill: planned maintenance");
@@ -281,9 +280,9 @@ test.describe("on ML2/OVS and on OVN, as real clouds answer", () => {
       // And the Overview agrees: nothing beyond what the healthy cloud already had.
       await openCloudPage(page, "", `recording=${release}/compute-disabled`);
       await expect(page.getByTestId("openstack-needs-attention")).toBeVisible();
-      await expect(page.getByTestId("openstack-needs-attention")).not.toContainText(
-        "nova-compute",
-      );
+      await expect(
+        page.getByTestId("openstack-needs-attention"),
+      ).not.toContainText("nova-compute");
     });
   }
 });
@@ -387,7 +386,9 @@ test.describe("the list", () => {
     await search.fill("no-such-host");
     await expect(page.getByTestId("openstack-services-no-match")).toBeVisible();
     await search.fill("");
-    await expect(page.getByTestId("openstack-service-group")).not.toHaveCount(0);
+    await expect(page.getByTestId("openstack-service-group")).not.toHaveCount(
+      0,
+    );
   });
 
   test("a cloud of several regions: a card for each service in each, and its region named", async ({
@@ -410,10 +411,9 @@ test.describe("the list", () => {
         "openstack-service-group-region",
       ),
     ).toHaveText("RegionTwo");
-    await expect(page.getByTestId("openstack-service-group").first()).toHaveAttribute(
-      "data-region",
-      "RegionTwo",
-    );
+    await expect(
+      page.getByTestId("openstack-service-group").first(),
+    ).toHaveAttribute("data-region", "RegionTwo");
     await expect(page.getByTestId("openstack-region-bar")).toBeVisible();
 
     await screenshot(page, "services-multi-region-1280");
@@ -459,7 +459,9 @@ test.describe("the list", () => {
     await openServices(page, "fail=inventory");
     const error: Locator = page.getByTestId("openstack-services-read-error");
     await expect(error).toContainText("Couldn't read this cloud's services");
-    await expect(error.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(
+      error.getByRole("button", { name: "Try again" }),
+    ).toBeVisible();
 
     const before: number = (await fixtureRecord(page)).listRequests.length;
     await error.getByRole("button", { name: "Try again" }).click();
@@ -475,6 +477,47 @@ test.describe("the list", () => {
     );
     // Nothing it could not know: an access gap is for a cloud that answers.
     await expect(page.getByTestId("openstack-access-notice")).toHaveCount(0);
+  });
+
+  test("a tab left open reads again, and says so when it can't", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.clock.install();
+    await openServices(page);
+
+    const reads: () => Promise<number> = async (): Promise<number> => {
+      return (await fixtureRecord(page)).listRequests.filter(
+        (request: { modelName: string }): boolean => {
+          return request.modelName === "OpenStackResource";
+        },
+      ).length;
+    };
+    const before: number = await reads();
+
+    await page.clock.fastForward(61 * 1000);
+    await expect.poll(reads).toBeGreaterThan(before);
+    await expect(
+      page.getByTestId("openstack-services-refresh-failed"),
+    ).toHaveCount(0);
+
+    // What it last read stays, and says that is what it is.
+    await page.evaluate((): void => {
+      (
+        window as unknown as { __openStackPagesFail: (read: string) => void }
+      ).__openStackPagesFail("inventory");
+    });
+    await page.clock.fastForward(61 * 1000);
+    await expect(
+      page.getByTestId("openstack-services-refresh-failed"),
+    ).toBeVisible();
+    await expect(page.getByTestId("openstack-service-group")).not.toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("openstack-services-read-error")).toHaveCount(
+      0,
+    );
   });
 
   test("a cloud that has reported nothing says so", async ({
@@ -500,9 +543,9 @@ test.describe("an OVN agent with a stale record beside it", () => {
     const network: Locator = group(page, "network");
     const row: Locator = worker(network, "ovn-controller", "compute-01");
     await expect(row).toHaveAttribute("data-status", "up");
-    await expect(row.getByTestId("openstack-service-worker-stale")).toContainText(
-      "1 stale record beside it",
-    );
+    await expect(
+      row.getByTestId("openstack-service-worker-stale"),
+    ).toContainText("1 stale record beside it");
     await expect(network).toHaveAttribute("data-health", "Healthy");
 
     // And nothing on the Overview calls it anything else.
@@ -538,9 +581,9 @@ test.describe("a service's page", () => {
     await expect(page.getByTestId("openstack-service-hero-status")).toHaveText(
       "up",
     );
-    await expect(page.getByTestId("openstack-service-hero-location")).toContainText(
-      "RegionOne",
-    );
+    await expect(
+      page.getByTestId("openstack-service-hero-location"),
+    ).toContainText("RegionOne");
 
     const attention: Locator = page.getByTestId("openstack-service-attention");
     await expect(
@@ -557,12 +600,14 @@ test.describe("a service's page", () => {
     ).toHaveCount(9);
 
     // Nothing has failed, so nothing is said about what a failure would take.
-    await expect(page.getByTestId("openstack-service-blast-radius")).toHaveCount(0);
+    await expect(
+      page.getByTestId("openstack-service-blast-radius"),
+    ).toHaveCount(0);
 
     const alerts: Locator = page.getByTestId("openstack-service-alerts");
-    await expect(alerts.getByTestId("openstack-service-alerts-item")).toHaveCount(
-      4,
-    );
+    await expect(
+      alerts.getByTestId("openstack-service-alerts-item"),
+    ).toHaveCount(4);
     await expect(alerts).toContainText("Compute API Down");
     await expect(alerts).toContainText("Compute Service Down");
 
@@ -635,9 +680,9 @@ test.describe("a service's page", () => {
     await expect(page.getByTestId("openstack-service-hero-status")).toHaveText(
       "down",
     );
-    await expect(page.getByTestId("openstack-service-hero-chips")).toContainText(
-      "compute-02",
-    );
+    await expect(
+      page.getByTestId("openstack-service-hero-chips"),
+    ).toContainText("compute-02");
 
     await expect(
       page.getByTestId("openstack-service-attention-name"),
@@ -650,7 +695,9 @@ test.describe("a service's page", () => {
     await expect(radius).toContainText("42 instances");
     await expect(radius).toContainText("in 7 projects");
 
-    await expect(page.getByTestId("openstack-service-open-item")).toHaveCount(1);
+    await expect(page.getByTestId("openstack-service-open-item")).toHaveCount(
+      1,
+    );
     await expect(page.getByTestId("openstack-service-open")).toContainText(
       "[OpenStack] Compute Service Down",
     );
@@ -660,7 +707,9 @@ test.describe("a service's page", () => {
       page.getByTestId("openstack-service-hypervisor-link"),
     ).toHaveText("compute-02.acme.example");
     // No host reports under this one's name, so no link on a guess.
-    await expect(page.getByTestId("openstack-service-host-link")).toHaveCount(0);
+    await expect(page.getByTestId("openstack-service-host-link")).toHaveCount(
+      0,
+    );
 
     await screenshot(page, "service-worker-down-1280");
   });
@@ -674,7 +723,9 @@ test.describe("a service's page", () => {
       partPath("services", "RegionOne/compute/compute-02/nova-compute"),
     );
 
-    const turnOn: Locator = page.getByTestId("openstack-service-alerts-turn-on");
+    const turnOn: Locator = page.getByTestId(
+      "openstack-service-alerts-turn-on",
+    );
     await expect(turnOn).toHaveText("Turn on 1 alert");
     await turnOn.click();
     await expect(page).toHaveURL((url: URL): boolean => {
@@ -700,9 +751,9 @@ test.describe("a service's page", () => {
         '[data-testid="openstack-service-alerts-item"][data-status="Created"]',
       ),
     ).toHaveCount(1);
-    await expect(page.getByTestId("openstack-service-alerts-turn-on")).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByTestId("openstack-service-alerts-turn-on"),
+    ).toHaveCount(0);
   });
 
   test("a role that can't read monitors loses the card, and nothing else", async ({
@@ -728,7 +779,7 @@ test.describe("a service's page", () => {
     );
 
     await page.getByTestId("openstack-service-host-link").click();
-    await expect(page).toHaveURL(/\/hosts\//);
+    await expect(page).toHaveURL(/\/dashboard\/[^/]+\/host\/[^/]+$/);
   });
 
   test("Cinder's worker finds its host without its backend's name", async ({
@@ -740,18 +791,20 @@ test.describe("a service's page", () => {
       partPath("services", "RegionOne/volume/ctl-01@lvmdriver-1/cinder-volume"),
     );
 
-    await expect(page.getByTestId("openstack-service-hero-chips")).toContainText(
-      "ctl-01@lvmdriver-1",
-    );
+    await expect(
+      page.getByTestId("openstack-service-hero-chips"),
+    ).toContainText("ctl-01@lvmdriver-1");
     await expect
       .poll(async (): Promise<Array<unknown>> => {
         return (await fixtureRecord(page)).listRequests
           .filter((request: { modelName: string }): boolean => {
             return request.modelName === "Host";
           })
-          .map((request: { query: Record<string, unknown> | null }): unknown => {
-            return JSON.stringify(request.query);
-          });
+          .map(
+            (request: { query: Record<string, unknown> | null }): unknown => {
+              return JSON.stringify(request.query);
+            },
+          );
       })
       .toEqual([expect.stringContaining('"ctl-01"')]);
   });
@@ -768,12 +821,15 @@ test.describe("a service's page", () => {
     await expect(page.getByTestId("openstack-service-hero-status")).toHaveText(
       "Disabled",
     );
-    await expect(page.getByTestId("openstack-service-hero-status")).toHaveAttribute(
-      "data-tone",
-      "neutral",
+    await expect(
+      page.getByTestId("openstack-service-hero-status"),
+    ).toHaveAttribute("data-tone", "neutral");
+    await expect(page.getByTestId("openstack-service-attention")).toHaveCount(
+      0,
     );
-    await expect(page.getByTestId("openstack-service-attention")).toHaveCount(0);
-    await expect(page.getByTestId("openstack-service-blast-radius")).toHaveCount(0);
+    await expect(
+      page.getByTestId("openstack-service-blast-radius"),
+    ).toHaveCount(0);
 
     const details: Locator = page.getByTestId("openstack-service-details");
     await expect(details).toContainText("Replacing a DIMM, back Thursday");
@@ -850,7 +906,9 @@ test.describe("a service's page", () => {
       "openstack.region.name": "RegionOne",
     });
 
-    await page.goto(`${partPath("services", "RegionOne/compute")}?fail=metrics`);
+    await page.goto(
+      `${partPath("services", "RegionOne/compute")}?fail=metrics`,
+    );
     await page.getByTestId("tab-Metrics").click();
     await expect(page.getByTestId("openstack-service-charts")).toContainText(
       "Something went wrong on the server",
@@ -864,7 +922,9 @@ test.describe("a service's page", () => {
     page: Page;
   }) => {
     await page.goto(partPath("services", "RegionOne/dns"));
-    await expect(page.getByTestId("openstack-service-not-reported")).toBeVisible();
+    await expect(
+      page.getByTestId("openstack-service-not-reported"),
+    ).toBeVisible();
 
     await page.goto(
       `${partPath("services", "RegionOne/compute/compute-02/nova-compute")}?fail=inventory`,
@@ -886,7 +946,10 @@ test.describe("at every width, dark, in German and in Persian", () => {
 
       for (const [name, target] of [
         ["list", `${CLOUD_PATH}/services`],
-        ["list-ovn", `${CLOUD_PATH}/services?recording=hibiscus-ovn/compute-down`],
+        [
+          "list-ovn",
+          `${CLOUD_PATH}/services?recording=hibiscus-ovn/compute-down`,
+        ],
         ["list-regions", `${CLOUD_PATH}/services?estate=multi-region`],
         ["api", partPath("services", "RegionOne/compute")],
         [
@@ -942,9 +1005,9 @@ test.describe("at every width, dark, in German and in Persian", () => {
     await expect(row.getByTestId("openstack-service-worker-state")).toHaveText(
       "down",
     );
-    await expect(row.getByTestId("openstack-service-worker-admin")).toContainText(
-      "enabled",
-    );
+    await expect(
+      row.getByTestId("openstack-service-worker-admin"),
+    ).toContainText("enabled");
     await expect(
       worker(group(page, "compute"), "nova-compute", "compute-04").getByTestId(
         "openstack-service-worker-state",
@@ -975,12 +1038,12 @@ test.describe("at every width, dark, in German and in Persian", () => {
       "nova-compute",
       "compute-04",
     );
-    await expect(row.getByTestId("openstack-service-worker-state")).toContainText(
-      inLocale(PERSIAN, "Disabled"),
-    );
-    await expect(row.getByTestId("openstack-service-worker-state")).toContainText(
-      "Replacing a DIMM, back Thursday",
-    );
+    await expect(
+      row.getByTestId("openstack-service-worker-state"),
+    ).toContainText(inLocale(PERSIAN, "Disabled"));
+    await expect(
+      row.getByTestId("openstack-service-worker-state"),
+    ).toContainText("Replacing a DIMM, back Thursday");
     await expect(
       row.getByTestId("openstack-service-worker-where").locator("bdi").first(),
     ).toHaveText("compute-04");

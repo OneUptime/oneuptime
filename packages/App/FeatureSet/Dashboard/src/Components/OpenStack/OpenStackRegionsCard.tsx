@@ -71,150 +71,143 @@ const OpenStackRegionsCard: FunctionComponent<ComponentProps> = (
         description="Each region of this cloud, by the same rules as its health. Open one to read every page for that region."
       >
         <ul className={listClassName}>
-          {props.regions.map(
-            (region: OpenStackRegionSummary): ReactElement => {
-              const health: ResourceHealth | undefined =
-                props.healthByRegion[region.regionName];
-              const tone: ResourcePartTone | undefined = health
-                ? HEALTH_TONES[health]
-                : undefined;
-              const isSelected: boolean =
-                props.selectedRegion === region.regionName;
-              const vcpuPercent: number | null = getOpenStackPercent(
-                region.vcpuAllocated,
-                region.vcpuCapacity,
-              );
+          {props.regions.map((region: OpenStackRegionSummary): ReactElement => {
+            const health: ResourceHealth | undefined =
+              props.healthByRegion[region.regionName];
+            const tone: ResourcePartTone | undefined = health
+              ? HEALTH_TONES[health]
+              : undefined;
+            const isSelected: boolean =
+              props.selectedRegion === region.regionName;
+            const vcpuPercent: number | null = getOpenStackPercent(
+              region.vcpuAllocated,
+              region.vcpuCapacity,
+            );
 
-              const facts: Array<string> = [
-                translator.translatePlural(
-                  {
-                    one: "{{up}} of {{count}} API up",
-                    other: "{{up}} of {{count}} APIs up",
-                  },
-                  region.apiCount,
-                  {
-                    up: translator.formatNumber(
-                      region.apiCount - region.downApiCount,
-                    ),
-                  },
-                ),
-              ];
-              if (region.downServiceCount > 0) {
-                facts.push(
-                  translator.translatePlural(
-                    {
-                      one: "{{count}} worker down",
-                      other: "{{count}} workers down",
-                    },
-                    region.downServiceCount,
+            const facts: Array<string> = [
+              translator.translatePlural(
+                {
+                  one: "{{up}} of {{count}} API up",
+                  other: "{{up}} of {{count}} APIs up",
+                },
+                region.apiCount,
+                {
+                  up: translator.formatNumber(
+                    region.apiCount - region.downApiCount,
                   ),
-                );
-              }
-              if (region.hypervisorCount > 0) {
-                facts.push(
-                  translator.translatePlural(
-                    {
-                      one: "{{count}} hypervisor",
-                      other: "{{count}} hypervisors",
-                    },
-                    region.hypervisorCount,
-                  ),
-                );
-              }
+                },
+              ),
+            ];
+            if (region.downServiceCount > 0) {
               facts.push(
                 translator.translatePlural(
-                  { one: "{{count}} instance", other: "{{count}} instances" },
-                  region.instanceCount,
+                  {
+                    one: "{{count}} worker down",
+                    other: "{{count}} workers down",
+                  },
+                  region.downServiceCount,
                 ),
               );
-              if (vcpuPercent !== null) {
-                facts.push(
-                  translator.translateTemplate(
-                    "{{percent}} of vCPUs allocated",
-                    {
-                      percent: `${translator.formatNumber(Math.round(vcpuPercent))}%`,
-                    },
-                  ),
-                );
-              }
-
-              return (
-                <li
-                  key={region.regionName}
-                  data-testid="openstack-regions-card-item"
-                  data-region={region.regionName}
-                  data-health={health || ""}
-                  aria-current={isSelected ? "true" : undefined}
-                  className={isSelected ? "bg-indigo-50" : ""}
-                >
-                  <ResourcePartRow
-                    to={props.getRegionRoute(region.regionName)}
-                    className="flex items-start gap-3"
-                  >
-                    <div
-                      className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200"
-                      aria-hidden="true"
-                    >
-                      <Icon icon={IconProp.Globe} className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span
-                          data-testid="openstack-regions-card-name"
-                          className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
-                        >
-                          <bdi>
-                            <BreakableName text={region.regionName} />
-                          </bdi>
-                        </span>
-                        {health && tone ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span
-                              data-testid="openstack-regions-card-health"
-                              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${RESOURCE_PART_TONE_CLASS_NAMES[tone].badge}`}
-                            >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[tone].dot}`}
-                                aria-hidden="true"
-                              />
-                              {getResourceHealthLabel({
-                                translator: translator,
-                                health: health,
-                                isConnected: true,
-                              })}
-                            </span>
-                            <InfoTooltip
-                              label="Region health"
-                              text={OPENSTACK_METRIC_DESCRIPTIONS.regionHealth}
-                            />
-                          </span>
-                        ) : (
-                          <></>
-                        )}
-                      </div>
-                      <div
-                        data-testid="openstack-regions-card-facts"
-                        className="mt-0.5 text-xs text-gray-500"
-                      >
-                        {facts.map(
-                          (fact: string, index: number): ReactElement => {
-                            return (
-                              <React.Fragment key={fact}>
-                                {index > 0 ? " · " : ""}
-                                <span className="whitespace-nowrap">
-                                  {fact}
-                                </span>
-                              </React.Fragment>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div>
-                  </ResourcePartRow>
-                </li>
+            }
+            if (region.hypervisorCount > 0) {
+              facts.push(
+                translator.translatePlural(
+                  {
+                    one: "{{count}} hypervisor",
+                    other: "{{count}} hypervisors",
+                  },
+                  region.hypervisorCount,
+                ),
               );
-            },
-          )}
+            }
+            facts.push(
+              translator.translatePlural(
+                { one: "{{count}} instance", other: "{{count}} instances" },
+                region.instanceCount,
+              ),
+            );
+            if (vcpuPercent !== null) {
+              facts.push(
+                translator.translateTemplate("{{percent}} of vCPUs allocated", {
+                  percent: `${translator.formatNumber(Math.round(vcpuPercent))}%`,
+                }),
+              );
+            }
+
+            return (
+              <li
+                key={region.regionName}
+                data-testid="openstack-regions-card-item"
+                data-region={region.regionName}
+                data-health={health || ""}
+                aria-current={isSelected ? "true" : undefined}
+                className={isSelected ? "bg-indigo-50" : ""}
+              >
+                <ResourcePartRow
+                  to={props.getRegionRoute(region.regionName)}
+                  className="flex items-start gap-3"
+                >
+                  <div
+                    className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200"
+                    aria-hidden="true"
+                  >
+                    <Icon icon={IconProp.Globe} className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span
+                        data-testid="openstack-regions-card-name"
+                        className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
+                      >
+                        <bdi>
+                          <BreakableName text={region.regionName} />
+                        </bdi>
+                      </span>
+                      {health && tone ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span
+                            data-testid="openstack-regions-card-health"
+                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${RESOURCE_PART_TONE_CLASS_NAMES[tone].badge}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[tone].dot}`}
+                              aria-hidden="true"
+                            />
+                            {getResourceHealthLabel({
+                              translator: translator,
+                              health: health,
+                              isConnected: true,
+                            })}
+                          </span>
+                          <InfoTooltip
+                            label="Region health"
+                            text={OPENSTACK_METRIC_DESCRIPTIONS.regionHealth}
+                          />
+                        </span>
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                    <div
+                      data-testid="openstack-regions-card-facts"
+                      className="mt-0.5 text-xs text-gray-500"
+                    >
+                      {facts.map(
+                        (fact: string, index: number): ReactElement => {
+                          return (
+                            <React.Fragment key={fact}>
+                              {index > 0 ? " · " : ""}
+                              <span className="whitespace-nowrap">{fact}</span>
+                            </React.Fragment>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+                </ResourcePartRow>
+              </li>
+            );
+          })}
         </ul>
       </Card>
     </div>

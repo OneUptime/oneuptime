@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import { JSONObject } from "../../../Types/JSON";
+import { OpenStackCountRow } from "../../../Types/OpenStack/OpenStackCounts";
 import {
   getAllOpenStackAlertTemplates,
   OpenStackAlertTemplate,
@@ -25,6 +26,7 @@ import {
   OPENSTACK_IMAGE_STATE_PRESETS,
   OPENSTACK_INSTANCE_STATE_PRESETS,
   OPENSTACK_VOLUME_STATE_PRESETS,
+  OpenStackStatePreset,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackListFacets";
 import {
   ResourceAttentionItem,
@@ -43,6 +45,7 @@ import {
   OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS,
   OpenStackAllocationLine,
   OpenStackForecast,
+  OpenStackGrowthSample,
   OpenStackHostGroup,
   OpenStackRowState,
   OpenStackSubnetAddresses,
@@ -57,6 +60,7 @@ import {
   getOpenStackFloatingIpAssociation,
   getOpenStackForecast,
   getOpenStackHostGroupId,
+  getOpenStackCountTotals,
   getOpenStackHostGroups,
   getOpenStackHypervisorExternalId,
   getOpenStackInstanceAddresses,
@@ -112,7 +116,10 @@ function minutesAgo(minutes: number): Date {
 }
 
 function stateOf(fields: RowFields): OpenStackRowState {
-  const state: OpenStackRowState | null = getOpenStackRowState(row(fields), NOW);
+  const state: OpenStackRowState | null = getOpenStackRowState(
+    row(fields),
+    NOW,
+  );
   if (!state) {
     throw new Error("Expected a state");
   }
@@ -211,7 +218,10 @@ describe("a hypervisor's state", () => {
 
   test("no state at all has nothing to say, and is not read as fine", () => {
     expect(
-      getOpenStackRowState(row({ kind: OpenStackResourceKind.Hypervisor }), NOW),
+      getOpenStackRowState(
+        row({ kind: OpenStackResourceKind.Hypervisor }),
+        NOW,
+      ),
     ).toBeNull();
     expect(
       getOpenStackPartStatus(
@@ -431,7 +441,10 @@ describe("a storage pool's state is how full it is, at the templates' two lines"
 
   test("a pool that reports no size says nothing, and never 0%", () => {
     expect(
-      getOpenStackRowState(row({ kind: OpenStackResourceKind.StoragePool }), NOW),
+      getOpenStackRowState(
+        row({ kind: OpenStackResourceKind.StoragePool }),
+        NOW,
+      ),
     ).toBeNull();
   });
 });
@@ -509,7 +522,10 @@ describe("a router's state", () => {
         adminState: "up",
         facts: { l3Agents: { a: AGENT_ALIVE, b: AGENT_ALIVE } },
       }),
-    ).toMatchObject({ tone: "danger", reasons: [{ text: "Two active L3 agents" }] });
+    ).toMatchObject({
+      tone: "danger",
+      reasons: [{ text: "Two active L3 agents" }],
+    });
   });
 
   test("not ACTIVE is a warning, and its word isn't said twice", () => {
@@ -705,11 +721,7 @@ describe("what is promised on a hypervisor", () => {
           return line.title;
         },
       ),
-    ).toEqual([
-      "vCPUs allocated",
-      "Memory allocated",
-      "Local disk allocated",
-    ]);
+    ).toEqual(["vCPUs allocated", "Memory allocated", "Local disk allocated"]);
   });
 
   test("reads what is promised, out of what can be, at Placement's ratio", () => {
@@ -724,9 +736,7 @@ describe("what is promised on a hypervisor", () => {
   });
 
   test("Nova's numbers have no ratio, and none is made up", () => {
-    expect(
-      lines({ ...HYPERVISOR, facts: {} })["vcpu"]?.ratio,
-    ).toBeNull();
+    expect(lines({ ...HYPERVISOR, facts: {} })["vcpu"]?.ratio).toBeNull();
   });
 
   test("a lost hypervisor's lines are last known, and never over the line", () => {
@@ -841,10 +851,7 @@ describe("how rows name each other", () => {
 });
 
 describe("zones and aggregates add up from their hypervisors", () => {
-  function hypervisor(
-    name: string,
-    fields: RowFields = {},
-  ): OpenStackResource {
+  function hypervisor(name: string, fields: RowFields = {}): OpenStackResource {
     return row({
       kind: OpenStackResourceKind.Hypervisor,
       externalId: `RegionOne/${name}.example`,
@@ -946,9 +953,9 @@ describe("zones and aggregates add up from their hypervisors", () => {
   });
 
   test("a warning makes it Degraded, and nothing makes it Healthy", () => {
-    expect(
-      zones([hypervisor("a", { vcpuAllocated: 99 })])[0]?.health,
-    ).toBe("Degraded");
+    expect(zones([hypervisor("a", { vcpuAllocated: 99 })])[0]?.health).toBe(
+      "Degraded",
+    );
     expect(zones([hypervisor("a")])[0]?.health).toBe("Healthy");
   });
 
@@ -998,9 +1005,9 @@ describe("zones and aggregates add up from their hypervisors", () => {
     expect(
       parseOpenStackAggregates(row({ facts: { aggregates: "gpu,ssd" } })),
     ).toEqual(["gpu", "ssd"]);
-    expect(parseOpenStackAggregates(row({ facts: { aggregates: null } }))).toEqual(
-      [],
-    );
+    expect(
+      parseOpenStackAggregates(row({ facts: { aggregates: null } })),
+    ).toEqual([]);
     expect(parseOpenStackAggregates(row({}))).toEqual([]);
     expect(parseOpenStackAggregates(null)).toEqual([]);
   });
@@ -1014,7 +1021,9 @@ describe("an instance", () => {
       isKnown: false,
     });
     expect(
-      getOpenStackInstanceAddresses(row({ facts: { addressIpv4: "10.0.0.5" } })),
+      getOpenStackInstanceAddresses(
+        row({ facts: { addressIpv4: "10.0.0.5" } }),
+      ),
     ).toEqual({ ipv4: "10.0.0.5", ipv6: "", isKnown: true });
   });
 
@@ -1085,7 +1094,9 @@ describe("a network's addresses", () => {
 
   test("free never goes below none", () => {
     expect(
-      getOpenStackAddressesFree(row({ facts: { ipsUsed: 300, ipsTotal: 253 } })),
+      getOpenStackAddressesFree(
+        row({ facts: { ipsUsed: 300, ipsTotal: 253 } }),
+      ),
     ).toBe(0);
     expect(getOpenStackAddressesFree(row(DUAL_STACK))).toBe(249);
   });
@@ -1118,7 +1129,9 @@ describe("a network's addresses", () => {
   });
 
   test("its tone is the external pool templates' two lines", () => {
-    const at = (used: number): string | undefined => {
+    const at: (used: number) => string | undefined = (
+      used: number,
+    ): string | undefined => {
       return getOpenStackAddressesTone(
         row({ facts: { ipsUsed: used, ipsTotal: 100 } }),
       );
@@ -1148,9 +1161,12 @@ describe("which backend a cloud's network runs", () => {
     [["neutron-openvswitch-agent"], "unknown"],
     [[], "unknown"],
     [[null, undefined, ""], "unknown"],
-  ])("%j reads %s", (names: Array<string | null | undefined>, backend: string) => {
-    expect(getOpenStackNetworkBackend(names)).toBe(backend);
-  });
+  ])(
+    "%j reads %s",
+    (names: Array<string | null | undefined>, backend: string) => {
+      expect(getOpenStackNetworkBackend(names)).toBe(backend);
+    },
+  );
 });
 
 describe("who holds a router", () => {
@@ -1404,7 +1420,10 @@ describe("why a part reads as it does", () => {
   });
 
   test.each<[string, RowFields]>([
-    ["a fine instance", { kind: OpenStackResourceKind.Instance, status: "ACTIVE" }],
+    [
+      "a fine instance",
+      { kind: OpenStackResourceKind.Instance, status: "ACTIVE" },
+    ],
     ["a fine volume", { kind: OpenStackResourceKind.Volume, status: "in-use" }],
     [
       "a tenant's full network",
@@ -1424,10 +1443,7 @@ describe("why a part reads as it does", () => {
 });
 
 describe("whether an open record is about a part", () => {
-  function about(
-    labels: JSONObject,
-    fields: RowFields,
-  ): boolean {
+  function about(labels: JSONObject, fields: RowFields): boolean {
     return isOpenStackIssueAbout({ seriesLabels: labels }, row(fields));
   }
 
@@ -1439,9 +1455,9 @@ describe("whether an open record is about a part", () => {
       hypervisorName: "compute-01.example.internal",
       regionName: "RegionOne",
     };
-    expect(about({ hostname: "compute-01", [REGION]: "RegionOne" }, hypervisor)).toBe(
-      true,
-    );
+    expect(
+      about({ hostname: "compute-01", [REGION]: "RegionOne" }, hypervisor),
+    ).toBe(true);
     expect(
       about(
         { hostname: "compute-01.example.internal", [REGION]: "RegionOne" },
@@ -1449,9 +1465,9 @@ describe("whether an open record is about a part", () => {
       ),
     ).toBe(true);
     expect(about({ hostname: "compute-02" }, hypervisor)).toBe(false);
-    expect(about({ hostname: "compute-01", [REGION]: "RegionTwo" }, hypervisor)).toBe(
-      false,
-    );
+    expect(
+      about({ hostname: "compute-01", [REGION]: "RegionTwo" }, hypervisor),
+    ).toBe(false);
   });
 
   test("a worker's record is about a hypervisor only when the worker is its nova-compute", () => {
@@ -1546,7 +1562,10 @@ describe("whether an open record is about a part", () => {
       ),
     ).toBe(false);
     expect(
-      about({ id: "x" }, { kind: OpenStackResourceKind.Flavor, externalId: "x" }),
+      about(
+        { id: "x" },
+        { kind: OpenStackResourceKind.Flavor, externalId: "x" },
+      ),
     ).toBe(false);
   });
 
@@ -1580,7 +1599,11 @@ describe("when something fills up", () => {
   const HOUR: number = 60 * 60 * 1000;
   const START: number = NOW.getTime();
 
-  function line(hours: number, usedPerHour: number, start: number = 0) {
+  function line(
+    hours: number,
+    usedPerHour: number,
+    start: number = 0,
+  ): Array<OpenStackGrowthSample> {
     return Array.from({ length: hours }, (_: unknown, index: number) => {
       return { time: START + index * HOUR, used: start + index * usedPerHour };
     });
@@ -1639,9 +1662,9 @@ describe("when something fills up", () => {
 
   test("no capacity can't say", () => {
     for (const capacity of [null, undefined, 0, -1]) {
-      expect(
-        getOpenStackForecast({ samples: line(24, 1), capacity }),
-      ).toEqual({ state: "not-enough-history" });
+      expect(getOpenStackForecast({ samples: line(24, 1), capacity })).toEqual({
+        state: "not-enough-history",
+      });
     }
   });
 
@@ -1689,9 +1712,12 @@ describe("what an empty list means", () => {
     OpenStackResourceKind.FloatingIp,
     OpenStackResourceKind.Image,
     OpenStackResourceKind.Flavor,
-  ])("%s can really be empty, so its page's own words stand", (kind) => {
-    expect(getOpenStackEmptyWords({ kind, api: "up" })).toBeNull();
-  });
+  ])(
+    "%s can really be empty, so its page's own words stand",
+    (kind: OpenStackResourceKind) => {
+      expect(getOpenStackEmptyWords({ kind, api: "up" })).toBeNull();
+    },
+  );
 
   test("the fix is named, not only the problem", () => {
     expect(
@@ -1699,7 +1725,7 @@ describe("what an empty list means", () => {
         kind: OpenStackResourceKind.Hypervisor,
         api: "up",
       })?.description,
-    ).toMatch(/Full view or Infrastructure only.*troubleshoot\.sh/s);
+    ).toMatch(/Full view or Infrastructure only[\s\S]*troubleshoot\.sh/);
   });
 
   test("an API that doesn't answer says that, for any kind", () => {
@@ -1786,9 +1812,11 @@ describe("a state a list is asked for by name finds what the rules call that", (
     presets: Array<{ value: string; getQuery: (now: Date) => unknown }>,
     value: string,
   ): Record<string, unknown> {
-    const found = presets.find((candidate) => {
-      return candidate.value === value;
-    });
+    const found: OpenStackStatePreset | undefined = presets.find(
+      (candidate: OpenStackStatePreset) => {
+        return candidate.value === value;
+      },
+    );
     return found!.getQuery(NOW) as Record<string, unknown>;
   }
 
@@ -1853,234 +1881,242 @@ describe("a state a list is asked for by name finds what the rules call that", (
  * On what real clouds said
  * ---------------------------------------------------------------------------
  */
-describe.each(getOpenStackReleases())("a healthy cloud, on %s", (release: string) => {
-  const scene: OpenStackRecording = new OpenStackRecording(release, "healthy");
-
-  test("its instances read as the estate left them, the failed one with no hypervisor", () => {
-    const failed: OpenStackResource = scene.named(
-      OpenStackResourceKind.Instance,
-      "ou-failed",
-    );
-    expect(getOpenStackRowState(failed, OPENSTACK_RECORDING_NOW)).toMatchObject({
-      label: "ERROR",
-      tone: "danger",
-    });
-    expect(isOpenStackInstanceUnplaced(failed)).toBe(true);
-    expect(getOpenStackPartExplanation(failed, OPENSTACK_RECORDING_NOW)).toMatch(
-      /never placed/,
+describe.each(getOpenStackReleases())(
+  "a healthy cloud, on %s",
+  (release: string) => {
+    const scene: OpenStackRecording = new OpenStackRecording(
+      release,
+      "healthy",
     );
 
-    expect(
-      getOpenStackRowState(
-        scene.named(OpenStackResourceKind.Instance, "ou-stopped"),
-        OPENSTACK_RECORDING_NOW,
-      ),
-    ).toMatchObject({ label: "SHUTOFF", tone: "neutral" });
-
-    const running: OpenStackResource = scene.named(
-      OpenStackResourceKind.Instance,
-      "ou-running",
-    );
-    expect(
-      getOpenStackRowState(running, OPENSTACK_RECORDING_NOW),
-    ).toMatchObject({ label: "ACTIVE", tone: "positive" });
-    expect(isOpenStackInstanceUnplaced(running)).toBe(false);
-  });
-
-  test("an instance's addresses are empty in the exporter's output, and that is said", () => {
-    expect(
-      getOpenStackInstanceAddresses(
-        scene.named(OpenStackResourceKind.Instance, "ou-running"),
-      ).isKnown,
-    ).toBe(false);
-  });
-
-  test("an instance links to its hypervisor and its flavor, by what their rows are keyed on", () => {
-    const running: OpenStackResource = scene.named(
-      OpenStackResourceKind.Instance,
-      "ou-running",
-    );
-    expect(
-      scene
-        .ofKind(OpenStackResourceKind.Hypervisor)
-        .map((row: OpenStackResource) => {
-          return row.externalId;
-        }),
-    ).toContain(
-      getOpenStackHypervisorExternalId(
-        running.regionName,
-        running.hypervisorName as string,
-      ),
-    );
-    expect(
-      scene
-        .ofKind(OpenStackResourceKind.Flavor)
-        .map((row: OpenStackResource) => {
-          return row.externalId;
-        }),
-    ).toContain(
-      getOpenStackFlavorExternalId(
-        running.regionName,
-        running.facts?.["flavorId"] as string,
-      ),
-    );
-  });
-
-  test("a hypervisor reads as allocated, at Placement's ratio", () => {
-    const hypervisor: OpenStackResource = scene.ofKind(
-      OpenStackResourceKind.Hypervisor,
-    )[0]!;
-    const lines: Array<OpenStackAllocationLine> =
-      getOpenStackAllocationLines(hypervisor);
-    expect(lines[0]?.ratio).toBeGreaterThan(1);
-    expect(lines[0]?.percent).toBeGreaterThan(0);
-    expect(lines[0]?.isLastKnown).toBe(false);
-    expect(getOpenStackRowState(hypervisor, OPENSTACK_RECORDING_NOW)).toMatchObject(
-      { label: "up", tone: "positive" },
-    );
-  });
-
-  test("its zone is nova, and Nova's internal zone isn't one", () => {
-    const groups: Array<OpenStackHostGroup> = getOpenStackHostGroups({
-      rows: scene.rows,
-      kind: "zone",
-      now: OPENSTACK_RECORDING_NOW,
-    });
-    expect(
-      groups.map((group: OpenStackHostGroup) => {
-        return group.name;
-      }),
-    ).toEqual(["nova"]);
-    expect(groups[0]?.total).toBe(1);
-    expect(groups[0]?.up).toBe(1);
-    expect(groups[0]?.instanceCount).toBeGreaterThan(0);
-  });
-
-  test("it has no aggregates, which is usual and not an error", () => {
-    expect(
-      getOpenStackHostGroups({
-        rows: scene.rows,
-        kind: "aggregate",
-        now: OPENSTACK_RECORDING_NOW,
-      }),
-    ).toEqual([]);
-  });
-
-  test("a dual-stack external network counts its IPv4 pool alone", () => {
-    const external: OpenStackResource = scene.named(
-      OpenStackResourceKind.Network,
-      "public",
-    );
-    expect(isOpenStackNetworkExternal(external)).toBe(true);
-    // Added to a /64 this would be 2^64, and a full pool would read as 0%.
-    expect(external.facts?.["ipsTotal"]).toBeLessThan(65536);
-    expect(getOpenStackAddressesTone(external)).toBe("positive");
-    const subnets: Array<OpenStackSubnetAddresses> =
-      getOpenStackNetworkSubnets(external);
-    const ipv6: OpenStackSubnetAddresses | undefined = subnets.find(
-      (subnet: OpenStackSubnetAddresses) => {
-        return subnet.ipVersion === "6";
-      },
-    );
-    if (ipv6) {
-      expect(ipv6.percent).toBeNull();
-    }
-    expect(
-      subnets.some((subnet: OpenStackSubnetAddresses) => {
-        return subnet.ipVersion === "4" && subnet.percent !== null;
-      }),
-    ).toBe(true);
-  });
-
-  test("a subnet finds its addresses on its network", () => {
-    const subnet: OpenStackResource = scene.named(
-      OpenStackResourceKind.Subnet,
-      "ou-subnet",
-    );
-    const network: OpenStackResource | undefined = scene
-      .ofKind(OpenStackResourceKind.Network)
-      .find((candidate: OpenStackResource) => {
-        return candidate.externalId === subnet.facts?.["networkId"];
+    test("its instances read as the estate left them, the failed one with no hypervisor", () => {
+      const failed: OpenStackResource = scene.named(
+        OpenStackResourceKind.Instance,
+        "ou-failed",
+      );
+      expect(
+        getOpenStackRowState(failed, OPENSTACK_RECORDING_NOW),
+      ).toMatchObject({
+        label: "ERROR",
+        tone: "danger",
       });
-    expect(network?.name).toBe("ou-net");
-    expect(
-      getOpenStackSubnetAddresses({ subnet, network })?.total,
-    ).toBeGreaterThan(0);
-  });
+      expect(isOpenStackInstanceUnplaced(failed)).toBe(true);
+      expect(
+        getOpenStackPartExplanation(failed, OPENSTACK_RECORDING_NOW),
+      ).toMatch(/never placed/);
 
-  test("a floating IP in use goes through a router in the inventory, and the spare one reads as spare", () => {
-    const addresses: Array<OpenStackResource> = scene.ofKind(
-      OpenStackResourceKind.FloatingIp,
-    );
-    const inUse: OpenStackResource | undefined = addresses.find(
-      (address: OpenStackResource) => {
-        return getOpenStackFloatingIpAssociation(address) === "associated";
-      },
-    );
-    expect(inUse).toBeDefined();
-    expect(
-      scene
-        .ofKind(OpenStackResourceKind.Router)
-        .map((router: OpenStackResource) => {
-          return router.externalId;
+      expect(
+        getOpenStackRowState(
+          scene.named(OpenStackResourceKind.Instance, "ou-stopped"),
+          OPENSTACK_RECORDING_NOW,
+        ),
+      ).toMatchObject({ label: "SHUTOFF", tone: "neutral" });
+
+      const running: OpenStackResource = scene.named(
+        OpenStackResourceKind.Instance,
+        "ou-running",
+      );
+      expect(
+        getOpenStackRowState(running, OPENSTACK_RECORDING_NOW),
+      ).toMatchObject({ label: "ACTIVE", tone: "positive" });
+      expect(isOpenStackInstanceUnplaced(running)).toBe(false);
+    });
+
+    test("an instance's addresses are empty in the exporter's output, and that is said", () => {
+      expect(
+        getOpenStackInstanceAddresses(
+          scene.named(OpenStackResourceKind.Instance, "ou-running"),
+        ).isKnown,
+      ).toBe(false);
+    });
+
+    test("an instance links to its hypervisor and its flavor, by what their rows are keyed on", () => {
+      const running: OpenStackResource = scene.named(
+        OpenStackResourceKind.Instance,
+        "ou-running",
+      );
+      expect(
+        scene
+          .ofKind(OpenStackResourceKind.Hypervisor)
+          .map((row: OpenStackResource) => {
+            return row.externalId;
+          }),
+      ).toContain(
+        getOpenStackHypervisorExternalId(
+          running.regionName,
+          running.hypervisorName as string,
+        ),
+      );
+      expect(
+        scene
+          .ofKind(OpenStackResourceKind.Flavor)
+          .map((row: OpenStackResource) => {
+            return row.externalId;
+          }),
+      ).toContain(
+        getOpenStackFlavorExternalId(
+          running.regionName,
+          running.facts?.["flavorId"] as string,
+        ),
+      );
+    });
+
+    test("a hypervisor reads as allocated, at Placement's ratio", () => {
+      const hypervisor: OpenStackResource = scene.ofKind(
+        OpenStackResourceKind.Hypervisor,
+      )[0]!;
+      const lines: Array<OpenStackAllocationLine> =
+        getOpenStackAllocationLines(hypervisor);
+      expect(lines[0]?.ratio).toBeGreaterThan(1);
+      expect(lines[0]?.percent).toBeGreaterThan(0);
+      expect(lines[0]?.isLastKnown).toBe(false);
+      expect(
+        getOpenStackRowState(hypervisor, OPENSTACK_RECORDING_NOW),
+      ).toMatchObject({ label: "up", tone: "positive" });
+    });
+
+    test("its zone is nova, and Nova's internal zone isn't one", () => {
+      const groups: Array<OpenStackHostGroup> = getOpenStackHostGroups({
+        rows: scene.rows,
+        kind: "zone",
+        now: OPENSTACK_RECORDING_NOW,
+      });
+      expect(
+        groups.map((group: OpenStackHostGroup) => {
+          return group.name;
         }),
-    ).toContain(inUse?.facts?.["routerId"]);
-    expect(
-      addresses.filter((address: OpenStackResource) => {
-        return getOpenStackFloatingIpAssociation(address) === "unassociated";
-      }),
-    ).toHaveLength(1);
-  });
+      ).toEqual(["nova"]);
+      expect(groups[0]?.total).toBe(1);
+      expect(groups[0]?.up).toBe(1);
+      expect(groups[0]?.instanceCount).toBeGreaterThan(0);
+    });
 
-  test("a volume links to the instance holding it, and the spare one to none", () => {
-    expect(
-      scene.named(OpenStackResourceKind.Volume, "ou-vol-used").facts?.[
-        "attachedToInstance"
-      ],
-    ).toBe(
-      scene.named(OpenStackResourceKind.Instance, "ou-running").externalId,
-    );
-    expect(
-      scene.named(OpenStackResourceKind.Volume, "ou-vol-free").facts?.[
-        "attachedToInstance"
-      ],
-    ).toBeNull();
-  });
+    test("it has no aggregates, which is usual and not an error", () => {
+      expect(
+        getOpenStackHostGroups({
+          rows: scene.rows,
+          kind: "aggregate",
+          now: OPENSTACK_RECORDING_NOW,
+        }),
+      ).toEqual([]);
+    });
 
-  test("a failed volume reads in Cinder's word, as failed", () => {
-    expect(
-      getOpenStackRowState(
-        scene.named(OpenStackResourceKind.Volume, "ou-vol-bad"),
-        OPENSTACK_RECORDING_NOW,
-      ),
-    ).toMatchObject({ label: "error", tone: "danger", reasons: [] });
-  });
+    test("a dual-stack external network counts its IPv4 pool alone", () => {
+      const external: OpenStackResource = scene.named(
+        OpenStackResourceKind.Network,
+        "public",
+      );
+      expect(isOpenStackNetworkExternal(external)).toBe(true);
+      // Added to a /64 this would be 2^64, and a full pool would read as 0%.
+      expect(external.facts?.["ipsTotal"]).toBeLessThan(65536);
+      expect(getOpenStackAddressesTone(external)).toBe("positive");
+      const subnets: Array<OpenStackSubnetAddresses> =
+        getOpenStackNetworkSubnets(external);
+      const ipv6: OpenStackSubnetAddresses | undefined = subnets.find(
+        (subnet: OpenStackSubnetAddresses) => {
+          return subnet.ipVersion === "6";
+        },
+      );
+      if (ipv6) {
+        expect(ipv6.percent).toBeNull();
+      }
+      expect(
+        subnets.some((subnet: OpenStackSubnetAddresses) => {
+          return subnet.ipVersion === "4" && subnet.percent !== null;
+        }),
+      ).toBe(true);
+    });
 
-  test("a pool has room", () => {
-    expect(
-      getOpenStackRowState(
-        scene.ofKind(OpenStackResourceKind.StoragePool)[0]!,
-        OPENSTACK_RECORDING_NOW,
-      ),
-    ).toMatchObject({ label: "Has room", tone: "positive" });
-  });
+    test("a subnet finds its addresses on its network", () => {
+      const subnet: OpenStackResource = scene.named(
+        OpenStackResourceKind.Subnet,
+        "ou-subnet",
+      );
+      const network: OpenStackResource | undefined = scene
+        .ofKind(OpenStackResourceKind.Network)
+        .find((candidate: OpenStackResource) => {
+          return candidate.externalId === subnet.facts?.["networkId"];
+        });
+      expect(network?.name).toBe("ou-net");
+      expect(
+        getOpenStackSubnetAddresses({ subnet, network })?.total,
+      ).toBeGreaterThan(0);
+    });
 
-  test("no snapshot or backup rows arrive through the agent", () => {
-    expect(scene.ofKind(OpenStackResourceKind.Snapshot)).toEqual([]);
-    expect(scene.ofKind(OpenStackResourceKind.Backup)).toEqual([]);
-  });
+    test("a floating IP in use goes through a router in the inventory, and the spare one reads as spare", () => {
+      const addresses: Array<OpenStackResource> = scene.ofKind(
+        OpenStackResourceKind.FloatingIp,
+      );
+      const inUse: OpenStackResource | undefined = addresses.find(
+        (address: OpenStackResource) => {
+          return getOpenStackFloatingIpAssociation(address) === "associated";
+        },
+      );
+      expect(inUse).toBeDefined();
+      expect(
+        scene
+          .ofKind(OpenStackResourceKind.Router)
+          .map((router: OpenStackResource) => {
+            return router.externalId;
+          }),
+      ).toContain(inUse?.facts?.["routerId"]);
+      expect(
+        addresses.filter((address: OpenStackResource) => {
+          return getOpenStackFloatingIpAssociation(address) === "unassociated";
+        }),
+      ).toHaveLength(1);
+    });
 
-  test("an image reads its status, visibility and size", () => {
-    const image: OpenStackResource = scene.ofKind(
-      OpenStackResourceKind.Image,
-    )[0]!;
-    expect(
-      getOpenStackRowState(image, OPENSTACK_RECORDING_NOW),
-    ).toMatchObject({ label: "active", tone: "positive" });
-    expect(image.facts?.["visibility"]).toBe("public");
-    expect(image.diskCapacityBytes).toBeGreaterThan(0);
-  });
-});
+    test("a volume links to the instance holding it, and the spare one to none", () => {
+      expect(
+        scene.named(OpenStackResourceKind.Volume, "ou-vol-used").facts?.[
+          "attachedToInstance"
+        ],
+      ).toBe(
+        scene.named(OpenStackResourceKind.Instance, "ou-running").externalId,
+      );
+      expect(
+        scene.named(OpenStackResourceKind.Volume, "ou-vol-free").facts?.[
+          "attachedToInstance"
+        ],
+      ).toBeNull();
+    });
+
+    test("a failed volume reads in Cinder's word, as failed", () => {
+      expect(
+        getOpenStackRowState(
+          scene.named(OpenStackResourceKind.Volume, "ou-vol-bad"),
+          OPENSTACK_RECORDING_NOW,
+        ),
+      ).toMatchObject({ label: "error", tone: "danger", reasons: [] });
+    });
+
+    test("a pool has room", () => {
+      expect(
+        getOpenStackRowState(
+          scene.ofKind(OpenStackResourceKind.StoragePool)[0]!,
+          OPENSTACK_RECORDING_NOW,
+        ),
+      ).toMatchObject({ label: "Has room", tone: "positive" });
+    });
+
+    test("no snapshot or backup rows arrive through the agent", () => {
+      expect(scene.ofKind(OpenStackResourceKind.Snapshot)).toEqual([]);
+      expect(scene.ofKind(OpenStackResourceKind.Backup)).toEqual([]);
+    });
+
+    test("an image reads its status, visibility and size", () => {
+      const image: OpenStackResource = scene.ofKind(
+        OpenStackResourceKind.Image,
+      )[0]!;
+      expect(
+        getOpenStackRowState(image, OPENSTACK_RECORDING_NOW),
+      ).toMatchObject({ label: "active", tone: "positive" });
+      expect(image.facts?.["visibility"]).toBe("public");
+      expect(image.diskCapacityBytes).toBeGreaterThan(0);
+    });
+  },
+);
 
 describe("a Neutron with L3 agents, on ML2/OVS", () => {
   const scene: OpenStackRecording = new OpenStackRecording(
@@ -2170,100 +2206,138 @@ describe("a Neutron on OVN", () => {
       OpenStackResourceKind.Router,
       "ou-router",
     );
-    expect(getOpenStackRouterAgentReading({ row: router, backend })).toMatchObject(
-      { state: "not-applicable", tone: "neutral" },
-    );
     expect(
-      getOpenStackRowState(router, OPENSTACK_RECORDING_NOW),
-    ).toMatchObject({ label: "ACTIVE", tone: "positive", reasons: [] });
+      getOpenStackRouterAgentReading({ row: router, backend }),
+    ).toMatchObject({ state: "not-applicable", tone: "neutral" });
+    expect(getOpenStackRowState(router, OPENSTACK_RECORDING_NOW)).toMatchObject(
+      { label: "ACTIVE", tone: "positive", reasons: [] },
+    );
   });
 });
 
-describe.each(getOpenStackDrilledReleases())("a failure, on %s", (release: string) => {
-  test("a stopped nova-compute marks its hypervisor lost, its numbers last known and its zone unhealthy", () => {
-    const scene: OpenStackRecording = new OpenStackRecording(
-      release,
-      "compute-down",
-    );
-    const hypervisor: OpenStackResource = scene.ofKind(
-      OpenStackResourceKind.Hypervisor,
-    )[0]!;
-    expect(isOpenStackHypervisorLost(hypervisor)).toBe(true);
-    expect(
-      getOpenStackRowState(hypervisor, OPENSTACK_RECORDING_NOW),
-    ).toMatchObject({ label: "Lost", tone: "danger" });
+describe.each(getOpenStackDrilledReleases())(
+  "a failure, on %s",
+  (release: string) => {
+    test("a stopped nova-compute marks its hypervisor lost, its numbers last known and its zone unhealthy", () => {
+      const scene: OpenStackRecording = new OpenStackRecording(
+        release,
+        "compute-down",
+      );
+      const hypervisor: OpenStackResource = scene.ofKind(
+        OpenStackResourceKind.Hypervisor,
+      )[0]!;
+      expect(isOpenStackHypervisorLost(hypervisor)).toBe(true);
+      expect(
+        getOpenStackRowState(hypervisor, OPENSTACK_RECORDING_NOW),
+      ).toMatchObject({ label: "Lost", tone: "danger" });
 
-    const lines: Array<OpenStackAllocationLine> =
-      getOpenStackAllocationLines(hypervisor);
-    expect(lines[0]?.isLastKnown).toBe(true);
-    expect(lines[0]?.taken).toBeGreaterThan(0);
+      const lines: Array<OpenStackAllocationLine> =
+        getOpenStackAllocationLines(hypervisor);
+      expect(lines[0]?.isLastKnown).toBe(true);
+      expect(lines[0]?.taken).toBeGreaterThan(0);
 
-    const [zone]: Array<OpenStackHostGroup> = getOpenStackHostGroups({
-      rows: scene.rows,
-      kind: "zone",
-      now: OPENSTACK_RECORDING_NOW,
-    });
-    expect(zone).toMatchObject({ lost: 1, up: 0, health: "Unhealthy" });
-    // A host Nova lost is never read as room.
-    expect(zone?.vcpuCapacity).toBe(0);
-    expect(zone?.instanceCount).toBe(hypervisor.instanceCount);
-  });
-
-  test("a compute service disabled on purpose reads Disabled with its reason, and no zone goes red", () => {
-    const scene: OpenStackRecording = new OpenStackRecording(
-      release,
-      "compute-disabled",
-    );
-    const hypervisor: OpenStackResource = scene.ofKind(
-      OpenStackResourceKind.Hypervisor,
-    )[0]!;
-    expect(
-      getOpenStackRowState(hypervisor, OPENSTACK_RECORDING_NOW),
-    ).toMatchObject({
-      label: "Disabled",
-      tone: "neutral",
-      writtenReason: "OneUptime drill: planned maintenance",
-    });
-    const [zone]: Array<OpenStackHostGroup> = getOpenStackHostGroups({
-      rows: scene.rows,
-      kind: "zone",
-      now: OPENSTACK_RECORDING_NOW,
-    });
-    expect(zone).toMatchObject({ disabled: 1, lost: 0 });
-    expect(zone?.health).not.toBe("Unhealthy");
-  });
-
-  test("a stopped Neutron agent's page and its routers read what the recording says", () => {
-    const scene: OpenStackRecording = new OpenStackRecording(
-      release,
-      "network-agent-down",
-    );
-    const down: Array<OpenStackResource> = scene
-      .ofKind(OpenStackResourceKind.Service)
-      .filter((agent: OpenStackResource) => {
-        return isOpenStackNetworkAgent(agent) && agent.status === "down";
+      const [zone]: Array<OpenStackHostGroup> = getOpenStackHostGroups({
+        rows: scene.rows,
+        kind: "zone",
+        now: OPENSTACK_RECORDING_NOW,
       });
-    expect(down.length).toBeGreaterThan(0);
-    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
-      rows: scene.rows,
-      now: OPENSTACK_RECORDING_NOW,
+      expect(zone).toMatchObject({ lost: 1, up: 0, health: "Unhealthy" });
+      // A host Nova lost is never read as room.
+      expect(zone?.vcpuCapacity).toBe(0);
+      expect(zone?.instanceCount).toBe(hypervisor.instanceCount);
     });
-    expect(
-      items.some((item: ResourceAttentionItem) => {
-        return item.name === down[0]?.name;
-      }),
-    ).toBe(true);
+
+    test("a compute service disabled on purpose reads Disabled with its reason, and no zone goes red", () => {
+      const scene: OpenStackRecording = new OpenStackRecording(
+        release,
+        "compute-disabled",
+      );
+      const hypervisor: OpenStackResource = scene.ofKind(
+        OpenStackResourceKind.Hypervisor,
+      )[0]!;
+      expect(
+        getOpenStackRowState(hypervisor, OPENSTACK_RECORDING_NOW),
+      ).toMatchObject({
+        label: "Disabled",
+        tone: "neutral",
+        writtenReason: "OneUptime drill: planned maintenance",
+      });
+      const [zone]: Array<OpenStackHostGroup> = getOpenStackHostGroups({
+        rows: scene.rows,
+        kind: "zone",
+        now: OPENSTACK_RECORDING_NOW,
+      });
+      expect(zone).toMatchObject({ disabled: 1, lost: 0 });
+      expect(zone?.health).not.toBe("Unhealthy");
+    });
+
+    test("a stopped Neutron agent's page and its routers read what the recording says", () => {
+      const scene: OpenStackRecording = new OpenStackRecording(
+        release,
+        "network-agent-down",
+      );
+      const down: Array<OpenStackResource> = scene
+        .ofKind(OpenStackResourceKind.Service)
+        .filter((agent: OpenStackResource) => {
+          return isOpenStackNetworkAgent(agent) && agent.status === "down";
+        });
+      expect(down.length).toBeGreaterThan(0);
+      const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+        rows: scene.rows,
+        now: OPENSTACK_RECORDING_NOW,
+      });
+      expect(
+        items.some((item: ResourceAttentionItem) => {
+          return item.name === down[0]?.name;
+        }),
+      ).toBe(true);
+    });
+
+    test("everything back on reads as it did before", () => {
+      const scene: OpenStackRecording = new OpenStackRecording(
+        release,
+        "recovered",
+      );
+      expect(
+        isOpenStackHypervisorLost(
+          scene.ofKind(OpenStackResourceKind.Hypervisor)[0]!,
+        ),
+      ).toBe(false);
+    });
+  },
+);
+
+describe("a card's totals, from counts that come per region", () => {
+  const COUNTS: Array<OpenStackCountRow> = [
+    { value: "ssd", regionName: "RegionOne", count: 4, sizeBytes: 40 },
+    { value: "hdd", regionName: "RegionOne", count: 1, sizeBytes: 10 },
+    { value: "ssd", regionName: "RegionTwo", count: 2, sizeBytes: 20 },
+    { value: null, regionName: "RegionTwo", count: 3, sizeBytes: 30 },
+  ];
+
+  test("the whole cloud adds each up across its regions, most first", () => {
+    expect(getOpenStackCountTotals(COUNTS, null)).toEqual([
+      { value: "ssd", regionName: null, count: 6, sizeBytes: 60 },
+      { value: null, regionName: null, count: 3, sizeBytes: 30 },
+      { value: "hdd", regionName: null, count: 1, sizeBytes: 10 },
+    ]);
   });
 
-  test("everything back on reads as it did before", () => {
-    const scene: OpenStackRecording = new OpenStackRecording(
-      release,
-      "recovered",
-    );
-    expect(
-      isOpenStackHypervisorLost(
-        scene.ofKind(OpenStackResourceKind.Hypervisor)[0]!,
-      ),
-    ).toBe(false);
+  test("a region reads only itself", () => {
+    expect(getOpenStackCountTotals(COUNTS, "RegionTwo")).toEqual([
+      { value: null, regionName: "RegionTwo", count: 3, sizeBytes: 30 },
+      { value: "ssd", regionName: "RegionTwo", count: 2, sizeBytes: 20 },
+    ]);
+  });
+
+  test("one with none reads as none, and what it was given is left as it was", () => {
+    expect(getOpenStackCountTotals(COUNTS, "RegionThree")).toEqual([]);
+    expect(getOpenStackCountTotals([], null)).toEqual([]);
+    expect(COUNTS[0]).toEqual({
+      value: "ssd",
+      regionName: "RegionOne",
+      count: 4,
+      sizeBytes: 40,
+    });
   });
 });

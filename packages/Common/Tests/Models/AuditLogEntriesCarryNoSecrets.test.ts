@@ -40,6 +40,12 @@ const NOT_SECRETS: Record<string, string> = {
     "the relation to the API key row: recorded as the row's id and name, never the key",
   "ApiKeyCustomRole.apiKeyId": "the API key row's id, not the key",
   "StatusPage.enableMasterPassword": "a switch",
+  "OpenStackCloud.isCredentialSet":
+    "a switch saying whether a credential is saved",
+  "OpenStackCloud.credentialsUpdatedAt": "when the credential last changed",
+  "OpenStackCloud.credentialKind": "which of the two kinds of credential it is",
+  "OpenStackCloud.applicationCredentialId":
+    "what names the credential, as a user name does: the secret that goes with it is left out",
   "VMwareVCenter.isVCenterPasswordSet":
     "a switch saying whether a password is set",
   "VMwareVCenter.vcenterCredentialsUpdatedAt":

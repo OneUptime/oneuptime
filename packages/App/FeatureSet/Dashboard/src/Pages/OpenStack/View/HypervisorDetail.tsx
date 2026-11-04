@@ -109,10 +109,7 @@ function formatLine(line: OpenStackAllocationLine, value: number): string {
 const HypervisorOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-}): ReactElement => {
+}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
   const hypervisorName: string = row.hypervisorName || row.name || "";
@@ -173,7 +170,8 @@ const HypervisorOverview: FunctionComponent<{
     routeFor: part.routes.routeFor,
   });
 
-  const lines: Array<OpenStackAllocationLine> = getOpenStackAllocationLines(row);
+  const lines: Array<OpenStackAllocationLine> =
+    getOpenStackAllocationLines(row);
   const zone: string = row.availabilityZone || "";
   const aggregates: Array<string> = parseOpenStackAggregates(row);
 
@@ -427,7 +425,7 @@ const HypervisorOverview: FunctionComponent<{
             title="Linked Host"
             description="OneUptime's agent runs on this machine, so its real load is known."
           >
-            <div className="px-5 pb-5 text-sm md:px-6">
+            <div className="text-sm">
               <Link
                 to={
                   RouteUtil.populateRouteParams(
@@ -438,7 +436,9 @@ const HypervisorOverview: FunctionComponent<{
                 className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
                 dataTestId="openstack-hypervisor-host-link"
               >
-                <bdi>{host.data.host.name || host.data.host.hostIdentifier}</bdi>
+                <bdi>
+                  {host.data.host.name || host.data.host.hostIdentifier}
+                </bdi>
               </Link>
             </div>
           </Card>
@@ -486,7 +486,9 @@ const OpenStackCloudHypervisorDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Hypervisor);
+  const part: OpenStackPart = useOpenStackPart(
+    OpenStackResourceKind.Hypervisor,
+  );
   const row: OpenStackResource | null = part.row;
 
   const badges: Array<ResourcePartBadge> = [];
@@ -620,7 +622,8 @@ const OpenStackCloudHypervisorDetail: FunctionComponent<
                       part,
                       variable: "hypervisor_running_instances",
                       title: "Running instances",
-                      description: "How many instances Nova says this host runs.",
+                      description:
+                        "How many instances Nova says this host runs.",
                       metricName: "openstack_nova_running_vms",
                       legend: "Instances",
                       attributes: { hostname: hypervisorName },

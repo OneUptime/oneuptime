@@ -70,6 +70,11 @@ export type OpenStackCredential =
   | OpenStackApplicationCredential
   | OpenStackPasswordCredential;
 
+export type OpenStackCredentialKind = OpenStackCredential["kind"];
+
+export const OPENSTACK_CREDENTIAL_KINDS: ReadonlyArray<OpenStackCredentialKind> =
+  ["applicationCredential", "password"];
+
 /*
  * What is read beyond the agent's defaults. Both are off unless someone asks: ports
  * because an unscoped list of them can saturate Neutron (openstack-exporter issue

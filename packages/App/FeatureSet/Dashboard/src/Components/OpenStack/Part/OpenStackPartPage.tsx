@@ -120,12 +120,7 @@ const OpenStackPartPage: FunctionComponent<ComponentProps> = (
        * Its row wraps on a phone, so no tab is ever out of sight past the edge of the
        * screen. Mounted again once the row arrives, because Tabs keeps its own list.
        */}
-      <Tabs
-        key={tabs.length}
-        tabs={tabs}
-        wrap={true}
-        onTabChange={() => {}}
-      />
+      <Tabs key={tabs.length} tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
   );
 };

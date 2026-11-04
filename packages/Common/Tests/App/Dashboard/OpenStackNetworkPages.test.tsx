@@ -15,6 +15,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
 import { JSONObject } from "../../../Types/JSON";
@@ -32,6 +33,7 @@ import OpenStackCloudSubnets from "../../../../App/FeatureSet/Dashboard/src/Page
 import { OpenStackRecording } from "../../Helpers/OpenStackRecordings";
 import {
   CLOUD_PATH,
+  ListCall,
   Row,
   attentionRowsOf,
   kindCalls,
@@ -298,14 +300,16 @@ describe("the Networks page", () => {
      * Each list asked the server for its own, because a fact can't be sorted by, and a
      * row that doesn't say is not external.
      */
-    const networkCalls = kindCalls(OpenStackResourceKind.Network);
+    const networkCalls: Array<ListCall> = kindCalls(
+      OpenStackResourceKind.Network,
+    );
     expect(
-      networkCalls.some((call) => {
+      networkCalls.some((call: ListCall) => {
         return (call.query["facts"] as JSONObject)?.["isExternal"] === true;
       }),
     ).toBe(true);
     expect(
-      networkCalls.some((call) => {
+      networkCalls.some((call: ListCall) => {
         return (
           (call.query["facts"] as JSONObject)?.["isExternal"] instanceof
           NotEqual
@@ -386,6 +390,28 @@ describe("the Networks page", () => {
     expect(
       screen.getByTestId("openstack-security-groups-by-project-off"),
     ).toHaveTextContent(/--disable-metric=neutron-quota_network/);
+  });
+
+  test("with a region chosen, the counts and the external list are that region's", async () => {
+    server.rows = [
+      privateNetwork({ regionName: "RegionTwo" }),
+      externalNetwork({ regionName: "RegionOne" }),
+    ];
+    server.metrics["openstack_neutron_security_groups"] = [
+      { group: "RegionOne", value: 6 },
+      { group: "RegionTwo", value: 2 },
+    ];
+
+    await renderPage(OpenStackCloudNetworks, "/networks?region=RegionTwo");
+
+    const counts: HTMLElement = await screen.findByTestId(
+      "openstack-network-counts",
+    );
+    expect(within(counts).getByText("2")).toBeInTheDocument();
+    expect(within(counts).queryByText("8")).not.toBeInTheDocument();
+    // Its one external pool is in another region, so this one has no list of them.
+    expect(await screen.findByText("private")).toBeInTheDocument();
+    expect(screen.queryByText("External Networks")).not.toBeInTheDocument();
   });
 
   test("with Neutron's quotas on, security groups read per project", async () => {
@@ -522,9 +548,7 @@ describe("a network's page", () => {
 
     await renderPage(OpenStackCloudNetworkDetail, PATH);
 
-    expect(
-      await screen.findByText("Not enough history"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Not enough history")).toBeInTheDocument();
     expect(
       tile("openstack-network-tiles", "Growth Forecast"),
     ).toHaveTextContent("Not enough history");
@@ -574,7 +598,7 @@ describe("a network's page", () => {
     await settle();
     expect(await screen.findByText("edge")).toBeInTheDocument();
     expect(
-      kindCalls(OpenStackResourceKind.Router).some((call) => {
+      kindCalls(OpenStackResourceKind.Router).some((call: ListCall) => {
         return (
           (call.query["facts"] as JSONObject)?.["externalNetworkId"] ===
           NETWORK_ID
@@ -647,7 +671,10 @@ describe("subnets", () => {
       },
     ];
 
-    await renderPage(OpenStackCloudSubnetDetail, partPath("subnets", SUBNET_ID));
+    await renderPage(
+      OpenStackCloudSubnetDetail,
+      partPath("subnets", SUBNET_ID),
+    );
 
     await screen.findByTestId("openstack-subnet-tiles");
     expect(
@@ -673,7 +700,10 @@ describe("subnets", () => {
       },
     ];
 
-    await renderPage(OpenStackCloudSubnetDetail, partPath("subnets", SUBNET_ID));
+    await renderPage(
+      OpenStackCloudSubnetDetail,
+      partPath("subnets", SUBNET_ID),
+    );
 
     await screen.findByTestId("openstack-subnet-tiles");
     expect(tile("openstack-subnet-tiles", "Addresses used")).toHaveTextContent(
@@ -844,9 +874,9 @@ describe("routers", () => {
 
       await renderPage(OpenStackCloudRouterDetail, PATH);
 
-      expect(await screen.findByTestId("openstack-router-ovn")).toHaveTextContent(
-        /this is not a fault/,
-      );
+      expect(
+        await screen.findByTestId("openstack-router-ovn"),
+      ).toHaveTextContent(/this is not a fault/);
       expect(tile("openstack-router-tiles", "L3 agents")).toHaveTextContent(
         "Not applicable",
       );
@@ -880,10 +910,9 @@ describe("routers", () => {
       const row: HTMLElement = await screen.findByTestId(
         "openstack-router-details-external-network",
       );
-      expect((await within(row).findByText("public")).closest("a")).toHaveAttribute(
-        "href",
-        `${CLOUD_PATH}/networks/${NETWORK_ID}`,
-      );
+      expect(
+        (await within(row).findByText("public")).closest("a"),
+      ).toHaveAttribute("href", `${CLOUD_PATH}/networks/${NETWORK_ID}`);
     });
 
     test("its alerts are the router templates", async () => {
@@ -1015,7 +1044,9 @@ describe("floating IPs", () => {
   });
 
   test("a spare one says it's waiting and nothing is wrong", async () => {
-    server.rows = [floatingIpRow({ status: "DOWN", facts: { routerId: null } })];
+    server.rows = [
+      floatingIpRow({ status: "DOWN", facts: { routerId: null } }),
+    ];
 
     await renderPage(
       OpenStackCloudFloatingIpDetail,
@@ -1036,9 +1067,7 @@ describe("network agents", () => {
     await renderPage(OpenStackCloudNetworkAgents, "/network-agents");
 
     expect(
-      within(
-        await screen.findByTestId("openstack-network-agents-services"),
-      )
+      within(await screen.findByTestId("openstack-network-agents-services"))
         .getByText("Services")
         .closest("a"),
     ).toHaveAttribute("href", `${CLOUD_PATH}/services`);
@@ -1046,7 +1075,8 @@ describe("network agents", () => {
       "tr",
     ) as HTMLElement;
     expect(within(row).getByText("neutron-l3-agent")).toBeInTheDocument();
-    expect(within(row).getByText("up")).toBeInTheDocument();
+    // Its state and its admin state, each in Neutron's word.
+    expect(within(row).getAllByText("up")).toHaveLength(2);
   });
 
   test("with Neutron answering and none listed, it says this credential can't list them", async () => {
@@ -1097,7 +1127,7 @@ describe("network agents", () => {
     expect(await screen.findByText("edge")).toBeInTheDocument();
     expect(screen.queryByText("elsewhere")).not.toBeInTheDocument();
     expect(
-      kindCalls(OpenStackResourceKind.Router).some((call) => {
+      kindCalls(OpenStackResourceKind.Router).some((call: ListCall) => {
         const asked: unknown = (call.query["facts"] as JSONObject)?.[
           "l3Agents"
         ];
@@ -1145,13 +1175,18 @@ describe("network agents", () => {
 
 describe("on what real clouds said", () => {
   function load(release: string, scene: string): void {
-    const recording: OpenStackRecording = new OpenStackRecording(release, scene);
-    server.rows = recording.rows.map((row, index: number) => {
-      return {
-        ...row,
-        _id: `6c1b2a3d-4e5f-4a6b-8c7d-${String(index).padStart(12, "0")}`,
-      } as Row;
-    });
+    const recording: OpenStackRecording = new OpenStackRecording(
+      release,
+      scene,
+    );
+    server.rows = recording.rows.map(
+      (row: OpenStackResource, index: number) => {
+        return {
+          ...row,
+          _id: `6c1b2a3d-4e5f-4a6b-8c7d-${String(index).padStart(12, "0")}`,
+        } as Row;
+      },
+    );
   }
 
   function named(kind: OpenStackResourceKind, name: string): Row {

@@ -211,7 +211,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Each service's API and workers, what Placement has allocated on each hypervisor, storage pool capacity, how long collecting each service takes, and cloud logs.",
     icon: IconProp.Cloud,
     category: DashboardTemplateCategory.Infrastructure,
-    keywords: ["nova", "neutron", "cinder", "keystone", "private cloud"],
+    keywords: ["nova", "neutron", "cinder", "keystone", "glance", "iaas"],
   },
   {
     type: DashboardTemplateType.Ceph,

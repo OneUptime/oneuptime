@@ -27,6 +27,8 @@ export const OPENSTACK_REGION_PAGES: ReadonlyArray<PageMap> = [
   PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS,
   PageMap.OPENSTACK_CLOUD_VIEW_INSTANCES,
   PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS,
+  PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES,
+  PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES,
   PageMap.OPENSTACK_CLOUD_VIEW_NETWORKS,
   PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS,
   PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS,
@@ -100,7 +102,8 @@ const OpenStackRegionBar: FunctionComponent<ComponentProps> = (
           ariaLabel={translator.translateText("Region") || "Region"}
           dataTestId="openstack-region-picker"
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            const next: string = typeof value === "string" ? value : ALL_REGIONS;
+            const next: string =
+              typeof value === "string" ? value : ALL_REGIONS;
             setRegion(next === ALL_REGIONS ? null : next);
           }}
         />

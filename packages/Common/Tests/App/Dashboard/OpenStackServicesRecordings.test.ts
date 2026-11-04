@@ -15,6 +15,7 @@ import {
   OPENSTACK_BACKEND_OVS,
   OPENSTACK_CATALOG_ORDER,
   OpenStackAccessGap,
+  OpenStackHypervisorCounts,
   OpenStackServiceGroup,
   getOpenStackAccessGaps,
   getOpenStackCollectionSeconds,
@@ -134,7 +135,9 @@ function readScene(release: string, scene: string): Array<OpenStackResource> {
         timeUnixNano: `${OBSERVED_AT_MS}000000`,
         asDouble: series.value,
       };
-      if (isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })) {
+      if (
+        isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })
+      ) {
         bufferOpenStackSnapshotMetric({
           metricName: series.name,
           datapoint,
@@ -167,7 +170,9 @@ function ofKind(
   });
 }
 
-function groupsOf(rows: Array<OpenStackResource>): Array<OpenStackServiceGroup> {
+function groupsOf(
+  rows: Array<OpenStackResource>,
+): Array<OpenStackServiceGroup> {
   return getOpenStackServiceGroups({
     apis: ofKind(rows, OpenStackResourceKind.Api),
     workers: ofKind(rows, OpenStackResourceKind.Service),
@@ -214,119 +219,130 @@ test("there are clouds of each backend to read", () => {
   ).toBeGreaterThan(0);
 });
 
-describe.each(RELEASES)("a healthy cloud's services, on %s", (release: string) => {
-  const rows: Array<OpenStackResource> = readScene(release, "healthy");
-  const workers: Array<OpenStackResource> = ofKind(
-    rows,
-    OpenStackResourceKind.Service,
-  );
+describe.each(RELEASES)(
+  "a healthy cloud's services, on %s",
+  (release: string) => {
+    const rows: Array<OpenStackResource> = readScene(release, "healthy");
+    const workers: Array<OpenStackResource> = ofKind(
+      rows,
+      OpenStackResourceKind.Service,
+    );
 
-  test("read in the order of Keystone's catalog, each calm", () => {
-    const groups: Array<OpenStackServiceGroup> = groupsOf(rows);
-    expect(
-      groups.map((group: OpenStackServiceGroup): string => {
-        return group.service;
-      }),
-    ).toEqual([...OPENSTACK_CATALOG_ORDER]);
-    for (const group of groups) {
-      expect({ service: group.service, health: group.health }).toEqual({
-        service: group.service,
-        health: "Healthy",
-      });
-      expect(group.isLastKnown).toBe(false);
-    }
-  });
-
-  test("every worker is under Nova, Neutron or Cinder, and nothing else has one", () => {
-    const groups: Array<OpenStackServiceGroup> = groupsOf(rows);
-    expect(
-      groups
-        .filter((group: OpenStackServiceGroup): boolean => {
-          return group.workers.length > 0;
-        })
-        .map((group: OpenStackServiceGroup): string => {
+    test("read in the order of Keystone's catalog, each calm", () => {
+      const groups: Array<OpenStackServiceGroup> = groupsOf(rows);
+      expect(
+        groups.map((group: OpenStackServiceGroup): string => {
           return group.service;
-        })
-        .sort(),
-    ).toEqual(["compute", "network", "volume"]);
-    expect(
-      groups.reduce((total: number, group: OpenStackServiceGroup): number => {
-        return total + group.workers.length;
-      }, 0),
-    ).toBe(workers.length);
-    expect(getOpenStackWorkerCounts(workers).down).toBe(0);
-  });
-
-  test("the backend reads from its agents, as the recording's cloud was built", () => {
-    expect(getOpenStackNetworkBackendName(workers)).toBe(
-      release.endsWith("-ovn") ? OPENSTACK_BACKEND_OVN : OPENSTACK_BACKEND_OVS,
-    );
-  });
-
-  test("a working credential has nothing it can't list", () => {
-    const gaps: Array<OpenStackAccessGap> = getOpenStackAccessGaps({
-      apis: ofKind(rows, OpenStackResourceKind.Api),
-      workers: workers,
-      hypervisors: ofKind(rows, OpenStackResourceKind.Hypervisor),
-      hasStoragePools:
-        ofKind(rows, OpenStackResourceKind.StoragePool).length > 0,
+        }),
+      ).toEqual([...OPENSTACK_CATALOG_ORDER]);
+      for (const group of groups) {
+        expect({ service: group.service, health: group.health }).toEqual({
+          service: group.service,
+          health: "Healthy",
+        });
+        expect(group.isLastKnown).toBe(false);
+      }
     });
-    expect(gaps).toEqual([]);
-  });
 
-  test("an API's address reads as an API's, and a worker's as a worker's", () => {
-    for (const api of ofKind(rows, OpenStackResourceKind.Api)) {
-      expect({ id: api.externalId, api: true }).toEqual({
-        id: api.externalId,
-        api: isOpenStackApiExternalId(api.externalId as string),
-      });
-    }
-    for (const worker of workers) {
-      expect({ id: worker.externalId, api: false }).toEqual({
-        id: worker.externalId,
-        api: isOpenStackApiExternalId(worker.externalId as string),
-      });
-    }
-  });
+    test("every worker is under Nova, Neutron or Cinder, and nothing else has one", () => {
+      const groups: Array<OpenStackServiceGroup> = groupsOf(rows);
+      expect(
+        groups
+          .filter((group: OpenStackServiceGroup): boolean => {
+            return group.workers.length > 0;
+          })
+          .map((group: OpenStackServiceGroup): string => {
+            return group.service;
+          })
+          .sort(),
+      ).toEqual(["compute", "network", "volume"]);
+      expect(
+        groups.reduce((total: number, group: OpenStackServiceGroup): number => {
+          return total + group.workers.length;
+        }, 0),
+      ).toBe(workers.length);
+      expect(getOpenStackWorkerCounts(workers).down).toBe(0);
+    });
 
-  test("every worker has a host, and an alert that would fire for it", () => {
-    expect(workers.length).toBeGreaterThan(0);
-    for (const worker of workers) {
-      expect(getOpenStackWorkerHost(worker)).not.toBe("");
-      expect(getOpenStackWorkerAlertTemplateIds(worker).length).toBeGreaterThan(
-        0,
+    test("the backend reads from its agents, as the recording's cloud was built", () => {
+      expect(getOpenStackNetworkBackendName(workers)).toBe(
+        release.endsWith("-ovn")
+          ? OPENSTACK_BACKEND_OVN
+          : OPENSTACK_BACKEND_OVS,
       );
-    }
-  });
+    });
 
-  test("a Cinder host that names its backend has a machine as well", () => {
-    const volumes: Array<OpenStackResource> = workers.filter(
-      (worker: OpenStackResource): boolean => {
-        return worker.name === "cinder-volume";
-      },
-    );
-    expect(volumes.length).toBeGreaterThan(0);
-    for (const volume of volumes) {
-      expect(getOpenStackWorkerHost(volume)).toContain("@");
-      expect(getOpenStackWorkerMachine(volume)).not.toContain("@");
-      expect(getOpenStackWorkerMachine(volume)).not.toBe("");
-    }
-  });
+    test("a working credential has nothing it can't list", () => {
+      const gaps: Array<OpenStackAccessGap> = getOpenStackAccessGaps({
+        apis: ofKind(rows, OpenStackResourceKind.Api),
+        workers: workers,
+        hypervisors: ofKind(rows, OpenStackResourceKind.Hypervisor),
+        hasStoragePools:
+          ofKind(rows, OpenStackResourceKind.StoragePool).length > 0,
+      });
+      expect(gaps).toEqual([]);
+    });
 
-  test("every hypervisor can take instances, and reads up", () => {
-    const counts = getOpenStackHypervisorCounts(rows);
-    expect(counts.total).toBeGreaterThan(0);
-    expect(counts.up).toBe(counts.total);
-  });
-});
+    test("an API's address reads as an API's, and a worker's as a worker's", () => {
+      for (const api of ofKind(rows, OpenStackResourceKind.Api)) {
+        expect({ id: api.externalId, api: true }).toEqual({
+          id: api.externalId,
+          api: isOpenStackApiExternalId(api.externalId as string),
+        });
+      }
+      for (const worker of workers) {
+        expect({ id: worker.externalId, api: false }).toEqual({
+          id: worker.externalId,
+          api: isOpenStackApiExternalId(worker.externalId as string),
+        });
+      }
+    });
+
+    test("every worker has a host, and an alert that would fire for it", () => {
+      expect(workers.length).toBeGreaterThan(0);
+      for (const worker of workers) {
+        expect(getOpenStackWorkerHost(worker)).not.toBe("");
+        expect(
+          getOpenStackWorkerAlertTemplateIds(worker).length,
+        ).toBeGreaterThan(0);
+      }
+    });
+
+    test("a Cinder host that names its backend has a machine as well", () => {
+      const volumes: Array<OpenStackResource> = workers.filter(
+        (worker: OpenStackResource): boolean => {
+          return worker.name === "cinder-volume";
+        },
+      );
+      expect(volumes.length).toBeGreaterThan(0);
+      for (const volume of volumes) {
+        expect(getOpenStackWorkerHost(volume)).toContain("@");
+        expect(getOpenStackWorkerMachine(volume)).not.toContain("@");
+        expect(getOpenStackWorkerMachine(volume)).not.toBe("");
+      }
+    });
+
+    test("every hypervisor can take instances, and reads up", () => {
+      const counts: OpenStackHypervisorCounts =
+        getOpenStackHypervisorCounts(rows);
+      expect(counts.total).toBeGreaterThan(0);
+      expect(counts.up).toBe(counts.total);
+    });
+  },
+);
 
 describe("the failures, on the cloud they were recorded on", () => {
   const RELEASE: string = "gazpacho-ovs";
   const healthy: Array<OpenStackResource> = readScene(RELEASE, "healthy");
-  const after = (scene: string): Array<OpenStackResource> => {
+  const after: (scene: string) => Array<OpenStackResource> = (
+    scene: string,
+  ): Array<OpenStackResource> => {
     return onTopOf(healthy, readScene(RELEASE, scene));
   };
-  const workersNamed = (
+  const workersNamed: (
+    rows: Array<OpenStackResource>,
+    name: string,
+  ) => Array<OpenStackResource> = (
     rows: Array<OpenStackResource>,
     name: string,
   ): Array<OpenStackResource> => {
@@ -348,7 +364,10 @@ describe("the failures, on the cloud they were recorded on", () => {
     // And a credential is not what's wrong: its API isn't answering.
     expect(
       getOpenStackAccessGaps({
-        apis: ofKind(readScene(RELEASE, "compute-api-down"), OpenStackResourceKind.Api),
+        apis: ofKind(
+          readScene(RELEASE, "compute-api-down"),
+          OpenStackResourceKind.Api,
+        ),
         workers: [],
         hypervisors: [],
       }).filter((gap: OpenStackAccessGap): boolean => {
@@ -456,7 +475,9 @@ describe("how long each API took to collect, from what the collector exports", (
     ) as JSONObject;
 
     const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-    for (const resourceMetrics of otlp["resourceMetrics"] as Array<JSONObject>) {
+    for (const resourceMetrics of otlp[
+      "resourceMetrics"
+    ] as Array<JSONObject>) {
       for (const scope of resourceMetrics[
         "scopeMetrics"
       ] as Array<JSONObject>) {
@@ -485,10 +506,12 @@ describe("how long each API took to collect, from what the collector exports", (
     expect(apis.length).toBe(OPENSTACK_CATALOG_ORDER.length);
     for (const api of apis) {
       const seconds: number | null = getOpenStackCollectionSeconds(api);
-      expect({ api: api.name, isSeconds: typeof seconds === "number" }).toEqual({
-        api: api.name,
-        isSeconds: true,
-      });
+      expect({ api: api.name, isSeconds: typeof seconds === "number" }).toEqual(
+        {
+          api: api.name,
+          isSeconds: true,
+        },
+      );
       expect(seconds).toBeGreaterThan(0);
       // A real scrape, not a timestamp or a count of something.
       expect(seconds).toBeLessThan(60);

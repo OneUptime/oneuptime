@@ -65,6 +65,8 @@ export interface ListCall {
 
 export interface OpenStackTestServer {
   rows: Array<Row>;
+  // Which projects each domain holds, as Keystone says.
+  domainProjects: Record<string, Array<string>>;
   // Whole records of the other tables a page's cards read, by model name.
   records: Record<string, Array<Record<string, unknown>>>;
   // Latest metric readings, by metric name, as a group's label and value.
@@ -82,6 +84,7 @@ export interface OpenStackTestServer {
 
 export const server: OpenStackTestServer = {
   rows: [],
+  domainProjects: {},
   records: {},
   metrics: {},
   history: {},
@@ -94,6 +97,8 @@ export const server: OpenStackTestServer = {
 };
 
 export const READ_FAILED: string = "Server is not available. Please try again.";
+
+const ENDPOINT_OF_URL: RegExp = /openstack-resource\/([a-z-]+)\//;
 
 function factMatches(value: JSONValue | undefined, wanted: unknown): boolean {
   const isEmpty: boolean =
@@ -140,6 +145,13 @@ export function matchesQuery(row: Row, query: JSONObject): boolean {
           .includes(needle);
       });
       if (!found) {
+        return false;
+      }
+      continue;
+    }
+    // Every row here is this cloud's, so a read of any other cloud finds nothing.
+    if (key === "openStackCloudId") {
+      if (String(wanted) !== CLOUD_ID) {
         return false;
       }
       continue;
@@ -207,7 +219,11 @@ function blastRadiusOf(body: JSONObject): OpenStackBlastRadius {
   if (!part) {
     return getEmptyOpenStackBlastRadius(false);
   }
-  const byProject = (rows: Array<Row>) => {
+  const byProject: (
+    rows: Array<Row>,
+  ) => Array<{ projectId: string | null; count: number }> = (
+    rows: Array<Row>,
+  ): Array<{ projectId: string | null; count: number }> => {
     const counts: Map<string | null, number> = new Map();
     for (const row of rows) {
       const projectId: string | null = row.openStackProjectId || null;
@@ -221,7 +237,11 @@ function blastRadiusOf(body: JSONObject): OpenStackBlastRadius {
   };
   const projectNames: Record<string, string> = {};
   for (const row of server.rows) {
-    if (row.kind === OpenStackResourceKind.Project && row.externalId && row.name) {
+    if (
+      row.kind === OpenStackResourceKind.Project &&
+      row.externalId &&
+      row.name
+    ) {
       projectNames[row.externalId] = row.name;
     }
   }
@@ -299,10 +319,10 @@ function countsOf(body: JSONObject): Array<OpenStackCountRow> {
     const facts: JSONObject = (row.facts as JSONObject) || {};
     const value: string | null =
       body["by"] === "flavor"
-        ? ((facts["flavorId"] as string) ?? null)
+        ? (facts["flavorId"] as string) ?? null
         : body["by"] === "volumeType"
-          ? ((facts["volumeType"] as string) ?? null)
-          : (row.openStackProjectId ?? null);
+          ? (facts["volumeType"] as string) ?? null
+          : row.openStackProjectId ?? null;
     const key: string = `${row.regionName || ""}/${value || ""}`;
     const group: OpenStackCountRow = groups.get(key) || {
       value,
@@ -317,9 +337,21 @@ function countsOf(body: JSONObject): Array<OpenStackCountRow> {
   return Array.from(groups.values());
 }
 
+/*
+ * One open state of each record, whichever test is running: the states are read through a
+ * cache that outlives a test, so a test can't choose its own.
+ */
+const OPEN_STATE: Record<string, unknown> = {
+  _id: "50000000-0000-4000-8000-000000000001",
+  name: "Created",
+  isResolvedState: false,
+  order: 1,
+};
+
 export function resetServer(): void {
   server.rows = [];
-  server.records = {};
+  server.domainProjects = {};
+  server.records = { IncidentState: [OPEN_STATE], AlertState: [OPEN_STATE] };
   server.metrics = {};
   server.history = {};
   server.cloud = Object.assign(new OpenStackCloud(), { name: CLOUD_NAME });
@@ -428,55 +460,78 @@ export function resetServer(): void {
     const url: string = options.url.toString();
     const body: JSONObject = options.data || {};
     server.postCalls.push({ path: url, body });
-    const endpoint: string =
-      /openstack-resource\/([a-z-]+)\//.exec(url)?.[1] || "";
+    const endpoint: string = ENDPOINT_OF_URL.exec(url)?.[1] || "";
     if (server.failPosts.has(endpoint)) {
       return new HTTPErrorResponse(500, { message: READ_FAILED }, {});
     }
     switch (endpoint) {
       case "needs-attention":
         return {
-          data: { rows: attentionRows(), totalsByKind: {} },
+          data: {
+            rows: attentionRows().filter((row: Row): boolean => {
+              return (
+                !body["regionName"] || row.regionName === body["regionName"]
+              );
+            }),
+            totalsByKind: {},
+          },
         };
       case "blast-radius":
         return { data: blastRadiusOf(body) };
       case "counts":
         return { data: { rows: countsOf(body) } };
+      case "domain-projects":
+        return {
+          data: {
+            projectIds: server.domainProjects[String(body["domainId"])] || [],
+          },
+        };
       default:
         return { data: {} };
     }
   }) as never);
 
-  jest
-    .spyOn(AnalyticsModelAPI, "aggregate")
-    .mockImplementation((async (options: any) => {
-      const aggregateBy: JSONObject = options.aggregateBy;
-      const query: JSONObject = aggregateBy["query"] as JSONObject;
-      const name: string = query["name"] as string;
-      const groupKeys: Array<string> | undefined = aggregateBy[
-        "groupByAttributeKeys"
-      ] as Array<string> | undefined;
-      if (groupKeys) {
-        return {
-          data: (server.metrics[name] || []).map(
-            (reading: { group: string; value: number }) => {
-              return {
-                value: reading.value,
-                timestamp: new Date(),
-                attributes: { [groupKeys[0] as string]: reading.group },
-              };
-            },
-          ),
-        };
-      }
+  jest.spyOn(AnalyticsModelAPI, "aggregate").mockImplementation((async (
+    options: any,
+  ) => {
+    const aggregateBy: JSONObject = options.aggregateBy;
+    const query: JSONObject = aggregateBy["query"] as JSONObject;
+    const name: string = query["name"] as string;
+    const groupKeys: Array<string> | undefined = aggregateBy[
+      "groupByAttributeKeys"
+    ] as Array<string> | undefined;
+    if (groupKeys) {
+      const regionLabel: string = "openstack.region.name";
+      const region: unknown = (query["attributes"] as JSONObject | undefined)?.[
+        regionLabel
+      ];
       return {
-        data: (server.history[name] || []).map(
-          (point: { time: number; value: number }) => {
-            return { timestamp: new Date(point.time), value: point.value };
-          },
-        ),
+        data: (server.metrics[name] || [])
+          .filter((reading: { group: string; value: number }) => {
+            // A count kept per region answers for the region it was asked about.
+            return (
+              !region ||
+              groupKeys[0] !== regionLabel ||
+              reading.group === region
+            );
+          })
+          .map((reading: { group: string; value: number }) => {
+            return {
+              value: reading.value,
+              timestamp: new Date(),
+              attributes: { [groupKeys[0] as string]: reading.group },
+            };
+          }),
       };
-    }) as never);
+    }
+    return {
+      data: (server.history[name] || []).map(
+        (point: { time: number; value: number }) => {
+          return { timestamp: new Date(point.time), value: point.value };
+        },
+      ),
+    };
+  }) as never);
 }
 
 export function kindCalls(kind: OpenStackResourceKind): Array<ListCall> {

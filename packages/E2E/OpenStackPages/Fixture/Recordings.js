@@ -9,6 +9,11 @@
  * rowsFromRecording("gazpacho-ovs/compute-down", { region, loadedAt }) returns rows in
  * the shape OpenStackResourceService writes. Region is how one recording serves as
  * several regions of one cloud: the agent stamps it, the exporter does not know it.
+ *
+ * A drill reads on top of its cloud's healthy recording. A scrape says only what it could
+ * read, so a stopped Nova API's says nothing of Nova's workers, hypervisors or instances,
+ * and the rows OneUptime holds for them stay as they were. Without them a page could never
+ * be asked what it says about a last-known row, which is what that failure is about.
  */
 import RECORDINGS from "openstack-recordings";
 import {
@@ -74,6 +79,22 @@ function parsePrometheusText(text) {
   return series;
 }
 
+// What that cloud's exporter said of one series, for what only the metric store holds.
+export function seriesFromRecording(name, metricName, region) {
+  const found = [];
+  for (const text of Object.values(RECORDINGS[name] || {})) {
+    for (const series of parsePrometheusText(text)) {
+      if (series.name === metricName) {
+        found.push({
+          labels: { ...series.labels, "openstack.region.name": region },
+          value: series.value,
+        });
+      }
+    }
+  }
+  return found;
+}
+
 function toDatapoint(series, region, observedAtMs) {
   const attributes = Object.keys(series.labels).map((key) => {
     return { key, value: { stringValue: series.labels[key] } };
@@ -126,18 +147,34 @@ function toRow(entry, observedAtMs) {
   return row;
 }
 
-export function rowsFromRecording(name, data) {
-  const files = RECORDINGS[name];
-  if (!files) {
-    throw new Error(
-      `No recording named ${name}. There are: ${RECORDING_NAMES.join(", ")}`,
+// One scrape on another, as bulkUpsert has it: what it read replaces, column by column.
+function onTopOf(earlierRows, laterRows) {
+  const rows = new Map();
+  for (const row of earlierRows) {
+    rows.set(`${row.kind}/${row.externalId}`, row);
+  }
+  for (const row of laterRows) {
+    const key = `${row.kind}/${row.externalId}`;
+    const earlier = rows.get(key);
+    rows.set(
+      key,
+      earlier
+        ? { ...earlier, ...row, facts: { ...earlier.facts, ...row.facts } }
+        : row,
     );
   }
+  return Array.from(rows.values());
+}
+
+function readScene(name, data) {
+  const files = RECORDINGS[name];
   const buffer = new Map();
   for (const text of Object.values(files)) {
     for (const series of parsePrometheusText(text)) {
       const datapoint = toDatapoint(series, data.region, data.loadedAt);
-      if (isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })) {
+      if (
+        isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })
+      ) {
         bufferOpenStackSnapshotMetric({
           metricName: series.name,
           datapoint,
@@ -149,4 +186,16 @@ export function rowsFromRecording(name, data) {
   return finishOpenStackBatch(buffer.values()).map((entry) => {
     return toRow(entry, data.loadedAt);
   });
+}
+
+export function rowsFromRecording(name, data) {
+  if (!hasRecording(name)) {
+    throw new Error(
+      `No recording named ${name}. There are: ${RECORDING_NAMES.join(", ")}`,
+    );
+  }
+  const healthy = `${name.split("/")[0]}/healthy`;
+  return name !== healthy && hasRecording(healthy)
+    ? onTopOf(readScene(healthy, data), readScene(name, data))
+    : readScene(name, data);
 }

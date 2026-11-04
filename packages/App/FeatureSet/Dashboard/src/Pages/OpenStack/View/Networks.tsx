@@ -23,6 +23,10 @@ import {
   OpenStackListColumn,
   getOpenStackFactColumn,
 } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
 import { getOpenStackForecastText } from "../../../Components/OpenStack/Part/OpenStackForecastTile";
 import OpenStackLimitedViewNotice from "../../../Components/OpenStack/Part/OpenStackLimitedViewNotice";
 import OpenStackNetworkCountsCard from "../../../Components/OpenStack/Part/OpenStackNetworkCountsCard";
@@ -61,13 +65,18 @@ const OpenStackCloudNetworks: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const cloudName: string = useOpenStackCloudName(modelId);
 
+  const { region }: OpenStackRegionState = useOpenStackRegion();
+
   const externalCount: OpenStackRead<number> = useOpenStackRead<number>(() => {
     return countOpenStackRows({
       openStackCloudId: modelId,
       kind: OpenStackResourceKind.Network,
-      query: EXTERNAL_QUERY,
+      query: {
+        ...EXTERNAL_QUERY,
+        ...(region ? { regionName: region } : {}),
+      },
     });
-  }, [modelId.toString()]);
+  }, [modelId.toString(), region]);
 
   const [forecasts, setForecasts] = useState<Record<string, OpenStackForecast>>(
     {},
@@ -79,6 +88,7 @@ const OpenStackCloudNetworks: FunctionComponent<
       getOpenStackFactColumn({
         id: "days-until-empty",
         title: "Days Until Empty",
+        isReadLater: true,
         description:
           "When this pool runs out at its growth over the last day. It says so when there isn't enough history yet to tell.",
         getText: (row: OpenStackResource): string => {
@@ -134,7 +144,11 @@ const OpenStackCloudNetworks: FunctionComponent<
         openStackCloudId={modelId}
         query={hasExternal ? OTHER_QUERY : undefined}
       />
-      {cloudName ? <OpenStackNetworkCountsCard cloudName={cloudName} /> : <></>}
+      {cloudName ? (
+        <OpenStackNetworkCountsCard cloudName={cloudName} regionName={region} />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

@@ -17,6 +17,7 @@ import {
   minutesInState,
   percentOf,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
+import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
 import {
   OPENSTACK_SERVICE_STATUS_UP,
   OpenStackResourceKind,
@@ -687,9 +688,7 @@ export function getOpenStackInstanceAddresses(
 export function isOpenStackInstanceUnplaced(
   row: Pick<OpenStackResource, "kind" | "hypervisorName">,
 ): boolean {
-  return (
-    row.kind === OpenStackResourceKind.Instance && !row.hypervisorName
-  );
+  return row.kind === OpenStackResourceKind.Instance && !row.hypervisorName;
 }
 
 /*
@@ -853,7 +852,9 @@ export interface OpenStackRouterAgentReading {
   activeHost: string | null;
 }
 
-const ROUTER_AGENTS_ALIVE: string = translationKey("{{alive}} of {{total}} alive");
+const ROUTER_AGENTS_ALIVE: string = translationKey(
+  "{{alive}} of {{total}} alive",
+);
 const ROUTER_AGENTS_NOT_APPLICABLE: string = translationKey("Not applicable");
 const ROUTER_AGENTS_NOT_REPORTED: string = translationKey("Not reported");
 
@@ -1145,6 +1146,39 @@ export function isOpenStackIssueAboutHosts(
 
 /*
  * ---------------------------------------------------------------------------
+ * A card's totals, from counts that come per region
+ * ---------------------------------------------------------------------------
+ *
+ * The server counts per region, because a flavor's ID only means something in its own. A
+ * card that totals them reads the region being read, or adds the regions up: one project
+ * in two regions is one line, not two. Most first, as the server answered.
+ */
+export function getOpenStackCountTotals(
+  rows: Array<OpenStackCountRow>,
+  region: string | null,
+): Array<OpenStackCountRow> {
+  const totals: Map<string | null, OpenStackCountRow> = new Map();
+  for (const row of rows) {
+    if (region && row.regionName !== region) {
+      continue;
+    }
+    const total: OpenStackCountRow | undefined = totals.get(row.value);
+    if (total) {
+      total.count += row.count;
+      total.sizeBytes += row.sizeBytes;
+    } else {
+      totals.set(row.value, { ...row, regionName: region });
+    }
+  }
+  return Array.from(totals.values()).sort(
+    (first: OpenStackCountRow, second: OpenStackCountRow): number => {
+      return second.count - first.count;
+    },
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * When something fills up, at its recent growth
  * ---------------------------------------------------------------------------
  */
@@ -1339,9 +1373,7 @@ export function isOpenStackListPossiblyOneProject(data: {
  * Network agents
  * ---------------------------------------------------------------------------
  */
-export function isOpenStackNetworkAgent(
-  row: OpenStackResource,
-): boolean {
+export function isOpenStackNetworkAgent(row: OpenStackResource): boolean {
   return (
     row.kind === OpenStackResourceKind.Service &&
     factsOf(row)["family"] === OpenStackServiceFamily.Network

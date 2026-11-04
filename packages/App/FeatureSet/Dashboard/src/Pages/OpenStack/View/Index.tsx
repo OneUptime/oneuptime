@@ -163,11 +163,18 @@ const READ_FAILED: string = translationKey("Couldn't read this");
  * cloud can have thousands of instances in ERROR, and a read of them all would be no
  * better an answer: this says how many there are, and where the rest are.
  */
-const CAPPED_KINDS: Array<{
+interface CappedKind {
   kind: OpenStackResourceKind;
   page: PageMap;
   sentence: string;
-}> = [
+}
+
+interface CappedKindReading extends CappedKind {
+  shown: number;
+  total: number;
+}
+
+const CAPPED_KINDS: Array<CappedKind> = [
   {
     kind: OpenStackResourceKind.Instance,
     page: PageMap.OPENSTACK_CLOUD_VIEW_INSTANCES,
@@ -347,7 +354,10 @@ function formatPercent(percent: number | null, translator: Translator): string {
     : `${translator.formatNumber(Math.round(percent))}%`;
 }
 
-const HEALTH_CLASS_NAMES: Record<ResourceHealth, { pill: string; dot: string }> = {
+const HEALTH_CLASS_NAMES: Record<
+  ResourceHealth,
+  { pill: string; dot: string }
+> = {
   Healthy: {
     pill: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
@@ -392,6 +402,10 @@ const OpenStackCloudOverview: FunctionComponent<
   const [attention, setAttention] = useState<OpenStackAttentionAnswer | null>(
     null,
   );
+  // How many of each kind may need someone in each region, when each had its own read.
+  const [totalsByRegion, setTotalsByRegion] = useState<
+    Record<string, Record<string, number>>
+  >({});
   const [apis, setApis] = useState<Array<OpenStackResource>>([]);
   const [attentionError, setAttentionError] = useState<string>("");
 
@@ -540,15 +554,15 @@ const OpenStackCloudOverview: FunctionComponent<
     }
 
     try {
+      const regionsToRead: Array<string | null> =
+        names.length > 1 ? names : [null];
       const [answers, apiRows]: [
         Array<OpenStackAttentionAnswer>,
         Array<OpenStackResource>,
       ] = await Promise.all([
         Promise.all(
-          (names.length > 1 ? names : [null]).map(
-            (
-              regionName: string | null,
-            ): Promise<OpenStackAttentionAnswer> => {
+          regionsToRead.map(
+            (regionName: string | null): Promise<OpenStackAttentionAnswer> => {
               return fetchOpenStackAttention({
                 openStackCloudId: modelId,
                 regionName: regionName,
@@ -565,9 +579,18 @@ const OpenStackCloudOverview: FunctionComponent<
       if (sequence !== healthSequence.current) {
         return;
       }
-      const merged: OpenStackAttentionAnswer =
-        mergeOpenStackAttention(answers);
+      const merged: OpenStackAttentionAnswer = mergeOpenStackAttention(answers);
       setAttention(merged);
+      const totals: Record<string, Record<string, number>> = {};
+      regionsToRead.forEach(
+        (regionName: string | null, index: number): void => {
+          const answer: OpenStackAttentionAnswer | undefined = answers[index];
+          if (regionName && answer) {
+            totals[regionName] = answer.totalsByKind;
+          }
+        },
+      );
+      setTotalsByRegion(totals);
       setApis(apiRows);
       setAttentionError("");
       loadRadii(merged.rows);
@@ -632,8 +655,8 @@ const OpenStackCloudOverview: FunctionComponent<
   // A tab left open stays true, or says it has stopped being able to.
   const refreshCloud: PromiseVoidFunction = async (): Promise<void> => {
     try {
-      const item: OpenStackCloud | null = await ModelAPI.getItem<OpenStackCloud>(
-        {
+      const item: OpenStackCloud | null =
+        await ModelAPI.getItem<OpenStackCloud>({
           modelType: OpenStackCloud,
           id: modelId,
           select: {
@@ -642,8 +665,7 @@ const OpenStackCloudOverview: FunctionComponent<
             lastSeenAt: true,
             agentVersion: true,
           },
-        },
-      );
+        });
       if (item) {
         setCloud(item);
         isConnectedRef.current = isResourceStatusConnected(
@@ -819,9 +841,14 @@ const OpenStackCloudOverview: FunctionComponent<
   const healthByRegion: Record<string, ResourceHealth> = {};
   if (isConnected && attention) {
     for (const one of regionSummaries) {
+      // The same rows as reading this region, so its pill says what that page would.
       const regionRows: Array<OpenStackResource> = attention.rows.filter(
         (row: OpenStackResource): boolean => {
-          return row.regionName === one.regionName;
+          return isOpenStackRowInRegion({
+            row: row,
+            regionName: one.regionName,
+            now: now,
+          });
         },
       );
       healthByRegion[one.regionName] = getOpenStackHealth(
@@ -841,7 +868,7 @@ const OpenStackCloudOverview: FunctionComponent<
   const hypervisorCounts: OpenStackHypervisorCounts =
     getOpenStackHypervisorCounts(hypervisors);
   const isCurrent: boolean = isConnected && attention !== null;
-  const hasAccessGap = (key: string): boolean => {
+  const hasAccessGap: (key: string) => boolean = (key: string): boolean => {
     return accessGaps.some((gap: OpenStackAccessGap): boolean => {
       return gap.key === key;
     });
@@ -862,12 +889,15 @@ const OpenStackCloudOverview: FunctionComponent<
       )
     : null;
   const storagePercent: number | null = summary
-    ? getOpenStackPercent(summary.storageUsedBytes, summary.storageCapacityBytes)
+    ? getOpenStackPercent(
+        summary.storageUsedBytes,
+        summary.storageCapacityBytes,
+      )
     : null;
   const fullestPoolPercent: number | null =
     getOpenStackFullestPoolPercent(rows);
 
-  const getAllocationTone = (
+  const getAllocationTone: (kind: "vcpu" | "memory") => GoldenMetricTileTone = (
     kind: "vcpu" | "memory",
   ): GoldenMetricTileTone => {
     return hasOpenStackHostPastAllocationLine(rows, kind)
@@ -876,8 +906,7 @@ const OpenStackCloudOverview: FunctionComponent<
   };
 
   const controlPlaneTone: GoldenMetricTileTone =
-    apisUp < apisInScope.length ||
-    workerCounts.down > 0
+    apisUp < apisInScope.length || workerCounts.down > 0
       ? "danger"
       : "positive";
 
@@ -894,10 +923,13 @@ const OpenStackCloudOverview: FunctionComponent<
 
   const hypervisorSublabel: string =
     hypervisorCounts.lost > 0 && hypervisorCounts.disabled > 0
-      ? translator.translateTemplate("up · {{lost}} lost · {{disabled}} disabled", {
-          lost: translator.formatNumber(hypervisorCounts.lost),
-          disabled: translator.formatNumber(hypervisorCounts.disabled),
-        })
+      ? translator.translateTemplate(
+          "up · {{lost}} lost · {{disabled}} disabled",
+          {
+            lost: translator.formatNumber(hypervisorCounts.lost),
+            disabled: translator.formatNumber(hypervisorCounts.disabled),
+          },
+        )
       : hypervisorCounts.lost > 0
         ? translator.translatePlural(
             { one: "up · {{count}} lost", other: "up · {{count}} lost" },
@@ -913,26 +945,31 @@ const OpenStackCloudOverview: FunctionComponent<
             )
           : translator.translateText("up") || "up";
 
-  const amountSublabel = (used: string, total: string): string => {
+  const amountSublabel: (used: string, total: string) => string = (
+    used: string,
+    total: string,
+  ): string => {
     return translator.translateTemplate("{{used}} of {{total}}", {
       used: used,
       total: total,
     });
   };
 
-  const cappedKinds: Array<{
-    kind: OpenStackResourceKind;
-    page: PageMap;
-    sentence: string;
-    shown: number;
-    total: number;
-  }> = [];
-  if (attention && !region) {
+  /*
+   * Of the region being read when it had a read of its own, and otherwise of the cloud,
+   * which then has only the one region.
+   */
+  const attentionTotals: Record<string, number> =
+    (region ? totalsByRegion[region] : undefined) ||
+    attention?.totalsByKind ||
+    {};
+  const cappedKinds: Array<CappedKindReading> = [];
+  if (attention) {
     for (const capped of CAPPED_KINDS) {
-      const shown: number = attention.rows.filter((row: OpenStackResource) => {
+      const shown: number = rows.filter((row: OpenStackResource) => {
         return row.kind === capped.kind;
       }).length;
-      const total: number = attention.totalsByKind[capped.kind] || 0;
+      const total: number = attentionTotals[capped.kind] || 0;
       if (total > shown) {
         cappedKinds.push({ ...capped, shown, total });
       }
@@ -1137,7 +1174,7 @@ const OpenStackCloudOverview: FunctionComponent<
           className="mb-6 space-y-1 text-sm text-gray-600"
           data-testid="openstack-needs-attention-capped"
         >
-          {cappedKinds.map((capped) => {
+          {cappedKinds.map((capped: CappedKindReading): ReactElement => {
             return (
               <li key={capped.kind} data-key={capped.kind}>
                 {translator.translateTemplate(capped.sentence, {

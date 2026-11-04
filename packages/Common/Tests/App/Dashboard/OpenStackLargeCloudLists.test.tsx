@@ -9,7 +9,6 @@ import {
 } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, configure, fireEvent, screen } from "@testing-library/react";
-import * as React from "react";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import { JSONObject } from "../../../Types/JSON";
@@ -190,7 +189,10 @@ function expectEveryReadToBeAPage(): void {
   }
 }
 
-function withFacets(path: string, selections: Record<string, Array<string>>): string {
+function withFacets(
+  path: string,
+  selections: Record<string, Array<string>>,
+): string {
   const params: Record<string, string> = TableFilterUrlState.getLinkQueryParams(
     "openstack-instances-table",
     {
@@ -255,9 +257,7 @@ describe("a cloud with 100,000 instances", () => {
     fireEvent.click(screen.getByTestId("pagination-next-button"));
     await settle();
 
-    expect(
-      await screen.findByText(`vm-${pad(firstPage)}`),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(`vm-${pad(firstPage)}`)).toBeInTheDocument();
     expect(screen.queryByText("vm-000000")).not.toBeInTheDocument();
     const last: ListCall = listCallsOfInstances().pop() as ListCall;
     expect(last.skip).toBe(firstPage);
@@ -265,7 +265,15 @@ describe("a cloud with 100,000 instances", () => {
     expectEveryReadToBeAPage();
   });
 
-  test.each<[string, Record<string, Array<string>>, string, (call: ListCall) => void, number]>([
+  test.each<
+    [
+      string,
+      Record<string, Array<string>>,
+      string,
+      (call: ListCall) => void,
+      number,
+    ]
+  >([
     [
       "status",
       { status: ["ERROR"] },
@@ -280,9 +288,9 @@ describe("a cloud with 100,000 instances", () => {
       { openStackProjectId: ["project-000007"] },
       "project",
       (call: ListCall): void => {
-        expect(
-          (call.query["openStackProjectId"] as Includes).values,
-        ).toEqual(["project-000007"]);
+        expect((call.query["openStackProjectId"] as Includes).values).toEqual([
+          "project-000007",
+        ]);
       },
       INSTANCES / PROJECTS,
     ],
@@ -362,7 +370,10 @@ describe("a cloud with 100,000 instances", () => {
   });
 
   test("a link opened on a project asks for that project from the first read, one read, and lights the chip", async () => {
-    await renderPage(OpenStackCloudInstances, "/instances?project=project-000007");
+    await renderPage(
+      OpenStackCloudInstances,
+      "/instances?project=project-000007",
+    );
     await settle();
 
     const calls: Array<ListCall> = listCallsOfInstances();
@@ -376,8 +387,50 @@ describe("a cloud with 100,000 instances", () => {
       new RegExp(String(INSTANCES / PROJECTS)),
     );
     expect(window.location.search).toContain("project=project-000007");
-    // Named in the chip, so it can be seen and cleared there.
-    expect(screen.getByText(/Project 7/)).toBeInTheDocument();
+    // Named in the chip, so it can be seen and cleared there, as well as on each row.
+    expect(
+      screen.getAllByText("Project 7").some((name: HTMLElement) => {
+        return Boolean(name.closest("button"));
+      }),
+    ).toBe(true);
+  });
+
+  test("a domain narrows a project someone chose, and neither writes over the other", async () => {
+    server.domainProjects = {
+      acme: ["project-000007", "project-000008"],
+      other: ["project-000009"],
+    };
+
+    await renderPage(
+      OpenStackCloudInstances,
+      `${withFacets("/instances", {
+        openStackProjectId: ["project-000007", "project-000009"],
+      })}&domain=acme`,
+    );
+    await settle();
+
+    const last: ListCall = listCallsOfInstances().pop() as ListCall;
+    expect((last.query["openStackProjectId"] as Includes).values).toEqual([
+      "project-000007",
+    ]);
+  });
+
+  test("a project outside the domain is nothing, rather than the whole domain", async () => {
+    server.domainProjects = { acme: ["project-000008"] };
+
+    await renderPage(
+      OpenStackCloudInstances,
+      `${withFacets("/instances", {
+        openStackProjectId: ["project-000007"],
+      })}&domain=acme`,
+    );
+    await settle();
+
+    const last: ListCall = listCallsOfInstances().pop() as ListCall;
+    expect((last.query["openStackProjectId"] as Includes).values).not.toContain(
+      "project-000008",
+    );
+    expect(screen.queryByText(/^vm-/)).not.toBeInTheDocument();
   });
 
   test("asking for stuck instances is the rules' words and line, answered by the server", async () => {

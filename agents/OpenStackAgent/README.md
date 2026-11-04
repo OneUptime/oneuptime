@@ -134,7 +134,7 @@ service_type = compute
 
 The rules also carry `volumev3`, for a Cinder configured that way. Keystone needs nothing.
 
-Without it, the service refuses the credential with a `401`. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
+Without `service_type`, the service refuses the credential with a `401`. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
 
 If you will not make that change, make the same credential without `--access-rules`: a plain admin application credential. It works, and it can write, so `troubleshoot.sh` labels it as one.
 

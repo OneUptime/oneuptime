@@ -484,12 +484,14 @@ const RETENTION_WORDS: ReadonlyArray<[string, ReadonlyArray<EntityType>]> = [
   ["Pods", [EntityType.KubernetesPod]],
   ["deployments", [EntityType.KubernetesDeployment]],
   ["Proxmox guests", [EntityType.ProxmoxGuest]],
+  ["OpenStack instances", [EntityType.OpenStackInstance]],
   ["VMware virtual machines", [EntityType.VMwareVirtualMachine]],
   [
     "Kubernetes nodes and namespaces",
     [EntityType.KubernetesNode, EntityType.KubernetesNamespace],
   ],
   ["Proxmox nodes", [EntityType.ProxmoxNode]],
+  ["OpenStack hypervisors", [EntityType.OpenStackHypervisor]],
   [
     "VMware hosts, clusters and datastores",
     [
@@ -512,6 +514,7 @@ const RETENTION_WORDS: ReadonlyArray<[string, ReadonlyArray<EntityType>]> = [
       EntityType.CephCluster,
     ],
   ],
+  ["OpenStack clouds", [EntityType.OpenStackCloud]],
   ["storage arrays", [EntityType.StorageArray]],
   ["vCenters", [EntityType.VMwareVCenter]],
   ["Docker Swarm clusters", [EntityType.DockerSwarmCluster]],

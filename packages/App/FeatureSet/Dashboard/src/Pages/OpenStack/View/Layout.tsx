@@ -24,9 +24,9 @@ import React, {
 } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
-const OpenStackCloudViewBody: FunctionComponent<{ modelId: ObjectID }> = (props: {
+const OpenStackCloudViewBody: FunctionComponent<{
   modelId: ObjectID;
-}): ReactElement => {
+}> = (props: { modelId: ObjectID }): ReactElement => {
   const modelId: ObjectID = props.modelId;
   const { region }: OpenStackRegionState = useOpenStackRegion();
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());

@@ -619,7 +619,9 @@ export class Service extends DatabaseService<Model> {
       [data.projectId.toString(), data.openStackCloudId.toString()],
     );
 
-    const toNumber = (value: string | null | undefined): number => {
+    const toNumber: (value: string | null | undefined) => number = (
+      value: string | null | undefined,
+    ): number => {
       const parsed: number = Number.parseFloat(value || "0");
       return Number.isFinite(parsed) ? parsed : 0;
     };
@@ -697,7 +699,10 @@ export class Service extends DatabaseService<Model> {
       data.regionName || null,
     ];
 
-    const top = async (query: {
+    const top: (query: {
+      kind: OpenStackResourceKind;
+      value: string;
+    }) => Promise<Array<{ projectId: string; value: string }>> = async (query: {
       kind: OpenStackResourceKind;
       value: string;
     }): Promise<Array<{ projectId: string; value: string }>> => {
@@ -755,7 +760,9 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    const toConsumers = (
+    const toConsumers: (
+      rows: Array<{ projectId: string; value: string }>,
+    ) => Array<OpenStackTopConsumer> = (
       rows: Array<{ projectId: string; value: string }>,
     ): Array<OpenStackTopConsumer> => {
       return rows.map((row: { projectId: string; value: string }) => {
@@ -1179,7 +1186,8 @@ export class Service extends DatabaseService<Model> {
             data.openStackCloudId.toString(),
             part.regionName ?? null,
             host,
-            `${host.replace(/[\%_]/g, "\$&")}.%`,
+            // A host's own _ or % is a character, not LIKE's wildcard.
+            `${host.replace(/[\\%_]/g, "\\$&")}.%`,
           ],
         );
       for (const hypervisor of hypervisors) {

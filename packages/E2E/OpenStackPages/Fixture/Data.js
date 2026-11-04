@@ -28,6 +28,8 @@
  *   multi-region  two regions: RegionOne is calm, RegionTwo has lost its compute API.
  *   overflow      more instances in ERROR than Needs attention reads.
  *   ovn-stale     a calm cloud on OVN, with a stale record beside a live agent.
+ *   parts         busy, with what a part's page has to say that busy does not hold: hosts
+ *                 in zones and aggregates, an image stuck saving, what the probe lists.
  */
 
 export const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -247,18 +249,21 @@ export function volume(context, number, name, region, fields = {}) {
 
 // A Cinder pool (gazpacho-ovs/healthy): host@backend#pool, free of what it holds.
 export function storagePool(context, name, region, fields = {}) {
+  const total = fields.diskCapacityBytes ?? 40 * TIB;
+  const used = fields.diskAllocatedBytes ?? 16 * TIB;
   return stamped(
     {
       kind: "StoragePool",
       externalId: `${region}/${name}`,
       name,
       regionName: region,
-      diskCapacityBytes: 40 * TIB,
-      diskAllocatedBytes: 16 * TIB,
+      diskCapacityBytes: total,
+      diskAllocatedBytes: used,
       ...fields,
       facts: {
         backend: name.substring(name.indexOf("#") + 1),
         vendor: "Open Source",
+        freeBytes: total - used,
         ...(fields.facts || {}),
       },
     },
@@ -462,6 +467,26 @@ export function snapshot(context, number, name, region, fields = {}) {
     {
       kind: "Snapshot",
       externalId: openStackUuid("4e32faf8", number),
+      name,
+      regionName: region,
+      status: "available",
+      diskCapacityBytes: 20 * GIB,
+      ...fields,
+      facts: {
+        volumeId: openStackUuid("0ccef2fb", 1),
+        ...(fields.facts || {}),
+      },
+    },
+    context,
+  );
+}
+
+// A backup, which only the probe lists: the exporter has no backup series at all.
+export function backup(context, number, name, region, fields = {}) {
+  return stamped(
+    {
+      kind: "Backup",
+      externalId: openStackUuid("6b1f4c02", number),
       name,
       regionName: region,
       status: "available",
@@ -1125,8 +1150,83 @@ function ovnStaleInventory(context) {
   ];
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * parts: busy, and what no recording holds for a part's page. No recording has an aggregate
+ * in it, and a recording's zones are one "nova". Snapshots and backups are the probe's rows,
+ * an address and a fault message are what the probe adds to an instance, and `growsPerDay`
+ * is how much a pool or a network has been filling, for a forecast to read.
+ * ---------------------------------------------------------------------------
+ */
+const PARTS_HOSTS = {
+  "compute-01.acme.example": { zone: "az-a", aggregates: "gpu,ssd" },
+  "compute-02.acme.example": { zone: "az-a", aggregates: "gpu,ssd" },
+  "compute-03.acme.example": { zone: "az-b", aggregates: "ssd" },
+  "compute-04.acme.example": { zone: "az-b", aggregates: null },
+  "compute-05.acme.example": { zone: "az-b", aggregates: null },
+};
+
+function partsRow(row) {
+  if (row.kind === "Hypervisor") {
+    const place = PARTS_HOSTS[row.name];
+    return {
+      ...row,
+      availabilityZone: place.zone,
+      facts: { ...row.facts, aggregates: place.aggregates },
+    };
+  }
+  if (row.kind === "Network" && row.name === "public-dmz") {
+    return { ...row, growsPerDay: 2 };
+  }
+  if (row.kind === "StoragePool" && row.name === "ctl-02@ceph#rbd-fast") {
+    return { ...row, growsPerDay: 512 };
+  }
+  if (row.kind === "Instance" && row.name === "ou-failed") {
+    return {
+      ...row,
+      facts: {
+        ...row.facts,
+        faultMessage:
+          "No valid host was found. There are not enough hosts available.",
+      },
+    };
+  }
+  if (row.kind === "Instance" && row.name === "batch-worker-7") {
+    return {
+      ...row,
+      facts: { ...row.facts, addressIpv4: "10.77.0.12" },
+    };
+  }
+  return row;
+}
+
+function partsInventory(context) {
+  const region = REGION_ONE;
+  return [
+    ...busyInventory(context).map(partsRow),
+    image(context, 3, "windows-2022-import", region, {
+      status: "saving",
+      since: 3 * HOUR,
+      openStackProjectId: projectIdOf(3),
+    }),
+    snapshot(context, 1, "payments-db-nightly", region, {
+      openStackProjectId: projectIdOf(1),
+      diskCapacityBytes: 2 * TIB,
+    }),
+    snapshot(context, 2, "research-before-upgrade", region, {
+      status: "creating",
+      openStackProjectId: projectIdOf(2),
+    }),
+    backup(context, 1, "payments-db-weekly", region, {
+      openStackProjectId: projectIdOf(1),
+      diskCapacityBytes: TIB,
+    }),
+  ];
+}
+
 const ESTATES = {
   busy: busyInventory,
+  parts: partsInventory,
   calm: calmInventory,
   "ovn-stale": ovnStaleInventory,
   new: () => {

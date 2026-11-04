@@ -21,7 +21,10 @@ import {
 } from "Common/Types/OpenStack/OpenStackResourceKind";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { OPENSTACK_INTERNAL_ZONE, getOpenStackFlavorId } from "../../Pages/OpenStack/Utils/OpenStackPartFacts";
+import {
+  OPENSTACK_INTERNAL_ZONE,
+  getOpenStackFlavorId,
+} from "../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import {
   FilterChipDropdownOption,
   FilterOperator,
@@ -374,7 +377,9 @@ export const OPENSTACK_VOLUME_STATE_PRESETS: Array<OpenStackStatePreset> = [
     value: "error",
     label: LABEL_IN_ERROR,
     getQuery: (): Query<OpenStackResource> => {
-      return { status: new Includes(Array.from(OPENSTACK_VOLUME_ERROR_STATUSES)) };
+      return {
+        status: new Includes(Array.from(OPENSTACK_VOLUME_ERROR_STATUSES)),
+      };
     },
   },
 ];

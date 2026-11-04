@@ -77,7 +77,9 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
   const host: string = getOpenStackWorkerHost(row);
   const staleCount: number = getOpenStackStaleAgentIds(row).length;
   const timeInState: string =
-    row.status === "up" && row.adminState !== "disabled" && row.adminState !== "down"
+    row.status === "up" &&
+    row.adminState !== "disabled" &&
+    row.adminState !== "down"
       ? ""
       : getOpenStackTimeInState(row, now);
   const zone: string = row.availabilityZone || "";

@@ -313,7 +313,9 @@ export default class OpenStackCollectionSettings {
    */
   public static normalizeRegions(
     value: unknown,
-  ): { regions: Array<string>; error?: undefined } | { error: string } {
+  ):
+    | { regions: Array<string>; error?: undefined }
+    | { regions?: undefined; error: string } {
     const items: Array<unknown> = Array.isArray(value)
       ? value
       : typeof value === "string"
@@ -360,7 +362,7 @@ export default class OpenStackCollectionSettings {
     value: unknown,
   ):
     | { options: OpenStackCollectionOptions; error?: undefined }
-    | { error: string } {
+    | { options?: undefined; error: string } {
     if (value === null || value === undefined) {
       return { options: {} };
     }
@@ -435,7 +437,9 @@ export default class OpenStackCollectionSettings {
    */
   public static normalizeFingerprints(
     value: unknown,
-  ): { fingerprints: Array<string>; error?: undefined } | { error: string } {
+  ):
+    | { fingerprints: Array<string>; error?: undefined }
+    | { fingerprints?: undefined; error: string } {
     if (value === null || value === undefined || value === "") {
       return { fingerprints: [] };
     }

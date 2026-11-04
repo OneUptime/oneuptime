@@ -147,7 +147,9 @@ describe("how a row names itself", () => {
     expect(getOpenStackWorkerHost(volume)).toBe("compute-01@lvmdriver-1");
     expect(getOpenStackWorkerMachine(volume)).toBe("compute-01");
     expect(
-      getOpenStackWorkerMachine(worker("compute", "nova-compute", "compute-01")),
+      getOpenStackWorkerMachine(
+        worker("compute", "nova-compute", "compute-01"),
+      ),
     ).toBe("compute-01");
   });
 
@@ -242,12 +244,20 @@ describe("what needs someone first among workers", () => {
       "compute",
       "nova-compute",
       "c-2",
-      { adminState: "disabled", stateChangedAt: ago(LINE_MINUTES + 2 * DAY_MINUTES) },
+      {
+        adminState: "disabled",
+        stateChangedAt: ago(LINE_MINUTES + 2 * DAY_MINUTES),
+      },
     );
-    const planned: OpenStackResource = worker("compute", "nova-compute", "c-3", {
-      adminState: "disabled",
-      stateChangedAt: ago(DAY_MINUTES),
-    });
+    const planned: OpenStackResource = worker(
+      "compute",
+      "nova-compute",
+      "c-3",
+      {
+        adminState: "disabled",
+        stateChangedAt: ago(DAY_MINUTES),
+      },
+    );
     const fine: OpenStackResource = worker("compute", "nova-compute", "c-4");
 
     expect(getOpenStackWorkerRank(down, NOW)).toBe(0);
@@ -400,7 +410,9 @@ describe("how a cloud's services group", () => {
         worker("volume", "cinder-scheduler", "ctl-1"),
       ],
     );
-    const workersOf = (service: string): Array<string | undefined> => {
+    const workersOf: (service: string) => Array<string | undefined> = (
+      service: string,
+    ): Array<string | undefined> => {
       return (
         groups
           .find((group: OpenStackServiceGroup): boolean => {
@@ -435,9 +447,10 @@ describe("how a cloud's services group", () => {
 
   test("a worker of a family nothing knows, and an API with no name, have no card", () => {
     expect(
-      groupsOf([row(OpenStackResourceKind.Api, { name: undefined })], [
-        worker("baremetal", "ironic-conductor", "c-1"),
-      ]),
+      groupsOf(
+        [row(OpenStackResourceKind.Api, { name: undefined })],
+        [worker("baremetal", "ironic-conductor", "c-1")],
+      ),
     ).toEqual([]);
   });
 
@@ -595,7 +608,9 @@ describe("the network backend, from what the agents list reports", () => {
 });
 
 describe("what a credential can't list", () => {
-  const titlesOf = (gaps: Array<OpenStackAccessGap>): Array<string> => {
+  const titlesOf: (gaps: Array<OpenStackAccessGap>) => Array<string> = (
+    gaps: Array<OpenStackAccessGap>,
+  ): Array<string> => {
     return gaps.map((gap: OpenStackAccessGap): string => {
       return gap.key;
     });
@@ -791,7 +806,9 @@ describe("whether an open record is about a service", () => {
   const workers: Array<OpenStackResource> = [
     worker("compute", "nova-compute", "c-1"),
   ];
-  const about = (labels: JSONObject | null): boolean => {
+  const about: (labels: JSONObject | null) => boolean = (
+    labels: JSONObject | null,
+  ): boolean => {
     return isOpenStackIssueAboutService({
       labels,
       service: "compute",
@@ -833,7 +850,9 @@ describe("whether an open record is about a service", () => {
 
 describe("which rows a region reads", () => {
   test("its own, and Keystone's belongs to all of them", () => {
-    const inRegion = (row_: OpenStackResource): boolean => {
+    const inRegion: (row_: OpenStackResource) => boolean = (
+      row_: OpenStackResource,
+    ): boolean => {
       return isOpenStackRowInRegion({
         row: row_,
         regionName: "RegionOne",
@@ -862,16 +881,26 @@ describe("which rows a region reads", () => {
       },
     });
     expect(
-      isOpenStackRowInRegion({ row: project, regionName: "RegionTwo", now: NOW }),
+      isOpenStackRowInRegion({
+        row: project,
+        regionName: "RegionTwo",
+        now: NOW,
+      }),
     ).toBe(true);
     expect(
-      isOpenStackRowInRegion({ row: project, regionName: "RegionOne", now: NOW }),
+      isOpenStackRowInRegion({
+        row: project,
+        regionName: "RegionOne",
+        now: NOW,
+      }),
     ).toBe(false);
   });
 });
 
 describe("hypervisors, as a tile reads them", () => {
-  const up = (fields: Partial<OpenStackResource> = {}): OpenStackResource => {
+  const up: (fields?: Partial<OpenStackResource>) => OpenStackResource = (
+    fields: Partial<OpenStackResource> = {},
+  ): OpenStackResource => {
     return row(OpenStackResourceKind.Hypervisor, {
       name: "h-up",
       status: "up",
@@ -900,7 +929,10 @@ describe("hypervisors, as a tile reads them", () => {
   test("a bar warns at the rules' own line, on a host that can take instances", () => {
     const atLine: number = OPENSTACK_ALLOCATION_WARNING_PERCENT;
     expect(
-      hasOpenStackHostPastAllocationLine([up({ vcpuAllocated: atLine })], "vcpu"),
+      hasOpenStackHostPastAllocationLine(
+        [up({ vcpuAllocated: atLine })],
+        "vcpu",
+      ),
     ).toBe(false);
     expect(
       hasOpenStackHostPastAllocationLine(
@@ -972,7 +1004,9 @@ describe("hypervisors, as a tile reads them", () => {
 });
 
 describe("the storage tile", () => {
-  const pool = (used: number): OpenStackResource => {
+  const pool: (used: number) => OpenStackResource = (
+    used: number,
+  ): OpenStackResource => {
     return row(OpenStackResourceKind.StoragePool, {
       diskCapacityBytes: 100,
       diskAllocatedBytes: used,
@@ -1006,7 +1040,10 @@ describe("the storage tile", () => {
 });
 
 describe("the attention rows read a region at a time", () => {
-  const answer = (
+  const answer: (
+    rows: Array<OpenStackResource>,
+    totalsByKind: Record<string, number>,
+  ) => OpenStackAttentionAnswer = (
     rows: Array<OpenStackResource>,
     totalsByKind: Record<string, number>,
   ): OpenStackAttentionAnswer => {

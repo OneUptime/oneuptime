@@ -157,10 +157,7 @@ export function isOpenStackImageStuck(data: {
   stateChangedAt?: Date | string | null | undefined;
   now: Date;
 }): boolean {
-  if (
-    !data.status ||
-    !OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(data.status)
-  ) {
+  if (!data.status || !OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(data.status)) {
     return false;
   }
   const minutes: number | null = minutesInState(data);
@@ -208,7 +205,10 @@ export function isOpenStackQuotaAtLine(data: {
   );
 }
 
-function numberFact(facts: JSONObject | null | undefined, key: string): number | null {
+function numberFact(
+  facts: JSONObject | null | undefined,
+  key: string,
+): number | null {
   const value: JSONValue | undefined = facts?.[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }

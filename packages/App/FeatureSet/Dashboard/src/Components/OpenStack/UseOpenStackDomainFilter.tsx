@@ -49,7 +49,14 @@ export interface OpenStackDomainFilter {
   query: Query<OpenStackResource>;
   // What a link asked to open on, for the list's Project filter.
   initialProjectId: string | null;
-  buttons: Array<ReactElement>;
+  /*
+   * For the content above a list's rows, and not among its card's buttons: a table keeps
+   * the buttons it first built, and the choices here arrive after that.
+   */
+  control: ReactElement | null;
+  // Whether a domain is chosen, for a list that choice has left with no rows.
+  isNarrowed: boolean;
+  clear: () => void;
 }
 
 export default function useOpenStackDomainFilter(data: {
@@ -115,35 +122,40 @@ export default function useOpenStackDomainFilter(data: {
     }
   }
 
-  const buttons: Array<ReactElement> = [];
-
-  if (isOwned && (options.length > 1 || domainId)) {
-    buttons.push(
+  const control: ReactElement | null =
+    isOwned && (options.length > 1 || domainId) ? (
       <div
-        key="domain"
         data-testid="openstack-domain-filter"
-        className="w-48 text-left"
+        className="-mt-1 mb-3 flex items-center gap-2"
       >
-        <Dropdown
-          ariaLabel={translator.translateText("Domain")}
-          placeholder={translator.translateText("Any domain")}
-          options={options}
-          value={options.find((option: DropdownOption): boolean => {
-            return option.value === domainId;
-          })}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            setDomainId(typeof value === "string" ? value : null);
-          }}
-        />
-      </div>,
-    );
-  }
+        <span className="text-xs font-medium text-gray-500">
+          {translator.translateText("Domain")}
+        </span>
+        <div className="w-48 text-left">
+          <Dropdown
+            ariaLabel={translator.translateText("Domain")}
+            placeholder={translator.translateText("Any domain")}
+            options={options}
+            value={options.find((option: DropdownOption): boolean => {
+              return option.value === domainId;
+            })}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              setDomainId(typeof value === "string" ? value : null);
+            }}
+          />
+        </div>
+      </div>
+    ) : null;
 
   return {
     query,
     initialProjectId: OPENSTACK_PROJECT_OWNED_KINDS.has(data.kind)
       ? Navigation.getQueryStringByName(OPENSTACK_LIST_PROJECT_PARAM)
       : null,
-    buttons,
+    control,
+    isNarrowed: Boolean(domainId),
+    clear: () => {
+      setDomainId(null);
+    },
   };
 }

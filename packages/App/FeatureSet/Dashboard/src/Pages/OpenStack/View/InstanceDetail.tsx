@@ -44,9 +44,7 @@ import {
   getOpenStackTimeInState,
   isOpenStackInstanceUnplaced,
 } from "../Utils/OpenStackPartFacts";
-import {
-  getOpenStackFactText,
-} from "../Utils/OpenStackResourceUtils";
+import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
 
 /*
  * One instance: its status in Nova's word, whose it is, where it runs and how long it has
@@ -81,10 +79,7 @@ interface InstanceSurroundings {
 const InstanceOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-}): ReactElement => {
+}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();

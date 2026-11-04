@@ -37,9 +37,11 @@ export function isOpenStackCountable(
   kind: unknown,
   by: unknown,
 ): kind is OpenStackResourceKind {
+  // Its own keys alone: every object answers to "constructor" and "__proto__".
   return (
     typeof kind === "string" &&
     typeof by === "string" &&
+    Object.keys(OPENSTACK_COUNTABLE).includes(kind) &&
     Boolean(
       OPENSTACK_COUNTABLE[kind as OpenStackResourceKind]?.includes(
         by as OpenStackCountBy,

@@ -1,4 +1,6 @@
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import OpenStackCloudConnectionTestService from "Common/Server/Services/OpenStackCloudConnectionTestService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Response from "Common/Server/Utils/Response";
 import { OpenStackCollectionReportOutcome } from "Common/Server/Utils/OpenStack/OpenStackProbeCollectionStore";
@@ -88,6 +90,26 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+jest.mock("Common/Server/Services/OpenStackCloudService", () => {
+  return {
+    __esModule: true,
+    default: {
+      claimForCollection: jest.fn(),
+      recordCollectionReport: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/OpenStackCloudConnectionTestService", () => {
+  return {
+    __esModule: true,
+    default: {
+      claimPendingTests: jest.fn(),
+      recordTestReport: jest.fn(),
+    },
+  };
+});
+
 jest.mock("Common/Server/Middleware/TelemetryIngestionDisabled", () => {
   return {
     __esModule: true,
@@ -132,16 +154,33 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
  *     series are what says a cloud is failing;
  *   - a gzip-compressed report is read as the JSON it is.
  *
- * The real store comes with the phase's model, so these run on a fake of the interface.
+ * Most of these run on a fake of the store, because the routes only need its words. The last
+ * section holds the module's own routes to the real services.
  */
 import OpenStackCollectionRouter, {
-  OPENSTACK_PROBE_WORK_STORE_WITHOUT_COLUMNS,
+  OPENSTACK_PROBE_WORK_STORE,
   OpenStackProbeWorkStore,
   createOpenStackCollectionRouter,
   getCollectionClaimLimit,
   parseInflatedJsonBody,
   readRunningOpenStackCloudIds,
 } from "../../FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection";
+
+const clouds: {
+  claimForCollection: jest.Mock;
+  recordCollectionReport: jest.Mock;
+} = OpenStackCloudService as unknown as {
+  claimForCollection: jest.Mock;
+  recordCollectionReport: jest.Mock;
+};
+
+const connectionTests: {
+  claimPendingTests: jest.Mock;
+  recordTestReport: jest.Mock;
+} = OpenStackCloudConnectionTestService as unknown as {
+  claimPendingTests: jest.Mock;
+  recordTestReport: jest.Mock;
+};
 
 const ingestion: { isDisabled: jest.Mock } =
   TelemetryIngestionDisabled as unknown as { isDisabled: jest.Mock };
@@ -422,43 +461,145 @@ describe("wiring", () => {
 });
 
 /*
- * Until the model has its collection columns no cloud can be collected, and a probe has to
- * be told so in a way it already understands: an older server says 404, this one says there
- * is nothing to do.
+ * The routes a probe reaches: the module's default export, over the services that own the
+ * tables, with the authenticated probe handed down to each.
  */
-describe("before the model has its columns", () => {
-  test("there is no work", async () => {
+describe("the routes the module mounts", () => {
+  async function callMounted(
+    uri: string,
+    req: ExpressRequest,
+  ): Promise<void> {
+    await (OpenStackCollectionRouter as unknown as RecordingRouter).routes
+      .get(uri)!
+      .handler(req, mockResponse, jest.fn() as unknown as NextFunction);
+  }
+
+  test("a work request hands out what the services claim for this probe", async () => {
+    clouds.claimForCollection.mockResolvedValue([collectionJob()] as never);
+    connectionTests.claimPendingTests.mockResolvedValue([testJob()] as never);
+
+    await callMounted(
+      WORK_URI,
+      makeRequest({ body: { runningOpenStackCloudIds: [RUNNING_ID] } }),
+    );
+
+    expect(clouds.claimForCollection).toHaveBeenCalledWith({
+      probeId: PROBE_ID,
+      runningOpenStackCloudIds: [RUNNING_ID],
+      limit: OPENSTACK_PROBE_COLLECTION_CONCURRENCY - 1,
+    });
+    expect(connectionTests.claimPendingTests).toHaveBeenCalledWith({
+      probeId: PROBE_ID,
+      limit: OPENSTACK_PROBE_TEST_BATCH_SIZE,
+    });
+    expect(sentBody()).toEqual({
+      collections: [collectionJob()],
+      tests: [testJob()],
+    });
+  });
+
+  test("a collection report is recorded for this probe, and its metrics enter the ingest", async () => {
+    clouds.recordCollectionReport.mockResolvedValue({
+      accepted: true,
+      projectId: PROJECT_ID,
+      cloudName: "Production",
+      isCurrent: true,
+    } as never);
+
+    const report: JSONObject = collectionReport();
+
+    await callMounted(COLLECTION_URI, makeRequest({ body: report }));
+
+    expect(clouds.recordCollectionReport).toHaveBeenCalledWith({
+      probeId: PROBE_ID,
+      report: report,
+    });
+    expect(queue.addMetricIngestJob).toHaveBeenCalledTimes(1);
+    expect(sentBody()).toEqual({
+      accepted: true,
+      isCurrent: true,
+      queuedResourceCount: 1,
+    });
+  });
+
+  test("a report of a cloud this probe does not collect says why, and nothing is ingested", async () => {
+    clouds.recordCollectionReport.mockResolvedValue({
+      accepted: false,
+      reason: "This probe does not collect that cloud (any more).",
+    } as never);
+
+    await callMounted(
+      COLLECTION_URI,
+      makeRequest({ body: collectionReport() }),
+    );
+
+    expect(queue.addMetricIngestJob).not.toHaveBeenCalled();
+    expect(sentBody()).toEqual({
+      accepted: false,
+      reason: "This probe does not collect that cloud (any more).",
+    });
+  });
+
+  test("a test report is recorded for this probe", async () => {
+    connectionTests.recordTestReport.mockResolvedValue(true as never);
+
+    const report: OpenStackConnectionTestReport = {
+      openStackCloudConnectionTestId: TEST_ID,
+      status: "Succeeded",
+      durationInMs: 1,
+    };
+
+    await callMounted(
+      TEST_URI,
+      makeRequest({ body: report as unknown as JSONObject }),
+    );
+
+    expect(connectionTests.recordTestReport).toHaveBeenCalledWith({
+      probeId: PROBE_ID,
+      report: report,
+    });
+    expect(sentBody()).toEqual({ accepted: true });
+  });
+
+  test("the store's words are the services' own", async () => {
+    clouds.claimForCollection.mockResolvedValue([] as never);
+    clouds.recordCollectionReport.mockResolvedValue({
+      accepted: false,
+    } as never);
+    connectionTests.claimPendingTests.mockResolvedValue([] as never);
+    connectionTests.recordTestReport.mockResolvedValue(false as never);
+
     await expect(
-      OPENSTACK_PROBE_WORK_STORE_WITHOUT_COLUMNS.claimForCollection({
-        probeId: PROBE_ID,
+      OPENSTACK_PROBE_WORK_STORE.claimForCollection({
+        probeId: OTHER_PROBE_ID,
         runningOpenStackCloudIds: [],
         limit: 4,
       }),
     ).resolves.toEqual([]);
+    expect(clouds.claimForCollection.mock.calls[0]![0]).toMatchObject({
+      probeId: OTHER_PROBE_ID,
+    });
+
     await expect(
-      OPENSTACK_PROBE_WORK_STORE_WITHOUT_COLUMNS.claimPendingTests({
-        probeId: PROBE_ID,
+      OPENSTACK_PROBE_WORK_STORE.recordCollectionReport({
+        probeId: OTHER_PROBE_ID,
+        report: collectionReport() as unknown as OpenStackCollectionReport,
+      }),
+    ).resolves.toEqual({ accepted: false });
+
+    await expect(
+      OPENSTACK_PROBE_WORK_STORE.claimPendingTests({
+        probeId: OTHER_PROBE_ID,
         limit: 5,
       }),
     ).resolves.toEqual([]);
-  });
 
-  test("and no report is heard", async () => {
     await expect(
-      OPENSTACK_PROBE_WORK_STORE_WITHOUT_COLUMNS.recordCollectionReport({
-        probeId: PROBE_ID,
-        report: collectionReport() as unknown as OpenStackCollectionReport,
-      }),
-    ).resolves.toEqual({
-      accepted: false,
-      reason: "OpenStack collection is not set up on this server yet.",
-    });
-    await expect(
-      OPENSTACK_PROBE_WORK_STORE_WITHOUT_COLUMNS.recordTestReport({
-        probeId: PROBE_ID,
+      OPENSTACK_PROBE_WORK_STORE.recordTestReport({
+        probeId: OTHER_PROBE_ID,
         report: {
           openStackCloudConnectionTestId: TEST_ID,
-          status: "Succeeded",
+          status: "Failed",
           durationInMs: 1,
         },
       }),

@@ -10,6 +10,12 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { OpenStackBlastRadius } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import {
+  OPENSTACK_COUNT_LIMIT,
+  OpenStackCountBy,
+  OpenStackCountRow,
+} from "../../../Types/OpenStack/OpenStackCounts";
+import { OPENSTACK_IMAGE_STUCK_MINUTES } from "../../../Types/OpenStack/OpenStackHealthRules";
+import {
   OpenStackRegionSummary,
   OpenStackTopConsumer,
   OpenStackTopConsumers,
@@ -48,6 +54,9 @@ import { DataSource } from "typeorm";
  *   - stateChangedAt moves only when the status really changes, which is what the
  *     stuck-state rules read;
  *   - a tenant's oversized name is clamped rather than losing the scrape;
+ *   - getCounts counts on the server, by what a closed list allows, per region, most first,
+ *     and a row holding none counts as none rather than being left out;
+ *   - getAttentionRows finds an image stuck on its way, and leaves one on its way alone;
  *   - getBlastRadius counts what a failed part reaches, by project, across Nova's two
  *     names for one host, and says when what was collected cannot tell;
  *   - getInventorySummary counts from the rows: a service someone disabled is not
@@ -130,7 +139,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
   type Row = Record<string, unknown>;
 
-  const write = async (
+  const write: (
+    resources: Array<ParsedOpenStackResource>,
+    cloudId?: ObjectID,
+    projectId?: ObjectID,
+  ) => Promise<void> = async (
     resources: Array<ParsedOpenStackResource>,
     cloudId: ObjectID = CLOUD_ID,
     projectId: ObjectID = PROJECT_ID,
@@ -142,7 +155,10 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
   };
 
-  const rowOf = async (
+  const rowOf: (
+    kind: OpenStackResourceKind,
+    externalId: string,
+  ) => Promise<Row> = async (
     kind: OpenStackResourceKind,
     externalId: string,
   ): Promise<Row> => {
@@ -155,7 +171,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     return rows[0] as Row;
   };
 
-  const externalIds = async (kind: OpenStackResourceKind): Promise<Array<string>> => {
+  const externalIds: (
+    kind: OpenStackResourceKind,
+  ) => Promise<Array<string>> = async (
+    kind: OpenStackResourceKind,
+  ): Promise<Array<string>> => {
     const rows: Array<{ externalId: string }> = await database.query(
       `SELECT "externalId" FROM "${schema}"."${TABLE}"
        WHERE "openStackCloudId" = $1 AND "kind" = $2 ORDER BY "externalId"`,
@@ -166,14 +186,15 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
   };
 
-  const summary = async (): Promise<OpenStackInventorySummary> => {
-    return await OpenStackResourceService.getInventorySummary({
-      projectId: PROJECT_ID,
-      openStackCloudId: CLOUD_ID,
-    });
-  };
+  const summary: () => Promise<OpenStackInventorySummary> =
+    async (): Promise<OpenStackInventorySummary> => {
+      return await OpenStackResourceService.getInventorySummary({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+      });
+    };
 
-  const sweep = async (): Promise<number> => {
+  const sweep: () => Promise<number> = async (): Promise<number> => {
     return await OpenStackResourceService.deleteStaleForCloud({
       projectId: PROJECT_ID,
       openStackCloudId: CLOUD_ID,
@@ -321,7 +342,10 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
 
     test("stateChangedAt moves only when the status changes, which is how long a part has been stuck", async () => {
-      const seen = async (status: string, offset: number): Promise<Date> => {
+      const seen: (status: string, offset: number) => Promise<Date> = async (
+        status: string,
+        offset: number,
+      ): Promise<Date> => {
         await write([
           resource({
             kind: OpenStackResourceKind.Volume,
@@ -583,7 +607,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
 
     test("a service someone disabled is not down, in Nova's words or Neutron's", async () => {
-      const service = (
+      const service: (
+        id: string,
+        status: string,
+        adminState: string,
+      ) => ParsedOpenStackResource = (
         id: string,
         status: string,
         adminState: string,
@@ -612,7 +640,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
      * as room to spare. Seen on a real cloud with nova-compute stopped.
      */
     test("a hypervisor that cannot take instances is no capacity", async () => {
-      const hypervisor = (
+      const hypervisor: (
+        id: string,
+        status: string,
+        adminState: string,
+      ) => ParsedOpenStackResource = (
         id: string,
         status: string,
         adminState: string,
@@ -688,7 +720,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
   });
 
   describe("a cloud's regions", () => {
-    const worker = (
+    const worker: (
+      regionName: string,
+      binary: string,
+      overrides?: Partial<ParsedOpenStackResource>,
+    ) => ParsedOpenStackResource = (
       regionName: string,
       binary: string,
       overrides: Partial<ParsedOpenStackResource> = {},
@@ -705,7 +741,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
     };
 
-    const hypervisor = (
+    const hypervisor: (
+      regionName: string,
+      host: string,
+      overrides?: Partial<ParsedOpenStackResource>,
+    ) => ParsedOpenStackResource = (
       regionName: string,
       host: string,
       overrides: Partial<ParsedOpenStackResource> = {},
@@ -725,7 +765,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
     };
 
-    const pool = (
+    const pool: (
+      regionName: string,
+      capacity: number,
+      used: number,
+    ) => ParsedOpenStackResource = (
       regionName: string,
       capacity: number,
       used: number,
@@ -740,7 +784,12 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
     };
 
-    const instance = (
+    const instance: (
+      externalId: string,
+      regionName: string,
+      projectId?: string | null,
+      status?: string,
+    ) => ParsedOpenStackResource = (
       externalId: string,
       regionName: string,
       projectId: string | null = null,
@@ -756,7 +805,12 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
     };
 
-    const volume = (
+    const volume: (
+      externalId: string,
+      regionName: string,
+      projectId: string,
+      size: number,
+    ) => ParsedOpenStackResource = (
       externalId: string,
       regionName: string,
       projectId: string,
@@ -773,7 +827,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     };
 
     // Keystone's: a project and a domain belong to the cloud, and to no region of it.
-    const keystone = (
+    const keystone: (
+      kind: OpenStackResourceKind,
+      externalId: string,
+      name: string,
+    ) => ParsedOpenStackResource = (
       kind: OpenStackResourceKind,
       externalId: string,
       name: string,
@@ -781,48 +839,51 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       return resource({ kind, externalId, name, regionName: null });
     };
 
-    const TWO_REGIONS = (): Array<ParsedOpenStackResource> => {
-      return [
-        api(OpenStackServiceType.Compute),
-        api(OpenStackServiceType.Volume, { status: "down", facts: {} }),
-        api(OpenStackServiceType.Compute, { regionName: "RegionTwo" }),
-        worker("RegionOne", "nova-compute"),
-        worker("RegionOne", "nova-scheduler", { status: "down" }),
-        // Someone disabled it: planned work, and not down in either service's word.
-        worker("RegionOne", "nova-conductor", {
-          status: "down",
-          adminState: "disabled",
-        }),
-        worker("RegionOne", "neutron-l3-agent", {
-          status: "down",
-          adminState: "down",
-        }),
-        worker("RegionTwo", "nova-compute"),
-        hypervisor("RegionOne", "c-1"),
-        // Lost: its numbers are last known, and it is no capacity anyone can use.
-        hypervisor("RegionOne", "c-2", {
-          status: "down",
-          vcpuCapacity: 1000,
-          vcpuAllocated: 990,
-        }),
-        hypervisor("RegionTwo", "c-1", {
-          vcpuCapacity: 50,
-          vcpuAllocated: 10,
-          memoryCapacityBytes: 1000,
-          memoryAllocatedBytes: 100,
-        }),
-        pool("RegionOne", 10000, 2500),
-        pool("RegionTwo", 1000, 900),
-        instance("i-1", "RegionOne"),
-        instance("i-2", "RegionOne"),
-        instance("i-3", "RegionTwo"),
-        keystone(OpenStackResourceKind.Project, "p-1", "payments"),
-        keystone(OpenStackResourceKind.Domain, "d-1", "Default"),
-      ];
-    };
+    const TWO_REGIONS: () => Array<ParsedOpenStackResource> =
+      (): Array<ParsedOpenStackResource> => {
+        return [
+          api(OpenStackServiceType.Compute),
+          api(OpenStackServiceType.Volume, { status: "down", facts: {} }),
+          api(OpenStackServiceType.Compute, { regionName: "RegionTwo" }),
+          worker("RegionOne", "nova-compute"),
+          worker("RegionOne", "nova-scheduler", { status: "down" }),
+          // Someone disabled it: planned work, and not down in either service's word.
+          worker("RegionOne", "nova-conductor", {
+            status: "down",
+            adminState: "disabled",
+          }),
+          worker("RegionOne", "neutron-l3-agent", {
+            status: "down",
+            adminState: "down",
+          }),
+          worker("RegionTwo", "nova-compute"),
+          hypervisor("RegionOne", "c-1"),
+          // Lost: its numbers are last known, and it is no capacity anyone can use.
+          hypervisor("RegionOne", "c-2", {
+            status: "down",
+            vcpuCapacity: 1000,
+            vcpuAllocated: 990,
+          }),
+          hypervisor("RegionTwo", "c-1", {
+            vcpuCapacity: 50,
+            vcpuAllocated: 10,
+            memoryCapacityBytes: 1000,
+            memoryAllocatedBytes: 100,
+          }),
+          pool("RegionOne", 10000, 2500),
+          pool("RegionTwo", 1000, 900),
+          instance("i-1", "RegionOne"),
+          instance("i-2", "RegionOne"),
+          instance("i-3", "RegionTwo"),
+          keystone(OpenStackResourceKind.Project, "p-1", "payments"),
+          keystone(OpenStackResourceKind.Domain, "d-1", "Default"),
+        ];
+      };
 
     describe("getInventorySummary of one", () => {
-      const summaryOf = async (
+      const summaryOf: (
+        regionName: string,
+      ) => Promise<OpenStackInventorySummary> = async (
         regionName: string,
       ): Promise<OpenStackInventorySummary> => {
         return await OpenStackResourceService.getInventorySummary({
@@ -886,16 +947,18 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
       test("a name that is a piece of SQL is a name", async () => {
         await write(TWO_REGIONS());
-        const none: OpenStackInventorySummary = await summaryOf(
-          `RegionOne' OR '1'='1`,
-        );
+        const none: OpenStackInventorySummary =
+          await summaryOf(`RegionOne' OR '1'='1`);
 
         expect(none.hypervisorCount).toBe(0);
       });
     });
 
     describe("getRegionSummaries", () => {
-      const regions = async (
+      const regions: (
+        cloudId?: ObjectID,
+        projectId?: ObjectID,
+      ) => Promise<Array<OpenStackRegionSummary>> = async (
         cloudId: ObjectID = CLOUD_ID,
         projectId: ObjectID = PROJECT_ID,
       ): Promise<Array<OpenStackRegionSummary>> => {
@@ -970,7 +1033,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
 
     describe("getTopConsumers", () => {
-      const consumers = async (
+      const consumers: (
+        regionName?: string,
+      ) => Promise<OpenStackTopConsumers> = async (
         regionName?: string,
       ): Promise<OpenStackTopConsumers> => {
         return await OpenStackResourceService.getTopConsumers({
@@ -1063,17 +1128,17 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
 
       test("never reads another cloud's", async () => {
-        await write(
-          [instance("i-1", "RegionOne", "p-1")],
-          OTHER_CLOUD_ID,
-        );
+        await write([instance("i-1", "RegionOne", "p-1")], OTHER_CLOUD_ID);
 
         expect((await consumers()).projectsByInstances).toEqual([]);
       });
     });
 
     describe("getAttentionRows of one", () => {
-      const attentionOf = async (
+      const attentionOf: (
+        regionName: string | undefined,
+        rowsPerKind?: number,
+      ) => Promise<OpenStackAttentionRows> = async (
         regionName: string | undefined,
         rowsPerKind?: number,
       ): Promise<OpenStackAttentionRows> => {
@@ -1086,7 +1151,10 @@ describePostgres("OpenStackResourceService on Postgres", () => {
         });
       };
 
-      const rowsOfKind = (
+      const rowsOfKind: (
+        answer: OpenStackAttentionRows,
+        kind: OpenStackResourceKind,
+      ) => Array<string> = (
         answer: OpenStackAttentionRows,
         kind: OpenStackResourceKind,
       ): Array<string> => {
@@ -1147,7 +1215,12 @@ describePostgres("OpenStackResourceService on Postgres", () => {
   });
 
   describe("getBlastRadius", () => {
-    const instance = (
+    const instance: (
+      id: string,
+      projectId: string,
+      hypervisorName: string | null,
+      regionName?: string,
+    ) => ParsedOpenStackResource = (
       id: string,
       projectId: string,
       hypervisorName: string | null,
@@ -1163,7 +1236,11 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
     };
 
-    const radius = async (
+    const radius: (
+      part: Parameters<
+        typeof OpenStackResourceService.getBlastRadius
+      >[0]["part"],
+    ) => Promise<OpenStackBlastRadius> = async (
       part: Parameters<
         typeof OpenStackResourceService.getBlastRadius
       >[0]["part"],
@@ -1240,8 +1317,36 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       expect(result.instanceCount).toBe(1);
     });
 
+    test("a host's underscore is a character, not a wildcard for another machine", async () => {
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Hypervisor,
+          externalId: "RegionOne/compute_01.example.internal",
+          hypervisorName: "compute_01.example.internal",
+        }),
+        instance("i-1", "payments", "compute_01.example.internal"),
+        // What compute_01.% would match if the _ matched any one character.
+        resource({
+          kind: OpenStackResourceKind.Hypervisor,
+          externalId: "RegionOne/computeX01.example.internal",
+          hypervisorName: "computeX01.example.internal",
+        }),
+        instance("i-2", "payments", "computeX01.example.internal"),
+      ]);
+      const result: OpenStackBlastRadius = await radius({
+        kind: OpenStackResourceKind.Service,
+        name: "nova-compute",
+        regionName: "RegionOne",
+        facts: { host: "compute_01" },
+      });
+      expect(result.instanceCount).toBe(1);
+    });
+
     test("an L3 agent reaches the routers no other alive agent holds, and their floating IPs", async () => {
-      const router = (
+      const router: (
+        id: string,
+        agents: JSONObject,
+      ) => ParsedOpenStackResource = (
         id: string,
         agents: JSONObject,
       ): ParsedOpenStackResource => {
@@ -1380,10 +1485,7 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
 
     test("only ever counts this cloud of this project", async () => {
-      await write(
-        [instance("i-1", "payments", "compute-01")],
-        OTHER_CLOUD_ID,
-      );
+      await write([instance("i-1", "payments", "compute-01")], OTHER_CLOUD_ID);
       await write(
         [instance("i-2", "payments", "compute-01")],
         CLOUD_ID,
@@ -1406,7 +1508,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
   });
 
   describe("getAttentionRows", () => {
-    const attention = async (): Promise<Map<string, Array<string>>> => {
+    const attention: () => Promise<
+      Map<string, Array<string>>
+    > = async (): Promise<Map<string, Array<string>>> => {
       const result: OpenStackAttentionRows =
         await OpenStackResourceService.getAttentionRows({
           projectId: PROJECT_ID,
@@ -1538,7 +1642,10 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
 
     test("a part is stuck only once it has been in its state for long enough", async () => {
-      const volume = (id: string, minutes: number): ParsedOpenStackResource => {
+      const volume: (id: string, minutes: number) => ParsedOpenStackResource = (
+        id: string,
+        minutes: number,
+      ): ParsedOpenStackResource => {
         return resource({
           kind: OpenStackResourceKind.Volume,
           externalId: id,
@@ -1621,6 +1728,202 @@ describePostgres("OpenStackResourceService on Postgres", () => {
         }),
       ]);
       expect((await attention()).size).toBe(0);
+    });
+  });
+
+  describe("getCounts", () => {
+    const countsOf: (
+      kind: OpenStackResourceKind,
+      by: OpenStackCountBy,
+    ) => Promise<Array<OpenStackCountRow>> = async (
+      kind: OpenStackResourceKind,
+      by: OpenStackCountBy,
+    ): Promise<Array<OpenStackCountRow>> => {
+      return await OpenStackResourceService.getCounts({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        kind,
+        by,
+      });
+    };
+
+    const instanceOf: (
+      externalId: string,
+      flavorId: string | null,
+      regionName?: string,
+    ) => ParsedOpenStackResource = (
+      externalId: string,
+      flavorId: string | null,
+      regionName: string = "RegionOne",
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Instance,
+        externalId,
+        regionName,
+        facts: flavorId ? { flavorId } : {},
+      });
+    };
+
+    test("how many use each flavor, most first, each region apart", async () => {
+      await write([
+        instanceOf("i-1", "small"),
+        instanceOf("i-2", "small"),
+        instanceOf("i-3", "large"),
+        instanceOf("i-4", "small", "RegionTwo"),
+      ]);
+
+      expect(await countsOf(OpenStackResourceKind.Instance, "flavor")).toEqual([
+        { value: "small", regionName: "RegionOne", count: 2, sizeBytes: 0 },
+        { value: "large", regionName: "RegionOne", count: 1, sizeBytes: 0 },
+        { value: "small", regionName: "RegionTwo", count: 1, sizeBytes: 0 },
+      ]);
+    });
+
+    test("a row that doesn't say counts as none, and isn't left out", async () => {
+      await write([instanceOf("i-1", null), instanceOf("i-2", "small")]);
+
+      const counts: Array<OpenStackCountRow> = await countsOf(
+        OpenStackResourceKind.Instance,
+        "flavor",
+      );
+      expect(
+        counts.map((row: OpenStackCountRow) => {
+          return row.value;
+        }),
+      ).toEqual(expect.arrayContaining([null, "small"]));
+    });
+
+    test("what volumes of a type add up to, and what a project's snapshots do", async () => {
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "v-1",
+          diskCapacityBytes: 1024,
+          facts: { volumeType: "ssd" },
+        }),
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "v-2",
+          diskCapacityBytes: 2048,
+          facts: { volumeType: "ssd" },
+        }),
+        resource({
+          kind: OpenStackResourceKind.Snapshot,
+          externalId: "s-1",
+          openStackProjectId: "project-a",
+          diskCapacityBytes: 512,
+        }),
+      ]);
+
+      expect(
+        await countsOf(OpenStackResourceKind.Volume, "volumeType"),
+      ).toEqual([
+        { value: "ssd", regionName: "RegionOne", count: 2, sizeBytes: 3072 },
+      ]);
+      expect(await countsOf(OpenStackResourceKind.Snapshot, "project")).toEqual(
+        [
+          {
+            value: "project-a",
+            regionName: "RegionOne",
+            count: 1,
+            sizeBytes: 512,
+          },
+        ],
+      );
+    });
+
+    test("never counts another cloud's, another project's, or another kind's", async () => {
+      await write([instanceOf("i-1", "small")]);
+      await write([instanceOf("i-2", "small")], OTHER_CLOUD_ID);
+      await write([instanceOf("i-3", "small")], CLOUD_ID, OTHER_PROJECT_ID);
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "v-1",
+          facts: { flavorId: "small" },
+        }),
+      ]);
+
+      expect(await countsOf(OpenStackResourceKind.Instance, "flavor")).toEqual([
+        { value: "small", regionName: "RegionOne", count: 1, sizeBytes: 0 },
+      ]);
+    });
+
+    test("a row gone is no longer counted", async () => {
+      await write([instanceOf("i-1", "small")]);
+      await database.query(
+        `UPDATE "${schema}"."${TABLE}" SET "deletedAt" = now() WHERE "externalId" = 'i-1'`,
+      );
+      expect(await countsOf(OpenStackResourceKind.Instance, "flavor")).toEqual(
+        [],
+      );
+    });
+
+    test("holds no more than a card can show, however many there are", async () => {
+      const rows: Array<ParsedOpenStackResource> = [];
+      for (let index: number = 0; index <= OPENSTACK_COUNT_LIMIT; index++) {
+        rows.push(instanceOf(`i-${index}`, `flavor-${index}`));
+      }
+      await write(rows);
+
+      expect(
+        await countsOf(OpenStackResourceKind.Instance, "flavor"),
+      ).toHaveLength(OPENSTACK_COUNT_LIMIT);
+    });
+  });
+
+  describe("an image on its way", () => {
+    const image: (
+      externalId: string,
+      status: string,
+    ) => ParsedOpenStackResource = (
+      externalId: string,
+      status: string,
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Image,
+        externalId,
+        status,
+      });
+    };
+
+    const attentionImages: (now: Date) => Promise<Array<string>> = async (
+      now: Date,
+    ): Promise<Array<string>> => {
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          now,
+        });
+      return answer.rows
+        .filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Image;
+        })
+        .map((row: JSONObject): string => {
+          return row["externalId"] as string;
+        });
+    };
+
+    test("reads only once it has been too long, and one finished never does", async () => {
+      await write([image("saving-1", "saving"), image("done-1", "active")]);
+      await database.query(
+        `UPDATE "${schema}"."${TABLE}" SET "stateChangedAt" = $1`,
+        [NOW],
+      );
+
+      expect(
+        await attentionImages(
+          new Date(
+            NOW.getTime() + (OPENSTACK_IMAGE_STUCK_MINUTES - 1) * MINUTE_MS,
+          ),
+        ),
+      ).toEqual([]);
+      expect(
+        await attentionImages(
+          new Date(NOW.getTime() + OPENSTACK_IMAGE_STUCK_MINUTES * MINUTE_MS),
+        ),
+      ).toEqual(["saving-1"]);
     });
   });
 
@@ -1729,7 +2032,7 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
 
     test("each family of workers answers to its own API", async () => {
-      const worker = (
+      const worker: (id: string, family: string) => ParsedOpenStackResource = (
         id: string,
         family: string,
       ): ParsedOpenStackResource => {

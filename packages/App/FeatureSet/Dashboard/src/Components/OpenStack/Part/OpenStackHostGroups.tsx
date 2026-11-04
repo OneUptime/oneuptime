@@ -18,7 +18,14 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import { fetchOpenStackApiStates, fetchOpenStackAttentionRows } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../OpenStackRegionContext";
+import {
+  fetchOpenStackApiStates,
+  fetchOpenStackAttentionRows,
+} from "../../../Pages/OpenStack/Utils/OpenStackPartData";
 import {
   OPENSTACK_HYPERVISOR_ALERT_TEMPLATE_IDS,
   OPENSTACK_SERVICE_OF_KIND,
@@ -49,7 +56,10 @@ import {
   OpenStackHypervisorList,
   OpenStackInstanceList,
 } from "../OpenStackLists";
-import { formatOpenStackBytes, formatOpenStackCount } from "../OpenStackResourceList";
+import {
+  formatOpenStackBytes,
+  formatOpenStackCount,
+} from "../OpenStackResourceList";
 import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
@@ -95,7 +105,9 @@ const WORDS: Record<OpenStackHostGroupKind, HostGroupWords> = {
     notFound: translationKey(
       "This zone is not in this cloud's inventory. No hypervisor says it is in it.",
     ),
-    groupLocation: translationKey("Zone of region {{region}} of cloud {{cloud}}"),
+    groupLocation: translationKey(
+      "Zone of region {{region}} of cloud {{cloud}}",
+    ),
     thisGroup: translationKey("This zone"),
     hypervisorsTitle: translationKey("Hypervisors in this zone"),
     instancesTitle: translationKey("Instances in this zone"),
@@ -198,20 +210,22 @@ function toResource(
     status: group.health,
     statusTone: HEALTH_TONES[group.health],
     statusText: { text: group.health },
-    statusReasons: group.attention.slice(0, 2).flatMap((item) => {
-      return item.reasons.map((reason) => {
-        return {
-          text: "{{name}}: {{reason}}",
-          values: {
-            name: item.name,
-            reason: translator.translateTemplate(
-              reason.text,
-              reason.values || {},
-            ),
-          },
-        };
-      });
-    }),
+    statusReasons: group.attention
+      .slice(0, 2)
+      .flatMap((item: ResourceAttentionItem) => {
+        return item.reasons.map((reason: ResourceAttentionText) => {
+          return {
+            text: "{{name}}: {{reason}}",
+            values: {
+              name: item.name,
+              reason: translator.translateTemplate(
+                reason.text,
+                reason.values || {},
+              ),
+            },
+          };
+        });
+      }),
     age: "",
     additionalAttributes: { id: group.id },
   };
@@ -228,23 +242,35 @@ export const OpenStackHostGroupList: FunctionComponent<{
     return getOpenStackPartRoutes(openStackCloudId);
   }, [openStackCloudId.toString()]);
 
-  const read: OpenStackRead<Array<OpenStackHostGroup>> = useOpenStackRead<
-    Array<OpenStackHostGroup>
-  >(async () => {
-    return getOpenStackHostGroups({
-      rows: await fetchOpenStackAttentionRows(openStackCloudId),
-      kind: props.kind,
-      now: OneUptimeDate.getCurrentDate(),
-      routeFor: routes.routeFor,
-    });
-  }, [openStackCloudId.toString(), props.kind]);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
+
+  const read: OpenStackRead<{
+    groups: Array<OpenStackHostGroup>;
+    hasHypervisors: boolean;
+  }> = useOpenStackRead(async () => {
+    const rows: Array<OpenStackResource> = await fetchOpenStackAttentionRows(
+      openStackCloudId,
+      region,
+    );
+    return {
+      groups: getOpenStackHostGroups({
+        rows,
+        kind: props.kind,
+        now: OneUptimeDate.getCurrentDate(),
+        routeFor: routes.routeFor,
+      }),
+      hasHypervisors: rows.some((row: OpenStackResource): boolean => {
+        return row.kind === OpenStackResourceKind.Hypervisor;
+      }),
+    };
+  }, [openStackCloudId.toString(), props.kind, region]);
 
   const api: OpenStackRead<Record<string, OpenStackApiState>> =
     useOpenStackRead<Record<string, OpenStackApiState>>(() => {
       return fetchOpenStackApiStates(openStackCloudId);
     }, [openStackCloudId.toString()]);
 
-  const groups: Array<OpenStackHostGroup> = read.data || [];
+  const groups: Array<OpenStackHostGroup> = read.data?.groups || [];
 
   const groupById: Map<string, OpenStackHostGroup> = new Map(
     groups.map((group: OpenStackHostGroup): [string, OpenStackHostGroup] => {
@@ -319,10 +345,13 @@ export const OpenStackHostGroupList: FunctionComponent<{
 
   const service: string | undefined =
     OPENSTACK_SERVICE_OF_KIND[OpenStackResourceKind.Hypervisor];
-  const emptyWords: OpenStackEmptyWords | null = getOpenStackEmptyWords({
-    kind: OpenStackResourceKind.Hypervisor,
-    api: (service && api.data?.[service]) || "not-reported",
-  });
+  // No groups beside hypervisors is a cloud that doesn't split them, not a credential's limit.
+  const emptyWords: OpenStackEmptyWords | null = read.data?.hasHypervisors
+    ? null
+    : getOpenStackEmptyWords({
+        kind: OpenStackResourceKind.Hypervisor,
+        api: (service && api.data?.[service]) || "not-reported",
+      });
 
   return (
     <div data-testid={`openstack-${props.kind}-list`}>

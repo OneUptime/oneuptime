@@ -44,10 +44,7 @@ function flavorInstanceQuery(row: OpenStackResource): {
 const FlavorOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-}): ReactElement => {
+}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
 
@@ -129,7 +126,9 @@ const FlavorOverview: FunctionComponent<{
           icon={IconProp.Cube}
           iconColor="sky"
           value={
-            instances.data === null ? "—" : translator.formatNumber(instances.data)
+            instances.data === null
+              ? "—"
+              : translator.formatNumber(instances.data)
           }
           sublabel="of this flavor"
           description="How many instances this credential can see that are this flavor."

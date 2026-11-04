@@ -721,9 +721,7 @@ export default class OpenStackCloudConnection {
     return {
       endpointKey: OpenStackAuthUrl.getEndpointKey(data.authUrl),
       probeId: data.probeId ? data.probeId.toString().toLowerCase() : null,
-      trustedCertificateFingerprints: normalized.error
-        ? []
-        : normalized.fingerprints,
+      trustedCertificateFingerprints: normalized.fingerprints || [],
     };
   }
 
@@ -772,7 +770,7 @@ export default class OpenStackCloudConnection {
         data["collectionRegions"],
       );
 
-      if (regions.error) {
+      if (!regions.regions) {
         throw new BadDataException(regions.error);
       }
 
@@ -786,7 +784,7 @@ export default class OpenStackCloudConnection {
         data["trustedCertificateFingerprints"],
       );
 
-      if (fingerprints.error) {
+      if (!fingerprints.fingerprints) {
         throw new BadDataException(fingerprints.error);
       }
 
@@ -814,7 +812,7 @@ export default class OpenStackCloudConnection {
         data["collectionOptions"],
       );
 
-      if (options.error) {
+      if (!options.options) {
         throw new BadDataException(options.error);
       }
 

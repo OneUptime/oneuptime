@@ -147,7 +147,7 @@ openstack application credential create oneuptime-agent \
 
 An access rule is matched against the path the service sees. A service behind a path prefix, like `https://cloud.example/compute/v2.1`, sees `/compute/v2.1/servers`, and refuses the shipped rule for `/v2.1/servers` with a `401`. `access-rules-for-cloud.py` adds each rule again under its service's prefix, read from your catalog.
 
-Access rules also need `service_type` set for keystonemiddleware on each service, and a restart of that service:
+Access rules also need `service_type` set for keystonemiddleware on each service, and a restart of that service. Without it, the service refuses the credential with a `401`:
 
 ```ini title="nova.conf"
 [keystone_authtoken]
@@ -382,6 +382,51 @@ Three open upstream issues shape all this, and the project has also [asked for m
 - [Issue 660](https://github.com/openstack-exporter/openstack-exporter/issues/660): one failing service empties a whole scrape. So there is one scrape job per service. Do not merge them.
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and the diagnostic script asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
+
+## Projects and domains
+
+A cloud holds many tenants, so OneUptime keeps track of whose everything is.
+
+- **Projects** lists every project with its domain, what it runs, what needs attention in it and the incidents and alerts open on its parts. A project's page says the same in full, and names any host that is down under it.
+- **Domains** says how many projects each domain holds.
+- **Every list of what a project owns** can be narrowed to one project, and to one domain on a cloud with more than one. Both go by ID, so renaming a project or a domain breaks nothing.
+
+### Send a project's alerts to its team
+
+On a project's page, add a rule under **Who is told about this** or **Labels on what opens about this**. **Domains** has the same two for a whole domain. From then on, every alert and incident that reaches that project or domain gets those owners or labels.
+
+An alert or incident on a part of the cloud names the projects it reaches in its description, by ID, as ``OpenStack project `<id>` `` and ``OpenStack domain `<id>` ``. A rule here is an ordinary alert rule and an ordinary incident rule that match those words, so the pair also appears under each one's **Owner Rules** or **Label Rules** settings.
+
+Only what a monitor opens carries those words, and it names at most 50 of the projects it reaches. An incident someone declares by hand carries none, so these rules do not reach it.
+
+### Quotas
+
+With quotas on, a project's page shows how much of each it has used: instances, cores, RAM, gigabytes of volumes, networks, ports and floating IPs. A project at 90% of one, or past it, appears under **Needs attention**. A limit of -1 means no limit, so it is never at anything. A reading more than three hours old is shown but no longer judged, because quotas may have been turned off.
+
+They are off by default because of what they cost: see [What it costs your cloud](#what-it-costs-your-cloud). OpenStack's quota on how many volumes a project may hold is not shown, because the exporter reads only its gigabytes.
+
+### Labels from Nova metadata
+
+To see a Nova metadata key as a label, add `--nova.metadata-extra-labels=team` to the exporter's command, with any more keys after a comma. A project's page shows the values its instances carry.
+
+## Topology and blast radius
+
+A cloud's **Topology** page draws it region by region: availability zones, hypervisors and the instances on them, storage pools and volumes, networks, routers and floating IPs, and the APIs and services. Each part is coloured by the same rules as **Needs attention**, so a hypervisor whose `nova-compute` has stopped is red, with its instances beneath it.
+
+Past 5,000 parts, the map reads what has failed and what that takes with it rather than everything, opens on the hosts that failed and says what it left out. **Needs attention** narrows it to all of the rest. [Infrastructure](/docs/telemetry/topology) draws the cloud beside your hosts and clusters.
+
+A part's blast radius is what it takes with it, by count and by project:
+
+| When this fails | It reaches |
+| --- | --- |
+| A hypervisor, or its `nova-compute` | Its instances |
+| A storage pool | Its volumes, and the instances they are attached to |
+| An L3 agent | The routers no other agent can take over, and their floating IPs |
+| A region's API | Everything that API serves in the region, in every project |
+
+A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
+
+Two things cannot be drawn, because neither the exporter nor a probe says them: which network an instance is on, and which pool holds a volume. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none.
 
 ## Run as a systemd service
 

@@ -265,7 +265,11 @@ describe("Needs attention", () => {
 });
 
 describe("a host, for what draws a hypervisor as one thing", () => {
-  const hypervisor = (fields: Partial<OpenStackResource> = {}) => {
+  const hypervisor: (
+    fields?: Partial<OpenStackResource>,
+  ) => OpenStackResource = (
+    fields: Partial<OpenStackResource> = {},
+  ): OpenStackResource => {
     return Object.assign(new OpenStackResource(), {
       kind: OpenStackResourceKind.Hypervisor,
       externalId: "RegionOne/compute-1.example.internal",
@@ -277,7 +281,9 @@ describe("a host, for what draws a hypervisor as one thing", () => {
       ...fields,
     });
   };
-  const compute = (fields: Partial<OpenStackResource> = {}) => {
+  const compute: (fields?: Partial<OpenStackResource>) => OpenStackResource = (
+    fields: Partial<OpenStackResource> = {},
+  ): OpenStackResource => {
     return Object.assign(new OpenStackResource(), {
       kind: OpenStackResourceKind.Service,
       externalId: "RegionOne/compute/compute-1/nova-compute",
@@ -339,7 +345,9 @@ describe("a host, for what draws a hypervisor as one thing", () => {
 });
 
 describe("an instance on a host", () => {
-  const instance = (status: string) => {
+  const instance: (status: string) => OpenStackResource = (
+    status: string,
+  ): OpenStackResource => {
     return Object.assign(new OpenStackResource(), {
       kind: OpenStackResourceKind.Instance,
       externalId: "instance-1",

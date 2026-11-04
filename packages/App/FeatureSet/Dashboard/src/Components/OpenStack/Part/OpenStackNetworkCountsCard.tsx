@@ -36,12 +36,17 @@ function sum(readings: Array<OpenStackLatestReading>): number {
 
 export interface ComponentProps {
   cloudName: string;
+  // The region being read, or none for the whole cloud.
+  regionName?: string | null | undefined;
 }
 
 const OpenStackNetworkCountsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const inRegion: Record<string, string> = props.regionName
+    ? { [REGION_LABEL]: props.regionName }
+    : {};
 
   const read: OpenStackRead<{
     groups: Array<OpenStackLatestReading>;
@@ -57,21 +62,23 @@ const OpenStackNetworkCountsCard: FunctionComponent<ComponentProps> = (
         cloudName: props.cloudName,
         metricName: "openstack_neutron_security_groups",
         groupByLabel: REGION_LABEL,
+        attributes: inRegion,
       }),
       fetchOpenStackLatestByLabel({
         cloudName: props.cloudName,
         metricName: "openstack_neutron_quota_security_group",
         groupByLabel: "tenant",
-        attributes: { type: "used" },
+        attributes: { type: "used", ...inRegion },
       }),
       fetchOpenStackLatestByLabel({
         cloudName: props.cloudName,
         metricName: "openstack_neutron_ports",
         groupByLabel: REGION_LABEL,
+        attributes: inRegion,
       }),
     ]);
     return { groups, groupsByProject, ports };
-  }, [props.cloudName]);
+  }, [props.cloudName, props.regionName]);
 
   /*
    * Supplementary: the lists above it are what a person came for, and a read of the metric

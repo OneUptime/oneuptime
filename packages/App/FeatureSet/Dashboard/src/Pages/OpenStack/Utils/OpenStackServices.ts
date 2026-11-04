@@ -14,7 +14,10 @@ import {
   OpenStackServiceFamily,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
-import { getOpenStackProjectQuotas } from "Common/Types/OpenStack/OpenStackQuota";
+import {
+  OpenStackProjectQuota,
+  getOpenStackProjectQuotas,
+} from "Common/Types/OpenStack/OpenStackQuota";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionItem,
@@ -76,7 +79,9 @@ function factsOf(row: OpenStackResource | null | undefined): JSONObject {
 }
 
 // "Compute (Nova)" for an API's row, whose name is its type in Keystone's catalog.
-export function getOpenStackServiceTitle(service: string | null | undefined): string {
+export function getOpenStackServiceTitle(
+  service: string | null | undefined,
+): string {
   return (
     OPENSTACK_SERVICE_TITLES[service as OpenStackServiceType] || service || ""
   );
@@ -133,7 +138,9 @@ export function isOpenStackApiScrapeFailed(
  * change of system-id leaves them behind, and they read as stale rather than as an
  * outage: the agent is up (OpenStackSnapshotScan).
  */
-export function getOpenStackStaleAgentIds(row: OpenStackResource): Array<string> {
+export function getOpenStackStaleAgentIds(
+  row: OpenStackResource,
+): Array<string> {
   const ids: JSONValue | undefined = factsOf(row)["staleAgentIds"];
   return Array.isArray(ids)
     ? (ids as Array<JSONValue>).filter((id: JSONValue): id is string => {
@@ -150,11 +157,16 @@ export function getOpenStackWorkerRank(
   row: OpenStackResource,
   now: Date,
 ): number {
-  if (isOpenStackServiceDown({ status: row.status, adminState: row.adminState })) {
+  if (
+    isOpenStackServiceDown({ status: row.status, adminState: row.adminState })
+  ) {
     return 0;
   }
   if (isOpenStackAdminDisabled(row.adminState)) {
-    const assessment: OpenStackAssessment = assessOpenStackService({ row, now });
+    const assessment: OpenStackAssessment = assessOpenStackService({
+      row,
+      now,
+    });
     return assessment.severity === ResourceAttentionSeverity.Warning ? 1 : 2;
   }
   return 3;
@@ -164,17 +176,19 @@ export function sortOpenStackWorkers(
   rows: Array<OpenStackResource>,
   now: Date,
 ): Array<OpenStackResource> {
-  return [...rows].sort((a: OpenStackResource, b: OpenStackResource): number => {
-    return (
-      getOpenStackWorkerRank(a, now) - getOpenStackWorkerRank(b, now) ||
-      (a.name || "").localeCompare(b.name || "") ||
-      getOpenStackWorkerHost(a).localeCompare(
-        getOpenStackWorkerHost(b),
-        undefined,
-        { numeric: true, sensitivity: "base" },
-      )
-    );
-  });
+  return [...rows].sort(
+    (a: OpenStackResource, b: OpenStackResource): number => {
+      return (
+        getOpenStackWorkerRank(a, now) - getOpenStackWorkerRank(b, now) ||
+        (a.name || "").localeCompare(b.name || "") ||
+        getOpenStackWorkerHost(a).localeCompare(
+          getOpenStackWorkerHost(b),
+          undefined,
+          { numeric: true, sensitivity: "base" },
+        )
+      );
+    },
+  );
 }
 
 export interface OpenStackWorkerCounts {
@@ -241,48 +255,39 @@ function catalogRank(service: string): number {
   return index === -1 ? OPENSTACK_CATALOG_ORDER.length : index;
 }
 
+// A group while its rows are gathered, before anything is worked out from them.
+interface OpenStackServiceGroupRows {
+  service: string;
+  regionName: string | null;
+  api: OpenStackResource | null;
+  workers: Array<OpenStackResource>;
+}
+
 export function getOpenStackServiceGroups(data: {
   apis: Array<OpenStackResource>;
   workers: Array<OpenStackResource>;
   now: Date;
 }): Array<OpenStackServiceGroup> {
-  const groups: Map<
-    string,
-    {
-      service: string;
-      regionName: string | null;
-      api: OpenStackResource | null;
-      workers: Array<OpenStackResource>;
-    }
-  > = new Map();
+  const groups: Map<string, OpenStackServiceGroupRows> = new Map();
 
-  const groupOf = (
+  const groupOf: (
     service: string,
     regionName: string | null,
-  ): {
-    service: string;
-    regionName: string | null;
-    api: OpenStackResource | null;
-    workers: Array<OpenStackResource>;
-  } => {
+  ) => OpenStackServiceGroupRows = (
+    service: string,
+    regionName: string | null,
+  ): OpenStackServiceGroupRows => {
     const key: string = `${regionName || ""}/${service}`;
-    const found:
-      | {
-          service: string;
-          regionName: string | null;
-          api: OpenStackResource | null;
-          workers: Array<OpenStackResource>;
-        }
-      | undefined = groups.get(key);
+    const found: OpenStackServiceGroupRows | undefined = groups.get(key);
     if (found) {
       return found;
     }
-    const group: {
-      service: string;
-      regionName: string | null;
-      api: OpenStackResource | null;
-      workers: Array<OpenStackResource>;
-    } = { service, regionName, api: null, workers: [] };
+    const group: OpenStackServiceGroupRows = {
+      service,
+      regionName,
+      api: null,
+      workers: [],
+    };
     groups.set(key, group);
     return group;
   };
@@ -305,12 +310,7 @@ export function getOpenStackServiceGroups(data: {
     .map(
       ([key, group]: [
         string,
-        {
-          service: string;
-          regionName: string | null;
-          api: OpenStackResource | null;
-          workers: Array<OpenStackResource>;
-        },
+        OpenStackServiceGroupRows,
       ]): OpenStackServiceGroup => {
         const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
           rows: [...(group.api ? [group.api] : []), ...group.workers],
@@ -325,8 +325,7 @@ export function getOpenStackServiceGroups(data: {
           counts: getOpenStackWorkerCounts(group.workers),
           items,
           health: getOpenStackHealth(items),
-          isLastKnown:
-            group.api?.status === "down" && group.workers.length > 0,
+          isLastKnown: group.api?.status === "down" && group.workers.length > 0,
         };
       },
     )
@@ -360,12 +359,14 @@ export function getOpenStackNetworkBackendName(
 ): string | null {
   const names: Array<string> = workers
     .filter((worker: OpenStackResource): boolean => {
-      return getOpenStackWorkerFamily(worker) === OpenStackServiceFamily.Network;
+      return (
+        getOpenStackWorkerFamily(worker) === OpenStackServiceFamily.Network
+      );
     })
     .map((worker: OpenStackResource): string => {
       return (worker.name || "").toLowerCase();
     });
-  const hasAgent = (word: string): boolean => {
+  const hasAgent: (word: string) => boolean = (word: string): boolean => {
     return names.some((name: string): boolean => {
       return name.includes(word);
     });
@@ -435,7 +436,11 @@ export function getOpenStackAccessGaps(data: {
    */
   hasStoragePools?: boolean | undefined;
 }): Array<OpenStackAccessGap> {
-  const hasWorkers = (family: OpenStackServiceFamily) => {
+  const hasWorkers: (
+    family: OpenStackServiceFamily,
+  ) => (regionName: string | null) => boolean = (
+    family: OpenStackServiceFamily,
+  ): ((regionName: string | null) => boolean) => {
     return (regionName: string | null): boolean => {
       return data.workers.some((worker: OpenStackResource): boolean => {
         return (
@@ -446,7 +451,9 @@ export function getOpenStackAccessGaps(data: {
     };
   };
 
-  const titleOf = (kind: OpenStackResourceKind): string => {
+  const titleOf: (kind: OpenStackResourceKind) => string = (
+    kind: OpenStackResourceKind,
+  ): string => {
     return getOpenStackEmptyWords({ kind, api: "up" })?.title || "";
   };
 
@@ -649,9 +656,11 @@ export function isOpenStackRowInRegion(data: {
 }): boolean {
   const { row, regionName, now } = data;
   if (row.kind === OpenStackResourceKind.Project) {
-    return getOpenStackProjectQuotas(factsOf(row), now).some((quota) => {
-      return quota.isAtLine && quota.regionName === regionName;
-    });
+    return getOpenStackProjectQuotas(factsOf(row), now).some(
+      (quota: OpenStackProjectQuota): boolean => {
+        return quota.isAtLine && quota.regionName === regionName;
+      },
+    );
   }
   return !row.regionName || row.regionName === regionName;
 }

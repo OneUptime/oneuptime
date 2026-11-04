@@ -74,7 +74,7 @@ import {
 
 const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
 const FRESH: Date = new Date(NOW.getTime() - 60 * 1000);
-const CLOUD = {
+const CLOUD: { id: string; name: string; lastSeenAt: Date } = {
   id: "60000000-0000-4000-8000-000000000001",
   name: "prod-eu",
   lastSeenAt: FRESH,
@@ -667,7 +667,7 @@ describe("what is open is pinned to the part it is about", () => {
     });
 
     expect(
-      node(graph, expected).issues.map((found) => {
+      node(graph, expected).issues.map((found: { id: string }) => {
         return found.id;
       }),
     ).toEqual(["1"]);
@@ -788,7 +788,11 @@ describe("the Infrastructure view draws clouds beside hosts and clusters", () =>
     );
   });
 
-  const topologyEntity = (
+  const topologyEntity: (
+    key: string,
+    type: EntityType,
+    name?: string,
+  ) => TopologyEntity = (
     key: string,
     type: EntityType,
     name: string = key,
@@ -802,7 +806,11 @@ describe("the Infrastructure view draws clouds beside hosts and clusters", () =>
     };
   };
 
-  const topologyEdge = (
+  const topologyEdge: (
+    from: string,
+    to: string,
+    type: EntityRelationshipType,
+  ) => TopologyRelationship = (
     from: string,
     to: string,
     type: EntityRelationshipType,

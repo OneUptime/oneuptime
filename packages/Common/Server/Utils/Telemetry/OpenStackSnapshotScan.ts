@@ -134,14 +134,12 @@ const NAMED_QUOTA_METRICS: ReadonlyMap<
   [string, { resource: OpenStackQuotaResource; reading: "used" | "limit" }]
 >);
 
-const TYPED_QUOTA_METRICS: ReadonlyMap<string, OpenStackQuotaResource> = new Map<
-  string,
-  OpenStackQuotaResource
->([
-  ["openstack_neutron_quota_network", OpenStackQuotaResource.Networks],
-  ["openstack_neutron_quota_port", OpenStackQuotaResource.Ports],
-  ["openstack_neutron_quota_floatingip", OpenStackQuotaResource.FloatingIps],
-]);
+const TYPED_QUOTA_METRICS: ReadonlyMap<string, OpenStackQuotaResource> =
+  new Map<string, OpenStackQuotaResource>([
+    ["openstack_neutron_quota_network", OpenStackQuotaResource.Networks],
+    ["openstack_neutron_quota_port", OpenStackQuotaResource.Ports],
+    ["openstack_neutron_quota_floatingip", OpenStackQuotaResource.FloatingIps],
+  ]);
 
 /*
  * The labels openstack_nova_server_status carries by itself, and the ones the agent and
@@ -524,7 +522,8 @@ function foldServiceState(data: {
       : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
-  entry.adminState = getLabel(data.attributes, "adminState") ?? entry.adminState;
+  entry.adminState =
+    getLabel(data.attributes, "adminState") ?? entry.adminState;
   entry.disabledReason =
     getLabel(data.attributes, "disabledReason") ?? entry.disabledReason;
   setFact(entry, "family", data.family);
@@ -821,6 +820,11 @@ function foldVolume(data: {
    * is written down explicitly: it would otherwise say what held it for ever.
    */
   entry.facts["attachedToInstance"] = getLabel(data.attributes, "server_id");
+  /*
+   * Which pool holds it, which is all a pool's blast radius has to go on. The exporter's
+   * series has no such label, so this is written only by a source that names one.
+   */
+  setFact(entry, "pool", getLabel(data.attributes, "pool"));
   setBooleanFact(entry, "isBootable", getLabel(data.attributes, "bootable"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
 }
@@ -1284,11 +1288,17 @@ export function bufferOpenStackSnapshotMetric(data: {
   const observedAt: Date = parseUnixNanoToDate(
     data.datapoint["timeUnixNano"] as string | number | undefined,
   );
-  const region: string | null = getLabel(attributes, OPENSTACK_REGION_ATTRIBUTE);
+  const region: string | null = getLabel(
+    attributes,
+    OPENSTACK_REGION_ATTRIBUTE,
+  );
   const { metricName, buffer } = data;
 
   if (metricName === OPENSTACK_SCRAPE_DURATION_METRIC_NAME) {
-    const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
+    const service: string | null = getLabel(
+      attributes,
+      OPENSTACK_SERVICE_LABEL,
+    );
     if (service) {
       const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
         buffer,
@@ -1303,7 +1313,10 @@ export function bufferOpenStackSnapshotMetric(data: {
   }
 
   if (metricName === OPENSTACK_SCRAPE_UP_METRIC_NAME) {
-    const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
+    const service: string | null = getLabel(
+      attributes,
+      OPENSTACK_SERVICE_LABEL,
+    );
     if (service) {
       foldApiUp({
         buffer,
@@ -1345,7 +1358,14 @@ export function bufferOpenStackSnapshotMetric(data: {
     metricName.startsWith("openstack_nova_local_storage_") ||
     metricName === "openstack_nova_running_vms"
   ) {
-    foldHypervisor({ buffer, metricName, attributes, region, value, observedAt });
+    foldHypervisor({
+      buffer,
+      metricName,
+      attributes,
+      region,
+      value,
+      observedAt,
+    });
     return;
   }
 
@@ -1579,7 +1599,9 @@ export function finishOpenStackResource(
        * network out of addresses never needs anyone. Every dual-stack `public` network
        * on a real cloud is this.
        */
-      const all: Array<JSONObject> = Object.values(subnets) as Array<JSONObject>;
+      const all: Array<JSONObject> = Object.values(
+        subnets,
+      ) as Array<JSONObject>;
       const ipv4: Array<JSONObject> = all.filter((subnet: JSONObject) => {
         return subnet["ipVersion"] !== "6";
       });

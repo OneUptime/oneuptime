@@ -9,6 +9,8 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import OpenStackCloudConnectionTestService from "Common/Server/Services/OpenStackCloudConnectionTestService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
 import { OpenStackCollectionReportOutcome } from "Common/Server/Utils/OpenStack/OpenStackProbeCollectionStore";
 import OpenStackProbeMetrics, {
   OpenStackProbeMetricsPayload,
@@ -51,9 +53,8 @@ import {
 
 /*
  * What these routes need of the database, in the words of the conversation. The real one
- * is OpenStackCloudService and OpenStackCloudConnectionTestService over
- * OpenStackProbeCollectionStore and OpenStackConnectionTestStore, and is bound below once
- * the model has its collection columns.
+ * is OpenStackCloudService and OpenStackCloudConnectionTestService, over
+ * OpenStackProbeCollectionStore and OpenStackConnectionTestStore.
  */
 export interface OpenStackProbeWorkStore {
   claimForCollection: (data: {
@@ -75,29 +76,33 @@ export interface OpenStackProbeWorkStore {
   }) => Promise<boolean>;
 }
 
-/*
- * Until the model has its collection columns, there is no cloud a probe could be handed,
- * and no report could be accepted: an answer a probe already knows what to do with.
- */
-export const OPENSTACK_PROBE_WORK_STORE_WITHOUT_COLUMNS: OpenStackProbeWorkStore =
-  {
-    claimForCollection: async (): Promise<Array<OpenStackCollectionJob>> => {
-      return [];
-    },
-    recordCollectionReport:
-      async (): Promise<OpenStackCollectionReportOutcome> => {
-        return {
-          accepted: false,
-          reason: "OpenStack collection is not set up on this server yet.",
-        };
-      },
-    claimPendingTests: async (): Promise<Array<OpenStackConnectionTestJob>> => {
-      return [];
-    },
-    recordTestReport: async (): Promise<boolean> => {
-      return false;
-    },
-  };
+export const OPENSTACK_PROBE_WORK_STORE: OpenStackProbeWorkStore = {
+  claimForCollection: async (data: {
+    probeId: ObjectID;
+    runningOpenStackCloudIds: Array<string>;
+    limit: number;
+  }): Promise<Array<OpenStackCollectionJob>> => {
+    return await OpenStackCloudService.claimForCollection(data);
+  },
+  recordCollectionReport: async (data: {
+    probeId: ObjectID;
+    report: OpenStackCollectionReport;
+  }): Promise<OpenStackCollectionReportOutcome> => {
+    return await OpenStackCloudService.recordCollectionReport(data);
+  },
+  claimPendingTests: async (data: {
+    probeId: ObjectID;
+    limit: number;
+  }): Promise<Array<OpenStackConnectionTestJob>> => {
+    return await OpenStackCloudConnectionTestService.claimPendingTests(data);
+  },
+  recordTestReport: async (data: {
+    probeId: ObjectID;
+    report: OpenStackConnectionTestReport;
+  }): Promise<boolean> => {
+    return await OpenStackCloudConnectionTestService.recordTestReport(data);
+  },
+};
 
 // The most running collections a probe may name in one work request.
 const MAX_RUNNING_IDS_PER_REQUEST: number = 100;
@@ -362,6 +367,4 @@ export function createOpenStackCollectionRouter(
   return router;
 }
 
-export default createOpenStackCollectionRouter(
-  OPENSTACK_PROBE_WORK_STORE_WITHOUT_COLUMNS,
-);
+export default createOpenStackCollectionRouter(OPENSTACK_PROBE_WORK_STORE);

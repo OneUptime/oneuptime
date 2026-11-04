@@ -48,10 +48,7 @@ const NOTHING_REPORTED: string = translationKey(
 const AgentOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-}): ReactElement => {
+}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
 

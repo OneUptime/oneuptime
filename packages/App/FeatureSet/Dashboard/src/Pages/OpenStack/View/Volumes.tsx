@@ -9,11 +9,16 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { OpenStackVolumeList } from "../../../Components/OpenStack/OpenStackLists";
 import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
 import OpenStackLimitedViewNotice from "../../../Components/OpenStack/Part/OpenStackLimitedViewNotice";
 import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import { fetchOpenStackCounts } from "../Utils/OpenStackPartData";
+import { getOpenStackCountTotals } from "../Utils/OpenStackPartFacts";
 
 /*
  * Every Cinder volume, and above them which volume types are in use: how many of each and
@@ -25,6 +30,7 @@ const OpenStackCloudVolumes: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
 
   const types: OpenStackRead<Array<OpenStackCountRow>> = useOpenStackRead<
     Array<OpenStackCountRow>
@@ -36,32 +42,34 @@ const OpenStackCloudVolumes: FunctionComponent<
     });
   }, [modelId.toString()]);
 
+  const typeTotals: Array<OpenStackCountRow> = getOpenStackCountTotals(
+    types.data || [],
+    region,
+  );
+  const noType: string = translator.translateText("No type") || "No type";
+
   return (
     <Fragment>
       <OpenStackLimitedViewNotice
         openStackCloudId={modelId}
         kind={OpenStackResourceKind.Volume}
       />
-      {types.data && types.data.length > 0 ? (
+      {typeTotals.length > 0 ? (
         <div className="mb-6" data-testid="openstack-volume-types">
           <Card
             title="Volume types in use"
             description="Which types this cloud's volumes are, how many of each, and what they add up to."
           >
-            <div className="flex flex-wrap gap-1.5 px-5 pb-5 md:px-6">
-              {types.data.map((type: OpenStackCountRow): ReactElement => {
+            <div className="flex flex-wrap gap-1.5">
+              {typeTotals.map((type: OpenStackCountRow): ReactElement => {
                 return (
                   <span
-                    key={`${type.regionName || ""}/${type.value || ""}`}
+                    key={type.value || ""}
                     data-testid="openstack-volume-type"
                     className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
                   >
                     <span className="font-medium">
-                      <bdi>
-                        {type.value ||
-                          translator.translateText("No type") ||
-                          "No type"}
-                      </bdi>
+                      <bdi>{type.value || noType}</bdi>
                     </span>
                     <span>
                       {translator.translatePlural(

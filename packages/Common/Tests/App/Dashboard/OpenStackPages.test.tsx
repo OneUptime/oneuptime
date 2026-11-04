@@ -97,6 +97,10 @@ import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  OpenStackQuotaResource,
+  getOpenStackQuotaFactKey,
+} from "../../../Types/OpenStack/OpenStackQuota";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -522,14 +526,16 @@ describe("the Services page", () => {
 
     await renderPage(OpenStackCloudServices, "/services");
 
-    expect(await screen.findByTestId("openstack-service-group")).toHaveAttribute(
-      "data-health",
-      "Healthy",
-    );
+    expect(
+      await screen.findByTestId("openstack-service-group"),
+    ).toHaveAttribute("data-health", "Healthy");
   });
 
   test("an API reads by its service's name, in the order of Keystone's catalog", async () => {
-    rowsFor = workersRowsOf([api("image"), api("compute"), api("identity")], []);
+    rowsFor = workersRowsOf(
+      [api("image"), api("compute"), api("identity")],
+      [],
+    );
 
     await renderPage(OpenStackCloudServices, "/services");
 
@@ -791,6 +797,75 @@ describe("the Overview", () => {
     ).toHaveTextContent("See them all");
   });
 
+  test("a region's pill says what reading that region does, a project at its quota there included", async () => {
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+    });
+    const region: (regionName: string) => JSONObject = (
+      regionName: string,
+    ): JSONObject => {
+      return {
+        regionName,
+        apiCount: 1,
+        downApiCount: 0,
+        serviceCount: 0,
+        downServiceCount: 0,
+        hypervisorCount: 1,
+        instanceCount: 1,
+        vcpuCapacity: 10,
+        vcpuAllocated: 1,
+        memoryCapacityBytes: 10,
+        memoryAllocatedBytes: 1,
+        storageCapacityBytes: 0,
+        storageUsedBytes: 0,
+      };
+    };
+    posted = {
+      "region-summaries": {
+        regions: [region("RegionOne"), region("RegionTwo")],
+      },
+      // A project belongs to no region, and each region's answer holds it.
+      "needs-attention": {
+        rows: [
+          {
+            kind: OpenStackResourceKind.Project,
+            externalId: PROJECT_A,
+            name: "payments",
+            facts: {
+              [getOpenStackQuotaFactKey(
+                OpenStackQuotaResource.Instances,
+                "RegionTwo",
+              )]: {
+                used: 95,
+                limit: 100,
+                observedAt: new Date().toISOString(),
+              },
+            },
+          },
+        ],
+        totalsByKind: { Project: 1 },
+      },
+    };
+
+    await renderPage(OpenStackCloudOverview, "");
+
+    const items: Array<HTMLElement> = await screen.findAllByTestId(
+      "openstack-regions-card-item",
+    );
+    expect(
+      items.map((item: HTMLElement): Array<string | null> => {
+        return [
+          item.getAttribute("data-region"),
+          item.getAttribute("data-health"),
+        ];
+      }),
+    ).toEqual([
+      ["RegionOne", "Healthy"],
+      ["RegionTwo", "Degraded"],
+    ]);
+  });
+
   test("a cloud that has stopped reporting asks nothing current, and has no verdict", async () => {
     cloud = cloudWith({
       otelCollectorStatus: "disconnected",
@@ -830,7 +905,9 @@ describe("the Overview", () => {
     expect(screen.queryByText("2 services down")).not.toBeInTheDocument();
 
     // A percentage days old reads as today's.
-    const tiles: HTMLElement = screen.getByTestId("openstack-overview-capacity");
+    const tiles: HTMLElement = screen.getByTestId(
+      "openstack-overview-capacity",
+    );
     expect(within(tiles).queryByText("62%")).not.toBeInTheDocument();
     expect(within(tiles).getAllByText("Nothing current")).toHaveLength(5);
   });

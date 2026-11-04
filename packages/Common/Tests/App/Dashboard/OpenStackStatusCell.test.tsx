@@ -4,7 +4,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import {
   OPENSTACK_DISABLED_LABEL,
+  OPENSTACK_LOST_LABEL,
   OPENSTACK_SCRAPE_FAILED_REASON,
+  OPENSTACK_STUCK_LABEL,
   OPENSTACK_STATUS_WORDS,
   OpenStackStatusReading,
   getOpenStackStatusReading,
@@ -46,6 +48,8 @@ function readingOf(data: {
   adminState?: string;
   disabledReason?: string;
   isScrapeFailed?: boolean;
+  stateChangedAt?: Date;
+  now?: Date;
 }): OpenStackStatusReading {
   const reading: OpenStackStatusReading | null =
     getOpenStackStatusReading(data);
@@ -338,6 +342,74 @@ describe("a status word stays OpenStack's own in every language", () => {
       );
 
     expect(resource.statusReasons).toEqual([]);
+  });
+});
+
+describe("how long a state has held is part of what it says", () => {
+  const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
+  const ago = (minutes: number): Date => {
+    return new Date(NOW.getTime() - minutes * 60 * 1000);
+  };
+
+  test("a step past its line reads Stuck, in our word rather than Nova's", () => {
+    const reading: OpenStackStatusReading = readingOf({
+      kind: OpenStackResourceKind.Instance,
+      status: "BUILD",
+      stateChangedAt: ago(120),
+      now: NOW,
+    });
+    expect(reading.label).toBe(OPENSTACK_STUCK_LABEL);
+    expect(reading.isStuck).toBe(true);
+  });
+
+  test("a step under its line is on its way, and reads as nothing to look at", () => {
+    const reading: OpenStackStatusReading = readingOf({
+      kind: OpenStackResourceKind.Instance,
+      status: "BUILD",
+      stateChangedAt: ago(5),
+      now: NOW,
+    });
+    expect(reading.label).toBe("BUILD");
+    expect(reading.isStuck).toBeFalsy();
+    expect(reading.tone).not.toBe("danger");
+    expect(reading.tone).not.toBe("warning");
+  });
+
+  test("with no time to read by, it never guesses Stuck", () => {
+    const reading: OpenStackStatusReading = readingOf({
+      kind: OpenStackResourceKind.Volume,
+      status: "attaching",
+    });
+    expect(reading.label).toBe("attaching");
+    expect(reading.isStuck).toBeFalsy();
+  });
+
+  test("a word that isn't a step is never stuck, however long it has held", () => {
+    const reading: OpenStackStatusReading = readingOf({
+      kind: OpenStackResourceKind.Instance,
+      status: "SHUTOFF",
+      stateChangedAt: ago(100000),
+      now: NOW,
+    });
+    expect(reading.label).toBe("SHUTOFF");
+    expect(reading.isStuck).toBeFalsy();
+  });
+
+  test("a hypervisor that stopped answering reads Lost, and one someone disabled doesn't", () => {
+    expect(
+      readingOf({
+        kind: OpenStackResourceKind.Hypervisor,
+        status: "down",
+        adminState: "enabled",
+      }).label,
+    ).toBe(OPENSTACK_LOST_LABEL);
+    expect(
+      readingOf({
+        kind: OpenStackResourceKind.Hypervisor,
+        status: "down",
+        adminState: "disabled",
+      }).label,
+    ).toBe(OPENSTACK_DISABLED_LABEL);
   });
 });
 

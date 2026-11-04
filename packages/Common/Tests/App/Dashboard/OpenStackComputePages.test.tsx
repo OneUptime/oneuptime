@@ -15,6 +15,8 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
+import { JSONObject } from "../../../Types/JSON";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -39,6 +41,7 @@ import {
   HYPERVISOR_ID,
   HYPERVISOR_NAME,
   READ_FAILED,
+  ListCall,
   Row,
   attentionRowsOf,
   computeServiceRow,
@@ -208,10 +211,12 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+type NavigateSpy = { mock: { calls: Array<Array<unknown>> } };
+
 describe("the Hypervisors list", () => {
   test("says allocated with its ratio, and opens a hypervisor's page on a click", async () => {
     server.rows = [hypervisorRow()];
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: NavigateSpy = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 
@@ -245,10 +250,13 @@ describe("the Hypervisors list", () => {
 
     await renderPage(OpenStackCloudHypervisors, "/hypervisors");
 
-    const row: HTMLElement = (
-      await screen.findByText(HYPERVISOR_NAME)
-    ).closest("tr") as HTMLElement;
-    expect(within(row).getByText("Lost")).toHaveAttribute("data-tone", "danger");
+    const row: HTMLElement = (await screen.findByText(HYPERVISOR_NAME)).closest(
+      "tr",
+    ) as HTMLElement;
+    expect(within(row).getByText("Lost")).toHaveAttribute(
+      "data-tone",
+      "danger",
+    );
     expect(
       within(row).getByText("nova-compute is down. Its numbers are last known"),
     ).toBeInTheDocument();
@@ -268,14 +276,16 @@ describe("the Hypervisors list", () => {
 
     await renderPage(OpenStackCloudHypervisors, "/hypervisors");
 
-    const row: HTMLElement = (
-      await screen.findByText(HYPERVISOR_NAME)
-    ).closest("tr") as HTMLElement;
+    const row: HTMLElement = (await screen.findByText(HYPERVISOR_NAME)).closest(
+      "tr",
+    ) as HTMLElement;
     expect(within(row).getByText("Disabled")).toHaveAttribute(
       "data-tone",
       "neutral",
     );
-    expect(within(row).getByText("Hardware swap, CHG-1042")).toBeInTheDocument();
+    expect(
+      within(row).getByText("Hardware swap, CHG-1042"),
+    ).toBeInTheDocument();
     expect(row.querySelector('[data-tone="danger"]')).toBeNull();
   });
 
@@ -284,9 +294,9 @@ describe("the Hypervisors list", () => {
 
     await renderPage(OpenStackCloudHypervisors, "/hypervisors");
 
-    const row: HTMLElement = (
-      await screen.findByText(HYPERVISOR_NAME)
-    ).closest("tr") as HTMLElement;
+    const row: HTMLElement = (await screen.findByText(HYPERVISOR_NAME)).closest(
+      "tr",
+    ) as HTMLElement;
     expect(within(row).getByText("up")).toHaveAttribute("data-tone", "warning");
     expect(within(row).getByText("94% of vCPUs allocated")).toBeInTheDocument();
   });
@@ -403,7 +413,7 @@ describe("a hypervisor's page", () => {
     ).toHaveTextContent("19%12 of 64, ratio 16:1");
     expect(
       tile("openstack-hypervisor-tiles", "Memory allocated"),
-    ).toHaveTextContent("13%16.0 GiB of 128 GiB, ratio 1.5:1");
+    ).toHaveTextContent("13%16 GiB of 128 GiB, ratio 1.5:1");
     expect(
       tile("openstack-hypervisor-tiles", "Local disk allocated"),
     ).toHaveTextContent("10%");
@@ -448,7 +458,7 @@ describe("a hypervisor's page", () => {
       "nova-compute: Down, with 5 instances on it",
     ]);
     const asked: Array<unknown> = kindCalls(OpenStackResourceKind.Service).map(
-      (call) => {
+      (call: ListCall) => {
         return (call.query["hypervisorName"] as Includes).values;
       },
     );
@@ -476,7 +486,9 @@ describe("a hypervisor's page", () => {
       "broken: In ERROR",
     ]);
     // Asked for by the words the rules read, never the host's every instance.
-    const instanceCalls = kindCalls(OpenStackResourceKind.Instance);
+    const instanceCalls: Array<ListCall> = kindCalls(
+      OpenStackResourceKind.Instance,
+    );
     expect(instanceCalls).toHaveLength(1);
     expect(instanceCalls[0]!.limit).toBe(100);
     expect(instanceCalls[0]!.query["status"]).toBeInstanceOf(Includes);
@@ -500,8 +512,13 @@ describe("a hypervisor's page", () => {
 
     expect(await screen.findByText("web-01")).toBeInTheDocument();
     expect(screen.queryByText("elsewhere")).not.toBeInTheDocument();
-    const scoped = kindCalls(OpenStackResourceKind.Instance).filter((call) => {
-      return call.query["hypervisorName"] === HYPERVISOR_NAME && !call.query["status"];
+    const scoped: Array<ListCall> = kindCalls(
+      OpenStackResourceKind.Instance,
+    ).filter((call: ListCall) => {
+      return (
+        call.query["hypervisorName"] === HYPERVISOR_NAME &&
+        !call.query["status"]
+      );
     });
     expect(scoped.length).toBeGreaterThan(0);
     expect(scoped[0]!.query["regionName"]).toBe("RegionOne");
@@ -573,14 +590,6 @@ describe("a hypervisor's page", () => {
 
   test("what is open on it: only records about it, across Nova's two names for a machine", async () => {
     server.rows = [hypervisorRow()];
-    server.records["IncidentState"] = [
-      {
-        _id: "50000000-0000-4000-8000-000000000001",
-        name: "Created",
-        isResolvedState: false,
-        order: 1,
-      },
-    ];
     server.records["Incident"] = [
       {
         _id: "60000000-0000-4000-8000-000000000001",
@@ -655,7 +664,7 @@ describe("a hypervisor's page", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByTestId("openstack-hypervisor-host-link").closest("a"),
-    ).toHaveAttribute("href", expect.stringContaining("/hosts/"));
+    ).toHaveAttribute("href", expect.stringContaining("/host/"));
     cleanup();
 
     // Two matches: no link on a guess.
@@ -823,7 +832,7 @@ describe("the Instances list", () => {
 
   test("opens an instance's page on a click", async () => {
     server.rows = [instanceRow()];
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: NavigateSpy = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 
@@ -893,7 +902,9 @@ describe("an instance's page", () => {
 
   test("an address a row holds is shown", async () => {
     server.rows = [
-      instanceRow({ facts: { addressIpv4: "10.0.0.5", addressIpv6: "fd00::5" } }),
+      instanceRow({
+        facts: { addressIpv4: "10.0.0.5", addressIpv6: "fd00::5" },
+      }),
     ];
 
     await renderPage(OpenStackCloudInstanceDetail, PATH);
@@ -1124,7 +1135,9 @@ describe("availability zones and aggregates", () => {
     expect(
       screen.queryByText("compute-09.example.internal"),
     ).not.toBeInTheDocument();
-    const call = kindCalls(OpenStackResourceKind.Hypervisor).find((one) => {
+    const call: ListCall | undefined = kindCalls(
+      OpenStackResourceKind.Hypervisor,
+    ).find((one: ListCall) => {
       return one.query["availabilityZone"] === "az1";
     });
     expect(call?.query["regionName"]).toBe("RegionOne");
@@ -1188,6 +1201,36 @@ describe("availability zones and aggregates", () => {
     ).toBeInTheDocument();
   });
 
+  test("with a region chosen, the list reads only that region's zones", async () => {
+    server.rows = [
+      hypervisorRow({ availabilityZone: "az1" }),
+      hypervisorRow({
+        _id: "6c1b2a3d-4e5f-4a6b-8c7d-000000000091",
+        name: "compute-91.example.internal",
+        hypervisorName: "compute-91.example.internal",
+        externalId: "RegionTwo/compute-91.example.internal",
+        regionName: "RegionTwo",
+        availabilityZone: "az2",
+      }),
+    ];
+
+    await renderPage(
+      OpenStackCloudAvailabilityZones,
+      "/availability-zones?region=RegionTwo",
+    );
+
+    expect(await screen.findByText("az2")).toBeInTheDocument();
+    expect(screen.queryByText("az1")).not.toBeInTheDocument();
+    expect(
+      server.postCalls.some((call: { path: string; body: JSONObject }) => {
+        return (
+          call.path.includes("needs-attention") &&
+          call.body["regionName"] === "RegionTwo"
+        );
+      }),
+    ).toBe(true);
+  });
+
   test("zones with no hypervisors and Nova answering say the credential can't list them", async () => {
     server.rows = [
       {
@@ -1224,7 +1267,9 @@ describe("availability zones and aggregates", () => {
       await screen.findByText("compute-09.example.internal"),
     ).toBeInTheDocument();
     expect(screen.queryByText(HYPERVISOR_NAME)).not.toBeInTheDocument();
-    const call = kindCalls(OpenStackResourceKind.Hypervisor).find((one) => {
+    const call: ListCall | undefined = kindCalls(
+      OpenStackResourceKind.Hypervisor,
+    ).find((one: ListCall) => {
       return one.query["hypervisorName"] instanceof Includes;
     });
     expect((call?.query["hypervisorName"] as Includes).values).toEqual([
@@ -1254,13 +1299,15 @@ describe("flavors", () => {
     const small: HTMLElement = (await screen.findByText("Small")).closest(
       "tr",
     ) as HTMLElement;
-    expect(await within(small).findByText("2", { selector: "span" })).toBeInTheDocument();
+    expect(
+      await within(small).findByText("2", { selector: "span" }),
+    ).toBeInTheDocument();
     expect(within(small).getByText("4.0 GiB")).toBeInTheDocument();
     expect(within(small).getByText("Public")).toBeInTheDocument();
     expect(within(tableRow("Unused")).getByText("0")).toBeInTheDocument();
 
     expect(
-      server.postCalls.filter((call) => {
+      server.postCalls.filter((call: { path: string; body: JSONObject }) => {
         return call.path.includes("/counts/");
       }),
     ).toHaveLength(1);
@@ -1308,83 +1355,91 @@ describe("flavors", () => {
   });
 });
 
-describe.each(getOpenStackDrilledReleases())("on what %s said", (release: string) => {
-  function load(scene: string): void {
-    const recording: OpenStackRecording = new OpenStackRecording(release, scene);
-    server.rows = recording.rows.map((row, index: number) => {
-      return {
-        ...row,
-        _id: `6c1b2a3d-4e5f-4a6b-8c7d-${String(index).padStart(12, "0")}`,
-      } as Row;
+describe.each(getOpenStackDrilledReleases())(
+  "on what %s said",
+  (release: string) => {
+    function load(scene: string): void {
+      const recording: OpenStackRecording = new OpenStackRecording(
+        release,
+        scene,
+      );
+      server.rows = recording.rows.map(
+        (row: OpenStackResource, index: number) => {
+          return {
+            ...row,
+            _id: `6c1b2a3d-4e5f-4a6b-8c7d-${String(index).padStart(12, "0")}`,
+          } as Row;
+        },
+      );
+    }
+
+    test("a stopped nova-compute: the list says Lost, and its page how many instances it holds", async () => {
+      load("compute-down");
+      const hypervisor: Row = server.rows.find((row: Row) => {
+        return row.kind === OpenStackResourceKind.Hypervisor;
+      })!;
+
+      await renderPage(OpenStackCloudHypervisors, "/hypervisors");
+      expect(await screen.findByText("Lost")).toBeInTheDocument();
+      cleanup();
+
+      await renderPage(
+        OpenStackCloudHypervisorDetail,
+        partPath("hypervisors", hypervisor.externalId as string),
+      );
+      expect(
+        await screen.findByTestId("openstack-hypervisor-lost"),
+      ).toBeInTheDocument();
+      expect(attentionRowsOf("openstack-hypervisor-attention")[0]).toMatch(
+        /nova-compute: Down, with \d+ instances? on it/,
+      );
+      expect(
+        tile("openstack-hypervisor-tiles", "vCPUs allocated"),
+      ).toHaveTextContent("last known");
     });
-  }
 
-  test("a stopped nova-compute: the list says Lost, and its page how many instances it holds", async () => {
-    load("compute-down");
-    const hypervisor: Row = server.rows.find((row: Row) => {
-      return row.kind === OpenStackResourceKind.Hypervisor;
-    })!;
+    test("the failed instance reads as failing before it was placed", async () => {
+      load("healthy");
+      const failed: Row = server.rows.find((row: Row) => {
+        return row.name === "ou-failed";
+      })!;
 
-    await renderPage(OpenStackCloudHypervisors, "/hypervisors");
-    expect(await screen.findByText("Lost")).toBeInTheDocument();
-    cleanup();
+      await renderPage(
+        OpenStackCloudInstanceDetail,
+        partPath("instances", failed.externalId as string),
+      );
 
-    await renderPage(
-      OpenStackCloudHypervisorDetail,
-      partPath("hypervisors", hypervisor.externalId as string),
-    );
-    expect(
-      await screen.findByTestId("openstack-hypervisor-lost"),
-    ).toBeInTheDocument();
-    expect(attentionRowsOf("openstack-hypervisor-attention")[0]).toMatch(
-      /nova-compute: Down, with \d+ instances? on it/,
-    );
-    expect(
-      tile("openstack-hypervisor-tiles", "vCPUs allocated"),
-    ).toHaveTextContent("last known");
-  });
+      expect(
+        await screen.findByTestId("openstack-instance-explanation"),
+      ).toHaveTextContent(/never placed/);
+      expect(
+        screen.getByTestId("openstack-instance-hero-status"),
+      ).toHaveTextContent("ERROR");
+    });
 
-  test("the failed instance reads as failing before it was placed", async () => {
-    load("healthy");
-    const failed: Row = server.rows.find((row: Row) => {
-      return row.name === "ou-failed";
-    })!;
+    test("a running instance links to the real hypervisor and flavor rows", async () => {
+      load("healthy");
+      const running: Row = server.rows.find((row: Row) => {
+        return row.name === "ou-running";
+      })!;
 
-    await renderPage(
-      OpenStackCloudInstanceDetail,
-      partPath("instances", failed.externalId as string),
-    );
+      await renderPage(
+        OpenStackCloudInstanceDetail,
+        partPath("instances", running.externalId as string),
+      );
 
-    expect(
-      await screen.findByTestId("openstack-instance-explanation"),
-    ).toHaveTextContent(/never placed/);
-    expect(
-      screen.getByTestId("openstack-instance-hero-status"),
-    ).toHaveTextContent("ERROR");
-  });
-
-  test("a running instance links to the real hypervisor and flavor rows", async () => {
-    load("healthy");
-    const running: Row = server.rows.find((row: Row) => {
-      return row.name === "ou-running";
-    })!;
-
-    await renderPage(
-      OpenStackCloudInstanceDetail,
-      partPath("instances", running.externalId as string),
-    );
-
-    expect(
-      await screen.findByTestId("openstack-instance-tiles"),
-    ).toHaveTextContent("from its flavor");
-    expect(
-      screen.getByTestId("openstack-instance-details-flavor"),
-    ).toHaveTextContent("ou.tiny");
-    expect(
-      screen.getByTestId("openstack-instance-details-addresses"),
-    ).toHaveTextContent("Not collected");
-  });
-});
+      expect(
+        await screen.findByTestId("openstack-instance-tiles"),
+      ).toHaveTextContent("from its flavor");
+      expect(
+        screen.getByTestId("openstack-instance-details-flavor"),
+      ).toHaveTextContent("ou.tiny");
+      expect(
+        screen.getByTestId("openstack-instance-details-addresses"),
+      ).toHaveTextContent("Not collected");
+    });
+  },
+);
 
 // The id every read of these pages is scoped to, so a slip shows up here.
 test("every read is of this cloud", async () => {

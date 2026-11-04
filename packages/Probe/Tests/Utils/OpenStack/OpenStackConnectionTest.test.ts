@@ -400,7 +400,7 @@ describe.each([
 
       expect(refused.access).toBe("Refused");
       expect(refused.fix).toContain("Cinder's own code asks for an admin");
-      expect(refused.fix).toContain("Level 1: Full view");
+      expect(refused.fix).toContain("Full view");
     }
 
     expect(summary.accessLevel).toBe("InfrastructureOnly");
@@ -412,13 +412,13 @@ describe.each([
       [OpenStackServiceType.Volume, "volumes, all projects"],
       [OpenStackServiceType.Volume, "snapshots, all projects"],
     ] as const) {
-      expect([read, readOf(summary, service, read)]).toMatchObject([
+      expect({ read, found: readOf(summary, service, read) }).toMatchObject({
         read,
-        {
+        found: {
           access: "OwnProjectOnly",
           reason: "a 200 with nothing here to tell by",
         },
-      ]);
+      });
     }
   });
 

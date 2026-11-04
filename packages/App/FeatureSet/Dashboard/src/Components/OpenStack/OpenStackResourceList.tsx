@@ -17,7 +17,11 @@ import Column from "Common/UI/Components/ModelTable/Column";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { translateTemplate, translateText } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -224,10 +228,14 @@ export function getOpenStackFactColumn(data: {
   getText: (row: OpenStackResource) => string;
   hideOnMobile?: boolean | undefined;
   // The colour a value at the rules' lines reads in.
-  getTone?: ((row: OpenStackResource) => ResourceColumnTone | undefined) | undefined;
+  getTone?:
+    | ((row: OpenStackResource) => ResourceColumnTone | undefined)
+    | undefined;
   description?: string | undefined;
   // Off until the viewer asks for it in Customize Columns.
   isHiddenByDefault?: boolean | undefined;
+  // Read after the rows, so the rows can't say it is empty: it stays, and fills in.
+  isReadLater?: boolean | undefined;
 }): OpenStackListColumn {
   return {
     id: data.id,
@@ -239,7 +247,7 @@ export function getOpenStackFactColumn(data: {
     headerTooltip: data.description,
     isHiddenByDefault: data.isHiddenByDefault,
     hasValue: (row: OpenStackResource): boolean => {
-      return Boolean(data.getText(row));
+      return Boolean(data.isReadLater) || Boolean(data.getText(row));
     },
     getElement: (row: OpenStackResource): ReactElement => {
       const tone: ResourceColumnTone | undefined = data.getTone?.(row);
@@ -293,14 +301,17 @@ export function getOpenStackAllocationColumn(data: {
   format: (value: number) => string;
   hideOnMobile?: boolean | undefined;
 }): OpenStackListColumn {
-  const lineOf: (row: OpenStackResource) => OpenStackAllocationLine | undefined =
-    (row: OpenStackResource): OpenStackAllocationLine | undefined => {
-      return getOpenStackAllocationLines(row).find(
-        (line: OpenStackAllocationLine): boolean => {
-          return line.key === data.key;
-        },
-      );
-    };
+  const lineOf: (
+    row: OpenStackResource,
+  ) => OpenStackAllocationLine | undefined = (
+    row: OpenStackResource,
+  ): OpenStackAllocationLine | undefined => {
+    return getOpenStackAllocationLines(row).find(
+      (line: OpenStackAllocationLine): boolean => {
+        return line.key === data.key;
+      },
+    );
+  };
 
   const getText: (row: OpenStackResource) => string = (
     row: OpenStackResource,
@@ -402,7 +413,9 @@ export function getOpenStackAmountColumn(data: {
   format: (value: number) => string;
   hideOnMobile?: boolean | undefined;
   // The colour a value at the rules' lines reads in.
-  getTone?: ((row: OpenStackResource) => ResourceColumnTone | undefined) | undefined;
+  getTone?:
+    | ((row: OpenStackResource) => ResourceColumnTone | undefined)
+    | undefined;
 }): OpenStackListColumn {
   const getText: (row: OpenStackResource) => string = (
     row: OpenStackResource,
@@ -676,10 +689,7 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
 
     for (const row of rows) {
       const projectId: string | undefined = row.openStackProjectId;
-      if (
-        projectId &&
-        !askedProjectIds.current.has(projectId)
-      ) {
+      if (projectId && !askedProjectIds.current.has(projectId)) {
         askedProjectIds.current.add(projectId);
         projectIds.push(projectId);
       }
@@ -954,8 +964,9 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
             title: "In state for",
             type: FieldType.Element,
             hideOnMobile: true,
-            headerTooltip:
+            headerTooltip: translationKey(
               "How long since OneUptime saw its status change. A part that was already in this state when OneUptime first saw it counts from then.",
+            ),
             getElement: (row: OpenStackResource): ReactElement => {
               return getFactCellText(
                 getOpenStackTimeInState(row, OneUptimeDate.getCurrentDate()),
@@ -1108,23 +1119,19 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
       isEditable={false}
       isCreateable={false}
       isViewable={Boolean(props.getViewRoute)}
-      onViewPage={
-        props.getViewRoute
-          ? async (row: OpenStackResource): Promise<Route> => {
+      {...(props.getViewRoute
+        ? {
+            onViewPage: async (row: OpenStackResource): Promise<Route> => {
               return (
-                props.getViewRoute?.(row) ||
-                routes.getPartListRoute(props.kind)
+                props.getViewRoute?.(row) || routes.getPartListRoute(props.kind)
               );
-            }
-          : undefined
-      }
+            },
+          }
+        : {})}
       showRefreshButton={true}
       cardProps={{
         title: props.title,
         description: props.description,
-        ...(domainFilter.buttons.length > 0
-          ? { buttons: domainFilter.buttons }
-          : {}),
       }}
       {...(domainFilter.initialProjectId && !hasProjectChip
         ? {
@@ -1133,9 +1140,26 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
             },
           }
         : {})}
-      topContent={facets.length > 0 ? filterBar : undefined}
+      topContent={
+        facets.length > 0 || domainFilter.control ? (
+          <>
+            {domainFilter.control}
+            {facets.length > 0 ? filterBar : null}
+          </>
+        ) : undefined
+      }
       emptyState={{
         ...(facets.length > 0 ? facetEmptyState : {}),
+        // A domain narrows from outside the table too, so its way back has to stay.
+        ...(domainFilter.isNarrowed
+          ? {
+              isFiltered: true,
+              onClearFilters: () => {
+                domainFilter.clear();
+                facetEmptyState.onClearFilters?.();
+              },
+            }
+          : {}),
         title: emptyWords?.title || props.emptyTitle,
         description: emptyWords?.description || props.emptyDescription,
         hideCreateButton: true,

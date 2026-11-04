@@ -59,8 +59,9 @@ function readExport(release: string): {
         for (const datapoint of (data["dataPoints"] as Array<JSONObject>) ||
           []) {
           const labels: Record<string, string> = {};
-          for (const attribute of (datapoint["attributes"] as Array<JSONObject>) ||
-            []) {
+          for (const attribute of (datapoint[
+            "attributes"
+          ] as Array<JSONObject>) || []) {
             labels[attribute["key"] as string] = (
               attribute["value"] as JSONObject
             )["stringValue"] as string;
@@ -239,7 +240,7 @@ describe("the OpenStack dashboard template", () => {
 
   test("the variables are attributes a real export carries, where it carries them", () => {
     const variables: Array<DashboardVariable> = getConfig().variables || [];
-    const keyOf = (name: string): string => {
+    const keyOf: (name: string) => string = (name: string): string => {
       const variable: DashboardVariable | undefined = variables.find(
         (one: DashboardVariable): boolean => {
           return one.name === name;
@@ -340,7 +341,9 @@ describe("the OpenStack dashboard template", () => {
   });
 
   test("two dashboards from it share no widget", () => {
-    const ids = (config: DashboardViewConfig): Array<string> => {
+    const ids: (config: DashboardViewConfig) => Array<string> = (
+      config: DashboardViewConfig,
+    ): Array<string> => {
       return config.components.map(
         (component: DashboardBaseComponent): string => {
           return component.componentId.toString();

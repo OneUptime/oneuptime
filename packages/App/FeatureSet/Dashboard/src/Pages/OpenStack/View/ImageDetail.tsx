@@ -39,10 +39,7 @@ import {
 const ImageOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
-}> = (props: {
-  part: OpenStackPart;
-  row: OpenStackResource;
-}): ReactElement => {
+}> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const translator: Translator = useTranslator();
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();

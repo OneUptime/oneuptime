@@ -22,13 +22,7 @@ export default defineConfig({
   expect: { timeout: 15000 },
   retries: 0,
   reporter: [["list"]],
-  /*
-   * Its own folder when set, for the same reason as the fixture's port and bundle: a run
-   * empties this when it starts, under the feet of any other run using it.
-   */
-  outputDir:
-    process.env["OPENSTACK_PAGES_RESULTS"] ||
-    "../../output/playwright/openstack-pages-ui/test-results",
+  outputDir: "../../output/playwright/openstack-pages-ui/test-results",
   // A project's `use` wins over the top-level one, so the viewport goes here.
   projects: [
     {

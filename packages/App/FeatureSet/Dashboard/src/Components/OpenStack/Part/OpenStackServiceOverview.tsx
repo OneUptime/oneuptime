@@ -263,11 +263,7 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
         openStackCloudId: part.openStackCloudId,
         regionName: row.regionName,
       });
-    }, [
-      part.openStackCloudId.toString(),
-      row.regionName,
-      part.refreshToken,
-    ]);
+    }, [part.openStackCloudId.toString(), row.regionName, part.refreshToken]);
 
   // The API that answers for a worker: when it is down, what the worker says is old.
   const api: OpenStackRead<OpenStackResource | null> =
@@ -279,11 +275,7 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
             kind: OpenStackResourceKind.Api,
             externalId: `${row.regionName || "default"}/${service}`,
           });
-    }, [
-      part.openStackCloudId.toString(),
-      row.externalId,
-      part.refreshToken,
-    ]);
+    }, [part.openStackCloudId.toString(), row.externalId, part.refreshToken]);
 
   // A host the Hosts product hears from under the same name.
   const machine: string = isApi ? "" : getOpenStackWorkerMachine(row);
@@ -379,9 +371,12 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
       label: "Host",
       value: host.data ? (
         <Link
-          to={RouteUtil.populateRouteParams(RouteMap[PageMap.HOST_VIEW] as Route, {
-            modelId: host.data.id!,
-          })}
+          to={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOST_VIEW] as Route,
+            {
+              modelId: host.data.id!,
+            },
+          )}
           className="text-indigo-600 hover:text-indigo-700 hover:underline"
           dataTestId="openstack-service-host-link"
         >

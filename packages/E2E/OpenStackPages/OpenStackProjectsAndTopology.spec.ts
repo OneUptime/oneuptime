@@ -48,6 +48,10 @@ test.describe("Projects without quota data", () => {
     await expect(setup).toContainText("Quotas are not being read");
     await expect(setup).toContainText("--disable-metric=nova-limits_vcpus_max");
     await expect(setup).toContainText("--disable-metric=neutron-quota_network");
+    await expect(setup).toContainText("Full view credential");
+    await expect(page.getByTestId("openstack-quota-setup-probe")).toHaveCount(
+      0,
+    );
     await expect(page.getByTestId("openstack-quota-cost")).toContainText(
       "four API calls per project",
     );
@@ -57,6 +61,27 @@ test.describe("Projects without quota data", () => {
     );
 
     await screenshot(page, "projects-no-quota-1280");
+  });
+
+  test("on a cloud a probe reads, says which setting instead of which lines", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "projects", "estate=calm&collection=Probe");
+
+    const probe: Locator = page.getByTestId("openstack-quota-setup-probe");
+    await expect(probe).toContainText("Project limits");
+    await expect(probe.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      new RegExp(`${CLOUD_PATH}/settings$`),
+    );
+    await expect(page.getByTestId("openstack-quota-setup-agent")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("openstack-quota-cost")).toContainText(
+      "four API calls per project",
+    );
   });
 
   test("a project's page says the same, and nothing is marked", async ({
@@ -247,7 +272,7 @@ test.describe("Domains", () => {
     await screenshot(page, "domains-1280");
   });
 
-  test("a list offers a domain only when there is more than one", async ({
+  test("a list offers a domain when there is more than one, and narrows to it", async ({
     page,
   }: {
     page: Page;
@@ -255,6 +280,29 @@ test.describe("Domains", () => {
     await openCloudPage(page, "instances", "estate=tenants");
     await expect(page.getByTestId("openstack-domain-filter")).toBeVisible();
 
+    await screenshot(page, "domain-filter-1280");
+
+    // Choosing one narrows the rows: Acme's one project runs nothing.
+    await expect(
+      page.locator("tr", { hasText: "payments-01" }).first(),
+    ).toBeVisible();
+    await page.getByRole("combobox", { name: "Domain" }).click();
+    await page.getByRole("option", { name: "Acme", exact: true }).click();
+    await expect(page.locator("tr", { hasText: "payments-01" })).toHaveCount(0);
+
+    // A list it left empty keeps the choice, and says how to go back.
+    await expect(page.getByTestId("openstack-domain-filter")).toBeVisible();
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await expect(
+      page.locator("tr", { hasText: "payments-01" }).first(),
+    ).toBeVisible();
+  });
+
+  test("a list offers no domain on a cloud with one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openCloudPage(page, "instances", "estate=calm");
     await expect(page.locator("table").first()).toBeVisible();
     await expect(page.getByTestId("openstack-domain-filter")).toHaveCount(0);
@@ -290,6 +338,13 @@ test.describe("The Topology", () => {
     );
     await expect(host).toBeVisible();
     await expect(host).toContainText("Down");
+    await expect(host).toHaveAttribute("data-health", "critical");
+    // Whatever Nova still says of them, its instances are beneath it.
+    await expect(
+      page.locator('[data-testid^="resource-topology-chip-instance:"]', {
+        hasText: "payments-on-a-lost-host",
+      }),
+    ).toBeVisible();
 
     await screenshot(page, "topology-host-down-1280");
   });
@@ -302,7 +357,7 @@ test.describe("The Topology", () => {
     ).toBeVisible();
     await expect(
       page.getByTestId("resource-topology-notice-gap"),
-    ).toContainText("does not say");
+    ).toContainText("what this cloud reports says neither");
   });
 
   test("a failed read says so, with Try again", async ({

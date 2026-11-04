@@ -18,6 +18,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -65,6 +66,9 @@ import {
  * more than a read holds says so rather than reading as though that was all of them.
  */
 
+// A connected agent's data refreshes every couple of minutes, so a tab left open does too.
+const REFRESH_EVERY_MS: number = 60 * 1000;
+
 function isMatch(row: OpenStackResource, needle: string): boolean {
   return [
     row.name,
@@ -105,6 +109,16 @@ const OpenStackCloudServices: FunctionComponent<
         ]);
       return { rows, cloud };
     }, [modelId.toString()]);
+
+  // The tab someone leaves open while a service is down has to keep telling the truth.
+  useEffect(() => {
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      read.reload();
+    }, REFRESH_EVERY_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
 
   if (read.isLoading && !read.data) {
     return <PageLoader isVisible={true} />;
@@ -163,7 +177,8 @@ const OpenStackCloudServices: FunctionComponent<
       const isGroupMatch: boolean =
         getOpenStackServiceTitle(group.service)
           .toLowerCase()
-          .includes(needle) || (group.regionName || "").toLowerCase().includes(needle);
+          .includes(needle) ||
+        (group.regionName || "").toLowerCase().includes(needle);
       return isGroupMatch
         ? group
         : {
@@ -205,6 +220,16 @@ const OpenStackCloudServices: FunctionComponent<
             { time: OneUptimeDate.fromNow(data.cloud.lastSeenAt) },
           )}
         </OpenStackPartNotice>
+      ) : (
+        <></>
+      )}
+
+      {read.error ? (
+        <OpenStackPartNotice
+          testId="openstack-services-refresh-failed"
+          tone="warning"
+          text="Couldn't read this cloud's services just now, so this is what they last said. This page will try again."
+        />
       ) : (
         <></>
       )}

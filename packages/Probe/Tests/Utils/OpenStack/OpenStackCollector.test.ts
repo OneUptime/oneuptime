@@ -291,6 +291,42 @@ describe("a healthy cloud", () => {
     ).toBeGreaterThan(0);
   });
 
+  /*
+   * Neutron answers a reader's agent list with a 200 and nothing. Going on to ask each
+   * router which agents hold it would cost a call per router, and tell it nothing.
+   */
+  test("on ML2/OVS with an empty agent list, as a reader is given, it asks no router about agents", async () => {
+    const scene: RecordedScene = loadScene("gazpacho-ovs", "healthy");
+    const cloud: RecordedCloud = createRecordedCloud(scene, {
+      answer: (
+        request: OpenStackHttpRequest,
+      ): OpenStackHttpResponse | undefined => {
+        return new globalThis.URL(request.url).pathname.endsWith(
+          "/v2.0/agents",
+        )
+          ? { status: 200, headers: {}, body: JSON.stringify({ agents: [] }) }
+          : undefined;
+      },
+    });
+    const harness: CollectorHarness = createCollectorHarness({
+      transport: cloud.transport,
+    });
+
+    const report: OpenStackCollectionReport = await OpenStackCollector.collect(
+      collectionJob(),
+      harness.dependencies,
+    );
+
+    expect(
+      cloud.paths().filter((p: string) => {
+        return p.endsWith("/l3-agents");
+      }),
+    ).toEqual([]);
+    expect(pointsNamed(report, "openstack_neutron_l3_agent_of_router")).toEqual(
+      [],
+    );
+  });
+
   test("every list a real cloud pages, it pages by limit and marker", async () => {
     const cloud: RecordedCloud = createRecordedCloud(HEALTHY);
     const harness: CollectorHarness = createCollectorHarness({

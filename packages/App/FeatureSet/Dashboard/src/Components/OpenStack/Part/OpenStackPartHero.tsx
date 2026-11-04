@@ -108,7 +108,10 @@ const OpenStackPartHero: FunctionComponent<ComponentProps> = (
       slots={{ region: <bdi>{row.regionName}</bdi>, cloud: cloudLink }}
     />
   ) : (
-    <TranslatedSentence template="In cloud {{cloud}}" slots={{ cloud: cloudLink }} />
+    <TranslatedSentence
+      template="In cloud {{cloud}}"
+      slots={{ cloud: cloudLink }}
+    />
   );
 
   return (

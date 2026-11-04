@@ -1,10 +1,7 @@
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
-import PostgresDatabase, {
-  DatabaseSource,
-} from "Common/Server/Infrastructure/PostgresDatabase";
-import OpenStackConnectionTestStore from "Common/Server/Utils/OpenStack/OpenStackConnectionTestStore";
+import OpenStackCloudConnectionTestService from "Common/Server/Services/OpenStackCloudConnectionTestService";
 
 /*
  * ------------------------------------------------------------------
@@ -16,8 +13,6 @@ import OpenStackConnectionTestStore from "Common/Server/Utils/OpenStack/OpenStac
  * OPENSTACK_CONNECTION_TEST_RUN_TIMEOUT_IN_SECONDS. Each becomes Failed with the reason,
  * and any secret still on it is wiped, so the dashboard's "Test connection" always ends
  * with an answer, and no secret waits in the table for a probe that is not coming.
- *
- * Workers/Index.ts imports this once OpenStackCloudConnectionTest has its table.
  * ------------------------------------------------------------------
  */
 
@@ -28,14 +23,7 @@ RunCron(
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async (): Promise<void> => {
     try {
-      const dataSource: DatabaseSource | null =
-        PostgresDatabase.getDataSource();
-
-      if (!dataSource) {
-        return;
-      }
-
-      await OpenStackConnectionTestStore.expireStaleTests(dataSource.manager);
+      await OpenStackCloudConnectionTestService.expireStaleTests();
     } catch (err) {
       logger.error(
         `${JOB_NAME} cron failed: ${err instanceof Error ? err.message : String(err)}`,

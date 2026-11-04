@@ -732,7 +732,12 @@ describe("the inventory lists read on the server", () => {
   });
 
   test("Projects.tsx lists through it, and says why it can be empty", () => {
-    const page: string = readSource("Pages", "OpenStack", "View", "Projects.tsx");
+    const page: string = readSource(
+      "Pages",
+      "OpenStack",
+      "View",
+      "Projects.tsx",
+    );
 
     expect(page).toContain("<OpenStackResourceList");
     expect(page).toContain("emptyTitle=");
@@ -783,7 +788,12 @@ describe("the inventory lists read on the server", () => {
   );
 
   test("the Services page reads every service and worker at once, because it groups them", () => {
-    const page: string = readSource("Pages", "OpenStack", "View", "Services.tsx");
+    const page: string = readSource(
+      "Pages",
+      "OpenStack",
+      "View",
+      "Services.tsx",
+    );
     const reads: string = dense(
       readSource("Pages", "OpenStack", "Utils", "OpenStackOverviewReads.ts"),
     );

@@ -64,15 +64,12 @@ const recordingsPlugin = {
     build.onResolve({ filter: /^openstack-recordings$/ }, (args) => {
       return { path: args.path, namespace: "openstack-recordings" };
     });
-    build.onLoad(
-      { filter: /.*/, namespace: "openstack-recordings" },
-      () => {
-        return {
-          contents: JSON.stringify(readRecordings()),
-          loader: "json",
-        };
-      },
-    );
+    build.onLoad({ filter: /.*/, namespace: "openstack-recordings" }, () => {
+      return {
+        contents: JSON.stringify(readRecordings()),
+        loader: "json",
+      };
+    });
     build.onResolve({ filter: /^\.\.\/Logger$/ }, (args) => {
       return args.importer.endsWith("OpenStackSnapshotScan.ts")
         ? { path: path.join(__dirname, "ScanLogger.js") }

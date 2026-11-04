@@ -1007,8 +1007,7 @@ test.describe("every resource that holds parts", () => {
 });
 
 test.describe("an OpenStack cloud with a compute service stopped", () => {
-  const HOST: string =
-    "hypervisor:RegionOne/compute-3.example.internal";
+  const HOST: string = "hypervisor:RegionOne/compute-3.example.internal";
 
   test("the host is drawn red with its instances beneath it", async ({
     page,
@@ -1022,17 +1021,18 @@ test.describe("an OpenStack cloud with a compute service stopped", () => {
     await expect(host).toBeVisible();
     await expect(host).toContainText("compute-3");
     await expect(host).toContainText("Down");
+    await expect(host).toHaveAttribute("data-health", "critical");
     await expect(
       byTestId(page, "resource-topology-filter-attention"),
     ).toBeVisible();
 
     await byTestId(page, "resource-topology-filter-attention").click();
-    await expect(
-      byTestId(page, "resource-topology-card-instance:instance-2-1"),
-    ).toBeVisible();
-    await expect(
-      byTestId(page, "resource-topology-card-instance:instance-2-1"),
-    ).toContainText("ou-research");
+    const instance: Locator = byTestId(
+      page,
+      "resource-topology-chip-instance:instance-2-1",
+    );
+    await expect(instance).toBeVisible();
+    await expect(instance).toContainText("ou-research");
 
     await screenshot(page, "openstack-host-down-1280-light");
   });
@@ -1041,7 +1041,7 @@ test.describe("an OpenStack cloud with a compute service stopped", () => {
     await openTopology(page, "openstack");
 
     await expect(byTestId(page, "resource-topology-notice-gap")).toContainText(
-      "does not say",
+      "what this cloud reports says neither",
     );
   });
 

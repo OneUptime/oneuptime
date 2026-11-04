@@ -674,9 +674,7 @@ export default class LinkedInfrastructureContext {
    * "This incident's part takes 3 instances in 2 projects with it", and whose they are.
    * Project names are a tenant's own words, so each goes in as a field.
    */
-  private static describeOpenStack(
-    data: LinkedInfrastructure,
-  ): Array<string> {
+  private static describeOpenStack(data: LinkedInfrastructure): Array<string> {
     const lines: Array<string> = [];
     const context: OpenStackAlertContextResult | undefined = data.openStack;
 

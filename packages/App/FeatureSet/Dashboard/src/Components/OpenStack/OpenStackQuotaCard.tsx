@@ -1,9 +1,23 @@
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import ObjectID from "Common/Types/ObjectID";
+import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
+import { OpenStackProjectQuota } from "Common/Types/OpenStack/OpenStackQuota";
+import Route from "Common/Types/API/Route";
 import Card from "Common/UI/Components/Card/Card";
+import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { OpenStackProjectQuota } from "Common/Types/OpenStack/OpenStackQuota";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import { OPENSTACK_QUOTA_TITLES } from "../../Pages/OpenStack/Utils/OpenStackHealth";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
 /*
  * What a project may use and has used, or how to start reading that. Most clouds do not
@@ -21,14 +35,59 @@ export const OPENSTACK_QUOTA_DISABLE_FLAGS: ReadonlyArray<string> = [
 export const OPENSTACK_QUOTA_CALLS_PER_PROJECT: number = 4;
 
 export interface SetupProps {
+  openStackCloudId: ObjectID;
   // How many projects the reader's cloud has, so the cost is its own.
   projectCount?: number | undefined;
 }
+
+// How this cloud is read, and null when nobody could say.
+type CollectionMethodRead =
+  | { isRead: false }
+  | { isRead: true; method: OpenStackCollectionMethod | null };
 
 export const OpenStackQuotaSetup: FunctionComponent<SetupProps> = (
   props: SetupProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * A cloud the agent reads turns these on in a file, and one a probe reads in a setting.
+   * Told the other cloud's way, nobody finds what the page says to change, so this asks
+   * and, if it cannot find out, says both.
+   */
+  const [read, setRead] = useState<CollectionMethodRead>({ isRead: false });
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    ModelAPI.getItem<OpenStackCloud>({
+      modelType: OpenStackCloud,
+      id: props.openStackCloudId,
+      select: { collectionMethod: true },
+    })
+      .then((cloud: OpenStackCloud | null) => {
+        if (isCurrent) {
+          setRead({
+            isRead: true,
+            method: cloud?.collectionMethod || OpenStackCollectionMethod.Agent,
+          });
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setRead({ isRead: true, method: null });
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [props.openStackCloudId.toString()]);
+
+  const showsAgent: boolean =
+    read.isRead && read.method !== OpenStackCollectionMethod.Probe;
+  const showsProbe: boolean =
+    read.isRead && read.method !== OpenStackCollectionMethod.Agent;
 
   return (
     <div
@@ -54,21 +113,49 @@ export const OpenStackQuotaSetup: FunctionComponent<SetupProps> = (
               "They are off by default because of what they cost: four API calls per project on every read (Nova one, Cinder two, Neutron one).",
             )}
       </p>
-      <div>
-        <p>
-          {translator.translateText(
-            "To turn them on, delete these lines from the exporter's command in the agent's docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, then restart the exporter:",
-          )}
+      {showsProbe ? (
+        <p data-testid="openstack-quota-setup-probe">
+          <TranslatedSentence
+            template="On a cloud a probe reads, turn on Project limits under Data Collection on this cloud's {{settings}} page."
+            slots={{
+              settings: (
+                <Link
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
+                    { modelId: props.openStackCloudId },
+                  )}
+                  className="font-medium text-indigo-600 hover:text-indigo-800"
+                >
+                  {translator.translateText("Settings")}
+                </Link>
+              ),
+            }}
+          />
         </p>
-        <pre className="mt-2 overflow-x-auto rounded-md bg-gray-50 p-3 font-mono text-xs text-gray-800">
-          <bdi>{OPENSTACK_QUOTA_DISABLE_FLAGS.join("\n")}</bdi>
-        </pre>
-      </div>
+      ) : null}
+      {showsAgent ? (
+        <div data-testid="openstack-quota-setup-agent">
+          <p>
+            {translator.translateText(
+              "On a cloud the agent reads, delete these lines from the exporter's command in the agent's docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, then restart the exporter:",
+            )}
+          </p>
+          <pre className="mt-2 overflow-x-auto rounded-md bg-gray-50 p-3 font-mono text-xs text-gray-800">
+            <bdi>{OPENSTACK_QUOTA_DISABLE_FLAGS.join("\n")}</bdi>
+          </pre>
+          <p className="mt-2">
+            {translator.translateText(
+              "Neutron gives its quotas only to an admin, so networks, ports and floating IPs also need the agent's Full view credential. Without it the others are still read.",
+            )}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 };
 
 export interface ComponentProps {
+  openStackCloudId: ObjectID;
   quotas: Array<OpenStackProjectQuota>;
   projectCount?: number | undefined;
 }
@@ -117,7 +204,10 @@ const OpenStackQuotaCard: FunctionComponent<ComponentProps> = (
       description="What this project may use and has used. One at 90% or past it is marked, because its next instance or volume is about to be refused."
     >
       {props.quotas.length === 0 ? (
-        <OpenStackQuotaSetup projectCount={props.projectCount} />
+        <OpenStackQuotaSetup
+          openStackCloudId={props.openStackCloudId}
+          projectCount={props.projectCount}
+        />
       ) : (
         <div data-testid="openstack-quotas">
           {isStale ? (

@@ -35,9 +35,9 @@ import OpenStackProbeCollectionStore, {
  * failed when no probe picks it up in time.
  *
  * It is VMware's service (VMwareVCenterConnectionTestService) with the database taken
- * out, so it is here in the store's terms and a thin service can sit on it the moment the
- * model is registered. The two service methods this needs are named by
- * OpenStackConnectionTestService; nothing here knows the table beyond its SQL.
+ * out, and OpenStackCloudConnectionTestService sits on it. What it needs of that service
+ * is named by OpenStackConnectionTestService, and nothing here knows the table beyond its
+ * SQL.
  */
 
 /*
@@ -166,7 +166,7 @@ export default class OpenStackConnectionTestStore {
       values["collectionRegions"] ?? [],
     );
 
-    if (regions.error) {
+    if (!regions.regions) {
       throw new BadDataException(regions.error);
     }
 
@@ -178,7 +178,7 @@ export default class OpenStackConnectionTestStore {
       values["trustedCertificateFingerprints"],
     );
 
-    if (fingerprints.error) {
+    if (!fingerprints.fingerprints) {
       throw new BadDataException(fingerprints.error);
     }
 

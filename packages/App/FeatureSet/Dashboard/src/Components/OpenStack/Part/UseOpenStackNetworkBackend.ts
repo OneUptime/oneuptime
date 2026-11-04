@@ -13,12 +13,11 @@ import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 export default function useOpenStackNetworkBackend(
   openStackCloudId: ObjectID,
 ): OpenStackNetworkBackend {
-  const names: OpenStackRead<Array<string>> = useOpenStackRead<Array<string>>(
-    () => {
-      return fetchOpenStackNetworkAgentNames(openStackCloudId);
-    },
-    [openStackCloudId.toString()],
-  );
+  const names: OpenStackRead<Array<string>> = useOpenStackRead<
+    Array<string>
+  >(() => {
+    return fetchOpenStackNetworkAgentNames(openStackCloudId);
+  }, [openStackCloudId.toString()]);
 
   return names.data ? getOpenStackNetworkBackend(names.data) : "unknown";
 }

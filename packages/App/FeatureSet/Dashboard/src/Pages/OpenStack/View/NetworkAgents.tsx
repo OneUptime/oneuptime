@@ -6,7 +6,12 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { Fragment, FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import { OpenStackNetworkAgentList } from "../../../Components/OpenStack/OpenStackLists";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import { getOpenStackPartRoutes } from "../../../Components/OpenStack/Part/OpenStackPartRoutes";

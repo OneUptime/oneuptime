@@ -297,7 +297,12 @@ describe("services and agents", () => {
      * A crash or a change of system-id can leave an old record beside the live one for one
      * host and binary. Which of the two came last in a scrape is not an answer.
      */
-    const foldRecord = (
+    const foldRecord: (
+      buffer: Buffer,
+      id: string,
+      value: number,
+      service?: string,
+    ) => void = (
       buffer: Buffer,
       id: string,
       value: number,
@@ -308,7 +313,9 @@ describe("services and agents", () => {
         labels: { id, hostname: "compute-01", service, adminState: "up" },
       });
     };
-    const finished = (buffer: Buffer): OpenStackResourceBufferEntry => {
+    const finished: (buffer: Buffer) => OpenStackResourceBufferEntry = (
+      buffer: Buffer,
+    ): OpenStackResourceBufferEntry => {
       return rowOf(
         buffer,
         OpenStackResourceKind.Service,
@@ -436,7 +443,12 @@ describe("services and agents", () => {
 });
 
 describe("a hypervisor's capacity", () => {
-  const resource = (
+  const resource: (
+    buffer: Buffer,
+    metric: string,
+    resourceType: string,
+    value: number,
+  ) => void = (
     buffer: Buffer,
     metric: string,
     resourceType: string,
@@ -634,9 +646,9 @@ describe("instances", () => {
       value: 0,
       labels: { id: "uuid-2", status: "ACTIVE" },
     });
-    expect(
-      rowOf(buffer, OpenStackResourceKind.Instance, "uuid-2").status,
-    ).toBe("ACTIVE");
+    expect(rowOf(buffer, OpenStackResourceKind.Instance, "uuid-2").status).toBe(
+      "ACTIVE",
+    );
   });
 
   /*
@@ -807,11 +819,8 @@ describe("storage", () => {
       labels: { name: "host@rbd#rbd" },
     });
     expect(
-      rowOf(
-        buffer,
-        OpenStackResourceKind.StoragePool,
-        "RegionOne/host@rbd#rbd",
-      ).diskAllocatedBytes,
+      rowOf(buffer, OpenStackResourceKind.StoragePool, "RegionOne/host@rbd#rbd")
+        .diskAllocatedBytes,
     ).toBeNull();
   });
 });
@@ -819,7 +828,11 @@ describe("storage", () => {
 describe("networks", () => {
   test("adds addresses up across subnets, and keeps each subnet's own", () => {
     const buffer: Buffer = new Map();
-    const subnet = (name: string, total: number, used: number): void => {
+    const subnet: (name: string, total: number, used: number) => void = (
+      name: string,
+      total: number,
+      used: number,
+    ): void => {
       const labels: LabelMap = {
         network_id: "net-1",
         network_name: "public",
@@ -863,6 +876,104 @@ describe("networks", () => {
     expect(row.facts["ipsBySubnet"]).toEqual({
       "1": { total: 250, used: 250, cidr: "10.0.1.0/24" },
       "2": { total: 250, used: 10, cidr: "10.0.2.0/24" },
+    });
+  });
+
+  describe("how many addresses a network has, when a /64 is 2^64 of them", () => {
+    const addSubnet: (
+      buffer: Buffer,
+      name: string,
+      ipVersion: string,
+      total: number,
+      used: number,
+    ) => void = (
+      buffer: Buffer,
+      name: string,
+      ipVersion: string,
+      total: number,
+      used: number,
+    ): void => {
+      const labels: LabelMap = {
+        network_id: "net-1",
+        network_name: "public",
+        subnet_name: name,
+        cidr: ipVersion === "6" ? "2001:db8::/64" : "172.24.4.0/24",
+        ip_version: ipVersion,
+        project_id: "admin",
+      };
+      fold(buffer, "openstack_neutron_network_ip_availabilities_total", {
+        value: total,
+        labels,
+      });
+      fold(buffer, "openstack_neutron_network_ip_availabilities_used", {
+        value: used,
+        labels,
+      });
+    };
+    const totals: (buffer: Buffer) => [unknown, unknown] = (
+      buffer: Buffer,
+    ): [unknown, unknown] => {
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Network,
+        "net-1",
+      );
+      return [row.facts["ipsTotal"], row.facts["ipsUsed"]];
+    };
+
+    test("IPv4 alone reads as its own", () => {
+      const buffer: Buffer = new Map();
+      addSubnet(buffer, "v4", "4", 253, 250);
+      expect(totals(buffer)).toEqual([253, 250]);
+    });
+
+    test("beside IPv4, a /64 is left out, so a full pool still reads full", () => {
+      const buffer: Buffer = new Map();
+      addSubnet(buffer, "v4", "4", 253, 250);
+      addSubnet(buffer, "v6", "6", 18446744073709552000, 3);
+      expect(totals(buffer)).toEqual([253, 250]);
+      expect(
+        rowOf(buffer, OpenStackResourceKind.Network, "net-1").facts[
+          "ipsBySubnet"
+        ],
+      ).toEqual({
+        v4: { total: 253, used: 250, cidr: "172.24.4.0/24", ipVersion: "4" },
+        v6: {
+          total: 18446744073709552000,
+          used: 3,
+          cidr: "2001:db8::/64",
+          ipVersion: "6",
+        },
+      });
+    });
+
+    test("IPv6 alone reads as what it is, rather than as nothing", () => {
+      const buffer: Buffer = new Map();
+      addSubnet(buffer, "v6", "6", 18446744073709552000, 3);
+      expect(totals(buffer)).toEqual([18446744073709552000, 3]);
+    });
+
+    test("an exporter that doesn't say which is read as it always was", () => {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_neutron_network_ip_availabilities_total", {
+        value: 100,
+        labels: {
+          network_id: "net-1",
+          network_name: "public",
+          subnet_name: "old",
+          cidr: "10.0.0.0/24",
+        },
+      });
+      fold(buffer, "openstack_neutron_network_ip_availabilities_used", {
+        value: 40,
+        labels: {
+          network_id: "net-1",
+          network_name: "public",
+          subnet_name: "old",
+          cidr: "10.0.0.0/24",
+        },
+      });
+      expect(totals(buffer)).toEqual([100, 40]);
     });
   });
 
@@ -1012,9 +1123,9 @@ describe("projects and domains", () => {
     expect(project.openStackProjectId).toBe("p-1");
     expect(project.regionName).toBeNull();
     expect(project.facts["domainId"]).toBe("default");
-    expect(
-      rowOf(buffer, OpenStackResourceKind.Domain, "default").status,
-    ).toBe("disabled");
+    expect(rowOf(buffer, OpenStackResourceKind.Domain, "default").status).toBe(
+      "disabled",
+    );
   });
 });
 
@@ -1070,7 +1181,10 @@ describe("what a datapoint must hold", () => {
 describe("a batch's rows, joined", () => {
   const FULL_NAME: string = "compute-01.example.internal";
 
-  const withCompute = (labels: LabelMap, value: number = 1): Buffer => {
+  const withCompute: (labels: LabelMap, value?: number) => Buffer = (
+    labels: LabelMap,
+    value: number = 1,
+  ): Buffer => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_nova_vcpus_used", {
       value: 3,
@@ -1089,7 +1203,9 @@ describe("a batch's rows, joined", () => {
     return buffer;
   };
 
-  const hypervisorOf = (buffer: Buffer): OpenStackResourceBufferEntry => {
+  const hypervisorOf: (buffer: Buffer) => OpenStackResourceBufferEntry = (
+    buffer: Buffer,
+  ): OpenStackResourceBufferEntry => {
     const row: OpenStackResourceBufferEntry | undefined = finishOpenStackBatch(
       buffer.values(),
     ).find((entry: OpenStackResourceBufferEntry) => {

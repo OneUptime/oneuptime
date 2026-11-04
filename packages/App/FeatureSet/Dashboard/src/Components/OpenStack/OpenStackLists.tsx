@@ -9,10 +9,7 @@ import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Column from "Common/UI/Components/ModelTable/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import {
-  Translator,
-  translateText,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { fetchOpenStackCounts } from "../../Pages/OpenStack/Utils/OpenStackPartData";
@@ -357,7 +354,11 @@ export const OpenStackFlavorList: FunctionComponent<OpenStackListProps> = (
         return String(getCount(row));
       },
     };
-    return [...FLAVOR_COLUMNS.slice(0, 3), instancesColumn, ...FLAVOR_COLUMNS.slice(3)];
+    return [
+      ...FLAVOR_COLUMNS.slice(0, 3),
+      instancesColumn,
+      ...FLAVOR_COLUMNS.slice(3),
+    ];
   }, [usage.data]);
 
   return (
@@ -576,9 +577,7 @@ export const OpenStackSubnetList: FunctionComponent<OpenStackListProps> = (
   const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
 
   const facets: Array<ResourceFacet> = useMemo(() => {
-    return [
-      getOpenStackProjectFacet(props.openStackCloudId),
-    ];
+    return [getOpenStackProjectFacet(props.openStackCloudId)];
   }, [props.openStackCloudId.toString()]);
 
   return (
@@ -865,9 +864,7 @@ export const OpenStackNetworkAgentList: FunctionComponent<
   const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
 
   const facets: Array<ResourceFacet> = useMemo(() => {
-    return [
-      getOpenStackStatusFacet(OpenStackResourceKind.Service),
-    ];
+    return [getOpenStackStatusFacet(OpenStackResourceKind.Service)];
   }, [props.openStackCloudId.toString()]);
 
   const query: Query<OpenStackResource> = useMemo(() => {
@@ -1047,9 +1044,9 @@ const STORAGE_POOL_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
   OpenStackColumn.Region,
 ];
 
-export const OpenStackStoragePoolList: FunctionComponent<
-  OpenStackListProps
-> = (props: OpenStackListProps): ReactElement => {
+export const OpenStackStoragePoolList: FunctionComponent<OpenStackListProps> = (
+  props: OpenStackListProps,
+): ReactElement => {
   const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
 
   return (

@@ -459,7 +459,9 @@ describe("each service's scrape arrives alone", () => {
 });
 
 describe("a reading goes stale", () => {
-  const reading = (minutesAgo: number): JSONObject => {
+  const reading: (minutesAgo: number) => JSONObject = (
+    minutesAgo: number,
+  ): JSONObject => {
     return {
       [getOpenStackQuotaFactKey(OpenStackQuotaResource.Instances, "RegionOne")]:
         {
@@ -543,8 +545,48 @@ describe("what is not a whole reading on a row is left out, not guessed", () => 
   });
 });
 
+describe("which pool holds a volume", () => {
+  const volume: (labels: Record<string, string>) => JSONObject = (
+    labels: Record<string, string>,
+  ): JSONObject => {
+    const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
+    bufferOpenStackSnapshotMetric({
+      metricName: "openstack_cinder_volume_gb",
+      datapoint: point({
+        labels: {
+          id: "22222222-2222-4222-8222-222222222222",
+          name: "ou-data",
+          status: "in-use",
+          tenant_id: PROJECT,
+          server_id: "11111111-1111-4111-8111-111111111111",
+          "openstack.region.name": "RegionOne",
+          ...labels,
+        },
+        value: 10,
+      }),
+      buffer,
+    });
+    return Array.from(buffer.values())[0]!.facts;
+  };
+
+  test("the exporter does not say, so the row does not either", () => {
+    expect(volume({})["pool"]).toBeUndefined();
+    expect(volume({})["attachedToInstance"]).toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
+  });
+
+  test("a source that names one is believed, in Cinder's own spelling of a pool", () => {
+    expect(volume({ pool: "cinder-1@lvm#lvm" })["pool"]).toBe(
+      "cinder-1@lvm#lvm",
+    );
+  });
+});
+
 describe("Nova metadata an operator chose to see", () => {
-  const server = (labels: Record<string, string>): JSONObject => {
+  const server: (labels: Record<string, string>) => JSONObject = (
+    labels: Record<string, string>,
+  ): JSONObject => {
     const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
     bufferOpenStackSnapshotMetric({
       metricName: "openstack_nova_server_status",

@@ -260,7 +260,11 @@ export function getOpenStackStatusReading(
     input.kind === OpenStackResourceKind.Hypervisor &&
     word.toLowerCase() === OPENSTACK_SERVICE_STATUS_DOWN
   ) {
-    return { label: OPENSTACK_LOST_LABEL, tone: "danger", isOpenStackWord: false };
+    return {
+      label: OPENSTACK_LOST_LABEL,
+      tone: "danger",
+      isOpenStackWord: false,
+    };
   }
 
   if (isStuck(input, word)) {

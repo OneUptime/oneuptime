@@ -49,7 +49,9 @@ const BUSY_ATTENTION: Array<{ key: string; severity: string }> = [
 
 async function openOverview(page: Page, query: string = ""): Promise<void> {
   await openCloudPage(page, "", query);
-  await expect(page.getByTestId("openstack-overview-data-status")).toBeVisible();
+  await expect(
+    page.getByTestId("openstack-overview-data-status"),
+  ).toBeVisible();
 }
 
 function tile(page: Page, title: string): Locator {
@@ -129,9 +131,10 @@ test.describe("a busy cloud", () => {
       ).getByTestId("openstack-needs-attention-reason"),
     ).toHaveText("97% full");
     await expect(
-      attentionKey(page, `Network/${await networkIdOf(page, "public")}`).getByTestId(
-        "openstack-needs-attention-reason",
-      ),
+      attentionKey(
+        page,
+        `Network/${await networkIdOf(page, "public")}`,
+      ).getByTestId("openstack-needs-attention-reason"),
     ).toHaveText("No addresses left");
     await expect(
       attentionKey(
@@ -311,9 +314,9 @@ test.describe("a busy cloud", () => {
     ).not.toContainText(/\bCPU\b/);
 
     // Their bars are the rules' verdict: a host past 90%, a pool past 95%.
-    await expect(tile(page, "vCPUs allocated").locator(".bg-amber-500")).toHaveCount(
-      1,
-    );
+    await expect(
+      tile(page, "vCPUs allocated").locator(".bg-amber-500"),
+    ).toHaveCount(1);
     await expect(
       tile(page, "Memory allocated").locator(".bg-emerald-500"),
     ).toHaveCount(1);
@@ -365,9 +368,9 @@ test.describe("a busy cloud", () => {
     );
     await expect(compute).toContainText("Compute (Nova)");
     await expect(compute).toContainText("5 of 9 workers up · 2 disabled");
-    await expect(compute.getByTestId("openstack-services-card-down")).toHaveText(
-      "2 workers down",
-    );
+    await expect(
+      compute.getByTestId("openstack-services-card-down"),
+    ).toHaveText("2 workers down");
 
     // What is calm reads calm, last.
     await expect(rows.last()).toHaveAttribute("data-health", "Healthy");
@@ -442,6 +445,47 @@ test.describe("a busy cloud", () => {
     expect(record.aggregateRequests).toEqual([]);
   });
 
+  test("a tab left open reads again, and a read that starts failing takes the verdict with it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.clock.install();
+    await openOverview(page);
+    await expect(page.getByTestId("openstack-overview-health")).toHaveAttribute(
+      "data-health",
+      "Unhealthy",
+    );
+
+    const reads: () => Promise<number> = async (): Promise<number> => {
+      return (await fixtureRecord(page)).apiRequests.filter(
+        (request: { url: string }): boolean => {
+          return request.url.includes("/needs-attention/");
+        },
+      ).length;
+    };
+    const before: number = await reads();
+
+    await page.clock.fastForward(61 * 1000);
+    await expect.poll(reads).toBeGreaterThan(before);
+
+    await page.evaluate((): void => {
+      (
+        window as unknown as { __openStackPagesFail: (read: string) => void }
+      ).__openStackPagesFail("attention");
+    });
+    await page.clock.fastForward(61 * 1000);
+
+    await expect(
+      page.getByTestId("openstack-needs-attention-error"),
+    ).toBeVisible();
+    await expect(page.getByTestId("openstack-needs-attention")).toHaveCount(0);
+    await expect(page.getByTestId("openstack-overview-health")).toHaveAttribute(
+      "data-health",
+      "Unknown",
+    );
+  });
+
   test("past what one read holds, it says how many and where the rest are", async ({
     page,
   }: {
@@ -463,6 +507,16 @@ test.describe("a busy cloud", () => {
     await expect(page).toHaveURL((url: URL): boolean => {
       return url.pathname === `${CLOUD_PATH}/instances`;
     });
+
+    // Reading a region doesn't make what it holds any fewer.
+    await openOverview(page, "estate=overflow&region=RegionOne");
+    await expect(
+      page.locator(
+        '[data-testid="openstack-needs-attention-capped"] [data-key="Instance"]',
+      ),
+    ).toContainText(
+      "100 of 340 instances that may need someone are listed here.",
+    );
   });
 });
 
@@ -478,9 +532,9 @@ test.describe("a calm cloud", () => {
       "Healthy",
     );
     await expect(page.getByTestId("openstack-needs-attention")).toHaveCount(0);
-    await expect(page.getByTestId("openstack-needs-attention-error")).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByTestId("openstack-needs-attention-error"),
+    ).toHaveCount(0);
     await expect(
       page.getByTestId("openstack-overview-counts").getByText("services down"),
     ).toHaveCount(0);
@@ -490,7 +544,9 @@ test.describe("a calm cloud", () => {
     await expect(tile(page, "Hypervisors")).toContainText("2/3");
     // compute-03 was disabled on purpose: planned work, with no lost host in sight.
     await expect(tile(page, "Hypervisors")).toContainText("up · 1 disabled");
-    await expect(tile(page, "Hypervisors").locator(".bg-red-500")).toHaveCount(0);
+    await expect(tile(page, "Hypervisors").locator(".bg-red-500")).toHaveCount(
+      0,
+    );
 
     await expect(
       page.getByTestId("openstack-services-card-item").first(),
@@ -510,7 +566,9 @@ test.describe("a new cloud", () => {
 
     await expect(page.getByText("Connect this cloud")).toBeVisible();
     await expect(page.getByTestId("openstack-overview-health")).toHaveCount(0);
-    await expect(page.getByTestId("openstack-overview-capacity")).toHaveCount(0);
+    await expect(page.getByTestId("openstack-overview-capacity")).toHaveCount(
+      0,
+    );
 
     const record: FixtureRecord = await fixtureRecord(page);
     expect(
@@ -603,7 +661,9 @@ test.describe("a cloud of several regions", () => {
         url.searchParams.get("region") === "RegionTwo"
       );
     });
-    await expect(page.getByTestId("openstack-service-group")).not.toHaveCount(0);
+    await expect(page.getByTestId("openstack-service-group")).not.toHaveCount(
+      0,
+    );
     await expect(
       page.locator(
         '[data-testid="openstack-service-group"][data-region="RegionOne"]',
@@ -617,7 +677,9 @@ test.describe("a cloud of several regions", () => {
 
     await page.reload();
     await expect(page).toHaveURL(/[?&]region=RegionTwo/);
-    await expect(page.getByTestId("openstack-service-group")).not.toHaveCount(0);
+    await expect(page.getByTestId("openstack-service-group")).not.toHaveCount(
+      0,
+    );
     await expect(
       page.locator(
         '[data-testid="openstack-service-group"][data-region="RegionOne"]',
@@ -628,6 +690,15 @@ test.describe("a cloud of several regions", () => {
     await expect(page).toHaveURL((url: URL): boolean => {
       return url.pathname === CLOUD_PATH;
     });
+
+    // Back to before it was chosen: that address read every region, and reads them again.
+    await page.goBack();
+    await expect(page).toHaveURL((url: URL): boolean => {
+      return !url.searchParams.has("region");
+    });
+    await expect(
+      page.getByTestId("openstack-overview-counts").getByText("2 regions"),
+    ).toBeVisible();
   });
 
   test("the picker reads one region, or all of them again", async ({
@@ -643,7 +714,11 @@ test.describe("a cloud of several regions", () => {
     );
     await expect(page.getByTestId("openstack-needs-attention")).toHaveCount(0);
 
-    await page.getByTestId("openstack-region-bar").locator("input").first().click();
+    await page
+      .getByTestId("openstack-region-bar")
+      .locator("input")
+      .first()
+      .click();
     await page.getByRole("option", { name: "All regions" }).click();
 
     await expect(page).toHaveURL((url: URL): boolean => {
@@ -653,6 +728,38 @@ test.describe("a cloud of several regions", () => {
       "Unhealthy",
     );
     await expect(page.getByTestId("openstack-needs-attention")).toBeVisible();
+  });
+
+  test("the picker is on every page a region narrows, and not on those it can't", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const subPath of [
+      "availability-zones",
+      "aggregates",
+      "subnets",
+      "network-agents",
+      "snapshots",
+    ]) {
+      await openCloudPage(page, subPath, "estate=multi-region");
+      await expect(
+        page.getByTestId("openstack-region-bar"),
+        subPath,
+      ).toBeVisible();
+    }
+
+    // A project and a domain belong to Keystone, and to no region of it.
+    for (const subPath of ["projects", "domains"]) {
+      await openCloudPage(page, subPath, "estate=multi-region");
+      await expect(
+        page.getByRole("link", { name: /Hypervisors/ }),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("openstack-region-bar"),
+        subPath,
+      ).toHaveCount(0);
+    }
   });
 
   test("a link to a region the cloud no longer has falls back to all of them", async ({
@@ -729,9 +836,10 @@ test.describe("a cloud quiet for days", () => {
     await expect(
       page.getByTestId("openstack-overview-counts").getByText("services down"),
     ).toHaveCount(0);
-    await expect(
-      page.getByTestId("openstack-overview-counts"),
-    ).toHaveAttribute("data-current", "false");
+    await expect(page.getByTestId("openstack-overview-counts")).toHaveAttribute(
+      "data-current",
+      "false",
+    );
 
     await expect(page.getByTestId("openstack-services-card")).toHaveCount(0);
     await expect(page.getByTestId("openstack-top-consumers")).toHaveCount(0);
@@ -833,15 +941,17 @@ test.describe("reads that fail", () => {
   }) => {
     await openOverview(page, "estate=multi-region&fail=regions");
 
-    await expect(page.getByTestId("openstack-regions-card-error")).toContainText(
-      "Couldn't read this cloud's regions",
-    );
+    await expect(
+      page.getByTestId("openstack-regions-card-error"),
+    ).toContainText("Couldn't read this cloud's regions");
     // What needs attention still reads, whole, in one read.
     await expect(page.getByTestId("openstack-needs-attention")).toBeVisible();
 
     // A cloud of one region has no card for it to be in.
     await openOverview(page, "fail=regions");
-    await expect(page.getByTestId("openstack-regions-card-error")).toHaveCount(0);
+    await expect(page.getByTestId("openstack-regions-card-error")).toHaveCount(
+      0,
+    );
     await expect(page.getByTestId("openstack-needs-attention")).toBeVisible();
   });
 
@@ -852,9 +962,9 @@ test.describe("reads that fail", () => {
   }) => {
     await openOverview(page, "fail=consumers,blast");
 
-    await expect(page.getByTestId("openstack-top-consumers-error")).toContainText(
-      "Couldn't read who holds the most",
-    );
+    await expect(
+      page.getByTestId("openstack-top-consumers-error"),
+    ).toContainText("Couldn't read who holds the most");
     await expect(
       attentionKey(
         page,
@@ -926,7 +1036,9 @@ test.describe("a credential that can't list what a working cloud always has", ()
         url.hash === "#agent-credential"
       );
     });
-    await expect(page.getByText("Create the agent's credential")).toBeInViewport();
+    await expect(
+      page.getByText("Create the agent's credential"),
+    ).toBeInViewport();
   });
 
   test("what it does see wrong still reads as wrong", async ({
@@ -990,9 +1102,9 @@ test.describe("on what real clouds said", () => {
       "Service/RegionOne/compute/compute-01/nova-compute",
     );
     await expect(row).toHaveAttribute("data-severity", "critical");
-    await expect(row.getByTestId("openstack-needs-attention-reason").first()).toContainText(
-      "Down",
-    );
+    await expect(
+      row.getByTestId("openstack-needs-attention-reason").first(),
+    ).toContainText("Down");
     await expect(tile(page, "Hypervisors")).toContainText("0/1");
     await expect(tile(page, "Hypervisors")).toContainText("up · 1 lost");
     await expect(tile(page, "vCPUs allocated")).toContainText("—");
@@ -1009,10 +1121,9 @@ test.describe("on what real clouds said", () => {
     await expect(page.getByTestId("openstack-overview-health")).toHaveText(
       "Degraded",
     );
-    await expect(page.getByTestId("openstack-needs-attention-name")).toHaveText([
-      "ou-vol-bad",
-      "ou-failed",
-    ]);
+    await expect(page.getByTestId("openstack-needs-attention-name")).toHaveText(
+      ["ou-vol-bad", "ou-failed"],
+    );
     await expect(tile(page, "Hypervisors")).toContainText("up · 1 disabled");
   });
 });
@@ -1035,7 +1146,9 @@ test.describe("at every width, dark, in German and in Persian", () => {
         ["limited", "access=project&estate=calm"],
       ] as Array<[string, string]>) {
         await openOverview(page, query);
-        await expect(page.getByTestId("openstack-overview-capacity")).toBeVisible();
+        await expect(
+          page.getByTestId("openstack-overview-capacity"),
+        ).toBeVisible();
         await expectNoSidewaysScroll(page, {
           message: `${name} at ${viewport.width}px`,
         });
@@ -1109,9 +1222,9 @@ test.describe("at every width, dark, in German and in Persian", () => {
         "Service/RegionOne/compute/compute-02/nova-compute",
       ).getByTestId("openstack-needs-attention-name"),
     ).toHaveText("nova-compute");
-    await expect(
-      page.getByTestId("openstack-overview-counts"),
-    ).toContainText("74");
+    await expect(page.getByTestId("openstack-overview-counts")).toContainText(
+      "74",
+    );
 
     await expectNoSidewaysScroll(page, { message: "German" });
     await screenshot(page, "overview-busy-german");

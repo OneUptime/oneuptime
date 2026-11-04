@@ -73,7 +73,10 @@ const OpenStackTopConsumersCard: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const toProjectRows = (
+  const toProjectRows: (
+    consumers: Array<OpenStackTopConsumer> | undefined,
+    format: (value: number) => string,
+  ) => Array<ConsumerRow> = (
     consumers: Array<OpenStackTopConsumer> | undefined,
     format: (value: number) => string,
   ): Array<ConsumerRow> => {
@@ -89,7 +92,9 @@ const OpenStackTopConsumersCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const toHypervisorRows = (
+  const toHypervisorRows: (
+    busy: Array<OpenStackBusyHypervisor>,
+  ) => Array<ConsumerRow> = (
     busy: Array<OpenStackBusyHypervisor>,
   ): Array<ConsumerRow> => {
     return busy.map((one: OpenStackBusyHypervisor): ConsumerRow => {

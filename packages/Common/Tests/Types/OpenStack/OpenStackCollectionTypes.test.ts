@@ -18,6 +18,7 @@ import OpenStackConnectionTestStatus, {
 import {
   DEFAULT_OPENSTACK_ENDPOINT_INTERFACE,
   OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES,
+  OPENSTACK_CREDENTIAL_KINDS,
   OPENSTACK_ENDPOINT_INTERFACES,
   OPENSTACK_PROBE_COLLECTION_CONCURRENCY,
   OPENSTACK_PROBE_TEST_BATCH_SIZE,
@@ -205,5 +206,12 @@ describe("what a probe and the server agree on", () => {
       "admin",
     ]);
     expect(DEFAULT_OPENSTACK_ENDPOINT_INTERFACE).toBe("public");
+  });
+
+  test("the kinds of credential, as a row stores them", () => {
+    expect(OPENSTACK_CREDENTIAL_KINDS).toEqual([
+      "applicationCredential",
+      "password",
+    ]);
   });
 });

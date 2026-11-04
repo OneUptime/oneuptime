@@ -374,7 +374,10 @@ const OpenStackCloudProjects: FunctionComponent<
               "Which projects are about to be refused their next instance or volume.",
             )}
           >
-            <OpenStackQuotaSetup projectCount={projectCount || undefined} />
+            <OpenStackQuotaSetup
+              openStackCloudId={modelId}
+              projectCount={projectCount || undefined}
+            />
           </Card>
         </div>
       ) : null}

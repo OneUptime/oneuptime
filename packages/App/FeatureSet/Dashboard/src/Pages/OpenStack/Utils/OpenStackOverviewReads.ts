@@ -57,21 +57,21 @@ function toNumber(value: JSONValue | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function toDate(value: JSONValue | undefined): Date | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const date: Date = new Date(value);
+  return isNaN(date.getTime()) ? undefined : date;
+}
+
 // A row as a hand-written read answers it: its dates are text until something reads them.
 export function toOpenStackAttentionRow(row: JSONObject): OpenStackResource {
   const resource: OpenStackResource = new OpenStackResource();
-  Object.assign(resource, row);
-  for (const column of ["stateChangedAt", "lastSeenAt"] as const) {
-    const value: unknown = row[column];
-    if (typeof value === "string") {
-      const date: Date = new Date(value);
-      if (isNaN(date.getTime())) {
-        resource[column] = undefined;
-      } else {
-        resource[column] = date;
-      }
-    }
-  }
+  Object.assign(resource, row, {
+    stateChangedAt: toDate(row["stateChangedAt"]),
+    lastSeenAt: toDate(row["lastSeenAt"]),
+  });
   return resource;
 }
 
@@ -148,8 +148,9 @@ export async function fetchOpenStackTopConsumers(data: {
   });
   return {
     projectsByInstances:
-      (answer["projectsByInstances"] as unknown as Array<OpenStackTopConsumer>) ||
-      [],
+      (answer[
+        "projectsByInstances"
+      ] as unknown as Array<OpenStackTopConsumer>) || [],
     projectsByVolumeBytes:
       (answer[
         "projectsByVolumeBytes"

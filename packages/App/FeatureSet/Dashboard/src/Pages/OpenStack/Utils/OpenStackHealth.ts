@@ -345,10 +345,7 @@ export function getOpenStackAllocation(row: OpenStackResource): {
 } {
   return {
     vcpuPercent: percentOf(row.vcpuAllocated, row.vcpuCapacity),
-    memoryPercent: percentOf(
-      row.memoryAllocatedBytes,
-      row.memoryCapacityBytes,
-    ),
+    memoryPercent: percentOf(row.memoryAllocatedBytes, row.memoryCapacityBytes),
     diskPercent: percentOf(row.diskAllocatedBytes, row.diskCapacityBytes),
   };
 }
@@ -362,7 +359,10 @@ export function assessOpenStackHypervisor(
    * asks nothing of anyone.
    */
   if (
-    isOpenStackServiceDown({ status: row.status, adminState: row.adminState }) ||
+    isOpenStackServiceDown({
+      status: row.status,
+      adminState: row.adminState,
+    }) ||
     isOpenStackAdminDisabled(row.adminState)
   ) {
     return FINE;
@@ -370,7 +370,10 @@ export function assessOpenStackHypervisor(
   const { vcpuPercent, memoryPercent, diskPercent } =
     getOpenStackAllocation(row);
   const reasons: Array<ResourceAttentionText> = [];
-  const add = (percent: number | null, text: string): void => {
+  const add: (percent: number | null, text: string) => void = (
+    percent: number | null,
+    text: string,
+  ): void => {
     if (percent !== null && percent > OPENSTACK_ALLOCATION_WARNING_PERCENT) {
       reasons.push({ text, values: { percent: formatPercent(percent) } });
     }
@@ -472,7 +475,10 @@ export function assessOpenStackInstance(data: {
   return FINE;
 }
 
-function stuckAssessment(row: OpenStackResource, now: Date): OpenStackAssessment {
+function stuckAssessment(
+  row: OpenStackResource,
+  now: Date,
+): OpenStackAssessment {
   const minutes: number =
     minutesInState({ stateChangedAt: row.stateChangedAt, now }) || 0;
   return {
@@ -497,7 +503,9 @@ export function assessOpenStackVolume(data: {
   if (isOpenStackVolumeInError(row.status)) {
     return {
       severity: ResourceAttentionSeverity.Warning,
-      reasons: [{ text: REASON_VOLUME_ERROR, values: { status: row.status || "" } }],
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
     };
   }
   if (
@@ -531,7 +539,10 @@ export function assessOpenStackStoragePool(
         ? ResourceAttentionSeverity.Critical
         : ResourceAttentionSeverity.Warning,
     reasons: [
-      { text: REASON_PERCENT_FULL, values: { percent: formatPercent(percent) } },
+      {
+        text: REASON_PERCENT_FULL,
+        values: { percent: formatPercent(percent) },
+      },
     ],
   };
 }
@@ -914,8 +925,10 @@ export function getOpenStackAttentionItems(data: {
       continue;
     }
     const host: unknown = factsOf(row)["host"];
-    const radius: { instanceCount: number; projectCount: number } | null | undefined =
-      data.blastRadiusFor?.(row);
+    const radius:
+      | { instanceCount: number; projectCount: number }
+      | null
+      | undefined = data.blastRadiusFor?.(row);
     const assessment: OpenStackAssessment = assessOpenStackResource({
       row,
       now: data.now,

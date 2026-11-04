@@ -262,11 +262,13 @@ export default class OpenStackResourceAPI extends BaseAPI<
     const { projectId, openStackCloudId } =
       await this.resolveCloudForRequest(req);
 
-    const consumers: OpenStackTopConsumers = await this.service.getTopConsumers({
-      projectId,
-      openStackCloudId,
-      regionName: this.readRegionName(req),
-    });
+    const consumers: OpenStackTopConsumers = await this.service.getTopConsumers(
+      {
+        projectId,
+        openStackCloudId,
+        regionName: this.readRegionName(req),
+      },
+    );
 
     return Response.sendJsonObjectResponse(
       req,
