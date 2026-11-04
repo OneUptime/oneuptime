@@ -898,6 +898,7 @@ import { AddOpenStackProbeCollection1808992910000 } from "./1808992910000-AddOpe
 import { AddOpenStackProbeCollectionIndexAndKey1808992920000 } from "./1808992920000-AddOpenStackProbeCollectionIndexAndKey";
 import { AddOpenStackHostLinkAndInstanceMetrics1808992930000 } from "./1808992930000-AddOpenStackHostLinkAndInstanceMetrics";
 import { AddOpenStackHostLinkIndexAndKey1808992940000 } from "./1808992940000-AddOpenStackHostLinkIndexAndKey";
+import { AddOpenStackResourceNameIndex1808992960000 } from "./1808992960000-AddOpenStackResourceNameIndex";
 
 export default [
   InitialMigration,
@@ -1800,4 +1801,5 @@ export default [
   AddOpenStackHostLinkAndInstanceMetrics1808992930000,
   AddOpenStackHostLinkIndexAndKey1808992940000,
   AddUserNotificationSettingAlertByMattermost1808992950000,
+  AddOpenStackResourceNameIndex1808992960000,
 ];
