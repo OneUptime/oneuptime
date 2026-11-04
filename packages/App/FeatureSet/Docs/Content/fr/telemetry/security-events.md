@@ -465,11 +465,11 @@ detection:
 
 | Champ | Ce qu'il fait |
 | --- | --- |
-| **Intervalle d'évaluation (minutes)** | La fréquence d'exécution de la règle : des minutes entières, de 1 à 1440. Le formulaire d'une nouvelle règle commence à 5. |
+| **Intervalle d'évaluation (minutes)** | La fréquence d'exécution de la règle : des minutes entières, de 1 à 1440. Le formulaire d'une nouvelle règle commence à 5. En temps réel, la durée des fenêtres que lit une règle qui compte. |
 | **Exécuter en temps réel** | Désactivé sur une nouvelle règle. Activé, la règle vérifie chaque événement à son arrivée au lieu de le faire à chaque intervalle ; voir [Règles en temps réel](#règles-en-temps-réel). |
 | **Champ de regroupement** | Facultatif. Les correspondances qui partagent la valeur de ce champ, comme `principalHost`, sont comptées, alertées et dédupliquées ensemble : une alerte par hôte au lieu de centaines. |
 | **Champ de comptage distinct** | Facultatif. Compter les valeurs différentes de ce champ au lieu des événements correspondants. Les valeurs vides ne comptent pas. |
-| **Seuil de nombre de correspondances** | Un groupe ne se déclenche que lorsque son comptage atteint ce nombre en une exécution : de 1 à 1000000, et 1 se déclenche à la moindre correspondance. |
+| **Seuil de nombre de correspondances** | Un groupe ne se déclenche que lorsque son comptage atteint ce nombre en une exécution, ou en une fenêtre en temps réel : de 1 à 1000000, et 1 se déclenche à la moindre correspondance. |
 
 Le regroupement et le comptage distinct prennent les mêmes noms de champs que la règle. Avec eux, le seuil dit « autant, de la même chose, en une exécution », sans moniteur par-dessus :
 
@@ -492,12 +492,14 @@ OneUptime vérifie chaque minute quelles règles activées ont dépassé leur in
 
 ### Règles en temps réel
 
-Une règle qui se déclenche sur un seul événement peut s'exécuter en temps réel au lieu de suivre son intervalle : activez **Exécuter en temps réel**, sous **Plus de champs** à l'étape **En cas de correspondance**. Chaque événement que OneUptime reçoit, de toute source, est alors vérifié par la règle dès son arrivée, et une correspondance ouvre son dossier, son alerte et son résultat en quelques secondes.
+Toute règle, sauf une avec le modificateur `re`, peut s'exécuter en temps réel au lieu de suivre son intervalle : activez **Exécuter en temps réel**, sous **Plus de champs** à l'étape **En cas de correspondance**. Chaque événement que OneUptime reçoit, de toute source, est alors vérifié par la règle dès son arrivée :
 
-- Cela convient à une règle avec un **Seuil de nombre de correspondances** de 1, sans **Champ de comptage distinct** et sans le modificateur `re`. Une corrélation compte les événements ensemble, elle suit donc son intervalle. Le formulaire indique quoi changer quand une règle ne convient pas.
+- Une règle qui se déclenche sur un seul événement, avec un **Seuil de nombre de correspondances** de 1 et sans **Champ de comptage distinct**, ouvre son dossier, son alerte et son résultat en quelques secondes à chaque correspondance, et n'a pas d'intervalle.
+- Une règle qui compte et une corrélation comptent dans les fenêtres que lit leur calendrier : bout à bout sur l'horloge, chacune aussi longue que l'**Intervalle d'évaluation (minutes)**. Un groupe se déclenche dès que sa fenêtre atteint le comptage, même quand l'événement qui le complète arrive en retard, et au plus une fois par fenêtre, si bien qu'une rafale qui continue se déclenche à nouveau dans la suivante. Le `timespan` d'une corrélation continue de glisser d'une fenêtre à l'autre.
 - Un projet exécute au plus 50 règles en temps réel, puisque chaque événement est vérifié par chacune.
-- Dans **Règles de détection**, le **Statut** d'une règle en temps réel indique **Temps réel**, tout comme sa colonne d'intervalle. Une vérification qui échoue apparaît dans sa **Dernière erreur**, comme pour une exécution.
+- Dans **Règles de détection**, le **Statut** d'une règle en temps réel indique **Temps réel**, tout comme sa colonne d'intervalle, après l'intervalle pour une règle qui compte. Une vérification qui échoue apparaît dans sa **Dernière erreur**, comme pour une exécution.
 - Une fois activée, la règle lit d'abord ce qui est arrivé depuis sa dernière exécution, si bien que rien ne passe entre son calendrier et le temps réel. Désactivée, elle revient à son intervalle, à partir de deux minutes plus tôt.
+- Désactivée puis réactivée, une règle en temps réel lit d'abord la période où elle était arrêtée, jusqu'aux dernières 24 heures, comme le fait une règle planifiée.
 - Les exceptions et les listes de surveillance s'y appliquent comme à toute règle, et **Exécuter sur les événements passés** la lit comme n'importe quelle autre.
 
 ### Gravité
@@ -625,11 +627,15 @@ Vérifiez la clé dans `x-oneuptime-token` et le chemin, `/security-events/v1/in
 :::
 
 :::details Une règle ne correspond jamais
-Vérifiez son **Statut** : avec **Désactivé**, la règle ne s'exécute pas, et avec **Échec de l'exécution**, **Voir l'erreur** dans sa ligne en donne la raison. Ouvrez un événement auquel elle aurait dû correspondre et comparez-le à la règle, champ par champ : une valeur simple doit égaler tout le champ, donc utilisez `contains` ou `*` pour une partie. Un attribut se nomme comme dans l'événement (`threat.matched`, pas `attributes.threat.matched`). Avec un seuil supérieur à 1, les correspondances doivent tomber dans une seule exécution.
+Vérifiez son **Statut** : avec **Désactivé**, la règle ne s'exécute pas, et avec **Échec de l'exécution**, **Voir l'erreur** dans sa ligne en donne la raison. Ouvrez un événement auquel elle aurait dû correspondre et comparez-le à la règle, champ par champ : une valeur simple doit égaler tout le champ, donc utilisez `contains` ou `*` pour une partie. Un attribut se nomme comme dans l'événement (`threat.matched`, pas `attributes.threat.matched`). Avec un seuil supérieur à 1, les correspondances doivent tomber dans une seule exécution, ou dans une seule fenêtre pour une règle en temps réel.
 :::
 
 :::details Impossible d'activer Exécuter en temps réel
-La règle compte des correspondances, compte des valeurs distinctes, lit une expression régulière ou est une corrélation, et le formulaire indique laquelle de ces raisons : réglez **Seuil de nombre de correspondances** sur 1, videz **Champ de comptage distinct**, ou utilisez `contains`, `startswith` ou `endswith` à la place de `re`. Un projet exécute au plus 50 règles en temps réel : désactivez-le d'abord sur une autre règle.
+La règle lit une expression régulière, elle-même ou dans une règle que lit sa corrélation, et le formulaire l'indique : utilisez `contains`, `startswith` ou `endswith` à la place de `re`. Un projet exécute au plus 50 règles en temps réel : désactivez-le d'abord sur une autre règle.
+:::
+
+:::details Une règle en temps réel qui compte ne s'est déclenchée qu'une fois pour une longue rafale
+Elle se déclenche dès qu'un groupe atteint son comptage dans une fenêtre, et au plus une fois par fenêtre : les événements qui suivent dans la même fenêtre ne donnent pas de nouvelle détection. Si la rafale continue, la fenêtre suivante se déclenche à nouveau. Selon son calendrier, elle se serait aussi déclenchée une fois pour cette fenêtre, quelques minutes plus tard.
 :::
 
 :::details Une règle a correspondu, mais aucune alerte ne s'est ouverte

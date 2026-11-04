@@ -2411,6 +2411,19 @@ detection:
   condition: selection
 `;
 
+/*
+ * ...and one that counts in real time: five failed sign-ins from one address
+ * in a 10-minute window, fired the moment the fifth comes in.
+ */
+const COUNTING_REAL_TIME_RULE_YAML = `title: Failed sign-ins from one address
+level: high
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+`;
+
 if (hasRealTimeRule) {
   insert(DetectionRule, {
     _id: ID.rule(32),
@@ -2424,6 +2437,21 @@ if (hasRealTimeRule) {
     matchCountThreshold: 1,
     shouldCreateCase: true,
     lastMatchAt: hasHistory ? ago(2 * DAY) : undefined,
+    createdAt: ago(2 * DAY),
+  });
+  insert(DetectionRule, {
+    _id: ID.rule(33),
+    name: "Failed sign-ins from one address",
+    description:
+      "Five failed sign-ins from one address in ten minutes, counted as they arrive.",
+    sigmaRuleYaml: COUNTING_REAL_TIME_RULE_YAML,
+    isEnabled: true,
+    isRealTime: true,
+    evaluationIntervalInMinutes: 10,
+    groupByField: "principalIp",
+    matchCountThreshold: 5,
+    shouldCreateCase: true,
+    lastMatchAt: hasHistory ? ago(3 * HOUR) : undefined,
     createdAt: ago(2 * DAY),
   });
 }

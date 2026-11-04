@@ -465,11 +465,11 @@ detection:
 
 | Field | What it does |
 | --- | --- |
-| **Evaluation Interval (Minutes)** | How often the rule runs: whole minutes, 1 to 1440. A new rule's form starts at 5. |
+| **Evaluation Interval (Minutes)** | How often the rule runs: whole minutes, 1 to 1440. A new rule's form starts at 5. In real time, the length of the windows a rule that counts reads. |
 | **Run in Real Time** | Off on a new rule. On, the rule checks each event as it arrives instead of every interval; see [Real-time rules](#real-time-rules). |
 | **Group By Field** | Optional. Matches that share this field's value, such as `principalHost`, are counted, alerted and deduplicated together: one alert per host instead of hundreds. |
 | **Distinct Count Field** | Optional. Count the different values of this field instead of the matching events. Empty values are not counted. |
-| **Match Count Threshold** | A group fires only when its count reaches this number within one run: 1 to 1000000, and 1 fires on any match. |
+| **Match Count Threshold** | A group fires only when its count reaches this number within one run, or one window in real time: 1 to 1000000, and 1 fires on any match. |
 
 Group By and Distinct Count take the same field names as the rule. With them, the threshold says "this many, from the same thing, in one run", with no monitor on top:
 
@@ -492,12 +492,14 @@ OneUptime checks every minute for enabled rules whose interval has passed since 
 
 ### Real-time rules
 
-A rule that fires on one event can run in real time instead of on its interval: turn on **Run in Real Time**, under **More fields** on the **On Match** step. Every event OneUptime receives, from every source, is then checked against the rule as it arrives, and a match opens its case, alert and finding within seconds.
+Any rule but one with a `re` modifier can run in real time instead of on its interval: turn on **Run in Real Time**, under **More fields** on the **On Match** step. Every event OneUptime receives, from every source, is then checked against the rule as it arrives:
 
-- It fits a rule with a **Match Count Threshold** of 1, no **Distinct Count Field** and no `re` modifier. A correlation counts events together, so it runs on its interval. The form says what to change when a rule does not fit.
+- A rule that fires on one event, with a **Match Count Threshold** of 1 and no **Distinct Count Field**, opens its case, alert and finding within seconds of each match, and has no interval.
+- A rule that counts, and a correlation, count in the windows their schedule reads: back to back on the clock, each as long as the **Evaluation Interval (Minutes)**. A group fires the moment its window reaches the count, even when the event that makes it arrives late, and at most once a window, so a burst that goes on fires again in the next one. A correlation's `timespan` still rolls across windows.
 - A project runs at most 50 rules in real time, since every event is checked against each.
-- In **Detection Rules**, a real-time rule's **Status** says **Real time**, and so does its interval column. A check that fails shows in its **Last Error**, as a run's does.
+- In **Detection Rules**, a real-time rule's **Status** says **Real time**, and so does its interval column, after the interval of a rule that counts. A check that fails shows in its **Last Error**, as a run's does.
 - Turned on, the rule first reads what arrived since its last run, so nothing falls between its schedule and real time. Turned off, it goes back to its interval, from two minutes before.
+- Disabled and enabled again, a real-time rule first reads the time it was off, up to the last 24 hours, as a scheduled rule does.
 - Exceptions and watchlists apply to it as to any rule, and **Run on Past Events** reads it like any other.
 
 ### Severity
@@ -625,11 +627,15 @@ Check the key in `x-oneuptime-token` and the path, `/security-events/v1/ingest`.
 :::
 
 :::details A rule never matches
-Check its **Status**: a **Disabled** rule does not run, and when it reads **Run failed**, **View Error** in its row shows why. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run.
+Check its **Status**: a **Disabled** rule does not run, and when it reads **Run failed**, **View Error** in its row shows why. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run, or in one window for a rule in real time.
 :::
 
 :::details Run in Real Time can't be turned on
-The rule counts matches, counts distinct values, reads a regular expression or is a correlation, and the form says which: set **Match Count Threshold** to 1, clear **Distinct Count Field**, or use `contains`, `startswith` or `endswith` in place of `re`. A project runs at most 50 rules in real time: turn it off on another rule first.
+The rule reads a regular expression, itself or in a rule its correlation reads, and the form says so: use `contains`, `startswith` or `endswith` in place of `re`. A project runs at most 50 rules in real time: turn it off on another rule first.
+:::
+
+:::details A real-time rule that counts fired once for a long burst
+It fires the moment a group reaches its count in a window, and at most once a window: the events after that in the same window join no new detection. If the burst goes on, the next window fires again. On its schedule, it would have fired once for that window too, minutes later.
 :::
 
 :::details A rule matched, but no alert opened

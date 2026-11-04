@@ -465,11 +465,11 @@ detection:
 
 | Campo | O que faz |
 | --- | --- |
-| **Intervalo de avaliação (minutos)** | Com que frequência a regra roda: minutos inteiros, de 1 a 1440. O formulário de uma regra nova começa em 5. |
+| **Intervalo de avaliação (minutos)** | Com que frequência a regra roda: minutos inteiros, de 1 a 1440. O formulário de uma regra nova começa em 5. Em tempo real, a duração das janelas que uma regra que conta lê. |
 | **Executar em tempo real** | Desativado em uma regra nova. Ativado, a regra verifica cada evento assim que ele chega, em vez de a cada intervalo; veja [Regras em tempo real](#regras-em-tempo-real). |
 | **Campo de agrupamento** | Opcional. As correspondências que compartilham o valor deste campo, como `principalHost`, são contadas, alertadas e deduplicadas juntas: um alerta por host em vez de centenas. |
 | **Campo de contagem distinta** | Opcional. Conta os valores diferentes deste campo em vez dos eventos correspondentes. Valores vazios não contam. |
-| **Limite de correspondências** | Um grupo só dispara quando a contagem dele atinge este número dentro de uma execução: de 1 a 1000000, e 1 dispara em qualquer correspondência. |
+| **Limite de correspondências** | Um grupo só dispara quando a contagem dele atinge este número dentro de uma execução, ou de uma janela em tempo real: de 1 a 1000000, e 1 dispara em qualquer correspondência. |
 
 O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra. Com eles, o limite diz "tantos, da mesma coisa, em uma execução", sem um monitor por cima:
 
@@ -492,12 +492,14 @@ O OneUptime verifica a cada minuto quais regras habilitadas já passaram do inte
 
 ### Regras em tempo real
 
-Uma regra que dispara com um só evento pode rodar em tempo real em vez de no seu intervalo: ative **Executar em tempo real**, em **Mais campos** da etapa **Ao corresponder**. Cada evento que o OneUptime recebe, de qualquer fonte, é então verificado pela regra assim que chega, e uma correspondência abre seu caso, seu alerta e seu achado em segundos.
+Qualquer regra, exceto uma com o modificador `re`, pode rodar em tempo real em vez de no seu intervalo: ative **Executar em tempo real**, em **Mais campos** da etapa **Ao corresponder**. Cada evento que o OneUptime recebe, de qualquer fonte, é então verificado pela regra assim que chega:
 
-- Serve para uma regra com um **Limite de correspondências** de 1, sem **Campo de contagem distinta** e sem o modificador `re`. Uma correlação conta eventos juntos, então roda no seu intervalo. O formulário diz o que mudar quando uma regra não serve.
+- Uma regra que dispara com um só evento, com um **Limite de correspondências** de 1 e sem **Campo de contagem distinta**, abre seu caso, seu alerta e seu achado em segundos a cada correspondência, e não tem intervalo.
+- Uma regra que conta e uma correlação contam nas janelas que a programação delas lê: uma após a outra no relógio, cada uma do tamanho do **Intervalo de avaliação (minutos)**. Um grupo dispara no momento em que a janela dele atinge a contagem, mesmo quando o evento que a completa chega atrasado, e no máximo uma vez por janela, então uma rajada que continua dispara de novo na seguinte. O `timespan` de uma correlação continua deslizando entre as janelas.
 - Um projeto roda no máximo 50 regras em tempo real, já que cada evento é verificado por cada uma.
-- Em **Regras de detecção**, o **Status** de uma regra em tempo real diz **Tempo real**, e a coluna de intervalo também. Uma verificação que falha aparece no **Último erro** dela, como a de uma execução.
+- Em **Regras de detecção**, o **Status** de uma regra em tempo real diz **Tempo real**, e a coluna de intervalo também, depois do intervalo numa regra que conta. Uma verificação que falha aparece no **Último erro** dela, como a de uma execução.
 - Ao ser ativada, a regra lê primeiro o que chegou desde a última execução, então nada fica entre a programação e o tempo real. Ao ser desativada, ela volta ao seu intervalo, a partir de dois minutos antes.
+- Desabilitada e habilitada de novo, uma regra em tempo real lê primeiro o tempo em que ficou desligada, até as últimas 24 horas, como faz uma regra programada.
 - Exceções e listas de observação valem para ela como para qualquer regra, e **Executar em eventos passados** a lê como qualquer outra.
 
 ### Gravidade
@@ -625,11 +627,15 @@ Confira a chave em `x-oneuptime-token` e o caminho, `/security-events/v1/ingest`
 :::
 
 :::details Uma regra nunca corresponde
-Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com **Falha na execução**, **Ver erro** na linha dela mostra o motivo. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
+Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com **Falha na execução**, **Ver erro** na linha dela mostra o motivo. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução, ou em uma única janela numa regra em tempo real.
 :::
 
 :::details Não dá para ativar Executar em tempo real
-A regra conta correspondências, conta valores distintos, lê uma expressão regular ou é uma correlação, e o formulário diz qual: defina **Limite de correspondências** como 1, esvazie **Campo de contagem distinta**, ou use `contains`, `startswith` ou `endswith` no lugar de `re`. Um projeto roda no máximo 50 regras em tempo real: desative em outra regra primeiro.
+A regra lê uma expressão regular, nela mesma ou numa regra que a correlação dela lê, e o formulário diz isso: use `contains`, `startswith` ou `endswith` no lugar de `re`. Um projeto roda no máximo 50 regras em tempo real: desative em outra regra primeiro.
+:::
+
+:::details Uma regra em tempo real que conta disparou uma só vez numa rajada longa
+Ela dispara no momento em que um grupo atinge a contagem numa janela, e no máximo uma vez por janela: os eventos seguintes na mesma janela não formam uma nova detecção. Se a rajada continua, a janela seguinte dispara de novo. Pela programação, ela também teria disparado uma vez nessa janela, minutos depois.
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu

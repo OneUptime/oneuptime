@@ -465,11 +465,11 @@ detection:
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Evalueringsintervall (minutter)** | Hvor ofte regelen kjører: hele minutter, 1 til 1440. Skjemaet for en ny regel starter på 5. |
+| **Evalueringsintervall (minutter)** | Hvor ofte regelen kjører: hele minutter, 1 til 1440. Skjemaet for en ny regel starter på 5. I sanntid lengden på vinduene en tellende regel leser. |
 | **Kjør i sanntid** | Av på en ny regel. Når den er på, sjekker regelen hver hendelse når den kommer inn, i stedet for hvert intervall; se [Sanntidsregler](#sanntidsregler). |
 | **Grupperingsfelt** | Valgfritt. Treff som deler dette feltets verdi, for eksempel `principalHost`, telles, varsles og dedupliseres samlet: ett varsel per vert i stedet for hundrevis. |
 | **Felt for unik telling** | Valgfritt. Tell de ulike verdiene i dette feltet i stedet for hendelsene som treffer. Tomme verdier telles ikke. |
-| **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor én kjøring: 1 til 1000000, og 1 slår til på hvert treff. |
+| **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor én kjøring, eller innenfor ett vindu i sanntid: 1 til 1000000, og 1 slår til på hvert treff. |
 
 Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier terskelen «så mange, fra den samme tingen, i én kjøring», uten en monitor på toppen:
 
@@ -492,12 +492,14 @@ OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått 
 
 ### Sanntidsregler
 
-En regel som utløses av én hendelse, kan kjøre i sanntid i stedet for etter intervallet sitt: slå på **Kjør i sanntid** under **Flere felt** i steget **Ved treff**. Hver hendelse OneUptime mottar, fra enhver kilde, sjekkes da mot regelen når den kommer inn, og et treff åpner saken, varselet og funnet sitt i løpet av sekunder.
+Enhver regel unntatt en med modifikatoren `re` kan kjøre i sanntid i stedet for etter intervallet sitt: slå på **Kjør i sanntid** under **Flere felt** i steget **Ved treff**. Hver hendelse OneUptime mottar, fra enhver kilde, sjekkes da mot regelen når den kommer inn:
 
-- Det passer for en regel med en **Terskel for antall treff** på 1, uten **Felt for unik telling** og uten modifikatoren `re`. En korrelasjon teller hendelser sammen og kjører derfor etter intervallet sitt. Skjemaet forteller hva som må endres når en regel ikke passer.
+- En regel som utløses av én hendelse, med en **Terskel for antall treff** på 1 og uten **Felt for unik telling**, åpner saken, varselet og funnet sitt i løpet av sekunder ved hvert treff, og har ikke noe intervall.
+- En tellende regel og en korrelasjon teller i vinduene tidsplanen deres leser: etter hverandre etter klokken, hvert like langt som **Evalueringsintervall (minutter)**. En gruppe slår til i det øyeblikket vinduet når tellingen, også når hendelsen som gjør det kommer for sent, og høyst én gang per vindu, så et utbrudd som fortsetter slår til igjen i det neste. `timespan` for en korrelasjon ruller fortsatt over vinduene.
 - Et prosjekt kjører høyst 50 regler i sanntid, siden hver hendelse sjekkes mot hver av dem.
-- I **Deteksjonsregler** viser **Status** for en sanntidsregel **Sanntid**, og det gjør intervallkolonnen også. En sjekk som mislykkes, vises under **Siste feil**, slik som for en kjøring.
+- I **Deteksjonsregler** viser **Status** for en sanntidsregel **Sanntid**, og det gjør intervallkolonnen også, etter intervallet for en tellende regel. En sjekk som mislykkes, vises under **Siste feil**, slik som for en kjøring.
 - Når den slås på, leser regelen først det som har kommet inn siden forrige kjøring, så ingenting faller mellom tidsplanen og sanntid. Når den slås av, går den tilbake til intervallet sitt, fra to minutter før.
+- Deaktivert og aktivert igjen leser en sanntidsregel først tiden den var av, opptil de siste 24 timene, slik en planlagt regel gjør.
 - Unntak og overvåkingslister gjelder for den som for enhver regel, og **Kjør på tidligere hendelser** leser den som enhver annen.
 
 ### Alvorlighetsgrad
@@ -625,11 +627,15 @@ Sjekk nøkkelen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Sj
 :::
 
 :::details En regel treffer aldri
-Sjekk **Status**: med **Deaktivert** kjører ikke regelen, og med **Kjøring mislyktes** viser **Vis feil** i raden hvorfor. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
+Sjekk **Status**: med **Deaktivert** kjører ikke regelen, og med **Kjøring mislyktes** viser **Vis feil** i raden hvorfor. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring, eller innenfor ett vindu for en regel i sanntid.
 :::
 
 :::details Kjør i sanntid kan ikke slås på
-Regelen teller treff, teller unike verdier, leser et regulært uttrykk eller er en korrelasjon, og skjemaet forteller hvilket: sett **Terskel for antall treff** til 1, tøm **Felt for unik telling**, eller bruk `contains`, `startswith` eller `endswith` i stedet for `re`. Et prosjekt kjører høyst 50 regler i sanntid: slå det av på en annen regel først.
+Regelen leser et regulært uttrykk, selv eller i en regel som korrelasjonen dens leser, og skjemaet forteller det: bruk `contains`, `startswith` eller `endswith` i stedet for `re`. Et prosjekt kjører høyst 50 regler i sanntid: slå det av på en annen regel først.
+:::
+
+:::details En tellende sanntidsregel slo bare til én gang ved et langt utbrudd
+Den slår til i det øyeblikket en gruppe når tellingen sin i et vindu, og høyst én gang per vindu: hendelsene etter det i samme vindu gir ingen ny deteksjon. Fortsetter utbruddet, slår det neste vinduet til igjen. Etter tidsplanen sin ville den også ha slått til én gang for det vinduet, minutter senere.
 :::
 
 :::details En regel traff, men ingen varsler ble åpnet

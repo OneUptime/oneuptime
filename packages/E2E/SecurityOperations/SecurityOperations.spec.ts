@@ -93,8 +93,9 @@ const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 // The fixture's two correlation rules, beside its six library rules.
 const SEQUENCE_RULE: string = "Spray, then a success";
 const FIRST_SEEN_RULE: string = "Admin console from a new address";
-// The team's rule that runs in real time (the fixture's ?realtime=1).
+// The team's rules that run in real time (the fixture's ?realtime=1): one fires on each event, one counts.
 const REAL_TIME_RULE: string = "Break-glass account signed in";
+const COUNTING_REAL_TIME_RULE: string = "Failed sign-ins from one address";
 
 // What a single rule counts by, which a correlation says in its YAML instead.
 const COUNTING_FIELDS: ReadonlyArray<RegExp> = [
@@ -109,6 +110,16 @@ detection:
   selection:
     className: Authentication
     statusName: Failure
+  condition: selection
+`;
+
+// A rule with a regular expression: the one kind that cannot run in real time.
+const REGEX_RULE_YAML: string = `title: Numbered admin signed in
+level: high
+detection:
+  selection:
+    className: Authentication
+    principalUser|re: '^adm[0-9]+$'
   condition: selection
 `;
 
@@ -7176,12 +7187,14 @@ test.describe("detection rules and threat intel", () => {
   });
 
   /*
-   * A rule that fires on one event can check each event as it arrives: Run
-   * in Real Time, under More fields on On Match, off on a new rule. A
-   * real-time rule runs on no interval - the form's interval goes, and the
-   * list says Real time where a scheduled rule's Status and Interval read.
+   * Any rule but one with a regular expression can check events as they
+   * arrive: Run in Real Time, under More fields on On Match, off on a new
+   * rule. A real-time rule that fires on each event runs on no interval -
+   * the form's interval goes - while one that counts keeps it as the
+   * window it counts in; the list says Real time where a scheduled rule's
+   * Status reads.
    */
-  test("a rule that runs in real time says Real time in its Status and Interval, and the form offers it under More fields", async ({
+  test("a rule that runs in real time says Real time in its Status, and the form offers it under More fields - a rule that counts too", async ({
     page,
   }: {
     page: Page;
@@ -7194,8 +7207,14 @@ test.describe("detection rules and threat intel", () => {
     await expect(realTime.getByTestId("detection-rule-type")).toHaveText(
       "Single event",
     );
+    // A rule that counts runs in real time too.
+    await expect(rowNamed(page, COUNTING_REAL_TIME_RULE)).toContainText(
+      "Real time",
+    );
     // A scheduled rule's Status says otherwise.
-    await expect(rowNamed(page, SEQUENCE_RULE)).not.toContainText("Real time");
+    await expect(rowNamed(page, FIRST_SEEN_RULE)).not.toContainText(
+      "Real time",
+    );
     await screenshot(page, "detection-rules-real-time-desktop", {
       fullPage: false,
     });
@@ -7224,7 +7243,7 @@ test.describe("detection rules and threat intel", () => {
     ).toBeVisible();
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-checked", "true");
-    // A real-time rule runs on no interval.
+    // A real-time rule that fires on each event runs on no interval.
     await expect(
       dialog(page).getByText(/^Evaluation Interval \(Minutes\)/),
     ).toHaveCount(0);
@@ -7233,17 +7252,84 @@ test.describe("detection rules and threat intel", () => {
     });
 
     /*
-     * A threshold above 1 waits for a count of matches: the switch says so,
-     * and what to change, before anything is saved.
+     * A threshold above 1 counts in windows of the interval, in real time
+     * as on its schedule: the interval comes back as the window it counts
+     * in, and the switch has nothing to say against it.
      */
     const threshold: Locator = dialog(page).getByRole("spinbutton", {
       name: /^Match Count Threshold/,
     });
-    const why: Locator = dialog(page).getByText(
-      "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
-    );
     await threshold.fill("5");
     await threshold.blur();
+    await expect(
+      dialog(page)
+        .getByText(/^Evaluation Interval \(Minutes\)/)
+        .first(),
+    ).toBeVisible();
+    await expect(
+      dialog(page).getByText(
+        "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.",
+      ),
+    ).toBeVisible();
+    await expect(dialog(page).getByText(/regular expression \(\|re\), which only runs/)).toHaveCount(0);
+    await screenshot(page, "detection-rule-real-time-counting-desktop", {
+      fullPage: false,
+    });
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const created: Array<{ data: Record<string, unknown> }> = (
+      await fixture(page)
+    ).creates.filter((create: { modelName: string }): boolean => {
+      return create.modelName === "DetectionRule";
+    });
+    expect(created).toHaveLength(1);
+    expect(created[0]!.data).toMatchObject({
+      name: "Failed sign-in burst",
+      isRealTime: true,
+      matchCountThreshold: 5,
+    });
+  });
+
+  /*
+   * A rule with a regular expression is the one kind that cannot run in
+   * real time: turned on for one, the switch says why, and what to change,
+   * before anything is saved.
+   */
+  test("a rule with a regular expression cannot run in real time: the switch says why before it is saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH, { realtime: true });
+    await expect(rowNamed(page, REAL_TIME_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(REGEX_RULE_YAML);
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+
+    const toggle: Locator = dialog(page).getByRole("switch", {
+      name: /^Run in Real Time/,
+    });
+    const why: Locator = dialog(page).getByText(
+      "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.",
+    );
+
+    await expect(why).toHaveCount(0);
+    await toggle.click();
+    // Said once the reader moves on from the switch, as every field's check is.
+    await toggle.blur();
     await expect(why).toBeVisible();
     await dialog(page).getByTestId("modal-footer-submit-button").click();
     await expect(why).toBeVisible();
@@ -7257,22 +7343,19 @@ test.describe("detection rules and threat intel", () => {
     await screenshot(page, "detection-rule-real-time-refused-desktop", {
       fullPage: false,
     });
-    await threshold.fill("1");
-    await threshold.blur();
-    await expect(why).toHaveCount(0);
 
+    // Back on its schedule, it saves.
+    await toggle.click();
+    await expect(why).toHaveCount(0);
     await dialog(page).getByTestId("modal-footer-submit-button").click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    const created: Array<{ data: Record<string, unknown> }> = (
-      await fixture(page)
-    ).creates.filter((create: { modelName: string }): boolean => {
-      return create.modelName === "DetectionRule";
-    });
-    expect(created).toHaveLength(1);
-    expect(created[0]!.data).toMatchObject({
-      name: "Failed sign-in burst",
-      isRealTime: true,
-    });
+    expect(
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "DetectionRule";
+        },
+      )[0]!.data,
+    ).toMatchObject({ name: "Numbered admin signed in", isRealTime: false });
   });
 
   test("Detection Rules fits a laptop's width: no row scrolls sideways, and Last Match says how long ago", async ({

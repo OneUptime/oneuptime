@@ -94,10 +94,8 @@ import {
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import {
   DETECTION_REAL_TIME_RULES_MAX,
-  REAL_TIME_CORRELATION_PROBLEM,
-  REAL_TIME_DISTINCT_COUNT_PROBLEM,
   REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
-  REAL_TIME_THRESHOLD_PROBLEM,
+  getRealTimeCountWindow,
 } from "Common/Types/SecurityEvent/RealTimeDetection";
 import { DETECTION_RULE_REAL_TIME } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
@@ -236,6 +234,7 @@ const SOURCES: Record<string, string> = {
   // A real-time rule: the screen every write runs, its jobs and the rule's service.
   realTimeScreen: `${SECURITY}/RealTime/RealTimeDetections.ts`,
   realTimeJobs: `${SECURITY}/RealTime/RealTimeJobs.ts`,
+  detectionMatches: "packages/Common/Server/Services/SecurityEventService.ts",
   detectionRuleService:
     "packages/Common/Server/Services/DetectionRuleService.ts",
   matchJob:
@@ -1658,7 +1657,7 @@ describe("the Security Events page", () => {
     expect(DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES).toBe(1);
     expect(DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES).toBe(1440);
     expect(rowNamed(rows, "**Evaluation Interval (Minutes)**")[1]).toBe(
-      "How often the rule runs: whole minutes, 1 to 1440. A new rule's form starts at 5.",
+      "How often the rule runs: whole minutes, 1 to 1440. A new rule's form starts at 5. In real time, the length of the windows a rule that counts reads.",
     );
     expect(DETECTION_MATCH_COUNT_THRESHOLD_MIN).toBe(1);
     expect(DETECTION_MATCH_COUNT_THRESHOLD_MAX).toBe(1000000);
@@ -1680,23 +1679,38 @@ describe("the Security Events page", () => {
     const jobs: string = flat(source("realTimeJobs"));
     const service: string = flat(source("detectionRuleService"));
 
-    // What fits: one event, threshold 1, no distinct count, no `re`, no correlation.
-    for (const problem of [
-      REAL_TIME_THRESHOLD_PROBLEM,
-      REAL_TIME_DISTINCT_COUNT_PROBLEM,
-      REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
-      REAL_TIME_CORRELATION_PROBLEM,
-    ]) {
-      expect(problem.length).toBeGreaterThan(20);
-    }
-
-    expect(REAL_TIME_THRESHOLD_PROBLEM).toContain("Match Count Threshold to 1");
-    expect(REAL_TIME_DISTINCT_COUNT_PROBLEM).toContain("Distinct Count Field");
+    // What fits: every rule but one with `re` - a rule that counts and a correlation included.
     expect(REAL_TIME_REGULAR_EXPRESSION_PROBLEM).toContain(
       "contains, startswith or endswith",
     );
     expect(realTime).toContain(
-      "- It fits a rule with a **Match Count Threshold** of 1, no **Distinct Count Field** and no `re` modifier. A correlation counts events together, so it runs on its interval.",
+      "Any rule but one with a `re` modifier can run in real time instead of on its interval",
+    );
+    expect(realTime).toContain(
+      "- A rule that fires on one event, with a **Match Count Threshold** of 1 and no **Distinct Count Field**, opens its case, alert and finding within seconds of each match, and has no interval.",
+    );
+
+    // A rule that counts, in real time: its schedule's windows, back to back on the clock, once each.
+    expect(realTime).toContain(
+      "- A rule that counts, and a correlation, count in the windows their schedule reads: back to back on the clock, each as long as the **Evaluation Interval (Minutes)**.",
+    );
+    expect(realTime).toContain(
+      "even when the event that makes it arrives late, and at most once a window, so a burst that goes on fires again in the next one.",
+    );
+    expect(
+      getRealTimeCountWindow({
+        time: new Date("2026-11-04T10:07:00.000Z"),
+        evaluationIntervalInMinutes: 5,
+      }),
+    ).toEqual({
+      startTime: new Date("2026-11-04T10:05:00.000Z"),
+      endTime: new Date("2026-11-04T10:10:00.000Z"),
+    });
+    // The write that makes the count fires: what came in before it had not reached it.
+    const matches: string = flat(source("detectionMatches"));
+    expect(matches).toContain("AS matchCountBefore");
+    expect(matches).toContain(
+      "HAVING candidateMatches > 0 AND ${effectiveCountColumn} >= `",
     );
     expect(realTime).toContain(
       "turn on **Run in Real Time**, under **More fields** on the **On Match** step.",
@@ -1708,11 +1722,12 @@ describe("the Security Events page", () => {
       `- A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time,`,
     );
 
-    // Its Status, and its interval column, say Real time.
+    // Its Status, and its interval column, say Real time - after the interval for a rule that counts.
     expect(DETECTION_RULE_REAL_TIME.text).toBe("Real time");
     expect(realTime).toContain(
-      `a real-time rule's **Status** says **${DETECTION_RULE_REAL_TIME.text}**, and so does its interval column.`,
+      `a real-time rule's **Status** says **${DETECTION_RULE_REAL_TIME.text}**, and so does its interval column, after the interval of a rule that counts.`,
     );
+    expect(rules).toContain('{" · "}');
     expect(rules).toContain('translator.translateText("Real time")');
 
     // On: a handover from the last run; off: back on the interval two minutes behind.
@@ -1724,6 +1739,14 @@ describe("the Security Events page", () => {
     expect(DETECTION_EVALUATION_DELAY_IN_SECONDS).toBe(120);
     expect(realTime).toContain(
       "- Turned on, the rule first reads what arrived since its last run, so nothing falls between its schedule and real time. Turned off, it goes back to its interval, from two minutes before.",
+    );
+
+    // Disabled and enabled again: it reads the time it was off first, as a scheduled rule does.
+    expect(service).toContain("pausingRealTime");
+    expect(service).toContain("lastEvaluatedAt: row.lastEvaluatedAt,");
+    expect(DETECTION_MAX_LOOKBACK_IN_MINUTES / 60).toBe(24);
+    expect(realTime).toContain(
+      `- Disabled and enabled again, a real-time rule first reads the time it was off, up to the last ${DETECTION_MAX_LOOKBACK_IN_MINUTES / 60} hours, as a scheduled rule does.`,
     );
 
     // Every source's write is screened.

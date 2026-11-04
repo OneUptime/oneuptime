@@ -465,11 +465,11 @@ detection:
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Evaluatie-interval (minuten)** | Hoe vaak de regel draait: hele minuten, 1 tot 1440. Het formulier van een nieuwe regel begint op 5. |
+| **Evaluatie-interval (minuten)** | Hoe vaak de regel draait: hele minuten, 1 tot 1440. Het formulier van een nieuwe regel begint op 5. In realtime de lengte van de vensters die een tellende regel leest. |
 | **In realtime uitvoeren** | Uit bij een nieuwe regel. Staat het aan, dan controleert de regel elke gebeurtenis zodra die binnenkomt in plaats van elk interval; zie [Realtimeregels](#realtimeregels). |
 | **Groeperingsveld** | Optioneel. Matches die de waarde van dit veld delen, zoals `principalHost`, worden samen geteld, gemeld en ontdubbeld: één waarschuwing per host in plaats van honderden. |
 | **Veld voor unieke telling** | Optioneel. Tel de verschillende waarden van dit veld in plaats van de matchende gebeurtenissen. Lege waarden tellen niet mee. |
-| **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één uitvoering bereikt: 1 tot 1000000, en 1 gaat af bij elke match. |
+| **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één uitvoering bereikt, of binnen één venster in realtime: 1 tot 1000000, en 1 gaat af bij elke match. |
 
 Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt de drempel "zoveel, van hetzelfde ding, in één uitvoering", zonder monitor erbovenop:
 
@@ -492,12 +492,14 @@ OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval s
 
 ### Realtimeregels
 
-Een regel die op één gebeurtenis afgaat, kan in realtime draaien in plaats van op zijn interval: zet **In realtime uitvoeren** aan, onder **Meer velden** in de stap **Bij overeenkomst**. Elke gebeurtenis die OneUptime ontvangt, uit welke bron ook, wordt dan bij aankomst tegen de regel gecontroleerd, en een match opent binnen seconden zijn zaak, waarschuwing en finding.
+Elke regel behalve een met de modifier `re` kan in realtime draaien in plaats van op zijn interval: zet **In realtime uitvoeren** aan, onder **Meer velden** in de stap **Bij overeenkomst**. Elke gebeurtenis die OneUptime ontvangt, uit welke bron ook, wordt dan bij aankomst tegen de regel gecontroleerd:
 
-- Dit past bij een regel met een **Drempel voor aantal treffers** van 1, zonder **Veld voor unieke telling** en zonder de modifier `re`. Een correlatie telt gebeurtenissen samen en draait dus op haar interval. Het formulier zegt wat je moet veranderen als een regel niet past.
+- Een regel die op één gebeurtenis afgaat, met een **Drempel voor aantal treffers** van 1 en zonder **Veld voor unieke telling**, opent bij elke match binnen seconden zijn zaak, waarschuwing en finding, en heeft geen interval.
+- Een tellende regel en een correlatie tellen in de vensters die hun schema leest: aaneengesloten op de klok, elk zo lang als het **Evaluatie-interval (minuten)**. Een groep gaat af zodra zijn venster de telling bereikt, ook als de gebeurtenis die dat doet te laat binnenkomt, en hoogstens één keer per venster, zodat een salvo dat doorgaat in het volgende opnieuw afgaat. De `timespan` van een correlatie schuift nog steeds over vensters heen.
 - Een project draait hoogstens 50 regels in realtime, omdat elke gebeurtenis tegen elke regel wordt gecontroleerd.
-- In **Detectieregels** toont de **Status** van een realtimeregel **Realtime**, en ook de kolom met het interval. Een controle die mislukt, verschijnt in **Laatste fout**, zoals bij een run.
+- In **Detectieregels** toont de **Status** van een realtimeregel **Realtime**, en ook de kolom met het interval, na het interval bij een tellende regel. Een controle die mislukt, verschijnt in **Laatste fout**, zoals bij een run.
 - Ingeschakeld leest de regel eerst wat er sinds zijn laatste run is binnengekomen, zodat er niets tussen schema en realtime valt. Uitgeschakeld gaat hij terug naar zijn interval, vanaf twee minuten ervoor.
+- Uitgeschakeld en weer ingeschakeld leest een realtimeregel eerst de tijd dat hij uit stond, tot de laatste 24 uur, zoals een geplande regel doet.
 - Uitzonderingen en volglijsten gelden voor hem zoals voor elke regel, en **Uitvoeren op eerdere gebeurtenissen** leest hem zoals elke andere.
 
 ### Ernst
@@ -625,11 +627,15 @@ Controleer de sleutel in `x-oneuptime-token` en het pad, `/security-events/v1/in
 :::
 
 :::details Een regel matcht nooit
-Controleer de **Status**: bij **Uitgeschakeld** wordt de regel niet uitgevoerd, en bij **Uitvoering mislukt** toont **Fout bekijken** in zijn rij waarom. Open een gebeurtenis waarvan je een match verwachtte en vergelijk die veld voor veld met de regel: een gewone waarde moet gelijk zijn aan het hele veld, dus gebruik `contains` of `*` voor een deel ervan. Een attribuut wordt genoemd zoals in de gebeurtenis (`threat.matched`, niet `attributes.threat.matched`). Met een drempel boven 1 moeten de matches in één uitvoering vallen.
+Controleer de **Status**: bij **Uitgeschakeld** wordt de regel niet uitgevoerd, en bij **Uitvoering mislukt** toont **Fout bekijken** in zijn rij waarom. Open een gebeurtenis waarvan je een match verwachtte en vergelijk die veld voor veld met de regel: een gewone waarde moet gelijk zijn aan het hele veld, dus gebruik `contains` of `*` voor een deel ervan. Een attribuut wordt genoemd zoals in de gebeurtenis (`threat.matched`, niet `attributes.threat.matched`). Met een drempel boven 1 moeten de matches in één uitvoering vallen, of in één venster bij een regel in realtime.
 :::
 
 :::details In realtime uitvoeren gaat niet aan
-De regel telt matches, telt unieke waarden, leest een reguliere expressie of is een correlatie, en het formulier zegt welke: zet **Drempel voor aantal treffers** op 1, maak **Veld voor unieke telling** leeg, of gebruik `contains`, `startswith` of `endswith` in plaats van `re`. Een project draait hoogstens 50 regels in realtime: zet het eerst bij een andere regel uit.
+De regel leest een reguliere expressie, zelf of in een regel die zijn correlatie leest, en het formulier zegt dat: gebruik `contains`, `startswith` of `endswith` in plaats van `re`. Een project draait hoogstens 50 regels in realtime: zet het eerst bij een andere regel uit.
+:::
+
+:::details Een tellende realtimeregel ging bij een lang salvo maar één keer af
+Hij gaat af zodra een groep in een venster zijn telling bereikt, en hoogstens één keer per venster: de gebeurtenissen daarna in hetzelfde venster leveren geen nieuwe detectie op. Gaat het salvo door, dan gaat het volgende venster opnieuw af. Op zijn schema was hij voor dat venster ook één keer afgegaan, minuten later.
 :::
 
 :::details Een regel matchte, maar er ging geen waarschuwing open
