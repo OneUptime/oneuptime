@@ -265,6 +265,11 @@ interface CriteriaMetricTarget {
   formulaExpression: string | undefined;
   /** For a formula: the variable behind each alias it references. */
   components: Array<CriteriaMetricTargetComponent>;
+  /*
+   * How late the compared data arrives, when it was judged as far as it
+   * reaches (MetricCriteriaContext.dataLagMs): the details block says so.
+   */
+  dataLagMs?: number | undefined;
 }
 
 /**
@@ -1237,9 +1242,21 @@ ${incomingRequestGrouping.rootCauseNote}
        * For the per-series rootCause, concatenate the matched filter
        * messages so the incident message reflects exactly what
        * breached on this specific series.
+       *
+       * The series' alert and incident open with these lines alone, without
+       * the details block the whole monitor's root cause has, so a series
+       * whose late data was judged as far as it reaches says how late it
+       * arrives here: "... above the 0 threshold. Its data arrives about 3
+       * minutes late."
        */
       const rootCauseLines: Array<MarkdownText> = matched.map(
         (r: MetricSeriesEvaluationResult) => {
+          const dataLagMs: number | undefined = r.context.dataLagMs;
+
+          if (typeof dataLagMs === "number" && dataLagMs > 0) {
+            return mdText`- ${r.rootCause} ${MetricWindowCoverage.describeLag(dataLagMs)}`;
+          }
+
           return mdText`- ${r.rootCause}`;
         },
       );
@@ -2149,6 +2166,33 @@ ${incomingRequestGrouping.rootCauseNote}
       );
   }
 
+  /*
+   * The line a root cause's details block ends with when the series' data
+   * arrives well after the time it measures - a source late by design, a
+   * collector whose clock runs behind - so its window was judged as far as
+   * its data reaches, and what the alert or incident describes is that long
+   * ago: "- Data Arrives: about 12 minutes late". Nothing when its data
+   * arrives on time or its arrivals were not read
+   * (MetricCriteriaContext.dataLagMs). The Metric Details and every
+   * platform's details block (Kubernetes, Proxmox, vCenter, Docker Swarm,
+   * Ceph, Storage Array) end with it.
+   */
+  private static describeDataLag(
+    dataLagMs: number | undefined,
+  ): Array<MarkdownText> {
+    if (
+      typeof dataLagMs !== "number" ||
+      !Number.isFinite(dataLagMs) ||
+      dataLagMs <= 0
+    ) {
+      return [];
+    }
+
+    return [
+      mdText`- Data Arrives: about ${MetricWindowCoverage.describeDuration(dataLagMs)} late`,
+    ];
+  }
+
   private static buildMetricRootCauseContext(input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
@@ -2195,17 +2239,6 @@ ${incomingRequestGrouping.rootCauseNote}
     }
     if (ctx.timeWindowMinutes) {
       lines.push(mdText`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
-    }
-    /*
-     * Its data arrives well after the time it measures - a source late by
-     * design, a collector whose clock runs behind - so the window was judged
-     * as far as its data reaches, and what the incident describes is that
-     * long ago.
-     */
-    if (typeof ctx.dataLagMs === "number" && ctx.dataLagMs > 0) {
-      lines.push(
-        mdText`- Data Arrives: about ${MetricWindowCoverage.describeDuration(ctx.dataLagMs)} late`,
-      );
     }
 
     /*
@@ -2258,6 +2291,9 @@ ${incomingRequestGrouping.rootCauseNote}
         )}`,
       );
     }
+
+    // Last, right above the samples whose times it explains.
+    lines.push(...MonitorCriteriaEvaluator.describeDataLag(ctx.dataLagMs));
 
     const sections: Array<MarkdownText> = [
       mdText`**Metric Details**\n${FeedMarkdown.join(lines, "\n")}`,
@@ -3129,6 +3165,9 @@ ${incomingRequestGrouping.rootCauseNote}
     const thresholdUnit: string | undefined =
       filter.metricMonitorOptions?.thresholdUnit || undefined;
 
+    const dataLagMs: number | undefined =
+      filter.metricCriteriaContext?.dataLagMs;
+
     const alias: string = filter.metricMonitorOptions?.metricAlias || "";
     const queryConfigs: Array<MetricQueryConfigData> =
       metricViewConfig?.queryConfigs || [];
@@ -3191,6 +3230,7 @@ ${incomingRequestGrouping.rootCauseNote}
         }),
         formulaExpression: expression || undefined,
         components: components,
+        dataLagMs: dataLagMs,
       };
     }
 
@@ -3218,6 +3258,7 @@ ${incomingRequestGrouping.rootCauseNote}
       }),
       formulaExpression: undefined,
       components: [],
+      dataLagMs: dataLagMs,
     };
   }
 
@@ -4123,6 +4164,10 @@ ${incomingRequestGrouping.rootCauseNote}
       clusterDetails.push(mdText`- Namespace: ${namespaceFilter}`);
     }
 
+    clusterDetails.push(
+      ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+    );
+
     sections.push(
       mdText`**Kubernetes Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
     );
@@ -4753,6 +4798,10 @@ ${incomingRequestGrouping.rootCauseNote}
         );
       }
 
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
       sections.push(
         mdText`**Proxmox Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
       );
@@ -5080,6 +5129,10 @@ ${incomingRequestGrouping.rootCauseNote}
         );
       }
 
+      vcenterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
       sections.push(
         mdText`**vCenter Details**\n${FeedMarkdown.join(vcenterDetails, "\n")}`,
       );
@@ -5313,6 +5366,10 @@ ${incomingRequestGrouping.rootCauseNote}
           mdText`- Container Image Filter: ${dockerSwarmMonitor.resourceFilters.containerImage}`,
         );
       }
+
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
 
       sections.push(
         mdText`**Docker Swarm Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
@@ -5754,6 +5811,10 @@ ${incomingRequestGrouping.rootCauseNote}
         );
       }
 
+      clusterDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
       sections.push(
         mdText`**Ceph Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
       );
@@ -6077,6 +6138,10 @@ ${incomingRequestGrouping.rootCauseNote}
           );
         }
       }
+
+      arrayDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
 
       sections.push(
         mdText`**Storage Array Details**\n${FeedMarkdown.join(arrayDetails, "\n")}`,

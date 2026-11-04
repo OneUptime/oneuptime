@@ -2136,11 +2136,11 @@ describe("the Metrics monitor", () => {
   /*
    * #4793: All Values waits for a series' data to cover the time range, and
    * the evaluation log quotes the evaluator's own waiting message. #4912's
-   * follow-up: data that keeps arriving late (CloudWatch's, a collector's
-   * whose clock runs behind) counts as far as it reaches - staleness is
-   * judged by when a series' data arrived (createdAt), which the worker
-   * reads when a series looks behind - and the incident says how late it
-   * arrives.
+   * follow-up: data that keeps arriving late (from CloudWatch, from a
+   * collector whose clock runs behind) counts as far as it reaches -
+   * staleness is judged by when a series' data arrived (createdAt), which
+   * the worker reads when a series looks behind - and the alert or incident
+   * says how late it arrives.
    */
   it("says All Values waits for the whole time range, quoting the evaluator's own message, and that data still arriving late counts as far as it reaches", () => {
     const window: MetricEvaluationWindow = {
@@ -2180,7 +2180,7 @@ describe("the Metrics monitor", () => {
       )?.label,
     ).toBe("Every value (the whole window)");
     expect(METRICS).toContain(
-      "Data that keeps arriving late — CloudWatch's, or a collector's whose clock runs behind — counts as far as it reaches, and the incident says how late it arrives.",
+      "Data that keeps arriving late — from CloudWatch, or from a collector whose clock runs behind — counts as far as it reaches, and the alert or incident says how late it arrives.",
     );
     expect(METRICS).not.toContain("takes the place of now");
 
@@ -2228,10 +2228,23 @@ describe("the Metrics monitor", () => {
       oneLine(readSource("Common/Server/Services/MetricService.ts")),
     ).toContain("toUnixTimestamp(max(createdAt)) AS __arrival_newest");
 
-    // And the incident says how late.
-    expect(
+    /*
+     * And the alert or incident says how late: the details block of the
+     * whole monitor's root cause - the Metric Details and each of the six
+     * platforms' own blocks - and the lines a grouped monitor opens each
+     * series' alert and incident with.
+     */
+    const evaluator: string = oneLine(
       readSource("Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts"),
-    ).toContain("- Data Arrives: about ");
+    );
+    expect(evaluator).toContain("- Data Arrives: about ");
+    expect(
+      evaluator.split("...MonitorCriteriaEvaluator.describeDataLag(").length -
+        1,
+    ).toBe(7);
+    expect(evaluator).toContain(
+      "return mdText`- ${r.rootCause} ${MetricWindowCoverage.describeLag(dataLagMs)}`;",
+    );
     expect(MetricWindowCoverage.describeLag(11 * 60 * 1000)).toBe(
       "Its data arrives about 11 minutes late.",
     );

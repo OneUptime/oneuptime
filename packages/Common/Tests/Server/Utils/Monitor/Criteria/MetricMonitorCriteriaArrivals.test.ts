@@ -299,7 +299,12 @@ describe("a cluster whose collector's clock runs three minutes behind", () => {
     expect(evaluation!.context.dataLagMs).toBe(3 * MINUTE + 25 * SECOND);
   });
 
-  test("its incident says how late the data arrives, in the Metric Details", async () => {
+  /*
+   * The context the evaluation leaves says how late; the Metric Details
+   * render it (a Kubernetes monitor's own Cluster Details, and each series'
+   * lines, do too: MonitorCriteriaEvaluatorDataLag.test.ts).
+   */
+  test("its context says how late the data arrives, and the Metric Details render it", async () => {
     const [evaluation] = await evaluate({
       response: replicaResponse([
         shortAllAlong([CLOCK_BEHIND, CLOCK_BEHIND, CLOCK_BEHIND]),
