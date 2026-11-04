@@ -66,6 +66,7 @@ flowchart TB
 - [AI オブザーバビリティ](/docs/telemetry/ai-llm-observability): AI の会話を追い、回答の質が悪いときに知らせを受けます。
 - [セキュリティ](/docs/telemetry/security-events): セキュリティイベントと脅威インテリジェンスを収集します。
 - [データセキュリティ](/docs/data-security/index): バケット、データベース、テレメトリにある機密データを見つけ、その保管のしかたを改善します。
+- [データオブザーバビリティ](/docs/data-observability/index): データベースやデータウェアハウスのデータが遅れている、誤っている、壊れているときにそれを知り、その原因となった実行、デプロイ、テーブルを特定します。
 - [リアルユーザーモニタリング](/docs/rum/index): Core Web Vitals とセッションリプレイで、実際のユーザーの体験を測定します。
 - [ダッシュボード](/docs/dashboards/index): メトリクス、ログ、モニターからダッシュボードを作成します。
 - [インベントリ](/docs/inventory/overview): OneUptime が把握しているすべてのサービス、ホスト、デバイスを確認します。

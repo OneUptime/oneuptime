@@ -1,0 +1,78 @@
+# Lignage et pipelines
+
+Le lignage indique à partir de quelles tables chaque table est construite, et quels pipelines y écrivent. Observabilité des données le rassemble depuis cinq sources à la fois - les événements OpenLineage, dbt, les synchronisations Fivetran et Airbyte, les vues et l'historique des requêtes de chaque base de données - et s'en sert pour relier chaque table en retard ou cassée à l'exécution qui en est la cause, pour qu'un problème ne donne lieu qu'à un seul signalement.
+
+## D'où vient le lignage
+
+| Source | Ce qu'elle apporte |
+| --- | --- |
+| **OpenLineage** | Chaque exécution d'un job Airflow, Dagster, Spark, dbt ou Flink, avec les tables qu'il a lues et écrites |
+| **dbt** | Ce à partir de quoi chaque modèle est construit, chaque build comme une exécution, et le résultat de chaque test |
+| **Fivetran et Airbyte** | Chaque synchronisation comme une exécution de son connecteur, et les tables brutes qu'elle charge |
+| **Vues** | Une vue est construite à partir des tables sur lesquelles elle est définie (PostgreSQL, Redshift, MySQL 8, SQL Server, vues matérialisées ClickHouse, Databricks) |
+| **Historique des requêtes** | Une requête qui a lu une table et en a écrit une autre (les jobs de BigQuery, le journal des requêtes de Redshift, le journal des requêtes de ClickHouse, la table de lignage de Databricks) |
+
+L'onglet **Lignage** d'une table montre les tables à partir desquelles elle est construite, les pipelines qui y écrivent avec leur dernière exécution, et les tables construites à partir d'elle. Chaque lien indique où il a été observé.
+
+## OpenLineage
+
+Envoyez les événements OpenLineage à OneUptime, tels quels, avec une [clé d'ingestion](/docs/telemetry/ingestion-keys) de télémétrie :
+
+- **URL :** `https://oneuptime.com/telemetry/openlineage` (sur un OneUptime auto-hébergé, votre propre adresse)
+- **Point de terminaison :** `api/v1/lineage`, la valeur par défaut d'OpenLineage
+- **Clé API :** la clé d'ingestion, envoyée comme `Authorization: Bearer`, ou définissez `x-oneuptime-token`
+
+Pour le fournisseur OpenLineage d'Airflow :
+
+```bash
+AIRFLOW__OPENLINEAGE__TRANSPORT='{"type": "http", "url": "https://oneuptime.com/telemetry/openlineage", "endpoint": "api/v1/lineage", "auth": {"type": "api_key", "apiKey": "YOUR_INGESTION_KEY"}}'
+```
+
+Pour tout autre client OpenLineage, définissez `OPENLINEAGE_URL` et `OPENLINEAGE_API_KEY`. Les jeux de données sont associés aux tables selon la convention de nommage d'OpenLineage, comme `postgres://host:5432` avec `database.schema.table`, `snowflake://account` avec `database.schema.table`, `clickhouse://host:8443` avec `database.table`, et `databricks://workspace-host` avec `catalog.schema.table`.
+
+## dbt
+
+Après `dbt build` (ou run, test, seed ou snapshot), envoyez les artefacts du projet avec la [CLI OneUptime](/docs/cli/index) :
+
+```bash
+npm install -g @oneuptime/cli
+export ONEUPTIME_URL=https://oneuptime.com
+export ONEUPTIME_TELEMETRY_INGESTION_KEY=<ingestion key>
+dbt build
+oneuptime dbt upload
+```
+
+En CI, exécutez `oneuptime dbt upload` comme étape suivant le build, même quand le build échoue, pour que les tests en échec soient enregistrés. Chaque table que dbt construit reçoit une carte **dbt** sur sa vue d'ensemble, le lignage de ses modèles, et ses tests dans son onglet **Vérifications** ; chaque build est une exécution du pipeline du projet.
+
+## Fivetran et Airbyte
+
+Leurs webhooks indiquent quand chaque synchronisation commence et se termine. **Pipelines > Connecter Fivetran ou Airbyte** remplit les URL avec l'une de vos clés d'ingestion :
+
+- **Fivetran :** un webhook créé avec l'API REST de Fivetran, pour les événements `sync_start` et `sync_end`, vers `https://oneuptime.com/telemetry/fivetran/v1/webhook/<ingestion key ID>`, avec la clé d'ingestion comme secret. Fivetran signe chaque envoi avec elle, si bien que la clé ne circule jamais dans l'URL.
+- **Airbyte :** le webhook de l'espace de travail réglé sur `https://oneuptime.com/telemetry/airbyte/v1/webhook/<ingestion key>`, activé pour les synchronisations en échec et réussies. Donnez à Airbyte une clé qui lui est propre.
+
+Une synchronisation Fivetran reprogrammée à cause de la limite de débit d'une API se termine en **Reprogrammée** : ce n'est pas un échec, donc elle ne prévient personne.
+
+## Pipelines
+
+Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses exécutions : quand chacune a commencé et s'est terminée, combien de temps elle a duré, et l'erreur d'une exécution en échec. Après cinq exécutions, chaque pipeline apprend de ses propres exécutions combien de temps dure habituellement une exécution et combien de temps s'écoule entre deux exécutions selon sa planification. La page d'un pipeline recommande trois moniteurs :
+
+- **Pipeline Run Failed** : une exécution a échoué ou a été interrompue.
+- **Pipeline Run Unusually Long** : une exécution a pris deux fois sa durée habituelle ou plus, vérifié toutes les cinq minutes pendant qu'elle tourne, si bien qu'une exécution bloquée est repérée avant qu'elle ne se termine.
+- **Pipeline Is Late** : aucune exécution n'a démarré depuis plus longtemps que sa planification ne le permet.
+
+## Un seul signalement par cause
+
+Quand une table devient obsolète, chaque table construite à partir d'elle le devient aussi. Avant qu'une alerte de données ne s'ouvre, OneUptime cherche dans le lignage une alerte déjà ouverte sur ce à partir de quoi sa table ou son pipeline est construit : les tables en amont, les pipelines qui y écrivent, et les bases de données où elles se trouvent, jusqu'à cinq niveaux plus haut. S'il en trouve une, la nouvelle alerte est une conséquence de cette alerte :
+
+- Elle démarre à l'état **Pris en compte**, pour que personne ne soit prévenu deux fois pour un même problème, et se rétablit d'elle-même dès que ses données se rétablissent.
+- Son fil d'activité et sa carte **Données** indiquent quelle alerte l'a causée, et elle rejoint l'épisode de la cause.
+
+La carte **Données** de la cause liste son **Downstream Impact** : chaque alerte qu'elle a causée. La carte d'une alerte de table montre aussi les services qui écrivent dans la table, avec leurs écritures en échec, ainsi que leurs déploiements et autres changements dans la journée précédant l'alerte.
+
+## Prochaines étapes
+
+:::cards
+- [Produits de données](/docs/data-observability/data-products): Des SLA de fraîcheur sur les tables qu'utilisent les gens.
+- [OneUptime AI et l'API](/docs/data-observability/ai-and-api): Des investigations qui partent de ceux qui écrivent dans une table et de ses exécutions.
+:::
