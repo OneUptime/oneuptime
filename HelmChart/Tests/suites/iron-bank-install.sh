@@ -17,17 +17,18 @@
 #
 #   - does every workload become ready, with the migrations finished, on these
 #     images, pulled with the pull secret, and stay up?
-#   - did OneUptime's schema reach PostgreSQL and ClickHouse, and, after five
-#     minutes of background jobs, did ClickHouse refuse anything OneUptime sent
-#     it as beyond its version?
+#   - did OneUptime's schema reach PostgreSQL and ClickHouse, does a metric reach
+#     its rollup, and, after five minutes of background jobs, did ClickHouse
+#     refuse anything OneUptime sent it as beyond its version?
 #   - does the ingress serve the product, and do the cleanup CronJobs run on Iron
 #     Bank's kubectl, which has no shell of its own to promise?
 #   - does PostgreSQL start again on its own data?
 #
 # What it cannot tell: KinD's volumes are host directories every user may write,
 # and Kubernetes applies no fsGroup to them, so that fsGroup gives a datastore its
-# volume is checked by suites/iron-bank.sh and not here. Nor does it send
-# telemetry through ClickHouse: it sees what booting and the background jobs send.
+# volume is checked by suites/iron-bank.sh and not here. Nor does it send telemetry
+# through OneUptime's ingest or run its dashboards: of what ClickHouse is asked, it
+# sees what booting and the background jobs send, and one metric it writes itself.
 
 # shellcheck source=../lib/harness.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../lib" && pwd)/harness.sh"
@@ -182,6 +183,16 @@ else
 fi
 echo "OneUptime's ClickHouse tables, by engine:"
 clickhouse_query "SELECT engine, count() FROM system.tables WHERE database = 'oneuptime' GROUP BY engine ORDER BY engine FORMAT TSV"
+
+# Nothing writes telemetry here, so write one metric to the table OneUptime's
+# ingest writes to. It reaches the per-minute rollup through a materialized view,
+# as aggregate states 26.3 has to store and merge.
+CHECK_ID="00000000-0000-4000-8000-000000000001"
+CHECK_METRIC="iron-bank-install-check"
+clickhouse_query "INSERT INTO oneuptime.MetricItemV3 (projectId, primaryEntityId, name, time, value, retentionDate) SELECT '${CHECK_ID}', '${CHECK_ID}', '${CHECK_METRIC}', now(), 42, today() + 30"
+clickhouse_query "SYSTEM FLUSH DISTRIBUTED oneuptime.MetricItemV3"
+assert_eq "a metric written to ClickHouse reaches its per-minute rollup" "42" \
+    "$(clickhouse_query "SELECT sumMerge(valueSumState) FROM oneuptime.MetricItemAggMV1m WHERE projectId = '${CHECK_ID}' AND name = '${CHECK_METRIC}'")"
 
 # Readiness comes within minutes, so give the background jobs time to run: what
 # follows then sees what they send as well as what booting does.

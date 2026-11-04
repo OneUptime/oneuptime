@@ -142,9 +142,11 @@ One more job, **Install the chart from Iron Bank's images**, builds all four
 images under the names they will have on Registry1, and installs the Helm chart
 with [values.yaml](values.yaml) on a KinD cluster, on Iron Bank's own PostgreSQL,
 ClickHouse and Valkey (`HelmChart/Tests/suites/iron-bank-install.sh`). It fails
-when a workload does not become ready, when OneUptime's schema does not reach a
-database, or when ClickHouse refuses something OneUptime sends as beyond its
-version.
+when a workload does not become ready or restarts, when OneUptime's schema does
+not reach a database, when a metric does not reach its rollup, or when ClickHouse
+refuses something OneUptime sends as beyond its version. KinD's volumes take no
+`fsGroup`, so that part of the values is checked by what the chart renders
+(`suites/iron-bank.sh`), and first meets real storage on a customer's cluster.
 
 ## Installing from Registry1
 
@@ -178,8 +180,9 @@ What differs from a stock install:
   PostgreSQL's data directory belongs to one major version.
 - **ClickHouse is older than the chart's.** Iron Bank carries the 26.3 long-term
   support line, and OneUptime's other tests run on 26.7. The install job above is
-  what shows OneUptime's schema and background jobs work on 26.3; it does not
-  send telemetry through it.
+  what shows OneUptime's schema, its background jobs and a metric's way to its
+  rollup work on 26.3. It does not send telemetry through OneUptime's ingest or
+  run its dashboards there.
 - **What the chart leaves off by default is not moved.** Turning on `home`,
   `pgbouncer`, `vllm` or the ClickHouse Keeper pulls from Docker Hub unless you
   give `image.overrides` an image for it.
