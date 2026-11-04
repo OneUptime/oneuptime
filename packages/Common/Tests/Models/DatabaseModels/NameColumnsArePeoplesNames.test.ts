@@ -342,9 +342,9 @@ describe("WidenThingNameColumns1808992300000", () => {
     expect(index).toBeGreaterThan(
       names.indexOf("AddDataReconciliations1808992200000"),
     );
-    expect(names.indexOf("AddDataReconciliations1808992200000")).toBeGreaterThan(
-      -1,
-    );
+    expect(
+      names.indexOf("AddDataReconciliations1808992200000"),
+    ).toBeGreaterThan(-1);
   });
 
   test("up() widens every retyped column in place, keeping every value", async () => {
