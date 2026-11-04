@@ -1831,6 +1831,7 @@
   "Copy to clipboard": "Kopiëren naar klembord",
   "Copied": "Gekopieerd",
   "Status: {{status}}": "Toestand: {{status}}",
+  "Loading content": "Inhoud laden",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",

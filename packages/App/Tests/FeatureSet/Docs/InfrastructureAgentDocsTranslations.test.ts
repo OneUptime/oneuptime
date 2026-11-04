@@ -320,8 +320,14 @@ const PROSE: Record<string, Array<string>> = {
    * Collector is a host's page).
    */
   [DOCKER_SWARM]: ["Collector", "AI agent", "read-only"],
-  // "the identity also holds the **namespace**": the stress.
-  [QUEUES]: ["namespace"],
+  /*
+   * "A queue's identity is its **system** and its **destination**" and "the
+   * identity also holds the **namespace**": the stress. Destination is a
+   * Dashboard label too, the word on a queue page's identifier line; here
+   * it is a part of the identity, worded as the sentence needs it
+   * (Norwegian "destinasjonen").
+   */
+  [QUEUES]: ["destination", "namespace"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
   [IOT]: ["Fleet", "Device"],
 };
@@ -475,7 +481,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "The direction",
     "created",
     "system",
-    "destination",
     "JMS and ActiveMQ are one family.",
     "SERVER spans",
     "Destinations marked temporary or anonymous",

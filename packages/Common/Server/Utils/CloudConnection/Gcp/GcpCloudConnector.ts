@@ -42,6 +42,7 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudAuditRecord,
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
@@ -63,6 +64,7 @@ import {
   CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   getCloudSecretValues,
   getOrganizationLimitWarning,
+  keepsAuditRecords,
   orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
@@ -334,10 +336,12 @@ export default class GcpCloudConnector implements CloudConnector {
       sleep: options.sleep,
     });
     const isLookBack: boolean = Boolean(options.since);
+    const keepAudit: boolean = keepsAuditRecords(options);
     const result: CloudChangesResult = {
       changes: [],
       warnings: [],
       complete: true,
+      ...(keepAudit ? { auditRecords: [] } : {}),
     };
     let projects: Array<string> = orderLeastRecentlyRead({
       accounts: this.isOrganization(settings)
@@ -367,13 +371,21 @@ export default class GcpCloudConnector implements CloudConnector {
     const busy: Array<string> = [];
 
     const outcomes: Array<
-      Settled<{ changes: Array<CloudChange>; complete: boolean }>
+      Settled<{
+        changes: Array<CloudChange>;
+        complete: boolean;
+        auditRecords: Array<CloudAuditRecord>;
+      }>
     > = await mapWithConcurrency(
       projects,
       3,
       async (
         projectId: string,
-      ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+      ): Promise<{
+        changes: Array<CloudChange>;
+        complete: boolean;
+        auditRecords: Array<CloudAuditRecord>;
+      }> => {
         const listing: { entries: Array<JSONObject>; complete: boolean } =
           await client.listAuditEntries({
             projectId,
@@ -395,18 +407,30 @@ export default class GcpCloudConnector implements CloudConnector {
               return change !== null;
             }) as Array<CloudChange>,
           complete: listing.complete,
+          // The entries whole, for Security Events' Cloud audit logs.
+          auditRecords: keepAudit
+            ? listing.entries.map((entry: JSONObject): CloudAuditRecord => {
+                return { accountId: projectId, record: entry };
+              })
+            : [],
         };
       },
     );
 
     outcomes.forEach(
       (
-        outcome: Settled<{ changes: Array<CloudChange>; complete: boolean }>,
+        outcome: Settled<{
+          changes: Array<CloudChange>;
+          complete: boolean;
+          auditRecords: Array<CloudAuditRecord>;
+        }>,
         index: number,
       ) => {
         const projectId: string = projects[index]!;
 
         if (outcome.ok) {
+          result.auditRecords?.push(...outcome.value.auditRecords);
+
           result.changes.push(
             ...keepNewChanges({
               state,

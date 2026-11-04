@@ -5,6 +5,7 @@ import MetricsViewConfig from "../../Metrics/MetricsViewConfig";
 import ObjectID from "../../ObjectID";
 import Dictionary from "../../Dictionary";
 import MetricSeriesResult from "./MetricSeriesResult";
+import MetricSeriesArrival from "./MetricSeriesArrival";
 
 /**
  * Where a platform resource breakdown came from.
@@ -249,6 +250,17 @@ export default interface MetricMonitorResponse {
    */
   dataCompleteFrom?: Date | undefined;
   metricResult: Array<AggregatedResult>;
+  /*
+   * When the data of each query and formula arrived (MetricSeriesArrival), in
+   * metricResult's order, for a monitor that is not split into series: null
+   * where it was not read. The worker reads it only when a query's data looks
+   * behind and a criteria judges whether data is fresh ("All Values", a
+   * forecast); a formula's is its queries'. With it, a series whose data
+   * stopped arriving is stale, and one whose data still arrives late is judged
+   * as far as its data reaches (MetricWindowCoverage). Absent when nothing was
+   * read: the series are then judged as before.
+   */
+  metricResultArrivals?: Array<MetricSeriesArrival | null> | undefined;
   metricViewConfig: MetricsViewConfig;
   /*
    * The attribute filters each query was read with, in query order: its own

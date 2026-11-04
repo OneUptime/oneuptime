@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * are nullable or have a constant default are added without rewriting the
  * table.
  */
-export class AddMagicLinkLogin1808992550000 implements MigrationInterface {
-  public name: string = "AddMagicLinkLogin1808992550000";
+export class AddMagicLinkLogin1808992650000 implements MigrationInterface {
+  public name: string = "AddMagicLinkLogin1808992650000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

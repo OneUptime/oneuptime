@@ -1831,6 +1831,7 @@
   "Copy to clipboard": "In die Zwischenablage kopieren",
   "Copied": "Kopiert",
   "Status: {{status}}": "Zustand: {{status}}",
+  "Loading content": "Inhalt wird geladen",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",

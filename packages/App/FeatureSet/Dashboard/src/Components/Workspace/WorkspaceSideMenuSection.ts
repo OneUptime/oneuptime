@@ -15,10 +15,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 
 /*
  * The Workspace section of a side menu: one entry per chat workspace the
- * project has connected, instead of Slack and Microsoft Teams for everybody.
+ * project has connected, instead of Slack, Microsoft Teams and Mattermost for
+ * everybody.
  *
- * - Slack connected: Slack. Microsoft Teams connected: Microsoft Teams. Both:
- *   both, Slack first.
+ * - Slack connected: Slack. Microsoft Teams connected: Microsoft Teams.
+ *   Mattermost connected: Mattermost. Several: each, in that order.
  * - Neither: one entry, "Connect Slack or Teams", to a page that shows the
  *   two side by side, says what each would do here and connects them. A menu
  *   without such a page (User Settings, whose pages link your own account to
@@ -29,8 +30,8 @@ import Navigation from "Common/UI/Utils/Navigation";
  * - Not known yet (a first visit, before the answer arrives): only the entry
  *   of the page you are on, or else the connect entry. The section is folded
  *   on every other page, so nothing visible changes when the answer lands.
- * - Not known because asking failed: Slack and Microsoft Teams, as before.
- *   Nothing is hidden on a guess.
+ * - Not known because asking failed: every workspace, as before. Nothing is
+ *   hidden on a guess.
  */
 
 export const WORKSPACE_SECTION_TITLE: string = "Workspace";
@@ -38,6 +39,7 @@ export const WORKSPACE_SECTION_TITLE: string = "Workspace";
 export enum WorkspaceMenuEntry {
   Slack = "Slack",
   MicrosoftTeams = "MicrosoftTeams",
+  Mattermost = "Mattermost",
   Connect = "Connect",
 }
 
@@ -45,6 +47,7 @@ export enum WorkspaceMenuEntry {
 export const WORKSPACE_MENU_ENTRY_ORDER: ReadonlyArray<WorkspaceMenuEntry> = [
   WorkspaceMenuEntry.Slack,
   WorkspaceMenuEntry.MicrosoftTeams,
+  WorkspaceMenuEntry.Mattermost,
   WorkspaceMenuEntry.Connect,
 ];
 
@@ -53,6 +56,7 @@ export const WORKSPACE_MENU_ENTRY_TITLES: Readonly<
 > = {
   [WorkspaceMenuEntry.Slack]: "Slack",
   [WorkspaceMenuEntry.MicrosoftTeams]: "Microsoft Teams",
+  [WorkspaceMenuEntry.Mattermost]: "Mattermost",
   [WorkspaceMenuEntry.Connect]: "Connect Slack or Teams",
 };
 
@@ -61,6 +65,7 @@ export const WORKSPACE_MENU_ENTRY_ICONS: Readonly<
 > = {
   [WorkspaceMenuEntry.Slack]: IconProp.Slack,
   [WorkspaceMenuEntry.MicrosoftTeams]: IconProp.MicrosoftTeams,
+  [WorkspaceMenuEntry.Mattermost]: IconProp.Mattermost,
   [WorkspaceMenuEntry.Connect]: IconProp.ChatBubbleLeftRight,
 };
 
@@ -68,11 +73,13 @@ const ENTRY_FOR_WORKSPACE: Readonly<Record<WorkspaceType, WorkspaceMenuEntry>> =
   {
     [WorkspaceType.Slack]: WorkspaceMenuEntry.Slack,
     [WorkspaceType.MicrosoftTeams]: WorkspaceMenuEntry.MicrosoftTeams,
+    [WorkspaceType.Mattermost]: WorkspaceMenuEntry.Mattermost,
   };
 
 export interface WorkspaceMenuPages {
   slack: PageMap;
   microsoftTeams: PageMap;
+  mattermost: PageMap;
   /*
    * The page a project with nothing connected is sent to. Left out, a menu
    * with nothing connected has no Workspace section.
@@ -115,6 +122,7 @@ export function getWorkspaceMenuEntries(
   } else if (input.connections.error) {
     listed.add(WorkspaceMenuEntry.Slack);
     listed.add(WorkspaceMenuEntry.MicrosoftTeams);
+    listed.add(WorkspaceMenuEntry.Mattermost);
   } else if (listed.size === 0 && input.hasConnectPage) {
     listed.add(WorkspaceMenuEntry.Connect);
   }
@@ -158,6 +166,10 @@ export function getWorkspaceSideMenuSection(
 
     if (entry === WorkspaceMenuEntry.MicrosoftTeams) {
       return input.pages.microsoftTeams;
+    }
+
+    if (entry === WorkspaceMenuEntry.Mattermost) {
+      return input.pages.mattermost;
     }
 
     return input.pages.connect || null;

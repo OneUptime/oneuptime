@@ -83,8 +83,18 @@ export const ASK_TO_CONNECT_CONFIRM_DESCRIPTION: string = translationKey(
   "Each member who has not connected gets a direct message from OneUptime in {{workspace}}, with a button that connects their account in one click. Members asked in the last {{hours}} hours are not asked again.",
 );
 
+/*
+ * The workspaces whose members OneUptime asks to connect in one go: Slack
+ * and Microsoft Teams, whose Connect button connects an account in one
+ * click. A Mattermost account is connected from its owner's own settings,
+ * with a link Mattermost delivers to them, so there is nothing to ask.
+ */
+export type AskToConnectWorkspaceType =
+  | WorkspaceType.Slack
+  | WorkspaceType.MicrosoftTeams;
+
 // How OneUptime finds people, by workspace.
-export const FOUND_BY_EMAIL: Record<WorkspaceType, string> = {
+export const FOUND_BY_EMAIL: Record<AskToConnectWorkspaceType, string> = {
   [WorkspaceType.Slack]: translationKey(
     "OneUptime finds them in Slack by their email address.",
   ),
@@ -214,7 +224,7 @@ export function getRunSentences(data: {
 }
 
 export interface ComponentProps {
-  workspaceType: WorkspaceType;
+  workspaceType: AskToConnectWorkspaceType;
 }
 
 const AskToConnectCard: FunctionComponent<ComponentProps> = (

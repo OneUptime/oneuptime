@@ -1831,6 +1831,7 @@
   "Copy to clipboard": "複製到剪貼簿",
   "Copied": "已複製",
   "Status: {{status}}": "狀態：{{status}}",
+  "Loading content": "正在載入內容",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

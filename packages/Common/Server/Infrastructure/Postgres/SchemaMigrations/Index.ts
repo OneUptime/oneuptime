@@ -286,7 +286,9 @@ import { AddDataBiDashboards1808992300000 } from "./1808992300000-AddDataBiDashb
 import { AddDataWarehouseSpend1808992400000 } from "./1808992400000-AddDataWarehouseSpend";
 import { WidenThingNameColumns1808992530000 } from "./1808992530000-WidenThingNameColumns";
 import { AddDataCheckReconciliationIndex1808992540000 } from "./1808992540000-AddDataCheckReconciliationIndex";
-import { AddMagicLinkLogin1808992550000 } from "./1808992550000-AddMagicLinkLogin";
+import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "./1808992580000-AddSecurityLogSourceCaseMinimumSeverity";
+import { AddCloudConnectionStreams1808992600000 } from "./1808992600000-AddCloudConnectionStreams";
+import { AddMagicLinkLogin1808992650000 } from "./1808992650000-AddMagicLinkLogin";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1775,5 +1777,7 @@ export default [
   AddDataWarehouseSpend1808992400000,
   WidenThingNameColumns1808992530000,
   AddDataCheckReconciliationIndex1808992540000,
-  AddMagicLinkLogin1808992550000,
+  AddSecurityLogSourceCaseMinimumSeverity1808992580000,
+  AddCloudConnectionStreams1808992600000,
+  AddMagicLinkLogin1808992650000,
 ];

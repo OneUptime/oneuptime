@@ -48,6 +48,7 @@ import {
   toConnectorTestResult,
 } from "./Types";
 import SecurityConnectionCases from "../../SecurityCase/SecurityConnectionCases";
+import SecurityEventStoreOnce from "../SecurityEventStoreOnce";
 
 /*
  * The generic pull loop behind every Security Event Connection.
@@ -1082,80 +1083,113 @@ export default class SecurityEventConnectionPoller {
       },
     );
 
-    const existing: Set<string> =
-      await SecurityEventDedupe.findExistingEventUids({
-        projectId: connection.projectId!,
-        vendorName: definition.vendorName,
-        productName: definition.productName,
-        ids: unique.map((event: NormalizedSecurityEvent): string => {
-          return event.eventUid;
-        }),
+    /*
+     * The look-up and the insert, as one step: for a product another way
+     * stores too (Microsoft Entra ID, which "Your logs" reads from Azure's
+     * export), under the product's lock that way takes as well
+     * (SecurityEventStoreOnce), so a record both read is stored once.
+     */
+    const lookUpAndInsert: () => Promise<{
+      fresh: Array<NormalizedSecurityEvent>;
+      rows: Array<JSONObject>;
+    }> = async (): Promise<{
+      fresh: Array<NormalizedSecurityEvent>;
+      rows: Array<JSONObject>;
+    }> => {
+      const existing: Set<string> =
+        await SecurityEventDedupe.findExistingEventUids({
+          projectId: connection.projectId!,
+          vendorName: definition.vendorName,
+          productName: definition.productName,
+          ids: unique.map((event: NormalizedSecurityEvent): string => {
+            return event.eventUid;
+          }),
+        });
+
+      const fresh: Array<NormalizedSecurityEvent> = unique.filter(
+        (event: NormalizedSecurityEvent): boolean => {
+          if (existing.has(event.eventUid)) {
+            result.duplicateCount++;
+            return false;
+          }
+          return true;
+        },
+      );
+
+      if (!fresh.length) {
+        return { fresh, rows: [] };
+      }
+
+      const serviceMetadata: TelemetryServiceMetadata =
+        await OTelIngestService.telemetryServiceFromName({
+          serviceName: definition.productName,
+          projectId: connection.projectId!,
+        });
+
+      const retentionDays: number = resolveTelemetryRetentionInDays({
+        pillar: "securityEvents",
+        serviceConfig: serviceMetadata.serviceRetentionConfig,
+        serviceRetentionInDays: serviceMetadata.serviceRetentionInDays,
+        projectConfig: serviceMetadata.projectRetentionConfig,
+        projectRetentionInDays: serviceMetadata.projectRetentionInDays,
       });
 
-    const fresh: Array<NormalizedSecurityEvent> = unique.filter(
-      (event: NormalizedSecurityEvent): boolean => {
-        if (existing.has(event.eventUid)) {
-          result.duplicateCount++;
-          return false;
-        }
-        return true;
-      },
-    );
+      await ThreatIntelEnricher.enrichNormalizedEvents({
+        projectId: connection.projectId!,
+        events: fresh,
+      });
+
+      const rows: Array<JSONObject> = fresh.map(
+        (event: NormalizedSecurityEvent): JSONObject => {
+          event.vendorName = definition.vendorName;
+          event.productName = definition.productName;
+          /*
+           * The default attribute. Runs written here leave eventAttributeKey
+           * unset, which readers take to mean this key; only runs carried
+           * over from the retired Google SecOps connector name its legacy one.
+           */
+          event.attributes[SECURITY_CONNECTION_ID_ATTRIBUTE] =
+            connection.id!.toString();
+          event.attributes["oneuptime.security_connection.provider"] =
+            definition.provider;
+
+          return buildSecurityEventDbRow({
+            normalized: event,
+            projectId: connection.projectId!,
+            serviceMetadata,
+            retentionDays,
+          });
+        },
+      );
+
+      /*
+       * The source lock cannot be released before buffered writes are
+       * visible, so this low-volume path asks for synchronous
+       * acknowledgement regardless of the high-volume telemetry defaults.
+       */
+      await SecurityEventService.insertJsonRows(rows, {
+        clickhouseSettings: { async_insert: 0, insert_distributed_sync: 1 },
+      });
+
+      return { fresh, rows };
+    };
+
+    const stored: {
+      fresh: Array<NormalizedSecurityEvent>;
+      rows: Array<JSONObject>;
+    } = SecurityEventStoreOnce.isSharedProduct(definition.productName)
+      ? await SecurityEventStoreOnce.withProductLock({
+          projectId: connection.projectId!,
+          productName: definition.productName,
+          work: lookUpAndInsert,
+        })
+      : await lookUpAndInsert();
+    const fresh: Array<NormalizedSecurityEvent> = stored.fresh;
+    const rows: Array<JSONObject> = stored.rows;
 
     if (!fresh.length) {
       return;
     }
-
-    const serviceMetadata: TelemetryServiceMetadata =
-      await OTelIngestService.telemetryServiceFromName({
-        serviceName: definition.productName,
-        projectId: connection.projectId!,
-      });
-
-    const retentionDays: number = resolveTelemetryRetentionInDays({
-      pillar: "securityEvents",
-      serviceConfig: serviceMetadata.serviceRetentionConfig,
-      serviceRetentionInDays: serviceMetadata.serviceRetentionInDays,
-      projectConfig: serviceMetadata.projectRetentionConfig,
-      projectRetentionInDays: serviceMetadata.projectRetentionInDays,
-    });
-
-    await ThreatIntelEnricher.enrichNormalizedEvents({
-      projectId: connection.projectId!,
-      events: fresh,
-    });
-
-    const rows: Array<JSONObject> = fresh.map(
-      (event: NormalizedSecurityEvent): JSONObject => {
-        event.vendorName = definition.vendorName;
-        event.productName = definition.productName;
-        /*
-         * The default attribute. Runs written here leave eventAttributeKey
-         * unset, which readers take to mean this key; only runs carried over
-         * from the retired Google SecOps connector name its legacy one.
-         */
-        event.attributes[SECURITY_CONNECTION_ID_ATTRIBUTE] =
-          connection.id!.toString();
-        event.attributes["oneuptime.security_connection.provider"] =
-          definition.provider;
-
-        return buildSecurityEventDbRow({
-          normalized: event,
-          projectId: connection.projectId!,
-          serviceMetadata,
-          retentionDays,
-        });
-      },
-    );
-
-    /*
-     * The source lock cannot be released before buffered writes are
-     * visible, so this low-volume path asks for synchronous acknowledgement
-     * regardless of the high-volume telemetry defaults.
-     */
-    await SecurityEventService.insertJsonRows(rows, {
-      clickhouseSettings: { async_insert: 0, insert_distributed_sync: 1 },
-    });
 
     // Checked against the project's real-time detection rules as they land.
     await RealTimeDetections.screen({

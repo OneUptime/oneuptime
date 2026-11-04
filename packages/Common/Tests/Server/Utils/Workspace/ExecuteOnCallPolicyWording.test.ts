@@ -286,7 +286,7 @@ describe("the button on every message about a record is named as the Dashboard n
       return message.carriesButton;
     }),
   )(
-    "$record: Slack's and Microsoft Teams' buttons read 📞 Execute On-Call Policy, with the action id they always had",
+    "$record: Slack's, Microsoft Teams' and Mattermost's buttons read 📞 Execute On-Call Policy, with the action id they always had",
     async (message: RecordMessage) => {
       const sent: Array<MessageBlocksByWorkspaceType> = await message.build();
 
@@ -294,7 +294,11 @@ describe("the button on every message about a record is named as the Dashboard n
         sent.map((byType: MessageBlocksByWorkspaceType): WorkspaceType => {
           return byType.workspaceType;
         }),
-      ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
+      ).toEqual([
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Mattermost,
+      ]);
 
       for (const byType of sent) {
         const execute: Array<WorkspaceMessagePayloadButton> = buttonsOf(

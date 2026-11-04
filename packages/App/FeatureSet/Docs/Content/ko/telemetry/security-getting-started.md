@@ -64,10 +64,17 @@ flowchart LR
 | Azure 활동 및 Entra ID 로그 | Azure 구독에서의 변경, Defender for Cloud 알림, Microsoft Entra ID 로그인과 디렉터리 변경 |
 | CEF | Common Event Format을 보내는 방화벽, IDS, WAF 및 기타 보안 제품의 위협, 차단된 연결, 로그인 |
 | LEEF | Log Event Extended Format을 보내는 제품의 같은 내용. 많은 제품이 IBM QRadar용으로 이 형식을 보냅니다 |
+| Palo Alto Networks | PAN-OS 자체 syslog의 위협, 차단된 연결, GlobalProtect 및 관리자 로그인, 구성 변경 |
+| Fortinet FortiGate | FortiGate 자체 syslog의 IPS 및 바이러스 백신 탐지 결과, 거부된 트래픽, VPN 및 관리자 로그인, 구성 변경 |
+| Cisco ASA | Cisco ASA와 Firepower Threat Defense의 거부된 연결, 위협 탐지 및 IPS 탐지 결과, VPN 및 관리자 로그인, 명령 |
 | Kubernetes 감사 로그 | 클러스터 변경, Pod에서 열린 셸, 읽힌 시크릿, 거부된 요청 |
 | 웹 공격 | 웹 서버의 액세스 로그 중 SQL 인젝션, 경로 탐색 또는 Log4Shell을 시도하는 요청 |
 
 로그는 그대로 남습니다. 보안에 중요한 줄만 이벤트가 되며, 웹 서버가 제공한 모든 페이지나 API의 모든 읽기가 이벤트가 되지는 않습니다.
+
+CEF나 LEEF 탐지 결과, FortiGate의 IPS 탐지 결과처럼 보안 제품이 로그에 기록하는 위협은 연결된 제품의 알림처럼 케이스를 엽니다. 어느 심각도부터 열지는 **내 로그**의 **케이스를 여는 심각도**에서 정하며, 다른 심각도를 고르지 않는 한 **높음 이상**이고 **없음**으로 둘 수도 있습니다.
+
+**클라우드**에서 연결한 AWS 계정, Google Cloud 프로젝트, Azure 구독에는 로그 파이프라인이 필요 없습니다. **연결**의 **내 OneUptime 데이터**에서 **클라우드 감사 로그**를 켜면 그 감사 로그를 계정과 함께 읽습니다. [클라우드 계정의 감사 로그 읽기](/docs/telemetry/security-events#클라우드-계정의-감사-로그-읽기)를 참고하세요.
 
 ## OneUptime이 찾은 것을 SIEM으로 보내기
 
@@ -88,7 +95,7 @@ flowchart LR
 :::
 
 :::details 로그에서 보안 이벤트가 나오지 않음
-**로그에서 보안 이벤트 찾기**가 켜져 있고 **내 로그**에 마지막으로 확인한 시각이 표시되는지 확인하세요. 위 표에 있는 종류의 줄만 이벤트가 됩니다. SSH, sudo, Windows, 감사, CEF, LEEF, 액세스 로그 중 어느 것도 보내지 않는 서버에서는 찾을 것이 없습니다. 그 서버의 줄 하나를 **내 로그**의 **로그 줄 확인**에 붙여 넣으면 OneUptime이 그 줄을 읽는지 볼 수 있습니다.
+**로그에서 보안 이벤트 찾기**가 켜져 있고 **내 로그**에 마지막으로 확인한 시각이 표시되는지 확인하세요. 위 표에 있는 종류의 줄만 이벤트가 됩니다. SSH, sudo, Windows, 감사, CEF, LEEF, 방화벽, 액세스 로그 중 어느 것도 보내지 않는 서버에서는 찾을 것이 없습니다. 그 서버의 줄 하나를 **내 로그**의 **로그 줄 확인**에 붙여 넣으면 OneUptime이 그 줄을 읽는지 볼 수 있습니다.
 :::
 
 :::details 개요에 마지막 보안 이벤트가 며칠 전에 도착했다고 표시됨

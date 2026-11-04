@@ -121,7 +121,24 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *               them: the approved fix of incident #18 and its rollback
  *
  * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
- * it does a few minutes after the setup command finished. The page says
+ * it does a few minutes after the setup command finished.
+ *
+ * How the AWS connection streams its CloudWatch metrics and logs through
+ * Amazon Data Firehose (Stream metrics and logs, on its row), answered
+ * from POST /cloud-connection/<id>/stream-key and /stop-streaming as the
+ * server answers them:
+ *
+ *   ?stream=    none (default: it has no stream key)
+ *               | waiting (a key, and no delivery yet)
+ *               | receiving (metrics from us-east-1 and logs from
+ *               eu-west-1, a minute ago)
+ *               | refused (its last delivery came with a key that no
+ *               longer works)
+ *   ?https=1    the page is a OneUptime on an HTTPS address (server.js):
+ *               Firehose delivers to no other
+ *
+ * window.__cloudConnectFixture.deliver() makes the first delivery arrive,
+ * as it does a few minutes after the stream's command finished. The page says
  * which language it is in and which way it reads, as production's
  * followLanguageForPage does: Persian is laid out right to left.
  */
@@ -161,6 +178,78 @@ const language = ["ja", "de", "fa"].includes(params.get("lang"))
 const securityState = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
+const streamState = ["waiting", "receiving", "refused"].includes(
+  params.get("stream"),
+)
+  ? params.get("stream")
+  : "none";
+
+// What the AWS connection's streams delivered: metrics and logs a minute ago.
+function receivingSummary() {
+  const at = new Date(Date.now() - 60 * 1000).toISOString();
+  return {
+    lastDeliveryAt: at,
+    metricSources: [
+      {
+        accountId: "123456789012",
+        region: "us-east-1",
+        namespaces: [
+          "AWS/EC2",
+          "AWS/RDS",
+          "AWS/Lambda",
+          "AWS/ApplicationELB",
+          "AWS/SQS",
+          "AWS/DynamoDB",
+          "AWS/S3",
+          "AWS/ElastiCache",
+          "AWS/SNS",
+          "AWS/Kinesis",
+          "AWS/ECS",
+          "AWS/NATGateway",
+        ],
+        lastAt: at,
+      },
+    ],
+    logSources: [
+      {
+        accountId: "123456789012",
+        region: "eu-west-1",
+        logGroups: [
+          "/aws/lambda/nightly-export",
+          "/aws/rds/instance/orders-db/error",
+          "/aws/lambda/checkout",
+        ],
+        lastAt: at,
+      },
+    ],
+  };
+}
+
+// The AWS connection's stream key and what its streams said, as ?stream= sets them.
+function streamFields() {
+  if (streamState === "none") {
+    return {};
+  }
+  const madeAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  if (streamState === "waiting") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: {} };
+  }
+  if (streamState === "receiving") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: receivingSummary() };
+  }
+  return {
+    streamKeyCreatedAt: madeAt,
+    streamSummary: {
+      lastDeliveryAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+      metricSources: [],
+      logSources: [],
+      lastRefusal: {
+        reason: "wrong-key",
+        at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+    },
+  };
+}
 
 if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
@@ -265,6 +354,7 @@ const connections =
       ? NEW_CONNECTIONS
       : [
           connection("20000000-0000-4000-8000-000000000001", {
+            ...streamFields(),
             name: "AWS 123456789012",
             provider: "aws",
             config: {
@@ -1061,6 +1151,9 @@ const state = {
   held: [],
   // What each Security card asked about: the kind and id of its record.
   securityReads: [],
+  // Every stream key made, by connection, and every Stop streaming.
+  streamKeys: [],
+  streamStops: [],
 };
 
 /*
@@ -1458,6 +1551,15 @@ const RUNNER_JOBS = [
 
 window.__cloudConnectFixture = {
   state: state,
+  // The first delivery arrives, a few minutes after the stream's command.
+  deliver: () => {
+    const found = connections.find((item) => {
+      return item.provider === "aws";
+    });
+    if (found) {
+      found.streamSummary = receivingSummary();
+    }
+  },
   // The Cloud AI agent connects, as it does once its command finished.
   connectAgent: () => {
     state.ai = "connected";
@@ -1841,6 +1943,50 @@ API.post = async (options) => {
   if (url.endsWith("/read-now")) {
     state.readNows.push(new URL(url).pathname);
     return new HTTPResponse(200, { queued: true }, {});
+  }
+
+  /*
+   * A new stream key for an AWS connection, shown this once; the key it
+   * replaces works for a day more. Stop streaming: no key of it works.
+   */
+  if (url.endsWith("/stream-key") || url.endsWith("/stop-streaming")) {
+    const pathname = new URL(url).pathname;
+    const id = pathname.split("/").slice(-2)[0];
+    const found = connections.find((item) => {
+      return item.id.toString() === id;
+    });
+
+    if (url.endsWith("/stop-streaming")) {
+      state.streamStops.push(id);
+      if (found) {
+        found.streamKeyCreatedAt = undefined;
+      }
+      return new HTTPResponse(200, { stopped: true }, {});
+    }
+
+    const now = new Date();
+    const hadKey = Boolean(found && found.streamKeyCreatedAt);
+    const secret = (state.streamKeys.length + 10)
+      .toString(16)
+      .padStart(2, "0")
+      .repeat(32);
+    const streamKey = `oucs_${id}_${secret}`;
+    state.streamKeys.push(id);
+    if (found) {
+      found.streamKeyCreatedAt = now;
+      found.streamSummary = found.streamSummary || {};
+    }
+    return new HTTPResponse(
+      200,
+      {
+        streamKey: streamKey,
+        createdAt: now.toISOString(),
+        previousKeyWorksUntil: hadKey
+          ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          : null,
+      },
+      {},
+    );
   }
 
   /*

@@ -48,9 +48,9 @@ Ouvrez les **Paramètres utilisateur**, à droite de la barre située sous la ba
 | **Politique d'appels entrants** | **Numéros de téléphone entrants** : le numéro auquel une politique d'appels entrants vous appelle |
 | **Calendrier** | **Flux de calendrier** : vos permanences dans votre application de calendrier, et des rappels avant qu'elles commencent |
 | **Profil** | **Champs personnalisés** : les informations que votre projet demande à ses membres |
-| **Espace de travail** | **Slack** et **Microsoft Teams** : votre propre compte, dans chaque espace de travail que le projet a connecté |
+| **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost** : votre propre compte, dans chaque espace de travail que le projet a connecté |
 
-**Premiers pas** et **Alertes & notifications** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** n'apparaît que si le projet a connecté Slack ou Microsoft Teams.
+**Premiers pas** et **Alertes & notifications** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** n'apparaît que si le projet a connecté Slack, Microsoft Teams ou Mattermost.
 
 Les propriétaires et les admins du projet peuvent aussi consulter votre configuration : dans **Utilisateurs**, ils ouvrent votre ligne et sa section **Astreinte**, avec **Disponibilité**, **Méthodes de notification** et **Règles d'astreinte**. Ils peuvent y ajouter une méthode pour vous, mais le code est envoyé à la méthode elle-même, donc vous seul pouvez la vérifier.
 

@@ -86,7 +86,7 @@ Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Be
 | **Eingehende Anrufe** | **Richtlinien für eingehende Anrufe**: eine Telefonnummer, unter der klingelt, wer Bereitschaft hat |
 | **Erweitert** | **Benutzerüberschreibungen**, **Ausführungsprotokolle** und **Archivierte Richtlinien** |
 | **Berichte** | **Bereitschaftszeit des Benutzers**: wie lange jede Person Bereitschaft hatte |
-| **Arbeitsbereich** | **Slack** und **Microsoft Teams**: Regeln, die Bereitschaftsereignisse in einem Kanal posten |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**: Regeln, die Bereitschaftsereignisse in einem Kanal posten |
 | **Einstellungen** | **Benutzerdefinierte Felder**, **Beschriftungsregeln** und **Eigentümerregeln** |
 | **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: Bereitschaft als Code einrichten |
 

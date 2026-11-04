@@ -17,6 +17,7 @@ import UserSettingsCustomFields from "../Pages/UserSettings/CustomFields";
 import UserSettingsOnCallRules from "../Pages/UserSettings/OnCallRules";
 
 import UserSettingsMicrosoftTeamsIntegration from "../Pages/UserSettings/MicrosoftTeamsIntegration";
+import UserSettingsMattermostIntegration from "../Pages/UserSettings/MattermostIntegration";
 
 import UserSettingsNotificationLogs from "../Pages/UserSettings/OnCallLogs";
 import UserSettingsNotificationLogsTimeline from "../Pages/UserSettings/OnCallLogsTimeline";
@@ -189,6 +190,22 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION
+            ] || ""
+          }
+          element={
+            <UserSettingsMattermostIntegration
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION] as Route
               }
             />
           }

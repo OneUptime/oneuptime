@@ -56,7 +56,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Overview**  | **All Events** and **Ongoing Events**, whose badge counts the events in progress right now.                                          |
 | **Calendar**  | **Maintenance Calendar**: every event on a month, a week or a day, beside the calendars from outside the project you add.            |
-| **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither.           |
+| **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect Slack or Teams** when it has none. |
 | **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                             |
 | **Settings**  | **Event State**, **Event Templates**, **Note Templates**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
 
@@ -75,7 +75,7 @@ While an event is in progress, OneUptime treats the outage it plans as expected:
 - **Network sites and SLOs hold back.** A network site the event covers stops counting its planned outage against the sites above it, and an SLO's burn rate rules raise nothing while any of its monitors is in maintenance. See [Network Sites](/docs/monitor/network-sites#scheduled-maintenance-for-network-sites) and [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts#scheduled-maintenance).
 - **Your status pages show it.** The event appears on the status pages you picked, as coming up, then in progress, then over, while **Visible on Status Page** is on in its **Settings**, and from its **Publish At** when you picked one. Once it has started, on those pages the uptime history of every resource its monitors are on lists it on each day its window touches, and those resources say "Under maintenance" while it runs; the monitor's uptime history in the dashboard shows it the same way. See [Uptime percentages and history charts](/docs/status-pages/resources-and-groups#uptime-percentages-and-history-charts).
 - **Subscribers hear about it.** By default, the subscribers of those pages are told when it is scheduled, when it starts and when it ends, and reminded before it starts if you set reminders. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
-- **Your team hears about it.** Its owners are told as their [notification settings](/docs/notifications/notification-settings) say, and the Slack and Microsoft Teams rules under **Workspace** post it to your channels.
+- **Your team hears about it.** Its owners are told as their [notification settings](/docs/notifications/notification-settings) say, and the Slack, Microsoft Teams and Mattermost rules under **Workspace** post it to your channels.
 
 ## An event's own pages
 

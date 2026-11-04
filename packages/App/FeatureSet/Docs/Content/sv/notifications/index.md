@@ -48,9 +48,9 @@ De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställninga
 | **Inkommande samtalspolicy** | **Inkommande telefonnummer**: numret som en policy för inkommande samtal ringer dig på |
 | **Kalender** | **Kalenderflöde**: dina jourpass i din kalenderapp, och påminnelser innan de börjar |
 | **Profil** | **Anpassade fält**: uppgifter som ditt projekt ber sina medlemmar om |
-| **Arbetsyta** | **Slack** och **Microsoft Teams**: ditt eget konto, i varje arbetsyta som projektet har anslutit |
+| **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**: ditt eget konto, i varje arbetsyta som projektet har anslutit |
 
-**Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack eller Microsoft Teams.
+**Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack, Microsoft Teams eller Mattermost.
 
 Projektägare och administratörer kan också se din konfiguration: under **Användare** öppnar de din rad och dess avsnitt **Jour**, med **Beredskap**, **Aviseringsmetoder** och **Jourregler**. De kan lägga till en metod åt dig där, men koden går till själva metoden, så bara du kan verifiera den.
 

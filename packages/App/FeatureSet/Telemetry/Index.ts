@@ -4,6 +4,7 @@ import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
 import VercelLogDrainAPI from "./API/VercelLogDrain";
+import AwsFirehoseAPI from "./API/AwsFirehose";
 import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import ChangeEventsIngestAPI from "./API/ChangeEventsIngest";
 import OpenLineageIngestAPI from "./API/OpenLineageIngest";
@@ -89,6 +90,11 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
       app.use(TELEMETRY_PREFIXES, VercelLogDrainAPI);
+      /*
+       * Amazon Data Firehose: an AWS connection's metric streams and
+       * CloudWatch Logs subscriptions (/aws-firehose/v1/metrics, /logs).
+       */
+      app.use(TELEMETRY_PREFIXES, AwsFirehoseAPI);
       app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, OpenLineageIngestAPI);

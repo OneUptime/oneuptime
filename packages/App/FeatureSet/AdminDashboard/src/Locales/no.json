@@ -1831,6 +1831,7 @@
   "Copy to clipboard": "Kopier til utklippstavlen",
   "Copied": "Kopiert",
   "Status: {{status}}": "Tilstand: {{status}}",
+  "Loading content": "Laster inn innhold",
   "markdownCallouts": {
     "caution": "Forsiktig",
     "danger": "Fare",

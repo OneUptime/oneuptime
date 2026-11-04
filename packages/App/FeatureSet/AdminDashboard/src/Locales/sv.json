@@ -1831,6 +1831,7 @@
   "Copy to clipboard": "Kopiera till urklipp",
   "Copied": "Kopierat",
   "Status: {{status}}": "Tillstånd: {{status}}",
+  "Loading content": "Läser in innehåll",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",

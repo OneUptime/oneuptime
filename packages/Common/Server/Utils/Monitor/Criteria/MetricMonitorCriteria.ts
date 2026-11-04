@@ -25,6 +25,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import MetricSeriesArrival from "../../../../Types/Monitor/MetricMonitor/MetricSeriesArrival";
 import MetricWindowCoverage, {
   MetricEvaluationWindow,
   MetricWindowCoverageResult,
@@ -343,6 +344,33 @@ export default class MetricMonitorCriteria {
           )
         : undefined;
 
+    /*
+     * When each series' data arrived, for the query or formula this criteria
+     * compares, when the worker read it (MetricSeriesArrival): only for
+     * "All Values" and forecasts, which judge whether data is fresh. Null for
+     * a series whose arrivals were not read.
+     */
+    const comparedAliasIndex: number = comparedSamplesOfEverySeries
+      ? MetricMonitorCriteria.resolveAlias({
+          metricAlias:
+            input.criteriaFilter.metricMonitorOptions?.metricAlias || "",
+          queryConfigs,
+          formulaConfigs,
+        }).aliasIndex
+      : -1;
+
+    const getComparedArrival: (
+      arrivals: Array<MetricSeriesArrival | null> | undefined,
+    ) => MetricSeriesArrival | null = (
+      arrivals: Array<MetricSeriesArrival | null> | undefined,
+    ): MetricSeriesArrival | null => {
+      if (!comparedSamplesOfEverySeries || !arrivals) {
+        return null;
+      }
+
+      return arrivals[comparedAliasIndex >= 0 ? comparedAliasIndex : 0] || null;
+    };
+
     const baselineReads: BaselineReads = new Map();
 
     const telemetryServiceIds: Array<ObjectID> | undefined =
@@ -376,6 +404,7 @@ export default class MetricMonitorCriteria {
           window,
           monitorIntervalMs,
           monitorNewestDataPointMs,
+          arrival: getComparedArrival(metricResponse.metricResultArrivals),
           isInEffect: input.isInEffect,
           baselineReads,
           telemetryServiceIds,
@@ -400,6 +429,7 @@ export default class MetricMonitorCriteria {
           window,
           monitorIntervalMs,
           monitorNewestDataPointMs,
+          arrival: getComparedArrival(series.arrivals),
           isInEffect: input.isInEffect,
           baselineReads,
           telemetryServiceIds,
@@ -505,8 +535,25 @@ export default class MetricMonitorCriteria {
   }
 
   /*
+   * Whether a criteria judges whether a series' data is fresh: "All Values"
+   * (it must cover the window) and the forecasts (they stop once data stops
+   * coming). Only these read when a series' data arrived, so the worker reads
+   * arrivals only for a step that has one of them.
+   */
+  public static judgesFreshness(criteriaFilter: CriteriaFilter): boolean {
+    return (
+      MetricMonitorCriteria.isAllValues(criteriaFilter) ||
+      CriteriaFilterUtil.isForecastFilterType(criteriaFilter.filterType)
+    );
+  }
+
+  /*
    * Whether a series' newest data point must be close to the monitor's
-   * newest data point, rather than to now, to count as fresh.
+   * newest data point, rather than to now, to count as fresh - for a series
+   * whose arrivals were not read. One whose arrivals were is judged by when
+   * its data last arrived instead (MetricWindowCoverage), whichever monitor
+   * reads it: that tells a source that is late by design, or a collector
+   * whose clock runs behind, from one that stopped.
    *
    * A Metrics monitor reads any metric, and some sources deliver theirs
    * minutes late by design: CloudWatch's polling receiver stamps each point
@@ -601,6 +648,11 @@ export default class MetricMonitorCriteria {
      * freshness is measured against it (judgesFreshnessByNewestData).
      */
     monitorNewestDataPointMs?: number | null | undefined;
+    /*
+     * When this series' data arrived, for the query or formula the criteria
+     * compares, when the worker read it: its freshness is judged by that.
+     */
+    arrival?: MetricSeriesArrival | null | undefined;
     isInEffect?: IsCriteriaInEffect | undefined;
     baselineReads: BaselineReads;
     // The services a Metrics monitor reads, when it names any.
@@ -844,6 +896,7 @@ export default class MetricMonitorCriteria {
         seriesLabels: input.seriesLabels,
         window: input.window,
         monitorNewestDataPointMs: input.monitorNewestDataPointMs,
+        arrival: input.arrival,
       });
     }
 
@@ -947,7 +1000,21 @@ export default class MetricMonitorCriteria {
         samples: samples,
         monitorIntervalMs: input.monitorIntervalMs,
         monitorNewestDataPointMs: input.monitorNewestDataPointMs,
+        arrival: input.arrival,
       });
+
+      /*
+       * Judged as far as its data reaches: when that is well short of now,
+       * the root cause says how late its data arrives.
+       */
+      if (
+        MetricWindowCoverage.isNotableLag({
+          lagMs: coverage.lagMs,
+          dataPointMs: coverage.dataPointMs,
+        })
+      ) {
+        metricContext.dataLagMs = coverage.lagMs!;
+      }
 
       const shortfall: MetricWindowShortfall | null =
         MetricMonitorCriteria.toWindowShortfall(coverage.shortfall);
@@ -1088,6 +1155,7 @@ export default class MetricMonitorCriteria {
     seriesLabels: JSONObject;
     window?: MetricEvaluationWindow | null | undefined;
     monitorNewestDataPointMs?: number | null | undefined;
+    arrival?: MetricSeriesArrival | null | undefined;
   }): MetricSeriesEvaluationResult {
     const metricContext: MetricCriteriaContext = input.metricContext;
     const isAbove: boolean =
@@ -1125,6 +1193,10 @@ export default class MetricMonitorCriteria {
       input.window?.endMs ??
       (pointTimes.length > 0 ? Math.max(...pointTimes) : 0);
 
+    const dataPointMs: number | undefined = input.window
+      ? MetricWindowCoverage.getDataPointMs(input.window)
+      : undefined;
+
     const forecast: MetricForecastResult = MetricForecast.forecast({
       points,
       windowStartMs,
@@ -1132,14 +1204,33 @@ export default class MetricMonitorCriteria {
       horizonMs: horizonInHours * HOUR_IN_MS,
       threshold: input.threshold,
       filterType: input.criteriaFilter.filterType!,
-      dataPointMs: input.window
-        ? MetricWindowCoverage.getDataPointMs(input.window)
-        : undefined,
+      dataPointMs: dataPointMs,
+      /*
+       * With the series' arrivals, its freshness is judged by when its data
+       * last arrived; how old its newest data point is is measured by the
+       * window's end.
+       */
       freshnessReferenceMs:
-        typeof input.monitorNewestDataPointMs === "number"
+        !input.arrival && typeof input.monitorNewestDataPointMs === "number"
           ? input.monitorNewestDataPointMs
           : undefined,
+      arrival: input.arrival
+        ? {
+            sinceNewestArrivalMs: input.arrival.sinceNewestArrivalMs,
+            arrivalIntervalMs: input.arrival.arrivalIntervalMs,
+          }
+        : undefined,
     });
+
+    if (
+      input.arrival &&
+      MetricWindowCoverage.isNotableLag({
+        lagMs: input.arrival.lagMs,
+        dataPointMs: dataPointMs || 0,
+      })
+    ) {
+      metricContext.dataLagMs = input.arrival.lagMs;
+    }
 
     const finiteValues: Array<number> = points
       .map((point: MetricForecastPoint) => {

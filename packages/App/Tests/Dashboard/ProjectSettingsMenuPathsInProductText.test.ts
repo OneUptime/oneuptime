@@ -169,7 +169,7 @@ describe("the menu the paths are held to, read from its source", () => {
 
   test.each([
     ["Basic", ["Project", "Labels"]],
-    ["Workspace", ["Slack", "Microsoft Teams", "Video Calls"]],
+    ["Workspace", ["Slack", "Microsoft Teams", "Mattermost", "Video Calls"]],
     ["Telemetry & APM", ["Ingestion Keys", "Data Retention"]],
     [
       "Notifications",

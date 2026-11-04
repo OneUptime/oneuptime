@@ -86,7 +86,7 @@ Abra **Plantão** pelo menu **Produtos** na barra superior. Ele abre em **Polít
 | **Chamadas recebidas** | **Políticas de chamadas recebidas**: um número de telefone que toca para quem está de plantão |
 | **Avançado** | **Substituições de usuário**, **Registros de execução** e **Políticas arquivadas** |
 | **Relatórios** | **Tempo de plantão do usuário**: quanto tempo cada pessoa ficou de plantão |
-| **Espaço de trabalho** | **Slack** e **Microsoft Teams**: regras que publicam eventos de plantão em um canal |
+| **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**: regras que publicam eventos de plantão em um canal |
 | **Configurações** | **Campos personalizados**, **Regras de Rótulos** e **Regras de proprietário** |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o plantão configurado por código |
 

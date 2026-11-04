@@ -56,7 +56,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Panoramica** | **Tutti gli eventi** ed **Eventi in corso**, il cui badge conta gli eventi in corso in questo momento.                    |
 | **Calendario** | **Calendario della manutenzione**: ogni evento su un mese, una settimana o un giorno, accanto ai calendari esterni al progetto che aggiungete. |
-| **Area di lavoro** | **Slack** e **Microsoft Teams**, a seconda di quale il progetto ha collegato, oppure **Collega Slack o Teams** se non ne ha nessuno. |
+| **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di quale il progetto ha collegato, oppure **Collega Slack o Teams** se non ne ha nessuno. |
 | **Regole**    | **Regole del proprietario**, **Regole di runbook**, **Regole etichette**, **Regole dei promemoria**.                               |
 | **Impostazioni** | **Stato evento**, **Modelli di eventi**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario**, **Numerazione**. |
 
@@ -75,7 +75,7 @@ Mentre un evento è in corso, OneUptime tratta come previsto il fermo che pianif
 - **Siti di rete e SLO si trattengono.** Un sito di rete coperto dall'evento smette di contare il suo fermo pianificato a carico dei siti sopra di lui, e le regole del tasso di consumo di uno SLO non fanno scattare nulla finché uno dei suoi monitor è in manutenzione. Vedere [Siti di rete](/docs/monitor/network-sites#manutenzione-programmata-per-i-siti-di-rete) e [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts#manutenzione-pianificata).
 - **Le vostre pagine di stato lo mostrano.** L'evento compare sulle pagine di stato scelte, prima come imminente, poi in corso, poi concluso, finché **Visibile sulla pagina di stato** è attivo nelle sue **Impostazioni**, e dal suo **Pubblica il** se ne avete scelto uno. Una volta iniziato, su quelle pagine la cronologia del tempo di attività di ogni risorsa dei suoi monitor lo riporta in ogni giorno toccato dalla sua finestra, e quelle risorse mostrano «In manutenzione» finché è in corso; la cronologia del tempo di attività del monitor nella dashboard lo mostra allo stesso modo. Vedi [Percentuali di tempo di attività e grafici della cronologia](/docs/status-pages/resources-and-groups#percentuali-di-tempo-di-attività-e-grafici-della-cronologia).
 - **Gli iscritti ne vengono a conoscenza.** Per impostazione predefinita, gli iscritti di quelle pagine vengono avvisati quando viene pianificato, quando inizia e quando termina, e ricevono un promemoria prima dell'inizio se impostate dei promemoria. Vedere [Eventi di manutenzione programmata](/docs/status-pages/subscribers#eventi-di-manutenzione-programmata).
-- **Il vostro team ne viene a conoscenza.** I suoi proprietari vengono avvisati come prevedono le loro [impostazioni notifiche](/docs/notifications/notification-settings), e le regole Slack e Microsoft Teams in **Area di lavoro** lo pubblicano nei vostri canali.
+- **Il vostro team ne viene a conoscenza.** I suoi proprietari vengono avvisati come prevedono le loro [impostazioni notifiche](/docs/notifications/notification-settings), e le regole Slack, Microsoft Teams e Mattermost in **Area di lavoro** lo pubblicano nei vostri canali.
 
 ## Le pagine di un evento
 

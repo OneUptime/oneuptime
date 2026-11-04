@@ -1831,6 +1831,7 @@
   "Copy to clipboard": "Copiar al portapapeles",
   "Copied": "Copiado",
   "Status: {{status}}": "Estado: {{status}}",
+  "Loading content": "Cargando contenido",
   "markdownCallouts": {
     "caution": "Precaución",
     "danger": "Peligro",

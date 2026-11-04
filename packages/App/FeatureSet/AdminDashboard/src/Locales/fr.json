@@ -1831,6 +1831,7 @@
   "Copy to clipboard": "Copier dans le presse-papiers",
   "Copied": "Copié",
   "Status: {{status}}": "Statut : {{status}}",
+  "Loading content": "Chargement du contenu",
   "markdownCallouts": {
     "caution": "Attention",
     "danger": "Danger",

@@ -3,6 +3,7 @@ import {
   SECURITY_LOG_FORMAT_TEXTS,
 } from "./SecurityConnectionsCopy";
 import SecurityLogLineCheck from "./SecurityLogLineCheck";
+import SecurityLogsCaseSeverity from "./SecurityLogsCaseSeverity";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -49,6 +50,9 @@ export const SECURITY_LOG_FORMAT_ICONS: Record<SecurityLogFormat, IconProp> = {
   [SecurityLogFormat.AzureActivity]: IconProp.Identification,
   [SecurityLogFormat.Cef]: IconProp.ShieldExclamation,
   [SecurityLogFormat.Leef]: IconProp.ShieldCheck,
+  [SecurityLogFormat.PaloAlto]: IconProp.Fire,
+  [SecurityLogFormat.FortiGate]: IconProp.Lock,
+  [SecurityLogFormat.CiscoAsa]: IconProp.ServerStack,
   [SecurityLogFormat.WebAttack]: IconProp.Globe,
 };
 
@@ -77,9 +81,20 @@ export const SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES: Record<
  * The four groups' lists: one column, two from 44rem of the card's own
  * width (the card at 1280 beside the side menu is about 820px wide; at
  * 1024 about 570px, where two columns would squeeze each kind's sentence).
+ *
+ * The two columns are newspaper columns, not a grid's rows: the groups
+ * flow down the first and then the second, each kept whole, and the
+ * columns end level with each other - Servers and Cloud (three kinds each)
+ * in one, Security devices (five, the firewalls among them) and
+ * Applications (two) in the other. Paired in rows, Applications sat beside
+ * Security devices with half a card of nothing under it.
  */
 export const SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME: string =
-  "grid grid-cols-1 items-start gap-4 [@container(min-width:44rem)]:grid-cols-2";
+  "columns-1 gap-4 [@container(min-width:44rem)]:columns-2";
+
+// A group in those columns: whole in one of them, and apart from the next.
+export const SECURITY_LOG_FORMAT_GROUP_CLASS_NAME: string =
+  "mb-4 min-w-0 break-inside-avoid last:mb-0";
 
 export function getSecurityLogFormatHealth(data: {
   format: SecurityLogFormat;
@@ -168,6 +183,7 @@ export const readProjectSecurityLogSource: () => Promise<SecurityLogSource | nul
         lastEventFoundAt: true,
         lastScanResult: true,
         lastError: true,
+        caseMinimumSeverity: true,
       },
       sort: {},
     });
@@ -231,11 +247,14 @@ export const getYourLogsStatusLines: (data: {
  * "Your logs": one switch that makes the logs a project already sends
  * OneUptime a security source. A minute after it is on, every new line that
  * is a sign-in, a sudo, a Windows event, a cloud audit record, a security
- * product's CEF or LEEF, a Kubernetes audit record or a web attack becomes a
- * security event - nothing to install, nothing to send twice
+ * product's CEF or LEEF, a firewall's own syslog, a Kubernetes audit record
+ * or a web attack becomes a security event - nothing to install, nothing to
+ * send twice
  * (Server/Utils/SecurityEvent/LogScan/SecurityLogScanner.ts). The kinds are
  * listed by where they come from, each with what the checks last found of
- * it, and a line can be checked by hand before any arrives.
+ * it, and a line can be checked by hand before any arrives. While it is on,
+ * "Open cases from" says which threats security products write in the logs
+ * open a case (SecurityLogsCaseSeverity).
  *
  * The switch saves when it is flipped. The project has no record until the
  * first time it is turned on, so the first flip creates it; whoever may not
@@ -491,18 +510,28 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
           <></>
         )}
 
+        {isOn && source?.id ? (
+          <SecurityLogsCaseSeverity
+            key={source.id.toString()}
+            sourceId={source.id}
+            initialValue={source.caseMinimumSeverity}
+          />
+        ) : (
+          <></>
+        )}
+
         <div>
           <h3 className="text-sm font-medium text-gray-900">
             {translator.translateText("What OneUptime recognizes")}
           </h3>
           {/*
            * Each group is one list, its kinds a row each, as Your OneUptime
-           * data lists its sources under this card. The groups pair up side
-           * by side once the card itself is wide enough for two readable
-           * columns - Servers beside Cloud, Security devices beside
-           * Applications, three kinds and two each - and stack below that:
-           * beside the side menu the card is about 370px wide at a 768
-           * window, whatever the window says.
+           * data lists its sources under this card. The groups flow into two
+           * columns once the card itself is wide enough for two readable
+           * ones - Servers and Cloud in the first, Security devices and
+           * Applications in the second, ending level - and stack below
+           * that: beside the side menu the card is about 370px wide at a
+           * 768 window, whatever the window says.
            */}
           <div className="mt-2 [container-type:inline-size]">
             <div
@@ -518,7 +547,7 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
                       key={group}
                       aria-labelledby={headingId}
                       data-testid={`security-log-format-group-${group}`}
-                      className="min-w-0"
+                      className={SECURITY_LOG_FORMAT_GROUP_CLASS_NAME}
                     >
                       <h4
                         id={headingId}
