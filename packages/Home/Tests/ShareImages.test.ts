@@ -1,3 +1,4 @@
+import { getWatchedTablePricingContent } from "../Utils/Pricing";
 import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
 import { getAirGappedTopicContent } from "../Utils/AirGapped";
@@ -380,7 +381,11 @@ describe("only head-social.ejs writes a page's preview tags", () => {
   test.each([
     ["about.ejs", "/about", { contributors: [] }],
     ["support.ejs", "/support", {}],
-    ["pricing.ejs", "/pricing", { pricing: [] }],
+    [
+      "pricing.ejs",
+      "/pricing",
+      { pricing: [], watchedTables: getWatchedTablePricingContent() },
+    ],
     ["kubernetes.ejs", "/product/kubernetes", {}],
     ["openshift.ejs", "/product/openshift", {}],
     [

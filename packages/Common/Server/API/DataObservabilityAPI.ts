@@ -51,6 +51,7 @@ import { queueTableHealthCollection } from "../Utils/DataObservability/DataObser
 import DataAlertExplanationReader from "../Utils/DataObservability/DataAlertExplanation";
 import DataAlertFeedbackRecorder from "../Utils/DataObservability/DataAlertFeedbackRecorder";
 import DataObservabilityQualityReader from "../Utils/DataObservability/DataObservabilityQualityReader";
+import WatchedTableLimit from "../Utils/DataObservability/WatchedTableLimit";
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
 import DataProductSync from "../Utils/DataObservability/DataProductSync";
 import DataReconciliationSync from "../Utils/DataObservability/DataReconciliationSync";
@@ -193,6 +194,41 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           OneUptimeDate.getCurrentDate(),
         )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.watchedTables,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await WatchedTableLimit.read(
+          projectId,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.storeWatch(":id"),
+      OPERATE_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const store: DataStore = await DataObservabilityAPI.readStore(
+          projectId,
+          req,
+        );
+        const isWatched: boolean =
+          ((req.body || {}) as JSONObject)["isWatched"] === true;
+
+        await DataStoreService.updateColumnsByIdWithoutHooks({
+          id: store.id!,
+          data: {
+            isTableHealthEnabled: isWatched,
+            ...(isWatched
+              ? { nextTableHealthCollectionAt: OneUptimeDate.getCurrentDate() }
+              : {}),
+          } as never,
+        });
+
+        return {};
       },
     );
 

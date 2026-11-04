@@ -64,6 +64,7 @@ function settingsRow(): UserNotificationSetting {
     alertByTelegram: true,
     alertBySlack: true,
     alertByMicrosoftTeams: false,
+    alertByMattermost: false,
     alertByWebhook: false,
   } as unknown as UserNotificationSetting;
 }

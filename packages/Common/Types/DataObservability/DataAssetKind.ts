@@ -20,6 +20,16 @@ enum DataAssetKind {
 
 export default DataAssetKind;
 
+/*
+ * Whether this kind counts as a watched table on the bill. A view holds no rows
+ * and has no size of its own, so it is free: everything else holds data.
+ */
+export function isBilledAsWatchedTable(
+  kind: DataAssetKind | undefined | null,
+): boolean {
+  return kind !== DataAssetKind.View;
+}
+
 export const DATA_ASSET_KINDS: ReadonlyArray<DataAssetKind> = [
   DataAssetKind.Table,
   DataAssetKind.View,

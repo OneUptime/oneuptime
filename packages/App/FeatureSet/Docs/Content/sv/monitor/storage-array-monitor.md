@@ -103,7 +103,7 @@ Flera serier bär sitt tillstånd i en **etikett**, med ett värde som alltid ä
 | `purefa_host_connectivity_info` | `status`, med `details` | Värd |
 | `purefa_drive_capacity_bytes` | `component_status` (värdet är diskens kapacitet) | Disk |
 
-En serie som är filtrerad till ett dåligt tillstånd finns bara så länge något är i det tillståndet, så ingen serie betyder att allt är friskt. Därför är **Max över 0 utlöser och 0 återhämtar** rätt form för dem, och så är mallarna byggda: deras återhämtningskriterier räknar en saknad serie som noll.
+En serie som är filtrerad till ett dåligt tillstånd finns bara så länge något är i det tillståndet, så ingen serie betyder att allt är friskt. Därför är **Max över 0 utlöser och 0 återhämtar** rätt form för dem, och så är mallarna byggda: deras återhämtningskriterier räknar en saknad serie som noll. När inga serier alls finns kvar återställs en sådan mall bara om `purefa_info` eller `purefb_info` kom i samma fönster, så en array som har slutat rapportera stänger ingenting.
 
 I monitorfilter och grupperingsnycklar börjar agentens attribut med `resource.` (`resource.storage.array.name`, `resource.storage.system`), medan Pures egna etiketter inte gör det (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

@@ -1,5 +1,5 @@
 import Reviews from "../../Utils/Reviews";
-import Pricing from "../../Utils/Pricing";
+import Pricing, { getWatchedTablePricingContent } from "../../Utils/Pricing";
 import { getCompareMark } from "../../Utils/CompareMark";
 import ProductCompare, {
   getProductCompareSlugs,
@@ -222,6 +222,7 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
       // The locals Routes.ts hands the page.
       return {
         pricing: Pricing,
+        watchedTables: getWatchedTablePricingContent(),
         enableGoogleTagManager: false,
         seo: seoFor("/pricing"),
         cloudMarketplaces: getCloudMarketplacesContent(),

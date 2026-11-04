@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"all off"| nothing["Nothing is sent"]
 ```
 
-- Each row is an event, and each column a channel: Email, SMS, Call, Push, WhatsApp, Telegram, Slack and Microsoft Teams, and Webhook. Slack and Microsoft Teams are columns only when the project has connected them.
+- Each row is an event, and each column a channel: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and Webhook. Slack, Microsoft Teams and Mattermost are columns only when the project has connected them.
 - A channel that is on sends to every verified method you have on it in this project, not just one.
 - A channel that is on, with no verified method behind it, sends nothing. **Your setup checklist** says so under **Staying informed**.
 - An update goes to the record's owners: the people named as owners, and the members of its owner teams. When a record has no owners, it goes to the project's owners instead. An event about being added as an owner goes only to the person added.

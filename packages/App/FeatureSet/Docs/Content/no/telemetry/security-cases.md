@@ -218,7 +218,7 @@ OneUptime gir folk beskjed om fem ting på en sak. Ingen trenger å sette opp no
 
 ### Velg hva du får beskjed om
 
-Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
+Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
 
 | Valg | Varsler om saker med |
 | --- | --- |

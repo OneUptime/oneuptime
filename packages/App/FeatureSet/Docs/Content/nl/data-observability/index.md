@@ -60,6 +60,12 @@ Binnen vijf minuten verschijnen de tabellen onder **Tabellen**, elk met haar rij
 Kies op **Databases** de optie **Aanbevolen waarschuwingen** voor de database, en voeg de waarschuwingen toe die je wilt: een tabel die te laat is, een tabel waarvan de rijen sterk dalen of ongewoon laag uitvallen, een tabel waarvan de kolommen veranderen, en een database die niet meer rapporteert. Elk is een gewone monitor: on-call, eigenaren, onderhoudsvensters en statuspagina's werken zoals bij elke andere.
 :::
 
+## Wat het kost
+
+Op OneUptime Cloud zijn de eerste 100 tabellen van een project gratis. Elke volgende tabel kost $ 1 per maand, en $ 0,25 boven de 1.000. Views zijn gratis, net als de tabellen van een database die je niet meer bewaakt. Een controle met een melding wordt gefactureerd als een actieve monitor. **Databases** en **Overzicht** tonen hoeveel tabellen je project bewaakt en wat ze kosten, en [Prijzen](https://oneuptime.com/pricing) heeft een rekenhulp.
+
+Een zelf gehoste OneUptime betaalt niets voor tabellen.
+
 ## Volgende stappen
 
 :::cards

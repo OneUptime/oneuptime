@@ -67,7 +67,7 @@ Auch Workflows öffnen Vorfälle: Der [Huntress](/docs/integrations/huntress)-Wo
 
 Beim Anlegen führt OneUptime die Automatisierung aus, die Sie konfiguriert haben: Datenschutzregeln, Eigentümerregeln, Beschriftungsregeln, Bereitschaftsregeln und Runbook-Regeln. Alle Bereitschaftsrichtlinien am Vorfall – von Hand angehängt, aus einer Vorlage übernommen oder von einer zutreffenden Bereitschaftsregel hinzugefügt – werden parallel ausgeführt.
 
-Eigentümer werden über die Kanäle benachrichtigt, die jeder von ihnen unter **Benutzereinstellungen → Benachrichtigungseinstellungen** eingeschaltet hat: E-Mail, SMS, Sprachanruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams oder Webhook. Hat ein Vorfall überhaupt keine Eigentümer, geht die Benachrichtigung an die Projekteigentümer, statt verloren zu gehen.
+Eigentümer werden über die Kanäle benachrichtigt, die jeder von ihnen unter **Benutzereinstellungen → Benachrichtigungseinstellungen** eingeschaltet hat: E-Mail, SMS, Sprachanruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost oder Webhook. Hat ein Vorfall überhaupt keine Eigentümer, geht die Benachrichtigung an die Projekteigentümer, statt verloren zu gehen.
 
 Ist der Vorfall auf einer Statusseite sichtbar und sind Abonnentenbenachrichtigungen eingeschaltet, erfahren es auch die Abonnenten: die Abonnenten jeder Statusseite, die einen seiner Monitore führt, oder nur die der Seiten, auf die Sie ihn beschränkt haben. Unter [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience) erfahren Sie, wie Sie jeder Zielgruppe ihre eigene Statusseite geben.
 

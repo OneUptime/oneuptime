@@ -246,7 +246,9 @@ describe("collecting a bucket's paths", () => {
 
     expect(snapshot.engine).toBe("storage");
     expect(
-      snapshot.tables.map((table: { name: string }) => table.name),
+      snapshot.tables.map((table: { name: string }) => {
+        return table.name;
+      }),
     ).toEqual(["empty/"]);
     // A list that failed proves nothing is gone.
     expect(snapshot.isComplete).toBe(false);

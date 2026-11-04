@@ -4,6 +4,7 @@ import ConnectDatabaseModal from "../../Components/DataObservability/ConnectData
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
 import StoreStatusPill from "../../Components/DataObservability/StoreStatusPill";
+import WatchedTablesCost from "../../Components/DataObservability/WatchedTablesCost";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -277,6 +278,8 @@ const DataObservabilityStoresPage: FunctionComponent<
           )}
         </div>
       </Card>
+
+      <WatchedTablesCost refreshToken={readCount} />
 
       <DataSourceSuggestionsCard
         refreshToken={readCount}

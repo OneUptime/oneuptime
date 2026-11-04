@@ -145,6 +145,7 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 - **Antals- og tilstandsskabeloner bruger Max**, så én indsamling, der viser tilstanden, udløser dem: pakkefejl, ballooning, swapping, rød og gul status, værter, der ikke er effektive, overbelastning.
 - **Host Not Responding bruger Max og udløses ved 0:** en ESXi-vært, der kører, bruger altid hukommelse, så én indsamling, der rapporterer hukommelse i brug, er en vært, der svarer, og kun et vindue, hvor ingen gjorde det, udløser den.
 - **Hver skabelon grupperer på objektets egen identitetsattribut**, så der udløses én hændelse pr. berørt objekt, og hændelsen nævner det. Undtagelsen er **vCenter Stopped Reporting**, som overvåger hele vCenteret: når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
+- **Datacenter-tælleskabeloner genopretter, når deres serie er væk:** modtageren registrerer kun et antal for de tilstande, der findes, så når den sidste røde vært bliver grøn, er der ingen serie tilbage, og deres genopretningskriterier tæller en manglende serie som 0. Når intet datacenter har en serie tilbage, genopretter de kun, hvis `vcenter.datacenter.cpu.limit` er ankommet i samme vindue, så en vCenter, der er holdt op med at rapportere, lukker intet.
 - **Tærskler er fastlåst i deres enhed** (`%`, `ms`, `us`), så de beholder deres betydning, uanset hvilken enhed en graf viser.
 
 ## Indsamlede metrikker

@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"alles uit"| nothing["Er wordt niets verstuurd"]
 ```
 
-- Elke rij is een gebeurtenis, en elke kolom een kanaal: E-mail, SMS, Oproep, Push, WhatsApp, Telegram, Slack en Microsoft Teams, en Webhook. Slack en Microsoft Teams zijn alleen kolommen als het project ze heeft gekoppeld.
+- Elke rij is een gebeurtenis, en elke kolom een kanaal: E-mail, SMS, Oproep, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost en Webhook. Slack, Microsoft Teams en Mattermost zijn alleen kolommen als het project ze heeft gekoppeld.
 - Een kanaal dat aanstaat, stuurt naar elke geverifieerde methode die je erop hebt in dit project, niet naar één.
 - Een kanaal dat aanstaat zonder geverifieerde methode erachter, stuurt niets. **Your setup checklist** meldt dat onder **Staying informed**.
 - Nieuws gaat naar de eigenaren van het item: de mensen die als eigenaar zijn genoemd, en de leden van de eigenaarsteams ervan. Heeft een item geen eigenaren, dan gaat het in plaats daarvan naar de eigenaren van het project. Een gebeurtenis over het toegevoegd worden als eigenaar gaat alleen naar de toegevoegde persoon.

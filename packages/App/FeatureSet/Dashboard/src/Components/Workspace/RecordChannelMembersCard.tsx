@@ -430,7 +430,9 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
     RouteMap[
       isMattermost
         ? PageMap.SETTINGS_MATTERMOST_INTEGRATION
-        : PageMap.SETTINGS_SLACK_INTEGRATION
+        : isTeams
+          ? PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION
+          : PageMap.SETTINGS_SLACK_INTEGRATION
     ] as Route,
   );
 

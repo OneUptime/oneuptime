@@ -394,16 +394,6 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
       expect(stubs.updateOneById).not.toHaveBeenCalled();
     });
 
-    test("a password change, which has its own session revocation", async () => {
-      await userService().onBeforeUpdate(
-        updatePayload({
-          patch: { password: new HashedString("a-new-password") },
-        }),
-      );
-
-      expect(stubs.updateOneById).not.toHaveBeenCalled();
-    });
-
     test("a profile edit that does not touch the address at all", async () => {
       await userService().onBeforeUpdate(
         updatePayload({ patch: { name: new Name("Victim") } }),
@@ -507,6 +497,20 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
       );
 
       expect(stubs.findBy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a new password is no new address: this hook makes no write for it", async () => {
+      /*
+       * A new password ends a sign-in link too, but in its own write, after
+       * the permission checks (UserServiceNewPasswordEndsSignInLink.test.ts).
+       */
+      await userService().onBeforeUpdate(
+        updatePayload({
+          patch: { password: new HashedString("a-new-password") },
+        }),
+      );
+
+      expect(stubs.updateOneById).not.toHaveBeenCalled();
     });
 
     test("turning off two factor auth on another account is still refused", async () => {

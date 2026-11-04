@@ -92,8 +92,6 @@ Back in OneUptime, click **I've sent the message — check**. Once the bot has y
 2. On the **Workspace Apps** tab, click **Add Slack Account**, **Add Microsoft Teams Account** or **Add Mattermost Account**. The account is verified as it is added.
 3. Click **Send Test Message** on its row. Pages arrive as direct messages from the OneUptime app, or in Mattermost from the project's bot.
 
-A Mattermost account gets your pages only, not the updates you choose in **Notification Settings**.
-
 ## Push notifications
 
 The **Push Notifications** tab lists your **Push Notification Devices**.

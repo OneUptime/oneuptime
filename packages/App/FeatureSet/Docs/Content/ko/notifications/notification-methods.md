@@ -92,8 +92,6 @@ OneUptime으로 돌아와 **I've sent the message — check**를 클릭합니다
 2. **워크스페이스 앱** 탭에서 **Add Slack Account**, **Add Microsoft Teams Account** 또는 **Mattermost 계정 추가**를 클릭합니다. 계정은 추가되는 즉시 인증됩니다.
 3. 그 행의 **Send Test Message**를 클릭합니다. 호출은 OneUptime 앱의 다이렉트 메시지로 오며, Mattermost에서는 프로젝트의 봇이 보냅니다.
 
-Mattermost 계정에는 호출만 오며, **알림 설정**에서 고른 소식은 오지 않습니다.
-
 ## 푸시 알림
 
 **푸시 알림** 탭에는 **푸시 알림 디바이스**가 나열됩니다.

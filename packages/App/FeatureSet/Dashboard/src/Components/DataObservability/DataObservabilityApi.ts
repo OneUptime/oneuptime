@@ -26,6 +26,7 @@ import {
   DataObservabilityStoragePathStore,
   DataObservabilityTableErrors,
   DataObservabilityStoreSummary,
+  DataObservabilityWatchedTables,
   DataObservabilityTableDashboard,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { APP_API_URL } from "Common/UI/Config";
@@ -86,6 +87,24 @@ export default class DataObservabilityApi {
     return Array.isArray(body["stores"])
       ? (body["stores"] as unknown as Array<DataObservabilityStoreSummary>)
       : [];
+  }
+
+  // How many tables the project watches, and what they cost it.
+  public static async getWatchedTables(): Promise<DataObservabilityWatchedTables> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.watchedTables,
+    )) as unknown as DataObservabilityWatchedTables;
+  }
+
+  // Starts or stops reading a database.
+  public static async setStoreWatched(
+    dataStoreId: ObjectID,
+    isWatched: boolean,
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.storeWatch(dataStoreId.toString()),
+      { isWatched },
+    );
   }
 
   public static async collectNow(dataStoreId: ObjectID): Promise<void> {

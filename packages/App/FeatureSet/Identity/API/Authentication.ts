@@ -2074,19 +2074,18 @@ router.post(
         );
       }
 
+      /*
+       * The write's own hook ends a sign-in link sent before the reset, in
+       * this same statement, as it does for every new password: somebody
+       * resetting their password may be locking out whoever read their mail
+       * (UserService.onUpdatePermitted, Types/Accounts/MagicLink).
+       */
       await UserService.updateOneById({
         id: alreadySavedUser.id!,
         data: {
           password: user.password!,
           resetPasswordToken: null!,
           resetPasswordExpires: null!,
-          /*
-           * A sign-in link sent before the reset stops working with the
-           * sessions it ends below: somebody resetting their password may be
-           * locking out whoever read their mail (Types/Accounts/MagicLink).
-           */
-          magicLinkToken: null!,
-          magicLinkExpires: null!,
           /*
            * The reset token only ever travelled inside an email to this
            * account's current address -- changing the address clears it (see

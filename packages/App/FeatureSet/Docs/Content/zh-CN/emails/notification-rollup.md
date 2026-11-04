@@ -70,7 +70,7 @@ flowchart TB
 | 状态页面订阅者 | 你的状态页面发给你自己的订阅者的每一封邮件 |
 | SLA 违约 | 您拥有的事件错过了 SLA 响应或解决截止时间 |
 
-只有邮件受影响。短信、电话、推送通知、WhatsApp、Telegram、Slack、Microsoft Teams 和 Webhook 都会立即送达，与以往完全相同，即使是邮件被暂缓的那些通知也一样。
+只有邮件受影响。短信、电话、推送通知、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 和 Webhook 都会立即送达，与以往完全相同，即使是邮件被暂缓的那些通知也一样。
 
 ## 限制
 
@@ -105,7 +105,7 @@ flowchart TB
 
 - **你收到哪些通知。** 这由 **用户设置 → 通知设置** 中按事件类型和渠道的设置决定，就在隔壁页面。汇总和这个开关只改变这些通知被装进多少封邮件。
 - **值班呼叫和班次邮件**、**账号安全邮件**、**账单邮件**、实例健康警告以及状态页面订阅者邮件。这些本来就不会被汇总，所以关闭汇总对它们没有任何影响，参见[永远不会被汇总的内容](#永远不会被汇总的内容)。
-- **其他任何渠道。** 短信、电话、推送、WhatsApp、Telegram、Slack、Microsoft Teams 和 Webhook 本来就是即时的。
+- **其他任何渠道。** 短信、电话、推送、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 和 Webhook 本来就是即时的。
 
 ## 进一步减少邮件
 
