@@ -64,10 +64,17 @@ De kaart **Uw logboeken**, boven aan **Verbindingen**, hoeft niet geïnstalleerd
 | Azure-activiteitslogs en Entra ID-logs | Wijzigingen in uw Azure-abonnementen, waarschuwingen van Defender for Cloud, en aanmeldingen en directorywijzigingen van Microsoft Entra ID |
 | CEF | Bedreigingen, geblokkeerde verbindingen en aanmeldingen van firewalls, IDS, WAF's en andere beveiligingsproducten die Common Event Format sturen |
 | LEEF | Hetzelfde van producten die Log Event Extended Format sturen, zoals veel producten voor IBM QRadar doen |
+| Palo Alto Networks | Bedreigingen, geblokkeerde verbindingen, GlobalProtect- en beheerdersaanmeldingen en configuratiewijzigingen uit de eigen syslog van PAN-OS |
+| Fortinet FortiGate | IPS- en antivirusbevindingen, geweigerd verkeer, VPN- en beheerdersaanmeldingen en configuratiewijzigingen uit de eigen syslog van FortiGate |
+| Cisco ASA | Geweigerde verbindingen, bevindingen van dreigingsdetectie en IPS, VPN- en beheerdersaanmeldingen en opdrachten van Cisco ASA en Firepower Threat Defense |
 | Kubernetes-auditlogs | Wijzigingen aan het cluster, shells die in pods worden geopend, gelezen secrets en geweigerde verzoeken |
 | Webaanvallen | Verzoeken in het toegangslog van een webserver die SQL-injectie, path traversal of Log4Shell proberen |
 
 Uw logs blijven zoals ze zijn. Alleen de regels die voor beveiliging tellen, worden gebeurtenissen: nooit elke pagina die een webserver heeft geleverd, of elke leesactie op een API.
+
+Een bedreiging die een beveiligingsproduct in uw logs schrijft, zoals een CEF- of LEEF-bevinding of een IPS-bevinding van een FortiGate, opent een zaak zoals de waarschuwing van een gekoppeld product dat doet. **Cases openen vanaf**, op **Uw logboeken**, bepaalt vanaf welke ernst: **Hoog en hoger**, tenzij u een andere kiest, of **Nooit**.
+
+Een AWS-account, Google Cloud-project of Azure-abonnement dat onder **Cloud** is gekoppeld, heeft geen logpijplijn nodig: zet **Cloud-auditlogboeken** aan, onder **Your OneUptime data** op **Verbindingen**, en het auditlog wordt samen met het account gelezen. Zie [De auditlogs van uw cloudaccounts lezen](/docs/telemetry/security-events#de-auditlogs-van-uw-cloudaccounts-lezen).
 
 ## Wat OneUptime vindt naar uw SIEM sturen
 
@@ -88,7 +95,7 @@ Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter,
 :::
 
 :::details Uit mijn logs komt geen beveiligingsgebeurtenis
-Controleer of **Beveiligingsgebeurtenissen in uw logboeken vinden** aanstaat en of de kaart **Uw logboeken** laat zien wanneer er voor het laatst is gecontroleerd. Alleen de soorten regels uit de tabel hierboven worden gebeurtenissen: een server die geen SSH-, sudo-, Windows-, audit-, CEF-, LEEF- of toegangslogs stuurt, heeft niets te vinden. Plak een van zijn regels in **Een logboekregel controleren**, op **Uw logboeken**, om te zien of OneUptime hem leest.
+Controleer of **Beveiligingsgebeurtenissen in uw logboeken vinden** aanstaat en of de kaart **Uw logboeken** laat zien wanneer er voor het laatst is gecontroleerd. Alleen de soorten regels uit de tabel hierboven worden gebeurtenissen: een server die geen SSH-, sudo-, Windows-, audit-, CEF-, LEEF-, firewall- of toegangslogs stuurt, heeft niets te vinden. Plak een van zijn regels in **Een logboekregel controleren**, op **Uw logboeken**, om te zien of OneUptime hem leest.
 :::
 
 :::details Overzicht zegt dat de laatste beveiligingsgebeurtenis dagen geleden binnenkwam

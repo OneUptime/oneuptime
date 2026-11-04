@@ -182,22 +182,41 @@ La página **Guía de configuración**, en **Conexiones**, tiene estos fragmento
 
 ### Encontrar eventos de seguridad en sus registros
 
-La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH o de Windows, comando sudo, registro de auditoría de una nube, registro CEF o LEEF de un producto de seguridad, entrada de auditoría de Kubernetes y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
+La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH o de Windows, comando sudo, registro de auditoría de una nube, registro CEF o LEEF de un producto de seguridad, registro de un firewall de Palo Alto Networks, FortiGate o Cisco ASA, entrada de auditoría de Kubernetes y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
 
 Cada tipo llega a OneUptime como registros normales:
 
 | Tipo | Se envía desde |
 | --- | --- |
 | Inicios de sesión SSH, sudo | El journal o el registro de autenticación de una máquina Linux, con el [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Eventos de Windows | El receptor `windowseventlog` del recolector en la máquina, o un reenviador que escribe cada evento como JSON, como NXLog o Winlogbeat |
-| AWS CloudTrail | Un trail entregado a CloudWatch Logs, leído por el receptor `awscloudwatch` del recolector |
-| Registros de auditoría de Google Cloud | Un sink de registros hacia Pub/Sub, leído por el receptor `googlecloudpubsub` del recolector con `encoding: raw_text` |
-| Registros de actividad de Azure y de Entra ID | Una configuración de diagnóstico que transmite a un Event Hub, leída por el receptor `azureeventhub` del recolector con `format: raw` |
+| Eventos de Windows | El receptor `windowseventlog` del recolector en la máquina, o un reenviador que escribe cada evento como JSON, como NXLog o Winlogbeat. Un [host](/docs/telemetry/hosts) añadido a OneUptime también lee Sysmon, Microsoft Defender y PowerShell donde los tiene |
+| AWS CloudTrail | Un trail entregado a CloudWatch Logs, leído por el receptor `awscloudwatch` del recolector, o, para una cuenta conectada en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
+| Registros de auditoría de Google Cloud | Un sink de registros hacia Pub/Sub, leído por el receptor `googlecloudpubsub` del recolector con `encoding: raw_text`, o, para un proyecto conectado en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
+| Registros de actividad de Azure y de Entra ID | Una configuración de diagnóstico que transmite a un Event Hub, leída por el receptor `azureeventhub` del recolector con `format: raw`, o, para el registro de actividad de una suscripción conectada en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
 | CEF, LEEF | El syslog del producto, retransmitido por [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | El propio syslog del firewall, retransmitido por [rsyslog](/docs/telemetry/syslog) |
 | Registros de auditoría de Kubernetes | El archivo de registro de auditoría del servidor de API, leído por el receptor `filelog` del recolector |
 | Ataques web | El registro de acceso de un servidor web, leído por el receptor `filelog` del recolector |
 
 En **Tus registros**, cada tipo indica cuándo se encontró por última vez, y **Comprobar una línea de registro** muestra en qué se convierte una línea que pegue, antes de que llegue ninguna.
+
+Una amenaza que un producto de seguridad escribe en sus registros, como un hallazgo CEF o LEEF o una amenaza de Palo Alto Networks, FortiGate o Cisco ASA, abre un [caso](/docs/telemetry/security-cases) como lo hace la alerta de un producto conectado, y suma al riesgo del usuario, host o dirección que nombra. **Abrir casos a partir de**, en **Tus registros**, indica a partir de qué gravedad: **Alta y superior** salvo que elija otra, o **Nunca**. Los inicios de sesión y las conexiones bloqueadas del producto siguen siendo eventos, para que sus reglas los lean.
+
+Un registro que llega a OneUptime por dos vías se guarda una sola vez: un inicio de sesión de Microsoft Entra ID que lee su conexión y que Azure también exporta a sus registros, o un registro de CloudTrail en sus registros y en el registro de auditoría de una cuenta de AWS conectada.
+
+### Leer los registros de auditoría de sus cuentas en la nube
+
+Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [conectados en **Nube**](/docs/telemetry/cloud-accounts) no necesitan ninguna canalización de registros. Active **Registros de auditoría de la nube**, en **Your OneUptime data** de **Conexiones**, y cada lectura de la cuenta guarda su registro de auditoría como eventos de seguridad:
+
+| Nube | Qué se lee |
+| --- | --- |
+| AWS | Los eventos de administración de CloudTrail que cambian algo, en cada Región que usa la cuenta: inicios de sesión en la consola, cambios y llamadas que AWS rechazó |
+| Google Cloud | El registro de auditoría Admin Activity: cambios en los recursos y en quién puede acceder a ellos, y llamadas que Google rechazó |
+| Azure | El registro de actividad: cambios en la suscripción, operaciones que fallaron, rechazos de Azure Policy y alertas de Defender for Cloud |
+
+- Cada registro se lee como lo lee **Tus registros** desde una canalización, así que las reglas de CloudTrail, Google Cloud y Azure de la biblioteca de reglas coinciden con él.
+- Un evento se marca con la hora en que se guarda, y la hora propia del registro queda en `oneuptime.cloud.record_time`: un registro de auditoría llega a OneUptime con minutos de retraso, y una regla lee los eventos por su hora.
+- La lectura de la cuenta no trae nada más: los eventos de datos, los registros Data Access y los registros de Microsoft Entra ID siguen necesitando **Tus registros** o una [conexión](/docs/integrations/microsoft-entra-id).
 
 ### Conectar un producto de seguridad
 
@@ -213,7 +232,7 @@ En **Tus registros**, cada tipo indica cuándo se encontró por última vez, y *
 | Elastic Security | Alertas de detección, como Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, como Detection y Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de inicio de sesión, MFA, cuentas y políticas | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Inicios de sesión y cambios de directorio, y del registro de auditoría de Microsoft 365, el reenvío de correo, el uso compartido y los veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Inicios de sesión, cambios de directorio y detecciones de riesgo, si lo eliges los inicios de sesión en segundo plano y de aplicaciones que fallaron, y del registro de auditoría de Microsoft 365, el reenvío de correo, el uso compartido y los veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inicios de sesión, las detecciones propias de Google, los cambios de administración y los accesos concedidos a aplicaciones, y el uso compartido en Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.

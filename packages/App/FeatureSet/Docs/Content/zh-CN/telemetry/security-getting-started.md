@@ -64,10 +64,17 @@ flowchart LR
 | Azure 活动和 Entra ID 日志 | 在您的 Azure 订阅中所做的更改、Defender for Cloud 警报，以及 Microsoft Entra ID 的登录和目录更改 |
 | CEF | 发送 Common Event Format 的防火墙、IDS、WAF 和其他安全产品产生的威胁、被阻止的连接和登录 |
 | LEEF | 来自发送 Log Event Extended Format 的产品的同类内容，许多产品为 IBM QRadar 发送这种格式 |
+| Palo Alto Networks | 来自 PAN-OS 自身 syslog 的威胁、被阻止的连接、GlobalProtect 和管理员登录以及配置更改 |
+| Fortinet FortiGate | 来自 FortiGate 自身 syslog 的 IPS 和防病毒发现、被拒绝的流量、VPN 和管理员登录以及配置更改 |
+| Cisco ASA | 来自 Cisco ASA 和 Firepower Threat Defense 的被拒绝连接、威胁检测和 IPS 发现、VPN 和管理员登录以及命令 |
 | Kubernetes 审计日志 | 对集群的更改、在 Pod 中打开的 shell、被读取的 secret 和被拒绝的请求 |
 | Web 攻击 | Web 服务器访问日志中尝试 SQL 注入、路径遍历或 Log4Shell 的请求 |
 
 您的日志保持原样。只有对安全重要的行才会变成事件：绝不会是 Web 服务器返回的每个页面，也不会是对 API 的每次读取。
+
+安全产品写入日志的威胁，例如 CEF 或 LEEF 的发现，或 FortiGate 的 IPS 发现，会像已连接产品的警报一样打开案例。**你的日志** 上的 **从以下级别开启案例** 决定从哪个严重程度开始：默认为 **高及以上**，你也可以选择其他级别或 **从未**。
+
+在 **云** 下连接的 AWS 账户、Google Cloud 项目或 Azure 订阅不需要日志管道：在 **连接** 的 **Your OneUptime data** 下开启 **云审计日志**，它的审计日志就会随账户一起读取。请参阅 [读取云账户的审计日志](/docs/telemetry/security-events#读取云账户的审计日志)。
 
 ## 把 OneUptime 的发现发送到您的 SIEM
 
@@ -88,7 +95,7 @@ flowchart LR
 :::
 
 :::details 我的日志没有产生安全事件
-请确认 **在日志中查找安全事件** 已开启，并且 **你的日志** 显示了上次检查的时间。只有上表中的那几类行才会变成事件：不发送 SSH、sudo、Windows、审计、CEF、LEEF 或访问日志的服务器，没有可以发现的内容。把它的一行粘贴到 **你的日志** 上的 **检查一行日志** 中，即可查看 OneUptime 能否读取它。
+请确认 **在日志中查找安全事件** 已开启，并且 **你的日志** 显示了上次检查的时间。只有上表中的那几类行才会变成事件：不发送 SSH、sudo、Windows、审计、CEF、LEEF、防火墙或访问日志的服务器，没有可以发现的内容。把它的一行粘贴到 **你的日志** 上的 **检查一行日志** 中，即可查看 OneUptime 能否读取它。
 :::
 
 :::details 概览显示最后一个安全事件是几天前到达的

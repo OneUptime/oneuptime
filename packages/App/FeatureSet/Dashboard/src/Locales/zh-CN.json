@@ -41862,5 +41862,8 @@
   "Connect the AWS account under Cloud and turn on Cloud audit logs, or send CloudTrail to OneUptime as logs and find security events in your logs.": "在“云”中连接 AWS 账户并打开云审计日志，或将 CloudTrail 作为日志发送到 OneUptime，并在日志中查找安全事件。",
   "Connect the Google Cloud project under Cloud and turn on Cloud audit logs, or send its audit logs to OneUptime and find security events in your logs.": "在“云”中连接 Google Cloud 项目并打开云审计日志，或将其审计日志发送到 OneUptime，并在日志中查找安全事件。",
   "Connect the Azure subscription under Cloud and turn on Cloud audit logs, or send its Activity Log to OneUptime through a diagnostic setting and find security events in your logs.": "在“云”中连接 Azure 订阅并打开云审计日志，或通过诊断设置将其活动日志发送到 OneUptime，并在日志中查找安全事件。",
-  "Whether OneUptime looks for security events in one kind of telemetry the project already sends it - traces, network flows, the audit log, session replays or the audit logs of its connected cloud accounts - and what the last look found.": "OneUptime 是否在项目已发送的一种遥测数据中查找安全事件（追踪、网络流、审计日志、会话回放或已连接云账户的审计日志），以及上次查找发现了什么。"
+  "Whether OneUptime looks for security events in one kind of telemetry the project already sends it - traces, network flows, the audit log, session replays or the audit logs of its connected cloud accounts - and what the last look found.": "OneUptime 是否在项目已发送的一种遥测数据中查找安全事件（追踪、网络流、审计日志、会话回放或已连接云账户的审计日志），以及上次查找发现了什么。",
+  "Azure public cloud, Microsoft 365 GCC": "Azure 公有云，Microsoft 365 GCC",
+  "Azure Government (US), GCC High": "Azure Government（美国），GCC High",
+  "Azure Government (US), DoD": "Azure Government（美国），DoD"
 }

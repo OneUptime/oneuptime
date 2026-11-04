@@ -41862,5 +41862,8 @@
   "Connect the AWS account under Cloud and turn on Cloud audit logs, or send CloudTrail to OneUptime as logs and find security events in your logs.": "클라우드에서 AWS 계정을 연결하고 클라우드 감사 로그를 켜거나, CloudTrail을 로그로 OneUptime에 보내고 로그에서 보안 이벤트를 찾으세요.",
   "Connect the Google Cloud project under Cloud and turn on Cloud audit logs, or send its audit logs to OneUptime and find security events in your logs.": "클라우드에서 Google Cloud 프로젝트를 연결하고 클라우드 감사 로그를 켜거나, 감사 로그를 OneUptime에 보내고 로그에서 보안 이벤트를 찾으세요.",
   "Connect the Azure subscription under Cloud and turn on Cloud audit logs, or send its Activity Log to OneUptime through a diagnostic setting and find security events in your logs.": "클라우드에서 Azure 구독을 연결하고 클라우드 감사 로그를 켜거나, 진단 설정으로 활동 로그를 OneUptime에 보내고 로그에서 보안 이벤트를 찾으세요.",
-  "Whether OneUptime looks for security events in one kind of telemetry the project already sends it - traces, network flows, the audit log, session replays or the audit logs of its connected cloud accounts - and what the last look found.": "프로젝트가 이미 보내는 텔레메트리 한 종류(트레이스, 네트워크 플로우, 감사 로그, 세션 리플레이 또는 연결된 클라우드 계정의 감사 로그)에서 OneUptime이 보안 이벤트를 찾는지 여부와 마지막 확인에서 찾은 것."
+  "Whether OneUptime looks for security events in one kind of telemetry the project already sends it - traces, network flows, the audit log, session replays or the audit logs of its connected cloud accounts - and what the last look found.": "프로젝트가 이미 보내는 텔레메트리 한 종류(트레이스, 네트워크 플로우, 감사 로그, 세션 리플레이 또는 연결된 클라우드 계정의 감사 로그)에서 OneUptime이 보안 이벤트를 찾는지 여부와 마지막 확인에서 찾은 것.",
+  "Azure public cloud, Microsoft 365 GCC": "Azure 퍼블릭 클라우드, Microsoft 365 GCC",
+  "Azure Government (US), GCC High": "Azure Government(미국), GCC High",
+  "Azure Government (US), DoD": "Azure Government(미국), DoD"
 }

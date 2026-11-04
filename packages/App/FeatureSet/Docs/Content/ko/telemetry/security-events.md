@@ -182,22 +182,41 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 
 ### 로그에서 보안 이벤트 찾기
 
-**연결** 상단의 **내 로그**는 이미 OneUptime에 보내고 있는 로그를 소스로 만듭니다. **로그에서 보안 이벤트 찾기**를 켜면 프로젝트의 새 로그를 매분 읽고, 그 안의 SSH 또는 Windows 로그인, sudo 명령, 클라우드 감사 기록, 보안 제품의 CEF 또는 LEEF 기록, Kubernetes 감사 기록, 웹 공격을 각각 보안 이벤트로 저장합니다. 종류별로 다루는 내용은 [보안 시작하기](/docs/telemetry/security-getting-started#로그에서-보안-이벤트-찾기)를 참고하세요.
+**연결** 상단의 **내 로그**는 이미 OneUptime에 보내고 있는 로그를 소스로 만듭니다. **로그에서 보안 이벤트 찾기**를 켜면 프로젝트의 새 로그를 매분 읽고, 그 안의 SSH 또는 Windows 로그인, sudo 명령, 클라우드 감사 기록, 보안 제품의 CEF 또는 LEEF 기록, Palo Alto Networks, FortiGate, Cisco ASA 방화벽의 기록, Kubernetes 감사 기록, 웹 공격을 각각 보안 이벤트로 저장합니다. 종류별로 다루는 내용은 [보안 시작하기](/docs/telemetry/security-getting-started#로그에서-보안-이벤트-찾기)를 참고하세요.
 
 모든 종류는 일반 로그로 OneUptime에 도착합니다.
 
 | 종류 | 보내는 곳 |
 | --- | --- |
 | SSH 로그인, sudo | Linux 머신의 journal 또는 인증 로그를 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector)로 보냄 |
-| Windows 이벤트 | 머신에 있는 컬렉터의 `windowseventlog` 리시버, 또는 NXLog나 Winlogbeat처럼 각 이벤트를 JSON으로 쓰는 포워더 |
-| AWS CloudTrail | CloudWatch Logs로 전달되는 추적을 컬렉터의 `awscloudwatch` 리시버로 읽음 |
-| Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음 |
-| Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음 |
+| Windows 이벤트 | 머신에 있는 컬렉터의 `windowseventlog` 리시버, 또는 NXLog나 Winlogbeat처럼 각 이벤트를 JSON으로 쓰는 포워더. OneUptime에 추가한 [호스트](/docs/telemetry/hosts)는 Sysmon, Microsoft Defender, PowerShell이 있으면 그것도 읽습니다 |
+| AWS CloudTrail | CloudWatch Logs로 전달되는 추적을 컬렉터의 `awscloudwatch` 리시버로 읽음. **클라우드**에서 연결한 계정이면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
+| Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음. **클라우드**에서 연결한 프로젝트면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
+| Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음. **클라우드**에서 연결한 구독의 활동 로그면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | CEF, LEEF | 제품의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
+| Palo Alto Networks, FortiGate, Cisco ASA | 방화벽 자체의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
 | Kubernetes 감사 로그 | API 서버의 감사 로그 파일을 컬렉터의 `filelog` 리시버로 읽음 |
 | 웹 공격 | 웹 서버의 액세스 로그를 컬렉터의 `filelog` 리시버로 읽음 |
 
 **내 로그**에서는 종류마다 마지막으로 발견된 시각을 보여 주고, **로그 줄 확인**에서는 아직 아무것도 도착하지 않았어도 붙여 넣은 줄이 무엇이 되는지 보여 줍니다.
+
+CEF나 LEEF 탐지 결과, Palo Alto Networks, FortiGate, Cisco ASA의 위협처럼 보안 제품이 로그에 기록하는 위협은 연결된 제품의 알림처럼 [케이스](/docs/telemetry/security-cases)를 열고, 그 위협이 가리키는 사용자, 호스트, 주소의 위험을 높입니다. 어느 심각도부터 열지는 **내 로그**의 **케이스를 여는 심각도**에서 정하며, 다른 심각도를 고르지 않는 한 **높음 이상**이고 **없음**으로 둘 수도 있습니다. 제품의 로그인과 차단된 연결은 이벤트로 남아 규칙이 읽을 수 있습니다.
+
+두 가지 경로로 OneUptime에 도착하는 레코드는 한 번만 저장됩니다. 연결이 읽고 Azure가 로그로도 내보내는 Microsoft Entra ID 로그인, 또는 로그와 연결된 AWS 계정의 감사 로그 양쪽에 있는 CloudTrail 레코드가 그렇습니다.
+
+### 클라우드 계정의 감사 로그 읽기
+
+[**클라우드**에서 연결한](/docs/telemetry/cloud-accounts) AWS 계정, Google Cloud 프로젝트, Azure 구독에는 로그 파이프라인이 필요 없습니다. **연결**의 **Your OneUptime data**에서 **클라우드 감사 로그**를 켜면 계정을 읽을 때마다 그 감사 로그를 보안 이벤트로 보관합니다.
+
+| 클라우드 | 읽는 내용 |
+| --- | --- |
+| AWS | 계정이 쓰는 각 리전에서 무언가를 바꾸는 CloudTrail 관리 이벤트: 콘솔 로그인, 변경, AWS가 거부한 호출 |
+| Google Cloud | Admin Activity 감사 로그: 리소스 변경과 리소스에 접근할 수 있는 대상의 변경, Google이 거부한 호출 |
+| Azure | 활동 로그: 구독에서의 변경, 실패한 작업, Azure Policy 거부, Defender for Cloud 알림 |
+
+- 각 레코드는 **내 로그**가 파이프라인에서 읽는 것과 똑같이 읽히므로, 규칙 라이브러리의 CloudTrail, Google Cloud, Azure 규칙과 일치합니다.
+- 이벤트에는 저장된 시각이 찍히고, 레코드 자체의 시각은 `oneuptime.cloud.record_time`에 들어갑니다. 감사 로그는 몇 분 늦게 OneUptime에 도착하고, 규칙은 이벤트를 그 시각으로 읽기 때문입니다.
+- 계정 자체를 읽어서 얻는 것은 여기까지입니다. 데이터 이벤트, Data Access 로그, Microsoft Entra ID 로그에는 여전히 **내 로그**나 [연결](/docs/integrations/microsoft-entra-id)이 필요합니다.
 
 ### 보안 제품 연결하기
 
@@ -213,7 +232,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | Elastic Security | 탐지 알림을 Detection Finding으로 | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding을 Detection Finding과 Compliance Finding으로 | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 로그인, MFA, 계정, 정책 이벤트 | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | 로그인과 디렉터리 변경, 그리고 Microsoft 365 감사 로그의 메일 전달, 공유, 피싱 판정 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | 로그인, 디렉터리 변경, 위험 탐지, 선택하면 실패한 백그라운드 및 앱 로그인, 그리고 Microsoft 365 감사 로그의 메일 전달, 공유, 피싱 판정 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 로그인, Google 자체 탐지, 관리자 변경과 앱 액세스 허용, 드라이브 공유 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 제품 자체의 알림 중 **Open Cases From**(다른 수준을 고르지 않는 한 **높음 이상**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.

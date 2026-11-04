@@ -67,6 +67,7 @@ import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus"
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import {
   RESPONSE_TARGETS_COPY,
   RESPONSE_TARGET_DURATION_COPY,
@@ -380,9 +381,24 @@ describe("Security Cases and Playbooks docs", () => {
       "Detection rules",
       "Threat intelligence",
       "Connected products",
+      "Security products in your logs",
       "Entity risk",
       "People",
     ]);
+
+    const rowNamed: (name: string) => Array<string> = (
+      name: string,
+    ): Array<string> => {
+      const row: Array<string> | undefined = sourceRows.find(
+        (candidate: Array<string>): boolean => {
+          return candidate[0] === name;
+        },
+      );
+
+      expect({ name, found: Boolean(row) }).toEqual({ name, found: true });
+
+      return row as Array<string>;
+    };
 
     const rules: string = flat(
       source(`${DASHBOARD}/Pages/SecurityEvents/DetectionRules.tsx`),
@@ -431,7 +447,7 @@ describe("Security Cases and Playbooks docs", () => {
     expect(riskCopy).toContain(
       'export const RISK_CASES_CARD_TITLE: string = translationKey("Risk Cases");',
     );
-    expect(sourceRows[3]?.[2]).toBe(
+    expect(rowNamed("Entity risk")[2]).toBe(
       "**Risk Cases**, under **Settings → Risk Scoring**",
     );
 
@@ -442,6 +458,39 @@ describe("Security Cases and Playbooks docs", () => {
     expect(connections).toContain('High: translationKey("High and above"),');
     expect(page).toContain(
       "A connection opens cases for **High and above** unless you choose another level",
+    );
+
+    /*
+     * Your logs opens cases from the threats security products write in the
+     * logs, with a dropdown of its own on the Your logs card: from High
+     * unless someone picks another, and Never is the empty value.
+     */
+    const yourLogs: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityEvents/SecurityLogsCaseSeverity.tsx`,
+      ),
+    );
+    const yourLogsCard: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityEvents/SecurityLogsSourceCard.tsx`,
+      ),
+    );
+
+    expect(rowNamed("Security products in your logs")[2]).toBe(
+      "**Open cases from** set to **Never**, on **Your logs**",
+    );
+    expect(yourLogs).toContain('{translator.translateText("Open cases from")}');
+    expect(yourLogs).toContain('High: translationKey("High and above"),');
+    expect(yourLogs).toContain(
+      '[CASE_SEVERITY_NEVER]: translationKey("Never - keep them as events only"),',
+    );
+    expect(yourLogsCard).toContain("<SecurityLogsCaseSeverity");
+    expect(
+      new SecurityLogSource().getTableColumnMetadata("caseMinimumSeverity")
+        .defaultValue,
+    ).toBe("High");
+    expect(page).toContain(
+      "**Your logs** does the same for the threats in your logs.",
     );
   });
 

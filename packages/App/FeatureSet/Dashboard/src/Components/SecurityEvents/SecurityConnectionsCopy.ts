@@ -315,3 +315,18 @@ export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
     ),
   },
 };
+
+/*
+ * The Cloud options of the Microsoft connections, in the connector
+ * catalog's words: the form's dropdown draws each option through the
+ * locales. The Azure public cloud and Azure Government (US) are labels of
+ * the AI connections' form too; these put Microsoft Entra ID's Microsoft 365
+ * GCC, GCC High and DoD clouds in the locale files with them.
+ */
+export const SECURITY_EVENT_CONNECTION_CLOUD_TEXTS: Array<string> = [
+  translationKey("Azure public cloud"),
+  translationKey("Azure Government (US)"),
+  translationKey("Azure public cloud, Microsoft 365 GCC"),
+  translationKey("Azure Government (US), GCC High"),
+  translationKey("Azure Government (US), DoD"),
+];

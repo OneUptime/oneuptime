@@ -64,10 +64,17 @@ Kortet **Loggene dine**, øverst på **Tilkoblinger**, trenger ingen installasjo
 | Azure-aktivitetslogger og Entra ID-logger | Endringer i Azure-abonnementene dine, varsler fra Defender for Cloud, og pålogginger og katalogendringer i Microsoft Entra ID |
 | CEF | Trusler, blokkerte tilkoblinger og pålogginger fra brannmurer, IDS, WAF-er og andre sikkerhetsprodukter som sender Common Event Format |
 | LEEF | Det samme fra produkter som sender Log Event Extended Format, slik mange gjør for IBM QRadar |
+| Palo Alto Networks | Trusler, blokkerte tilkoblinger, GlobalProtect- og administratorpålogginger og konfigurasjonsendringer fra PAN-OS' egen syslog |
+| Fortinet FortiGate | IPS- og antivirusfunn, avvist trafikk, VPN- og administratorpålogginger og konfigurasjonsendringer fra FortiGates egen syslog |
+| Cisco ASA | Avviste tilkoblinger, funn fra trusseloppdagelse og IPS, VPN- og administratorpålogginger og kommandoer fra Cisco ASA og Firepower Threat Defense |
 | Kubernetes-revisjonslogger | Endringer i klyngen, skall åpnet i pods, leste hemmeligheter og avviste forespørsler |
 | Webangrep | Forespørsler i en webservers tilgangslogg som prøver SQL-injeksjon, path traversal eller Log4Shell |
 
 Loggene dine forblir som de er. Bare linjene som betyr noe for sikkerheten, blir hendelser: aldri hver side en webserver har levert, eller hver lesing av et API.
+
+En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller et IPS-funn fra en FortiGate, åpner en sak slik et tilkoblet produkts varsel gjør. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**.
+
+En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er koblet til under **Sky**, trenger ingen loggpipeline: Slå på **Skyrevisjonslogger** under **Your OneUptime data** på **Tilkoblinger**, så leses revisjonsloggen sammen med kontoen. Se [Les revisjonsloggene til skykontoene dine](/docs/telemetry/security-events#les-revisjonsloggene-til-skykontoene-dine).
 
 ## Send det OneUptime finner til SIEM-et ditt
 
@@ -88,7 +95,7 @@ Saken åpnes som regel før knappen svarer; når regelen fortsatt henger etter, 
 :::
 
 :::details Det kommer ingen sikkerhetshendelse fra loggene mine
-Sjekk at **Finn sikkerhetshendelser i loggene dine** er slått på, og at kortet **Loggene dine** viser når det sist ble sjekket. Bare typene linjer i tabellen over blir hendelser: En server som ikke sender SSH-, sudo-, Windows-, revisjons-, CEF-, LEEF- eller tilgangslogger, har ingenting å finne. Lim inn en av linjene i **Sjekk en logglinje** på **Loggene dine** for å se om OneUptime leser den.
+Sjekk at **Finn sikkerhetshendelser i loggene dine** er slått på, og at kortet **Loggene dine** viser når det sist ble sjekket. Bare typene linjer i tabellen over blir hendelser: En server som ikke sender SSH-, sudo-, Windows-, revisjons-, CEF-, LEEF-, brannmur- eller tilgangslogger, har ingenting å finne. Lim inn en av linjene i **Sjekk en logglinje** på **Loggene dine** for å se om OneUptime leser den.
 :::
 
 :::details Oversikt sier at den siste sikkerhetshendelsen kom for dager siden

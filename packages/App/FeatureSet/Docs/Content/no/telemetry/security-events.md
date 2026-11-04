@@ -182,22 +182,41 @@ Siden **Oppsettveiledning**, under **Tilkoblinger**, har disse kodesnuttene med 
 
 ### Finn sikkerhetshendelser i loggene dine
 
-Kortet **Loggene dine**, øverst på **Tilkoblinger**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH- eller Windows-pålogging, sudo-kommando, revisjonsoppføring fra en sky, CEF- eller LEEF-oppføring fra et sikkerhetsprodukt, Kubernetes-revisjonsoppføring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
+Kortet **Loggene dine**, øverst på **Tilkoblinger**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH- eller Windows-pålogging, sudo-kommando, revisjonsoppføring fra en sky, CEF- eller LEEF-oppføring fra et sikkerhetsprodukt, oppføring fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-brannmur, Kubernetes-revisjonsoppføring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
 
 Hver type når OneUptime som vanlige logger:
 
 | Type | Send den fra |
 | --- | --- |
 | SSH-pålogginger, sudo | Journalen eller auth-loggen til en Linux-maskin, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows-hendelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender som skriver hver hendelse som JSON, for eksempel NXLog eller Winlogbeat |
-| AWS CloudTrail | Et trail levert til CloudWatch Logs, lest av collectorens `awscloudwatch`-receiver |
-| Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text` |
-| Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw` |
+| Windows-hendelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender som skriver hver hendelse som JSON, for eksempel NXLog eller Winlogbeat. En [vert](/docs/telemetry/hosts) som er lagt til i OneUptime, leser også Sysmon, Microsoft Defender og PowerShell der den har dem |
+| AWS CloudTrail | Et trail levert til CloudWatch Logs, lest av collectorens `awscloudwatch`-receiver, eller, for en konto som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et prosjekt som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller, for aktivitetsloggen til et abonnement som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
 | CEF, LEEF | Produktets syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | Brannmurens egen syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-revisjonslogger | Revisjonsloggfilen til API-serveren, lest av collectorens `filelog`-receiver |
 | Webangrep | Tilgangsloggen til en webserver, lest av collectorens `filelog`-receiver |
 
 På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en logglinje** viser hva en linje du limer inn, blir til, før noen kommer.
+
+En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åpner en [sak](/docs/telemetry/security-cases) slik et tilkoblet produkts varsel gjør, og øker risikoen for brukeren, verten eller adressen den nevner. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**. Produktets pålogginger og blokkerte tilkoblinger forblir hendelser som reglene dine kan lese.
+
+En oppføring som når OneUptime på to måter, lagres én gang: en Microsoft Entra ID-pålogging som tilkoblingen leser, og som Azure også eksporterer til loggene dine, eller en CloudTrail-oppføring i loggene dine og i revisjonsloggen til en tilkoblet AWS-konto.
+
+### Les revisjonsloggene til skykontoene dine
+
+En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet til under **Sky**](/docs/telemetry/cloud-accounts), trenger ingen loggpipeline. Slå på **Skyrevisjonslogger** under **Your OneUptime data** på **Tilkoblinger**, så tar hver lesing av kontoen vare på revisjonsloggen som sikkerhetshendelser:
+
+| Sky | Hva som leses |
+| --- | --- |
+| AWS | CloudTrails administrasjonshendelser som endrer noe, i hver region kontoen bruker: pålogginger til konsollen, endringer og kall som AWS avviste |
+| Google Cloud | Revisjonsloggen Admin Activity: endringer i ressurser og i hvem som kan nå dem, og kall som Google avviste |
+| Azure | Aktivitetsloggen: endringer i abonnementet, operasjoner som mislyktes, avvisninger fra Azure Policy og varsler fra Defender for Cloud |
+
+- Hver oppføring leses slik **Loggene dine** leser den fra en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- og Azure-regler treffer den.
+- En hendelse får tidspunktet da den lagres, med oppføringens egen tid i `oneuptime.cloud.record_time`: En revisjonslogg når OneUptime minutter for sent, og en regel leser hendelser etter tiden deres.
+- Kontoens egen lesing gir ikke mer: datahendelser, Data Access-logger og loggene til Microsoft Entra ID trenger fortsatt **Loggene dine** eller en [tilkobling](/docs/integrations/microsoft-entra-id).
 
 ### Koble til et sikkerhetsprodukt
 
@@ -213,7 +232,7 @@ På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en log
 | Elastic Security | Deteksjonsvarsler, som Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, som Detection og Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Hendelser for pålogging, MFA, kontoer og policyer | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Pålogginger og katalogendringer, og fra Microsoft 365-revisjonsloggen videresending av e-post, deling og phishingdommer | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Pålogginger, katalogendringer og risikoregistreringer, om du vil mislykkede bakgrunns- og apppålogginger, og fra Microsoft 365-revisjonsloggen videresending av e-post, deling og phishingdommer | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Pålogginger, Googles egne funn, administratorendringer og apptilgang, og deling i Disk | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Produktets egne varsler på eller over **Open Cases From** (**Høy og høyere** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
