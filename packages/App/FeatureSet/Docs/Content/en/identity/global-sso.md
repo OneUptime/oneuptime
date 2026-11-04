@@ -162,7 +162,7 @@ Each response from your identity provider signs someone in once, and only within
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-The whole instance requires SSO, and this was a sign-in with a password, a passkey, Google or Microsoft, or a sign-up. Sign in with one of the SSO buttons on the sign-in page instead. A master admin signs in with their password at `/accounts/admin-login`; to let everyone sign in with a password again, they turn off **Require SSO for Login** on **Single Sign-On**.
+The whole instance requires SSO, and this was a sign-in with a password, a passkey, an emailed link, Google or Microsoft, or a sign-up. Sign in with one of the SSO buttons on the sign-in page instead. A master admin signs in with their password at `/accounts/admin-login`; to let everyone sign in with a password again, they turn off **Require SSO for Login** on **Single Sign-On**.
 :::
 
 ## Next steps

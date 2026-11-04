@@ -8,13 +8,15 @@
  * project's Dockerfile from the files beside it, without internet access, and
  * that Dockerfile copies what it ships out of the release's image on Docker
  * Hub, which hardening_manifest.yaml lists as a resource pinned by digest
- * (IronBank/README.md). So moving a project to another release changes seven
- * values in two files, and this changes them together:
+ * (IronBank/README.md). So moving a project to another release changes eight
+ * values in three files, and this changes them together:
  *
  *   hardening_manifest.yaml  the first tag, the version label, and the
  *                            release resource's tag and digest
  *   Dockerfile               the release stage's FROM, APP_VERSION, GIT_SHA
  *                            and the revision label
+ *   ../values.yaml           the tag of the project's image in the Helm values
+ *                            that run OneUptime from Iron Bank
  *
  * PROJECTS says which image each project copies: the App's Enterprise Edition
  * (enterprise-<version>), the ingress (oneuptime/nginx), the runner and the
@@ -49,8 +51,9 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 /*
  * Each Iron Bank project, by its folder under IronBank/: the release image it
- * copies, the prefix of that image's tags, and the edition its
- * com.oneuptime.edition label must say (null for images that have none).
+ * copies, the prefix of that image's tags, the edition its
+ * com.oneuptime.edition label must say (null for images that have none), and
+ * its key in the Helm chart's image.overrides.
  */
 const PROJECTS = {
   // The release workflow tags the Enterprise Edition image enterprise-<version>.
@@ -58,10 +61,26 @@ const PROJECTS = {
     repository: "oneuptime/app",
     tagPrefix: "enterprise-",
     edition: "enterprise",
+    helmKey: "app",
   },
-  Ingress: { repository: "oneuptime/nginx", tagPrefix: "", edition: null },
-  Runner: { repository: "oneuptime/runner", tagPrefix: "", edition: null },
-  Probe: { repository: "oneuptime/probe", tagPrefix: "", edition: null },
+  Ingress: {
+    repository: "oneuptime/nginx",
+    tagPrefix: "",
+    edition: null,
+    helmKey: "nginx",
+  },
+  Runner: {
+    repository: "oneuptime/runner",
+    tagPrefix: "",
+    edition: null,
+    helmKey: "runner",
+  },
+  Probe: {
+    repository: "oneuptime/probe",
+    tagPrefix: "",
+    edition: null,
+    helmKey: "probe",
+  },
 };
 
 const PLATFORM = { os: "linux", architecture: "amd64" };
@@ -84,6 +103,7 @@ const ATTEMPTS = 4;
 const FILES = {
   manifest: "hardening_manifest.yaml",
   dockerfile: "Dockerfile",
+  values: path.join("..", "values.yaml"),
 };
 
 function escapeRegExp(text) {
@@ -159,15 +179,24 @@ function fieldsFor(project) {
         },
       },
     ],
+    values: [
+      {
+        name: `the ${project.helmKey} image`,
+        pattern: new RegExp(`^( {4}${project.helmKey}: [^\\s:]+:)\\S+$`, "m"),
+        replace: (groups, release) => {
+          return `${groups[1]}${release.version}`;
+        },
+      },
+    ],
   };
 }
 
 /**
  * The files' text pinned to a release.
- * @param {{manifest: string, dockerfile: string}} files - Their current text
+ * @param {{manifest: string, dockerfile: string, values: string}} files - Their current text
  * @param {{version: string, digest: string, gitSha: string}} release
  * @param {object} [project] - One of PROJECTS (the App by default)
- * @returns {{manifest: string, dockerfile: string}}
+ * @returns {{manifest: string, dockerfile: string, values: string}}
  */
 function pin(files, release, project = PROJECTS.App) {
   if (!VERSION.test(release.version)) {

@@ -36,10 +36,12 @@ you do, and so does the unit suite anywhere it has to install the plugin.
 | `extra-values`      | no              | `extraEnv`/`extraVolumes`/`extraVolumeMounts` reach every workload the chart renders, and no more |
 | `vapid-existing-secret` | no          | with `vapid.existingSecret`, every workload given the VAPID private key reads it from that Secret and none as a plain value; without it the render does not change |
 | `air-gapped`        | no              | the air-gapped installs the website shows ([`Tests/air-gapped-values.yaml`](Tests/air-gapped-values.yaml), and [`Tests/kubernetes-agent-air-gapped-values.yaml`](Tests/kubernetes-agent-air-gapped-values.yaml) for the agent chart): every image from the customer's registry, the pull secret on every pod the chart defines, the update check and the daily check-in off, no public nameserver for a probe, and probes and webhooks allowed to reach private addresses; without `imagePullSecrets` the chart writes none |
+| `iron-bank`         | no              | the install that runs OneUptime from Iron Bank ([`IronBank/values.yaml`](../IronBank/values.yaml)): every image from Registry1, the pull secret on every pod, each datastore as its image's user |
 | `marketplace`       | no              | the AWS, Microsoft and Google Cloud Marketplace editions [`Marketplace/build.py`](Marketplace/build.py) makes of the chart, and the Kubernetes agent's Amazon EKS add-on: its unit tests, then each edition rendered and checked the way that marketplace checks it at submission |
 | `secrets-lifecycle` | yes             | installs and upgrades the chart for real, to cover Secret handling across an upgrade  |
 | `keda-bootstrap`    | yes             | the KEDA CRD bootstrap and the `keda.install` / `keda.enabled` split, against a real API server |
 | `gitops-revert`     | yes (opt-in)    | Argo CD, Flux and Helm against the kubectl fixes OneUptime AI makes: which fixes each one puts back to what git (or the chart) declares, and how fast, and the ownership markers OneUptime reads to tell (`packages/Common/Utils/AiRemediation/GitOpsOwnership.ts`) |
+| `iron-bank-install` | yes (opt-in)    | installs the chart with those values and checks that it works on Iron Bank's datastores; needs a Registry1 account, and runs in the Iron Bank Preflight workflow |
 
 Run one suite, or keep the cluster around to poke at a failure:
 
