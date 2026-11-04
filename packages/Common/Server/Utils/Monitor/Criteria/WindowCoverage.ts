@@ -53,7 +53,7 @@ export interface WindowCoverageInput {
 }
 
 export interface WindowCoverageArrival {
-  // How long before the readings were read nothing new had arrived.
+  // How long before the end of the window nothing new had arrived.
   sinceNewestArrivalMs: number;
   /*
    * How often readings arrive, when that is coarser than how often they are
