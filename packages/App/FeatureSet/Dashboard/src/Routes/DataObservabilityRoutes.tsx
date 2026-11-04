@@ -160,18 +160,24 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
-        {page(
-          PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW,
-          (pageRoute: Route) => {
-            return (
-              <DataObservabilityOwnerRulesPage
-                {...props}
-                pageRoute={pageRoute}
-                ruleViewModelType={DataAssetOwnerRule}
-              />
-            );
-          },
-        )}
+        <PageRoute
+          path={
+            DataObservabilityRoutePath[
+              PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <DataObservabilityOwnerRulesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={DataAssetOwnerRule}
+            />
+          }
+        />
         {page(
           PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES,
           (pageRoute: Route) => {
@@ -183,18 +189,24 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
-        {page(
-          PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW,
-          (pageRoute: Route) => {
-            return (
-              <DataObservabilityLabelRulesPage
-                {...props}
-                pageRoute={pageRoute}
-                ruleViewModelType={DataAssetLabelRule}
-              />
-            );
-          },
-        )}
+        <PageRoute
+          path={
+            DataObservabilityRoutePath[
+              PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <DataObservabilityLabelRulesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={DataAssetLabelRule}
+            />
+          }
+        />
         {page(PageMap.DATA_OBSERVABILITY_SETTINGS, (pageRoute: Route) => {
           return (
             <DataObservabilitySettingsPage {...props} pageRoute={pageRoute} />

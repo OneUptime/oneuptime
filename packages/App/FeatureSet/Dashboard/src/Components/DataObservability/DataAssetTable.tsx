@@ -1,8 +1,12 @@
 import { formatRowCount, formatSize } from "./DataObservabilityFormat";
 import FreshnessPill from "./FreshnessPill";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam";
+import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataAssetKind, {
@@ -46,6 +50,22 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
     : props.dataStoreId
       ? "data-observability-store-tables"
       : "data-observability-tables";
+  const {
+    onResourcesFetched,
+    getOwnersForResource,
+    isLoadingOwners,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<DataAsset>({
+    persistKey: listKey,
+    ownerUserModelType: DataAssetOwnerUser,
+    ownerTeamModelType: DataAssetOwnerTeam,
+    resourceIdField: "dataAssetId",
+    showLabelsFacet: true,
+  });
 
   return (
     <ModelTable<DataAsset>
@@ -63,10 +83,17 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
             ? "data-observability-store-tables"
             : "data-observability-tables"
       }
-      query={{
+      topContent={filterBar}
+      emptyState={facetEmptyState}
+      currentFacetState={facetSaveState}
+      onFacetStateRestored={restoreFacetState}
+      query={mergeFiltersIntoQuery({
         ...(projectId ? { projectId: projectId } : {}),
         ...(props.dataStoreId ? { dataStoreId: props.dataStoreId } : {}),
         isDropped: props.isDropped,
+      })}
+      onFetchSuccess={(data: Array<DataAsset>) => {
+        onResourcesFetched(data);
       }}
       isDeleteable={false}
       isEditable={false}
@@ -210,6 +237,21 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
                 kind={asset.assetKind}
                 lastChangedAt={asset.lastChangedAt}
                 updateIntervalInSeconds={asset.updateIntervalInSeconds}
+              />
+            );
+          },
+        },
+        {
+          field: { _id: true },
+          title: "Owners",
+          type: FieldType.Element,
+          hideOnMobile: true,
+          isHiddenByDefault: true,
+          getElement: (item: DataAsset): ReactElement => {
+            return (
+              <OwnersCell
+                owners={getOwnersForResource(item)}
+                isLoading={isLoadingOwners}
               />
             );
           },

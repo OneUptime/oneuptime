@@ -6,10 +6,11 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import DataAlert from "../../Models/DatabaseModels/DataAlert";
 import DataAssetLineage from "../../Models/DatabaseModels/DataAssetLineage";
 import Model from "../../Models/DatabaseModels/DataIssueReport";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -21,20 +22,29 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * No caller may write this, so it is written once the create is permitted:
+   * written before, it would be held against the reporter's column permissions.
+   */
   @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    await super.onBeforeCreate(createBy);
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
 
-    if (createBy.data.projectId && createBy.data.dataAssetId) {
-      createBy.data.wasCaughtFirst = await this.isAlreadyRaised(
-        createBy.data.projectId,
-        createBy.data.dataAssetId,
+    const data: Model = onCreate.createBy.data;
+    const dataAssetId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as JSONObject,
+      ["dataAssetId", "dataAsset"],
+      "table",
+    );
+
+    if (data.projectId && dataAssetId) {
+      data.wasCaughtFirst = await this.isAlreadyRaised(
+        data.projectId,
+        dataAssetId,
       );
     }
-
-    return { createBy, carryForward: undefined };
   }
 
   private async isAlreadyRaised(

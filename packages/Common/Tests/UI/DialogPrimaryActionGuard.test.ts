@@ -83,6 +83,12 @@ interface AllowedRepeatedButton {
 
 const ALLOWED_REPEATED_FILLED_BUTTONS: Array<AllowedRepeatedButton> = [
   {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/DataObservability/DataAlertExplanationCard.tsx",
+    label: "button.feedback",
+    reason:
+      "A choice of one answer, not a list of actions: only the answer the alert already has is drawn filled.",
+  },
+  {
     file: "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySetupGuide.tsx",
     label: "Watch it",
     reason:
@@ -104,6 +110,12 @@ interface AllowedButtonGroup {
 }
 
 const ALLOWED_BUTTON_GROUPS: Array<AllowedButtonGroup> = [
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/DataObservability/DataAlertExplanationCard.tsx",
+    labels: "Yes | No",
+    reason:
+      "A yes or no answer, not a row of actions: only the answer already given is drawn filled, so never both.",
+  },
   {
     file: "packages/Common/UI/Components/Date/StartAndEndDate.tsx",
     labels:

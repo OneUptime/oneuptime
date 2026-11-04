@@ -416,7 +416,10 @@ import SecurityCaseCustomFieldService from "./SecurityCaseCustomFieldService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
+import DataBiConnectionService from "./DataBiConnectionService";
+import DataDashboardService from "./DataDashboardService";
 import DataStoreService from "./DataStoreService";
+import DataWarehouseJobService from "./DataWarehouseJobService";
 import DataStoreFindingService from "./DataStoreFindingService";
 import DataStoreAccessService from "./DataStoreAccessService";
 import DataSecurityIdentityService from "./DataSecurityIdentityService";
@@ -988,7 +991,10 @@ const services: Array<BaseService> = [
   SecurityPlaybookRunService,
 
   // Data Security (DSPM)
+  DataBiConnectionService,
+  DataDashboardService,
   DataStoreService,
+  DataWarehouseJobService,
   DataStoreFindingService,
   DataStoreAccessService,
   DataSecurityIdentityService,

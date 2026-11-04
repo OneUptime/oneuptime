@@ -4,203 +4,554 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Table owners and rules, feedback on data alerts, problems people report,
  * column lineage, storage paths, and the check options that came with them.
  */
-export class AddDataAssetOwnersAndFeedback1808992700000 implements MigrationInterface {
-    public name: string = 'AddDataAssetOwnersAndFeedback1808992700000';
+export class AddDataAssetOwnersAndFeedback1808992700000
+  implements MigrationInterface
+{
+  public name: string = "AddDataAssetOwnersAndFeedback1808992700000";
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "DataIssueReport" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "dataAssetId" uuid NOT NULL, "note" character varying(500) NOT NULL, "wasCaughtFirst" boolean NOT NULL DEFAULT false, "createdByUserId" uuid, CONSTRAINT "PK_7a15b5906a7fbeb2c93ddfb04ba" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_c814bc77af1604dd192065f14f" ON "DataIssueReport" ("dataAssetId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c059b41d58d9eed84adba0e24e" ON "DataIssueReport" ("projectId", "createdAt") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetOwnerUser" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "userId" uuid NOT NULL, "dataAssetId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_422432acb50331b16213df37f68" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_b817092ccecf383fe47d4c6b1a" ON "DataAssetOwnerUser" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_4a3533e0c81fe2da71832d84d9" ON "DataAssetOwnerUser" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_66c83bcabc2cb611eff1535324" ON "DataAssetOwnerUser" ("dataAssetId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_dc0612e1a68fba22c9f25401e8" ON "DataAssetOwnerUser" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_a324b5a92a498618b272ff9ea6" ON "DataAssetOwnerUser" ("dataAssetId", "userId", "projectId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetOwnerTeam" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "teamId" uuid NOT NULL, "dataAssetId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_1e5bf0903acffffefcd957538b5" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_eb46529c72807821fc36db06be" ON "DataAssetOwnerTeam" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_d8205a4d32ee738038f4941fb7" ON "DataAssetOwnerTeam" ("teamId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f23ea7e7c28066d8c783459541" ON "DataAssetOwnerTeam" ("dataAssetId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_732117c524472d65571390bd1a" ON "DataAssetOwnerTeam" ("isOwnerNotified") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_455c6104f9ac255a97af105b37" ON "DataAssetOwnerTeam" ("dataAssetId", "teamId", "projectId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetOwnerRule" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "criteria" jsonb, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(500), "isEnabled" boolean NOT NULL DEFAULT true, "notifyOwners" boolean NOT NULL DEFAULT true, "nameRegexPattern" character varying(500), "schemaRegexPattern" character varying(500), "databaseRegexPattern" character varying(500), "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_d03be938bdd0006be99adbb6737" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_c4eec725b3eebedabfea3893a7" ON "DataAssetOwnerRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_7bce3a97f16672023a4e8511a1" ON "DataAssetOwnerRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_056c5a19ca9d0bfac8f69a7cbc" ON "DataAssetOwnerRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetLabelRule" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "criteria" jsonb, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(500), "isEnabled" boolean NOT NULL DEFAULT true, "nameRegexPattern" character varying(500), "schemaRegexPattern" character varying(500), "databaseRegexPattern" character varying(500), "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_19523a34a619b7d8f4e93b028be" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_2776b9890bdf5141d89f2d0269" ON "DataAssetLabelRule" ("projectId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_563e81b6b0968e64928d328b33" ON "DataAssetLabelRule" ("name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e7d3aa98b13ef2bdf1afd48c17" ON "DataAssetLabelRule" ("isEnabled") `);
-        await queryRunner.query(`CREATE TABLE "DataObservabilitySetting" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "maxGigabytesScannedPerCheck" integer NOT NULL DEFAULT '10', "waitWhenDatabaseIsBusy" boolean NOT NULL DEFAULT true, "keepFailingRows" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_bbe5e68e0258293a520d4cea7df" PRIMARY KEY ("_id"))`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_5885adea95ce946d39ad7a6673" ON "DataObservabilitySetting" ("projectId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetLabel" ("dataAssetId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_609016449e2416981d635e6edb7" PRIMARY KEY ("dataAssetId", "labelId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_fec03d3657c10f43eafc60643d" ON "DataAssetLabel" ("dataAssetId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_19f90ec0aa21c6ba9df530a92a" ON "DataAssetLabel" ("labelId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetOwnerRuleMatchLabel" ("dataAssetOwnerRuleId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_de9ee88fed9048567ae95023396" PRIMARY KEY ("dataAssetOwnerRuleId", "labelId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_69389bd71ee3e318516a38510c" ON "DataAssetOwnerRuleMatchLabel" ("dataAssetOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_6c71b2b8710676450af9430761" ON "DataAssetOwnerRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetOwnerRuleUser" ("dataAssetOwnerRuleId" uuid NOT NULL, "userId" uuid NOT NULL, CONSTRAINT "PK_8a0906119e8ca3198bd5fdfeaed" PRIMARY KEY ("dataAssetOwnerRuleId", "userId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_528ae0d9b5c5a7d5eb359741ff" ON "DataAssetOwnerRuleUser" ("dataAssetOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_e87abf902ad2247b195a07494e" ON "DataAssetOwnerRuleUser" ("userId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetOwnerRuleTeam" ("dataAssetOwnerRuleId" uuid NOT NULL, "teamId" uuid NOT NULL, CONSTRAINT "PK_8692bbfbfc6788b2a30e0dad488" PRIMARY KEY ("dataAssetOwnerRuleId", "teamId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_02246965b3a23b36462257aec9" ON "DataAssetOwnerRuleTeam" ("dataAssetOwnerRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b6bd1d5dca498ce5815fb261c9" ON "DataAssetOwnerRuleTeam" ("teamId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetLabelRuleMatchLabel" ("dataAssetLabelRuleId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_b83a2683096806f9c46ffe16c6c" PRIMARY KEY ("dataAssetLabelRuleId", "labelId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_a3d9a565d71d7cf235da8d9605" ON "DataAssetLabelRuleMatchLabel" ("dataAssetLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_41e7127c04298404205307ec80" ON "DataAssetLabelRuleMatchLabel" ("labelId") `);
-        await queryRunner.query(`CREATE TABLE "DataAssetLabelRuleAddLabel" ("dataAssetLabelRuleId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_b843f5760ec6f674c737e1adc63" PRIMARY KEY ("dataAssetLabelRuleId", "labelId"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_b2fc90edeb3dd0bf814ccbe6a3" ON "DataAssetLabelRuleAddLabel" ("dataAssetLabelRuleId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_70cbd6a918a582e2c0eaf94398" ON "DataAssetLabelRuleAddLabel" ("labelId") `);
-        await queryRunner.query(`ALTER TABLE "DataStore" ADD "watchedPaths" text`);
-        await queryRunner.query(`ALTER TABLE "DataPipelineRun" ADD "attemptNumber" integer`);
-        await queryRunner.query(`ALTER TABLE "DataPipelineRun" ADD "traceId" character varying(100)`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" ADD "formatPreset" character varying(100)`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" ADD "samplePercent" numeric`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" ADD "failingRowsSample" jsonb`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" ADD "isManagedByFile" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "DataAssetUsage" ADD "isAiApp" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "ScheduledMaintenance" ADD "dataStoreIds" jsonb`);
-        await queryRunner.query(`ALTER TABLE "Project" ADD "currentWatchedTablesCount" integer`);
-        await queryRunner.query(`ALTER TABLE "DataStore" ADD "newPersonalDataColumns" jsonb`);
-        await queryRunner.query(`ALTER TABLE "DataAsset" ADD "rowCountChangeTolerancePercent" integer`);
-        await queryRunner.query(`ALTER TABLE "DataAsset" ADD "freshnessColumn" character varying(100)`);
-        await queryRunner.query(`ALTER TABLE "DataAssetUsage" ADD "endpoints" jsonb`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLineage" ADD "columnMappings" jsonb`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" ADD "feedback" character varying(100)`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" ADD "feedbackAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" ADD "feedbackByUserId" uuid`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" ADD "isCauseConfirmed" boolean`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" ADD "detectedAfterInSeconds" integer`);
-        await queryRunner.query(`ALTER TABLE "DataIssueReport" ADD CONSTRAINT "FK_85b4ec666eb1be0fe2fa84cad9f" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataIssueReport" ADD CONSTRAINT "FK_c814bc77af1604dd192065f14f1" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataIssueReport" ADD CONSTRAINT "FK_dc01cba2627a1134fd31d28dd44" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_b817092ccecf383fe47d4c6b1a1" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_4a3533e0c81fe2da71832d84d95" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_66c83bcabc2cb611eff15353244" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_b2ed9bb54014a45e9ba2f594f4f" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_9e7978b4de8192022fb7604000d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_eb46529c72807821fc36db06bec" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_d8205a4d32ee738038f4941fb7d" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_f23ea7e7c28066d8c783459541b" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_b416937baf4b7332b8b77d4c449" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_399c9cdde8b479e635a1d990d13" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRule" ADD CONSTRAINT "FK_c4eec725b3eebedabfea3893a7c" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRule" ADD CONSTRAINT "FK_f802c65dda63d8dcd308a764ee5" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRule" ADD CONSTRAINT "FK_3c987f15fb20ff37af4e3f7b51b" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRule" ADD CONSTRAINT "FK_2776b9890bdf5141d89f2d02690" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRule" ADD CONSTRAINT "FK_a4ce1e229b3df75143e0e279ec2" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRule" ADD CONSTRAINT "FK_64ca26af0890939f02732f01c4d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataObservabilitySetting" ADD CONSTRAINT "FK_5885adea95ce946d39ad7a66734" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabel" ADD CONSTRAINT "FK_fec03d3657c10f43eafc60643d5" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabel" ADD CONSTRAINT "FK_19f90ec0aa21c6ba9df530a92a2" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleMatchLabel" ADD CONSTRAINT "FK_69389bd71ee3e318516a38510c3" FOREIGN KEY ("dataAssetOwnerRuleId") REFERENCES "DataAssetOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleMatchLabel" ADD CONSTRAINT "FK_6c71b2b8710676450af9430761e" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleUser" ADD CONSTRAINT "FK_528ae0d9b5c5a7d5eb359741ff6" FOREIGN KEY ("dataAssetOwnerRuleId") REFERENCES "DataAssetOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleUser" ADD CONSTRAINT "FK_e87abf902ad2247b195a07494e9" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleTeam" ADD CONSTRAINT "FK_02246965b3a23b36462257aec91" FOREIGN KEY ("dataAssetOwnerRuleId") REFERENCES "DataAssetOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleTeam" ADD CONSTRAINT "FK_b6bd1d5dca498ce5815fb261c93" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleMatchLabel" ADD CONSTRAINT "FK_a3d9a565d71d7cf235da8d9605b" FOREIGN KEY ("dataAssetLabelRuleId") REFERENCES "DataAssetLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleMatchLabel" ADD CONSTRAINT "FK_41e7127c04298404205307ec803" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleAddLabel" ADD CONSTRAINT "FK_b2fc90edeb3dd0bf814ccbe6a37" FOREIGN KEY ("dataAssetLabelRuleId") REFERENCES "DataAssetLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleAddLabel" ADD CONSTRAINT "FK_70cbd6a918a582e2c0eaf943989" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`);
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `CREATE TABLE "DataIssueReport" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "dataAssetId" uuid NOT NULL, "note" character varying(500) NOT NULL, "wasCaughtFirst" boolean NOT NULL DEFAULT false, "createdByUserId" uuid, CONSTRAINT "PK_7a15b5906a7fbeb2c93ddfb04ba" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c814bc77af1604dd192065f14f" ON "DataIssueReport" ("dataAssetId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c059b41d58d9eed84adba0e24e" ON "DataIssueReport" ("projectId", "createdAt") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetOwnerUser" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "userId" uuid NOT NULL, "dataAssetId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_422432acb50331b16213df37f68" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b817092ccecf383fe47d4c6b1a" ON "DataAssetOwnerUser" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_4a3533e0c81fe2da71832d84d9" ON "DataAssetOwnerUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_66c83bcabc2cb611eff1535324" ON "DataAssetOwnerUser" ("dataAssetId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_dc0612e1a68fba22c9f25401e8" ON "DataAssetOwnerUser" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_a324b5a92a498618b272ff9ea6" ON "DataAssetOwnerUser" ("dataAssetId", "userId", "projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetOwnerTeam" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "teamId" uuid NOT NULL, "dataAssetId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_1e5bf0903acffffefcd957538b5" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_eb46529c72807821fc36db06be" ON "DataAssetOwnerTeam" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_d8205a4d32ee738038f4941fb7" ON "DataAssetOwnerTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f23ea7e7c28066d8c783459541" ON "DataAssetOwnerTeam" ("dataAssetId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_732117c524472d65571390bd1a" ON "DataAssetOwnerTeam" ("isOwnerNotified") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_455c6104f9ac255a97af105b37" ON "DataAssetOwnerTeam" ("dataAssetId", "teamId", "projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetOwnerRule" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "criteria" jsonb, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(500), "isEnabled" boolean NOT NULL DEFAULT true, "notifyOwners" boolean NOT NULL DEFAULT true, "nameRegexPattern" character varying(500), "schemaRegexPattern" character varying(500), "databaseRegexPattern" character varying(500), "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_d03be938bdd0006be99adbb6737" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c4eec725b3eebedabfea3893a7" ON "DataAssetOwnerRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_7bce3a97f16672023a4e8511a1" ON "DataAssetOwnerRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_056c5a19ca9d0bfac8f69a7cbc" ON "DataAssetOwnerRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetLabelRule" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "criteria" jsonb, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(500), "isEnabled" boolean NOT NULL DEFAULT true, "nameRegexPattern" character varying(500), "schemaRegexPattern" character varying(500), "databaseRegexPattern" character varying(500), "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_19523a34a619b7d8f4e93b028be" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_2776b9890bdf5141d89f2d0269" ON "DataAssetLabelRule" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_563e81b6b0968e64928d328b33" ON "DataAssetLabelRule" ("name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e7d3aa98b13ef2bdf1afd48c17" ON "DataAssetLabelRule" ("isEnabled") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataObservabilitySetting" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "maxGigabytesScannedPerCheck" integer NOT NULL DEFAULT '10', "waitWhenDatabaseIsBusy" boolean NOT NULL DEFAULT true, "keepFailingRows" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_bbe5e68e0258293a520d4cea7df" PRIMARY KEY ("_id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_5885adea95ce946d39ad7a6673" ON "DataObservabilitySetting" ("projectId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetLabel" ("dataAssetId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_609016449e2416981d635e6edb7" PRIMARY KEY ("dataAssetId", "labelId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_fec03d3657c10f43eafc60643d" ON "DataAssetLabel" ("dataAssetId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_19f90ec0aa21c6ba9df530a92a" ON "DataAssetLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetOwnerRuleMatchLabel" ("dataAssetOwnerRuleId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_de9ee88fed9048567ae95023396" PRIMARY KEY ("dataAssetOwnerRuleId", "labelId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_69389bd71ee3e318516a38510c" ON "DataAssetOwnerRuleMatchLabel" ("dataAssetOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_6c71b2b8710676450af9430761" ON "DataAssetOwnerRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetOwnerRuleUser" ("dataAssetOwnerRuleId" uuid NOT NULL, "userId" uuid NOT NULL, CONSTRAINT "PK_8a0906119e8ca3198bd5fdfeaed" PRIMARY KEY ("dataAssetOwnerRuleId", "userId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_528ae0d9b5c5a7d5eb359741ff" ON "DataAssetOwnerRuleUser" ("dataAssetOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_e87abf902ad2247b195a07494e" ON "DataAssetOwnerRuleUser" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetOwnerRuleTeam" ("dataAssetOwnerRuleId" uuid NOT NULL, "teamId" uuid NOT NULL, CONSTRAINT "PK_8692bbfbfc6788b2a30e0dad488" PRIMARY KEY ("dataAssetOwnerRuleId", "teamId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_02246965b3a23b36462257aec9" ON "DataAssetOwnerRuleTeam" ("dataAssetOwnerRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b6bd1d5dca498ce5815fb261c9" ON "DataAssetOwnerRuleTeam" ("teamId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetLabelRuleMatchLabel" ("dataAssetLabelRuleId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_b83a2683096806f9c46ffe16c6c" PRIMARY KEY ("dataAssetLabelRuleId", "labelId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_a3d9a565d71d7cf235da8d9605" ON "DataAssetLabelRuleMatchLabel" ("dataAssetLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_41e7127c04298404205307ec80" ON "DataAssetLabelRuleMatchLabel" ("labelId") `,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "DataAssetLabelRuleAddLabel" ("dataAssetLabelRuleId" uuid NOT NULL, "labelId" uuid NOT NULL, CONSTRAINT "PK_b843f5760ec6f674c737e1adc63" PRIMARY KEY ("dataAssetLabelRuleId", "labelId"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_b2fc90edeb3dd0bf814ccbe6a3" ON "DataAssetLabelRuleAddLabel" ("dataAssetLabelRuleId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_70cbd6a918a582e2c0eaf94398" ON "DataAssetLabelRuleAddLabel" ("labelId") `,
+    );
+    await queryRunner.query(`ALTER TABLE "DataStore" ADD "watchedPaths" text`);
+    await queryRunner.query(
+      `ALTER TABLE "DataPipelineRun" ADD "attemptNumber" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataPipelineRun" ADD "traceId" character varying(100)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" ADD "formatPreset" character varying(100)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" ADD "samplePercent" numeric`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" ADD "failingRowsSample" jsonb`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" ADD "isManagedByFile" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetUsage" ADD "isAiApp" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ScheduledMaintenance" ADD "dataStoreIds" jsonb`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Project" ADD "currentWatchedTablesCount" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataStore" ADD "newPersonalDataColumns" jsonb`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAsset" ADD "rowCountChangeTolerancePercent" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAsset" ADD "freshnessColumn" character varying(100)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetUsage" ADD "endpoints" jsonb`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLineage" ADD "columnMappings" jsonb`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" ADD "feedback" character varying(100)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" ADD "feedbackAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" ADD "feedbackByUserId" uuid`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" ADD "isCauseConfirmed" boolean`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" ADD "detectedAfterInSeconds" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataIssueReport" ADD CONSTRAINT "FK_85b4ec666eb1be0fe2fa84cad9f" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataIssueReport" ADD CONSTRAINT "FK_c814bc77af1604dd192065f14f1" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataIssueReport" ADD CONSTRAINT "FK_dc01cba2627a1134fd31d28dd44" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_b817092ccecf383fe47d4c6b1a1" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_4a3533e0c81fe2da71832d84d95" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_66c83bcabc2cb611eff15353244" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_b2ed9bb54014a45e9ba2f594f4f" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" ADD CONSTRAINT "FK_9e7978b4de8192022fb7604000d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_eb46529c72807821fc36db06bec" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_d8205a4d32ee738038f4941fb7d" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_f23ea7e7c28066d8c783459541b" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_b416937baf4b7332b8b77d4c449" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" ADD CONSTRAINT "FK_399c9cdde8b479e635a1d990d13" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRule" ADD CONSTRAINT "FK_c4eec725b3eebedabfea3893a7c" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRule" ADD CONSTRAINT "FK_f802c65dda63d8dcd308a764ee5" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRule" ADD CONSTRAINT "FK_3c987f15fb20ff37af4e3f7b51b" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRule" ADD CONSTRAINT "FK_2776b9890bdf5141d89f2d02690" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRule" ADD CONSTRAINT "FK_a4ce1e229b3df75143e0e279ec2" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRule" ADD CONSTRAINT "FK_64ca26af0890939f02732f01c4d" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataObservabilitySetting" ADD CONSTRAINT "FK_5885adea95ce946d39ad7a66734" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabel" ADD CONSTRAINT "FK_fec03d3657c10f43eafc60643d5" FOREIGN KEY ("dataAssetId") REFERENCES "DataAsset"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabel" ADD CONSTRAINT "FK_19f90ec0aa21c6ba9df530a92a2" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleMatchLabel" ADD CONSTRAINT "FK_69389bd71ee3e318516a38510c3" FOREIGN KEY ("dataAssetOwnerRuleId") REFERENCES "DataAssetOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleMatchLabel" ADD CONSTRAINT "FK_6c71b2b8710676450af9430761e" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleUser" ADD CONSTRAINT "FK_528ae0d9b5c5a7d5eb359741ff6" FOREIGN KEY ("dataAssetOwnerRuleId") REFERENCES "DataAssetOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleUser" ADD CONSTRAINT "FK_e87abf902ad2247b195a07494e9" FOREIGN KEY ("userId") REFERENCES "User"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleTeam" ADD CONSTRAINT "FK_02246965b3a23b36462257aec91" FOREIGN KEY ("dataAssetOwnerRuleId") REFERENCES "DataAssetOwnerRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleTeam" ADD CONSTRAINT "FK_b6bd1d5dca498ce5815fb261c93" FOREIGN KEY ("teamId") REFERENCES "Team"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleMatchLabel" ADD CONSTRAINT "FK_a3d9a565d71d7cf235da8d9605b" FOREIGN KEY ("dataAssetLabelRuleId") REFERENCES "DataAssetLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleMatchLabel" ADD CONSTRAINT "FK_41e7127c04298404205307ec803" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleAddLabel" ADD CONSTRAINT "FK_b2fc90edeb3dd0bf814ccbe6a37" FOREIGN KEY ("dataAssetLabelRuleId") REFERENCES "DataAssetLabelRule"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleAddLabel" ADD CONSTRAINT "FK_70cbd6a918a582e2c0eaf943989" FOREIGN KEY ("labelId") REFERENCES "Label"("_id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleAddLabel" DROP CONSTRAINT "FK_70cbd6a918a582e2c0eaf943989"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleAddLabel" DROP CONSTRAINT "FK_b2fc90edeb3dd0bf814ccbe6a37"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleMatchLabel" DROP CONSTRAINT "FK_41e7127c04298404205307ec803"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRuleMatchLabel" DROP CONSTRAINT "FK_a3d9a565d71d7cf235da8d9605b"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleTeam" DROP CONSTRAINT "FK_b6bd1d5dca498ce5815fb261c93"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleTeam" DROP CONSTRAINT "FK_02246965b3a23b36462257aec91"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleUser" DROP CONSTRAINT "FK_e87abf902ad2247b195a07494e9"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleUser" DROP CONSTRAINT "FK_528ae0d9b5c5a7d5eb359741ff6"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleMatchLabel" DROP CONSTRAINT "FK_6c71b2b8710676450af9430761e"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRuleMatchLabel" DROP CONSTRAINT "FK_69389bd71ee3e318516a38510c3"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabel" DROP CONSTRAINT "FK_19f90ec0aa21c6ba9df530a92a2"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabel" DROP CONSTRAINT "FK_fec03d3657c10f43eafc60643d5"`);
-        await queryRunner.query(`ALTER TABLE "DataObservabilitySetting" DROP CONSTRAINT "FK_5885adea95ce946d39ad7a66734"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRule" DROP CONSTRAINT "FK_64ca26af0890939f02732f01c4d"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRule" DROP CONSTRAINT "FK_a4ce1e229b3df75143e0e279ec2"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLabelRule" DROP CONSTRAINT "FK_2776b9890bdf5141d89f2d02690"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRule" DROP CONSTRAINT "FK_3c987f15fb20ff37af4e3f7b51b"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRule" DROP CONSTRAINT "FK_f802c65dda63d8dcd308a764ee5"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerRule" DROP CONSTRAINT "FK_c4eec725b3eebedabfea3893a7c"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_399c9cdde8b479e635a1d990d13"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_b416937baf4b7332b8b77d4c449"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_f23ea7e7c28066d8c783459541b"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_d8205a4d32ee738038f4941fb7d"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_eb46529c72807821fc36db06bec"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_9e7978b4de8192022fb7604000d"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_b2ed9bb54014a45e9ba2f594f4f"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_66c83bcabc2cb611eff15353244"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_4a3533e0c81fe2da71832d84d95"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_b817092ccecf383fe47d4c6b1a1"`);
-        await queryRunner.query(`ALTER TABLE "DataIssueReport" DROP CONSTRAINT "FK_dc01cba2627a1134fd31d28dd44"`);
-        await queryRunner.query(`ALTER TABLE "DataIssueReport" DROP CONSTRAINT "FK_c814bc77af1604dd192065f14f1"`);
-        await queryRunner.query(`ALTER TABLE "DataIssueReport" DROP CONSTRAINT "FK_85b4ec666eb1be0fe2fa84cad9f"`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" DROP COLUMN "detectedAfterInSeconds"`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" DROP COLUMN "isCauseConfirmed"`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" DROP COLUMN "feedbackByUserId"`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" DROP COLUMN "feedbackAt"`);
-        await queryRunner.query(`ALTER TABLE "DataAlert" DROP COLUMN "feedback"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetLineage" DROP COLUMN "columnMappings"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetUsage" DROP COLUMN "endpoints"`);
-        await queryRunner.query(`ALTER TABLE "DataAsset" DROP COLUMN "freshnessColumn"`);
-        await queryRunner.query(`ALTER TABLE "DataAsset" DROP COLUMN "rowCountChangeTolerancePercent"`);
-        await queryRunner.query(`ALTER TABLE "DataStore" DROP COLUMN "newPersonalDataColumns"`);
-        await queryRunner.query(`ALTER TABLE "Project" DROP COLUMN "currentWatchedTablesCount"`);
-        await queryRunner.query(`ALTER TABLE "ScheduledMaintenance" DROP COLUMN "dataStoreIds"`);
-        await queryRunner.query(`ALTER TABLE "DataAssetUsage" DROP COLUMN "isAiApp"`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" DROP COLUMN "isManagedByFile"`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" DROP COLUMN "failingRowsSample"`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" DROP COLUMN "samplePercent"`);
-        await queryRunner.query(`ALTER TABLE "DataCheck" DROP COLUMN "formatPreset"`);
-        await queryRunner.query(`ALTER TABLE "DataPipelineRun" DROP COLUMN "traceId"`);
-        await queryRunner.query(`ALTER TABLE "DataPipelineRun" DROP COLUMN "attemptNumber"`);
-        await queryRunner.query(`ALTER TABLE "DataStore" DROP COLUMN "watchedPaths"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_70cbd6a918a582e2c0eaf94398"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b2fc90edeb3dd0bf814ccbe6a3"`);
-        await queryRunner.query(`DROP TABLE "DataAssetLabelRuleAddLabel"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_41e7127c04298404205307ec80"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a3d9a565d71d7cf235da8d9605"`);
-        await queryRunner.query(`DROP TABLE "DataAssetLabelRuleMatchLabel"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b6bd1d5dca498ce5815fb261c9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_02246965b3a23b36462257aec9"`);
-        await queryRunner.query(`DROP TABLE "DataAssetOwnerRuleTeam"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e87abf902ad2247b195a07494e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_528ae0d9b5c5a7d5eb359741ff"`);
-        await queryRunner.query(`DROP TABLE "DataAssetOwnerRuleUser"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6c71b2b8710676450af9430761"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_69389bd71ee3e318516a38510c"`);
-        await queryRunner.query(`DROP TABLE "DataAssetOwnerRuleMatchLabel"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_19f90ec0aa21c6ba9df530a92a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_fec03d3657c10f43eafc60643d"`);
-        await queryRunner.query(`DROP TABLE "DataAssetLabel"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5885adea95ce946d39ad7a6673"`);
-        await queryRunner.query(`DROP TABLE "DataObservabilitySetting"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_e7d3aa98b13ef2bdf1afd48c17"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_563e81b6b0968e64928d328b33"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2776b9890bdf5141d89f2d0269"`);
-        await queryRunner.query(`DROP TABLE "DataAssetLabelRule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_056c5a19ca9d0bfac8f69a7cbc"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_7bce3a97f16672023a4e8511a1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c4eec725b3eebedabfea3893a7"`);
-        await queryRunner.query(`DROP TABLE "DataAssetOwnerRule"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_455c6104f9ac255a97af105b37"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_732117c524472d65571390bd1a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f23ea7e7c28066d8c783459541"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_d8205a4d32ee738038f4941fb7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_eb46529c72807821fc36db06be"`);
-        await queryRunner.query(`DROP TABLE "DataAssetOwnerTeam"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a324b5a92a498618b272ff9ea6"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_dc0612e1a68fba22c9f25401e8"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_66c83bcabc2cb611eff1535324"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4a3533e0c81fe2da71832d84d9"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b817092ccecf383fe47d4c6b1a"`);
-        await queryRunner.query(`DROP TABLE "DataAssetOwnerUser"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c059b41d58d9eed84adba0e24e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c814bc77af1604dd192065f14f"`);
-        await queryRunner.query(`DROP TABLE "DataIssueReport"`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleAddLabel" DROP CONSTRAINT "FK_70cbd6a918a582e2c0eaf943989"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleAddLabel" DROP CONSTRAINT "FK_b2fc90edeb3dd0bf814ccbe6a37"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleMatchLabel" DROP CONSTRAINT "FK_41e7127c04298404205307ec803"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRuleMatchLabel" DROP CONSTRAINT "FK_a3d9a565d71d7cf235da8d9605b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleTeam" DROP CONSTRAINT "FK_b6bd1d5dca498ce5815fb261c93"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleTeam" DROP CONSTRAINT "FK_02246965b3a23b36462257aec91"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleUser" DROP CONSTRAINT "FK_e87abf902ad2247b195a07494e9"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleUser" DROP CONSTRAINT "FK_528ae0d9b5c5a7d5eb359741ff6"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleMatchLabel" DROP CONSTRAINT "FK_6c71b2b8710676450af9430761e"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRuleMatchLabel" DROP CONSTRAINT "FK_69389bd71ee3e318516a38510c3"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabel" DROP CONSTRAINT "FK_19f90ec0aa21c6ba9df530a92a2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabel" DROP CONSTRAINT "FK_fec03d3657c10f43eafc60643d5"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataObservabilitySetting" DROP CONSTRAINT "FK_5885adea95ce946d39ad7a66734"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRule" DROP CONSTRAINT "FK_64ca26af0890939f02732f01c4d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRule" DROP CONSTRAINT "FK_a4ce1e229b3df75143e0e279ec2"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLabelRule" DROP CONSTRAINT "FK_2776b9890bdf5141d89f2d02690"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRule" DROP CONSTRAINT "FK_3c987f15fb20ff37af4e3f7b51b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRule" DROP CONSTRAINT "FK_f802c65dda63d8dcd308a764ee5"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerRule" DROP CONSTRAINT "FK_c4eec725b3eebedabfea3893a7c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_399c9cdde8b479e635a1d990d13"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_b416937baf4b7332b8b77d4c449"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_f23ea7e7c28066d8c783459541b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_d8205a4d32ee738038f4941fb7d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerTeam" DROP CONSTRAINT "FK_eb46529c72807821fc36db06bec"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_9e7978b4de8192022fb7604000d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_b2ed9bb54014a45e9ba2f594f4f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_66c83bcabc2cb611eff15353244"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_4a3533e0c81fe2da71832d84d95"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetOwnerUser" DROP CONSTRAINT "FK_b817092ccecf383fe47d4c6b1a1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataIssueReport" DROP CONSTRAINT "FK_dc01cba2627a1134fd31d28dd44"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataIssueReport" DROP CONSTRAINT "FK_c814bc77af1604dd192065f14f1"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataIssueReport" DROP CONSTRAINT "FK_85b4ec666eb1be0fe2fa84cad9f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" DROP COLUMN "detectedAfterInSeconds"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" DROP COLUMN "isCauseConfirmed"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAlert" DROP COLUMN "feedbackByUserId"`,
+    );
+    await queryRunner.query(`ALTER TABLE "DataAlert" DROP COLUMN "feedbackAt"`);
+    await queryRunner.query(`ALTER TABLE "DataAlert" DROP COLUMN "feedback"`);
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetLineage" DROP COLUMN "columnMappings"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetUsage" DROP COLUMN "endpoints"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAsset" DROP COLUMN "freshnessColumn"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAsset" DROP COLUMN "rowCountChangeTolerancePercent"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataStore" DROP COLUMN "newPersonalDataColumns"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "Project" DROP COLUMN "currentWatchedTablesCount"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "ScheduledMaintenance" DROP COLUMN "dataStoreIds"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataAssetUsage" DROP COLUMN "isAiApp"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" DROP COLUMN "isManagedByFile"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" DROP COLUMN "failingRowsSample"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" DROP COLUMN "samplePercent"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataCheck" DROP COLUMN "formatPreset"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataPipelineRun" DROP COLUMN "traceId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataPipelineRun" DROP COLUMN "attemptNumber"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataStore" DROP COLUMN "watchedPaths"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_70cbd6a918a582e2c0eaf94398"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b2fc90edeb3dd0bf814ccbe6a3"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetLabelRuleAddLabel"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_41e7127c04298404205307ec80"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a3d9a565d71d7cf235da8d9605"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetLabelRuleMatchLabel"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b6bd1d5dca498ce5815fb261c9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_02246965b3a23b36462257aec9"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetOwnerRuleTeam"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e87abf902ad2247b195a07494e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_528ae0d9b5c5a7d5eb359741ff"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetOwnerRuleUser"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6c71b2b8710676450af9430761"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_69389bd71ee3e318516a38510c"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetOwnerRuleMatchLabel"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_19f90ec0aa21c6ba9df530a92a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_fec03d3657c10f43eafc60643d"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetLabel"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5885adea95ce946d39ad7a6673"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataObservabilitySetting"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_e7d3aa98b13ef2bdf1afd48c17"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_563e81b6b0968e64928d328b33"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_2776b9890bdf5141d89f2d0269"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetLabelRule"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_056c5a19ca9d0bfac8f69a7cbc"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_7bce3a97f16672023a4e8511a1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c4eec725b3eebedabfea3893a7"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetOwnerRule"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_455c6104f9ac255a97af105b37"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_732117c524472d65571390bd1a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f23ea7e7c28066d8c783459541"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_d8205a4d32ee738038f4941fb7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_eb46529c72807821fc36db06be"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetOwnerTeam"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_a324b5a92a498618b272ff9ea6"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_dc0612e1a68fba22c9f25401e8"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_66c83bcabc2cb611eff1535324"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4a3533e0c81fe2da71832d84d9"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_b817092ccecf383fe47d4c6b1a"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataAssetOwnerUser"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c059b41d58d9eed84adba0e24e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c814bc77af1604dd192065f14f"`,
+    );
+    await queryRunner.query(`DROP TABLE "DataIssueReport"`);
+  }
 }

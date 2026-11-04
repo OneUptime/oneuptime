@@ -13,6 +13,7 @@ import AlertStateService from "../../Services/AlertStateService";
 import CephClusterOwnerUserService from "../../Services/CephClusterOwnerUserService";
 import CloudResourceOwnerUserService from "../../Services/CloudResourceOwnerUserService";
 import DashboardOwnerUserService from "../../Services/DashboardOwnerUserService";
+import DataAssetOwnerUserService from "../../Services/DataAssetOwnerUserService";
 import DataStoreOwnerUserService from "../../Services/DataStoreOwnerUserService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseServerOwnerUserService from "../../Services/DatabaseServerOwnerUserService";
@@ -154,6 +155,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(CephClusterOwnerUserService, "cephClusterId"),
       ownerUserTable(CloudResourceOwnerUserService, "cloudResourceId"),
       ownerUserTable(DashboardOwnerUserService, "dashboardId"),
+      ownerUserTable(DataAssetOwnerUserService, "dataAssetId"),
       ownerUserTable(DataStoreOwnerUserService, "dataStoreId"),
       ownerUserTable(DatabaseServerOwnerUserService, "databaseServerId"),
       ownerUserTable(DockerHostOwnerUserService, "dockerHostId"),

@@ -644,6 +644,7 @@ describe("what BillingService answers itself, in every edition", () => {
     [ProductType.Profiles, "price_1TGwUpANuQdJ93r7b9qxa5Se"],
     [ProductType.SessionReplay, "price_1U0icaANuQdJ93r7yE4a6icc"],
     [ProductType.SecurityEvents, "price_1U7efaANuQdJ93r74hFVOgdS"],
+    [ProductType.WatchedTables, "price_1UY8imANuQdJ93r7P5GmOhds"],
   ])(
     "the metered price of %s is %s with a test key, without a provider",
     (productType: ProductType, priceId: string) => {

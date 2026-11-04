@@ -62,6 +62,11 @@ interface LeftOut {
  * code, or a table someone wrote in Markdown.
  */
 const LEFT_OUT: Record<string, LeftOut> = {
+  "packages/App/FeatureSet/Dashboard/src/Components/DataObservability/FailingRowsModal.tsx":
+    {
+      tables: 1,
+      why: "The columns are whatever a check's rows hold, known only once they are read, and the table scrolls sideways in its dialog.",
+    },
   "packages/Common/UI/Components/JSONTable/JSONTable.tsx": {
     tables: 1,
     why: "A record's fields, a name and its value a row: the names as wide as the longest, the values take the rest and wrap.",

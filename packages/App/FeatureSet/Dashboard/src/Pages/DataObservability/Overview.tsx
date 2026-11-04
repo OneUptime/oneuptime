@@ -216,7 +216,10 @@ const DataObservabilityOverviewPage: FunctionComponent<
             label="Useful Issues a Week"
             value={translator.formatNumber(quality.usefulIssuesPerWeek)}
             icon={IconProp.CheckCircle}
-            description={`Issues someone acted on or called useful, less those called noise, over the last ${quality.windowInDays} days.`}
+            description={translator.translateTemplate(
+              "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.",
+              { days: translator.formatNumber(quality.windowInDays) },
+            )}
           />
           <EventStatTile
             label="Precision"
