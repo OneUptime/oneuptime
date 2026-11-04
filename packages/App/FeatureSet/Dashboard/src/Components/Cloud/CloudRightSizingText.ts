@@ -9,13 +9,11 @@ import {
   RIGHT_SIZING_COSTS_MORE,
   RIGHT_SIZING_CPU_MAX_LABEL,
   RIGHT_SIZING_CPU_P95_LABEL,
-  RIGHT_SIZING_CPU_READ,
   RIGHT_SIZING_DAYS_READ_LABEL,
   RIGHT_SIZING_FITS,
   RIGHT_SIZING_HALF_SIZE,
   RIGHT_SIZING_LEARNING,
   RIGHT_SIZING_MEMORY_PEAK_LABEL,
-  RIGHT_SIZING_MEMORY_READ,
   RIGHT_SIZING_NOT_READ,
   RIGHT_SIZING_NO_LARGER_SIZE,
   RIGHT_SIZING_NO_SMALLER_SIZE,
@@ -33,8 +31,9 @@ import { formatCloudMoney } from "./CloudCostWords";
  *
  * Its verdict, the change to make ("m5.2xlarge → m5.xlarge") and by how
  * much, what that saves or costs a month once its cost is known, the
- * readings it was judged from and why, and - sized by CPU only - what to
- * check first. React-free: the card draws it, App tests read it.
+ * readings it was judged from (its figures), what they would be at the new
+ * size, and - sized by CPU only - what to check first. React-free: the card
+ * draws it, App tests read it.
  */
 
 export type CloudRightSizingTone =
@@ -65,10 +64,10 @@ export const SAVING_NOT_KNOWN_YET: string = translationKey("Not known yet");
  * line under its change on Savings: what its readings were.
  */
 export const RIGHT_SIZING_EVIDENCE_LINE: string = translationKey(
-  "OneUptime's readings: CPU at or under {{p95}} 95% of the time, never above {{max}}.",
+  "OneUptime's readings: 95% of the time its CPU was at or under {{p95}}, and never above {{max}}.",
 );
 export const RIGHT_SIZING_EVIDENCE_LINE_WITH_MEMORY: string = translationKey(
-  "OneUptime's readings: CPU at or under {{p95}} 95% of the time, never above {{max}}, memory at most {{memory}}.",
+  "OneUptime's readings: 95% of the time its CPU was at or under {{p95}}, and never above {{max}}; its memory peaked at {{memory}}.",
 );
 
 export interface CloudRightSizingFact {
@@ -76,6 +75,21 @@ export interface CloudRightSizingFact {
   label: string;
   value: string;
   testId: string;
+}
+
+/*
+ * How a saving line reads: money back (positive), money out - a larger
+ * size costs more - (warning), or not known yet (neutral).
+ */
+export type CloudRightSizingSavingTone = "positive" | "warning" | "neutral";
+
+/*
+ * The saving line's sentence and its amount apart, so the card draws the
+ * amount on its own (TranslatedSentence) and the words around it quieter.
+ */
+export interface CloudRightSizingSavingSentence {
+  template: string;
+  amount: string;
 }
 
 export interface CloudRightSizingText {
@@ -89,8 +103,14 @@ export interface CloudRightSizingText {
   // What it saves or costs a month, or that it is not known yet.
   saving: string | null;
   isSavingKnown: boolean;
+  savingTone: CloudRightSizingSavingTone | null;
+  // The saving's sentence with its amount apart, when it has one.
+  savingSentence: CloudRightSizingSavingSentence | null;
   facts: Array<CloudRightSizingFact>;
-  // Why, from the readings.
+  /*
+   * Why the change works: its readings at the new size, when there is a
+   * change. Its readings now are its facts, not said a second time.
+   */
   why: Array<string>;
   // What to check first, when it was sized by CPU only.
   caveat: string | null;
@@ -165,6 +185,8 @@ export function getCloudRightSizingText(data: {
       }),
       saving: null,
       isSavingKnown: false,
+      savingTone: null,
+      savingSentence: null,
       facts: [],
       why: [],
       caveat: null,
@@ -178,19 +200,21 @@ export function getCloudRightSizingText(data: {
       : null;
 
   // What the change saves or costs, said only when there is a change.
+  let savingSentence: CloudRightSizingSavingSentence | null = null;
+  let savingTone: CloudRightSizingSavingTone | null = null;
   let saving: string | null = null;
-  let isSavingKnown: boolean = false;
 
   if (change && sizing.verdict === CloudRightSizingVerdict.Overprovisioned) {
     if (sizing.monthlySavings > 0) {
-      isSavingKnown = true;
-      saving = translator.translateTemplate(
-        sizing.isSavingUpperBound
+      savingTone = "positive";
+      savingSentence = {
+        template: sizing.isSavingUpperBound
           ? RIGHT_SIZING_SAVES_UP_TO
           : RIGHT_SIZING_SAVES,
-        { amount: money(sizing.monthlySavings) },
-      );
+        amount: money(sizing.monthlySavings),
+      };
     } else {
+      savingTone = "neutral";
       saving =
         translator.translateText(RIGHT_SIZING_SAVING_NOT_KNOWN) ||
         RIGHT_SIZING_SAVING_NOT_KNOWN;
@@ -200,11 +224,21 @@ export function getCloudRightSizingText(data: {
     sizing.verdict === CloudRightSizingVerdict.Underprovisioned &&
     sizing.monthlyIncrease > 0
   ) {
-    isSavingKnown = true;
-    saving = translator.translateTemplate(RIGHT_SIZING_COSTS_MORE, {
+    // A larger size costs more: said as money out, never as a saving.
+    savingTone = "warning";
+    savingSentence = {
+      template: RIGHT_SIZING_COSTS_MORE,
       amount: money(sizing.monthlyIncrease),
+    };
+  }
+
+  if (savingSentence) {
+    saving = translator.translateTemplate(savingSentence.template, {
+      amount: savingSentence.amount,
     });
   }
+
+  const isSavingKnown: boolean = savingSentence !== null;
 
   const facts: Array<CloudRightSizingFact> = [
     {
@@ -229,20 +263,7 @@ export function getCloudRightSizingText(data: {
     },
   ];
 
-  const why: Array<string> = [
-    translator.translatePlural(RIGHT_SIZING_CPU_READ, sizing.observedDays, {
-      p95: percent(sizing.cpuP95Percent),
-      max: percent(sizing.cpuMaxPercent ?? sizing.cpuP95Percent),
-    }),
-  ];
-
-  if (sizing.isMemoryRead) {
-    why.push(
-      translator.translateTemplate(RIGHT_SIZING_MEMORY_READ, {
-        memory: percent(sizing.memoryPeakPercent),
-      }),
-    );
-  }
+  const why: Array<string> = [];
 
   if (change && sizing.projectedCpuP95Percent !== null) {
     why.push(
@@ -274,6 +295,8 @@ export function getCloudRightSizingText(data: {
     headline: translator.translateText(headlineKey) || headlineKey,
     saving,
     isSavingKnown,
+    savingTone,
+    savingSentence,
     facts,
     why,
     caveat,

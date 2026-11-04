@@ -15,6 +15,7 @@ import CloudBudgetEvaluator, {
   CloudBudgetAnomalyDay,
   CloudBudgetDecision,
   CloudBudgetSpend,
+  formatCloudBudgetAlertDay,
   formatCloudBudgetAmount,
   getCloudBudgetAnomalyKey,
   getCloudBudgetOldestAnomalyDay,
@@ -742,11 +743,16 @@ describe("an unusual day", () => {
       now: NOW,
     });
 
+    /*
+     * The title names the service that ran furthest above its usual and
+     * counts the rest, so it never reads as if one service was all of it;
+     * its day in words a phone call reads out, not "2026-11-19".
+     */
     expect(words.title).toBe(
-      'Cloud budget "Production": AWS Lambda cost far more than usual on 2026-11-19',
+      'Cloud budget "Production": AWS Lambda and 1 more service cost far more than usual on Nov 19',
     );
     expect(words.description).toBe(
-      `On 2026-11-19, in ${SCOPE}, AWS Lambda cost $412.00, 2.3 times its usual $180.00; and AWS Glue cost $40.00, where it usually costs nothing. A day's usual is the median of the 14 days before it: a service is unusual at 2 times its usual day, the account as a whole at 1.5 times. This month's spend is $2,500.00 of the $10,000.00 budget (25%), on course for $7,800.00.`,
+      `On November 19, 2026, in ${SCOPE}, AWS Lambda cost $412.00, 2.3 times its usual $180.00; and AWS Glue cost $40.00, where it usually costs nothing. A day's usual is the median of the 14 days before it: a service is unusual at 2 times its usual day, the account as a whole at 1.5 times. This month's spend is $2,500.00 of the $10,000.00 budget (25%), on course for $7,800.00.`,
     );
     // The services are the description: no root cause beside it.
     expect(words.rootCause).toBeUndefined();
@@ -762,11 +768,57 @@ describe("an unusual day", () => {
         now: NOW,
       }).title,
     ).toBe(
-      `Cloud budget "Production": ${SCOPE} cost far more than usual on 2026-11-19`,
+      `Cloud budget "Production": ${SCOPE} cost far more than usual on Nov 19`,
     );
     expect(CloudBudgetEvaluator.describeAnomaly(whole, "USD")).toBe(
       "the account as a whole cost $2,400.00, 1.6 times its usual $1,500.00",
     );
+  });
+
+  test("its title: the account when the account ran high, else the service furthest above usual and how many more", () => {
+    const glue: CloudCostAnomaly = {
+      day: "2026-11-19",
+      service: "AWS Glue",
+      amount: 40,
+      usual: 0,
+    };
+    const athena: CloudCostAnomaly = {
+      day: "2026-11-19",
+      service: "Amazon Athena",
+      amount: 96,
+      usual: 40,
+    };
+
+    expect(
+      CloudBudgetEvaluator.getAnomalyTitleSubject(anomalyDay([lambda])),
+    ).toBe("AWS Lambda");
+    expect(
+      CloudBudgetEvaluator.getAnomalyTitleSubject(anomalyDay([lambda, glue])),
+    ).toBe("AWS Lambda and 1 more service");
+    expect(
+      CloudBudgetEvaluator.getAnomalyTitleSubject(
+        anomalyDay([lambda, glue, athena]),
+      ),
+    ).toBe("AWS Lambda and 2 more services");
+    // The account as a whole: its services' spikes are part of it.
+    expect(
+      CloudBudgetEvaluator.getAnomalyTitleSubject(
+        anomalyDay([whole, lambda, glue]),
+      ),
+    ).toBe(SCOPE);
+  });
+
+  test("its day in words, in UTC whatever the server's zone, and a day it cannot read as written", () => {
+    expect(formatCloudBudgetAlertDay("2026-11-19", "short")).toBe("Nov 19");
+    expect(formatCloudBudgetAlertDay("2026-11-19", "long")).toBe(
+      "November 19, 2026",
+    );
+    // A month's first and last days stay theirs: no zone moves them.
+    expect(formatCloudBudgetAlertDay("2026-12-01", "short")).toBe("Dec 1");
+    expect(formatCloudBudgetAlertDay("2026-11-30", "long")).toBe(
+      "November 30, 2026",
+    );
+    expect(formatCloudBudgetAlertDay("not a day", "short")).toBe("not a day");
   });
 });
 
@@ -1029,7 +1081,7 @@ describe("a budget's check", () => {
 
     expect(created).toHaveLength(1);
     expect(created[0]!.title).toBe(
-      'Cloud budget "Production": AWS Lambda cost far more than usual on 2026-11-19',
+      'Cloud budget "Production": AWS Lambda cost far more than usual on Nov 19',
     );
     expect(created[0]!.description).toContain(
       "in the web account (AWS 123456789012), AWS Lambda cost $412.00, 2.3 times its usual $180.00",

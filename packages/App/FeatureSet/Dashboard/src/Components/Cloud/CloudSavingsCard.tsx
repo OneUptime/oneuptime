@@ -43,7 +43,7 @@ import { CloudAccountRow } from "./UseCloudAccounts";
 
 export const SAVINGS_CARD_TITLE: string = translationKey("Ways to spend less");
 export const SAVINGS_CARD_DESCRIPTION: string = translationKey(
-  "What your clouds' recommenders, and OneUptime's right-sizing, say could be saved.",
+  "What your clouds' recommenders and OneUptime's own right-sizing say could be saved.",
 );
 export const SAVINGS_UP_TO: string = translationKey("Up to {{amount}} a month");
 export const SAVINGS_NONE_FOUND: string = translationKey(

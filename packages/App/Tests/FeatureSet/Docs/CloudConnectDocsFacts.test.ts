@@ -158,6 +158,26 @@ function source(name: string): string {
   return fs.readFileSync(path.join(REPO_DIR, SOURCES[name] as string), "utf8");
 }
 
+/*
+ * A migration by its name, whatever timestamp it is numbered with: a merge
+ * may renumber it past another task's.
+ */
+function migrationSource(name: string): string {
+  const directory: string = path.join(
+    REPO_DIR,
+    SERVER,
+    "Infrastructure/Postgres/SchemaMigrations",
+  );
+  const files: Array<string> = fs
+    .readdirSync(directory)
+    .filter((file: string): boolean => {
+      return file.endsWith(`-${name}.ts`);
+    });
+
+  expect(files).toHaveLength(1);
+  return fs.readFileSync(path.join(directory, files[0] as string), "utf8");
+}
+
 const PAGE: string = readPage("en", CLOUD_ACCOUNTS);
 
 function bashBlocks(): Array<string> {
@@ -720,7 +740,28 @@ describe("Cloud Costs and Savings", () => {
     );
     expect(evaluator).toContain("getStartedCloudCostAnomalies(");
     expect(unusual).toContain(
-      "A spike that goes on for days is told the day it began, and a day more than a week old is not told.",
+      "A spike that goes on for days is reported on the day it began, and a day more than a week old is not reported.",
+    );
+
+    /*
+     * A budget made before them keeps alerting as it did: the column comes
+     * in false for the rows already there, and defaults to true after.
+     */
+    const migration: string = migrationSource(
+      "AddCloudRightSizingEvidenceAndBudgetUnusualDays",
+    );
+    expect(migration).toContain(
+      'ADD "alertOnAnomaly" boolean NOT NULL DEFAULT false',
+    );
+    expect(migration).toContain(
+      'ALTER COLUMN "alertOnAnomaly" SET DEFAULT true',
+    );
+    expect(migration.indexOf("DEFAULT false")).toBeLessThan(
+      migration.indexOf("SET DEFAULT true"),
+    );
+    expect(source("budgets")).toContain("alertOnAnomaly: true,");
+    expect(unusual).toContain(
+      "A budget made before these alerts existed does not raise them until you edit it and turn them on.",
     );
     expect(unusual).toContain("[Unusual days](#unusual-days)");
     expect(anchorsOf("en", CLOUD_COSTS).has("unusual-days")).toBe(true);

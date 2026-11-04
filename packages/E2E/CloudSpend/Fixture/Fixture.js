@@ -24,6 +24,9 @@
  *             first read of each costs card fails); a second read answers
  *   ?lang=    de | fa (Persian, laid out right to left, as production does)
  *   ?theme=   dark adds html.dark (handled by server.js)
+ *   ?usage=   what OneUptime read of shop-web-1's CPU: learning (three
+ *             days of readings so far) | fits (busy enough for its size);
+ *             by default half its size would do
  *
  * Every read is recorded on window.__cloudSpendFixture: listRequests,
  * countRequests, itemRequests, aggregateRequests, metricRequests (a
@@ -105,6 +108,9 @@ const FAILING = new Set(
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+const USAGE_SCENARIO = ["learning", "fits"].includes(params.get("usage"))
+  ? params.get("usage")
+  : "";
 
 await i18next.use(initReactI18next).init({
   lng: LANGUAGE,
@@ -1443,10 +1449,26 @@ AnalyticsModelAPI.aggregate = async (options) => {
  * over the window, its first reading two weeks back.
  */
 const USAGE = {
-  [SHOP_WEB_1_ID]: {
-    cpu: { [AggregationType.P95]: 12, [AggregationType.Max]: 30 },
-    samples: 20160,
-  },
+  /*
+   * Half its size would do - or (?usage=) it has been read for three days
+   * only, or it is busy enough for its size.
+   */
+  [SHOP_WEB_1_ID]:
+    USAGE_SCENARIO === "learning"
+      ? {
+          cpu: { [AggregationType.P95]: 12, [AggregationType.Max]: 30 },
+          samples: 864,
+          days: 3,
+        }
+      : USAGE_SCENARIO === "fits"
+        ? {
+            cpu: { [AggregationType.P95]: 48, [AggregationType.Max]: 76 },
+            samples: 20160,
+          }
+        : {
+            cpu: { [AggregationType.P95]: 12, [AggregationType.Max]: 30 },
+            samples: 20160,
+          },
   "sessions-cache": {
     cpu: { [AggregationType.P95]: 91, [AggregationType.Max]: 99 },
     memory: 62,
@@ -1481,7 +1503,8 @@ function answerMetric(aggregateBy, query) {
   const isMemory = names.some((name) => {
     return String(name).includes("memory");
   });
-  const first = new Date(LOADED_AT - 14 * DAY);
+  // Its first reading in the window: two weeks back, or as long as it has been read.
+  const first = new Date(LOADED_AT - (readings.days || 14) * DAY);
   let value = null;
 
   if (aggregateBy.aggregationType === AggregationType.Count) {

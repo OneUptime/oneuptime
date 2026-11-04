@@ -1,4 +1,4 @@
-import { PluralTemplate, translationKey } from "../Translator";
+import { translationKey } from "../Translator";
 import { CloudSavingKind } from "./CloudCost";
 import {
   getAwsStoredMetricName,
@@ -1212,37 +1212,33 @@ export const RIGHT_SIZING_FITS: string = translationKey(
   "Its size fits what it uses.",
 );
 
-// Why: what the readings say, over the days read (6 to 14).
-export const RIGHT_SIZING_CPU_READ: PluralTemplate = {
-  one: translationKey(
-    "95% of the time over the last {{count}} day, its CPU was at or under {{p95}}, and never above {{max}}.",
-  ),
-  other: translationKey(
-    "95% of the time over the last {{count}} days, its CPU was at or under {{p95}}, and never above {{max}}.",
-  ),
-};
-export const RIGHT_SIZING_MEMORY_READ: string = translationKey(
-  "Its memory peaked at {{memory}}.",
-);
+/*
+ * Why the change works: its readings at the new size. Its readings now are
+ * the card's figures, so they are not said again in words.
+ */
 export const RIGHT_SIZING_AT_NEW_SIZE: string = translationKey(
-  "At {{size}}, its CPU would be at or under {{p95}} 95% of the time.",
+  "At {{size}}, 95% of the time its CPU would be at or under {{p95}}.",
 );
 export const RIGHT_SIZING_AT_NEW_SIZE_WITH_MEMORY: string = translationKey(
-  "At {{size}}, its CPU would be at or under {{p95}} 95% of the time, and its memory would peak at {{memory}}.",
+  "At {{size}}, 95% of the time its CPU would be at or under {{p95}}, and its memory would peak at {{memory}}.",
 );
 
 // What it would save, or cost: a month at its cost of the last 30 days.
 export const RIGHT_SIZING_SAVES: string = translationKey(
-  "About {{amount}} a month less, at its cost over the last 30 days.",
+  "Saves about {{amount}} a month, at its cost over the last 30 days.",
 );
 export const RIGHT_SIZING_SAVES_UP_TO: string = translationKey(
-  "Up to {{amount}} a month less, at its cost over the last 30 days: its bill also holds its storage, which stays.",
+  "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.",
 );
 export const RIGHT_SIZING_COSTS_MORE: string = translationKey(
-  "About {{amount}} a month more, at its cost over the last 30 days.",
+  "Costs about {{amount}} a month more, at its cost over the last 30 days.",
 );
+/*
+ * Its cloud bills it under its service only (AWS Cost Explorer, a Google
+ * Cloud standard export): no cost of its own to say a saving from.
+ */
 export const RIGHT_SIZING_SAVING_NOT_KNOWN: string = translationKey(
-  "What it would save is said once its cloud bills it by name.",
+  "What it would save is not known yet: its cloud's bill does not name it.",
 );
 
 // Not enough readings: how far it has come.

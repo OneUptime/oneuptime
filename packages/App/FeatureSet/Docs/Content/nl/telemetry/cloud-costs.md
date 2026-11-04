@@ -108,7 +108,7 @@ AI-agents kunnen budgetten maken en wijzigen via de [MCP-server](/docs/ai/mcp-se
 
 Na elke leesbeurt wordt elk van de laatste 14 volle dagen van een account vergeleken met de 14 dagen ervoor. Een dag is ongewoon als een service het dubbele van zijn gewone dag of meer kostte, of het hele account anderhalf keer zijn gewone dag of meer. In beide gevallen moet het minstens 10 meer zijn dan gewoonlijk, in de valuta van het account, en minstens 5% van de gewone dag van het account, zodat een paar cent nooit als piek telt. De gewone waarde van een dag is de mediaan van de 14 dagen ervoor, dus één piek verschuift die weinig, en een account wordt pas beoordeeld als het een week aan kosten heeft.
 
-**Cloud → Uitgaven → Kosten** toont de ongewone dagen onder de dagelijkse uitgaven. Een budget dat het account meetelt, maakt één waarschuwing voor elk account en elke dag, de dag erna, en noemt elke service die hoog uitkwam. Een piek die dagen aanhoudt, wordt gemeld op de dag dat hij begon, en een dag van meer dan een week geleden wordt niet gemeld.
+**Cloud → Uitgaven → Kosten** toont de ongewone dagen onder de dagelijkse uitgaven. Een budget dat het account meetelt, maakt één waarschuwing voor elk account en elke dag, de dag erna, en noemt elke service die hoog uitkwam. Een piek die dagen aanhoudt, wordt gemeld op de dag dat hij begon, en een dag van meer dan een week geleden wordt niet gemeld. Een budget dat is gemaakt voordat deze waarschuwingen bestonden, maakt ze pas als u het bewerkt en ze aanzet.
 
 ## Wat je in OneUptime ziet
 

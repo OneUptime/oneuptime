@@ -19,6 +19,7 @@ import {
   CloudAccountCostSummary,
   CloudCostAnomaly,
   CloudCostState,
+  fromCloudCostDay,
   startOfUtcDay,
   toCloudCostDay,
   getPassedCloudBudgetThresholds,
@@ -124,6 +125,36 @@ export function getCloudBudgetOldestAnomalyDay(now: Date): string {
   return toCloudCostDay(
     addUtcDays(startOfUtcDay(now), -CLOUD_BUDGET_ANOMALY_MAX_AGE_DAYS),
   );
+}
+
+/*
+ * A cost day ("2026-11-19") as an alert says it: "Nov 19" in its title,
+ * "November 19, 2026" in its description - words a phone call reads out
+ * and an SMS fits, rather than digits and dashes. A cost day is a UTC day,
+ * so it is written in UTC whatever the server's own zone.
+ */
+const ALERT_SHORT_DAY_FORMAT: Intl.DateTimeFormat = new Intl.DateTimeFormat(
+  "en-US",
+  { timeZone: "UTC", month: "short", day: "numeric" },
+);
+const ALERT_LONG_DAY_FORMAT: Intl.DateTimeFormat = new Intl.DateTimeFormat(
+  "en-US",
+  { timeZone: "UTC", month: "long", day: "numeric", year: "numeric" },
+);
+
+export function formatCloudBudgetAlertDay(
+  day: string,
+  length: "short" | "long",
+): string {
+  const date: Date = fromCloudCostDay(day);
+
+  if (Number.isNaN(date.getTime())) {
+    return day;
+  }
+
+  return (
+    length === "short" ? ALERT_SHORT_DAY_FORMAT : ALERT_LONG_DAY_FORMAT
+  ).format(date);
 }
 
 export interface CloudBudgetSpend {
@@ -459,6 +490,31 @@ export default class CloudBudgetEvaluator {
   }
 
   /*
+   * Who an unusual day's alert names in its title: the account, when the
+   * account as a whole ran high (its services' spikes are part of it), or
+   * the service that ran furthest above its usual and how many more did -
+   * "Amazon EC2 and 2 more services" - so the title never reads as if one
+   * service was all of it. The description names every one.
+   */
+  public static getAnomalyTitleSubject(
+    anomalyDay: CloudBudgetAnomalyDay,
+  ): string {
+    const first: CloudCostAnomaly | undefined = anomalyDay.anomalies[0];
+
+    if (!first || !first.service) {
+      return anomalyDay.accountScope;
+    }
+
+    const more: number = anomalyDay.anomalies.length - 1;
+
+    if (more <= 0) {
+      return first.service;
+    }
+
+    return `${first.service} and ${more} more ${more === 1 ? "service" : "services"}`;
+  }
+
+  /*
    * One unusual service or account, in a sentence of an alert: "Amazon EC2
    * cost $412.00, 2.3 times its usual $180.00", "the account as a whole cost
    * ...", "AWS Glue cost $40.00, where it usually costs nothing".
@@ -519,7 +575,6 @@ export default class CloudBudgetEvaluator {
 
     if (data.alert.kind === "anomaly") {
       const anomalyDay: CloudBudgetAnomalyDay = data.alert.anomalyDay;
-      const first: CloudCostAnomaly = anomalyDay.anomalies[0]!;
       const named: Array<string> = anomalyDay.anomalies.map(
         (anomaly: CloudCostAnomaly): string => {
           return CloudBudgetEvaluator.describeAnomaly(anomaly, data.currency);
@@ -531,10 +586,10 @@ export default class CloudBudgetEvaluator {
           : `${named.slice(0, -1).join("; ")}; and ${named[named.length - 1]}`;
 
       return {
-        title: `Cloud budget "${data.budgetName}": ${
-          first.service || anomalyDay.accountScope
-        } cost far more than usual on ${anomalyDay.day}`,
-        description: `On ${anomalyDay.day}, in ${anomalyDay.accountScope}, ${list}. A day's usual is the median of the ${CLOUD_COST_ANOMALY_BASELINE_DAYS} days before it: a service is unusual at ${CLOUD_COST_ANOMALY_SERVICE_RATIO} times its usual day, the account as a whole at ${CLOUD_COST_ANOMALY_ACCOUNT_RATIO} times. This month's spend is ${spent} of the ${amount} budget (${percent}%), on course for ${projected}.`,
+        title: `Cloud budget "${data.budgetName}": ${CloudBudgetEvaluator.getAnomalyTitleSubject(
+          anomalyDay,
+        )} cost far more than usual on ${formatCloudBudgetAlertDay(anomalyDay.day, "short")}`,
+        description: `On ${formatCloudBudgetAlertDay(anomalyDay.day, "long")}, in ${anomalyDay.accountScope}, ${list}. A day's usual is the median of the ${CLOUD_COST_ANOMALY_BASELINE_DAYS} days before it: a service is unusual at ${CLOUD_COST_ANOMALY_SERVICE_RATIO} times its usual day, the account as a whole at ${CLOUD_COST_ANOMALY_ACCOUNT_RATIO} times. This month's spend is ${spent} of the ${amount} budget (${percent}%), on course for ${projected}.`,
       };
     }
 

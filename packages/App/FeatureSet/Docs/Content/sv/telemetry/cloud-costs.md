@@ -108,7 +108,7 @@ AI-agenter kan skapa och ändra budgetar via [MCP-servern](/docs/ai/mcp-server),
 
 Efter varje läsning jämförs var och en av ett kontos senaste 14 hela dagar med de 14 dagarna före. En dag är ovanlig när en tjänst kostade det dubbla mot sin vanliga dag eller mer, eller hela kontot en och en halv gång sin vanliga dag eller mer. I båda fallen måste det vara minst 10 mer än vanligt i kontots valuta och minst 5 % av kontots vanliga dag, så att några ören aldrig räknas som en topp. En dags vanliga värde är medianen av de 14 dagarna före, så en enstaka topp flyttar det lite, och ett konto bedöms först när det har en veckas kostnader.
 
-**Moln → Utgifter → Kostnader** listar de ovanliga dagarna under de dagliga utgifterna. En budget som räknar in kontot skapar ett larm för varje konto och dag, dagen efter, och nämner varje tjänst som låg högt. En topp som håller i sig i flera dagar meddelas den dag den började, och en dag som är mer än en vecka gammal meddelas inte.
+**Moln → Utgifter → Kostnader** listar de ovanliga dagarna under de dagliga utgifterna. En budget som räknar in kontot skapar ett larm för varje konto och dag, dagen efter, och nämner varje tjänst som låg högt. En topp som håller i sig i flera dagar meddelas den dag den började, och en dag som är mer än en vecka gammal meddelas inte. En budget som skapades innan de här larmen fanns skapar dem inte förrän du redigerar den och slår på dem.
 
 ## Det du ser i OneUptime
 

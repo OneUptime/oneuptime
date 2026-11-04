@@ -58,7 +58,7 @@ import { readCloudRightSizingEvidence } from "Common/Types/Cloud/CloudRightSizin
 
 export const SAVINGS_TABLE_TITLE: string = translationKey("Ways to spend less");
 export const SAVINGS_TABLE_DESCRIPTION: string = translationKey(
-  "What your clouds' recommenders say could be saved, and OneUptime's right-sizing where none does, the largest first. Read every day: one acted on or dismissed goes away on the next read.",
+  "What your clouds' recommenders and OneUptime's own right-sizing say could be saved, the largest first. Read every day: one acted on or dismissed goes away on the next read.",
 );
 export const SAVINGS_TABLE_EMPTY: string = translationKey(
   "No ways to spend less yet. Your clouds' recommenders are read once a day.",

@@ -35,8 +35,12 @@ import { CloudAccountRow } from "./UseCloudAccounts";
  */
 
 export const UNUSUAL_DAYS_TITLE: string = translationKey("Unusual days");
+/*
+ * What makes a day unusual. Which budgets alert on one is said on Budgets,
+ * beside the switch that turns it off.
+ */
 export const UNUSUAL_DAYS_DESCRIPTION: string = translationKey(
-  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times. A budget that counts the account alerts on each.",
+  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.",
 );
 export const UNUSUAL_DAY_WHOLE_ACCOUNT: string =
   translationKey("The whole account");
@@ -162,8 +166,12 @@ const CloudUnusualDaysCard: FunctionComponent<ComponentProps> = (
                 data-testid="cloud-unusual-day"
                 data-day={row.anomaly.day}
               >
+                {/*
+                 * One width down the list, so the names line up, and never
+                 * narrower than a language's longer day ("03 нояб.").
+                 */}
                 <div
-                  className="w-16 shrink-0 whitespace-nowrap pt-0.5 text-xs font-medium text-gray-500"
+                  className="w-16 min-w-max shrink-0 whitespace-nowrap pt-0.5 text-xs font-medium text-gray-500"
                   data-testid="cloud-unusual-day-date"
                 >
                   {OneUptimeDate.getDateAsLocalDayMonthString(

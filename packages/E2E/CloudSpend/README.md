@@ -57,6 +57,8 @@ App Platforms environments with four apps in the accounts.
 | `?fail=costs`          | The first read of each costs card fails; Refresh answers |
 | `?lang=de`, `?lang=fa` | German, Persian (right to left)                          |
 | `?theme=dark`          | Dark                                                     |
+| `?usage=learning`      | `shop-web-1` read for three days only: not sized yet     |
+| `?usage=fits`          | `shop-web-1` busy enough for its size: right-sized       |
 
 The figures are made up from the page's own clock, and the accounts' costs
 read two hours before it, but never before today's start (a read made before

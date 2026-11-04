@@ -62,10 +62,11 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 /*
  * A cloud resource's right-sizing on its Overview, from OneUptime's own
  * readings of its CPU and memory: what the card says for each verdict -
- * the change, the saving once its cost is known, the readings and why -
- * in English and German; when it is drawn beside "What it costs" and when
- * a recommender of its cloud speaks for the resource instead; and the
- * reads it makes.
+ * the change, the saving once its cost is known, the readings (its
+ * figures, said once) and what they would be at the new size - in English
+ * and German; when it is drawn beside "What it costs" and when a
+ * recommender of its cloud speaks for the resource instead; and the reads
+ * it makes.
  */
 
 const PROJECT: ObjectID = new ObjectID("10000000-0000-4000-8000-0000000000a1");
@@ -140,7 +141,7 @@ function textOf(
 }
 
 describe("what the card says", () => {
-  test("over-provisioned with its cost known: the change, what it saves, the readings, why and what to check first", () => {
+  test("over-provisioned with its cost known: the change, what it saves, the readings, its readings at the new size and what to check first", () => {
     const sizing: CloudRightSizing = sizingOf({ dailyCost: 9.2 });
     const text: CloudRightSizingText = textOf(sizing);
     const saving: number =
@@ -154,8 +155,15 @@ describe("what the card says", () => {
     expect(text.headline).toBe("A size half as big would do.");
     expect(text.isSavingKnown).toBe(true);
     expect(text.saving).toBe(
-      `About $${saving.toFixed(2)} a month less, at its cost over the last 30 days.`,
+      `Saves about $${saving.toFixed(2)} a month, at its cost over the last 30 days.`,
     );
+    // Money back: its amount apart, so the card draws it in green.
+    expect(text.savingTone).toBe("positive");
+    expect(text.savingSentence).toEqual({
+      template:
+        "Saves about {{amount}} a month, at its cost over the last 30 days.",
+      amount: `$${saving.toFixed(2)}`,
+    });
     expect(
       text.facts.map((fact: { label: string; value: string }) => {
         return [fact.label, fact.value];
@@ -166,9 +174,12 @@ describe("what the card says", () => {
       ["Memory (highest)", "Not read"],
       ["Days read", "14"],
     ]);
+    /*
+     * Why the change works: its readings at the new size. Its readings now
+     * are its figures above, not said a second time in words.
+     */
     expect(text.why).toEqual([
-      "95% of the time over the last 14 days, its CPU was at or under 24%, and never above 41%.",
-      "At m5.xlarge, its CPU would be at or under 48% 95% of the time.",
+      "At m5.xlarge, 95% of the time its CPU would be at or under 48%.",
     ]);
     // Sized by CPU only: check its memory before a smaller size.
     expect(text.caveat).toBe(MEMORY_NEEDS_CLOUDWATCH_AGENT);
@@ -178,11 +189,11 @@ describe("what the card says", () => {
     expect(
       textOf(sizingOf({ profile: RDS, size: "db.r6g.2xlarge", dailyCost: 20 }))
         .saving,
-    ).toContain("Up to $");
+    ).toMatch(/^Saves up to \$/);
     expect(
       textOf(sizingOf({ profile: RDS, size: "db.r6g.2xlarge", dailyCost: 20 }))
         .saving,
-    ).toContain("its bill also holds its storage, which stays.");
+    ).toContain("its bill also holds its storage, which stays the same.");
   });
 
   test("a quarter of its size, said so", () => {
@@ -199,12 +210,14 @@ describe("what the card says", () => {
     });
   });
 
-  test("its cost not known: the change, and that its saving is said once its cloud bills it by name", () => {
+  test("its cost not known: the change, and that its saving is not known yet, and why", () => {
     const text: CloudRightSizingText = textOf(sizingOf({}));
     expect(text.isSavingKnown).toBe(false);
     expect(text.saving).toBe(
-      "What it would save is said once its cloud bills it by name.",
+      "What it would save is not known yet: its cloud's bill does not name it.",
     );
+    expect(text.savingTone).toBe("neutral");
+    expect(text.savingSentence).toBeNull();
   });
 
   test("under-provisioned: the size twice as big, and what it adds a month", () => {
@@ -224,7 +237,18 @@ describe("what the card says", () => {
       isSavingKnown: true,
       caveat: null,
     });
-    expect(text.saving).toMatch(/^About \$304\.38 a month more/);
+    expect(text.saving).toMatch(/^Costs about \$304\.38 a month more/);
+    // A larger size costs more: money out, never toned as a saving.
+    expect(text.savingTone).toBe("warning");
+    expect(text.savingSentence).toEqual({
+      template:
+        "Costs about {{amount}} a month more, at its cost over the last 30 days.",
+      amount: "$304.38",
+    });
+    // Its readings at the size twice as big: half what they are now.
+    expect(text.why).toEqual([
+      "At db.r6g.2xlarge, 95% of the time its CPU would be at or under 46%.",
+    ]);
   });
 
   test("right-sized: it fits, no change, no saving and nothing to check", () => {
@@ -239,7 +263,9 @@ describe("what the card says", () => {
       saving: null,
       caveat: null,
     });
-    expect(text.why).toHaveLength(1);
+    // No change, so nothing to say of a new size: its figures say the rest.
+    expect(text.why).toEqual([]);
+    expect(text.facts).toHaveLength(4);
   });
 
   test("not enough readings yet: how many days it needs and has, nothing else", () => {
@@ -269,6 +295,7 @@ describe("what the card says", () => {
       verdict: "Over-provisioned",
       change: null,
       saving: null,
+      why: [],
       headline:
         "It has room to spare, and already has the smallest size of its family.",
     });
@@ -284,24 +311,25 @@ describe("what the card says", () => {
     );
     expect(text.facts[2]).toMatchObject({ value: "28%" });
     expect(text.why).toEqual([
-      "95% of the time over the last 14 days, its CPU was at or under 10%, and never above 20%.",
-      "Its memory peaked at 28%.",
-      "At cache.r6g.large, its CPU would be at or under 20% 95% of the time, and its memory would peak at 56%.",
+      "At cache.r6g.large, 95% of the time its CPU would be at or under 20%, and its memory would peak at 56%.",
     ]);
     expect(text.caveat).toBeNull();
   });
 
-  test("in German: the Dashboard's own German sentences, the days as a plural, numbers German's way", () => {
+  test("in German: the Dashboard's own German sentences, numbers German's way", () => {
     const text: CloudRightSizingText = textOf(
       sizingOf({ dailyCost: 9.2 }),
       german,
     );
     expect(text.headline).toBe(germanLocale["A size half as big would do."]);
     expect(withoutIsolateMarks(text.why[0]!)).toBe(
-      "In den letzten 14 Tagen lag die CPU zu 95 % der Zeit bei höchstens 24% und nie über 41%.",
+      "Mit m5.xlarge läge die CPU zu 95 % der Zeit bei höchstens 48%.",
     );
     expect(withoutIsolateMarks(text.saving!)).toMatch(
-      /^Etwa 140,\d\d\s\$ weniger pro Monat/,
+      /^Spart etwa 140,\d\d\s\$ pro Monat/,
+    );
+    expect(withoutIsolateMarks(textOf(sizingOf({}), german).saving || "")).toBe(
+      "Die Einsparung ist noch nicht bekannt: Die Rechnung der Cloud weist diese Ressource nicht einzeln aus.",
     );
     expect(text.caveat).toBe(
       (germanLocale as unknown as Record<string, string>)[
@@ -326,7 +354,7 @@ describe("what Savings says under OneUptime's own right-sizing", () => {
         translator: english,
       }),
     ).toBe(
-      "OneUptime's readings: CPU at or under 11% 95% of the time, never above 30%.",
+      "OneUptime's readings: 95% of the time its CPU was at or under 11%, and never above 30%.",
     );
     expect(
       getCloudRightSizingEvidenceLine({
@@ -341,7 +369,7 @@ describe("what Savings says under OneUptime's own right-sizing", () => {
         translator: english,
       }),
     ).toBe(
-      "OneUptime's readings: CPU at or under 8% 95% of the time, never above 12%, memory at most 31%.",
+      "OneUptime's readings: 95% of the time its CPU was at or under 8%, and never above 12%; its memory peaked at 31%.",
     );
     expect(
       getCloudRightSizingEvidenceLine({ evidence: null, translator: english }),
@@ -378,12 +406,32 @@ describe("the card, drawn", () => {
     cleanup();
   });
 
-  test("its verdict, change, saving, figures, why and caveat", async () => {
+  test("its verdict, change, saving, figures, its readings at the new size and caveat", async () => {
+    const consoleErrors: Array<string> = [];
+    const consoleError: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      console,
+      "error",
+    ).mockImplementation((...args: Array<unknown>): void => {
+      consoleErrors.push(args.map(String).join(" "));
+    });
+
     await act(async () => {
       render(
         <CloudResourceRightSizingCard sizing={sizingOf({ dailyCost: 9.2 })} />,
       );
     });
+    consoleError.mockRestore();
+
+    /*
+     * Nothing nested where HTML does not allow it: the caveat's icon is a
+     * div, which a paragraph may not hold - a p there made React say so in
+     * the console and the browser close the paragraph before it.
+     */
+    expect(
+      consoleErrors.filter((message: string): boolean => {
+        return message.includes("validateDOMNesting");
+      }),
+    ).toEqual([]);
 
     const card: HTMLElement = screen.getByTestId("cloud-right-sizing");
     expect(card).toHaveAttribute(
@@ -403,21 +451,42 @@ describe("the card, drawn", () => {
     expect(change.tagName).toBe("BDI");
     expect(change).toHaveTextContent("m5.2xlarge → m5.xlarge");
     expect(change.className).toContain("font-mono");
-    expect(
-      within(card).getByTestId("cloud-right-sizing-saving"),
-    ).toHaveAttribute("data-known", "true");
+    const savingLine: HTMLElement = within(card).getByTestId(
+      "cloud-right-sizing-saving",
+    );
+    expect(savingLine).toHaveAttribute("data-known", "true");
+    expect(savingLine).toHaveAttribute("data-tone", "positive");
+    expect(savingLine).toHaveTextContent(
+      "Saves about $140.01 a month, at its cost over the last 30 days.",
+    );
+    // The amount stands out in green; the words around it are quieter.
+    const amount: HTMLElement = within(savingLine).getByTestId(
+      "cloud-right-sizing-saving-amount",
+    );
+    expect(amount).toHaveTextContent("$140.01");
+    expect(amount.className.split(" ")).toEqual(
+      expect.arrayContaining(["font-semibold", "text-emerald-700"]),
+    );
+    expect(savingLine.className).not.toContain("font-semibold");
     expect(
       within(card).getByTestId("cloud-right-sizing-cpu-p95"),
     ).toHaveTextContent("24%");
     expect(
       within(card).getByTestId("cloud-right-sizing-memory"),
     ).toHaveTextContent("Not read");
-    expect(
-      within(card).getByTestId("cloud-right-sizing-why").querySelectorAll("p"),
-    ).toHaveLength(2);
-    expect(
-      within(card).getByTestId("cloud-right-sizing-caveat"),
-    ).toHaveTextContent(MEMORY_NEEDS_CLOUDWATCH_AGENT);
+    // One line: its readings at the new size, under its figures.
+    const why: HTMLElement = within(card).getByTestId("cloud-right-sizing-why");
+    expect(why.querySelectorAll("p")).toHaveLength(1);
+    expect(why).toHaveTextContent(
+      "At m5.xlarge, 95% of the time its CPU would be at or under 48%.",
+    );
+    expect(card.textContent || "").not.toContain("never above");
+    const caveat: HTMLElement = within(card).getByTestId(
+      "cloud-right-sizing-caveat",
+    );
+    expect(caveat).toHaveTextContent(MEMORY_NEEDS_CLOUDWATCH_AGENT);
+    expect(caveat.tagName).toBe("DIV");
+    expect(caveat.closest("p")).toBeNull();
   });
 
   test("in German, every word the Dashboard's German", async () => {
@@ -453,6 +522,52 @@ describe("the card, drawn", () => {
       (germanLocale as unknown as Record<string, string>)["Not read"]!,
     );
     expect(card.textContent || "").not.toContain("Over-provisioned");
+  });
+
+  test("under-provisioned: what the larger size adds a month, in amber - never a saving's green", async () => {
+    await act(async () => {
+      render(
+        <CloudResourceRightSizingCard
+          sizing={sizingOf({
+            profile: RDS,
+            size: "db.r6g.xlarge",
+            fields: { cpuP95Percent: 92, cpuMaxPercent: 100 },
+            dailyCost: 10,
+          })}
+        />,
+      );
+    });
+
+    const savingLine: HTMLElement = screen.getByTestId(
+      "cloud-right-sizing-saving",
+    );
+    expect(savingLine).toHaveAttribute("data-tone", "warning");
+    expect(savingLine).toHaveTextContent(
+      "Costs about $304.38 a month more, at its cost over the last 30 days.",
+    );
+    const amount: HTMLElement = within(savingLine).getByTestId(
+      "cloud-right-sizing-saving-amount",
+    );
+    expect(amount.className).toContain("text-amber-700");
+    expect(savingLine.innerHTML).not.toContain("emerald");
+    expect(screen.getByTestId("cloud-right-sizing-verdict")).toHaveAttribute(
+      "data-tone",
+      "danger",
+    );
+  });
+
+  test("its saving not known yet: said quietly, with no amount drawn", async () => {
+    await act(async () => {
+      render(<CloudResourceRightSizingCard sizing={sizingOf({})} />);
+    });
+
+    const savingLine: HTMLElement = screen.getByTestId(
+      "cloud-right-sizing-saving",
+    );
+    expect(savingLine).toHaveAttribute("data-known", "false");
+    expect(savingLine).toHaveAttribute("data-tone", "neutral");
+    expect(savingLine.className).toContain("text-gray-500");
+    expect(screen.queryByTestId("cloud-right-sizing-saving-amount")).toBeNull();
   });
 
   test("not enough readings: the pill and how far it has come, no figures", async () => {
@@ -820,7 +935,7 @@ describe("the reads", () => {
     const saving: number =
       Math.round(Math.round(9.2 * CLOUD_DAYS_IN_AVERAGE_MONTH * 100) / 2) / 100;
     expect(screen.getByTestId("cloud-right-sizing-saving")).toHaveTextContent(
-      `About $${saving.toFixed(2)} a month less`,
+      `Saves about $${saving.toFixed(2)} a month`,
     );
     // The cost a day was read, by day.
     expect(

@@ -108,7 +108,7 @@ Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/doc
 
 Après chaque lecture, chacun des 14 derniers jours complets d'un compte est comparé aux 14 jours qui le précèdent. Un jour est inhabituel quand un service a coûté le double de sa journée habituelle ou plus, ou le compte entier une fois et demie sa journée habituelle ou plus. Dans les deux cas, il faut au moins 10 de plus que d'habitude, dans la devise du compte, et au moins 5 % de la journée habituelle du compte, pour que quelques centimes ne passent jamais pour un pic. La valeur habituelle d'un jour est la médiane des 14 jours qui le précèdent, si bien qu'un pic isolé la fait peu bouger, et un compte n'est jugé qu'une fois qu'il a une semaine de coûts.
 
-**Cloud → Dépenses → Coûts** liste les jours inhabituels sous les dépenses quotidiennes. Un budget qui inclut le compte lève une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a coûté trop. Un pic qui dure plusieurs jours est signalé le jour où il a commencé, et un jour vieux de plus d'une semaine n'est pas signalé.
+**Cloud → Dépenses → Coûts** liste les jours inhabituels sous les dépenses quotidiennes. Un budget qui inclut le compte lève une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a coûté trop. Un pic qui dure plusieurs jours est signalé le jour où il a commencé, et un jour vieux de plus d'une semaine n'est pas signalé. Un budget créé avant ces alertes ne les lève pas tant que vous ne le modifiez pas pour les activer.
 
 ## Ce que vous voyez dans OneUptime
 

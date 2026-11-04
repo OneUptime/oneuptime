@@ -295,6 +295,13 @@ describe("the card, drawn", () => {
 
     expect(screen.getByText(UNUSUAL_DAYS_TITLE)).toBeInTheDocument();
     expect(screen.getByText(UNUSUAL_DAYS_DESCRIPTION)).toBeInTheDocument();
+    /*
+     * What makes a day unusual, in one sentence: which budgets alert on
+     * one is said on Budgets, beside the switch that turns it off.
+     */
+    expect(UNUSUAL_DAYS_DESCRIPTION).toBe(
+      "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.",
+    );
 
     const days: Array<HTMLElement> = within(
       screen.getByTestId("cloud-unusual-days"),
@@ -313,9 +320,18 @@ describe("the card, drawn", () => {
     ]);
 
     const athena: HTMLElement = days[0]!;
-    expect(
-      within(athena).getByTestId("cloud-unusual-day-date"),
-    ).toHaveTextContent("19 Nov");
+    const date: HTMLElement = within(athena).getByTestId(
+      "cloud-unusual-day-date",
+    );
+    expect(date).toHaveTextContent("19 Nov");
+    /*
+     * One width down the list so the names line up, yet never narrower
+     * than a longer day in another language: it grows rather than runs
+     * into the name beside it.
+     */
+    expect(date.className.split(" ")).toEqual(
+      expect.arrayContaining(["w-16", "min-w-max", "whitespace-nowrap"]),
+    );
     // A service's name as its cloud writes it, in its own direction.
     const what: HTMLElement = within(athena).getByTestId(
       "cloud-unusual-day-what",

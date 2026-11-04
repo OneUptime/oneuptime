@@ -108,7 +108,7 @@ AI-agenter kan opprette og endre budsjetter via [MCP-serveren](/docs/ai/mcp-serv
 
 Etter hver lesing holdes hver av en kontos siste 14 hele dager opp mot de 14 dagene før. En dag er uvanlig når en tjeneste kostet det dobbelte av sin vanlige dag eller mer, eller hele kontoen halvannen gang sin vanlige dag eller mer. I begge tilfeller må det være minst 10 mer enn vanlig i kontoens valuta og minst 5 % av kontoens vanlige dag, så noen få øre aldri teller som en topp. En dags vanlige verdi er medianen av de 14 dagene før, så én topp flytter den lite, og en konto vurderes først når den har en ukes kostnader.
 
-**Sky → Forbruk → Kostnader** viser de uvanlige dagene under det daglige forbruket. Et budsjett som regner med kontoen, lager ett varsel for hver konto og dag, dagen etter, og nevner hver tjeneste som lå høyt. En topp som varer i flere dager, varsles den dagen den begynte, og en dag som er mer enn en uke gammel, varsles ikke.
+**Sky → Forbruk → Kostnader** viser de uvanlige dagene under det daglige forbruket. Et budsjett som regner med kontoen, lager ett varsel for hver konto og dag, dagen etter, og nevner hver tjeneste som lå høyt. En topp som varer i flere dager, varsles den dagen den begynte, og en dag som er mer enn en uke gammel, varsles ikke. Et budsjett som ble opprettet før disse varslene fantes, lager dem ikke før du redigerer det og slår dem på.
 
 ## Det du ser i OneUptime
 

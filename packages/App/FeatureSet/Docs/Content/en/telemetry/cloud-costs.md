@@ -108,7 +108,7 @@ AI agents can create and change budgets through the [MCP server](/docs/ai/mcp-se
 
 After every read, each of an account's last 14 full days is held to the 14 days before it. A day is unusual when a service cost twice its usual day or more, or the whole account one and a half times its usual day or more. Either must be at least 10 more than usual, in the account's currency, and at least 5% of the account's usual day, so a few cents are never a spike. A day's usual is the median of the 14 days before it, so one spike moves it little, and an account is judged only once it has a week of costs.
 
-**Cloud → Spend → Costs** lists the unusual days under the daily spend. A budget that counts the account raises one alert for each account and day, the day after, naming every service that ran high. A spike that goes on for days is told the day it began, and a day more than a week old is not told.
+**Cloud → Spend → Costs** lists the unusual days under the daily spend. A budget that counts the account raises one alert for each account and day, the day after, naming every service that ran high. A spike that goes on for days is reported on the day it began, and a day more than a week old is not reported. A budget made before these alerts existed does not raise them until you edit it and turn them on.
 
 ## What you see in OneUptime
 

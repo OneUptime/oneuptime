@@ -1,4 +1,11 @@
-import { expect, Locator, Page, Route, test } from "@playwright/test";
+import {
+  ConsoleMessage,
+  expect,
+  Locator,
+  Page,
+  Route,
+  test,
+} from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
@@ -117,6 +124,11 @@ interface Recorded {
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 const outsideRequests: Map<Page, Array<string>> = new Map();
+/*
+ * What React says in the console of markup HTML does not allow - a div in a
+ * paragraph, which the browser splits - on any page the suite opens.
+ */
+const nestingWarnings: Map<Page, Array<string>> = new Map();
 
 /*
  * CLOUD_SPEND_CLOCK=2026-03-01T00:30:00Z runs every test with the page's
@@ -144,6 +156,17 @@ test.beforeEach(async ({ page }: { page: Page }) => {
     errors.push(String(error));
   });
 
+  const nesting: Array<string> = [];
+  nestingWarnings.set(page, nesting);
+  page.on("console", (message: ConsoleMessage) => {
+    if (
+      message.type() === "error" &&
+      message.text().includes("validateDOMNesting")
+    ) {
+      nesting.push(message.text().slice(0, 300));
+    }
+  });
+
   // Nothing may leave the fixture: no CDN, no telemetry, no real API.
   await page.route("**/*", async (route: Route) => {
     const url: URL = new URL(route.request().url());
@@ -162,6 +185,9 @@ test.afterEach(async ({ page }: { page: Page }) => {
   // A page that threw while drawing is a bug even when the test passed.
   expect(pageErrors.get(page) || []).toEqual([]);
   expect(outsideRequests.get(page) || []).toEqual([]);
+  expect(nestingWarnings.get(page) || [], "markup HTML does not allow").toEqual(
+    [],
+  );
 
   if (!page.isClosed()) {
     const unhandled: Array<Record<string, unknown>> = await page.evaluate(
@@ -1538,7 +1564,7 @@ test.describe("Savings", () => {
       "m5.4xlarge → m5.xlarge",
     );
     await expect(ours.getByTestId("cloud-saving-evidence")).toHaveText(
-      "OneUptime's readings: CPU at or under 8% 95% of the time, never above 22%.",
+      "OneUptime's readings: 95% of the time its CPU was at or under 8%, and never above 22%.",
     );
     await expect(ours.getByTestId("cloud-saving-amount-not-known")).toHaveText(
       "Not known yet",
@@ -1904,8 +1930,26 @@ test.describe("a resource's page and an account's Overview", () => {
     // Its cloud bills it by name: what the change saves, in its currency.
     const saving: Locator = sizing.getByTestId("cloud-right-sizing-saving");
     await expect(saving).toHaveAttribute("data-known", "true");
-    await expect(saving).toContainText("a month less");
-    await expect(saving).toContainText("€");
+    await expect(saving).toHaveAttribute("data-tone", "positive");
+    await expect(saving).toContainText("Saves about");
+    await expect(saving).toContainText(
+      "a month, at its cost over the last 30 days.",
+    );
+    // Its amount stands out in green; the words around it stay quieter.
+    const amount: Locator = saving.getByTestId(
+      "cloud-right-sizing-saving-amount",
+    );
+    await expect(amount).toContainText("€");
+    expect(
+      await amount.evaluate((element: Element): string => {
+        return getComputedStyle(element).fontWeight;
+      }),
+    ).toBe("600");
+    expect(
+      await saving.evaluate((element: Element): string => {
+        return getComputedStyle(element).fontWeight;
+      }),
+    ).toBe("400");
     for (const [testId, value] of [
       ["cloud-right-sizing-cpu-p95", "12%"],
       ["cloud-right-sizing-cpu-max", "30%"],
@@ -1914,8 +1958,14 @@ test.describe("a resource's page and an account's Overview", () => {
     ] as Array<[string, string]>) {
       await expect(sizing.getByTestId(testId).locator("dd")).toHaveText(value);
     }
-    await expect(sizing.getByTestId("cloud-right-sizing-why")).toContainText(
-      "At Standard_D4s_v5, its CPU would be at or under 24% 95% of the time.",
+    /*
+     * Its readings now are its figures, said once: the one line under them
+     * is what they would be at the new size.
+     */
+    const why: Locator = sizing.getByTestId("cloud-right-sizing-why");
+    await expect(why.locator("p")).toHaveCount(1);
+    await expect(why).toHaveText(
+      "At Standard_D4s_v5, 95% of the time its CPU would be at or under 24%.",
     );
     // Azure reports the memory left: what to check before a smaller size.
     await expect(sizing.getByTestId("cloud-right-sizing-caveat")).toContainText(
@@ -2008,6 +2058,81 @@ test.describe("a resource's page and an account's Overview", () => {
     ]);
   });
 
+  test("a resource read for three days so far: how far it has come, and nothing to change yet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/${SHOP_WEB_1_ID}`, "usage=learning");
+
+    const sizing: Locator = page.getByTestId("cloud-right-sizing");
+    await expect(sizing).toHaveAttribute("data-verdict", "not-enough-history");
+    await expect(sizing.getByTestId("cloud-right-sizing-verdict")).toHaveText(
+      "Not enough readings yet",
+    );
+    await expect(sizing.getByTestId("cloud-right-sizing-headline")).toHaveText(
+      "Right-sizing needs 6 days of its CPU readings. It has 3 so far.",
+    );
+    // No size to change to, so no saving, figures, readings at it or caveat.
+    for (const testId of [
+      "cloud-right-sizing-change",
+      "cloud-right-sizing-saving",
+      "cloud-right-sizing-cpu-p95",
+      "cloud-right-sizing-why",
+      "cloud-right-sizing-caveat",
+    ]) {
+      await expect(sizing.getByTestId(testId)).toHaveCount(0);
+    }
+    // Beside what it costs, which it does not need: no cost a day is read.
+    await expect(page.getByTestId("cloud-resource-cost")).toBeVisible();
+    const daily: Array<{ interval: string | undefined }> = (
+      await recorded(page)
+    ).aggregateRequests.filter((request: { interval: string | undefined }) => {
+      return request.interval === "Day";
+    });
+    expect(daily).toEqual([]);
+    await screenshot(page, "cloud-resource-right-sizing-1280-learning");
+  });
+
+  test("a resource busy enough for its size: Right-sized, its figures, and nothing to change or check", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, `${CLOUD}/${SHOP_WEB_1_ID}`, "usage=fits");
+
+      const sizing: Locator = page.getByTestId("cloud-right-sizing");
+      await expect(sizing).toHaveAttribute("data-verdict", "right-sized");
+      await expect(
+        sizing.getByTestId("cloud-right-sizing-verdict"),
+      ).toHaveAttribute("data-tone", "positive");
+      await expect(
+        sizing.getByTestId("cloud-right-sizing-headline"),
+      ).toHaveText("Its size fits what it uses.");
+      await expect(
+        sizing.getByTestId("cloud-right-sizing-cpu-p95").locator("dd"),
+      ).toHaveText("48%");
+      await expect(
+        sizing.getByTestId("cloud-right-sizing-cpu-max").locator("dd"),
+      ).toHaveText("76%");
+      for (const testId of [
+        "cloud-right-sizing-change",
+        "cloud-right-sizing-saving",
+        "cloud-right-sizing-why",
+        "cloud-right-sizing-caveat",
+      ]) {
+        await expect(sizing.getByTestId(testId)).toHaveCount(0);
+      }
+      await expectNoSidewaysScroll(page, {
+        message: `a right-sized resource at ${width}`,
+      });
+      await screenshot(page, `cloud-resource-right-sizing-${width}-fits`);
+    }
+  });
+
   test("OneUptime's own right-sizing is said once: on its card, never again as a way to spend less", async ({
     page,
   }: {
@@ -2024,7 +2149,7 @@ test.describe("a resource's page and an account's Overview", () => {
       "A size a quarter as big would do.",
     );
     await expect(sizing.getByTestId("cloud-right-sizing-saving")).toHaveText(
-      "What it would save is said once its cloud bills it by name.",
+      "What it would save is not known yet: its cloud's bill does not name it.",
     );
     // AWS bills it under its service only, and its one row is OneUptime's.
     await expect(page.getByTestId("cloud-resource-cost")).toHaveCount(0);
