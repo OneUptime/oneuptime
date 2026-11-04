@@ -381,15 +381,19 @@ describe("getSecurityEventConnectorDefinition", () => {
  * that said it again made each credential read the sentence twice.
  */
 describe("SecurityEventConnectorCatalog - what the Credentials step says once", () => {
+  const ENCRYPTED_AT_REST: RegExp = /encrypted at rest/i;
+  const NEVER_RETURNED: RegExp = /never returned/i;
+  const DESCRIPTION_IN_JSON: RegExp = /"description":"[^"]*"/g;
+
   test.each(DEFINITION_CASES)(
     "%s: no field says it is encrypted",
     (_provider: string, definition: SecurityEventConnectorDefinition) => {
       for (const field of allFields(definition)) {
-        expect([
+        expect([field.key, ENCRYPTED_AT_REST.test(field.description)]).toEqual([
           field.key,
-          /encrypted at rest/i.test(field.description),
-        ]).toEqual([field.key, false]);
-        expect([field.key, /never returned/i.test(field.description)]).toEqual([
+          false,
+        ]);
+        expect([field.key, NEVER_RETURNED.test(field.description)]).toEqual([
           field.key,
           false,
         ]);
@@ -399,14 +403,12 @@ describe("SecurityEventConnectorCatalog - what the Credentials step says once", 
 
   test("nor does a video call provider's credential, read by the same kind of step", () => {
     const descriptions: Array<string> =
-      JSON.stringify(VideoCallProviderCatalog).match(
-        /"description":"[^"]*"/g,
-      ) || [];
+      JSON.stringify(VideoCallProviderCatalog).match(DESCRIPTION_IN_JSON) || [];
 
     expect(descriptions.length).toBeGreaterThan(0);
     expect(
       descriptions.filter((description: string): boolean => {
-        return /encrypted at rest/i.test(description);
+        return ENCRYPTED_AT_REST.test(description);
       }),
     ).toEqual([]);
   });
