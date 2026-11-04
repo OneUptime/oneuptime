@@ -49,7 +49,6 @@ import {
   buildMultiDeviceSnmpWalkExport,
   SnmpWalkExportFile,
 } from "./SnmpWalkExport";
-import { DEVICE_NOT_READABLE_MESSAGE } from "./BulkDeviceReader";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -966,7 +965,9 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
           if (!current) {
             failures.push({
               deviceId: deviceId,
-              message: translator.translateText(DEVICE_NOT_READABLE_MESSAGE)!,
+              message: translator.translateText(
+                "This device could not be read. It may have been deleted since the list was loaded.",
+              )!,
             });
             return;
           }

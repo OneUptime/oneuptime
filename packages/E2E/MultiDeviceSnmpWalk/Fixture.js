@@ -28,6 +28,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -85,6 +86,8 @@ await i18next.use(initReactI18next).init({
   keySeparator: false,
   nsSeparator: false,
 });
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const PROBE_ID = "30000000-0000-4000-8000-000000000001";
