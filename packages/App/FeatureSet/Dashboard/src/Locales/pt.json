@@ -11246,7 +11246,6 @@
   "How often on-call duty passes to the next user in this layer.": "How often on-call duty passes to the next user in this layer.",
   "How often the collection is polled for new indicators. Default 60.": "How often the collection is polled for new indicators. Default 60.",
   "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.": "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.",
-  "How often this rule is evaluated, in minutes.": "Com que frequência esta regra é avaliada, em minutos.",
   "How often to remind alert owners while the alert is open.": "How often to remind alert owners while the alert is open.",
   "How often to remind event owners while the event has not yet finished.": "How often to remind event owners while the event has not yet finished.",
   "How often to remind incident owners while the incident is open.": "How often to remind incident owners while the incident is open.",
@@ -38741,7 +38740,6 @@
   "Similar message": "Mensagem semelhante",
   "{{deviceName}} web UI": "Interface web de {{deviceName}}",
   "{{tasks}} for a person": "{{tasks}} para uma pessoa",
-  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "Verifica cada evento assim que ele chega, em segundos. Para uma regra que dispara com um evento: limite 1, sem campo de contagem distinta nem expressão regular.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "Verifica cada evento assim que ele chega, em segundos, em vez de a cada intervalo.",
   "Keeps events and session replays, notes traces and exceptions": "Mantém eventos e session replays, anota traços e exceções",
   "Real time": "Tempo real",
@@ -38751,10 +38749,7 @@
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "A cada {{min}}–{{max}} minutos (você escolhe), a detecção Sigma da regra é verificada nos eventos desde a última execução. Uma regra em tempo real verifica cada evento assim que ele chega.",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "A etapa {{number}} espera o resultado desta etapa. Mude primeiro \"Executar esta etapa\" na etapa {{number}}.",
   "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "Esta etapa espera o resultado da etapa {{number}}, então fica abaixo da etapa {{number}}.",
-  "A correlation reads several events together over its timespan, so it runs on its interval.": "Uma correlação lê vários eventos juntos ao longo do seu período, então é executada no seu intervalo.",
-  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Ela conta valores diferentes, então é executada no seu intervalo: limpe \"Campo de contagem distinta\" para executá-la em tempo real.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Ela usa uma expressão regular (|re), que só é executada de forma agendada: use contains, startswith ou endswith para executá-la em tempo real.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Ela espera um número de correspondências, então é executada no seu intervalo: defina \"Limite de correspondências\" como 1 para executá-la em tempo real.",
   "A new exception": "Uma exceção nova",
   "A resolved exception comes back": "Uma exceção resolvida volta",
   "A rise over the usual": "Um aumento acima do habitual",
@@ -42280,5 +42275,7 @@
   "The page was escalated past this level": "Este nível foi pulado ao escalonar",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Os níveis da política mudaram, então nada foi escalonado. Escalone novamente para escolher um nível.",
   "{{policy}}: escalate to": "{{policy}}: escalonar para",
-  "no one next": "nenhum próximo"
+  "no one next": "nenhum próximo",
+  "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).": "Verifica os eventos assim que chegam, em segundos, em vez de a cada intervalo. Não serve para uma regra com expressão regular (|re).",
+  "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.": "Com que frequência a regra é executada, em minutos. Em tempo real, uma regra que conta lê janelas desta duração e dispara no máximo uma vez em cada uma."
 }

@@ -1,8 +1,6 @@
 import {
-  REAL_TIME_CORRELATION_PROBLEM,
-  REAL_TIME_DISTINCT_COUNT_PROBLEM,
   REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
-  REAL_TIME_THRESHOLD_PROBLEM,
+  doesRealTimeRuleCountInWindows,
   getRealTimeDetectionProblem,
 } from "Common/Types/SecurityEvent/RealTimeDetection";
 import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
@@ -10,12 +8,12 @@ import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetPar
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * RUN IN REAL TIME on the rule form: whether the form's rule checks each
- * event as it arrives, and - while the switch is on - why the rule as it
- * stands cannot, said under the switch before the rule is saved, in the
- * reader's language. The sentences are the ones the server refuses such a
- * rule with (Common/Types/SecurityEvent/RealTimeDetection), each saying
- * what to change.
+ * RUN IN REAL TIME on the rule form: whether the form's rule checks events
+ * as they arrive, whether - so - it counts in windows of its interval
+ * (Common/Types/SecurityEvent/RealTimeDetection), and, while the switch is
+ * on, why the rule as it stands cannot, said under the switch before the
+ * rule is saved, in the reader's language. The sentence is the one the
+ * server refuses such a rule with, saying what to change.
  *
  * React-free, so it is pinned in plain tests.
  */
@@ -25,15 +23,6 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Common/Types). A test holds them to Common's, word for word.
  */
 export const REAL_TIME_PROBLEM_KEYS: Readonly<Record<string, string>> = {
-  [REAL_TIME_CORRELATION_PROBLEM]: translationKey(
-    "A correlation reads several events together over its timespan, so it runs on its interval.",
-  ),
-  [REAL_TIME_THRESHOLD_PROBLEM]: translationKey(
-    "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
-  ),
-  [REAL_TIME_DISTINCT_COUNT_PROBLEM]: translationKey(
-    "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.",
-  ),
   [REAL_TIME_REGULAR_EXPRESSION_PROBLEM]: translationKey(
     "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.",
   ),
@@ -47,7 +36,7 @@ export interface RealTimeFormValues {
   isRealTime?: unknown;
 }
 
-// Whether the form's rule checks each event as it arrives (a switch Postgres may hand back as "true").
+// Whether the form's rule checks events as they arrive (a switch Postgres may hand back as "true").
 export function runsInRealTime(values: RealTimeFormValues): boolean {
   return values.isRealTime === true || values.isRealTime === "true";
 }
@@ -67,6 +56,46 @@ function readThreshold(value: unknown): number | undefined {
   return undefined;
 }
 
+// The form's YAML, parsed - or null while it does not read (its own field says why).
+function readDefinition(
+  values: RealTimeFormValues,
+): DetectionRuleDefinition | null {
+  const yaml: unknown = values.sigmaRuleYaml;
+
+  if (typeof yaml !== "string" || !yaml.trim()) {
+    return null;
+  }
+
+  try {
+    return SigmaRuleSetParser.parse(yaml);
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * Whether the form's rule, in real time, counts in windows of its interval
+ * - a correlation, or a rule with a threshold above 1 or a distinct count -
+ * so its interval still matters. A rule whose YAML does not read yet is
+ * taken to: the interval stays on the form until the YAML says otherwise.
+ */
+export function countsInWindows(values: RealTimeFormValues): boolean {
+  const definition: DetectionRuleDefinition | null = readDefinition(values);
+
+  if (!definition) {
+    return true;
+  }
+
+  return doesRealTimeRuleCountInWindows({
+    definition,
+    matchCountThreshold: readThreshold(values.matchCountThreshold),
+    distinctCountField:
+      typeof values.distinctCountField === "string"
+        ? values.distinctCountField
+        : undefined,
+  });
+}
+
 /*
  * Why the form's rule cannot run in real time, in the reader's words, or
  * null - while Run in Real Time is off, when it can, and while its YAML
@@ -76,28 +105,17 @@ export function getRealTimeFormProblem(
   values: RealTimeFormValues,
   translator: Translator,
 ): string | null {
-  const yaml: unknown = values.sigmaRuleYaml;
-
-  if (!runsInRealTime(values) || typeof yaml !== "string" || !yaml.trim()) {
+  if (!runsInRealTime(values)) {
     return null;
   }
 
-  let definition: DetectionRuleDefinition;
+  const definition: DetectionRuleDefinition | null = readDefinition(values);
 
-  try {
-    definition = SigmaRuleSetParser.parse(yaml);
-  } catch {
+  if (!definition) {
     return null;
   }
 
-  const problem: string | null = getRealTimeDetectionProblem({
-    definition,
-    matchCountThreshold: readThreshold(values.matchCountThreshold),
-    distinctCountField:
-      typeof values.distinctCountField === "string"
-        ? values.distinctCountField
-        : undefined,
-  });
+  const problem: string | null = getRealTimeDetectionProblem({ definition });
 
   if (!problem) {
     return null;

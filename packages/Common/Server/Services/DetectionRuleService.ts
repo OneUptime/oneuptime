@@ -59,6 +59,8 @@ interface RealTimeStart {
 interface RealTimeChanges {
   leavingRealTime?: Array<ObjectID> | undefined;
   enteringRealTime?: Array<RealTimeStart> | undefined;
+  // Real-time rules turned off: they read events up to now, and resume from here.
+  pausingRealTime?: Array<ObjectID> | undefined;
 }
 
 // A switch as a write may carry it: true, or Postgres's "true".
@@ -72,34 +74,51 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * REAL TIME (Types/SecurityEvent/RealTimeDetection): a rule may check
-   * each event as it arrives only when it fires on one event - and a
-   * project runs at most DETECTION_REAL_TIME_RULES_MAX rules so, since
-   * every event it writes is checked against each. Both are asked whenever
-   * a write turns real time on or changes what a real-time rule reads.
+   * REAL TIME (Types/SecurityEvent/RealTimeDetection): any rule may check
+   * events as they arrive but one with a regular expression - a
+   * correlation held to every rule it reads, the project's own included -
+   * and a project runs at most DETECTION_REAL_TIME_RULES_MAX rules so,
+   * since every event it writes is checked against each. Both are asked
+   * whenever a write turns real time on or changes what a real-time rule
+   * reads.
    */
-  private static assertRealTimeFits(data: {
-    ruleYaml: string | undefined;
-    matchCountThreshold: unknown;
-    distinctCountField: unknown;
-  }): void {
-    const problem: string | null = getRealTimeDetectionProblem({
-      definition: SigmaRuleSetParser.parse(data.ruleYaml || ""),
-      matchCountThreshold:
-        typeof data.matchCountThreshold === "number"
-          ? data.matchCountThreshold
-          : Number(data.matchCountThreshold) || undefined,
-      distinctCountField:
-        typeof data.distinctCountField === "string"
-          ? data.distinctCountField
-          : undefined,
-    });
+  private static assertRealTimeFits(definition: DetectionRuleDefinition): void {
+    const problem: string | null = getRealTimeDetectionProblem({ definition });
 
     if (problem) {
       throw new BadDataException(
         `This rule cannot run in real time. ${problem}`,
       );
     }
+  }
+
+  /*
+   * A rule's YAML as real time reads it: a correlation that names the
+   * project's other rules, with them.
+   */
+  private async readRealTimeDefinition(data: {
+    ruleYaml: string | undefined;
+    projectId: ObjectID | undefined;
+    ruleId: ObjectID | undefined;
+  }): Promise<DetectionRuleDefinition> {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      data.ruleYaml || "",
+    );
+
+    if (
+      definition.kind === "single" ||
+      definition.unresolvedReferences.length === 0 ||
+      !data.projectId
+    ) {
+      return definition;
+    }
+
+    return SigmaRuleSetParser.parse(data.ruleYaml || "", {
+      resolveReference: await this.loadProjectRules(
+        data.projectId,
+        data.ruleId,
+      ),
+    });
   }
 
   private async assertRealTimeRoom(
@@ -126,54 +145,53 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Whether an update that leaves real time as it is could still stop a
-   * real-time rule from running so: a rule a correlation or a regular
-   * expression now, a threshold above 1, a distinct count field. Anything
-   * else keeps a real-time rule able to, and reads no row.
+   * real-time rule from running so: YAML that holds a regular expression,
+   * or a correlation that reads the project's other rules, which may. Any
+   * other write keeps a real-time rule able to, and reads no row.
    */
   private static mayEndRealTime(data: JSONObject): boolean {
-    if (data["sigmaRuleYaml"] !== undefined) {
-      try {
-        if (
-          getRealTimeDetectionProblem({
-            definition: SigmaRuleSetParser.parse(
-              String(data["sigmaRuleYaml"] || ""),
-            ),
-          })
-        ) {
-          return true;
-        }
-      } catch {
+    if (data["sigmaRuleYaml"] === undefined) {
+      return false;
+    }
+
+    try {
+      const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+        String(data["sigmaRuleYaml"] || ""),
+      );
+
+      if (
+        definition.kind === "correlation" &&
+        definition.unresolvedReferences.length > 0
+      ) {
         return true;
       }
-    }
 
-    if (
-      data["matchCountThreshold"] !== undefined &&
-      data["matchCountThreshold"] !== null &&
-      Number(data["matchCountThreshold"]) > 1
-    ) {
+      return getRealTimeDetectionProblem({ definition }) !== null;
+    } catch {
       return true;
     }
-
-    return (
-      typeof data["distinctCountField"] === "string" &&
-      data["distinctCountField"].trim().length > 0
-    );
   }
 
   /*
-   * An update that turns real time on or off, turns a rule on, or could
-   * stop a real-time rule from running so, held to the rules above for
-   * every row it writes, as the row will be. Returns what changes
+   * An update that turns real time on or off, turns a rule on or off, or
+   * could stop a real-time rule from running so, held to the rules above
+   * for every row it writes, as the row will be. Returns what changes
    * (onUpdateSuccess acts on it once the rows are written):
    *
-   *   - the rows that go back to their schedule, which start it from now:
-   *     from their last scheduled run, they would read again what real
-   *     time already did;
+   *   - the rows that go back to their schedule while on, which start it
+   *     from now: from their last scheduled run, they would read again
+   *     what real time already did. One that was off keeps where its
+   *     checks stopped, and its schedule reads the time it was off;
+   *   - the real-time rows turned off, which read events up to now: they
+   *     resume from here, as a scheduled rule turned off resumes from its
+   *     last run;
    *   - the rows that start to check events as they arrive - off their
    *     schedule, or turned back on - each with the window its handover
-   *     reads (RealTimeJobs): from the last scheduled run, or from now for
-   *     a real-time rule turned back on, until every process screens for it.
+   *     reads (RealTimeJobs): from the last scheduled run, or from when a
+   *     real-time rule was turned off, until every process screens for it.
+   *     So a rule turned off and on again catches up on the time it was
+   *     off, up to the last DETECTION_MAX_LOOKBACK_IN_MINUTES, as a
+   *     scheduled rule does.
    */
   private async checkRealTimeUpdate(
     updateBy: UpdateBy<Model>,
@@ -183,7 +201,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (
       data["isRealTime"] === undefined &&
       !Service.mayEndRealTime(data) &&
-      !readSwitch(data["isEnabled"])
+      data["isEnabled"] === undefined
     ) {
       return {};
     }
@@ -196,8 +214,6 @@ export class Service extends ProjectReferencesService<Model> {
         isRealTime: true,
         isEnabled: true,
         sigmaRuleYaml: true,
-        matchCountThreshold: true,
-        distinctCountField: true,
         lastEvaluatedAt: true,
         evaluationIntervalInMinutes: true,
       },
@@ -205,6 +221,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const leaving: Array<ObjectID> = [];
     const entering: Array<RealTimeStart> = [];
+    const pausing: Array<ObjectID> = [];
     const now: Date = OneUptimeDate.getCurrentDate();
 
     for (const row of rows) {
@@ -216,13 +233,20 @@ export class Service extends ProjectReferencesService<Model> {
         data["isEnabled"] !== undefined
           ? readSwitch(data["isEnabled"])
           : row.isEnabled !== false;
+      const wasCheckingEvents: boolean =
+        row.isRealTime === true && row.isEnabled !== false;
 
       if (!isRealTime) {
-        if (row.isRealTime === true && row.id) {
+        // Off already, it keeps where its checks stopped: its schedule reads the time it was off.
+        if (wasCheckingEvents && row.id) {
           leaving.push(row.id);
         }
 
         continue;
+      }
+
+      if (wasCheckingEvents && !isEnabled && row.id) {
+        pausing.push(row.id);
       }
 
       if (
@@ -236,33 +260,26 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: row.projectId,
           ...getRealTimeHandoverWindow({
             now,
-            // A real-time rule turned back on reads from now: its schedule stopped long ago.
-            lastEvaluatedAt:
-              row.isRealTime === true
-                ? OneUptimeDate.addRemoveSeconds(
-                    now,
-                    -DETECTION_EVALUATION_DELAY_IN_SECONDS,
-                  )
-                : row.lastEvaluatedAt,
+            /*
+             * From its last scheduled run - or, for a real-time rule
+             * turned back on, from when it was turned off.
+             */
+            lastEvaluatedAt: row.lastEvaluatedAt,
             evaluationIntervalInMinutes: row.evaluationIntervalInMinutes,
           }),
         });
       }
 
-      Service.assertRealTimeFits({
-        ruleYaml:
-          data["sigmaRuleYaml"] !== undefined
-            ? String(data["sigmaRuleYaml"] || "")
-            : row.sigmaRuleYaml,
-        matchCountThreshold:
-          data["matchCountThreshold"] !== undefined
-            ? data["matchCountThreshold"]
-            : row.matchCountThreshold,
-        distinctCountField:
-          data["distinctCountField"] !== undefined
-            ? data["distinctCountField"]
-            : row.distinctCountField,
-      });
+      Service.assertRealTimeFits(
+        await this.readRealTimeDefinition({
+          ruleYaml:
+            data["sigmaRuleYaml"] !== undefined
+              ? String(data["sigmaRuleYaml"] || "")
+              : row.sigmaRuleYaml,
+          projectId: row.projectId,
+          ruleId: row.id || undefined,
+        }),
+      );
 
       if (row.isRealTime !== true && row.projectId) {
         await this.assertRealTimeRoom(row.projectId, row.id || undefined);
@@ -272,6 +289,7 @@ export class Service extends ProjectReferencesService<Model> {
     return {
       ...(leaving.length > 0 ? { leavingRealTime: leaving } : {}),
       ...(entering.length > 0 ? { enteringRealTime: entering } : {}),
+      ...(pausing.length > 0 ? { pausingRealTime: pausing } : {}),
     };
   }
 
@@ -491,11 +509,8 @@ export class Service extends ProjectReferencesService<Model> {
         (createBy.data as unknown as JSONObject)["isRealTime"] as JSONValue,
       )
     ) {
-      Service.assertRealTimeFits({
-        ruleYaml: createBy.data.sigmaRuleYaml,
-        matchCountThreshold: createBy.data.matchCountThreshold,
-        distinctCountField: createBy.data.distinctCountField,
-      });
+      // As it was read for the save: a correlation with the project's rules it names.
+      Service.assertRealTimeFits(definition);
 
       const projectId: ObjectID | undefined =
         createBy.data.projectId ||
@@ -642,8 +657,11 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A rule back on its schedule starts it from now, two minutes behind the
    * clock as every run reads: what it would have read since its last
-   * scheduled run, real time already did. Written after the update, as
-   * OneUptime: nobody writes when a rule last ran.
+   * scheduled run, real time already did. So does a real-time rule turned
+   * off: it read events up to now, and when it is turned back on - in real
+   * time, or on its schedule - it reads from here, catching up on the time
+   * it was off. Written after the update, as OneUptime: nobody writes when
+   * a rule last ran.
    *
    * A rule that starts to run in real time gets its handover.
    */
@@ -653,7 +671,10 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     const carried: RealTimeChanges | null =
       onUpdate.carryForward as RealTimeChanges | null;
-    const leaving: Array<ObjectID> = carried?.leavingRealTime || [];
+    const resuming: Array<ObjectID> = [
+      ...(carried?.leavingRealTime || []),
+      ...(carried?.pausingRealTime || []),
+    ];
     const updated: Set<string> = new Set<string>(
       updatedItemIds.map((id: ObjectID): string => {
         return id.toString();
@@ -668,7 +689,7 @@ export class Service extends ProjectReferencesService<Model> {
       ),
     );
 
-    if (leaving.length === 0) {
+    if (resuming.length === 0) {
       return onUpdate;
     }
 
@@ -677,7 +698,7 @@ export class Service extends ProjectReferencesService<Model> {
       -DETECTION_EVALUATION_DELAY_IN_SECONDS,
     );
 
-    for (const id of leaving) {
+    for (const id of resuming) {
       if (updated.has(id.toString())) {
         await this.updateColumnsByIdWithoutHooks({
           id,

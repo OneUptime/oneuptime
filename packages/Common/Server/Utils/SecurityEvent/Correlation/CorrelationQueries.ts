@@ -9,7 +9,9 @@ import {
   SigmaCorrelation,
   SigmaCorrelationStep,
 } from "../../../../Types/SecurityEvent/SigmaCorrelation";
-import SecurityEventService from "../../../Services/SecurityEventService";
+import SecurityEventService, {
+  DetectionArrivalRead,
+} from "../../../Services/SecurityEventService";
 import {
   Results,
   DbJSONResponse,
@@ -42,6 +44,13 @@ import { assertDetectionReadFits } from "../Watchlists/SecurityWatchlistMatch";
  *
  * Group values are read as text; a group whose value is empty is not a
  * group (a sequence "by the same user" of events naming no user is not one).
+ *
+ * In real time (Types/SecurityEvent/RealTimeDetection) a run is the window
+ * of the rule's interval a write's events fall in, as it stood when the
+ * write came in (`arrival`: every read takes the events whose id is no
+ * later than the write's last, and only the groups its events name). A
+ * group fires when the write is what made the condition hold in the
+ * window: with only what came in before the write's first id, it did not.
  */
 
 // The latest times read per step and group, for the temporal arithmetic.
@@ -72,6 +81,8 @@ export interface CorrelationReadWindow {
   endTime: Date;
   // ANDed into every read, for a setup test that reads only its own events.
   restrictTo?: Statement | undefined;
+  // In real time: the window as one write found it.
+  arrival?: DetectionArrivalRead | undefined;
 }
 
 export interface CorrelationGroupKey {
@@ -132,6 +143,8 @@ export interface CorrelationTemporalRow extends CorrelationGroupKey {
   stepCounts: Array<number>;
   // The latest times per step (ms), at most CORRELATION_STEP_TIMES_LIMIT, any order.
   stepTimes: Array<Array<number>>;
+  // In real time: the same, of what came in before the write.
+  stepTimesBefore?: Array<Array<number>> | undefined;
   matchCount: number;
   lastMatchAt: Date | null;
   sampleMessage: string;
@@ -265,12 +278,16 @@ export function buildGroupExpression(data: {
   return statement;
 }
 
-// "projectId = ? AND time >= ? AND time < ?", and a setup test's own restriction.
+/*
+ * "projectId = ? AND time >= ? AND time < ?", a setup test's own
+ * restriction, and - in real time - the window as one write found it.
+ */
 function baseWhere(data: {
   projectId: ObjectID;
   from: Date;
   until: Date;
   restrictTo?: Statement | undefined;
+  arrival?: DetectionArrivalRead | undefined;
 }): Statement {
   const statement: Statement = SQL`projectId = ${{
     type: TableColumnType.ObjectID,
@@ -288,7 +305,83 @@ function baseWhere(data: {
     statement.append(wrap(data.restrictTo));
   }
 
+  if (data.arrival) {
+    statement.append(" AND ");
+    statement.append(arrivedBy(data.arrival));
+  }
+
   return statement;
+}
+
+// The events that had come in by the write's last: ids are time-ordered.
+function arrivedBy(arrival: DetectionArrivalRead): Statement {
+  return SQL`_id <= ${{
+    type: TableColumnType.Text,
+    value: arrival.lastId,
+  }}`;
+}
+
+// The events that came in before the write's first.
+function arrivedBefore(arrival: DetectionArrivalRead): Statement {
+  return SQL`_id < ${{
+    type: TableColumnType.Text,
+    value: arrival.firstId,
+  }}`;
+}
+
+// An event of the write.
+function isArrivalCandidate(arrival: DetectionArrivalRead): Statement {
+  return SQL`has(${{
+    type: TableColumnType.ArrayText,
+    value: arrival.candidateIds,
+  }}, _id)`;
+}
+
+/*
+ * " AND (g0, g1) IN (...)": only the groups the write's events name, read
+ * where they happened - so a real-time read aggregates the groups it can
+ * fire, and the bloom indexes of the typed columns can skip the rest.
+ */
+function appendArrivalGroups(data: {
+  statement: Statement;
+  groups: Array<Statement>;
+  projectId: ObjectID;
+  arrival: DetectionArrivalRead | undefined;
+  tableName: string;
+}): void {
+  if (!data.arrival || data.groups.length === 0) {
+    return;
+  }
+
+  const appendGroups: (target: Statement) => void = (
+    target: Statement,
+  ): void => {
+    data.groups.forEach((group: Statement, index: number): void => {
+      if (index > 0) {
+        target.append(", ");
+      }
+
+      target.append("toString(");
+      target.append(group);
+      target.append(")");
+    });
+  };
+
+  data.statement.append(" AND (");
+  appendGroups(data.statement);
+  data.statement.append(") IN (SELECT ");
+  appendGroups(data.statement);
+  data.statement.append(` FROM ${data.tableName} WHERE `);
+  data.statement.append(
+    baseWhere({
+      projectId: data.projectId,
+      from: data.arrival.candidateStartTime,
+      until: data.arrival.candidateEndTime,
+    }),
+  );
+  data.statement.append(" AND ");
+  data.statement.append(isArrivalCandidate(data.arrival));
+  data.statement.append(")");
 }
 
 function comparisonsOn(
@@ -393,6 +486,11 @@ export default class CorrelationQueries {
    * five-minute burst). The highest count of any window ending in this run
    * is what the condition is checked against; a group fires only with
    * events in this run.
+   *
+   * In real time it is counted twice in the same read: with every event
+   * that had come in by the write's last, and with only those that came in
+   * before its first. A group fires when the first holds and the second
+   * did not, with an event of the write among its own.
    */
   public static buildCountStatement(data: {
     window: CorrelationReadWindow;
@@ -419,6 +517,7 @@ export default class CorrelationQueries {
       timespanInSeconds: data.correlation.timespanInSeconds,
       startTime: data.window.startTime,
     });
+    const arrival: DetectionArrivalRead | undefined = data.window.arrival;
 
     // Per group and step: the events, their latest time, a sample, and the distinct values' state.
     const inner: Statement = SQL`SELECT `;
@@ -426,6 +525,15 @@ export default class CorrelationQueries {
     inner.append(
       `intDiv(toUnixTimestamp(time), ${rolling.bucketSeconds}) AS __b, count() AS __c, any(message) AS __m, arrayDistinct(arrayFlatten(groupArray(5)(observables))) AS __o`,
     );
+
+    if (arrival) {
+      // What came in before the write, and the write's own events.
+      inner.append(", countIf(");
+      inner.append(arrivedBefore(arrival));
+      inner.append(") AS __cb, countIf(");
+      inner.append(isArrivalCandidate(arrival));
+      inner.append(") AS __k");
+    }
 
     if (data.countDistinct) {
       const values: Array<Statement> = data.correlation.condition.fields.map(
@@ -437,30 +545,47 @@ export default class CorrelationQueries {
         },
       );
 
-      inner.append(", uniqExactStateIf(");
+      const appendDistinctState: (alias: string, before: boolean) => void = (
+        alias: string,
+        before: boolean,
+      ): void => {
+        inner.append(", uniqExactStateIf(");
 
-      if (values.length === 1) {
-        inner.append(values[0]!);
-      } else {
-        inner.append("tuple(");
+        if (values.length === 1) {
+          inner.append(values[0]!);
+        } else {
+          inner.append("tuple(");
+          values.forEach((value: Statement, index: number): void => {
+            if (index > 0) {
+              inner.append(", ");
+            }
+            inner.append(value);
+          });
+          inner.append(")");
+        }
+
+        inner.append(", ");
         values.forEach((value: Statement, index: number): void => {
           if (index > 0) {
-            inner.append(", ");
+            inner.append(" AND ");
           }
           inner.append(value);
+          inner.append(" != ''");
         });
-        inner.append(")");
-      }
 
-      inner.append(", ");
-      values.forEach((value: Statement, index: number): void => {
-        if (index > 0) {
+        if (before && arrival) {
           inner.append(" AND ");
+          inner.append(arrivedBefore(arrival));
         }
-        inner.append(value);
-        inner.append(" != ''");
-      });
-      inner.append(") AS __s");
+
+        inner.append(`) AS ${alias}`);
+      };
+
+      appendDistinctState("__s", false);
+
+      if (arrival) {
+        appendDistinctState("__sb", true);
+      }
     }
 
     inner.append(` FROM ${data.tableName} WHERE `);
@@ -470,11 +595,20 @@ export default class CorrelationQueries {
         from: data.window.readFrom,
         until: data.window.endTime,
         restrictTo: data.window.restrictTo,
+        arrival,
       }),
     );
     inner.append(" AND (");
     inner.append(orAll(stepConditions));
-    inner.append(`) GROUP BY ${[...columns, "__b"].join(", ")}`);
+    inner.append(")");
+    appendArrivalGroups({
+      statement: inner,
+      groups,
+      projectId: data.window.projectId,
+      arrival,
+      tableName: data.tableName,
+    });
+    inner.append(` GROUP BY ${[...columns, "__b"].join(", ")}`);
 
     // Every step's count over the timespan that ends at it.
     const frame: string = `(${
@@ -483,7 +617,14 @@ export default class CorrelationQueries {
 
     const windowed: Statement = SQL`SELECT `;
     windowed.append(
-      [...columns, "__b", "__c", "__m", "__o"]
+      [
+        ...columns,
+        "__b",
+        "__c",
+        "__m",
+        "__o",
+        ...(arrival ? ["__cb", "__k"] : []),
+      ]
         .map((column: string): string => {
           return `${column}, `;
         })
@@ -491,10 +632,20 @@ export default class CorrelationQueries {
     );
     windowed.append(`sum(__c) OVER ${frame} AS __rolling`);
 
+    if (arrival) {
+      windowed.append(`, sum(__cb) OVER ${frame} AS __rollingBefore`);
+    }
+
     if (data.countDistinct) {
       windowed.append(
         `, uniqExactMerge(__s) OVER ${frame} AS __rollingDistinct`,
       );
+
+      if (arrival) {
+        windowed.append(
+          `, uniqExactMerge(__sb) OVER ${frame} AS __rollingDistinctBefore`,
+        );
+      }
     }
 
     windowed.append(" FROM (");
@@ -512,7 +663,19 @@ export default class CorrelationQueries {
     statement.append(
       `max(__rolling) AS matchCount, ${
         data.countDistinct ? "max(__rollingDistinct)" : "0"
-      } AS distinctCount, sum(__c) AS eventsInRun, any(__m) AS sampleMessage, arrayDistinct(arrayFlatten(groupArray(4)(__o))) AS sampleObservables FROM (`,
+      } AS distinctCount, sum(__c) AS eventsInRun, `,
+    );
+
+    if (arrival) {
+      statement.append(
+        `max(__rollingBefore) AS matchCountBefore, ${
+          data.countDistinct ? "max(__rollingDistinctBefore)" : "0"
+        } AS distinctCountBefore, sum(__cb) AS eventsBefore, sum(__k) AS candidateEvents, `,
+      );
+    }
+
+    statement.append(
+      `any(__m) AS sampleMessage, arrayDistinct(arrayFlatten(groupArray(4)(__o))) AS sampleObservables FROM (`,
     );
     statement.append(windowed);
     statement.append(`) WHERE __b >= ${rolling.startBucket}`);
@@ -534,6 +697,24 @@ export default class CorrelationQueries {
         data.correlation.condition.comparisons,
       ),
     );
+
+    if (arrival) {
+      /*
+       * The write is what made it hold: one of its events is the group's,
+       * and with only what came in before it the condition did not hold.
+       */
+      statement.append(
+        " AND candidateEvents > 0 AND NOT (eventsBefore > 0 AND ",
+      );
+      statement.append(
+        comparisonsOn(
+          data.countDistinct ? "distinctCountBefore" : "matchCountBefore",
+          data.correlation.condition.comparisons,
+        ),
+      );
+      statement.append(")");
+    }
+
     statement.append(
       ` ORDER BY ${data.countDistinct ? "distinctCount" : "matchCount"} DESC LIMIT `,
     );
@@ -570,7 +751,9 @@ export default class CorrelationQueries {
    * temporal and temporal_ordered: per group, how many events each step
    * matched and the latest times of each, for the groups that had an event
    * since startTime and at least `minimumSteps` steps with the events each
-   * needs (a step that counts needs its count).
+   * needs (a step that counts needs its count). In real time, each step's
+   * latest times also with only what came in before the write, for groups
+   * with an event of the write.
    */
   public static buildTemporalStatement(data: {
     window: CorrelationReadWindow;
@@ -595,6 +778,7 @@ export default class CorrelationQueries {
       },
     );
     const columns: Array<string> = groupColumns(groups.length);
+    const arrival: DetectionArrivalRead | undefined = data.window.arrival;
 
     const statement: Statement = SQL`SELECT `;
     selectGroups(groups, statement);
@@ -612,7 +796,23 @@ export default class CorrelationQueries {
       );
       statement.append(condition);
       statement.append(`) AS __t${index}, `);
+
+      if (arrival) {
+        statement.append(
+          `groupArraySortedIf(${CORRELATION_STEP_TIMES_LIMIT})(0 - toUnixTimestamp64Milli(time), (`,
+        );
+        statement.append(condition);
+        statement.append(") AND ");
+        statement.append(arrivedBefore(arrival));
+        statement.append(`) AS __tb${index}, `);
+      }
     });
+
+    if (arrival) {
+      statement.append("countIf(");
+      statement.append(isArrivalCandidate(arrival));
+      statement.append(") AS __k, ");
+    }
 
     statement.append(
       `count() AS matchCount, max(time) AS lastMatchAt, ${SAMPLE_COLUMNS} FROM ${data.tableName} WHERE `,
@@ -623,11 +823,19 @@ export default class CorrelationQueries {
         from: data.window.readFrom,
         until: data.window.endTime,
         restrictTo: data.window.restrictTo,
+        arrival,
       }),
     );
     statement.append(" AND (");
     statement.append(orAll(stepConditions));
     statement.append(")");
+    appendArrivalGroups({
+      statement,
+      groups,
+      projectId: data.window.projectId,
+      arrival,
+      tableName: data.tableName,
+    });
 
     if (columns.length > 0) {
       statement.append(` GROUP BY ${columns.join(", ")}`);
@@ -637,6 +845,11 @@ export default class CorrelationQueries {
 
     if (columns.length > 0) {
       statement.append(`${nonEmptyGroups(columns)} AND `);
+    }
+
+    // In real time, only a group with an event of the write.
+    if (arrival) {
+      statement.append("__k > 0 AND ");
     }
 
     statement.append(
@@ -680,6 +893,7 @@ export default class CorrelationQueries {
     return rows.map((row: JSONObject): CorrelationTemporalRow => {
       const stepCounts: Array<number> = [];
       const stepTimes: Array<Array<number>> = [];
+      const stepTimesBefore: Array<Array<number>> = [];
 
       data.steps.forEach((_step: SigmaCorrelationStep, index: number): void => {
         stepCounts.push(Number(row[`__n${index}`] || 0));
@@ -688,12 +902,20 @@ export default class CorrelationQueries {
             return -negated;
           }),
         );
+        stepTimesBefore.push(
+          readNumberArray(row[`__tb${index}`]).map(
+            (negated: number): number => {
+              return -negated;
+            },
+          ),
+        );
       });
 
       return {
         values: readGroupValues(row, data.correlation.groupBy.length),
         stepCounts,
         stepTimes,
+        ...(data.window.arrival ? { stepTimesBefore } : {}),
         matchCount: Number(row["matchCount"] || 0),
         lastMatchAt: readDate(row["lastMatchAt"]),
         sampleMessage: String(row["sampleMessage"] ?? ""),
@@ -706,7 +928,9 @@ export default class CorrelationQueries {
    * new_value: per group, the values of the condition's field(s) that this
    * run's events show and the history before startTime never did, for the
    * groups the history did hold. The history read is narrowed to this run's
-   * groups, which the bloom indexes of the typed columns can skip by.
+   * groups, which the bloom indexes of the typed columns can skip by. In
+   * real time, only the pairs the write brought: an event of the write is
+   * the pair's, and none of the pair's in this run came in before it.
    */
   public static buildNewValueStatement(data: {
     window: CorrelationReadWindow;
@@ -774,6 +998,7 @@ export default class CorrelationQueries {
           from: data.historyFrom,
           until: data.window.startTime,
           restrictTo: data.window.restrictTo,
+          arrival: data.window.arrival,
         }),
       );
       statement.append(" AND (");
@@ -800,24 +1025,55 @@ export default class CorrelationQueries {
       },
     );
 
+    const arrival: DetectionArrivalRead | undefined = data.window.arrival;
     const query: Statement = SQL`WITH __recent AS (SELECT `;
     query.append(recentSelect);
     query.append(
-      `, min(time) AS __firstSeenAt, count() AS __matchCount, any(message) AS __sampleMessage, groupArray(5)(observables) AS __sampleObservables FROM ${data.tableName} WHERE `,
+      `, min(time) AS __firstSeenAt, count() AS __matchCount, any(message) AS __sampleMessage, groupArray(5)(observables) AS __sampleObservables`,
     );
+
+    if (arrival) {
+      // When the pair first came in, in this run, and whether the write brought one of its events.
+      query.append(", min(_id) AS __firstArrivalId, countIf(");
+      query.append(isArrivalCandidate(arrival));
+      query.append(") AS __k");
+    }
+
+    query.append(` FROM ${data.tableName} WHERE `);
     query.append(
       baseWhere({
         projectId: data.window.projectId,
         from: data.window.startTime,
         until: data.window.endTime,
         restrictTo: data.window.restrictTo,
+        arrival,
       }),
     );
     query.append(" AND (");
     query.append(condition);
+    query.append(")");
+    appendArrivalGroups({
+      statement: query,
+      groups,
+      projectId: data.window.projectId,
+      arrival,
+      tableName: data.tableName,
+    });
     query.append(
-      `) GROUP BY ${[...groupNames, ...valueNames].join(", ")} HAVING ${nonEmptyGroups([...groupNames, ...valueNames])}) SELECT `,
+      ` GROUP BY ${[...groupNames, ...valueNames].join(", ")} HAVING ${nonEmptyGroups([...groupNames, ...valueNames])}`,
     );
+
+    if (arrival) {
+      query.append(" AND __k > 0 AND __firstArrivalId >= ");
+      query.append(
+        SQL`${{
+          type: TableColumnType.Text,
+          value: arrival.firstId,
+        }}`,
+      );
+    }
+
+    query.append(") SELECT ");
     query.append(groupNames.join(", "));
     query.append(
       `, groupArray(${CORRELATION_NEW_VALUES_PER_GROUP})(${

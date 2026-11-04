@@ -29,9 +29,11 @@ import {
 /*
  * THE WORKER'S HALF OF A REAL-TIME RULE (RealTimeDetections screens, this
  * confirms): the candidates one write handed one rule, confirmed with the
- * rule's own query - exceptions and watchlists included - restricted to
- * them by id, once they can be read (DetectionRuleEvaluator.evaluateRealTime),
- * which does what a scheduled run does with what matches.
+ * rule's own query - exceptions and watchlists included - once they can be
+ * read (DetectionRuleEvaluator.evaluateRealTime), which does what a
+ * scheduled run does with what matches. A rule that fires on one event
+ * reads just them, by id; a rule that counts, and a correlation, read the
+ * window of the rule's interval around them.
  *
  * Kept apart from the screen, so every path that writes security events
  * loads the screen alone and never the engine.
@@ -116,6 +118,7 @@ export function readRealTimeJobData(value: unknown): RealTimeJobData | null {
     events,
     attempt: Number.isInteger(attempt) && attempt > 0 ? attempt : 1,
     ...(window ? { window } : {}),
+    ...(data["countsInWindows"] === true ? { countsInWindows: true } : {}),
   };
 }
 
@@ -229,6 +232,7 @@ export default class RealTimeDetectionJob {
       restrictTo: SQL`_id IN ${{ type: TableColumnType.ArrayText, value: ids }}`,
       startTime,
       endTime,
+      candidates: job.events,
     });
   }
 

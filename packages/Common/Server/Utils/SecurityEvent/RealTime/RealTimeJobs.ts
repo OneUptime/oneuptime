@@ -12,7 +12,9 @@ import Queue, { QueueName } from "../../../Infrastructure/Queue";
  * RealTimeDetections queues them, RealTimeDetectionJob runs them. Kept apart
  * from both, so the rule's own service can queue one without loading either.
  *
- *   - A confirmation: the events one write handed one rule, by id.
+ *   - A confirmation: the events one write handed one rule, by id. A rule
+ *     that counts, and a correlation, read the window of its interval
+ *     around them, as it stood when they arrived (countsInWindows).
  *   - A handover: every event of a window, for a rule that has just started
  *     to run in real time. Until every process has read the rule again
  *     (REAL_TIME_RULES_CACHE_TTL_MS), the events it writes are screened
@@ -35,6 +37,13 @@ export const REAL_TIME_EVENTS_PER_JOB: number = 500;
 export const REAL_TIME_FIRST_DELAY_MS: number = 5 * 1000;
 export const REAL_TIME_MAX_ATTEMPTS: number = 5;
 
+/*
+ * ...and a job of a rule that counts waits longer at first: it reads what
+ * every write before its own brought to the window, and the ingest API's
+ * writer holds a batch for up to five seconds before it is written.
+ */
+export const REAL_TIME_WINDOWED_FIRST_DELAY_MS: number = 10 * 1000;
+
 // A handover reads this much past the time every process screens for the rule.
 export const REAL_TIME_HANDOVER_MARGIN_MS: number = 5 * 1000;
 
@@ -55,6 +64,8 @@ export interface RealTimeJobData {
   ruleId: string;
   events: Array<RealTimeCandidate>;
   attempt: number;
+  // The rule counts in windows (Types/SecurityEvent/RealTimeDetection): its job waits a little longer.
+  countsInWindows?: boolean | undefined;
   // A handover's window: every event of it, rather than `events`.
   window?: RealTimeWindow | undefined;
 }
@@ -95,6 +106,18 @@ export function getRealTimeHandoverWindow(data: {
   };
 }
 
+// When a confirming job runs: a few seconds after its write, then twice as long for each attempt.
+export function getRealTimeJobDelayInMs(job: {
+  attempt: number;
+  countsInWindows?: boolean | undefined;
+}): number {
+  const first: number = job.countsInWindows
+    ? REAL_TIME_WINDOWED_FIRST_DELAY_MS
+    : REAL_TIME_FIRST_DELAY_MS;
+
+  return first * Math.pow(2, Math.max(1, job.attempt) - 1);
+}
+
 export default class RealTimeJobs {
   // A confirming job, later for every attempt: the first after a few seconds, then twice as long.
   public static async enqueue(job: RealTimeJobData): Promise<void> {
@@ -105,7 +128,7 @@ export default class RealTimeJobs {
       REAL_TIME_DETECTION_JOB,
       job as unknown as JSONObject,
       {
-        delayInMs: REAL_TIME_FIRST_DELAY_MS * Math.pow(2, job.attempt - 1),
+        delayInMs: getRealTimeJobDelayInMs(job),
         attempts: 1,
       },
     );

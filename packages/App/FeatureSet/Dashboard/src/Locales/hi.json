@@ -11246,7 +11246,6 @@
   "How often on-call duty passes to the next user in this layer.": "How often on-call duty passes to the next user in this layer.",
   "How often the collection is polled for new indicators. Default 60.": "How often the collection is polled for new indicators. Default 60.",
   "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.": "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.",
-  "How often this rule is evaluated, in minutes.": "यह नियम कितनी बार जाँचा जाता है, मिनटों में।",
   "How often to remind alert owners while the alert is open.": "How often to remind alert owners while the alert is open.",
   "How often to remind event owners while the event has not yet finished.": "How often to remind event owners while the event has not yet finished.",
   "How often to remind incident owners while the incident is open.": "How often to remind incident owners while the incident is open.",
@@ -38741,7 +38740,6 @@
   "Similar message": "मिलता-जुलता संदेश",
   "{{deviceName}} web UI": "{{deviceName}} का वेब UI",
   "{{tasks}} for a person": "किसी व्यक्ति के लिए {{tasks}}",
-  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "हर इवेंट को आते ही कुछ सेकंड में जाँचें। एक इवेंट पर चलने वाले नियम के लिए: सीमा 1, कोई अलग-अलग गिनती फ़ील्ड नहीं, कोई रेगुलर एक्सप्रेशन नहीं।",
   "Checks each event as it arrives, within seconds, instead of every interval.": "हर अंतराल पर नहीं, बल्कि हर इवेंट को आते ही कुछ सेकंड में जाँचता है।",
   "Keeps events and session replays, notes traces and exceptions": "इवेंट और Session Replays रखता है, ट्रेस और अपवाद नोट करता है",
   "Real time": "रीयल-टाइम",
@@ -38751,10 +38749,7 @@
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "हर {{min}}–{{max}} मिनट (आप चुनें) में नियम का Sigma डिटेक्शन उसके पिछले रन के बाद के इवेंट पर जाँचा जाता है। रीयल-टाइम में चलने वाला नियम हर इवेंट को उसके आते ही जाँचता है।",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "चरण {{number}} इस चरण के नतीजे का इंतज़ार करता है। पहले चरण {{number}} में \"यह चरण चलाएँ\" बदलें।",
   "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "यह चरण चरण {{number}} के नतीजे का इंतज़ार करता है, इसलिए यह चरण {{number}} के नीचे रहता है।",
-  "A correlation reads several events together over its timespan, so it runs on its interval.": "कोरिलेशन अपनी समय-सीमा में कई इवेंट को साथ पढ़ता है, इसलिए यह अपने अंतराल पर चलता है।",
-  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "यह अलग-अलग मानों को गिनता है, इसलिए यह अपने अंतराल पर चलता है: इसे रीयल-टाइम में चलाने के लिए \"अलग-अलग गिनती फ़ील्ड\" खाली करें।",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "यह रेगुलर एक्सप्रेशन (|re) इस्तेमाल करता है, जो सिर्फ़ शेड्यूल पर चलता है: इसे रीयल-टाइम में चलाने के लिए contains, startswith या endswith इस्तेमाल करें।",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "यह मिलानों की एक संख्या का इंतज़ार करता है, इसलिए यह अपने अंतराल पर चलता है: इसे रीयल-टाइम में चलाने के लिए \"मिलान संख्या सीमा\" को 1 करें।",
   "A new exception": "एक नया अपवाद",
   "A resolved exception comes back": "सुलझाया गया अपवाद फिर से आता है",
   "A rise over the usual": "सामान्य से ज़्यादा बढ़त",
@@ -42280,5 +42275,7 @@
   "The page was escalated past this level": "एस्केलेट करते समय यह स्तर छोड़ दिया गया",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "नीति के स्तर बदल गए हैं, इसलिए कुछ भी एस्केलेट नहीं किया गया। स्तर चुनने के लिए फिर से एस्केलेट करें।",
   "{{policy}}: escalate to": "{{policy}}: किस स्तर पर एस्केलेट करें",
-  "no one next": "कोई अगला नहीं"
+  "no one next": "कोई अगला नहीं",
+  "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).": "इवेंट को हर अंतराल पर नहीं, आते ही कुछ सेकंड में जाँचें। रेगुलर एक्सप्रेशन (|re) वाले नियम के लिए नहीं।",
+  "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.": "नियम कितनी बार चलता है, मिनटों में। रीयल-टाइम में, गिनने वाला नियम इतनी लंबी विंडो पढ़ता है और हर विंडो में अधिकतम एक बार चलता है।"
 }

@@ -46,6 +46,7 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../Services/OpenTelemetryIngestService";
 import SecurityEventService, {
+  DetectionArrivalRead,
   DetectionMatchGroup,
   doesGroupMeetDetectionThreshold,
 } from "../../Services/SecurityEventService";
@@ -96,6 +97,12 @@ import SecurityEntityRiskRecorder from "./EntityRisk/SecurityEntityRiskRecorder"
 import SecurityWatchlists, {
   SecurityWatchlistReader,
 } from "./Watchlists/SecurityWatchlists";
+import {
+  RealTimeCountWindow,
+  doesRealTimeRuleCountInWindows,
+  getRealTimeCountWindow,
+} from "../../../Types/SecurityEvent/RealTimeDetection";
+import type { RealTimeCandidate } from "./RealTime/RealTimeJobs";
 import { riskFindingsForRuleMatches } from "./EntityRisk/SecurityEntityRiskFindings";
 import {
   SecurityEntity,
@@ -145,11 +152,28 @@ export interface DetectionRuleSetupTest {
  * every event of the window - and does everything a scheduled run does:
  * alert, incident, finding, case, risk. It leaves the rule's schedule as
  * it was: a real-time rule runs on no interval.
+ *
+ * A rule that counts in windows (Types/SecurityEvent/RealTimeDetection)
+ * reads the window of its interval each of the events (`candidates`) falls
+ * in instead, as it stood when they came in (`countWindow`, one run a
+ * window, which evaluateRealTime cuts).
  */
 export interface DetectionRuleRealTimeRun {
   restrictTo?: Statement | undefined;
   startTime: Date;
   endTime: Date;
+  // The events a write handed the rule, when they happened.
+  candidates?: Array<RealTimeCandidate> | undefined;
+  countWindow?: DetectionRuleCountWindow | undefined;
+}
+
+/*
+ * One window of a rule that counts, read in real time: the window of its
+ * interval (getRealTimeCountWindow), and the events of the write in it.
+ */
+export interface DetectionRuleCountWindow {
+  window: RealTimeCountWindow;
+  arrival: DetectionArrivalRead;
 }
 
 /*
@@ -206,6 +230,110 @@ export const DETECTION_RULE_REAL_TIME_SELECT: Select<DetectionRule> = {
 
 // Detection Finding rows written per insert.
 const DETECTION_FINDING_INSERT_BATCH_SIZE: number = 1000;
+
+// Room around the events' own times, for the read of the groups they name.
+const COUNT_WINDOW_CANDIDATE_PADDING_MS: number = 1000;
+
+/*
+ * The windows a write's events fall in, for a rule that counts in real
+ * time: one for each window of the rule's interval its events happened in,
+ * with the write's events in it and where they came in (the lowest and the
+ * highest id: ids are time-ordered), in the order the windows come.
+ */
+export function getDetectionRuleCountWindows(data: {
+  candidates: Array<RealTimeCandidate>;
+  evaluationIntervalInMinutes?: number | null | undefined;
+}): Array<DetectionRuleCountWindow> {
+  const byWindow: Map<
+    number,
+    { window: RealTimeCountWindow; events: Array<RealTimeCandidate> }
+  > = new Map();
+
+  for (const candidate of data.candidates) {
+    const time: Date = new Date(candidate.time);
+
+    if (Number.isNaN(time.getTime()) || !candidate.id) {
+      continue;
+    }
+
+    const window: RealTimeCountWindow = getRealTimeCountWindow({
+      time,
+      evaluationIntervalInMinutes: data.evaluationIntervalInMinutes,
+    });
+    const key: number = window.startTime.getTime();
+    const entry: {
+      window: RealTimeCountWindow;
+      events: Array<RealTimeCandidate>;
+    } = byWindow.get(key) || { window, events: [] };
+
+    entry.events.push(candidate);
+    byWindow.set(key, entry);
+  }
+
+  return Array.from(byWindow.values())
+    .sort(
+      (
+        a: { window: RealTimeCountWindow },
+        b: { window: RealTimeCountWindow },
+      ): number => {
+        return a.window.startTime.getTime() - b.window.startTime.getTime();
+      },
+    )
+    .map(
+      (entry: {
+        window: RealTimeCountWindow;
+        events: Array<RealTimeCandidate>;
+      }): DetectionRuleCountWindow => {
+        const ids: Array<string> = entry.events
+          .map((event: RealTimeCandidate): string => {
+            return event.id;
+          })
+          .sort();
+        const times: Array<number> = entry.events.map(
+          (event: RealTimeCandidate): number => {
+            return new Date(event.time).getTime();
+          },
+        );
+
+        return {
+          window: entry.window,
+          arrival: {
+            candidateIds: ids,
+            firstId: ids[0]!,
+            lastId: ids[ids.length - 1]!,
+            candidateStartTime: new Date(
+              Math.min(...times) - COUNT_WINDOW_CANDIDATE_PADDING_MS,
+            ),
+            candidateEndTime: new Date(
+              Math.max(...times) + COUNT_WINDOW_CANDIDATE_PADDING_MS,
+            ),
+          },
+        };
+      },
+    );
+}
+
+// Two runs' results, as one: what a write's windows did between them.
+function addEvaluationResults(
+  first: DetectionRuleEvaluationResult,
+  second: DetectionRuleEvaluationResult,
+): DetectionRuleEvaluationResult {
+  return {
+    ruleId: first.ruleId,
+    matchedGroups: first.matchedGroups + second.matchedGroups,
+    overflowGroups: first.overflowGroups + second.overflowGroups,
+    totalMatches: first.totalMatches + second.totalMatches,
+    alertsCreated: first.alertsCreated + second.alertsCreated,
+    incidentsCreated: first.incidentsCreated + second.incidentsCreated,
+    findingsWritten: first.findingsWritten + second.findingsWritten,
+    casesOpened: first.casesOpened + second.casesOpened,
+    exceptionsApplied: Math.max(
+      first.exceptionsApplied,
+      second.exceptionsApplied,
+    ),
+    error: first.error || second.error,
+  };
+}
 
 export default class DetectionRuleEvaluator {
   // The clock the rules read by: DETECTION_EVALUATION_DELAY_IN_SECONDS behind.
@@ -375,7 +503,32 @@ export default class DetectionRuleEvaluator {
     run: DetectionRuleRealTimeRun,
   ): Promise<DetectionRuleEvaluationResult | null> {
     try {
-      return await this.evaluateRule(rule, { realTime: run });
+      const countWindows: Array<DetectionRuleCountWindow> | null =
+        this.readCountWindows(rule, run);
+
+      // A rule that fires on each event, and a handover: one run.
+      if (!countWindows) {
+        return await this.evaluateRule(rule, { realTime: run });
+      }
+
+      let total: DetectionRuleEvaluationResult | null = null;
+
+      for (const countWindow of countWindows) {
+        const result: DetectionRuleEvaluationResult = await this.evaluateRule(
+          rule,
+          {
+            realTime: {
+              startTime: countWindow.window.startTime,
+              endTime: countWindow.window.endTime,
+              countWindow,
+            },
+          },
+        );
+
+        total = total ? addEvaluationResults(total, result) : result;
+      }
+
+      return total;
     } catch (error) {
       logger.error(
         `DetectionRuleEvaluator: real-time run of rule ${rule.id?.toString()} failed:`,
@@ -403,6 +556,35 @@ export default class DetectionRuleEvaluator {
 
       return null;
     }
+  }
+
+  /*
+   * The windows a real-time run reads, for a rule that counts in windows
+   * and was handed a write's events; null for a rule that fires on each
+   * event, and for a handover, which reads its window as a run does.
+   */
+  private static readCountWindows(
+    rule: DetectionRule,
+    run: DetectionRuleRealTimeRun,
+  ): Array<DetectionRuleCountWindow> | null {
+    if (run.countWindow || !run.candidates || run.candidates.length === 0) {
+      return null;
+    }
+
+    const countsInWindows: boolean = doesRealTimeRuleCountInWindows({
+      definition: SigmaRuleSetParser.parse(rule.sigmaRuleYaml || ""),
+      matchCountThreshold: rule.matchCountThreshold,
+      distinctCountField: rule.distinctCountField,
+    });
+
+    if (!countsInWindows) {
+      return null;
+    }
+
+    return getDetectionRuleCountWindows({
+      candidates: run.candidates,
+      evaluationIntervalInMinutes: rule.evaluationIntervalInMinutes,
+    });
   }
 
   // evaluateRule, with a failure recorded on the rule rather than thrown.
@@ -481,11 +663,18 @@ export default class DetectionRuleEvaluator {
     ).bind(await this.loadRuleDefinition(rule));
     // What the findings, alerts and cases are written as: the rule, or the correlation.
     const parsedRule: SigmaRule = detectionRuleHeader(definition);
+    // A window of a rule that counts, as one write found it (evaluateRealTime).
+    const countWindow: DetectionRuleCountWindow | undefined =
+      realTime?.countWindow;
 
-    // A correlation reads events together over its timespan: never a handful at a time.
-    if (realTime && definition.kind === "correlation") {
+    // A correlation reads events together: in real time, a window of them, never a handful.
+    if (
+      definition.kind === "correlation" &&
+      realTime?.restrictTo &&
+      !countWindow
+    ) {
       throw new Error(
-        "A correlation runs on its interval, never in real time.",
+        "A correlation reads the window of its interval around the events it is handed, never the events alone.",
       );
     }
 
@@ -524,6 +713,16 @@ export default class DetectionRuleEvaluator {
       startTime = realTime.startTime;
     }
 
+    /*
+     * What the matches say they cover: the run's window - for a window of
+     * a rule that counts, up to now, as the window is still filling.
+     */
+    const coveredUntil: Date = countWindow
+      ? new Date(
+          Math.min(endTime.getTime(), OneUptimeDate.getCurrentDate().getTime()),
+        )
+      : endTime;
+
     const exceptions: Array<DetectionRuleExceptionShape> = setupTest
       ? []
       : options.exceptions ||
@@ -558,6 +757,7 @@ export default class DetectionRuleEvaluator {
           // One more than a run records, so it can tell "more than it reads".
           maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
           restrictTo: andRestrictions(setupTest?.restrictTo, exceptionsFilter),
+          arrival: countWindow?.arrival,
         });
 
       matchedGroups = correlationResult.groups;
@@ -573,6 +773,7 @@ export default class DetectionRuleEvaluator {
         endTime,
         restrictTo: setupTest?.restrictTo || realTime?.restrictTo,
         exceptionsFilter,
+        arrival: countWindow?.arrival,
       });
     }
 
@@ -620,7 +821,7 @@ export default class DetectionRuleEvaluator {
           parsedRule,
           matchedGroups: split.opened,
           startTime,
-          endTime,
+          endTime: coveredUntil,
         });
       }
 
@@ -636,7 +837,7 @@ export default class DetectionRuleEvaluator {
           parsedRule,
           matchedGroups: split.opened,
           startTime,
-          endTime,
+          endTime: coveredUntil,
         });
       }
 
@@ -666,7 +867,7 @@ export default class DetectionRuleEvaluator {
           matchedGroups: split.opened,
           findingEventUids,
           startTime,
-          endTime,
+          endTime: coveredUntil,
         });
 
         if (overflowNotice && !setupTest) {
@@ -677,7 +878,7 @@ export default class DetectionRuleEvaluator {
               overflowGroups: split.overflow,
               summary: overflowNotice,
               startTime,
-              endTime,
+              endTime: coveredUntil,
             }),
           );
         }
@@ -714,7 +915,7 @@ export default class DetectionRuleEvaluator {
             rule,
             parsedRule,
             matchedGroups: split.opened,
-            seenAt: endTime,
+            seenAt: coveredUntil,
           }),
         );
       }
@@ -736,7 +937,7 @@ export default class DetectionRuleEvaluator {
         id: rule.id,
         data: {
           lastError: overflowNotice as unknown as string,
-          ...(split.recorded.length > 0 ? { lastMatchAt: endTime } : {}),
+          ...(split.recorded.length > 0 ? { lastMatchAt: coveredUntil } : {}),
         },
         props: {
           isRoot: true,
@@ -828,6 +1029,8 @@ export default class DetectionRuleEvaluator {
     restrictTo: Statement | undefined;
     // The events no exception skips (buildDetectionRuleExceptionsFilter), or null.
     exceptionsFilter: Statement | null;
+    // A window of a rule that counts in real time, as one write found it.
+    arrival?: DetectionArrivalRead | undefined;
   }): Promise<Array<DetectionMatchGroup>> {
     const { rule } = data;
     const ruleWhereFragment: Statement = SigmaClickhouseCompiler.compile(
@@ -866,6 +1069,7 @@ export default class DetectionRuleEvaluator {
         minMatchCount: matchCountThreshold,
         // One more than a run records, so it can tell "more than it reads".
         maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
+        arrival: data.arrival,
       });
 
     /*

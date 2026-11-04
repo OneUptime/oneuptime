@@ -493,7 +493,7 @@ This rule matches failed authentication events from any IP outside \`10.x.x.x\`.
 | **Last Match** | The last run in which at least one group fired. |
 | **Last Evaluated** | When the rule last ran. *Never* means it has not run yet; an enabled rule runs within a minute. |
 
-When a run fails or leaves a note, **View Error** in the rule's row shows its **Last Error** in full, e.g. a query that timed out. It clears on the next successful run. **Interval (Minutes)** and **Last Error** start hidden: turn them on under the table's **Columns**. A real-time rule's interval reads **Real time**.
+When a run fails or leaves a note, **View Error** in the rule's row shows its **Last Error** in full, e.g. a query that timed out. It clears on the next successful run. **Interval (Minutes)** and **Last Error** start hidden: turn them on under the table's **Columns**. A real-time rule's interval reads **Real time**, after the interval it counts in for a rule that counts.
 
 Disabled rules are not evaluated. Use the **Create Monitor** row action to watch a rule's findings over time — see **Alerts & Findings**.
 `;
@@ -588,7 +588,12 @@ OneUptime checks every minute for enabled rules that are due. A rule is due once
 
 #### Rules that run in real time
 
-A rule that fires on one event - a **Match Count Threshold** of 1, no **Distinct Count Field**, no \`re\` modifier, not a correlation - can run in real time instead: turn on **Run in Real Time** under **More fields** on the **On Match** step. Every event OneUptime receives, from every source, is then checked against the rule as it arrives, and a match opens its case, alert and finding within seconds. Its **Status** says **Real time**, and it runs on no interval. Turned on, it first reads what arrived since its last run; turned off, it goes back to its interval. A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time.
+Any rule but one with a \`re\` modifier can run in real time instead: turn on **Run in Real Time** under **More fields** on the **On Match** step. Every event OneUptime receives, from every source, is then checked against the rule as it arrives:
+
+- **A rule that fires on one event** - a **Match Count Threshold** of 1 and no **Distinct Count Field** - opens its case, alert and finding within seconds of each match, and runs on no interval.
+- **A rule that counts, and a correlation,** count in the windows their schedule reads: back to back, as long as the **Evaluation Interval**, and starting on the clock (at :00, :05, :10 for 5 minutes). A group fires the moment its window reaches the count - however late the event that makes it arrives - and at most once a window, so a burst that goes on fires again in the next one, as on the schedule. A correlation's own timespan still rolls across windows.
+
+Its **Status** says **Real time**. Turned on, it first reads what arrived since its last run; with **Run in Real Time** turned off, it goes back to its interval. A real-time rule disabled and enabled again first reads the time it was off, up to the last ${LOOKBACK_IN_HOURS} hours, as a scheduled rule does. A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time.
 
 #### Which events each run sees
 

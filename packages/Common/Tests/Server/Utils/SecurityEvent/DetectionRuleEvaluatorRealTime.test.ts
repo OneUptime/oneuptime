@@ -3,8 +3,10 @@
  * the rule's own query, restricted to the events ingest screened for it,
  * over the times they happened - however old - doing what a scheduled run
  * does with what matches (an alert, a finding, a case, risk), saying how it
- * went on the rule, and leaving its schedule as it was. A correlation never
- * runs so; a failure is the rule's Last Error, never its schedule.
+ * went on the rule, and leaving its schedule as it was. A rule that counts,
+ * and a correlation, read the window of their interval each write's events
+ * fall in instead, as the write found it, one run a window; a failure is
+ * the rule's Last Error, never its schedule.
  */
 
 // The alert path pulls the isolated-vm addon through its template renderer: stub it out.
@@ -14,8 +16,14 @@ jest.mock("isolated-vm", () => {
 
 import DetectionRuleEvaluator, {
   DETECTION_RULE_REAL_TIME_SELECT,
+  DetectionRuleCountWindow,
   DetectionRuleEvaluationResult,
+  getDetectionRuleCountWindows,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import CorrelationRuleMatcher, {
+  CorrelationRuleMatchInput,
+} from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationRuleMatcher";
+import OneUptimeDate from "../../../../Types/Date";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
@@ -251,15 +259,43 @@ describe("a real-time run", () => {
     expect(data).toEqual({ lastError: null });
   });
 
-  test("a correlation never runs in real time", async () => {
+  test("a correlation never reads a write's events alone: only the window around them", async () => {
+    const findMatches: Spy = getJestSpyOn(
+      CorrelationRuleMatcher,
+      "findMatches",
+    );
+
     await expect(
       DetectionRuleEvaluator.evaluateRule(rule(CORRELATION), {
         realTime: { restrictTo: restriction(), startTime: START, endTime: END },
       }),
     ).rejects.toThrow(
-      "A correlation runs on its interval, never in real time.",
+      "A correlation reads the window of its interval around the events it is handed, never the events alone.",
     );
-    expect(findDetectionMatches).not.toHaveBeenCalled();
+    expect(findMatches).not.toHaveBeenCalled();
+  });
+
+  test("a correlation's handover reads its window as a scheduled run would", async () => {
+    const findMatches: Spy = getJestSpyOn(
+      CorrelationRuleMatcher,
+      "findMatches",
+    ).mockResolvedValue({
+      groups: [],
+      readFrom: START,
+      candidatesCapped: false,
+    } as never);
+
+    await DetectionRuleEvaluator.evaluateRealTime(rule(CORRELATION), {
+      startTime: START,
+      endTime: END,
+    });
+
+    const input: CorrelationRuleMatchInput = findMatches.mock
+      .calls[0]![0] as CorrelationRuleMatchInput;
+
+    expect(input.startTime).toEqual(START);
+    expect(input.endTime).toEqual(END);
+    expect(input.arrival).toBeUndefined();
   });
 
   test("evaluateRealTime records a failure as the rule's Last Error, never its schedule", async () => {
@@ -290,6 +326,297 @@ describe("a real-time run", () => {
       sigmaRuleYaml: true,
       isEnabled: true,
       isRealTime: true,
+      // ...and whether it counts in windows, and how long they are.
+      matchCountThreshold: true,
+      distinctCountField: true,
+      evaluationIntervalInMinutes: true,
     });
+  });
+});
+
+/*
+ * A RULE THAT COUNTS, IN REAL TIME: the window of its interval a write's
+ * events fall in (5 minutes here: 10:00 to 10:05), as it stood when the
+ * write came in - its events, the lowest and highest of their ids - with
+ * the threshold and the rest of the run as on its schedule.
+ */
+describe("a rule that counts, in real time", () => {
+  const CANDIDATES: Array<{ id: string; time: string }> = [
+    // Ids are time-ordered: the second came in first.
+    {
+      id: "019a4f00-0002-7000-8000-000000000002",
+      time: "2026-11-04T10:03:10.000Z",
+    },
+    {
+      id: "019a4f00-0001-7000-8000-000000000001",
+      time: "2026-11-04T10:01:00.000Z",
+    },
+  ];
+  const NOW: Date = new Date("2026-11-04T10:03:20.000Z");
+
+  function counting(data: Partial<DetectionRule> = {}): DetectionRule {
+    const model: DetectionRule = rule();
+    model.matchCountThreshold = 5;
+    Object.assign(model, data);
+    return model;
+  }
+
+  beforeEach(() => {
+    getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW as never);
+    // The group the write brought to five failures.
+    findDetectionMatches.mockResolvedValue([
+      {
+        groupValue: "root",
+        matchCount: 5,
+        distinctCount: 0,
+        sampleMessage: "root failed to sign in",
+        sampleObservables: ["root"],
+      },
+    ] as Array<DetectionMatchGroup> as never);
+  });
+
+  test("reads the window of its interval around the write's events, as the write found it - not the events alone", async () => {
+    await DetectionRuleEvaluator.evaluateRealTime(counting(), {
+      restrictTo: restriction(),
+      startTime: START,
+      endTime: END,
+      candidates: CANDIDATES,
+    });
+
+    expect(findDetectionMatches).toHaveBeenCalledTimes(1);
+
+    const read: FindDetectionMatchesData = findDetectionMatches.mock
+      .calls[0]![0] as FindDetectionMatchesData;
+
+    expect(read.startTime.toISOString()).toBe("2026-11-04T10:00:00.000Z");
+    expect(read.endTime.toISOString()).toBe("2026-11-04T10:05:00.000Z");
+    expect(read.minMatchCount).toBe(5);
+    expect(read.arrival).toEqual({
+      candidateIds: [
+        "019a4f00-0001-7000-8000-000000000001",
+        "019a4f00-0002-7000-8000-000000000002",
+      ],
+      firstId: "019a4f00-0001-7000-8000-000000000001",
+      lastId: "019a4f00-0002-7000-8000-000000000002",
+      candidateStartTime: new Date("2026-11-04T10:00:59.000Z"),
+      candidateEndTime: new Date("2026-11-04T10:03:11.000Z"),
+    });
+    // Every event of the window counts, not the write's alone.
+    expect(
+      (read.whereFragment as unknown as { query: string }).query,
+    ).not.toContain("_id IN");
+  });
+
+  test("a distinct count counts in windows too", async () => {
+    await DetectionRuleEvaluator.evaluateRealTime(
+      counting({ matchCountThreshold: 1, distinctCountField: "principalHost" }),
+      {
+        restrictTo: restriction(),
+        startTime: START,
+        endTime: END,
+        candidates: CANDIDATES,
+      },
+    );
+
+    const read: FindDetectionMatchesData = findDetectionMatches.mock
+      .calls[0]![0] as FindDetectionMatchesData;
+
+    expect(read.arrival?.firstId).toBe("019a4f00-0001-7000-8000-000000000001");
+    expect(read.distinctCountExpression).not.toBeNull();
+  });
+
+  test("a write whose events fall in two windows makes one run of each, and adds up what they did", async () => {
+    const result: DetectionRuleEvaluationResult | null =
+      await DetectionRuleEvaluator.evaluateRealTime(counting(), {
+        restrictTo: restriction(),
+        startTime: START,
+        endTime: END,
+        candidates: [
+          ...CANDIDATES,
+          {
+            id: "019a4f00-0003-7000-8000-000000000003",
+            time: "2026-11-04T09:59:58.000Z",
+          },
+        ],
+      });
+
+    expect(
+      findDetectionMatches.mock.calls.map((call: Array<unknown>): string => {
+        return (call[0] as FindDetectionMatchesData).startTime.toISOString();
+      }),
+    ).toEqual(["2026-11-04T09:55:00.000Z", "2026-11-04T10:00:00.000Z"]);
+    expect(
+      (findDetectionMatches.mock.calls[0]![0] as FindDetectionMatchesData)
+        .arrival?.candidateIds,
+    ).toEqual(["019a4f00-0003-7000-8000-000000000003"]);
+    // Each window's match opened an alert and a case.
+    expect(result?.alertsCreated).toBe(2);
+    expect(result?.casesOpened).toBe(2);
+  });
+
+  test("what a window's matches cover: from its start to now, while it is still filling", async () => {
+    await DetectionRuleEvaluator.evaluateRealTime(counting(), {
+      restrictTo: restriction(),
+      startTime: START,
+      endTime: END,
+      candidates: CANDIDATES,
+    });
+
+    const data: JSONObject = (
+      updateOneById.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(data["lastMatchAt"]).toEqual(NOW);
+    expect("lastEvaluatedAt" in data).toBe(false);
+
+    const signal: { seenAt: Date; description: string } = (
+      recordDetections.mock.calls[0]![0] as Array<{
+        seenAt: Date;
+        description: string;
+      }>
+    )[0]!;
+
+    expect(signal.seenAt).toEqual(NOW);
+  });
+
+  test("a window long over covers it all: a late event's match says its own window", async () => {
+    await DetectionRuleEvaluator.evaluateRealTime(counting(), {
+      restrictTo: restriction(),
+      startTime: START,
+      endTime: END,
+      candidates: [
+        {
+          id: "019a4f00-0004-7000-8000-000000000004",
+          time: "2026-11-04T08:12:00.000Z",
+        },
+      ],
+    });
+
+    const data: JSONObject = (
+      updateOneById.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(data["lastMatchAt"]).toEqual(new Date("2026-11-04T08:15:00.000Z"));
+  });
+
+  test("a rule that fires on each event reads only its events, as before", async () => {
+    await DetectionRuleEvaluator.evaluateRealTime(
+      counting({ matchCountThreshold: 1 }),
+      {
+        restrictTo: restriction(),
+        startTime: START,
+        endTime: END,
+        candidates: CANDIDATES,
+      },
+    );
+
+    const read: FindDetectionMatchesData = findDetectionMatches.mock
+      .calls[0]![0] as FindDetectionMatchesData;
+
+    expect(read.arrival).toBeUndefined();
+    expect(read.startTime).toEqual(START);
+    expect(
+      (read.whereFragment as unknown as { query: string }).query,
+    ).toContain("_id IN {");
+  });
+
+  test("a correlation reads the window of its interval around the write's events, as the write found it", async () => {
+    const findMatches: Spy = getJestSpyOn(
+      CorrelationRuleMatcher,
+      "findMatches",
+    ).mockResolvedValue({
+      groups: [
+        {
+          groupValue: "203.0.113.7",
+          matchCount: 10,
+          distinctCount: 0,
+          sampleMessage: "failed",
+          sampleObservables: ["203.0.113.7"],
+          summary: "10 events in 5 minutes",
+          groupFields: [{ field: "principalIp", value: "203.0.113.7" }],
+        },
+      ],
+      readFrom: START,
+      candidatesCapped: false,
+    } as never);
+
+    const result: DetectionRuleEvaluationResult | null =
+      await DetectionRuleEvaluator.evaluateRealTime(rule(CORRELATION), {
+        restrictTo: restriction(),
+        startTime: START,
+        endTime: END,
+        candidates: CANDIDATES,
+      });
+
+    const input: CorrelationRuleMatchInput = findMatches.mock
+      .calls[0]![0] as CorrelationRuleMatchInput;
+
+    expect(input.startTime.toISOString()).toBe("2026-11-04T10:00:00.000Z");
+    expect(input.endTime.toISOString()).toBe("2026-11-04T10:05:00.000Z");
+    expect(input.arrival?.lastId).toBe("019a4f00-0002-7000-8000-000000000002");
+    expect(input.restrictTo).toBeUndefined();
+    // What a scheduled run does with a match.
+    expect(result?.alertsCreated).toBe(1);
+    expect(result?.casesOpened).toBe(1);
+    expect(findDetectionMatches).not.toHaveBeenCalled();
+  });
+});
+
+describe("getDetectionRuleCountWindows", () => {
+  test("one window of the interval for each the events fall in, in order, with where the write came in", () => {
+    const windows: Array<DetectionRuleCountWindow> =
+      getDetectionRuleCountWindows({
+        candidates: [
+          { id: "c", time: "2026-11-04T10:07:00.000Z" },
+          { id: "a", time: "2026-11-04T10:01:00.000Z" },
+          { id: "b", time: "2026-11-04T10:04:59.999Z" },
+        ],
+        evaluationIntervalInMinutes: 5,
+      });
+
+    expect(
+      windows.map((window: DetectionRuleCountWindow): unknown => {
+        return {
+          start: window.window.startTime.toISOString(),
+          end: window.window.endTime.toISOString(),
+          ids: window.arrival.candidateIds,
+          firstId: window.arrival.firstId,
+          lastId: window.arrival.lastId,
+          from: window.arrival.candidateStartTime.toISOString(),
+          until: window.arrival.candidateEndTime.toISOString(),
+        };
+      }),
+    ).toEqual([
+      {
+        start: "2026-11-04T10:00:00.000Z",
+        end: "2026-11-04T10:05:00.000Z",
+        ids: ["a", "b"],
+        firstId: "a",
+        lastId: "b",
+        from: "2026-11-04T10:00:59.000Z",
+        until: "2026-11-04T10:05:00.999Z",
+      },
+      {
+        start: "2026-11-04T10:05:00.000Z",
+        end: "2026-11-04T10:10:00.000Z",
+        ids: ["c"],
+        firstId: "c",
+        lastId: "c",
+        from: "2026-11-04T10:06:59.000Z",
+        until: "2026-11-04T10:07:01.000Z",
+      },
+    ]);
+  });
+
+  test("an event with no id or no time is no event", () => {
+    expect(
+      getDetectionRuleCountWindows({
+        candidates: [
+          { id: "", time: "2026-11-04T10:07:00.000Z" },
+          { id: "a", time: "never" },
+        ],
+        evaluationIntervalInMinutes: 5,
+      }),
+    ).toEqual([]);
   });
 });

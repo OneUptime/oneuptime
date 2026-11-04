@@ -31,8 +31,10 @@ import { describe, expect, jest, test } from "@jest/globals";
  * every value a rule holds is a bound parameter, and each type reads what
  * the engine needs - a rolling window per group for counts, the latest
  * times per step for sequences, and this run's new (group, value) pairs
- * against the history of the same groups. The real-server suite
- * (App Tests/Telemetry/SecurityCorrelationRulesClickhouse) runs them.
+ * against the history of the same groups. In real time every read takes
+ * the window as one write found it, and only the groups its events name.
+ * The real-server suites (App Tests/Telemetry/SecurityCorrelationRulesClickhouse
+ * and SecurityRealTimeCountingClickhouse) run them.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -76,6 +78,23 @@ const WINDOW: CorrelationReadWindow = {
 
 function boundValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params);
+}
+
+// One write's events, as a real-time read takes them (DetectionArrivalRead).
+const ARRIVAL: NonNullable<CorrelationReadWindow["arrival"]> = {
+  candidateIds: [
+    "019a4f00-0001-7000-8000-000000000001",
+    "019a4f00-0002-7000-8000-000000000002",
+  ],
+  firstId: "019a4f00-0001-7000-8000-000000000001",
+  lastId: "019a4f00-0002-7000-8000-000000000002",
+  candidateStartTime: new Date("2026-10-21T10:01:59.000Z"),
+  candidateEndTime: new Date("2026-10-21T10:02:11.000Z"),
+};
+
+// How many times a statement names the text.
+function occurrences(text: string, part: string): number {
+  return text.split(part).length - 1;
 }
 
 describe("getCorrelationRollingWindow", () => {
@@ -292,6 +311,101 @@ ${FAILED}`);
     );
   });
 
+  test("in real time: counted with what came in by the write's last, and before its first; fires when the write made it hold", () => {
+    const statement: Statement = CorrelationQueries.buildCountStatement({
+      window: { ...WINDOW, arrival: ARRIVAL },
+      correlation: eventCount.correlation,
+      steps: eventCount.steps,
+      countDistinct: false,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 101,
+    });
+    const query: string = statement.query;
+
+    // Per step of the rolling window: what came in before the write, and the write's own events.
+    expect(query).toMatch(
+      /countIf\(_id < \{p\d+:String\}\) AS __cb, countIf\(has\(\{p\d+:Array\(String\)\}, _id\)\) AS __k/,
+    );
+    expect(query).toContain(
+      "sum(__cb) OVER (PARTITION BY __g0 ORDER BY __b ASC RANGE BETWEEN 59 PRECEDING AND CURRENT ROW) AS __rollingBefore",
+    );
+    expect(query).toContain(
+      "max(__rollingBefore) AS matchCountBefore, 0 AS distinctCountBefore, sum(__cb) AS eventsBefore, sum(__k) AS candidateEvents",
+    );
+    // The window as the write found it, and only the groups its events name.
+    expect(query).toMatch(/AND _id <= \{p\d+:String\}/);
+    expect(query).toMatch(
+      /AND \(toString\(principalIp\)\) IN \(SELECT toString\(principalIp\) FROM oneuptime\.SecurityEvent WHERE projectId = \{p\d+:String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time < \{p\d+:DateTime64\(9\)\} AND has\(\{p\d+:Array\(String\)\}, _id\)\)/,
+    );
+    expect(query).toMatch(
+      /HAVING __g0 != '' AND eventsInRun > 0 AND matchCount >= \{p\d+:Int32\} AND candidateEvents > 0 AND NOT \(eventsBefore > 0 AND matchCountBefore >= \{p\d+:Int32\}\)/,
+    );
+
+    const values: Array<unknown> = boundValues(statement);
+
+    expect(values).toContain(ARRIVAL.firstId);
+    expect(values).toContain(ARRIVAL.lastId);
+    expect(values).toContainEqual(ARRIVAL.candidateIds);
+    // The threshold, for now and for before.
+    expect(
+      values.filter((value: unknown): boolean => {
+        return value === 10;
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("in real time, value_count counts the different values that came in before, too", () => {
+    const valueCount: Extract<
+      DetectionRuleDefinition,
+      { kind: "correlation" }
+    > = correlation(`title: Spraying
+correlation:
+  type: value_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 10m
+  condition:
+    field: principalUser
+    gte: 5
+---
+${FAILED}`);
+
+    const query: string = CorrelationQueries.buildCountStatement({
+      window: { ...WINDOW, arrival: ARRIVAL },
+      correlation: valueCount.correlation,
+      steps: valueCount.steps,
+      countDistinct: true,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 10,
+    }).query;
+
+    expect(query).toMatch(
+      /uniqExactStateIf\(toString\(ifNull\(principalUser, ''\)\), toString\(ifNull\(principalUser, ''\)\) != '' AND _id < \{p\d+:String\}\) AS __sb/,
+    );
+    expect(query).toContain("uniqExactMerge(__sb) OVER");
+    expect(query).toContain(
+      "max(__rollingDistinct) AS distinctCount, sum(__c) AS eventsInRun, max(__rollingBefore) AS matchCountBefore, max(__rollingDistinctBefore) AS distinctCountBefore",
+    );
+    expect(query).toMatch(
+      /AND NOT \(eventsBefore > 0 AND distinctCountBefore >= \{p\d+:Int32\}\)/,
+    );
+  });
+
+  test("without real time, a read names none of it", () => {
+    const query: string = CorrelationQueries.buildCountStatement({
+      window: WINDOW,
+      correlation: eventCount.correlation,
+      steps: eventCount.steps,
+      countDistinct: false,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 101,
+    }).query;
+
+    for (const part of ["__cb", "__k", "Before", "_id", "candidateEvents"]) {
+      expect(query).not.toContain(part);
+    }
+  });
+
   test("a setup test's restriction is ANDed into the read", () => {
     const query: string = CorrelationQueries.buildCountStatement({
       window: {
@@ -348,6 +462,34 @@ ${SUCCEEDED}`);
       /HAVING __g0 != '' AND lastMatchAt >= \{p\d+:DateTime64\(9\)\} AND \(\(__n0 >= \{p\d+:Int32\}\) \+ \(__n1 >= \{p\d+:Int32\}\)\) >= \{p\d+:Int32\}/,
     );
     expect(query).toContain("ORDER BY lastMatchAt DESC LIMIT ");
+  });
+
+  test("in real time: each step's times again with what came in before the write, for groups with an event of it", () => {
+    const statement: Statement = CorrelationQueries.buildTemporalStatement({
+      window: { ...WINDOW, arrival: ARRIVAL },
+      correlation: sequence.correlation,
+      steps: sequence.steps,
+      stepMinimums: [5, 1],
+      minimumSteps: 2,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 2000,
+    });
+    const query: string = statement.query;
+
+    expect(query).toMatch(/\) AND _id < \{p\d+:String\}\) AS __tb0, /);
+    expect(query).toMatch(/\) AND _id < \{p\d+:String\}\) AS __tb1, /);
+    expect(query).toMatch(
+      /countIf\(has\(\{p\d+:Array\(String\)\}, _id\)\) AS __k, count\(\) AS matchCount/,
+    );
+    expect(query).toMatch(/AND _id <= \{p\d+:String\}/);
+    expect(query).toContain(
+      "AND (toString(principalUser)) IN (SELECT toString(principalUser) FROM oneuptime.SecurityEvent WHERE ",
+    );
+    expect(query).toContain(
+      "HAVING __g0 != '' AND __k > 0 AND lastMatchAt >= ",
+    );
+    // Two latest-times reads a step: now, and before the write.
+    expect(occurrences(query, "groupArraySortedIf(")).toBe(4);
   });
 
   test("an aliased group-by takes the field of the step each event matched", () => {
@@ -481,6 +623,31 @@ ${SUCCEEDED}`);
 
     const values: Array<unknown> = boundValues(statement);
     expect(values).toContain("2026-09-21 10:00:00.000000000");
+  });
+
+  test("in real time: only the pairs the write brought, as it found the run and the history", () => {
+    const statement: Statement = CorrelationQueries.buildNewValueStatement({
+      window: { ...WINDOW, arrival: ARRIVAL },
+      historyFrom: new Date("2026-09-21T10:00:00.000Z"),
+      correlation: newValue.correlation,
+      steps: newValue.steps,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 50,
+    });
+    const query: string = statement.query;
+
+    expect(query).toMatch(
+      /min\(_id\) AS __firstArrivalId, countIf\(has\(\{p\d+:Array\(String\)\}, _id\)\) AS __k FROM /,
+    );
+    expect(query).toMatch(
+      /HAVING __g0 != '' AND __v0 != '' AND __k > 0 AND __firstArrivalId >= \{p\d+:String\}\) SELECT /,
+    );
+    // The run and both reads of the history take the window as the write found it.
+    expect(occurrences(query, "_id <= {p")).toBe(3);
+    expect(query).toContain(
+      "AND (toString(principalUser)) IN (SELECT toString(principalUser) FROM oneuptime.SecurityEvent WHERE ",
+    );
+    expect(boundValues(statement)).toContain(ARRIVAL.firstId);
   });
 });
 

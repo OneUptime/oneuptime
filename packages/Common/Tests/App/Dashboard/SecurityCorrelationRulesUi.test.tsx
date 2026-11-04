@@ -503,6 +503,9 @@ describe("the Detection Rules page", () => {
       isEnabled: true,
       // A real-time rule's Status and Interval say so.
       isRealTime: true,
+      // ...and whether a real-time rule counts in windows of its interval.
+      matchCountThreshold: true,
+      distinctCountField: true,
     });
 
     const column: CapturedColumn | undefined =
@@ -555,7 +558,7 @@ describe("the Detection Rules page", () => {
     );
   });
 
-  test("Run in Real Time waits under More fields on On Match, off on a new rule, offered to a rule that fires on one event", () => {
+  test("Run in Real Time waits under More fields on On Match, off on a new rule, offered to every rule", () => {
     renderRulesPage();
 
     const realTime: CapturedFormField = fieldTitled("Run in Real Time");
@@ -564,79 +567,83 @@ describe("the Detection Rules page", () => {
     expect(realTime.stepId).toBe("on-match");
     expect(realTime.collapsibleSection?.title).toBe("More fields");
     expect(realTime.description).toBe(
-      "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.",
+      "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).",
     );
     expect(capturedTableProps?.createInitialValues?.["isRealTime"]).toBe(false);
 
-    // Offered for a single rule; not for a correlation...
-    expect(realTime.showIf!({ sigmaRuleYaml: FAILED })).toBe(true);
-    expect(realTime.showIf!({ sigmaRuleYaml: SEQUENCE })).toBe(false);
-    // ...unless the rule runs in real time already: the switch that must go off stays.
-    expect(
-      realTime.showIf!({ sigmaRuleYaml: SEQUENCE, isRealTime: true }),
-    ).toBe(true);
-    expect(
-      realTime.showIf!({ sigmaRuleYaml: SEQUENCE, isRealTime: "true" }),
-    ).toBe(true);
+    // A single rule and a correlation alike: nothing hides the switch.
+    expect(realTime.showIf).toBeUndefined();
   });
 
-  test("turned on for a rule that cannot run in real time, the switch says why before the rule is saved", () => {
+  test("turned on for a rule with a regular expression, the switch says why before the rule is saved; any other rule may", () => {
     renderRulesPage();
 
     const realTime: CapturedFormField = fieldTitled("Run in Real Time");
 
     expect(
       realTime.customValidation!({
-        sigmaRuleYaml: FAILED,
-        matchCountThreshold: 5,
+        sigmaRuleYaml: FAILED.replace(
+          "statusName: Failure",
+          "statusName|re: '^Fail'",
+        ),
         isRealTime: true,
       }),
     ).toBe(
-      "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
+      "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.",
     );
+    // A rule that counts, a distinct count and a correlation: nothing to say.
+    for (const values of [
+      { sigmaRuleYaml: FAILED, matchCountThreshold: 5 },
+      { sigmaRuleYaml: FAILED, distinctCountField: "principalUser" },
+      { sigmaRuleYaml: SEQUENCE },
+      { sigmaRuleYaml: FAILED, matchCountThreshold: 1 },
+    ]) {
+      expect(
+        realTime.customValidation!({ ...values, isRealTime: true }),
+      ).toBeNull();
+    }
+    // Off: nothing to say either.
     expect(
       realTime.customValidation!({
-        sigmaRuleYaml: FAILED,
-        distinctCountField: "principalUser",
-        isRealTime: true,
-      }),
-    ).toBe(
-      "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.",
-    );
-    // A correlation that still runs in real time: the switch that must go off says so.
-    expect(
-      realTime.customValidation!({ sigmaRuleYaml: SEQUENCE, isRealTime: true }),
-    ).toBe(
-      "A correlation reads several events together over its timespan, so it runs on its interval.",
-    );
-    // Off, or a rule that fires on one event: nothing to say.
-    expect(
-      realTime.customValidation!({
-        sigmaRuleYaml: FAILED,
-        matchCountThreshold: 5,
+        sigmaRuleYaml: FAILED.replace(
+          "statusName: Failure",
+          "statusName|re: '^Fail'",
+        ),
         isRealTime: false,
-      }),
-    ).toBeNull();
-    expect(
-      realTime.customValidation!({
-        sigmaRuleYaml: FAILED,
-        matchCountThreshold: 1,
-        isRealTime: true,
       }),
     ).toBeNull();
   });
 
-  test("a real-time rule runs on no interval: the interval hides, and the list says Real time", () => {
+  test("a real-time rule that fires on each event runs on no interval; one that counts keeps it as its window", () => {
     renderRulesPage();
 
     const interval: CapturedFormField = fieldTitled(
       "Evaluation Interval (Minutes)",
     );
 
+    expect(interval.description).toBe(
+      "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.",
+    );
     expect(interval.showIf!({ sigmaRuleYaml: FAILED })).toBe(true);
     expect(interval.showIf!({ sigmaRuleYaml: FAILED, isRealTime: true })).toBe(
       false,
     );
+    expect(
+      interval.showIf!({
+        sigmaRuleYaml: FAILED,
+        matchCountThreshold: 1,
+        isRealTime: "true",
+      }),
+    ).toBe(false);
+    // Counting in real time: the interval is the window it counts in.
+    for (const values of [
+      { sigmaRuleYaml: FAILED, matchCountThreshold: 5 },
+      { sigmaRuleYaml: FAILED, matchCountThreshold: "5" },
+      { sigmaRuleYaml: FAILED, distinctCountField: "principalUser" },
+      { sigmaRuleYaml: SEQUENCE },
+    ]) {
+      expect(interval.showIf!({ ...values, isRealTime: true })).toBe(true);
+    }
 
     const column: CapturedColumn | undefined =
       capturedTableProps?.columns?.find(
@@ -645,11 +652,42 @@ describe("the Detection Rules page", () => {
         },
       );
 
-    const { unmount } = render(
-      column!.getElement!({ evaluationIntervalInMinutes: 5, isRealTime: true }),
+    const eachEvent: { unmount: () => void } = render(
+      column!.getElement!({
+        sigmaRuleYaml: FAILED,
+        evaluationIntervalInMinutes: 5,
+        isRealTime: true,
+      }),
     );
     expect(document.body).toHaveTextContent("Real time");
-    unmount();
+    expect(document.body).not.toHaveTextContent("5");
+    expect(screen.queryByTestId("detection-rule-interval")).toBeNull();
+    eachEvent.unmount();
+
+    // A real-time rule that counts says both: its windows are its interval.
+    const counting: { unmount: () => void } = render(
+      column!.getElement!({
+        sigmaRuleYaml: FAILED,
+        matchCountThreshold: 5,
+        evaluationIntervalInMinutes: 5,
+        isRealTime: true,
+      }),
+    );
+    expect(screen.getByTestId("detection-rule-interval")).toHaveTextContent(
+      "5",
+    );
+    expect(document.body).toHaveTextContent("5 · Real time");
+    counting.unmount();
+
+    const correlationCell: { unmount: () => void } = render(
+      column!.getElement!({
+        sigmaRuleYaml: SEQUENCE,
+        evaluationIntervalInMinutes: 15,
+        isRealTime: true,
+      }),
+    );
+    expect(document.body).toHaveTextContent("15 · Real time");
+    correlationCell.unmount();
 
     render(
       column!.getElement!({

@@ -11246,7 +11246,6 @@
   "How often on-call duty passes to the next user in this layer.": "How often on-call duty passes to the next user in this layer.",
   "How often the collection is polled for new indicators. Default 60.": "How often the collection is polled for new indicators. Default 60.",
   "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.": "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.",
-  "How often this rule is evaluated, in minutes.": "How often this rule is evaluated, in minutes.",
   "How often to remind alert owners while the alert is open.": "How often to remind alert owners while the alert is open.",
   "How often to remind event owners while the event has not yet finished.": "How often to remind event owners while the event has not yet finished.",
   "How often to remind incident owners while the incident is open.": "How often to remind incident owners while the incident is open.",
@@ -38741,7 +38740,6 @@
   "Similar message": "Similar message",
   "{{deviceName}} web UI": "{{deviceName}} web UI",
   "{{tasks}} for a person": "{{tasks}} for a person",
-  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "Checks each event as it arrives, within seconds, instead of every interval.",
   "Keeps events and session replays, notes traces and exceptions": "Keeps events and session replays, notes traces and exceptions",
   "Real time": "Real time",
@@ -38751,10 +38749,7 @@
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.",
   "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "This step waits on step {{number}}'s result, so it stays below step {{number}}.",
-  "A correlation reads several events together over its timespan, so it runs on its interval.": "A correlation reads several events together over its timespan, so it runs on its interval.",
-  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
   "A new exception": "A new exception",
   "A resolved exception comes back": "A resolved exception comes back",
   "A rise over the usual": "A rise over the usual",
@@ -42280,5 +42275,7 @@
   "The page was escalated past this level": "The page was escalated past this level",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
   "{{policy}}: escalate to": "{{policy}}: escalate to",
-  "no one next": "no one next"
+  "no one next": "no one next",
+  "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).": "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).",
+  "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.": "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each."
 }

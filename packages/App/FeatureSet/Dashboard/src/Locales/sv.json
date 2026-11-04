@@ -11246,7 +11246,6 @@
   "How often on-call duty passes to the next user in this layer.": "How often on-call duty passes to the next user in this layer.",
   "How often the collection is polled for new indicators. Default 60.": "How often the collection is polled for new indicators. Default 60.",
   "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.": "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.",
-  "How often this rule is evaluated, in minutes.": "Hur ofta regeln utvärderas, i minuter.",
   "How often to remind alert owners while the alert is open.": "How often to remind alert owners while the alert is open.",
   "How often to remind event owners while the event has not yet finished.": "How often to remind event owners while the event has not yet finished.",
   "How often to remind incident owners while the incident is open.": "How often to remind incident owners while the incident is open.",
@@ -38741,7 +38740,6 @@
   "Similar message": "Liknande meddelande",
   "{{deviceName}} web UI": "Webbgränssnitt för {{deviceName}}",
   "{{tasks}} for a person": "{{tasks}} för en person",
-  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "Kontrollera varje händelse när den kommer in, inom sekunder. För en regel som utlöses av en händelse: tröskel 1, inget fält för unik räkning, inget reguljärt uttryck.",
   "Checks each event as it arrives, within seconds, instead of every interval.": "Kontrollerar varje händelse när den kommer in, inom sekunder, i stället för vid varje intervall.",
   "Keeps events and session replays, notes traces and exceptions": "Behåller händelser och session replays, antecknar spår och undantag",
   "Real time": "Realtid",
@@ -38751,10 +38749,7 @@
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "Med {{min}}–{{max}} minuters mellanrum (du väljer) kontrolleras regelns Sigma-detektering mot händelserna sedan den senaste körningen. En regel som körs i realtid kontrollerar varje händelse så fort den kommer in.",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "Steg {{number}} väntar på det här stegets resultat. Ändra först ”Kör det här steget” på steg {{number}}.",
   "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "Det här steget väntar på resultatet av steg {{number}}, så det stannar under steg {{number}}.",
-  "A correlation reads several events together over its timespan, so it runs on its interval.": "En korrelation läser flera händelser tillsammans över sitt tidsfönster, så den körs enligt sitt intervall.",
-  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Den räknar olika värden, så den körs enligt sitt intervall: töm ”Fält för unik räkning” för att köra den i realtid.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Den använder ett reguljärt uttryck (|re), som bara körs enligt ett schema: använd contains, startswith eller endswith för att köra den i realtid.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Den väntar på ett antal träffar, så den körs enligt sitt intervall: sätt ”Tröskel för antal träffar” till 1 för att köra den i realtid.",
   "A new exception": "Ett nytt undantag",
   "A resolved exception comes back": "Ett löst undantag kommer tillbaka",
   "A rise over the usual": "En ökning över det vanliga",
@@ -42280,5 +42275,7 @@
   "The page was escalated past this level": "Den här nivån hoppades över vid eskaleringen",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Policyns nivåer har ändrats, så inget eskalerades. Eskalera igen för att välja en nivå.",
   "{{policy}}: escalate to": "{{policy}}: eskalera till",
-  "no one next": "ingen nästa"
+  "no one next": "ingen nästa",
+  "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).": "Kontrollera händelser när de kommer in, inom sekunder, i stället för varje intervall. Inte för en regel med ett reguljärt uttryck (|re).",
+  "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.": "Hur ofta regeln körs, i minuter. I realtid läser en räknande regel fönster av den här längden och utlöses högst en gång i varje."
 }

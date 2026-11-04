@@ -11246,7 +11246,6 @@
   "How often on-call duty passes to the next user in this layer.": "このレイヤーでオンコールの担当が次のユーザーに移る頻度。",
   "How often the collection is polled for new indicators. Default 60.": "コレクションで新しいインジケーターをポーリングする間隔。デフォルトは 60 です。",
   "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.": "プローブがこのデバイスをポーリングする間隔。最小は 1 分です。大規模なデバイスのウォークには数十秒かかることがあります。",
-  "How often this rule is evaluated, in minutes.": "このルールを評価する間隔（分）。",
   "How often to remind alert owners while the alert is open.": "アラートが未解決の間に、アラートの所有者にリマインドする頻度。",
   "How often to remind event owners while the event has not yet finished.": "イベントが終了していない間に、イベントの所有者にリマインドする頻度。",
   "How often to remind incident owners while the incident is open.": "インシデントが未解決の間に、インシデントの所有者にリマインドする頻度。",
@@ -38741,7 +38740,6 @@
   "Similar message": "似たメッセージ",
   "{{deviceName}} web UI": "{{deviceName}} の Web UI",
   "{{tasks}} for a person": "担当者に {{tasks}}",
-  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "各イベントを届いた時点で数秒以内に確認します。1 件のイベントで発火するルール向けです (しきい値 1、ユニーク数を数えるフィールドなし、正規表現なし)。",
   "Checks each event as it arrives, within seconds, instead of every interval.": "間隔ごとではなく、各イベントを届いた時点で数秒以内に確認します。",
   "Keeps events and session replays, notes traces and exceptions": "イベントとセッションリプレイを保管し、トレースと例外をメモ",
   "Real time": "リアルタイム",
@@ -38751,10 +38749,7 @@
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "{{min}}〜{{max}} 分ごと (任意に選択) に、ルールの Sigma 検出が前回の実行以降のイベントに対してチェックされます。リアルタイムで実行するルールは、イベントが届くたびにチェックします。",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "ステップ {{number}} はこのステップの結果を待ちます。先にステップ {{number}} の「このステップの実行」を変更してください。",
   "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "このステップはステップ {{number}} の結果を待つため、ステップ {{number}} の下に置かれます。",
-  "A correlation reads several events together over its timespan, so it runs on its interval.": "相関ルールはその期間内の複数のイベントをまとめて読むため、評価間隔ごとに実行されます。",
-  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "異なる値を数えるため、評価間隔ごとに実行されます。リアルタイムで実行するには「ユニーク数を数えるフィールド」を空にしてください。",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "正規表現 (|re) はスケジュール実行でしか使えないため、評価間隔ごとに実行されます。リアルタイムで実行するには contains、startswith、endswith を使ってください。",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "一致件数を待つため、評価間隔ごとに実行されます。リアルタイムで実行するには「一致件数のしきい値」を 1 にしてください。",
   "A new exception": "新しい例外",
   "A resolved exception comes back": "解決済みの例外が再発",
   "A rise over the usual": "通常を上回る増加",
@@ -42280,5 +42275,7 @@
   "The page was escalated past this level": "エスカレーションでこのレベルはスキップされました",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "ポリシーのレベルが変更されたため、何もエスカレーションしませんでした。もう一度エスカレーションしてレベルを選んでください。",
   "{{policy}}: escalate to": "{{policy}}: エスカレーション先",
-  "no one next": "次の人なし"
+  "no one next": "次の人なし",
+  "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).": "イベントを間隔ごとではなく、届いた時点で数秒以内に確認します。正規表現 (|re) を使うルールには使えません。",
+  "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.": "ルールを実行する間隔（分）。リアルタイムでは、件数を数えるルールはこの長さの枠を読み取り、各枠で最大 1 回だけ発火します。"
 }

@@ -11246,7 +11246,6 @@
   "How often on-call duty passes to the next user in this layer.": "How often on-call duty passes to the next user in this layer.",
   "How often the collection is polled for new indicators. Default 60.": "How often the collection is polled for new indicators. Default 60.",
   "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.": "How often the probe polls this device. Minimum 1 minute; walks of large devices can take tens of seconds.",
-  "How often this rule is evaluated, in minutes.": "此规则的评估频率，以分钟为单位。",
   "How often to remind alert owners while the alert is open.": "How often to remind alert owners while the alert is open.",
   "How often to remind event owners while the event has not yet finished.": "How often to remind event owners while the event has not yet finished.",
   "How often to remind incident owners while the incident is open.": "How often to remind incident owners while the incident is open.",
@@ -38741,7 +38740,6 @@
   "Similar message": "相似消息",
   "{{deviceName}} web UI": "{{deviceName}} Web 界面",
   "{{tasks}} for a person": "交给某人的 {{tasks}}",
-  "Check each event as it arrives, within seconds. For a rule that fires on one event: threshold 1, no distinct count field, no regular expression.": "在每个事件到达时于几秒内检查。适用于单个事件即触发的规则：阈值为 1，无去重计数字段，无正则表达式。",
   "Checks each event as it arrives, within seconds, instead of every interval.": "在每个事件到达时于几秒内检查，而不是每个间隔检查一次。",
   "Keeps events and session replays, notes traces and exceptions": "保留事件和会话回放，记下追踪和异常",
   "Real time": "实时",
@@ -38751,10 +38749,7 @@
   "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run. A rule that runs in real time checks each event as it arrives.": "每 {{min}}–{{max}} 分钟（由你选择），规则的 Sigma 检测会对其上次运行以来的事件进行检查。实时运行的规则会在每个事件到达时进行检查。",
   "Step {{number}} waits on this step's result. Change Run This Step on step {{number}} first.": "步骤 {{number}} 等待此步骤的结果。请先更改步骤 {{number}} 的“运行此步骤”。",
   "This step waits on step {{number}}'s result, so it stays below step {{number}}.": "此步骤等待步骤 {{number}} 的结果，因此保持在步骤 {{number}} 下方。",
-  "A correlation reads several events together over its timespan, so it runs on its interval.": "关联规则会在其时间跨度内将多个事件放在一起读取，因此按其间隔运行。",
-  "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "它统计不同的值，因此按其间隔运行：清空“去重计数字段”即可实时运行。",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "它使用了正则表达式 (|re)，而正则表达式只能按计划运行：改用 contains、startswith 或 endswith 即可实时运行。",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "它要等待一定的匹配次数，因此按其间隔运行：将“匹配次数阈值”设为 1 即可实时运行。",
   "A new exception": "新异常",
   "A resolved exception comes back": "已解决的异常再次出现",
   "A rise over the usual": "高于平常的增长",
@@ -42280,5 +42275,7 @@
   "The page was escalated past this level": "升级时跳过了此级别",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "策略的级别已更改，因此未升级任何内容。请再次升级以选择级别。",
   "{{policy}}: escalate to": "{{policy}}：升级到",
-  "no one next": "没有下一个人"
+  "no one next": "没有下一个人",
+  "Check events as they arrive, within seconds, instead of every interval. Not for a rule with a regular expression (|re).": "在事件到达时于几秒内检查，而不是按间隔检查。不适用于含正则表达式 (|re) 的规则。",
+  "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.": "规则的运行频率，以分钟为单位。实时运行时，计数规则按此长度的时间窗读取事件，每个时间窗最多触发一次。"
 }
