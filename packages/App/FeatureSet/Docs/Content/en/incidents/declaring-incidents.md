@@ -284,7 +284,7 @@ From there the incident is live: it counts toward the **Active Incidents** badge
 
 ### Declared already acknowledged or resolved
 
-Picking a later **Initial State** — on the form, through a template's **Initial Incident State**, or with `currentIncidentStateId` from the API, Terraform or a workflow — records an incident that someone is already handling, or that is already over. It is not treated as a new emergency:
+Picking a later **Initial State** — on the form, through a template's **Initial Incident State**, with `currentIncidentStateId` from the API, Terraform or a workflow, or by asking [Ask AI](/docs/ai/ask-ai) for an incident already acknowledged or resolved — records an incident that someone is already handling, or that is already over. It is not treated as a new emergency:
 
 ```mermaid title="What a new incident sets off, by the state it starts in"
 flowchart TB

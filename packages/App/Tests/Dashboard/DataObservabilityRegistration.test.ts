@@ -396,6 +396,56 @@ describe("Data Observability registry wiring", () => {
     );
   });
 
+  test("data products - model, service, migration, CRUD API, their check job and pages - are wired", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataProduct,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataProductService,",
+    );
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataProduct,\s*DataProductServiceType\s*>\(\s*DataProduct,\s*DataProductService,?\s*\)/,
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataProducts1808992100000 } from "./1808992100000-AddDataProducts";',
+    );
+    expect(migrations.indexOf("AddDataProducts1808992100000,")).toBeGreaterThan(
+      migrations.indexOf("AddDataAssetLineageSource1808992000000,"),
+    );
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808992100000-AddDataProducts.ts",
+    );
+
+    expect(migration).toContain('CREATE TABLE "DataProduct"');
+    expect(migration).toContain('CREATE TABLE "DataProductDataAsset"');
+
+    expect(
+      readSquashed(
+        "App/FeatureSet/Workers/Jobs/DataObservability/DataObservabilityJobs.ts",
+      ),
+    ).toContain("DataProductCheck.checkAll(OneUptimeDate.getCurrentDate())");
+
+    const routes: string = readSquashed(
+      "App/FeatureSet/Dashboard/src/Routes/DataObservabilityRoutes.tsx",
+    );
+
+    for (const page of [
+      "DataObservabilityDataProductsPage",
+      "DataProductViewLayout",
+      "DataProductOverviewPage",
+      "DataProductSettingsPage",
+      "DataProductDeletePage",
+    ]) {
+      expect(routes).toContain(`<${page}`);
+    }
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

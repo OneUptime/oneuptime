@@ -97,7 +97,14 @@ import WorkspaceConnectRequest, {
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import AIService from "../../../../Server/Services/AIService";
-import ObservabilityAssistant from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import ObservabilityAssistant, {
+  ObservabilityAssistantRequest,
+} from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import WorkspacePageAbout from "../../../../Server/Utils/Workspace/WorkspacePageAbout";
+import AlertService from "../../../../Server/Services/AlertService";
+import { OnCallPageRecordType } from "../../../../Server/Services/OnCallPageService";
+import Alert from "../../../../Models/DatabaseModels/Alert";
+import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
 import MicrosoftTeamsAiAnswer from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsAiAnswer";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../../Utils/Project/ProjectBalance";
@@ -1010,6 +1017,94 @@ describe("@mentions, and personal chats, are answered", () => {
     // Carol is not connected, and is not asked to be: a report needs nobody.
     expect(lookUpAccount).not.toHaveBeenCalled();
     expect(resolveTenant).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHERE THE QUESTION WAS ASKED (#5315's and #5409's follow-ups): the
+ * answer knows it is read in Microsoft Teams - the commands typed to the
+ * bot, the buttons, Ask AI in the Dashboard; never "switch modes" - and,
+ * asked in an alert's or an incident's own channel, that the question is
+ * about that record, read as the person who asked.
+ */
+describe("OneUptime AI knows where in Microsoft Teams it was asked", () => {
+  const ALERT_ID: ObjectID = ObjectID.generate();
+
+  // What the assistant was asked with, whole.
+  function asked(): Array<ObservabilityAssistantRequest> {
+    return askAssistant.mock.calls.map(
+      (call: Array<unknown>): ObservabilityAssistantRequest => {
+        return call[0] as ObservabilityAssistantRequest;
+      },
+    );
+  }
+
+  test("asked in an alert's own channel: the alert, read as the person, and Teams' ways to act", async () => {
+    const findChannelRecord: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(WorkspacePageAbout, "findChannelRecord")
+      .mockResolvedValue({ type: OnCallPageRecordType.Alert, id: ALERT_ID });
+    const alert: Alert = new Alert();
+    alert._id = ALERT_ID.toString();
+    alert.title = "High memory on test01";
+    alert.alertNumber = 7;
+    const alertRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValue(alert as never);
+
+    await deliver(
+      message({
+        from: BOB,
+        text: "is this still happening?",
+        where: { in: "thread", postId: NOTIFICATION_POST_ID },
+        mentions: [BOT],
+      }),
+    );
+
+    expect(findChannelRecord).toHaveBeenCalledWith({
+      projectId: projectId,
+      channelId: OPS_CHANNEL,
+    });
+    expect(
+      (alertRead.mock.calls[0]![0] as { props: { userId: ObjectID } }).props
+        .userId,
+    ).toEqual(ONEUPTIME_USER_ID);
+
+    expect(asked()).toHaveLength(1);
+    // No prefix: the alert by its number, as #7.
+    expect(asked()[0]!.pageContext).toEqual({
+      type: AIChatPageContextType.Alert,
+      entityId: ALERT_ID.toString(),
+      entityTitle: "#7 High memory on test01",
+    });
+    expect(asked()[0]!.chatApp).toEqual({
+      name: "Microsoft Teams",
+      incidentCommand: "incident",
+      pageCommand: "page",
+      commandNote:
+        "typed to the OneUptime bot; in a channel or a group chat, mention @OneUptime first",
+      askAiUrl: `${DASHBOARD_URL}/${projectId.toString()}/ai/chat`,
+    });
+  });
+
+  test("a personal chat is no record's channel: nothing is looked up, and Teams' ways to act all the same", async () => {
+    const findChannelRecord: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      WorkspacePageAbout,
+      "findChannelRecord",
+    );
+
+    await deliver(
+      message({
+        from: BOB,
+        text: "which monitors are down?",
+        where: { in: "personal" },
+      }),
+    );
+
+    // A chat has no channel id: nothing is looked up.
+    expect(findChannelRecord).not.toHaveBeenCalled();
+    expect(asked()).toHaveLength(1);
+    expect(asked()[0]!.pageContext).toBeUndefined();
+    expect(asked()[0]!.chatApp?.name).toBe("Microsoft Teams");
   });
 });
 

@@ -162,8 +162,13 @@ export function getTokenAccount(account: string): string {
 
 // The fingerprint Snowflake keeps of the user's public key: SHA256:<base64>.
 export function getPublicKeyFingerprint(privateKeyPem: string): string {
+  /*
+   * The public half of the user's private key, derived through its PKCS#8
+   * export (this @types/node does not type createPublicKey(KeyObject)).
+   */
+  const privateKey: crypto.KeyObject = crypto.createPrivateKey(privateKeyPem);
   const publicKey: crypto.KeyObject = crypto.createPublicKey(
-    crypto.createPrivateKey(privateKeyPem),
+    privateKey.export({ type: "pkcs8", format: "pem" }),
   );
   const der: Buffer = publicKey.export({ type: "spki", format: "der" });
 

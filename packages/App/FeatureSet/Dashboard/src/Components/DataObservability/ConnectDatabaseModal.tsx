@@ -49,6 +49,7 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.SqlServer, label: "SQL Server" },
   { value: DataStoreKind.AwsRedshiftCluster, label: "Amazon Redshift" },
   { value: DataStoreKind.Snowflake, label: "Snowflake" },
+  { value: DataStoreKind.GcpBigQueryDataset, label: "Google BigQuery" },
 ];
 
 /*
@@ -177,8 +178,9 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             field: { connectionString: true },
             title: "Connection String",
             stepId: CONNECTION_STEP_ID,
+            // Documentation shows every engine's format in full, with examples.
             description:
-              'For example postgres://reader:password@db.internal:5432/orders. For Redshift, its endpoint: postgres://reader:password@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require. For Snowflake, JSON with its key pair: {"account": "myorg-myaccount", "user": "ONEUPTIME_READER", "privateKey": "-----BEGIN PRIVATE KEY-----...", "database": "ANALYTICS", "warehouse": "CHECKS_WH", "role": "ONEUPTIME_READER"}.',
+              "A URL such as postgres://reader:password@db.internal:5432/orders. Snowflake and BigQuery take JSON with a key: Documentation shows each engine's.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

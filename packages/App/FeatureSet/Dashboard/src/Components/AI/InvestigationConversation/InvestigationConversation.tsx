@@ -7,7 +7,10 @@ import { InvestigationConversationFold } from "../AiOffSummaryData";
 import InvestigationNotice, { noticeFailedIcon } from "../InvestigationNotice";
 import ToolApprovalCard, { ToolDecision } from "../../AIChat/ToolApprovalCard";
 import ToolActionSentence from "../../AIChat/ToolActionSentence";
-import { getToolActionTitle } from "../../AIChat/ToolActionWords";
+import {
+  getShownToolActions,
+  getToolActionTitle,
+} from "../../AIChat/ToolActionWords";
 import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
 import AnswerCitationChip from "./AnswerCitationChip";
 import AnswerSources from "./AnswerSources";
@@ -433,11 +436,16 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     );
     const awaitingApproval: Array<AIChatToolAction> =
       message.toolActions.filter(isToolActionAwaitingApproval);
-    const settledActions: Array<AIChatToolAction> = message.toolActions.filter(
-      (action: AIChatToolAction): boolean => {
-        return !isToolActionAwaitingApproval(action);
-      },
-    );
+    /*
+     * An action that ran and left a card above is that card: its own line
+     * is not drawn again under it (ToolActionWords getShownToolActions).
+     */
+    const settledActions: Array<AIChatToolAction> = getShownToolActions(
+      message.toolActions,
+      widgets,
+    ).filter((action: AIChatToolAction): boolean => {
+      return !isToolActionAwaitingApproval(action);
+    });
     // What this answer's Copy last did: Idle unless it was copied last.
     const copyStatus: ClipboardCopyStatus = answerClipboard.statusOf(
       message.id,

@@ -38,18 +38,12 @@ const RUNNER: string =
   "packages/Common/UI/Components/BulkUpdate/BulkActionRunner.ts";
 
 /*
- * Flows that still run their own loop, and why. Both are in the Admin
- * Dashboard's Users page, pinned by their own suites:
- *   - Require / Do Not Require Two Factor Auth posts to an endpoint that
- *     signs each user out, one user at a time on purpose (its rate limit),
- *     with its own reporting (BulkTwoFactorAuthWiring);
- *   - Add to Project reports the progress of its own module
- *     (bulkAddUsersToProject), which records who was dealt with before a
- *     late failure (BulkAddUsersToProjectWiring).
+ * Flows that still run their own loop, and why. None now: the last two, the
+ * Admin Dashboard Users page's Require / Do Not Require Two Factor Auth and
+ * Add to Project, moved onto the runner (fu-bulk-actions) - Stop and the time
+ * left with them.
  */
-const OWN_LOOPS: Record<string, number> = {
-  "packages/App/FeatureSet/AdminDashboard/src/Pages/Users/Index.tsx": 2,
-};
+const OWN_LOOPS: Record<string, number> = {};
 
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /(^|[^:])\/\/.*$/gm;

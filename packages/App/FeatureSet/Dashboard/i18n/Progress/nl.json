@@ -430,6 +430,8 @@
     "{{count}} flows",
     "{{count}} host",
     "{{count}} hosts",
+    "{{count}} hunt",
+    "{{count}} hunts",
     "{{count}} incident",
     "{{count}} manager",
     "{{count}} managers",

@@ -38,7 +38,9 @@ An in-page server answers what the dialog asks and records what it sends on
   for approval, a failed answer, and more.
 - `?thread=answered|approval|error` opens Ask AI on one of the first three, as the chat's
   address does (`openAskAi`); `?thread=rich` on an answer whose tools returned four figures, a
-  table with long values in its first and last columns, and a trace.
+  table with long values in its first and last columns, and a trace; `?thread=actions` on one
+  waiting to post a public status update on incident #42 (its note and Notify subscribers) and
+  add a private note to it, which leave their two cards (a status update, a note) once run.
 - A question sent starts a run whose steps are written one per poll, then the answer; a
   question about an alert ends on an approval card, and one asking to fail ends on an error.
   `?run=hold` holds the run where it is until `window.__askAiFixture.addSteps(n)` and

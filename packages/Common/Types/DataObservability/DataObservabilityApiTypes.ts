@@ -14,6 +14,9 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   collectNow: (dataStoreId: string) => string;
   checkAlert: (dataCheckId: string) => string;
   checkRunNow: (dataCheckId: string) => string;
+  dataProductSync: (dataProductId: string) => string;
+  dataProductBadge: (dataProductId: string) => string;
+  dataProductBadgeReset: (dataProductId: string) => string;
 } = {
   overview: "/data-observability/overview",
   stores: "/data-observability/stores",
@@ -29,7 +32,28 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   checkRunNow: (dataCheckId: string): string => {
     return `/data-observability/checks/${dataCheckId}/run-now`;
   },
+  // Makes the data product's monitor and SLO match it.
+  dataProductSync: (dataProductId: string): string => {
+    return `/data-observability/data-products/${dataProductId}/sync`;
+  },
+  // The data product's "data as of" badge (GET, no sign-in: ?token= is its secret).
+  dataProductBadge: (dataProductId: string): string => {
+    return `/data-observability/data-products/${dataProductId}/badge`;
+  },
+  // A new secret for the badge: every badge embedded with the old one stops working.
+  dataProductBadgeReset: (dataProductId: string): string => {
+    return `/data-observability/data-products/${dataProductId}/badge/reset`;
+  },
 };
+
+export interface DataObservabilityDataProductSyncResponse {
+  monitorId: string;
+  serviceLevelObjectiveId: string;
+}
+
+export interface DataObservabilityDataProductBadgeResetResponse {
+  badgeToken: string;
+}
 
 export interface DataObservabilityCheckAlertResponse {
   // The check's monitor, or null when it has no alert.

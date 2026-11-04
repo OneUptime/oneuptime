@@ -170,6 +170,7 @@ import DetectionRuleException from "./DetectionRuleException";
 import SecurityWatchlist from "./SecurityWatchlist";
 import SecurityWatchlistItem from "./SecurityWatchlistItem";
 import SecurityHunt from "./SecurityHunt";
+import SecurityHuntRun from "./SecurityHuntRun";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
@@ -210,6 +211,7 @@ import DataAssetUsage from "./DataAssetUsage";
 import DataCheck from "./DataCheck";
 import DataPipeline from "./DataPipeline";
 import DataPipelineRun from "./DataPipelineRun";
+import DataProduct from "./DataProduct";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
@@ -644,6 +646,7 @@ const AllModelTypes: Array<{
   SecurityWatchlist,
   SecurityWatchlistItem,
   SecurityHunt,
+  SecurityHuntRun,
   SecurityEventConnection,
   SecurityEventConnectionRun,
   ToolImportRun,
@@ -686,6 +689,7 @@ const AllModelTypes: Array<{
   DataCheck,
   DataPipeline,
   DataPipelineRun,
+  DataProduct,
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,

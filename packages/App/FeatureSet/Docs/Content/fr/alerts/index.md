@@ -4,14 +4,14 @@ Une alerte signale à votre équipe un problème à examiner avant que vos utili
 
 :::cards
 - [Alertes et incidents](#alertes-et-incidents): Ce qu'un problème devrait être, et comment les deux se relient.
-- [D'où viennent les alertes](#doù-viennent-les-alertes): Moniteurs, SLO, chat, l'API, ou à la main.
+- [D'où viennent les alertes](#doù-viennent-les-alertes): Moniteurs, SLO, chat, Demander à l'IA, l'API, ou à la main.
 - [Créer une alerte à la main](#créer-une-alerte-à-la-main): Deux étapes dans le tableau de bord.
 - [Répondre à une alerte](#répondre-à-une-alerte): La prendre en compte, la résoudre ou déclarer un incident.
 :::
 
 ## Fonctionnement
 
-La plupart des alertes sont levées par un moniteur dont les critères correspondent. D'autres viennent d'un SLO qui consomme son budget d'erreurs, d'une règle de sécurité, d'un appel envoyé depuis Slack ou Microsoft Teams, ou d'une personne. Quelle que soit leur origine, une alerte est toujours le même enregistrement, et les mêmes règles s'y appliquent.
+La plupart des alertes sont levées par un moniteur dont les critères correspondent. D'autres viennent d'un SLO qui consomme son budget d'erreurs, d'une règle de sécurité, d'un appel envoyé depuis Slack ou Microsoft Teams, de Demander à l'IA, ou d'une personne. Quelle que soit leur origine, une alerte est toujours le même enregistrement, et les mêmes règles s'y appliquent.
 
 ```mermaid title="D'un signal aux personnes qui le traitent"
 flowchart TB
@@ -44,6 +44,7 @@ Levez une alerte quand votre équipe doit regarder avant que quiconque à l'ext�
 
 - **Les critères d'un moniteur.** Dans les **Actions** d'un critère, activez **Lorsque les filtres correspondent, créer une alerte.** et remplissez l'alerte qu'il crée : **Titre de l'alerte** et **Gravité**, puis, chacun replié, **Description**, **Propriété et étiquettes**, **Astreinte** et **Plus de champs**, qui contient **Résoudre automatiquement l'alerte**, **Alerte privée** et **Notes de remédiation**. Un critère garde une seule alerte ouverte à la fois, une par série sur un moniteur qui regroupe par un champ, et **Résoudre automatiquement l'alerte** la résout dès que le critère ne correspond plus. Voir [Créer un moniteur](/docs/monitor/create-monitor) et [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
 - **À la main.** Cliquez sur **Créer une alerte** dans la liste des alertes, ou dans l'onglet **Alertes** d'un moniteur, d'un hôte, d'un équipement réseau ou d'une autre ressource, qui choisit cette ressource pour vous. Voir [Créer une alerte à la main](#créer-une-alerte-à-la-main).
+- **Demander à l'IA.** Dans [Demander à l'IA](/docs/ai/ask-ai), demandez une alerte : il la crée en votre nom, liée à la ressource depuis la page de laquelle vous avez demandé, comme celle d'un hôte. Pour consigner un problème dont quelqu'un s'occupe déjà, ou qui est déjà terminé, demandez-la déjà prise en compte ou résolue : elle commence dans cet état et n'alerte personne. Voir [Créée déjà prise en compte ou résolue](#créée-déjà-prise-en-compte-ou-résolue).
 - **Le taux de consommation d'un SLO.** Une règle de taux de consommation peut créer une alerte quand un SLO dépense son budget d'erreurs trop vite. Voir [Alertes et incidents de taux de consommation](/docs/slo/burn-rate-alerts).
 - **Sites réseau et événements de sécurité.** Un site réseau configuré pour alerter quand il n'est pas en bonne santé ouvre une alerte dès que son agrégation cesse d'être opérationnelle, et vos règles de détection d'événements de sécurité ouvrent aussi des alertes. Voir [Sites réseau (agrégation de santé et disponibilité)](/docs/monitor/network-sites) et [Événements de sécurité (SIEM)](/docs/telemetry/security-events).
 - **Un appel.** `/oneuptime page` dans Slack ou Microsoft Teams, partout sauf dans le canal propre d'un incident ou d'une alerte, ouvre une alerte dont le titre est votre message, et alerte les personnes que vous nommez. Les blocs d'appel d'un workflow font de même avec le titre et le message que vous leur donnez. Voir [Alerter quelqu'un depuis Slack](/docs/workspace-connections/slack#alerter-quelquun-depuis-slack) et [Paging](/docs/workflows/components#paging).
@@ -94,7 +95,7 @@ Laissez **État initial** vide, et l'alerte commence là où commence toute nouv
 
 Dès qu'une alerte est créée, OneUptime franchit ces étapes, dans cet ordre :
 
-1. **Elle reçoit un numéro et un état.** Le numéro d'alerte vient d'un compteur propre au projet, affiché avec votre préfixe (`ALT-42`). L'alerte commence dans votre état de création, sauf si le formulaire, l'API ou un workflow en a choisi un autre.
+1. **Elle reçoit un numéro et un état.** Le numéro d'alerte vient d'un compteur propre au projet, affiché avec votre préfixe (`ALT-42`). L'alerte commence dans votre état de création, sauf si le formulaire, l'API, un workflow ou Demander à l'IA en a choisi un autre.
 2. **Les règles de confidentialité passent en premier**, pour que tout ce qui suit sache si l'alerte est privée.
 3. **Le fil d'activité et vos outils de chat en sont informés.** Une entrée **Alerte créée** est écrite dans le **Fil d'activité de l'alerte**, et les canaux que nomment vos règles Slack et Microsoft Teams sont prévenus ; une règle peut créer un canal pour l'alerte.
 4. **Les propriétaires et les étiquettes sont ajoutés** : ceux que nomment les critères du moniteur ou la requête, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.

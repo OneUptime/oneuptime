@@ -6,6 +6,7 @@ import {
 } from "mysql2/promise";
 import * as mssql from "mssql";
 import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
+import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import {
   DataAssetColumn,
   MAX_COLUMN_NAME_LENGTH,
@@ -27,6 +28,10 @@ import SnowflakeSqlApi, {
   readSnowflakeConnection,
   SnowflakeConnection,
 } from "./SnowflakeSqlApi";
+import BigQueryApi, {
+  BigQueryConnection,
+  readBigQueryConnection,
+} from "./BigQueryApi";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
@@ -63,6 +68,12 @@ import {
  *    DATABASE STATE, since the server started (sys.dm_os_sys_info).
  *    INFORMATION_SCHEMA.COLUMNS gives the columns.
  *
+ * Each engine also says which tables feed which, where it can (lineage
+ * with no pipeline to report it): a view's tables from its definition
+ * (PostgreSQL, Redshift, MySQL 8, SQL Server), and a query that read one
+ * table and wrote another from the engine's own query history (BigQuery's
+ * jobs, Redshift's query log), read back to the last collection.
+ *
  * Times are taken as "seconds ago" by the database's own clock, so neither
  * its time zone nor its clock's drift from OneUptime's matters.
  *
@@ -85,6 +96,51 @@ export const MAX_IDENTIFIER_LENGTH: number = 240;
 export const MAX_COLUMNS_PER_COLLECTION: number = 200_000;
 // Most warnings one collection keeps.
 export const MAX_COLLECTION_WARNINGS: number = 20;
+// Most edges of lineage one collection reports.
+export const MAX_LINEAGE_EDGES_PER_COLLECTION: number = 5_000;
+// The longest login or service account an edge keeps.
+export const MAX_SEEN_BY_LENGTH: number = 100;
+// The query history a store's first collection reads, and the most any collection reads.
+export const MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS: number = 7 * 24 * 60 * 60;
+// Read before the last hour lineage was read in, so a query ending in between is never missed.
+export const QUERY_HISTORY_MARGIN_IN_SECONDS: number = 15 * 60;
+const HOUR_IN_MS: number = 60 * 60 * 1000;
+
+/*
+ * How far back a collection reads the query history, or 0 when it reads
+ * no lineage this time. Lineage changes slowly and reading a query history
+ * costs a little (BigQuery bills the bytes its jobs view reads), so it is
+ * read at a store's first collection of each hour, back to the start of
+ * the hour of its last collection with a margin: a query is read twice
+ * rather than missed, and an edge is kept once per pair, so reading it
+ * twice changes nothing. A store's first collection reads a week, so its
+ * lineage is there from the start.
+ */
+export function getQueryHistoryLookbackInSeconds(
+  lastCollectedAt: Date | null | undefined,
+  now: Date,
+): number {
+  // A date read back from the database, or its text.
+  const last: number = lastCollectedAt
+    ? new Date(lastCollectedAt).getTime()
+    : NaN;
+
+  if (!Number.isFinite(last)) {
+    return MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS;
+  }
+
+  const lastHour: number = Math.floor(last / HOUR_IN_MS);
+
+  if (Math.floor(now.getTime() / HOUR_IN_MS) <= lastHour) {
+    return 0;
+  }
+
+  return Math.min(
+    MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS,
+    Math.floor((now.getTime() - lastHour * HOUR_IN_MS) / 1000) +
+      QUERY_HISTORY_MARGIN_IN_SECONDS,
+  );
+}
 
 const APPLICATION_NAME: string = "OneUptime Data Observability";
 const MARIADB_SCHEME: RegExp = /^mariadb:\/\//i;
@@ -114,6 +170,31 @@ export interface CollectedTable {
   columns: Array<DataAssetColumn> | null;
 }
 
+// Where the database itself shows one table feeding another.
+export type CollectedLineageSource =
+  | DataAssetLineageSource.QueryHistory
+  | DataAssetLineageSource.ViewDefinition;
+
+/*
+ * One table feeding another, as the database itself shows it: a query in
+ * its history that read the first and wrote the second, or a view defined
+ * over the first. The downstream table is always the store's own; the
+ * upstream one is too, unless upstreamDatabase names another (a BigQuery
+ * query that read another project's or dataset's table).
+ */
+export interface CollectedLineageEdge {
+  source: CollectedLineageSource;
+  upstreamDatabase: string | null;
+  upstreamSchema: string;
+  upstreamTable: string;
+  downstreamSchema: string;
+  downstreamTable: string;
+  // How long ago the last query that moved the data ended; null for a view.
+  secondsSinceSeen: number | null;
+  // A login or service account whose queries moved it; null for a view.
+  seenBy: string | null;
+}
+
 export interface TableHealthSnapshot {
   engine: DatabaseEngine;
   collectedAt: string;
@@ -130,6 +211,10 @@ export interface TableHealthSnapshot {
    * its statistics were reset or the server started. Null when unknown.
    */
   secondsSinceStatsReset?: number | null | undefined;
+  // Tables feeding others, as the database shows it: views, and its query history.
+  lineage?: Array<CollectedLineageEdge> | undefined;
+  // True when every view's definition was read, so a view edge not reported is gone.
+  isViewLineageComplete?: boolean | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -139,6 +224,12 @@ export interface TableHealthCollectOptions {
   exclusions: Array<string>;
   // The store's data checks that are due, run after the catalog in the same session.
   checks?: Array<PlannedDataCheck> | undefined;
+  /*
+   * How far back to read the query history (getQueryHistoryLookbackInSeconds);
+   * 0, or not given (an older server, which keeps no lineage from a
+   * collection), reads no lineage.
+   */
+  queryHistoryLookbackInSeconds?: number | undefined;
 }
 
 export const DEFAULT_COLLECT_OPTIONS: TableHealthCollectOptions = {
@@ -172,9 +263,24 @@ interface CatalogRead {
   secondsSinceStatsReset: number | null;
 }
 
+interface LineageRead {
+  edges: Array<CollectedLineageEdge>;
+  // True when every view's definition was read.
+  isViewLineageComplete: boolean;
+  warnings: Array<string>;
+}
+
+const NO_LINEAGE: LineageRead = {
+  edges: [],
+  isViewLineageComplete: false,
+  warnings: [],
+};
+
 interface CatalogSession {
   readonly engine: DatabaseEngine;
   read(options: TableHealthCollectOptions): Promise<CatalogRead>;
+  // Which tables feed which, as the engine shows it; one that cannot say has none.
+  readLineage?(options: TableHealthCollectOptions): Promise<LineageRead>;
   // One data check's aggregate, read-only and bounded like every catalog read.
   readAggregate(
     sql: string,
@@ -251,6 +357,124 @@ function wholeMilliseconds(value: number): number {
 
 function keyOf(schema: string, table: string): string {
   return `${schema}\u0000${table}`;
+}
+
+// The query history this collection reads, in whole seconds: 0 for none.
+function readLookback(options: TableHealthCollectOptions): number {
+  const value: number = Number(options.queryHistoryLookbackInSeconds);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  return Math.min(Math.floor(value), MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS);
+}
+
+/*
+ * A lineage row, as every engine's statement names its columns: the
+ * upstream table (with its database when it is another's), the downstream
+ * one, and for a query how long ago it ended and whose it was. A table
+ * feeding itself (an update reading its own rows) is no edge.
+ */
+export function readLineageRow(
+  row: Record<string, unknown>,
+  source: CollectedLineageSource,
+): CollectedLineageEdge | null {
+  const isQuery: boolean = source === DataAssetLineageSource.QueryHistory;
+  const edge: CollectedLineageEdge = {
+    source,
+    upstreamDatabase:
+      readText(row["upstream_database"], MAX_IDENTIFIER_LENGTH).trim() || null,
+    upstreamSchema: readText(row["upstream_schema"], MAX_IDENTIFIER_LENGTH),
+    upstreamTable: readText(row["upstream_table"], MAX_IDENTIFIER_LENGTH),
+    downstreamSchema: readText(row["downstream_schema"], MAX_IDENTIFIER_LENGTH),
+    downstreamTable: readText(row["downstream_table"], MAX_IDENTIFIER_LENGTH),
+    secondsSinceSeen: isQuery ? readCount(row["seconds_since_seen"]) : null,
+    seenBy: isQuery
+      ? readText(row["seen_by"], MAX_SEEN_BY_LENGTH).trim() || null
+      : null,
+  };
+
+  if (!edge.upstreamTable || !edge.downstreamTable) {
+    return null;
+  }
+
+  const isItself: boolean =
+    !edge.upstreamDatabase &&
+    edge.upstreamSchema === edge.downstreamSchema &&
+    edge.upstreamTable === edge.downstreamTable;
+
+  return isItself ? null : edge;
+}
+
+function readLineageRows(
+  rows: Array<Record<string, unknown>>,
+  source: CollectedLineageSource,
+): Array<CollectedLineageEdge> {
+  return rows
+    .map((row: Record<string, unknown>): CollectedLineageEdge | null => {
+      return readLineageRow(row, source);
+    })
+    .filter(
+      (edge: CollectedLineageEdge | null): edge is CollectedLineageEdge => {
+        return edge !== null;
+      },
+    );
+}
+
+/*
+ * Every view's tables, read in one statement: complete unless it failed or
+ * was cut at its limit. An engine version that keeps no view's tables
+ * (isUnsupported) has no view lineage, with no warning.
+ */
+async function readViewLineage(
+  read: () => Promise<Array<Record<string, unknown>>>,
+  isUnsupported?: (message: string) => boolean,
+): Promise<LineageRead> {
+  try {
+    const rows: Array<Record<string, unknown>> = await read();
+
+    return {
+      edges: readLineageRows(rows, DataAssetLineageSource.ViewDefinition),
+      isViewLineageComplete: rows.length < MAX_LINEAGE_EDGES_PER_COLLECTION,
+      warnings: [],
+    };
+  } catch (error) {
+    const message: string = describeError(error);
+
+    return {
+      ...NO_LINEAGE,
+      warnings:
+        isUnsupported && isUnsupported(message)
+          ? []
+          : [
+              `The lineage of views was left out (their definitions could not be read): ${message.slice(0, 200)}`,
+            ],
+    };
+  }
+}
+
+/*
+ * A view's tables, PostgreSQL's and Redshift's alike: its rewrite rule
+ * depends on each table and view it selects from (pg_depend). A Redshift
+ * late-binding view (WITH NO SCHEMA BINDING) records none.
+ */
+function pgViewLineageSql(schemaFilter: string): string {
+  return `SELECT DISTINCT sn.nspname AS upstream_schema, sc.relname AS upstream_table,
+      vn.nspname AS downstream_schema, vc.relname AS downstream_table
+    FROM pg_catalog.pg_depend d
+    JOIN pg_catalog.pg_rewrite r ON r.oid = d.objid
+    JOIN pg_catalog.pg_class vc ON vc.oid = r.ev_class
+    JOIN pg_catalog.pg_namespace vn ON vn.oid = vc.relnamespace
+    JOIN pg_catalog.pg_class sc ON sc.oid = d.refobjid
+    JOIN pg_catalog.pg_namespace sn ON sn.oid = sc.relnamespace
+    WHERE vc.relkind IN ('v', 'm')
+      AND sc.relkind IN ('r', 'p', 'v', 'm', 'f')
+      AND sc.oid <> vc.oid
+      AND vn.nspname ${schemaFilter}
+      AND vn.nspname NOT LIKE 'pg\\_%'
+    ORDER BY 3, 4, 1, 2
+    LIMIT $1`;
 }
 
 // The engine's kind code for a relation, as a data asset kind.
@@ -404,6 +628,23 @@ class PostgresCatalog implements CatalogSession {
       WHERE ${PostgresCatalog.RELATION_FILTER}
       ORDER BY n.nspname, c.relname
       LIMIT $1`;
+  }
+
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    if (readLookback(options) === 0) {
+      return NO_LINEAGE;
+    }
+
+    return await readViewLineage(
+      async (): Promise<Array<Record<string, unknown>>> => {
+        return await this.rows(
+          pgViewLineageSql("NOT IN ('pg_catalog', 'information_schema')"),
+          [MAX_LINEAGE_EDGES_PER_COLLECTION],
+        );
+      },
+    );
   }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -603,6 +844,33 @@ class MySqlCatalog implements CatalogSession {
   }
 
   private static readonly SCHEMA_FILTER: string = `NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')`;
+
+  // Each view's tables (MySQL 8.0.13 and later; MariaDB keeps none).
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    if (readLookback(options) === 0) {
+      return NO_LINEAGE;
+    }
+
+    return await readViewLineage(
+      async (): Promise<Array<Record<string, unknown>>> => {
+        return await this.inReadOnlyTransaction(
+          `SELECT VIEW_SCHEMA AS downstream_schema, VIEW_NAME AS downstream_table,
+            TABLE_SCHEMA AS upstream_schema, TABLE_NAME AS upstream_table
+          FROM information_schema.VIEW_TABLE_USAGE
+          WHERE VIEW_SCHEMA ${MySqlCatalog.SCHEMA_FILTER}
+            AND (DATABASE() IS NULL OR VIEW_SCHEMA = DATABASE())
+          ORDER BY VIEW_SCHEMA, VIEW_NAME, TABLE_SCHEMA, TABLE_NAME
+          LIMIT ?`,
+          [MAX_LINEAGE_EDGES_PER_COLLECTION],
+        );
+      },
+      (message: string): boolean => {
+        return message.toUpperCase().includes("VIEW_TABLE_USAGE");
+      },
+    );
+  }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
     const warnings: Array<string> = [];
@@ -809,6 +1077,33 @@ class SqlServerCatalog implements CatalogSession {
     params: Array<string>,
   ): Promise<Array<Record<string, unknown>>> {
     return await this.run(sql, params);
+  }
+
+  // Each view's tables and views, from its expression dependencies.
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    if (readLookback(options) === 0) {
+      return NO_LINEAGE;
+    }
+
+    return await readViewLineage(
+      async (): Promise<Array<Record<string, unknown>>> => {
+        return await this.run(
+          `SELECT DISTINCT TOP (@p0) vs.name AS downstream_schema, v.name AS downstream_table,
+            os.name AS upstream_schema, o.name AS upstream_table
+          FROM sys.sql_expression_dependencies d
+          JOIN sys.views v ON v.object_id = d.referencing_id
+          JOIN sys.schemas vs ON vs.schema_id = v.schema_id
+          JOIN sys.objects o ON o.object_id = d.referenced_id
+          JOIN sys.schemas os ON os.schema_id = o.schema_id
+          WHERE o.type IN ('U', 'V') AND o.is_ms_shipped = 0 AND v.is_ms_shipped = 0
+            AND o.object_id <> v.object_id
+          ORDER BY downstream_schema, downstream_table, upstream_schema, upstream_table`,
+          [MAX_LINEAGE_EDGES_PER_COLLECTION],
+        );
+      },
+    );
   }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -1103,6 +1398,77 @@ class RedshiftCatalog implements CatalogSession {
       return times;
     } catch {
       return null;
+    }
+  }
+
+  /*
+   * Each view's tables, and a query that read one table and wrote another
+   * in the query log: stl_insert's table written, stl_scan's user tables
+   * read (type 2) by the same query. A load from S3 reads no table, and a
+   * temporary table is gone from the catalog once its session ends, so
+   * neither is an edge.
+   */
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    const lookback: number = readLookback(options);
+
+    if (lookback === 0) {
+      return NO_LINEAGE;
+    }
+
+    const views: LineageRead = await readViewLineage(
+      async (): Promise<Array<Record<string, unknown>>> => {
+        return await this.rows(
+          pgViewLineageSql(RedshiftCatalog.SCHEMA_FILTER),
+          [MAX_LINEAGE_EDGES_PER_COLLECTION],
+        );
+      },
+    );
+
+    try {
+      const rows: Array<Record<string, unknown>> = await this.rows(
+        `SELECT sn.nspname AS upstream_schema, sc.relname AS upstream_table,
+          dn.nspname AS downstream_schema, dc.relname AS downstream_table,
+          DATEDIFF(second, MAX(w.endtime), GETDATE()) AS seconds_since_seen,
+          MAX(TRIM(u.usename)) AS seen_by
+        FROM (SELECT query, tbl, MAX(endtime) AS endtime FROM stl_insert
+          WHERE endtime > DATEADD(second, -${lookback}, GETDATE())
+          GROUP BY query, tbl) w
+        JOIN (SELECT DISTINCT query, tbl, userid FROM stl_scan
+          WHERE type = 2 AND userid > 1
+            AND endtime > DATEADD(second, -${lookback}, GETDATE())) r
+          ON r.query = w.query AND r.tbl <> w.tbl
+        JOIN pg_class dc ON dc.oid = w.tbl
+        JOIN pg_namespace dn ON dn.oid = dc.relnamespace
+        JOIN pg_class sc ON sc.oid = r.tbl
+        JOIN pg_namespace sn ON sn.oid = sc.relnamespace
+        LEFT JOIN pg_user u ON u.usesysid = r.userid
+        WHERE dn.nspname ${RedshiftCatalog.SCHEMA_FILTER}
+          AND sn.nspname ${RedshiftCatalog.SCHEMA_FILTER}
+          AND dn.nspname NOT LIKE 'pg\\_%'
+          AND sn.nspname NOT LIKE 'pg\\_%'
+        GROUP BY sn.nspname, sc.relname, dn.nspname, dc.relname
+        ORDER BY seconds_since_seen
+        LIMIT $1`,
+        [MAX_LINEAGE_EDGES_PER_COLLECTION],
+      );
+
+      return {
+        ...views,
+        edges: [
+          ...views.edges,
+          ...readLineageRows(rows, DataAssetLineageSource.QueryHistory),
+        ],
+      };
+    } catch (error) {
+      return {
+        ...views,
+        warnings: [
+          ...views.warnings,
+          `Lineage from the query log was left out (stl_insert and stl_scan need SYSLOG ACCESS UNRESTRICTED): ${describeError(error).slice(0, 200)}`,
+        ],
+      };
     }
   }
 
@@ -1455,12 +1821,223 @@ class SnowflakeCatalog implements CatalogSession {
   }
 }
 
+// A BigQuery location, as its jobs view's region names it: us, eu, us-central1.
+const BIGQUERY_LOCATION: RegExp = /^[a-z0-9-]{2,40}$/;
+// A query job runs for six hours at most, so one ending in a window began at most this long before it.
+const BIGQUERY_LONGEST_JOB_IN_SECONDS: number = 6 * 60 * 60;
+
+/*
+ * The query that reads a dataset's lineage from the jobs view of its
+ * project and location: each query job of the window that wrote a table of
+ * the dataset, with the tables it read; null when no lineage is read this
+ * time, or the location is not one a region can be named by. Only the
+ * project and dataset are values; the rest is checked before it is used.
+ */
+export function buildBigQueryLineageQuery(
+  connection: Pick<BigQueryConnection, "projectId" | "dataset" | "location">,
+  lookbackInSeconds: number,
+): { statement: string; params: Array<string> } | null {
+  const location: string = (connection.location || "US").toLowerCase();
+
+  if (
+    lookbackInSeconds <= 0 ||
+    !Number.isInteger(lookbackInSeconds) ||
+    !BIGQUERY_LOCATION.test(location)
+  ) {
+    return null;
+  }
+
+  return {
+    statement: `SELECT ref.project_id AS upstream_database, ref.dataset_id AS upstream_schema,
+            ref.table_id AS upstream_table,
+            j.destination_table.dataset_id AS downstream_schema,
+            j.destination_table.table_id AS downstream_table,
+            TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(j.end_time), SECOND) AS seconds_since_seen,
+            ARRAY_AGG(j.user_email IGNORE NULLS ORDER BY j.end_time DESC LIMIT 1)[SAFE_OFFSET(0)] AS seen_by
+          FROM \`${connection.projectId}\`.\`region-${location}\`.INFORMATION_SCHEMA.JOBS AS j,
+            UNNEST(j.referenced_tables) AS ref
+          WHERE j.creation_time > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ${lookbackInSeconds + BIGQUERY_LONGEST_JOB_IN_SECONDS} SECOND)
+            AND j.end_time > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ${lookbackInSeconds} SECOND)
+            AND j.job_type = 'QUERY'
+            AND j.state = 'DONE'
+            AND j.error_result IS NULL
+            AND j.destination_table.project_id = ?
+            AND j.destination_table.dataset_id = ?
+            AND NOT STARTS_WITH(ref.dataset_id, '_')
+            AND NOT (ref.project_id = j.destination_table.project_id
+              AND ref.dataset_id = j.destination_table.dataset_id
+              AND ref.table_id = j.destination_table.table_id)
+          GROUP BY 1, 2, 3, 4, 5
+          ORDER BY seconds_since_seen
+          LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
+    params: [connection.projectId, connection.dataset],
+  };
+}
+
+// A __TABLES__ type, as a data asset kind: 1 a table, 2 a view.
+export function readBigQueryKind(type: unknown): DataAssetKind | null {
+  switch (String(type ?? "")) {
+    case "1":
+      return DataAssetKind.Table;
+    case "2":
+      return DataAssetKind.View;
+    default:
+      return null;
+  }
+}
+
+/*
+ * Google BigQuery, a dataset at a time (BigQueryApi): __TABLES__ gives each
+ * table and view with its rows, bytes and last change; the dataset's
+ * INFORMATION_SCHEMA.COLUMNS its columns. A data check runs as a query job
+ * of the dataset's project, its names in backticks and its values bound by
+ * position.
+ */
+class BigQueryCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "bigquery";
+  private readonly api: BigQueryApi;
+  private readonly connection: BigQueryConnection;
+
+  private constructor(api: BigQueryApi, connection: BigQueryConnection) {
+    this.api = api;
+    this.connection = connection;
+  }
+
+  public static async open(connectionString: string): Promise<BigQueryCatalog> {
+    const connection: BigQueryConnection =
+      readBigQueryConnection(connectionString);
+
+    return new BigQueryCatalog(new BigQueryApi({ connection }), connection);
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  private datasetReference(): string {
+    return `\`${this.connection.projectId}\`.\`${this.connection.dataset}\``;
+  }
+
+  /*
+   * A query job that read one table and wrote another of this dataset, from
+   * the jobs view of the dataset's project and location (its referenced
+   * and destination tables): a scheduled query, a dbt model, a MERGE. Jobs
+   * run in another project are in that project's view, not this one's.
+   * The view is partitioned by creation time, so only the hours read are
+   * billed (BigQuery's 10 MB minimum, mostly); the service account needs
+   * BigQuery Resource Viewer (bigquery.jobs.listAll) to see every user's.
+   */
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    const query: { statement: string; params: Array<string> } | null =
+      buildBigQueryLineageQuery(this.connection, readLookback(options));
+
+    if (!query) {
+      return NO_LINEAGE;
+    }
+
+    try {
+      const rows: Array<Record<string, unknown>> = await this.api.query(query);
+
+      return {
+        edges: readLineageRows(rows, DataAssetLineageSource.QueryHistory),
+        isViewLineageComplete: false,
+        warnings: [],
+      };
+    } catch (error) {
+      return {
+        ...NO_LINEAGE,
+        warnings: [
+          `Lineage from query history was left out (INFORMATION_SCHEMA.JOBS needs the BigQuery Resource Viewer role): ${describeError(error).slice(0, 200)}`,
+        ],
+      };
+    }
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const dataset: string = this.connection.dataset;
+    const tables: Array<RawTable> = [];
+
+    for (const row of await this.api.query({
+      statement: `SELECT table_id, type, row_count, size_bytes,
+          TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), TIMESTAMP_MILLIS(last_modified_time), SECOND) AS seconds_since_change
+        FROM ${this.datasetReference()}.__TABLES__
+        ORDER BY table_id
+        LIMIT ${options.maxTables}`,
+    })) {
+      const kind: DataAssetKind | null = readBigQueryKind(row["type"]);
+      const name: string = readText(row["table_id"], MAX_IDENTIFIER_LENGTH);
+
+      if (!kind || !name) {
+        continue;
+      }
+
+      const isTable: boolean = kind === DataAssetKind.Table;
+
+      tables.push({
+        schema: dataset,
+        name,
+        kind,
+        estimatedRows: isTable ? readCount(row["row_count"]) : null,
+        sizeInBytes: isTable ? readCount(row["size_bytes"]) : null,
+        writeCount: null,
+        secondsSinceChange: isTable
+          ? readCount(row["seconds_since_change"])
+          : null,
+        readCount: null,
+        secondsSinceRead: null,
+      });
+    }
+
+    let columns: Array<RawColumn> = [];
+
+    try {
+      columns = (
+        await this.api.query({
+          statement: `SELECT table_name, column_name, data_type, is_nullable, ordinal_position
+            FROM ${this.datasetReference()}.INFORMATION_SCHEMA.COLUMNS
+            ORDER BY table_name, ordinal_position
+            LIMIT ${options.maxColumns}`,
+        })
+      )
+        .map((row: Record<string, unknown>): RawColumn | null => {
+          return readColumnRow({ ...row, table_schema: dataset });
+        })
+        .filter((column: RawColumn | null): column is RawColumn => {
+          return column !== null;
+        });
+    } catch (error) {
+      warnings.push(
+        `Columns were left out (INFORMATION_SCHEMA.COLUMNS could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return {
+      tables,
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    // Each query is its own request: nothing is held open.
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
   switch (connection.engine) {
     case "postgresql":
       return await PostgresCatalog.open(connection.connectionString);
+    case "bigquery":
+      return await BigQueryCatalog.open(connection.connectionString);
     case "redshift":
       return await RedshiftCatalog.open(connection.connectionString);
     case "snowflake":
@@ -1496,13 +2073,15 @@ function isExcluded(
  * exclusions left out. When the column list was cut at its limit, the last
  * table it reached may have only some of its columns and the ones after it
  * none, so their columns are unknown (null), never an empty list a
- * comparison would read as every column dropped.
+ * comparison would read as every column dropped. Lineage, when it was
+ * read, leaves out every edge with an excluded table at either end.
  */
 export function assembleSnapshot(data: {
   engine: DatabaseEngine;
   read: CatalogRead;
   options: TableHealthCollectOptions;
   collectedAt: Date;
+  lineage?: LineageRead | undefined;
 }): TableHealthSnapshot {
   const excluded: Set<string> = new Set(
     data.options.exclusions
@@ -1571,7 +2150,7 @@ export function assembleSnapshot(data: {
     );
   }
 
-  return {
+  const snapshot: TableHealthSnapshot = {
     engine: data.engine,
     collectedAt: data.collectedAt.toISOString(),
     tables,
@@ -1579,6 +2158,20 @@ export function assembleSnapshot(data: {
     warnings: warnings.slice(0, MAX_COLLECTION_WARNINGS),
     secondsSinceStatsReset: data.read.secondsSinceStatsReset,
   };
+
+  if (data.lineage) {
+    snapshot.lineage = data.lineage.edges
+      .filter((edge: CollectedLineageEdge) => {
+        return (
+          !isExcluded(edge.downstreamSchema, edge.downstreamTable, excluded) &&
+          !isExcluded(edge.upstreamSchema, edge.upstreamTable, excluded)
+        );
+      })
+      .slice(0, MAX_LINEAGE_EDGES_PER_COLLECTION);
+    snapshot.isViewLineageComplete = data.lineage.isViewLineageComplete;
+  }
+
+  return snapshot;
 }
 
 export async function collectTableHealth(
@@ -1595,6 +2188,22 @@ export async function collectTableHealth(
 
     const collectedAt: Date = new Date();
     const read: CatalogRead = await catalog.read(options);
+    let lineage: LineageRead = NO_LINEAGE;
+
+    // Lineage is extra: an engine that cannot say it never fails the collection.
+    try {
+      lineage = catalog.readLineage
+        ? await catalog.readLineage(options)
+        : NO_LINEAGE;
+    } catch (error) {
+      lineage = {
+        ...NO_LINEAGE,
+        warnings: [
+          `Lineage was left out: ${describeError(error).slice(0, 200)}`,
+        ],
+      };
+    }
+
     const checkResults: Array<DataCheckRunResult> = [];
 
     // Each check on its own: one that cannot run never stops the others.
@@ -1626,12 +2235,15 @@ export async function collectTableHealth(
         engine: connection.engine,
         read: {
           ...read,
-          warnings: read.warnings.map((warning: string) => {
-            return sanitizeErrorMessage(new Error(warning), secrets);
-          }),
+          warnings: [...read.warnings, ...lineage.warnings].map(
+            (warning: string) => {
+              return sanitizeErrorMessage(new Error(warning), secrets);
+            },
+          ),
         },
         options,
         collectedAt,
+        lineage,
       }),
       target: readConnectionTarget(connection),
       ...(options.checks && options.checks.length > 0 ? { checkResults } : {}),

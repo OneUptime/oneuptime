@@ -10,15 +10,17 @@ import {
  *
  * Every database Data Security samples - PostgreSQL, MySQL and MariaDB, SQL
  * Server - and the warehouses it does not: Amazon Redshift, read over the
- * PostgreSQL protocol with its own catalog views, and Snowflake, over its
- * SQL API (SnowflakeSqlApi). Data Security's own list and engine mapping
- * are left as they are: it does not sample a warehouse.
+ * PostgreSQL protocol with its own catalog views; Snowflake, over its SQL API
+ * (SnowflakeSqlApi); and Google BigQuery, each dataset with its Google Cloud
+ * connection's service account (BigQueryApi). Data Security's own list and
+ * engine mapping are left as they are: it does not sample a warehouse.
  */
 
 export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
   ...PROBE_SCANNABLE_KINDS,
   DataStoreKind.AwsRedshiftCluster,
   DataStoreKind.Snowflake,
+  DataStoreKind.GcpBigQueryDataset,
 ];
 
 export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
@@ -27,6 +29,7 @@ export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "sqlserver",
   "redshift",
   "snowflake",
+  "bigquery",
 ];
 
 export function getCollectorEngineOfKind(
@@ -38,6 +41,10 @@ export function getCollectorEngineOfKind(
 
   if (kind === DataStoreKind.Snowflake) {
     return "snowflake";
+  }
+
+  if (kind === DataStoreKind.GcpBigQueryDataset) {
+    return "bigquery";
   }
 
   return getDatabaseEngineOfKind(kind);
