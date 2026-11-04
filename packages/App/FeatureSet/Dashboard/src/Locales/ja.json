@@ -42470,6 +42470,7 @@
   "In Microsoft Teams": "Microsoft Teams で",
   "In OneUptime": "OneUptime で",
   "In Slack": "Slack で",
+  "Open in Mattermost": "Mattermost で開く",
   "Runbook Track Record": "Runbook の過去の結果",
   "Where fixes were approved": "修正が承認された場所",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "この修正を却下する権限がありません。修正の却下には承認と同じ権限が必要です：このプロジェクトで Runbook の実行を開始する権限です。",

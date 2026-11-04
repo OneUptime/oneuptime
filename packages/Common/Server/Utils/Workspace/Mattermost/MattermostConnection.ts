@@ -1,5 +1,6 @@
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
+import { MATTERMOST_NAME_PATTERN } from "../../../../Types/Workspace/WorkspaceChannelLink";
 
 /*
  * WHAT A PROJECT'S MATTERMOST CONNECTION IS.
@@ -45,12 +46,6 @@ const NOT_A_CONNECTION_MESSAGE: string =
 const MATTERMOST_ID_PATTERN: RegExp = /^[a-z0-9]{26}$/;
 
 /*
- * A channel's name - its handle in URLs: chat.example.com/team/channels/<name>.
- * Lowercase letters, digits, "-" and "_", at most 64 characters.
- */
-const MATTERMOST_CHANNEL_NAME_PATTERN: RegExp = /^[a-z0-9_-]{1,64}$/;
-
-/*
  * A username, as Mattermost lets one be chosen: lowercase letters, digits,
  * ".", "-" and "_", at most 64 characters. Read before it is placed in a
  * path, as ids and channel names are.
@@ -72,10 +67,12 @@ export default class MattermostConnection {
     return typeof value === "string" && MATTERMOST_ID_PATTERN.test(value);
   }
 
+  /*
+   * A channel's name - its handle in URLs:
+   * chat.example.com/team/channels/<name>.
+   */
   public static isChannelName(value: unknown): value is string {
-    return (
-      typeof value === "string" && MATTERMOST_CHANNEL_NAME_PATTERN.test(value)
-    );
+    return typeof value === "string" && MATTERMOST_NAME_PATTERN.test(value);
   }
 
   public static isUsername(value: unknown): value is string {

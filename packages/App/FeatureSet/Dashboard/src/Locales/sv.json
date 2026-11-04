@@ -42470,6 +42470,7 @@
   "In Microsoft Teams": "I Microsoft Teams",
   "In OneUptime": "I OneUptime",
   "In Slack": "I Slack",
+  "Open in Mattermost": "Öppna i Mattermost",
   "Runbook Track Record": "Runbookens tidigare resultat",
   "Where fixes were approved": "Var åtgärder godkändes",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Du har inte behörighet att avfärda den här åtgärden. Att avfärda en åtgärd kräver samma behörighet som att godkänna den: att starta runbook-körningar i det här projektet.",

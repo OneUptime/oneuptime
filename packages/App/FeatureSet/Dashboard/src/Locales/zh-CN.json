@@ -42470,6 +42470,7 @@
   "In Microsoft Teams": "在 Microsoft Teams 中",
   "In OneUptime": "在 OneUptime 中",
   "In Slack": "在 Slack 中",
+  "Open in Mattermost": "在 Mattermost 中打开",
   "Runbook Track Record": "运行手册的过往结果",
   "Where fixes were approved": "修复的批准位置",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "您没有忽略此修复的权限。忽略修复所需的权限与批准修复相同：在此项目中启动运行手册执行。",

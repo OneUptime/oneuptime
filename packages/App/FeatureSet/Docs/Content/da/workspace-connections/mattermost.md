@@ -85,6 +85,8 @@ For at slå op i en eksisterende kanal angiver du dens navn, som det står i kan
 
 Folk kommer med i en regels kanal via den Mattermost-konto, de har forbundet, eller ellers via den Mattermost-konto, der har deres e-mailadresse, når din server viser e-mailadresser for botten (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nævner dem, den ikke kunne tilføje, i én besked i kanalen, med et link til at forbinde deres konto.
 
+En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kanal har **Åbn i Mattermost** i toppen af sin side i OneUptime, ved siden af tilstandsknapperne. Den åbner kanalen i en ny fane, på din Mattermost-server. En post med to egne kanaler viser dem begge under knappen. En post, der også har kanaler i Slack eller Microsoft Teams, har i stedet én knap, **Åbn kanal**, der viser dem alle. De eksisterende kanaler, dine regler slår op i, tilbydes ikke.
+
 **Testregel** i en regels række slår en testbesked for den regel op i de kanaler, den nævner, ligesom for Slack.
 
 OneUptimes beskeder underretter ingen gennem det, de citerer: et navn eller en beskrivelse, der indeholder `@channel`, `@here` eller `@someone`, vises, som det er skrevet, og pinger ingen.

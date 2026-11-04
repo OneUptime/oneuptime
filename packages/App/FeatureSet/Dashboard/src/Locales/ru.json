@@ -42470,6 +42470,7 @@
   "In Microsoft Teams": "В Microsoft Teams",
   "In OneUptime": "В OneUptime",
   "In Slack": "В Slack",
+  "Open in Mattermost": "Открыть в Mattermost",
   "Runbook Track Record": "Прошлые результаты сценария",
   "Where fixes were approved": "Где одобрены исправления",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "У вас нет прав отклонить это исправление. Чтобы отклонить исправление, нужно то же право, что и для его одобрения: запуск выполнений сценариев в этом проекте.",

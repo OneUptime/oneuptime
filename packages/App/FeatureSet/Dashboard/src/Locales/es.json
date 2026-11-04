@@ -42470,6 +42470,7 @@
   "In Microsoft Teams": "En Microsoft Teams",
   "In OneUptime": "En OneUptime",
   "In Slack": "En Slack",
+  "Open in Mattermost": "Abrir en Mattermost",
   "Runbook Track Record": "Historial de resultados del runbook",
   "Where fixes were approved": "Dónde se aprobaron las correcciones",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "No tienes permiso para descartar esta corrección. Descartar una corrección requiere el mismo permiso que aprobarla: iniciar ejecuciones de runbooks en este proyecto.",
