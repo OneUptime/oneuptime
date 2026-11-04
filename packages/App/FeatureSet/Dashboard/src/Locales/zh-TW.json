@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "連線 Mattermost",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "將你的 Mattermost 伺服器連線到此專案，然後在此選擇要將哪些通知發布到哪些頻道。",
-  "Mattermost is not connected yet!": "Mattermost 尚未連線！"
+  "Mattermost is not connected yet!": "Mattermost 尚未連線！",
+  "Add Mattermost Account": "新增 Mattermost 帳戶",
+  "Could not add Mattermost": "無法新增 Mattermost",
+  "Mattermost Account": "Mattermost 帳戶",
+  "Mattermost Account for Notifications": "用於通知的 Mattermost 帳戶",
+  "Mattermost Accounts": "Mattermost 帳戶",
+  "Mattermost User ID": "Mattermost 使用者 ID",
+  "Mattermost Username": "Mattermost 使用者名稱",
+  "Mattermost accounts used for Mattermost notifications.": "用於 Mattermost 通知的 Mattermost 帳戶。",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "尚未新增 Mattermost 帳戶。請在「使用者設定 > 工作區 > Mattermost」中連線您的帳戶，然後按一下「新增 Mattermost 帳戶」。",
+  "Open Mattermost Settings": "開啟 Mattermost 設定",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "透過此專案的 Mattermost 機器人，以 Mattermost 私人訊息接收待命呼叫。",
+  "Test message sent. Check your Mattermost direct messages.": "測試訊息已傳送。請查看您的 Mattermost 私人訊息。",
+  "User Mattermost": "使用者的 Mattermost",
+  "User Mattermost ID": "使用者的 Mattermost ID"
 }

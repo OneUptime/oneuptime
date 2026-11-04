@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost 연결",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Mattermost 서버를 이 프로젝트에 연결한 다음, 어떤 알림을 어떤 채널에 게시할지 여기에서 선택하세요.",
-  "Mattermost is not connected yet!": "Mattermost이 아직 연결되지 않았습니다!"
+  "Mattermost is not connected yet!": "Mattermost이 아직 연결되지 않았습니다!",
+  "Add Mattermost Account": "Mattermost 계정 추가",
+  "Could not add Mattermost": "Mattermost를 추가할 수 없습니다",
+  "Mattermost Account": "Mattermost 계정",
+  "Mattermost Account for Notifications": "알림용 Mattermost 계정",
+  "Mattermost Accounts": "Mattermost 계정",
+  "Mattermost User ID": "Mattermost 사용자 ID",
+  "Mattermost Username": "Mattermost 사용자 이름",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost 알림에 사용되는 Mattermost 계정입니다.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "추가된 Mattermost 계정이 없습니다. 사용자 설정 > 워크스페이스 > Mattermost에서 계정을 연결한 다음 'Mattermost 계정 추가' 버튼을 클릭하세요.",
+  "Open Mattermost Settings": "Mattermost 설정 열기",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "이 프로젝트의 Mattermost 봇이 보내는 Mattermost 다이렉트 메시지로 온콜 호출을 받습니다.",
+  "Test message sent. Check your Mattermost direct messages.": "테스트 메시지를 보냈습니다. Mattermost 다이렉트 메시지를 확인하세요.",
+  "User Mattermost": "사용자의 Mattermost",
+  "User Mattermost ID": "사용자의 Mattermost ID"
 }

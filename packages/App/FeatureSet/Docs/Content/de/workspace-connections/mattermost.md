@@ -59,7 +59,7 @@ Gehen Sie zu **Vorfälle** > **Arbeitsbereich** > **Mattermost** und legen Sie e
 
 Das Zugriffstoken des Bots wird nur auf dem OneUptime-Server aufbewahrt, verschlüsselt zusammen mit den übrigen Geheimnissen des Projekts, und nie wieder angezeigt. Die Serveradresse, das Team und der Benutzername des Bots werden allen im Projekt angezeigt, auf der Mattermost-Einstellungsseite.
 
-Ein Projekt ist mit einem einzigen Mattermost-Team verbunden. Um es in ein anderes Team oder auf einen anderen Server zu verlegen, trennen Sie es zuerst: **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost**, dann **⋯** > **Mattermost trennen**. Das Trennen trennt auch das eigene Mattermost-Konto jedes Mitglieds. Ihre Benachrichtigungsregeln und Zusammenfassungen bleiben für eine spätere neue Verbindung erhalten.
+Ein Projekt ist mit einem einzigen Mattermost-Team verbunden. Um es in ein anderes Team oder auf einen anderen Server zu verlegen, trennen Sie es zuerst: **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost**, dann **⋯** > **Mattermost trennen**. Das Trennen trennt auch das eigene Mattermost-Konto jedes Mitglieds und entfernt dessen Mattermost-Benachrichtigungsmethoden und die Bereitschaftsregeln, die sie verwenden. Ihre Benachrichtigungsregeln und Zusammenfassungen bleiben für eine spätere neue Verbindung erhalten.
 
 ## Ihr eigenes Mattermost-Konto verbinden
 
@@ -74,6 +74,18 @@ Mattermost hat keine Anmeldeseite, zu der OneUptime Sie schicken könnte, daher 
 Öffnen Sie den Link im selben Browser, in dem Sie ihn angefordert haben: Er funktioniert nur dort, nur einmal und nur 15 Minuten lang. Das beweist, dass die Person, die ihn angefordert hat, beide Konten besitzt, sodass niemand das Mattermost-Konto einer anderen Person verbinden kann. Haben Sie keinen Link angefordert, ignorieren Sie ihn: Es wird nichts verbunden, solange er nicht in dem Browser geöffnet wird, der ihn angefordert hat.
 
 Die Verbindung Ihres Kontos gehört zu diesem Projekt. In einem anderen Projekt, das mit demselben Mattermost-Team verbunden ist, verbinden Sie es dort ebenfalls.
+
+## In Mattermost alarmiert werden
+
+Um per Direktnachricht alarmiert zu werden, wenn Sie Bereitschaft haben, fügen Sie Mattermost als eine Ihrer Benachrichtigungsmethoden hinzu:
+
+:::steps
+1. Verbinden Sie Ihr eigenes Mattermost-Konto (siehe [Ihr eigenes Mattermost-Konto verbinden](#ihr-eigenes-mattermost-konto-verbinden)).
+2. Gehen Sie zu **Benutzereinstellungen** > **Benachrichtigungsmethoden**, öffnen Sie die Registerkarte **Workspace-Apps** und klicken Sie auf **Mattermost-Konto hinzufügen**.
+3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Die Nachricht kommt als Direktnachricht vom Bot des Projekts an.
+:::
+
+Durch das Hinzufügen landet es sofort in Ihren Bereitschaftsregeln, sodass Alarme Sie ab dann in Mattermost erreichen. Welche Alarme es bekommt, ändern Sie unter **Benutzereinstellungen** > **Bereitschaftsregeln**. Jeder Alarm enthält einen Link zum Bestätigen und einen zum Eskalieren. Wenn Sie Ihr Mattermost-Konto trennen, werden diese Methode und die Bereitschaftsregeln entfernt, die sie verwenden.
 
 ## Benachrichtigungsregeln
 

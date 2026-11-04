@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "Connecter Mattermost",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Connectez votre serveur Mattermost à ce projet, puis choisissez ici quelles notifications sont publiées dans quels canaux.",
-  "Mattermost is not connected yet!": "Mattermost n'est pas encore connecté !"
+  "Mattermost is not connected yet!": "Mattermost n'est pas encore connecté !",
+  "Add Mattermost Account": "Ajouter un compte Mattermost",
+  "Could not add Mattermost": "Impossible d'ajouter Mattermost",
+  "Mattermost Account": "Compte Mattermost",
+  "Mattermost Account for Notifications": "Compte Mattermost pour les notifications",
+  "Mattermost Accounts": "Comptes Mattermost",
+  "Mattermost User ID": "ID d'utilisateur Mattermost",
+  "Mattermost Username": "Nom d'utilisateur Mattermost",
+  "Mattermost accounts used for Mattermost notifications.": "Comptes Mattermost utilisés pour les notifications Mattermost.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Aucun compte Mattermost ajouté. Connectez le vôtre dans Paramètres utilisateur > Espace de travail > Mattermost, puis cliquez sur « Ajouter un compte Mattermost ».",
+  "Open Mattermost Settings": "Ouvrir les paramètres Mattermost",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Recevez les alertes d'astreinte sous forme de messages directs Mattermost envoyés par le bot Mattermost de ce projet.",
+  "Test message sent. Check your Mattermost direct messages.": "Message de test envoyé. Consultez vos messages directs Mattermost.",
+  "User Mattermost": "Mattermost de l'utilisateur",
+  "User Mattermost ID": "ID Mattermost de l'utilisateur"
 }

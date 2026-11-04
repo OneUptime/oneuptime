@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost を接続",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Mattermost サーバーをこのプロジェクトに接続してから、どの通知をどのチャネルに投稿するかをここで選択してください。",
-  "Mattermost is not connected yet!": "Mattermost はまだ接続されていません。"
+  "Mattermost is not connected yet!": "Mattermost はまだ接続されていません。",
+  "Add Mattermost Account": "Mattermost アカウントを追加",
+  "Could not add Mattermost": "Mattermost を追加できませんでした",
+  "Mattermost Account": "Mattermost アカウント",
+  "Mattermost Account for Notifications": "通知用の Mattermost アカウント",
+  "Mattermost Accounts": "Mattermost アカウント",
+  "Mattermost User ID": "Mattermost のユーザー ID",
+  "Mattermost Username": "Mattermost のユーザー名",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost の通知に使用する Mattermost アカウント。",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Mattermost アカウントが追加されていません。「ユーザー設定 > ワークスペース > Mattermost」で Mattermost アカウントを接続してから、「Mattermost アカウントを追加」をクリックしてください。",
+  "Open Mattermost Settings": "Mattermost の設定を開く",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "このプロジェクトの Mattermost ボットから、オンコールの呼び出しを Mattermost のダイレクトメッセージで受け取ります。",
+  "Test message sent. Check your Mattermost direct messages.": "テストメッセージを送信しました。Mattermost のダイレクトメッセージを確認してください。",
+  "User Mattermost": "ユーザーの Mattermost",
+  "User Mattermost ID": "ユーザーの Mattermost ID"
 }

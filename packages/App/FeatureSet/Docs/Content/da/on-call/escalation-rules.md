@@ -221,7 +221,7 @@ Hvert tilkald kan eskaleres fra der, hvor det nåede dig:
 | --- | --- |
 | E-mail | Knappen **Escalate**, derefter **Escalate** på siden, den åbner |
 | SMS og WhatsApp | Linket i beskeden åbner kvitteringssiden, hvor **Escalate** også står |
-| Telegram, Slack og Microsoft Teams | Linket "Can't take it? Escalate", derefter **Escalate** på siden, det åbner |
+| Telegram, Slack, Microsoft Teams og Mattermost | Linket "Can't take it? Escalate", derefter **Escalate** på siden, det åbner |
 | Opkald | Tryk 2. Opkaldet siger derefter, hvad der skete |
 | Pushnotifikation | Tryk på den: hændelsen, advarslen eller episoden åbner i OneUptime On-Call-appen med **Escalate** under sig |
 | OneUptime | **Eskalér** øverst i hændelsen, advarslen eller episoden, efter dens tilstandsknapper |

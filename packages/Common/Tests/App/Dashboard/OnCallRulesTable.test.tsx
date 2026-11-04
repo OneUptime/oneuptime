@@ -185,6 +185,7 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -203,7 +204,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
- * The nine models whose rows only their owner may read. They are listed
+ * The ten models whose rows only their owner may read. They are listed
  * together because the assertion that matters is about the SET: an admin
  * surface that reads any one of them is reading a row it is not entitled to,
  * and which one hardly matters.
@@ -217,13 +218,14 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserMattermost,
   UserWebhook,
 ];
 
 /*
  * What the admin surface hands over in place of those reads: a channel name, the
  * id of the row, and a mask. Telegram is unverified on purpose - the self-serve
- * path filters `isVerified: true` in eight of its nine queries, so a supplied
+ * path filters `isVerified: true` in nine of its ten queries, so a supplied
  * list that offered unverified methods would be the two paths disagreeing about
  * what is pickable.
  */
@@ -258,6 +260,7 @@ const METHOD_FOREIGN_KEYS: Array<keyof UserNotificationRule> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userMattermostId",
   "userWebhookId",
 ];
 
@@ -382,6 +385,7 @@ const METHOD_RELATIONS: Array<string> = [
   "userTelegram",
   "userSlack",
   "userMicrosoftTeams",
+  "userMattermost",
   "userWebhook",
 ];
 

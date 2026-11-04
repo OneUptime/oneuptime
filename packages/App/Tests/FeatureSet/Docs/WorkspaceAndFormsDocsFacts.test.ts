@@ -114,6 +114,7 @@ const SOURCES: Record<string, string> = {
   notificationMethodTabs: `${DASHBOARD}/Components/NotificationMethods/NotificationMethodTabs.tsx`,
   slackNotificationMethod: `${DASHBOARD}/Components/NotificationMethods/Slack.tsx`,
   teamsNotificationMethod: `${DASHBOARD}/Components/NotificationMethods/MicrosoftTeams.tsx`,
+  mattermostNotificationMethod: `${DASHBOARD}/Components/NotificationMethods/Mattermost.tsx`,
   notificationLogsTabs: `${DASHBOARD}/Components/NotificationLogs/NotificationLogsTabs.tsx`,
   workspaceLogsTable: `${DASHBOARD}/Components/NotificationLogs/WorkspaceLogsTable.tsx`,
   incidentsSlackPage: `${DASHBOARD}/Pages/Incidents/WorkspaceConnectionSlack.tsx`,
@@ -1070,6 +1071,25 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       );
       expect(steps).toContain("Click **Send Test Message** on its row.");
     }
+  });
+
+  it("adds Mattermost as a notification method on the Workspace Apps tab, and says it goes when the account does", () => {
+    const methodSource: string = readSource("mattermostNotificationMethod");
+    const page: string = englishPage(MATTERMOST);
+    const steps: string = section(page, 2, "Getting paged in Mattermost");
+
+    expect(sourceSays(methodSource, "Add Mattermost Account")).toBe(true);
+    expect(sourceSays(methodSource, "Send Test Message")).toBe(true);
+    expect(steps).toContain(
+      "Go to **User Settings** > **Notification Methods**, open the **Workspace Apps** tab and click **Add Mattermost Account**.",
+    );
+    expect(steps).toContain("Click **Send Test Message** on its row.");
+    expect(steps).toContain(
+      "Disconnecting your Mattermost account removes this method and the on-call rules that use it.",
+    );
+    expect(page).toContain(
+      "Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the on-call rules that use them.",
+    );
   });
 
   it("saves the reactions each page's table names as the notes it names", () => {

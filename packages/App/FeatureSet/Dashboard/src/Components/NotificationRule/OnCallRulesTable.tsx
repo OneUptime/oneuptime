@@ -21,6 +21,7 @@ import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserSlack from "Common/Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "Common/Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "Common/Models/DatabaseModels/UserMattermost";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import { loadCustomNotificationChannels } from "../../Utils/CustomNotificationChannels";
@@ -127,11 +128,12 @@ type MethodForeignKeyColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userMattermostId"
   | "userWebhookId"
   | "customNotificationChannelId";
 
 interface MethodChannel {
-  /* One of the nine channel names OnCallReadinessService puts on the wire. */
+  /* One of the channel names OnCallReadinessService puts on the wire. */
   methodType: string;
   foreignKeyColumn: MethodForeignKeyColumn;
 }
@@ -145,6 +147,7 @@ const METHOD_CHANNELS: Array<MethodChannel> = [
   { methodType: "Telegram", foreignKeyColumn: "userTelegramId" },
   { methodType: "Slack", foreignKeyColumn: "userSlackId" },
   { methodType: "Microsoft Teams", foreignKeyColumn: "userMicrosoftTeamsId" },
+  { methodType: "Mattermost", foreignKeyColumn: "userMattermostId" },
   { methodType: "Webhook", foreignKeyColumn: "userWebhookId" },
   // A channel readiness lists for the person: everybody's, never owned.
   {
@@ -586,6 +589,9 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   const [userMicrosoftTeamsAccounts, setUserMicrosoftTeamsAccounts] = useState<
     Array<UserMicrosoftTeams>
   >([]);
+  const [userMattermostAccounts, setUserMattermostAccounts] = useState<
+    Array<UserMattermost>
+  >([]);
   const [userWebhooks, setUserWebhooks] = useState<Array<UserWebhook>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
@@ -643,6 +649,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           userTelegrams: userTelegrams,
           userSlacks: userSlacks,
           userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
+          userMattermostAccounts: userMattermostAccounts,
           userWebhooks: userWebhooks,
           customNotificationChannels: customNotificationChannels,
         })
@@ -683,6 +690,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         userTelegrams: userTelegrams,
         userSlacks: userSlacks,
         userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
+        userMattermostAccounts: userMattermostAccounts,
         userWebhooks: userWebhooks,
         customNotificationChannels: customNotificationChannels,
       });
@@ -1544,7 +1552,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    * other user the caller supplies the list instead; see `notificationMethods`
    * on ComponentProps for why the two paths cannot be the same one.
    *
-   * All nine are asked for at once rather than one after another: they do not
+   * All ten are asked for at once rather than one after another: they do not
    * depend on each other, and on the On-Call Rules page each tab mounts its
    * own table, so this runs every time a tab is opened.
    */
@@ -1559,6 +1567,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         userTelegramList,
         userSlackList,
         userMicrosoftTeamsList,
+        userMattermostList,
         userWebhookList,
       ]: [
         ListResult<UserEmail>,
@@ -1569,6 +1578,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         ListResult<UserTelegram>,
         ListResult<UserSlack>,
         ListResult<UserMicrosoftTeams>,
+        ListResult<UserMattermost>,
         ListResult<UserWebhook>,
       ] = await Promise.all([
         ModelAPI.getList<UserEmail>({
@@ -1693,9 +1703,24 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           },
           sort: {},
         }),
+        ModelAPI.getList<UserMattermost>({
+          modelType: UserMattermost,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            mattermostUserName: true,
+            mattermostUserId: true,
+          },
+          sort: {},
+        }),
         /*
          * Webhooks are the one method with no verification step - there is no
-         * device to confirm - so unlike the eight above this query has no
+         * device to confirm - so unlike the nine above this query has no
          * `isVerified` filter. That asymmetry predates this component; it is
          * carried over deliberately rather than "fixed", because adding the
          * filter here would silently drop every existing webhook rule from the
@@ -1724,6 +1749,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       setUserTelegrams(userTelegramList.data);
       setUserSlacks(userSlackList.data);
       setUserMicrosoftTeamsAccounts(userMicrosoftTeamsList.data);
+      setUserMattermostAccounts(userMattermostList.data);
       setUserWebhooks(userWebhookList.data);
 
       /*

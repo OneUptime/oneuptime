@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost verbinden",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Verbinden Sie Ihren Mattermost-Server mit diesem Projekt und legen Sie dann hier fest, welche Benachrichtigungen in welchen Kanälen gepostet werden.",
-  "Mattermost is not connected yet!": "Mattermost ist noch nicht verbunden!"
+  "Mattermost is not connected yet!": "Mattermost ist noch nicht verbunden!",
+  "Add Mattermost Account": "Mattermost-Konto hinzufügen",
+  "Could not add Mattermost": "Mattermost konnte nicht hinzugefügt werden",
+  "Mattermost Account": "Mattermost-Konto",
+  "Mattermost Account for Notifications": "Mattermost-Konto für Benachrichtigungen",
+  "Mattermost Accounts": "Mattermost-Konten",
+  "Mattermost User ID": "Mattermost-Benutzer-ID",
+  "Mattermost Username": "Mattermost-Benutzername",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost-Konten, die für Mattermost-Benachrichtigungen verwendet werden.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Kein Mattermost-Konto hinzugefügt. Verbinden Sie Ihres unter Benutzereinstellungen > Arbeitsbereich > Mattermost und klicken Sie dann auf „Mattermost-Konto hinzufügen“.",
+  "Open Mattermost Settings": "Mattermost-Einstellungen öffnen",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Erhalten Sie Bereitschaftsalarme als Mattermost-Direktnachrichten vom Mattermost-Bot dieses Projekts.",
+  "Test message sent. Check your Mattermost direct messages.": "Testnachricht gesendet. Prüfen Sie Ihre Mattermost-Direktnachrichten.",
+  "User Mattermost": "Mattermost des Benutzers",
+  "User Mattermost ID": "Mattermost-ID des Benutzers"
 }

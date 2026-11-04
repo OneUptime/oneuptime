@@ -1,6 +1,7 @@
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -157,6 +158,12 @@ const NOT_PUSH_CHANNELS: Array<ChannelFixture> = [
     relationColumn: "userMicrosoftTeams",
     label: "Microsoft Teams",
     service: UserMicrosoftTeamsService as unknown as MethodServiceLike,
+  },
+  {
+    idColumn: "userMattermostId",
+    relationColumn: "userMattermost",
+    label: "Mattermost",
+    service: UserMattermostService as unknown as MethodServiceLike,
   },
   {
     idColumn: "userWebhookId",

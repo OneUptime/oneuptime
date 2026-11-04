@@ -59,7 +59,7 @@ Go to **Incidents** > **Workspace** > **Mattermost**, and create a rule. For exa
 
 The bot's access token is kept on the OneUptime server only, encrypted with the project's other secrets, and is never shown again. The server address, the team and the bot's username are shown to everyone in the project, on the Mattermost settings page.
 
-A project is connected to one Mattermost team. To move it to another team, or another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too. Your notification rules and summaries are kept for when you connect again.
+A project is connected to one Mattermost team. To move it to another team, or another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the on-call rules that use them. Your notification rules and summaries are kept for when you connect again.
 
 ## Connect your own Mattermost account
 
@@ -74,6 +74,18 @@ Mattermost has no sign-in OneUptime can send you to, so OneUptime's bot sends yo
 Open the link in the same browser where you asked for it: it works only there, only once, and only for 15 minutes. That proves the person who asked holds both accounts, so nobody can connect somebody else's Mattermost account. If you did not ask for a link, ignore it: nothing is connected until it is opened in the browser that asked.
 
 Your account's connection belongs to this project. In another project connected to the same Mattermost team, connect it there too.
+
+## Getting paged in Mattermost
+
+To be paged by direct message when you are on call, add Mattermost as one of your notification methods:
+
+:::steps
+1. Connect your own Mattermost account (see [Connect your own Mattermost account](#connect-your-own-mattermost-account)).
+2. Go to **User Settings** > **Notification Methods**, open the **Workspace Apps** tab and click **Add Mattermost Account**.
+3. Click **Send Test Message** on its row. The message arrives as a direct message from the project's bot.
+:::
+
+Adding it adds it to your on-call rules straight away, so pages reach you in Mattermost from then on. Change which pages it gets under **User Settings** > **On-Call Rules**. Each page carries a link to acknowledge it and one to escalate it. Disconnecting your Mattermost account removes this method and the on-call rules that use it.
 
 ## Notification rules
 

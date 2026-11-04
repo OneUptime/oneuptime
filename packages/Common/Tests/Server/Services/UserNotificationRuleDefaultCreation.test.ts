@@ -95,7 +95,7 @@ const CREATED_EMAIL_ID: ObjectID = new ObjectID(
 
 const USER_EMAIL: Email = new Email("responder@company.com");
 
-/* The nine FK columns a NotificationMethodDescriptor can drive. */
+/* The ten FK columns a NotificationMethodDescriptor can drive. */
 type ChannelColumn =
   | "userEmailId"
   | "userSmsId"
@@ -104,6 +104,7 @@ type ChannelColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userMattermostId"
   | "userWebhookId"
   | "userPushId";
 
@@ -115,6 +116,7 @@ const ALL_CHANNELS: Array<ChannelColumn> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userMattermostId",
   "userWebhookId",
   "userPushId",
 ];

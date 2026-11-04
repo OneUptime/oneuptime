@@ -27,7 +27,7 @@ flowchart TB
 
 | Side | Hva den inneholder | Spørsmålet den svarer på |
 | --- | --- | --- |
-| **Varselmetoder** | E-postadressene, telefonnumrene og WhatsApp-numrene dine, Telegram-, Slack- og Microsoft Teams-kontoene dine, push-enheter og webhooks | Hvor kan OneUptime nå meg? |
+| **Varselmetoder** | E-postadressene, telefonnumrene og WhatsApp-numrene dine, Telegram-, Slack-, Microsoft Teams- og Mattermost-kontoene dine, push-enheter og webhooks | Hvor kan OneUptime nå meg? |
 | **Vaktregler** | For hver type tilkalling og hver alvorlighetsgrad: hvilken metode som prøves, og etter hvor lang tid | Hvordan blir jeg tilkalt mens jeg har vakt? |
 | **Varselinnstillinger** | For hver hendelse om noe du eier, eller om vaktene dine: hvilke kanaler som brukes | Hva annet får jeg vite om, og hvor? |
 
@@ -90,7 +90,7 @@ Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvo
 
 En tilkalling kan nå deg for en type og en alvorlighetsgrad du ikke har noen regel for, for eksempel en alvorlighetsgrad som ble lagt til etter at du ble medlem. OneUptime tilkaller deg likevel, via det du har verifisert:
 
-1. Hver gratis metode du har: push-enheter, e-postadresser, Slack og Microsoft Teams.
+1. Hver gratis metode du har: push-enheter, e-postadresser, Slack, Microsoft Teams og Mattermost.
 2. Har du ingen av dem, én betalt metode, i denne rekkefølgen: SMS, et telefonanrop, WhatsApp, Telegram. Det er den første du har verifisert, på en kanal prosjektet har slått på.
 3. Har du heller ingen av dem, en webhook.
 

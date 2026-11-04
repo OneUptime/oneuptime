@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "Подключить Mattermost",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Подключите свой сервер Mattermost к этому проекту, а затем выберите здесь, какие уведомления публикуются в какие каналы.",
-  "Mattermost is not connected yet!": "Mattermost ещё не подключен!"
+  "Mattermost is not connected yet!": "Mattermost ещё не подключен!",
+  "Add Mattermost Account": "Добавить аккаунт Mattermost",
+  "Could not add Mattermost": "Не удалось добавить Mattermost",
+  "Mattermost Account": "Аккаунт Mattermost",
+  "Mattermost Account for Notifications": "Аккаунт Mattermost для уведомлений",
+  "Mattermost Accounts": "Аккаунты Mattermost",
+  "Mattermost User ID": "ID пользователя Mattermost",
+  "Mattermost Username": "Имя пользователя Mattermost",
+  "Mattermost accounts used for Mattermost notifications.": "Аккаунты Mattermost, используемые для уведомлений в Mattermost.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Аккаунт Mattermost не добавлен. Подключите свой аккаунт в разделе Настройки пользователя > Рабочее пространство > Mattermost, затем нажмите «Добавить аккаунт Mattermost».",
+  "Open Mattermost Settings": "Открыть настройки Mattermost",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Получайте вызовы дежурства личными сообщениями в Mattermost от бота Mattermost этого проекта.",
+  "Test message sent. Check your Mattermost direct messages.": "Тестовое сообщение отправлено. Проверьте личные сообщения в Mattermost.",
+  "User Mattermost": "Mattermost пользователя",
+  "User Mattermost ID": "ID Mattermost пользователя"
 }

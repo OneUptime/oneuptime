@@ -12,6 +12,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import UserWebhookService from "./UserWebhookService";
 import CustomNotificationChannelService from "./CustomNotificationChannelService";
 import UserWhatsAppService from "./UserWhatsAppService";
@@ -283,6 +284,22 @@ export class UserNotificationRuleAdminService extends BaseService {
         },
       },
       {
+        idColumn: "userMattermostId",
+        relationColumn: "userMattermost",
+        label: "Mattermost",
+        findOwnerUserId: async (
+          methodId: ObjectID,
+        ): Promise<ObjectID | undefined> => {
+          return (
+            await UserMattermostService.findOneById({
+              id: methodId,
+              select: { _id: true, userId: true },
+              props: { isRoot: true },
+            })
+          )?.userId;
+        },
+      },
+      {
         idColumn: "userPushId",
         relationColumn: "userPush",
         label: "Push",
@@ -345,9 +362,9 @@ export class UserNotificationRuleAdminService extends BaseService {
   }
 
   /*
-   * The ten FK columns, in one place, so a future eleventh channel is a single
-   * entry rather than an eleventh thing to remember. A guard that covers nine of
-   * ten covers none: the attacker picks the tenth.
+   * The eleven FK columns, in one place, so a future twelfth channel is a single
+   * entry rather than a twelfth thing to remember. A guard that covers ten of
+   * eleven covers none: the attacker picks the eleventh.
    */
   public getNotificationMethodIdColumns(): Array<string> {
     return this.getNotificationMethodDescriptors().map(

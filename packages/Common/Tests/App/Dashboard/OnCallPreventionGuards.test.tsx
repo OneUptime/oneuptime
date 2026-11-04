@@ -125,6 +125,7 @@ import WhatsAppMethods from "../../../../App/FeatureSet/Dashboard/src/Components
 import TelegramMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Telegram";
 import SlackMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Slack";
 import MicrosoftTeamsMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/MicrosoftTeams";
+import MattermostMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Mattermost";
 import WebhookMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Webhook";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -132,6 +133,7 @@ import BaseModel, {
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
@@ -1593,6 +1595,7 @@ const METHOD_ID_WHATSAPP: string = "55555555-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const METHOD_ID_TELEGRAM: string = "66666666-cccc-4ccc-8ccc-cccccccccccc";
 const METHOD_ID_SLACK: string = "88888888-eeee-4eee-8eee-eeeeeeeeeeee";
 const METHOD_ID_TEAMS: string = "99999999-ffff-4fff-8fff-ffffffffffff";
+const METHOD_ID_MATTERMOST: string = "aaaaaaa9-ffff-4fff-8fff-ffffffffffff";
 const METHOD_ID_WEBHOOK: string = "77777777-dddd-4ddd-8ddd-dddddddddddd";
 
 const METHOD_SURFACES: Array<MethodSurface> = [
@@ -1728,6 +1731,23 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Microsoft Teams Account",
     methodLabel: "Microsoft Teams: Alex Example",
+    rowButtons: ["Send Test Message", "More actions"],
+    menuItems: ["Delete"],
+  },
+  {
+    name: "Mattermost",
+    Component: MattermostMethods,
+    modelType: UserMattermost,
+    relationName: "userMattermost",
+    methodId: METHOD_ID_MATTERMOST,
+    buildRow: (): BaseModel => {
+      return buildMethodRow(UserMattermost, METHOD_ID_MATTERMOST, {
+        mattermostUserName: "alexchen",
+        isVerified: true,
+      });
+    },
+    modalTitle: "Delete Mattermost Account",
+    methodLabel: "Mattermost: alexchen",
     rowButtons: ["Send Test Message", "More actions"],
     menuItems: ["Delete"],
   },

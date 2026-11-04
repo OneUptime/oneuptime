@@ -1,6 +1,6 @@
 # Notification Methods
 
-A notification method is an address OneUptime may reach you at in one project: an email address, a phone number for SMS or calls, a WhatsApp number, a Telegram account, your Slack or Microsoft Teams account, a phone or browser for push notifications, or a webhook. You add them under **User Settings → Notification Methods**, verify them, and OneUptime starts using them for your pages straight away.
+A notification method is an address OneUptime may reach you at in one project: an email address, a phone number for SMS or calls, a WhatsApp number, a Telegram account, your Slack, Microsoft Teams or Mattermost account, a phone or browser for push notifications, or a webhook. You add them under **User Settings → Notification Methods**, verify them, and OneUptime starts using them for your pages straight away.
 
 :::cards
 - [Pick a method](#pick-a-method): What each method needs, and how it is verified.
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["Pages and updates<br/>can reach it"]
 ```
 
-A method you have not verified is never used. Push devices, Slack, Microsoft Teams and webhooks skip the code: registering a device or linking your account proves it is yours, and a webhook needs no proof. Verifying a method adds your [default rules](/docs/notifications/on-call-rules#the-rules-you-start-with) for it at once, so a new phone number pages you for every severity until you change its rules.
+A method you have not verified is never used. Push devices, Slack, Microsoft Teams, Mattermost and webhooks skip the code: registering a device or linking your account proves it is yours, and a webhook needs no proof. Verifying a method adds your [default rules](/docs/notifications/on-call-rules#the-rules-you-start-with) for it at once, so a new phone number pages you for every severity until you change its rules.
 
 ## Pick a method
 
@@ -35,10 +35,11 @@ Each tab of **Notification Methods** holds one or more cards, one per kind of me
 | **Telegram Accounts for Notifications** | **Direct Contact** | Your Telegram account | A message to the OneUptime bot |
 | **Slack Account for Notifications** | **Workspace Apps** | Your Slack account | Linking your account to the project's workspace |
 | **Microsoft Teams Account for Notifications** | **Workspace Apps** | Your Microsoft Teams account | Linking your account to the project's workspace |
+| **Mattermost Account for Notifications** | **Workspace Apps** | Your Mattermost account | Linking your account to the project's workspace |
 | **Push Notification Devices** | **Push Notifications** | A phone with the OneUptime On-Call app, or a browser | Registering the device |
 | **Webhooks for Notifications** | **Webhooks** | An HTTPS endpoint of your own | None |
 
-**Workspace Apps** shows only when the project has connected Slack or Microsoft Teams, and holds only the ones it connected. SMS, calls, WhatsApp and Telegram can be turned off for the whole project; see [Turn a channel on for your project](#turn-a-channel-on-for-your-project).
+**Workspace Apps** shows only when the project has connected Slack, Microsoft Teams or Mattermost, and holds only the ones it connected. SMS, calls, WhatsApp and Telegram can be turned off for the whole project; see [Turn a channel on for your project](#turn-a-channel-on-for-your-project).
 
 ## Add and verify a method
 
@@ -85,11 +86,13 @@ Back in OneUptime, click **I've sent the message — check**. Once the bot has y
 
 **Rotate Code** makes a new code for an account that is not verified yet. The QR code and the link you opened before stop working. On a self-hosted OneUptime, the server's admin connects a Telegram bot before anyone can link an account.
 
-## Slack and Microsoft Teams
+## Slack, Microsoft Teams and Mattermost
 
-1. Link your own account to the project's workspace: **User Settings → Workspace → Slack**, or **Microsoft Teams**. See [Slack](/docs/workspace-connections/slack) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. On the **Workspace Apps** tab, click **Add Slack Account** or **Add Microsoft Teams Account**. The account is verified as it is added.
-3. Click **Send Test Message** on its row. Pages arrive as direct messages from the OneUptime app.
+1. Link your own account to the project's workspace: **User Settings → Workspace → Slack**, **Microsoft Teams** or **Mattermost**. See [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) and [Mattermost](/docs/workspace-connections/mattermost).
+2. On the **Workspace Apps** tab, click **Add Slack Account**, **Add Microsoft Teams Account** or **Add Mattermost Account**. The account is verified as it is added.
+3. Click **Send Test Message** on its row. Pages arrive as direct messages from the OneUptime app, or in Mattermost from the project's bot.
+
+A Mattermost account gets your pages only, not the updates you choose in **Notification Settings**.
 
 ## Push notifications
 
@@ -167,7 +170,7 @@ A webhook needs no verification, so adding one adds its rules at once. Private a
 
 ## Turn a channel on for your project
 
-**SMS**, **Phone Calls**, **WhatsApp** and **Telegram** start off in every new project, because each message costs money: on OneUptime Cloud it is paid from the project's balance, and SMS and calls go through the project's own Twilio account instead when its default Twilio config sends them. Email, push, Slack, Microsoft Teams and webhooks are always on.
+**SMS**, **Phone Calls**, **WhatsApp** and **Telegram** start off in every new project, because each message costs money: on OneUptime Cloud it is paid from the project's balance, and SMS and calls go through the project's own Twilio account instead when its default Twilio config sends them. Email, push, Slack, Microsoft Teams, Mattermost and webhooks are always on.
 
 While a channel is off, nobody in the project can add a method on it: its card has no add button, and says who can turn it on. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Settings**. A project admin cannot. On a self-hosted OneUptime, SMS and calls also need a Twilio account or a gateway you run, and Telegram a bot the server's admin connects; see [Twilio Integration](/docs/self-hosted/twilio-integration) and [SMS and Call Gateway](/docs/self-hosted/sms-and-call-gateway).
 

@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost कनेक्ट करें",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "अपने Mattermost सर्वर को इस प्रोजेक्ट से कनेक्ट करें, फिर यहां चुनें कि कौन-सी सूचनाएं किन चैनलों में पोस्ट हों।",
-  "Mattermost is not connected yet!": "Mattermost अभी तक कनेक्ट नहीं है!"
+  "Mattermost is not connected yet!": "Mattermost अभी तक कनेक्ट नहीं है!",
+  "Add Mattermost Account": "Mattermost खाता जोड़ें",
+  "Could not add Mattermost": "Mattermost नहीं जोड़ा जा सका",
+  "Mattermost Account": "Mattermost खाता",
+  "Mattermost Account for Notifications": "सूचनाओं के लिए Mattermost खाता",
+  "Mattermost Accounts": "Mattermost खाते",
+  "Mattermost User ID": "Mattermost उपयोगकर्ता ID",
+  "Mattermost Username": "Mattermost उपयोगकर्ता नाम",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost सूचनाओं के लिए उपयोग किए जाने वाले Mattermost खाते।",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "कोई Mattermost खाता नहीं जोड़ा गया। उपयोगकर्ता सेटिंग्स > वर्कस्पेस > Mattermost में अपना खाता कनेक्ट करें, फिर 'Mattermost खाता जोड़ें' पर क्लिक करें।",
+  "Open Mattermost Settings": "Mattermost सेटिंग्स खोलें",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "इस प्रोजेक्ट के Mattermost बॉट से ऑन-कॉल पेज Mattermost डायरेक्ट मैसेज के रूप में पाएं।",
+  "Test message sent. Check your Mattermost direct messages.": "टेस्ट संदेश भेजा गया। अपने Mattermost डायरेक्ट मैसेज देखें।",
+  "User Mattermost": "उपयोगकर्ता का Mattermost",
+  "User Mattermost ID": "उपयोगकर्ता की Mattermost ID"
 }

@@ -30,7 +30,7 @@ export class Service extends DatabaseService<Model> {
    * deletes this row through the generic CRUD path, and nothing else about
    * the workspace survives that in a usable state: the user auth tokens were
    * minted against this workspace's OAuth app, and the UserSlack /
-   * UserMicrosoftTeams notification methods are pointers at those links that
+   * UserMicrosoftTeams / UserMattermost notification methods are pointers at those links that
    * WorkspaceUserNotificationService will deterministically refuse to send
    * through once this row is gone ("This project is not connected to ...").
    *

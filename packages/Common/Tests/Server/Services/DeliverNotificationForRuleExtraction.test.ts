@@ -781,6 +781,12 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
           isVerified: true,
           userId: true,
         },
+        userMattermost: {
+          mattermostUserId: true,
+          mattermostUserName: true,
+          isVerified: true,
+          userId: true,
+        },
         userWebhook: {
           webhookUrl: true,
           name: true,
@@ -825,6 +831,7 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
       ["userTelegram"],
       ["userSlack"],
       ["userMicrosoftTeams"],
+      ["userMattermost"],
       ["userEmail"],
       ["userPush"],
     ])(
@@ -845,6 +852,7 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
       ["userTelegram", "telegramChatId"],
       ["userSlack", "slackUserId"],
       ["userMicrosoftTeams", "microsoftTeamsUserId"],
+      ["userMattermost", "mattermostUserId"],
       ["userEmail", "email"],
       ["userPush", "deviceToken"],
     ])(

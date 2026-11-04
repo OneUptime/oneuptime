@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "连接 Mattermost",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "将你的 Mattermost 服务器连接到此项目，然后在此选择将哪些通知发布到哪些频道。",
-  "Mattermost is not connected yet!": "Mattermost 尚未连接！"
+  "Mattermost is not connected yet!": "Mattermost 尚未连接！",
+  "Add Mattermost Account": "添加 Mattermost 账户",
+  "Could not add Mattermost": "无法添加 Mattermost",
+  "Mattermost Account": "Mattermost 账户",
+  "Mattermost Account for Notifications": "用于通知的 Mattermost 账户",
+  "Mattermost Accounts": "Mattermost 账户",
+  "Mattermost User ID": "Mattermost 用户 ID",
+  "Mattermost Username": "Mattermost 用户名",
+  "Mattermost accounts used for Mattermost notifications.": "用于 Mattermost 通知的 Mattermost 账户。",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "尚未添加 Mattermost 账户。请在“用户设置 > 工作区 > Mattermost”中连接您的账户，然后点击“添加 Mattermost 账户”。",
+  "Open Mattermost Settings": "打开 Mattermost 设置",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "通过此项目的 Mattermost 机器人，以 Mattermost 私信接收值班呼叫。",
+  "Test message sent. Check your Mattermost direct messages.": "测试消息已发送。请查看您的 Mattermost 私信。",
+  "User Mattermost": "用户的 Mattermost",
+  "User Mattermost ID": "用户的 Mattermost ID"
 }

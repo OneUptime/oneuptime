@@ -632,6 +632,12 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           isVerified: true,
           userId: true,
         },
+        userMattermost: {
+          mattermostUserId: true,
+          mattermostUserName: true,
+          isVerified: true,
+          userId: true,
+        },
         userWebhook: {
           webhookUrl: true,
           name: true,
@@ -675,6 +681,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       ["userTelegram"],
       ["userSlack"],
       ["userMicrosoftTeams"],
+      ["userMattermost"],
       ["userEmail"],
       ["userPush"],
     ])(
@@ -695,6 +702,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       ["userTelegram", "telegramChatId"],
       ["userSlack", "slackUserId"],
       ["userMicrosoftTeams", "microsoftTeamsUserId"],
+      ["userMattermost", "mattermostUserId"],
       ["userEmail", "email"],
       ["userPush", "deviceToken"],
     ])(
@@ -833,6 +841,11 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           userMicrosoftTeams: {
             id: METHOD_ID,
             microsoftTeamsUserId: "teams-user-1",
+            isVerified: false,
+          },
+          userMattermost: {
+            id: METHOD_ID,
+            mattermostUserId: "abcdefghijklmnopqrstuvwxyz",
             isVerified: false,
           },
           userCall: {

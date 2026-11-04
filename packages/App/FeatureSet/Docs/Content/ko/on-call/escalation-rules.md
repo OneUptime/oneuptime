@@ -221,7 +221,7 @@ flowchart TB
 | --- | --- |
 | 이메일 | **Escalate** 버튼을 누른 다음, 열린 페이지에서 **Escalate** 을 누릅니다 |
 | SMS 및 WhatsApp | 메시지의 링크가 확인 페이지를 열며, 그 페이지에도 **Escalate** 이 있습니다 |
-| Telegram, Slack, Microsoft Teams | "Can't take it? Escalate" 링크를 연 다음, 열린 페이지에서 **Escalate** 을 누릅니다 |
+| Telegram, Slack, Microsoft Teams, Mattermost | "Can't take it? Escalate" 링크를 연 다음, 열린 페이지에서 **Escalate** 을 누릅니다 |
 | 전화 | 2번을 누릅니다. 그러면 전화가 무슨 일이 일어났는지 알려 줍니다 |
 | 푸시 알림 | 탭하면 인시던트, 알림 또는 에피소드가 OneUptime On-Call 앱에서 열리고, 그 아래에 **Escalate** 이 있습니다 |
 | OneUptime | 인시던트, 알림 또는 에피소드 상단의 상태 버튼 다음에 있는 **에스컬레이션** |

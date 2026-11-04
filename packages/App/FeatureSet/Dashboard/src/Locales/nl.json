@@ -42296,5 +42296,19 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost koppelen",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Koppel je Mattermost-server aan dit project en kies daarna hier welke meldingen in welke kanalen worden geplaatst.",
-  "Mattermost is not connected yet!": "Mattermost is nog niet verbonden!"
+  "Mattermost is not connected yet!": "Mattermost is nog niet verbonden!",
+  "Add Mattermost Account": "Mattermost-account toevoegen",
+  "Could not add Mattermost": "Mattermost kon niet worden toegevoegd",
+  "Mattermost Account": "Mattermost-account",
+  "Mattermost Account for Notifications": "Mattermost-account voor meldingen",
+  "Mattermost Accounts": "Mattermost-accounts",
+  "Mattermost User ID": "Mattermost-gebruikers-ID",
+  "Mattermost Username": "Mattermost-gebruikersnaam",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost-accounts die worden gebruikt voor Mattermost-meldingen.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Geen Mattermost-account toegevoegd. Koppel uw account via Gebruikersinstellingen > Werkruimte > Mattermost en klik daarna op 'Mattermost-account toevoegen'.",
+  "Open Mattermost Settings": "Mattermost-instellingen openen",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Ontvang dienstoproepen als directe Mattermost-berichten van de Mattermost-bot van dit project.",
+  "Test message sent. Check your Mattermost direct messages.": "Testbericht verzonden. Controleer uw directe berichten in Mattermost.",
+  "User Mattermost": "Mattermost van de gebruiker",
+  "User Mattermost ID": "Mattermost-ID van de gebruiker"
 }
