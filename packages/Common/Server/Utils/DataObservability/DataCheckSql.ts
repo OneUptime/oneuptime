@@ -72,7 +72,7 @@ export function quoteIdentifier(engine: DatabaseEngine, name: string): string {
   }
 }
 
-function tableReference(
+export function tableReference(
   engine: DatabaseEngine,
   schemaName: string,
   tableName: string,

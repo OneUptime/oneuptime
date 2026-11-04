@@ -41838,5 +41838,15 @@
   "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.": "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.",
   "Why the two must agree, and what to do when they do not.": "Why the two must agree, and what to do when they do not.",
   "amount": "amount",
-  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} rispetto a {{target}}, entro {{tolerance}}"
+  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} rispetto a {{target}}, entro {{tolerance}}",
+  "Add Check": "Aggiungi controllo",
+  "Alerts when its value is {{condition}} {{threshold}}.": "Avvisa quando il suo valore è {{condition}} {{threshold}}.",
+  "Checked whether a table is fresh": "Verificato se una tabella è aggiornata",
+  "Checking whether a table is fresh": "Verifica se una tabella è aggiornata",
+  "Data table": "Tabella di dati",
+  "Orders never have a negative total": "Gli ordini non hanno mai un totale negativo",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "La regola, in una frase",
+  "Write a Check from a Sentence": "Scrivi un controllo da una frase",
+  "Write the Check": "Scrivi il controllo"
 }

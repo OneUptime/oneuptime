@@ -41838,5 +41838,15 @@
   "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.": "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.",
   "Why the two must agree, and what to do when they do not.": "Why the two must agree, and what to do when they do not.",
   "amount": "amount",
-  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} against {{target}}, within {{tolerance}}"
+  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} against {{target}}, within {{tolerance}}",
+  "Add Check": "Add Check",
+  "Alerts when its value is {{condition}} {{threshold}}.": "Alerts when its value is {{condition}} {{threshold}}.",
+  "Checked whether a table is fresh": "Checked whether a table is fresh",
+  "Checking whether a table is fresh": "Checking whether a table is fresh",
+  "Data table": "Data table",
+  "Orders never have a negative total": "Orders never have a negative total",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "The rule, in a sentence",
+  "Write a Check from a Sentence": "Write a Check from a Sentence",
+  "Write the Check": "Write the Check"
 }

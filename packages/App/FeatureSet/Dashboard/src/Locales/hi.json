@@ -41838,5 +41838,15 @@
   "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.": "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.",
   "Why the two must agree, and what to do when they do not.": "Why the two must agree, and what to do when they do not.",
   "amount": "amount",
-  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} बनाम {{target}}, {{tolerance}} के भीतर"
+  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} बनाम {{target}}, {{tolerance}} के भीतर",
+  "Add Check": "चेक जोड़ें",
+  "Alerts when its value is {{condition}} {{threshold}}.": "अलर्ट करता है जब इसका मान {{condition}} {{threshold}} हो।",
+  "Checked whether a table is fresh": "जाँचा कि टेबल ताज़ा है या नहीं",
+  "Checking whether a table is fresh": "जाँच रहा है कि टेबल ताज़ा है या नहीं",
+  "Data table": "डेटा टेबल",
+  "Orders never have a negative total": "ऑर्डर का कुल कभी ऋणात्मक नहीं होता",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "नियम, एक वाक्य में",
+  "Write a Check from a Sentence": "एक वाक्य से चेक लिखें",
+  "Write the Check": "चेक लिखें"
 }

@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
   DataObservabilityCheckAlertResponse,
+  DataObservabilityCheckSuggestion,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
   DataObservabilityDataProductBadgeResetResponse,
@@ -144,6 +145,17 @@ export default class DataObservabilityApi {
         reconciliationId.toString(),
       ),
     );
+  }
+
+  // OneUptime AI writes a Custom SQL check from a rule in a sentence, for the person to review.
+  public static async suggestCheck(
+    dataAssetId: ObjectID,
+    sentence: string,
+  ): Promise<DataObservabilityCheckSuggestion> {
+    return (await post(DATA_OBSERVABILITY_API_ROUTES.checkSuggest, {
+      dataAssetId: dataAssetId.toString(),
+      sentence,
+    })) as unknown as DataObservabilityCheckSuggestion;
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {
