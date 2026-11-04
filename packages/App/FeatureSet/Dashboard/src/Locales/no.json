@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "Administrert tjeneste (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "Ingen skytilkobling har lest denne kontoen på over en time. Sky > Koble til forteller hvorfor.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "Ingen skytilkobling leser denne kontoen lenger. Koble den til på nytt fra Sky > Koble til.",
-  "Self-managed infrastructure (IaaS)": "Selvadministrert infrastruktur (IaaS)",
   "account": "konto",
   "destination": "mål",
   "platform": "plattform",
   "type": "type",
-  "Being read": "Blir lest",
   "Biggest accounts": "Største kontoer",
   "Cloud accounts": "Skykontoer",
   "Did any cloud provider publish a health event about our accounts this week?": "Har en skyleverandør publisert en helsehendelse om kontoene våre denne uken?",
@@ -42169,7 +42167,6 @@
   "What it holds": "Hva den inneholder",
   "Which accounts hold the most resources, and of what types?": "Hvilke kontoer inneholder flest ressurser, og av hvilke typer?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "Hvilke av skykontoene våre er koblet til, og er det noen som ikke lenger blir lest?",
-  "Which of this account's resources need attention, and why?": "Hvilke av kontoens ressurser krever oppmerksomhet, og hvorfor?",
   "cloud account": "skykonto",
   "cloud accounts": "skykontoer",
   "Change machine type": "Endre maskintype",
@@ -42182,6 +42179,10 @@
   "Scale in": "Skaler inn",
   "Snapshot and delete disk": "Ta et øyeblikksbilde og slett disken",
   "Stop VM": "Stopp VM-en",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "Listene inneholder også {{count}} miljøer i kontoer som Sky ikke leser, og appene deres.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "Listene inneholder også {{count}} miljø i en konto som Sky ikke leser, og appene i det."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "App-plattformer viser også {{count}} miljøer med appene deres fra kontoer som ikke er koblet til Sky.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "App-plattformer viser også {{count}} miljø med appene i det fra en konto som ikke er koblet til Sky.",
+  "Infrastructure (IaaS)": "Infrastruktur (IaaS)",
+  "What cost the most, by service, Region or resource.": "Hva som kostet mest, etter tjeneste, region eller ressurs.",
+  "Who changed it": "Hvem som endret den",
+  "Who changed this account this week, and what did each of them change?": "Hvem har endret denne kontoen denne uken, og hva endret hver av dem?"
 }

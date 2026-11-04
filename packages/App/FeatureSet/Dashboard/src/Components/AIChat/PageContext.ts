@@ -1514,11 +1514,16 @@ export default class PageContextUtil {
             question:
               "What changed in this account in the last 24 hours? Start with what failed and with changes to networks and permissions.",
           },
+          /*
+           * Who did what, from the activity log recent_changes reads: no
+           * tool reads which resources need attention, so it is not asked
+           * here (#5702's review).
+           */
           {
-            icon: IconProp.Heartbeat,
-            title: "Needs attention",
+            icon: IconProp.User,
+            title: "Who changed it",
             question:
-              "Which of this account's resources need attention, and why?",
+              "Who changed this account this week, and what did each of them change?",
           },
           {
             icon: IconProp.Cloud,
@@ -1537,7 +1542,7 @@ export default class PageContextUtil {
         return [
           {
             icon: IconProp.Cloud,
-            title: "Being read",
+            title: "Connections",
             question:
               "Which of our cloud accounts are connected, and is any of them no longer being read?",
           },

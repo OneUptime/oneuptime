@@ -160,7 +160,7 @@ describe("the questions it offers", () => {
     },
   );
 
-  test("an account's questions are about the account: its changes, what needs attention, its provider's health", () => {
+  test("an account's questions are about the account: its changes and who made them, its provider's health, what it holds", () => {
     const text: string = PageContextUtil.getSuggestions(ACCOUNT_CONTEXT)
       .map((question: SuggestedQuestion): string => {
         return question.question;
@@ -168,10 +168,41 @@ describe("the questions it offers", () => {
       .join(" ");
 
     expect(text).toContain("What changed in this account");
-    expect(text).toContain("need attention");
+    expect(text).toContain("Who changed this account");
     expect(text).toContain("health event about this account");
+    expect(text).toContain("What does this account hold");
     // Never the resource list's telemetry questions.
     expect(text).not.toContain("telemetry");
+  });
+
+  /*
+   * Each question is one OneUptime AI can answer from what its tools read
+   * (query_cloud_accounts, recent_changes): no tool reads which of an
+   * account's resources need attention, so that is never offered
+   * (#5702's review).
+   */
+  test("no question asks what no tool reads", () => {
+    for (const context of [ACCOUNT_CONTEXT, ACCOUNTS_CONTEXT]) {
+      for (const question of PageContextUtil.getSuggestions(context)) {
+        expect(question.question).not.toMatch(/attention/i);
+        expect(question.title).not.toMatch(/attention/i);
+      }
+    }
+  });
+
+  test("Cloud > Accounts names its question about connections plainly", () => {
+    const titles: Array<string> = PageContextUtil.getSuggestions(
+      ACCOUNTS_CONTEXT,
+    ).map((question: SuggestedQuestion): string => {
+      return question.title;
+    });
+
+    expect(titles).toEqual([
+      "Connections",
+      "What changed",
+      "Biggest accounts",
+      "Provider health",
+    ]);
   });
 
   test("each title, question, chip and noun reads in every language", () => {

@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "Управляемый сервис (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "Ни одно облачное подключение не читало этот аккаунт больше часа. Причину покажет Облако > Подключить.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "Этот аккаунт больше не читает ни одно облачное подключение. Подключите его снова в Облако > Подключить.",
-  "Self-managed infrastructure (IaaS)": "Самостоятельно управляемая инфраструктура (IaaS)",
   "account": "аккаунт",
   "destination": "назначение",
   "platform": "платформа",
   "type": "тип",
-  "Being read": "Чтение",
   "Biggest accounts": "Самые большие аккаунты",
   "Cloud accounts": "Облачные аккаунты",
   "Did any cloud provider publish a health event about our accounts this week?": "Публиковал ли облачный провайдер на этой неделе событие о состоянии наших аккаунтов?",
@@ -42169,7 +42167,6 @@
   "What it holds": "Что в нём",
   "Which accounts hold the most resources, and of what types?": "В каких аккаунтах больше всего ресурсов и каких типов?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "Какие из наших облачных аккаунтов подключены, и есть ли среди них те, что больше не читаются?",
-  "Which of this account's resources need attention, and why?": "Каким ресурсам этого аккаунта требуется внимание и почему?",
   "cloud account": "облачный аккаунт",
   "cloud accounts": "облачные аккаунты",
   "Change machine type": "Изменить тип машины",
@@ -42182,6 +42179,10 @@
   "Scale in": "Уменьшить число экземпляров",
   "Snapshot and delete disk": "Сделать снимок и удалить диск",
   "Stop VM": "Остановить ВМ",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "В списках есть и среды из аккаунтов, которые Облако не читает, вместе с их приложениями. Таких сред: {{count}}.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "В списках есть и {{count}} среда из аккаунта, который Облако не читает, вместе с её приложениями."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "Платформы приложений показывают и среды из аккаунтов, не подключённых к Облаку, вместе с их приложениями. Таких сред: {{count}}.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "Платформы приложений показывают и {{count}} среду из аккаунта, не подключённого к Облаку, вместе с её приложениями.",
+  "Infrastructure (IaaS)": "Инфраструктура (IaaS)",
+  "What cost the most, by service, Region or resource.": "Что стоило дороже всего — по службам, регионам или ресурсам.",
+  "Who changed it": "Кто изменил",
+  "Who changed this account this week, and what did each of them change?": "Кто менял этот аккаунт на этой неделе и что изменил каждый из них?"
 }

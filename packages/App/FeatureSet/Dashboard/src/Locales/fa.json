@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "سرویس مدیریت‌شده (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "بیش از یک ساعت است که هیچ اتصال ابری این حساب را نخوانده است. ابر > اتصال دلیلش را می‌گوید.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "دیگر هیچ اتصال ابری این حساب را نمی‌خواند. از ابر > اتصال دوباره وصلش کنید.",
-  "Self-managed infrastructure (IaaS)": "زیرساخت خودمدیریت (IaaS)",
   "account": "حساب",
   "destination": "مقصد",
   "platform": "پلتفرم",
   "type": "نوع",
-  "Being read": "در حال خواندن",
   "Biggest accounts": "بزرگ‌ترین حساب‌ها",
   "Cloud accounts": "حساب‌های ابری",
   "Did any cloud provider publish a health event about our accounts this week?": "آیا این هفته ارائه‌دهندهٔ ابری رویداد سلامتی دربارهٔ حساب‌های ما منتشر کرده است؟",
@@ -42169,7 +42167,6 @@
   "What it holds": "چه چیزهایی دارد",
   "Which accounts hold the most resources, and of what types?": "کدام حساب‌ها بیشترین منابع را دارند و از چه نوع‌هایی؟",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "کدام حساب‌های ابری ما وصل‌اند، و آیا هیچ‌کدام دیگر خوانده نمی‌شود؟",
-  "Which of this account's resources need attention, and why?": "کدام منابع این حساب نیاز به توجه دارند و چرا؟",
   "cloud account": "حساب ابری",
   "cloud accounts": "حساب‌های ابری",
   "Change machine type": "تغییر نوع ماشین",
@@ -42182,6 +42179,10 @@
   "Scale in": "کاهش تعداد نمونه‌ها",
   "Snapshot and delete disk": "گرفتن اسنپ‌شات و حذف دیسک",
   "Stop VM": "توقف VM",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "فهرست‌ها {{count}} محیط دیگر را هم، در حساب‌هایی که ابر نمی‌خواند، همراه با برنامه‌هایشان دارند.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "فهرست‌ها {{count}} محیط دیگر را هم، در حسابی که ابر نمی‌خواند، همراه با برنامه‌هایش دارند."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "بسترهای برنامه {{count}} محیط دیگر را هم، همراه با برنامه‌هایشان، از حساب‌هایی که به ابر متصل نیستند فهرست می‌کند.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "بسترهای برنامه {{count}} محیط دیگر را هم، همراه با برنامه‌هایش، از حسابی که به ابر متصل نیست فهرست می‌کند.",
+  "Infrastructure (IaaS)": "زیرساخت (IaaS)",
+  "What cost the most, by service, Region or resource.": "بیشترین هزینه، به تفکیک سرویس، منطقه یا منبع.",
+  "Who changed it": "چه کسی تغییرش داد",
+  "Who changed this account this week, and what did each of them change?": "این هفته چه کسانی این حساب را تغییر دادند و هر کدام چه چیزی را تغییر داد؟"
 }

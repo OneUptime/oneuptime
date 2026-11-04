@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "प्रबंधित सेवा (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "एक घंटे से ज़्यादा समय से किसी क्लाउड कनेक्शन ने यह खाता नहीं पढ़ा है। क्लाउड > कनेक्ट करें बताता है क्यों।",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "अब कोई क्लाउड कनेक्शन यह खाता नहीं पढ़ता। क्लाउड > कनेक्ट करें से इसे फिर से कनेक्ट करें।",
-  "Self-managed infrastructure (IaaS)": "स्व-प्रबंधित इन्फ्रास्ट्रक्चर (IaaS)",
   "account": "खाता",
   "destination": "गंतव्य",
   "platform": "प्लेटफ़ॉर्म",
   "type": "प्रकार",
-  "Being read": "पढ़े जा रहे हैं",
   "Biggest accounts": "सबसे बड़े खाते",
   "Cloud accounts": "क्लाउड खाते",
   "Did any cloud provider publish a health event about our accounts this week?": "क्या इस हफ़्ते किसी क्लाउड प्रदाता ने हमारे खातों के बारे में कोई स्वास्थ्य इवेंट प्रकाशित किया?",
@@ -42169,7 +42167,6 @@
   "What it holds": "इसमें क्या है",
   "Which accounts hold the most resources, and of what types?": "किन खातों में सबसे ज़्यादा संसाधन हैं, और किन प्रकारों के?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "हमारे कौन-से क्लाउड खाते कनेक्ट हैं, और क्या उनमें से कोई अब पढ़ा नहीं जा रहा?",
-  "Which of this account's resources need attention, and why?": "इस खाते के किन संसाधनों पर ध्यान देने की ज़रूरत है, और क्यों?",
   "cloud account": "क्लाउड खाता",
   "cloud accounts": "क्लाउड खाते",
   "Change machine type": "मशीन टाइप बदलें",
@@ -42182,6 +42179,10 @@
   "Scale in": "इंस्टेंस की संख्या घटाएं",
   "Snapshot and delete disk": "स्नैपशॉट लेकर डिस्क हटाएं",
   "Stop VM": "VM रोकें",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "सूचियों में उन खातों के {{count}} परिवेश और उनके ऐप भी हैं, जिन्हें क्लाउड नहीं पढ़ता।",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "सूचियों में उस खाते का {{count}} परिवेश और उसके ऐप भी हैं, जिसे क्लाउड नहीं पढ़ता।"
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "ऐप प्लेटफ़ॉर्म उन खातों के {{count}} परिवेश और उनके ऐप भी दिखाता है, जो क्लाउड से कनेक्ट नहीं हैं।",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "ऐप प्लेटफ़ॉर्म उस खाते का {{count}} परिवेश और उसके ऐप भी दिखाता है, जो क्लाउड से कनेक्ट नहीं है।",
+  "Infrastructure (IaaS)": "इन्फ्रास्ट्रक्चर (IaaS)",
+  "What cost the most, by service, Region or resource.": "सेवा, क्षेत्र या संसाधन के अनुसार सबसे ज़्यादा लागत किसकी रही।",
+  "Who changed it": "किसने बदला",
+  "Who changed this account this week, and what did each of them change?": "इस हफ़्ते इस खाते को किसने बदला, और हर एक ने क्या बदला?"
 }

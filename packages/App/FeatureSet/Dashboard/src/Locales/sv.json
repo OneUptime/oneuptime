@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "Hanterad tjänst (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "Ingen molnanslutning har läst det här kontot på över en timme. Moln > Anslut berättar varför.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "Ingen molnanslutning läser det här kontot längre. Anslut det igen från Moln > Anslut.",
-  "Self-managed infrastructure (IaaS)": "Självhanterad infrastruktur (IaaS)",
   "account": "konto",
   "destination": "mål",
   "platform": "plattform",
   "type": "typ",
-  "Being read": "Läses",
   "Biggest accounts": "Största kontona",
   "Cloud accounts": "Molnkonton",
   "Did any cloud provider publish a health event about our accounts this week?": "Har någon molnleverantör publicerat en hälsohändelse om våra konton den här veckan?",
@@ -42169,7 +42167,6 @@
   "What it holds": "Vad det innehåller",
   "Which accounts hold the most resources, and of what types?": "Vilka konton innehåller flest resurser, och av vilka typer?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "Vilka av våra molnkonton är anslutna, och läses något av dem inte längre?",
-  "Which of this account's resources need attention, and why?": "Vilka av kontots resurser kräver uppmärksamhet, och varför?",
   "cloud account": "molnkonto",
   "cloud accounts": "molnkonton",
   "Change machine type": "Byt maskintyp",
@@ -42182,6 +42179,10 @@
   "Scale in": "Skala in",
   "Snapshot and delete disk": "Ta en ögonblicksbild och ta bort disken",
   "Stop VM": "Stoppa VM:en",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "Listorna innehåller också {{count}} miljöer i konton som Moln inte läser, och deras appar.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "Listorna innehåller också {{count}} miljö i ett konto som Moln inte läser, och dess appar."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "Appplattformar visar också {{count}} miljöer med deras appar från konton som inte är anslutna till Moln.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "Appplattformar visar också {{count}} miljö med dess appar från ett konto som inte är anslutet till Moln.",
+  "Infrastructure (IaaS)": "Infrastruktur (IaaS)",
+  "What cost the most, by service, Region or resource.": "Vad som kostade mest, per tjänst, region eller resurs.",
+  "Who changed it": "Vem som ändrade det",
+  "Who changed this account this week, and what did each of them change?": "Vem har ändrat det här kontot den här veckan, och vad ändrade var och en?"
 }

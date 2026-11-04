@@ -77,6 +77,26 @@ const ON_RESOURCE: string = " on ";
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
+ * The sentence a change's title is worded in (CLOUD_CHANGE_TITLE_SENTENCES),
+ * by its facts: "{{operation}} on {{resource}}", its "Failed: " forms, or
+ * null when the title is the operation alone - one that did not fail and
+ * names no resource. A page that draws the operation and the resource as
+ * elements of their own (TranslatedSentence) picks its sentence here, so it
+ * says what getCloudChangeTitle says.
+ */
+export function getCloudChangeTitleSentence(
+  facts: CloudChangeTitleFacts,
+): string | null {
+  if (!facts.resource.trim()) {
+    return facts.failed ? CLOUD_CHANGE_TITLE_SENTENCES.failed : null;
+  }
+
+  return facts.failed
+    ? CLOUD_CHANGE_TITLE_SENTENCES.failedOnResource
+    : CLOUD_CHANGE_TITLE_SENTENCES.onResource;
+}
+
+/*
  * A change's title in the translator's language - English without one, word
  * for word what the recorder stores. `options` are the sentence's
  * (SentenceOptions): a title drawn on a page sets its values apart, so a
@@ -89,22 +109,15 @@ export function getCloudChangeTitle(
 ): string {
   const operation: string = facts.operation.trim();
   const resource: string = facts.resource.trim();
+  const sentence: string | null = getCloudChangeTitleSentence(facts);
 
-  if (!resource) {
-    return facts.failed
-      ? translator.translateTemplate(
-          CLOUD_CHANGE_TITLE_SENTENCES.failed,
-          { operation },
-          options,
-        )
-      : operation;
+  if (!sentence) {
+    return operation;
   }
 
   return translator.translateTemplate(
-    facts.failed
-      ? CLOUD_CHANGE_TITLE_SENTENCES.failedOnResource
-      : CLOUD_CHANGE_TITLE_SENTENCES.onResource,
-    { operation, resource },
+    sentence,
+    resource ? { operation, resource } : { operation },
     options,
   );
 }

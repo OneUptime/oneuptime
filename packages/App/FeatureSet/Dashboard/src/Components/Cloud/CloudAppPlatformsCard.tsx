@@ -38,7 +38,10 @@ import AppLink from "../AppLink/AppLink";
  * it is in, and its lists hold every one: an environment in an account no
  * connection reads is in them too. The card says how many there are of
  * those, so a list that holds more than the count it was opened from says
- * why (#5646's review).
+ * why (#5646's review). It names App Platforms and says "not connected to
+ * Cloud", the words Cloud > Connect uses: on a phone the card's
+ * description is folded away, and "the lists" or "an account Cloud does
+ * not read" said nothing there (#5702's review).
  */
 
 export const APP_PLATFORMS_CARD_TITLE: string = translationKey("App Platforms");
@@ -54,9 +57,9 @@ export const APP_PLATFORMS_APPS: PluralTemplate = {
   other: "{{count}} apps",
 };
 export const APP_PLATFORMS_OTHER_ENVIRONMENTS: PluralTemplate = {
-  one: "The lists also hold {{count}} environment in an account Cloud does not read, and its apps.",
+  one: "App Platforms also lists {{count}} environment, with its apps, from an account not connected to Cloud.",
   other:
-    "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.",
+    "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.",
 };
 
 export interface CloudAppPlatformsCounts {

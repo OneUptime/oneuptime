@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "マネージド サービス (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "1 時間以上、どのクラウド接続もこのアカウントを読み取っていません。理由は クラウド > 接続 で確認できます。",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "このアカウントを読み取るクラウド接続はもうありません。クラウド > 接続 からもう一度接続してください。",
-  "Self-managed infrastructure (IaaS)": "自己管理のインフラストラクチャ (IaaS)",
   "account": "アカウント",
   "destination": "宛先",
   "platform": "プラットフォーム",
   "type": "タイプ",
-  "Being read": "読み取り状況",
   "Biggest accounts": "最大のアカウント",
   "Cloud accounts": "クラウド アカウント",
   "Did any cloud provider publish a health event about our accounts this week?": "今週、クラウド プロバイダーが当社のアカウントについて状態イベントを公開しましたか？",
@@ -42169,7 +42167,6 @@
   "What it holds": "内容",
   "Which accounts hold the most resources, and of what types?": "どのアカウントに最も多くのリソースがあり、それはどの種類ですか？",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "接続されているクラウド アカウントはどれですか？もう読み取られていないものはありますか？",
-  "Which of this account's resources need attention, and why?": "このアカウントのどのリソースに対応が必要ですか？その理由は？",
   "cloud account": "クラウド アカウント",
   "cloud accounts": "クラウド アカウント",
   "Change machine type": "マシンタイプを変更",
@@ -42182,6 +42179,10 @@
   "Scale in": "スケールイン",
   "Snapshot and delete disk": "スナップショットを作成してディスクを削除",
   "Stop VM": "VM を停止",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "一覧には、クラウドが読み取らないアカウントの環境 {{count}} 件とそのアプリも含まれます。",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "一覧には、クラウドが読み取らないアカウントの環境 {{count}} 件とそのアプリも含まれます。"
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "アプリプラットフォームには、クラウドに接続されていないアカウントの環境 {{count}} 件とそのアプリも表示されます。",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "アプリプラットフォームには、クラウドに接続されていないアカウントの環境 {{count}} 件とそのアプリも表示されます。",
+  "Infrastructure (IaaS)": "インフラストラクチャ (IaaS)",
+  "What cost the most, by service, Region or resource.": "サービス、リージョン、リソース別の、コストの高かったもの。",
+  "Who changed it": "変更した人",
+  "Who changed this account this week, and what did each of them change?": "今週このアカウントを変更したのは誰で、それぞれ何を変更しましたか？"
 }

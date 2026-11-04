@@ -261,6 +261,58 @@ describe("what each connection is", () => {
     }
   });
 
+  /*
+   * #5702's review: on a Persian page "web-1" and "EC2 Instance" - two
+   * Latin runs side by side - were read as one, left to right, with no gap
+   * between them. Each is set apart (bdi), so the line keeps the page's
+   * reading order and the gap.
+   */
+  test("the name and its kind are each set apart, with the gap between them", async () => {
+    await renderCards(instance());
+    await screen.findByText("Connected Resources");
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-connected-resource",
+    );
+    expect(rows.length).toBeGreaterThan(0);
+
+    for (const row of rows) {
+      const name: HTMLElement = within(row).getByTestId(
+        "cloud-connected-resource-name",
+      );
+      expect(name.tagName).toBe("BDI");
+      expect(name.textContent).toBeTruthy();
+
+      const kind: HTMLElement | null = within(row).queryByTestId(
+        "cloud-connection-type",
+      );
+
+      if (kind) {
+        /*
+         * The gap is on the span, in the page's direction, so it is beside
+         * the name either way; the kind itself is set apart inside it (a
+         * Latin kind on a bdi of its own would put its start on the far
+         * side, read right to left).
+         */
+        expect(kind.tagName).toBe("SPAN");
+        expect(kind).toHaveClass("ml-2");
+        expect(kind.children).toHaveLength(1);
+        expect(kind.firstElementChild!.tagName).toBe("BDI");
+        expect(kind.firstElementChild!.textContent).toBe(kind.textContent);
+        // The name comes first, then its kind.
+        expect(
+          name.compareDocumentPosition(kind) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      }
+    }
+
+    // A linked name is set apart inside its link.
+    const linked: HTMLElement = within(
+      screen.getByText("web-alb").closest("li")!,
+    ).getByTestId("cloud-connected-resource-name");
+    expect(linked.closest("a")).not.toBeNull();
+  });
+
   test("a type no catalog names reads in words, with its service", async () => {
     listSpy.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 2000 });
 

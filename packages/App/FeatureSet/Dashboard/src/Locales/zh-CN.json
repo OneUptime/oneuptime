@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "托管服务 (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "已超过一小时没有云连接读取此账户。原因见 云 > 连接。",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "已没有云连接读取此账户。请在 云 > 连接 中重新连接。",
-  "Self-managed infrastructure (IaaS)": "自行管理的基础设施 (IaaS)",
   "account": "账户",
   "destination": "目标",
   "platform": "平台",
   "type": "类型",
-  "Being read": "读取状态",
   "Biggest accounts": "最大的账户",
   "Cloud accounts": "云账户",
   "Did any cloud provider publish a health event about our accounts this week?": "本周是否有云提供商发布了关于我们账户的健康事件？",
@@ -42169,7 +42167,6 @@
   "What it holds": "包含内容",
   "Which accounts hold the most resources, and of what types?": "哪些账户包含的资源最多？分别是什么类型？",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "我们哪些云账户已连接？是否有账户已不再被读取？",
-  "Which of this account's resources need attention, and why?": "此账户的哪些资源需要关注？原因是什么？",
   "cloud account": "云账户",
   "cloud accounts": "云账户",
   "Change machine type": "更改机器类型",
@@ -42182,6 +42179,10 @@
   "Scale in": "缩减实例数量",
   "Snapshot and delete disk": "创建快照并删除磁盘",
   "Stop VM": "停止虚拟机",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "列表中还包括云未读取的账户中的 {{count}} 个环境及其应用。",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "列表中还包括云未读取的账户中的 {{count}} 个环境及其应用。"
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "应用平台还列出了未连接到云的账户中的 {{count}} 个环境及其应用。",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "应用平台还列出了未连接到云的账户中的 {{count}} 个环境及其应用。",
+  "Infrastructure (IaaS)": "基础设施 (IaaS)",
+  "What cost the most, by service, Region or resource.": "按服务、区域或资源划分，成本最高的项。",
+  "Who changed it": "谁做了变更",
+  "Who changed this account this week, and what did each of them change?": "本周谁变更了此账户？每个人分别变更了什么？"
 }

@@ -143,9 +143,16 @@ describe("a resource's service model, in words", () => {
     expect(CLOUD_SERVICE_MODEL_WORDS[CloudServiceModel.PaaS]).toBe(
       "Managed service (PaaS)",
     );
+    /*
+     * Infrastructure, never "self-managed": a load balancer, a network or
+     * a disk is IaaS here, and its cloud runs it (#5702's review).
+     */
     expect(CLOUD_SERVICE_MODEL_WORDS[CloudServiceModel.IaaS]).toBe(
-      "Self-managed infrastructure (IaaS)",
+      "Infrastructure (IaaS)",
     );
+    for (const model of Object.values(CloudServiceModel)) {
+      expect(CLOUD_SERVICE_MODEL_WORDS[model]).not.toMatch(/self/i);
+    }
   });
 
   test("each reads in every language, its short name kept", () => {

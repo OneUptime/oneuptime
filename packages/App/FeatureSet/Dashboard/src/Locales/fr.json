@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "Service managé (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "Aucune connexion cloud n'a lu ce compte depuis plus d'une heure. Cloud > Connecter indique pourquoi.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "Plus aucune connexion cloud ne lit ce compte. Reconnectez-le depuis Cloud > Connecter.",
-  "Self-managed infrastructure (IaaS)": "Infrastructure autogérée (IaaS)",
   "account": "compte",
   "destination": "destination",
   "platform": "plateforme",
   "type": "type",
-  "Being read": "Lecture en cours",
   "Biggest accounts": "Comptes les plus gros",
   "Cloud accounts": "Comptes cloud",
   "Did any cloud provider publish a health event about our accounts this week?": "Un fournisseur cloud a-t-il publié un événement de santé concernant nos comptes cette semaine ?",
@@ -42169,7 +42167,6 @@
   "What it holds": "Ce qu'il contient",
   "Which accounts hold the most resources, and of what types?": "Quels comptes contiennent le plus de ressources, et de quels types ?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "Lesquels de nos comptes cloud sont connectés, et l'un d'eux n'est-il plus lu ?",
-  "Which of this account's resources need attention, and why?": "Quelles ressources de ce compte demandent de l'attention, et pourquoi ?",
   "cloud account": "compte cloud",
   "cloud accounts": "comptes cloud",
   "Change machine type": "Changer le type de machine",
@@ -42182,6 +42179,10 @@
   "Scale in": "Réduire le nombre d'instances",
   "Snapshot and delete disk": "Créer un instantané et supprimer le disque",
   "Stop VM": "Arrêter la VM",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "Les listes contiennent aussi {{count}} environnements dans des comptes que Cloud ne lit pas, et leurs apps.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "Les listes contiennent aussi {{count}} environnement dans un compte que Cloud ne lit pas, et ses apps."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "Plateformes d'applications affiche aussi {{count}} environnements, avec leurs apps, provenant de comptes non connectés à Cloud.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "Plateformes d'applications affiche aussi {{count}} environnement, avec ses apps, provenant d'un compte non connecté à Cloud.",
+  "Infrastructure (IaaS)": "Infrastructure (IaaS)",
+  "What cost the most, by service, Region or resource.": "Ce qui a coûté le plus, par service, région ou ressource.",
+  "Who changed it": "Qui l'a modifié",
+  "Who changed this account this week, and what did each of them change?": "Qui a modifié ce compte cette semaine, et qu'a modifié chacun d'eux ?"
 }

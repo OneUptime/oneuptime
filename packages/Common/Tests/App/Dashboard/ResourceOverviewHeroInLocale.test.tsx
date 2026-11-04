@@ -371,6 +371,30 @@ describe("the hero's identifier line", () => {
     expect(value).toHaveAttribute("dir", "auto");
   });
 
+  /*
+   * #5702's review: the line was one run of monospace text. Set apart in
+   * two elements, each took the page's universal Inter rule (index.ejs's
+   * `*` rule reaches every element, so a child does not inherit the line's
+   * font): every hero's identifier lost its monospace. Each piece says it.
+   */
+  test("the label and the identifier are each set in monospace, as the line always was", () => {
+    renderHero("de", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      identifierLabel: "service.name",
+      identifier: "checkout",
+    });
+
+    const line: HTMLElement = identifierLine();
+
+    expect(line.children).toHaveLength(2);
+    for (const piece of Array.from(line.children)) {
+      expect(piece).toHaveClass("font-mono");
+    }
+    // A monospace space between them, as the one line had.
+    expect(line).toHaveClass("gap-2");
+  });
+
   test("each word a page names its identifier by reads in every language", () => {
     for (const label of [
       "type",

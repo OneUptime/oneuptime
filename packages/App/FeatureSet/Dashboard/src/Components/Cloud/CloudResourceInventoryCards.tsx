@@ -181,12 +181,19 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
       ? getCloudResourceTypeDisplayName(provider, relationship.otherType)
       : "";
 
+    /*
+     * The name and its kind are each set apart (bdi), so they keep the
+     * reading order and the gap between them on a page read right to
+     * left: two Latin runs side by side ("web-1" and "EC2 Instance") were
+     * read as one, left to right, with the gap at their far end.
+     */
     return (
       <li
         key={`${relationship.direction}-${relationship.kind}-${
           relationship.other?.id.toString() || relationship.otherName
         }`}
         className="min-w-0"
+        data-testid="cloud-connected-resource"
       >
         {relationship.other ? (
           <AppLink
@@ -196,19 +203,30 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
             )}
             className="text-sm font-medium text-indigo-600 hover:text-indigo-700 break-all"
           >
-            <span>{relationship.otherName}</span>
+            <bdi data-testid="cloud-connected-resource-name">
+              {relationship.otherName}
+            </bdi>
           </AppLink>
         ) : (
-          <span className="text-sm font-mono text-gray-700 break-all">
+          <bdi
+            className="text-sm font-mono text-gray-700 break-all"
+            data-testid="cloud-connected-resource-name"
+          >
             {relationship.otherName}
-          </span>
+          </bdi>
         )}
         {typeLabel ? (
+          /*
+           * The gap is the line's: the span takes the page's direction, so
+           * its start is beside the name either way. On the bdi it would
+           * be on the far side of a Latin kind ("EC2 Instance") read right
+           * to left.
+           */
           <span
             className="ml-2 text-xs text-gray-500"
             data-testid="cloud-connection-type"
           >
-            {translator.translateText(typeLabel) || typeLabel}
+            <bdi>{translator.translateText(typeLabel) || typeLabel}</bdi>
           </span>
         ) : (
           <></>

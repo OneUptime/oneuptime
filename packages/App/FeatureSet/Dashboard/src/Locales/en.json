@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "Managed service (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "No cloud connection has read this account for over an hour. Cloud > Connect says why.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "No cloud connection reads this account any more. Connect it again from Cloud > Connect.",
-  "Self-managed infrastructure (IaaS)": "Self-managed infrastructure (IaaS)",
   "account": "account",
   "destination": "destination",
   "platform": "platform",
   "type": "type",
-  "Being read": "Being read",
   "Biggest accounts": "Biggest accounts",
   "Cloud accounts": "Cloud accounts",
   "Did any cloud provider publish a health event about our accounts this week?": "Did any cloud provider publish a health event about our accounts this week?",
@@ -42169,7 +42167,6 @@
   "What it holds": "What it holds",
   "Which accounts hold the most resources, and of what types?": "Which accounts hold the most resources, and of what types?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "Which of our cloud accounts are connected, and is any of them no longer being read?",
-  "Which of this account's resources need attention, and why?": "Which of this account's resources need attention, and why?",
   "cloud account": "cloud account",
   "cloud accounts": "cloud accounts",
   "Change machine type": "Change machine type",
@@ -42182,6 +42179,10 @@
   "Scale in": "Scale in",
   "Snapshot and delete disk": "Snapshot and delete disk",
   "Stop VM": "Stop VM",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "The lists also hold {{count}} environment in an account Cloud does not read, and its apps."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "App Platforms also lists {{count}} environment, with its apps, from an account not connected to Cloud.",
+  "Infrastructure (IaaS)": "Infrastructure (IaaS)",
+  "What cost the most, by service, Region or resource.": "What cost the most, by service, Region or resource.",
+  "Who changed it": "Who changed it",
+  "Who changed this account this week, and what did each of them change?": "Who changed this account this week, and what did each of them change?"
 }

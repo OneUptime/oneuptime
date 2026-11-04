@@ -502,7 +502,7 @@ describe("with accounts connected", () => {
     expect(
       screen.getByTestId("cloud-app-platforms-other-environments"),
     ).toHaveTextContent(
-      "The lists also hold 1 environment in an account Cloud does not read, and its apps.",
+      "App Platforms also lists 1 environment, with its apps, from an account not connected to Cloud.",
     );
 
     const request: { modelType: unknown; query: Record<string, unknown> } =

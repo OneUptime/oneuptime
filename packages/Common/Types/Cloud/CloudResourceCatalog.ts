@@ -69,13 +69,14 @@ export const CLOUD_SERVICE_MODEL_LABELS: Readonly<
  * What each service model is, in words, for a resource's Details: the
  * Dashboard draws them in the reader's language. The chips and the docs'
  * table keep the short names above.
+ *
+ * IaaS is "Infrastructure", not "self-managed": a load balancer, a
+ * network or a disk is IaaS here, and its cloud runs it (#5702's review).
  */
 export const CLOUD_SERVICE_MODEL_WORDS: Readonly<
   Record<CloudServiceModel, string>
 > = {
-  [CloudServiceModel.IaaS]: translationKey(
-    "Self-managed infrastructure (IaaS)",
-  ),
+  [CloudServiceModel.IaaS]: translationKey("Infrastructure (IaaS)"),
   [CloudServiceModel.PaaS]: translationKey("Managed service (PaaS)"),
 };
 

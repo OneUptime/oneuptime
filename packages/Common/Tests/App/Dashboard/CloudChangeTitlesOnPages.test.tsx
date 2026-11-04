@@ -72,7 +72,11 @@ import {
   ChangeEventStatus,
   ChangeEventType,
 } from "../../../Utils/Telemetry/ChangeEventFields";
-import { getCloudChangeTitleText } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
+import {
+  CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME,
+  CloudChangeTitle,
+  getCloudChangeTitleText,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
 import {
   CHANGE_EVENT_MARKER_SUBTITLE,
   getChangeEventMarkerTitle,
@@ -253,6 +257,138 @@ describe("a cloud resource's and an account's Changes", () => {
     expect(getCloudChangeTitleText(DEPLOY_ROW, dashboardTranslator("de"))).toBe(
       "Deploy checkout 2.3.1",
     );
+  });
+});
+
+/*
+ * #5702's review: drawn in the Changes list, the operation and the resource
+ * are boxes of their own, so a phone moves "nightly-export" or
+ * "sg-0f1e2d3c4b5a69788" to the next line whole instead of breaking it at
+ * its hyphen ("nightly-" / "export"). The sentence around them is the one
+ * getCloudChangeTitleText words, in every language.
+ */
+describe("a change's title as the Changes list draws it", () => {
+  async function drawTitle(
+    language: string,
+    change: ChangeEvent,
+  ): Promise<HTMLElement> {
+    await act(async () => {
+      render(
+        <I18nextProvider i18n={instances[language]!}>
+          <div data-testid="drawn-title">
+            <CloudChangeTitle change={change} />
+          </div>
+        </I18nextProvider>,
+      );
+    });
+
+    return screen.getByTestId("drawn-title");
+  }
+
+  function values(title: HTMLElement): Array<HTMLElement> {
+    return within(title).queryAllByTestId("cloud-change-title-value");
+  }
+
+  test("says what getCloudChangeTitleText says, in every language", async () => {
+    for (const language of ["en", "de", "fa"]) {
+      for (const row of [NEW_ROW, OLD_ROW, HEALTH_ROW, DEPLOY_ROW]) {
+        const title: HTMLElement = await drawTitle(language, row);
+
+        expect(withoutIsolateMarks(title.textContent || "")).toBe(
+          withoutIsolateMarks(
+            getCloudChangeTitleText(row, dashboardTranslator(language)),
+          ),
+        );
+        cleanup();
+      }
+    }
+  });
+
+  test("the operation and the resource are each a box that moves whole", async () => {
+    for (const language of ["en", "de", "fa"]) {
+      const title: HTMLElement = await drawTitle(language, OLD_ROW);
+      const boxes: Array<HTMLElement> = values(title);
+
+      expect(
+        boxes.map((box: HTMLElement): string => {
+          return box.textContent || "";
+        }),
+      ).toEqual(
+        language === "fa"
+          ? // Read right to left, the sentence still names them in its order.
+            expect.arrayContaining([
+              "AuthorizeSecurityGroupIngress",
+              "sg-0f1e2d3c4b5a69788",
+            ])
+          : ["AuthorizeSecurityGroupIngress", "sg-0f1e2d3c4b5a69788"],
+      );
+      expect(boxes).toHaveLength(2);
+
+      for (const box of boxes) {
+        // Set apart, a box no wider than its line, broken only when longer.
+        expect(box.tagName).toBe("BDI");
+        expect(box.className).toBe(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME);
+      }
+      cleanup();
+    }
+
+    expect(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "inline-block",
+        "max-w-full",
+        "[overflow-wrap:anywhere]",
+      ]),
+    );
+  });
+
+  test("an operation alone, or one that failed on nothing named, is one box", async () => {
+    const alone: ChangeEvent = changeRow({
+      title: "CreateBucket",
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.Cloud,
+        [ChangeEventAttribute.CloudOperation]: "CreateBucket",
+        [ChangeEventAttribute.Status]: ChangeEventStatus.Succeeded,
+      },
+    });
+    const failedAlone: ChangeEvent = changeRow({
+      title: "Failed: CreateBucket",
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.Cloud,
+        [ChangeEventAttribute.CloudOperation]: "CreateBucket",
+        [ChangeEventAttribute.Status]: ChangeEventStatus.Failed,
+      },
+    });
+
+    let title: HTMLElement = await drawTitle("de", alone);
+    expect(title.textContent).toBe("CreateBucket");
+    expect(values(title)).toHaveLength(1);
+    cleanup();
+
+    title = await drawTitle("de", failedAlone);
+    expect(withoutIsolateMarks(title.textContent || "")).toBe(
+      getCloudChangeTitleText(failedAlone, dashboardTranslator("de")),
+    );
+    expect(values(title)).toHaveLength(1);
+    expect(values(title)[0]!.textContent).toBe("CreateBucket");
+  });
+
+  test("a health event, a deploy or a change with no title draws no boxes", async () => {
+    let title: HTMLElement = await drawTitle("de", HEALTH_ROW);
+    expect(values(title)).toHaveLength(0);
+    expect(title.textContent).toBe("AWS Health: EC2 operational issue (open)");
+    cleanup();
+
+    title = await drawTitle("de", DEPLOY_ROW);
+    expect(values(title)).toHaveLength(0);
+    cleanup();
+
+    // Neither a title nor a kind: the list's dash.
+    const untitled: ChangeEvent = new ChangeEvent();
+    untitled.attributes = {
+      [ChangeEventAttribute.Source]: ChangeEventSource.Api,
+    };
+    title = await drawTitle("de", untitled);
+    expect(title.textContent).toBe("—");
   });
 });
 

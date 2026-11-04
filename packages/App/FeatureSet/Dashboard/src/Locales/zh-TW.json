@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "受控服務 (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "已超過一小時沒有雲端連線讀取此帳戶。原因見 雲端 > 連線。",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "已沒有雲端連線讀取此帳戶。請在 雲端 > 連線 中重新連線。",
-  "Self-managed infrastructure (IaaS)": "自行管理的基礎架構 (IaaS)",
   "account": "帳戶",
   "destination": "目標",
   "platform": "平台",
   "type": "類型",
-  "Being read": "讀取狀態",
   "Biggest accounts": "最大的帳戶",
   "Cloud accounts": "雲端帳戶",
   "Did any cloud provider publish a health event about our accounts this week?": "本週是否有雲端供應商發布了關於我們帳戶的健康事件？",
@@ -42169,7 +42167,6 @@
   "What it holds": "包含內容",
   "Which accounts hold the most resources, and of what types?": "哪些帳戶包含的資源最多？分別是什麼類型？",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "我們哪些雲端帳戶已連線？是否有帳戶已不再被讀取？",
-  "Which of this account's resources need attention, and why?": "此帳戶的哪些資源需要注意？原因是什麼？",
   "cloud account": "雲端帳戶",
   "cloud accounts": "雲端帳戶",
   "Change machine type": "變更機器類型",
@@ -42182,6 +42179,10 @@
   "Scale in": "縮減執行個體數量",
   "Snapshot and delete disk": "建立快照並刪除磁碟",
   "Stop VM": "停止虛擬機器",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "清單中還包含雲端未讀取之帳戶中的 {{count}} 個環境及其應用程式。",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "清單中還包含雲端未讀取之帳戶中的 {{count}} 個環境及其應用程式。"
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "應用程式平台還列出了未連線到雲端之帳戶中的 {{count}} 個環境及其應用程式。",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "應用程式平台還列出了未連線到雲端之帳戶中的 {{count}} 個環境及其應用程式。",
+  "Infrastructure (IaaS)": "基礎架構 (IaaS)",
+  "What cost the most, by service, Region or resource.": "依服務、地區或資源劃分，成本最高的項目。",
+  "Who changed it": "誰做了變更",
+  "Who changed this account this week, and what did each of them change?": "本週誰變更了此帳戶？每個人分別變更了什麼？"
 }

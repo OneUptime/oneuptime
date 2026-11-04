@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "Beheerde dienst (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "Geen enkele cloudverbinding heeft dit account langer dan een uur gelezen. Cloud > Koppelen vertelt waarom.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "Geen enkele cloudverbinding leest dit account nog. Koppel het opnieuw via Cloud > Koppelen.",
-  "Self-managed infrastructure (IaaS)": "Zelfbeheerde infrastructuur (IaaS)",
   "account": "account",
   "destination": "bestemming",
   "platform": "platform",
   "type": "type",
-  "Being read": "Wordt gelezen",
   "Biggest accounts": "Grootste accounts",
   "Cloud accounts": "Cloudaccounts",
   "Did any cloud provider publish a health event about our accounts this week?": "Heeft een cloudprovider deze week een statusgebeurtenis over onze accounts gepubliceerd?",
@@ -42169,7 +42167,6 @@
   "What it holds": "Wat het bevat",
   "Which accounts hold the most resources, and of what types?": "Welke accounts bevatten de meeste resources, en van welke types?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "Welke van onze cloudaccounts zijn gekoppeld, en wordt er een niet meer gelezen?",
-  "Which of this account's resources need attention, and why?": "Welke resources van dit account vragen aandacht, en waarom?",
   "cloud account": "cloudaccount",
   "cloud accounts": "cloudaccounts",
   "Change machine type": "Machinetype wijzigen",
@@ -42182,6 +42179,10 @@
   "Scale in": "Aantal instanties verlagen",
   "Snapshot and delete disk": "Snapshot maken en schijf verwijderen",
   "Stop VM": "VM stoppen",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "De lijsten bevatten ook {{count}} omgevingen in accounts die Cloud niet leest, met hun apps.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "De lijsten bevatten ook {{count}} omgeving in een account dat Cloud niet leest, met de apps ervan."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "App-platforms toont ook {{count}} omgevingen, met hun apps, uit accounts die niet met Cloud zijn verbonden.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "App-platforms toont ook {{count}} omgeving, met de apps ervan, uit een account dat niet met Cloud is verbonden.",
+  "Infrastructure (IaaS)": "Infrastructuur (IaaS)",
+  "What cost the most, by service, Region or resource.": "Wat het meest kostte, per service, regio of resource.",
+  "Who changed it": "Wie het veranderde",
+  "Who changed this account this week, and what did each of them change?": "Wie heeft dit account deze week gewijzigd, en wat heeft ieder van hen gewijzigd?"
 }

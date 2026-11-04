@@ -455,7 +455,7 @@ describe("the App Platforms card says what its lists hold beyond the accounts Cl
     expect(
       await screen.findByTestId("cloud-app-platforms-other-environments"),
     ).toHaveTextContent(
-      "The lists also hold 2 environments in accounts Cloud does not read, and their apps.",
+      "App Platforms also lists 2 environments, with their apps, from accounts not connected to Cloud.",
     );
     cleanup();
 
@@ -466,9 +466,26 @@ describe("the App Platforms card says what its lists hold beyond the accounts Cl
           .textContent || "",
       ),
     ).toBe(
-      "Die Listen enthalten außerdem 2 Umgebungen in Konten, die Cloud nicht liest, samt ihren Apps.",
+      "In App-Plattformen stehen außerdem 2 Umgebungen samt ihren Apps aus Konten, die nicht mit Cloud verbunden sind.",
     );
     expect(APP_PLATFORMS_OTHER_ENVIRONMENTS.one).toContain("{{count}}");
+  });
+
+  /*
+   * On a phone the card's description is folded away, so the line says
+   * where the lists are and what "not read" means by itself: App
+   * Platforms, and the word Cloud > Connect uses (#5702's review).
+   */
+  test("names App Platforms and says not connected, in both forms", () => {
+    for (const sentence of [
+      APP_PLATFORMS_OTHER_ENVIRONMENTS.one,
+      APP_PLATFORMS_OTHER_ENVIRONMENTS.other,
+    ]) {
+      expect(sentence).toMatch(/^App Platforms also lists /);
+      expect(sentence).toContain("not connected to Cloud");
+      expect(sentence).not.toContain("The lists");
+      expect(sentence).not.toContain("does not read");
+    }
   });
 
   test("one: in the singular; none: no line", async () => {
@@ -480,7 +497,7 @@ describe("the App Platforms card says what its lists hold beyond the accounts Cl
     expect(
       await screen.findByTestId("cloud-app-platforms-other-environments"),
     ).toHaveTextContent(
-      "The lists also hold 1 environment in an account Cloud does not read, and its apps.",
+      "App Platforms also lists 1 environment, with its apps, from an account not connected to Cloud.",
     );
     cleanup();
 

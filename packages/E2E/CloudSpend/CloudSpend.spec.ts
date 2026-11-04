@@ -576,7 +576,7 @@ test.describe("the Overview", () => {
     await expect(
       appPlatforms.getByTestId("cloud-app-platforms-other-environments"),
     ).toHaveText(
-      "The lists also hold 1 environment in an account Cloud does not read, and its apps.",
+      "App Platforms also lists 1 environment, with its apps, from an account not connected to Cloud.",
     );
 
     /*

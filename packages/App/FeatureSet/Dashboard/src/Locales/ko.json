@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "관리형 서비스 (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "1시간 넘게 어떤 클라우드 연결도 이 계정을 읽지 않았습니다. 이유는 클라우드 > 연결에서 확인하세요.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "더 이상 이 계정을 읽는 클라우드 연결이 없습니다. 클라우드 > 연결에서 다시 연결하세요.",
-  "Self-managed infrastructure (IaaS)": "자체 관리 인프라 (IaaS)",
   "account": "계정",
   "destination": "대상",
   "platform": "플랫폼",
   "type": "유형",
-  "Being read": "읽기 상태",
   "Biggest accounts": "가장 큰 계정",
   "Cloud accounts": "클라우드 계정",
   "Did any cloud provider publish a health event about our accounts this week?": "이번 주에 클라우드 공급자가 우리 계정에 대한 상태 이벤트를 게시했나요?",
@@ -42169,7 +42167,6 @@
   "What it holds": "포함된 항목",
   "Which accounts hold the most resources, and of what types?": "어떤 계정에 리소스가 가장 많고, 어떤 유형인가요?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "어떤 클라우드 계정이 연결되어 있고, 더 이상 읽히지 않는 계정이 있나요?",
-  "Which of this account's resources need attention, and why?": "이 계정의 어떤 리소스를 확인해야 하며, 그 이유는 무엇인가요?",
   "cloud account": "클라우드 계정",
   "cloud accounts": "클라우드 계정",
   "Change machine type": "머신 유형 변경",
@@ -42182,6 +42179,10 @@
   "Scale in": "스케일 인",
   "Snapshot and delete disk": "스냅샷 생성 후 디스크 삭제",
   "Stop VM": "VM 중지",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "목록에는 클라우드가 읽지 않는 계정의 환경 {{count}}개와 그 앱도 포함됩니다.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "목록에는 클라우드가 읽지 않는 계정의 환경 {{count}}개와 그 앱도 포함됩니다."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "앱 플랫폼에는 클라우드에 연결되지 않은 계정의 환경 {{count}}개와 그 앱도 표시됩니다.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "앱 플랫폼에는 클라우드에 연결되지 않은 계정의 환경 {{count}}개와 그 앱도 표시됩니다.",
+  "Infrastructure (IaaS)": "인프라 (IaaS)",
+  "What cost the most, by service, Region or resource.": "서비스, 리전, 리소스별로 비용이 가장 컸던 항목.",
+  "Who changed it": "변경한 사람",
+  "Who changed this account this week, and what did each of them change?": "이번 주에 누가 이 계정을 변경했고, 각자 무엇을 변경했나요?"
 }

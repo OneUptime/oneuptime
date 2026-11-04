@@ -2967,9 +2967,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       // How it is run, in words.
       await expect(
         cardTitled(page, wordIn(reader.locale, "Details")),
-      ).toContainText(
-        wordIn(reader.locale, "Self-managed infrastructure (IaaS)"),
-      );
+      ).toContainText(wordIn(reader.locale, "Infrastructure (IaaS)"));
       // What it runs in and is protected by: named, never a cloud type.
       const connected: Locator = cardTitled(
         page,

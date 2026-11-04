@@ -42151,12 +42151,10 @@
   "Managed service (PaaS)": "Servicio administrado (PaaS)",
   "No cloud connection has read this account for over an hour. Cloud > Connect says why.": "Ninguna conexión a la nube ha leído esta cuenta desde hace más de una hora. Nube > Conectar explica por qué.",
   "No cloud connection reads this account any more. Connect it again from Cloud > Connect.": "Ninguna conexión a la nube lee ya esta cuenta. Vuelve a conectarla desde Nube > Conectar.",
-  "Self-managed infrastructure (IaaS)": "Infraestructura autogestionada (IaaS)",
   "account": "cuenta",
   "destination": "destino",
   "platform": "plataforma",
   "type": "tipo",
-  "Being read": "Se están leyendo",
   "Biggest accounts": "Cuentas más grandes",
   "Cloud accounts": "Cuentas en la nube",
   "Did any cloud provider publish a health event about our accounts this week?": "¿Algún proveedor de nube publicó un evento de estado sobre nuestras cuentas esta semana?",
@@ -42169,7 +42167,6 @@
   "What it holds": "Qué contiene",
   "Which accounts hold the most resources, and of what types?": "¿Qué cuentas contienen más recursos, y de qué tipos?",
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "¿Cuáles de nuestras cuentas en la nube están conectadas, y alguna ya no se está leyendo?",
-  "Which of this account's resources need attention, and why?": "¿Qué recursos de esta cuenta requieren atención, y por qué?",
   "cloud account": "cuenta en la nube",
   "cloud accounts": "cuentas en la nube",
   "Change machine type": "Cambiar el tipo de máquina",
@@ -42182,6 +42179,10 @@
   "Scale in": "Reducir el número de instancias",
   "Snapshot and delete disk": "Crear una instantánea y eliminar el disco",
   "Stop VM": "Detener la VM",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "Las listas también incluyen {{count}} entornos de cuentas que Nube no lee, y sus apps.",
-  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "Las listas también incluyen {{count}} entorno de una cuenta que Nube no lee, y sus apps."
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.": "Plataformas de aplicaciones también muestra {{count}} entornos, con sus apps, de cuentas no conectadas a Nube.",
+  "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud._one": "Plataformas de aplicaciones también muestra {{count}} entorno, con sus apps, de una cuenta no conectada a Nube.",
+  "Infrastructure (IaaS)": "Infraestructura (IaaS)",
+  "What cost the most, by service, Region or resource.": "Lo que más costó, por servicio, región o recurso.",
+  "Who changed it": "Quién lo cambió",
+  "Who changed this account this week, and what did each of them change?": "¿Quién cambió esta cuenta esta semana y qué cambió cada uno?"
 }
