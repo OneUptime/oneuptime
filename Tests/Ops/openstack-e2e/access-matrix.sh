@@ -51,7 +51,8 @@ token_for() {
 
 # Read from what ships, so this can never test another exporter or other flags.
 EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-exporter/' "$AGENT_DIR/docker-compose.yml" | head -1 | sed -E 's/^[[:space:]]*image:[[:space:]]*//')"
-EXPORTER_FLAGS="$(grep -E '^[[:space:]]*- --disable-metric=' "$AGENT_DIR/docker-compose.yml" | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+# Only its own service's: the compose file also starts an exporter with most reads turned off.
+EXPORTER_FLAGS="$(sed -n '/^  openstack-exporter:$/,/^  [a-z-]*:$/p' "$AGENT_DIR/docker-compose.yml" | grep -E '^[[:space:]]*- --disable-metric=' | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
 EXPORTER_SERVICES="identity compute placement network volume image"
 
 scrape_into() {
@@ -152,6 +153,10 @@ openstack role add --project ou-payments --user ou-monitor-on-project reader
 export OU_WRITE_FLAVOR_ID OU_WRITE_IMAGE_ID OU_WRITE_EXTERNAL_NETWORK_ID
 OU_WRITE_FLAVOR_ID="$(openstack flavor show ou.tiny -f value -c id)"
 OU_WRITE_IMAGE_ID="$(openstack image list --status active -f value -c ID | head -1)"
+# What the calls per thing ask about. OVN has no DHCP agents, and then that one isn't asked.
+OU_READ_ROUTER_ID="$( (openstack router list --name ou-router -f value -c ID || true) | head -1)"
+OU_READ_DHCP_AGENT_ID="$( (openstack network agent list --agent-type dhcp -f value -c ID || true) | head -1)"
+export OU_READ_ROUTER_ID OU_READ_DHCP_AGENT_ID
 OU_WRITE_EXTERNAL_NETWORK_ID="$(openstack network show public -f value -c id)"
 
 # A credential that could write fails the job, but only at the end: the rest of what

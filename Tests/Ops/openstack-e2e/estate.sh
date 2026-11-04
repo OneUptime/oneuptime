@@ -5,7 +5,8 @@
 # OpenStack product is tested on what this estate makes a real cloud answer,
 # so it holds one of everything worth telling apart: instances running, shut
 # off and failed, volumes available, attached and in error, a network with a
-# router and floating IPs, two projects to own them.
+# router and floating IPs, two projects to own them, a host in two aggregates and
+# an image stuck on its way to being usable.
 #
 # Idempotent enough to run twice on one cloud, because a step that fails
 # half-way on a CI runner is cheaper to run again than a DevStack is to
@@ -89,6 +90,28 @@ IMAGE="$(openstack image list --status active -f value -c Name | grep -i cirros 
 [ -n "$IMAGE" ] || { echo "DevStack left no cirros image" >&2; exit 1; }
 echo "Using $IMAGE"
 
+log "An image stuck in queued"
+# Created and never given any data, which is what a failed upload leaves behind: nothing
+# ever moves it on. Public, so every credential the access matrix tries sees the same list,
+# and a plain reader's row in the docs stays what it was.
+openstack image show ou-image-stuck >/dev/null 2>&1 \
+  || openstack image create --public --disk-format qcow2 --container-format bare ou-image-stuck >/dev/null
+openstack image show ou-image-stuck -f value -c status
+
+log "Aggregates: a host in two of them"
+# Two, because what a reader has to get right is how the exporter joins their names on
+# one series. Neither sets a zone: Nova refuses to move a host holding instances into a
+# zone, and every other recording reads this host's zone as nova. Each has a property of
+# its own, because an aggregate whose only metadata is its zone is left off the exporter's
+# label as not being a group anyone made.
+AGGREGATE_HOST="$(openstack compute service list --service nova-compute -f value -c Host | head -1)"
+for aggregate in ou-fast ou-gpu; do
+  openstack aggregate show "$aggregate" >/dev/null 2>&1 \
+    || openstack aggregate create --property "oneuptime=$aggregate" "$aggregate" >/dev/null
+  openstack aggregate show "$aggregate" -f value -c hosts | grep -q "$AGGREGATE_HOST" \
+    || openstack aggregate add host "$aggregate" "$AGGREGATE_HOST" >/dev/null
+done
+
 log "Network, subnet, router and floating IPs"
 export OS_PROJECT_NAME=ou-payments
 openstack network show ou-net >/dev/null 2>&1 || openstack network create ou-net >/dev/null
@@ -167,6 +190,8 @@ wait_for_server ou-research-1 ACTIVE ou-research
 unset OS_PROJECT_NAME
 
 log "The estate"
+openstack aggregate list --long
+openstack image list -c Name -c Status
 openstack server list --all-projects -c Name -c Status -c "Flavor"
 openstack volume list --all-projects -c Name -c Status 2>/dev/null || true
 openstack floating ip list -c "Floating IP Address" -c Status 2>/dev/null || true
