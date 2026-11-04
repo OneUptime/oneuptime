@@ -15,6 +15,7 @@ import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import ObjectID from "Common/Types/ObjectID";
+import Dictionary from "Common/Types/Dictionary";
 import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -75,6 +76,15 @@ const WINDOW: InBetween<Date> = new InBetween<Date>(
 );
 
 const POD_KEY: string = "resource.k8s.pod.name";
+
+/*
+ * The cluster a query reads, built apart from the query: an attributes
+ * literal checked in place against Query<Metric>'s recursive attribute type
+ * runs past TypeScript's instantiation depth (TS2589).
+ */
+const CLUSTER_SCOPE: Dictionary<string> = {
+  "resource.k8s.cluster.name": "prod",
+};
 const projectId: ObjectID = ObjectID.generate();
 
 // One row a minute bucket per pod, the newest at `newestMinutesBack` before the end.
@@ -366,7 +376,7 @@ describe("readQueryArrivals: read only when it can change a verdict", () => {
         projectId,
         name: "k8s.pod.cpu.utilization",
         time: WINDOW,
-        attributes: { "resource.k8s.cluster.name": "prod" },
+        attributes: CLUSTER_SCOPE,
       },
       groupByAttributeKeys: [POD_KEY],
       aggregatedResult: behind,
@@ -381,7 +391,7 @@ describe("readQueryArrivals: read only when it can change a verdict", () => {
         projectId,
         name: "k8s.pod.cpu.utilization",
         time: WINDOW,
-        attributes: { "resource.k8s.cluster.name": "prod" },
+        attributes: CLUSTER_SCOPE,
       },
       groupByAttributeKeys: [POD_KEY],
       limit: 50000,

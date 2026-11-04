@@ -151,7 +151,7 @@ function deployment(input: {
   name: string;
   from: number;
   to: number;
-  arrivals?: Array<MetricSeriesArrival | null>;
+  arrivals?: Array<MetricSeriesArrival | null> | undefined;
 }): MetricSeriesResult {
   const rows: (value: number) => AggregatedResult = (
     value: number,
