@@ -14,9 +14,11 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * library they never use to draw: PostHog through the analytics, the
  * drag-and-drop library through Table and StaticModelList, highlight.js
  * through the code editor and a form's summary step, the QR code library,
- * and a database model through the edition label. Each is now loaded where
- * it is used - posthog-js once analytics starts, the rest by the first list,
- * editor, summary or code that needs it.
+ * a database model through the edition label, and the browser OpenTelemetry
+ * SDK with zone.js through the entry's Telemetry. Each is now loaded where it
+ * is used - posthog-js once analytics starts, the SDK where browser telemetry
+ * is configured, the rest by the first list, editor, summary or code that
+ * needs it. zone.js is gone altogether (BrowserTelemetrySdk.ts says why).
  *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
@@ -34,6 +36,7 @@ const SHARED_MODULES: ReadonlyArray<string> = [
   "UI/Components/QR/QR",
   "UI/Components/EditionLabel/EditionLabel",
   "UI/Utils/Analytics",
+  "UI/Utils/Telemetry/Telemetry",
 ];
 
 // A module's own source, as the metafile names it.
@@ -90,8 +93,23 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
     isLoadedWhenNeeded: true,
   },
   {
+    name: "the browser OpenTelemetry SDK, which loads where telemetry is configured",
+    path: "node_modules/@opentelemetry/",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "Telemetry's own file for the SDK",
+    path: "UI/Utils/Telemetry/BrowserTelemetrySdk.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
     name: "the GlobalConfig database model, which the edition label no longer builds",
     path: "Models/DatabaseModels/GlobalConfig.ts",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "zone.js, which the SDK does not use",
+    path: "node_modules/zone.js/",
     isLoadedWhenNeeded: false,
   },
 ];
@@ -258,12 +276,15 @@ describe("what the sign-in pages' shared modules put in the first load", () => {
     },
   );
 
-  test("does not build the GlobalConfig database model at all", () => {
+  test.each(
+    LEFT_OUT.filter((leftOut: LeftOut): boolean => {
+      return !leftOut.isLoadedWhenNeeded;
+    }).map((leftOut: LeftOut): [string, LeftOut] => {
+      return [leftOut.name, leftOut];
+    }),
+  )("does not build %s at all", (_name: string, leftOut: LeftOut) => {
     expect(
-      inputsUnder(
-        [...built!.firstLoad, ...built!.loadedLater],
-        "Models/DatabaseModels/GlobalConfig.ts",
-      ),
+      inputsUnder([...built!.firstLoad, ...built!.loadedLater], leftOut.path),
     ).toEqual([]);
   });
 });
