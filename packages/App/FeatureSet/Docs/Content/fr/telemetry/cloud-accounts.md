@@ -8,6 +8,7 @@ Connectez un compte AWS, un abonnement Azure ou un projet Google Cloud depuis le
 - [Google Cloud](#google-cloud): Un compte de service avec six rôles en lecture seule.
 - [Ce que lit OneUptime](#ce-que-lit-oneuptime): Ressources, métriques, modifications, événements de santé et coûts, à quelle fréquence, et ce que coûte leur lecture.
 - [Coûts et économies du cloud](/docs/telemetry/cloud-costs): Ce que coûte chaque compte, les moyens de dépenser moins et des budgets qui alertent.
+- [Diffuser les métriques et journaux CloudWatch](/docs/telemetry/cloud-streaming): Chaque métrique en quelques minutes, et CloudWatch Logs, via Amazon Data Firehose.
 - [Sécurité des données](#sécurité-des-données): Ce que la connexion permet à Sécurité des données de lire, et ce que chaque niveau ajoute à la commande.
 - [Laisser l'IA corriger les problèmes](#laisser-lia-corriger-les-problèmes): Une commande de plus, et OneUptime AI peut corriger ce qu'il trouve.
 :::

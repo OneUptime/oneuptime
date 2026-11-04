@@ -8,6 +8,7 @@
 - [Google Cloud](#google-cloud): 읽기 전용 역할 여섯 개가 있는 서비스 계정.
 - [OneUptime이 읽는 것](#oneuptime이-읽는-것): 리소스, 메트릭, 변경 사항, 상태 이벤트, 비용을 얼마나 자주 읽으며 읽는 데 비용이 얼마인지.
 - [클라우드 비용과 절감](/docs/telemetry/cloud-costs): 각 계정의 비용, 지출을 줄이는 방법, 알림을 보내는 예산.
+- [CloudWatch 메트릭 및 로그 스트리밍](/docs/telemetry/cloud-streaming): 모든 메트릭을 몇 분 안에, CloudWatch Logs까지 Amazon Data Firehose로 받습니다.
 - [데이터 보안](#데이터-보안): 연결이 데이터 보안에 무엇을 읽도록 허용하는지, 그리고 각 수준이 명령에 무엇을 더하는지.
 - [AI가 문제를 해결하도록 허용](#ai가-문제를-해결하도록-허용): 명령 하나만 더 실행하면 OneUptime AI가 찾은 문제를 해결할 수 있습니다.
 :::

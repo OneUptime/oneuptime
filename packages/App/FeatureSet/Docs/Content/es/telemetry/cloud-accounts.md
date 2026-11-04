@@ -8,6 +8,7 @@ Conecta una cuenta de AWS, una suscripción de Azure o un proyecto de Google Clo
 - [Google Cloud](#google-cloud): Una cuenta de servicio con seis roles de solo lectura.
 - [Qué lee OneUptime](#qué-lee-oneuptime): Recursos, métricas, cambios, eventos de estado y costos, con qué frecuencia y cuánto cuesta leerlos.
 - [Costos y ahorros en la nube](/docs/telemetry/cloud-costs): Cuánto cuesta cada cuenta, las formas de gastar menos y presupuestos que alertan.
+- [Transmitir métricas y registros de CloudWatch](/docs/telemetry/cloud-streaming): Cada métrica en minutos, y CloudWatch Logs, a través de Amazon Data Firehose.
 - [Seguridad de datos](#seguridad-de-datos): Lo que la conexión permite leer a Seguridad de datos, y lo que añade cada nivel al comando.
 - [Permitir que la IA corrija problemas](#permitir-que-la-ia-corrija-problemas): Un comando más, y OneUptime AI puede corregir lo que encuentra.
 :::

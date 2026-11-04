@@ -8,6 +8,7 @@
 - [Google Cloud](#google-cloud): 具有六个只读角色的服务账号。
 - [OneUptime 读取什么](#oneuptime-读取什么): 资源、指标、变更、健康事件和成本，多久读取一次，以及读取它们的费用是多少。
 - [云成本与节省](/docs/telemetry/cloud-costs): 每个账户的成本、减少支出的方法，以及会发出警报的预算。
+- [流式传输 CloudWatch 指标和日志](/docs/telemetry/cloud-streaming): 通过 Amazon Data Firehose，在几分钟内获得每个指标以及 CloudWatch Logs。
 - [数据安全](#数据安全): 该连接让数据安全可以读取什么，以及每个级别会给命令添加什么。
 - [让 AI 修复问题](#让-ai-修复问题): 再运行一条命令，OneUptime AI 就能修复它发现的问题。
 :::
