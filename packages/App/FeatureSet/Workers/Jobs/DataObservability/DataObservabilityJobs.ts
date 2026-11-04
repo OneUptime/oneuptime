@@ -3,6 +3,8 @@ import JobDictionary from "../../Utils/JobDictionary";
 import { QueueJob } from "Common/Server/Infrastructure/Queue";
 import DataObservabilityRunner from "Common/Server/Utils/DataObservability/DataObservabilityRunner";
 import DataPipelineScheduleCheck from "Common/Server/Utils/DataObservability/DataPipelineScheduleCheck";
+import DataProductCheck from "Common/Server/Utils/DataObservability/DataProductCheck";
+import DataReconciliationCompare from "Common/Server/Utils/DataObservability/DataReconciliationCompare";
 import {
   DATA_OBSERVABILITY_COLLECT_STORE_JOB,
   DATA_OBSERVABILITY_DISCOVER_TABLE_USAGE_JOB,
@@ -28,6 +30,13 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * Every five minutes, check every pipeline's schedule: how late its next
  * run is, and how long its running run has taken (DataPipelineScheduleCheck).
+ *
+ * Every five minutes, check every data product's tables against its SLA:
+ * which are late, and what its data is as of (DataProductCheck).
+ *
+ * Every fifteen minutes, reconcile every reconciliation's two sides - also
+ * done as each side is recorded - so a side that stopped being read is
+ * noticed (DataReconciliationCompare).
  */
 
 // The most stores claimed for collection per run.
@@ -121,5 +130,29 @@ RunCron(
   },
   async () => {
     await DataPipelineScheduleCheck.checkAll(OneUptimeDate.getCurrentDate());
+  },
+);
+
+RunCron(
+  "DataObservability:CheckDataProducts",
+  {
+    schedule: EVERY_FIVE_MINUTE,
+    runOnStartup: false,
+    timeoutInMS: 4 * 60 * 1000,
+  },
+  async () => {
+    await DataProductCheck.checkAll(OneUptimeDate.getCurrentDate());
+  },
+);
+
+RunCron(
+  "DataObservability:CompareReconciliations",
+  {
+    schedule: EVERY_FIFTEEN_MINUTE,
+    runOnStartup: false,
+    timeoutInMS: 10 * 60 * 1000,
+  },
+  async () => {
+    await DataReconciliationCompare.compareAll(OneUptimeDate.getCurrentDate());
   },
 );

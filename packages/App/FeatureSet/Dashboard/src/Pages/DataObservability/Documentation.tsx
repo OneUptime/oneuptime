@@ -120,6 +120,21 @@ On **Databases**, choose **Recommended Alerts** for a database. Each recommendat
 
 Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
 
+
+## Data products
+
+The people who use data (analysts, finance, executives, AI agents) think in what they use: "the revenue dashboard's tables", not databases. A data product names those tables, with its owner, its consumers and its freshness SLA. Create one under **Data Products**. Its SLA is either or both of:
+- **Fresh by a time of day (UTC):** each day's data lands that day, by then. From that time, every table must have changed that day; until then, yesterday's load stands. A load that is always half an hour late is late for that half hour every day.
+- **A maximum age:** no table's last change may be older than this.
+
+Every five minutes each product's tables are checked against its SLA. The product is **Late** when any table is, and its data is as of the oldest last change among them. It writes \`oneuptime.data.product.late_tables\` and \`oneuptime.data.product.data_age\`, so you can chart every product's freshness side by side.
+
+Saving a product also makes, as you and with your permissions:
+- **A monitor**, which is the product on a status page. It is Degraded while a table is late, and opens an incident and an alert at your project's least severe level, which resolve on their own. Add it to a status page, private or public, as a resource: consumers who subscribe hear when the product is late, and when it is fresh again.
+- **An SLO** over that monitor: the share of the time the data is on time, against the product's SLA target over 30 days, with the fast and slow burn-rate alerts every SLO starts with.
+
+Deleting the product deletes both. Each product also has a **badge** that says what its data is as of, green while on time and amber with "late" once not. Embed it in a BI dashboard, a wiki page or a README from the product's Overview. Its link needs no sign-in, so treat it like a shared link; **Reset Badge Link** makes a new one and retires the old.
+
 ## Checks on a table's values
 
 Table health says whether a table changes. A **check** says whether what it holds is right. Add one on a table's **Checks** tab:
@@ -129,7 +144,7 @@ Table health says whether a table changes. A **check** says whether what it hold
 | **Null Percent** | Percent of rows whose column is empty |
 | **Duplicate Percent** | Percent of values that repeat another row's |
 | **Distinct Count** | How many different values the column holds |
-| **Minimum**, **Maximum**, **Average** | Of a numeric column |
+| **Minimum**, **Maximum**, **Average**, **Sum** | Of a numeric column (a Sum of no rows is 0) |
 | **Invalid Percent** | Percent of values outside a list you give |
 | **Format Mismatch Percent** | Percent of values that do not match a regular expression (PostgreSQL and MySQL) |
 | **Orphan Count** | Rows whose value has no match in another table's column |
@@ -154,6 +169,26 @@ Set **Alert When** to alert on a check:
 - **Above** or **Below** compares it with a threshold.
 
 Saving the check makes a Metrics monitor for it, as you, with your permissions. Clearing the condition removes the monitor.
+
+
+## Reconciliations
+
+Copies drift: the warehouse has fewer orders than the application's database, or a migration lost rows. A reconciliation compares one measure of two tables, in one database or two:
+- **Row Count**
+- **Sum** of a column
+- **Distinct Count** of a column
+- **Custom SQL**: a read-only query that returns one number, named \`value\`.
+
+It has a tolerance, an **Absolute** amount or a **Percent** of the source's value. Create one under **Reconciliations**.
+
+Each side is read by a data check of its own, which the reconciliation makes and keeps, with its database's collection: by OneUptime, or by the database's probe. A reconciliation can therefore compare a PostgreSQL table in your network with its copy in Snowflake or BigQuery. Its checks show on each table's Checks tab and are changed only from the reconciliation.
+
+The two values are compared once both have been read within 15 minutes of each other, and both sides are then scheduled to be read together again. A reconciliation writes:
+- \`oneuptime.data.reconciliation.drifted\`: 1 when the two have drifted beyond the tolerance, 0 when they agree. Its monitor reads this, and alerts when they drift.
+- \`oneuptime.data.reconciliation.difference\`: the target's value less the source's.
+- \`oneuptime.data.reconciliation.difference_percent\`: the difference as a percentage of the source's value.
+
+A side whose check fails says why. A copy that is loaded on a schedule lags its source: compare a measure both have settled on, such as rows older than an hour, with Custom SQL, or allow for the lag in the tolerance.
 
 ## Pipelines and lineage, from OpenLineage
 

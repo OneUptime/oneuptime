@@ -8,7 +8,10 @@ import {
   DataObservabilityCheckAlertResponse,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
+  DataObservabilityDataProductBadgeResetResponse,
+  DataObservabilityDataProductSyncResponse,
   DataObservabilityOverview,
+  DataObservabilityReconciliationSyncResponse,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { APP_API_URL } from "Common/UI/Config";
@@ -18,8 +21,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 /*
  * The Dashboard's side of Data Observability's own routes (Server/API/
  * DataObservabilityAPI.ts): the Overview, the watched stores, Collect Now,
- * Connect a Database, and a data check's alert and Run Now. Every request goes through the refresh-aware
- * client with the project's headers, like every other page's.
+ * Connect a Database, a data check's alert and Run Now, and a data
+ * product's monitor and SLO and its badge. Every request goes through the
+ * refresh-aware client with the project's headers, like every other page's.
  */
 
 export class DataObservabilityApiError extends Error {
@@ -83,6 +87,63 @@ export default class DataObservabilityApi {
     return (await post(
       DATA_OBSERVABILITY_API_ROUTES.checkAlert(dataCheckId.toString()),
     )) as unknown as DataObservabilityCheckAlertResponse;
+  }
+
+  // Makes the data product's monitor and SLO match it, as the person who saved it.
+  public static async syncDataProduct(
+    dataProductId: ObjectID,
+  ): Promise<DataObservabilityDataProductSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductSync(dataProductId.toString()),
+    )) as unknown as DataObservabilityDataProductSyncResponse;
+  }
+
+  // A new secret for the product's badge: badges embedded with the old one stop working.
+  public static async resetDataProductBadge(
+    dataProductId: ObjectID,
+  ): Promise<DataObservabilityDataProductBadgeResetResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductBadgeReset(
+        dataProductId.toString(),
+      ),
+    )) as unknown as DataObservabilityDataProductBadgeResetResponse;
+  }
+
+  // The badge's address, to embed where nobody signs in: its token is its secret.
+  public static getDataProductBadgeUrl(
+    dataProductId: ObjectID,
+    badgeToken: string,
+  ): string {
+    return URL.fromString(APP_API_URL.toString())
+      .addRoute(
+        DATA_OBSERVABILITY_API_ROUTES.dataProductBadge(
+          dataProductId.toString(),
+        ),
+      )
+      .addQueryParam("token", badgeToken)
+      .toString();
+  }
+
+  // Makes the reconciliation's two checks and its monitor match it, as the person who saved it.
+  public static async syncReconciliation(
+    reconciliationId: ObjectID,
+  ): Promise<DataObservabilityReconciliationSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationSync(
+        reconciliationId.toString(),
+      ),
+    )) as unknown as DataObservabilityReconciliationSyncResponse;
+  }
+
+  // Reads both sides at their stores' very next collections, together.
+  public static async runReconciliationNow(
+    reconciliationId: ObjectID,
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationRunNow(
+        reconciliationId.toString(),
+      ),
+    );
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {

@@ -264,6 +264,7 @@ describe("Telemetry ingestion key create form", () => {
         [
           "Components/AI/Connect/LlmAppsPath.tsx",
           "Components/Cloud/CloudAiAgentSetupModal.tsx",
+          "Components/DataObservability/ConnectSyncToolModal.tsx",
           "Components/SecurityEvents/SecurityEventsSetupGuide.tsx",
           "Components/SetupGuide/SetupGuideCard.tsx",
           "Components/Telemetry/Documentation.tsx",

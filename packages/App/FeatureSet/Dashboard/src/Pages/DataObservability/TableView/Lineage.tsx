@@ -160,7 +160,7 @@ const TableLineagePage: FunctionComponent<
           description:
             "The tables this table is built from, and the pipelines that write it: seen in a pipeline's run, with how its latest run went, in the database's query history, or in a view's definition.",
         }}
-        noItemsMessage="Nothing has been seen feeding this table yet. Lineage shows here from pipelines that send OpenLineage events or dbt artifacts, from BigQuery's and Redshift's query history, and from views' definitions."
+        noItemsMessage="Nothing has been seen feeding this table yet. Lineage comes from OpenLineage events, dbt artifacts, BigQuery and Redshift query history, and views."
         selectMoreFields={{
           upstreamDataAssetId: true,
           source: true,

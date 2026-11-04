@@ -33,6 +33,12 @@ import DataObservabilityPipelinesPage from "../Pages/DataObservability/Pipelines
 import PipelineViewLayout from "../Pages/DataPipeline/View/Layout";
 import PipelineOverviewPage from "../Pages/DataPipeline/View/Overview";
 import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommendations";
+import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
+import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
+import DataProductViewLayout from "../Pages/DataProduct/View/Layout";
+import DataProductOverviewPage from "../Pages/DataProduct/View/Overview";
+import DataProductSettingsPage from "../Pages/DataProduct/View/Settings";
+import DataProductDeletePage from "../Pages/DataProduct/View/Delete";
 import DataObservabilityChecksPage from "../Pages/DataObservability/Checks";
 import TableSettingsPage from "../Pages/DataObservability/TableView/Settings";
 import TableDeletePage from "../Pages/DataObservability/TableView/Delete";
@@ -112,6 +118,25 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             <DataObservabilityPipelinesPage {...props} pageRoute={pageRoute} />
           );
         })}
+        {page(PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS, (pageRoute: Route) => {
+          return (
+            <DataObservabilityDataProductsPage
+              {...props}
+              pageRoute={pageRoute}
+            />
+          );
+        })}
+        {page(
+          PageMap.DATA_OBSERVABILITY_RECONCILIATIONS,
+          (pageRoute: Route) => {
+            return (
+              <DataObservabilityReconciliationsPage
+                {...props}
+                pageRoute={pageRoute}
+              />
+            );
+          },
+        )}
         {page(PageMap.DATA_OBSERVABILITY_CHECKS, (pageRoute: Route) => {
           return (
             <DataObservabilityChecksPage {...props} pageRoute={pageRoute} />
@@ -294,6 +319,57 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS
+                ] as Route
+              }
+            />
+          }
+        />
+      </PageRoute>
+
+      <PageRoute
+        path={
+          DataObservabilityRoutePath[
+            PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW
+          ] || ""
+        }
+        element={<DataProductViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <DataProductOverviewPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS,
+          )}
+          element={
+            <DataProductSettingsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE,
+          )}
+          element={
+            <DataProductDeletePage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE
                 ] as Route
               }
             />

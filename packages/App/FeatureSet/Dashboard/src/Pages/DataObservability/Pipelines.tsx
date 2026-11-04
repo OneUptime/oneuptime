@@ -197,6 +197,7 @@ const DataObservabilityPipelinesPage: FunctionComponent<
           buttons: [
             {
               title: "Connect Fivetran or Airbyte",
+              phoneTitle: "Connect",
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Add,
               onClick: () => {
@@ -205,7 +206,7 @@ const DataObservabilityPipelinesPage: FunctionComponent<
             },
           ],
         }}
-        noItemsMessage="No pipeline yet. Point your scheduler's OpenLineage integration, or Fivetran's or Airbyte's webhooks, at OneUptime, as Documentation shows, and each job appears with its first run."
+        noItemsMessage="No pipeline yet. Point OpenLineage, or Fivetran's or Airbyte's webhooks, at OneUptime, as Documentation shows: each job appears with its first run."
         selectMoreFields={{
           lastErrorMessage: true,
           lastRunEndedAt: true,
