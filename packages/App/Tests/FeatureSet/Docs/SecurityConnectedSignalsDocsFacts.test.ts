@@ -499,12 +499,13 @@ describe("the Connected Signals page", () => {
       SecurityConnectionKind.DockerHost,
       SecurityConnectionKind.PodmanHost,
       SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.OpenStackCloud,
       SecurityConnectionKind.NetworkDevice,
       SecurityConnectionKind.CloudResource,
       SecurityConnectionKind.Service,
     ]);
     expect(flat(section("Incidents a case declares"))).toContain(
-      "links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, network devices, cloud resources and services the case is exactly connected to.",
+      "links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, OpenStack clouds, network devices, cloud resources and services the case is exactly connected to.",
     );
     /*
      * The alert a playbook pages with, and what detections, threat intel

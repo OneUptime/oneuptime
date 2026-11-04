@@ -855,17 +855,17 @@ describe("the docs page", () => {
 
   test("says the same as the README of what the agent turns off", () => {
     const readme = read(README);
-    // The exporter it runs by default. The database path's other one is told apart in its own docs.
+    // The exporter it runs by default: the database path's other one reads almost nothing.
     const compose = read(path.join(AGENT_DIR, "docker-compose.yml"));
     const exporter = compose.slice(
       compose.indexOf("\n  openstack-exporter:"),
       compose.indexOf("\n  openstack-worker-state-exporter:"),
     );
-    const flags = Array.from(
-      exporter.matchAll(/- (--disable-metric=\S+)/g),
-    ).map((match) => {
-      return match[1];
-    });
+    const flags = Array.from(exporter.matchAll(/- (--disable-metric=\S+)/g)).map(
+      (match) => {
+        return match[1];
+      },
+    );
     expect(flags.length).toBeGreaterThan(5);
     for (const flag of flags) {
       for (const text of [page, readme]) {
