@@ -893,6 +893,8 @@ import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100
 import { TwilioAuthTokenEncryptedColumn1801800000000 } from "./1801800000000-TwilioAuthTokenEncryptedColumn";
 import { AddDataAssetOwnersAndFeedback1808992700000 } from "./1808992700000-AddDataAssetOwnersAndFeedback";
 import { AddOpenStackClouds1808992900000 } from "./1808992900000-AddOpenStackClouds";
+import { AddOpenStackProbeCollection1808992910000 } from "./1808992910000-AddOpenStackProbeCollection";
+import { AddOpenStackProbeCollectionIndexAndKey1808992920000 } from "./1808992920000-AddOpenStackProbeCollectionIndexAndKey";
 
 export default [
   InitialMigration,
@@ -1790,4 +1792,6 @@ export default [
   AddUserMattermostIndexesAndKeys1808992680000,
   AddDataAssetOwnersAndFeedback1808992700000,
   AddOpenStackClouds1808992900000,
+  AddOpenStackProbeCollection1808992910000,
+  AddOpenStackProbeCollectionIndexAndKey1808992920000,
 ];
