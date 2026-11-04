@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "Конвейер агрегации в формате JSON, который завершается документом с числом value. С Segment By — сегмент и число для каждого документа.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Каждый запрос, который ваши хранилища выполняют снова и снова, с его затратами за последние сутки, сбоями и отслеживаемыми таблицами, в которые он пишет. Назван по тегу или по тому, что он делает и пишет, — никогда по тексту запроса.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON с тем, что может читать его дашборды: API-ключ, пользователь, токен или субъект-служба — как требует инструмент. Зашифровано и больше не показывается."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON с тем, что может читать его дашборды: API-ключ, пользователь, токен или субъект-служба — как требует инструмент. Зашифровано и больше не показывается.",
+  "Escalate to": "Эскалировать на",
+  "It skips {{levels}}.": "Это пропустит {{levels}}.",
+  "Not escalated": "Не эскалировано",
+  "The page was escalated past this level": "Этот уровень пропущен при эскалации",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Уровни политики изменились, поэтому ничего не эскалировано. Эскалируйте ещё раз, чтобы выбрать уровень.",
+  "{{policy}}: escalate to": "{{policy}}: эскалировать на",
+  "no one next": "следующего нет"
 }

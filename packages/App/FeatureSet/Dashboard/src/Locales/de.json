@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "Eine Aggregations-Pipeline als JSON, die mit einem Dokument mit einer Zahl namens value endet. Mit Segment By ein Segment und eine Zahl pro Dokument.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Jede Abfrage, die Ihre Warehouses immer wieder ausführen, mit ihren Kosten des letzten Tages, ihren Fehlschlägen und den überwachten Tabellen, die sie schreibt. Benannt nach ihrem Tag oder danach, was sie tut und schreibt: nie nach ihrer Abfrage.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON mit dem, was seine Dashboards lesen darf: ein API-Schlüssel, ein Benutzer, ein Token oder ein Service Principal, wie das Tool es verlangt. Verschlüsselt und nie wieder angezeigt."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON mit dem, was seine Dashboards lesen darf: ein API-Schlüssel, ein Benutzer, ein Token oder ein Service Principal, wie das Tool es verlangt. Verschlüsselt und nie wieder angezeigt.",
+  "Escalate to": "Eskalieren auf",
+  "It skips {{levels}}.": "Damit überspringen Sie {{levels}}.",
+  "Not escalated": "Nicht eskaliert",
+  "The page was escalated past this level": "Diese Stufe wurde beim Eskalieren übersprungen",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Die Stufen der Richtlinie haben sich geändert, daher wurde nichts eskaliert. Eskalieren Sie erneut, um eine Stufe zu wählen.",
+  "{{policy}}: escalate to": "{{policy}}: eskalieren auf",
+  "no one next": "niemand als Nächstes"
 }

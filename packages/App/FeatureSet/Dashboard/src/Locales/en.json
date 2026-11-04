@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.",
+  "Escalate to": "Escalate to",
+  "It skips {{levels}}.": "It skips {{levels}}.",
+  "Not escalated": "Not escalated",
+  "The page was escalated past this level": "The page was escalated past this level",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
+  "{{policy}}: escalate to": "{{policy}}: escalate to",
+  "no one next": "no one next"
 }

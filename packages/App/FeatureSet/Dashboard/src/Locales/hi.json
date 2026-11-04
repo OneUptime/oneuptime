@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "JSON में एक एग्रीगेशन पाइपलाइन, जो value नाम की संख्या वाले दस्तावेज़ पर खत्म होती है। Segment By के साथ, हर दस्तावेज़ के लिए एक सेगमेंट और एक संख्या।",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "हर क्वेरी जिसे आपके वेयरहाउस बार-बार चलाते हैं, पिछले एक दिन के खर्च, उसकी विफलताओं और उन निगरानी वाली टेबलों के साथ जिनमें वह लिखती है। नाम उसके टैग से, या वह क्या करती और लिखती है उससे: कभी उसकी क्वेरी से नहीं।",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON, जिसमें वह हो जो इसके डैशबोर्ड पढ़ सके: टूल के अनुसार API कुंजी, उपयोगकर्ता, टोकन या सर्विस प्रिंसिपल। एन्क्रिप्ट किया जाता है और फिर कभी नहीं दिखाया जाता।"
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON, जिसमें वह हो जो इसके डैशबोर्ड पढ़ सके: टूल के अनुसार API कुंजी, उपयोगकर्ता, टोकन या सर्विस प्रिंसिपल। एन्क्रिप्ट किया जाता है और फिर कभी नहीं दिखाया जाता।",
+  "Escalate to": "किस स्तर पर एस्केलेट करें",
+  "It skips {{levels}}.": "यह {{levels}} को छोड़ देगा।",
+  "Not escalated": "एस्केलेट नहीं किया गया",
+  "The page was escalated past this level": "एस्केलेट करते समय यह स्तर छोड़ दिया गया",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "नीति के स्तर बदल गए हैं, इसलिए कुछ भी एस्केलेट नहीं किया गया। स्तर चुनने के लिए फिर से एस्केलेट करें।",
+  "{{policy}}: escalate to": "{{policy}}: किस स्तर पर एस्केलेट करें",
+  "no one next": "कोई अगला नहीं"
 }

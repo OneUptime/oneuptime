@@ -14507,6 +14507,359 @@ test.describe("Escalate", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Escalate to a level the person picks
+ * ---------------------------------------------------------------------------
+ *
+ * With two or more levels after the viewer's (?passOn=levels: Platform
+ * leads, DBA leads and Level 4 of 4), the Escalate dialog asks which to
+ * page first - "Escalate to", a radio for each, the next level picked - and
+ * its sentence follows the pick. Only a later level than the next is sent
+ * (escalateTo); ?passOn=levels-gone refuses the first such POST, as a
+ * server whose policy lost DBA leads meanwhile does.
+ */
+
+const PASS_ON_RUN_ID: string = uuid("73000000", 1);
+const DBA_LEADS_LEVEL_ID: string = uuid("74000000", 3);
+const LEVEL_4_ID: string = uuid("74000000", 4);
+
+function levelPicker(page: Page): Locator {
+  return escalateDialog(page).getByRole("radiogroup", { name: "Escalate to" });
+}
+
+async function passOnPosts(page: Page): Promise<Array<RecordedApiRequest>> {
+  return (
+    await apiRequestsTo(page, `/on-call-page/pass-on/incident/${INCIDENT_ID}`)
+  ).filter((request: RecordedApiRequest): boolean => {
+    return request.method === "POST";
+  });
+}
+
+test.describe("Escalate to a level the person picks", () => {
+  test("asks which level, the next picked; the sentence follows the pick, and the pick is sent", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels",
+    );
+
+    await escalateButton(page).click();
+
+    const radios: Locator = levelPicker(page).getByRole("radio");
+    await expect(radios).toHaveCount(3);
+    await expect(
+      levelPicker(page).getByLabel("Platform leads (Level 2 of 4)"),
+    ).toBeChecked();
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).not.toBeChecked();
+    await expect(
+      levelPicker(page).getByLabel("Level 4 of 4"),
+    ).not.toBeChecked();
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+      NOT_PAGED_AGAIN,
+    ]);
+    await screenshotElement(escalateDialog(page), "escalate-dialog-levels-ask");
+
+    await levelPicker(page).getByLabel("DBA leads (Level 3 of 4)").check();
+
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "This will immediately page DBA leads (Level 3 of 4), without waiting. It skips Platform leads (Level 2 of 4).",
+      NOT_PAGED_AGAIN,
+    ]);
+    await screenshotElement(
+      escalateDialog(page),
+      "escalate-dialog-levels-picked",
+    );
+
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Incident escalated",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy is now paging DBA leads (Level 3 of 4): Dana Kim.",
+      NOT_PAGED_AGAIN,
+    ]);
+    await expect(levelPicker(page)).toHaveCount(0);
+
+    const posts: Array<RecordedApiRequest> = await passOnPosts(page);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toEqual({
+      escalateTo: { [PASS_ON_RUN_ID]: DBA_LEADS_LEVEL_ID },
+    });
+  });
+
+  test("leaving the next level picked sends what Escalate always sent", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels",
+    );
+
+    await escalateButton(page).click();
+    await expect(levelPicker(page)).toBeVisible();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy is now paging Platform leads (Level 2 of 4): Sam Lee and Priya Patel.",
+      NOT_PAGED_AGAIN,
+    ]);
+
+    const posts: Array<RecordedApiRequest> = await passOnPosts(page);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toEqual({});
+  });
+
+  test("the keyboard moves between the levels, and the pick follows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels",
+    );
+
+    await escalateButton(page).click();
+    await levelPicker(page).getByLabel("Platform leads (Level 2 of 4)").focus();
+    await page.keyboard.press("ArrowDown");
+
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).toBeChecked();
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).toBeFocused();
+    expect((await dialogLines(page, "pass-on-preview"))[0]).toBe(
+      "This will immediately page DBA leads (Level 3 of 4), without waiting. It skips Platform leads (Level 2 of 4).",
+    );
+  });
+
+  test("a level gone meanwhile: Not escalated, why, and the levels as they are now", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels-gone",
+    );
+
+    await escalateButton(page).click();
+    await levelPicker(page).getByLabel("DBA leads (Level 3 of 4)").check();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Not escalated",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
+    ]);
+
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    // Still paged: Escalate is there, with the levels the policy has now.
+    await escalateButton(page).click();
+    await expect(levelPicker(page).getByRole("radio")).toHaveCount(2);
+    await expect(
+      levelPicker(page).getByLabel("DBA leads (Level 3 of 4)"),
+    ).toHaveCount(0);
+
+    await levelPicker(page).getByLabel("Level 4 of 4").check();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy is now paging Level 4 of 4: Morgan Chen.",
+      NOT_PAGED_AGAIN,
+    ]);
+    expect(
+      (await passOnPosts(page)).map((request: RecordedApiRequest) => {
+        return request.body;
+      }),
+    ).toEqual([
+      { escalateTo: { [PASS_ON_RUN_ID]: DBA_LEADS_LEVEL_ID } },
+      { escalateTo: { [PASS_ON_RUN_ID]: LEVEL_4_ID } },
+    ]);
+  });
+
+  test("on a 390px phone, in the dark theme, the levels fit and each place stays on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels&theme=dark",
+    );
+
+    await escalateButton(page).click();
+    await expect(levelPicker(page)).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+    // A place's spaces are spaces no line breaks at: "(Level 3 of 4)" whole.
+    const label: string = await levelPicker(page)
+      .getByLabel("DBA leads (Level 3 of 4)")
+      .evaluate((input: Element): string => {
+        return (input as HTMLInputElement).labels![0]!.textContent || "";
+      });
+    expect(label).toBe("DBA leads (Level\u00a03\u00a0of\u00a04)");
+
+    await screenshotElement(
+      escalateDialog(page),
+      "escalate-dialog-levels-dark-mobile",
+    );
+  });
+
+  /*
+   * ?passOn=levels-two: two policies page the viewer about the record, each
+   * with levels of its own after theirs - Payments escalation's Level 3 named
+   * at length. Each policy's levels sit right over that policy's sentence,
+   * which names no policy (the levels' label does), and on a phone a level's
+   * name that wraps keeps its radio whole, by its first line.
+   */
+  test("two policies: each policy's levels over its own sentence, and a long level's radio whole on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels-two",
+    );
+
+    await escalateButton(page).click();
+
+    const picks: Locator =
+      escalateDialog(page).getByTestId("pass-on-level-pick");
+
+    await expect(picks).toHaveCount(2);
+    await expect(
+      picks.nth(0).getByRole("radiogroup", {
+        name: "Checkout on-call: escalate to",
+      }),
+    ).toBeVisible();
+    await expect(
+      picks.nth(1).getByRole("radiogroup", {
+        name: "Payments escalation: escalate to",
+      }),
+    ).toBeVisible();
+    await expect(picks.nth(0).locator("p")).toHaveText(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+    await expect(picks.nth(1).locator("p")).toHaveText(
+      "This will immediately page Payments on-call (Level 2 of 3), without waiting.",
+    );
+
+    const longLevel: Locator = picks
+      .nth(1)
+      .getByLabel(
+        "Payments platform engineering managers, EU and US regions (Level 3 of 3)",
+      );
+
+    await longLevel.check();
+
+    await expect(picks.nth(1).locator("p")).toHaveText(
+      "This will immediately page Payments platform engineering managers, EU and US regions (Level 3 of 3), without waiting. It skips Payments on-call (Level 2 of 3).",
+    );
+    // A screen reader hears it too: each group is described by its sentence.
+    await expect(
+      picks.nth(1).getByRole("radiogroup", {
+        name: "Payments escalation: escalate to",
+      }),
+    ).toHaveAccessibleDescription(
+      "This will immediately page Payments platform engineering managers, EU and US regions (Level 3 of 3), without waiting. It skips Payments on-call (Level 2 of 3).",
+    );
+    await expect(picks.nth(1).locator("p")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
+    // The first policy's sentence is its own, and stays as it was.
+    await expect(picks.nth(0).locator("p")).toHaveText(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+
+    /*
+     * The long name wraps onto two lines beside its radio, which keeps its
+     * 16 pixels and sits by the name's first line - not squeezed to a dot
+     * halfway down both. Read once Tailwind has styled the dialog.
+     */
+    const label: Locator = picks
+      .nth(1)
+      .locator("label")
+      .filter({ hasText: "Payments platform engineering managers" });
+
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          const [radio, text] = await boxesInOneFrame([longLevel, label]);
+          const lines: number = Math.round(text!.height / 24);
+
+          return JSON.stringify({
+            width: Math.round(radio!.width),
+            height: Math.round(radio!.height),
+            byFirstLine:
+              radio!.y >= text!.y && radio!.y + radio!.height <= text!.y + 24,
+            lines: lines,
+          });
+        },
+        { timeout: 10000 },
+      )
+      .toBe(
+        JSON.stringify({ width: 16, height: 16, byFirstLine: true, lines: 2 }),
+      );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(escalateDialog(page), "escalate-dialog-levels-two");
+
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Incident escalated",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Checkout on-call: The policy is now paging Platform leads (Level 2 of 4): Sam Lee and Priya Patel.",
+      "Payments escalation: The policy is now paging Payments platform engineering managers, EU and US regions (Level 3 of 3): Ana Lopez.",
+      NOT_PAGED_AGAIN,
+    ]);
+
+    // Only the later level picked is sent, for its own run.
+    const posts: Array<RecordedApiRequest> = await passOnPosts(page);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toEqual({
+      escalateTo: { [uuid("73000000", 2)]: uuid("74100000", 3) },
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * The record's channel card: who is in its channel, Join channel, Add people
  * ---------------------------------------------------------------------------
  *

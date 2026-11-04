@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "Una pipeline di aggregazione, in JSON, che termina con un documento con un numero chiamato value. Con Segment By, un segmento e un numero per documento.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Ogni query che i tuoi warehouse eseguono di continuo, con quanto ha speso nell'ultimo giorno, i suoi errori e le tabelle monitorate che scrive. Chiamata con il suo tag, o con ciò che fa e scrive: mai con la sua query.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON con ciò che può leggere le sue dashboard: una chiave API, un utente, un token o un'entità servizio, come chiede lo strumento. Cifrato e mai più mostrato."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON con ciò che può leggere le sue dashboard: una chiave API, un utente, un token o un'entità servizio, come chiede lo strumento. Cifrato e mai più mostrato.",
+  "Escalate to": "Escala a",
+  "It skips {{levels}}.": "Questo salta {{levels}}.",
+  "Not escalated": "Non escalato",
+  "The page was escalated past this level": "Questo livello è stato saltato con l'escalation",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "I livelli della policy sono cambiati, quindi non è stato escalato nulla. Escala di nuovo per scegliere un livello.",
+  "{{policy}}: escalate to": "{{policy}}: escala a",
+  "no one next": "nessun successivo"
 }

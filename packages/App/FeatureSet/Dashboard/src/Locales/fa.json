@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "یک پایپ‌لاین تجمیع به صورت JSON که با سندی دارای عددی به نام value تمام می‌شود. با Segment By، برای هر سند یک بخش و یک عدد.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "هر کوئری که انبارهای داده‌تان بارها و بارها اجرا می‌کنند، با هزینه‌اش در یک روز گذشته، شکست‌هایش و جدول‌های پایش‌شده‌ای که در آن‌ها می‌نویسد. نام‌گذاری با برچسبش، یا با کاری که می‌کند و آنچه می‌نویسد: هرگز با متن کوئری.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON با آنچه اجازهٔ خواندن داشبوردهایش را دارد: یک کلید API، یک کاربر، یک توکن یا یک service principal، به خواست ابزار. رمزگذاری می‌شود و دیگر هرگز نمایش داده نمی‌شود."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON با آنچه اجازهٔ خواندن داشبوردهایش را دارد: یک کلید API، یک کاربر، یک توکن یا یک service principal، به خواست ابزار. رمزگذاری می‌شود و دیگر هرگز نمایش داده نمی‌شود.",
+  "Escalate to": "تشدید به",
+  "It skips {{levels}}.": "این کار از {{levels}} رد می‌شود.",
+  "Not escalated": "تشدید نشد",
+  "The page was escalated past this level": "این سطح هنگام تشدید رد شد",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "سطح‌های سیاست تغییر کرده‌اند، پس چیزی تشدید نشد. برای انتخاب یک سطح دوباره تشدید کنید.",
+  "{{policy}}: escalate to": "{{policy}}: تشدید به",
+  "no one next": "نفر بعدی نیست"
 }

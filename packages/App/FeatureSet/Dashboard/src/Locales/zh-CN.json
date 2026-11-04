@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "JSON 格式的聚合管道，最后输出一个包含名为 value 的数字的文档。使用 Segment By 时，每个文档返回一个分段和一个数字。",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "您的数据仓库反复运行的每个查询，以及它在过去一天的花费、失败次数和写入的受监控表。按其标签命名，或按它所做和所写的内容命名：从不按查询文本命名。",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "可读取其仪表板的凭据 JSON：按工具要求提供 API 密钥、用户、令牌或服务主体。已加密，且不会再次显示。"
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "可读取其仪表板的凭据 JSON：按工具要求提供 API 密钥、用户、令牌或服务主体。已加密，且不会再次显示。",
+  "Escalate to": "升级到",
+  "It skips {{levels}}.": "将跳过 {{levels}}。",
+  "Not escalated": "未升级",
+  "The page was escalated past this level": "升级时跳过了此级别",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "策略的级别已更改，因此未升级任何内容。请再次升级以选择级别。",
+  "{{policy}}: escalate to": "{{policy}}：升级到",
+  "no one next": "没有下一个人"
 }

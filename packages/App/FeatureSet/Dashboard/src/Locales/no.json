@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "En aggregeringspipeline som JSON, som ender i et dokument med et tall kalt value. Med Segment By et segment og et tall per dokument.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Hver spørring warehousene dine kjører igjen og igjen, med hva den kostet siste døgn, feilene og de overvåkede tabellene den skriver. Navngitt etter taggen, eller etter hva den gjør og skriver: aldri etter spørringen.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON med det som kan lese dashbordene: en API-nøkkel, en bruker, et token eller en tjenestekontohaver, slik verktøyet krever. Kryptert og aldri vist igjen."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON med det som kan lese dashbordene: en API-nøkkel, en bruker, et token eller en tjenestekontohaver, slik verktøyet krever. Kryptert og aldri vist igjen.",
+  "Escalate to": "Eskaler til",
+  "It skips {{levels}}.": "Dette hopper over {{levels}}.",
+  "Not escalated": "Ikke eskalert",
+  "The page was escalated past this level": "Dette nivået ble hoppet over ved eskaleringen",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Policyens nivåer er endret, så ingenting ble eskalert. Eskaler på nytt for å velge et nivå.",
+  "{{policy}}: escalate to": "{{policy}}: eskaler til",
+  "no one next": "ingen neste"
 }

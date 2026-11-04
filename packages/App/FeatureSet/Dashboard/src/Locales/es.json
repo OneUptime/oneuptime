@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "Un pipeline de agregación, en JSON, que termina en un documento con un número llamado value. Con Segment By, un segmento y un número por documento.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Cada consulta que sus almacenes ejecutan una y otra vez, con lo que gastó en el último día, sus fallos y las tablas vigiladas que escribe. Nombrada por su etiqueta, o por lo que hace y escribe: nunca por su consulta.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON con lo que puede leer sus paneles: una clave de API, un usuario, un token o una entidad de servicio, según pida la herramienta. Cifrado y nunca se vuelve a mostrar."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON con lo que puede leer sus paneles: una clave de API, un usuario, un token o una entidad de servicio, según pida la herramienta. Cifrado y nunca se vuelve a mostrar.",
+  "Escalate to": "Escalar a",
+  "It skips {{levels}}.": "Esto omite {{levels}}.",
+  "Not escalated": "No escalado",
+  "The page was escalated past this level": "Este nivel se omitió al escalar",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Los niveles de la política cambiaron, así que no se escaló nada. Vuelve a escalar para elegir un nivel.",
+  "{{policy}}: escalate to": "{{policy}}: escalar a",
+  "no one next": "sin siguiente"
 }

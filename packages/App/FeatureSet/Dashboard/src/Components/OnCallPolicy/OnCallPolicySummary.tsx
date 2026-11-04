@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "./OnCallLabelClasses";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -349,7 +350,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
   }): ReactElement => {
     return (
       <div className="bg-white px-4 py-3.5">
-        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <div className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
           <Icon icon={params.icon} className="h-3.5 w-3.5 text-gray-400" />
           <span className="truncate">
             {translator.translateText(params.label)}
@@ -380,7 +381,9 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
   }): ReactElement => {
     return (
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
-        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 sm:w-40 sm:pt-0.5">
+        <span
+          className={`${ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME} shrink-0 sm:w-40 sm:pt-0.5`}
+        >
           <Icon
             icon={params.icon}
             className={`h-3.5 w-3.5 ${params.iconColor}`}
@@ -623,7 +626,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         {hasResponders ? (
           <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
             <div className="mb-3.5 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <span className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
                 {translator.translateText("Who gets paged")}
               </span>
               <span className="text-xs font-medium tabular-nums text-gray-500">

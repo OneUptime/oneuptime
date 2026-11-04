@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "Un pipeline d'agrégation, en JSON, qui se termine par un document avec un nombre nommé value. Avec Segment By, un segment et un nombre par document.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Chaque requête que vos entrepôts exécutent encore et encore, avec ce qu'elle a coûté sur le dernier jour, ses échecs et les tables surveillées qu'elle écrit. Nommée par son tag, ou par ce qu'elle fait et écrit : jamais par sa requête.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON avec ce qui peut lire ses tableaux de bord : une clé d'API, un utilisateur, un jeton ou un principal de service, selon l'outil. Chiffré et jamais réaffiché."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON avec ce qui peut lire ses tableaux de bord : une clé d'API, un utilisateur, un jeton ou un principal de service, selon l'outil. Chiffré et jamais réaffiché.",
+  "Escalate to": "Escalader vers",
+  "It skips {{levels}}.": "Cela saute {{levels}}.",
+  "Not escalated": "Non escaladé",
+  "The page was escalated past this level": "Ce niveau a été sauté lors de l'escalade",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Les niveaux de la politique ont changé, donc rien n'a été escaladé. Escaladez à nouveau pour choisir un niveau.",
+  "{{policy}}: escalate to": "{{policy}} : escalader vers",
+  "no one next": "aucun suivant"
 }

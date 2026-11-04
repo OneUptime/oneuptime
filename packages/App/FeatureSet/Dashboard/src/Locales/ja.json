@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "JSON 形式の集計パイプライン。value という名前の数値を持つドキュメントで終わります。Segment By を使う場合は、ドキュメントごとにセグメントと数値を返します。",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "ウェアハウスが繰り返し実行する各クエリと、直近 1 日の費用、失敗、書き込み先の監視対象テーブル。名前はタグ、または処理内容と書き込み先から付けられ、クエリ本文からは付けられません。",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "ダッシュボードを読み取れる認証情報の JSON: ツールに応じて API キー、ユーザー、トークン、またはサービス プリンシパル。暗号化され、再表示されません。"
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "ダッシュボードを読み取れる認証情報の JSON: ツールに応じて API キー、ユーザー、トークン、またはサービス プリンシパル。暗号化され、再表示されません。",
+  "Escalate to": "エスカレーション先",
+  "It skips {{levels}}.": "{{levels}} はスキップされます。",
+  "Not escalated": "エスカレーションしませんでした",
+  "The page was escalated past this level": "エスカレーションでこのレベルはスキップされました",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "ポリシーのレベルが変更されたため、何もエスカレーションしませんでした。もう一度エスカレーションしてレベルを選んでください。",
+  "{{policy}}: escalate to": "{{policy}}: エスカレーション先",
+  "no one next": "次の人なし"
 }

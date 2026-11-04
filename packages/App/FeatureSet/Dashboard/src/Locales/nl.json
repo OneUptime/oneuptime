@@ -42250,5 +42250,12 @@
   "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "Een aggregatiepijplijn, als JSON, die eindigt in een document met een getal met de naam value. Met Segment By een segment en een getal per document.",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
   "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Elke query die uw warehouses steeds opnieuw uitvoeren, met wat hij de afgelopen dag kostte, zijn mislukkingen en de bewaakte tabellen die hij schrijft. Genoemd naar zijn tag, of naar wat hij doet en schrijft: nooit naar zijn query.",
-  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON met wat de dashboards mag lezen: een API-sleutel, een gebruiker, een token of een service-principal, zoals de tool vraagt. Versleuteld en nooit meer getoond."
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON met wat de dashboards mag lezen: een API-sleutel, een gebruiker, een token of een service-principal, zoals de tool vraagt. Versleuteld en nooit meer getoond.",
+  "Escalate to": "Escaleren naar",
+  "It skips {{levels}}.": "Dit slaat {{levels}} over.",
+  "Not escalated": "Niet geëscaleerd",
+  "The page was escalated past this level": "Dit niveau is bij het escaleren overgeslagen",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "De niveaus van het beleid zijn gewijzigd, dus er is niets geëscaleerd. Escaleer opnieuw om een niveau te kiezen.",
+  "{{policy}}: escalate to": "{{policy}}: escaleren naar",
+  "no one next": "geen volgende"
 }
