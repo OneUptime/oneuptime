@@ -262,25 +262,29 @@ describe("building the model", () => {
     expect(buildMs).toBeLessThan(BUILD_BOUND_MS);
   });
 
-  test("with inactive resources shown too", () => {
-    const withInactive: FastestRun<InfrastructureTopologyModel> = fastestRun({
-      run: (): InfrastructureTopologyModel => {
-        return buildInfrastructureTopologyModel(
-          estate.entities,
-          estate.relationships,
-          {
-            rangeStart: RANGE_START,
-            includeInactive: true,
-            collections: estate.collections,
-          },
-        );
-      },
-      limitInMs: BUILD_BOUND_MS,
-    });
-    expect(withInactive.inMs).toBeLessThan(BUILD_BOUND_MS);
-    expect(withInactive.result.inactiveCount).toBe(0);
-    expect(withInactive.result.resourceCount).toBe(RESOURCES + 250000);
-  }, ATTEMPTS_TIMEOUT_MS);
+  test(
+    "with inactive resources shown too",
+    () => {
+      const withInactive: FastestRun<InfrastructureTopologyModel> = fastestRun({
+        run: (): InfrastructureTopologyModel => {
+          return buildInfrastructureTopologyModel(
+            estate.entities,
+            estate.relationships,
+            {
+              rangeStart: RANGE_START,
+              includeInactive: true,
+              collections: estate.collections,
+            },
+          );
+        },
+        limitInMs: BUILD_BOUND_MS,
+      });
+      expect(withInactive.inMs).toBeLessThan(BUILD_BOUND_MS);
+      expect(withInactive.result.inactiveCount).toBe(0);
+      expect(withInactive.result.resourceCount).toBe(RESOURCES + 250000);
+    },
+    ATTEMPTS_TIMEOUT_MS,
+  );
 
   test("is still exactly the right tree", () => {
     expect(model.inactiveCount).toBe(estate.inactivePods + 10000);
