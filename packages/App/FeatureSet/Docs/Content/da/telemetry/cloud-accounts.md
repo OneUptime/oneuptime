@@ -8,6 +8,7 @@ Forbind en AWS-konto, et Azure-abonnement eller et Google Cloud-projekt fra dash
 - [Google Cloud](#google-cloud): En tjenestekonto med seks roller, der kun kan læse.
 - [Hvad OneUptime læser](#hvad-oneuptime-læser): Ressourcer, metrikker, ændringer, sundhedshændelser og omkostninger, hvor ofte, og hvad det koster at læse dem.
 - [Cloudomkostninger og besparelser](/docs/telemetry/cloud-costs): Hvad hver konto koster, måderne at bruge mindre på og budgetter, der advarer.
+- [Stream CloudWatch-metrikker og -logge](/docs/telemetry/cloud-streaming): Hver metrik inden for minutter, og CloudWatch Logs, via Amazon Data Firehose.
 - [Datasikkerhed](#datasikkerhed): Hvad forbindelsen lader Datasikkerhed læse, og hvad hvert niveau tilføjer til kommandoen.
 - [Lad AI rette problemer](#lad-ai-rette-problemer): Én kommando mere, så kan OneUptime AI rette det, den finder.
 :::
@@ -268,7 +269,7 @@ Et lavere niveaus kommando erstatter AWS-politikken med den lavere. **Fra** tilf
 | Læses hvert | 10. minut | 5. minut | 5. minut |
 | En slettet ressource | Arkiveres, når en fuld liste ikke længere har den | Arkiveres, når en fuld liste ikke længere har den | Arkiveres, når en fuld liste ikke længere har den |
 
-Hver læsning fortsætter, hvor den forrige stoppede, så hvert datapunkt og hver ændring skrives én gang. En ny forbindelses første læsning starter inden for et minut og går en time tilbage for metrikker og 2 timer tilbage for ændringer; efter en pause går en læsning højst 6 timer tilbage. En ressource, der kun rapporterer metrikker, og som ingen liste har, arkiveres efter 7 dage uden metrikker. Omkostninger læses to gange om dagen, og måderne at bruge mindre på én gang om dagen.
+Hver læsning fortsætter, hvor den forrige stoppede, så hvert datapunkt og hver ændring skrives én gang. Med **Cloud-auditlogs** slået til i Sikkerhedshændelser gemmer de samme læsninger også kontienes auditlogs som [sikkerhedshændelser](/docs/telemetry/security-events#læs-auditlogs-fra-dine-cloudkonti). En ny forbindelses første læsning starter inden for et minut og går en time tilbage for metrikker og 2 timer tilbage for ændringer; efter en pause går en læsning højst 6 timer tilbage. En ressource, der kun rapporterer metrikker, og som ingen liste har, arkiveres efter 7 dage uden metrikker. Omkostninger læses to gange om dagen, og måderne at bruge mindre på én gang om dagen.
 
 De kald, OneUptime foretager, faktureres til din cloudkonto til din clouds priser. At vise ressourcer, læse ændringer og sundhedshændelser, læse måderne at bruge mindre på og læse Azures omkostninger koster intet; at læse metrikker gør, og det samme gør det at læse AWS' og Google Clouds omkostninger. Testen anslår prisen for det, den finder, og at læse sjældnere koster mindre: Skift **Interval for læsning af metrikker** under **Flere felter**.
 
@@ -320,7 +321,7 @@ En organisationspolitik, `iam.disableServiceAccountKeyCreation`, kan forbyde nø
 :::
 
 :::details Der vises ingen ressourcer
-Den første læsning viser hver ressource i kontoen, uanset om den rapporterer metrikker. Hvis en forbindelse ikke virker, siger **View error** under **Cloud → Forbind**, hvorfor dens seneste læsning mislykkedes.
+Den første læsning viser hver ressource i kontoen, uanset om den rapporterer metrikker. Hvis en forbindelse ikke virker, siger **Vis fejl** under **Cloud → Forbind**, hvorfor dens seneste læsning mislykkedes.
 :::
 
 :::details Nogle af organisationens konti mangler

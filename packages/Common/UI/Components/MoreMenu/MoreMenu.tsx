@@ -67,6 +67,12 @@ export interface ComponentProps {
    * is kept inside the viewport.
    */
   isMenuLeftAligned?: boolean | undefined;
+  /*
+   * A wider menu (WIDE_MENU_WIDTH) for items whose names are long - a kind
+   * of log, a product - so each keeps one line instead of wrapping in the
+   * 14rem every other menu has. Still kept inside the viewport on a phone.
+   */
+  isMenuWide?: boolean | undefined;
 }
 
 /*
@@ -96,6 +102,18 @@ const PORTALED_MENU_FALLBACK_WIDTH_PX: number = 224;
  * trigger a frame later. A tooltip shown in that frame stayed at the left.
  */
 export const PORTALED_MENU_WIDTH: string = "14rem";
+
+/*
+ * A wide menu's width (isMenuWide), on the element itself for the same
+ * reason, in-place or portalled: room for a label of about 35 characters
+ * beside its icon on one line ("Azure activity and Entra ID logs"), which
+ * 14rem breaks in two.
+ */
+export const WIDE_MENU_WIDTH: string = "20rem";
+// WIDE_MENU_WIDTH in pixels, for a measurement that finds no width at all.
+const WIDE_MENU_FALLBACK_WIDTH_PX: number = 320;
+// A wide menu never runs past the viewport's edges on a narrow phone.
+export const WIDE_MENU_MAX_WIDTH: string = "calc(100vw - 1rem)";
 
 /*
  * Exactly one of left / right is set, and exactly one of top / bottom. Right
@@ -283,7 +301,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
       const menuElement: HTMLElement | null = ref.current as HTMLElement | null;
       const triggerRect: DOMRect = trigger.getBoundingClientRect();
       const menuWidth: number =
-        menuElement?.offsetWidth || PORTALED_MENU_FALLBACK_WIDTH_PX;
+        menuElement?.offsetWidth ||
+        (props.isMenuWide
+          ? WIDE_MENU_FALLBACK_WIDTH_PX
+          : PORTALED_MENU_FALLBACK_WIDTH_PX);
       const menuHeight: number = menuElement?.offsetHeight || 0;
 
       /*
@@ -367,7 +388,13 @@ const MoreMenu: React.ForwardRefExoticComponent<
         right,
         isAbove,
       });
-    }, [buttonId, props.isOpeningUpwards, props.isMenuLeftAligned, ref]);
+    }, [
+      buttonId,
+      props.isOpeningUpwards,
+      props.isMenuLeftAligned,
+      props.isMenuWide,
+      ref,
+    ]);
 
     /*
      * Measured before paint, so the menu never flashes at the corner of the
@@ -784,7 +811,8 @@ const MoreMenu: React.ForwardRefExoticComponent<
           isMenuPortaled
             ? {
                 position: "fixed",
-                width: PORTALED_MENU_WIDTH,
+                width: props.isMenuWide ? WIDE_MENU_WIDTH : PORTALED_MENU_WIDTH,
+                ...(props.isMenuWide ? { maxWidth: WIDE_MENU_MAX_WIDTH } : {}),
                 top: portaledMenuPosition?.top,
                 bottom: portaledMenuPosition?.bottom,
                 left: portaledMenuPosition ? portaledMenuPosition.left : 0,
@@ -792,7 +820,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
                 zIndex: DROPDOWN_MENU_Z_INDEX,
                 visibility: portaledMenuPosition ? "visible" : "hidden",
               }
-            : undefined
+            : props.isMenuWide
+              ? // Over the w-56 class: the width is set on the element itself.
+                { width: WIDE_MENU_WIDTH, maxWidth: WIDE_MENU_MAX_WIDTH }
+              : undefined
         }
         role="menu"
         aria-orientation="vertical"

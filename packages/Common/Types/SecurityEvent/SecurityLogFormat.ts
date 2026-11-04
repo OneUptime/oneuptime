@@ -4,7 +4,8 @@
  * of one of these shapes becomes a security event too - so the rule library
  * finds brute force in SSH and Windows sign-ins, a shell opened in a pod in
  * Kubernetes audit logs, a stopped CloudTrail in AWS's own log and an attack
- * a firewall blocked in its CEF, with nothing new to send.
+ * a firewall blocked in its CEF or in its vendor's own syslog (Palo Alto
+ * Networks, FortiGate, Cisco ASA), with nothing new to send.
  *
  * Only the lines that matter for security become events: failed and
  * successful sign-ins, commands run as another user, changes and denied
@@ -21,6 +22,9 @@ enum SecurityLogFormat {
   AzureActivity = "azure-activity",
   Cef = "cef",
   Leef = "leef",
+  PaloAlto = "palo-alto",
+  FortiGate = "fortigate",
+  CiscoAsa = "cisco-asa",
   WebAttack = "web-attack",
 }
 
@@ -35,7 +39,10 @@ export enum SecurityLogFormatGroup {
   Servers = "servers",
   // Cloud providers' audit logs and their identity services.
   Cloud = "cloud",
-  // Firewalls, IDS, WAFs, proxies and endpoint products over syslog.
+  /*
+   * Firewalls, IDS, WAFs, proxies and endpoint products over syslog: in
+   * CEF or LEEF, or in a firewall vendor's own format.
+   */
   SecurityDevices = "security-devices",
   // What runs on the machines: clusters and web servers.
   Applications = "applications",
@@ -160,6 +167,39 @@ export const SECURITY_LOG_FORMATS: ReadonlyArray<SecurityLogFormatDefinition> =
       productName: "LEEF",
       example:
         "LEEF:1.0|Zscaler|NSSWeblog|5.7|Blocked|cat=Malicious Content\tsrc=192.0.2.15\tdst=203.0.113.80\tusrName=alice@example.com\taction=Blocked\tsev=9",
+    },
+    {
+      format: SecurityLogFormat.PaloAlto,
+      group: SecurityLogFormatGroup.SecurityDevices,
+      title: "Palo Alto Networks",
+      description:
+        "Threats, blocked connections, GlobalProtect and administrator sign-ins, and configuration changes from PAN-OS's own syslog.",
+      vendorName: "Palo Alto Networks",
+      productName: "PAN-OS",
+      example:
+        "1,2026/10/30 10:00:00,012801000000,THREAT,vulnerability,2561,2026/10/30 10:00:00,203.0.113.7,192.0.2.20,0.0.0.0,0.0.0.0,allow-web,,,web-browsing,vsys1,untrust,trust,ethernet1/1,ethernet1/2,default,,48911,1,52314,80,0,0,0x2000,tcp,reset-both,/index.php,Apache Log4j Remote Code Execution Vulnerability(91991),any,critical,client-to-server,7000001234,0x0,Reserved,Reserved",
+    },
+    {
+      format: SecurityLogFormat.FortiGate,
+      group: SecurityLogFormatGroup.SecurityDevices,
+      title: "Fortinet FortiGate",
+      description:
+        "IPS and antivirus findings, denied traffic, VPN and administrator sign-ins, and configuration changes from FortiGate's own syslog.",
+      vendorName: "Fortinet",
+      productName: "FortiGate",
+      example:
+        'date=2026-10-30 time=10:00:00 devname="FGT60F" devid="FGT60FTK2209A0B1" logid="0419016384" type="utm" subtype="ips" eventtype="signature" level="alert" severity="critical" srcip=203.0.113.7 dstip=192.0.2.20 srcport=52314 dstport=80 action="dropped" attack="Apache.Log4j.Error.Log.Remote.Code.Execution" attackid=51006',
+    },
+    {
+      format: SecurityLogFormat.CiscoAsa,
+      group: SecurityLogFormatGroup.SecurityDevices,
+      title: "Cisco ASA",
+      description:
+        "Denied connections, threat detection and IPS findings, VPN and administrator sign-ins, and commands from Cisco ASA and Firepower Threat Defense.",
+      vendorName: "Cisco",
+      productName: "Cisco ASA",
+      example:
+        '%ASA-4-106023: Deny tcp src outside:203.0.113.7/52314 dst inside:192.0.2.5/443 by access-group "outside_access_in" [0x0, 0x0]',
     },
     {
       format: SecurityLogFormat.KubernetesAudit,

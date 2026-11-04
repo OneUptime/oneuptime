@@ -28,6 +28,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     useWorkspaceSideMenuSection({
       slack: PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK,
       microsoftTeams: PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      mattermost: PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST,
       connect: PageMap.MONITORS_WORKSPACE_CONNECTIONS,
     });
 

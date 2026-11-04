@@ -64,10 +64,17 @@ Kortet **Dine logs**, øverst på **Forbindelser**, kræver ingen installation. 
 | Azure-aktivitetslogs og Entra ID-logs | Ændringer i dine Azure-abonnementer, advarsler fra Defender for Cloud samt logins og mappeændringer i Microsoft Entra ID |
 | CEF | Trusler, blokerede forbindelser og logins fra firewalls, IDS, WAF'er og andre sikkerhedsprodukter, der sender Common Event Format |
 | LEEF | Det samme fra produkter, der sender Log Event Extended Format, som mange gør til IBM QRadar |
+| Palo Alto Networks | Trusler, blokerede forbindelser, GlobalProtect- og administratorlogins samt konfigurationsændringer fra PAN-OS' egen syslog |
+| Fortinet FortiGate | IPS- og antivirusfund, afvist trafik, VPN- og administratorlogins samt konfigurationsændringer fra FortiGates egen syslog |
+| Cisco ASA | Afviste forbindelser, fund fra trusselsregistrering og IPS, VPN- og administratorlogins samt kommandoer fra Cisco ASA og Firepower Threat Defense |
 | Kubernetes-auditlogs | Ændringer i klyngen, shells åbnet i pods, læste secrets og afviste anmodninger |
 | Webangreb | Anmodninger i en webservers adgangslog, der forsøger SQL-injektion, path traversal eller Log4Shell |
 
 Dine logs forbliver, som de er. Kun de linjer, der betyder noget for sikkerheden, bliver til hændelser: aldrig hver side, en webserver har leveret, eller hver læsning af et API.
+
+En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller et IPS-fund fra en FortiGate, åbner en sag, som et forbundet produkts advarsel gør. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**.
+
+En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er forbundet under **Cloud**, behøver ingen logpipeline: Slå **Cloud-auditlogs** til under **Dine OneUptime-data** på **Forbindelser**, så læses dets auditlog sammen med kontoen. Se [Læs auditlogs fra dine cloudkonti](/docs/telemetry/security-events#læs-auditlogs-fra-dine-cloudkonti).
 
 ## Send det, OneUptime finder, til dit SIEM
 
@@ -88,7 +95,7 @@ Sagen åbnes som regel, før knappen svarer; når reglen stadig er ved at indhen
 :::
 
 :::details Der kommer ingen sikkerhedshændelse fra mine logs
-Tjek, at **Find sikkerhedshændelser i dine logs** er slået til, og at kortet **Dine logs** viser, hvornår der sidst blev tjekket. Kun de slags linjer, der står i tabellen ovenfor, bliver til hændelser: En server, der ikke sender SSH-, sudo-, Windows-, audit-, CEF-, LEEF- eller adgangslogs, har intet at finde. Indsæt en af dens linjer i **Tjek en loglinje** på **Dine logs** for at se, om OneUptime læser den.
+Tjek, at **Find sikkerhedshændelser i dine logs** er slået til, og at kortet **Dine logs** viser, hvornår der sidst blev tjekket. Kun de slags linjer, der står i tabellen ovenfor, bliver til hændelser: En server, der ikke sender SSH-, sudo-, Windows-, audit-, CEF-, LEEF-, firewall- eller adgangslogs, har intet at finde. Indsæt en af dens linjer i **Tjek en loglinje** på **Dine logs** for at se, om OneUptime læser den.
 :::
 
 :::details Oversigt siger, at den seneste sikkerhedshændelse kom for dage siden

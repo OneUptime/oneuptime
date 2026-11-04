@@ -61,7 +61,15 @@ const readingDirection = path.join(
  * not only the body - a rule on `*` wins over inheritance, which is what a
  * page draws in.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cloud Connect fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+/*
+ * ?https=1 serves the page as a OneUptime on an HTTPS address of its own
+ * (oneuptime.example.com) - the only kind Amazon Data Firehose delivers
+ * to, so the streaming dialog writes its command. Left out, the page is
+ * the plain http://localhost every other test reads.
+ */
+const html = (isHttps) => {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cloud Connect fixture</title><script>window.process={env:{HOST:"${isHttps ? "oneuptime.example.com" : "localhost"}",HTTP_PROTOCOL:"${isHttps ? "https" : "http"}",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+};
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -98,7 +106,7 @@ async function main() {
       return;
     }
     response.setHeader("Content-Type", "text/html");
-    response.end(html);
+    response.end(html(url.searchParams.get("https") === "1"));
   });
   server.listen(port, "127.0.0.1", () => {
     console.log(`Cloud Connect fixture ready at http://127.0.0.1:${port}/`);

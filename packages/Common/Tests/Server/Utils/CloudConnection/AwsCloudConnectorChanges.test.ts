@@ -4,6 +4,7 @@ import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsC
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
 import {
+  CloudAuditRecord,
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
@@ -909,5 +910,111 @@ describe("what changed in an AWS Organization", () => {
         .sort(),
     ).toEqual([MANAGEMENT, MEMBER].sort());
     expect(state.accountHealthReadAt?.[MANAGEMENT]).toBe(NOW.toISOString());
+  });
+});
+
+/*
+ * While the project's Security Events read the account's audit log (Cloud
+ * audit logs), the same read hands back each CloudTrail record whole - a
+ * sign-in and an assumed role too, which are no change of Cloud's - for the
+ * CloudTrail parser to judge. Only when asked, and never for a look back.
+ */
+describe("an AWS account's CloudTrail records, for Security Events", () => {
+  function fakeWithSignIn(): FakeAws {
+    return fakeWith({
+      regions: {
+        "eu-west-1": {
+          metrics: [],
+          trailEvents: [
+            trailEvent({
+              id: "evt-role",
+              name: "CreateRole",
+              source: "iam.amazonaws.com",
+              at: "2026-10-21T11:30:00Z",
+              trail: {
+                eventID: "evt-role",
+                eventName: "CreateRole",
+                eventSource: "iam.amazonaws.com",
+                readOnly: false,
+              },
+            }),
+            trailEvent({
+              id: "evt-console",
+              name: "ConsoleLogin",
+              source: "signin.amazonaws.com",
+              at: "2026-10-21T11:31:00Z",
+              trail: {
+                eventID: "evt-console",
+                eventName: "ConsoleLogin",
+                eventSource: "signin.amazonaws.com",
+                responseElements: { ConsoleLogin: "Failure" },
+              },
+            }),
+            // A record CloudTrail gave no id is no record to keep once.
+            trailEvent({
+              id: "evt-no-id",
+              name: "RunInstances",
+              source: "ec2.amazonaws.com",
+              at: "2026-10-21T11:32:00Z",
+            }),
+          ],
+        },
+        "us-east-1": { metrics: [] },
+      },
+    });
+  }
+
+  test("asked, every record the read brought in comes back whole, beside the changes", async () => {
+    const result: CloudChangesResult = await connector.readChanges(
+      keySettings(),
+      changeOptions(fakeWithSignIn(), singleAccountState(), {
+        keepAuditRecords: true,
+      }),
+    );
+
+    // Cloud's changes are as they were: the sign-in is no change.
+    expect(operations(result).sort()).toEqual([
+      "ec2:RunInstances",
+      "iam:CreateRole",
+    ]);
+    expect(JSON.stringify(result.changes)).not.toContain("hunter2");
+
+    const records: Array<CloudAuditRecord> = result.auditRecords || [];
+
+    expect(
+      records
+        .map((record: CloudAuditRecord): string => {
+          return String(record.record["eventID"]);
+        })
+        .sort(),
+    ).toEqual(["evt-console", "evt-role"]);
+    expect(
+      records.every((record: CloudAuditRecord): boolean => {
+        return record.accountId === FAKE_ACCOUNT_ID;
+      }),
+    ).toBe(true);
+    // Whole: the record as CloudTrail wrote it, parameters and all.
+    expect(records[0]!.record["requestParameters"]).toEqual({
+      environment: { DB_PASSWORD: "hunter2" },
+    });
+  });
+
+  test("not asked, or reading back for an investigation, no record comes back", async () => {
+    const plain: CloudChangesResult = await connector.readChanges(
+      keySettings(),
+      changeOptions(fakeWithSignIn(), singleAccountState()),
+    );
+
+    expect(plain.auditRecords).toBeUndefined();
+
+    const lookBack: CloudChangesResult = await connector.readChanges(
+      keySettings(),
+      changeOptions(fakeWithSignIn(), singleAccountState(), {
+        keepAuditRecords: true,
+        since: new Date("2026-10-21T10:00:00Z"),
+      }),
+    );
+
+    expect(lookBack.auditRecords).toBeUndefined();
   });
 });

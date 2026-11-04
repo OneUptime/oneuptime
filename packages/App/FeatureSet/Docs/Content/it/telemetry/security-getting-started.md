@@ -64,10 +64,17 @@ La scheda **I tuoi log**, in cima a **Connessioni**, non richiede installazioni.
 | Log di attività di Azure e di Entra ID | Modifiche nelle tue sottoscrizioni Azure, avvisi di Defender for Cloud, e accessi e modifiche alla directory di Microsoft Entra ID |
 | CEF | Minacce, connessioni bloccate e accessi da firewall, IDS, WAF e altri prodotti di sicurezza che inviano Common Event Format |
 | LEEF | Lo stesso dai prodotti che inviano Log Event Extended Format, come molti fanno per IBM QRadar |
+| Palo Alto Networks | Minacce, connessioni bloccate, accessi GlobalProtect e degli amministratori e modifiche di configurazione dal syslog di PAN-OS |
+| Fortinet FortiGate | Rilevamenti IPS e antivirus, traffico negato, accessi VPN e degli amministratori e modifiche di configurazione dal syslog di FortiGate |
+| Cisco ASA | Connessioni negate, rilevamenti delle minacce e dell'IPS, accessi VPN e degli amministratori e comandi da Cisco ASA e Firepower Threat Defense |
 | Log di audit di Kubernetes | Modifiche al cluster, shell aperte nei pod, secret letti e richieste rifiutate |
 | Attacchi web | Richieste nel log di accesso di un server web che tentano SQL injection, path traversal o Log4Shell |
 
 I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventano eventi: mai ogni pagina servita da un server web, né ogni lettura di un'API.
+
+Una minaccia che un prodotto di sicurezza scrive nei tuoi log, come un rilevamento CEF o LEEF o un rilevamento IPS di un FortiGate, apre un caso come fa l'avviso di un prodotto collegato. **Apri casi a partire da**, su **I tuoi log**, indica da quale gravità: **Alta e superiori** a meno che tu non ne scelga un'altra, oppure **Mai**.
+
+Un account AWS, un progetto Google Cloud o una sottoscrizione Azure collegati in **Cloud** non hanno bisogno di alcuna pipeline di log: attiva **Log di audit cloud**, in **I tuoi dati OneUptime** su **Connessioni**, e il loro log di audit viene letto insieme all'account. Vedi [Leggere i log di audit dei tuoi account cloud](/docs/telemetry/security-events#leggere-i-log-di-audit-dei-tuoi-account-cloud).
 
 ## Inviare al tuo SIEM ciò che OneUptime trova
 
@@ -88,7 +95,7 @@ Di solito il caso si apre prima che il pulsante risponda; quando la regola è an
 :::
 
 :::details Dai miei log non arriva alcun evento di sicurezza
-Verifica che **Trova eventi di sicurezza nei tuoi log** sia attivo e che la scheda **I tuoi log** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, Windows, di audit, CEF, LEEF o di accesso non ha niente da trovare. Incolla una delle sue righe in **Verifica una riga di log**, su **I tuoi log**, per vedere se OneUptime la legge.
+Verifica che **Trova eventi di sicurezza nei tuoi log** sia attivo e che la scheda **I tuoi log** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, Windows, di audit, CEF, LEEF, di firewall o di accesso non ha niente da trovare. Incolla una delle sue righe in **Verifica una riga di log**, su **I tuoi log**, per vedere se OneUptime la legge.
 :::
 
 :::details Panoramica dice che l'ultimo evento di sicurezza è arrivato giorni fa

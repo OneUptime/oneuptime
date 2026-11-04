@@ -41,8 +41,8 @@ resources:
     url: "docker://docker.io/oneuptime/app@sha256:354b1eb3a069d8c2f33d6aaf1edfd9c39e2f71140db3c1c4224b07cc5b3d9b63"
 
 # The engineers the onboarding request names, by their Platform One (Repo1)
-# usernames. Iron Bank's pipeline refuses a manifest until these are filled in.
+# usernames.
 maintainers:
-  - name: "FIXME"
-    username: "FIXME"
+  - name: "Nawaz Dhandala"
+    username: "oneuptime"
     email: "hello@oneuptime.com"

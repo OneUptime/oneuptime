@@ -8,6 +8,7 @@ Verbinden Sie ein AWS-Konto, ein Azure-Abonnement oder ein Google-Cloud-Projekt 
 - [Google Cloud](#google-cloud): Ein Dienstkonto mit sechs Rollen, die nur lesen.
 - [Was OneUptime liest](#was-oneuptime-liest): Ressourcen, Metriken, Änderungen, Integritätsereignisse und Kosten, wie oft, und was das Lesen kostet.
 - [Cloud-Kosten und Einsparungen](/docs/telemetry/cloud-costs): Was jedes Konto kostet, wie Sie weniger ausgeben, und Budgets, die warnen.
+- [CloudWatch-Metriken und -Protokolle streamen](/docs/telemetry/cloud-streaming): Jede Metrik innerhalb von Minuten, und CloudWatch Logs, über Amazon Data Firehose.
 - [Datensicherheit](#datensicherheit): Was die Verbindung Datensicherheit lesen lässt und was jede Stufe dem Befehl hinzufügt.
 - [KI Probleme beheben lassen](#ki-probleme-beheben-lassen): Ein weiterer Befehl, und OneUptime AI kann beheben, was es findet.
 :::
@@ -268,7 +269,7 @@ Der Befehl einer niedrigeren Stufe ersetzt die AWS-Richtlinie durch die der nied
 | Gelesen alle | 10 Minuten | 5 Minuten | 5 Minuten |
 | Eine gelöschte Ressource | Archiviert, sobald eine vollständige Auflistung sie nicht mehr enthält | Archiviert, sobald eine vollständige Auflistung sie nicht mehr enthält | Archiviert, sobald eine vollständige Auflistung sie nicht mehr enthält |
 
-Jeder Lesevorgang setzt dort an, wo der letzte aufgehört hat, sodass jeder Datenpunkt und jede Änderung einmal geschrieben wird. Der erste Lesevorgang einer neuen Verbindung startet innerhalb einer Minute und reicht für Metriken eine Stunde und für Änderungen 2 Stunden zurück; nach einer Pause reicht ein Lesevorgang höchstens 6 Stunden zurück. Eine Ressource, die nur Metriken meldet und in keiner Auflistung steht, wird nach 7 Tagen ohne Metriken archiviert. Kosten werden zweimal am Tag gelesen, die Wege, weniger auszugeben, einmal am Tag.
+Jeder Lesevorgang setzt dort an, wo der letzte aufgehört hat, sodass jeder Datenpunkt und jede Änderung einmal geschrieben wird. Ist **Cloud-Audit-Protokolle** in den Sicherheitsereignissen eingeschaltet, behalten dieselben Lesevorgänge die Audit-Logs der Konten auch als [Sicherheitsereignisse](/docs/telemetry/security-events#die-audit-logs-ihrer-cloud-konten-lesen). Der erste Lesevorgang einer neuen Verbindung startet innerhalb einer Minute und reicht für Metriken eine Stunde und für Änderungen 2 Stunden zurück; nach einer Pause reicht ein Lesevorgang höchstens 6 Stunden zurück. Eine Ressource, die nur Metriken meldet und in keiner Auflistung steht, wird nach 7 Tagen ohne Metriken archiviert. Kosten werden zweimal am Tag gelesen, die Wege, weniger auszugeben, einmal am Tag.
 
 Die Aufrufe von OneUptime werden Ihrem Cloud-Konto zu den Preisen Ihrer Cloud berechnet. Ressourcen aufzulisten, Änderungen und Integritätsereignisse zu lesen, die Wege, weniger auszugeben, zu lesen und die Kosten von Azure zu lesen, kostet nichts; Metriken zu lesen schon, und ebenso die Kosten von AWS und Google Cloud. Der Test schätzt die Kosten dessen, was er findet, und seltener zu lesen kostet weniger: Ändern Sie **Leseintervall für Metriken** unter **Weitere Felder**.
 

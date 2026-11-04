@@ -6,10 +6,11 @@ import ObjectID from "../../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE,
+  SecurityTelemetryScannedKind,
   SecurityTelemetrySourceDefinition,
   SecurityTelemetrySourceKind,
   getSecurityTelemetrySourceDefinition,
-  isSecurityTelemetrySourceKind,
+  isSecurityTelemetryScannedKind,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import OTelIngestService, {
@@ -66,6 +67,11 @@ import TraceSecurityScan from "./TraceSecurityScan";
  * the log scan's are to "OneUptime Logs". The work is spread by project
  * (SecurityProjectWork): the cron queues one turn for each project that
  * turned a source on, and the turn scans each of its sources.
+ *
+ * Cloud audit logs are no kind of this scan's: each cloud account's own
+ * read brings them in (CloudAudit/CloudAuditSecurityEvents.ts), so a project
+ * that turned on only them is never queued, and their source is never
+ * scanned here.
  */
 
 export const SECURITY_TELEMETRY_SCAN_PROJECT_WORK: SecurityProjectWorkDefinition =
@@ -92,7 +98,7 @@ export interface TelemetryScanPlan {
  * leaves that request to it.
  */
 export const TELEMETRY_SCAN_PLANS: Record<
-  SecurityTelemetrySourceKind,
+  SecurityTelemetryScannedKind,
   TelemetryScanPlan
 > = {
   [SecurityTelemetrySourceKind.Traces]: {
@@ -193,6 +199,7 @@ export default class SecurityTelemetryScanner {
         select: {
           _id: true,
           projectId: true,
+          kind: true,
         },
         sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
@@ -200,9 +207,13 @@ export default class SecurityTelemetryScanner {
 
     return SecurityProjectWork.enqueueProjects(
       SECURITY_TELEMETRY_SCAN_PROJECT_WORK,
-      sources.map((source: SecurityTelemetrySource): ObjectID | undefined => {
-        return source.projectId;
-      }),
+      sources
+        .filter((source: SecurityTelemetrySource): boolean => {
+          return isSecurityTelemetryScannedKind(source.kind);
+        })
+        .map((source: SecurityTelemetrySource): ObjectID | undefined => {
+          return source.projectId;
+        }),
     );
   }
 
@@ -227,6 +238,11 @@ export default class SecurityTelemetryScanner {
       });
 
     for (const source of sources) {
+      // Cloud audit logs are read with each cloud account's own read.
+      if (!isSecurityTelemetryScannedKind(source.kind)) {
+        continue;
+      }
+
       if (!lease.hasTimeLeft()) {
         return;
       }
@@ -280,7 +296,7 @@ export default class SecurityTelemetryScanner {
 
   // One window's read of a kind: a page of it, or the whole of it.
   public static async readWindow(data: {
-    kind: SecurityTelemetrySourceKind;
+    kind: SecurityTelemetryScannedKind;
     window: TelemetryScanWindow;
     offset: number;
     pageSize: number;
@@ -306,8 +322,10 @@ export default class SecurityTelemetryScanner {
     const projectId: ObjectID = source.projectId!;
     const kind: unknown = source.kind;
 
-    if (!isSecurityTelemetrySourceKind(kind)) {
-      throw new Error(`Unknown telemetry source kind "${String(kind)}".`);
+    if (!isSecurityTelemetryScannedKind(kind)) {
+      throw new Error(
+        `Telemetry source kind "${String(kind)}" is not one the telemetry scan reads.`,
+      );
     }
 
     const plan: TelemetryScanPlan = TELEMETRY_SCAN_PLANS[kind];
