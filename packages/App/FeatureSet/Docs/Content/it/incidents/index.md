@@ -67,7 +67,7 @@ Anche i workflow aprono incidenti: il workflow di [Huntress](/docs/integrations/
 
 Alla creazione, OneUptime esegue l'automazione che avete configurato: regole di privacy, regole del proprietario, regole delle etichette, regole di reperibilità e regole di runbook. Tutte le policy di reperibilità collegate all'incidente — a mano, da un modello o aggiunte da una regola di reperibilità che corrisponde — vengono eseguite in parallelo.
 
-I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui proprietari del progetto invece di andare persa.
+I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui proprietari del progetto invece di andare persa.
 
 Se l'incidente è visibile su una pagina di stato e le notifiche agli iscritti sono attive, vengono informati anche gli iscritti: quelli di ogni pagina di stato che elenca uno dei suoi monitor, oppure solo quelli delle pagine a cui lo avete limitato. Vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience) per dare a ogni pubblico la propria pagina di stato.
 

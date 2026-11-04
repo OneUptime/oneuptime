@@ -292,6 +292,7 @@ import { AddMagicLinkLogin1808992650000 } from "./1808992650000-AddMagicLinkLogi
 import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./1808992660000-AddFixApprovalSourceAndRunbookTrackRecord";
 import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
 import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
+import { AddUserNotificationSettingAlertByMattermost1808992950000 } from "./1808992950000-AddUserNotificationSettingAlertByMattermost";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -895,6 +896,8 @@ import { AddDataAssetOwnersAndFeedback1808992700000 } from "./1808992700000-AddD
 import { AddOpenStackClouds1808992900000 } from "./1808992900000-AddOpenStackClouds";
 import { AddOpenStackProbeCollection1808992910000 } from "./1808992910000-AddOpenStackProbeCollection";
 import { AddOpenStackProbeCollectionIndexAndKey1808992920000 } from "./1808992920000-AddOpenStackProbeCollectionIndexAndKey";
+import { AddOpenStackHostLinkAndInstanceMetrics1808992930000 } from "./1808992930000-AddOpenStackHostLinkAndInstanceMetrics";
+import { AddOpenStackHostLinkIndexAndKey1808992940000 } from "./1808992940000-AddOpenStackHostLinkIndexAndKey";
 
 export default [
   InitialMigration,
@@ -1794,4 +1797,7 @@ export default [
   AddOpenStackClouds1808992900000,
   AddOpenStackProbeCollection1808992910000,
   AddOpenStackProbeCollectionIndexAndKey1808992920000,
+  AddOpenStackHostLinkAndInstanceMetrics1808992930000,
+  AddOpenStackHostLinkIndexAndKey1808992940000,
+  AddUserNotificationSettingAlertByMattermost1808992950000,
 ];

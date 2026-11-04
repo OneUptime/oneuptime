@@ -301,9 +301,7 @@ describe("a healthy cloud", () => {
       answer: (
         request: OpenStackHttpRequest,
       ): OpenStackHttpResponse | undefined => {
-        return new globalThis.URL(request.url).pathname.endsWith(
-          "/v2.0/agents",
-        )
+        return new globalThis.URL(request.url).pathname.endsWith("/v2.0/agents")
           ? { status: 200, headers: {}, body: JSON.stringify({ agents: [] }) }
           : undefined;
       },

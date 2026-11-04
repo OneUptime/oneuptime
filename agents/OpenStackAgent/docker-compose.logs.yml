@@ -1,0 +1,47 @@
+services:
+  # The OpenStack agent's optional logs profile for Kolla-Ansible: one of these on
+  # each controller and compute node. Nothing else in this folder runs there, which
+  # is why it has a compose file of its own. install-logs.sh writes its .env.
+  oneuptime-openstack-logs:
+    # Upstream collector, pinned, the same as docker-compose.yml. There is no image of
+    # our own: the agent is entirely defined by otel-collector-logs-files.yaml, and that
+    # config reports this pin as the agent's version. Bump them together;
+    # Tests/Ops/validate-collector-configs.sh validates the config against this version.
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: oneuptime-openstack-logs
+    # Kolla's logs belong to its services' own users. It runs as root to read them,
+    # keeping one capability of root's: reading a file whoever owns it. It can write
+    # nowhere but its own place in the files it reads.
+    user: "0:0"
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_READ_SEARCH
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./otel-collector-logs-files.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Kolla-Ansible keeps its logs in this Docker volume, which its containers see
+      # as /var/log/kolla. Set OPENSTACK_LOGS_DIRECTORY if yours are somewhere else.
+      - ${OPENSTACK_LOGS_DIRECTORY:-/var/lib/docker/volumes/kolla_logs/_data}:/var/log/kolla:ro
+      # How far each file has been read, kept across a restart and an upgrade.
+      - oneuptime-openstack-logs-state:/var/lib/otelcol/file_storage
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      # The name this cloud has in OneUptime: the one its agent reports under.
+      - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
+      # This machine's name, which a hypervisor's and a service's pages read logs by.
+      - OPENSTACK_NODE_NAME=${OPENSTACK_NODE_NAME}
+      # The zone oslo.log writes its times in: the zone of Kolla's containers.
+      - OPENSTACK_LOGS_TIMEZONE=${OPENSTACK_LOGS_TIMEZONE:-UTC}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  oneuptime-openstack-logs-state:

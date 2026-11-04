@@ -218,7 +218,7 @@ OneUptime tells people about five things on a case. Nobody has to set anything u
 
 ### Choose what you are told
 
-Each person chooses for themselves, under **User Settings → Notification Settings → Security**: the channels for each notification (email, SMS, call, push, Telegram, Slack, Microsoft Teams or webhook), and under **New security case**, the priority that notifies them:
+Each person chooses for themselves, under **User Settings → Notification Settings → Security**: the channels for each notification (email, SMS, call, push, Telegram, Slack, Microsoft Teams, Mattermost or webhook), and under **New security case**, the priority that notifies them:
 
 | Choice | Notifies about cases at |
 | --- | --- |

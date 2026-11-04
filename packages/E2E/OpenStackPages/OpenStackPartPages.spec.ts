@@ -83,6 +83,7 @@ test.describe("compute", () => {
 
     const lost: Locator = page.locator("tr", { hasText: "Lost" }).first();
     await expect(lost).toBeVisible();
+    await screenshot(page, "openstack-hypervisors-list");
     await lost.getByRole("button", { name: /view/i }).first().click();
 
     await expect(page).toHaveURL(/\/hypervisors\/[^/]+/);
@@ -216,14 +217,20 @@ test.describe("compute", () => {
     await expect(page.getByTestId("openstack-hypervisor-hero")).toBeVisible();
   });
 
-  test("what only the probe says of an instance is shown when it has said it", async ({
+  test("an address only the probe has shows in the list once it has said it", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openCloudPage(page, "instances", PARTS);
     await expect(rowOf(page, "batch-worker-7")).toContainText("10.77.0.12");
+  });
 
+  test("Nova's fault message, which only the probe reads, shows where the reason does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openPart(page, "instances", FAILED_INSTANCE, PARTS);
     await expect(
       page.getByTestId("openstack-instance-attention"),

@@ -68,27 +68,26 @@ const OPENSTACK_CLOUD_MATCH_COLUMN: MatchColumn = matchedOnName({
  */
 const OPENSTACK_CLOUD_SNAPSHOT_COLUMNS: ReadonlyArray<
   keyof OpenStackInventorySummary
-> =
-  [
-    "regionCount",
-    "availabilityZoneCount",
-    "hypervisorCount",
-    "instanceCount",
-    "activeInstanceCount",
-    "volumeCount",
-    "networkCount",
-    "routerCount",
-    "floatingIpCount",
-    "projectCount",
-    "serviceCount",
-    "downServiceCount",
-    "vcpuCapacity",
-    "vcpuAllocated",
-    "memoryCapacityBytes",
-    "memoryAllocatedBytes",
-    "storageCapacityBytes",
-    "storageUsedBytes",
-  ];
+> = [
+  "regionCount",
+  "availabilityZoneCount",
+  "hypervisorCount",
+  "instanceCount",
+  "activeInstanceCount",
+  "volumeCount",
+  "networkCount",
+  "routerCount",
+  "floatingIpCount",
+  "projectCount",
+  "serviceCount",
+  "downServiceCount",
+  "vcpuCapacity",
+  "vcpuAllocated",
+  "memoryCapacityBytes",
+  "memoryAllocatedBytes",
+  "storageCapacityBytes",
+  "storageUsedBytes",
+];
 
 /*
  * What OpenStackCloudService's write hooks hand on to their success hooks: the collection
@@ -232,6 +231,7 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: row.projectId,
             collectionMethod: row.collectionMethod,
             authUrl: row.authUrl,
+            endpointInterface: row.endpointInterface,
             credentialKind: row.credentialKind,
             applicationCredentialId: row.applicationCredentialId,
             keystoneUsername: row.keystoneUsername,
@@ -242,6 +242,7 @@ export class Service extends ProjectReferencesService<Model> {
             collectionProbeId: row.collectionProbeId,
             collectionRegions: row.collectionRegions,
             collectionOptions: row.collectionOptions,
+            collectionIntervalInMinutes: row.collectionIntervalInMinutes,
             trustedCertificateFingerprints: row.trustedCertificateFingerprints,
             presentedCertificate: row.presentedCertificate,
           };

@@ -70,7 +70,7 @@ Aldrig fördröjt och aldrig medräknat:
 | Prenumeranter på statussidor | Varje mejl som din statussida skickar till dina egna prenumeranter |
 | SLA-brott | En incident som du äger missar sin SLA-tidsgräns för svar eller lösning |
 
-Bara mejl påverkas. SMS, telefonsamtal, push-aviseringar, WhatsApp, Telegram, Slack, Microsoft Teams och webhooks levereras direkt, precis som förut — även för aviseringar vars mejl hölls tillbaka.
+Bara mejl påverkas. SMS, telefonsamtal, push-aviseringar, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost och webhooks levereras direkt, precis som förut — även för aviseringar vars mejl hölls tillbaka.
 
 ## Gränser
 
@@ -105,7 +105,7 @@ Vad det **inte** påverkar:
 
 - **Vilka aviseringar du får.** Det är inställningen per händelsetyp och per kanal under **Användarinställningar → Aviseringsinställningar**, en sida bort. Sammanfattningen och det här reglaget ändrar bara hur många mejl aviseringarna packas i.
 - **Jourlarm och pass-mejl**, **mejl om kontosäkerhet**, **faktureringsmejl**, varningar om instansens hälsa och mejl till statussidesprenumeranter. Inget av det sammanfattas någonsin, så det ändrar ingenting för dem att stänga av sammanfattningen — se [Det som aldrig sammanfattas](#det-som-aldrig-sammanfattas).
-- **Alla andra kanaler.** SMS, telefonsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams och webhooks är redan omedelbara.
+- **Alla andra kanaler.** SMS, telefonsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost och webhooks är redan omedelbara.
 
 ## Dra ner ännu mer
 

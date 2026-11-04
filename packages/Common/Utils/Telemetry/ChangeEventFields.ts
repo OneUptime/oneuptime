@@ -37,6 +37,12 @@ export enum ChangeEventType {
    * the provider's side.
    */
   ProviderEvent = "provider-event",
+  /*
+   * What an OpenStack cloud's own notifications said happened to one of its
+   * parts: an instance created or failed, a compute service disabled, a volume
+   * attached (OpenStackEventEntries).
+   */
+  OpenStackEvent = "openstack-event",
   Custom = "custom",
 }
 
@@ -65,6 +71,8 @@ export enum ChangeEventSource {
   Cloud = "cloud",
   // A health event the cloud provider published about the account.
   CloudHealth = "cloud-health",
+  // What an OpenStack cloud's notifications, or a probe's read of Nova, said happened.
+  OpenStack = "openstack",
 }
 
 // The attribute keys OneUptime writes on the change events it records.
@@ -501,6 +509,8 @@ export function describeChangeEventSource(source: string): string {
       return "the cloud account's activity log";
     case ChangeEventSource.CloudHealth:
       return "the cloud provider's health events";
+    case ChangeEventSource.OpenStack:
+      return "the OpenStack cloud's own notifications";
     default:
       return source;
   }

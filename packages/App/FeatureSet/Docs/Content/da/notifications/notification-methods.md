@@ -92,8 +92,6 @@ Klik tilbage i OneUptime på **I've sent the message — check**. Så snart bott
 2. Klik på fanen **Arbejdsområdeapps** på **Add Slack Account**, **Add Microsoft Teams Account** eller **Tilføj Mattermost-konto**. Kontoen er bekræftet, så snart den er tilføjet.
 3. Klik på **Send Test Message** i dens række. Tilkald kommer som direkte beskeder fra OneUptime-appen, eller i Mattermost fra projektets bot.
 
-En Mattermost-konto får kun dine tilkald, ikke de nyheder, du vælger i **Notifikationsindstillinger**.
-
 ## Push-notifikationer
 
 Fanen **Push-notifikationer** viser dine **Enheder til push-notifikationer**.

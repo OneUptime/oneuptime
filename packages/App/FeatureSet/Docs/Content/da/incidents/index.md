@@ -67,7 +67,7 @@ Workflows åbner også hændelser: [Huntress](/docs/integrations/huntress)-workf
 
 Ved oprettelsen kører OneUptime den automatisering, du har sat op: privatlivsregler, ejerregler, etiketregler, vagtregler og runbook-regler. Alle vagtpolitikker, der er knyttet til hændelsen — i hånden, fra en skabelon eller lagt til af en vagtregel, der matcher — udføres parallelt.
 
-Ejerne får besked via de kanaler, hver af dem har slået til under **Brugerindstillinger → Notifikationsindstillinger**: e-mail, SMS, taleopkald, push, WhatsApp, Telegram, Slack, Microsoft Teams eller webhook. Har en hændelse slet ingen ejere, går beskeden til projektets ejere i stedet for at gå tabt.
+Ejerne får besked via de kanaler, hver af dem har slået til under **Brugerindstillinger → Notifikationsindstillinger**: e-mail, SMS, taleopkald, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en hændelse slet ingen ejere, går beskeden til projektets ejere i stedet for at gå tabt.
 
 Er hændelsen synlig på en statusside, og er notifikationer til abonnenter slået til, får abonnenterne også besked: abonnenterne på hver statusside, der viser en af dens monitorer, eller kun dem på de sider, du har begrænset den til. Se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience) for at give hver målgruppe sin egen statusside.
 

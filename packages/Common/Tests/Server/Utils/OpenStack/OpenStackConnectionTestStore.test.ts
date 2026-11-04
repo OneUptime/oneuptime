@@ -195,7 +195,7 @@ describe("starting a test", () => {
     "%s is refused",
     async (
       _name: string,
-      overrides: object,
+      overrides: Record<string, unknown>,
       values: Record<string, unknown>,
       words: string,
     ) => {

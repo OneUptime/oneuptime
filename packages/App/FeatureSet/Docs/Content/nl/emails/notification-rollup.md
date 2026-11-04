@@ -70,7 +70,7 @@ Nooit vertraagd en nooit meegeteld:
 | Abonnees van statuspagina's | Elke e-mail die je statuspagina naar je eigen abonnees stuurt |
 | SLA-schendingen | Een incident waarvan u eigenaar bent dat de SLA-deadline voor reactie of oplossing niet haalt |
 
-Alleen e-mail is betrokken. Sms, telefoongesprekken, pushmeldingen, WhatsApp, Telegram, Slack, Microsoft Teams en webhooks worden meteen bezorgd, precies zoals voorheen — ook voor de meldingen waarvan de e-mail werd tegengehouden.
+Alleen e-mail is betrokken. Sms, telefoongesprekken, pushmeldingen, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost en webhooks worden meteen bezorgd, precies zoals voorheen — ook voor de meldingen waarvan de e-mail werd tegengehouden.
 
 ## Limieten
 
@@ -105,7 +105,7 @@ Wat hij **niet** verandert:
 
 - **Welke meldingen je krijgt.** Dat is de instelling per gebeurtenistype en per kanaal onder **Gebruikersinstellingen → Meldingsinstellingen**, één pagina verder. Het overzicht en deze schakelaar veranderen alleen in hoeveel e-mails die meldingen worden verpakt.
 - **Oproepen tijdens dienst en dienst-e-mails**, **e-mail over accountbeveiliging**, **facturatie-e-mail**, waarschuwingen over de gezondheid van de instantie en e-mail aan abonnees van statuspagina's. Daarvan wordt nooit iets gebundeld, dus het overzicht uitzetten verandert er niets aan — zie [Wat nooit wordt gebundeld](#wat-nooit-wordt-gebundeld).
-- **Alle andere kanalen.** Sms, telefoongesprekken, push, WhatsApp, Telegram, Slack, Microsoft Teams en webhooks zijn al direct.
+- **Alle andere kanalen.** Sms, telefoongesprekken, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost en webhooks zijn al direct.
 
 ## Nog minder e-mail
 

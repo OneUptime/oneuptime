@@ -1,0 +1,50 @@
+# The OpenStack agent's optional logs profile for a deployment that logs to the
+# systemd journal: the upstream otelcol-contrib release, run by systemd with
+# otel-collector-logs-journald.yaml. `install-logs.sh journald` installs it as
+# /etc/systemd/system/oneuptime-openstack-logs.service, on each controller and compute
+# node, with its files in /opt/oneuptime-openstack-logs. It runs without Docker on
+# purpose: the journald receiver runs the machine's own journalctl, which the collector's
+# image does not hold, and the image would have to run as root to read the journal.
+[Unit]
+Description=OneUptime OpenStack Logs (OpenTelemetry Collector, reading the journal)
+Documentation=https://oneuptime.com/docs/telemetry/openstack
+After=network-online.target systemd-journald.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The units a journal's OpenStack services run under. .env overrides this.
+Environment=OPENSTACK_CLOUD_NAME=openstack
+Environment=OPENSTACK_LOGS_UNITS=[devstack@*,aodh-*,barbican-*,ceilometer-*,cinder-*,cloudkitty-*,designate-*,glance-*,gnocchi-*,heat-*,ironic-*,keystone*,magnum-*,manila-*,masakari-*,neutron-*,nova-*,octavia-*,placement-*,trove-*]
+# Where the journal's cursor is kept (StateDirectory below).
+Environment=OPENSTACK_LOGS_STATE_DIRECTORY=/var/lib/oneuptime-openstack-logs
+# Root's alone (mode 0600): systemd reads it before the collector starts, and the
+# collector never opens it.
+EnvironmentFile=/opt/oneuptime-openstack-logs/.env
+# Its own metrics on a port of its own, as the agent's collector does: whichever
+# collector starts second on a machine would otherwise restart forever. The agent's
+# takes 8891.
+ExecStart=/opt/oneuptime-openstack-logs/otelcol-contrib --config=/opt/oneuptime-openstack-logs/otel-collector-logs-journald.yaml "--set=service::telemetry::metrics::readers=[{pull: {exporter: {prometheus: {host: 127.0.0.1, port: 8892}}}}]"
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+# It reads the journal and talks to OneUptime, so it runs as a throwaway unprivileged
+# user in the one group that may read the journal, and writes only its own cursor.
+DynamicUser=yes
+SupplementaryGroups=systemd-journal
+StateDirectory=oneuptime-openstack-logs
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

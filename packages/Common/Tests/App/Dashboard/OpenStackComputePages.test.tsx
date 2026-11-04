@@ -420,6 +420,10 @@ describe("a hypervisor's page", () => {
     expect(tile("openstack-hypervisor-tiles", "Instances")).toHaveTextContent(
       "5running",
     );
+    // What is promised is never called load.
+    expect(
+      screen.getByTestId("openstack-hypervisor-tiles"),
+    ).not.toHaveTextContent(/\bCPU\b/);
     expect(screen.queryByTestId("openstack-hypervisor-lost")).toBeNull();
   });
 
@@ -1084,7 +1088,7 @@ describe("availability zones and aggregates", () => {
     expect(within(az1).getByText("Unhealthy")).toBeInTheDocument();
     expect(within(az1).getByText("1 up, 1 lost")).toBeInTheDocument();
     // The lost host's numbers are not room.
-    expect(within(az1).getByText("12 of 64 (19%)")).toBeInTheDocument();
+    expect(within(az1).getByText("19% of 64")).toBeInTheDocument();
     expect(within(az1).getByText("12")).toBeInTheDocument();
 
     const az2: HTMLElement = tableRow("az2");

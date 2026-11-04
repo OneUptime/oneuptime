@@ -465,10 +465,7 @@ describe("wiring", () => {
  * tables, with the authenticated probe handed down to each.
  */
 describe("the routes the module mounts", () => {
-  async function callMounted(
-    uri: string,
-    req: ExpressRequest,
-  ): Promise<void> {
+  async function callMounted(uri: string, req: ExpressRequest): Promise<void> {
     await (OpenStackCollectionRouter as unknown as RecordingRouter).routes
       .get(uri)!
       .handler(req, mockResponse, jest.fn() as unknown as NextFunction);

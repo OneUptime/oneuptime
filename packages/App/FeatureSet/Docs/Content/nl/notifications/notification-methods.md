@@ -92,8 +92,6 @@ Klik terug in OneUptime op **I've sent the message — check**. Zodra de bot je 
 2. Klik op het tabblad **Werkruimte-apps** op **Add Slack Account**, **Add Microsoft Teams Account** of **Mattermost-account toevoegen**. Het account is geverifieerd zodra het is toegevoegd.
 3. Klik op **Send Test Message** in de rij ervan. Oproepen komen binnen als directe berichten van de OneUptime-app, of in Mattermost van de bot van het project.
 
-Een Mattermost-account krijgt alleen je oproepen, niet het nieuws dat je kiest in **Meldingsinstellingen**.
-
 ## Pushmeldingen
 
 Het tabblad **Pushmeldingen** toont je **Apparaten voor pushmeldingen**.

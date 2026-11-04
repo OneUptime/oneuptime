@@ -70,7 +70,7 @@ Nunca se retrasa ni se cuenta:
 | Suscriptores de páginas de estado | Cada correo que tu página de estado envía a tus propios suscriptores |
 | Incumplimientos de SLA | Un incidente del que eres propietario que no cumple su plazo SLA de respuesta o de resolución |
 
-Solo afecta al correo. SMS, llamadas, notificaciones push, WhatsApp, Telegram, Slack, Microsoft Teams y webhooks se entregan de inmediato, exactamente como antes, también para las notificaciones cuyo correo se retuvo.
+Solo afecta al correo. SMS, llamadas, notificaciones push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost y webhooks se entregan de inmediato, exactamente como antes, también para las notificaciones cuyo correo se retuvo.
 
 ## Límites
 
@@ -105,7 +105,7 @@ Lo que **no** cambia:
 
 - **Qué notificaciones recibes.** Eso es el ajuste por tipo de evento y por canal en **Ajustes de usuario → Ajustes de notificaciones**, en la página de al lado. El resumen y este interruptor solo cambian en cuántos correos se reúnen esas notificaciones.
 - **Los avisos de guardia y los correos de turno**, **los correos de seguridad de la cuenta**, **los correos de facturación**, las advertencias de estado de la instancia y los correos a suscriptores de páginas de estado. Nada de eso se resume nunca, así que desactivar el resumen no cambia nada en ellos; consulta [Lo que nunca se resume](#lo-que-nunca-se-resume).
-- **Cualquier otro canal.** SMS, llamadas, push, WhatsApp, Telegram, Slack, Microsoft Teams y webhooks ya son inmediatos.
+- **Cualquier otro canal.** SMS, llamadas, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost y webhooks ya son inmediatos.
 
 ## Reducir aún más
 

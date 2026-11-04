@@ -350,20 +350,19 @@ function indexesOf(modelType: new () => BaseModel): Array<Array<string>> {
     });
 }
 
-const STORES: string = path.join(
-  __dirname,
-  "../../../Server/Utils/OpenStack",
-);
+const STORES: string = path.join(__dirname, "../../../Server/Utils/OpenStack");
 
 function sourceOf(file: string): string {
   return fs.readFileSync(path.join(STORES, file), "utf8");
 }
 
+const READS_OR_WRITES_A_TABLE: RegExp = /\b(SELECT|UPDATE)\s+/;
+
 // Every SQL statement written in a file: its template literals that read or write a table.
 function statementsIn(file: string): Array<string> {
   return (sourceOf(file).match(/`[^`]*`/g) || []).filter(
     (literal: string): boolean => {
-      return /\b(SELECT|UPDATE)\s+/.test(literal);
+      return READS_OR_WRITES_A_TABLE.test(literal);
     },
   );
 }

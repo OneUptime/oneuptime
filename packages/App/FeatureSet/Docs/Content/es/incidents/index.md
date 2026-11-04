@@ -67,7 +67,7 @@ Los flujos de trabajo también abren incidentes: el flujo de trabajo de [Huntres
 
 Al crearse, OneUptime ejecuta la automatización que configuraste: reglas de privacidad, reglas de propietario, reglas de etiquetas, reglas de guardia y reglas de runbook. Todas las políticas de guardia adjuntas al incidente —a mano, desde una plantilla o añadidas por una regla de guardia que coincide— se ejecutan en paralelo.
 
-Se notifica a los propietarios por los canales que cada uno activó en **Ajustes de usuario → Ajustes de notificaciones**: correo electrónico, SMS, llamada de voz, notificación push, WhatsApp, Telegram, Slack, Microsoft Teams o webhook. Si un incidente no tiene ningún propietario, la notificación recae en los propietarios del proyecto en lugar de perderse.
+Se notifica a los propietarios por los canales que cada uno activó en **Ajustes de usuario → Ajustes de notificaciones**: correo electrónico, SMS, llamada de voz, notificación push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost o webhook. Si un incidente no tiene ningún propietario, la notificación recae en los propietarios del proyecto en lugar de perderse.
 
 Si el incidente es visible en una página de estado y las notificaciones a suscriptores están activadas, también se avisa a los suscriptores: los de cada página de estado que lista uno de sus monitores, o solo los de las páginas a las que lo limitaste. Consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience) para dar a cada audiencia su propia página de estado.
 

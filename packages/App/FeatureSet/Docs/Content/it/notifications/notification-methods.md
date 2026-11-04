@@ -92,8 +92,6 @@ Tornati in OneUptime, fate clic su **I've sent the message — check**. Appena i
 2. Nella scheda **App dell'area di lavoro**, fate clic su **Add Slack Account**, **Add Microsoft Teams Account** o **Aggiungi account Mattermost**. L'account risulta verificato appena viene aggiunto.
 3. Fate clic su **Send Test Message** nella sua riga. Le chiamate arrivano come messaggi diretti dall'app di OneUptime o, in Mattermost, dal bot del progetto.
 
-Un account Mattermost riceve solo le vostre chiamate, non gli aggiornamenti che scegliete nelle **Impostazioni notifiche**.
-
 ## Notifiche push
 
 La scheda **Notifiche push** elenca i vostri **Dispositivi per notifiche push**.

@@ -656,7 +656,7 @@ describe("user settings > notification settings", () => {
       ).not.toBeInTheDocument();
     });
 
-    test("if asking which are connected fails, both columns stay, as before", async () => {
+    test("if asking which are connected fails, every workspace's column stays, so nothing is hidden on a guess", async () => {
       ConnectedWorkspaces.setFetcher(
         async (): Promise<Array<WorkspaceType>> => {
           throw new Error("Permission denied");
@@ -666,7 +666,10 @@ describe("user settings > notification settings", () => {
       renderPage();
       const row: HTMLElement = await findEventRow("Incident created");
 
-      expect(within(row).getAllByRole("switch")).toHaveLength(9);
+      expect(within(row).getAllByRole("switch")).toHaveLength(10);
+      expect(
+        within(row).getByRole("switch", { name: /^Mattermost:/ }),
+      ).toBeInTheDocument();
     });
 
     test("on a first visit the matrix keeps its loader until it knows, rather than dropping columns under the reader", async () => {
@@ -730,6 +733,22 @@ describe("user settings > notification settings", () => {
           WorkspaceType.MicrosoftTeams,
         ]),
       ).toHaveLength(9);
+      expect(getShownChannelKeys([WorkspaceType.Mattermost])).toContain(
+        "alertByMattermost",
+      );
+      expect(
+        getShownChannelKeys([
+          WorkspaceType.Slack,
+          WorkspaceType.MicrosoftTeams,
+        ]),
+      ).not.toContain("alertByMattermost");
+      expect(
+        getShownChannelKeys([
+          WorkspaceType.Slack,
+          WorkspaceType.MicrosoftTeams,
+          WorkspaceType.Mattermost,
+        ]),
+      ).toHaveLength(10);
     });
 
     test("switching projects re-reads every row against the new project", async () => {
