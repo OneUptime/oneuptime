@@ -50,7 +50,7 @@ Legg til boten i teamet OneUptime skal publisere i, slik du ville lagt til en pe
 
 ### Koble til prosjektet
 
-Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** i OneUptime, og klikk på **Koble til Mattermost**. Skriv inn adressen til serveren din, for eksempel `https://chat.example.com`, og tilgangstokenet til boten. OneUptime sjekker tokenet mot serveren din før den lagrer noe. Hvis boten er i mer enn ett team, spør OneUptime hvilket den skal publisere i.
+Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** i OneUptime, og klikk på **Koble til Mattermost**. Skriv inn adressen til serveren din, for eksempel `https://chat.example.com`, og tilgangstokenet til boten. OneUptime sjekker tokenet mot serveren din før den lagrer noe. Hvis boten er i mer enn ett team, spør OneUptime hvilket den skal publisere i. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakttjeneste **Koble til et arbeidsområde**, som også fører hit.
 
 ### Legg til en varslingsregel
 

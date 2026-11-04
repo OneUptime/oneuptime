@@ -50,7 +50,7 @@ Føj botten til det team, OneUptime skal slå op i, ligesom du ville tilføje en
 
 ### Forbind projektet
 
-Gå i OneUptime til **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, og klik på **Forbind med Mattermost**. Angiv din servers adresse, for eksempel `https://chat.example.com`, og bottens adgangstoken. OneUptime kontrollerer tokenet hos din server, før den gemmer noget. Hvis botten er i mere end ét team, spørger OneUptime, hvilket den skal slå op i.
+Gå i OneUptime til **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, og klik på **Forbind med Mattermost**. Angiv din servers adresse, for eksempel `https://chat.example.com`, og bottens adgangstoken. OneUptime kontrollerer tokenet hos din server, før den gemmer noget. Hvis botten er i mere end ét team, spørger OneUptime, hvilket den skal slå op i. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Tilføj en notifikationsregel
 

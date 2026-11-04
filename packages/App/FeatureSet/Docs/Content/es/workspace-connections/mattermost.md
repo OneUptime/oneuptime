@@ -50,7 +50,7 @@ Añade el bot al equipo en el que OneUptime debe publicar, como añadirías a un
 
 ### Conectar el proyecto
 
-En OneUptime, ve a **Ajustes del proyecto** > **Espacio de trabajo** > **Mattermost** y haz clic en **Conectar con Mattermost**. Introduce la dirección de tu servidor, como `https://chat.example.com`, y el token de acceso del bot. OneUptime comprueba el token con tu servidor antes de guardar nada. Si el bot está en más de un equipo, OneUptime te pregunta en cuál publicar.
+En OneUptime, ve a **Ajustes del proyecto** > **Espacio de trabajo** > **Mattermost** y haz clic en **Conectar con Mattermost**. Introduce la dirección de tu servidor, como `https://chat.example.com`, y el token de acceso del bot. OneUptime comprueba el token con tu servidor antes de guardar nada. Si el bot está en más de un equipo, OneUptime te pregunta en cuál publicar. Mientras no haya ningún espacio de trabajo conectado, la sección **Espacio de trabajo** de los menús Incidentes, Alertas, Mantenimiento programado, Monitores y Guardia contiene **Conectar un espacio de trabajo**, que también lleva aquí.
 
 ### Añadir una regla de notificación
 

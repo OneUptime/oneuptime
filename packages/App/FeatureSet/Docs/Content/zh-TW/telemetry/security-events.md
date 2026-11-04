@@ -339,7 +339,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 通知 **獵捕發現了安全事件** 會寫明獵捕及其搜尋、執行發現的事件數量和讀取的時間範圍，並連結到顯示這些事件的獵捕頁面；其中不包含任何事件本身的內容。每個人預設透過電子郵件和推播接收，並可在 **使用者設定 → 通知設定** 中選擇管道。與其他例行郵件一樣，它可能會被歸入 [郵件彙整](/docs/emails/notification-rollup)。
 
-要將獵捕的發現張貼到 Slack 或 Microsoft Teams，請在 **產品 → 安全事件 → 工作區 → Slack**（或 **Microsoft Teams**）中，在張貼[安全案件](/docs/telemetry/security-cases#張貼到-slack-和-microsoft-teams-頻道)的規則下方，向 **獵捕規則** 新增規則。規則指定要張貼到的頻道（在 Microsoft Teams 中還包括聊天），以及（如有需要）它適用的獵捕，依 **獵捕名稱** 比對：名稱等於、包含、以你的文字開頭或以你的文字結尾。每當排程執行發現事件時，它會張貼該獵捕、其搜尋、事件數量和時間，並附上指向這些事件的連結，不含事件本身的任何內容。獵捕規則由可以設定安全劇本的角色設定，例如 Project Owner、Project Admin 或 Security Admin。
+要將獵捕的發現張貼到 Slack、Microsoft Teams 或 Mattermost，請在 **產品 → 安全事件 → 工作區 → Slack**（或 **Microsoft Teams**、**Mattermost**）中，在張貼[安全案件](/docs/telemetry/security-cases#張貼到-slackmicrosoft-teams-和-mattermost-頻道)的規則下方，向 **獵捕規則** 新增規則。規則指定要張貼到的頻道（在 Microsoft Teams 中還包括聊天），以及（如有需要）它適用的獵捕，依 **獵捕名稱** 比對：名稱等於、包含、以你的文字開頭或以你的文字結尾。每當排程執行發現事件時，它會張貼該獵捕、其搜尋、事件數量和時間，並附上指向這些事件的連結，不含事件本身的任何內容。獵捕規則由可以設定安全劇本的角色設定，例如 Project Owner、Project Admin 或 Security Admin。
 
 ### 將事件保存到案件
 

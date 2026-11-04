@@ -50,7 +50,7 @@ Fügen Sie den Bot dem Team hinzu, in dem OneUptime posten soll, so wie Sie eine
 
 ### Das Projekt verbinden
 
-Gehen Sie in OneUptime zu **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost** und klicken Sie auf **Mit Mattermost verbinden**. Geben Sie die Adresse Ihres Servers ein, etwa `https://chat.example.com`, und das Zugriffstoken des Bots. OneUptime prüft das Token bei Ihrem Server, bevor es irgendetwas speichert. Ist der Bot in mehr als einem Team, fragt OneUptime, in welchem es posten soll.
+Gehen Sie in OneUptime zu **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost** und klicken Sie auf **Mit Mattermost verbinden**. Geben Sie die Adresse Ihres Servers ein, etwa `https://chat.example.com`, und das Zugriffstoken des Bots. OneUptime prüft das Token bei Ihrem Server, bevor es irgendetwas speichert. Ist der Bot in mehr als einem Team, fragt OneUptime, in welchem es posten soll. Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Arbeitsbereich verbinden**, der ebenfalls hierher führt.
 
 ### Eine Benachrichtigungsregel hinzufügen
 
