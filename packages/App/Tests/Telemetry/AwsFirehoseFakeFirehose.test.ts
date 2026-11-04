@@ -59,6 +59,7 @@ import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingSe
 import ProjectService from "Common/Server/Services/ProjectService";
 import CloudStreamActivity from "Common/Server/Utils/CloudConnection/CloudStreamActivity";
 import CloudStreamAuthenticator from "Common/Server/Utils/CloudConnection/CloudStreamAuthentication";
+import CloudStreamKeyedConnections from "Common/Server/Utils/CloudConnection/CloudStreamKeyedConnections";
 import CloudStreamKeys from "Common/Server/Utils/CloudConnection/CloudStreamKeys";
 import {
   createExpressApp,
@@ -213,6 +214,9 @@ function connectionRow(data: {
 }
 
 let rows: Map<string, CloudConnection>;
+// Reads of one connection, and of every connection that holds a stream key.
+let connectionReads: number;
+let keyedReads: number;
 
 function nextRequestId(): string {
   requestCounter++;
@@ -345,6 +349,8 @@ beforeEach(() => {
   ledger = new Map();
 
   rows = new Map();
+  connectionReads = 0;
+  keyedReads = 0;
   rows.set(
     CONNECTION_A.toString(),
     connectionRow({
@@ -373,8 +379,23 @@ beforeEach(() => {
   jest
     .spyOn(CloudConnectionService, "findOneById")
     .mockImplementation((async (data: { id: ObjectID }) => {
+      connectionReads++;
       return rows.get(data.id.toString()) || null;
     }) as never);
+  // Every connection that holds a stream key: the rows with hashes.
+  CloudStreamKeyedConnections.reset();
+  jest
+    .spyOn(CloudStreamKeyedConnections, "readIds")
+    .mockImplementation(async (): Promise<Array<string>> => {
+      keyedReads++;
+      return Array.from(rows.values())
+        .filter((connection: CloudConnection): boolean => {
+          return Boolean(connection.streamKeyHashes);
+        })
+        .map((connection: CloudConnection): string => {
+          return connection.id!.toString();
+        });
+    });
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest
     .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
@@ -1570,6 +1591,146 @@ describe("who a delivery is from", () => {
 
     expect(reply.status).toBe(403);
     expect(metricJobs).toHaveLength(0);
+  });
+});
+
+describe("refused deliveries cost nothing and say nothing", () => {
+  // A connection nobody made, new on every call.
+  let inventedSoFar: number = 0;
+
+  function inventedKey(): string {
+    inventedSoFar++;
+
+    return keyOf(
+      new ObjectID(
+        `99999999-9999-4999-8999-${inventedSoFar.toString(16).padStart(12, "0")}`,
+      ),
+      "c3",
+    );
+  }
+
+  test("a hundred deliveries naming connections nobody made: each refused alike, not one connection read, nothing noted", async () => {
+    const replies: Array<FirehoseReply> = [];
+
+    for (let index: number = 0; index < 100; index++) {
+      replies.push(
+        await deliver({
+          key: inventedKey(),
+          records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+        }),
+      );
+    }
+
+    for (const reply of replies) {
+      expectFirehoseAnswer(reply, { status: 401 });
+      expect(reply.body["errorMessage"]).toBe(replies[0]!.body["errorMessage"]);
+    }
+
+    await settle();
+
+    // One read of the connections that hold a key, and none of a connection.
+    expect(keyedReads).toBe(1);
+    expect(connectionReads).toBe(0);
+    expect(summaries.size).toBe(0);
+    expect(metricJobs).toHaveLength(0);
+
+    // The streams of a real key are taken as before, into the key's project.
+    const reply: FirehoseReply = await deliver({
+      key: KEY_A,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+    expect(metricJobs).toHaveLength(1);
+    expect(metricJobs[0]!.projectId).toBe(PROJECT_A.toString());
+  });
+
+  test("a wrong key on a connection that streams nothing - never set up, or stopped - is refused, and noted nowhere", async () => {
+    rows.get(CONNECTION_A.toString())!.streamKeyHashes =
+      undefined as unknown as JSONObject;
+
+    const reply: FirehoseReply = await deliver({
+      key: keyOf(CONNECTION_A, "ff"),
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 401 });
+
+    await settle();
+
+    expect(summaries.size).toBe(0);
+    expect(connectionReads).toBe(0);
+  });
+
+  test("a wrong key on a connection that holds a key is noted on it, so the person setting the stream up sees why", async () => {
+    const reply: FirehoseReply = await deliver({
+      key: keyOf(CONNECTION_A, "ff"),
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 401 });
+
+    await settle();
+
+    expect(summaries.get(CONNECTION_A.toString())?.lastRefusal?.reason).toBe(
+      CloudStreamRefusalReason.WrongKey,
+    );
+    // The other project's connection hears nothing of it.
+    expect(summaries.has(CONNECTION_B.toString())).toBe(false);
+  });
+
+  test("Stop streaming: the stacks' next delivery is refused at once, without a read, and noted nowhere", async () => {
+    expectFirehoseAnswer(
+      await deliver({
+        key: KEY_A,
+        records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+      }),
+      { status: 200 },
+    );
+    expect(connectionReads).toBe(1);
+
+    jest
+      .spyOn(CloudConnectionService, "updateColumnsByIdWithoutHooks")
+      .mockImplementation((async () => {
+        rows.get(CONNECTION_A.toString())!.streamKeyHashes =
+          undefined as unknown as JSONObject;
+      }) as never);
+    await CloudConnectionService.stopStreaming(CONNECTION_A);
+    await settle();
+    summaries.clear();
+
+    const reply: FirehoseReply = await deliver({
+      key: KEY_A,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 401 });
+
+    await settle();
+
+    expect(connectionReads).toBe(1);
+    expect(summaries.size).toBe(0);
+    expect(metricJobs).toHaveLength(1);
+  });
+
+  test("the project is the key's alone, among refused deliveries too: B's key keeps writing into B", async () => {
+    for (let index: number = 0; index < 20; index++) {
+      await deliver({
+        key: inventedKey(),
+        records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+      });
+    }
+
+    await deliver({
+      key: KEY_B,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expect(
+      metricJobs.map((job: { projectId: string }) => {
+        return job.projectId;
+      }),
+    ).toEqual([PROJECT_B.toString()]);
   });
 });
 

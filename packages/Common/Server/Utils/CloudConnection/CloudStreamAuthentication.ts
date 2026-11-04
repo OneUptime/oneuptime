@@ -17,6 +17,7 @@ import PayAsYouGoBillingService, {
 import ProjectService from "../../Services/ProjectService";
 import LlmConnectionPullRunner from "../LlmObservability/LlmConnectionPullRunner";
 import logger from "../Logger";
+import CloudStreamKeyedConnections from "./CloudStreamKeyedConnections";
 import CloudStreamKeys from "./CloudStreamKeys";
 
 /*
@@ -40,7 +41,11 @@ import CloudStreamKeys from "./CloudStreamKeys";
  * What a connection holds is cached for a minute in each process (and a
  * connection that is not there for 10 seconds), so a busy stream reads
  * Postgres once a minute; a new key or Stop streaming takes effect here at
- * once (forget) and everywhere within the minute.
+ * once (forget) and everywhere within the minute. A key naming a
+ * connection that holds no stream key is refused without a read at all
+ * (CloudStreamKeyedConnections), so refused deliveries cost nothing, and a
+ * wrong key is noted on its connection only while that connection holds a
+ * key.
  */
 
 const POSITIVE_TTL_MS: number = 60 * 1000;
@@ -111,21 +116,27 @@ export default class CloudStreamAuthenticator {
 
     const connectionId: ObjectID = new ObjectID(parsed.connectionId);
     const connection: CachedStreamConnection | null =
-      await CloudStreamAuthenticator.read(connectionId);
+      await CloudStreamAuthenticator.read(connectionId, data.now);
+    const liveHashes: Array<string> = connection
+      ? getLiveCloudStreamKeyHashes({
+          hashes: connection.keyHashes,
+          now: data.now,
+        })
+      : [];
 
     if (
       !connection ||
       connection.provider !== CloudProvider.AWS ||
-      !CloudStreamKeys.matchesAny(
-        (data.accessKey as string).trim(),
-        getLiveCloudStreamKeyHashes({
-          hashes: connection.keyHashes,
-          now: data.now,
-        }),
-      )
+      !CloudStreamKeys.matchesAny((data.accessKey as string).trim(), liveHashes)
     ) {
+      /*
+       * A wrong key is noted on its connection only while the connection
+       * holds a key: someone setting a stream up is then told why its
+       * deliveries are refused. A connection that streams nothing - never
+       * set up, or stopped - gets no note from whoever knows its id.
+       */
       return CloudStreamAuthenticator.wrongKey(
-        connection ? connectionId : undefined,
+        connection && liveHashes.length > 0 ? connectionId : undefined,
       );
     }
 
@@ -212,6 +223,7 @@ export default class CloudStreamAuthenticator {
 
   private static async read(
     connectionId: ObjectID,
+    now: Date,
   ): Promise<CachedStreamConnection | null> {
     const cacheKey: string = connectionId.toString();
     const cached: CachedStreamConnection | null | undefined =
@@ -219,6 +231,15 @@ export default class CloudStreamAuthenticator {
 
     if (cached !== undefined) {
       return cached;
+    }
+
+    /*
+     * A connection that holds no stream key is refused without a read, and
+     * kept out of the cache: invented ids never push a streaming
+     * connection out of it (CloudStreamKeyedConnections).
+     */
+    if (!(await CloudStreamKeyedConnections.mayHoldKey(connectionId, now))) {
+      return null;
     }
 
     const connection: CloudConnection | null =

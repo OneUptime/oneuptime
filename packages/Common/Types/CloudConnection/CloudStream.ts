@@ -76,6 +76,18 @@ export const CLOUD_STREAM_MAX_RECORD_DECODED_BYTES: number = 8 * 1024 * 1024;
  */
 export const CLOUD_STREAM_REQUESTS_PER_MINUTE: number = 600;
 
+/*
+ * Which connections hold a stream key, as each server knows them
+ * (CloudStreamKeyedConnections): read all at once, again at most once a
+ * minute - and at most every 10 seconds when a delivery names one it does
+ * not know, so a key made on another server is known within seconds. A
+ * delivery naming any other connection is refused without a read. Past the
+ * most kept, each delivery's connection is read instead.
+ */
+export const CLOUD_STREAM_KEYED_CONNECTIONS_REFRESH_MS: number = 60 * 1000;
+export const CLOUD_STREAM_KEYED_CONNECTIONS_MISS_REFRESH_MS: number = 10 * 1000;
+export const CLOUD_STREAM_MAX_KEYED_CONNECTIONS: number = 50_000;
+
 // What the template sets each Firehose stream to.
 export const CLOUD_STREAM_BUFFER_SIZE_MIB: number = 1;
 export const CLOUD_STREAM_BUFFER_INTERVAL_SECONDS: number = 60;
@@ -668,6 +680,13 @@ export interface CloudStreamKeyHashes {
  * stop the key the streams deliver with.
  */
 export const CLOUD_STREAM_MAX_PREVIOUS_KEYS: number = 3;
+
+/*
+ * How many times a new key is written when other keys of the connection are
+ * written at the same moment: each try reads the hashes again and rotates
+ * the newer ones, so two admins making a key at once both keep theirs.
+ */
+export const CLOUD_STREAM_KEY_WRITE_ATTEMPTS: number = 5;
 
 function isSha256Hex(value: unknown): value is string {
   return typeof value === "string" && value.length === 64 && isLowerHex(value);
