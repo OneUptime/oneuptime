@@ -354,7 +354,15 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
               className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
             >
               <div className="flex min-w-0 items-center gap-1">
-                <span className="truncate text-xs font-medium uppercase tracking-wider text-gray-500">
+                {/*
+                 * One line, cut short where the tile is narrow, so the whole
+                 * title is under the pointer.
+                 */}
+                <span
+                  className="truncate text-xs font-medium uppercase tracking-wider text-gray-500"
+                  title={title}
+                  data-testid="message-queue-broker-metric-title"
+                >
                   {title}
                 </span>
                 <InfoTooltip

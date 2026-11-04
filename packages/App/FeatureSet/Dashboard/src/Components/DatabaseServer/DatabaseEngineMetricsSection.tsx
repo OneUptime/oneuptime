@@ -488,6 +488,10 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {props.results.map(
           (result: DatabaseEngineMetricResult): ReactElement => {
+            const tileTitle: string =
+              translator.translateText(result.definition.title) ||
+              result.definition.title;
+
             return (
               <div
                 key={`tile-${getDatabaseServerMetricId(result.definition)}`}
@@ -495,14 +499,20 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
                 className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
               >
                 <div className="flex min-w-0 items-center gap-1">
-                  <span className="truncate text-xs font-medium uppercase tracking-wider text-gray-500">
-                    {translator.translateText(result.definition.title)}
+                  {/*
+                   * One line, cut short where the tile is narrow - a German
+                   * "Replikationsverzögerung" mostly is - so the whole title
+                   * is under the pointer.
+                   */}
+                  <span
+                    className="truncate text-xs font-medium uppercase tracking-wider text-gray-500"
+                    title={tileTitle}
+                    data-testid="database-engine-metric-tile-title"
+                  >
+                    {tileTitle}
                   </span>
                   <InfoTooltip
-                    label={
-                      translator.translateText(result.definition.title) ||
-                      result.definition.title
-                    }
+                    label={tileTitle}
                     text={result.definition.description}
                   />
                 </div>
