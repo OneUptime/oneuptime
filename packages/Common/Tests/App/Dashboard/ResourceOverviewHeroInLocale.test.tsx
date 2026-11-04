@@ -343,6 +343,34 @@ describe("the hero's identifier line", () => {
     );
   });
 
+  /*
+   * Cut with its line, a Latin identifier on a Persian phone lost its
+   * start ("…d Balancer (ALB, NLB, GWLB)"): the label keeps its room and
+   * the identifier alone is cut, at its own end, in its own direction.
+   */
+  test("too long for the line, the identifier alone is cut, at its own end", () => {
+    renderHero("fa", {
+      lastSeenAt: FIVE_HOURS_AGO(),
+      status: "connected",
+      identifierLabel: "type",
+      identifier: "Elastic Load Balancer (ALB, NLB, GWLB)",
+    });
+
+    const line: HTMLElement = identifierLine();
+    const value: HTMLElement = screen.getByTestId(
+      "resource-overview-identifier-value",
+    );
+
+    expect(line).toHaveClass("flex", "min-w-0");
+    expect(line).not.toHaveClass("truncate");
+    expect(line.firstElementChild).toHaveClass("flex-none");
+    expect(line.firstElementChild?.textContent).toBe("نوع:");
+    expect(value.tagName).toBe("BDI");
+    expect(value).toHaveClass("min-w-0", "truncate");
+    // Its direction is its own text's: left to right for a Latin type.
+    expect(value).toHaveAttribute("dir", "auto");
+  });
+
   test("each word a page names its identifier by reads in every language", () => {
     for (const label of [
       "type",

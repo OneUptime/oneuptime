@@ -593,13 +593,23 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                   /*
                    * The identifier is set apart from its label, so a type
                    * or a name in Latin letters keeps its brackets and its
-                   * place on a page read right to left.
+                   * place on a page read right to left. Too long for the
+                   * line, it is cut at its own end, in its own direction:
+                   * cut with the line, a Persian page lost its start
+                   * ("…d Balancer (ALB, NLB, GWLB)" on a phone).
                    */
                   <div
                     data-testid="resource-overview-identifier"
-                    className="mt-1 truncate font-mono text-sm text-gray-500"
+                    className="mt-1 flex min-w-0 items-baseline gap-1 font-mono text-sm text-gray-500"
                   >
-                    {identifierLabel}: <bdi>{props.identifier}</bdi>
+                    <span className="flex-none">{identifierLabel}:</span>{" "}
+                    <bdi
+                      dir="auto"
+                      data-testid="resource-overview-identifier-value"
+                      className="min-w-0 truncate"
+                    >
+                      {props.identifier}
+                    </bdi>
                   </div>
                 ) : (
                   <></>

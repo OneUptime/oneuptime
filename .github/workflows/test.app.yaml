@@ -930,7 +930,10 @@ jobs:
           # health and what needs attention by the containers' rules - its
           # Containers list and a container's page, at 1280, 1024, 768 and 390
           # pixels, dark, German and Persian) joined it on 2026-11-03, beside
-          # Docker Swarm Pages: 20.1.
+          # Docker Swarm Pages: 20.1. Cloud Connect grew by 8 tests on
+          # 2026-11-04 (a cloud account and a cloud resource in German and
+          # Persian, at a laptop's and a phone's width; about 0.8 minutes):
+          # 20.9.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
