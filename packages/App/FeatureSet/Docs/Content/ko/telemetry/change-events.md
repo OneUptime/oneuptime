@@ -147,7 +147,7 @@ OneUptime AI가 연 수정 풀 리퀘스트도 같은 방식으로 확인됩니�
 
 이름이 `oneuptime.`으로 시작하는 속성은 OneUptime 자체의 것이므로 파이프라인이 보낸 내용에서 제거됩니다. 파이프라인이 기록한 모든 변경은 `oneuptime.change.source`에 그 사실이 표시되며, 그 값은 `api`입니다.
 
-클라우드 계정에서 읽은 변경은 OpenTelemetry 이름 `cloud.provider`, `cloud.account.id`, `cloud.region`, `cloud.resource_id`로 계정과 리소스를 나타내고, 작업은 `oneuptime.cloud.operation`, 실행한 사람은 `oneuptime.cloud.actor`, 실패 여부는 `oneuptime.change.status`, 클라우드 계정은 `oneuptime.cloud_account.id`에 담습니다.
+클라우드 계정에서 읽은 변경은 OpenTelemetry 이름 `cloud.provider`, `cloud.account.id`, `cloud.region`, `cloud.resource_id`로 계정과 리소스를 나타내고, 작업은 `oneuptime.cloud.operation`, 실행한 사람은 `oneuptime.cloud.actor`, 실패 여부는 `oneuptime.change.status`, OneUptime에서 쓰는 리소스 이름은 `oneuptime.cloud.resource_name`, 클라우드 계정은 `oneuptime.cloud_account.id`에 담습니다. 제목은 API와 OneUptime AI가 읽는 대로 영어로 저장되고, 각 페이지는 이 속성들로 읽는 사람의 언어에 맞춰 표시합니다. 클라우드 AI 에이전트를 통해 OneUptime AI가 만든 변경은 이를 `oneuptime.change.made_by`(값은 `oneuptime-ai`)에 표시하고, 에이전트의 작업을 `oneuptime.runner_job.id`에, 그 수정을 `oneuptime.auto_remediation_suggestion.id`에, 그것을 계획한 AI 실행을 `oneuptime.ai_run.id`에, 수정인지 롤백인지를 `oneuptime.ai.step`(`fix` 또는 `rollback`)에, 수정한 인시던트나 경고를 `oneuptime.incident.id` 또는 `oneuptime.alert.id`에 기록합니다.
 
 ### 한도
 

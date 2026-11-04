@@ -1997,9 +1997,10 @@ describe("MCP Server", () => {
      * findings and access, flows, issues, scans, settings, check settings,
      * custom data types and residency rules - with the product, and the
      * identities that reach its stores (Data Security Identity) after it;
-     * and Data Observability's watched tables (Data Asset, #5647).
+     * and Data Observability's watched tables (Data Asset, #5647) and the
+     * checks on their values (Data Check).
      */
-    expect(records()).toHaveLength(44);
+    expect(records()).toHaveLength(45);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [
@@ -2069,6 +2070,7 @@ describe("MCP Server", () => {
           "resolve_alert",
           "add_incident_note",
           "add_alert_note",
+          "get_data_table_freshness",
           "oneuptime_whoami",
         ],
       ],
@@ -2562,8 +2564,12 @@ describe("Production review of pull requests", () => {
     expect(rowStartingWith(reads, bold("Deploys"))[1]).toContain(
       `deploys of the last ${PRODUCTION_REVIEW_WINDOWS.deploysDays} days`,
     );
+    expect(rowStartingWith(reads, bold("Data"))[1]).toContain(
+      "migrations and dbt models",
+    );
     expect(Object.values(ProductionReviewSection).sort()).toEqual(
       [
+        "Data",
         "Deploys",
         "Exceptions",
         "Incidents",

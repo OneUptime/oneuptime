@@ -48,6 +48,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPagePrivateUserSession from "Common/Models/DatabaseModels/StatusPagePrivateUserSession";
 import { MASTER_PASSWORD_COOKIE_IDENTIFIER } from "Common/Types/StatusPage/MasterPassword";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
@@ -694,6 +695,13 @@ router.post(
               tokenVerifyUrl: URL.fromString(statusPageURL)
                 .addRoute("/reset-password/" + token)
                 .toString(),
+              /*
+               * When, from where and on which device the reset was asked
+               * for: anybody who knows the address can ask (RequestOriginUtil).
+               */
+              ...RequestOriginUtil.getEmailVars({
+                origin: RequestOriginUtil.fromRequest(req),
+              }),
             },
           },
           {
@@ -872,6 +880,10 @@ router.post(
               statusPage: statusPage,
               host: host,
               httpProtocol: httpProtocol,
+            }),
+            // When, from where and on which device the password was changed.
+            ...RequestOriginUtil.getEmailVars({
+              origin: RequestOriginUtil.fromRequest(req),
             }),
           },
         },
@@ -1083,6 +1095,13 @@ router.post(
                 .toString(),
               expiresInMinutes:
                 STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES.toString(),
+              /*
+               * When, from where and on which device the link was asked for:
+               * anybody who knows the address can ask (RequestOriginUtil).
+               */
+              ...RequestOriginUtil.getEmailVars({
+                origin: RequestOriginUtil.fromRequest(req),
+              }),
             },
           },
           {

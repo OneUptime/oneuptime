@@ -1,3 +1,4 @@
+import OneUptimeDate from "Common/Types/Date";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -107,4 +108,30 @@ export function formatOverdue(translator: Translator, seconds: number): string {
     { one: "Late by {{count}} day", other: "Late by {{count}} days" },
     Math.round(seconds / 86400),
   );
+}
+
+/*
+ * When a table was last read: its last read seen ("3 hours ago"), or, when
+ * none has been seen, since when it has had none, or that it cannot be said
+ * - the login cannot read the engine's counters, or it is a view.
+ */
+export function formatLastRead(
+  translator: Translator,
+  lastReadAt: Date | string | null | undefined,
+  unreadSince: Date | string | null | undefined,
+): string {
+  if (lastReadAt) {
+    return OneUptimeDate.fromNow(OneUptimeDate.fromString(lastReadAt));
+  }
+
+  if (unreadSince) {
+    return translator.translateTemplate("None since {{date}}", {
+      date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        OneUptimeDate.fromString(unreadSince),
+        true,
+      ),
+    });
+  }
+
+  return translator.translateText("Not known") || "Not known";
 }

@@ -38,6 +38,9 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
       sigmaCount: Zod.number().optional(),
       minimumCount: Zod.number().optional(),
     }).optional(),
+    forecast: Zod.object({
+      horizonInHours: Zod.number().optional(),
+    }).optional(),
   }).optional(),
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),

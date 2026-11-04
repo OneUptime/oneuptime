@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-Med [Sessionsuppspelning](/docs/telemetry/session-replay) fångar inspelaren också ohanterade fel och markerar dem på uppspelningens tidslinje. Undantagets sida visar då ett kort **Watch what the user saw**, som öppnar uppspelningen tio sekunder före felet. Med standardpolicyn spelas varje session in, oavsett om något går fel eller inte; felet avgör bara var kortet öppnas.
+Med [Sessionsuppspelning](/docs/telemetry/session-replay) fångar inspelaren också ohanterade fel och markerar dem på uppspelningens tidslinje. Undantagets sida visar då ett kort **Se vad användaren såg**, som öppnar uppspelningen tio sekunder före felet. Med standardpolicyn spelas varje session in, oavsett om något går fel eller inte; felet avgör bara var kortet öppnas.
 
 ## Lägg till loggar och mätvärden
 

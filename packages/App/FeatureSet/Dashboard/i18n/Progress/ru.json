@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41579,
-    "untranslated": 12227
+    "keys": 42282,
+    "untranslated": 11970
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -64,6 +64,7 @@
     "Slug",
     "TLS",
     "Top P",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",

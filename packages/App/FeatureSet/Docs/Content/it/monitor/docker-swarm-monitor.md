@@ -55,7 +55,7 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Doc
 
 ### Scegliere il cluster
 
-In **Docker Swarm Monitor Configuration**, scegliete il cluster da **Docker Swarm Cluster**. Ogni cluster che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Docker Swarm** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
+In **Docker Swarm Monitor Configuration**, scegliete il cluster da **Cluster Docker Swarm**. Ogni cluster che ha inviato dati è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi cluster Docker Swarm** apre i passi di configurazione con le vostre chiavi già inserite, che attendono i primi dati.
 
 ### Scegliere cosa sorvegliare
 
@@ -81,7 +81,7 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. Le metriche di un task portano `container.runtime=docker` come quelle di un host Docker, e l'agente non appone mai `host.name`, quindi il monitor non filtra su nessuno dei due. |
+| **Cluster Docker Swarm** | Tutte | Obbligatorio. Limita ogni query a `resource.docker.swarm.cluster.name`. Le metriche di un task portano `container.runtime=docker` come quelle di un host Docker, e l'agente non appone mai `host.name`, quindi il monitor non filtra su nessuno dei due. |
 | **Nome del servizio** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.service.name`, il servizio come lo chiama `docker service ls`, per esempio `web` (`<stack>_web` in uno stack). |
 | **Nome del nodo** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.docker.swarm.node.name`, l'hostname del nodo come lo mostra `docker node ls`, per esempio `swarm-node-1`. L'agente su quel nodo lo appone a partire da `DOCKER_SWARM_NODE_NAME`. |
 | **Nome del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.name`. Il container di un task si chiama `<service>.<slot>.<taskid>`, per esempio `web.1.abc123`. |

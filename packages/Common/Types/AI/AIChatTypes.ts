@@ -1,5 +1,5 @@
 import { JSONObject } from "../JSON";
-import { AIActionWords } from "./AIActionWords";
+import { AIActionCardWords, AIActionWords } from "./AIActionWords";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
 
@@ -66,6 +66,8 @@ export enum AIChatCitationTargetType {
   DataSecurityIssues = "DataSecurityIssues",
   DataSecurityIssueView = "DataSecurityIssueView",
   DataSecurityAccess = "DataSecurityAccess",
+  // Data Observability: one watched table ({ dataAssetId }).
+  DataTableView = "DataTableView",
 }
 
 export interface AIChatCitationTarget {
@@ -183,6 +185,13 @@ export interface AIChatWidgetData {
   heading?: string | undefined;
   subheading?: string | undefined;
   fields?: Array<{ label: string; value: string }> | undefined;
+  /*
+   * A ResourceCard an action left: the same kind, heading, line and facts
+   * as sentences and terms (Types/AI/AIActionWords), which the card says in
+   * the reader's language. The English above is what exports print, and
+   * what a card saved before it had words reads as.
+   */
+  words?: AIActionCardWords | undefined;
   link?: AIChatCitationTarget | undefined;
 }
 
@@ -234,6 +243,41 @@ export interface AIChatToolAction {
   requiresApproval: boolean;
   status: AIChatToolActionStatus;
   resultSummary?: string | undefined;
+  /*
+   * The card the action left under the answer once it ran (its widget's
+   * id, "W2"): that card says what was made or changed, so the line the
+   * action leaves among the answer's actions is not drawn again under it.
+   * Absent for an action that left no card, did not run, or ran before it
+   * was recorded.
+   */
+  widgetId?: string | undefined;
+}
+
+/*
+ * Why a tool call was refused rather than run (the AI toolbox's gate and
+ * the services behind it). A refused call is never tried again, so the
+ * run's activity says it was not done, and why, in the reader's language -
+ * never "retrying differently".
+ */
+export enum AIToolRefusal {
+  // The person's role grants none of the permissions it needs.
+  Permission = "Permission",
+  // A team the person belongs to blocks a permission it needs.
+  TeamBlock = "TeamBlock",
+  // The project's plan does not include it.
+  Plan = "Plan",
+  /*
+   * It is not the person's to do: a record their labels or ownership do
+   * not reach, a private record, or a request for another project.
+   */
+  NotAllowed = "NotAllowed",
+}
+
+export const AI_TOOL_REFUSALS: ReadonlyArray<string> =
+  Object.values(AIToolRefusal);
+
+export function isAIToolRefusal(value: unknown): value is AIToolRefusal {
+  return typeof value === "string" && AI_TOOL_REFUSALS.includes(value);
 }
 
 export interface AIRunEventResultSummary {
@@ -242,6 +286,17 @@ export interface AIRunEventResultSummary {
   isTruncated?: boolean | undefined;
   bytesSentToLlm?: number | undefined;
   errorMessage?: string | undefined;
+  /*
+   * ToolCallFailed events: why the call was refused, when it was - not
+   * run, and never tried again.
+   */
+  refusal?: AIToolRefusal | undefined;
+  /*
+   * ToolCallFailed events: the call was an action (a tool that changes the
+   * project), so its step says it was not done rather than that it is
+   * being retried.
+   */
+  isAction?: boolean | undefined;
   /*
    * Human-readable text for events that carry a message rather than query
    * stats — e.g. ProgressLog lines from the code-fix agent, or "Opened pull

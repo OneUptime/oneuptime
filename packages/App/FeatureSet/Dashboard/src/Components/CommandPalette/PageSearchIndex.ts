@@ -2073,6 +2073,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_HUNT_LIBRARY,
+            title: "Hunt Library",
+            icon: IconProp.SquareStack,
+            keywords: [
+              "starter hunts",
+              "hunt templates",
+              "ready-made searches",
+              "hunting queries",
+              "threat hunting",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_CAMPAIGNS,
             title: "Campaigns",
             icon: IconProp.Flag,
@@ -2526,6 +2538,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.DATA_OBSERVABILITY_CHECKS,
+            title: "Checks",
+            icon: IconProp.CheckCircle,
+            keywords: ["data quality", "data tests", "dbt tests"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_PIPELINES,
+            title: "Pipelines",
+            icon: IconProp.Workflow,
+            keywords: ["openlineage", "airflow", "etl jobs"],
+          },
+          {
             page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,
             title: "Schema Changes",
             icon: IconProp.List,
@@ -2553,6 +2577,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Advanced",
         pages: [
+          {
+            page: PageMap.DATA_OBSERVABILITY_TABLES_UNUSED,
+            title: "Unused Tables",
+            icon: IconProp.Moon,
+            keywords: ["unread tables", "never read", "wasted storage"],
+          },
           {
             page: PageMap.DATA_OBSERVABILITY_TABLES_DROPPED,
             title: "Dropped Tables",

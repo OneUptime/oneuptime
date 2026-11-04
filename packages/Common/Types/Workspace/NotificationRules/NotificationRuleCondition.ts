@@ -62,6 +62,9 @@ export enum NotificationRuleConditionCheckOn {
   SecurityCaseStatus = "Security Case Status",
   SecurityCaseSource = "Security Case Source",
   SecurityCaseLabels = "Security Case Labels",
+
+  // Security Hunt: the hunt whose scheduled run found events.
+  SecurityHuntName = "Security Hunt Name",
 }
 
 export enum ConditionType {
@@ -183,10 +186,14 @@ export class NotificationRuleConditionUtil {
     }
 
     /*
-     * A security case has no channel of its own, so its rule posts somewhere
-     * that exists: a channel, or (Microsoft Teams) a chat.
+     * A security case and a hunt have no channel of their own, so their
+     * rules post somewhere that exists: a channel, or (Microsoft Teams) a
+     * chat.
      */
-    if (eventType === NotificationRuleEventType.SecurityCase) {
+    if (
+      eventType === NotificationRuleEventType.SecurityCase ||
+      eventType === NotificationRuleEventType.SecurityHunt
+    ) {
       const workspaceDisplayName: string =
         getWorkspaceTypeDisplayName(workspaceType);
 
@@ -514,6 +521,13 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.SecurityCaseSource,
           NotificationRuleConditionCheckOn.SecurityCaseLabels,
         ];
+      /*
+       * Which hunts' finds a rule posts: by the hunt's name ("starts with
+       * IR -", "contains ransomware"). A rule with no condition posts every
+       * hunt's.
+       */
+      case NotificationRuleEventType.SecurityHunt:
+        return [NotificationRuleConditionCheckOn.SecurityHuntName];
       default:
         return [];
     }
@@ -538,6 +552,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription:
       case NotificationRuleConditionCheckOn.SecurityCaseTitle:
       case NotificationRuleConditionCheckOn.SecurityCaseDescription:
+      case NotificationRuleConditionCheckOn.SecurityHuntName:
         return [
           ConditionType.EqualTo,
           ConditionType.NotEqualTo,

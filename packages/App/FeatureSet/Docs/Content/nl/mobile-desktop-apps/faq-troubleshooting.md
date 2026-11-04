@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo meldt een telefoon weg wanneer de app ervan is verwijderd, of wanneer zijn pushtoken niet meer geldig is. De telefoon wordt niet verwijderd: **Gebruikersinstellingen → Meldingsmethoden** toont hem op het tabblad **Push Notifications** als **Ontvangt geen meldingen**, en de dienstentijdlijn van een oproep die hem niet bereikte, zegt waarom. Uw andere telefoons en meldingsmethoden worden zoals altijd opgeroepen.
+Expo meldt een telefoon weg wanneer de app ervan is verwijderd, of wanneer zijn pushtoken niet meer geldig is. De telefoon wordt niet verwijderd: **Gebruikersinstellingen → Meldingsmethoden** toont hem op het tabblad **Pushmeldingen** als **Ontvangt geen meldingen**, en de dienstentijdlijn van een oproep die hem niet bereikte, zegt waarom. Uw andere telefoons en meldingsmethoden worden zoals altijd opgeroepen.
 
 De app registreert de telefoon bij elke start, wanneer u zich aanmeldt, en wanneer u naar de app terugkeert, hooguit eens per vijf minuten. Bij het registreren vraagt de app Expo opnieuw om het pushtoken, wat het vernieuwt, en de telefoon krijgt weer oproepen met de regels die hij had.
 
@@ -124,7 +124,7 @@ Passkeys vereisen dat het adres van uw OneUptime met `https://` begint, en een p
 
 :::details Geen meldingen op de telefoon
 - Controleer of de telefoon meldingen van OneUptime On-Call toestaat, en of Niet storen of een Focus ze niet tegenhoudt.
-- Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Push Notifications**, of de telefoon in de lijst staat, en stuur hem een **Testmelding**.
+- Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Pushmeldingen**, of de telefoon in de lijst staat, en stuur hem een **Testmelding**.
 - Is hij gemarkeerd als **Ontvangt geen meldingen**, open dan de app terwijl u bent aangemeld: zie [Wanneer een telefoon zich opnieuw moet registreren](#wanneer-een-telefoon-zich-opnieuw-moet-registreren).
 - Controleer uw bereikbaarheidsregels onder **Gebruikersinstellingen → Bereikbaarheidsregels**: die bepalen welke oproepen welke methode bereiken.
 - Controleer bij een zelf gehost OneUptime of de server zijn push-relay bereikt: zie [Pushmeldingen](/docs/self-hosted/push-notifications#netwerktoegang).
@@ -145,7 +145,7 @@ Installeer vanaf een dashboardpagina na het aanmelden, via `https://`, in Edge o
 :::
 
 :::details Geen desktopmeldingen
-Registreer de browser onder **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Push Notifications**, met **Apparaat registreren**, sta meldingen toe wanneer erom wordt gevraagd, en controleer de meldingsinstellingen van de computer zelf. Een zelf gehost OneUptime heeft zijn VAPID-sleutels nodig voor browsermeldingen.
+Registreer de browser onder **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Pushmeldingen**, met **Apparaat registreren**, sta meldingen toe wanneer erom wordt gevraagd, en controleer de meldingsinstellingen van de computer zelf. Een zelf gehost OneUptime heeft zijn VAPID-sleutels nodig voor browsermeldingen.
 :::
 
 ## Hulp krijgen

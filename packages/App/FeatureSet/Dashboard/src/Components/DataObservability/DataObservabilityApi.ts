@@ -5,11 +5,18 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityBiSyncResponse,
   DataObservabilityCheckAlertResponse,
+  DataObservabilityCheckSuggestion,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
+  DataObservabilityDataProductBadgeResetResponse,
+  DataObservabilityDataProductSyncResponse,
   DataObservabilityOverview,
+  DataObservabilityReconciliationSyncResponse,
+  DataObservabilitySpendSummary,
   DataObservabilityStoreSummary,
+  DataObservabilityTableDashboard,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -18,8 +25,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 /*
  * The Dashboard's side of Data Observability's own routes (Server/API/
  * DataObservabilityAPI.ts): the Overview, the watched stores, Collect Now,
- * Connect a Database, and a data check's alert and Run Now. Every request goes through the refresh-aware
- * client with the project's headers, like every other page's.
+ * Connect a Database, a data check's alert and Run Now, and a data
+ * product's monitor and SLO and its badge. Every request goes through the
+ * refresh-aware client with the project's headers, like every other page's.
  */
 
 export class DataObservabilityApiError extends Error {
@@ -83,6 +91,104 @@ export default class DataObservabilityApi {
     return (await post(
       DATA_OBSERVABILITY_API_ROUTES.checkAlert(dataCheckId.toString()),
     )) as unknown as DataObservabilityCheckAlertResponse;
+  }
+
+  // Makes the data product's monitor and SLO match it, as the person who saved it.
+  public static async syncDataProduct(
+    dataProductId: ObjectID,
+  ): Promise<DataObservabilityDataProductSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductSync(dataProductId.toString()),
+    )) as unknown as DataObservabilityDataProductSyncResponse;
+  }
+
+  // A new secret for the product's badge: badges embedded with the old one stop working.
+  public static async resetDataProductBadge(
+    dataProductId: ObjectID,
+  ): Promise<DataObservabilityDataProductBadgeResetResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductBadgeReset(
+        dataProductId.toString(),
+      ),
+    )) as unknown as DataObservabilityDataProductBadgeResetResponse;
+  }
+
+  // The badge's address, to embed where nobody signs in: its token is its secret.
+  public static getDataProductBadgeUrl(
+    dataProductId: ObjectID,
+    badgeToken: string,
+  ): string {
+    return URL.fromString(APP_API_URL.toString())
+      .addRoute(
+        DATA_OBSERVABILITY_API_ROUTES.dataProductBadge(
+          dataProductId.toString(),
+        ),
+      )
+      .addQueryParam("token", badgeToken)
+      .toString();
+  }
+
+  // Makes the reconciliation's two checks and its monitor match it, as the person who saved it.
+  public static async syncReconciliation(
+    reconciliationId: ObjectID,
+  ): Promise<DataObservabilityReconciliationSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationSync(
+        reconciliationId.toString(),
+      ),
+    )) as unknown as DataObservabilityReconciliationSyncResponse;
+  }
+
+  // Reads both sides at their stores' very next collections, together.
+  public static async runReconciliationNow(
+    reconciliationId: ObjectID,
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationRunNow(
+        reconciliationId.toString(),
+      ),
+    );
+  }
+
+  // OneUptime AI writes a Custom SQL check from a rule in a sentence, for the person to review.
+  public static async suggestCheck(
+    dataAssetId: ObjectID,
+    sentence: string,
+  ): Promise<DataObservabilityCheckSuggestion> {
+    return (await post(DATA_OBSERVABILITY_API_ROUTES.checkSuggest, {
+      dataAssetId: dataAssetId.toString(),
+      sentence,
+    })) as unknown as DataObservabilityCheckSuggestion;
+  }
+
+  // Reads a BI tool's dashboards now, and says how it went.
+  public static async syncBiConnection(
+    dataBiConnectionId: ObjectID,
+  ): Promise<DataObservabilityBiSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.biSync(dataBiConnectionId.toString()),
+    )) as unknown as DataObservabilityBiSyncResponse;
+  }
+
+  // What the project's warehouses spent over the last day.
+  public static async getSpendSummary(): Promise<DataObservabilitySpendSummary> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.spendSummary,
+    )) as unknown as DataObservabilitySpendSummary;
+  }
+
+  // The dashboards built on a table, and on the tables built from it.
+  public static async getTableDashboards(
+    dataAssetId: ObjectID,
+  ): Promise<Array<DataObservabilityTableDashboard>> {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      { dataAssetId: dataAssetId.toString() },
+    )) as JSONObject;
+
+    return (Array.isArray(response["dashboards"])
+      ? response["dashboards"]
+      : []) as unknown as Array<DataObservabilityTableDashboard>;
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {

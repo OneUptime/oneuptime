@@ -23,7 +23,7 @@ import { getDropdownChange } from "../Dropdown/DropdownChange";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
-import FormSummary from "./FormSummary";
+import type FormSummary from "./FormSummary";
 import Steps from "./Steps/Steps";
 import Field, { FormFieldCollapsibleSection } from "./Types/Field";
 import Fields from "./Types/Fields";
@@ -71,6 +71,22 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import { LazyLibrary, useLazyLibrary } from "../../Utils/LazyLibrary";
+
+/*
+ * The summary step (FormSummary): every value the form holds, drawn as a
+ * detail card. Only a form with a summary step draws it, and what it draws
+ * with - Detail, and through it a table, the code view and the code
+ * grammars - is a good part of what every page would otherwise download
+ * before it could draw: the sign-in page's form among them (issue #5619).
+ * So it is a file of its own, loaded as soon as a form with a summary step
+ * is drawn - there by the time its last step is reached.
+ */
+const formSummary: LazyLibrary<typeof FormSummary> = new LazyLibrary<
+  typeof FormSummary
+>(async (): Promise<typeof FormSummary> => {
+  return (await import("./FormSummary")).default;
+});
 
 export type FormProps<T> = FormikProps<T>;
 export type FormErrors<T> = FormikErrors<T>;
@@ -193,6 +209,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const { translateString } = useTranslateValue();
     const translator: Translator = useTranslator();
     const isSubmitting: MutableRefObject<boolean> = useRef(false);
+
+    // The summary step, for a form that has one (formSummary above).
+    const LoadedFormSummary: typeof FormSummary | null = useLazyLibrary(
+      formSummary,
+      Boolean(props.summary?.enabled),
+    );
 
     /*
      * The form's root, marked as one scope of unsaved changes: what the
@@ -1678,13 +1700,33 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
                         {/* If Summary, show Model detail  */}
 
-                        {currentFormStepId === "summary" && (
-                          <FormSummary
-                            formValues={refCurrentValue.current}
-                            formFields={formFields}
-                            formSteps={formSteps || undefined}
-                          />
-                        )}
+                        {currentFormStepId === "summary" &&
+                          (LoadedFormSummary ? (
+                            <LoadedFormSummary
+                              formValues={refCurrentValue.current}
+                              formFields={formFields}
+                              formSteps={formSteps || undefined}
+                            />
+                          ) : (
+                            /*
+                             * Reached before the summary has loaded (a
+                             * slow connection): a few lines where it will
+                             * be, said to a screen reader.
+                             */
+                            <div
+                              role="status"
+                              aria-live="polite"
+                              className="space-y-3"
+                              data-testid="form-summary-loading"
+                            >
+                              <div className="h-4 w-1/3 animate-pulse rounded bg-gray-100" />
+                              <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
+                              <div className="h-4 w-1/2 animate-pulse rounded bg-gray-100" />
+                              <span className="sr-only">
+                                {translator.translateText("Loading content")}
+                              </span>
+                            </div>
+                          ))}
                       </div>
                     );
                   })()}

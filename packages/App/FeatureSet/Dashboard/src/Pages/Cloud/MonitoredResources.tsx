@@ -45,7 +45,7 @@ import {
   CLOUD_SERVICE_MODEL_LABELS,
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
-  getCloudResourceTypeLabel,
+  getCloudResourceTypeDisplayName,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import CloudMonitoringDocumentationCard from "../../Components/Cloud/CloudMonitoringDocumentationCard";
 import CloudConnectCallout from "../../Components/Cloud/Connect/CloudConnectCallout";
@@ -290,7 +290,7 @@ const CloudMonitoredResources: FunctionComponent<
                   modelId: new ObjectID(item._id as string),
                 },
               );
-              const typeLabel: string = getCloudResourceTypeLabel(
+              const typeLabel: string = getCloudResourceTypeDisplayName(
                 item.cloudProvider as string | undefined,
                 item.cloudResourceType as string | undefined,
               );

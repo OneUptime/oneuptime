@@ -1,6 +1,9 @@
 import {
   PRODUCTION_REVIEW_AI_NOTES,
   PRODUCTION_REVIEW_COPY,
+  PRODUCTION_REVIEW_DATA_CHANGES,
+  PRODUCTION_REVIEW_DATA_COPY,
+  PRODUCTION_REVIEW_DATA_USE,
   PRODUCTION_REVIEW_INCIDENTS_IN_ALL,
   PRODUCTION_REVIEW_MATCH_LABELS,
   PRODUCTION_REVIEW_SECTION_LABELS,
@@ -22,10 +25,16 @@ import PageMap from "../../Utils/PageMap";
 import { buildProfilesRoute } from "../../Utils/ProfilesUrlState";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
   PRODUCTION_REVIEW_WINDOWS,
+  ProductionReviewDataDashboardJSON,
+  ProductionReviewDataImpactJSON,
+  ProductionReviewDataProductJSON,
+  ProductionReviewDataServiceJSON,
+  ProductionReviewDataTableJSON,
   ProductionReviewDeployJSON,
   ProductionReviewExceptionJSON,
   ProductionReviewHotFunctionJSON,
@@ -83,6 +92,19 @@ export interface ComponentProps {
 
 const SECTION_CLASS_NAME: string =
   "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm";
+
+// A dashboard's link, when its BI tool gave one that reads as a URL.
+function readDashboardUrl(value: string | undefined): URL | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return URL.fromString(value);
+  } catch {
+    return null;
+  }
+}
 
 // The page an id opens, or none for one that is not an id.
 function recordRoute(pageMap: PageMap, id: string): Route | null {
@@ -942,6 +964,265 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // The names a change's sentence draws as code: only those its template holds.
+  const getDataChangeSlots: (
+    impact: ProductionReviewDataImpactJSON,
+  ) => Record<string, ReactNode> = (
+    impact: ProductionReviewDataImpactJSON,
+  ): Record<string, ReactNode> => {
+    const template: string = PRODUCTION_REVIEW_DATA_CHANGES[impact.change];
+    const slots: Record<string, ReactNode> = {
+      table: <CodeName>{impact.table}</CodeName>,
+    };
+
+    if (template.includes("{{column}}")) {
+      slots["column"] = <CodeName>{impact.column || ""}</CodeName>;
+    }
+
+    if (template.includes("{{newName}}")) {
+      slots["newName"] = <CodeName>{impact.newName || ""}</CodeName>;
+    }
+
+    return slots;
+  };
+
+  // How a service uses a table the change touches, in the reader's words.
+  const describeDataUse: (
+    service: ProductionReviewDataServiceJSON,
+  ) => string = (service: ProductionReviewDataServiceJSON): string => {
+    if (service.columnQueryCount && service.columnQueryCount > 0) {
+      return translator.translateTemplate(
+        PRODUCTION_REVIEW_DATA_USE.columnQueries,
+        { count: translator.formatNumber(service.columnQueryCount) },
+      );
+    }
+
+    return text(
+      service.reads && service.writes
+        ? PRODUCTION_REVIEW_DATA_USE.readsAndWrites
+        : service.writes
+          ? PRODUCTION_REVIEW_DATA_USE.writes
+          : PRODUCTION_REVIEW_DATA_USE.reads,
+    );
+  };
+
+  /*
+   * The watched tables the change's migrations and dbt models change, each
+   * with the services, tables and data products that depend on it.
+   */
+  const renderData: () => ReactElement = (): ReactElement => {
+    const impacts: Array<ProductionReviewDataImpactJSON> =
+      report.dataImpact || [];
+
+    if (impacts.length === 0) {
+      return <></>;
+    }
+
+    return (
+      <ReviewSection
+        title={text(PRODUCTION_REVIEW_DATA_COPY.title)}
+        dataTestId="production-review-data"
+      >
+        {impacts.map(
+          (impact: ProductionReviewDataImpactJSON, index: number) => {
+            const hasDependents: boolean =
+              impact.services.length > 0 ||
+              impact.downstreamCount > 0 ||
+              (impact.dashboards || []).length > 0 ||
+              impact.dataProducts.length > 0;
+
+            return (
+              <li
+                key={`${impact.dataAssetId}-${impact.change}-${impact.column || ""}-${index}`}
+                data-testid="production-review-data-impact"
+                className={ROW_CLASS_NAME}
+              >
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <RowName
+                    route={recordRoute(
+                      PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
+                      impact.dataAssetId,
+                    )}
+                  >
+                    <span className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
+                      <TranslatedSentence
+                        template={PRODUCTION_REVIEW_DATA_CHANGES[impact.change]}
+                        slots={getDataChangeSlots(impact)}
+                      />
+                    </span>
+                  </RowName>
+                  {impact.storeName ? (
+                    <span className="text-xs text-gray-500">
+                      {impact.storeName}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  <TranslatedSentence
+                    template={PRODUCTION_REVIEW_DATA_COPY.inFile}
+                    slots={{ path: <CodeName>{impact.path}</CodeName> }}
+                  />
+                </p>
+                {impact.services.length > 0 ? (
+                  <div className="mt-2 text-sm text-gray-700">
+                    <span className="font-medium">
+                      {text(PRODUCTION_REVIEW_DATA_COPY.services)}
+                    </span>{" "}
+                    {impact.services.map(
+                      (service: ProductionReviewDataServiceJSON, i: number) => {
+                        return (
+                          <span
+                            key={`${service.serviceId || service.name}-${i}`}
+                            data-testid="production-review-data-service"
+                          >
+                            {i > 0 ? ", " : ""}
+                            <RowName
+                              route={
+                                service.serviceId
+                                  ? recordRoute(
+                                      PageMap.SERVICE_VIEW,
+                                      service.serviceId,
+                                    )
+                                  : null
+                              }
+                            >
+                              <span className="font-medium text-gray-900">
+                                {service.name}
+                              </span>
+                            </RowName>{" "}
+                            <span className="text-gray-500">
+                              ({describeDataUse(service)})
+                            </span>
+                          </span>
+                        );
+                      },
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {impact.downstreamCount > 0 ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-700">
+                    <span className="font-medium">
+                      {text(PRODUCTION_REVIEW_DATA_COPY.downstream)}
+                    </span>
+                    {impact.downstreamTables.map(
+                      (table: ProductionReviewDataTableJSON) => {
+                        return (
+                          <RowName
+                            key={table.dataAssetId}
+                            route={recordRoute(
+                              PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
+                              table.dataAssetId,
+                            )}
+                          >
+                            <CodeName>{table.table}</CodeName>
+                          </RowName>
+                        );
+                      },
+                    )}
+                    {impact.downstreamCount > impact.downstreamTables.length ? (
+                      <span className="text-xs text-gray-500">
+                        +
+                        {translator.formatNumber(
+                          impact.downstreamCount -
+                            impact.downstreamTables.length,
+                        )}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {(impact.dashboards || []).length > 0 ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-700">
+                    <span className="font-medium">
+                      {text(PRODUCTION_REVIEW_DATA_COPY.dashboards)}
+                    </span>
+                    {(impact.dashboards || []).map(
+                      (dashboard: ProductionReviewDataDashboardJSON) => {
+                        const url: URL | null = readDashboardUrl(dashboard.url);
+                        const name: ReactElement = (
+                          <span className="font-medium text-gray-900">
+                            {dashboard.name}
+                            <span className="font-normal text-gray-500">
+                              {" "}
+                              ({dashboard.tool})
+                            </span>
+                          </span>
+                        );
+
+                        return url ? (
+                          <Link
+                            key={dashboard.dataDashboardId}
+                            to={url}
+                            openInNewTab={true}
+                            className="hover:underline"
+                          >
+                            {name}
+                          </Link>
+                        ) : (
+                          <span key={dashboard.dataDashboardId}>{name}</span>
+                        );
+                      },
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {impact.dataProducts.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-700">
+                    <span className="font-medium">
+                      {text(PRODUCTION_REVIEW_DATA_COPY.dataProducts)}
+                    </span>
+                    {impact.dataProducts.map(
+                      (product: ProductionReviewDataProductJSON) => {
+                        return (
+                          <RowName
+                            key={product.dataProductId}
+                            route={recordRoute(
+                              PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
+                              product.dataProductId,
+                            )}
+                          >
+                            <span className="font-medium text-gray-900">
+                              {product.name}
+                              {product.owner ? (
+                                <span className="font-normal text-gray-500">
+                                  {" "}
+                                  ({product.owner})
+                                </span>
+                              ) : (
+                                <></>
+                              )}
+                            </span>
+                          </RowName>
+                        );
+                      },
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {!hasDependents ? (
+                  <p className="mt-2 text-sm text-gray-500">
+                    {text(PRODUCTION_REVIEW_DATA_COPY.nothing)}
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </li>
+            );
+          },
+        )}
+      </ReviewSection>
+    );
+  };
+
   /*
    * Above the findings, so no one reads "nothing found" without knowing
    * what was not read.
@@ -991,6 +1272,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
 
       {hasSignal ? (
         <>
+          {renderData()}
           {renderExceptions()}
           {renderOperations()}
           {renderHotCode()}

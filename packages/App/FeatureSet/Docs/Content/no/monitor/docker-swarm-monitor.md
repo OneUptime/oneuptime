@@ -55,7 +55,7 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Docker Swarm**
 
 ### Velg klyngen
 
-Velg klyngen i **Docker Swarm Cluster** under **Docker Swarm Monitor Configuration**. Hver klynge som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Docker Swarm-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
+Velg klyngen i **Docker Swarm-klynge** under **Docker Swarm Monitor Configuration**. Hver klynge som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Docker Swarm-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
@@ -81,7 +81,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. En oppgaves metrikker har `container.runtime=docker` slik en Docker-verts har, og agenten stempler aldri `host.name`, så monitoren filtrerer på ingen av dem. |
+| **Docker Swarm-klynge** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. En oppgaves metrikker har `container.runtime=docker` slik en Docker-verts har, og agenten stempler aldri `host.name`, så monitoren filtrerer på ingen av dem. |
 | **Tjenestenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.service.name`, tjenesten slik `docker service ls` navngir den, for eksempel `web` (`<stack>_web` i en stack). |
 | **Nodenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.node.name`, nodens vertsnavn slik `docker node ls` viser det, for eksempel `swarm-node-1`. Agenten på den noden stempler det fra `DOCKER_SWARM_NODE_NAME`. |
 | **Containernavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.name`. En oppgaves container heter `<service>.<slot>.<taskid>`, for eksempel `web.1.abc123`. |

@@ -1,3 +1,4 @@
+import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AutoRemediationRuleService from "./AutoRemediationRuleService";
 import DatabaseService from "./DatabaseService";
 import KubernetesClusterAiAccessService from "./KubernetesClusterAiAccessService";
@@ -40,6 +41,7 @@ import {
   isAgentAiSettingsSourceAgent,
   isSameAgentAiSettings,
 } from "../../Types/AI/AgentAiSettings";
+import { AutoRemediationDecisionLane } from "../../Types/AutoRemediation/AutoRemediationDecision";
 import crypto from "crypto";
 import FeedMarkdown, {
   mdText,
@@ -761,12 +763,42 @@ export class Service extends DatabaseService<Model> {
       await this.writeDefaultsFeedItem({ cluster, posture, defaultsApplied });
     }
 
+    this.decideAgainOnceConnected({
+      projectId: data.projectId,
+      clusterId: cluster.id!,
+    });
+
     return {
       agentId,
       agentKey,
       clusterId: cluster.id!,
       admission,
     };
+  }
+
+  /*
+   * The cluster's Kubernetes AI agent is connected now - it registered, or
+   * it reported again after it had stopped: the open incidents and alerts
+   * whose fixes OneUptime AI found waiting for it are decided again
+   * (AutoRemediationRuleEngineService.onAgentConnected). Fire and forget:
+   * the agent's request never waits for a fix to start, and nothing here
+   * can fail it.
+   */
+  private decideAgainOnceConnected(data: {
+    projectId: ObjectID;
+    clusterId: ObjectID;
+  }): void {
+    AutoRemediationRuleEngineService.onAgentConnected({
+      projectId: data.projectId,
+      target: {
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        id: data.clusterId.toString(),
+      },
+    }).catch((error: unknown) => {
+      logger.error(
+        `KubernetesAiAgent: could not decide again about the records waiting for the Kubernetes AI agent of cluster ${data.clusterId.toString()}: ${error}`,
+      );
+    });
   }
 
   /*
@@ -1726,8 +1758,9 @@ export class Service extends DatabaseService<Model> {
       data.agentVersion,
     );
 
+    const now: Date = OneUptimeDate.getCurrentDate();
     const update: JSONObject = {
-      lastAliveAt: OneUptimeDate.getCurrentDate(),
+      lastAliveAt: now,
       connectionStatus: "connected",
     };
 
@@ -1739,10 +1772,28 @@ export class Service extends DatabaseService<Model> {
       update["agentVersion"] = agentVersion;
     }
 
+    /*
+     * Whether the agent is coming back: it had signed off, or had not
+     * been heard from within the alive window, as the row read before this
+     * heartbeat says.
+     */
+    const isComingBack: boolean = !this.isOnline(data.agent, now);
+
     await this.updateColumnsByIdWithoutHooks({
       id: agentId,
       data: update as never,
     });
+
+    if (
+      isComingBack &&
+      data.agent.projectId &&
+      data.agent.kubernetesClusterId
+    ) {
+      this.decideAgainOnceConnected({
+        projectId: data.agent.projectId,
+        clusterId: data.agent.kubernetesClusterId,
+      });
+    }
 
     /*
      * Off the heartbeat's path: it decides at most once an hour per agent

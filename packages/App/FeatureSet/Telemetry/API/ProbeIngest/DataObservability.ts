@@ -25,7 +25,7 @@ import DataCheckIngest from "Common/Server/Utils/DataObservability/DataCheckInge
 import DataCheckPlanner, {
   DataCheckPlan,
 } from "Common/Server/Utils/DataObservability/DataCheckPlanner";
-import { getDatabaseEngineOfKind } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
+import { getCollectorEngineOfKind } from "Common/Server/Utils/DataObservability/DataObservabilityEngines";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -121,6 +121,7 @@ router.post(
           kind: true,
           probeConnectionVariable: true,
           scanExclusions: true,
+          tableHealthCollectedAt: true,
         },
         limit: claimed.length,
         skip: 0,
@@ -134,8 +135,8 @@ router.post(
           continue;
         }
 
-        const engine: ReturnType<typeof getDatabaseEngineOfKind> =
-          getDatabaseEngineOfKind(store.kind);
+        const engine: ReturnType<typeof getCollectorEngineOfKind> =
+          getCollectorEngineOfKind(store.kind);
         // The store's due checks go with its collection; one that cannot run fails here.
         const plan: DataCheckPlan = engine
           ? await DataCheckPlanner.planDueChecks({

@@ -14,6 +14,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -456,6 +457,36 @@ export default class DataAsset extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Write Credits (24h)",
+    description:
+      "Snowflake credits the jobs that write the table spent in the last day, a job's shared among the tables it writes.",
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public writeCredits?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.BigNumber,
+    required: false,
+    title: "Write Bytes Billed (24h)",
+    description:
+      "BigQuery bytes billed for the jobs that write the table in the last day, a job's shared among the tables it writes.",
+  })
+  @Column({
+    type: ColumnType.BigNumber,
+    nullable: true,
+    transformer: bigNumberTransformer,
+  })
+  public writeBytesBilled?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     type: TableColumnType.Date,
     required: false,
     computed: true,
@@ -469,6 +500,38 @@ export default class DataAsset extends BaseModel {
     nullable: true,
   })
   public lastChangedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Last Read At",
+    description:
+      "When the table was last seen read, to the hour: by the engine's read counters, or by a service's database spans.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastReadAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Unread Since",
+    description:
+      "The time from which the table is known to have had no read: its last read, or when the engine's read counters started when it has had none since. Empty when that cannot be said.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public unreadSince?: Date = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

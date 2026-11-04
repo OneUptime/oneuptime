@@ -101,6 +101,7 @@ oneuptime resources
 | `oneuptime context list`, `use`, `current`, `delete` | 保存したコンテキストの一覧表示、切り替え、表示、削除 | [認証](/docs/cli/authentication#コンテキスト) |
 | `oneuptime whoami` | 次のコマンドが使う URL と API キーを表示し、`--check` を付けると OneUptime がキーを受け付けるかも表示します | [認証](/docs/cli/authentication#cli-が使う値を確認する) |
 | `oneuptime deploy` | グラフと OneUptime AI のために、デプロイやその他の変更を記録します | [デプロイと変更](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | ビルドの後に、dbt プロジェクトのアーティファクトをデータオブザーバビリティに送ります | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 一種類のレコードを扱います | [リソース操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | リソースのフィールドと、それを設定するフラグを一覧表示します | [リソース操作](/docs/cli/resource-operations#リソースのフィールドを見る) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | インシデント、アラート、定期メンテナンスに対してダッシュボードのボタンと同じことをします | [リソース操作](/docs/cli/resource-operations#確認解決メモの追加) |

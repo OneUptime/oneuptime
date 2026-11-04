@@ -43,7 +43,7 @@ Sessieherhaling staat standaard aan. De instellingen staan op drie plekken:
 
 | Waar | Wat er staat |
 | --- | --- |
-| De pagina **Replay Policy** van de applicatie | Het beleid (opname, maskering, toestemming, tracing en limieten), een samenvatting van **Opnamestatus**, de kaart **Wat een opname bevat**, het paneel **Test your installation** en **Record a specific user's next session**. |
+| De pagina **Herhalingsbeleid** van de applicatie | Het beleid (opname, maskering, toestemming, tracing en limieten), een samenvatting van **Opnamestatus**, de kaart **Wat een opname bevat**, het paneel **Test your installation** en **Record a specific user's next session**. |
 | De pagina **Gezondheid** van de applicatie | Of opnamen binnenkomen, en waarom niet als ze dat niet doen. Zie [Opnamestatus](#opnamestatus). |
 | **Real User Monitoring → Instellingen → Sessieherhaling** | De schakelaar voor het hele project die alle applicaties tegelijk stopt, en een alleen-lezenlijst van het beleid van elke applicatie. |
 
@@ -290,7 +290,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Privacy
 
-**Maskering gebeurt bij het vastleggen, op het apparaat van de eindgebruiker, voordat er iets wordt geüpload.** De server ontvangt nooit wat is gemaskeerd, dus een maskeringsbeslissing kan achteraf niet worden teruggedraaid, en ook niet met terugwerkende kracht worden toegepast. Op het web hangt wat er gemaskeerd wordt af van de modus; React Native stuurt altijd de strengere wireframe-structuur die wordt beschreven in [Privacy en maskering in React Native](#privacy-en-maskering-in-react-native). De kaart **Wat een opname bevat** op de pagina **Replay Policy** van de applicatie herformuleert deze beslissingen in gewone zinnen voor wat je hebt ingesteld.
+**Maskering gebeurt bij het vastleggen, op het apparaat van de eindgebruiker, voordat er iets wordt geüpload.** De server ontvangt nooit wat is gemaskeerd, dus een maskeringsbeslissing kan achteraf niet worden teruggedraaid, en ook niet met terugwerkende kracht worden toegepast. Op het web hangt wat er gemaskeerd wordt af van de modus; React Native stuurt altijd de strengere wireframe-structuur die wordt beschreven in [Privacy en maskering in React Native](#privacy-en-maskering-in-react-native). De kaart **Wat een opname bevat** op de pagina **Herhalingsbeleid** van de applicatie herformuleert deze beslissingen in gewone zinnen voor wat je hebt ingesteld.
 
 De privacyinstellingen van het beleid, met de naam die **Beleid bewerken** ze geeft:
 
@@ -333,7 +333,7 @@ Sessieherhaling werkt meteen met een lege lijst met toegestane origins, die opna
 Je ingestietoken wordt aan de client meegegeven — in het JavaScript van de pagina of in het binaire bestand van de mobiele app — dus er zijn twee poorten, en die vullen elkaar aan:
 
 - **Op de sleutel.** Maak de ingestiesleutel aan met **Browser** als **Sleuteltype**. Geef voor het web de **Toegestane origins** op (`https://app.example.com`, of `https://*.example.com` voor één subdomeinniveau). Voeg voor React Native de exacte app-identiteit toe als `app://com.example.storefront`. Geef de sleutel ook een **Verloopt om**: zo werkt een gekopieerd token niet meer op een datum die jij kiest, in plaats van nooit.
-- **Op de applicatie.** **Replay Policy → Toegestane origins** beperkt wie opnamen naar deze applicatie mag schrijven, welke sleutel er ook wordt gebruikt. Voeg hier dezelfde web-origins en de exacte mobiele `app://`-identiteiten toe.
+- **Op de applicatie.** **Herhalingsbeleid → Toegestane origins** beperkt wie opnamen naar deze applicatie mag schrijven, welke sleutel er ook wordt gebruikt. Voeg hier dezelfde web-origins en de exacte mobiele `app://`-identiteiten toe.
 
 Een `app://`-item is het letterlijke voorvoegsel plus de genormaliseerde Android-application-id of iOS-bundle-identifier die als `mobileAppIdentifier` wordt aangeleverd. De vergelijking is niet hoofdlettergevoelig, na het weghalen van spaties en het omzetten van een geldige reverse-DNS-identifier naar kleine letters. Mobiele identiteiten accepteren **geen** jokertekens: `app://*.example.com` is ongeldig. De mobiele SDK stuurt geen browser-`Origin`; hij stuurt zijn recordertype en de app-identiteit in eigen headers. Draagt een verzoek wel een echte `Origin`, dan gaat die origin altijd voor — de mobiele headers kunnen nooit worden gebruikt om de origincontrole van de browser te omzeilen.
 
@@ -370,7 +370,7 @@ Gemaskeerde waarden behouden hun lengte niet. Een gemaskeerd veld is een plaatsh
 <div class="oneuptime-ignore">...</div>
 ```
 
-Je kunt ook **Extra maskeerselectors** en **Blokkeerselectors** toevoegen op de pagina **Replay Policy** van je applicatie, zonder je markup te wijzigen. Met de standaardmaskeringsmodus zijn ze het belangrijkste middel om inhoud te beschermen die je markup niet als gevoelig aanmerkt.
+Je kunt ook **Extra maskeerselectors** en **Blokkeerselectors** toevoegen op de pagina **Herhalingsbeleid** van je applicatie, zonder je markup te wijzigen. Met de standaardmaskeringsmodus zijn ze het belangrijkste middel om inhoud te beschermen die je markup niet als gevoelig aanmerkt.
 
 ### Wat je eigen verzoeken meedragen
 
@@ -387,7 +387,7 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **Wat het koppelt.** Een backend-span, -log of -uitzondering die de gebruiker noemt (een attribuut `enduser.id`, een e-mailadres in een logregel) is nu één klik van de opname verwijderd, zelfs met **Identiteit van eindgebruiker vastleggen** uit: die schakelaar bepaalt wat de opname bewaart, niet wat je backend logt. Als opnamen niet te koppelen mogen zijn aan wie de gebruiker was, zet dan ook **Trace-doorgifte binnen dezelfde origin** uit.
 - **Wie het kan beweren.** Zoals elke tracecontext wordt het lid door de client geschreven. Iemand die een sessie-id kende, kon die naar je API sturen en de spans van zijn eigen verzoeken onder die sessie laten archiveren. Sessie-id's zijn willekeurige waarden van 128 bits, dus hij zou eerst de id nodig hebben. Hetzelfde geldt voor de trace die een client noemt: een verzoek dat een `traceparent` van een trace die het kent verstuurt, samen met het lid van zijn eigen sessie, haalt de backend-rijen van die trace in het paneel van zijn sessie en binnen het bereik van het wissen van die sessie. Wissen verwijdert een hele trace alleen als die uitsluitend bij de gewiste sessies hoort; van een trace die met andere sessies wordt gedeeld, verwijdert het alleen de rijen die met de gewiste id's zijn gemarkeerd (zie [Sessies wissen](#sessies-wissen)).
 
-Zet het per applicatie uit met **Trace-doorgifte binnen dezelfde origin** op de pagina **Replay Policy**; zie [Automatisch koppelen uitschakelen](#automatisch-koppelen-uitschakelen).
+Zet het per applicatie uit met **Trace-doorgifte binnen dezelfde origin** op de pagina **Herhalingsbeleid**; zie [Automatisch koppelen uitschakelen](#automatisch-koppelen-uitschakelen).
 
 ### Toestemming
 
@@ -438,7 +438,7 @@ Als je OneUptime zelf host, gebruik dan in plaats daarvan je eigen host.
 
 Nog één punt rond CSP, over stylesheets in plaats van over je beleid: de recorder kan alleen een stylesheet bewaren die hij kan lezen. Een stylesheet van een andere origin is alleen leesbaar wanneer de server ervan een header `Access-Control-Allow-Origin` stuurt die je site toestaat **en** je `<link>` `crossorigin="anonymous"` draagt. Anders bewaart de opname alleen het adres ervan, en laadt de herhaling haar daarvandaan in de browser van wie kijkt; zie [Afbeeldingen, stijlen en lettertypen tijdens het afspelen](#afbeeldingen-stijlen-en-lettertypen-tijdens-het-afspelen). Voeg het attribuut pas toe als de header er is: `crossorigin` zonder de header laat je eigen pagina de stylesheet weigeren.
 
-Gebruik het paneel **Test your installation** op de pagina **Replay Policy** van de applicatie om vanaf de serverkant het token, de beleidsschakelaars en de lijsten met toegestane origins te bevestigen. Het kan je CSP niet controleren: een CSP is een header die je eigen site naar je eigen bezoekers stuurt, en niets aan de serverkant ziet hem ooit. Een CSP-blokkade is daar alleen indirect te zien: `script-src` blokkeert de recorder, dus de rij _Recorder loaded on your site_ van het paneel blijft wachten; `connect-src` blokkeert de upload, dus die rij slaagt terwijl de rij voor de ontvangen opname eronder blijft wachten. In beide gevallen logt de browserconsole op de geblokkeerde pagina de weigering, en dat is het enige positieve bewijs.
+Gebruik het paneel **Test your installation** op de pagina **Herhalingsbeleid** van de applicatie om vanaf de serverkant het token, de beleidsschakelaars en de lijsten met toegestane origins te bevestigen. Het kan je CSP niet controleren: een CSP is een header die je eigen site naar je eigen bezoekers stuurt, en niets aan de serverkant ziet hem ooit. Een CSP-blokkade is daar alleen indirect te zien: `script-src` blokkeert de recorder, dus de rij _Recorder loaded on your site_ van het paneel blijft wachten; `connect-src` blokkeert de upload, dus die rij slaagt terwijl de rij voor de ontvangen opname eronder blijft wachten. In beide gevallen logt de browserconsole op de geblokkeerde pagina de weigering, en dat is het enige positieve bewijs.
 
 ## Correleren met de rest van je telemetrie
 
@@ -466,7 +466,7 @@ De tabbladen **Logboeken**, **Traces** en **Fouten** van de speler tonen die rij
 
 ### API's op een andere origin
 
-Een verzoek naar een andere origin krijgt standaard niets: elke header toevoegen maakt van een eenvoudig cross-origin-verzoek een verzoek met preflight, en een API die de header niet toestaat zou beginnen te falen omdat je een recorder hebt geïnstalleerd. Om er een te koppelen, voeg je de origin toe aan **Origins voor trace-doorgifte** op de pagina **Replay Policy**, in de stap **Prestaties en tracing** van **Beleid bewerken**. Geef alleen een origin op waarvan de API `traceparent` toestaat in `Access-Control-Allow-Headers`; dat is precies de reden dat het een expliciete lijst is.
+Een verzoek naar een andere origin krijgt standaard niets: elke header toevoegen maakt van een eenvoudig cross-origin-verzoek een verzoek met preflight, en een API die de header niet toestaat zou beginnen te falen omdat je een recorder hebt geïnstalleerd. Om er een te koppelen, voeg je de origin toe aan **Origins voor trace-doorgifte** op de pagina **Herhalingsbeleid**, in de stap **Prestaties en tracing** van **Beleid bewerken**. Geef alleen een origin op waarvan de API `traceparent` toestaat in `Access-Control-Allow-Headers`; dat is precies de reden dat het een expliciete lijst is.
 
 Verzoeken naar een origin op de lijst krijgen alleen een `traceparent`, geen `tracestate` en dus geen sessie-id, en de backend-telemetrie ervan wordt **via trace-id** aan de opname gekoppeld, via de trace-id's die de opname heeft waargenomen. Verzoeken die al een `traceparent` dragen, en `fetch`-aanroepen met een `Request`-object in plaats van een URL, worden op dit pad niet aangeraakt.
 
@@ -519,7 +519,7 @@ Een trace die je backend vervolgens weggooit, bereikt OneUptime nooit en wordt d
 
 ### Automatisch koppelen uitschakelen
 
-**Trace-doorgifte binnen dezelfde origin**, op de pagina **Replay Policy** naast **Origins voor trace-doorgifte**, staat standaard aan voor elke applicatie. Uitgeschakeld voegt de recorder vanaf de volgende paginalading niets meer toe aan verzoeken naar dezelfde origin, en **Origins voor trace-doorgifte** blijft werken zoals voorheen, voor elke origin die erin staat. Als je je eigen origin daar hebt gezet (eerdere versies van deze pagina zeiden dat te doen), haal hem daar dan ook weg, anders krijgen je eigen verzoeken nog steeds een `traceparent`. Met diagnostiek aan zegt de recorder bij het starten welke van toepassing is: `same-origin-propagation`, met `enabled` en een `reason` (zie [Probleemoplossing voor sessieherhaling](/docs/rum/session-replay-troubleshooting#codes)).
+**Trace-doorgifte binnen dezelfde origin**, op de pagina **Herhalingsbeleid** naast **Origins voor trace-doorgifte**, staat standaard aan voor elke applicatie. Uitgeschakeld voegt de recorder vanaf de volgende paginalading niets meer toe aan verzoeken naar dezelfde origin, en **Origins voor trace-doorgifte** blijft werken zoals voorheen, voor elke origin die erin staat. Als je je eigen origin daar hebt gezet (eerdere versies van deze pagina zeiden dat te doen), haal hem daar dan ook weg, anders krijgen je eigen verzoeken nog steeds een `traceparent`. Met diagnostiek aan zegt de recorder bij het starten welke van toepassing is: `same-origin-propagation`, met `enabled` en een `reason` (zie [Probleemoplossing voor sessieherhaling](/docs/rum/session-replay-troubleshooting#codes)).
 
 ### Omleidingen naar een andere origin
 
@@ -572,7 +572,7 @@ Een spanprocessor markeert elke span met de id die gold toen de span begon. De i
 
 ### Waar de koppelingen zitten
 
-Een uitzondering in het dashboard toont een kaart **Watch what the user saw** wanneer er een opname bestaat van een sessie die die fout had, en opent de speler tien seconden vóór de uitzondering met het tabblad Errors geselecteerd. De details van een span bieden **Sessie bij deze span bekijken**; de details van een logrij bieden **View session replay** op het moment van de regel wanneer de log zelf de sessie-id draagt, en een log die via trace-id is gekoppeld, bereikt de opname via zijn trace. In de andere richting linkt elke netwerk-, log-, trace- en foutrij van de speler naar de traceweergave, de logverkenner beperkt tot de sessie op dat moment, of de uitzonderingsgroep.
+Een uitzondering in het dashboard toont een kaart **Bekijk wat de gebruiker zag** wanneer er een opname bestaat van een sessie die die fout had, en opent de speler tien seconden vóór de uitzondering met het tabblad Errors geselecteerd. De details van een span bieden **Sessie bij deze span bekijken**; de details van een logrij bieden **View session replay** op het moment van de regel wanneer de log zelf de sessie-id draagt, en een log die via trace-id is gekoppeld, bereikt de opname via zijn trace. In de andere richting linkt elke netwerk-, log-, trace- en foutrij van de speler naar de traceweergave, de logverkenner beperkt tot de sessie op dat moment, of de uitzonderingsgroep.
 
 ## Een sessie bekijken
 
@@ -589,7 +589,7 @@ Elke rij toont:
 | **Duur** | Duur, pagina's, klikken en het inactieve aandeel («idle 40%»). Aantallen verschijnen pas als ze gemeten zijn; een sessie die nog niet is afgerond zegt «counting». |
 | **Signalen** | Fouten, rage-, dead- en error-klikken, rage-herladen, traces, uitzonderingsgroepen en _Slow_ (een prestatiebudget ging af). Elke badge opent de speler op het bijbehorende tabblad van het gebeurtenissenpaneel. Een afgeronde sessie zonder iets te melden zegt _Clean_; een sessie die nog niet is afgerond, _Not counted yet_. |
 | **Opname** | Een badge die eerlijk zegt of er een opname te bekijken is, plus de triggerreden («Always-on», «Sampled (25%)», «Error», «Frustration», «Slow page», «Manual»). |
-| **Acties** | **Watch** is de knop van de rij. Het menu **⋯** van de rij heeft **ID weergeven**, de hele ID van de sessie om te kopiëren, en, als de sessie een fout had, **Watch from first error**, dat de speler opent bij de eerste fout met het tabblad Errors geselecteerd. **Watch** wordt alleen aangeboden waar een opname bestaat; anders zegt de rij _Signals only_. Klik ergens op een rij om haar te openen; Cmd/Ctrl-klik opent een nieuw tabblad. **View journey**, in het **⋯**-menu, toont de pagina's van de sessie op volgorde op User Flows. |
+| **Acties** | **Bekijken** is de knop van de rij. Het menu **⋯** van de rij heeft **ID weergeven**, de hele ID van de sessie om te kopiëren, en, als de sessie een fout had, **Watch from first error**, dat de speler opent bij de eerste fout met het tabblad Errors geselecteerd. **Bekijken** wordt alleen aangeboden waar een opname bestaat; anders zegt de rij _Signals only_. Klik ergens op een rij om haar te openen; Cmd/Ctrl-klik opent een nieuw tabblad. **View journey**, in het **⋯**-menu, toont de pagina's van de sessie op volgorde op User Flows. |
 
 De toestanden van de badge Opname:
 
@@ -684,7 +684,7 @@ Elke bediening blijft in de URL, dus een kaart is een link die je kunt delen.
 
 **Eén gebruiker of één sessie.** **Filter by user or session ID** beperkt de hele pagina tot één persoon of één sessie, zodat de activiteit van niemand anders ertussen komt. Het veld opent met de personen die in het bereik zijn gezien, en `Enter` zoekt op wat je typt, waarmee je ook iedereen vindt die de lijst niet toont: de referentie van een gebruiker, `user:<reference>` voor een referentie die op een sessie-id lijkt, een volledige sessie-id of `id:<sessionId>`, of `visitor:<id>` voor één browser. **View journey**, in het **⋯**-menu van een rij op de pagina Gebruikers of in de sessielijst, opent dezelfde weergave over het bereik van die pagina. **Show all users** gaat terug naar iedereen, en **See all their journeys** breidt uit van een sessie naar de persoon van wie die is.
 
-**Journeys** toont één regel per sessie, de nieuwste eerst: wanneer die begon, hoe lang die duurde, waarop, en het aantal fouten en frustratiesignalen, daarna de pagina's op volgorde van **Landing page** tot **Exit page**. Een amberkleurige pagina met een pijl is een terugkeer naar een pagina die de sessie al had gezien, een rode stip markeert een pagina met een fout en een amberkleurige stip een pagina met een frustratiesignaal. **Watch** opent de opname; een sessie zonder opname zegt dat. Een sessie van meer dan 100 pagina's wordt daar afgekapt, zegt dat en noemt geen exitpagina. De tegels, de kaart en de tabellen eronder werken zoals altijd, alleen over deze sessies.
+**Journeys** toont één regel per sessie, de nieuwste eerst: wanneer die begon, hoe lang die duurde, waarop, en het aantal fouten en frustratiesignalen, daarna de pagina's op volgorde van **Landing page** tot **Exit page**. Een amberkleurige pagina met een pijl is een terugkeer naar een pagina die de sessie al had gezien, een rode stip markeert een pagina met een fout en een amberkleurige stip een pagina met een frustratiesignaal. **Bekijken** opent de opname; een sessie zonder opname zegt dat. Een sessie van meer dan 100 pagina's wordt daar afgekapt, zegt dat en noemt geen exitpagina. De tegels, de kaart en de tabellen eronder werken zoals altijd, alleen over deze sessies.
 
 De URL bevat nooit een referentie. Die bevat `userKey`, de pseudonieme sleutel waaronder de persoon is opgeslagen, of `visitor`, of `sessionId`. Alleen een rol die de identiteit van eindgebruikers kan lezen, kan een referentie opzoeken; elke andere rol krijgt dat te horen in plaats van een antwoord over iedereen, en kan de persoon nog steeds uit de lijst kiezen, onder een verborgen naam. Een persoon wordt gekoppeld zoals de filters van de sessielijst dat doen, dus sessies die vóór `identify()` zijn opgenomen, bereik je via de bezoekers-id.
 
@@ -781,12 +781,12 @@ Druk op `?` in de speler voor deze lijst. Sneltoetsen werken nooit terwijl je in
 
 ## Opnamestatus
 
-De pagina **Gezondheid** van de applicatie, in de sectie **Sessieherhaling** van het zijmenu, beantwoordt vanaf de serverkant de vraag «wordt er iets opgenomen, en zo niet, waarom niet?», en de pagina **Replay Policy** herhaalt de diagnose van één regel boven het beleid. De diagnose noemt één oorzaak, kwantificeert die en biedt één actie; ze zegt nooit «disconnected» zonder reden. De toestanden, in de volgorde waarin ze worden gecontroleerd:
+De pagina **Gezondheid** van de applicatie, in de sectie **Sessieherhaling** van het zijmenu, beantwoordt vanaf de serverkant de vraag «wordt er iets opgenomen, en zo niet, waarom niet?», en de pagina **Herhalingsbeleid** herhaalt de diagnose van één regel boven het beleid. De diagnose noemt één oorzaak, kwantificeert die en biedt één actie; ze zegt nooit «disconnected» zonder reden. De toestanden, in de volgorde waarin ze worden gecontroleerd:
 
 | Toestand | Wat het betekent | Wat je doet |
 | --- | --- | --- |
 | `disabled-project` | De hoofdschakelaar voor het hele project staat uit. | Zet hem aan onder **Real User Monitoring → Instellingen → Sessieherhaling**. |
-| `disabled-app` | Sessieherhaling staat uit voor deze applicatie. | Zet het aan onder **Replay Policy**. |
+| `disabled-app` | Sessieherhaling staat uit voor deze applicatie. | Zet het aan onder **Herhalingsbeleid**. |
 | `budget-paused` | Het maandbudget van de applicatie of de dagelijkse bytelimiet van de deployment is op; actieve recorders hebben opdracht gekregen te stoppen. | Verhoog het budget, of wacht op de volgende dag / maand. Stel [waarschuwingen voor het opslagbudget](#waarschuwingen-voor-het-opslagbudget) in om het te horen voordat het gebeurt. |
 | `refusing` | Er komen uploads binnen die worden geweigerd — de diagnose noemt de belangrijkste reden en het aantal in de afgelopen 24 uur, bijvoorbeeld `origin-not-allowed` (212 uploads vanaf een origin die niet in je toegestane origins staat) of `not-sampled`. | Volg de reden: pas de toegestane origins aan, verhoog het samplepercentage, enzovoort. |
 | `never-loaded` | Geen enkele browser heeft ooit het beleid van deze applicatie opgehaald. De scripttag staat niet op de pagina, of de identifier komt niet overeen. | De installatiehandleiding op de pagina **Documentatie** van de applicatie, in de sectie **Sessieherhaling**, loopt het met je door. |
@@ -811,7 +811,7 @@ De twee opslagbudgetten — de dagelijkse uploadlimiet van het project en het op
 | **Session Replay Monthly Budget Nearly Spent** | Waarschuwing | De applicatie heeft 80% van haar maandbudget gebruikt. |
 | **Session Replay Monthly Budget Spent** | Kritiek | Het maandbudget van de applicatie is op: haar recorders hebben opdracht gekregen te stoppen tot de 1e van de volgende maand (UTC) of totdat het budget wordt verhoogd. |
 
-Zolang sessieherhaling aanstaat voor de applicatie, wordt het dagpaar aangeboden zodra ze een herhaling heeft opgenomen, en het maandpaar zodra ze ook een **Maandbudget (GB)** heeft op haar pagina **Replay Policy**; ontbreekt er een op een applicatie waarop je sessieherhaling gebruikt, dan zegt het tabblad waarom. Zodra het dagpaar wordt aangeboden, opent **Waarschuwingen instellen** in het paneel **Storage budget** van de pagina **Gezondheid** het tabblad gefilterd op de budgetwaarschuwingen, inclusief de waarschuwingen die je al hebt gemaakt. Elke waarschuwing die je maakt, is een gewone Metrics-monitor op de applicatie, en het incident en de waarschuwing die ze opent, zeggen wat je moet doen. Om een budget langer te laten meegaan, verlaag je het **Steekproefpercentage**, upload je alleen _On error or frustration_ of beperk je de **Toegestane origins** op **Replay Policy** — elk daarvan houdt een upload tegen voordat die wordt geteld — of verhoog je het **Maandbudget (GB)**. De daglimiet kan niet vanuit het dashboard worden verhoogd; op een zelf gehoste installatie is het `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (zie [Opmerkingen voor zelfhosting](#opmerkingen-voor-zelfhosting)).
+Zolang sessieherhaling aanstaat voor de applicatie, wordt het dagpaar aangeboden zodra ze een herhaling heeft opgenomen, en het maandpaar zodra ze ook een **Maandbudget (GB)** heeft op haar pagina **Herhalingsbeleid**; ontbreekt er een op een applicatie waarop je sessieherhaling gebruikt, dan zegt het tabblad waarom. Zodra het dagpaar wordt aangeboden, opent **Waarschuwingen instellen** in het paneel **Storage budget** van de pagina **Gezondheid** het tabblad gefilterd op de budgetwaarschuwingen, inclusief de waarschuwingen die je al hebt gemaakt. Elke waarschuwing die je maakt, is een gewone Metrics-monitor op de applicatie, en het incident en de waarschuwing die ze opent, zeggen wat je moet doen. Om een budget langer te laten meegaan, verlaag je het **Steekproefpercentage**, upload je alleen _On error or frustration_ of beperk je de **Toegestane origins** op **Herhalingsbeleid** — elk daarvan houdt een upload tegen voordat die wordt geteld — of verhoog je het **Maandbudget (GB)**. De daglimiet kan niet vanuit het dashboard worden verhoogd; op een zelf gehoste installatie is het `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (zie [Opmerkingen voor zelfhosting](#opmerkingen-voor-zelfhosting)).
 
 **Eén dagmonitor dekt het project.** De daglimiet hoort bij het project, niet bij een applicatie: al zijn applicaties verbruiken haar samen, en elke applicatie die opneemt, draagt het cijfer van het project, dus het dagpaar wordt op elk van hen aangeboden, en een dagmonitor op één ervan dekt ze allemaal. Maak het dagpaar op één applicatie, een die sessieherhaling aan laat staan (de monitor ervan ziet alleen de punten die voor die applicatie zijn geschreven), en negeer de dagkaarten op de andere; anders geeft één opgebruikte dag één waarschuwing per applicatie. Het maandpaar is van elke applicatie zelf: maak het overal waar je een budget instelt.
 
@@ -840,7 +840,7 @@ Het dagpaar draagt alleen `projectId`: het cijfer is dat van het project, en nie
 
 - Er is vandaag nog geen upload geteld, of deze maand voor het maandpaar — bijvoorbeeld tussen 00:00 UTC en de eerste upload van de dag.
 - De gebruikstellers kunnen niet uit Valkey worden gelezen. Een onbekend cijfer wordt nooit als 0 geschreven, net zoals de pagina Health **onbekend** toont in plaats van 0. Open waarschuwingen worden opgelost zodra hun venster geen punt meer bevat, en gaan weer open, met een nieuwe melding, wanneer de tellers weer leesbaar zijn en het budget nog boven de drempel zit.
-- Sessieherhaling staat uit voor de applicatie (**Replay Policy**) of voor het hele project (**Real User Monitoring → Instellingen → Sessieherhaling**).
+- Sessieherhaling staat uit voor de applicatie (**Herhalingsbeleid**) of voor het hele project (**Real User Monitoring → Instellingen → Sessieherhaling**).
 - De applicatie heeft nog nooit een herhaling opgenomen.
 - De applicatie heeft geen maandbudget: er wordt niets geteld tegen een budget dat niet is ingesteld, dus er is helemaal geen maandpaar. Het budget verwijderen dempt de maandmonitors ervan, en het maandcijfer telt alleen uploads die worden gedaan terwijl er een budget is ingesteld: een budget dat midden in de maand voor het eerst wordt ingesteld, telt vanaf dat moment, niet vanaf de 1e, terwijl een budget dat in dezelfde maand wordt verwijderd en opnieuw ingesteld de eerdere telling van die maand oppakt.
 
@@ -859,7 +859,7 @@ Het dagpaar draagt alleen `projectId`: het cijfer is dat van het project, en nie
 
 ## Prestatietriggers voor opname
 
-Onder de standaardtrigger _Always_ wordt elke gesamplede sessie geüpload, dus deze budgetten veranderen niets aan wat er wordt opgenomen — ze markeren alleen de gebeurtenissen die ze overschreden op de tijdlijn en op het tabblad **Prestaties**. Wanneer de trigger _On error or frustration_ is, breiden ze de triggers uit naar sessies die alleen maar *traag* waren. Stel ze in op de pagina **Replay Policy**, in de stap **Prestaties en tracing** van **Beleid bewerken**:
+Onder de standaardtrigger _Always_ wordt elke gesamplede sessie geüpload, dus deze budgetten veranderen niets aan wat er wordt opgenomen — ze markeren alleen de gebeurtenissen die ze overschreden op de tijdlijn en op het tabblad **Prestaties**. Wanneer de trigger _On error or frustration_ is, breiden ze de triggers uit naar sessies die alleen maar *traag* waren. Stel ze in op de pagina **Herhalingsbeleid**, in de stap **Prestaties en tracing** van **Beleid bewerken**:
 
 | Budget | Gaat af wanneer | Voorgesteld startpunt |
 | --- | --- | --- |
@@ -888,7 +888,7 @@ Wanneer een bekende klant een probleem meldt dat je niet kunt reproduceren, acti
 :::steps
 ### Het beleid openen
 
-Open de pagina **Replay Policy** van de applicatie en zoek **Record a specific user's next session**.
+Open de pagina **Herhalingsbeleid** van de applicatie en zoek **Record a specific user's next session**.
 
 ### Het doel activeren
 
@@ -1069,7 +1069,7 @@ Onder de standaardtrigger _Always_ verstuurt een werkende pagina ongeveer elke 1
 
 Twee dingen vertellen je welke van de twee je voor je hebt:
 
-- **Vanaf de serverkant**, de pagina **Gezondheid** van de applicatie (zie [Opnamestatus](#opnamestatus)) en het paneel **Test your installation** op **Replay Policy**.
+- **Vanaf de serverkant**, de pagina **Gezondheid** van de applicatie (zie [Opnamestatus](#opnamestatus)) en het paneel **Test your installation** op **Herhalingsbeleid**.
 - **Vanaf de browserkant**, de eigen diagnostiek van de recorder. Zet die aan en herlaad:
 
   ```js

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+  <%- include('./Partials/tailwind-stylesheet') -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="data-observability-hero-section">
+      <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(8,145,178,0.09),transparent_70%)]" aria-hidden="true"></div>
+
+      <div class="pb-8 pt-20 sm:pt-28 lg:pt-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <p class="text-sm font-medium text-cyan-700 mb-4">Data Observability</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Know your data is fresh before anyone asks
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Watch every table in PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena. OneUptime learns each table's rhythm, reads only the catalog and never a row, and ties every late or broken table to the pipeline run, deploy or upstream table behind it.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/docs/data-observability/index" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Read the docs <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Freshness &amp; volume</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Checks &amp; reconciliations</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Lineage &amp; pipelines</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Data products &amp; SLAs</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - the tables of a warehouse, one of them late -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/data-observability', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Data Observability &middot; Tables</span>
+                      </div>
+                    </div>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      read every 5 min
+                    </span>
+                  </div>
+
+                  <div class="p-5">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Tables watched</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">1,284</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Late</div>
+                        <div class="text-xl font-bold text-amber-600 mt-1">1</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Checks passing</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">412 / 414</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Unused tables</div>
+                        <div class="text-xl font-bold text-gray-900 mt-1">37</div>
+                      </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-700">Tables</span>
+                        <span class="text-[10px] text-gray-400">freshness &middot; last change &middot; rows</span>
+                      </div>
+                      <div class="divide-y divide-gray-100">
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">Fresh</span>
+                            <span class="text-xs font-mono text-gray-700">analytics.orders</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>4 min ago</span><span>12.4M rows</span>
+                          </div>
+                        </div>
+                        <div class="px-4 py-2.5 flex items-center justify-between bg-amber-50/40">
+                          <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">Late</span>
+                            <span class="text-xs font-mono text-gray-700">finance.revenue_daily</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>2h 10m past its rhythm</span><span>842K rows</span>
+                          </div>
+                        </div>
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">Fresh</span>
+                            <span class="text-xs font-mono text-gray-700">raw.stripe_charges</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>11 min ago</span><span>3.1M rows</span>
+                          </div>
+                        </div>
+                        <div class="px-4 py-2.5 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-indigo-50 text-[10px] font-medium text-indigo-700 ring-1 ring-indigo-200">Schema</span>
+                            <span class="text-xs font-mono text-gray-700">marketing.campaigns</span>
+                          </div>
+                          <div class="flex items-center gap-4 text-[11px] text-gray-500 font-mono">
+                            <span>column budget_usd removed</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 text-left">
+                      <div class="text-xs font-semibold text-amber-800">Why is finance.revenue_daily late?</div>
+                      <div class="mt-1 text-[11px] text-amber-900/80">The dbt run that builds it failed at 06:02 on <span class="font-mono">stg_payments</span>. 3 downstream alerts joined this one, already acknowledged.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Watching every table in five minutes
+          </h2>
+          <p class="mt-4 text-lg leading-8 text-gray-600">
+            Nothing to configure per table. A read-only login, or a probe in your network, is all it takes.
+          </p>
+        </div>
+
+        <div class="mx-auto mt-16 max-w-5xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="relative">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 text-sm font-semibold text-cyan-700 ring-1 ring-cyan-200 mb-4">1</div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Connect a database</h3>
+              <p class="text-sm leading-6 text-gray-600">A read-only login, or an environment variable on a probe in your network, so the connection string never leaves it.</p>
+            </div>
+            <!-- Step 2 -->
+            <div class="relative">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 text-sm font-semibold text-cyan-700 ring-1 ring-cyan-200 mb-4">2</div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Every table appears</h3>
+              <p class="text-sm leading-6 text-gray-600">Rows, size, columns and last change, read from the catalog every five minutes. No table is scanned.</p>
+            </div>
+            <!-- Step 3 -->
+            <div class="relative">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 text-sm font-semibold text-cyan-700 ring-1 ring-cyan-200 mb-4">3</div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Rhythms are learned</h3>
+              <p class="text-sm leading-6 text-gray-600">How often each table changes, how long each pipeline runs, and when its next run is due.</p>
+            </div>
+            <!-- Step 4 -->
+            <div class="relative">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 text-sm font-semibold text-cyan-700 ring-1 ring-cyan-200 mb-4">4</div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Alerts with their cause</h3>
+              <p class="text-sm leading-6 text-gray-600">Late, shrinking or reshaped tables page your on-call, with the run, deploy or upstream table behind them.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Data problems, solved where you already work
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            A data alert in OneUptime is an ordinary alert: it pages on-call, opens incidents, shows on status pages and counts against SLOs.
+          </p>
+        </div>
+
+        <div class="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-2">
+          <!-- Feature 1: One issue per cause -->
+          <div class="rounded-2xl bg-white p-8 ring-1 ring-gray-200">
+            <h3 class="text-xl font-bold tracking-tight text-gray-900">One issue per cause</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              Lineage comes from OpenLineage, dbt, Fivetran, Airbyte, views and the databases' own query history. When an upstream table, pipeline or database already has an alert open, every alert downstream joins it, already acknowledged: a broken load pages once.
+            </p>
+          </div>
+
+          <!-- Feature 2: Checks -->
+          <div class="rounded-2xl bg-white p-8 ring-1 ring-gray-200">
+            <h3 class="text-xl font-bold tracking-tight text-gray-900">Checks that say whether the data is right</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              Nulls, duplicates, ranges, accepted values, formats, orphans and your own SQL, per tenant or region. Suggested from your columns, written from a sentence by OneUptime AI, and reconciled between a table and its copy. Only a number ever leaves the database.
+            </p>
+          </div>
+
+          <!-- Feature 3: Data products -->
+          <div class="rounded-2xl bg-white p-8 ring-1 ring-gray-200">
+            <h3 class="text-xl font-bold tracking-tight text-gray-900">A freshness promise people can see</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              Group the tables a dashboard or report reads into a data product with an SLA. It goes on your status page, is tracked as an SLO, and carries a "data as of" badge you can embed anywhere.
+            </p>
+          </div>
+
+          <!-- Feature 4: AI -->
+          <div class="rounded-2xl bg-white p-8 ring-1 ring-gray-200">
+            <h3 class="text-xl font-bold tracking-tight text-gray-900">OneUptime AI knows your data</h3>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              Investigations of data alerts start from the table's writers, runs and upstream tables. Ask in Slack or Microsoft Teams whether a table is fresh, and let AI agents check through the MCP server before they use it.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+</body>
+
+</html>

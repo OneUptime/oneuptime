@@ -61,7 +61,7 @@ La aplicación muestra notificaciones una vez que la registra para las notificac
 
 :::steps
 ### Abrir sus dispositivos push
-En la aplicación, abra **Ajustes de usuario → Métodos de notificación** y la pestaña **Push Notifications**.
+En la aplicación, abra **Ajustes de usuario → Métodos de notificación** y la pestaña **Notificaciones push**.
 
 ### Registrar esta aplicación
 Haga clic en **Registrar dispositivo**, mantenga el valor sugerido en **Nombre del dispositivo**, por ejemplo `Safari on macOS`, o cámbielo, y vuelva a hacer clic en **Registrar dispositivo**. Cuando macOS o el navegador pregunten si OneUptime puede enviar notificaciones, elija **Permitir**.
@@ -89,7 +89,7 @@ En la ventana de la aplicación, abra el menú **⋮**, elija la opción que des
 Abra `edge://apps` en Edge, elija **Detalles** en OneUptime y después **Desinstalar**.
 :::
 
-Desinstalar la aplicación no la da de baja: su navegador sigue recibiendo notificaciones. Para detenerlas, elimínela en **Ajustes de usuario → Métodos de notificación**, en la pestaña **Push Notifications**, con **Eliminar**.
+Desinstalar la aplicación no la da de baja: su navegador sigue recibiendo notificaciones. Para detenerlas, elimínela en **Ajustes de usuario → Métodos de notificación**, en la pestaña **Notificaciones push**, con **Eliminar**.
 
 ## Solución de problemas
 
@@ -98,7 +98,7 @@ Safari añade apps web al Dock a partir de macOS Sonoma 14. Actualice macOS, o i
 :::
 
 :::details No aparecen notificaciones
-- En **Ajustes de usuario → Métodos de notificación**, pestaña **Push Notifications**, compruebe que la aplicación o su navegador aparece, y envíele una **Notificación de prueba**.
+- En **Ajustes de usuario → Métodos de notificación**, pestaña **Notificaciones push**, compruebe que la aplicación o su navegador aparece, y envíele una **Notificación de prueba**.
 - En el Mac, abra **Ajustes del Sistema → Notificaciones** y compruebe que OneUptime, o el navegador desde el que se instaló, puede enviar notificaciones, y que ningún modo de concentración las retiene.
 - Si el navegador bloquea las notificaciones de OneUptime, permítalas en sus ajustes para el sitio y vuelva a registrar.
 - En un OneUptime autoalojado, el cuadro de diálogo **Registrar dispositivo** indica cuándo el servidor no tiene claves VAPID.

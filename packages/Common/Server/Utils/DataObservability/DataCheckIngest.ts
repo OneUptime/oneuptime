@@ -8,7 +8,11 @@ import {
   DATA_CHECK_METRIC_NAME,
   DataCheckAttribute,
 } from "../../../Types/DataObservability/DataCheckMetric";
-import { DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES } from "../../../Types/DataObservability/DataCheckType";
+import DataReconciliationCompare from "./DataReconciliationCompare";
+import {
+  DataCheckRunStatus,
+  DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
+} from "../../../Types/DataObservability/DataCheckType";
 import {
   DataObservabilityAttribute,
   getDataTableKey,
@@ -41,10 +45,8 @@ import { IngestStore } from "./TableHealthIngest";
  * write another store's checks.
  */
 
-export enum DataCheckRunStatus {
-  Ran = "Ran",
-  Failed = "Failed",
-}
+// Kept with the check types; exported here too, where it always was.
+export { DataCheckRunStatus };
 
 export const DATA_CHECK_METRIC_DESCRIPTION: string =
   "The value a data check read: a percentage, a count, a minimum, a maximum or an average, per segment when it has one.";
@@ -138,6 +140,7 @@ export default class DataCheckIngest {
         checkType: true,
         dataAssetId: true,
         intervalInMinutes: true,
+        dataReconciliationId: true,
       },
       limit: ids.length,
       skip: 0,
@@ -229,6 +232,29 @@ export default class DataCheckIngest {
     }
 
     await this.writeCheckMetricRows(data.store.projectId, rows);
+
+    // A reconciliation compares its sides as soon as both have been read together.
+    const reconciliationIds: Array<ObjectID> = checks
+      .map((check: DataCheck): ObjectID | undefined => {
+        return check.dataReconciliationId;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (reconciliationIds.length > 0) {
+      try {
+        await DataReconciliationCompare.compareForReconciliations(
+          reconciliationIds,
+          data.collectedAt,
+        );
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not compare the reconciliations of store ${data.store.id.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
 
     return rows.length;
   }

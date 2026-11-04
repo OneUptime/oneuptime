@@ -47,6 +47,14 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.PostgreSql, label: "PostgreSQL" },
   { value: DataStoreKind.MySql, label: "MySQL or MariaDB" },
   { value: DataStoreKind.SqlServer, label: "SQL Server" },
+  { value: DataStoreKind.AwsRedshiftCluster, label: "Amazon Redshift" },
+  { value: DataStoreKind.Snowflake, label: "Snowflake" },
+  { value: DataStoreKind.GcpBigQueryDataset, label: "Google BigQuery" },
+  { value: DataStoreKind.ClickHouse, label: "ClickHouse" },
+  { value: DataStoreKind.Databricks, label: "Databricks" },
+  { value: DataStoreKind.AwsAthena, label: "Amazon Athena" },
+  { value: DataStoreKind.Oracle, label: "Oracle" },
+  { value: DataStoreKind.MongoDb, label: "MongoDB" },
 ];
 
 /*
@@ -175,8 +183,9 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             field: { connectionString: true },
             title: "Connection String",
             stepId: CONNECTION_STEP_ID,
+            // Documentation shows every engine's format in full, with examples.
             description:
-              "For example postgres://reader:password@db.internal:5432/orders.",
+              "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks and Athena. Documentation shows each engine's.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

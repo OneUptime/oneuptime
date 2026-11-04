@@ -41,7 +41,7 @@ flowchart TB
 - **排定維護**：建立和管理維護事件。
 - **遙測**：查詢日誌、指標、追蹤、例外、監測器日誌、安全性事件等，唯讀。
 
-有針對 44 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。唯讀工具帶有 `readOnlyHint`，每個會變更內容的工具都帶有 `destructiveHint`，只有公開狀態頁工具帶有 `openWorldHint`，因此用戶端可以自行執行唯讀呼叫，並在做出任何變更之前詢問您。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
+有針對 45 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。唯讀工具帶有 `readOnlyHint`，每個會變更內容的工具都帶有 `destructiveHint`，只有公開狀態頁工具帶有 `openWorldHint`，因此用戶端可以自行執行唯讀呼叫，並在做出任何變更之前詢問您。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
 
 ## 開始之前
 
@@ -337,6 +337,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`oneuptime_whoami`** 工具會傳回您的認證所屬的專案（其 ID 和名稱）。對於已登入的用戶端，它還會說明以誰的身分登入以及是否可以進行變更。這是代理程式了解自身處境的理想首次呼叫，而且由於建立工具會從認證中取得 `projectId`，代理程式永遠不必傳遞專案 ID。
 
+**`get_data_table_freshness`** 工具在代理使用資料之前，告訴它 Data Observability 監視的某張表是否新鮮：依表本身的節奏判斷是新鮮還是延遲、最後一次變更的時間、未關閉的警示，以及寫入該表的每條管線最近一次執行的結果。`table` 傳入 `schema.table`、僅表名或其 ID。它不做任何變更。
+
 ## 查詢遙測
 
 日誌、指標、追蹤（span）、例外、監測器日誌和其他種類的遙測以唯讀的 `list_` 和 `count_` 工具提供（`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` 及其對應的 `count_` 工具）。遙測透過 OpenTelemetry 傳入，因此沒有建立工具。
@@ -484,7 +486,7 @@ MCP 伺服器是無狀態的：它既不核發也不追蹤工作階段 ID，因�
 | 標籤 | Label |
 | 安全性 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | 資料安全 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| 資料可觀測性 | Data Asset |
+| 資料可觀測性 | Data Asset, Data Check |
 
 | 領域 | 只有列出和計數工具的遙測 |
 | --- | --- |

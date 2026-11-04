@@ -26,6 +26,7 @@ import {
   mayAiPickedRunbookStartWithoutAsking,
 } from "../../Types/AutoRemediation/AutoRemediationFix";
 import {
+  AGENT_NOT_CONNECTED_GAP_CODES,
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionHelper,
   AutoRemediationDecisionLane,
@@ -625,6 +626,68 @@ export const MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON: number = 25;
 
 // The most decisions read to find them (a record can have several).
 export const MAX_DECISIONS_READ_WHEN_FIXES_TURN_ON: number = 200;
+
+/*
+ * The gaps that say a cluster's or a resource's AI agent was not there when
+ * OneUptime AI decided (AutoRemediationDecision's
+ * AGENT_NOT_CONNECTED_GAP_CODES, which the record's Remediation step reads
+ * too): the agent connecting is what that decision waited for
+ * (onAgentConnected).
+ */
+export { AGENT_NOT_CONNECTED_GAP_CODES };
+
+/*
+ * What a decision that found the target not ready is found by, as the
+ * decisions store it: its NotReady entry naming the target. Its gaps say
+ * why (getAgentNotConnectedEntry).
+ */
+export function getNotReadyEntryMatch(
+  target: RemediationFixesTarget,
+): JSONObject {
+  return target.lane === AutoRemediationDecisionLane.KubernetesCluster
+    ? {
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        reason: AutoRemediationDecisionReason.ClusterNotReady,
+        kubernetesClusterId: target.id.toLowerCase(),
+      }
+    : {
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceNotReady,
+        resourceId: target.id.toLowerCase(),
+      };
+}
+
+/*
+ * The entry of these that says the target's fixes waited for its AI agent,
+ * if one does: NotReady for this target, with a gap saying its agent was
+ * not connected or had stopped reporting. A target that was not ready for
+ * another reason only (its agent may not change anything, say) is not
+ * waiting for its agent, and its agent connecting changes nothing for it.
+ */
+export function getAgentNotConnectedEntry(
+  entries: unknown,
+  target: RemediationFixesTarget,
+): AutoRemediationDecisionEntry | undefined {
+  const id: string = target.id.toLowerCase();
+
+  return AutoRemediationDecisionHelper.parseEntries(entries).find(
+    (entry: AutoRemediationDecisionEntry): boolean => {
+      const isTarget: boolean =
+        target.lane === AutoRemediationDecisionLane.KubernetesCluster
+          ? entry.reason === AutoRemediationDecisionReason.ClusterNotReady &&
+            (entry.kubernetesClusterId || "").toLowerCase() === id
+          : entry.reason === AutoRemediationDecisionReason.ResourceNotReady &&
+            (entry.resourceId || "").toLowerCase() === id;
+
+      return (
+        isTarget &&
+        (entry.gaps || []).some((gap: { code: string }): boolean => {
+          return AGENT_NOT_CONNECTED_GAP_CODES.includes(gap.code);
+        })
+      );
+    },
+  );
+}
 
 /*
  * Does any of these suggestions belong to a resource-level round? A signal
@@ -1997,6 +2060,187 @@ class AutoRemediationRuleEngineServiceClass {
         !resource.isArchived &&
         isFixesOnMode(resource.aiRemediationMode),
     );
+  }
+
+  /*
+   * A Kubernetes cluster's or a resource's AI agent connected - it
+   * registered, or it reported again after it had stopped - after OneUptime
+   * AI found it missing for an open incident or alert: the record's
+   * Remediation step said the target's Fixes are on, but its AI agent is
+   * not connected, and nothing decided again once it was (#5367's
+   * follow-up). The records whose latest decision said so are decided
+   * again now, as a new one would be - Enable AI, the record kind's fixing
+   * switch, the AI rules, each cluster's and resource's fix mode and the
+   * per-record cap all decide - with the limits of Fixes turned on
+   * (onFixesTurnedOn):
+   *
+   *   - only a record whose latest evaluation found this target's agent
+   *     missing (a NotReady entry naming the target, with an
+   *     ai_agent_not_connected or ai_agent_offline gap), the most recently
+   *     decided first, at most MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON;
+   *   - only while it is open;
+   *   - once for that decision: inside the record's retry lock it is
+   *     decided again only while the decision that found the agent missing
+   *     is still its latest. Two connections handled at once - a
+   *     registration and a heartbeat reaching two servers - decide it once,
+   *     and a record decided again since, by a link, Fixes turned on or a
+   *     person's Try again, is never decided twice for the same cause.
+   *
+   * The project's own switches ("Fix new incidents automatically") are
+   * about new records, so turning one on stays a person's Try again.
+   * Not awaited by the agent's request. Resolves how many records it
+   * decided again; never throws.
+   */
+  @CaptureSpan()
+  public async onAgentConnected(data: {
+    projectId: ObjectID;
+    target: RemediationFixesTarget;
+  }): Promise<number> {
+    try {
+      if (!ObjectID.isValidUUID(data.target.id)) {
+        return 0;
+      }
+
+      const decisions: Array<AutoRemediationDecision> =
+        await AutoRemediationDecisionService.findBy({
+          query: {
+            projectId: data.projectId,
+            stage: AutoRemediationDecisionStage.Evaluated,
+            entries: QueryHelper.jsonContains([
+              getNotReadyEntryMatch(data.target),
+            ]),
+          },
+          select: { _id: true, incidentId: true, alertId: true, entries: true },
+          sort: { createdAt: SortOrder.Descending },
+          limit: MAX_DECISIONS_READ_WHEN_FIXES_TURN_ON,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      /*
+       * Each record once, by the newest of these decisions about it, and
+       * only when that one found the agent missing.
+       */
+      const subjects: Array<{
+        incidentId?: ObjectID;
+        alertId?: ObjectID;
+        decisionId: ObjectID;
+      }> = [];
+      const seen: Set<string> = new Set<string>();
+
+      for (const decision of decisions) {
+        const key: string = decision.incidentId
+          ? `incident:${decision.incidentId.toString()}`
+          : decision.alertId
+            ? `alert:${decision.alertId.toString()}`
+            : "";
+
+        if (!key || seen.has(key) || !decision.id) {
+          continue;
+        }
+
+        seen.add(key);
+
+        if (!getAgentNotConnectedEntry(decision.entries, data.target)) {
+          continue;
+        }
+
+        subjects.push({
+          ...(decision.incidentId
+            ? { incidentId: decision.incidentId }
+            : { alertId: decision.alertId! }),
+          decisionId: decision.id,
+        });
+
+        if (subjects.length >= MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON) {
+          break;
+        }
+      }
+
+      let decided: number = 0;
+
+      for (const subject of subjects) {
+        const subjectData: {
+          projectId: ObjectID;
+          incidentId?: ObjectID | undefined;
+          alertId?: ObjectID | undefined;
+        } = {
+          projectId: data.projectId,
+          incidentId: subject.incidentId,
+          alertId: subject.alertId,
+        };
+
+        const hasDecided: boolean = await this.decideAgainUnderRetryLock({
+          ...subjectData,
+          what: "a record whose AI agent connected",
+          mayDecideAgain: (): Promise<boolean> => {
+            return this.mayTryAgainAfterAgentConnected({
+              ...subjectData,
+              target: data.target,
+              decisionId: subject.decisionId,
+            });
+          },
+        });
+
+        if (hasDecided) {
+          decided++;
+        }
+      }
+
+      return decided;
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not try again on the records whose AI agent connected: ${error}`,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
+      return 0;
+    }
+  }
+
+  /*
+   * Whether an AI agent connecting may make OneUptime AI decide again about
+   * this record (onAgentConnected): the decision that found the target's
+   * agent missing is still its latest - a decision made since spent this
+   * cause - and the record is open.
+   */
+  private async mayTryAgainAfterAgentConnected(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    target: RemediationFixesTarget;
+    decisionId: ObjectID;
+  }): Promise<boolean> {
+    const latest: AutoRemediationDecision | null =
+      await AutoRemediationDecisionService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          stage: AutoRemediationDecisionStage.Evaluated,
+          ...(data.incidentId
+            ? { incidentId: data.incidentId }
+            : { alertId: data.alertId! }),
+        },
+        select: { _id: true, entries: true },
+        sort: { createdAt: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+
+    if (
+      !latest?.id ||
+      latest.id.toString() !== data.decisionId.toString() ||
+      !getAgentNotConnectedEntry(latest.entries, data.target)
+    ) {
+      return false;
+    }
+
+    const isResolved: boolean = data.incidentId
+      ? await IncidentService.isIncidentResolved({
+          incidentId: data.incidentId,
+        })
+      : await AlertService.isAlertResolved({ alertId: data.alertId! });
+
+    return !isResolved;
   }
 
   /*

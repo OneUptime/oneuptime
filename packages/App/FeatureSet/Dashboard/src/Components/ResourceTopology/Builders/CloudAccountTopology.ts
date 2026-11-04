@@ -10,7 +10,7 @@ import {
 import {
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
-  getCloudResourceTypeLabel,
+  getCloudResourceTypeDisplayName,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -216,7 +216,7 @@ export function buildCloudAccountTopology(
       resource.isReporting ||
       isRecent(resource.lastSeenAt, input.now, CLOUD_ACCOUNT_RESOURCE_STALE_MS);
     const health: ResourceTopologyHealth = live ? "healthy" : "unknown";
-    const typeLabel: string = getCloudResourceTypeLabel(
+    const typeLabel: string = getCloudResourceTypeDisplayName(
       provider,
       resource.type,
     );

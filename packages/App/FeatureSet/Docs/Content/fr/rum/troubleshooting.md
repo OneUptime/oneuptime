@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-La page **Santé** de l'application, dans sa section **Relecture de session**, et le panneau **Test your installation** de **Replay Policy** vérifient la clé, les listes d'autorisation et la politique côté serveur, et disent pourquoi rien n'arrive. La console du navigateur vous donne la moitié que le serveur ne peut pas voir.
+La page **Santé** de l'application, dans sa section **Relecture de session**, et le panneau **Test your installation** de **Politique de relecture** vérifient la clé, les listes d'autorisation et la politique côté serveur, et disent pourquoi rien n'arrive. La console du navigateur vous donne la moitié que le serveur ne peut pas voir.
 
 Avec la politique par défaut, un enregistreur envoie un fragment environ toutes les 15 secondes tant que l'utilisateur interagit avec la page. Un onglet inactif n'a rien à envoyer : cliquez ou déplacez d'abord la souris ; ensuite, l'absence de toute requête de fragment signifie que quelque chose ne va pas. Si l'application n'envoie que _On error or frustration_, le silence est normal jusqu'à ce que quelque chose tourne mal. Appelez `OneUptimeReplay.captureSession()` pour forcer un envoi et prouver le chemin dans les deux cas.
 

@@ -38,7 +38,7 @@ De sandbox is geen Node.js: er is geen `require`, geen `process`, geen `fetch` e
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Custom JavaScript Code** onder **Synthetic Monitoring**, of typ `script` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Custom JavaScript Code** onder **Synthetische bewaking**, of typ `script` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
 
 ### Het script toevoegen
 

@@ -82,12 +82,23 @@ const NOT_A_NAME: RegExp = /[\s,()]/;
 const EXTRA_SYSTEM_KINDS: Readonly<Record<string, DataStoreKind>> = {
   "microsoft.sql_server": DataStoreKind.SqlServer,
   "azure.sql_server": DataStoreKind.SqlServer,
+  redshift: DataStoreKind.AwsRedshiftCluster,
+  "aws.redshift": DataStoreKind.AwsRedshiftCluster,
+  snowflake: DataStoreKind.Snowflake,
+  bigquery: DataStoreKind.GcpBigQueryDataset,
+  "gcp.bigquery": DataStoreKind.GcpBigQueryDataset,
+  clickhouse: DataStoreKind.ClickHouse,
+  databricks: DataStoreKind.Databricks,
+  athena: DataStoreKind.AwsAthena,
+  "aws.athena": DataStoreKind.AwsAthena,
 };
 
 // The schema a table is in when a statement names it alone.
 const DEFAULT_SCHEMAS: Readonly<Partial<Record<DataStoreKind, string>>> = {
   [DataStoreKind.PostgreSql]: "public",
   [DataStoreKind.SqlServer]: "dbo",
+  [DataStoreKind.AwsRedshiftCluster]: "public",
+  [DataStoreKind.Snowflake]: "public",
 };
 
 function normalizeName(value: string): string {
@@ -218,10 +229,12 @@ export function findUsageStore(data: {
   }
 
   const named: Array<UsageStore> = ofKind.filter((store: UsageStore) => {
-    return (
-      store.databaseName !== null &&
-      normalizeName(store.databaseName) === database
-    );
+    // A MongoDB store that names no database reads every one.
+    if (store.databaseName === null) {
+      return kind === DataStoreKind.MongoDb;
+    }
+
+    return normalizeName(store.databaseName) === database;
   });
 
   if (named.length <= 1) {
@@ -285,6 +298,23 @@ export function findUsageAsset(data: {
   );
 }
 
+/*
+ * A MongoDB span's collection: one name, dots and all ("orders.archive" is
+ * a collection), in the database its namespace names - the schema a
+ * MongoDB store's tables are kept under.
+ */
+export function parseMongoCollectionName(
+  row: SpanTableUsageRow,
+): CollectionName | null {
+  const table: string = normalizeName(row.collection || "");
+
+  if (!table || table.length > MAX_IDENTIFIER_LENGTH) {
+    return null;
+  }
+
+  return { schema: readNamespaceDatabase(row.dbNamespace), table };
+}
+
 // What one grouped span row says about which table a service read or wrote.
 export function matchSpanTableUsage(data: {
   row: SpanTableUsageRow;
@@ -294,11 +324,8 @@ export function matchSpanTableUsage(data: {
   const operation: string | null = normalizeOperation(data.row.operation);
   const accessKind: DataAssetAccessKind | null =
     getAccessKindOfOperation(operation);
-  const collection: CollectionName | null = parseCollectionName(
-    data.row.collection,
-  );
 
-  if (!operation || !accessKind || !collection) {
+  if (!operation || !accessKind) {
     return null;
   }
 
@@ -308,6 +335,15 @@ export function matchSpanTableUsage(data: {
   });
 
   if (!store) {
+    return null;
+  }
+
+  const collection: CollectionName | null =
+    store.kind === DataStoreKind.MongoDb
+      ? parseMongoCollectionName(data.row)
+      : parseCollectionName(data.row.collection);
+
+  if (!collection) {
     return null;
   }
 

@@ -41,7 +41,7 @@ Serveren er tilstandsløs: den utsteder ingen økt-ID-er, og hver forespørsel s
 - **Planlagt vedlikehold**: opprett og administrer vedlikeholdshendelser.
 - **Telemetri**: spør etter logger, målinger, spor, unntak, monitorlogger, sikkerhetshendelser og mer, kun lesing.
 
-Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 44 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. Skrivebeskyttede verktøy har `readOnlyHint`, alle verktøy som endrer noe, har `destructiveHint`, og bare verktøyene for offentlige statussider har `openWorldHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
+Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 45 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. Skrivebeskyttede verktøy har `readOnlyHint`, alle verktøy som endrer noe, har `destructiveHint`, og bare verktøyene for offentlige statussider har `openWorldHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
 
 ## Før du begynner
 
@@ -337,6 +337,8 @@ En typisk sløyfe: `list_incidents` → `acknowledge_incident` → undersøk med
 
 Verktøyet **`oneuptime_whoami`** returnerer prosjektet påloggingsdetaljene dine hører til (ID og navn). For en klient som logget inn, sier det også hvem den er logget inn som, og om den kan gjøre endringer. Det er et godt første kall for at en agent skal finne fotfeste, og siden opprettingsverktøy tar `projectId` fra påloggingsdetaljene, trenger agenten aldri å sende en prosjekt-ID.
 
+Verktøyet **`get_data_table_freshness`** forteller en agent om en tabell som Data Observability overvåker er fersk før den bruker dataene: fersk eller forsinket målt mot tabellens egen rytme, når den sist ble endret, de åpne varslene, og hvordan den siste kjøringen av hver pipeline som skriver den gikk. Oppgi `table` som `schema.table`, bare tabellens navn eller ID-en. Det endrer ingenting.
+
 ## Spørre etter telemetri
 
 Logger, målinger, spor (spans), unntak, monitorlogger og de andre typene telemetri kommer som skrivebeskyttede verktøy `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og `count_`-tvillingene deres). Telemetri kommer inn gjennom OpenTelemetry, så det finnes ingen opprettingsverktøy.
@@ -484,7 +486,7 @@ MCP-serveren er tilstandsløs: den verken utsteder eller sporer økt-ID-er, så 
 | Etiketter | Label |
 | Sikkerhet | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Datasikkerhet | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| Dataobserverbarhet | Data Asset |
+| Dataobserverbarhet | Data Asset, Data Check |
 
 | Område | Telemetri med bare verktøy for å liste og telle |
 | --- | --- |

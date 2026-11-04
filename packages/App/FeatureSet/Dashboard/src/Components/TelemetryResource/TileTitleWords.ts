@@ -26,13 +26,17 @@ import {
  * were written to fit.
  *
  * The limit is lower than the side menu's fourteen letters because a tile's
- * line is shorter than a menu's (some sixteen letters there). Chrome
- * hyphenates only a word that does not fit a line of its own; Firefox and
- * Safari may also hyphenate a long word where it ends a line though it
- * would fit the next one, which a title of a few words rarely meets, and
- * which reads better than a word cut at the edge with no hyphen. The short
+ * line is shorter than a menu's (some sixteen letters there). The short
  * words beside it are never hyphenated, in Safari too, which reads no
  * hyphenate-limit-chars: they are not in the long word's span.
+ *
+ * Every engine, Chrome included, hyphenates a long word where it ends a
+ * line though it would fit the next one: four German tiles beside the side
+ * menu read "ERFORDERT AUFMERK- / SAMKEIT" with room for AUFMERKSAMKEIT on
+ * a line of its own (#5646's review). So a long word is a box of its own,
+ * at most the line's width (inline-block, max-w-full): a word that fits a
+ * line moves there whole, and only a word longer than any line is
+ * hyphenated, inside its box.
  */
 
 // The shortest word a tile's or chart card's title hyphenates.
@@ -49,12 +53,19 @@ export const TILE_TITLE_WORDS_CLASS_NAME: string = WORDS_BREAK_CLASS_NAME;
 export const TILE_TITLE_LONG_WORD_CLASS_NAME: string =
   "hyphens-auto [hyphenate-limit-chars:10_4_3] [-webkit-hyphenate-limit-before:4] [-webkit-hyphenate-limit-after:3]";
 
+/*
+ * A long word as a box no wider than the line: it moves whole to the next
+ * line when it fits one, rather than be hyphenated at the end of this one.
+ */
+export const TILE_TITLE_LONG_WORD_BOX_CLASS_NAME: string =
+  "inline-block max-w-full";
+
 // A title whose every word is that long: the title itself may be hyphenated.
-export const TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME: string = `${TILE_TITLE_WORDS_CLASS_NAME} ${TILE_TITLE_LONG_WORD_CLASS_NAME}`;
+export const TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME: string = `${TILE_TITLE_WORDS_CLASS_NAME} ${TILE_TITLE_LONG_WORD_BOX_CLASS_NAME} ${TILE_TITLE_LONG_WORD_CLASS_NAME}`;
 
 export const TILE_TITLE_LONG_WORDS: LongWordHyphenation = {
   minimumWordLength: TILE_TITLE_HYPHENATED_WORD_LENGTH,
-  longWordClassName: TILE_TITLE_LONG_WORD_CLASS_NAME,
+  longWordClassName: `${TILE_TITLE_LONG_WORD_BOX_CLASS_NAME} ${TILE_TITLE_LONG_WORD_CLASS_NAME}`,
 };
 
 /*

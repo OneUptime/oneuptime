@@ -28,17 +28,17 @@ Varje flik i **Aviseringsmetoder** innehåller ett eller flera kort, ett per typ
 
 | Kort | Flik | Vad du lägger till | Hur den verifieras |
 | --- | --- | --- | --- |
-| **E-postmeddelanden för aviseringar** | **Direct Contact** | En e-postadress | En kod via e-post |
-| **Telefonnummer för SMS-aviseringar** | **Direct Contact** | Ett telefonnummer | En kod via SMS |
-| **Telefonnummer för samtalsaviseringar** | **Direct Contact** | Ett telefonnummer | En kod som läses upp i ett samtal, eller ingen för ett nummer som är verifierat för SMS |
-| **WhatsApp-nummer för aviseringar** | **Direct Contact** | Ett WhatsApp-nummer | En kod via WhatsApp |
-| **Telegram-konton för aviseringar** | **Direct Contact** | Ditt Telegram-konto | Ett meddelande till OneUptime-boten |
-| **Slack Account for Notifications** | **Workspace Apps** | Ditt Slack-konto | Att ansluta ditt konto till projektets arbetsyta |
-| **Microsoft Teams Account for Notifications** | **Workspace Apps** | Ditt Microsoft Teams-konto | Att ansluta ditt konto till projektets arbetsyta |
-| **Enheter för push-aviseringar** | **Push Notifications** | En telefon med appen OneUptime On-Call, eller en webbläsare | Att registrera enheten |
+| **E-postmeddelanden för aviseringar** | **Direktkontakt** | En e-postadress | En kod via e-post |
+| **Telefonnummer för SMS-aviseringar** | **Direktkontakt** | Ett telefonnummer | En kod via SMS |
+| **Telefonnummer för samtalsaviseringar** | **Direktkontakt** | Ett telefonnummer | En kod som läses upp i ett samtal, eller ingen för ett nummer som är verifierat för SMS |
+| **WhatsApp-nummer för aviseringar** | **Direktkontakt** | Ett WhatsApp-nummer | En kod via WhatsApp |
+| **Telegram-konton för aviseringar** | **Direktkontakt** | Ditt Telegram-konto | Ett meddelande till OneUptime-boten |
+| **Slack Account for Notifications** | **Arbetsyteappar** | Ditt Slack-konto | Att ansluta ditt konto till projektets arbetsyta |
+| **Microsoft Teams Account for Notifications** | **Arbetsyteappar** | Ditt Microsoft Teams-konto | Att ansluta ditt konto till projektets arbetsyta |
+| **Enheter för push-aviseringar** | **Push-aviseringar** | En telefon med appen OneUptime On-Call, eller en webbläsare | Att registrera enheten |
 | **Webhooks för aviseringar** | **Webhooks** | En egen HTTPS-slutpunkt | Ingen |
 
-**Workspace Apps** visas bara när projektet har anslutit Slack eller Microsoft Teams, och innehåller bara de anslutna. SMS, samtal, WhatsApp och Telegram kan vara avstängda för hela projektet; se [Slå på en kanal för ditt projekt](#slå-på-en-kanal-för-ditt-projekt).
+**Arbetsyteappar** visas bara när projektet har anslutit Slack eller Microsoft Teams, och innehåller bara de anslutna. SMS, samtal, WhatsApp och Telegram kan vara avstängda för hela projektet; se [Slå på en kanal för ditt projekt](#slå-på-en-kanal-för-ditt-projekt).
 
 ## Lägg till och verifiera en metod
 
@@ -47,7 +47,7 @@ E-postadresser, SMS-nummer, samtalsnummer och WhatsApp-nummer verifieras med en 
 :::steps
 ### Öppna dina metoder
 
-Gå till **Användarinställningar → Aviseringsmetoder**. **Direct Contact** är den första fliken.
+Gå till **Användarinställningar → Aviseringsmetoder**. **Direktkontakt** är den första fliken.
 
 ### Lägg till adressen
 
@@ -88,12 +88,12 @@ Tillbaka i OneUptime klickar du på **I've sent the message — check**. Så sna
 ## Slack och Microsoft Teams
 
 1. Anslut ditt eget konto till projektets arbetsyta: **Användarinställningar → Arbetsyta → Slack**, eller **Microsoft Teams**. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Klicka på **Add Slack Account** eller **Add Microsoft Teams Account** på fliken **Workspace Apps**. Kontot är verifierat så snart det har lagts till.
+2. Klicka på **Add Slack Account** eller **Add Microsoft Teams Account** på fliken **Arbetsyteappar**. Kontot är verifierat så snart det har lagts till.
 3. Klicka på **Send Test Message** på dess rad. Larm kommer som direktmeddelanden från OneUptime-appen.
 
 ## Push-aviseringar
 
-Fliken **Push Notifications** listar dina **Enheter för push-aviseringar**.
+Fliken **Push-aviseringar** listar dina **Enheter för push-aviseringar**.
 
 - **En telefon.** Installera appen OneUptime On-Call, anslut den till ditt OneUptime, logga in och tillåt aviseringar: telefonen lägger själv till sig i listan. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 - **Den här webbläsaren.** Klicka på **Registrera enhet**, fyll i **Enhetsnamn**, och tillåt aviseringar när webbläsaren frågar.

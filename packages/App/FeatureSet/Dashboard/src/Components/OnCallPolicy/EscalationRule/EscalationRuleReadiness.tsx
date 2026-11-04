@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -159,6 +160,15 @@ export interface ResponderGroupResolution extends ResponderGroupRef {
  * when it pages a schedule's Next in rotation and nobody is ever next.
  */
 export const NO_ONE_NEXT_LABEL: string = translationKey("No one next");
+
+/*
+ * The same words inside a responder's chip in the escalation summary, after
+ * its name - "Primary rotation next in rotation no one next" - in the
+ * sentence's own case, as "no one on call" is beside an uncovered
+ * schedule's name. The chips drew both in capitals until #5412's review;
+ * in their own case a capital "No" mid-chip read as a new sentence.
+ */
+export const NO_ONE_NEXT_IN_CHIP_LABEL: string = translationKey("no one next");
 export const NO_ONE_NEXT_TOOLTIP: string = translationKey(
   "Nobody else is in this schedule's rotation, so this level would not notify anyone. Add people to the schedule's layers.",
 );
@@ -1656,7 +1666,7 @@ export const RuleReadinessDetails: FunctionComponent<
         {report.unreachable.length > 0 ? (
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <span className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
                 {translator.translateText("Cannot be paged")}
               </span>
               <span className="text-xs font-medium tabular-nums text-gray-500">
@@ -1689,7 +1699,9 @@ export const RuleReadinessDetails: FunctionComponent<
 
         {report.gaps.length > 0 ? (
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <div
+              className={`mb-2 ${ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}`}
+            >
               {translator.translateText(
                 props.delivery.isFallbackEnabled
                   ? "Paged, but not the way they asked"

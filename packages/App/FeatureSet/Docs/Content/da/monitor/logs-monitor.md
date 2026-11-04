@@ -48,7 +48,7 @@ I **Logs at holde øje med** angiver du **Logalvorlighed** og **Beskeden indehol
 
 ### Indsnævr dem (valgfrit)
 
-Åbn **Flere felter** for at filtrere efter telemetritjeneste, infrastrukturentitet eller attribut. Vil du have én advarsel pr. tunnel, bruger eller interface i stedet for én for hele monitoren, så tilføj attributten under **Group by Attributes** (se [Advarsler pr. gruppe](#advarsler-pr-gruppe-group-by)).
+Åbn **Flere felter** for at filtrere efter telemetritjeneste, infrastrukturentitet eller attribut. Vil du have én advarsel pr. tunnel, bruger eller interface i stedet for én for hele monitoren, så tilføj attributten under **Gruppér efter attributter** (se [Advarsler pr. gruppe](#advarsler-pr-gruppe-group-by)).
 
 ### Sig, hvornår der skal advares
 
@@ -70,8 +70,8 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Logalvorlighed** | Logs med en af de valgte alvorligheder. | Tom: alle alvorligheder |
 | **Beskeden indeholder** | Logs, hvis brødtekst indeholder denne tekst, uden forskel på store og små bogstaver. | Tom: alle logs |
 | **Tidsvindue** (i **Hvornår der advares**) | Logs fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
-| **Group by Attributes** | Intet filter: tæller hver kombination af disse attributters værdier for sig. | Tom: én optælling |
-| **Løst af attributter** | Intet filter: den log, der løser en gruppe. Vises, så snart **Group by Attributes** har en attribut; se [Løst af en log](#løst-af-en-log). | Tom: en gruppe løses, når dens logs stopper |
+| **Gruppér efter attributter** | Intet filter: tæller hver kombination af disse attributters værdier for sig. | Tom: én optælling |
+| **Løst af attributter** | Intet filter: den log, der løser en gruppe. Vises, så snart **Gruppér efter attributter** har en attribut; se [Løst af en log](#løst-af-en-log). | Tom: en gruppe løses, når dens logs stopper |
 | **Filtrér efter telemetritjeneste** (under **Flere felter**) | Logs fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Logs fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Filtrér efter attributter** (under **Flere felter**) | Logs, hvis attributter opfylder alle betingelser. Hver betingelse har sin egen operator, såsom "er lig med" eller "indeholder". | Tom: ingen betingelse |
@@ -157,7 +157,7 @@ Fordi vinduerne overlapper, holder én byge af fejl antallet højt i op til fem 
 
 ## Advarsler pr. gruppe (Group By)
 
-**Group by Attributes** deler en log-monitors optælling op i én optælling pr. særskilt kombination af attributværdier (én pr. IPsec-tunnel, pr. VPN-bruger, pr. firewall-interface) og evaluerer kriterierne for hver gruppe for sig. Det er logmodstykket til en metrik-monitors [Group By](/docs/monitor/metrics-monitor#advarsler-pr-serie-group-by).
+**Gruppér efter attributter** deler en log-monitors optælling op i én optælling pr. særskilt kombination af attributværdier (én pr. IPsec-tunnel, pr. VPN-bruger, pr. firewall-interface) og evaluerer kriterierne for hver gruppe for sig. Det er logmodstykket til en metrik-monitors [Group By](/docs/monitor/metrics-monitor#advarsler-pr-serie-group-by).
 
 ### Én advarsel pr. gruppe
 
@@ -193,7 +193,7 @@ En enhed, der melder en tunnel nede, melder som regel også, når den er oppe ig
 
 Tag en monitor, der tæller logs med `event.name` = `vpn.tunnel_down`, grupperet efter `event.device` og `vpn.tunnel.name`, med **Løst af attributter** sat til `event.name` = `vpn.tunnel_up`. Når tunnelen `HQ-Branch1` går ned, åbner det dens advarsel. Advarslen forbliver åben natten igennem, selvom firewallen ikke logger mere om tunnelen, og løses, når firewallen melder `HQ-Branch1` oppe igen. Falder tunnelen igen, åbner det en ny advarsel.
 
-- Feltet vises, så snart **Group by Attributes** har en attribut. Det tager op til 10 attributter, og en løsende log bærer dem alle.
+- Feltet vises, så snart **Gruppér efter attributter** har en attribut. Det tager op til 10 attributter, og en løsende log bærer dem alle.
 - En løsende log hører til en gruppe, når den har gruppens værdier for group by-attributterne, så begge slags logs skal bære de attributter.
 - Monitorens telemetritjenester og tidsvindue gælder også for løsende logs. Dens tekst- og alvorlighedsfiltre gør ikke: de beskriver problemet.
 - En gruppe, hvis nyeste log er en løsende, lukkes. En gruppe, der loggede problemet igen bagefter, forbliver åben.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Opret en monitor af typen **Protokoller**, og vælg **En besked dukker op**.
 2. Sæt **Beskeden indeholder** til `terminated` og **Tidsvindue** til **Seneste 5 minutter**.
 3. Under **Flere felter** tilføjer du attributfilteret `log_component` = `IPSec`.
-4. Under **Group by Attributes** tilføjer du `con_name`.
+4. Under **Gruppér efter attributter** tilføjer du `con_name`.
 5. Behold reglen på **Mere end** `0`, og giv advarslen eller hændelsen titlen `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ Kriterierne tjekkes fra top til bund, og det første match afgør det. Et bredt 
 :::
 
 :::details Et anomalikriterium udløses aldrig
-Det er stadig ved at lære: monitorens tjenester har endnu ikke to ugers historik. På en monitor med **Group by Attributes** matcher anomalibetingelser aldrig; brug en tærskel der.
+Det er stadig ved at lære: monitorens tjenester har endnu ikke to ugers historik. På en monitor med **Gruppér efter attributter** matcher anomalibetingelser aldrig; brug en tærskel der.
 :::
 
 :::details Gruppeadvarsler kommer uden gruppeværdi

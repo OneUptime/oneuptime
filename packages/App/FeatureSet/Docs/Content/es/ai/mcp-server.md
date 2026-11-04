@@ -41,7 +41,7 @@ El servidor no tiene estado: no emite ids de sesión y cada petición es indepen
 - **Mantenimiento programado**: crear y gestionar eventos de mantenimiento.
 - **Telemetría**: consultar logs, métricas, trazas, excepciones, logs de monitores, eventos de seguridad y más, solo lectura.
 
-Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 44 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Las herramientas de solo lectura llevan `readOnlyHint`, toda herramienta que cambia algo lleva `destructiveHint` y solo las herramientas de páginas de estado públicas llevan `openWorldHint`, así que un cliente puede ejecutar por su cuenta las llamadas de solo lectura y preguntarte antes de cualquier cambio. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
+Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 45 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Las herramientas de solo lectura llevan `readOnlyHint`, toda herramienta que cambia algo lleva `destructiveHint` y solo las herramientas de páginas de estado públicas llevan `openWorldHint`, así que un cliente puede ejecutar por su cuenta las llamadas de solo lectura y preguntarte antes de cualquier cambio. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
 
 ## Antes de empezar
 
@@ -337,6 +337,8 @@ Un ciclo típico: `list_incidents` → `acknowledge_incident` → investigar con
 
 La herramienta **`oneuptime_whoami`** devuelve el proyecto al que pertenecen tus credenciales (su ID y su nombre). Para un cliente que inició sesión, también dice con qué usuario inició sesión y si puede hacer cambios. Es una buena primera llamada para que un agente se oriente, y como las herramientas de creación toman `projectId` de las credenciales, el agente nunca tiene que pasar un ID de proyecto.
 
+La herramienta **`get_data_table_freshness`** le dice a un agente si una tabla que Data Observability vigila está al día antes de usar sus datos: al día o con retraso según el propio ritmo de la tabla, cuándo cambió por última vez, sus alertas abiertas y cómo fue la última ejecución de cada pipeline que la escribe. Pase `table` como `schema.table`, solo el nombre de la tabla o su ID. No cambia nada.
+
 ## Consultar la telemetría
 
 Los logs, las métricas, las trazas (spans), las excepciones, los logs de monitores y los demás tipos de telemetría llegan como herramientas `list_` y `count_` de solo lectura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` y sus gemelas `count_`). La telemetría llega a través de OpenTelemetry, así que no hay herramientas de creación.
@@ -484,7 +486,7 @@ El servidor MCP no tiene estado: ni emite ni rastrea ids de sesión, así que ca
 | Etiquetas | Label |
 | Seguridad | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Seguridad de datos | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| Observabilidad de datos | Data Asset |
+| Observabilidad de datos | Data Asset, Data Check |
 
 | Área | Telemetría solo con herramientas de listar y contar |
 | --- | --- |

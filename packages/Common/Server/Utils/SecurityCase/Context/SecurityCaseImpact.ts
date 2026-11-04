@@ -57,6 +57,10 @@ import {
   readRecordAddresses,
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import { readChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
+import {
+  CloudChangeTitleFacts,
+  readCloudChangeTitleFacts,
+} from "../../../../Utils/Telemetry/CloudChangeTitle";
 import ChangeEventService from "../../../Services/ChangeEventService";
 import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
 import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
@@ -824,6 +828,11 @@ export default class SecurityCaseImpact {
         (row.attributes as Dictionary<unknown>) || {},
       ) as Dictionary<string | undefined>;
       const keys: Set<string> = new Set();
+      const cloudChange: CloudChangeTitleFacts | null =
+        readCloudChangeTitleFacts({
+          title: row.title,
+          attributes: (row.attributes as Dictionary<unknown>) || {},
+        });
 
       for (const id of [
         row.primaryEntityId?.toString(),
@@ -846,6 +855,8 @@ export default class SecurityCaseImpact {
           title: row.title || "",
           eventType: row.eventType || "change",
           ...(fields["version"] ? { version: fields["version"] } : {}),
+          // A cloud change's title is worded from these on the page.
+          ...(cloudChange ? { cloudChange } : {}),
         });
         changes.set(key, list);
       }

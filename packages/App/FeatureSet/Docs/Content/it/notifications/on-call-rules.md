@@ -101,7 +101,7 @@ Una gravità che il vostro progetto aggiunge in seguito riceve regole entro poch
 Una chiamata che non trova comunque una regola viene inviata lo stesso ai vostri metodi verificati, e ricevete un'e-mail al riguardo; vedete [Quando nessuna regola corrisponde](/docs/notifications/index#quando-nessuna-regola-corrisponde).
 
 :::details Disattivare una gravità di proposito
-L'API può salvare una regola di esclusione, con `isOptOut` impostato e senza metodo: allora non venite chiamati per quel tipo di chiamata e quella gravità, e niente subentra. La riga mostra **Muted - notifications turned off for this rule**, ed eliminarla riattiva le chiamate. Anche una gravità aggiunta in seguito resta muta, se ogni regola che avete in quella scheda è un'esclusione.
+L'API può salvare una regola di esclusione, con `isOptOut` impostato e senza metodo: allora non venite chiamati per quel tipo di chiamata e quella gravità, e niente subentra. La riga mostra **Silenziato: notifiche disattivate per questa regola**, ed eliminarla riattiva le chiamate. Anche una gravità aggiunta in seguito resta muta, se ogni regola che avete in quella scheda è un'esclusione.
 :::
 
 :::details Disattivare il ripiego per un intero progetto
@@ -115,7 +115,7 @@ I proprietari e gli amministratori del progetto possono vedere e cambiare la ste
 ## Risoluzione dei problemi
 
 :::details Il mio telefono è rimasto muto per una chiamata critica
-Controllate che il push della regola sia **Avviso critico** e non **Standard**, e che **Avvisi critici** sia attivo per il telefono in **Impostazioni utente → Metodi di notifica**, nella scheda **Push Notifications**.
+Controllate che il push della regola sia **Avviso critico** e non **Standard**, e che **Avvisi critici** sia attivo per il telefono in **Impostazioni utente → Metodi di notifica**, nella scheda **Notifiche push**.
 :::
 
 :::details Vengo chiamato due volte per ogni incidente

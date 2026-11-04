@@ -21,11 +21,12 @@ import {
   RUNS_FOR_EXPECTED_INTERVAL,
   RUNS_FOR_TYPICAL_DURATION,
 } from "../../../Types/DataObservability/DataPipelineSchedule";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import DataAssetLineageService from "../../Services/DataAssetLineageService";
+import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import DataAssetService from "../../Services/DataAssetService";
 import DataPipelineRunService from "../../Services/DataPipelineRunService";
 import DataPipelineService from "../../Services/DataPipelineService";
@@ -36,6 +37,7 @@ import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import { matchDataset } from "./DatasetMatching";
 import {
+  FAILED_RUN_STATES,
   FINAL_RUN_STATES,
   OpenLineageDataset,
   OpenLineageRunEvent,
@@ -43,6 +45,7 @@ import {
 } from "./OpenLineageEvent";
 import { readTableHealthTarget, TableHealthTarget } from "./TableHealthTarget";
 import { UsageAsset, UsageStore } from "./TableUsageMatching";
+import { DATA_OBSERVABILITY_KINDS } from "./DataObservabilityEngines";
 
 /*
  * WHAT OPENLINEAGE EVENTS SAY, KEPT.
@@ -50,9 +53,10 @@ import { UsageAsset, UsageStore } from "./TableUsageMatching";
  * Each event updates its pipeline (created at its first event) and its run:
  * a START opens the run, a COMPLETE, FAIL or ABORT ends it - its duration,
  * its error, and the metrics alerts read (run_failed, run_duration, and
- * run_duration_ratio against the pipeline's typical run). Each new run
- * relearns how often the pipeline runs, and each completed one how long it
- * usually takes (DataPipelineSchedule).
+ * run_duration_ratio against the pipeline's typical run). A run its tool
+ * rescheduled ends too, as neither: it fails nothing and teaches no
+ * duration. Each new run relearns how often the pipeline runs, and each
+ * completed one how long it usually takes (DataPipelineSchedule).
  * The datasets a run reads and writes are matched to the tables Data
  * Observability watches (DatasetMatching): each table written is noted on
  * the run, and each table read by a run that writes another is an edge of
@@ -97,6 +101,21 @@ export function mergeDatasetLabels(
 
 export function isFinalState(state: string | undefined | null): boolean {
   return FINAL_RUN_STATES.includes(state as OpenLineageRunState);
+}
+
+export function isFailedState(state: string | undefined | null): boolean {
+  return FAILED_RUN_STATES.includes(state as OpenLineageRunState);
+}
+
+// How precisely a pipeline's edge keeps its last sighting: a busy pipeline writes it hourly.
+export const PIPELINE_EDGE_SEEN_PRECISION_IN_SECONDS: number = 60 * 60;
+
+export function getPipelineEdgeKey(data: {
+  upstreamDataAssetId: string | null;
+  downstreamDataAssetId: string;
+  pipelineId: ObjectID;
+}): string {
+  return `${data.upstreamDataAssetId || "writes"}:${data.downstreamDataAssetId}:${data.pipelineId.toString()}`;
 }
 
 export function isRunningState(state: string | undefined | null): boolean {
@@ -162,12 +181,15 @@ export default class OpenLineageIngest {
     projectId: ObjectID;
     events: Array<OpenLineageRunEvent>;
     now: Date;
+    // The project's catalog, when the caller has read it already.
+    catalog?: ProjectCatalog | undefined;
   }): Promise<number> {
     if (data.events.length === 0) {
       return 0;
     }
 
-    const catalog: ProjectCatalog = await this.readCatalog(data.projectId);
+    const catalog: ProjectCatalog =
+      data.catalog || (await this.readCatalog(data.projectId));
     const retentionDays: number = await MonitorMetricUtil.getRetentionDays();
     const metricRows: Array<JSONObject> = [];
     // In the order they happened: a START before its COMPLETE.
@@ -220,6 +242,22 @@ export default class OpenLineageIngest {
       data.catalog,
     );
 
+    // Tables its producer named by id (a Fivetran connector's schema).
+    if (event.outputDataAssetIds && event.outputDataAssetIds.length > 0) {
+      const named: Set<string> = new Set(event.outputDataAssetIds);
+      const matched: Set<string> = new Set(
+        outputAssets.map((asset: UsageAsset): string => {
+          return asset.dataAssetId;
+        }),
+      );
+
+      for (const asset of data.catalog.assets) {
+        if (named.has(asset.dataAssetId) && !matched.has(asset.dataAssetId)) {
+          outputAssets.push(asset);
+        }
+      }
+    }
+
     if (event.runId) {
       await this.recordRun({
         projectId,
@@ -231,28 +269,34 @@ export default class OpenLineageIngest {
       });
     }
 
+    const edges: Array<{
+      upstreamDataAssetId: string | null;
+      downstreamDataAssetId: string;
+    }> = [];
+
     for (const output of outputAssets) {
       // Every table a pipeline writes knows the pipeline, whatever it reads.
-      await this.upsertLineage({
-        projectId,
+      edges.push({
         upstreamDataAssetId: null,
         downstreamDataAssetId: output.dataAssetId,
-        pipelineId: pipeline.id!,
-        at: event.eventTime,
       });
 
       for (const input of inputAssets) {
         if (input.dataAssetId !== output.dataAssetId) {
-          await this.upsertLineage({
-            projectId,
+          edges.push({
             upstreamDataAssetId: input.dataAssetId,
             downstreamDataAssetId: output.dataAssetId,
-            pipelineId: pipeline.id!,
-            at: event.eventTime,
           });
         }
       }
     }
+
+    await this.upsertLineageEdges({
+      projectId,
+      pipelineId: pipeline.id!,
+      edges,
+      at: event.eventTime,
+    });
   }
 
   public static async upsertPipeline(
@@ -362,9 +406,10 @@ export default class OpenLineageIngest {
           Math.round((endedAt.getTime() - startedAt.getTime()) / 1000),
         )
       : null;
+    // A failed run's error, or why its tool rescheduled it.
     const errorMessage: string | null =
-      event.eventType === OpenLineageRunState.Fail ||
-      event.eventType === OpenLineageRunState.Abort
+      isFailedState(event.eventType) ||
+      event.eventType === OpenLineageRunState.Rescheduled
         ? (event.errorMessage || "").slice(0, MAX_ERROR_LENGTH) || null
         : null;
 
@@ -458,9 +503,7 @@ export default class OpenLineageIngest {
         event.eventType === OpenLineageRunState.Complete
           ? { lastSuccessAt: event.eventTime }
           : {}),
-        ...(isFinal &&
-        !wasFinal &&
-        event.eventType !== OpenLineageRunState.Complete
+        ...(isFinal && !wasFinal && isFailedState(event.eventType)
           ? {
               lastFailureAt: event.eventTime,
               lastErrorMessage: errorMessage,
@@ -476,13 +519,17 @@ export default class OpenLineageIngest {
           projectId: data.projectId,
           pipeline,
           metricName: DataPipelineMetricName.RunFailed,
-          value: event.eventType === OpenLineageRunState.Complete ? 0 : 1,
+          value: isFailedState(event.eventType) ? 1 : 0,
           at: event.eventTime,
           retentionDays: data.retentionDays,
         }),
       );
 
-      if (durationInSeconds !== null) {
+      // A rescheduled run stopped part way: its time says nothing of a run's.
+      if (
+        durationInSeconds !== null &&
+        event.eventType !== OpenLineageRunState.Rescheduled
+      ) {
         data.metricRows.push(
           buildPipelineMetricRow({
             projectId: data.projectId,
@@ -570,38 +617,116 @@ export default class OpenLineageIngest {
     pipelineId: ObjectID;
     at: Date;
   }): Promise<void> {
-    const edgeKey: string = `${data.upstreamDataAssetId || "writes"}:${data.downstreamDataAssetId}:${data.pipelineId.toString()}`;
-    const existing: DataAssetLineage | null =
-      await DataAssetLineageService.findOneBy({
-        query: { projectId: data.projectId, edgeKey },
-        select: { _id: true },
-        props: { isRoot: true },
-      });
+    await this.upsertLineageEdges({
+      projectId: data.projectId,
+      pipelineId: data.pipelineId,
+      edges: [
+        {
+          upstreamDataAssetId: data.upstreamDataAssetId,
+          downstreamDataAssetId: data.downstreamDataAssetId,
+        },
+      ],
+      at: data.at,
+    });
+  }
 
-    if (existing?.id) {
-      await DataAssetLineageService.updateColumnsByIdWithoutHooks({
-        id: existing.id,
-        data: { lastSeenAt: data.at } as never,
-      });
+  /*
+   * A run's edges, read in one query: each one new is created, and each
+   * one kept has its last sighting moved, at most hourly and never back -
+   * a connector writing a whole schema does not write every edge on every
+   * sync.
+   */
+  public static async upsertLineageEdges(data: {
+    projectId: ObjectID;
+    pipelineId: ObjectID;
+    edges: Array<{
+      // Null for the pipeline-writes-table edge.
+      upstreamDataAssetId: string | null;
+      downstreamDataAssetId: string;
+    }>;
+    at: Date;
+  }): Promise<void> {
+    const byKey: Map<
+      string,
+      { upstreamDataAssetId: string | null; downstreamDataAssetId: string }
+    > = new Map();
+
+    for (const edge of data.edges) {
+      byKey.set(
+        getPipelineEdgeKey({ ...edge, pipelineId: data.pipelineId }),
+        edge,
+      );
+    }
+
+    if (byKey.size === 0) {
       return;
     }
 
-    const edge: DataAssetLineage = new DataAssetLineage();
-    edge.projectId = data.projectId;
-    if (data.upstreamDataAssetId) {
-      edge.upstreamDataAssetId = new ObjectID(data.upstreamDataAssetId);
+    const kept: Array<DataAssetLineage> =
+      await DataAssetLineageService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          edgeKey: QueryHelper.any(Array.from(byKey.keys())),
+        },
+        select: { _id: true, edgeKey: true, lastSeenAt: true },
+        props: { isRoot: true },
+      });
+    const keptByKey: Map<string, DataAssetLineage> = new Map();
+
+    for (const edge of kept) {
+      if (edge.edgeKey) {
+        keptByKey.set(edge.edgeKey, edge);
+      }
     }
 
-    edge.downstreamDataAssetId = new ObjectID(data.downstreamDataAssetId);
-    edge.dataPipelineId = data.pipelineId;
-    edge.edgeKey = edgeKey;
-    edge.firstSeenAt = data.at;
-    edge.lastSeenAt = data.at;
+    for (const [edgeKey, edge] of byKey) {
+      const existing: DataAssetLineage | undefined = keptByKey.get(edgeKey);
 
-    await DataAssetLineageService.create({
-      data: edge,
-      props: { isRoot: true },
-    });
+      if (existing?.id) {
+        const lastSeenAt: number = existing.lastSeenAt
+          ? new Date(existing.lastSeenAt).getTime()
+          : 0;
+
+        if (
+          data.at.getTime() - lastSeenAt >=
+          PIPELINE_EDGE_SEEN_PRECISION_IN_SECONDS * 1000
+        ) {
+          await DataAssetLineageService.updateColumnsByIdWithoutHooks({
+            id: existing.id,
+            data: { lastSeenAt: data.at } as never,
+          });
+        }
+
+        continue;
+      }
+
+      const created: DataAssetLineage = new DataAssetLineage();
+      created.projectId = data.projectId;
+      if (edge.upstreamDataAssetId) {
+        created.upstreamDataAssetId = new ObjectID(edge.upstreamDataAssetId);
+      }
+
+      created.downstreamDataAssetId = new ObjectID(edge.downstreamDataAssetId);
+      created.dataPipelineId = data.pipelineId;
+      created.source = DataAssetLineageSource.Pipeline;
+      created.edgeKey = edgeKey;
+      created.firstSeenAt = data.at;
+      created.lastSeenAt = data.at;
+
+      try {
+        await DataAssetLineageService.create({
+          data: created,
+          props: { isRoot: true },
+        });
+      } catch (error) {
+        // Another event of the run kept it first (the key is unique).
+        logger.debug(
+          `Data Observability: lineage edge ${edgeKey} was not created: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
   }
 
   private static matchDatasets(
@@ -632,11 +757,7 @@ export default class OpenLineageIngest {
       query: {
         projectId,
         isArchived: false,
-        kind: new Includes([
-          DataStoreKind.PostgreSql,
-          DataStoreKind.MySql,
-          DataStoreKind.SqlServer,
-        ]),
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
       },
       select: { _id: true, name: true, kind: true, tableHealthTarget: true },
       limit: 1000,

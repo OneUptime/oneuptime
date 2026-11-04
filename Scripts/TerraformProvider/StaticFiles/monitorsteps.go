@@ -980,7 +980,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"dnssec_monitor":               "Raw JSON escape hatch for the DNSSEC monitor config (domainName, resolvers).",
 		"sql_monitor":                  "Raw JSON escape hatch for the SQL Query monitor config (databaseType, host, port, databaseName, query, ...).",
 		"database_monitor":             "Raw JSON escape hatch for the Database Health monitor config (databaseType, host, port, databaseName, username, password, enabledMetricGroups, ...).",
-		"external_status_page_monitor": "Raw JSON escape hatch for the External Status Page monitor config (statusPageUrl, providerType).",
+		"external_status_page_monitor": "Raw JSON escape hatch for the External Status Page monitor config (statusPageUrl, provider, componentGroupName, componentNames).",
 		"kubernetes_monitor":           "Raw JSON escape hatch for the Kubernetes monitor config (clusterIdentifier, ...).",
 		"docker_monitor":               "Raw JSON escape hatch for the Docker monitor config (hostIdentifier, ...).",
 		"host_monitor":                 "Raw JSON escape hatch for the Host monitor config (hostIdentifier, ...).",

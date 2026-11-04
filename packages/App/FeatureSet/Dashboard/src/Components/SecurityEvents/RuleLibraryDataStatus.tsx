@@ -15,6 +15,16 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   status: LibraryRuleDataStatus;
   dataTestId?: string | undefined;
+  /*
+   * The sentence behind the dot, for a library of something other than
+   * rules: the Hunt Library's says what a hunt finds, not that a rule runs.
+   */
+  sentences?:
+    | Record<
+        Exclude<LibraryRuleDataStatus, LibraryRuleDataStatus.Unknown>,
+        string
+      >
+    | undefined;
 }
 
 const RuleLibraryDataStatus: FunctionComponent<ComponentProps> = (
@@ -27,11 +37,14 @@ const RuleLibraryDataStatus: FunctionComponent<ComponentProps> = (
   }
 
   const isReceived: boolean = props.status === LibraryRuleDataStatus.Received;
+  const sentence: string = (props.sentences || DATA_STATUS_SENTENCES)[
+    props.status
+  ];
 
   return (
     <span
       className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-normal text-gray-500"
-      title={translator.translateText(DATA_STATUS_SENTENCES[props.status])}
+      title={translator.translateText(sentence)}
       data-testid={props.dataTestId}
       data-status={props.status}
     >

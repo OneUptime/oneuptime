@@ -30,10 +30,12 @@ import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   CloudAiAgentEnvironmentVariable,
   CloudAiAgentSetupOptions,
+  GCP_CLOUD_AI_AGENT_MACHINE_TYPE,
   getAwsCloudAiAgentTemplate,
   getCloudAiAgentEnvironment,
   getCloudAiAgentRolePermissions,
   getCloudAiAgentSetupCommand,
+  getGcpCloudAiAgentStartupScript,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
 import { PermissionHelper } from "Common/Types/Permission";
 import AiResourceType, {
@@ -51,6 +53,9 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
+  GCP_CLOUD_AI_AGENT_NETWORK_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   getCloudAiAgentOwnTargets,
@@ -1569,12 +1574,28 @@ describe("Infrastructure AI Agents docs", (): void => {
         }).toEqual({ cloud: cloud.catalog, named: true });
       }
 
-      // The account's AI agent page shows the same command.
+      // Google Cloud's on its VM (the default) and, in brackets, on Cloud Run.
+      const vmLogs: string = getCloudAiAgentLogsCommand(CloudProvider.GCP);
+      const runLogs: string = getCloudAiAgentLogsCommand(
+        CloudProvider.GCP,
+        "cloud-run",
+      );
+      expect(vmLogs).toContain("gcloud logging read ");
+      expect(runLogs).toContain("gcloud run services logs read ");
+      expect(oneLine(logs)).toContain(
+        `\`${vmLogs}\` (on Cloud Run, \`${runLogs}\`)`,
+      );
+
+      // The account's AI agent page shows the same command, for where the agent said it runs.
       expect(
-        readRepoFile(
-          "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
+        oneLine(
+          readRepoFile(
+            "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
+          ),
         ),
-      ).toContain("getCloudAiAgentLogsCommand(cloudProvider)");
+      ).toContain(
+        'getCloudAiAgentLogsCommand( cloudProvider, getCloudAiAgentReportedChoices({ provider: cloudProvider, accountId: props.cloudAccount?.accountId || "", posture: agent?.posture, }).gcpHost,',
+      );
       expect(oneLine(logs)).toContain(
         "and its status on the account's **AI agent** page, which shows the same command.",
       );
@@ -1802,19 +1823,50 @@ describe("Infrastructure AI Agents docs", (): void => {
           cloudSetupOptions(CloudProvider.Azure, "azure"),
         ),
       ).toContain("ONEUPTIME_TELEMETRY_INGESTION_KEY=secretref:ingestion-key");
+      /*
+       * Google Cloud, by default: a VM of its own in a network with no
+       * firewall rule, which reads the key as it starts (the startup script
+       * holds none), and the Cloud Run service with CPU always allocated
+       * when More fields says so.
+       */
+      const gcpVm: string = getCloudAiAgentSetupCommand(
+        cloudSetupOptions(CloudProvider.GCP, "gcp"),
+      );
+      const gcpRun: string = getCloudAiAgentSetupCommand(
+        cloudSetupOptions(CloudProvider.GCP, "gcp", { gcpHost: "cloud-run" }),
+      );
+      const gcpRow: string = oneLine(rows["gcp"]![2] as string);
+
+      expect(GCP_CLOUD_AI_AGENT_DEFAULT_HOST).toBe("compute-engine");
+      expect(gcpVm).toContain(
+        `gcloud compute instances create ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} `,
+      );
+      expect(gcpVm).toContain(
+        `--machine-type ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} `,
+      );
+      expect(gcpVm).toContain(
+        `gcloud compute networks create ${GCP_CLOUD_AI_AGENT_NETWORK_NAME} `,
+      );
+      expect(gcpVm).not.toContain("firewall-rules create");
       expect(
-        getCloudAiAgentSetupCommand(
+        getGcpCloudAiAgentStartupScript(
           cloudSetupOptions(CloudProvider.GCP, "gcp"),
         ),
-      ).toContain(
+      ).not.toContain("ingestion-key");
+      expect(gcpRow).toContain(
+        `A Compute Engine VM, \`${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}\`, of type \`${GCP_CLOUD_AI_AGENT_MACHINE_TYPE}\` on Container-Optimized OS, in a network of its own with no firewall rule, so nothing can connect to it,`,
+      );
+      expect(gcpRow).toContain(
+        "The VM reads it each time it starts, and never keeps it on its disk or in its metadata.",
+      );
+      expect(gcpRow).toContain(
+        "Under **More fields**, **Where the agent runs** can choose a Cloud Run service with CPU always allocated instead, for a project that lets no VM have an external IP address.",
+      );
+      expect(gcpRun).toContain(
         "--set-secrets ONEUPTIME_TELEMETRY_INGESTION_KEY=oneuptime-ai-agent-key:latest",
       );
-      // Google Cloud: CPU always allocated.
-      expect(
-        getCloudAiAgentSetupCommand(
-          cloudSetupOptions(CloudProvider.GCP, "gcp"),
-        ),
-      ).toContain("--no-cpu-throttling");
+      // Google Cloud on Cloud Run: CPU always allocated.
+      expect(gcpRun).toContain("--no-cpu-throttling");
 
       // Only in the account it was written for.
       expect(
@@ -3204,10 +3256,11 @@ describe("Infrastructure AI Agents docs", (): void => {
       ]);
       expect(own.gcp).toEqual([
         `//run.googleapis.com/projects/my-project/locations/*/services/${GCP_CLOUD_AI_AGENT_SERVICE_NAME}`,
+        `//compute.googleapis.com/projects/my-project/zones/*/instances/${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}`,
         `//iam.googleapis.com/projects/my-project/serviceAccounts/${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@*`,
       ]);
       expect(oneLine(bullet)).toContain(
-        "on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` Cloud Run service and service account.",
+        "on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service account.",
       );
     });
 

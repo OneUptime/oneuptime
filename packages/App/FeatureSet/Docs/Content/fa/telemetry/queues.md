@@ -256,10 +256,10 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (جریان JSON: `numberofmessagespublished`) | Messages published | شمارش هر دوره |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (جریان JSON: `numberofnotificationsdelivered`) | Notifications delivered | شمارش هر دوره |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (جریان JSON: `numberofnotificationsfailed`) | Notifications failed | شمارش هر دوره |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (جریان JSON: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | شمارش هر دوره |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (جریان JSON: `numberofmessagespublished`) | پیام‌های منتشرشده | شمارش هر دوره |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (جریان JSON: `numberofnotificationsdelivered`) | اعلان‌های تحویل‌شده | شمارش هر دوره |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (جریان JSON: `numberofnotificationsfailed`) | اعلان‌های ناموفق | شمارش هر دوره |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (جریان JSON: `numberofnotificationsredriventodlq`) | هدایت‌شده به صف dead-letter | شمارش هر دوره |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (جریان JSON: `approximatenumberofmessagesvisible`) | Messages visible | گِیج |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (جریان JSON: `approximateageofoldestmessage`) | Oldest message age | گِیج |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (جریان JSON: `approximatenumberofmessagesnotvisible`) | Messages in flight | گِیج |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (جریان JSON: `numberofmessagessent`) | Messages sent | شمارش هر دوره |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (جریان JSON: `numberofmessagesreceived`) | Messages received | شمارش هر دوره |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (جریان JSON: `numberofmessagesdeleted`) | Messages deleted | شمارش هر دوره |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (جریان JSON: `approximatenumberofmessagesvisible`) | پیام‌های قابل مشاهده | گِیج |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (جریان JSON: `approximateageofoldestmessage`) | عمر قدیمی‌ترین پیام | گِیج |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (جریان JSON: `approximatenumberofmessagesnotvisible`) | پیام‌های در حال پردازش | گِیج |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (جریان JSON: `numberofmessagessent`) | پیام‌های ارسال‌شده | شمارش هر دوره |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (جریان JSON: `numberofmessagesreceived`) | پیام‌های دریافت‌شده | شمارش هر دوره |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (جریان JSON: `numberofmessagesdeleted`) | پیام‌های حذف‌شده | شمارش هر دوره |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ java -jar opentelemetry-jmx-scraper.jar
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | گِیج |
-| `activemq.message.current` | Queue size (legacy names) | گِیج |
-| `activemq.message.enqueued` | Enqueued | شمارنده، نمودار در ثانیه |
-| `activemq.message.dequeued` | Dequeued | شمارنده، نمودار در ثانیه |
-| `activemq.message.expired` | Expired | شمارنده، نمودار در ثانیه |
-| `activemq.consumer.count` | Consumers | گِیج |
-| `activemq.message.enqueue.average_duration` | Average time in queue | گِیج |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | گِیج |
+| `activemq.message.queue.size` | اندازهٔ صف | گِیج |
+| `activemq.message.current` | اندازهٔ صف (نام‌های قدیمی) | گِیج |
+| `activemq.message.enqueued` | واردشده به صف | شمارنده، نمودار در ثانیه |
+| `activemq.message.dequeued` | خارج‌شده از صف | شمارنده، نمودار در ثانیه |
+| `activemq.message.expired` | منقضی‌شده | شمارنده، نمودار در ثانیه |
+| `activemq.consumer.count` | مصرف‌کنندگان | گِیج |
+| `activemq.message.enqueue.average_duration` | میانگین زمان در صف | گِیج |
+| `activemq.message.wait_time.avg` | میانگین زمان در صف (نام‌های قدیمی) | گِیج |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | گِیج |
-| `kafka.consumer_group.lag` | Partition lag | گِیج |
-| `kafka.consumer_group.offset_sum` | Consumed | شمارنده، نمودار در ثانیه |
-| `kafka.partition.current_offset` | Produced | شمارنده، نمودار در ثانیه |
+| `kafka.consumer_group.lag_sum` | تأخیر مصرف‌کننده | گِیج |
+| `kafka.consumer_group.lag` | تأخیر پارتیشن | گِیج |
+| `kafka.consumer_group.offset_sum` | مصرف‌شده | شمارنده، نمودار در ثانیه |
+| `kafka.partition.current_offset` | تولیدشده | شمارنده، نمودار در ثانیه |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | گِیج |
-| `pulsar_subscription_back_log` | Subscription backlog | گِیج |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | گِیج |
-| `pulsar_in_messages_total` | Messages in | شمارنده، نمودار در ثانیه |
-| `pulsar_out_messages_total` | Messages out | شمارنده، نمودار در ثانیه |
+| `pulsar_msg_backlog` | انباشت | گِیج |
+| `pulsar_subscription_back_log` | انباشت اشتراک | گِیج |
+| `pulsar_storage_backlog_age_seconds` | عمر انباشت | گِیج |
+| `pulsar_in_messages_total` | پیام‌های ورودی | شمارنده، نمودار در ثانیه |
+| `pulsar_out_messages_total` | پیام‌های خروجی | شمارنده، نمودار در ثانیه |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | گِیج |
-| `rocketmq_consumer_ready_messages` | Ready messages | گِیج |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | شمارنده، نمودار در ثانیه |
-| `rocketmq_messages_in_total` | Messages in | شمارنده، نمودار در ثانیه |
+| `rocketmq_consumer_lag_messages` | تأخیر مصرف‌کننده | گِیج |
+| `rocketmq_consumer_ready_messages` | پیام‌های آماده | گِیج |
+| `rocketmq_send_to_dlq_messages_total` | ارسال‌شده به صف dead-letter | شمارنده، نمودار در ثانیه |
+| `rocketmq_messages_in_total` | پیام‌های ورودی | شمارنده، نمودار در ثانیه |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor هیچ متریک عقب‌ماندگی مصرف‌کننده بر
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | شمارش هر دوره |
-| `azure_outgoingmessages_total` | Outgoing messages | شمارش هر دوره |
-| `azure_servererrors_total` | Server errors | شمارش هر دوره |
-| `azure_usererrors_total` | User errors | شمارش هر دوره |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | شمارش هر دوره |
-| `azure_throttledrequests_total` | Throttled requests | شمارش هر دوره |
+| `azure_incomingmessages_total` | پیام‌های ورودی | شمارش هر دوره |
+| `azure_outgoingmessages_total` | پیام‌های خروجی | شمارش هر دوره |
+| `azure_servererrors_total` | خطاهای سرور | شمارش هر دوره |
+| `azure_usererrors_total` | خطاهای کاربر | شمارش هر دوره |
+| `azure_quotaexceedederrors_total` | خطاهای فراتر رفتن از سهمیه | شمارش هر دوره |
+| `azure_throttledrequests_total` | درخواست‌های محدودشده | شمارش هر دوره |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | گِیج |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | گِیج |
-| `azure_incomingmessages_total` | Incoming messages | شمارش هر دوره |
-| `azure_outgoingmessages_total` | Outgoing messages | شمارش هر دوره |
-| `azure_completemessage_total` | Completed messages | شمارش هر دوره |
-| `azure_abandonmessage_total` | Abandoned messages | شمارش هر دوره |
-| `azure_servererrors_total` | Server errors | شمارش هر دوره |
-| `azure_usererrors_total` | User errors | شمارش هر دوره |
-| `azure_throttledrequests_total` | Throttled requests | شمارش هر دوره |
+| `azure_activemessages_average` | پیام‌های فعال | گِیج |
+| `azure_deadletteredmessages_average` | پیام‌های dead-letter | گِیج |
+| `azure_incomingmessages_total` | پیام‌های ورودی | شمارش هر دوره |
+| `azure_outgoingmessages_total` | پیام‌های خروجی | شمارش هر دوره |
+| `azure_completemessage_total` | پیام‌های تکمیل‌شده | شمارش هر دوره |
+| `azure_abandonmessage_total` | پیام‌های رهاشده | شمارش هر دوره |
+| `azure_servererrors_total` | خطاهای سرور | شمارش هر دوره |
+| `azure_usererrors_total` | خطاهای کاربر | شمارش هر دوره |
+| `azure_throttledrequests_total` | درخواست‌های محدودشده | شمارش هر دوره |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | گِیج |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | گِیج |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | شمارش هر دوره |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | شمارش هر دوره |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | شمارش هر دوره |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | پیام‌های تحویل‌نشده | گِیج |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | عمر قدیمی‌ترین پیام تأییدنشده | گِیج |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | پیام‌های dead-letter | شمارش هر دوره |
+| `pubsub.googleapis.com/subscription/ack_message_count` | پیام‌های تأییدشده | شمارش هر دوره |
+| `pubsub.googleapis.com/topic/send_request_count` | درخواست‌های انتشار | شمارش هر دوره |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | متریک | به این شکل نشان داده می‌شود | نوع |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | گِیج |
-| `rabbitmq.message.published` | Published | شمارنده، نمودار در ثانیه |
-| `rabbitmq.message.delivered` | Delivered | شمارنده، نمودار در ثانیه |
-| `rabbitmq.message.acknowledged` | Acknowledged | شمارنده، نمودار در ثانیه |
-| `rabbitmq.message.dropped` | Dropped | شمارنده، نمودار در ثانیه |
-| `rabbitmq.consumer.count` | Consumers | گِیج |
+| `rabbitmq.message.current` | عمق صف | گِیج |
+| `rabbitmq.message.published` | منتشرشده | شمارنده، نمودار در ثانیه |
+| `rabbitmq.message.delivered` | تحویل‌شده | شمارنده، نمودار در ثانیه |
+| `rabbitmq.message.acknowledged` | تأییدشده | شمارنده، نمودار در ثانیه |
+| `rabbitmq.message.dropped` | رهاشده | شمارنده، نمودار در ثانیه |
+| `rabbitmq.consumer.count` | مصرف‌کنندگان | گِیج |
 
 ## هشداردهی
 

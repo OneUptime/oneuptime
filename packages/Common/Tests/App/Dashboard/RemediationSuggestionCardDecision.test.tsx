@@ -506,6 +506,79 @@ describe("RemediationStep with a recorded decision", () => {
     );
   });
 
+  test("a cluster whose AI agent never connected: what to do, and on a line of its own that OneUptime AI tries again once it connects (#5367's follow-up)", async () => {
+    const installStep: string =
+      "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true";
+    const decision: JSONObject = evaluatedDecision([
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterNotReady",
+        kubernetesClusterId: "0193c0de-5555-4aaa-8bbb-000000000005",
+        kubernetesClusterName: "prod-east",
+        gaps: [
+          {
+            code: "ai_agent_not_connected",
+            title: "The Kubernetes AI agent is not connected",
+            nextStep: installStep,
+          },
+        ],
+      },
+    ]);
+    serve({ suggestions: [], decisions: [decision] });
+
+    const { unmount } = render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
+
+    const line: HTMLElement = await screen.findByTestId(
+      "remediation-decision-line",
+    );
+    const whatToDo: HTMLElement = within(line).getByTestId(
+      "remediation-decision-what-to-do",
+    );
+    expect(whatToDo).toHaveTextContent(`What to do: ${installStep}`);
+    const next: HTMLElement = within(whatToDo).getByTestId(
+      "remediation-decision-what-happens-next",
+    );
+    expect(next).toHaveTextContent(
+      "Once its AI agent connects, OneUptime AI tries again.",
+    );
+    // Its own line, under a step that ends in a command.
+    expect(next.tagName).toBe("DD");
+    expect(next).toHaveClass("block");
+    expect(whatToDo.querySelectorAll("dd")[0]).toHaveTextContent(installStep);
+    expect(whatToDo.querySelectorAll("dd")[0]).not.toHaveTextContent(
+      "tries again",
+    );
+    unmount();
+
+    // Resolved: OneUptime AI does not decide about it again, and says nothing of it.
+    serve({ suggestions: [], decisions: [decision] });
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+        isRecordResolved={true}
+      />,
+    );
+
+    const resolvedLine: HTMLElement = await screen.findByTestId(
+      "remediation-decision-line",
+    );
+    expect(
+      within(resolvedLine).getByTestId("remediation-decision-what-to-do"),
+    ).toHaveTextContent(`What to do: ${installStep}`);
+    expect(
+      within(resolvedLine).queryByTestId(
+        "remediation-decision-what-happens-next",
+      ),
+    ).toBeNull();
+    expect(resolvedLine).not.toHaveTextContent("tries again");
+  });
+
   test("keeps the suggestions when the decision cannot be read", async () => {
     serve({ suggestions: [suggestion()], decisions: new Error("no route") });
 

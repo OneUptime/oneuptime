@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | ステータスページの種類: Atlassian Statuspage、incident.io、RSS、Atom。 | `string` |
 | `componentGroup` | モニターが監視しているコンポーネントグループ (ある場合)。 | `string` |
 | `componentName` | モニターが監視しているコンポーネント (選んでいる場合、カンマ区切り)。 | `string` |
+| `componentNames` | 同じコンポーネントのリスト。`{{#each componentNames}}` で 1 つずつ行を繰り返せます。 | `Array<string>` |
 | `isOnline` | ステータスページが応答したかどうか。 | `boolean` |
 | `responseTimeInMs` | ステータスページの応答にかかった時間 (ミリ秒)。 | `number` |
 | `failureCause` | チェックが失敗したときの理由。 | `string` |

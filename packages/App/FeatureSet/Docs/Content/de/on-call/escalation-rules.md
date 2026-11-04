@@ -228,6 +228,8 @@ Jede Alarmierung lässt sich dort eskalieren, wo sie Sie erreicht hat:
 
 Jeder Weg außer dem Anruf fragt nach, bevor er etwas tut, und sagt, was geschehen wird, etwa „This will immediately page Platform leads (Level 2 of 3), without waiting.“; bei einem Anruf ist das Drücken der 2 die Antwort. Nur die alarmierte Person kann ihre Alarmierung eskalieren: Die Schaltfläche in OneUptime sieht nur sie, und der Link in einer Nachricht eskaliert nur die Alarmierung, um die es darin geht, nur für die Person, an die sie ging, und nur 7 Tage lang.
 
+Gibt es nach Ihrer Stufe zwei oder mehr Stufen, fragen OneUptime und die Seiten, die die Links einer Nachricht öffnen, auch, welche Stufe alarmiert werden soll, unter **Eskalieren auf**, mit der nächsten Stufe ausgewählt. Lassen Sie es so, um wie immer die nächste Stufe zu alarmieren, oder wählen Sie eine spätere Stufe, um stattdessen sofort sie zu alarmieren: Die Stufen dazwischen werden übersprungen, und die Richtlinie geht von der gewählten Stufe aus weiter. Ein Anruf und die App OneUptime On-Call alarmieren die nächste Stufe.
+
 Was danach geschieht, hängt davon ab, wer sonst noch alarmiert wird:
 
 - Andere auf derselben Stufe werden noch alarmiert: Die Richtlinie wartet wie bisher auf sie. Sie geht weiter, wenn die Wartezeit der Stufe abläuft, oder sobald auch der Letzte von ihnen die Alarmierung eskaliert.
@@ -238,7 +240,7 @@ Eine Alarmierung zu eskalieren bestätigt sie nicht: Der Vorfall oder die Warnun
 
 Eine Alarmierung, die ein Workflow direkt an Personen sendet, hat keine Stufen: Wenn Sie sie eskalieren, werden Sie nicht mehr alarmiert, und sobald alle, die sie alarmiert hat, sie eskaliert haben, endet die Alarmierung.
 
-Jedes Eskalieren wird festgehalten. Die **Zeitachse der Ausführung** des Laufs markiert die Zeile der Person mit **Eskaliert**, der Feed des Vorfalls sagt „Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.“, die Nachricht des Laufs in Slack und Microsoft Teams sagt, dass die Person sie eskaliert hat, und ihre **Bereitschaftsprotokolle** zeigen die Alarmierung als **Eskaliert**.
+Jedes Eskalieren wird festgehalten. Die **Zeitachse der Ausführung** des Laufs markiert die Zeile der Person mit **Eskaliert**, der Feed des Vorfalls sagt „Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.“, die Nachricht des Laufs in Slack und Microsoft Teams sagt, dass die Person sie eskaliert hat, und ihre **Bereitschaftsprotokolle** zeigen die Alarmierung als **Eskaliert**. Eine Stufe, die für eine spätere übersprungen wurde, ist in der **Zeitachse der Ausführung** mit **Übersprungen** markiert, und der Feed sagt „On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it.“
 
 ## Regeln bearbeiten, umsortieren und löschen
 

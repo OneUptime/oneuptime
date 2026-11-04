@@ -160,7 +160,7 @@ De sonde herkent Azure SQL Database aan `SERVERPROPERTY('EngineEdition')` en nie
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Database Health** onder **Database Monitoring**, of typ `health` in het zoekvak. Vul een **Naam** in en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Database Health** onder **Databasebewaking**, of typ `health` in het zoekvak. Vul een **Naam** in en klik op **Volgende**.
 
 ### De verbindingsgegevens invullen
 

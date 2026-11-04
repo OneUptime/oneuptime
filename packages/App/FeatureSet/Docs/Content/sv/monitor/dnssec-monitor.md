@@ -50,7 +50,7 @@ En signatur med mindre än en dag kvar räknas redan som bruten, så du får vet
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Klicka på **Fler monitortyper** under **Monitortyp** och välj **DNSSEC** under **DNS Monitoring**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Klicka på **Fler monitortyper** under **Monitortyp** och välj **DNSSEC** under **DNS-övervakning**.
 
 ### Namnge den
 

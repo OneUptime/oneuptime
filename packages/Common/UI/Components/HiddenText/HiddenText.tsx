@@ -96,6 +96,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
       <code
         ref={revealedTextRef}
         role="revealed-text"
+        dir="ltr"
         className={`font-mono text-sm break-all ${copied ? "text-green-700" : "text-amber-800"}`}
       >
         {props.text}

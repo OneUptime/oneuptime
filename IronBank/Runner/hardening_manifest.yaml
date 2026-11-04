@@ -1,0 +1,47 @@
+# OneUptime Runner for Iron Bank: what Iron Bank's pipeline builds the
+# Dockerfile beside this with. Scripts/IronBank/PinRelease.js moves it to a
+# release, and IronBank/README.md describes the whole process.
+apiVersion: v1
+
+# Where Iron Bank publishes the image:
+# registry1.dso.mil/ironbank/oneuptime/runner. Iron Bank's onboarding team
+# picks the project's path on Repo1; keep this the same as that path.
+name: "oneuptime/runner"
+
+# The first tag is the release the Dockerfile copies.
+tags:
+  - "14.0.102"
+  - "latest"
+
+# The Iron Bank image the Dockerfile builds on. renovate.json moves BASE_TAG
+# to the next Node.js 26 release of it on Repo1.
+args:
+  BASE_IMAGE: "opensource/nodejs/debian/nodejs"
+  BASE_TAG: "26.12.1-npm12-yarn4"
+
+# Only the labels Iron Bank's schema allows, in printable ASCII. The
+# Dockerfile sets the release's other labels.
+labels:
+  org.opencontainers.image.title: "OneUptime Runner"
+  org.opencontainers.image.description: "One self-hosted agent that executes runbook steps in your own infrastructure, runs kubectl for OneUptime AI on the clusters it is given access to, and, when enabled, opens AI code-fix pull requests in your repositories."
+  org.opencontainers.image.licenses: "Apache-2.0"
+  org.opencontainers.image.url: "https://oneuptime.com"
+  org.opencontainers.image.vendor: "OneUptime"
+  org.opencontainers.image.version: "14.0.102"
+  mil.dso.ironbank.image.keywords: "observability, runbooks, automation, kubectl, incident response"
+  mil.dso.ironbank.image.type: "opensource"
+  mil.dso.ironbank.product.name: "OneUptime"
+
+# The release's runner image for linux/amd64, by digest. Iron Bank's pipeline
+# pulls it and gives it the name in `tag`, which the Dockerfile's release
+# stage starts from.
+resources:
+  - tag: "oneuptime/runner:14.0.102"
+    url: "docker://docker.io/oneuptime/runner@sha256:ade2b9bb6b6c5604a938eb3ae57e43bc27c6e7b0f07f1681a175b836f0812fd2"
+
+# The engineers the onboarding request names, by their Platform One (Repo1)
+# usernames. Iron Bank's pipeline refuses a manifest until these are filled in.
+maintainers:
+  - name: "FIXME"
+    username: "FIXME"
+    email: "hello@oneuptime.com"

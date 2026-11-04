@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41579,
-    "untranslated": 12209
+    "keys": 42282,
+    "untranslated": 11952
   },
   "sameAsEnglish": [
     "2xx",
@@ -63,6 +63,7 @@
     "Slug",
     "TLS",
     "Top P",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41579,
-    "untranslated": 11943
+    "keys": 42282,
+    "untranslated": 11691
   },
   "sameAsEnglish": [
     "2xx",
@@ -64,6 +64,7 @@
     "Swarm ID",
     "TLS",
     "Top P",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",

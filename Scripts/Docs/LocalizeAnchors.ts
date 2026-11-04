@@ -31,7 +31,12 @@
  * only their own files. DOCS_CONTENT_DIR points it at another content
  * directory (the tests use one of their own).
  */
-import { slugifyMarkdownHeading } from "../../packages/Common/Server/Types/MarkdownSlugify";
+import {
+  FENCE,
+  MarkdownHeading,
+  getMarkdownHeadingShape,
+  readMarkdownHeadings,
+} from "../../packages/Common/Server/Types/MarkdownHeadings";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -61,68 +66,18 @@ const ONLY_PAGES: Array<string> = valuesOf("--page").map(
   },
 );
 
-// The fence's run is taken whole, so a line is read once (see FENCE_LINE_PATTERN in FeedMarkdown).
-const FENCE: RegExp = /^ {0,3}(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
-const HEADING: RegExp = /^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/;
 const ANCHOR_LINK: RegExp =
   /\]\((\/docs\/([a-z0-9-]+)\/([a-z0-9-]+))?#([^)\s]+)\)/g;
 
-interface Heading {
-  anchor: string;
-  level: number;
-  // The languages of the code samples between this heading and the next.
-  code: Array<string>;
-}
-
-// A page's headings, in order, outside fenced code.
-const readHeadings: (markdown: string) => Array<Heading> = (
-  markdown: string,
-): Array<Heading> => {
-  const headings: Array<Heading> = [];
-  let fence: string | null = null;
-
-  for (const line of markdown.split("\n")) {
-    const fenceMatch: RegExpMatchArray | null = line.match(FENCE);
-    if (fenceMatch) {
-      const marker: string = fenceMatch[1]!;
-      if (fence === null) {
-        fence = marker;
-        const language: string =
-          (fenceMatch[2] || "").trim().split(/\s+/)[0] || "";
-        if (headings.length > 0) {
-          headings[headings.length - 1]!.code.push(language.toLowerCase());
-        }
-      } else if (marker[0] === fence[0] && marker.length >= fence.length) {
-        fence = null;
-      }
-      continue;
-    }
-    if (fence !== null) {
-      continue;
-    }
-    const heading: RegExpMatchArray | null = line.match(HEADING);
-    if (heading) {
-      headings.push({
-        anchor: slugifyMarkdownHeading(heading[2]!.trim()),
-        level: heading[1]!.length,
-        code: [],
-      });
-    }
-  }
-
-  return headings;
-};
-
-// What two copies of a page must share for their headings to line up.
-const shapeOf: (headings: Array<Heading>) => string = (
-  headings: Array<Heading>,
-): string => {
-  return headings
-    .map((heading: Heading): string => {
-      return `${heading.level}[${heading.code.join(",")}]`;
-    })
-    .join(" ");
-};
+/*
+ * A page's headings, and the shape two copies must share for theirs to
+ * line up, are read by MarkdownHeadings: the docs site pairs a translated
+ * page's headings with the English page's by the same reading, to have
+ * each answer its English anchor (App/FeatureSet/Docs/Utils/AnchorAliases).
+ */
+type Heading = MarkdownHeading;
+const readHeadings: (markdown: string) => Array<Heading> = readMarkdownHeadings;
+const shapeOf: (headings: Array<Heading>) => string = getMarkdownHeadingShape;
 
 const pageFile: (lang: string, page: string) => string = (
   lang: string,

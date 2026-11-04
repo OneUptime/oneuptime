@@ -36,6 +36,7 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { APP_API_URL } from "Common/UI/Config";
@@ -66,8 +67,16 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import useCodeTaskLive from "../../../Components/Code/UseCodeTaskLive";
+import ProjectUtil from "Common/UI/Utils/Project";
 
-const POLL_INTERVAL_MS: number = 5000;
+/*
+ * While the turn works, the record reads again as each of its steps is
+ * announced (CodeTaskLive) - at most once a second, the whole record being
+ * read each time - and on its own every five seconds while it hears none.
+ */
+export const CODE_TASK_LOG_LIVE_MIN_INTERVAL_MS: number = 1000;
+export const CODE_TASK_LOG_POLL_MS: number = 5000;
 
 export const CODE_TASK_LOG_TURN_PICKER_TEST_ID: string =
   "code-task-log-turn-picker";
@@ -315,9 +324,18 @@ const LogEntryRow: FunctionComponent<{
             isFailureEntry(entry) ? "text-red-600" : "text-gray-700"
           }`}
         >
-          {entry.llmProvider
-            ? describeRuleLlmProviderActivity(entry.llmProvider, translator)
-            : entry.message || translator.translateText("(no message)")}
+          {/*
+            What the Runner wrote - a path, a search, a command - read the
+            way it is written: on a Persian page "isExpired(" keeps its
+            bracket at its end.
+          */}
+          {entry.llmProvider ? (
+            describeRuleLlmProviderActivity(entry.llmProvider, translator)
+          ) : entry.message ? (
+            <IsolatedText text={entry.message} />
+          ) : (
+            translator.translateText("(no message)")
+          )}
         </span>
         {entry.durationInMs !== undefined ? (
           <span className="ml-auto shrink-0 text-xs text-gray-400">
@@ -747,8 +765,8 @@ const CodeTaskLogPage: FunctionComponent<
           (runJson?.["status"] as string | undefined) || "none";
 
         /*
-         * Re-render only when something actually changed. A 5s poll that
-         * rebuilt the tree every tick would collapse whichever step the
+         * Re-render only when something actually changed. A read that
+         * rebuilt the tree every time would collapse whichever step the
          * reader had just opened.
          */
         const signature: string = `${runStatus}:${eventsJson.length}:${llmLogsJson.length}`;
@@ -786,21 +804,15 @@ const CodeTaskLogPage: FunctionComponent<
     status && !AIRunStatusHelper.isTerminalStatus(status),
   );
 
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const interval: ReturnType<typeof setInterval> = setInterval(() => {
-      fetchData().catch(() => {
-        // handled inside fetchData
-      });
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      return clearInterval(interval);
-    };
-  }, [isActive, fetchData]);
+  useCodeTaskLive({
+    projectId: ProjectUtil.getCurrentProjectId(),
+    // The turn shown: its own room hears its every step.
+    recordId: runId,
+    isWorking: isActive,
+    refresh: fetchData,
+    pollMs: CODE_TASK_LOG_POLL_MS,
+    minIntervalMs: CODE_TASK_LOG_LIVE_MIN_INTERVAL_MS,
+  });
 
   const conversationRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.CODE_TASK_VIEW] as Route,

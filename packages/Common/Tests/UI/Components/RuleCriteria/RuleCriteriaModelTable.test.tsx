@@ -363,12 +363,17 @@ More details stay here.
      * the postmortem rules form (Match, then Draft), nor have Data
      * Security's label and owner rules for data stores, nor the cloud
      * owner and label rules - Cloud's and, since the two products split,
-     * App Platforms' (76).
+     * App Platforms' (77, with the alert incident rules: Match, then
+     * Incident, and a help panel whose Match Criteria section is the
+     * shared one).
      */
-    expect(staticRuleFormFiles).toHaveLength(76);
-    expect(helpFormFiles).toHaveLength(62);
-    // 68, and the five episode rule help texts that now have the heading too.
-    expect(helpMarkdown).toHaveLength(73);
+    expect(staticRuleFormFiles).toHaveLength(77);
+    expect(helpFormFiles).toHaveLength(63);
+    /*
+     * 68, the five episode rule help texts that now have the heading too,
+     * and the alert incident rules'.
+     */
+    expect(helpMarkdown).toHaveLength(74);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

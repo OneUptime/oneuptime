@@ -269,3 +269,65 @@ describe("what it says", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 });
+
+describe("where the codes came from", () => {
+  it("carries the address, the place and the device of the last wrong code", async () => {
+    await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
+      user: account("owner@example.com"),
+      wrongCodesInARow: 5,
+      origin: {
+        ipAddress: "203.0.113.7",
+        location: "Berlin, Germany",
+        device: "Chrome 130 on Android",
+      },
+    });
+
+    const vars: Record<string, string> = sentMails()[0]!.vars;
+
+    expect(vars["requestIpAddress"]).toBe("203.0.113.7");
+    expect(vars["requestLocation"]).toBe("Berlin, Germany");
+    expect(vars["requestDevice"]).toBe("Chrome 130 on Android");
+  });
+
+  it("a request whose device nobody could name says so", async () => {
+    await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
+      user: account("owner@example.com"),
+      wrongCodesInARow: 5,
+      origin: { ipAddress: "203.0.113.7" },
+    });
+
+    expect(sentMails()[0]!.vars["requestDevice"]).toBe("Unknown device");
+  });
+
+  it("without a request to describe, carries none of them", async () => {
+    await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
+      user: account("owner@example.com"),
+      wrongCodesInARow: 5,
+    });
+
+    const vars: Record<string, string> = sentMails()[0]!.vars;
+
+    expect(vars["requestIpAddress"]).toBe("");
+    expect(vars["requestLocation"]).toBe("");
+    expect(vars["requestDevice"]).toBe("");
+  });
+
+  it("shows them in the card, after how many and when", () => {
+    const text: string = textOf(
+      render({
+        wrongCodeCount: "5",
+        enteredAt: "Oct 18, 2026, 12:07 UTC",
+        forgotPasswordUrl:
+          "https://oneuptime.example.com/accounts/forgot-password",
+        homeUrl: "https://oneuptime.example.com/",
+        requestIpAddress: "203.0.113.7",
+        requestLocation: "Berlin, Germany",
+        requestDevice: "Chrome 130 on Android",
+      }),
+    );
+
+    expect(text).toContain(
+      "Last wrong code at: Oct 18, 2026, 12:07 UTC IP address: 203.0.113.7 Approximate location: Berlin, Germany Device: Chrome 130 on Android",
+    );
+  });
+});

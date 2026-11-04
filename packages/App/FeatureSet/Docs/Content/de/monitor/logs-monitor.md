@@ -48,7 +48,7 @@ Legen Sie in **Zu überwachende Logs** die Felder **Protokollschweregrad** und *
 
 ### Weiter eingrenzen (optional)
 
-Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern. Für eine Warnung pro Tunnel, Benutzer oder Schnittstelle statt einer für den ganzen Monitor fügen Sie das Attribut unter **Group by Attributes** hinzu – siehe [Warnungen pro Gruppe](#warnungen-pro-gruppe-group-by).
+Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern. Für eine Warnung pro Tunnel, Benutzer oder Schnittstelle statt einer für den ganzen Monitor fügen Sie das Attribut unter **Gruppieren nach Attributen** hinzu – siehe [Warnungen pro Gruppe](#warnungen-pro-gruppe-group-by).
 
 ### Festlegen, wann alarmiert wird
 
@@ -70,8 +70,8 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Protokollschweregrad** | Logs mit einem der gewählten Schweregrade. | Leer: jeder Schweregrad |
 | **Meldung enthält** | Logs, deren Text diesen Text enthält, ohne Beachtung der Groß-/Kleinschreibung. | Leer: jedes Log |
 | **Zeitfenster** (in **Wann alarmieren**) | Logs der letzten 5 Sekunden bis zu den letzten 24 Stunden. | **Letzte 5 Minuten** |
-| **Group by Attributes** | Kein Filter: zählt jede Kombination der Werte dieser Attribute getrennt. | Leer: eine Anzahl |
-| **Behoben durch Attribute** | Kein Filter: das Log, das eine Gruppe behebt. Erscheint, sobald **Group by Attributes** ein Attribut hat; siehe [Durch ein Log behoben](#durch-ein-log-behoben). | Leer: eine Gruppe wird behoben, wenn ihre Logs aufhören |
+| **Gruppieren nach Attributen** | Kein Filter: zählt jede Kombination der Werte dieser Attribute getrennt. | Leer: eine Anzahl |
+| **Behoben durch Attribute** | Kein Filter: das Log, das eine Gruppe behebt. Erscheint, sobald **Gruppieren nach Attributen** ein Attribut hat; siehe [Durch ein Log behoben](#durch-ein-log-behoben). | Leer: eine Gruppe wird behoben, wenn ihre Logs aufhören |
 | **Nach Telemetrie-Dienst filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Nach Attributen filtern** (unter **Weitere Felder**) | Logs, deren Attribute jede Bedingung erfüllen. Jede Bedingung hat ihren eigenen Operator, etwa „gleich“ oder „enthält“. | Leer: keine Bedingung |
@@ -157,7 +157,7 @@ Weil sich die Fenster überlappen, hält ein einzelner Fehlerschub die Anzahl bi
 
 ## Warnungen pro Gruppe (Group By)
 
-**Group by Attributes** teilt die Anzahl eines Logs-Monitors in eine Anzahl pro unterschiedlicher Kombination von Attributwerten auf – eine pro IPsec-Tunnel, pro VPN-Benutzer, pro Firewall-Schnittstelle – und wertet die Kriterien für jede Gruppe getrennt aus. Es ist das Gegenstück für Logs zum [Group By](/docs/monitor/metrics-monitor#warnungen-pro-reihe-group-by) eines Metriken-Monitors.
+**Gruppieren nach Attributen** teilt die Anzahl eines Logs-Monitors in eine Anzahl pro unterschiedlicher Kombination von Attributwerten auf – eine pro IPsec-Tunnel, pro VPN-Benutzer, pro Firewall-Schnittstelle – und wertet die Kriterien für jede Gruppe getrennt aus. Es ist das Gegenstück für Logs zum [Group By](/docs/monitor/metrics-monitor#warnungen-pro-reihe-group-by) eines Metriken-Monitors.
 
 ### Eine Warnung pro Gruppe
 
@@ -193,7 +193,7 @@ Ein Gerät, das einen Tunnel als ausgefallen meldet, meldet ihn in der Regel auc
 
 Nehmen Sie einen Monitor, der Logs mit `event.name` = `vpn.tunnel_down` zählt, gruppiert nach `event.device` und `vpn.tunnel.name`, mit **Behoben durch Attribute** gesetzt auf `event.name` = `vpn.tunnel_up`. Fällt der Tunnel `HQ-Branch1` aus, öffnet das seine Warnung. Die Warnung bleibt über Nacht offen, obwohl die Firewall nichts mehr zu dem Tunnel protokolliert, und wird behoben, wenn die Firewall `HQ-Branch1` als aktiv meldet. Bricht der Tunnel erneut ab, öffnet das eine neue Warnung.
 
-- Das Feld erscheint, sobald **Group by Attributes** ein Attribut hat. Es nimmt bis zu 10 Attribute auf, und ein behebendes Log trägt sie alle.
+- Das Feld erscheint, sobald **Gruppieren nach Attributen** ein Attribut hat. Es nimmt bis zu 10 Attribute auf, und ein behebendes Log trägt sie alle.
 - Ein behebendes Log gehört zu einer Gruppe, wenn es für die Group-by-Attribute die Werte der Gruppe hat; beide Arten von Logs müssen diese Attribute also tragen.
 - Die Telemetriedienste und das Zeitfenster des Monitors gelten auch für behebende Logs. Seine Text- und Schweregradfilter nicht: Sie beschreiben das Problem.
 - Eine Gruppe, deren neuestes Log ein behebendes ist, wird geschlossen. Eine, die das Problem danach erneut protokolliert hat, bleibt offen.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Erstellen Sie einen **Protokolle**-Monitor und wählen Sie **Eine Meldung erscheint**.
 2. Setzen Sie **Meldung enthält** auf `terminated` und das **Zeitfenster** auf **Letzte 5 Minuten**.
 3. Fügen Sie unter **Weitere Felder** den Attributfilter `log_component` = `IPSec` hinzu.
-4. Fügen Sie unter **Group by Attributes** das Attribut `con_name` hinzu.
+4. Fügen Sie unter **Gruppieren nach Attributen** das Attribut `con_name` hinzu.
 5. Belassen Sie die Regel bei **Mehr als** `0`, und geben Sie der Warnung oder dem Vorfall den Titel `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ Die Kriterien werden von oben nach unten geprüft, und der erste Treffer entsche
 :::
 
 :::details Ein Anomaliekriterium löst nie aus
-Es lernt noch: Die Dienste des Monitors haben noch keine zwei Wochen Verlauf. Bei einem Monitor mit **Group by Attributes** passen Anomaliebedingungen nie – verwenden Sie dort einen Schwellenwert.
+Es lernt noch: Die Dienste des Monitors haben noch keine zwei Wochen Verlauf. Bei einem Monitor mit **Gruppieren nach Attributen** passen Anomaliebedingungen nie – verwenden Sie dort einen Schwellenwert.
 :::
 
 :::details Gruppenwarnungen kommen ohne Gruppenwert an

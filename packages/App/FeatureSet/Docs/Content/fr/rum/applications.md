@@ -104,7 +104,7 @@ La télémétrie d'une application et ses enregistrements sont conservés pendan
 | Données | Conservées | Réglées dans |
 | --- | --- | --- |
 | Journaux, métriques, traces et profils | La rétention du projet, sauf si l'application la remplace | La page **Paramètres** de l'application |
-| Enregistrements de relecture de session | 7 jours par défaut, ou 1, 14, 30 ou 90 jours | **Replay Policy**, avec **Modifier la politique → Limites** |
+| Enregistrements de relecture de session | 7 jours par défaut, ou 1, 14, 30 ou 90 jours | **Politique de relecture**, avec **Modifier la politique → Limites** |
 
 ### Rétention de la télémétrie
 
@@ -119,7 +119,7 @@ Sur un forfait Cloud inférieur, un remplacement laissé par un essai continue d
 
 ### Rétention de la relecture de session
 
-Les enregistrements ont leur propre rétention, réglée dans la page **Replay Policy** de l'application avec **Modifier la politique → Limites** : 7 jours par défaut, ou 1, 14, 30 ou 90 jours. Elle est courte à dessein, car un enregistrement est bien plus sensible, et bien plus volumineux, qu'un span. La carte **Conservation de la relecture de session**, sous **Plus de paramètres** de la page **Paramètres**, l'affiche (_Session replays are kept for 7 days._), et son bouton **Modifier dans Replay Policy** ouvre la politique.
+Les enregistrements ont leur propre rétention, réglée dans la page **Politique de relecture** de l'application avec **Modifier la politique → Limites** : 7 jours par défaut, ou 1, 14, 30 ou 90 jours. Elle est courte à dessein, car un enregistrement est bien plus sensible, et bien plus volumineux, qu'un span. La carte **Conservation de la relecture de session**, sous **Plus de paramètres** de la page **Paramètres**, l'affiche (_Session replays are kept for 7 days._), et son bouton **Modifier dans Replay Policy** ouvre la politique.
 
 Une rétention de télémétrie plus longue ne conserve pas les enregistrements plus longtemps. Les compteurs, signaux et appareil d'une session expirent avec ses images ; seuls les journaux, spans et exceptions de la session suivent la rétention de la télémétrie. Voir [Rétention et suppression](/docs/telemetry/session-replay#rétention-et-suppression).
 

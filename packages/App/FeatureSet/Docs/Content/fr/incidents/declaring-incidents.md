@@ -284,7 +284,7 @@ Dans l'ordre :
 
 ### Déclaré déjà pris en compte ou résolu
 
-Choisir un **État initial** ultérieur — dans le formulaire, via l'**État initial de l'incident** d'un modèle, ou avec `currentIncidentStateId` depuis l'API, Terraform ou un workflow — consigne un incident dont quelqu'un s'occupe déjà, ou qui est déjà terminé. Il n'est pas traité comme une nouvelle urgence :
+Choisir un **État initial** ultérieur — dans le formulaire, via l'**État initial de l'incident** d'un modèle, avec `currentIncidentStateId` depuis l'API, Terraform ou un workflow, ou en demandant à [Demander à l'IA](/docs/ai/ask-ai) un incident déjà pris en compte ou résolu — consigne un incident dont quelqu'un s'occupe déjà, ou qui est déjà terminé. Il n'est pas traité comme une nouvelle urgence :
 
 ```mermaid title="Ce que déclenche un nouvel incident, selon l'état dans lequel il démarre"
 flowchart TB

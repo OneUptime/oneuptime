@@ -41,7 +41,7 @@ Le serveur est sans état : il n'émet aucun identifiant de session et chaque re
 - **Maintenance planifiée** : créer et gérer des événements de maintenance.
 - **Télémétrie** : interroger les logs, les métriques, les traces, les exceptions, les logs de moniteurs, les événements de sécurité et plus encore, en lecture seule.
 
-Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 44 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint`, tout outil qui modifie quelque chose porte `destructiveHint`, et seuls les outils des pages de statut publiques portent `openWorldHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
+Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 45 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint`, tout outil qui modifie quelque chose porte `destructiveHint`, et seuls les outils des pages de statut publiques portent `openWorldHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
 
 ## Avant de commencer
 
@@ -337,6 +337,8 @@ Une boucle typique : `list_incidents` → `acknowledge_incident` → enquêter a
 
 L'outil **`oneuptime_whoami`** renvoie le projet auquel appartiennent vos identifiants (son ID et son nom). Pour un client connecté par connexion, il indique aussi sous quel compte il est connecté et s'il peut faire des modifications. C'est un bon premier appel pour qu'un agent se repère, et comme les outils de création prennent `projectId` dans les identifiants, l'agent n'a jamais à passer d'ID de projet.
 
+L'outil **`get_data_table_freshness`** indique à un agent si une table que Data Observability surveille est à jour avant qu'il n'utilise ses données : à jour ou en retard selon le rythme propre de la table, quand elle a changé pour la dernière fois, ses alertes ouvertes, et comment s'est passée la dernière exécution de chaque pipeline qui l'écrit. Passez `table` sous la forme `schema.table`, du seul nom de la table ou de son ID. Il ne modifie rien.
+
 ## Interroger la télémétrie
 
 Les logs, les métriques, les traces (spans), les exceptions, les logs de moniteurs et les autres types de télémétrie sont accessibles par des outils `list_` et `count_` en lecture seule (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` et leurs jumeaux `count_`). La télémétrie arrive par OpenTelemetry, il n'y a donc pas d'outils de création.
@@ -484,7 +486,7 @@ Le serveur MCP est sans état : il n'émet ni ne suit d'identifiants de session,
 | Étiquettes | Label |
 | Sécurité | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Sécurité des données | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| Observabilité des données | Data Asset |
+| Observabilité des données | Data Asset, Data Check |
 
 | Domaine | Télémétrie avec des outils de liste et de comptage seulement |
 | --- | --- |

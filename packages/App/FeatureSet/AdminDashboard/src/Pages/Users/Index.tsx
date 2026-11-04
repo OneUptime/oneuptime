@@ -3,11 +3,11 @@ import SecurityAdvisoryNotice from "../../Components/SecurityAdvisories/Security
 import ServerSetupChecklist from "../../Components/ServerSetup/ServerSetupChecklist";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { bulkAddUsersToProject } from "../../Components/User/BulkAddUsersToProject";
 import {
-  bulkAddUsersToProject,
-  BulkAddUsersToProjectFailure,
-  BulkAddUsersToProjectProgress,
-} from "../../Components/User/BulkAddUsersToProject";
+  ADD_TO_PROJECT_RESULT_LABELS,
+  TWO_FACTOR_AUTH_RESULT_LABELS,
+} from "../../Components/User/BulkUserResultLabels";
 import BulkAddUsersToProjectModal, {
   BulkAddUsersToProjectSelection,
 } from "../../Components/User/BulkAddUsersToProjectModal";
@@ -21,7 +21,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import {
@@ -153,6 +152,8 @@ const Users: FunctionComponent = (): ReactElement => {
        * divider at the bottom of the bulk menu, where Delete lives.
        */
       buttonStyleType: ButtonStyleType.NORMAL,
+      // "6 Users updated", not "6 Users succeeded" (BulkUserResultLabels).
+      resultLabels: TWO_FACTOR_AUTH_RESULT_LABELS,
       confirmTitle: (items: Array<User>): string => {
         return isRequired
           ? t("pages.users.bulkRequireTwoFactorAuthTitle", {
@@ -174,25 +175,17 @@ const Users: FunctionComponent = (): ReactElement => {
       onClick: async (
         onClickProps: BulkActionOnClickProps<User>,
       ): Promise<void> => {
-        const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-          onClickProps;
-
-        onBulkActionStart();
-
-        const inProgressItems: Array<User> = [...items];
-        const totalItems: Array<User> = [...items];
-        const successItems: Array<User> = [];
-        const failedItems: Array<BulkActionFailed<User>> = [];
-
         /*
-         * Sequential, and every failure is collected rather than thrown. An
-         * admin who selected two hundred users needs to be told WHICH ones did
-         * not take, not to have the run abandoned at the first one.
+         * Several users at once (runBulkAction), as Block and Unblock: each
+         * request writes one user's requirement and signs that user out,
+         * nothing another user's request reads. A user that fails is named
+         * with why in the progress dialog, and the rest go on; Stop starts
+         * no more of them.
          */
-        for (const user of totalItems) {
-          inProgressItems.splice(inProgressItems.indexOf(user), 1);
-
-          try {
+        await runBulkAction<User>({
+          actionProps: onClickProps,
+          concurrency: BULK_ACTION_CONCURRENCY,
+          step: async (user: User): Promise<void> => {
             if (!user.id) {
               throw new BadDataException("User ID not found");
             }
@@ -205,27 +198,15 @@ const Users: FunctionComponent = (): ReactElement => {
                 },
               });
 
+            /*
+             * API.post resolves an error response rather than rejecting: a
+             * user the server refused is a failure, never a change.
+             */
             if (response instanceof HTTPErrorResponse) {
               throw response;
             }
-
-            successItems.push(user);
-          } catch (err) {
-            failedItems.push({
-              item: user,
-              failedMessage: API.getFriendlyMessage(err),
-            });
-          }
-
-          onProgressInfo({
-            totalItems: totalItems,
-            failed: failedItems,
-            successItems: successItems,
-            inProgressItems: inProgressItems,
-          });
-        }
-
-        onBulkActionEnd();
+          },
+        });
       },
     };
   };
@@ -241,6 +222,8 @@ const Users: FunctionComponent = (): ReactElement => {
         title: t("pages.users.bulkAddToProject"),
         icon: IconProp.FolderPlus,
         buttonStyleType: ButtonStyleType.NORMAL,
+        // "2 Users added", not "2 Users succeeded" (BulkUserResultLabels).
+        resultLabels: ADD_TO_PROJECT_RESULT_LABELS,
         onClick: (
           onClickProps: BulkActionOnClickProps<User>,
         ): Promise<void> => {
@@ -259,90 +242,18 @@ const Users: FunctionComponent = (): ReactElement => {
     onClickProps: BulkActionOnClickProps<User>,
     selection: BulkAddUsersToProjectSelection,
   ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      onClickProps;
-
-    onBulkActionStart();
-
     /*
-     * Kept so the recovery path below knows who had already been dealt with.
-     * Without it a late failure would have to report the whole selection as
-     * failed, telling the admin nothing was added when some users were.
+     * The shared runner opens the progress dialog, counts the users down
+     * one at a time (bulkAddUsersToProject says why), names each failure
+     * and ends the action whatever happens - its Close and the selection's
+     * clearing wait on that.
      */
-    let lastProgress: BulkAddUsersToProjectProgress = {
-      totalUsers: items,
-      inProgressUsers: items,
-      succeededUsers: [],
-      failedUsers: [],
-    };
-
-    type ReportProgressFunction = (
-      progress: BulkAddUsersToProjectProgress,
-    ) => void;
-
-    const reportProgress: ReportProgressFunction = (
-      progress: BulkAddUsersToProjectProgress,
-    ): void => {
-      lastProgress = progress;
-
-      onProgressInfo({
-        totalItems: progress.totalUsers,
-        inProgressItems: progress.inProgressUsers,
-        successItems: progress.succeededUsers,
-        failed: progress.failedUsers.map(
-          (failure: BulkAddUsersToProjectFailure): BulkActionFailed<User> => {
-            return {
-              item: failure.user,
-              failedMessage: failure.failedMessage,
-            };
-          },
-        ),
-      });
-    };
-
-    try {
-      await bulkAddUsersToProject({
-        users: items,
-        projectId: selection.projectId,
-        teamId: selection.teamId,
-        hasAcceptedInvitation: selection.hasAcceptedInvitation,
-        onProgress: reportProgress,
-      });
-    } catch (err) {
-      /*
-       * Per-user failures never reach here - bulkAddUsersToProject turns those
-       * into rows of the report. Reaching here means the run itself broke, so
-       * only the users it had not attempted yet are unaccounted for; the ones
-       * already added stay reported as added.
-       */
-      try {
-        reportProgress({
-          totalUsers: lastProgress.totalUsers,
-          inProgressUsers: [],
-          succeededUsers: lastProgress.succeededUsers,
-          failedUsers: [
-            ...lastProgress.failedUsers,
-            ...lastProgress.inProgressUsers.map(
-              (user: User): BulkAddUsersToProjectFailure => {
-                return {
-                  user: user,
-                  failedMessage: API.getFriendlyMessage(err),
-                };
-              },
-            ),
-          ],
-        });
-      } catch {
-        /*
-         * Reporting is the most likely thing to have broken in the first
-         * place. Ending the action matters more than the report: until
-         * onBulkActionEnd runs, the progress modal's Close button stays
-         * disabled and the selection is never cleared.
-         */
-      }
-    } finally {
-      onBulkActionEnd();
-    }
+    await bulkAddUsersToProject({
+      actionProps: onClickProps,
+      projectId: selection.projectId,
+      teamId: selection.teamId,
+      hasAcceptedInvitation: selection.hasAcceptedInvitation,
+    });
   };
 
   const getBulkDeleteAction: () => BulkActionButtonSchema<User> =
@@ -566,8 +477,8 @@ const Users: FunctionComponent = (): ReactElement => {
               setAddToProjectProps(null);
 
               /*
-               * addSelectedUsersToProject reports its own failures and ends the
-               * action in a `finally`, so this only catches a throw from
+               * The runner reports each user's failure and ends the action in
+               * a `finally` (runBulkAction), so this only catches a throw from
                * onBulkActionStart / onBulkActionEnd themselves. There is
                * nothing useful left to do with it - calling onBulkActionEnd a
                * second time here would be as likely to throw again - but it

@@ -921,6 +921,12 @@ test.describe("an answer, written quietly", () => {
     // Said by the heading and the line under it, not again under them.
     await expect(card.getByText("Number", { exact: true })).toHaveCount(0);
     await expect(card.getByText("Severity", { exact: true })).toHaveCount(0);
+    /*
+     * The card says what the action made: the action's own "Executed" row
+     * is not drawn again under it (#5349's reviewer).
+     */
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await expect(dialog(page).getByText("Executed")).toHaveCount(0);
     await expect(
       card.getByRole("button", {
         name: "Open ALT-12 · High memory usage on test01",
@@ -1903,7 +1909,7 @@ test.describe("in German", () => {
    * stores it as sentences, and the card says them in German, the alert's
    * title, its severity and the host's name as written.
    */
-  test("an approval card says what the AI will do in German, and the row it leaves too", async ({
+  test("an approval card says what the AI will do in German, and the card it leaves too", async ({
     page,
   }: {
     page: Page;
@@ -1957,12 +1963,64 @@ test.describe("in German", () => {
       })
       .click();
 
-    // What ran stays as a German row: its status, and what it was.
+    /*
+     * What it made is the card under the answer, in German: its kind, its
+     * severity and the host it is linked to in German words, the alert's
+     * number, title and the host's name as written (#5623's follow-up) -
+     * and no row of the action under it, which only said it again.
+     */
+    const card: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(card).toBeVisible();
+    await expect(card.getByTestId("ai-chat-resource-card-kind")).toHaveText(
+      words["Alert"]!,
+    );
+    await expect(card.getByTestId("ai-chat-resource-card-heading")).toHaveText(
+      "ALT-12 · High memory usage on test01",
+    );
+    await expect(card.getByTestId("ai-chat-resource-card-line")).toHaveText(
+      filled(words, "Severity: {{severity}}", { severity: "High" }),
+    );
+    await expect(
+      card.getByTestId("ai-chat-resource-card-fact-label"),
+    ).toHaveText([words["Affected resources"]!]);
+    await expect(
+      card.getByTestId("ai-chat-resource-card-fact-value"),
+    ).toHaveText(`${words["host"]} "test01"`);
+    for (const english of ["Severity:", "Affected resources", "ALERT"]) {
+      await expect(card).not.toContainText(english);
+    }
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await screenshot(page, "approval-done-1280-de");
+  });
+
+  test("an action saved before cards had words still leaves its row, and its card reads its English", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = dashboardWords("de");
+
+    await load(page, "lang=de&thread=approval&words=none");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    await page
+      .getByRole("button", {
+        name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+      })
+      .click();
+
+    // Saved before actions named their cards: what ran is still a row.
     await expect(page.getByTestId("tool-approval-history-title")).toHaveText(
-      title,
+      "Create alert: High memory usage on test01",
     );
     await expect(dialog(page).getByText(words["Executed"]!)).toBeVisible();
-    await screenshot(page, "approval-done-1280-de");
+    // Its card is the English it stores, each fact once.
+    const card: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(card.getByTestId("ai-chat-resource-card-line")).toHaveText(
+      "Severity: High",
+    );
+    await expect(card.getByText("Number", { exact: true })).toHaveCount(0);
   });
 
   test.describe("on a phone", () => {
@@ -2017,14 +2075,19 @@ test.describe("in German", () => {
       await screenshot(page, "approval-390-de");
 
       /*
-       * What ran stays as a row, whole: cut at one line, a phone lost what
-       * it changed ("Warnung erstellen: High memory usage on te...").
+       * What did not run stays as a row, whole: cut at one line, a phone
+       * lost what it was ("Warnung erstellen: High memory usage on te...").
+       * Skipped, it leaves no card to say it instead.
        */
       await page
-        .getByRole("button", {
-          name: filled(words, "Run {{count}} actions_one", { count: "1" }),
+        .getByRole("group", {
+          name: filled(words, "Create alert: {{title}}", {
+            title: "High memory usage on test01",
+          }),
         })
+        .getByRole("button", { name: words["Skip"]! })
         .click();
+      await page.getByRole("button", { name: words["Skip all"]! }).click();
       const row: Locator = page.getByTestId("tool-approval-history-title");
       await expect(row).toHaveText(
         filled(words, "Create alert: {{title}}", {
@@ -2521,6 +2584,226 @@ test.describe("on a resolved incident", () => {
         await expectNothingScrollsSideways(page);
         await screenshot(page, `start-resolved-incident-390-${lang}`);
       }
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An action's arguments and the cards it leaves, read at a glance
+ * (fu-ask-ai-polish's UI review)
+ *
+ * The approval card ran an action's arguments together on one line cut at
+ * two, each value cut at 80 characters and set in monospace: a public
+ * status update's note was cut mid-sentence, and its "Notify subscribers:
+ * Yes" fell off the end on a phone, never seen before the update was
+ * approved. Each argument is a line of its own now, read whole, in the
+ * card's own face. The cards an action leaves set each fact beside its
+ * name at every width, which on a phone left a German fact's value a
+ * third of the card: below 22rem of card the facts sit under their names.
+ * ---------------------------------------------------------------------------
+ */
+
+const STATUS_UPDATE_NOTE: string =
+  "We have found the cause of the slow checkouts and are rolling out a fix. Payments are not affected, and orders placed during the slowdown will go through.";
+const INTERNAL_NOTE: string =
+  "pgbouncer on test01 held 400 connections to the old primary after the failover. Restarted it at 14:25.";
+
+// The text of each argument row of an action on the approval card.
+async function argumentRows(action: Locator): Promise<Array<string>> {
+  return action
+    .getByTestId("tool-approval-argument")
+    .evaluateAll((rows: Array<Element>): Array<string> => {
+      return rows.map((row: Element): string => {
+        return (row.textContent || "").replace(/\s+/g, " ").trim();
+      });
+    });
+}
+
+// Whether any of the elements is cut short: clamped or overflowing.
+async function anyCut(locator: Locator): Promise<boolean> {
+  return locator.evaluateAll((elements: Array<Element>): boolean => {
+    return elements.some((element: Element): boolean => {
+      return (
+        element.scrollHeight > element.clientHeight + 1 ||
+        element.scrollWidth > element.clientWidth + 1
+      );
+    });
+  });
+}
+
+test.describe("an action's arguments and the cards it leaves", () => {
+  test("each argument is a line of its own, read whole, in the card's own face", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=actions");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    await expect(
+      dialog(page).getByText("The AI wants to perform 2 actions"),
+    ).toBeVisible();
+
+    const [statusUpdate, note] = [
+      page.getByTestId("tool-approval-action").nth(0),
+      page.getByTestId("tool-approval-action").nth(1),
+    ];
+    await expect(statusUpdate.getByTestId("tool-approval-title")).toHaveText(
+      "Post public status update on incident #42",
+    );
+    // The update's text is named as the card it leaves names it.
+    expect(await argumentRows(statusUpdate)).toEqual([
+      `Status update: ${STATUS_UPDATE_NOTE}`,
+      "Notify subscribers: Yes",
+    ]);
+    expect(await argumentRows(note)).toEqual([`Note: ${INTERNAL_NOTE}`]);
+
+    // Nothing cut short, and never the incident's ID the title names.
+    expect(await anyCut(page.getByTestId("tool-approval-argument"))).toBe(
+      false,
+    );
+    await expect(
+      page.getByTestId("tool-approval-arguments").first(),
+    ).not.toContainText(INCIDENT_ID);
+
+    // A note is prose: in the card's face, not in monospace.
+    const fonts: Array<string> = await page
+      .getByTestId("tool-approval-argument-value")
+      .evaluateAll((values: Array<Element>): Array<string> => {
+        return values.map((value: Element): string => {
+          return window.getComputedStyle(value.querySelector("bdi") || value)
+            .fontFamily;
+        });
+      });
+    expect(fonts).toHaveLength(3);
+    for (const font of fonts) {
+      expect(font).not.toMatch(MONOSPACE);
+    }
+
+    await screenshot(page, "approval-arguments-1280");
+  });
+
+  test("the cards they leave set each fact beside its name, and no row repeats them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=actions");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const cards: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(cards).toHaveCount(2);
+    await expect(
+      cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Status update posted, subscribers notified");
+    await expect(
+      cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Private note added, for your team only");
+    // Each action is its card: no Executed row under them.
+    await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
+    await settle(page);
+
+    const fact: Locator = cards
+      .nth(0)
+      .getByTestId("ai-chat-resource-card-fact");
+    await expect(
+      fact.getByTestId("ai-chat-resource-card-fact-label"),
+    ).toHaveText("Status update");
+    const [label, value] = await boxesInOneFrame([
+      fact.getByTestId("ai-chat-resource-card-fact-label"),
+      fact.getByTestId("ai-chat-resource-card-fact-value"),
+    ]);
+    // Beside its name, on its line.
+    expect(Math.abs(label!.y - value!.y)).toBeLessThanOrEqual(2);
+    expect(label!.x + label!.width).toBeLessThanOrEqual(value!.x);
+
+    await screenshot(page, "cards-1280");
+  });
+
+  test.describe("on a phone, in German", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("whether subscribers hear of an update is in sight, under its whole note", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords("de");
+
+      await load(page, "lang=de&thread=actions");
+      await expect(dialog(page)).toBeVisible();
+      await settle(page);
+
+      const statusUpdate: Locator = page
+        .getByTestId("tool-approval-action")
+        .nth(0);
+      expect(await argumentRows(statusUpdate)).toEqual([
+        `${words["Status update"]}: ${STATUS_UPDATE_NOTE}`,
+        `${words["Notify subscribers"]}: ${words["Yes"]}`,
+      ]);
+      expect(await anyCut(page.getByTestId("tool-approval-argument"))).toBe(
+        false,
+      );
+
+      // Inside its action's box, above Allow and Skip.
+      const [box, notify, choice] = await boxesInOneFrame([
+        statusUpdate,
+        statusUpdate.getByTestId("tool-approval-argument").nth(1),
+        statusUpdate.getByTestId("tool-approval-choice"),
+      ]);
+      expect(notify!.height).toBeGreaterThan(0);
+      expect(notify!.y).toBeGreaterThanOrEqual(box!.y);
+      expect(notify!.y + notify!.height).toBeLessThanOrEqual(choice!.y);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "approval-arguments-390-de");
+    });
+
+    test("a card's facts sit under their names, the card's whole width", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords("de");
+
+      await load(page, "lang=de&thread=actions");
+      await expect(dialog(page)).toBeVisible();
+      await settle(page);
+
+      await page
+        .getByRole("button", {
+          name: filled(words, "Run {{count}} actions", { count: "2" }),
+        })
+        .click();
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await settle(page);
+
+      for (const index of [0, 1]) {
+        const card: Locator = cards.nth(index);
+        const fact: Locator = card.getByTestId("ai-chat-resource-card-fact");
+        const [text, label, value] = await boxesInOneFrame([
+          card.getByTestId("ai-chat-resource-card-heading"),
+          fact.getByTestId("ai-chat-resource-card-fact-label"),
+          fact.getByTestId("ai-chat-resource-card-fact-value"),
+        ]);
+        // Under its name, from the same edge, as wide as the card's text.
+        expect(value!.y).toBeGreaterThanOrEqual(label!.y + label!.height - 1);
+        expect(Math.abs(value!.x - label!.x)).toBeLessThanOrEqual(1);
+        expect(value!.width).toBeGreaterThanOrEqual(text!.width - 1);
+      }
+
+      await expect(
+        cards.nth(0).getByTestId("ai-chat-resource-card-fact-label"),
+      ).toHaveText(words["Status update"]!);
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "cards-390-de");
     });
   });
 });

@@ -40,7 +40,7 @@ flowchart TB
 
 ### 编写标题
 
-在 **事件标题** 或 **警报标题** 中输入标题，例如 `{{monitorName}} is down`。旁边的 **Learn about dynamic templates** 会打开 **Dynamic Template Variables**：列出该监视器类型的所有变量及其内容。点击变量即可复制。
+在 **事件标题** 或 **警报标题** 中输入标题，例如 `{{monitorName}} is down`。旁边的 **了解动态模板** 会打开 **动态模板变量**：列出该监视器类型的所有变量及其内容。点击变量即可复制。
 
 ### 编写描述和补救备注
 
@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | 状态页的类型：Atlassian Statuspage、incident.io、RSS 或 Atom。 | `string` |
 | `componentGroup` | 监视器关注的组件组(如果有)。 | `string` |
 | `componentName` | 监视器关注的组件，以逗号分隔(如果选择了组件)。 | `string` |
+| `componentNames` | 以列表形式给出的同一组组件，可用 `{{#each componentNames}}` 为每个组件重复一行。 | `Array<string>` |
 | `isOnline` | 状态页是否作出了响应。 | `boolean` |
 | `responseTimeInMs` | 状态页响应所用的时间，以毫秒为单位。 | `number` |
 | `failureCause` | 检查失败时的原因。 | `string` |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## 故障排查
 
 :::details 标题中显示了占位符，连同花括号
-这次检查中路径没有通向任何值。请对照上面的表格检查变量的名称和大小写，或在条件中打开 **Learn about dynamic templates**：它会列出该监视器类型的变量。进入响应或请求正文的路径必须与发送时的正文相符，而 `[*]` 和 `[-1]` 之类的负数索引什么也读不到：请使用 `[0]` 或 `[last]`。
+这次检查中路径没有通向任何值。请对照上面的表格检查变量的名称和大小写，或在条件中打开 **了解动态模板**：它会列出该监视器类型的变量。进入响应或请求正文的路径必须与发送时的正文相符，而 `[*]` 和 `[-1]` 之类的负数索引什么也读不到：请使用 `[0]` 或 `[last]`。
 :::
 
 :::details 某个值显示为 JSON

@@ -4,6 +4,8 @@ import {
   assembleSnapshot,
   readCount,
   readMySqlKind,
+  readRedshiftKind,
+  readRedshiftSize,
   readPostgresKind,
   readSqlServerKind,
   TableHealthSnapshot,
@@ -33,6 +35,8 @@ function rawTable(
   sizeInBytes: number | null;
   writeCount: number | null;
   secondsSinceChange: number | null;
+  readCount: number | null;
+  secondsSinceRead: number | null;
 } {
   return {
     schema,
@@ -42,6 +46,8 @@ function rawTable(
     sizeInBytes: 8192,
     writeCount: 3,
     secondsSinceChange: null,
+    readCount: 7,
+    secondsSinceRead: 3600,
   };
 }
 
@@ -92,6 +98,18 @@ describe("kind readers", () => {
     expect(readSqlServerKind("V")).toBe(DataAssetKind.View);
     expect(readSqlServerKind("P")).toBeNull();
   });
+
+  test("Redshift's tables and views; external tables and the rest are not watched", () => {
+    expect(readRedshiftKind("BASE TABLE")).toBe(DataAssetKind.Table);
+    expect(readRedshiftKind("view")).toBe(DataAssetKind.View);
+    expect(readRedshiftKind("EXTERNAL TABLE")).toBeNull();
+  });
+
+  test("Redshift counts sizes in 1 MB blocks", () => {
+    expect(readRedshiftSize(3)).toBe(3 * 1024 * 1024);
+    expect(readRedshiftSize("12")).toBe(12 * 1024 * 1024);
+    expect(readRedshiftSize(null)).toBeNull();
+  });
 });
 
 describe("readCount", () => {
@@ -123,6 +141,7 @@ describe("assembleSnapshot", () => {
           rawColumn("public", "orders", "id", 1),
         ],
         warnings: [],
+        secondsSinceStatsReset: 86_400,
       },
       options: { maxTables: 100, maxColumns: 100, exclusions: [] },
       collectedAt: COLLECTED_AT,
@@ -130,6 +149,10 @@ describe("assembleSnapshot", () => {
 
     expect(snapshot.isComplete).toBe(true);
     expect(snapshot.collectedAt).toBe(COLLECTED_AT.toISOString());
+    // The read counters, and how long the engine has counted for.
+    expect(snapshot.tables[0]!.readCount).toBe(7);
+    expect(snapshot.tables[0]!.secondsSinceRead).toBe(3600);
+    expect(snapshot.secondsSinceStatsReset).toBe(86_400);
     expect(
       snapshot.tables[0]!.columns!.map((item: { name: string }) => {
         return item.name;
@@ -140,7 +163,12 @@ describe("assembleSnapshot", () => {
   test("a table with no column rows has no columns, when the list was not cut", () => {
     const snapshot: TableHealthSnapshot = assembleSnapshot({
       engine: "mysql",
-      read: { tables: [rawTable("app", "empty")], columns: [], warnings: [] },
+      read: {
+        tables: [rawTable("app", "empty")],
+        columns: [],
+        warnings: [],
+        secondsSinceStatsReset: null,
+      },
       options: { maxTables: 100, maxColumns: 100, exclusions: [] },
       collectedAt: COLLECTED_AT,
     });
@@ -164,6 +192,7 @@ describe("assembleSnapshot", () => {
           rawColumn("public", "b", "id", 1),
         ],
         warnings: [],
+        secondsSinceStatsReset: null,
       },
       options: { maxTables: 100, maxColumns: 3, exclusions: [] },
       collectedAt: COLLECTED_AT,
@@ -188,6 +217,7 @@ describe("assembleSnapshot", () => {
         tables: [rawTable("dbo", "a"), rawTable("dbo", "b")],
         columns: [],
         warnings: [],
+        secondsSinceStatsReset: null,
       },
       options: { maxTables: 2, maxColumns: 100, exclusions: [] },
       collectedAt: COLLECTED_AT,
@@ -209,6 +239,7 @@ describe("assembleSnapshot", () => {
         ],
         columns: [],
         warnings: [],
+        secondsSinceStatsReset: null,
       },
       options: {
         maxTables: 100,
@@ -232,6 +263,7 @@ describe("assembleSnapshot", () => {
         tables: [],
         columns: [],
         warnings: ["Write counters were left out"],
+        secondsSinceStatsReset: null,
       },
       options: { maxTables: 100, maxColumns: 100, exclusions: [] },
       collectedAt: COLLECTED_AT,

@@ -268,6 +268,11 @@ export default class AzureCloud {
     return this.tokens.describeIdentity();
   }
 
+  // The managed identity's object id, once a token was read (AzureTokenProvider.principalId).
+  public principalId(): string | null {
+    return this.tokens.principalId();
+  }
+
   private async client(data: {
     send: CloudSender;
     describeMissingPermission: (permission: string) => string;

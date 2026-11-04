@@ -366,6 +366,32 @@ export default class SecurityHunt extends BaseModel {
   public notifyTeams?: Array<Team> = undefined;
 
   /*
+   * The Hunt Library starter the hunt was added from
+   * (Types/SecurityEvent/SecurityHuntLibrary): how the library knows the
+   * project has it, however the hunt was renamed or changed since. Set when
+   * the hunt is saved, and never after.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Library Hunt ID",
+    description:
+      "The Hunt Library starter this hunt was added from, such as encoded-powershell. Empty for a hunt saved from a search of your own.",
+    example: "encoded-powershell",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public libraryHuntId?: string = undefined;
+
+  /*
    * Whose read access the scheduled runs use: the person who last set the
    * schedule or changed what the hunt searches for. Stamped by OneUptime
    * from the caller (SecurityHuntService); no request chooses it.

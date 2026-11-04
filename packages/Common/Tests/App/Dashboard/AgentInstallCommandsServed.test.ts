@@ -817,12 +817,17 @@ describe("the served list covers every agent the Dashboard installs with a scrip
          * The Kubernetes agent's script is in the docs and its chart's
          * notes. The Docker and Podman agents' guides start the agent's
          * image (docker run, podman run or a Compose file they show); their
-         * scripts are in the docs and the agents' READMEs.
+         * scripts are in the docs and the agents' READMEs. The air-gapped
+         * image bundle's script is no agent: it carries a release into a
+         * network with no internet, on a machine that may have no
+         * OneUptime yet, so the docs' Air-Gapped Installation page hands it
+         * out (from OneUptime Cloud), never a Dashboard guide.
          */
         return ![
           InstallScriptName.KubernetesAgent,
           InstallScriptName.DockerAgent,
           InstallScriptName.PodmanAgent,
+          InstallScriptName.AirGapped,
         ].includes(entry.name);
       })
         .map((entry: InstallScriptEntry): string => {
