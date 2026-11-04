@@ -32,7 +32,7 @@ OneUptime looks each value up among the project's records, says how sure each ma
 - **Connected Signals**, a page of every security case: open a case under **Products → Security Events → Security Cases → Open Cases**, then **Connected Signals** after **Entities** in its menu.
 - **Connected**, a tab of every security event: open an event under **Products → Security Events → Events**. It lists what the event names, in the hour around it.
 - An entity's page, under **Products → Security Events → Entity Risk**: where OneUptime knows the user, host or address, around its last security event.
-- A **Security** card on the page of each host, Docker host, Podman host, Kubernetes cluster, network device, cloud resource, serverless function, service, monitor, member and inventory item: the open security cases naming it, how many security events and findings named it in the last 7 days, the worst of them, and its risk. **Open in Security Events** opens it there. A monitor's card is about the hosts and addresses it checks.
+- A **Security** card on the page of each host, Docker host, Podman host, Kubernetes cluster, OpenStack cloud, network device, cloud resource, serverless function, service, monitor, member and inventory item: the open security cases naming it, how many security events and findings named it in the last 7 days, the worst of them, and its risk. **Open in Security Events** opens it there. A monitor's card is about the hosts and addresses it checks.
 - A **Security** card on an incident's page, when a security case declared the incident (**Declared from**) or open cases name a host or cluster it affects (**Open cases naming what it affects**).
 
 ## How a value is matched
@@ -94,7 +94,7 @@ Under the records, Connected Signals searches your logs and traces, over the sam
 
 ## Incidents a case declares
 
-**Declare Incident** on a case, or a playbook's step that declares one, links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, network devices, cloud resources and services the case is exactly connected to. A playbook's step that pages on-call links the alert it opens the same way; each alert and incident a detection rule or a threat intel match opens is linked to what its match names exactly, and each one Data Security opens to the data store it is about. The incident shows on their pages and their owners' rules apply to it, and its feed names the case and what it was linked to. A possible match is never linked, and neither is a monitor: an incident on a monitor can change its status and show on its status pages.
+**Declare Incident** on a case, or a playbook's step that declares one, links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, OpenStack clouds, network devices, cloud resources and services the case is exactly connected to. A playbook's step that pages on-call links the alert it opens the same way; each alert and incident a detection rule or a threat intel match opens is linked to what its match names exactly, and each one Data Security opens to the data store it is about. The incident shows on their pages and their owners' rules apply to it, and its feed names the case and what it was linked to. A possible match is never linked, and neither is a monitor: an incident on a monitor can change its status and show on its status pages.
 
 ## OneUptime AI
 

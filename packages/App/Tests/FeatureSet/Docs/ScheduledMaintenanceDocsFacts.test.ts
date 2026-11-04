@@ -2287,6 +2287,7 @@ describe("starting from a resource or a template", () => {
         CreateFromRecordKind.DockerHost,
         CreateFromRecordKind.PodmanHost,
         CreateFromRecordKind.VMwareVCenter,
+        CreateFromRecordKind.OpenStackCloud,
         CreateFromRecordKind.StorageArray,
         CreateFromRecordKind.IoTFleet,
         CreateFromRecordKind.DatabaseServer,
@@ -2305,7 +2306,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 
