@@ -42281,5 +42281,12 @@
   "Right-sizing": "Подбор размера",
   "Right-sizing needs {{needed}} days of its CPU readings. It has {{read}} so far.": "Для подбора размера нужно {{needed}} дн. измерений CPU. Пока есть {{read}}.",
   "Up to {{amount}} a month less, at its cost over the last 30 days: its bill also holds its storage, which stays.": "До {{amount}} меньше в месяц, исходя из затрат за последние 30 дней: в счёт входит и хранилище, которое останется.",
-  "What it would save is said once its cloud bills it by name.": "Экономия будет показана, когда облако начнёт выставлять счёт по этому ресурсу отдельно."
+  "What it would save is said once its cloud bills it by name.": "Экономия будет показана, когда облако начнёт выставлять счёт по этому ресурсу отдельно.",
+  "Alert On Unusual Days": "Оповещать о необычных днях",
+  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Также оповещать на следующий день после дня, который обошёлся намного дороже обычного: сервис — вдвое дороже своего обычного дня, аккаунт — в полтора раза.",
+  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times. A budget that counts the account alerts on each.": "Дни последних двух недель, которые обошлись намного дороже обычного: сервис — вдвое дороже своего обычного дня, весь аккаунт — в полтора раза. Бюджет, который учитывает аккаунт, оповещает о каждом.",
+  "The whole account": "Весь аккаунт",
+  "Unusual days": "Необычные дни",
+  "Usually costs nothing": "Обычно ничего не стоит",
+  "{{times}} times its usual {{usual}}": "в {{times}} раза больше обычных {{usual}}"
 }

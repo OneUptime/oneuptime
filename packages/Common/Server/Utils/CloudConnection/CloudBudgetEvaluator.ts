@@ -7,8 +7,20 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
+  CLOUD_COST_ANOMALY_ACCOUNT_RATIO,
+  CLOUD_COST_ANOMALY_BASELINE_DAYS,
+  CLOUD_COST_ANOMALY_SERVICE_RATIO,
+  getCloudCostAnomalyRatio,
+  getStartedCloudCostAnomalies,
+  groupCloudCostAnomaliesByDay,
+} from "../../../Types/Cloud/CloudCostAnomaly";
+import {
+  addUtcDays,
   CloudAccountCostSummary,
+  CloudCostAnomaly,
   CloudCostState,
+  startOfUtcDay,
+  toCloudCostDay,
   getPassedCloudBudgetThresholds,
   readCloudAccountCostSummary,
   readCloudBudgetThresholds,
@@ -43,7 +55,13 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *     it passed, when a read finds it past several at once;
  *   - once a month, when the month is on course to pass the budget at the
  *     pace of the last full week while it has not yet: a warning before the
- *     money is spent.
+ *     money is spent;
+ *   - unless it is told not to, once for each account and day that cost far
+ *     more than usual - a service at twice its usual day, or the whole
+ *     account at half again (CloudCostAnomaly) - the day after: a budget
+ *     sees a month, and a spike adds up for days before it passes a share
+ *     of one. One alert names every service that ran high that day, and a
+ *     spike that goes on is told the day it began.
  *
  * A budget's alerts are the alerts of the month they were raised in: when
  * the next month starts, the spend starts from nothing again, the open ones
@@ -63,13 +81,50 @@ export interface CloudBudgetAlertState {
   thresholds: Array<number>;
   // Whether the projection alerted this month.
   projection: boolean;
+  // The unusual days alerted this month: "<account row id>|<day>".
+  anomalies: Array<string>;
   // The alerts raised this month: resolved when the month is over.
   alertIds: Array<string>;
 }
 
+/*
+ * An account's day that cost far more than usual, as a budget sees it: the
+ * account, how it is named, and that day's unusual spend - the account's
+ * own first, then each service's.
+ */
+export interface CloudBudgetAnomalyDay {
+  accountRowId: string;
+  // "the web-prod account (AWS 123456789012)".
+  accountScope: string;
+  day: string;
+  anomalies: Array<CloudCostAnomaly>;
+}
+
 export type CloudBudgetAlertKind =
   | { kind: "threshold"; threshold: number }
-  | { kind: "projection" };
+  | { kind: "projection" }
+  | { kind: "anomaly"; anomalyDay: CloudBudgetAnomalyDay };
+
+// What an unusual day is kept as in a budget's month.
+export function getCloudBudgetAnomalyKey(data: {
+  accountRowId: string;
+  day: string;
+}): string {
+  return `${data.accountRowId}|${data.day}`;
+}
+
+/*
+ * An unusual day older than this many days is not alerted on: a cloud
+ * whose costs were not read for a while reports a spike that is over.
+ */
+export const CLOUD_BUDGET_ANOMALY_MAX_AGE_DAYS: number = 7;
+
+// The oldest day an unusual day is alerted on, "2026-11-13".
+export function getCloudBudgetOldestAnomalyDay(now: Date): string {
+  return toCloudCostDay(
+    addUtcDays(startOfUtcDay(now), -CLOUD_BUDGET_ANOMALY_MAX_AGE_DAYS),
+  );
+}
 
 export interface CloudBudgetSpend {
   spent: number;
@@ -120,6 +175,13 @@ export function readCloudBudgetAlertState(
           })
       : [],
     projection: record["projection"] === true,
+    anomalies: Array.isArray(record["anomalies"])
+      ? (record["anomalies"] as Array<unknown>).filter(
+          (entry: unknown): entry is string => {
+            return typeof entry === "string" && entry.length > 0;
+          },
+        )
+      : [],
     alertIds: Array.isArray(record["alertIds"])
       ? ((record["alertIds"] as Array<unknown>).filter(
           (entry: unknown): boolean => {
@@ -230,6 +292,10 @@ export default class CloudBudgetEvaluator {
     amount: number;
     thresholds: Array<number>;
     alertOnProjection: boolean;
+    // Whether a day that cost far more than usual alerts.
+    alertOnAnomaly?: boolean | undefined;
+    // The unusual days of the accounts counted, their newest full day.
+    anomalyDays?: Array<CloudBudgetAnomalyDay> | undefined;
     spend: CloudBudgetSpend;
     state: CloudBudgetAlertState | null;
     now: Date;
@@ -238,12 +304,28 @@ export default class CloudBudgetEvaluator {
     const isNewMonth: boolean = !data.state || data.state.month !== month;
     const resolveAlertIds: Array<string> =
       isNewMonth && data.state ? [...data.state.alertIds] : [];
+    const oldestAnomalyDay: string = getCloudBudgetOldestAnomalyDay(data.now);
     const state: CloudBudgetAlertState = isNewMonth
-      ? { month, thresholds: [], projection: false, alertIds: [] }
+      ? {
+          month,
+          thresholds: [],
+          projection: false,
+          /*
+           * Last month's unusual days that can still be read again: the
+           * last day of a month is judged on the first of the next.
+           */
+          anomalies: (data.state?.anomalies || []).filter(
+            (key: string): boolean => {
+              return key.slice(key.lastIndexOf("|") + 1) >= oldestAnomalyDay;
+            },
+          ),
+          alertIds: [],
+        }
       : {
           month,
           thresholds: [...data.state!.thresholds],
           projection: data.state!.projection,
+          anomalies: [...(data.state!.anomalies || [])],
           alertIds: [...data.state!.alertIds],
         };
 
@@ -288,7 +370,75 @@ export default class CloudBudgetEvaluator {
       state.projection = true;
     }
 
+    // Each account's unusual day, once.
+    if (data.alertOnAnomaly !== false) {
+      for (const anomalyDay of data.anomalyDays || []) {
+        const key: string = getCloudBudgetAnomalyKey(anomalyDay);
+
+        if (
+          anomalyDay.anomalies.length === 0 ||
+          state.anomalies.includes(key)
+        ) {
+          continue;
+        }
+
+        raise.push({ kind: "anomaly", anomalyDay });
+        state.anomalies.push(key);
+      }
+    }
+
     return { raise, state, resolveAlertIds };
+  }
+
+  /*
+   * The unusual days a budget's accounts had, as it sees them: only an
+   * account it counts - read this month, billed in its currency - and only
+   * days of the last week, newest first. A spike that goes on for days is
+   * told the day it began: a service that ran high the day before too is
+   * left out of a day. A day already told is left to decide, so a day a
+   * read missed is told when the next read finds it.
+   */
+  public static getAnomalyDays(data: {
+    currency: string;
+    accounts: Array<{
+      id: string;
+      scope: string;
+      summary: CloudAccountCostSummary | null;
+    }>;
+    now: Date;
+  }): Array<CloudBudgetAnomalyDay> {
+    const month: string = toCloudBudgetMonth(data.now);
+    const oldestDay: string = getCloudBudgetOldestAnomalyDay(data.now);
+    const days: Array<CloudBudgetAnomalyDay> = [];
+
+    for (const account of data.accounts) {
+      const summary: CloudAccountCostSummary | null = account.summary;
+
+      if (
+        !summary ||
+        summary.state !== CloudCostState.Reading ||
+        !summary.readAt ||
+        toCloudBudgetMonth(new Date(summary.readAt)) !== month ||
+        summary.currency.toUpperCase() !== data.currency.toUpperCase()
+      ) {
+        continue;
+      }
+
+      for (const group of getStartedCloudCostAnomalies(
+        groupCloudCostAnomaliesByDay(summary.anomalies || []),
+      )) {
+        if (group.day >= oldestDay) {
+          days.push({
+            accountRowId: account.id,
+            accountScope: account.scope,
+            day: group.day,
+            anomalies: group.anomalies,
+          });
+        }
+      }
+    }
+
+    return days;
   }
 
   // The fingerprint an alert of a budget's month and threshold is kept apart by.
@@ -297,11 +447,36 @@ export default class CloudBudgetEvaluator {
     month: string;
     alert: CloudBudgetAlertKind;
   }): string {
-    return `cloud-budget:${data.budgetId}:${data.month}:${
-      data.alert.kind === "threshold"
-        ? `threshold-${data.alert.threshold}`
-        : "projection"
-    }`;
+    let kind: string = "projection";
+
+    if (data.alert.kind === "threshold") {
+      kind = `threshold-${data.alert.threshold}`;
+    } else if (data.alert.kind === "anomaly") {
+      kind = `anomaly-${data.alert.anomalyDay.accountRowId}-${data.alert.anomalyDay.day}`;
+    }
+
+    return `cloud-budget:${data.budgetId}:${data.month}:${kind}`;
+  }
+
+  /*
+   * One unusual service or account, in a sentence of an alert: "Amazon EC2
+   * cost $412.00, 2.3 times its usual $180.00", "the account as a whole cost
+   * ...", "AWS Glue cost $40.00, where it usually costs nothing".
+   */
+  public static describeAnomaly(
+    anomaly: CloudCostAnomaly,
+    currency: string,
+  ): string {
+    const what: string = anomaly.service || "the account as a whole";
+    const amount: string = formatCloudBudgetAmount(anomaly.amount, currency);
+
+    if (anomaly.usual <= 0) {
+      return `${what} cost ${amount}, where it usually costs nothing`;
+    }
+
+    const ratio: number = getCloudCostAnomalyRatio(anomaly);
+
+    return `${what} cost ${amount}, ${(Math.round(ratio * 10) / 10).toFixed(1)} times its usual ${formatCloudBudgetAmount(anomaly.usual, currency)}`;
   }
 
   /*
@@ -341,6 +516,27 @@ export default class CloudBudgetEvaluator {
         data.spend.topServices,
         data.currency,
       );
+
+    if (data.alert.kind === "anomaly") {
+      const anomalyDay: CloudBudgetAnomalyDay = data.alert.anomalyDay;
+      const first: CloudCostAnomaly = anomalyDay.anomalies[0]!;
+      const named: Array<string> = anomalyDay.anomalies.map(
+        (anomaly: CloudCostAnomaly): string => {
+          return CloudBudgetEvaluator.describeAnomaly(anomaly, data.currency);
+        },
+      );
+      const list: string =
+        named.length === 1
+          ? named[0]!
+          : `${named.slice(0, -1).join("; ")}; and ${named[named.length - 1]}`;
+
+      return {
+        title: `Cloud budget "${data.budgetName}": ${
+          first.service || anomalyDay.accountScope
+        } cost far more than usual on ${anomalyDay.day}`,
+        description: `On ${anomalyDay.day}, in ${anomalyDay.accountScope}, ${list}. A day's usual is the median of the ${CLOUD_COST_ANOMALY_BASELINE_DAYS} days before it: a service is unusual at ${CLOUD_COST_ANOMALY_SERVICE_RATIO} times its usual day, the account as a whole at ${CLOUD_COST_ANOMALY_ACCOUNT_RATIO} times. This month's spend is ${spent} of the ${amount} budget (${percent}%), on course for ${projected}.`,
+      };
+    }
 
     if (data.alert.kind === "threshold") {
       return {
@@ -443,6 +639,7 @@ export default class CloudBudgetEvaluator {
     currency: true;
     alertThresholds: true;
     alertOnProjection: true;
+    alertOnAnomaly: true;
     alertSeverityId: true;
     alertState: true;
     onCallDutyPolicies: { _id: true };
@@ -456,6 +653,7 @@ export default class CloudBudgetEvaluator {
     currency: true,
     alertThresholds: true,
     alertOnProjection: true,
+    alertOnAnomaly: true,
     alertSeverityId: true,
     alertState: true,
     onCallDutyPolicies: { _id: true },
@@ -505,6 +703,26 @@ export default class CloudBudgetEvaluator {
         amount,
         thresholds: readCloudBudgetThresholds(budget.alertThresholds),
         alertOnProjection: budget.alertOnProjection !== false,
+        alertOnAnomaly: budget.alertOnAnomaly !== false,
+        anomalyDays: CloudBudgetEvaluator.getAnomalyDays({
+          currency,
+          accounts: accounts.map(
+            (
+              account: CloudAccount,
+            ): {
+              id: string;
+              scope: string;
+              summary: CloudAccountCostSummary | null;
+            } => {
+              return {
+                id: account.id?.toString() || "",
+                scope: CloudBudgetEvaluator.getAccountScope(account),
+                summary: readCloudAccountCostSummary(account.costSummary),
+              };
+            },
+          ),
+          now,
+        }),
         spend,
         state: readCloudBudgetAlertState(budget.alertState),
         now,
@@ -520,9 +738,7 @@ export default class CloudBudgetEvaluator {
       if (decision.raise.length > 0 && budget.isEnabled !== false) {
         const scope: string =
           budget.cloudAccountId && accounts[0]
-            ? `the ${accounts[0].name || accounts[0].accountId} account (${getCloudProviderLabel(
-                (accounts[0].provider as string) || "",
-              )} ${accounts[0].accountId || ""})`
+            ? CloudBudgetEvaluator.getAccountScope(accounts[0])
             : "every cloud account of the project";
 
         for (const alertKind of decision.raise) {
@@ -560,6 +776,13 @@ export default class CloudBudgetEvaluator {
         }`,
       );
     }
+  }
+
+  // An account as an alert names it: "the web-prod account (AWS 123456789012)".
+  public static getAccountScope(account: CloudAccount): string {
+    return `the ${account.name || account.accountId} account (${getCloudProviderLabel(
+      (account.provider as string) || "",
+    )} ${account.accountId || ""})`;
   }
 
   // The severity of a budget's alerts: its own, else the project's least severe.

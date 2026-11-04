@@ -34,7 +34,10 @@ summary (`summarizeCloudAccountCosts`, `summarizeCloudAccountSavings` from
 `Common/Types/Cloud/CloudCost`), each day's sum and each breakdown (the
 `/aggregate` sums, in the window, currency and accounts asked for), the
 budgets' month so far. So the Overview, Costs, an account's Costs and Budgets
-agree with each other, as they do for real.
+agree with each other, as they do for real. Yesterday, `data-lake`'s Amazon
+Athena cost about two and a half times its usual day: the one unusual day
+on Costs, found by the writer's own `findCloudCostAnomalies`
+(`Common/Types/Cloud/CloudCostAnomaly`).
 
 Seven ways to spend less from the clouds' recommenders (rightsizing, a
 Savings Plan, an idle volume and address, a gp2 volume to upgrade), three

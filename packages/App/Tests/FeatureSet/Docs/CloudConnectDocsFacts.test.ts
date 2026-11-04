@@ -57,6 +57,29 @@ import {
   CLOUD_SAVINGS_INTERVAL_MS,
 } from "Common/Types/Cloud/CloudCost";
 import {
+  CLOUD_COST_ANOMALY_ACCOUNT_RATIO,
+  CLOUD_COST_ANOMALY_BASELINE_DAYS,
+  CLOUD_COST_ANOMALY_DAYS_JUDGED,
+  CLOUD_COST_ANOMALY_MIN_HISTORY_DAYS,
+  CLOUD_COST_ANOMALY_MIN_INCREASE,
+  CLOUD_COST_ANOMALY_MIN_SHARE_PERCENT,
+  CLOUD_COST_ANOMALY_SERVICE_RATIO,
+} from "Common/Types/Cloud/CloudCostAnomaly";
+import {
+  CLOUD_RIGHT_SIZING_CPU_HOT_PERCENT,
+  CLOUD_RIGHT_SIZING_CPU_PEAK_PERCENT,
+  CLOUD_RIGHT_SIZING_CPU_TARGET_PERCENT,
+  CLOUD_RIGHT_SIZING_MAX_STEPS_DOWN,
+  CLOUD_RIGHT_SIZING_MEMORY_HOT_PERCENT,
+  CLOUD_RIGHT_SIZING_MEMORY_TARGET_PERCENT,
+  CLOUD_RIGHT_SIZING_MIN_OBSERVED_HOURS,
+  CLOUD_RIGHT_SIZING_PROFILES,
+  CLOUD_RIGHT_SIZING_WINDOW_DAYS,
+  CLOUD_SAVINGS_SOURCE_ONEUPTIME,
+  CloudRightSizingProfile,
+  RIGHT_SIZING_TITLE,
+} from "Common/Types/Cloud/CloudRightSizing";
+import {
   AWS_ORGANIZATION_ACTION_GROUP,
   AWS_READ_ONLY_ACTION_GROUPS,
   AWS_READ_ONLY_ACTIONS,
@@ -120,7 +143,11 @@ const SOURCES: Record<string, string> = {
   costWindow: "packages/Common/Types/Cloud/CloudCost.ts",
   budgetJob:
     "packages/App/FeatureSet/Workers/Jobs/Cloud/EvaluateCloudBudgets.ts",
+  budgetEvaluator: `${SERVER}/Utils/CloudConnection/CloudBudgetEvaluator.ts`,
   gcpCosts: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
+  costsView: `${DASHBOARD}/Components/Cloud/CloudCostsView.tsx`,
+  unusualDays: `${DASHBOARD}/Components/Cloud/CloudUnusualDaysCard.tsx`,
+  cliReadme: "packages/CLI/README.md",
 };
 
 const BASH_FENCE: RegExp = /```bash\n([\s\S]*?)\n```/g;
@@ -633,6 +660,7 @@ describe("Cloud Costs and Savings", () => {
       "Account",
       "Alert At",
       "Alert When On Course To Pass",
+      "Alert On Unusual Days",
       "Alert Severity",
       "On-Call Policies",
     ]) {
@@ -648,6 +676,122 @@ describe("Cloud Costs and Savings", () => {
     );
     expect(source("sideMenu")).toContain('title: "Budgets"');
     expect(COSTS_PAGE).toContain("**Cloud → Spend → Budgets**");
+  });
+
+  it("says what makes a day unusual as findCloudCostAnomalies judges it, where Costs lists it and when a budget tells it", () => {
+    const unusual: string = costsSection("Budgets").replace(/\s+/g, " ");
+
+    expect(CLOUD_COST_ANOMALY_DAYS_JUDGED).toBe(14);
+    expect(CLOUD_COST_ANOMALY_BASELINE_DAYS).toBe(14);
+    expect(unusual).toContain(
+      "each of an account's last 14 full days is held to the 14 days before it.",
+    );
+    expect(CLOUD_COST_ANOMALY_SERVICE_RATIO).toBe(2);
+    expect(CLOUD_COST_ANOMALY_ACCOUNT_RATIO).toBe(1.5);
+    expect(unusual).toContain(
+      "A day is unusual when a service cost twice its usual day or more, or the whole account one and a half times its usual day or more.",
+    );
+    expect(CLOUD_COST_ANOMALY_MIN_INCREASE).toBe(10);
+    expect(CLOUD_COST_ANOMALY_MIN_SHARE_PERCENT).toBe(5);
+    expect(unusual).toContain(
+      "at least 10 more than usual, in the account's currency, and at least 5% of the account's usual day",
+    );
+    expect(CLOUD_COST_ANOMALY_MIN_HISTORY_DAYS).toBe(7);
+    expect(unusual).toContain(
+      "A day's usual is the median of the 14 days before it, so one spike moves it little, and an account is judged only once it has a week of costs.",
+    );
+
+    // Costs lists them, under the daily spend: the card's own title.
+    expect(source("unusualDays")).toContain(
+      'UNUSUAL_DAYS_TITLE: string = translationKey("Unusual days");',
+    );
+    const view: string = source("costsView");
+    expect(view.indexOf("<CloudUnusualDaysCard")).toBeGreaterThan(
+      view.indexOf("<CloudDailySpendCard"),
+    );
+    expect(unusual).toContain(
+      "**Cloud → Spend → Costs** lists the unusual days under the daily spend.",
+    );
+
+    // A budget tells each account's day once, the day it began, a week back at most.
+    const evaluator: string = source("budgetEvaluator");
+    expect(evaluator).toContain(
+      "export const CLOUD_BUDGET_ANOMALY_MAX_AGE_DAYS: number = 7;",
+    );
+    expect(evaluator).toContain("getStartedCloudCostAnomalies(");
+    expect(unusual).toContain(
+      "A spike that goes on for days is told the day it began, and a day more than a week old is not told.",
+    );
+    expect(unusual).toContain("[Unusual days](#unusual-days)");
+    expect(anchorsOf("en", CLOUD_COSTS).has("unusual-days")).toBe(true);
+  });
+
+  it("says how OneUptime sizes a resource no recommender speaks for, as CloudRightSizing sizes it", () => {
+    const savings: string = costsSection("Ways to spend less").replace(
+      /\s+/g,
+      " ",
+    );
+
+    expect(CLOUD_RIGHT_SIZING_WINDOW_DAYS).toBe(14);
+    expect(savings).toContain(
+      "the CPU and memory readings its connection took over the last 14 days",
+    );
+    expect(CLOUD_RIGHT_SIZING_MAX_STEPS_DOWN).toBe(2);
+    expect(CLOUD_RIGHT_SIZING_CPU_TARGET_PERCENT).toBe(60);
+    expect(CLOUD_RIGHT_SIZING_CPU_PEAK_PERCENT).toBe(100);
+    expect(CLOUD_RIGHT_SIZING_MEMORY_TARGET_PERCENT).toBe(70);
+    expect(savings).toContain(
+      "**Over-provisioned** when the size half as big, or a quarter, would still have room: on the smaller size, its CPU's 95th percentile would be at most 60%, its highest CPU reading at most 100%, and its memory's peak at most 70% when its memory is read.",
+    );
+    expect(CLOUD_RIGHT_SIZING_CPU_HOT_PERCENT).toBe(85);
+    expect(CLOUD_RIGHT_SIZING_MEMORY_HOT_PERCENT).toBe(90);
+    expect(savings).toContain(
+      "**Under-provisioned** when its CPU's 95th percentile is 85% or more, or its memory's peak 90% or more: the size twice as big.",
+    );
+    expect(CLOUD_RIGHT_SIZING_MIN_OBSERVED_HOURS).toBe(6 * 24);
+    expect(savings).toContain(
+      "A resource is sized once it has 6 days of readings.",
+    );
+    expect(RIGHT_SIZING_TITLE).toBe("Right-sizing");
+    expect(savings).toContain(`**${RIGHT_SIZING_TITLE}**`);
+    expect(savings).toContain(
+      `with ${CLOUD_SAVINGS_SOURCE_ONEUPTIME} as its source`,
+    );
+
+    // Every kind of resource it sizes is named, and none it does not.
+    const named: Record<string, string> = {
+      "AWS::EC2::Instance": "EC2 instances",
+      "AWS::RDS::DBInstance": "RDS databases",
+      "AWS::ElastiCache::CacheCluster": "ElastiCache clusters",
+      "AWS::ElastiCache::ReplicationGroup": "ElastiCache clusters",
+      "Microsoft.Compute/virtualMachines": "virtual machines",
+      "Microsoft.DBforPostgreSQL/flexibleServers":
+        "PostgreSQL and MySQL flexible servers",
+      "Microsoft.DBforMySQL/flexibleServers":
+        "PostgreSQL and MySQL flexible servers",
+      "Microsoft.Web/serverfarms": "App Service plans",
+      gce_instance: "Compute Engine VMs",
+      cloudsql_database: "Cloud SQL instances",
+    };
+    expect(
+      CLOUD_RIGHT_SIZING_PROFILES.map(
+        (profile: CloudRightSizingProfile): string => {
+          return profile.type;
+        },
+      ).sort(),
+    ).toEqual(Object.keys(named).sort());
+    for (const words of Object.values(named)) {
+      expect(savings).toContain(words);
+    }
+  });
+
+  it("names the MCP server and the CLI's command an AI agent or a script manages budgets with", () => {
+    const budgets: string = costsSection("Budgets");
+
+    expect(budgets).toContain("[MCP server](/docs/ai/mcp-server)");
+    expect(budgets).toContain("`oneuptime cloud-budget`");
+    expect(source("cliReadme")).toContain("`cloud-budget`");
+    expect(readPage("en", "ai/mcp-server")).toContain("| Cloud Budget |");
   });
 
   it("names Cloud's pages as the side menu draws them: the Spend pages under their section", () => {

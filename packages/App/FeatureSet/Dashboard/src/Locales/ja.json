@@ -42281,5 +42281,12 @@
   "Right-sizing": "サイズの適正化",
   "Right-sizing needs {{needed}} days of its CPU readings. It has {{read}} so far.": "サイズの適正化には CPU の読み取り値が {{needed}} 日分必要です。現在は {{read}} 日分です。",
   "Up to {{amount}} a month less, at its cost over the last 30 days: its bill also holds its storage, which stays.": "過去 30 日間のコストから見て、月に最大 {{amount}} 安くなります。請求にはストレージも含まれ、それは残ります。",
-  "What it would save is said once its cloud bills it by name.": "節約額は、クラウドがこのリソースを名前で請求するようになると表示されます。"
+  "What it would save is said once its cloud bills it by name.": "節約額は、クラウドがこのリソースを名前で請求するようになると表示されます。",
+  "Alert On Unusual Days": "通常と異なる日にアラート",
+  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "通常よりはるかに高くついた日があれば、その翌日にもアラートを出します。サービスは通常の日の 2 倍、アカウントは 1.5 倍が目安です。",
+  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times. A budget that counts the account alerts on each.": "直近 2 週間のうち、通常よりはるかに高くついた日です。サービスは通常の日の 2 倍、アカウント全体は 1.5 倍が目安です。そのアカウントを含む予算が、それぞれについてアラートを出します。",
+  "The whole account": "アカウント全体",
+  "Unusual days": "通常と異なる日",
+  "Usually costs nothing": "通常は費用なし",
+  "{{times}} times its usual {{usual}}": "通常の {{usual}} の {{times}} 倍"
 }

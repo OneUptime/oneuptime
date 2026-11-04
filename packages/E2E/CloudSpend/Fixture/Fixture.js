@@ -52,6 +52,7 @@ import CloudCost from "Common/Models/AnalyticsModels/CloudCost";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { getCloudRightSizingRecommendationId } from "Common/Types/Cloud/CloudRightSizing";
+import { findCloudCostAnomalies } from "Common/Types/Cloud/CloudCostAnomaly";
 import Project from "Common/Models/DatabaseModels/Project";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -252,6 +253,12 @@ const BILLED = {
         region: "us-west-2",
         resourceId: "",
         base: 21,
+        /*
+         * Yesterday a query ran away: about two and a half times its usual
+         * day - an unusual day on Costs, and a budget's alert.
+         */
+        spikeDaysAgo: 1,
+        spikeFactor: 2.5,
       },
     ],
   },
@@ -312,7 +319,14 @@ for (const [accountRow, billed] of Object.entries(BILLED)) {
       const swing = 1 + 0.12 * Math.sin(index / 2.3 + lineIndex);
       const growth = 1 + index / 400;
       const partial = day.getTime() === today.getTime() ? 0.4 : 1;
-      const cost = Math.round(line.base * swing * growth * partial * 100) / 100;
+      const spike =
+        line.spikeDaysAgo !== undefined &&
+        Math.round((today.getTime() - day.getTime()) / DAY) ===
+          line.spikeDaysAgo
+          ? line.spikeFactor
+          : 1;
+      const cost =
+        Math.round(line.base * swing * growth * partial * spike * 100) / 100;
       COST_ROWS.push({
         cloudAccountId: accountRow,
         day: new Date(day),
@@ -335,10 +349,15 @@ for (const [accountRow, billed] of Object.entries(BILLED)) {
  */
 const COSTS_READ_AT = new Date(Math.max(LOADED_AT - 2 * HOUR, today.getTime()));
 
-// An account's summary, as the server writes it after a read of its costs.
+/*
+ * An account's summary, as the server writes it after a read of its costs
+ * (CloudCostWriter.summarizePoints): its figures, and the days of its last
+ * two weeks that cost far more than usual.
+ */
 function costSummaryOf(accountRow) {
   const dailyTotals = new Map();
   const monthServices = new Map();
+  const dailyServiceTotals = new Map();
   const monthStart = startOfUtcMonth(NOW).getTime();
 
   for (const row of COST_ROWS) {
@@ -347,6 +366,9 @@ function costSummaryOf(accountRow) {
     }
     const key = toCloudCostDay(row.day);
     dailyTotals.set(key, (dailyTotals.get(key) || 0) + row.cost);
+    const services = dailyServiceTotals.get(key) || new Map();
+    services.set(row.service, (services.get(row.service) || 0) + row.cost);
+    dailyServiceTotals.set(key, services);
     if (row.day.getTime() >= monthStart) {
       monthServices.set(
         row.service,
@@ -355,12 +377,18 @@ function costSummaryOf(accountRow) {
     }
   }
 
-  return summarizeCloudAccountCosts({
+  const summary = summarizeCloudAccountCosts({
     dailyTotals,
     monthServices,
     currency: BILLED[accountRow].currency,
     now: COSTS_READ_AT,
   });
+  const anomalies = findCloudCostAnomalies({
+    dailyServiceTotals,
+    latestDay: summary.latestDay,
+  });
+
+  return anomalies.length > 0 ? { ...summary, anomalies } : summary;
 }
 
 /*
@@ -1243,6 +1271,7 @@ async function createRecord(options) {
     cloudAccountId: relationId(model.cloudAccount || model.cloudAccountId),
     alertThresholds: model.alertThresholds,
     alertOnProjection: model.alertOnProjection,
+    alertOnAnomaly: model.alertOnAnomaly,
     isEnabled: model.isEnabled,
     description: model.description || "",
   };

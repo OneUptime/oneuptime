@@ -42281,5 +42281,12 @@
   "Right-sizing": "規格調整",
   "Right-sizing needs {{needed}} days of its CPU readings. It has {{read}} so far.": "規格調整需要 {{needed}} 天的 CPU 讀數，目前已有 {{read}} 天。",
   "Up to {{amount}} a month less, at its cost over the last 30 days: its bill also holds its storage, which stays.": "按過去 30 天的費用計算，每月最多少 {{amount}}：其帳單還包含儲存費用，這部分不變。",
-  "What it would save is said once its cloud bills it by name.": "等其雲端按名稱為它計費後，即會顯示可節省的金額。"
+  "What it would save is said once its cloud bills it by name.": "等其雲端按名稱為它計費後，即會顯示可節省的金額。",
+  "Alert On Unusual Days": "異常日發出警示",
+  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "某天的成本遠高於平常時，也會在隔天發出警示：服務達到平常一天的兩倍，或帳戶達到一倍半。",
+  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times. A budget that counts the account alerts on each.": "過去兩週中成本遠高於平常的日子：服務達到平常一天的兩倍，或整個帳戶達到一倍半。計入該帳戶的預算會針對每一天發出警示。",
+  "The whole account": "整個帳戶",
+  "Unusual days": "異常日",
+  "Usually costs nothing": "平常無費用",
+  "{{times}} times its usual {{usual}}": "平常 {{usual}} 的 {{times}} 倍"
 }

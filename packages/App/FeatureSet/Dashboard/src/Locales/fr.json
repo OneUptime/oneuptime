@@ -42281,5 +42281,12 @@
   "Right-sizing": "Redimensionnement",
   "Right-sizing needs {{needed}} days of its CPU readings. It has {{read}} so far.": "Le redimensionnement a besoin de {{needed}} jours de relevés de son CPU. Il en a {{read}} pour l'instant.",
   "Up to {{amount}} a month less, at its cost over the last 30 days: its bill also holds its storage, which stays.": "Jusqu'à {{amount}} de moins par mois, d'après son coût des 30 derniers jours : sa facture comprend aussi son stockage, qui reste.",
-  "What it would save is said once its cloud bills it by name.": "L'économie s'affichera dès que son cloud le facturera nommément."
+  "What it would save is said once its cloud bills it by name.": "L'économie s'affichera dès que son cloud le facturera nommément.",
+  "Alert On Unusual Days": "Alerter en cas de jour inhabituel",
+  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Alerter aussi le lendemain d'un jour qui coûte bien plus que d'habitude : un service au double de sa journée habituelle, ou un compte à une fois et demie.",
+  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times. A budget that counts the account alerts on each.": "Les jours des deux dernières semaines qui ont coûté bien plus que d'habitude : un service au double de sa journée habituelle, ou un compte entier à une fois et demie. Un budget qui inclut le compte alerte pour chacun.",
+  "The whole account": "Le compte entier",
+  "Unusual days": "Jours inhabituels",
+  "Usually costs nothing": "Ne coûte habituellement rien",
+  "{{times}} times its usual {{usual}}": "{{times}} fois son montant habituel de {{usual}}"
 }

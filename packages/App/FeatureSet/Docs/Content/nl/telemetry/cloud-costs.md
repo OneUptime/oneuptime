@@ -79,6 +79,15 @@ De gedetailleerde export noemt de resource waarvoor elke kostenpost is; de stand
 
 **Cloud → Uitgaven → Besparingen** toont elke aanbeveling, de grootste besparing eerst: wat er moet gebeuren, bij welke resource, wat er zou veranderen en wat ze per maand bespaart. De strook erboven telt ze op, in totaal en per soort: een kleiner formaat, een resource die stilstaat, een toezegging. Een aanbeveling linkt naar de pagina van haar resource als OneUptime de resource heeft.
 
+### Groottebepaling op basis van de eigen metingen van OneUptime
+
+Een resource waar geen aanbevelingsdienst iets over zegt, omdat die niet is ingeschakeld, het type niet dekt of de resource te nieuw vindt, krijgt van OneUptime een grootte op basis van de CPU- en geheugenmetingen die de verbinding de afgelopen 14 dagen deed. OneUptime bepaalt de grootte van EC2-instances, RDS-databases en ElastiCache-clusters op AWS, virtuele machines, flexibele PostgreSQL- en MySQL-servers en App Service-plannen op Azure, en Compute Engine-VM's en Cloud SQL-instances op Google Cloud:
+
+- **Overgeprovisioneerd** als het formaat half zo groot, of een kwart, nog ruimte zou hebben: op het kleinere formaat zou het 95e percentiel van de CPU hoogstens 60% zijn, de hoogste CPU-meting hoogstens 100% en de geheugenpiek hoogstens 70%, als het geheugen wordt gelezen.
+- **Ondergeprovisioneerd** als het 95e percentiel van de CPU 85% of meer is, of de geheugenpiek 90% of meer: het formaat twee keer zo groot.
+
+Een resource krijgt een grootte zodra er 6 dagen aan metingen zijn. De pagina toont de **Groottebepaling** naast wat de resource kost, en een overgeprovisioneerde staat onder **Cloud → Uitgaven → Besparingen**, met OneUptime als bron. Wat een wijziging bespaart, is haar deel van wat de resource de afgelopen 30 dagen kostte, dus het is bekend zodra je cloud de resource op naam factureert: de gedetailleerde export van Azure en Google Cloud doet dat, AWS Cost Explorer niet. Een EC2-instance meldt haar geheugen alleen met de CloudWatch-agent, en een Compute Engine-VM alleen met de Ops Agent: zonder die agent krijgt ze een grootte op basis van alleen de CPU. Burstable formaten, zoals t3, de B-serie en e2-micro, krijgen nooit een grootte.
+
 ## Budgetten
 
 :::steps
@@ -88,17 +97,25 @@ Maak onder **Cloud → Uitgaven → Budgetten** een budget: het **Maandbedrag** 
 
 ### Kiezen wanneer het waarschuwt
 
-**Waarschuwen bij** neemt de delen van het budget waarbij gewaarschuwd wordt, in procenten: om te beginnen 80 en 100. **Waarschuwen bij dreigende overschrijding** waarschuwt ook, één keer per maand, als het tempo van de laatste week de maand boven het budget zou brengen. **Ernst van waarschuwing** en **Bereikbaarheidsbeleid** bepalen hoe ernstig de waarschuwingen zijn en wie er wordt opgeroepen.
+**Waarschuwen bij** neemt de delen van het budget waarbij gewaarschuwd wordt, in procenten: om te beginnen 80 en 100. **Waarschuwen bij dreigende overschrijding** waarschuwt ook, één keer per maand, als het tempo van de laatste week de maand boven het budget zou brengen. **Waarschuwen bij ongewone dagen** waarschuwt ook op de dag na een dag die veel meer kostte dan gewoonlijk: zie [Ongewone dagen](#ongewone-dagen). **Ernst van waarschuwing** en **Bereikbaarheidsbeleid** bepalen hoe ernstig de waarschuwingen zijn en wie er wordt opgeroepen.
 :::
 
 Een budget wordt gecontroleerd na elke leesbeurt van de kosten en elk uur. Zodra de uitgaven van de maand een drempel passeren, wordt er een waarschuwing voor gemaakt, voor de hoogste als een leesbeurt er meerdere tegelijk passeert, en een nieuwe maand lost de waarschuwingen van de vorige op. Een budget telt alleen de accounts die in zijn valuta worden gefactureerd.
 
+AI-agents kunnen budgetten maken en wijzigen via de [MCP-server](/docs/ai/mcp-server), en scripts met het commando `oneuptime cloud-budget` van de CLI: zie [Bewerkingen op bronnen](/docs/cli/resource-operations).
+
+### Ongewone dagen
+
+Na elke leesbeurt wordt elk van de laatste 14 volle dagen van een account vergeleken met de 14 dagen ervoor. Een dag is ongewoon als een service het dubbele van zijn gewone dag of meer kostte, of het hele account anderhalf keer zijn gewone dag of meer. In beide gevallen moet het minstens 10 meer zijn dan gewoonlijk, in de valuta van het account, en minstens 5% van de gewone dag van het account, zodat een paar cent nooit als piek telt. De gewone waarde van een dag is de mediaan van de 14 dagen ervoor, dus één piek verschuift die weinig, en een account wordt pas beoordeeld als het een week aan kosten heeft.
+
+**Cloud → Uitgaven → Kosten** toont de ongewone dagen onder de dagelijkse uitgaven. Een budget dat het account meetelt, maakt één waarschuwing voor elk account en elke dag, de dag erna, en noemt elke service die hoog uitkwam. Een piek die dagen aanhoudt, wordt gemeld op de dag dat hij begon, en een dag van meer dan een week geleden wordt niet gemeld.
+
 ## Wat je in OneUptime ziet
 
 - **Het overzicht van Cloud.** **Cloud → Overzicht** toont de uitgaven van de maand tegenover die van vorige maand op dezelfde dag, de duurste diensten en de grootste manieren om minder uit te geven, naast wat aandacht nodig heeft.
-- **De uitgaven van elke dag.** **Cloud → Uitgaven → Kosten** tekent elk van de laatste 30 dagen en splitst een periode uit per dienst, regio, account of resource. De accounts waarvan de kosten niet worden gelezen, staan eronder, elk met de reden.
+- **De uitgaven van elke dag.** **Cloud → Uitgaven → Kosten** tekent elk van de laatste 30 dagen, toont de dagen die veel meer kostten dan gewoonlijk en splitst een periode uit per dienst, regio, account of resource. De accounts waarvan de kosten niet worden gelezen, staan eronder, elk met de reden.
 - **De kosten van een account.** De pagina **Kosten** van een account toont hetzelfde voor alleen dat account, met de manieren om minder uit te geven.
-- **De kosten van een resource.** De pagina van een resource toont wat die deze maand en in de laatste 30 dagen heeft gekost als de cloud haar op naam factureert, met de manieren om minder uit te geven.
+- **De kosten van een resource.** De pagina van een resource toont wat die deze maand en in de laatste 30 dagen heeft gekost als de cloud haar op naam factureert, met de manieren om minder uit te geven en haar groottebepaling.
 
 ## Problemen oplossen
 

@@ -1321,6 +1321,71 @@ test.describe("Costs", () => {
     expect((await breakdownRows(page)).length).toBeGreaterThan(0);
   });
 
+  test("an unusual day: data-lake's Athena yesterday, under the daily spend, linked to its account - and only on that account's Costs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, COSTS);
+
+    const yesterday: string = await page.evaluate((): string => {
+      const now: Date = new Date();
+      return new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1),
+      )
+        .toISOString()
+        .slice(0, 10);
+    });
+
+    const unusual: Locator = page.getByTestId("cloud-unusual-days");
+    await expect(unusual).toBeVisible();
+    const days: Locator = unusual.getByTestId("cloud-unusual-day");
+    // Every other day of every account is a usual one: their swing is small.
+    await expect(days).toHaveCount(1);
+    await expect(days.first()).toHaveAttribute("data-day", yesterday);
+    await expect(days.first().getByTestId("cloud-unusual-day-what")).toHaveText(
+      "Amazon Athena",
+    );
+    await expect(
+      days.first().getByTestId("cloud-unusual-day-usual"),
+    ).toContainText("times its usual $");
+    expect(
+      amountOf(
+        (await days
+          .first()
+          .getByTestId("cloud-unusual-day-amount")
+          .textContent()) || "",
+      ),
+    ).toBeGreaterThan(40);
+    await expect(
+      days.first().getByRole("link", { name: "data-lake" }),
+    ).toHaveAttribute("href", `${CLOUD}/accounts/${DATA_LAKE_ID}/costs`);
+
+    // Read with the daily spend it explains, before where the money goes.
+    const [daily, card, breakdown] = await boxesInOneFrame([
+      page.getByTestId("cloud-daily-spend"),
+      unusual,
+      page.getByTestId("cloud-cost-breakdown"),
+    ]);
+    expect(card!.y).toBeGreaterThan(daily!.y + daily!.height - 0.5);
+    expect(breakdown!.y).toBeGreaterThan(card!.y + card!.height - 0.5);
+    await screenshot(page, "cloud-costs-1280-unusual-days");
+
+    // data-lake's own Costs: its day, naming no account.
+    await open(page, `${CLOUD}/accounts/${DATA_LAKE_ID}/costs`);
+    await expect(
+      page.getByTestId("cloud-unusual-days").getByTestId("cloud-unusual-day"),
+    ).toHaveCount(1);
+    await expect(page.getByTestId("cloud-unusual-day-account")).toHaveCount(0);
+
+    // web-prod had none: no card.
+    await open(page, WEB_PROD_COSTS);
+    expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
+    await expect(page.getByTestId("cloud-unusual-days")).toHaveCount(0);
+    expect((await recorded(page)).unhandled).toEqual([]);
+  });
+
   test("on a phone: the tiles two by two, the choices wrap, the chart fits, nothing scrolls sideways", async ({
     page,
   }: {
@@ -1662,6 +1727,8 @@ test.describe("Budgets", () => {
         cloudAccountId: "",
         alertThresholds: "80,100",
         alertOnProjection: true,
+        // A day that costs far more than usual alerts too, unless turned off.
+        alertOnAnomaly: true,
         description: "",
       },
     });

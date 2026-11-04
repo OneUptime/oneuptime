@@ -148,6 +148,7 @@ const CloudBudgets: FunctionComponent<
         currency,
         alertThresholds: CLOUD_BUDGET_DEFAULT_THRESHOLDS.join(","),
         alertOnProjection: true,
+        alertOnAnomaly: true,
         isEnabled: true,
       }}
       selectMoreFields={{
@@ -414,6 +415,16 @@ const CloudBudgets: FunctionComponent<
           defaultValue: true,
           description:
             "Also alert, once a month, when the month is on course to cost more than the budget at the last week's pace - before it does.",
+        },
+        {
+          field: { alertOnAnomaly: true },
+          title: "Alert On Unusual Days",
+          stepId: "alerts",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          defaultValue: true,
+          description:
+            "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.",
         },
         {
           field: { alertSeverity: true },

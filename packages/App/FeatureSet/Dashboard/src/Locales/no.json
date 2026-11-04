@@ -42281,5 +42281,12 @@
   "Right-sizing": "Størrelsestilpasning",
   "Right-sizing needs {{needed}} days of its CPU readings. It has {{read}} so far.": "Størrelsestilpasning trenger {{needed}} dager med CPU-målinger. Så langt er det {{read}}.",
   "Up to {{amount}} a month less, at its cost over the last 30 days: its bill also holds its storage, which stays.": "Opptil {{amount}} mindre i måneden, ut fra kostnaden de siste 30 dagene: regningen omfatter også lagringen, som blir.",
-  "What it would save is said once its cloud bills it by name.": "Besparelsen vises når skyen fakturerer den ved navn."
+  "What it would save is said once its cloud bills it by name.": "Besparelsen vises når skyen fakturerer den ved navn.",
+  "Alert On Unusual Days": "Varsle ved uvanlige dager",
+  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Varsle også dagen etter en dag som koster langt mer enn vanlig: en tjeneste til det dobbelte av sin vanlige dag, eller en konto til halvannen gang.",
+  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times. A budget that counts the account alerts on each.": "Dager de siste to ukene som kostet langt mer enn vanlig: en tjeneste til det dobbelte av sin vanlige dag, eller en hel konto til halvannen gang. Et budsjett som regner med kontoen, varsler om hver av dem.",
+  "The whole account": "Hele kontoen",
+  "Unusual days": "Uvanlige dager",
+  "Usually costs nothing": "Koster vanligvis ingenting",
+  "{{times}} times its usual {{usual}}": "{{times}} ganger det vanlige beløpet på {{usual}}"
 }

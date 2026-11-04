@@ -246,6 +246,48 @@ describe("every account's costs", () => {
     expect(values).toEqual(["$3,000", "$7,800", "$8,000", "—"]);
   });
 
+  test("unusual days: under the daily spend and before where the money goes, when an account had one", async () => {
+    await openView({
+      accounts: [
+        row({
+          ...WEB,
+          id: WEB_ROW,
+          costSummary: summary({
+            anomalies: [
+              {
+                day: "2026-11-19",
+                service: "AWS Lambda",
+                amount: 412,
+                usual: 180,
+              },
+            ],
+          }),
+        }),
+        DATA,
+      ],
+    });
+
+    const unusual: HTMLElement = screen.getByTestId("cloud-unusual-days");
+    expect(within(unusual).getAllByTestId("cloud-unusual-day")).toHaveLength(1);
+    expect(unusual).toHaveTextContent("AWS Lambda");
+    expect(unusual).toHaveTextContent("web-prod");
+    expect(
+      screen.getByTestId("cloud-daily-spend").compareDocumentPosition(unusual) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      unusual.compareDocumentPosition(
+        screen.getByTestId("cloud-cost-breakdown"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("no account had an unusual day: no card", async () => {
+    await openView();
+
+    expect(screen.queryByTestId("cloud-unusual-days")).toBeNull();
+  });
+
   test("each of the last 30 days, read summed by day for every account", async () => {
     await openView();
 
@@ -425,6 +467,26 @@ describe("one account's Costs tab", () => {
         "cloud-stat-tile-value",
       )[0],
     ).toHaveTextContent("$2,000");
+  });
+
+  test("its unusual days name no account: they are all its own", async () => {
+    const web: CloudAccountRow = row({
+      ...WEB,
+      id: WEB_ROW,
+      costSummary: summary({
+        anomalies: [
+          { day: "2026-11-19", service: "AWS Lambda", amount: 412, usual: 180 },
+        ],
+      }),
+    });
+
+    await openView({ accounts: [web], cloudAccountId: web.id });
+
+    const unusual: HTMLElement = screen.getByTestId("cloud-unusual-days");
+    expect(unusual).toHaveTextContent("AWS Lambda");
+    expect(
+      within(unusual).queryByTestId("cloud-unusual-day-account"),
+    ).toBeNull();
   });
 
   /*

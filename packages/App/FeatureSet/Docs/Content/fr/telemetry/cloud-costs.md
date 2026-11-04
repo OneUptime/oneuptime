@@ -79,6 +79,15 @@ L'export détaillé indique la ressource à laquelle correspond chaque coût ; l
 
 **Cloud → Dépenses → Économies** liste chaque recommandation, la plus grosse économie d'abord : quoi faire, sur quelle ressource, ce qui changerait et ce qu'elle fait économiser par mois. Le bandeau du dessus les additionne, au total et par type : une taille plus petite, une ressource inactive, un engagement. Une recommandation renvoie vers la page de sa ressource quand OneUptime possède la ressource.
 
+### Redimensionnement d'après les propres relevés de OneUptime
+
+Une ressource pour laquelle aucun moteur de recommandation ne se prononce, parce qu'il n'est pas activé, ne couvre pas son type ou la juge trop récente, est dimensionnée par OneUptime d'après les relevés de CPU et de mémoire que sa connexion a pris au cours des 14 derniers jours. OneUptime dimensionne les instances EC2, les bases de données RDS et les clusters ElastiCache sur AWS, les machines virtuelles, les serveurs flexibles PostgreSQL et MySQL et les plans App Service sur Azure, ainsi que les VM Compute Engine et les instances Cloud SQL sur Google Cloud :
+
+- **Surdimensionné** quand la taille deux fois plus petite, ou quatre fois plus petite, aurait encore de la marge : sur la plus petite taille, le 95e centile de son CPU serait d'au plus 60 %, son relevé de CPU le plus haut d'au plus 100 % et le pic de sa mémoire d'au plus 70 % quand sa mémoire est lue.
+- **Sous-dimensionné** quand le 95e centile de son CPU atteint 85 % ou plus, ou le pic de sa mémoire 90 % ou plus : la taille deux fois plus grande.
+
+Une ressource est dimensionnée dès qu'elle a 6 jours de relevés. Sa page montre son **Redimensionnement** à côté de ce qu'elle coûte, et une ressource surdimensionnée figure sous **Cloud → Dépenses → Économies**, avec OneUptime comme source. Ce qu'un changement fait économiser est sa part de ce que la ressource a coûté sur les 30 derniers jours : on le connaît donc dès que votre cloud facture la ressource par son nom. L'export détaillé d'Azure et de Google Cloud le fait, AWS Cost Explorer non. Une instance EC2 ne signale sa mémoire qu'avec l'agent CloudWatch, et une VM Compute Engine qu'avec l'Ops Agent : sans lui, elle est dimensionnée d'après son seul CPU. Les tailles burstables, comme t3, la série B et e2-micro, ne sont jamais dimensionnées.
+
 ## Budgets
 
 :::steps
@@ -88,17 +97,25 @@ Dans **Cloud → Dépenses → Budgets**, créez un budget : son **Montant mensu
 
 ### Choisir quand il alerte
 
-**Alerter à** prend les parts du budget auxquelles alerter, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par mois, quand le rythme de la dernière semaine ferait dépasser le budget au mois. **Gravité de l'alerte** et **Politiques d'astreinte** disent la gravité des alertes et qui est prévenu.
+**Alerter à** prend les parts du budget auxquelles alerter, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par mois, quand le rythme de la dernière semaine ferait dépasser le budget au mois. **Alerter en cas de jour inhabituel** alerte aussi le lendemain d'un jour qui a coûté bien plus que d'habitude : voir [Jours inhabituels](#jours-inhabituels). **Gravité de l'alerte** et **Politiques d'astreinte** disent la gravité des alertes et qui est prévenu.
 :::
 
 Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses du mois franchissent un seuil, une alerte est levée pour lui, la plus haute si une lecture en franchit plusieurs à la fois, et un nouveau mois résout les alertes du mois précédent. Un budget ne compte que les comptes facturés dans sa devise.
 
+Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/docs/ai/mcp-server), et les scripts avec la commande `oneuptime cloud-budget` de la CLI : voir [Opérations sur les ressources](/docs/cli/resource-operations).
+
+### Jours inhabituels
+
+Après chaque lecture, chacun des 14 derniers jours complets d'un compte est comparé aux 14 jours qui le précèdent. Un jour est inhabituel quand un service a coûté le double de sa journée habituelle ou plus, ou le compte entier une fois et demie sa journée habituelle ou plus. Dans les deux cas, il faut au moins 10 de plus que d'habitude, dans la devise du compte, et au moins 5 % de la journée habituelle du compte, pour que quelques centimes ne passent jamais pour un pic. La valeur habituelle d'un jour est la médiane des 14 jours qui le précèdent, si bien qu'un pic isolé la fait peu bouger, et un compte n'est jugé qu'une fois qu'il a une semaine de coûts.
+
+**Cloud → Dépenses → Coûts** liste les jours inhabituels sous les dépenses quotidiennes. Un budget qui inclut le compte lève une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a coûté trop. Un pic qui dure plusieurs jours est signalé le jour où il a commencé, et un jour vieux de plus d'une semaine n'est pas signalé.
+
 ## Ce que vous voyez dans OneUptime
 
 - **La vue d'ensemble de Cloud.** **Cloud → Vue d'ensemble** montre les dépenses du mois face à celles du mois dernier au même jour, les services qui coûtent le plus et les plus gros moyens de dépenser moins, à côté de ce qui demande votre attention.
-- **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours et ventile une période par service, région, compte ou ressource. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
+- **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours, liste les jours qui ont coûté bien plus que d'habitude et ventile une période par service, région, compte ou ressource. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
 - **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses moyens de dépenser moins.
-- **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins.
+- **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.
 
 ## Dépannage
 

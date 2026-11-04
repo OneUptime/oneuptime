@@ -12,13 +12,17 @@ import CloudAccountService from "../../../../Server/Services/CloudAccountService
 import CloudBudgetService from "../../../../Server/Services/CloudBudgetService";
 import CloudBudgetEvaluator, {
   CloudBudgetAlertState,
+  CloudBudgetAnomalyDay,
   CloudBudgetDecision,
   CloudBudgetSpend,
   formatCloudBudgetAmount,
+  getCloudBudgetAnomalyKey,
+  getCloudBudgetOldestAnomalyDay,
   readCloudBudgetAlertState,
 } from "../../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
 import {
   CloudAccountCostSummary,
+  CloudCostAnomaly,
   CloudCostState,
 } from "../../../../Types/Cloud/CloudCost";
 import OneUptimeDate from "../../../../Types/Date";
@@ -169,6 +173,7 @@ describe("what a budget does", () => {
       month: "2026-11",
       thresholds: [50, 80],
       projection: false,
+      anomalies: [],
       alertIds: [],
     });
 
@@ -253,6 +258,7 @@ describe("what a budget does", () => {
         month: "2026-10",
         thresholds: [80, 100],
         projection: true,
+        anomalies: ["acc|2026-10-30"],
         alertIds: [OLD_ALERT],
       },
       now: NOW,
@@ -263,6 +269,7 @@ describe("what a budget does", () => {
       month: "2026-11",
       thresholds: [],
       projection: false,
+      anomalies: [],
       alertIds: [],
     });
     expect(decision.raise).toEqual([]);
@@ -402,10 +409,364 @@ describe("what a budget does", () => {
       month: "2026-11",
       thresholds: [80, 100],
       projection: false,
+      // A state stored before unusual days had none.
+      anomalies: [],
       alertIds: [OLD_ALERT],
     });
+    expect(
+      readCloudBudgetAlertState({
+        month: "2026-11",
+        anomalies: ["acc|2026-11-19", "", 4],
+      })?.anomalies,
+    ).toEqual(["acc|2026-11-19"]);
     expect(formatCloudBudgetAmount(1234.5, "USD")).toBe("$1,234.50");
     expect(formatCloudBudgetAmount(10, "NOT A CODE")).toBe("NOT A CODE 10.00");
+  });
+});
+
+/*
+ * A day that cost far more than usual: an alert of its own, the day after,
+ * once for each account and day, naming every service that ran high - unless
+ * the budget is told not to.
+ */
+describe("an unusual day", () => {
+  const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
+  const SCOPE: string = "the web-prod account (AWS 123456789012)";
+
+  const lambda: CloudCostAnomaly = {
+    day: "2026-11-19",
+    service: "AWS Lambda",
+    amount: 412,
+    usual: 180,
+  };
+  const whole: CloudCostAnomaly = {
+    day: "2026-11-19",
+    service: "",
+    amount: 2400,
+    usual: 1500,
+  };
+
+  function anomalyDay(
+    anomalies: Array<CloudCostAnomaly> = [lambda],
+  ): CloudBudgetAnomalyDay {
+    return {
+      accountRowId: ACCOUNT_ROW,
+      accountScope: SCOPE,
+      day: "2026-11-19",
+      anomalies,
+    };
+  }
+
+  test("an account's unusual day alerts once, whatever reads come after it", () => {
+    const first: CloudBudgetDecision = CloudBudgetEvaluator.decide({
+      amount: 10000,
+      thresholds: [80, 100],
+      alertOnProjection: true,
+      anomalyDays: [anomalyDay()],
+      spend: spend({ spent: 100, projected: 900 }),
+      state: null,
+      now: NOW,
+    });
+
+    expect(first.raise).toEqual([
+      { kind: "anomaly", anomalyDay: anomalyDay() },
+    ]);
+    expect(first.state.anomalies).toEqual([`${ACCOUNT_ROW}|2026-11-19`]);
+    expect(
+      getCloudBudgetAnomalyKey({
+        accountRowId: ACCOUNT_ROW,
+        day: "2026-11-19",
+      }),
+    ).toBe(`${ACCOUNT_ROW}|2026-11-19`);
+
+    // The next read finds the same day: nothing new.
+    expect(
+      CloudBudgetEvaluator.decide({
+        amount: 10000,
+        thresholds: [80, 100],
+        alertOnProjection: true,
+        anomalyDays: [anomalyDay([lambda, whole])],
+        spend: spend({ spent: 100, projected: 900 }),
+        state: first.state,
+        now: NOW,
+      }).raise,
+    ).toEqual([]);
+
+    // The next day's is new.
+    expect(
+      CloudBudgetEvaluator.decide({
+        amount: 10000,
+        thresholds: [80, 100],
+        alertOnProjection: true,
+        anomalyDays: [{ ...anomalyDay(), day: "2026-11-20" }],
+        spend: spend({ spent: 100, projected: 900 }),
+        state: first.state,
+        now: NOW,
+      }).raise,
+    ).toHaveLength(1);
+  });
+
+  test("a budget told not to alerts on none, and keeps no day", () => {
+    const decision: CloudBudgetDecision = CloudBudgetEvaluator.decide({
+      amount: 10000,
+      thresholds: [80, 100],
+      alertOnProjection: true,
+      alertOnAnomaly: false,
+      anomalyDays: [anomalyDay()],
+      spend: spend({ spent: 100, projected: 900 }),
+      state: null,
+      now: NOW,
+    });
+    expect(decision.raise).toEqual([]);
+    expect(decision.state.anomalies).toEqual([]);
+  });
+
+  test("a budget's accounts' days: counted ones only, each day of the last week once, a spike told the day it began", () => {
+    const days: Array<CloudBudgetAnomalyDay> =
+      CloudBudgetEvaluator.getAnomalyDays({
+        currency: "usd",
+        accounts: [
+          {
+            id: ACCOUNT_ROW,
+            scope: SCOPE,
+            summary: summary({
+              latestDay: "2026-11-20",
+              anomalies: [whole, lambda],
+            }),
+          },
+          // Billed in another currency.
+          {
+            id: "b",
+            scope: "b",
+            summary: summary({
+              currency: "EUR",
+              latestDay: "2026-11-20",
+              anomalies: [lambda],
+            }),
+          },
+          // Read last month.
+          {
+            id: "c",
+            scope: "c",
+            summary: summary({
+              readAt: "2026-10-31T23:00:00.000Z",
+              latestDay: "2026-11-20",
+              anomalies: [lambda],
+            }),
+          },
+          // Could not be read.
+          {
+            id: "d",
+            scope: "d",
+            summary: summary({
+              state: CloudCostState.NotAllowed,
+              latestDay: "2026-11-20",
+              anomalies: [lambda],
+            }),
+          },
+          /*
+           * A spike that went on for three days, and a service that began
+           * on its third: told on the day each began.
+           */
+          {
+            id: "e",
+            scope: "e",
+            summary: summary({
+              latestDay: "2026-11-20",
+              anomalies: [
+                lambda,
+                { ...lambda, service: "AWS Glue", amount: 60, usual: 0 },
+                { ...lambda, day: "2026-11-18" },
+                { ...lambda, day: "2026-11-17" },
+              ],
+            }),
+          },
+          // Nothing unusual.
+          {
+            id: "f",
+            scope: "f",
+            summary: summary({ latestDay: "2026-11-20" }),
+          },
+          { id: "g", scope: "g", summary: null },
+          // Read late: its newest full day is more than a week old.
+          {
+            id: "h",
+            scope: "h",
+            summary: summary({
+              latestDay: "2026-11-13",
+              anomalies: [{ ...lambda, day: "2026-11-12" }],
+            }),
+          },
+          // A week old to the day: still told.
+          {
+            id: "i",
+            scope: "i",
+            summary: summary({
+              latestDay: "2026-11-14",
+              anomalies: [{ ...lambda, day: "2026-11-13" }],
+            }),
+          },
+        ],
+        now: NOW,
+      });
+
+    expect(days).toEqual([
+      {
+        accountRowId: ACCOUNT_ROW,
+        accountScope: SCOPE,
+        day: "2026-11-19",
+        anomalies: [whole, lambda],
+      },
+      {
+        accountRowId: "e",
+        accountScope: "e",
+        day: "2026-11-19",
+        anomalies: [{ ...lambda, service: "AWS Glue", amount: 60, usual: 0 }],
+      },
+      {
+        accountRowId: "e",
+        accountScope: "e",
+        day: "2026-11-17",
+        anomalies: [{ ...lambda, day: "2026-11-17" }],
+      },
+      {
+        accountRowId: "i",
+        accountScope: "i",
+        day: "2026-11-13",
+        anomalies: [{ ...lambda, day: "2026-11-13" }],
+      },
+    ]);
+    expect(getCloudBudgetOldestAnomalyDay(NOW)).toBe("2026-11-13");
+  });
+
+  test("a month's last day is judged on the next month's first, and alerts once across the two", () => {
+    const FIRST: Date = new Date("2026-12-01T09:00:00.000Z");
+    const lastDay: CloudBudgetAnomalyDay = {
+      ...anomalyDay(),
+      day: "2026-11-30",
+    };
+
+    // November's last check alerted on its last day but one.
+    const november: CloudBudgetAlertState = {
+      month: "2026-11",
+      thresholds: [80],
+      projection: true,
+      anomalies: [
+        `${ACCOUNT_ROW}|2026-11-02`,
+        `${ACCOUNT_ROW}|2026-11-29`,
+        `${ACCOUNT_ROW}|2026-11-30`,
+      ],
+      alertIds: [OLD_ALERT],
+    };
+
+    const decision: CloudBudgetDecision = CloudBudgetEvaluator.decide({
+      amount: 10000,
+      thresholds: [80, 100],
+      alertOnProjection: true,
+      anomalyDays: [lastDay],
+      spend: spend({ spent: 10, projected: 300 }),
+      state: november,
+      now: FIRST,
+    });
+
+    // November's 30th was told in November: not again in December.
+    expect(decision.raise).toEqual([]);
+    expect(decision.resolveAlertIds).toEqual([OLD_ALERT]);
+    // Only the days that can still be read again are kept.
+    expect(decision.state).toEqual({
+      month: "2026-12",
+      thresholds: [],
+      projection: false,
+      anomalies: [`${ACCOUNT_ROW}|2026-11-29`, `${ACCOUNT_ROW}|2026-11-30`],
+      alertIds: [],
+    });
+
+    // Judged first on December's first, it is told then.
+    expect(
+      CloudBudgetEvaluator.decide({
+        amount: 10000,
+        thresholds: [80, 100],
+        alertOnProjection: true,
+        anomalyDays: [lastDay],
+        spend: spend({ spent: 10, projected: 300 }),
+        state: { ...november, anomalies: [] },
+        now: FIRST,
+      }).raise,
+    ).toEqual([{ kind: "anomaly", anomalyDay: lastDay }]);
+  });
+
+  test("an account with no unusual spend that day raises nothing", () => {
+    expect(
+      CloudBudgetEvaluator.decide({
+        amount: 10000,
+        thresholds: [80, 100],
+        alertOnProjection: true,
+        anomalyDays: [anomalyDay([])],
+        spend: spend({ spent: 100, projected: 900 }),
+        state: null,
+        now: NOW,
+      }).raise,
+    ).toEqual([]);
+  });
+
+  test("kept apart by its budget, month, account and day", () => {
+    expect(
+      CloudBudgetEvaluator.getFingerprint({
+        budgetId: BUDGET_ID.toString(),
+        month: "2026-11",
+        alert: { kind: "anomaly", anomalyDay: anomalyDay() },
+      }),
+    ).toBe(
+      `cloud-budget:${BUDGET_ID.toString()}:2026-11:anomaly-${ACCOUNT_ROW}-2026-11-19`,
+    );
+  });
+
+  test("says which day, which account, and every service that ran high - and where the month stands", () => {
+    const words: {
+      title: string;
+      description: string;
+      rootCause?: string | undefined;
+    } = CloudBudgetEvaluator.describe({
+      budgetName: "Production",
+      scope: "every cloud account of the project",
+      amount: 10000,
+      currency: "USD",
+      spend: spend({ spent: 2500, projected: 7800 }),
+      alert: {
+        kind: "anomaly",
+        anomalyDay: anomalyDay([
+          lambda,
+          { day: "2026-11-19", service: "AWS Glue", amount: 40, usual: 0 },
+        ]),
+      },
+      now: NOW,
+    });
+
+    expect(words.title).toBe(
+      'Cloud budget "Production": AWS Lambda cost far more than usual on 2026-11-19',
+    );
+    expect(words.description).toBe(
+      `On 2026-11-19, in ${SCOPE}, AWS Lambda cost $412.00, 2.3 times its usual $180.00; and AWS Glue cost $40.00, where it usually costs nothing. A day's usual is the median of the 14 days before it: a service is unusual at 2 times its usual day, the account as a whole at 1.5 times. This month's spend is $2,500.00 of the $10,000.00 budget (25%), on course for $7,800.00.`,
+    );
+    // The services are the description: no root cause beside it.
+    expect(words.rootCause).toBeUndefined();
+
+    expect(
+      CloudBudgetEvaluator.describe({
+        budgetName: "Production",
+        scope: "every cloud account of the project",
+        amount: 10000,
+        currency: "USD",
+        spend: spend({ spent: 2500, projected: 7800 }),
+        alert: { kind: "anomaly", anomalyDay: anomalyDay([whole]) },
+        now: NOW,
+      }).title,
+    ).toBe(
+      `Cloud budget "Production": ${SCOPE} cost far more than usual on 2026-11-19`,
+    );
+    expect(CloudBudgetEvaluator.describeAnomaly(whole, "USD")).toBe(
+      "the account as a whole cost $2,400.00, 1.6 times its usual $1,500.00",
+    );
   });
 });
 
@@ -643,6 +1004,75 @@ describe("a budget's check", () => {
     expect(
       (updates[0]!["alertState"] as unknown as CloudBudgetAlertState).month,
     ).toBe("2026-11");
+  });
+
+  test("an account's unusual day is an alert of its own, once, kept apart by its account and day", async () => {
+    accounts = [
+      makeAccount(
+        summary({
+          monthToDate: 100,
+          projectedMonth: 500,
+          latestDay: "2026-11-20",
+          anomalies: [
+            {
+              day: "2026-11-19",
+              service: "AWS Lambda",
+              amount: 412,
+              usual: 180,
+            },
+          ],
+        }),
+      ),
+    ];
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+
+    expect(created).toHaveLength(1);
+    expect(created[0]!.title).toBe(
+      'Cloud budget "Production": AWS Lambda cost far more than usual on 2026-11-19',
+    );
+    expect(created[0]!.description).toContain(
+      "in the web account (AWS 123456789012), AWS Lambda cost $412.00, 2.3 times its usual $180.00",
+    );
+    expect(created[0]!.seriesFingerprint).toBe(
+      `cloud-budget:${BUDGET_ID.toString()}:2026-11:anomaly-${accounts[0]!.id!.toString()}-2026-11-19`,
+    );
+    const state: CloudBudgetAlertState = updates[0]![
+      "alertState"
+    ] as unknown as CloudBudgetAlertState;
+    expect(state.anomalies).toEqual([
+      `${accounts[0]!.id!.toString()}|2026-11-19`,
+    ]);
+    expect(state.alertIds).toHaveLength(1);
+
+    // Checked again with that state: not raised twice.
+    budget = makeBudget({ alertState: state as unknown as JSONObject });
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+    expect(created).toHaveLength(1);
+  });
+
+  test("a budget that does not alert on unusual days raises none", async () => {
+    budget = makeBudget({ alertOnAnomaly: false });
+    accounts = [
+      makeAccount(
+        summary({
+          monthToDate: 100,
+          projectedMonth: 500,
+          latestDay: "2026-11-20",
+          anomalies: [
+            {
+              day: "2026-11-19",
+              service: "AWS Lambda",
+              amount: 412,
+              usual: 180,
+            },
+          ],
+        }),
+      ),
+    ];
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+    expect(created).toHaveLength(0);
   });
 
   test("a paused budget raises nothing, though its figures are kept", async () => {

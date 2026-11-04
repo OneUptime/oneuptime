@@ -91,13 +91,13 @@ const CACHE: CloudRightSizingProfile = getCloudRightSizingProfile(
 
 const english: Translator = createTranslator(
   (text: string): string | undefined => {
-    return (englishLocale as Record<string, string>)[text];
+    return (englishLocale as unknown as Record<string, string>)[text];
   },
   "en",
 );
 const german: Translator = createTranslator(
   (text: string): string | undefined => {
-    return (germanLocale as Record<string, string>)[text];
+    return (germanLocale as unknown as Record<string, string>)[text];
   },
   "de",
 );
@@ -304,7 +304,9 @@ describe("what the card says", () => {
       /^Etwa 140,\d\d\s\$ weniger pro Monat/,
     );
     expect(text.caveat).toBe(
-      (germanLocale as Record<string, string>)[MEMORY_NEEDS_CLOUDWATCH_AGENT],
+      (germanLocale as unknown as Record<string, string>)[
+        MEMORY_NEEDS_CLOUDWATCH_AGENT
+      ],
     );
   });
 });
@@ -430,22 +432,26 @@ describe("the card, drawn", () => {
     const card: HTMLElement = screen.getByTestId("cloud-right-sizing");
     expect(
       screen.getByText(
-        (germanLocale as Record<string, string>)["Right-sizing"]!,
+        (germanLocale as unknown as Record<string, string>)["Right-sizing"]!,
       ),
     ).toBeInTheDocument();
     expect(
       within(card).getByTestId("cloud-right-sizing-verdict"),
     ).toHaveTextContent(
-      (germanLocale as Record<string, string>)["Over-provisioned"]!,
+      (germanLocale as unknown as Record<string, string>)["Over-provisioned"]!,
     );
     expect(
       within(card).getByTestId("cloud-right-sizing-cpu-p95"),
     ).toHaveTextContent(
-      (germanLocale as Record<string, string>)["CPU (95th percentile)"]!,
+      (germanLocale as unknown as Record<string, string>)[
+        "CPU (95th percentile)"
+      ]!,
     );
     expect(
       within(card).getByTestId("cloud-right-sizing-memory"),
-    ).toHaveTextContent((germanLocale as Record<string, string>)["Not read"]!);
+    ).toHaveTextContent(
+      (germanLocale as unknown as Record<string, string>)["Not read"]!,
+    );
     expect(card.textContent || "").not.toContain("Over-provisioned");
   });
 

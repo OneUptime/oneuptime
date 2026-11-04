@@ -42281,5 +42281,12 @@
   "Right-sizing": "Groottebepaling",
   "Right-sizing needs {{needed}} days of its CPU readings. It has {{read}} so far.": "Voor de groottebepaling zijn {{needed}} dagen CPU-metingen nodig. Tot nu toe zijn het er {{read}}.",
   "Up to {{amount}} a month less, at its cost over the last 30 days: its bill also holds its storage, which stays.": "Tot {{amount}} minder per maand, op basis van de kosten van de laatste 30 dagen: de rekening bevat ook de opslag, die blijft.",
-  "What it would save is said once its cloud bills it by name.": "Wat het zou besparen, verschijnt zodra de cloud het op naam factureert."
+  "What it would save is said once its cloud bills it by name.": "Wat het zou besparen, verschijnt zodra de cloud het op naam factureert.",
+  "Alert On Unusual Days": "Waarschuwen bij ongewone dagen",
+  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Ook waarschuwen op de dag na een dag die veel meer kost dan gewoonlijk: een service op het dubbele van zijn gewone dag, of een account op anderhalf keer.",
+  "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times. A budget that counts the account alerts on each.": "Dagen van de afgelopen twee weken die veel meer kostten dan gewoonlijk: een service op het dubbele van zijn gewone dag, of een heel account op anderhalf keer. Een budget dat het account meetelt, waarschuwt bij elke dag.",
+  "The whole account": "Het hele account",
+  "Unusual days": "Ongewone dagen",
+  "Usually costs nothing": "Kost gewoonlijk niets",
+  "{{times}} times its usual {{usual}}": "{{times}} keer het gewone bedrag van {{usual}}"
 }

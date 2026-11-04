@@ -83,8 +83,61 @@ export interface CloudAccountCostSummary {
   topServices: Array<{ service: string; amount: number }>;
   // The newest day the cloud has reported a cost for, "2026-11-02".
   latestDay?: string | undefined;
+  /*
+   * The spend of its last 14 full days that ran far above its usual - a
+   * service's or the whole account's (CloudCostAnomaly), newest first: what
+   * a budget alerts on before the month adds it up.
+   */
+  anomalies?: Array<CloudCostAnomaly> | undefined;
   // When the costs were last read.
   readAt: string;
+}
+
+/*
+ * A day that cost far more than usual: a service's, or - with no service -
+ * the whole account's, against the median of the 14 days before it.
+ */
+export interface CloudCostAnomaly {
+  // The day, "2026-11-03".
+  day: string;
+  // The service; empty for the account as a whole.
+  service: string;
+  // What the day cost, and what a day usually costs.
+  amount: number;
+  usual: number;
+}
+
+// A day as the costs keep it, as text: "2026-11-02".
+const CLOUD_COST_DAY: RegExp = /^\d{4}-\d{2}-\d{2}$/;
+
+// An anomaly as stored, read back: null when it is malformed.
+export function readCloudCostAnomaly(value: unknown): CloudCostAnomaly | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const record: Record<string, unknown> = value as Record<string, unknown>;
+  const day: unknown = record["day"];
+  const amount: number = Number(record["amount"]);
+  const usual: number = Number(record["usual"]);
+
+  if (
+    typeof day !== "string" ||
+    !CLOUD_COST_DAY.test(day) ||
+    !Number.isFinite(amount) ||
+    !Number.isFinite(usual) ||
+    amount <= 0 ||
+    usual < 0
+  ) {
+    return null;
+  }
+
+  return {
+    day,
+    service: typeof record["service"] === "string" ? record["service"] : "",
+    amount,
+    usual,
+  };
 }
 
 // At most this many services are kept on an account's summary.
@@ -395,6 +448,16 @@ export function readCloudAccountCostSummary(
       typeof record["latestDay"] === "string" && record["latestDay"]
         ? record["latestDay"]
         : undefined,
+    anomalies: Array.isArray(record["anomalies"])
+      ? (record["anomalies"] as Array<unknown>)
+          .map(readCloudCostAnomaly)
+          .filter((anomaly: CloudCostAnomaly | null): boolean => {
+            return anomaly !== null;
+          })
+          .map((anomaly: CloudCostAnomaly | null): CloudCostAnomaly => {
+            return anomaly as CloudCostAnomaly;
+          })
+      : undefined,
     readAt: typeof record["readAt"] === "string" ? record["readAt"] : "",
   };
 }
