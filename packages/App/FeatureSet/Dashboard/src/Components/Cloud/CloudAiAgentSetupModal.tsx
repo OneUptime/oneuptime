@@ -447,10 +447,16 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
                   { usd: String(cost.usd) },
                 )
-              : translator.translateTemplate(
-                  "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
-                  { usd: String(cost.usd) },
-                )}
+              : props.provider === CloudProvider.GCP
+                ? // Google Cloud names it a project, as the VM's line does.
+                  translator.translateTemplate(
+                    "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
+                    { usd: String(cost.usd) },
+                  )
+                : translator.translateTemplate(
+                    "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
+                    { usd: String(cost.usd) },
+                  )}
           </p>
         </div>
       ),

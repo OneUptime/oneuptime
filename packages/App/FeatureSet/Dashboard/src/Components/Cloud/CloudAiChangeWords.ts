@@ -10,14 +10,15 @@ import { CloudAiChange } from "./CloudChangesScope";
  * THE WORDS OF A CHANGE ONEUPTIME AI MADE, ON A CLOUD CHANGES LIST.
  *
  * The cloud recorded the change under the Cloud AI agent's role; the list
- * says OneUptime AI made it, and links it to its fix: the incident or
- * alert it fixed (by its number when the reader may read it), who approved
- * it or that it ran on its own, and its entry in the account's AI Logs.
- * Whole phrases, each a key of its own, so every language words them its
- * way. Pure on purpose (no React), so the suites read it without a page.
+ * says OneUptime AI made it and who approved it or that it ran on its own
+ * (its By column), and links it to its fix: the incident or alert it fixed
+ * (by its number when the reader may read it) and its entry in the
+ * account's AI Logs. Whole phrases, each a key of its own, so every
+ * language words them its way. Pure on purpose (no React), so the suites
+ * read it without a page.
  */
 
-// Who made it, in the By column and, on a phone, at the head of its line.
+// Who made it, in the By column and, where that is not drawn, on its line.
 export const CLOUD_AI_CHANGE_BY: string = translationKey("OneUptime AI");
 
 // Where the fix and every command of it are listed.
@@ -178,15 +179,27 @@ export function describeCloudAiChangeSubject(data: {
   return null;
 }
 
+// Who let a change run: the phrase (a translation key) and the approver.
+export interface CloudAiChangeApproval {
+  template: string;
+  // The approver's name, for "Approved by {{name}}"; null for a fix that ran on its own.
+  name: string | null;
+}
+
 /*
  * How the fix came to run: who approved it, or that it ran on its own
  * (the account lets safe fixes run without asking). Null while the reader
- * could not read the fix, or for a fix in any other state.
+ * could not read the fix, for a fix in any other state, and for a
+ * rollback: the rollback arm runs it on its own once the fix did not help,
+ * so nobody approved it - the fix's approver beside it read as if they had.
  */
-export function describeCloudAiChangeApproval(
-  fix: CloudAiChangeFix | null,
-): { template: string; name: string | null } | null {
-  if (!fix) {
+export function describeCloudAiChangeApproval(data: {
+  change: CloudAiChange;
+  fix: CloudAiChangeFix | null;
+}): CloudAiChangeApproval | null {
+  const fix: CloudAiChangeFix | null = data.fix;
+
+  if (!fix || data.change.isRollback) {
     return null;
   }
 

@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "Rollback of a fix for an incident",
   "Rollback of the fix for alert {{number}}": "Rollback of the fix for alert {{number}}",
   "Rollback of the fix for incident {{number}}": "Rollback of the fix for incident {{number}}",
-  "Where the agent runs": "Where the agent runs"
+  "Where the agent runs": "Where the agent runs",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
+  "Once its AI agent connects, OneUptime AI tries again.": "Once its AI agent connects, OneUptime AI tries again."
 }

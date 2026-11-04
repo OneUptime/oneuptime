@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "Återställning av en åtgärd för en incident",
   "Rollback of the fix for alert {{number}}": "Återställning av åtgärden för larm {{number}}",
   "Rollback of the fix for incident {{number}}": "Återställning av åtgärden för incident {{number}}",
-  "Where the agent runs": "Var agenten körs"
+  "Where the agent runs": "Var agenten körs",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "Agenten körs i en liten container som alltid är igång i ditt projekt: cirka {{usd}} $ i månaden till listpris, fakturerat av din molnleverantör.",
+  "Once its AI agent connects, OneUptime AI tries again.": "När AI-agenten ansluter försöker OneUptime AI igen."
 }

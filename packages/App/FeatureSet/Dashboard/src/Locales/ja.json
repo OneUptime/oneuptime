@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "インシデントの修正のロールバック",
   "Rollback of the fix for alert {{number}}": "アラート {{number}} の修正のロールバック",
   "Rollback of the fix for incident {{number}}": "インシデント {{number}} の修正のロールバック",
-  "Where the agent runs": "エージェントの実行場所"
+  "Where the agent runs": "エージェントの実行場所",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "プロジェクト内で常時稼働する小さなコンテナを 1 つ実行します。標準料金で月額約 ${{usd}} かかり、ご利用のクラウドから請求されます。",
+  "Once its AI agent connects, OneUptime AI tries again.": "AI エージェントが接続されると、OneUptime AI がもう一度試します。"
 }

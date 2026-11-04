@@ -228,6 +228,8 @@ function FixRow(props: {
       }`}
       data-testid="ai-logs-fix"
       data-linked={props.isLinkedTo ? "true" : undefined}
+      // The one the link came for, said to a screen reader as it is shown.
+      aria-current={props.isLinkedTo ? "true" : undefined}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">

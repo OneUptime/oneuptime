@@ -10,6 +10,7 @@ import {
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -30,17 +31,21 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * its By column, like anyone's change. Its change event now says
  * OneUptime AI made it, and names its fix; the list:
  *
- *   - says OneUptime AI in the By column, with the role's session under it
- *     as the cloud's audit log names it;
- *   - under what changed, links the incident or alert it fixed (by its
- *     number when the reader may read the fix), says who approved it or
- *     that it ran on its own, and links its entry in the account's AI Logs
- *     (#fix-<id>, the entry the AI Logs page opens on);
- *   - on a phone, where the By column folds away, starts that line with
- *     OneUptime AI;
+ *   - says who made it and who let it in the By column: OneUptime AI (the
+ *     role's session, as the cloud's audit log names it, on its hover), and
+ *     under it who approved the fix or that it ran on its own - never for a
+ *     rollback, which nobody approves;
+ *   - under what changed, one short line: the incident or alert it fixed
+ *     (by its number when the reader may read the fix) and its entry in
+ *     the account's AI Logs (#fix-<id>, the entry the AI Logs page opens
+ *     on);
+ *   - where the By column is not drawn (a phone's card, a column turned
+ *     off), says who first, on a row of its own: OneUptime AI, and who
+ *     approved it;
  *   - reads the fixes it names once, as the reader, so a fix the reader may
  *     not read names no number and no approver - and still marks the
- *     change, and links its AI Logs;
+ *     change, and links its AI Logs - and asks again for one whose read
+ *     failed;
  *   - leaves a person's change exactly as it was.
  *
  * The real table is mounted (AnalyticsModelTable over BaseModelTable);
@@ -52,6 +57,14 @@ const analyticsGetListMock: MockFunction = getJestMockFunction();
 const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
 // The reader's words: English by default, a locale's when a test sets one.
 let words: Record<string, string> = {};
+// The reader's language, which way its sentences read: English by default.
+let language: string = "en";
+
+// A locale's words, in its language.
+function readIn(code: string): void {
+  words = locale(code);
+  language = code;
+}
 
 jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   return {
@@ -122,6 +135,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
         translateValue: (value: unknown): unknown => {
           return value;
         },
+        language: language,
       };
     },
   };
@@ -129,11 +143,17 @@ jest.mock("../../../UI/Utils/Translation", () => {
 
 import CloudChangesTable from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
 import {
+  CLOUD_CHANGES_BY_COLUMN_ID,
   CLOUD_CHANGE_AI_ACTOR_TEST_ID,
   CLOUD_CHANGE_AI_LINE_TEST_ID,
   CloudChangeAiActor,
   CloudChangeAiLine,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangeAi";
+import {
+  TableCellContext,
+  TableColumnsInViewContext,
+} from "../../../UI/Components/Table/TableCellContext";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import {
   CLOUD_AI_CHANGE_SUBJECTS,
   CloudAiChangeFix,
@@ -264,9 +284,12 @@ function suggestionRow(overrides: {
     if (overrides.incident?.number !== undefined) {
       incident.incidentNumber = overrides.incident.number;
     }
-    incident.incidentNumberWithPrefix =
+    const withPrefix: string | undefined =
       overrides.incident?.withPrefix ??
       (overrides.incident?.number !== undefined ? undefined : "INC-42");
+    if (withPrefix !== undefined) {
+      incident.incidentNumberWithPrefix = withPrefix;
+    }
     row.incident = incident;
   }
 
@@ -287,6 +310,7 @@ function suggestionRow(overrides: {
 
 beforeEach(() => {
   words = {};
+  language = "en";
   getCurrentProjectIdMock.mockReturnValue(new ObjectID(PROJECT_ID));
 });
 
@@ -526,27 +550,54 @@ describe("the words of a change OneUptime AI made", () => {
   });
 
   test("who approved it, or that it ran on its own; nothing for any other fix", () => {
-    expect(describeCloudAiChangeApproval(fixOf())).toEqual({
+    expect(
+      describeCloudAiChangeApproval({ change: aiChange(), fix: fixOf() }),
+    ).toEqual({
       template: "Approved by {{name}}",
       name: "Maya Chen",
     });
     expect(
-      describeCloudAiChangeApproval(
-        fixOf({
+      describeCloudAiChangeApproval({
+        change: aiChange(),
+        fix: fixOf({
           status: AutoRemediationSuggestionStatus.AutoExecuted,
           approvedByName: null,
         }),
-      ),
+      }),
     ).toEqual({ template: "Applied automatically", name: null });
     expect(
-      describeCloudAiChangeApproval(
-        fixOf({ status: AutoRemediationSuggestionStatus.Suggested }),
-      ),
+      describeCloudAiChangeApproval({
+        change: aiChange(),
+        fix: fixOf({ status: AutoRemediationSuggestionStatus.Suggested }),
+      }),
     ).toBeNull();
     expect(
-      describeCloudAiChangeApproval(fixOf({ approvedByName: null })),
+      describeCloudAiChangeApproval({
+        change: aiChange(),
+        fix: fixOf({ approvedByName: null }),
+      }),
     ).toBeNull();
-    expect(describeCloudAiChangeApproval(null)).toBeNull();
+    expect(
+      describeCloudAiChangeApproval({ change: aiChange(), fix: null }),
+    ).toBeNull();
+  });
+
+  test("a rollback names no approver: the rollback arm ran it on its own, whoever approved the fix", () => {
+    expect(
+      describeCloudAiChangeApproval({
+        change: aiChange({ isRollback: true }),
+        fix: fixOf(),
+      }),
+    ).toBeNull();
+    expect(
+      describeCloudAiChangeApproval({
+        change: aiChange({ isRollback: true }),
+        fix: fixOf({
+          status: AutoRemediationSuggestionStatus.AutoExecuted,
+          approvedByName: null,
+        }),
+      }),
+    ).toBeNull();
   });
 
   test("its AI Logs entry: the account's AI Logs, at the fix's own anchor", () => {
@@ -595,43 +646,77 @@ describe("the words of a change OneUptime AI made", () => {
 });
 
 describe("the line under a change OneUptime AI made", () => {
+  /*
+   * The line drawn as it is in a table's row: in a cell of a table that
+   * draws its By column (a desktop's row, a tablet's card) or that does
+   * not (a phone's card, the column turned off) - or, with no table at
+   * all, as nothing says the By column is drawn.
+   */
   function renderLine(props: {
     change?: CloudAiChange;
     fix?: CloudAiChangeFix | null;
     cloudAccountId?: string | null;
-  }): HTMLElement {
+    byColumn?: "drawn" | "not drawn";
+  }): HTMLElement | null {
+    const line: React.ReactElement = (
+      <CloudChangeAiLine
+        change={props.change || aiChange()}
+        fix={props.fix === undefined ? fixOf() : props.fix}
+        cloudAccountId={
+          props.cloudAccountId === undefined
+            ? ACCOUNT_ROW_ID
+            : props.cloudAccountId
+        }
+      />
+    );
+
     render(
       <MemoryRouter>
-        <CloudChangeAiLine
-          change={props.change || aiChange()}
-          fix={props.fix === undefined ? fixOf() : props.fix}
-          cloudAccountId={
-            props.cloudAccountId === undefined
-              ? ACCOUNT_ROW_ID
-              : props.cloudAccountId
-          }
-        />
+        {props.byColumn ? (
+          <TableCellContext.Provider value={true}>
+            <TableColumnsInViewContext.Provider
+              value={{
+                drawnIds: new Set<string>(
+                  props.byColumn === "drawn"
+                    ? ["time", "title", CLOUD_CHANGES_BY_COLUMN_ID]
+                    : ["time", "title"],
+                ),
+                foldedIds: new Set<string>(),
+              }}
+            >
+              {line}
+            </TableColumnsInViewContext.Provider>
+          </TableCellContext.Provider>
+        ) : (
+          line
+        )}
       </MemoryRouter>,
     );
 
-    return screen.getByTestId(CLOUD_CHANGE_AI_LINE_TEST_ID);
+    return screen.queryByTestId(CLOUD_CHANGE_AI_LINE_TEST_ID);
   }
 
-  test("links the incident it fixed by its number, says who approved it, and links its AI Logs entry", () => {
-    const line: HTMLElement = renderLine({});
+  function getLine(props: Parameters<typeof renderLine>[0]): HTMLElement {
+    const line: HTMLElement | null = renderLine(props);
+    expect(line).not.toBeNull();
+    return line as HTMLElement;
+  }
+
+  // Each row of the line, as its words read.
+  function rowsOf(line: HTMLElement): Array<string> {
+    return Array.from(line.children).map((row: Element): string => {
+      return row.textContent || "";
+    });
+  }
+
+  test("links the incident it fixed by its number, and its AI Logs entry", () => {
+    const line: HTMLElement = getLine({ byColumn: "drawn" });
 
     const subject: HTMLElement = within(line).getByTestId(
       `${CLOUD_CHANGE_AI_LINE_TEST_ID}-incident`,
     );
     expect(subject).toHaveTextContent("Fix for incident INC-42");
     expect(subject.closest("a")).toHaveAttribute("href", INCIDENT_ROUTE);
-
-    const approval: HTMLElement = within(line).getByTestId(
-      `${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`,
-    );
-    expect(approval).toHaveTextContent("Approved by Maya Chen");
-    // The approver stands out of the sentence.
-    expect(within(approval).getByText("Maya Chen")).toHaveClass("font-medium");
 
     const logs: HTMLElement = within(line).getByTestId(
       `${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`,
@@ -643,31 +728,69 @@ describe("the line under a change OneUptime AI made", () => {
     );
   });
 
-  test("on a phone it starts with OneUptime AI, hidden once the By column shows it", () => {
-    const line: HTMLElement = renderLine({});
+  test("beside a By column: what it was for and where to read more, two links on one short row, a gap between", () => {
+    const line: HTMLElement = getLine({ byColumn: "drawn" });
+
+    // Who made it and who approved it are the By column's to say.
+    expect(
+      within(line).queryByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-mark`),
+    ).toBeNull();
+    expect(
+      within(line).queryByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`),
+    ).toBeNull();
+    expect(line).not.toHaveTextContent("OneUptime AI");
+    expect(line).not.toHaveTextContent("Approved by");
+    expect(rowsOf(line)).toEqual(["Fix for incident INC-42AI Logs"]);
+    expect(
+      within(line)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return link.textContent || "";
+        }),
+    ).toEqual(["Fix for incident INC-42", "AI Logs"]);
+    // No dot between links: where they wrap, none is left at a line's end.
+    expect(within(line).queryByText("·")).toBeNull();
+    expect(
+      within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-links`),
+    ).toHaveClass("gap-x-4");
+  });
+
+  test("where the By column is not drawn (a phone's card, the column turned off), who made it and who approved it come first, on a row of their own", () => {
+    const line: HTMLElement = getLine({ byColumn: "not drawn" });
+
+    expect(rowsOf(line)).toEqual([
+      "OneUptime AI·Approved by Maya Chen",
+      "Fix for incident INC-42AI Logs",
+    ]);
+
     const mark: HTMLElement = within(line).getByTestId(
       `${CLOUD_CHANGE_AI_LINE_TEST_ID}-mark`,
     );
-
-    expect(mark).toHaveTextContent("OneUptime AI");
-    expect(mark).toHaveClass("md:hidden");
     // Its sparkles are decoration, its separators too.
     expect(mark.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     for (const dot of within(line).getAllByText("·")) {
       expect(dot).toHaveAttribute("aria-hidden", "true");
     }
+
+    const approval: HTMLElement = within(line).getByTestId(
+      `${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`,
+    );
+    expect(approval).toHaveTextContent("Approved by Maya Chen");
+    // The approver stands out of the sentence.
+    expect(within(approval).getByText("Maya Chen")).toHaveClass("font-medium");
   });
 
-  test("the facts read in order, a dot between each", () => {
-    const line: HTMLElement = renderLine({});
+  test("outside a table, nothing says the By column is drawn: the line says who too", () => {
+    const line: HTMLElement = getLine({});
 
-    expect(line.textContent).toBe(
-      "OneUptime AI·Fix for incident INC-42·Approved by Maya Chen·AI Logs",
-    );
+    expect(
+      within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-mark`),
+    ).toHaveTextContent("OneUptime AI");
   });
 
   test("a fix that ran on its own says so", () => {
-    const line: HTMLElement = renderLine({
+    const line: HTMLElement = getLine({
+      byColumn: "not drawn",
       fix: fixOf({
         status: AutoRemediationSuggestionStatus.AutoExecuted,
         approvedByName: null,
@@ -680,7 +803,7 @@ describe("the line under a change OneUptime AI made", () => {
   });
 
   test("a fix the reader may not read: still the incident, unnumbered, and the AI Logs; no approver", () => {
-    const line: HTMLElement = renderLine({ fix: null });
+    const line: HTMLElement = getLine({ byColumn: "not drawn", fix: null });
 
     expect(
       within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-incident`),
@@ -688,13 +811,15 @@ describe("the line under a change OneUptime AI made", () => {
     expect(
       within(line).queryByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`),
     ).toBeNull();
-    expect(
-      within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`),
-    ).toBeInTheDocument();
+    expect(rowsOf(line)).toEqual([
+      "OneUptime AI",
+      "Fix for an incidentAI Logs",
+    ]);
   });
 
-  test("an alert's rollback links the alert", () => {
-    const line: HTMLElement = renderLine({
+  test("an alert's rollback links the alert, and names no approver", () => {
+    const line: HTMLElement = getLine({
+      byColumn: "not drawn",
       change: aiChange({
         isRollback: true,
         incidentId: null,
@@ -711,10 +836,16 @@ describe("the line under a change OneUptime AI made", () => {
       "href",
       `/dashboard/${PROJECT_ID}/alerts/${ALERT_ID}`,
     );
+    // Maya Chen approved the fix, not the rollback that undid it.
+    expect(
+      within(line).queryByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`),
+    ).toBeNull();
+    expect(line).not.toHaveTextContent("Maya Chen");
   });
 
   test("a change no job explained: OneUptime AI, and its account's AI Logs", () => {
-    const line: HTMLElement = renderLine({
+    const line: HTMLElement = getLine({
+      byColumn: "not drawn",
       change: aiChange({
         runnerJobId: null,
         suggestionId: null,
@@ -723,7 +854,7 @@ describe("the line under a change OneUptime AI made", () => {
       fix: null,
     });
 
-    expect(line.textContent).toBe("OneUptime AI·AI Logs");
+    expect(rowsOf(line)).toEqual(["OneUptime AI", "AI Logs"]);
     expect(
       within(line)
         .getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`)
@@ -731,8 +862,27 @@ describe("the line under a change OneUptime AI made", () => {
     ).toHaveAttribute("href", AI_LOGS_ROUTE);
   });
 
+  test("beside a By column, a change that names nothing to link draws no line at all", () => {
+    const line: HTMLElement | null = renderLine({
+      byColumn: "drawn",
+      change: aiChange({
+        runnerJobId: null,
+        suggestionId: null,
+        incidentId: null,
+        cloudAccountId: null,
+      }),
+      cloudAccountId: null,
+      fix: null,
+    });
+
+    expect(line).toBeNull();
+  });
+
   test("a resource's Changes links the AI Logs of the account each change was made in", () => {
-    const line: HTMLElement = renderLine({ cloudAccountId: null });
+    const line: HTMLElement = getLine({
+      byColumn: "drawn",
+      cloudAccountId: null,
+    });
 
     expect(
       within(line)
@@ -742,7 +892,8 @@ describe("the line under a change OneUptime AI made", () => {
   });
 
   test("with no account to name, no AI Logs link", () => {
-    const line: HTMLElement = renderLine({
+    const line: HTMLElement = getLine({
+      byColumn: "drawn",
       change: aiChange({ cloudAccountId: null }),
       cloudAccountId: null,
     });
@@ -750,17 +901,18 @@ describe("the line under a change OneUptime AI made", () => {
     expect(
       within(line).queryByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`),
     ).toBeNull();
+    expect(rowsOf(line)).toEqual(["Fix for incident INC-42"]);
   });
 
   test.each(["de", "fa"])(
     "in %s, every phrase is the locale's own",
     (language: string) => {
-      words = locale(language);
+      readIn(language);
 
-      const line: HTMLElement = renderLine({});
+      const line: HTMLElement = getLine({ byColumn: "not drawn" });
       const own: Record<string, string> = locale(language);
 
-      expect(line).toHaveTextContent(
+      expect(withoutIsolateMarks(line.textContent || "")).toContain(
         own["Fix for incident {{number}}"]!.replace("{{number}}", "INC-42"),
       );
       expect(line).toHaveTextContent(own["AI Logs"]!);
@@ -780,13 +932,32 @@ describe("the line under a change OneUptime AI made", () => {
     },
   );
 
+  test("in Persian, the record's number is set apart from the words around it, as every Persian sentence's values are", () => {
+    readIn("fa");
+
+    const line: HTMLElement = getLine({ byColumn: "drawn" });
+    const subject: HTMLElement = within(line).getByTestId(
+      `${CLOUD_CHANGE_AI_LINE_TEST_ID}-incident`,
+    );
+
+    // A first-strong isolate around INC-42, so the sentence reads right to left around it.
+    expect(subject.textContent).toContain(isolated("INC-42"));
+    expect(withoutIsolateMarks(subject.textContent || "")).toBe(
+      locale("fa")["Fix for incident {{number}}"]!.replace(
+        "{{number}}",
+        "INC-42",
+      ),
+    );
+  });
+
   test.each(["de", "fa"])(
     "in %s, a rollback and a fix that ran on its own say so in the locale's words",
     (language: string) => {
-      words = locale(language);
+      readIn(language);
       const own: Record<string, string> = locale(language);
 
-      const line: HTMLElement = renderLine({
+      const rollback: HTMLElement = getLine({
+        byColumn: "not drawn",
         change: aiChange({
           incidentId: null,
           alertId: ALERT_ID,
@@ -803,46 +974,124 @@ describe("the line under a change OneUptime AI made", () => {
       });
 
       expect(
-        within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-alert`),
-      ).toHaveTextContent(
+        withoutIsolateMarks(
+          within(rollback).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-alert`)
+            .textContent || "",
+        ),
+      ).toBe(
         own["Rollback of the fix for alert {{number}}"]!.replace(
           "{{number}}",
           "ALT-7",
         ),
       );
+      expect(rollback).not.toHaveTextContent("Rollback of");
+      cleanup();
+
+      const automatic: HTMLElement = getLine({
+        byColumn: "not drawn",
+        fix: fixOf({
+          status: AutoRemediationSuggestionStatus.AutoExecuted,
+          approvedByName: null,
+        }),
+      });
+
       expect(
-        within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`),
+        within(automatic).getByTestId(
+          `${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`,
+        ),
       ).toHaveTextContent(own["Applied automatically"]!);
-      expect(line).not.toHaveTextContent("Rollback of");
-      expect(line).not.toHaveTextContent("Applied automatically");
+      expect(automatic).not.toHaveTextContent("Applied automatically");
     },
   );
 });
 
 describe("the By column of a change OneUptime AI made", () => {
-  test("OneUptime AI, with the session the cloud's audit log names under it, whole on hover", () => {
-    render(<CloudChangeAiActor actor={SESSION} />);
-
-    const actor: HTMLElement = screen.getByTestId(
-      CLOUD_CHANGE_AI_ACTOR_TEST_ID,
+  function renderActor(props: {
+    actor?: string;
+    change?: CloudAiChange;
+    fix?: CloudAiChangeFix | null;
+  }): HTMLElement {
+    render(
+      <CloudChangeAiActor
+        actor={props.actor === undefined ? SESSION : props.actor}
+        change={props.change || aiChange()}
+        fix={props.fix === undefined ? fixOf() : props.fix}
+      />,
     );
 
-    expect(actor).toHaveTextContent("OneUptime AI");
-    const session: HTMLElement = within(actor).getByTestId(
-      `${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-session`,
-    );
-    expect(session).toHaveTextContent(SESSION);
-    expect(session).toHaveAttribute("title", SESSION);
-    expect(session).toHaveClass("truncate");
-  });
+    return screen.getByTestId(CLOUD_CHANGE_AI_ACTOR_TEST_ID);
+  }
 
-  test("with no session named, OneUptime AI alone", () => {
-    render(<CloudChangeAiActor actor="" />);
+  test("OneUptime AI, and under it who approved the fix", () => {
+    const actor: HTMLElement = renderActor({});
 
     expect(
-      screen.queryByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-session`),
-    ).toBeNull();
+      within(actor).getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-name`),
+    ).toHaveTextContent("OneUptime AI");
+    const approval: HTMLElement = within(actor).getByTestId(
+      `${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`,
+    );
+    expect(approval).toHaveTextContent("Approved by Maya Chen");
+    expect(within(approval).getByText("Maya Chen")).toHaveClass("font-medium");
+    expect(actor.textContent).toBe("OneUptime AIApproved by Maya Chen");
   });
+
+  test("the session the cloud's audit log names is on the name's hover, not cut short on the row", () => {
+    const actor: HTMLElement = renderActor({});
+
+    expect(
+      within(actor).getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-name`),
+    ).toHaveAttribute("title", SESSION);
+    expect(actor).not.toHaveTextContent(SESSION);
+    expect(actor.querySelector(".truncate")).toBeNull();
+  });
+
+  test("a fix that ran on its own says so; a rollback, an unread fix and no session say less", () => {
+    const automatic: HTMLElement = renderActor({
+      fix: fixOf({
+        status: AutoRemediationSuggestionStatus.AutoExecuted,
+        approvedByName: null,
+      }),
+    });
+    expect(
+      within(automatic).getByTestId(
+        `${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`,
+      ),
+    ).toHaveTextContent("Applied automatically");
+    cleanup();
+
+    const rollback: HTMLElement = renderActor({
+      change: aiChange({ isRollback: true }),
+    });
+    expect(rollback.textContent).toBe("OneUptime AI");
+    cleanup();
+
+    const unread: HTMLElement = renderActor({ fix: null });
+    expect(unread.textContent).toBe("OneUptime AI");
+    cleanup();
+
+    const unnamed: HTMLElement = renderActor({ actor: "" });
+    expect(
+      within(unnamed).getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-name`),
+    ).not.toHaveAttribute("title");
+  });
+
+  test.each(["de", "fa"])(
+    "in %s, OneUptime AI keeps its name and the approver's sentence is the locale's",
+    (language: string) => {
+      readIn(language);
+      const own: Record<string, string> = locale(language);
+      const actor: HTMLElement = renderActor({});
+
+      expect(actor).toHaveTextContent("OneUptime AI");
+      expect(actor).not.toHaveTextContent("Approved by");
+      for (const part of own["Approved by {{name}}"]!.split("{{name}}")) {
+        if (part.trim()) {
+          expect(actor).toHaveTextContent(part.trim());
+        }
+      }
+    },
+  );
 });
 
 describe("an account's Changes, with OneUptime AI's change beside a person's", () => {
@@ -899,7 +1148,7 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
     jest.spyOn(ModelAPI, "getList").mockImplementation((async (
       request: JSONObject,
     ) => {
-      if (request["modelType"] === AutoRemediationSuggestion) {
+      if ((request["modelType"] as unknown) === AutoRemediationSuggestion) {
         suggestionReads.push(request);
         return await suggestionAnswer();
       }
@@ -935,19 +1184,29 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
   test("OneUptime AI's change says so and links its fix; the person's is as it was", async () => {
     await mountChanges();
 
+    // Who approved it is the By column's to say, once the fix is read.
     await waitFor(() => {
       expect(
-        screen.getByTestId(CLOUD_CHANGE_AI_LINE_TEST_ID),
+        screen.getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`),
       ).toHaveTextContent("Approved by Maya Chen");
     });
 
     const ai: HTMLElement = rowOf("ecs:UpdateService on checkout-api");
+    const by: HTMLElement = within(ai).getByTestId(
+      CLOUD_CHANGE_AI_ACTOR_TEST_ID,
+    );
+    expect(by.textContent).toBe("OneUptime AIApproved by Maya Chen");
     expect(
-      within(ai).getByTestId(CLOUD_CHANGE_AI_ACTOR_TEST_ID),
-    ).toHaveTextContent("OneUptime AI");
+      within(by).getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-name`),
+    ).toHaveAttribute("title", SESSION);
     expect(
       within(ai).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-incident`),
     ).toHaveTextContent("Fix for incident INC-42");
+    // The line beside the By column: what it was for and its AI Logs, nothing said twice.
+    const line: HTMLElement = within(ai).getByTestId(
+      CLOUD_CHANGE_AI_LINE_TEST_ID,
+    );
+    expect(line.textContent).toBe("Fix for incident INC-42AI Logs");
     expect(within(ai).queryByTestId("cloud-change-actor")).toBeNull();
 
     const person: HTMLElement = rowOf(
@@ -1007,6 +1266,78 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
         .getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`)
         .closest("a"),
     ).toHaveAttribute("href", `${AI_LOGS_ROUTE}#fix-${SUGGESTION_ID}`);
+  });
+
+  // Refresh, from the list header's ⋯, where every table keeps it.
+  function refreshList(): void {
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Refresh",
+      }),
+    );
+  }
+
+  test("a fix read once is not read again by a refresh", async () => {
+    await mountChanges();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`),
+      ).toHaveTextContent("Approved by Maya Chen");
+    });
+
+    const listReads: number = analyticsGetListMock.mock.calls.length;
+    refreshList();
+    await waitFor(() => {
+      expect(analyticsGetListMock.mock.calls.length).toBeGreaterThan(listReads);
+    });
+    await screen.findByText(
+      "ecs:UpdateService on checkout-api (by hand)",
+      {},
+      { timeout: 10000 },
+    );
+
+    expect(suggestionReads).toHaveLength(1);
+    expect(
+      screen.getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`),
+    ).toHaveTextContent("Approved by Maya Chen");
+  });
+
+  test("a fix whose read failed is asked for again by the next refresh, and then says who approved it", async () => {
+    let answers: number = 0;
+    suggestionAnswer = async (): Promise<
+      ListResult<AutoRemediationSuggestion>
+    > => {
+      answers++;
+
+      if (answers === 1) {
+        throw new Error("The server could not be reached.");
+      }
+
+      return { data: [suggestionRow({})], count: 1, skip: 0, limit: 1 };
+    };
+
+    await mountChanges();
+    await waitFor(() => {
+      expect(suggestionReads).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`),
+    ).toBeNull();
+
+    refreshList();
+
+    await waitFor(() => {
+      expect(suggestionReads).toHaveLength(2);
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`),
+      ).toHaveTextContent("Approved by Maya Chen");
+    });
+    expect(
+      screen.getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-incident`),
+    ).toHaveTextContent("Fix for incident INC-42");
   });
 
   test("a page with no change of OneUptime AI's reads no fix", async () => {

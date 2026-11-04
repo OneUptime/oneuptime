@@ -977,8 +977,11 @@ describe("a link to one fix's entry", () => {
     });
     expect(fixes[1]).toHaveAttribute("data-linked", "true");
     expect(fixes[1]).toHaveClass("bg-indigo-50");
+    // A screen reader hears it as the current entry, as it is shown.
+    expect(fixes[1]).toHaveAttribute("aria-current", "true");
     expect(fixes[0]).not.toHaveAttribute("data-linked");
     expect(fixes[0]).not.toHaveClass("bg-indigo-50");
+    expect(fixes[0]).not.toHaveAttribute("aria-current");
   });
 
   test("the anchor reads in any case", async () => {

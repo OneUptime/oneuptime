@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "回滾事件的修正",
   "Rollback of the fix for alert {{number}}": "回滾警示 {{number}} 的修正",
   "Rollback of the fix for incident {{number}}": "回滾事件 {{number}} 的修正",
-  "Where the agent runs": "代理程式的執行位置"
+  "Where the agent runs": "代理程式的執行位置",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "它會在您的專案中執行一個常駐的小型容器：依牌價計算每月約 ${{usd}}，由您的雲端服務供應商計費。",
+  "Once its AI agent connects, OneUptime AI tries again.": "其 AI 代理程式連線後，OneUptime AI 會再試一次。"
 }

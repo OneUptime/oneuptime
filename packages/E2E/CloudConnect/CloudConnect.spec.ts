@@ -1,6 +1,11 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "Common/Types/ReadingDirection";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -2922,13 +2927,38 @@ async function waitForAiLines(page: Page): Promise<[Locator, Locator]> {
   // The rollback, half an hour ago, above the fix, 39 minutes ago.
   const rollback: Locator = aiLines(page).nth(0);
   const fix: Locator = aiLines(page).nth(1);
-  // Each names its record once the fix was read.
-  await expect(fix.getByTestId("cloud-change-ai-approval")).toBeVisible();
+  // The fix says who approved it once it was read.
+  await expect(approvalOf(page, 1)).toBeVisible();
   return [rollback, fix];
 }
 
+/*
+ * Who approved the change OneUptime AI made, newest first: the By column's
+ * to say beside the change on a desktop, and the line's, on a row of its
+ * own, on a phone - whose card draws no By column.
+ */
+function approvalOf(page: Page, index: number): Locator {
+  return isDesktop()
+    ? page
+        .getByTestId("cloud-change-ai-actor")
+        .nth(index)
+        .getByTestId("cloud-change-ai-actor-approval")
+    : aiLines(page).nth(index).getByTestId("cloud-change-ai-approval");
+}
+
+/*
+ * The number of the record a change fixed, as a sentence of the language
+ * holds it: set apart from the words around it where they read right to
+ * left, as every Persian sentence's values are.
+ */
+function numberIn(locale: Record<string, string>, value: string): string {
+  return locale === PERSIAN
+    ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
+    : value;
+}
+
 test.describe("OneUptime AI's changes, on an account's Changes", () => {
-  test("its fix and the fix's rollback read OneUptime AI, linked to the incident, its approver and its AI Logs entry; a person's change is as it was", async ({
+  test("its fix and the fix's rollback read OneUptime AI, linked to the incident and its AI Logs entry, the fix with its approver; a person's change is as it was", async ({
     page,
   }: {
     page: Page;
@@ -2943,9 +2973,7 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       "href",
       `/dashboard/${PROJECT_ID}/incidents/${FIXED_INCIDENT}`,
     );
-    await expect(fix.getByTestId("cloud-change-ai-approval")).toHaveText(
-      "Approved by Maya Chen",
-    );
+    await expect(approvalOf(page, 1)).toHaveText("Approved by Maya Chen");
     await expect(fix.getByRole("link", { name: "AI Logs" })).toHaveAttribute(
       "href",
       `${AI_LOGS_PATH}#fix-${AI_FIX}`,
@@ -2961,8 +2989,14 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
     await expect(
       rollback.getByRole("link", { name: "AI Logs" }),
     ).toHaveAttribute("href", `${AI_LOGS_PATH}#fix-${AI_FIX}`);
+    // The rollback arm ran it on its own: nobody approved the rollback.
+    await expect(approvalOf(page, 0)).toHaveCount(0);
+    // Two links, apart by a gap: no dot is left at the end of a line.
+    await expect(fix.getByTestId("cloud-change-ai-links")).not.toContainText(
+      "·",
+    );
 
-    // The fix both changes name was read once, as the reader, with what the line says.
+    // The fix both changes name was read once, as the reader, with what the row says.
     const reads: Array<SuggestionListRequest> = (
       (await listRequests(page)) as unknown as Array<SuggestionListRequest>
     ).filter((request: SuggestionListRequest): boolean => {
@@ -2978,15 +3012,27 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
     );
 
     if (isDesktop()) {
-      // The By column says OneUptime AI, with the role's session under it.
+      // The By column says OneUptime AI, and who approved the fix under it.
       const actors: Locator = page.getByTestId("cloud-change-ai-actor");
       await expect(actors).toHaveCount(2);
-      await expect(actors.first()).toContainText("OneUptime AI");
+      await expect(actors.nth(0)).toHaveText("OneUptime AI");
+      await expect(actors.nth(1)).toHaveText(
+        "OneUptime AIApproved by Maya Chen",
+      );
+      // The role's session the cloud's audit log names: on the name's hover, never cut short.
       await expect(
-        actors.first().getByTestId("cloud-change-ai-actor-session"),
-      ).toHaveText(AI_SESSION);
-      // So the line does not say it again.
-      await expect(fix.getByTestId("cloud-change-ai-mark")).toBeHidden();
+        actors.nth(1).getByTestId("cloud-change-ai-actor-name"),
+      ).toHaveAttribute("title", AI_SESSION);
+      await expect(actors.nth(1)).not.toContainText("oneuptime-ai-scal");
+      // So the line does not say it again, and its two links share one row.
+      await expect(fix.getByTestId("cloud-change-ai-mark")).toHaveCount(0);
+      await expect(fix).toHaveText("Fix for incident #18AI Logs");
+      const [subject, logs] = await boxesInOneFrame([
+        fix.getByRole("link", { name: "Fix for incident #18" }),
+        fix.getByRole("link", { name: "AI Logs" }),
+      ]);
+      expect(Math.abs(subject!.y - logs!.y)).toBeLessThan(4);
+      expect(logs!.x).toBeGreaterThan(subject!.x + subject!.width);
       // A person's change: their name, and no line of OneUptime AI's.
       await expect(page.getByTestId("cloud-change-actor").first()).toHaveText(
         "maya.lopez",
@@ -2997,11 +3043,19 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       await expect(person.getByTestId("cloud-change-ai")).toHaveCount(0);
       await expect(page.locator("tbody tr")).toHaveCount(8);
     } else {
-      // A phone folds the By column away: the line starts with OneUptime AI.
+      // A phone's card draws no By column: the line says who first, on a row of its own.
       await expect(fix.getByTestId("cloud-change-ai-mark")).toBeVisible();
-      await expect(fix.getByTestId("cloud-change-ai-mark")).toContainText(
+      await expect(fix.getByTestId("cloud-change-ai-mark")).toHaveText(
+        "OneUptime AI·Approved by Maya Chen",
+      );
+      await expect(rollback.getByTestId("cloud-change-ai-mark")).toHaveText(
         "OneUptime AI",
       );
+      const [mark, links] = await boxesInOneFrame([
+        fix.getByTestId("cloud-change-ai-mark"),
+        fix.getByTestId("cloud-change-ai-links"),
+      ]);
+      expect(links!.y).toBeGreaterThanOrEqual(mark!.y + mark!.height - 1);
     }
 
     await expectNoSidewaysScroll(page, { tolerance: 1 });
@@ -3023,6 +3077,7 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       '[data-testid="ai-logs-fix"][data-linked="true"]',
     );
     await expect(linked).toHaveCount(1);
+    await expect(linked).toHaveAttribute("aria-current", "true");
     await expect(linked).toContainText("Approved by Maya Chen");
     await expect(linked).toBeInViewport();
     await expectNoSidewaysScroll(page, { tolerance: 1 });
@@ -3058,21 +3113,21 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
 
       const [rollback, fix] = await waitForAiLines(page);
       const subject: string = wordIn(locale, "Fix for incident {{number}}", {
-        number: "#18",
+        number: numberIn(locale, "#18"),
       });
       const logs: string = wordIn(locale, "AI Logs");
 
-      expect(subject).not.toBe("Fix for incident #18");
+      expect(subject).not.toContain("Fix for incident");
       await expect(fix.getByRole("link", { name: subject })).toBeVisible();
       await expect(fix.getByRole("link", { name: logs })).toBeVisible();
       await expect(
         rollback.getByRole("link", {
           name: wordIn(locale, "Rollback of the fix for incident {{number}}", {
-            number: "#18",
+            number: numberIn(locale, "#18"),
           }),
         }),
       ).toBeVisible();
-      const approval: Locator = fix.getByTestId("cloud-change-ai-approval");
+      const approval: Locator = approvalOf(page, 1);
       await expect(approval).toContainText("Maya Chen");
       for (const part of wordIn(locale, "Approved by {{name}}").split(
         "{{name}}",
@@ -3092,12 +3147,12 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       if (language === "fa") {
         await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
         // Right to left: the record it fixed first, on the right; AI Logs last, on the left.
-        const first: Box = await boxOf(
+        const [first, last] = await boxesInOneFrame([
           fix.getByRole("link", { name: subject }),
-        );
-        const last: Box = await boxOf(fix.getByRole("link", { name: logs }));
-        if (Math.abs(first.y - last.y) < 4) {
-          expect(first.x).toBeGreaterThan(last.x);
+          fix.getByRole("link", { name: logs }),
+        ]);
+        if (Math.abs(first!.y - last!.y) < 4) {
+          expect(first!.x).toBeGreaterThan(last!.x);
         }
       }
 
@@ -3176,8 +3231,9 @@ test.describe("where Google Cloud's agent runs", () => {
       .check();
     await expect(command).toContainText("gcloud run deploy oneuptime-ai-agent");
     await expect(command).not.toContainText("gcloud compute instances create");
+    // A project, as Google Cloud and the VM's line name it.
     await expect(cost).toHaveText(
-      "It runs one small always-on container in your account: about $45 a month at list prices, billed by your cloud.",
+      "It runs one small always-on container in your project: about $45 a month at list prices, billed by your cloud.",
     );
     await expect(logs).toContainText("gcloud run services logs read");
 

@@ -26,6 +26,7 @@ import {
   mayAiPickedRunbookStartWithoutAsking,
 } from "../../Types/AutoRemediation/AutoRemediationFix";
 import {
+  AGENT_NOT_CONNECTED_GAP_CODES,
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionHelper,
   AutoRemediationDecisionLane,
@@ -628,17 +629,12 @@ export const MAX_DECISIONS_READ_WHEN_FIXES_TURN_ON: number = 200;
 
 /*
  * The gaps that say a cluster's or a resource's AI agent was not there when
- * OneUptime AI decided: it never connected, or it connected once and then
- * stopped reporting. The record's Remediation step said its Fixes are on
- * but its AI agent is not connected, and the agent connecting is what that
- * decision waited for (onAgentConnected). Shared by the resource AI agents'
- * gaps (ResourceAiAccessGapCode) and the Kubernetes AI agent's
- * (KubernetesAiAccessGapCode), which spell them the same.
+ * OneUptime AI decided (AutoRemediationDecision's
+ * AGENT_NOT_CONNECTED_GAP_CODES, which the record's Remediation step reads
+ * too): the agent connecting is what that decision waited for
+ * (onAgentConnected).
  */
-export const AGENT_NOT_CONNECTED_GAP_CODES: ReadonlyArray<string> = [
-  "ai_agent_not_connected",
-  "ai_agent_offline",
-];
+export { AGENT_NOT_CONNECTED_GAP_CODES };
 
 /*
  * What a decision that found the target not ready is found by, as the

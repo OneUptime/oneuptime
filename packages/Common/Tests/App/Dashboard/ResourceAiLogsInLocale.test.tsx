@@ -49,6 +49,7 @@ import {
   GCP_HOST_DESCRIPTIONS,
   GCP_HOST_TITLES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
+import { AGENT_CONNECTS_TRIES_AGAIN } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -257,6 +258,8 @@ const GROUPS: Array<WordGroup> = [
       ...Object.values(GCP_HOST_TITLES),
       ...Object.values(GCP_HOST_DESCRIPTIONS),
       "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
+      // On Cloud Run: Google Cloud names it a project, as the VM's line does.
+      "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
       "Where the agent runs",
       "Runs on",
       "Log lines",
@@ -264,10 +267,22 @@ const GROUPS: Array<WordGroup> = [
     writtenIn: ["Cloud/CloudAiAgentSetupModal.tsx"],
     written: [
       "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
+      "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.",
       "Where the agent runs",
       "Runs on",
       "Log lines",
     ],
+  },
+  {
+    /*
+     * An incident's Remediation step, while its cluster's or resource's AI
+     * agent is not connected: the agent connecting makes OneUptime AI try
+     * again (onAgentConnected), and the step says so.
+     */
+    name: "an incident's Remediation step, waiting for an AI agent to connect",
+    words: [AGENT_CONNECTS_TRIES_AGAIN],
+    writtenIn: ["AutoRemediation/RemediationDecisionLines.ts"],
+    written: [AGENT_CONNECTS_TRIES_AGAIN],
   },
 ];
 

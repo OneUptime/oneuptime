@@ -25,7 +25,11 @@ import React, {
   useState,
 } from "react";
 import { getChangeEventTypeLabel } from "../Metrics/Utils/UseEventTimeReferenceLines";
-import { CloudChangeAiActor, CloudChangeAiLine } from "./CloudChangeAi";
+import {
+  CLOUD_CHANGES_BY_COLUMN_ID,
+  CloudChangeAiActor,
+  CloudChangeAiLine,
+} from "./CloudChangeAi";
 import { CloudAiChangeFix, readCloudAiChangeFix } from "./CloudAiChangeWords";
 import {
   CloudAiChange,
@@ -48,8 +52,8 @@ import {
  * event's title - shown as written.
  *
  * A change OneUptime AI made, through the account's Cloud AI agent, says
- * so (CloudChangeAi): OneUptime AI in its By column, and under what
- * changed, the incident or alert it fixed, who approved it and its AI Logs
+ * so (CloudChangeAi): OneUptime AI and who approved it in its By column,
+ * and under what changed, the incident or alert it fixed and its AI Logs
  * entry - read from its fix, as the reader, once the page of changes is in
  * (an AutoRemediationSuggestion read, so a fix the reader may not read
  * names no record number and no approver).
@@ -107,7 +111,11 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
       return new Map<string, CloudAiChangeFix>();
     },
   );
-  // Each fix is asked for once, whichever page or refresh first shows it.
+  /*
+   * Each fix is asked for once, whichever page or refresh first shows it -
+   * once it was read: one whose read failed is asked for again by the next
+   * page or refresh that shows it.
+   */
   const askedFixIdsRef: MutableRefObject<Set<string>> = useRef<Set<string>>(
     new Set<string>(),
   );
@@ -182,8 +190,12 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
     } catch {
       /*
        * A reader who may not read the fixes still sees which changes
-       * OneUptime AI made, and their AI Logs.
+       * OneUptime AI made, and their AI Logs. A read that failed is not
+       * one that answered: the next page or refresh asks again.
        */
+      for (const id of ids) {
+        askedFixIdsRef.current.delete(id);
+      }
     }
   };
 
@@ -352,7 +364,7 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           field: {
             attributes: true,
           },
-          id: "by",
+          id: CLOUD_CHANGES_BY_COLUMN_ID,
           title: "By",
           type: FieldType.Element,
           hideOnMobile: true,
@@ -364,13 +376,24 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
               ChangeEventAttribute.CloudActor,
             );
 
-            // OneUptime AI made it, under the agent's role: said so first.
-            if (
-              readCloudAiChange({
-                attributes: change.attributes as JSONObject | undefined,
-              })
-            ) {
-              return <CloudChangeAiActor actor={actor} />;
+            /*
+             * OneUptime AI made it, under the agent's role: said so, with
+             * who approved it.
+             */
+            const ai: CloudAiChange | null = readCloudAiChange({
+              attributes: change.attributes as JSONObject | undefined,
+            });
+
+            if (ai) {
+              return (
+                <CloudChangeAiActor
+                  actor={actor}
+                  change={ai}
+                  fix={
+                    ai.suggestionId ? fixes.get(ai.suggestionId) || null : null
+                  }
+                />
+              );
             }
 
             /*

@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "인시던트 수정의 롤백",
   "Rollback of the fix for alert {{number}}": "경고 {{number}} 수정의 롤백",
   "Rollback of the fix for incident {{number}}": "인시던트 {{number}} 수정의 롤백",
-  "Where the agent runs": "에이전트 실행 위치"
+  "Where the agent runs": "에이전트 실행 위치",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "프로젝트에서 상시 실행되는 작은 컨테이너 하나를 실행합니다. 비용은 정가 기준 월 약 ${{usd}}로, 사용 중인 클라우드에서 청구됩니다.",
+  "Once its AI agent connects, OneUptime AI tries again.": "AI 에이전트가 연결되면 OneUptime AI가 다시 시도합니다."
 }

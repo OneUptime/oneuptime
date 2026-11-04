@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "Reversão de uma correção de um incidente",
   "Rollback of the fix for alert {{number}}": "Reversão da correção do alerta {{number}}",
   "Rollback of the fix for incident {{number}}": "Reversão da correção do incidente {{number}}",
-  "Where the agent runs": "Onde o agente é executado"
+  "Where the agent runs": "Onde o agente é executado",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "O agente é executado em um pequeno contêiner sempre ativo no seu projeto: cerca de US$ {{usd}} por mês a preços de tabela, na fatura da sua nuvem.",
+  "Once its AI agent connects, OneUptime AI tries again.": "Assim que o agente de IA se conectar, o OneUptime AI tentará novamente."
 }

@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "Откат исправления инцидента",
   "Rollback of the fix for alert {{number}}": "Откат исправления оповещения {{number}}",
   "Rollback of the fix for incident {{number}}": "Откат исправления инцидента {{number}}",
-  "Where the agent runs": "Где работает агент"
+  "Where the agent runs": "Где работает агент",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "Агент работает в одном небольшом постоянно запущенном контейнере в вашем проекте: около {{usd}} $ в месяц по прейскуранту, счёт выставляет ваш облачный провайдер.",
+  "Once its AI agent connects, OneUptime AI tries again.": "Как только его ИИ-агент подключится, OneUptime AI попробует снова."
 }

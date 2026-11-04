@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "एक घटना के सुधार का रोलबैक",
   "Rollback of the fix for alert {{number}}": "अलर्ट {{number}} के सुधार का रोलबैक",
   "Rollback of the fix for incident {{number}}": "घटना {{number}} के सुधार का रोलबैक",
-  "Where the agent runs": "एजेंट कहाँ चलता है"
+  "Where the agent runs": "एजेंट कहाँ चलता है",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "यह आपके प्रोजेक्ट में एक छोटा, हमेशा चालू रहने वाला कंटेनर चलाता है: सूची मूल्य पर लगभग ${{usd}} प्रति माह, जो आपके क्लाउड के बिल में जुड़ता है।",
+  "Once its AI agent connects, OneUptime AI tries again.": "इसका AI एजेंट कनेक्ट होते ही OneUptime AI फिर से कोशिश करेगा।"
 }

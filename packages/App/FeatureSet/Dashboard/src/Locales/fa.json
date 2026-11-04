@@ -42144,5 +42144,7 @@
   "Rollback of a fix for an incident": "بازگردانی اصلاح یک حادثه",
   "Rollback of the fix for alert {{number}}": "بازگردانی اصلاح هشدار {{number}}",
   "Rollback of the fix for incident {{number}}": "بازگردانی اصلاح حادثهٔ {{number}}",
-  "Where the agent runs": "محل اجرای عامل"
+  "Where the agent runs": "محل اجرای عامل",
+  "It runs one small always-on container in your project: about ${{usd}} a month at list prices, billed by your cloud.": "یک کانتینر کوچک همیشه‌روشن در پروژهٔ شما اجرا می‌کند: با قیمت‌های اعلام‌شده حدود ${{usd}} در ماه، که در صورت‌حساب ابر شما می‌آید.",
+  "Once its AI agent connects, OneUptime AI tries again.": "به‌محض اتصال عامل هوش مصنوعی آن، OneUptime AI دوباره تلاش می‌کند."
 }
