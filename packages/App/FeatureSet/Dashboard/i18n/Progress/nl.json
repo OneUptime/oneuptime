@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41872,
-    "untranslated": 12135
+    "keys": 42016,
+    "untranslated": 12166
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -470,6 +470,8 @@
     "{{count}} flows",
     "{{count}} host",
     "{{count}} hosts",
+    "{{count}} hunt",
+    "{{count}} hunts",
     "{{count}} incident",
     "{{count}} manager",
     "{{count}} managers",

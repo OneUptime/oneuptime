@@ -824,6 +824,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   // A hunt's page is one level under the list, by its id: its search, opened.
   [PageMap.SECURITY_EVENTS_HUNTS]: "hunts",
   [PageMap.SECURITY_EVENTS_HUNT_VIEW]: `hunts/${RouteParams.ModelID}`,
+  // Beside the hunts, not under them: hunts/<id> is a hunt's page.
+  [PageMap.SECURITY_EVENTS_HUNT_LIBRARY]: "hunt-library",
   [PageMap.SECURITY_EVENTS_DETECTION_RULES]: "detection-rules",
   [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]: "rule-exceptions",
   // A watchlist's page is one level under the list, by its id.
@@ -970,6 +972,10 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: `data-products/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS]: `data-products/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE]: `data-products/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
 };
 
@@ -7270,6 +7276,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_EVENTS_HUNT_LIBRARY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_HUNT_LIBRARY]
+    }`,
+  ),
+
   [PageMap.SECURITY_EVENTS_CAMPAIGNS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CAMPAIGNS]
@@ -7921,6 +7933,34 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_PIPELINES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE
+      ]
     }`,
   ),
 

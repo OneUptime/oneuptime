@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41872,
-    "untranslated": 12077
+    "keys": 42016,
+    "untranslated": 12108
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -275,6 +275,8 @@
     "{{count}} datacenter",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
+    "{{count}} hunt",
+    "{{count}} hunts",
     "{{count}} incident",
     "{{count}} manager",
     "{{count}} managers",

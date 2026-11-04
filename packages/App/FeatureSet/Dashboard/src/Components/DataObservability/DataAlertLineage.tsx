@@ -77,6 +77,20 @@ function alertName(alert: DataAlert["alert"] | undefined): string {
 }
 
 /*
+ * A read the card can do without: its answer, or null when it failed or was
+ * refused, so it leaves out only what it would have shown. A reader may
+ * read a data alert and not the changes of the services that write its
+ * table (Read Data Asset, given to a team, does not read change events),
+ * and the changes are kept in ClickHouse, which can fail while the rest
+ * answers: the card still says what the alert is about and what caused it.
+ */
+function orNothing<T>(reading: Promise<T>): Promise<T | null> {
+  return reading.catch((): null => {
+    return null;
+  });
+}
+
+/*
  * A data alert's place in Data Observability. What it is about - a table or
  * a pipeline, linked - and the alert upstream it is a consequence of, when
  * it started acknowledged because that one was open first. For a table: the
@@ -93,35 +107,44 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
   const [impact, setImpact] = useState<Array<DataAlert>>([]);
   const [impactCount, setImpactCount] = useState<number>(0);
   const [writers, setWriters] = useState<Array<DataAssetUsage>>([]);
-  const [changes, setChanges] = useState<Array<ChangeEvent>>([]);
+  /*
+   * Null when the writers' changes were not read - the read failed or was
+   * refused, or the alert's time was not there to read around: then the
+   * card says nothing of them, rather than that there were none.
+   */
+  const [changes, setChanges] = useState<Array<ChangeEvent> | null>(null);
 
   useEffect(() => {
     let isCurrent: boolean = true;
 
     const read: () => Promise<void> = async (): Promise<void> => {
-      const mine: ListResult<DataAlert> = await ModelAPI.getList<DataAlert>({
-        modelType: DataAlert,
-        query: { alertId: props.alertId },
-        select: DATA_ALERT_SELECT,
-        limit: 1,
-        skip: 0,
-        sort: {},
-      });
-      const caused: ListResult<DataAlert> = await ModelAPI.getList<DataAlert>({
-        modelType: DataAlert,
-        query: { causeAlertId: props.alertId },
-        select: DATA_ALERT_SELECT,
-        limit: MAX_IMPACT_LISTED,
-        skip: 0,
-        sort: { createdAt: SortOrder.Ascending },
-      });
-      const row: DataAlert | null = mine.data[0] || null;
+      const mine: ListResult<DataAlert> | null = await orNothing(
+        ModelAPI.getList<DataAlert>({
+          modelType: DataAlert,
+          query: { alertId: props.alertId },
+          select: DATA_ALERT_SELECT,
+          limit: 1,
+          skip: 0,
+          sort: {},
+        }),
+      );
+      const caused: ListResult<DataAlert> | null = await orNothing(
+        ModelAPI.getList<DataAlert>({
+          modelType: DataAlert,
+          query: { causeAlertId: props.alertId },
+          select: DATA_ALERT_SELECT,
+          limit: MAX_IMPACT_LISTED,
+          skip: 0,
+          sort: { createdAt: SortOrder.Ascending },
+        }),
+      );
+      const row: DataAlert | null = mine?.data[0] || null;
       let writing: Array<DataAssetUsage> = [];
-      let changed: Array<ChangeEvent> = [];
+      let changed: Array<ChangeEvent> | null = null;
 
       if (row?.dataAssetId) {
-        writing = (
-          await ModelAPI.getList<DataAssetUsage>({
+        const usages: ListResult<DataAssetUsage> | null = await orNothing(
+          ModelAPI.getList<DataAssetUsage>({
             modelType: DataAssetUsage,
             query: {
               dataAssetId: row.dataAssetId,
@@ -137,8 +160,10 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             limit: 10,
             skip: 0,
             sort: { lastSeenAt: SortOrder.Descending },
-          })
-        ).data;
+          }),
+        );
+
+        writing = usages?.data || [];
       }
 
       const serviceIds: Array<string> = writing
@@ -150,8 +175,8 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
 
       if (serviceIds.length > 0 && projectId && row?.alert?.createdAt) {
         const alertedAt: Date = OneUptimeDate.fromString(row.alert.createdAt);
-        const found: AnalyticsListResult<ChangeEvent> =
-          await AnalyticsModelAPI.getList<ChangeEvent>({
+        const found: AnalyticsListResult<ChangeEvent> | null = await orNothing(
+          AnalyticsModelAPI.getList<ChangeEvent>({
             modelType: ChangeEvent,
             query: {
               projectId,
@@ -174,22 +199,27 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             sort: { time: SortOrder.Descending },
             limit: 20,
             skip: 0,
-          });
+          }),
+        );
 
-        changed = found.data;
+        changed = found ? found.data : null;
       }
 
       if (isCurrent) {
         setOwn(row);
-        setImpact(caused.data);
-        setImpactCount(caused.count);
+        setImpact(caused?.data || []);
+        setImpactCount(caused?.count || 0);
         setWriters(writing);
         setChanges(changed);
       }
     };
 
     read().catch(() => {
-      // Not a data alert, or not readable here: nothing to show.
+      /*
+       * A read that failed or was refused is already left out above (not a
+       * data alert, or not readable here: nothing to show). Anything else
+       * that throws leaves the card out, never the page.
+       */
     });
 
     return () => {
@@ -340,7 +370,7 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-            {writers.length > 0 ? (
+            {writers.length > 0 && changes ? (
               <div>
                 {label("Changes Around It")}
                 <dd className="mt-1 space-y-1">

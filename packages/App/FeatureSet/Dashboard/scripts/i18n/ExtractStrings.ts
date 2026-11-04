@@ -210,6 +210,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
+   * The Hunt Library's starters: each one's name and what it finds, as its
+   * row draws them and the hunt it becomes is named and described, in the
+   * reader's language. Its search is drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/SecurityHuntLibrary.ts",
+    kind: "ui",
+  },
+  /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the
    * sentences the file marks are read: the choices' names are drawn as

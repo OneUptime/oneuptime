@@ -1,5 +1,6 @@
-import ProgressBar from "../../../UI/Components/ProgressBar/ProgressBar";
-import { formatWholePercent } from "../../../Types/Translator";
+import ProgressBar, {
+  formatProgressPercent,
+} from "../../../UI/Components/ProgressBar/ProgressBar";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
@@ -85,6 +86,41 @@ describe("ProgressBar Component", () => {
     const progressBar: HTMLElement = getProgressBar();
     expect(progressBar).toHaveStyle({ width: "100%" });
   });
+
+  test("reads its percent beside the count, as English writes it", () => {
+    render(<ProgressBar count={1} totalCount={7} suffix="Subscribers" />);
+    expect(screen.getByTestId("progress-bar-percent")).toHaveTextContent("15%");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-label",
+      "Progress: 1 of 7 Subscribers (15%)",
+    );
+  });
+});
+
+/*
+ * A Persian bulk dialog read "۱ از ۷ (مشترکان)" beside "15%": the count in
+ * the reader's digits, the percent in English's. The percent is now
+ * written the way the reader's language writes one.
+ */
+describe("formatProgressPercent", () => {
+  test("writes a percent the reader's way", () => {
+    expect(formatProgressPercent(15, "en")).toBe("15%");
+    expect(formatProgressPercent(0, "en")).toBe("0%");
+    expect(formatProgressPercent(100, "en")).toBe("100%");
+    // German and French set the sign apart, with a space that never breaks.
+    expect(formatProgressPercent(15, "de")).toBe("15\u00a0%");
+    // Persian in its own digits and sign, as its count beside it.
+    expect(formatProgressPercent(15, "fa")).toBe("\u06f1\u06f5\u066a");
+    expect(formatProgressPercent(3, "ja")).toBe("3%");
+  });
+
+  test("never writes a fraction: the bar rounds up to a whole percent first", () => {
+    expect(formatProgressPercent(33, "en")).toBe("33%");
+  });
+
+  test("falls back to the number and a sign for a language Intl does not know", () => {
+    expect(formatProgressPercent(15, "not a language")).toBe("15%");
+  });
 });
 
 /*
@@ -163,12 +199,5 @@ describe("ProgressBar in the reader's language", () => {
     expect(
       screen.getByRole("progressbar").getAttribute("aria-label"),
     ).toContain("\u{6f5}\u{6f0}");
-  });
-
-  test("formatWholePercent rounds to a whole percent and falls back to English", () => {
-    expect(formatWholePercent(33.4, "en")).toBe("33%");
-    expect(formatWholePercent(99.5, "en")).toBe("100%");
-    expect(formatWholePercent(7, undefined)).toBe("7%");
-    expect(formatWholePercent(7, "not a language")).toBe("7%");
   });
 });

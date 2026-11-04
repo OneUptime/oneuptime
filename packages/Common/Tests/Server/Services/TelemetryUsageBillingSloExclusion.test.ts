@@ -72,7 +72,7 @@ const INCIDENT_ID: string = "66666666-6666-4666-8666-666666666666";
 const HOST_ID: string = "77777777-7777-4777-8777-777777777777";
 
 describe("TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES", () => {
-  test("is exactly OneUptime's own operational data: monitors, alerts, incidents, SLOs, table health and pipeline runs", () => {
+  test("is exactly OneUptime's own operational data: monitors, alerts, incidents, SLOs, table health, pipeline runs and data products", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES].sort()).toEqual(
       [
         ServiceType.Monitor,
@@ -81,15 +81,19 @@ describe("TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES", () => {
         ServiceType.ServiceLevelObjective,
         ServiceType.DataStore,
         ServiceType.DataPipeline,
+        ServiceType.DataProduct,
       ].sort(),
     );
   });
 
-  test("never bills Data Observability's oneuptime.data.table.* or oneuptime.data.pipeline.* rows", () => {
+  test("never bills Data Observability's oneuptime.data.table.*, oneuptime.data.pipeline.* or oneuptime.data.product.* rows", () => {
     expect(isTelemetryBillingExcludedEntityType(ServiceType.DataStore)).toBe(
       true,
     );
     expect(isTelemetryBillingExcludedEntityType(ServiceType.DataPipeline)).toBe(
+      true,
+    );
+    expect(isTelemetryBillingExcludedEntityType(ServiceType.DataProduct)).toBe(
       true,
     );
   });

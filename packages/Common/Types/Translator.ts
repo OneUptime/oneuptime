@@ -797,29 +797,6 @@ const LIST_SEPARATORS: Record<string, string> = {
 };
 
 /*
- * A whole percent as the reader's language writes it - its digits, its sign
- * and where the sign goes: "45%" in English, "45 %" in German and French,
- * "۴۵٪" in Persian. A progress bar beside numbers drawn the reader's way said
- * "100%" in Latin digits on a Persian page. An engine without Intl's percent
- * style writes the English.
- */
-export const formatWholePercent: (
-  percent: number,
-  language: string | undefined,
-) => string = (percent: number, language: string | undefined): string => {
-  const whole: number = Math.round(percent);
-
-  try {
-    return new Intl.NumberFormat(language || DEFAULT_LANGUAGE, {
-      style: "percent",
-      maximumFractionDigits: 0,
-    }).format(whole / 100);
-  } catch {
-    return `${whole}%`;
-  }
-};
-
-/*
  * What a language puts between two items of a list with no "and" or "or":
  * ", " in most, "، " in Persian, "、" in Japanese and Chinese. For a list
  * drawn item by item (IsolatedTextList), which formatList cannot join.

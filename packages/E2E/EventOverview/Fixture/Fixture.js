@@ -365,6 +365,11 @@ import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediatio
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import DataAlert from "Common/Models/DatabaseModels/DataAlert";
+import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import DataAssetUsage from "Common/Models/DatabaseModels/DataAssetUsage";
+import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
+import { DataAssetAccessKind } from "Common/Types/DataObservability/DataAssetUsage";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -626,6 +631,13 @@ const securityMode = ["declared", "naming", "both"].includes(
 )
   ? params.get("security")
   : "";
+/*
+ * ?data=table: alert #311 was raised by a data monitor, on a table, while
+ * alert #310 was open on the table it is built from - so #311 is #310's
+ * consequence (see "Data alerts" below). Left out, no alert here was raised
+ * by a data monitor.
+ */
+const dataMode = params.get("data") === "table" ? "table" : "";
 /*
  * ?ai=off-*: not investigated because something was off for the record;
  * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
@@ -909,6 +921,7 @@ const ID = {
   slo: (number) => uuid("86000000", number),
   cluster: (number) => uuid("83000000", number),
   measurement: (number) => uuid("87000000", number),
+  dataAsset: (number) => uuid("8b000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -937,6 +950,7 @@ const fixture = {
     publish: publishMode,
     fail: Array.from(failures),
     role: roleMode,
+    data: dataMode,
     resources: resourcesMode,
     clusters: clustersMode,
     thread: threadMode,
@@ -1450,6 +1464,14 @@ const roles = {
  *
  * The incident and alert pages also list the record's video calls; no call
  * has been started for any of them here.
+ *
+ * The alert page reads what a data monitor's alert is about, and the alerts
+ * downstream it caused (Components/DataObservability/DataAlertLineage): its
+ * data alert by { alertId }, and the data alerts naming it by
+ * { causeAlertId }. No alert here was raised by a data monitor (but with
+ * ?data=table: see "Data alerts" below), so the API answers two empty lists
+ * and neither the Data nor the Downstream Impact card is drawn, as on any
+ * other alert's page.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -1463,6 +1485,7 @@ for (const modelType of [
   AutoRemediationDecision,
   IncidentVideoCall,
   AlertVideoCall,
+  DataAlert,
 ]) {
   table(modelType);
 }
@@ -2112,6 +2135,101 @@ const mainAlert = defineAlert({
   services: [services.payments],
   episode: alertEpisodeRecord,
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Data alerts (?data=table)
+ * ---------------------------------------------------------------------------
+ * What a data monitor's alert is about, and the alert it is a consequence
+ * of, as Server/Utils/DataObservability/DataAlertCause records them, with
+ * the relations the server's read joins in. Alert #310 is about the table
+ * payments.provider_callbacks; #311, raised three minutes later on
+ * payments.ledger_entries, which is built from it, is #310's consequence.
+ * Two services write ledger_entries - payments-webhooks, 37 of its writes
+ * failed - and payments-webhooks was deployed eight minutes before #311.
+ *
+ * ?fail=data-alert refuses the alert page's two data alert reads;
+ * ?fail=data-writers fails the read of who writes #311's table (a server
+ * error); and ?fail=data-changes refuses the read of the writers' changes
+ * (ChangeEvent, kept in ClickHouse), as the server refuses it to a team
+ * given Read Data Asset alone.
+ */
+const DATA_CAUSE_ALERT_NUMBER = 310;
+const DATA_ALERT_REFUSAL = "You do not have permission to read data alerts.";
+const DATA_WRITERS_FAILURE =
+  "Who writes this table could not be read. Please try again.";
+const DATA_CHANGES_REFUSAL =
+  "You do not have permission to read change events.";
+// The writers' changes, an analytics table: AnalyticsModelAPI answers them.
+const dataChangeEvents = [];
+
+// An alert as a data alert's read joins it in.
+function dataAlertRelation(number) {
+  const record = table(Alert).find((item) => {
+    return String(item._id) === ID.alert(number);
+  });
+  return make(Alert, {
+    _id: record._id,
+    title: record.title,
+    alertNumberWithPrefix: record.alertNumberWithPrefix,
+    createdAt: record.createdAt,
+  });
+}
+
+if (dataMode === "table") {
+  const providerCallbacksId = new ObjectID(ID.dataAsset(1));
+  const ledgerEntriesId = new ObjectID(ID.dataAsset(2));
+  insert(DataAlert, {
+    alertId: new ObjectID(ID.alert(DATA_CAUSE_ALERT_NUMBER)),
+    alert: dataAlertRelation(DATA_CAUSE_ALERT_NUMBER),
+    dataAssetId: providerCallbacksId,
+    dataAsset: make(DataAsset, {
+      _id: ID.dataAsset(1),
+      assetKey: "payments.provider_callbacks",
+      dataStoreName: "Payments warehouse",
+    }),
+    createdAt: at("18:03"),
+  });
+  insert(DataAlert, {
+    alertId: new ObjectID(ID.alert(ALERT_NUMBER)),
+    alert: dataAlertRelation(ALERT_NUMBER),
+    causeAlertId: new ObjectID(ID.alert(DATA_CAUSE_ALERT_NUMBER)),
+    causeAlert: dataAlertRelation(DATA_CAUSE_ALERT_NUMBER),
+    dataAssetId: ledgerEntriesId,
+    dataAsset: make(DataAsset, {
+      _id: ID.dataAsset(2),
+      assetKey: "payments.ledger_entries",
+      dataStoreName: "Payments warehouse",
+    }),
+    createdAt: at("18:06"),
+  });
+  insert(DataAssetUsage, {
+    dataAssetId: ledgerEntriesId,
+    accessKind: DataAssetAccessKind.Write,
+    serviceId: services.payments.id,
+    serviceName: "payments-webhooks",
+    callCount: 4120,
+    errorCount: 37,
+    lastSeenAt: at("18:05"),
+  });
+  insert(DataAssetUsage, {
+    dataAssetId: ledgerEntriesId,
+    accessKind: DataAssetAccessKind.Write,
+    serviceId: services.checkout.id,
+    serviceName: "checkout-api",
+    callCount: 860,
+    errorCount: 0,
+    lastSeenAt: at("17:50"),
+  });
+  dataChangeEvents.push({
+    _id: new ObjectID(rowId()),
+    projectId: projectObjectId,
+    time: at("17:58"),
+    title: "Deployed payments-webhooks v2.14.0",
+    eventType: "Deployment",
+    primaryEntityId: services.payments.id,
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -6023,6 +6141,12 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+  if (failures.has("data-alert") && modelName === tableName(DataAlert)) {
+    throw fail(403, DATA_ALERT_REFUSAL);
+  }
+  if (failures.has("data-writers") && modelName === tableName(DataAssetUsage)) {
+    throw fail(500, DATA_WRITERS_FAILURE);
+  }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
@@ -6283,7 +6407,9 @@ ModelAPI.deleteItem = async (options) => {
 
 /*
  * No telemetry is attached to these events, so analytics reads are not
- * modelled: they answer empty and are recorded as unhandled.
+ * modelled: they answer empty and are recorded as unhandled. All but one:
+ * with ?data=table, the changes of the services that write #311's table,
+ * which its Data card reads around the alert.
  */
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
@@ -6297,6 +6423,26 @@ AnalyticsModelAPI.getList = async (options) => {
     limit: Number(options.limit || 10),
   };
   fixture.listRequests.push(record);
+  if (dataMode && modelName === tableName(ChangeEvent)) {
+    if (failures.has("data-changes")) {
+      throw fail(403, DATA_CHANGES_REFUSAL);
+    }
+    // The time window is not modelled: every change here is inside it.
+    const rows = sortRecords(
+      dataChangeEvents.filter((row) => {
+        return matches(row, options.query);
+      }),
+      options.sort,
+    );
+    return {
+      data: rows.slice(record.skip, record.skip + record.limit).map((row) => {
+        return make(ChangeEvent, row);
+      }),
+      count: rows.length,
+      skip: record.skip,
+      limit: record.limit,
+    };
+  }
   fixture.unhandled.push({ kind: "analytics.getList", modelName });
   return { data: [], count: 0, skip: record.skip, limit: record.limit };
 };

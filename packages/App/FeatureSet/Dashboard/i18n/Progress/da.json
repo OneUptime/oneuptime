@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41872,
-    "untranslated": 12094
+    "keys": 42016,
+    "untranslated": 12125
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -353,6 +353,8 @@
     "{{count}} filter ({{condition}})",
     "{{count}} flow",
     "{{count}} flows",
+    "{{count}} hunt",
+    "{{count}} hunts",
     "{{count}} manager",
     "{{count}} match",
     "{{count}} mon",

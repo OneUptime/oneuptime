@@ -5,11 +5,7 @@ import React, {
   useState,
 } from "react";
 import { Logger } from "../../Utils/Logger";
-import {
-  formatWholePercent,
-  translatableTerm,
-  Translator,
-} from "../../Utils/TranslateTemplate";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 
 export enum ProgressBarSize {
@@ -24,6 +20,26 @@ export interface ComponentProps {
   suffix: string;
   size?: ProgressBarSize;
 }
+
+/*
+ * How far along, as the reader's language writes a percentage: "15%",
+ * "15 %" in German and French, "۱۵٪" in Persian - in the digits the count
+ * beside it is written in (Translator.formatNumber), so a Persian bar no
+ * longer read "۱ از ۷" next to "15%".
+ */
+export const formatProgressPercent: (
+  percent: number,
+  language: string,
+) => string = (percent: number, language: string): string => {
+  try {
+    return new Intl.NumberFormat(language, {
+      style: "percent",
+      maximumFractionDigits: 0,
+    }).format(percent / 100);
+  } catch {
+    return `${percent}%`;
+  }
+};
 
 const ProgressBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -80,15 +96,11 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
             suffix: translatableTerm(props.suffix),
           })}
         </div>
-        {/*
-         * The percent in the reader's digits and sign, as the count beside
-         * it is: "۴۵٪" on a Persian page, "45 %" on a German one.
-         */}
         <div
           data-testid="progress-bar-percent"
           className="text-sm font-medium text-indigo-600"
         >
-          {formatWholePercent(percent, translator.language)}
+          {formatProgressPercent(percent, translator.language)}
         </div>
       </div>
       <div

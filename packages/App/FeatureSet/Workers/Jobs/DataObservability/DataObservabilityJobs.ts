@@ -3,6 +3,7 @@ import JobDictionary from "../../Utils/JobDictionary";
 import { QueueJob } from "Common/Server/Infrastructure/Queue";
 import DataObservabilityRunner from "Common/Server/Utils/DataObservability/DataObservabilityRunner";
 import DataPipelineScheduleCheck from "Common/Server/Utils/DataObservability/DataPipelineScheduleCheck";
+import DataProductCheck from "Common/Server/Utils/DataObservability/DataProductCheck";
 import {
   DATA_OBSERVABILITY_COLLECT_STORE_JOB,
   DATA_OBSERVABILITY_DISCOVER_TABLE_USAGE_JOB,
@@ -28,6 +29,9 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * Every five minutes, check every pipeline's schedule: how late its next
  * run is, and how long its running run has taken (DataPipelineScheduleCheck).
+ *
+ * Every five minutes, check every data product's tables against its SLA:
+ * which are late, and what its data is as of (DataProductCheck).
  */
 
 // The most stores claimed for collection per run.
@@ -121,5 +125,17 @@ RunCron(
   },
   async () => {
     await DataPipelineScheduleCheck.checkAll(OneUptimeDate.getCurrentDate());
+  },
+);
+
+RunCron(
+  "DataObservability:CheckDataProducts",
+  {
+    schedule: EVERY_FIVE_MINUTE,
+    runOnStartup: false,
+    timeoutInMS: 4 * 60 * 1000,
+  },
+  async () => {
+    await DataProductCheck.checkAll(OneUptimeDate.getCurrentDate());
   },
 );

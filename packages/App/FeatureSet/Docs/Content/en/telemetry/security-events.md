@@ -38,6 +38,7 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **All Cases** | Security Cases | Every case, open or closed |
 | **Events** | Events | Search and filter every event, and open one to see all its fields |
 | **Hunts** | Events | Searches saved from Events, opened again in one click or run on a schedule that tells people when they find something |
+| **Hunt Library** | Events | Ready-made hunts to try on Events or add to your hunts, each with the events it reads and whether they arrive |
 | **Campaigns** | Events | Every address that sent attack requests, and whether any of its requests got through |
 | **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
@@ -286,6 +287,14 @@ On **Events**, search and filter until the list shows what you are after, then o
 
 A hunt's page is its search, opened on the Events explorer. Change the search or the filters there, and the hunt's header offers **Save Changes** and **Discard Changes**. **Edit** changes its name, its search, how far back it looks, its schedule and who it tells, and **Delete Hunt** is in its menu. A Security Member or higher can save, change and delete hunts, and a Security Viewer can open them.
 
+A hunt saved with filters from the Events sidebar shows them in **Edit** under **Filters**, as Events draws them, each with an x to take it off. Add filters on the hunt's page, from the sidebar.
+
+### Start from the Hunt Library
+
+**Events → Hunt Library** lists ready-made hunts for what security teams look for most, such as failed sign-ins, encoded PowerShell, the AWS root account and shells opened in Kubernetes pods. Each shows what it finds, its search as you would type it on **Events**, and whether the events it reads arrive, as the **Rule Library** does for its rules. Narrow them by **Hunt category**, **Data** and **Status**, or search them.
+
+**Try it** opens the search on **Events**, over the hunt's window, and saves nothing. **Add** saves it at once as one of the project's hunts, named and described in your language and not scheduled, as every new hunt is. It then says **Added**, and **Open** opens it, where you can give it a schedule.
+
 ### Run a hunt on a schedule
 
 | Schedule | Runs |
@@ -303,9 +312,15 @@ A run opens no case and raises no alert: write what should open cases as a [dete
 
 A scheduled hunt runs as the person who last set its schedule, changed its search or saved it with **Edit**. An API key cannot set a schedule. When that person leaves the project or can no longer read security events, the hunt says so: open **Edit** and save it to run it as you.
 
+### Run history
+
+Each scheduled run is kept for 90 days. **Run history**, at the end of the line that says what a hunt's runs found, lists them newest first: when each ran and the events it searched, then how many it found, with **Show them** to open those events on the hunt's page; that it found nothing; or why it could not run. Whoever can open a hunt can read its runs.
+
 ### Who is told
 
 The notification **Hunt found security events** names the hunt and its search, how many events its run found and the window it read, and links to the hunt's page on those events; no event's own words are in it. Everyone has it by email and push, and chooses its channels under **User Settings → Notification Settings**. Like other routine emails, it can be held back in an [email rollup](/docs/emails/notification-rollup).
+
+To post what hunts find to Slack or Microsoft Teams, add a rule to **Hunt Rules** under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**), below the rules that post [security cases](/docs/telemetry/security-cases#post-to-slack-and-microsoft-teams-channels). A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the hunts it is for by **Security Hunt Name**: a name that is, contains, starts with or ends with your text. Each time a scheduled run finds events, it posts the hunt, its search, how many events and when, with a link to them, and none of an event's own words. A hunt rule is set up by a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.
 
 ### Keep events on a case
 
@@ -313,7 +328,7 @@ Select events on **Events** or on a hunt's page and choose **Bulk Actions → Ad
 
 OneUptime reads each event again as you and keeps it on the case's **Evidence** page as it was, so the case still shows it after the event's retention ends. An event you cannot read is not kept, and one the case keeps already is left as it is. An event found from a hunt names the hunt, and **View Event** opens it as it was kept.
 
-Hunts have the same REST API as the rest of OneUptime, under `/security-hunt`, and `POST /security-case-evidence/add-events` keeps events on a case. See [API Reference](/docs/api-reference/api-reference).
+Hunts have the same REST API as the rest of OneUptime, under `/security-hunt`, and `POST /security-case-evidence/add-events` keeps events on a case. A hunt's runs are read under `/security-hunt-run`. See [API Reference](/docs/api-reference/api-reference).
 
 ## Detection rules
 

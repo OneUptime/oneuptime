@@ -12,10 +12,21 @@ import {
   isHuntFormScheduled,
   isHuntFormSearchRequired,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntFormFields";
+import { renderHuntFormFilters } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntFormFilters";
+import {
+  FILTERS_FIELD_DESCRIPTION,
+  FILTERS_FIELD_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
 import {
   HUNT_RECIPIENTS_NAMED,
+  HUNT_RUN_HISTORY_PAGE_SIZE,
   HuntRunState,
+  getHuntFilterChips,
   getHuntLastFoundWindow,
+  getHuntLibraryRoute,
+  getHuntRunWindow,
+  hasHuntSourceFilter,
+  removeHuntFilterValue,
   getHuntRecipientsLine,
   getHuntRunState,
   getHuntSearchTerms,
@@ -471,15 +482,25 @@ describe("the hunt forms", () => {
     expect(fieldOf(fields, "description").collapsibleSection).toBeDefined();
   });
 
-  test("never shows a hunt's chips, but reads them: with chips, the search may be empty", () => {
+  test("shows a hunt's chips only while it has some, and reads them: with chips, the search may be empty", () => {
     const fields: Array<ModelField<SecurityHunt>> = getHuntFormFields({
       translator,
     });
     const filters: ModelField<SecurityHunt> = fieldOf(fields, "filters");
     const search: ModelField<SecurityHunt> = fieldOf(fields, "searchQuery");
 
+    // No chips, no field: a hunt saved from a search alone has none to show.
     expect(filters.showIf!(values({}))).toBe(false);
-    expect(filters.fieldType).toBe(FormFieldSchemaType.JSON);
+    expect(
+      filters.showIf!(values({ filters: { severityName: ["High"] } })),
+    ).toBe(true);
+    // Drawn as the explorer's chips, each with its x (HuntFormFilters).
+    expect(filters.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(filters.getCustomElement).toBe(renderHuntFormFilters);
+    expect(filters.title).toBe(FILTERS_FIELD_TITLE);
+    expect(filters.description).toBe(FILTERS_FIELD_DESCRIPTION);
+    // Chips to take off, nothing to fill in: never called "(Optional)".
+    expect(filters.hideOptionalLabel).toBe(true);
     expect(search.required).toBe(isHuntFormSearchRequired);
     expect(isHuntFormSearchRequired(values({}))).toBe(true);
     expect(
@@ -886,5 +907,146 @@ describe("a kept event on a case's Evidence page", () => {
     expect(event.getColumnValue("attributes")).toEqual({
       "device.os": "windows",
     });
+  });
+});
+
+describe("a hunt's filters in its Edit form", () => {
+  const SOURCE_ID: string = "3d000000-0000-4000-8000-000000000001";
+
+  test("are chips as the Events explorer draws them: the field by its sidebar title, an attribute by its key, each value its own", () => {
+    expect(
+      getHuntFilterChips({
+        severityName: ["High", "Critical"],
+        "!statusName": ["Failure"],
+        "attributes.device.hostname": ["web-01"],
+      }),
+    ).toEqual([
+      {
+        facetKey: "severityName",
+        value: "High",
+        displayKey: "Severity",
+        displayValue: "High",
+      },
+      {
+        facetKey: "severityName",
+        value: "Critical",
+        displayKey: "Severity",
+        displayValue: "Critical",
+      },
+      // Left out: the chip row says "is not", as every explorer's does.
+      {
+        facetKey: "!statusName",
+        value: "Failure",
+        displayKey: "Status",
+        displayValue: "Failure",
+      },
+      {
+        facetKey: "attributes.device.hostname",
+        value: "web-01",
+        displayKey: "device.hostname",
+        displayValue: "web-01",
+      },
+    ]);
+  });
+
+  test("a source is drawn by its service's name once the names are read, by its id until then", () => {
+    const filters: JSONObject = { primaryEntityId: [SOURCE_ID] };
+
+    expect(getHuntFilterChips(filters)[0]!.displayValue).toBe(SOURCE_ID);
+    expect(
+      getHuntFilterChips(filters, { [SOURCE_ID]: "Payments API" })[0]!
+        .displayValue,
+    ).toBe("Payments API");
+    expect(hasHuntSourceFilter(filters)).toBe(true);
+    expect(hasHuntSourceFilter({ "!primaryEntityId": [SOURCE_ID] })).toBe(true);
+    expect(hasHuntSourceFilter({ severityName: ["High"] })).toBe(false);
+    expect(hasHuntSourceFilter(undefined)).toBe(false);
+  });
+
+  test("a stored value that is no list of text draws no chip", () => {
+    expect(getHuntFilterChips(undefined)).toEqual([]);
+    expect(getHuntFilterChips(null)).toEqual([]);
+    expect(getHuntFilterChips("severityName:High")).toEqual([]);
+    expect(getHuntFilterChips({ severityName: "High" })).toEqual([]);
+  });
+
+  test("a chip's x takes off just its value; a field left with none goes", () => {
+    const filters: JSONObject = {
+      severityName: ["High", "Critical"],
+      "!statusName": ["Failure"],
+    };
+
+    expect(removeHuntFilterValue(filters, "severityName", "High")).toEqual({
+      severityName: ["Critical"],
+      "!statusName": ["Failure"],
+    });
+    expect(removeHuntFilterValue(filters, "!statusName", "Failure")).toEqual({
+      severityName: ["High", "Critical"],
+    });
+    // The same value under the other sense of its field stays.
+    expect(
+      removeHuntFilterValue(
+        { statusName: ["Failure"], "!statusName": ["Failure"] },
+        "statusName",
+        "Failure",
+      ),
+    ).toEqual({ "!statusName": ["Failure"] });
+    // The filters it was handed are its caller's, unchanged.
+    expect(filters).toEqual({
+      severityName: ["High", "Critical"],
+      "!statusName": ["Failure"],
+    });
+  });
+});
+
+describe("a hunt's Run History", () => {
+  test("ten runs at a time", () => {
+    expect(HUNT_RUN_HISTORY_PAGE_SIZE).toBe(10);
+  });
+
+  test("a run's window is the events it searched, as the explorer opens them", () => {
+    expect(
+      getHuntRunWindow({
+        windowStartAt: new Date("2026-10-28T10:00:00.000Z"),
+        windowEndAt: new Date("2026-10-29T10:00:00.000Z"),
+      }),
+    ).toEqual({
+      startTime: new Date("2026-10-28T10:00:00.000Z"),
+      endTime: new Date("2026-10-29T10:00:00.000Z"),
+    });
+    // As the API hands it back: text.
+    expect(
+      getHuntRunWindow({
+        windowStartAt: "2026-10-28T10:00:00.000Z",
+        windowEndAt: "2026-10-29T10:00:00.000Z",
+      }),
+    ).toEqual({
+      startTime: new Date("2026-10-28T10:00:00.000Z"),
+      endTime: new Date("2026-10-29T10:00:00.000Z"),
+    });
+    expect(getHuntRunWindow({ windowStartAt: null, windowEndAt: null })).toBe(
+      null,
+    );
+    expect(
+      getHuntRunWindow({
+        windowStartAt: "not a date",
+        windowEndAt: "2026-10-29T10:00:00.000Z",
+      }),
+    ).toBe(null);
+  });
+});
+
+describe("the Hunt Library's address", () => {
+  test("is its own page under Security Events", () => {
+    expect(getHuntLibraryRoute().toString()).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_EVENTS_HUNT_LIBRARY] as Route,
+      ).toString(),
+    );
+    expect(
+      getHuntLibraryRoute()
+        .toString()
+        .endsWith("/security-events/hunt-library"),
+    ).toBe(true);
   });
 });

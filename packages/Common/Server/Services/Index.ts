@@ -384,6 +384,7 @@ import DetectionRuleExceptionService from "./DetectionRuleExceptionService";
 import SecurityWatchlistService from "./SecurityWatchlistService";
 import SecurityWatchlistItemService from "./SecurityWatchlistItemService";
 import SecurityHuntService from "./SecurityHuntService";
+import SecurityHuntRunService from "./SecurityHuntRunService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
@@ -429,6 +430,7 @@ import DataAssetUsageService from "./DataAssetUsageService";
 import DataCheckService from "./DataCheckService";
 import DataPipelineService from "./DataPipelineService";
 import DataPipelineRunService from "./DataPipelineRunService";
+import DataProductService from "./DataProductService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
@@ -937,6 +939,7 @@ const services: Array<BaseService> = [
   SecurityWatchlistService,
   SecurityWatchlistItemService,
   SecurityHuntService,
+  SecurityHuntRunService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,
@@ -983,6 +986,7 @@ const services: Array<BaseService> = [
   DataCheckService,
   DataPipelineService,
   DataPipelineRunService,
+  DataProductService,
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,

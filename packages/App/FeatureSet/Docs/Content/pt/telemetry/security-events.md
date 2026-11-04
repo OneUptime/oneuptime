@@ -38,6 +38,7 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
 | **Caçadas** | Eventos | Pesquisas salvas a partir de Eventos, abertas de novo com um clique ou executadas em um agendamento que avisa pessoas quando encontram algo |
+| **Biblioteca de caçadas** | Eventos | Caçadas prontas para experimentar em Eventos ou adicionar às suas caçadas, cada uma com os eventos que lê e se eles chegam |
 | **Campanhas** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
@@ -286,6 +287,14 @@ Em **Eventos**, pesquise e filtre até a lista mostrar o que você procura, depo
 
 A página de uma caçada é a pesquisa dela, aberta no explorador de eventos. Mude ali a pesquisa ou os filtros, e o cabeçalho da caçada oferece **Salvar alterações** e **Descartar alterações**. **Editar** muda o nome, a pesquisa, até quando ela olha para trás, o agendamento e quem ela avisa, e **Excluir caçada** fica no menu dela. A partir de Security Member é possível salvar, alterar e excluir caçadas, e um Security Viewer pode abri-las.
 
+Uma caçada salva com filtros da barra lateral de Eventos os mostra em **Editar** sob **Filtros**, como Eventos os desenha, cada um com um x para removê-lo. Adicione filtros na página da caçada, pela barra lateral.
+
+### Comece pela biblioteca de caçadas
+
+**Eventos → Biblioteca de caçadas** lista caçadas prontas para o que as equipes de segurança mais procuram, como entradas com falha, PowerShell codificado, a conta root da AWS e shells abertos em pods do Kubernetes. Cada uma mostra o que encontra, sua pesquisa como você a digitaria em **Eventos** e se os eventos que ela lê chegam, como a **Biblioteca de regras** faz com suas regras. Restrinja-as por **Categoria de caçada**, **Dados** e **Status**, ou pesquise-as.
+
+**Experimente** abre a pesquisa em **Eventos**, na janela da caçada, e não salva nada. **Adicionar** a salva na hora como uma das caçadas do projeto, com nome e descrição no seu idioma e sem agendamento, como toda caçada nova. Depois ela diz **Adicionado**, e **Abrir** a abre, onde você pode dar a ela um agendamento.
+
 ### Executar uma caçada em um agendamento
 
 | Agendamento | É executada |
@@ -303,9 +312,15 @@ Uma execução não abre nenhum caso nem dispara nenhum alerta: escreva o que de
 
 Uma caçada agendada é executada com a pessoa que por último definiu seu agendamento, alterou sua pesquisa ou a salvou com **Editar**. Uma chave de API não pode definir um agendamento. Quando essa pessoa sai do projeto ou não pode mais ler eventos de segurança, a caçada avisa: abra **Editar** e salve-a para executá-la com sua conta.
 
+### Histórico de execuções
+
+Cada execução agendada é guardada por 90 dias. **Histórico de execuções**, no fim da linha que diz o que as execuções de uma caçada encontraram, as lista da mais recente para a mais antiga: quando cada uma foi executada e os eventos que pesquisou, depois quantos encontrou, com **Mostrá-los** para abrir esses eventos na página da caçada; que não encontrou nada; ou por que não pôde ser executada. Quem pode abrir uma caçada pode ler as execuções dela.
+
 ### Quem é avisado
 
 A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e a janela que ela leu, e leva à página da caçada nesses eventos; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
+
+Para publicar no Slack ou no Microsoft Teams o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-e-do-microsoft-teams). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Project Owner, Project Admin ou Security Admin.
 
 ### Guardar eventos em um caso
 
@@ -313,7 +328,7 @@ Selecione eventos em **Eventos** ou na página de uma caçada e escolha **Açõe
 
 O OneUptime lê cada evento de novo como você e o guarda como era na página **Evidências** do caso, então o caso continua mostrando-o depois que a retenção do evento termina. Um evento que você não pode ler não é guardado, e um que o caso já guarda fica como está. Um evento encontrado a partir de uma caçada nomeia a caçada, e **Ver evento** o abre como foi guardado.
 
-As caçadas têm a mesma API REST que o resto do OneUptime, em `/security-hunt`, e `POST /security-case-evidence/add-events` guarda eventos em um caso. Veja a [referência da API](/docs/api-reference/api-reference).
+As caçadas têm a mesma API REST que o resto do OneUptime, em `/security-hunt`, e `POST /security-case-evidence/add-events` guarda eventos em um caso. As execuções de uma caçada são lidas em `/security-hunt-run`. Veja a [referência da API](/docs/api-reference/api-reference).
 
 ## Regras de detecção
 

@@ -15,6 +15,7 @@ import {
   TABLE_HEALTH_CLAIM_IN_MINUTES,
 } from "./DataObservabilityProbeCollect";
 import {
+  getQueryHistoryLookbackInSeconds,
   MAX_COLUMNS_PER_COLLECTION,
   MAX_TABLES_PER_COLLECTION,
 } from "./TableHealthCollector";
@@ -114,10 +115,15 @@ export async function claimDueTableHealthStoresForProbe(data: {
   );
 }
 
-// The work of one claimed store, as the probe is handed it; null when no probe could do it.
+/*
+ * The work of one claimed store, as the probe is handed it; null when no
+ * probe could do it. Lineage is read back to the store's last collection
+ * (tableHealthCollectedAt), at its first collection of each hour.
+ */
 export function buildProbeCollectWork(
   store: DataStore,
   checks: Array<PlannedDataCheck> = [],
+  now: Date = OneUptimeDate.getCurrentDate(),
 ): DataObservabilityProbeStoreWork | null {
   const engine: ReturnType<typeof getCollectorEngineOfKind> =
     getCollectorEngineOfKind(store.kind);
@@ -142,5 +148,9 @@ export function buildProbeCollectWork(
       },
     ),
     checks,
+    queryHistoryLookbackInSeconds: getQueryHistoryLookbackInSeconds(
+      store.tableHealthCollectedAt,
+      now,
+    ),
   };
 }
