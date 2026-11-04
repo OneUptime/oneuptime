@@ -42296,5 +42296,6 @@
   "alice": "alice",
   "Connect Mattermost": "اتصال Mattermost",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "سرور Mattermost خود را به این پروژه متصل کنید، سپس همین‌جا انتخاب کنید کدام اعلان‌ها در کدام کانال‌ها ارسال شوند.",
-  "Mattermost is not connected yet!": "هنوز Mattermost متصل نشده است!"
+  "Mattermost is not connected yet!": "هنوز Mattermost متصل نشده است!",
+  "Open in Mattermost": "باز کردن در Mattermost"
 }

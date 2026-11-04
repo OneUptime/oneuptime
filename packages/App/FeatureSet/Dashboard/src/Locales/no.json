@@ -42296,5 +42296,6 @@
   "alice": "alice",
   "Connect Mattermost": "Koble til Mattermost",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Koble Mattermost-serveren din til dette prosjektet, og velg deretter her hvilke varsler som publiseres i hvilke kanaler.",
-  "Mattermost is not connected yet!": "Mattermost er ikke koblet til ennå!"
+  "Mattermost is not connected yet!": "Mattermost er ikke koblet til ennå!",
+  "Open in Mattermost": "Åpne i Mattermost"
 }

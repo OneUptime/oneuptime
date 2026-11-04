@@ -42296,5 +42296,6 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost koppelen",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Koppel je Mattermost-server aan dit project en kies daarna hier welke meldingen in welke kanalen worden geplaatst.",
-  "Mattermost is not connected yet!": "Mattermost is nog niet verbonden!"
+  "Mattermost is not connected yet!": "Mattermost is nog niet verbonden!",
+  "Open in Mattermost": "Openen in Mattermost"
 }

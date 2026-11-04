@@ -42296,5 +42296,6 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost verbinden",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Verbinden Sie Ihren Mattermost-Server mit diesem Projekt und legen Sie dann hier fest, welche Benachrichtigungen in welchen Kanälen gepostet werden.",
-  "Mattermost is not connected yet!": "Mattermost ist noch nicht verbunden!"
+  "Mattermost is not connected yet!": "Mattermost ist noch nicht verbunden!",
+  "Open in Mattermost": "In Mattermost öffnen"
 }

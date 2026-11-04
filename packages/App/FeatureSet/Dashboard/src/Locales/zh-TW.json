@@ -42296,5 +42296,6 @@
   "alice": "alice",
   "Connect Mattermost": "連線 Mattermost",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "將你的 Mattermost 伺服器連線到此專案，然後在此選擇要將哪些通知發布到哪些頻道。",
-  "Mattermost is not connected yet!": "Mattermost 尚未連線！"
+  "Mattermost is not connected yet!": "Mattermost 尚未連線！",
+  "Open in Mattermost": "在 Mattermost 中開啟"
 }

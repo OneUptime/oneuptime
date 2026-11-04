@@ -42296,5 +42296,6 @@
   "alice": "alice",
   "Connect Mattermost": "Mattermost 연결",
   "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.": "Mattermost 서버를 이 프로젝트에 연결한 다음, 어떤 알림을 어떤 채널에 게시할지 여기에서 선택하세요.",
-  "Mattermost is not connected yet!": "Mattermost이 아직 연결되지 않았습니다!"
+  "Mattermost is not connected yet!": "Mattermost이 아직 연결되지 않았습니다!",
+  "Open in Mattermost": "Mattermost에서 열기"
 }

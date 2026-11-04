@@ -4,6 +4,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import WorkspaceProjectAuthToken, {
+  MattermostMiscData,
   MicrosoftTeamsMiscData,
   SlackMiscData,
 } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -26,14 +27,15 @@ import logger from "../Logger";
 import MicrosoftTeamsHosts from "./MicrosoftTeams/MicrosoftTeamsHosts";
 
 /*
- * THE LINKS TO A RECORD'S OWN SLACK AND MICROSOFT TEAMS CHANNELS.
+ * THE LINKS TO A RECORD'S OWN SLACK, MICROSOFT TEAMS AND MATTERMOST CHANNELS.
  *
- * What the "Open in Slack" / "Open in Microsoft Teams" buttons of an
- * incident's, alert's, episode's or scheduled maintenance event's page open
- * (WorkspaceChannelLink). The channels are the ones a workspace notification
- * rule created for the record (postUpdatesToWorkspaceChannels), which no API
- * reads; the ids a link needs besides the channel's own - the Slack
- * workspace, the Microsoft Teams tenant - are the project's connection.
+ * What the "Open in Slack", "Open in Microsoft Teams" and "Open in
+ * Mattermost" buttons of an incident's, alert's, episode's or scheduled
+ * maintenance event's page open (WorkspaceChannelLink). The channels are the
+ * ones a workspace notification rule created for the record
+ * (postUpdatesToWorkspaceChannels), which no API reads; what a link needs
+ * besides the channel's own - the Slack workspace, the Microsoft Teams
+ * tenant, the Mattermost server and team - is the project's connection.
  *
  * WHO MAY ASK. Whoever can read the record: it is read here with the
  * caller's own props first, so the table permission and a private record's
@@ -173,8 +175,8 @@ const READERS: Record<WorkspaceChannelRecordType, RecordReader> = {
 
 export default class WorkspaceChannelLinks {
   /*
-   * The links to the record's channels, Slack first, in the order the record
-   * got them. A channel whose link cannot be built - the workspace was
+   * The links to the record's channels - Slack's, then Microsoft Teams', then
+   * Mattermost's - in the order the record got them. A channel whose link cannot be built - the workspace was
    * disconnected since, an id of the wrong shape - is left out rather than
    * offered as a button that goes nowhere.
    */
@@ -228,6 +230,11 @@ export default class WorkspaceChannelLinks {
         return channel.workspaceType === WorkspaceType.MicrosoftTeams;
       },
     );
+    const hasMattermost: boolean = channels.some(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        return channel.workspaceType === WorkspaceType.Mattermost;
+      },
+    );
 
     const slackTeamId: string | null = hasSlack
       ? await WorkspaceChannelLinks.getSlackTeamId(data.projectId)
@@ -235,6 +242,42 @@ export default class WorkspaceChannelLinks {
     const teamsTenantId: string | null = hasTeams
       ? await WorkspaceChannelLinks.getMicrosoftTeamsTenantId(data.projectId)
       : null;
+    const mattermost: MattermostMiscData | null = hasMattermost
+      ? await WorkspaceChannelLinks.getMattermostConnection(data.projectId)
+      : null;
+
+    const getChannelUrl: (
+      channel: NotificationRuleWorkspaceChannel,
+    ) => string | null = (
+      channel: NotificationRuleWorkspaceChannel,
+    ): string | null => {
+      if (channel.workspaceType === WorkspaceType.Slack) {
+        return slackTeamId
+          ? WorkspaceChannelLinkUtil.getSlackChannelUrl({
+              teamId: slackTeamId,
+              channelId: channel.id,
+            })
+          : null;
+      }
+
+      if (channel.workspaceType === WorkspaceType.MicrosoftTeams) {
+        return WorkspaceChannelLinkUtil.getMicrosoftTeamsChannelUrl({
+          tenantId: teamsTenantId || undefined,
+          teamId: channel.teamId,
+          channelId: channel.id,
+          channelName: channel.name,
+          teamsWebOrigin: MicrosoftTeamsHosts.getTeamsWebOrigin(),
+        });
+      }
+
+      return mattermost
+        ? WorkspaceChannelLinkUtil.getMattermostChannelUrl({
+            serverUrl: mattermost.serverUrl,
+            teamName: mattermost.teamName,
+            channelName: channel.name,
+          })
+        : null;
+    };
 
     const links: Array<WorkspaceChannelLink> = [];
     const seenUrls: Set<string> = new Set<string>();
@@ -242,27 +285,14 @@ export default class WorkspaceChannelLinks {
     for (const workspaceType of [
       WorkspaceType.Slack,
       WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
     ]) {
       for (const channel of channels) {
         if (channel.workspaceType !== workspaceType) {
           continue;
         }
 
-        const url: string | null =
-          workspaceType === WorkspaceType.Slack
-            ? slackTeamId
-              ? WorkspaceChannelLinkUtil.getSlackChannelUrl({
-                  teamId: slackTeamId,
-                  channelId: channel.id,
-                })
-              : null
-            : WorkspaceChannelLinkUtil.getMicrosoftTeamsChannelUrl({
-                tenantId: teamsTenantId || undefined,
-                teamId: channel.teamId,
-                channelId: channel.id,
-                channelName: channel.name,
-                teamsWebOrigin: MicrosoftTeamsHosts.getTeamsWebOrigin(),
-              });
+        const url: string | null = getChannelUrl(channel);
 
         if (!url || seenUrls.has(url)) {
           continue;
@@ -327,6 +357,28 @@ export default class WorkspaceChannelLinks {
         projectAuth.workspaceProjectId ||
         null
       );
+    } catch (err) {
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /*
+   * The Mattermost server and team the project's bot was connected to, if
+   * any. Only OneUptime's connect flow writes them (MattermostAPI): miscData
+   * cannot be changed through the API.
+   */
+  public static async getMattermostConnection(
+    projectId: ObjectID,
+  ): Promise<MattermostMiscData | null> {
+    try {
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
+          projectId: projectId,
+          workspaceType: WorkspaceType.Mattermost,
+        });
+
+      return (projectAuth?.miscData as MattermostMiscData | undefined) || null;
     } catch (err) {
       logger.error(err);
       return null;
