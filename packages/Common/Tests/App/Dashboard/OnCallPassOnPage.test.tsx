@@ -1880,8 +1880,12 @@ describe("the words are the Dashboard's translation keys, and every place's", ()
       alreadyAcknowledgedTitle: "Already acknowledged",
       alreadyPassedOnTitle: "Already escalated",
       nothingToPassOnTitle: "Nothing to escalate",
+      // A later level picked was not there to page (LevelNotAvailable).
+      notEscalatedTitle: "Not escalated",
       failed: "Could not escalate. Please try again.",
       passedOnStatus: "Escalated",
+      // Where a later level than the next is picked.
+      escalateTo: "Escalate to",
     });
   });
 

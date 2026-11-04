@@ -41842,5 +41842,11 @@
   "About": "Gäller",
   "Caused Upstream": "Orsak uppströms",
   "Written By": "Skrivs av",
-  "Changes Around It": "Ändringar kring tidpunkten"
+  "Changes Around It": "Ändringar kring tidpunkten",
+  "Escalate to": "Eskalera till",
+  "It skips {{levels}}.": "Det här hoppar över {{levels}}.",
+  "Not escalated": "Inte eskalerat",
+  "The page was escalated past this level": "Den här nivån hoppades över vid eskaleringen",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Policyns nivåer har ändrats, så inget eskalerades. Eskalera igen för att välja en nivå.",
+  "{{policy}}: escalate to": "{{policy}}: eskalera till"
 }

@@ -55,8 +55,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 import ExecutionLogTimelineTable, {
   LEVEL_HAS_NO_RESPONDERS_LABEL,
   LEVEL_PAGED_NOBODY_LABEL,
+  LEVEL_SKIPPED_BY_ESCALATION_LABEL,
   MOVED_ON_AT_ONCE_LABEL,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable";
+import { ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
@@ -204,6 +206,43 @@ describe("the Execution Timeline's row for a level that paged nobody", () => {
         .getByTestId("on-call-timeline-moved-on-at-once")
         .querySelector("svg"),
     ).toHaveClass(ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME);
+  });
+});
+
+/*
+ * Somebody escalating picked a later level than the next: each level between
+ * got a line saying the page was escalated past it. Its row says so where a
+ * person would be - in grey, not the amber of a level that paged nobody:
+ * nothing went wrong, and nothing needs fixing.
+ */
+describe("the Execution Timeline's row for a level skipped by escalating", () => {
+  test("says the page was escalated past it", () => {
+    drawSentTo(levelLine(ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE));
+
+    expect(
+      screen.getByTestId("on-call-timeline-level-skipped-by-escalation"),
+    ).toHaveTextContent(LEVEL_SKIPPED_BY_ESCALATION_LABEL);
+    expect(LEVEL_SKIPPED_BY_ESCALATION_LABEL).toBe(
+      "The page was escalated past this level",
+    );
+  });
+
+  test("is no warning: grey, and never the empty level's amber or its Moved on at once", () => {
+    drawSentTo(levelLine(ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE));
+
+    const row: HTMLElement = screen.getByTestId(
+      "on-call-timeline-level-skipped-by-escalation",
+    );
+
+    expect(row).toHaveClass("bg-gray-50");
+    expect(row.className).not.toContain("amber");
+    expect(
+      screen.queryByTestId("on-call-timeline-level-paged-nobody"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("on-call-timeline-moved-on-at-once"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("-")).not.toBeInTheDocument();
   });
 });
 

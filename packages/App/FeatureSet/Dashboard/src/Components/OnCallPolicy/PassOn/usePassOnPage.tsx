@@ -4,11 +4,12 @@ import {
   OnCallOpenPage,
   OnCallPageRecordType,
   OnCallPassOnAnswer,
-  OnCallPassOnResult,
+  OnCallPassOnLevelChoice,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Radio, { RadioValue } from "Common/UI/Components/Radio/Radio";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement, useCallback, useEffect, useState } from "react";
@@ -17,13 +18,20 @@ import {
   PAGE_AGAIN_TEXT,
   PASS_ON_PAGE_TEXT,
   PassOnDialogLine,
+  PassOnLevelPicks,
   PassOnLinePiece,
   acknowledgePagesAgain,
   fetchOpenPages,
   getPassOnAnswerLines,
   getPassOnAnswerTitle,
+  getPassOnEscalateTo,
   getPassOnKeptTogether,
+  getPassOnLevelChoiceLabel,
+  getPassOnLevelChoices,
+  getPassOnLevelPickerLabel,
   getPassOnLinePieces,
+  getPassOnPickedLevel,
+  getPassOnQuestionKeptTogether,
   getPassOnQuestionLines,
   getPassOnQuestionTitle,
   getPassedOnResults,
@@ -81,39 +89,133 @@ function dialogText(
   lines: Array<PassOnDialogLine>,
   testId: string,
   kept: Array<string>,
+  /*
+   * What goes between the warnings and the sentences: the levels to pick
+   * from, so the sentence under them says what the pick does.
+   */
+  afterWarnings?: ReactElement | undefined,
 ): ReactElement {
+  const warnings: Array<PassOnDialogLine> = lines.filter(
+    (line: PassOnDialogLine): boolean => {
+      return line.isWarning;
+    },
+  );
+  const sentences: Array<PassOnDialogLine> = lines.filter(
+    (line: PassOnDialogLine): boolean => {
+      return !line.isWarning;
+    },
+  );
+
   return (
     <div className="space-y-3" data-testid={testId}>
-      {lines.map((line: PassOnDialogLine, index: number) => {
-        return line.isWarning ? (
-          <Alert
-            key={index}
-            type={AlertType.WARNING}
-            title={line.text}
-            dataTestId="pass-on-warning"
-          />
-        ) : (
-          <p key={index} className="text-pretty">
-            {getPassOnLinePieces(line.text, kept).map(
-              (piece: PassOnLinePiece, pieceIndex: number) => {
-                return piece.keepTogether ? (
-                  <span
-                    key={pieceIndex}
-                    className="whitespace-nowrap"
-                    data-testid="pass-on-kept-together"
-                  >
-                    {piece.text}
-                  </span>
-                ) : (
-                  <React.Fragment key={pieceIndex}>{piece.text}</React.Fragment>
-                );
-              },
-            )}
-          </p>
-        );
-      })}
+      {[...warnings, ...sentences].map(
+        (line: PassOnDialogLine, index: number) => {
+          const drawn: ReactElement = line.isWarning ? (
+            <Alert
+              key={index}
+              type={AlertType.WARNING}
+              title={line.text}
+              dataTestId="pass-on-warning"
+            />
+          ) : (
+            <p key={index} className="text-pretty">
+              {getPassOnLinePieces(line.text, kept).map(
+                (piece: PassOnLinePiece, pieceIndex: number) => {
+                  return piece.keepTogether ? (
+                    <span
+                      key={pieceIndex}
+                      className="whitespace-nowrap"
+                      data-testid="pass-on-kept-together"
+                    >
+                      {piece.text}
+                    </span>
+                  ) : (
+                    <React.Fragment key={pieceIndex}>
+                      {piece.text}
+                    </React.Fragment>
+                  );
+                },
+              )}
+            </p>
+          );
+
+          // The levels to pick from come right after the last warning.
+          return index === warnings.length && afterWarnings ? (
+            <React.Fragment key={index}>
+              {afterWarnings}
+              {drawn}
+            </React.Fragment>
+          ) : (
+            drawn
+          );
+        },
+      )}
     </div>
   );
+}
+
+/*
+ * "Escalate to" and a radio for each level a page offers, the next level
+ * picked: drawn only for a page with two or more levels after the
+ * person's. Its label names the policy when two policies page them about
+ * the record.
+ */
+function levelPickers(data: {
+  pages: Array<OnCallOpenPage>;
+  picks: PassOnLevelPicks;
+  onPick: (executionLogId: string, escalationRuleId: string) => void;
+  translator: Translator;
+}): ReactElement | undefined {
+  const pickers: Array<ReactElement> = [];
+
+  for (const page of data.pages) {
+    const choices: Array<OnCallPassOnLevelChoice> = getPassOnLevelChoices(page);
+
+    if (choices.length === 0) {
+      continue;
+    }
+
+    const labelId: string = `pass-on-levels-label-${page.executionLogId}`;
+
+    pickers.push(
+      <div key={page.executionLogId} data-testid="pass-on-levels">
+        <div
+          id={labelId}
+          className="text-sm font-medium text-gray-900"
+          data-testid="pass-on-levels-label"
+        >
+          {getPassOnLevelPickerLabel(page, data.pages, data.translator)}
+        </div>
+        <Radio
+          className=""
+          ariaLabelledby={labelId}
+          dataTestId="pass-on-levels-options"
+          options={choices.map((choice: OnCallPassOnLevelChoice) => {
+            return {
+              value: choice.escalationRuleId,
+              label: getPassOnLevelChoiceLabel(
+                choice,
+                page.preview.ruleCount,
+                data.translator,
+              ),
+            };
+          })}
+          value={getPassOnPickedLevel(page, data.picks)?.escalationRuleId}
+          onChange={(value: RadioValue | null): void => {
+            if (value) {
+              data.onPick(page.executionLogId, String(value));
+            }
+          }}
+        />
+      </div>,
+    );
+  }
+
+  if (pickers.length === 0) {
+    return undefined;
+  }
+
+  return <div className="space-y-4">{pickers}</div>;
 }
 
 /*
@@ -145,6 +247,8 @@ export default function usePassOnPage(data: {
   const [stage, setStage] = useState<DialogStage>(DialogStage.Closed);
   const [answers, setAnswers] = useState<Array<OnCallPassOnAnswer>>([]);
   const [error, setError] = useState<string>("");
+  // The later level picked for each page, by its run; none, the next level.
+  const [picks, setPicks] = useState<PassOnLevelPicks>({});
   // A page again being acknowledged, and why it could not be.
   const [isAcknowledging, setIsAcknowledging] = useState<boolean>(false);
   const [acknowledgeError, setAcknowledgeError] = useState<string>("");
@@ -181,7 +285,11 @@ export default function usePassOnPage(data: {
     setStage(DialogStage.Passing);
     setError("");
 
-    passOnPages({ recordType: data.recordType, recordId: data.recordId })
+    passOnPages({
+      recordType: data.recordType,
+      recordId: data.recordId,
+      escalateTo: getPassOnEscalateTo(pages, picks),
+    })
       .then((passed: Array<OnCallPassOnAnswer>) => {
         setAnswers(passed);
         setStage(DialogStage.Done);
@@ -205,7 +313,14 @@ export default function usePassOnPage(data: {
         );
         setStage(DialogStage.Asking);
       });
-  }, [recordKey, data.onPassedOn, data.onRecordChanged, translator]);
+  }, [
+    recordKey,
+    data.onPassedOn,
+    data.onRecordChanged,
+    translator,
+    pages,
+    picks,
+  ]);
 
   const acknowledge: () => void = useCallback((): void => {
     setIsAcknowledging(true);
@@ -268,6 +383,8 @@ export default function usePassOnPage(data: {
       onClick: () => {
         setAnswers([]);
         setError("");
+        // Every time it asks, the next level is picked.
+        setPicks({});
         setStage(DialogStage.Asking);
       },
     });
@@ -280,14 +397,22 @@ export default function usePassOnPage(data: {
       <ConfirmModal
         title={getPassOnQuestionTitle(data.recordType)}
         description={dialogText(
-          getPassOnQuestionLines(pages, translator, data.recordType),
+          getPassOnQuestionLines(pages, translator, data.recordType, picks),
           "pass-on-preview",
-          getPassOnKeptTogether(
-            pages.map((page: OnCallOpenPage): OnCallPassOnResult => {
-              return page.preview;
-            }),
-            translator,
-          ),
+          getPassOnQuestionKeptTogether(pages, picks, translator),
+          levelPickers({
+            pages: pages,
+            picks: picks,
+            onPick: (
+              executionLogId: string,
+              escalationRuleId: string,
+            ): void => {
+              setPicks((current: PassOnLevelPicks): PassOnLevelPicks => {
+                return { ...current, [executionLogId]: escalationRuleId };
+              });
+            },
+            translator: translator,
+          }),
         )}
         submitButtonText={PASS_ON_PAGE_TEXT.button}
         onSubmit={passOn}

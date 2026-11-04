@@ -41842,5 +41842,11 @@
   "About": "對象",
   "Caused Upstream": "上游原因",
   "Written By": "寫入方",
-  "Changes Around It": "前後的變更"
+  "Changes Around It": "前後的變更",
+  "Escalate to": "升級到",
+  "It skips {{levels}}.": "將跳過 {{levels}}。",
+  "Not escalated": "未升級",
+  "The page was escalated past this level": "升級時跳過了此層級",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "策略的級別已變更，因此未升級任何內容。請再次升級以選擇級別。",
+  "{{policy}}: escalate to": "{{policy}}：升級到"
 }

@@ -41842,5 +41842,11 @@
   "About": "Sobre",
   "Caused Upstream": "Causa a montante",
   "Written By": "Escrito por",
-  "Changes Around It": "Mudanças nesse período"
+  "Changes Around It": "Mudanças nesse período",
+  "Escalate to": "Escalonar para",
+  "It skips {{levels}}.": "Isso pula {{levels}}.",
+  "Not escalated": "Não escalonado",
+  "The page was escalated past this level": "Este nível foi pulado ao escalonar",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Os níveis da política mudaram, então nada foi escalonado. Escalone novamente para escolher um nível.",
+  "{{policy}}: escalate to": "{{policy}}: escalonar para"
 }

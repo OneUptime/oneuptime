@@ -11,6 +11,7 @@ import {
   OnCallEmptyLevelLine,
   readOnCallEmptyLevelLine,
 } from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
+import { isOnCallLevelSkippedByEscalationMessage } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -76,6 +77,15 @@ export const LEVEL_PAGED_NOBODY_LABEL: string = translationKey(
 );
 export const MOVED_ON_AT_ONCE_LABEL: string =
   translationKey("Moved on at once");
+
+/*
+ * A level the person escalating skipped for a later one: its line names
+ * nobody, and says so - in grey, not the amber of a level that paged
+ * nobody, since nothing went wrong (OnCallPagePassOn's level choice).
+ */
+export const LEVEL_SKIPPED_BY_ESCALATION_LABEL: string = translationKey(
+  "The page was escalated past this level",
+);
 
 export interface ComponentProps {
   onCallPolicyExecutionLogId: ObjectID;
@@ -338,6 +348,30 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                       )}
                     </span>
                   </div>
+                );
+              }
+
+              // A level skipped for a later one, picked by the person escalating.
+              if (
+                isOnCallLevelSkippedByEscalationMessage(
+                  item["statusMessage"] as string | undefined,
+                )
+              ) {
+                return (
+                  <span
+                    data-testid="on-call-timeline-level-skipped-by-escalation"
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+                  >
+                    <Icon
+                      icon={IconProp.ArrowCircleUp}
+                      className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
+                    />
+                    <span className="min-w-0 whitespace-normal break-words">
+                      {translator.translateText(
+                        LEVEL_SKIPPED_BY_ESCALATION_LABEL,
+                      )}
+                    </span>
+                  </span>
                 );
               }
 
