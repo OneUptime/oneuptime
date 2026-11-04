@@ -66,6 +66,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 - [AI-observerbarhet](/docs/telemetry/ai-llm-observability): Følg samtalene til AI-en din, og få beskjed når den svarer dårlig.
 - [Sikkerhet](/docs/telemetry/security-events): Samle inn sikkerhetshendelser og trusseletterretning.
 - [Datasikkerhet](/docs/data-security/index): Finn de sensitive dataene i bucketene, databasene og telemetrien din, og rett hvordan de oppbevares.
+- [Dataobserverbarhet](/docs/data-observability/index): Få vite når dataene i databasene og datavarehusene dine er forsinket, feil eller ødelagt, og hvilken kjøring, utrulling eller tabell som står bak.
 - [Real User Monitoring](/docs/rum/index): Mål hva ekte brukere opplever, med Core Web Vitals og øktavspilling.
 - [Dashbord](/docs/dashboards/index): Bygg dashbord av metrikkene, loggene og monitorene dine.
 - [Inventar](/docs/inventory/overview): Se hver tjeneste, vert og enhet OneUptime kjenner til.

@@ -398,8 +398,11 @@ const PROSE: Record<string, Array<string>> = {
   ],
   [TEAMS]: ["No", "Yes"],
   [GITHUB]: ["Required"],
-  // The database, which a data store's kind names the same in every language.
-  [SIZING]: ["PostgreSQL"],
+  /*
+   * The databases, which a data store's kind names the same in every
+   * language (ClickHouse is one since Data Observability reads it).
+   */
+  [SIZING]: ["PostgreSQL", "ClickHouse"],
 };
 
 /*
@@ -430,7 +433,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "High availability",
   ],
   [SIZING]: [
-    "ClickHouse",
     "Valkey",
     "no CPU or memory requests or limits",
     "25 Gi",
@@ -539,7 +541,6 @@ const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
   "10 clusters",
   "3 instances",
   "3 nodes",
-  "ClickHouse",
   "Valkey",
   "25 Gi",
   "~0.4–1.2 TB",

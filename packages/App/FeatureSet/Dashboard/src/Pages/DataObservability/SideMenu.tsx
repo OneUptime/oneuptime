@@ -65,6 +65,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "BI Dashboards",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS),
+          }}
+          icon={IconProp.ChartBar}
+        />
+        <SideMenuItem
+          link={{
             title: "Schema Changes",
             to: routeOf(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES),
           }}

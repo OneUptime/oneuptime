@@ -69,7 +69,7 @@ Setzen Sie unter **Weitere Felder** die Option **Datensicherheit** auf **Nur Kon
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Datenbanken, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake | PostgreSQL, MySQL |
+| Datenbanken, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen |
 
 Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Datenspeicher, von dessen Inhalt sich keine Stichproben nehmen lassen, wird trotzdem geprüft: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt.

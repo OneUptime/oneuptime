@@ -22,6 +22,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   reconciliationRunNow: (reconciliationId: string) => string;
   checkSuggest: string;
   tableFreshness: string;
+  biSync: (dataBiConnectionId: string) => string;
+  tableDashboards: string;
 } = {
   overview: "/data-observability/overview",
   stores: "/data-observability/stores",
@@ -61,7 +63,30 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   checkSuggest: "/data-observability/checks/suggest",
   // Whether a table is fresh, as one answer: what the MCP server's tool asks.
   tableFreshness: "/data-observability/tables/freshness",
+  // Reads a BI tool's dashboards now, and says how it went.
+  biSync: (dataBiConnectionId: string): string => {
+    return `/data-observability/bi-connections/${dataBiConnectionId}/sync`;
+  },
+  // The dashboards built on a table, and on the tables built from it.
+  tableDashboards: "/data-observability/tables/dashboards",
 };
+
+export interface DataObservabilityBiSyncResponse {
+  dashboardCount: number;
+  matchedTableCount: number;
+  error: string | null;
+}
+
+export interface DataObservabilityTableDashboard {
+  dataDashboardId: string;
+  name: string;
+  url: string | null;
+  tool: string;
+  folder: string | null;
+  owner: string | null;
+  // The table built from this one that the dashboard reads; null when it reads this one.
+  via: { dataAssetId: string; table: string } | null;
+}
 
 export interface DataObservabilityCheckSuggestRequest {
   dataAssetId: string;

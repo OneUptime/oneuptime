@@ -119,6 +119,11 @@ export function getDataObservabilityBreadcrumbs(
       PageMap.DATA_OBSERVABILITY_RECONCILIATIONS,
       ["Project", "Data Observability", "Reconciliations"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS, [
+      "Project",
+      "Data Observability",
+      "BI Dashboards",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
       ["Project", "Data Observability", "Data Products", "Data Product"],

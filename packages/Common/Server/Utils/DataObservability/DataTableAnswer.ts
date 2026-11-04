@@ -3,6 +3,7 @@ import DataAlert from "../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataProduct from "../../../Models/DatabaseModels/DataProduct";
+import DataTableDashboards, { TableDashboard } from "./Bi/DataTableDashboards";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import {
@@ -58,6 +59,10 @@ export interface DataTableAnswer {
     lastErrorMessage: string | null;
   }>;
   dataProducts: Array<{ name: string; status: string | null }>;
+  // The BI dashboards built on it, or on a table built from it; unset before BI tools were read.
+  dashboards?:
+    | Array<{ name: string; tool: string; via: string | null }>
+    | undefined;
 }
 
 // "every 15 minutes", "every 2 hours", "every day".
@@ -167,6 +172,19 @@ export function formatDataTableAnswer(
         .map((product: DataTableAnswer["dataProducts"][number]) => {
           return `${product.name}${product.status ? ` (${product.status})` : ""}`;
         })
+        .join(", ")}.`,
+    );
+  }
+
+  if (answer.dashboards && answer.dashboards.length > 0) {
+    lines.push(
+      `Dashboards built on it: ${answer.dashboards
+        .slice(0, MAX_LISTED)
+        .map(
+          (dashboard: { name: string; tool: string; via: string | null }) => {
+            return `${dashboard.name} (${dashboard.tool}${dashboard.via ? `, through ${dashboard.via}` : ""})`;
+          },
+        )
         .join(", ")}.`,
     );
   }
@@ -381,6 +399,15 @@ export default class DataTableAnswerer {
           return { name: product.name || "", status: product.status || null };
         },
       ),
+      dashboards: (
+        await DataTableDashboards.find({ projectId, dataAssetId: asset.id })
+      ).map((dashboard: TableDashboard) => {
+        return {
+          name: dashboard.name,
+          tool: dashboard.tool,
+          via: dashboard.via?.table || null,
+        };
+      }),
     };
   }
 }
