@@ -44,6 +44,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
 import DataProductSync from "../Utils/DataObservability/DataProductSync";
+import DataReconciliationSync from "../Utils/DataObservability/DataReconciliationSync";
+import DataReconciliation from "../../Models/DatabaseModels/DataReconciliation";
+import DataReconciliationService from "../Services/DataReconciliationService";
 import DataProduct from "../../Models/DatabaseModels/DataProduct";
 import DataProductService from "../Services/DataProductService";
 import { DataProductStatus } from "../../Types/DataObservability/DataProductFreshness";
@@ -74,6 +77,8 @@ import CommonAPI from "./CommonAPI";
  *    permissions;
  *  - a data product's monitor and SLO kept in step with it, and a new
  *    secret for its badge, for the same people;
+ *  - a reconciliation's two checks and its monitor kept in step with it,
+ *    and Run Now on it, for the same people;
  *  - a data product's "data as of" badge, for anyone with its secret, so it
  *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
@@ -218,6 +223,101 @@ export default class DataObservabilityAPI extends BaseAPI<
           dataProductId: DataObservabilityAPI.readId(req),
           props,
         })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationSync(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataReconciliationSync.sync({
+          projectId,
+          reconciliationId: DataObservabilityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationRunNow(":id"),
+      OPERATE_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const reconciliation: DataReconciliation | null =
+          await DataReconciliationService.findOneBy({
+            query: { _id: DataObservabilityAPI.readId(req), projectId },
+            select: {
+              _id: true,
+              sourceDataCheckId: true,
+              targetDataCheckId: true,
+            },
+            props: { isRoot: true },
+          });
+
+        if (!reconciliation?.id) {
+          throw new BadDataException("Reconciliation not found.");
+        }
+
+        const checkIds: Array<ObjectID> = [
+          reconciliation.sourceDataCheckId,
+          reconciliation.targetDataCheckId,
+        ].filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        });
+
+        if (checkIds.length < 2) {
+          throw new BadDataException(
+            "This reconciliation's checks are not set up yet: save it again to make them.",
+          );
+        }
+
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const checks: Array<DataCheck> = await DataCheckService.findBy({
+          query: { _id: QueryHelper.any(checkIds), projectId },
+          select: { _id: true, dataStoreId: true },
+          limit: checkIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+        for (const check of checks) {
+          await DataCheckService.updateColumnsByIdWithoutHooks({
+            id: check.id!,
+            data: { nextRunAt: now } as never,
+          });
+        }
+
+        // Each side's store collects right away, unless a probe does on its next poll.
+        for (const dataStoreId of new Set(
+          checks.map((check: DataCheck): string => {
+            return check.dataStoreId!.toString();
+          }),
+        )) {
+          const store: DataStore | null = await DataStoreService.findOneBy({
+            query: { _id: new ObjectID(dataStoreId), projectId },
+            select: { _id: true, scanProbeId: true },
+            props: { isRoot: true },
+          });
+
+          if (store?.id) {
+            await DataStoreService.updateColumnsByIdWithoutHooks({
+              id: store.id,
+              data: { nextTableHealthCollectionAt: now } as never,
+            });
+
+            if (!store.scanProbeId) {
+              await queueTableHealthCollection({
+                projectId,
+                dataStoreId: store.id,
+              });
+            }
+          }
+        }
+
+        return {};
       },
     );
 

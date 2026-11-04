@@ -61,6 +61,12 @@ enum ServiceType {
    */
   DataProduct = "DataProduct",
   /*
+   * Data Observability's reconciliation rows (oneuptime.data.reconciliation.*):
+   * whether two copies of the same data agree. Like table health, never
+   * billed as ingested telemetry.
+   */
+  DataReconciliation = "DataReconciliation",
+  /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a
    * placeholder "Unknown Service" Postgres row (which collected every

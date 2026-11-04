@@ -34,6 +34,7 @@ import PipelineViewLayout from "../Pages/DataPipeline/View/Layout";
 import PipelineOverviewPage from "../Pages/DataPipeline/View/Overview";
 import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommendations";
 import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
+import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
 import DataProductViewLayout from "../Pages/DataProduct/View/Layout";
 import DataProductOverviewPage from "../Pages/DataProduct/View/Overview";
 import DataProductSettingsPage from "../Pages/DataProduct/View/Settings";
@@ -125,6 +126,17 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             />
           );
         })}
+        {page(
+          PageMap.DATA_OBSERVABILITY_RECONCILIATIONS,
+          (pageRoute: Route) => {
+            return (
+              <DataObservabilityReconciliationsPage
+                {...props}
+                pageRoute={pageRoute}
+              />
+            );
+          },
+        )}
         {page(PageMap.DATA_OBSERVABILITY_CHECKS, (pageRoute: Route) => {
           return (
             <DataObservabilityChecksPage {...props} pageRoute={pageRoute} />

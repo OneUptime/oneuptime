@@ -212,6 +212,7 @@ import DataCheck from "./DataCheck";
 import DataPipeline from "./DataPipeline";
 import DataPipelineRun from "./DataPipelineRun";
 import DataProduct from "./DataProduct";
+import DataReconciliation from "./DataReconciliation";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
@@ -690,6 +691,7 @@ const AllModelTypes: Array<{
   DataPipeline,
   DataPipelineRun,
   DataProduct,
+  DataReconciliation,
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,

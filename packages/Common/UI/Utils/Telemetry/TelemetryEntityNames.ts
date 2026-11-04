@@ -6,6 +6,7 @@ import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
 import DataProduct from "../../../Models/DatabaseModels/DataProduct";
+import DataReconciliation from "../../../Models/DatabaseModels/DataReconciliation";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -170,6 +171,12 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: DataProduct,
     nameFields: ["name"],
   },
+  // Data Observability's reconciliation rows: the reconciliation whose comparisons they describe.
+  [ServiceType.DataReconciliation]: {
+    label: "Data Reconciliation",
+    modelType: DataReconciliation,
+    nameFields: ["name"],
+  },
   [ServiceType.NetworkDevice]: {
     label: "Network Device",
     modelType: NetworkDevice,
@@ -227,6 +234,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.DataStore,
   ServiceType.DataPipeline,
   ServiceType.DataProduct,
+  ServiceType.DataReconciliation,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
   ServiceType.CephCluster,

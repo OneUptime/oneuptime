@@ -741,6 +741,9 @@ import DataPipelineRunService, {
 import DataProductService, {
   Service as DataProductServiceType,
 } from "Common/Server/Services/DataProductService";
+import DataReconciliationService, {
+  Service as DataReconciliationServiceType,
+} from "Common/Server/Services/DataReconciliationService";
 import DataAssetLineageService, {
   Service as DataAssetLineageServiceType,
 } from "Common/Server/Services/DataAssetLineageService";
@@ -1814,6 +1817,7 @@ import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import DataPipelineRun from "Common/Models/DatabaseModels/DataPipelineRun";
 import DataProduct from "Common/Models/DatabaseModels/DataProduct";
+import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
@@ -4608,6 +4612,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataProduct, DataProductServiceType>(
         DataProduct,
         DataProductService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataReconciliation, DataReconciliationServiceType>(
+        DataReconciliation,
+        DataReconciliationService,
       ).getRouter(),
     );
 
