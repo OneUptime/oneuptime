@@ -378,7 +378,7 @@ export const OpenStackFlavorList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No flavors reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Nova. A credential that can reach Nova lists the flavors it may use, so check that the agent is running and can read the Compute API."
+        "These come from Nova. A credential that can reach Nova lists the flavors it may use, so check that the agent or probe collecting this cloud is running and can read the Compute API."
       }
       columns={columns}
       filters={[]}
@@ -940,6 +940,16 @@ const VOLUME_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
   OpenStackColumn.Project,
   OpenStackColumn.AvailabilityZone,
   OpenStackColumn.Region,
+  // Only a probe says, and a long name: for someone who asks for it in Customize Columns.
+  getOpenStackFactColumn({
+    id: "storage-pool",
+    title: "Storage Pool",
+    hideOnMobile: true,
+    isHiddenByDefault: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "pool");
+    },
+  }),
 ];
 
 export const OpenStackVolumeList: FunctionComponent<OpenStackListProps> = (
@@ -1155,7 +1165,7 @@ export const OpenStackImageList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No images reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Glance. A credential lists the public images and its own project's, so check that the agent is running and can read the Image API."
+        "These come from Glance. A credential lists the public images and its own project's, so check that the agent or probe collecting this cloud is running and can read the Image API."
       }
       columns={IMAGE_COLUMNS}
       filters={[]}

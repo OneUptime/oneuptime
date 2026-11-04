@@ -186,6 +186,14 @@ export function getOpenStackFlavorExternalId(
   return regional(regionName, flavorId);
 }
 
+// The pool a volume names, in the name Cinder's pool list gives it.
+export function getOpenStackStoragePoolExternalId(
+  regionName: string | null | undefined,
+  poolName: string,
+): string {
+  return regional(regionName, poolName);
+}
+
 // Nova's own id for a flavor, without the region its row is keyed by.
 export function getOpenStackFlavorId(
   row: Pick<OpenStackResource, "externalId" | "regionName">,
@@ -666,14 +674,20 @@ export interface OpenStackInstanceAddresses {
 
 /*
  * The exporter's address labels are empty on a real cloud, whatever its code says, so an
- * empty one is not an instance with no address. A page says it is not collected.
+ * empty one is not an instance with no address, and a page says it is not collected. A probe
+ * reads Nova's addresses, so from one (updatedAt only comes from a probe), none means none:
+ * an instance that failed before it was placed has no port to hold one.
  */
 export function getOpenStackInstanceAddresses(
   row: OpenStackResource | null | undefined,
 ): OpenStackInstanceAddresses {
   const ipv4: string = textFact(row, "addressIpv4");
   const ipv6: string = textFact(row, "addressIpv6");
-  return { ipv4, ipv6, isKnown: Boolean(ipv4 || ipv6) };
+  return {
+    ipv4,
+    ipv6,
+    isKnown: Boolean(ipv4 || ipv6 || textFact(row, "updatedAt")),
+  };
 }
 
 // An instance that failed before it was placed has no hypervisor. That is its story.

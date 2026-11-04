@@ -1029,6 +1029,13 @@ describe("a cloud of 5,000 hypervisors and 100,000 instances", () => {
     expect(read.total).toBeGreaterThan(105000);
   });
 
+  /*
+   * The tightest budget of this suite, and a real one. Its 12,202 rows took 1,007 ms on the
+   * first try at a load average of 112 (2026-11-04, 10 cores), nearly all of it in building
+   * the graph (buildOpenStackTopology, then buildResourceTopologyGraph), which grows in line
+   * with the rows: 159 ms for 3,050, 222 ms for 6,101, 820 ms for 12,202. The budget leaves
+   * room for a loaded machine, and none for a read that stopped being summarized.
+   */
   test("the first view of the summary is built, fitted and laid out within two seconds", () => {
     const read: { rows: Array<OpenStackResource> } = summarized();
     const timed: FastestRun<ReturnType<typeof firstView>> = fastestRun({
