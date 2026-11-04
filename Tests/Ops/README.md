@@ -1208,6 +1208,15 @@ What keeps the images free of the rest of what scanners reported, for every
   starts from a runtime stage that installs nothing and copies `/usr/src` out
   of a build pruned from the App's entry, `Migrate.ts`, the external
   calendar's worker and (Enterprise) ee/'s entry;
+- no layer of an image that ships holds `Common/Tests`, and only a listed
+  image holds its own tests. The check follows the folders through each stage,
+  so a later `rm` in a stage the image is built on does not count: they stay
+  out of the copy (`COPY --exclude=Tests`: the Probe, Home, the Test Server) or
+  leave a stage that does not ship before the image copies out of it (the App,
+  the Runner, Nginx). The E2E image keeps them, because its fixtures import
+  Common's test helpers, which is also why `.dockerignore` cannot leave them
+  out. Where docker answers, BuildKit builds the Probe's copies through the
+  real `.dockerignore`;
 - the collector version is the same everywhere the container agents run it or
   it is validated.
 
