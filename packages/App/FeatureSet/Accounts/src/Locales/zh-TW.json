@@ -67,6 +67,7 @@
     "forgotPassword": "忘記密碼？",
     "signInWithSso": "使用 SSO 登入",
     "signInWithMicrosoft": "使用 Microsoft 登入",
+    "emailSignInLink": "透過電子郵件傳送登入連結",
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "產生備用代碼",
       "skip": "暫時略過",
       "generateFailed": "未傳回任何備用代碼。請前往「使用者設定檔 > 雙重驗證」再試一次。"
+    },
+    "magicLink": {
+      "title": "完成登入",
+      "subtitle": "請使用下方按鈕，透過電子郵件中的連結完成登入。",
+      "submit": "登入",
+      "noLink": "此頁面需要您電子郵件中的登入連結。請重新開啟該連結，或申請新的連結。",
+      "turnedOff": "此伺服器已關閉登入連結。請使用您的電子郵件和密碼登入。",
+      "requestNewLink": "透過電子郵件傳送新連結",
+      "backToSignIn": "返回登入"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "我們已透過電子郵件向您寄送密碼重設連結。請別忘了檢查垃圾郵件資料夾。",
     "submitButton": "傳送密碼重設連結",
     "rememberPasswordPrompt": "記得您的密碼？",
+    "loginLink": "登入。"
+  },
+  "magicLink": {
+    "title": "使用連結登入",
+    "subtitle": "輸入您的電子郵件地址，我們會寄給您一個登入連結。無需密碼。",
+    "submitButton": "傳送登入連結",
+    "sentTitle": "請查看您的電子郵件",
+    "sent": "如果 {{email}} 有帳戶，登入連結已寄出。此連結僅能使用一次，{{minutes}} 分鐘後失效。",
+    "notReceived": "收件匣中沒有？請檢查垃圾郵件資料夾，或確認您輸入的是註冊時使用的地址。",
+    "sendAnother": "再傳送一個連結",
+    "knowPasswordPrompt": "知道您的密碼？",
     "loginLink": "登入。"
   },
   "resetPassword": {

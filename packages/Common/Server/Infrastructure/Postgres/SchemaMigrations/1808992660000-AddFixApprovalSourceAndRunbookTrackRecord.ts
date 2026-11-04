@@ -6,11 +6,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * how a proposed runbook went the last times OneUptime AI ran it as a fix
  * (runbookTrackRecord). Both stay empty on the rows written before.
  */
-export class AddFixApprovalSourceAndRunbookTrackRecord1808992610000
+export class AddFixApprovalSourceAndRunbookTrackRecord1808992660000
   implements MigrationInterface
 {
   public name: string =
-    "AddFixApprovalSourceAndRunbookTrackRecord1808992610000";
+    "AddFixApprovalSourceAndRunbookTrackRecord1808992660000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -394,6 +394,45 @@ class User extends UserModel {
   public resetPasswordExpires?: Date = undefined;
 
   /*
+   * The latest sign-in link emailed to this account (Types/Accounts/
+   * MagicLink): the hash of its token, never the token, which is only ever
+   * mailed - like resetPasswordToken. Cleared by the sign-in that uses it,
+   * by a password reset and by a new email address, and replaced by the
+   * next link asked for.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    secret: true,
+    type: TableColumnType.ShortText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public magicLinkToken?: string = undefined;
+
+  // When the sign-in link in magicLinkToken stops working.
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({ type: TableColumnType.Date, hideColumnInDocumentation: true })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public magicLinkExpires?: Date = undefined;
+
+  /*
    * TWO challenge slots, not one, and the split is the whole point.
    *
    * A WebAuthn challenge is a one-shot value: the server issues it, the
