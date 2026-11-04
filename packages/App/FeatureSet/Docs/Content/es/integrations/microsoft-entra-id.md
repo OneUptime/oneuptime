@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importa los inicios de sesión y los cambios de directorio de [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) en los eventos de seguridad de OneUptime y, si quieres, la actividad de Exchange, SharePoint, OneDrive y Teams del [registro de auditoría de Microsoft 365](https://learn.microsoft.com/en-us/purview/audit-log-activities). Allí los buscas junto a tus logs, trazas y métricas, los correlacionas con todas las demás fuentes y avisas a la guardia de los que importan. OneUptime los lee con un registro de aplicación que tú creas, y no cambia nada en tu inquilino.
+Importa los inicios de sesión, los cambios de directorio y las detecciones de riesgo de [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) en los eventos de seguridad de OneUptime y, si quieres, los inicios de sesión que las aplicaciones hacen en segundo plano y la actividad de Exchange, SharePoint, OneDrive y Teams del [registro de auditoría de Microsoft 365](https://learn.microsoft.com/en-us/purview/audit-log-activities). Allí los buscas junto a tus logs, trazas y métricas, los correlacionas con todas las demás fuentes y avisas a la guardia de los que importan. OneUptime los lee con un registro de aplicación que tú creas, y no cambia nada en tu inquilino.
 
 :::cards
 - [Configurar la conexión](#configurar-la-conexión): Un registro de aplicación, sus permisos y el formulario de la conexión.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["Cada uno se guarda<br/>como evento OCSF<br/>de su tipo"]
 ```
 
-Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo ha pasado. Un sondeo inicia sesión en Microsoft Entra ID como tu registro de aplicación y lee, en este orden, los cambios de directorio ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) y los inicios de sesión ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) registrados desde el último sondeo y, cuando la opción **Registro de auditoría de Microsoft 365** está activada, el contenido nuevo del registro de auditoría ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Cada registro se guarda como un evento [OCSF](https://schema.ocsf.io/): un inicio de sesión como un evento Authentication, un rol asignado como un evento User Access Management, un veredicto de phishing como un Detection Finding.
+Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo ha pasado. Un sondeo inicia sesión en Microsoft Entra ID como tu registro de aplicación y lee, en este orden, los cambios de directorio ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) y los inicios de sesión ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) registrados desde el último sondeo, luego las detecciones de riesgo de Identity Protection ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), luego, cuando la opción **Inicios de sesión en segundo plano y de aplicaciones** está activada, los inicios de sesión en segundo plano y de aplicaciones y, cuando la opción **Registro de auditoría de Microsoft 365** está activada, el contenido nuevo del registro de auditoría ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Cada registro se guarda como un evento [OCSF](https://schema.ocsf.io/): un inicio de sesión como un evento Authentication, un rol asignado como un evento User Access Management, una detección de riesgo o un veredicto de phishing como un Detection Finding.
 
 ## Antes de empezar
 
 - En OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
-- Para los inicios de sesión, Microsoft Entra ID P1 o P2, que incluyen Microsoft 365 E3, E5 y Business Premium: Microsoft Graph solo entrega los inicios de sesión a esos inquilinos. Los cambios de directorio se leen en cualquier inquilino.
+- Para los inicios de sesión y las detecciones de riesgo, Microsoft Entra ID P1 o P2, que incluyen Microsoft 365 E3, E5 y Business Premium: Microsoft Graph solo los entrega a esos inquilinos, y P2 da los detalles de cada detección de riesgo. Los cambios de directorio se leen en cualquier inquilino.
 - Un rol de Entra que pueda registrar aplicaciones, como Administrador de aplicaciones, y un Administrador global o un Administrador de roles con privilegios para conceder el consentimiento de administrador.
 - Para el registro de auditoría de Microsoft 365, la auditoría activada en el inquilino, como lo está por defecto: en el [portal de Microsoft Purview](https://purview.microsoft.com), **Audit** no debe ofrecer **Start recording user and admin activity**.
-- HTTPS saliente desde la aplicación y los workers de OneUptime hacia `login.microsoftonline.com`, `graph.microsoft.com` y `manage.office.com`, o hacia `login.microsoftonline.us`, `graph.microsoft.us` y `manage.office365.us` para Azure Government.
+- HTTPS saliente desde la aplicación y los workers de OneUptime hacia `login.microsoftonline.com`, `graph.microsoft.com` y `manage.office.com`, con `manage-gcc.office.com` en su lugar para Microsoft 365 GCC, o hacia `login.microsoftonline.us`, `graph.microsoft.us` y `manage.office365.us` para GCC High, y `login.microsoftonline.us`, `dod-graph.microsoft.us` y `manage.protection.apps.mil` para DoD.
 
 ## Configurar la conexión
 
@@ -42,7 +42,7 @@ La conexión inicia sesión con el [flujo de credenciales de cliente de OAuth 2.
 
 ### Permitirle leer los registros
 
-1. Ve a **API permissions → Add a permission → Microsoft Graph → Application permissions**, elige `AuditLog.Read.All` y selecciona **Add permissions**. Microsoft documenta que su lista de inicios de sesión también puede pedir `Directory.Read.All`: añádelo si los inicios de sesión se rechazan con `403` una vez concedido el consentimiento.
+1. Ve a **API permissions → Add a permission → Microsoft Graph → Application permissions**, elige `AuditLog.Read.All` y, para las detecciones de riesgo, `IdentityRiskEvent.Read.All`, y selecciona **Add permissions**. Microsoft documenta que su lista de inicios de sesión también puede pedir `Directory.Read.All`: añádelo si los inicios de sesión se rechazan con `403` una vez concedido el consentimiento.
 2. Para el registro de auditoría de Microsoft 365, añade un segundo permiso: **Add a permission → Office 365 Management APIs → Application permissions** y luego `ActivityFeed.Read`.
 3. Para que los playbooks puedan deshabilitar, habilitar y cerrar la sesión de usuarios (consulta [Contención](/docs/telemetry/security-cases#contención)), añade de la misma forma `User.Read.All`, `User.EnableDisableAccount.All` y `User.RevokeSessions.All`. Microsoft solo deja cambiar la cuenta de un administrador a una aplicación que además tenga el rol Privileged Authentication Administrator.
 4. Selecciona **Grant admin consent for** tu inquilino y confirma. El estado de cada permiso debe indicar **Granted**: sin consentimiento, cada lectura se rechaza con `403`.
@@ -53,7 +53,7 @@ Ve a **Certificates & secrets → Client secrets → New client secret**, elige 
 
 ### Añadir la conexión en OneUptime
 
-Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Microsoft Entra ID** en **Identidad** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega el valor del secreto en **Secreto del cliente**. En el paso **Sondeo**, activa **Registro de auditoría de Microsoft 365** para leerlo también.
+Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Microsoft Entra ID** en **Identidad** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega el valor del secreto en **Secreto del cliente**. En el paso **Sondeo**, activa **Inicios de sesión en segundo plano y de aplicaciones** o **Registro de auditoría de Microsoft 365** para leerlos también. Un inquilino fuera de la nube pública de Azure elige su **Nube** en **Más campos**, en el paso de ajustes.
 
 ### Probarla antes de guardar
 
@@ -63,8 +63,9 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 | Ajuste | Dónde encontrarlo |
 | --- | --- |
 | **ID de directorio (tenant)** | La página **Overview** de la aplicación. El GUID del inquilino, o un dominio verificado como `contoso.onmicrosoft.com`. Con **Registro de auditoría de Microsoft 365** activado, el GUID: la Management API solo nombra un inquilino por él. |
-| **ID de aplicación (cliente)** | La página **Overview** de la aplicación. El GUID de la aplicación que tiene `AuditLog.Read.All`. |
-| **Nube** | **Nube pública de Azure**, o **Azure Government (EE. UU.)** para GCC High (`login.microsoftonline.us`, `graph.microsoft.us` y `manage.office365.us`). |
+| **ID de aplicación (cliente)** | La página **Overview** de la aplicación. El GUID de la aplicación que tiene `AuditLog.Read.All` y `IdentityRiskEvent.Read.All`. |
+| **Nube** | En **Más campos**, **Nube pública de Azure** salvo que elijas otra: **Nube pública de Azure, Microsoft 365 GCC** para GCC, **Azure Government (EE. UU.), GCC High** para GCC High, o **Azure Government (EE. UU.), DoD** para DoD. |
+| **Inicios de sesión en segundo plano y de aplicaciones** | Opcional, desactivado por defecto. Activado, cada sondeo lee también los inicios de sesión que las aplicaciones hacen en segundo plano para las personas y los de las propias entidades de servicio, de la lista de inicios de sesión beta de Microsoft Graph, e importa los que fallaron. |
 | **Registro de auditoría de Microsoft 365** | Opcional, desactivado por defecto. Activado, cada sondeo lee también el registro de auditoría de Microsoft 365. La aplicación necesita `ActivityFeed.Read`. |
 | **Secreto del cliente** | El **Value** del secreto. Se cifra, la API nunca lo devuelve y no se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
@@ -80,6 +81,8 @@ Cada evento tiene el proveedor `Microsoft` y el producto `Microsoft Entra ID`. S
 | Un inicio de sesión que espera un segundo paso, como MFA (`50074`, `50076`) o un aviso para cambiar la contraseña | Authentication (`3002`), estado `Interrupted` | Informational: un paso, no un fallo |
 | Un inicio de sesión que falló, con el motivo y el código de error de Entra | Authentication (`3002`), estado `Failure` | Low |
 | Un inicio de sesión que Identity Protection calificó de riesgo medio o alto | Authentication (`3002`) | Medium o High |
+| Un riesgo que detectó Identity Protection, como una dirección IP anónima o una credencial filtrada | Detection Finding (`2004`) | Su nivel de riesgo; Critical para un usuario confirmado como comprometido |
+| Un inicio de sesión en segundo plano o de aplicación que falló, con **Inicios de sesión en segundo plano y de aplicaciones** activado | Authentication (`3002`), estado `Failure` | Low |
 | Un usuario, grupo o rol cambiado, según su categoría | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`), o Entity Management (`3004`) para el resto | Medium para un rol con privilegios, como Global Administrator; Low para un cambio que falló |
 
 Con **Registro de auditoría de Microsoft 365** activado, se importan de él los registros sobre los que actúa un equipo de seguridad, y el resto, como un archivo abierto o un correo leído, solo se cuenta:
@@ -96,22 +99,22 @@ Con **Registro de auditoría de Microsoft 365** activado, se importan de él los
 
 Las tareas internas de Exchange, ejecutadas con su cuenta del sistema, se dejan fuera salvo que reenvíen correo. Cada evento conserva el registro completo, aplanado en claves con puntos como `status.errorCode` o `Parameters.ForwardTo`, para que una regla lea cualquier campo con el nombre que le da Microsoft. Las reglas de la biblioteca para Entra ID los leen tal como se importan aquí.
 
-Los mismos inicios de sesión y cambios de directorio pueden llegar a OneUptime como logs, exportados por una configuración de diagnóstico de Azure y leídos por [Tus registros](/docs/telemetry/security-events#encontrar-eventos-de-seguridad-en-sus-registros). Cada registro recibe el mismo ID de evento por ambas vías, pero un registro leído por las dos se guarda dos veces: lee Entra ID por una sola vía.
+Los mismos inicios de sesión, cambios de directorio y detecciones de riesgo también pueden llegar a OneUptime como logs, exportados por una configuración de diagnóstico de Azure y leídos por [Tus registros](/docs/telemetry/security-events#encontrar-eventos-de-seguridad-en-sus-registros). Cada registro recibe el mismo ID de evento por ambas vías, y un registro leído por las dos se guarda una sola vez, por la que lo lea primero.
 
 ## Cómo funciona el sondeo
 
-- **Los registros se leen según cuándo los registró Entra ID**, `activityDateTime` para un cambio y `createdDateTime` para un inicio de sesión.
+- **Los registros se leen según cuándo los registró Entra ID**, `activityDateTime` para un cambio, `createdDateTime` para un inicio de sesión y `detectedDateTime` para una detección de riesgo.
 - **El primer sondeo mira 24 horas atrás**, para que una conexión nueva muestre enseguida sus registros recientes.
 - **Cada sondeo posterior empieza 30 minutos antes del cursor guardado.** Microsoft documenta que ambos registros llegan con minutos de retraso, así que el solapamiento lee un registro retrasado en el siguiente sondeo, y los duplicados se descartan por ID de registro dentro del proyecto.
 - **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas.
 - **Un inquilino sin Microsoft Entra ID P1 ni P2** importa sus cambios de directorio, y la comprobación **Read sign-ins** de cada ejecución avisa de que no se leyeron los inicios de sesión.
 - **Una ejecución fallida no cambia nada.** Tras un error de red, o un estado de error de Graph, el cursor y la longitud de ventana quedan como estaban, y el siguiente sondeo vuelve a leer la misma ventana. La única excepción es una solicitud que agotó el tiempo: el cursor se queda, pero la siguiente ventana es la mitad de larga, porque una ventana demasiado pesada para responder a tiempo agotaría el tiempo en cada intento.
 
-El registro de auditoría de Microsoft 365 se lee según cuándo Microsoft puso a disposición cada blob de contenido, un día cada vez, y no más atrás de los 7 días que Microsoft lo conserva. El primer sondeo suscribe la aplicación a `Audit.Exchange`, `Audit.SharePoint` y `Audit.General`, y Microsoft pone a disposición los primeros registros de una suscripción nueva en un plazo de 12 horas. El registro de auditoría nunca detiene los registros de Entra ID: un permiso que falta es un aviso y la ventana avanza, mientras que un fallo del lado de Microsoft, como `HTTP 503`, deja la ejecución **Parcial** para que la ventana se vuelva a leer.
+El registro de auditoría de Microsoft 365 se lee según cuándo Microsoft puso a disposición cada blob de contenido, un día cada vez, y no más atrás de los 7 días que Microsoft lo conserva. El primer sondeo suscribe la aplicación a `Audit.Exchange`, `Audit.SharePoint` y `Audit.General`, y Microsoft pone a disposición los primeros registros de una suscripción nueva en un plazo de 12 horas. El registro de auditoría nunca detiene los registros de Entra ID: un permiso que falta es un aviso y la ventana avanza, mientras que un fallo del lado de Microsoft, como `HTTP 503`, deja la ejecución **Parcial** para que la ventana se vuelva a leer. Las detecciones de riesgo y los inicios de sesión en segundo plano y de aplicaciones se comportan igual: nunca detienen los inicios de sesión ni los cambios de directorio.
 
 ### Cuando una ventana contiene más de lo que un sondeo puede leer
 
-Cada registro tiene su propio presupuesto: 10 páginas de 500 cambios de directorio, 20 páginas de 500 inicios de sesión y, para el registro de auditoría de Microsoft 365, 120 solicitudes y 10.000 registros. Un sondeo se detiene tras 4 minutos. Cuando un presupuesto detiene un registro antes del final de su ventana, la ejecución es **Parcial**, y su aviso nombra el registro y el presupuesto. Microsoft Graph lista primero los registros más recientes, así que OneUptime acorta la ventana en lugar de mover el cursor más allá de registros a los que nunca llegó:
+Cada registro tiene su propio presupuesto: 10 páginas de 500 cambios de directorio, 20 páginas de 500 inicios de sesión, 4 páginas de 500 detecciones de riesgo, 10 páginas de 500 de cada tipo de inicio de sesión en segundo plano y, para el registro de auditoría de Microsoft 365, 120 solicitudes y 10.000 registros. Un sondeo se detiene tras 4 minutos. Cuando un presupuesto detiene un registro antes del final de su ventana, la ejecución es **Parcial**, y su aviso nombra el registro y el presupuesto. Microsoft Graph lista primero los registros más recientes, así que OneUptime acorta la ventana en lugar de mover el cursor más allá de registros a los que nunca llegó:
 
 1. **Reducir.** El siguiente sondeo lee una ventana de la mitad de largo, desde el mismo punto de partida, y sigue reduciéndola a la mitad hasta que una ventana se lee entera, hasta un minuto. El aviso de la ejecución lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Los registros ya importados de la ventana más larga se omiten como duplicados.
 2. **Volver a crecer.** Cuando una ventana se lee entera, el cursor pasa a su final, y la siguiente ventana vuelve a ser el doble de larga, hasta 24 horas.
@@ -138,6 +141,8 @@ Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones reciente
 | **Authenticate with Microsoft Entra** | Entra ID emite para la aplicación un token para Microsoft Graph, en la nube que elegiste. |
 | **Read sign-ins** | Se pueden leer los inicios de sesión de las últimas 24 horas. Un aviso, no un fallo, en un inquilino sin P1 ni P2. |
 | **Read directory changes** | Se pueden leer los cambios de directorio de las últimas 24 horas. |
+| **Read risk detections** | Se pueden leer las detecciones de riesgo de Identity Protection de las últimas 24 horas. Un aviso, no un fallo, sin el permiso o la licencia. |
+| **Read background and app sign-ins** | Solo con la opción activada: la lista de inicios de sesión beta de Microsoft Graph responde para ambos tipos. |
 | **Read the Microsoft 365 audit log** | Solo con la opción activada: la Management API responde, y a qué tipos de contenido está suscrita la aplicación. |
 | **Records available to import** | Cuántos inicios de sesión y cambios de directorio hay en las últimas 24 horas, como mucho 500 de cada uno, así que `500+` significa más. Ninguno es un aviso. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | El lado del propio OneUptime: un proceso toma los trabajos de la cola Worker, el trabajo de sondeo se ejecuta cada minuto y el almacén de eventos de seguridad responde. |
@@ -157,6 +162,11 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 :::details Último error dice `sign-ins request failed (HTTP 403)` o `audit logs request failed (HTTP 403)`
 - Código de error `Authorization_RequestDenied`: a la aplicación le falta `AuditLog.Read.All`, o no se concedió el consentimiento. Concede el consentimiento de administrador, espera unos minutos y vuelve a probar. Para los inicios de sesión, concede también `Directory.Read.All`.
 - Código de error `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: el inquilino no tiene Microsoft Entra ID P1 ni P2. Los cambios de directorio se siguen importando.
+:::
+
+:::details No se leen las detecciones de riesgo
+- `risk detections request failed (HTTP 403)`: a la aplicación le falta `IdentityRiskEvent.Read.All`, o no se concedió el consentimiento. Los inicios de sesión y los cambios de directorio se siguen importando.
+- Código de error `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: el inquilino no tiene Microsoft Entra ID P1 ni P2.
 :::
 
 :::details El registro de auditoría de Microsoft 365 no se lee

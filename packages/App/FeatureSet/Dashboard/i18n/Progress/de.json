@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 42106,
+    "keys": 42282,
     "untranslated": 3657
   },
   "sameAsEnglish": [
@@ -262,6 +262,9 @@
     "Image",
     "Images",
     "In / Out",
+    "In Microsoft Teams",
+    "In OneUptime",
+    "In Slack",
     "Index",
     "Info",
     "Initiator",

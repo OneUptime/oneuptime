@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42106,
-    "untranslated": 12127
+    "keys": 42282,
+    "untranslated": 12019
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -92,6 +92,9 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "In Microsoft Teams",
+    "In OneUptime",
+    "In Slack",
     "In standby",
     "Info",
     "Insight",

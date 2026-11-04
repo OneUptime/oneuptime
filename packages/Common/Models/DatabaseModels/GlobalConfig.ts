@@ -110,6 +110,31 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public requireSsoForLogin?: boolean = undefined;
 
+  /*
+   * Whether people may sign in with a link emailed to them (Types/Accounts/
+   * MagicLink): they may while this is false, as on every server until a
+   * master admin turns sign-in links off on Admin Dashboard > Settings >
+   * Authentication. Turned off, links already sent stop working too.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Disable Sign-In Links",
+    description:
+      "When enabled, people can no longer ask for a link emailed to them to sign in without their password, and links already sent stop working. They sign in with their password, a passkey or single sign-on instead.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public disableMagicLinkLogin?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

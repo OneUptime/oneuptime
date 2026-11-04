@@ -82,7 +82,9 @@
  *            refused, as the server refuses someone who may not page
  *            on-call policies: "You need permission to page on-call
  *            policies to page now."), dry-run (Dry run on a cloud fix,
- *            ?cloudfix=, is refused: the account's agent is offline). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            ?cloudfix=, is refused: the account's agent is offline),
+ *            dismiss (Dismiss fix, ?fixes=, is refused: the viewer may not
+ *            start runbook executions). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -105,7 +107,7 @@
  *            stopped answer, or twelve messages from six people (long enough
  *            to open folded). Sending, approving and stopping are modelled:
  *            see "The investigation card's conversation" below.
- *   ?linked= none (default) | alerts | more | followup
+ *   ?linked= none (default) | alerts | more | followup | cloud
  *            What the AI investigations read about the infrastructure their
  *            incident or alert is linked to, as the run's activity records
  *            it (LinkedInfrastructureContext). "alerts": Incident #1042's
@@ -115,7 +117,10 @@
  *            #318 opened on #1042's host after its first analysis, so the
  *            run on the card is the follow-up check (IncidentFollowUpCheck)
  *            - its activity starts with why, its report leads with
- *            "Checked again", and the feed holds both reports.
+ *            "Checked again", and the feed holds both reports. "cloud":
+ *            #1042 is linked to an App Platforms environment, a cloud
+ *            resource and its service, and its investigation read 2 alerts
+ *            on them: the environment is named as one (#5519's follow-ups).
  *   ?calls=  none (default) | zoom | teams | reading | stuck | transcript
  *            | not-enough | accepted | dismissed | failed | skipped | two
  *            | waiting | fetch-stopped | summary | teams-recorded
@@ -285,6 +290,11 @@
  *            its evidence and its next steps - the database, a traffic spike
  *            and the cloud underneath, each with why, cited - as the
  *            investigation persona asks for one.
+ *   ?impact= on: Incident #1042's report has an Impact section right after
+ *            its Summary - the users (failed checkout requests, counted from
+ *            its traces), the services and the SLO it burns, each with how
+ *            it was worked out, cited - as the investigation persona asks
+ *            for one (#5519's follow-ups).
  *   ?codefix= act | no-repository | writing | opened: what came of the fix
  *            in the code the completed investigations of #1042 and #311
  *            recommend, as FixFromIncidentTaskTrigger.getSuggestionForSubject
@@ -308,6 +318,14 @@
  *            Dismiss (POST /auto-remediation/dismiss) dismisses it;
  *            ?fail=approve refuses the approval, as the server does when
  *            the cluster's fixes were turned off after it was proposed.
+ *            runbook: the rule "Checkout fixes" proposed the runbook
+ *            "Restart checkout-api pods", waiting for approval, with how it
+ *            went the last times OneUptime AI ran it here (it worked for
+ *            #1036 and #1017, not for #1029), and Maya Chen approved the
+ *            kubectl fix on prod-eu-west-1 from its Slack message
+ *            (approvedFrom), verified fixed. Dismiss fix dismisses the
+ *            runbook; ?fail=dismiss refuses it, as the server refuses
+ *            someone who may not start runbook executions.
  *   Try again (POST /auto-remediation/try-again) decides again for an open
  *            record, as AutoRemediationRuleEngineService.tryAgain does:
  *            the record's decision is written afresh - OneUptime AI started
@@ -346,6 +364,7 @@ import AlertEpisodeView from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import WorkspaceChannelLinkUtil from "Common/Types/Workspace/WorkspaceChannelLink";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { FIX_DISMISS_REFUSED_MESSAGE } from "Common/Types/Runbook/RunbookRunPermissions";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
@@ -694,6 +713,8 @@ const trackRecordMode = TRACK_RECORD_MODES.includes(params.get("trackrecord"))
   : "";
 // ?ruledout=on: Incident #1042's report says what it ruled out.
 const ruledOutMode = params.get("ruledout") === "on";
+// ?impact=on: Incident #1042's report says first who and what it hurts.
+const impactMode = params.get("impact") === "on";
 // ?codefix=: what came of the fix in the code the investigations recommend.
 const CODE_FIX_MODES = ["act", "no-repository", "writing", "opened"];
 const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
@@ -701,10 +722,11 @@ const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
   : "";
 /*
  * ?fixes=: more fixes on Incident #1042's Remediation step - of every kind
- * (many), or the three rounds of a fix that ran, did not work and was
- * rolled back (rolled-back, issue #5598).
+ * (many), the three rounds of a fix that ran, did not work and was rolled
+ * back (rolled-back, issue #5598), or a runbook that waits with its track
+ * record beside a fix approved in Slack (runbook, #5519's follow-ups).
  */
-const FIXES_MODES = ["many", "rolled-back"];
+const FIXES_MODES = ["many", "rolled-back", "runbook"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
   : "";
@@ -817,7 +839,7 @@ const feedMode = FEED_MODES.includes(params.get("feed"))
  * ?linked=: what the investigations read about the infrastructure their
  * incident or alert is linked to (see "Linked infrastructure" below).
  */
-const LINKED_MODES = ["alerts", "more", "followup"];
+const LINKED_MODES = ["alerts", "more", "followup", "cloud"];
 const linkedMode = LINKED_MODES.includes(params.get("linked"))
   ? params.get("linked")
   : "none";
@@ -979,6 +1001,7 @@ const fixture = {
     cloudfix: cloudFixMode,
     codefix: codeFixMode,
     fixes: fixesMode,
+    impact: impactMode,
     hold: isAiHoldMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
@@ -3976,6 +3999,17 @@ const INCIDENT_CITATIONS = [
 
 const INCIDENT_ANALYSIS = [
   `**Summary** — Checkout API p95 latency passed 2s at 18:01 UTC because checkout-api restarted at 17:52 with its orders-db connection pool capped at 10 connections instead of 40, so requests queued for a connection [C2][C3][C6]. This is the same pool exhaustion recorded on prior incidents #1017, #1029 and #1036 [C1].`,
+  // ?impact=on: who and what it hurts, first, as the persona asks.
+  ...(impactMode
+    ? [
+        [
+          "**Impact**",
+          "- **Users:** about 1,240 of 9,800 checkout requests took over 2 s or failed between 17:58 and 18:11 UTC - root spans of checkout-api, counted with query_traces; requests, not users [C7].",
+          "- **Services:** checkout-api, and the storefront, which calls it for every checkout; orders-db waited on the pool, not on its own load [C6][C9].",
+          "- **SLOs:** Checkout latency is At Risk - 99.62% of requests under 2 s against its 99.9% target over a rolling 30 days, 41% of its error budget left, burning it at 6.2x [C2].",
+        ].join("\n"),
+      ]
+    : []),
   `**Most likely root cause** — Release 2026.09.14-2 of checkout-api started at 17:52:04 with \`db pool configured max=10\` (previously max=40) [C3]. Under normal evening load the pool sat at its 10-connection ceiling from 17:58 [C6], checkout requests waited up to 2s for a connection and p95 latency rose from about 310 ms to 2.35 s [C2]. The slowest sampled trace spent 1.94 s of 2.31 s in \`pg.pool.connect\` [C7]. No new exception groups appeared in the last hour, so this is capacity, not a code fault [C8]. Incidents #1017, #1029 and #1036 were resolved with the same root cause [C1].`,
   [
     "**Evidence**",
@@ -4679,18 +4713,21 @@ function cloudFixDryRun(mode, checkedAt) {
  * it on the account, as RemediationTrackRecordReader writes it on the
  * proposed change - the newest runs first, for the prior incidents.
  */
-function cloudFixTrackRecord(mode) {
-  const run = (number, daysAgo, outcome) => {
-    return {
-      subjectKind: "incident",
-      subjectId: ID.incident(number),
-      subjectNumber: `#${number}`,
-      ranAt: new Date(
-        NOW.getTime() - daysAgo * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      outcome,
-    };
+// One earlier run of a change or a runbook, for a prior incident.
+function trackRecordRun(number, daysAgo, outcome) {
+  return {
+    subjectKind: "incident",
+    subjectId: ID.incident(number),
+    subjectNumber: `#${number}`,
+    ranAt: new Date(
+      NOW.getTime() - daysAgo * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    outcome,
   };
+}
+
+function cloudFixTrackRecord(mode) {
+  const run = trackRecordRun;
 
   if (mode === "worked") {
     return {
@@ -5026,6 +5063,62 @@ if (fixesMode === "rolled-back") {
   });
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * A runbook that waits, and a fix approved in Slack (?fixes=runbook,
+ * #5519's follow-ups). The rule "Checkout fixes" proposed the runbook
+ * "Restart checkout-api pods" at 18:03, with how it went the last times
+ * OneUptime AI ran it here, as RemediationTrackRecordReader
+ * .readRunbookTrackRecords keeps it on the proposal: it worked for #1036
+ * and #1017 and did not for #1029. OneUptime AI also proposed a kubectl fix
+ * on prod-eu-west-1, which Maya Chen approved from its Slack message - the
+ * server keeps where (approvedFrom) - and which was verified fixed; the
+ * runbook still waits.
+ * ---------------------------------------------------------------------------
+ */
+const RUNBOOK_PROPOSAL_SUGGESTION_ID = uuid("93000000", 8);
+const SLACK_APPROVED_FIX_SUGGESTION_ID = uuid("93000000", 9);
+
+if (fixesMode === "runbook") {
+  insert(AutoRemediationSuggestion, {
+    _id: RUNBOOK_PROPOSAL_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "Suggested",
+    suggestionType: "Runbook",
+    ruleNameSnapshot: "Checkout fixes",
+    runbookNameSnapshot: "Restart checkout-api pods",
+    runbookId: new ObjectID(uuid("98000000", 1)),
+    runbookTrackRecord: {
+      workedCount: 2,
+      didNotWorkCount: 1,
+      runs: [
+        trackRecordRun(1036, 6, "Worked"),
+        trackRecordRun(1029, 19, "DidNotWork"),
+        trackRecordRun(1017, 41, "Worked"),
+      ],
+    },
+    createdAt: at("18:03", 30),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: SLACK_APPROVED_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "Approved",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
+    commandPlan: kubectlFixPlan(true),
+    approvedAt: at("18:05", 10),
+    approvedByUser: people.maya,
+    approvedFrom: "Slack",
+    verificationStatus: "Verified",
+    verificationNote:
+      "p95 latency was back under 500 ms 3 minutes after the run.",
+    createdAt: at("18:04", 10),
+  });
+}
+
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
 function approveFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
@@ -5044,6 +5137,7 @@ function approveFix(suggestionId) {
   // Who approved it and when, as the server stamps them.
   record.approvedAt = new Date();
   record.approvedByUser = people.maya;
+  record.approvedFrom = "Dashboard";
   if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
     record.commandPlan = kubectlFixPlan(true);
   }
@@ -5054,6 +5148,9 @@ function dismissFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
     return String(row._id) === String(suggestionId);
   });
+  if (failures.has("dismiss")) {
+    throw fail(403, FIX_DISMISS_REFUSED_MESSAGE);
+  }
   if (!record || record.status !== "Suggested") {
     throw fail(400, "Only suggested remediations can be dismissed.");
   }
@@ -5286,6 +5383,9 @@ const LINKED_KIND_NOUNS = {
   DockerHost: "Docker host",
   KubernetesCluster: "Kubernetes cluster",
   DatabaseServer: "Database",
+  CloudResource: "Cloud resource",
+  // An App Platforms environment, as buildActivityNote records it.
+  CloudEnvironment: "Cloud environment",
   Service: "Service",
 };
 
@@ -5298,6 +5398,13 @@ const INCIDENT_LINKED_RESOURCES = [
 ];
 
 const ALERT_LINKED_RESOURCES = [{ kind: "Host", name: "payments-web-2" }];
+
+// ?linked=cloud: an App Platforms environment, a cloud resource and their service.
+const INCIDENT_CLOUD_LINKED_RESOURCES = [
+  { kind: "CloudEnvironment", name: "checkout-web (Production)" },
+  { kind: "CloudResource", name: "checkout-api" },
+  { kind: "Service", name: "checkout-api" },
+];
 
 function linkedInfrastructureNote(data) {
   const names = data.resources.slice(0, 3).map((resource) => {
@@ -5346,6 +5453,23 @@ if (linkedMode === "alerts" || linkedMode === "more") {
       resources: ALERT_LINKED_RESOURCES,
       alertCount: 0,
       openAlertCount: 0,
+      hasMoreAlerts: false,
+    }),
+  ];
+}
+
+/*
+ * ?linked=cloud: #1042 is linked to the App Platforms environment
+ * checkout-web (Production), the cloud resource checkout-api and its
+ * service. The run's activity records the environment by a kind of its
+ * own - CloudEnvironment, not CloudResource - so it is named as one.
+ */
+if (linkedMode === "cloud") {
+  investigations.incident.contextNotes = [
+    linkedInfrastructureNote({
+      resources: INCIDENT_CLOUD_LINKED_RESOURCES,
+      alertCount: 2,
+      openAlertCount: 1,
       hasMoreAlerts: false,
     }),
   ];
@@ -8295,6 +8419,18 @@ async function handleApi(method, options) {
    */
   if (method === "POST" && url.endsWith("/security-case/incident-security")) {
     return ok(incidentSecurity(body));
+  }
+
+  /*
+   * The dashboards built on a data alert's table and the tables built from
+   * it (?data=table), which its Data card lists under the table
+   * (DataObservabilityApi.getTableDashboards): none are modelled.
+   */
+  if (
+    method === "POST" &&
+    url.endsWith("/data-observability/tables/dashboards")
+  ) {
+    return ok({ dashboards: [] });
   }
 
   // Try again on the Remediation step: decided again, or refused.

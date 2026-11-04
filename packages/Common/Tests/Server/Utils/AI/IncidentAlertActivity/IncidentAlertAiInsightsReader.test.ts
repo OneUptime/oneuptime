@@ -525,6 +525,8 @@ describe("what it reads", () => {
         "_id",
         "alertId",
         "approvedAt",
+        // Where it was approved: the card, Slack or Microsoft Teams.
+        "approvedFrom",
         "createdAt",
         "incidentId",
         "status",

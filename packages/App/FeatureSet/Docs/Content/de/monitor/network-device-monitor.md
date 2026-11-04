@@ -69,7 +69,7 @@ Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, 
 | **Topologie** | **Gerätetopologie**, **Endpunkte**, **Latenzmatrix**, **Standortverbindungen**, **Geräteverbindungen** |
 | **Regeln** | **Regeln für automatischen Import**, **Standortzuweisungsregeln**, **Eigentümerregeln**, **Beschriftungsregeln**, **Verbindungsregeln** |
 | **Einstellungen** | **Warnungsrichtlinien**, **SNMP-Anmeldedaten**, **Geräterollen**, **Standorttypen**, **Adressnamen**, **OID-Erfassungsvorlagen** |
-| **Erweitert** | **Archivierte Geräte** |
+| **Erweitert** | **SNMP-Walk**, **Archivierte Geräte** |
 
 ## Ein Netzwerkgerät hinzufügen
 
@@ -154,7 +154,7 @@ Jede Aktion ist ein Dialog und ein Speichern für die ganze Auswahl, und jedes G
 
 Wenn eine Aktion fertig ist, listet sie, wie viele Geräte sich geändert haben, welche fehlgeschlagen sind und warum — ein Gerät, das Ihre Rolle nicht bearbeiten darf, eine Liste über ihrer Grenze — und welche sie nicht geändert hat und warum: ein Gerät, das schon in diesem Standort oder dieser Rolle ist, oder eines, das die Hersteller-Vorlage unverändert lässt.
 
-Die übrigen Massenaktionen werden dort beschrieben, wo sie hingehören: **OID-Sammlungsvorlage festlegen** unter [OID-Erfassungsvorlagen](#oid-erfassungsvorlagen), **Set SNMP Credential Profile**, **Switch to Probe Polling** und **Ping-Monitore erstellen** unter [Gesammelt](#gesammelt), und **Shorten Names to Hostname** unter [Wie erkannte Geräte benannt werden](#wie-erkannte-geräte-benannt-werden).
+Die übrigen Massenaktionen werden dort beschrieben, wo sie hingehören: **OID-Sammlungsvorlage festlegen** unter [OID-Erfassungsvorlagen](#oid-erfassungsvorlagen), **SNMP-Walk** unter [Viele Geräte auf einmal per Walk lesen](#viele-geräte-auf-einmal-per-walk-lesen), **Set SNMP Credential Profile**, **Switch to Probe Polling** und **Ping-Monitore erstellen** unter [Gesammelt](#gesammelt), und **Shorten Names to Hostname** unter [Wie erkannte Geräte benannt werden](#wie-erkannte-geräte-benannt-werden).
 
 ## Was eine Abfrage tatsächlich tut
 
@@ -397,6 +397,21 @@ Jede Zeile sagt, wo ihre OID bekannt ist: als Wert, den eine Hersteller-Integrit
 **Herunterladen**, neben der Zusammenfassung des Walks, speichert, was der Walk gelesen hat, als Datei: **snmpwalk-Text (.txt)**, eine OID pro Zeile, so wie `snmpwalk -On` sie ausgibt, was jedes SNMP-Werkzeug und jeder Hersteller-Support liest, oder **CSV-Tabelle (.csv)** mit Name, MIB, Typ und Wert jeder OID. Die Datei enthält jede OID, die der Walk gelesen hat, fortgesetzte Walks eingeschlossen, unabhängig davon, was der Filter zeigt, und ist nach dem Gerät, dem Teilbaum und dem Zeitpunkt des Speicherns benannt. Wer den letzten Walk des Geräts lesen kann, kann ihn herunterladen.
 
 Ein fehlgeschlagener Walk sagt, warum, und was zu prüfen ist: ein Gerät, das nicht antwortet (SNMP aus, UDP 161 blockiert oder, bei v1 und v2c, eine falsche Community-Zeichenfolge, die ein Agent kommentarlos ignoriert), ein SNMPv3-Benutzer, -Passwort oder -Protokoll, das das Gerät abgelehnt hat, oder ein Teil des Baums, den die SNMP-Ansicht der Anmeldedaten auslässt. Ein Walk, der unterwegs stoppt, behält, was er gelesen hat. Für einen Walk braucht es die Berechtigung **Create Network Device Diagnostic** und eine Sonde, die neu genug für SNMP-Walks ist: Bei einer älteren bittet die Seite Sie, sie zu aktualisieren.
+
+### Viele Geräte auf einmal per Walk lesen
+
+Wenn ein Wert für eine ganze Flotte zählt, etwa die CPU jedes Routers oder die Temperatur jedes Switches an einem Standort, lesen Sie die Geräte gemeinsam per Walk, statt eine Geräteseite nach der anderen zu öffnen. Wählen Sie sie in der Liste **Geräte** aus, indem Sie Zeilen ankreuzen oder alle Geräte wählen, die zu den Filtern passen, und nutzen Sie **SNMP-Walk** unter **Massenaktionen**. Oder klicken Sie im Menü einer OID auf der eigenen Seite **SNMP-Walk** eines Geräts auf **Mit anderen Geräten vergleichen**: Die Seite öffnet sich mit diesem Gerät in der Auswahl und dieser OID als Start-OID, und Sie fügen die übrigen hinzu. Die Seite finden Sie auch unter **Netzwerk → Erweitert → SNMP-Walk**, wo Sie Geräte einzeln oder alle Geräte mit einer Beschriftung auswählen.
+
+Jedes Gerät wird so per Walk gelesen, wie seine eigene Seite es tut: von seiner eigenen Sonde, mit den SNMP-Anmeldedaten, die OneUptime für das Gerät hinterlegt hat (v1, v2c oder v3, aus dem Gerät selbst, seinem Anmeldedatenprofil oder seinem Standort), höchstens 1.000 OIDs pro Gerät. Bis zu 50 Geräte werden auf einmal per Walk gelesen. Beginnen Sie bei einer einzelnen OID, um diesen Wert auf jedem Gerät zu prüfen, oder bei einem Teilbaum, um zu vergleichen, was die Geräte darunter bereitstellen. Die Antwort jedes Geräts erscheint, sobald sie eintrifft, und die Seite wartet bis zu fünf Minuten auf die langsamste Sonde.
+
+Die Ergebnisse listen jede OID, auf die irgendein Gerät geantwortet hat, eine OID pro Zeile:
+
+- **Beantwortet von** gibt an, wie viele der Geräte, deren Walk die OID erreicht hat, auf sie antworten, und klappt die Werte der einzelnen Geräte auf. Ein Gerät, dessen Walk vor der OID an seinem Limit gestoppt hat, wird nie als Gerät ohne sie gezählt.
+- Ein Wert, der auf allen Geräten gleich ist, wird einmal gezeigt; Zahlen, die sich unterscheiden, als niedrigster und höchster Wert, und Text, der sich unterscheidet, als Anzahl der verschiedenen Werte.
+- **Nur OIDs, auf die einige Geräte nicht antworten**, neben dem Filter, behält nur die OIDs, die einem Teil der Flotte fehlen.
+- **Auf 12 Geräten erfassen** fügt die OID jedem Gerät hinzu, das auf sie antwortet und sie noch nicht erfasst, so wie **Erfassen** es auf einem Gerät tut: einmal pro Gerät, nie doppelt, und ein Gerät, das ablehnt, etwa weil seine Liste voll ist, wird mit dem Grund genannt, während die anderen weitermachen. Wenn diese Geräte mit einer OID-Erfassungsvorlage verknüpft sind, kann das Menü der Zeile die OID stattdessen der Vorlage hinzufügen, für jedes Gerät, das sie nutzt.
+
+Über den Ergebnissen wird jedes Gerät, das nicht vollständig per Walk gelesen wurde, mit dem Grund aufgeführt und mit dem, was zu beheben ist: keine Sonde, keine SNMP-Anmeldedaten, abgelehnte Anmeldedaten, keine Antwort oder keine Meldung von seiner Sonde. Der Name eines Geräts öffnet seine eigene Seite **SNMP-Walk** mit diesem Walk, wo **Walk fortsetzen** weiterliest und **Warnung einrichten** einen neuen Monitor öffnet. **CSV herunterladen** speichert jede OID jedes Geräts in einer Datei, mit dem Namen des Geräts in der ersten Spalte. Die Adresse der Seite enthält die Geräte und die OID, sodass ein Neuladen oder ein geteilter Link denselben Walk öffnet, und die Walks werden zwei Tage lang aufbewahrt.
 
 ### SNMP-Tabellen
 

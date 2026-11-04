@@ -11,6 +11,7 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import { SECURITY_LOG_SOURCE_ATTRIBUTE } from "../../../../Types/SecurityEvent/SecurityLogFormat";
 import {
+  SECURITY_TELEMETRY_SCANNED_KINDS,
   SECURITY_TELEMETRY_SIGNALS,
   SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE,
   SECURITY_TELEMETRY_SIGNAL_SOURCES,
@@ -20,6 +21,7 @@ import {
   SecurityTelemetrySourceDefinition,
   SecurityTelemetrySourceKind,
   getSecurityTelemetrySourceDefinition,
+  isSecurityTelemetryScannedKind,
   isSecurityTelemetrySignal,
   isSecurityTelemetrySourceKind,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
@@ -36,12 +38,13 @@ import {
  */
 
 describe("the telemetry sources", () => {
-  test("are four, each with its own service and product, from OneUptime", () => {
+  test("are five, each with its own service and product, from OneUptime", () => {
     expect(SECURITY_TELEMETRY_SOURCE_KINDS).toEqual([
       SecurityTelemetrySourceKind.Traces,
       SecurityTelemetrySourceKind.NetworkFlows,
       SecurityTelemetrySourceKind.AuditLog,
       SecurityTelemetrySourceKind.RumSessions,
+      SecurityTelemetrySourceKind.CloudAudit,
     ]);
 
     const services: Set<string> = new Set();
@@ -58,6 +61,30 @@ describe("the telemetry sources", () => {
     expect(products.size).toBe(SECURITY_TELEMETRY_SOURCES.length);
     // "Your logs" keeps its own service.
     expect(services.has("OneUptime Logs")).toBe(false);
+  });
+
+  test("the telemetry scan reads the first four; cloud audit logs come with each cloud account's read", () => {
+    expect(SECURITY_TELEMETRY_SCANNED_KINDS).toEqual([
+      SecurityTelemetrySourceKind.Traces,
+      SecurityTelemetrySourceKind.NetworkFlows,
+      SecurityTelemetrySourceKind.AuditLog,
+      SecurityTelemetrySourceKind.RumSessions,
+    ]);
+    expect(
+      isSecurityTelemetryScannedKind(SecurityTelemetrySourceKind.CloudAudit),
+    ).toBe(false);
+    expect(isSecurityTelemetryScannedKind("logs")).toBe(false);
+    expect(
+      getSecurityTelemetrySourceDefinition(
+        SecurityTelemetrySourceKind.CloudAudit,
+      ).serviceName,
+    ).toBe("OneUptime Cloud Audit Logs");
+    // No signal of the telemetry scan's is a cloud audit log's: its records are the cloud's own.
+    expect(
+      Object.values(SECURITY_TELEMETRY_SIGNAL_SOURCES).includes(
+        SecurityTelemetrySourceKind.CloudAudit,
+      ),
+    ).toBe(false);
   });
 
   test("a kind is one of them, and nothing else is", () => {

@@ -65,6 +65,8 @@ describe("SignInMethodsUtil.parse", () => {
         }),
       ],
       hasProjectSsoProviders: true,
+      // A server that requires SSO offers no sign-in links.
+      isMagicLinkLoginEnabled: false,
     });
   });
 
@@ -95,6 +97,53 @@ describe("SignInMethodsUtil.parse", () => {
         ssoProviders: [],
         hasProjectSsoProviders: "yes",
       })?.hasProjectSsoProviders,
+    ).toBe(false);
+  });
+
+  /*
+   * Sign-in links (Common/Types/Accounts/MagicLink): offered only where the
+   * server says, in so many words, that it takes them - never while it
+   * requires SSO, and never from an answer that does not say (an older
+   * server's).
+   */
+  test("offers sign-in links only where the server says it takes them", () => {
+    expect(
+      SignInMethodsUtil.parse({
+        isSsoRequired: false,
+        ssoProviders: [],
+        hasProjectSsoProviders: false,
+        isMagicLinkLoginEnabled: true,
+      })?.isMagicLinkLoginEnabled,
+    ).toBe(true);
+
+    for (const said of [false, "true", 1, null, undefined, {}]) {
+      expect(
+        SignInMethodsUtil.parse({
+          isSsoRequired: false,
+          ssoProviders: [],
+          hasProjectSsoProviders: false,
+          isMagicLinkLoginEnabled: said,
+        })?.isMagicLinkLoginEnabled,
+      ).toBe(false);
+    }
+
+    expect(
+      SignInMethodsUtil.parse({
+        isSsoRequired: false,
+        ssoProviders: [],
+        hasProjectSsoProviders: false,
+      })?.isMagicLinkLoginEnabled,
+    ).toBe(false);
+  });
+
+  test("never offers sign-in links while SSO is required, whatever the answer says", () => {
+    expect(
+      SignInMethodsUtil.parse({
+        isSsoRequired: true,
+        ssoProviders: [],
+        hasProjectSsoProviders: false,
+        isMagicLinkLoginEnabled: true,
+      })?.isMagicLinkLoginEnabled,
     ).toBe(false);
   });
 

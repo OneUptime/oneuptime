@@ -11,9 +11,12 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   InvestigationEvidenceCheckedEntry,
+  InvestigationImpactAspect,
+  InvestigationImpactLine,
   InvestigationReportSection,
   InvestigationReportSectionKind,
   ParsedInvestigationReport,
+  parseImpactLines,
   parseRuledOutCauses,
   RuledOutCause,
 } from "Common/Utils/AI/InvestigationReport";
@@ -58,6 +61,27 @@ export const REPORT_SECTION_BODY_CLASS_NAME: string =
 export const REPORT_CAVEAT_TEXT: string = translationKey(
   "AI-generated first pass — verify before acting.",
 );
+
+/*
+ * The mark an Impact line opens with, by what it is about: the people, the
+ * services (the Service Catalog's own mark), the objectives (the SLOs'),
+ * and a chart for a line about anything else.
+ */
+export const IMPACT_ASPECT_ICONS: Readonly<
+  Record<InvestigationImpactAspect | "Other", IconProp>
+> = {
+  [InvestigationImpactAspect.Users]: IconProp.UserGroup,
+  [InvestigationImpactAspect.Services]: IconProp.SquareStack,
+  [InvestigationImpactAspect.Slos]: IconProp.Gauge,
+  Other: IconProp.ChartBar,
+};
+
+// An Impact line as the card draws it: its label in bold, then what it says.
+export function getImpactLineMarkdown(line: InvestigationImpactLine): string {
+  return line.labelMarkdown
+    ? `**${line.labelMarkdown}:** ${line.textMarkdown}`
+    : line.textMarkdown;
+}
 
 /*
  * A word of lowercase letters at the start of a text, before a space, a
@@ -190,15 +214,31 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
   const summaryMarkdown: string = report.summary || "";
 
   /*
-   * The first Summary is lifted into its own section above the report; any
-   * other section keeps its place (a second Summary included), so nothing the
-   * report said is dropped.
+   * The first Summary is lifted into its own section above the report, and
+   * the first Impact right under it - who and what the signal hurts is the
+   * next thing a responder needs, as the leading AI SRE tools show it - so a
+   * report that wrote its impact later still says it first. Any other
+   * section keeps its place (a second Summary or Impact included), so
+   * nothing the report said is dropped.
    */
   const firstSummaryIndex: number = report.sections.findIndex(
     (section: InvestigationReportSection): boolean => {
       return section.kind === InvestigationReportSectionKind.Summary;
     },
   );
+  const firstImpactIndex: number = report.isStructured
+    ? report.sections.findIndex(
+        (section: InvestigationReportSection): boolean => {
+          return section.kind === InvestigationReportSectionKind.Impact;
+        },
+      )
+    : -1;
+  const impactSection: InvestigationReportSection | undefined =
+    firstImpactIndex >= 0 ? report.sections[firstImpactIndex] : undefined;
+  const impactLines: Array<InvestigationImpactLine> = impactSection
+    ? parseImpactLines(impactSection.markdown)
+    : [];
+  const impactHeadingId: string = `${idPrefix}-report-impact`;
   const reportSections: Array<{
     section: InvestigationReportSection;
     index: number;
@@ -207,7 +247,9 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
       return { section, index };
     })
     .filter((entry: { index: number }): boolean => {
-      return entry.index !== firstSummaryIndex;
+      return (
+        entry.index !== firstSummaryIndex && entry.index !== firstImpactIndex
+      );
     });
 
   const renderMarkdown: (text: string) => ReactElement = (
@@ -297,6 +339,64 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
             </div>
           ) : (
             <></>
+          )}
+        </section>
+      ) : (
+        <></>
+      )}
+
+      {/*
+        Who and what it hurts, and how that was worked out: one line each,
+        the people, the services and the objectives each with its own mark,
+        the label first, as the report wrote it. A section that is not such
+        a list is drawn as written, like every other.
+      */}
+      {impactSection ? (
+        <section
+          aria-labelledby={impactHeadingId}
+          data-section-kind={InvestigationReportSectionKind.Impact}
+          data-testid="investigation-report-impact"
+        >
+          <h3
+            id={impactHeadingId}
+            dir="auto"
+            className={REPORT_SECTION_HEADING_CLASS_NAME}
+          >
+            {impactSection.title}
+          </h3>
+          {impactLines.length > 0 ? (
+            <ul data-testid="investigation-impact" className="mt-2 space-y-2">
+              {impactLines.map(
+                (line: InvestigationImpactLine, lineIndex: number) => {
+                  const markdown: string = getImpactLineMarkdown(line);
+
+                  return (
+                    <li
+                      key={`${impactHeadingId}-line-${lineIndex}`}
+                      dir={getShownMarkdownReadingDirection(markdown)}
+                      data-testid="investigation-impact-line"
+                      data-aspect={line.aspect || "Other"}
+                      className="flex items-start gap-3"
+                    >
+                      {/* A div, not a span: Icon renders its own div around the svg. */}
+                      <div className="flex h-6 w-4 flex-shrink-0 items-center justify-center">
+                        <Icon
+                          icon={IMPACT_ASPECT_ICONS[line.aspect || "Other"]}
+                          className="h-4 w-4 flex-shrink-0 text-gray-400"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1 break-words text-sm leading-6 text-gray-700 [&_.max-w-none>*:first-child]:mt-0 [&_.max-w-none>*:last-child]:mb-0">
+                        {renderMarkdown(markdown)}
+                      </div>
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          ) : (
+            <div className={REPORT_SECTION_BODY_CLASS_NAME}>
+              {renderMarkdown(impactSection.markdown)}
+            </div>
           )}
         </section>
       ) : (

@@ -501,7 +501,7 @@ const templateNode: (componentId: string) => TemplateNodeSpec = (
  */
 
 describe("the Huntress page in the docs navigation", () => {
-  test("is listed in the Integrations group, right after Datadog", () => {
+  test("is listed in the Integrations group, right after New Relic", () => {
     const urls: Array<string> = integrationsGroup().links.map(
       (link: NavLink): string => {
         return link.url;
@@ -510,7 +510,7 @@ describe("the Huntress page in the docs navigation", () => {
 
     expect(urls).toContain(PAGE_URL);
     expect(urls.indexOf(PAGE_URL)).toBe(
-      urls.indexOf("/docs/integrations/datadog") + 1,
+      urls.indexOf("/docs/integrations/new-relic") + 1,
     );
     expect(DocsNavSections).toContain(integrationsGroup().section);
   });
@@ -528,7 +528,7 @@ describe("the Huntress page in the docs navigation", () => {
   });
 
   test.each(LANGUAGES)(
-    "has its link title in the %s docs locale, as Huntress, beside Datadog",
+    "has its link title in the %s docs locale, as Huntress, beside New Relic",
     (language: string) => {
       const navLinks: Record<string, unknown> = readJson(
         path.join(DOCS_LOCALES_DIR, `${language}.json`),
@@ -536,7 +536,7 @@ describe("the Huntress page in the docs navigation", () => {
       const keys: Array<string> = Object.keys(navLinks);
 
       expect(navLinks["Huntress"]).toBe("Huntress");
-      expect(keys.indexOf("Huntress")).toBe(keys.indexOf("Datadog") + 1);
+      expect(keys.indexOf("Huntress")).toBe(keys.indexOf("New Relic") + 1);
     },
   );
 
@@ -573,23 +573,23 @@ describe("the Integrations catalog", () => {
   });
 
   test.each(LANGUAGES)(
-    "has the Huntress row right after Datadog's, as inbound as it, in %s",
+    "has the Huntress row right after New Relic's, as inbound as it, in %s",
     (language: string) => {
       const rows: Array<CatalogRow> = catalogRowsOf(language);
       const urls: Array<string> = rows.map((row: CatalogRow): string => {
         return row.url;
       });
-      const datadogAt: number = urls.indexOf("/docs/integrations/datadog");
+      const newRelicAt: number = urls.indexOf("/docs/integrations/new-relic");
       const huntressAt: number = urls.indexOf(PAGE_URL);
 
-      expect(datadogAt).toBeGreaterThanOrEqual(0);
-      expect(huntressAt).toBe(datadogAt + 1);
+      expect(newRelicAt).toBeGreaterThanOrEqual(0);
+      expect(huntressAt).toBe(newRelicAt + 1);
 
-      const datadog: CatalogRow = rows[datadogAt] as CatalogRow;
+      const newRelic: CatalogRow = rows[newRelicAt] as CatalogRow;
       const huntress: CatalogRow = rows[huntressAt] as CatalogRow;
 
       expect(huntress.title).toBe("Huntress");
-      expect(huntress.direction).toBe(datadog.direction);
+      expect(huntress.direction).toBe(newRelic.direction);
       expect(huntress.description).toContain("Huntress");
       expect(
         urls.filter((url: string) => {

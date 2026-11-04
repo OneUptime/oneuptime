@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  SECURITY_EVENT_CONNECTION_CLOUD_TEXTS,
   SECURITY_EVENT_CONNECTION_OPTION_TEXTS,
   SECURITY_EVENT_DESTINATION_FIELD_TEXTS,
   SECURITY_EVENT_DESTINATION_SCOPE_TEXTS,
@@ -356,6 +357,51 @@ describe("the words the Connections page marks for translation", () => {
       ]);
       expect(definition.description.length).toBeLessThanOrEqual(80);
     }
+  });
+
+  /*
+   * The Microsoft connections' Cloud dropdown draws the catalog's option
+   * labels through the locales - Microsoft Entra ID's Microsoft 365 GCC,
+   * GCC High and DoD among them - so every one has a key. CrowdStrike's
+   * Falcon clouds are host names, drawn as written.
+   */
+  test("every Microsoft connection's Cloud option, as the connector catalog words it", () => {
+    const labels: Array<string> = [];
+
+    for (const definition of SecurityEventConnectorCatalog) {
+      if (definition.vendorName !== "Microsoft") {
+        continue;
+      }
+
+      for (const field of definition.configFields) {
+        if (field.key !== "cloud") {
+          continue;
+        }
+
+        expect([definition.provider, field.type]).toEqual([
+          definition.provider,
+          "dropdown",
+        ]);
+
+        for (const option of field.options || []) {
+          if (!labels.includes(option.label)) {
+            labels.push(option.label);
+          }
+        }
+      }
+    }
+
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "Azure public cloud",
+        "Azure public cloud, Microsoft 365 GCC",
+        "Azure Government (US), GCC High",
+        "Azure Government (US), DoD",
+      ]),
+    );
+    expect([...SECURITY_EVENT_CONNECTION_CLOUD_TEXTS].sort()).toEqual(
+      [...labels].sort(),
+    );
   });
 
   /*

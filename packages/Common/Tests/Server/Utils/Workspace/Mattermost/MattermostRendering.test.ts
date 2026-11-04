@@ -18,6 +18,7 @@ import {
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import { TRUNCATED_TEXT_NOTE } from "../../../../../Utils/MessageFit";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * How OneUptime's messages - built once for every chat, with Slack's action
@@ -119,7 +120,7 @@ describe("MattermostUtil.toPost: the message", () => {
     const created: JSONObject = post([
       { _type: "WorkspacePayloadMarkdown", text: "**Incident created**" },
       { _type: "WorkspacePayloadMarkdown", text: "Checkout is down." },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     expect(created["message"]).toBe(
       "**Incident created**\n\nCheckout is down.",
@@ -130,7 +131,7 @@ describe("MattermostUtil.toPost: the message", () => {
   test("a header is a heading, its text escaped as text", () => {
     const created: JSONObject = post([
       { _type: "WorkspacePayloadHeader", text: "INC-42 *Checkout* down" },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     expect(created["message"]).toMatch(/^#### /);
     expect(created["message"]).toContain("INC-42 \\*Checkout\\* down");
@@ -141,7 +142,7 @@ describe("MattermostUtil.toPost: the message", () => {
       { _type: "WorkspacePayloadMarkdown", text: "Above" },
       { _type: "WorkspacePayloadDivider" },
       { _type: "WorkspacePayloadMarkdown", text: "Below" },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     expect(created["message"]).toBe("Above\n\n---\n\nBelow");
   });
@@ -149,7 +150,7 @@ describe("MattermostUtil.toPost: the message", () => {
   test("context text reads as part of the message", () => {
     const created: JSONObject = post([
       { _type: "WorkspacePayloadContext", text: "_Sent by OneUptime_" },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     expect(created["message"]).toBe("_Sent by OneUptime_");
   });
@@ -161,7 +162,7 @@ describe("MattermostUtil.toPost: the message", () => {
         imageUrl: URL.fromString("https://example.com/graph.png"),
         altText: "Latency [p99]",
       },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     expect(created["message"]).toBe(
       "![Latency \\[p99\\]](https://example.com/graph.png)",
@@ -203,7 +204,7 @@ describe("MattermostUtil.toPost: the message", () => {
 
     const created: JSONObject = post([
       { _type: "WorkspacePayloadMarkdown", text: long },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     const message: string = created["message"] as string;
 
@@ -218,7 +219,7 @@ describe("MattermostUtil.toPost: the message", () => {
 
     const created: JSONObject = post([
       { _type: "WorkspacePayloadMarkdown", text: exact },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     expect(created["message"]).toBe(exact);
   });
@@ -265,7 +266,7 @@ describe("MattermostUtil.neutralizeMentions", () => {
         _type: "WorkspacePayloadMarkdown",
         text: "Incident title: @channel help",
       },
-    ] as Array<WorkspaceMessageBlock>);
+    ] as unknown as Array<WorkspaceMessageBlock>);
 
     expect(created["message"]).toBe(
       `Incident title: @${WORD_JOINER}channel help`,
@@ -277,12 +278,34 @@ describe("MattermostUtil.neutralizeMentions", () => {
 
   test("runs in one pass over a long text of mentions", () => {
     const text: string = "@a ".repeat(200000);
-    const started: number = Date.now();
 
-    const neutralized: string = MattermostUtil.neutralizeMentions(text);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return MattermostUtil.neutralizeMentions(text);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(Date.now() - started).toBeLessThan(2000);
-    expect(neutralized.length).toBe(text.length + 200000);
+    expect(timed.inMs).toBeLessThan(2000);
+    expect(timed.result.length).toBe(text.length + 200000);
+  });
+
+  // A request can send anything: an object's length must not bound the scan.
+  test.each([
+    [{ length: 1000000000 }],
+    [["@alice"]],
+    [42],
+    [null],
+    [undefined],
+  ])("anything but text (%j) reads as nothing", (value: unknown) => {
+    expect(MattermostUtil.neutralizeMentions(value as string)).toBe("");
+  });
+
+  test("text with no mention comes back as it is, and no text as nothing", () => {
+    expect(MattermostUtil.neutralizeMentions("No mention here")).toBe(
+      "No mention here",
+    );
+    expect(MattermostUtil.neutralizeMentions("")).toBe("");
   });
 });
 
@@ -512,7 +535,7 @@ describe("MattermostUtil: forms are interactive dialogs", () => {
         blockId: "title",
         placeholder: "Title",
       },
-    ] as Array<WorkspaceMessageBlock>,
+    ] as unknown as Array<WorkspaceMessageBlock>,
   };
 
   test("the dialog has its title, submit label and callback id", () => {
@@ -640,7 +663,7 @@ describe("MattermostUtil: forms are interactive dialogs", () => {
               },
             ],
           },
-        ] as Array<WorkspaceMessageBlock>,
+        ] as unknown as Array<WorkspaceMessageBlock>,
       },
       teamId: TEAM_ID,
     })["elements"] as JSONArray;

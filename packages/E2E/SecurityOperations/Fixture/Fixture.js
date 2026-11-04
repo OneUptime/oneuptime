@@ -3014,10 +3014,15 @@ function turnOnRecommended(body) {
     /*
      * The rest of your OneUptime data beside the logs, as SecuritySetup
      * turns it on: each kind added, or turned back on. The audit log is
-     * left alone - this is OneUptime Community, which does not write one.
+     * left alone - this is OneUptime Community, which does not write one -
+     * and so are cloud audit logs: the project has no cloud account
+     * connected under Cloud for them to read.
      */
     for (const kind of SECURITY_TELEMETRY_SOURCE_KINDS) {
-      if (kind === SecurityTelemetrySourceKind.AuditLog) {
+      if (
+        kind === SecurityTelemetrySourceKind.AuditLog ||
+        kind === SecurityTelemetrySourceKind.CloudAudit
+      ) {
         continue;
       }
       const existing = table(SecurityTelemetrySource).find((item) => {

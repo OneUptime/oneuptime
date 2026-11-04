@@ -197,6 +197,11 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
   [PageMap.NETWORK_DEVICE_LINKS]: `device-links`,
+  /*
+   * Many devices' SNMP walk (issue #5548). A static segment, which React
+   * Router ranks above a device's dynamic id, as `discovery` is.
+   */
+  [PageMap.NETWORK_SNMP_WALK]: `snmp-walk`,
 };
 
 export const SloRoutePath: Dictionary<string> = {
@@ -593,6 +598,7 @@ export const AppPlatformsRoutePath: Dictionary<string> = {
 export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -3796,6 +3802,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_SNMP_WALK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_SNMP_WALK]
+    }`,
+  ),
+
   // Network Sites
 
   [PageMap.NETWORK_SITE_ROOT]: new Route(
@@ -5960,6 +5972,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_LOGS]
     }`,
   ),
 

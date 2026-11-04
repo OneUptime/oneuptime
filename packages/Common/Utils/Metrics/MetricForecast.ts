@@ -17,7 +17,9 @@ import { FilterType } from "../../Types/Monitor/CriteriaFilter";
  * A series is forecast only once its data covers half the window, so a
  * host that started reporting an hour ago is not judged from one hour of
  * data, and only while its data is fresh, so a host that stopped reporting
- * is not forecast forever from the trend it had.
+ * is not forecast forever from the trend it had. Fresh is judged by when its
+ * data last arrived, when that is known: a series whose data still arrives,
+ * late, is forecast from as far as its data reaches.
  */
 
 export interface MetricForecastPoint {
@@ -86,6 +88,13 @@ export default class MetricForecast {
    */
   public static readonly STALE_AFTER_SHARE: number = 0.05;
   public static readonly STALE_AFTER_DATA_POINTS: number = 3;
+
+  /*
+   * With its arrivals known, a series that delivers its data in batches may
+   * also go one and a half batches without anything new, as "All Values"
+   * allows (WindowCoverage.TOLERANCE_FACTOR).
+   */
+  public static readonly ARRIVAL_TOLERANCE_FACTOR: number = 1.5;
 
   /*
    * The least-squares line through the points, or null when there are too
@@ -157,6 +166,20 @@ export default class MetricForecast {
      * .judgesFreshnessByNewestData).
      */
     freshnessReferenceMs?: number | undefined;
+    /*
+     * When the series' data arrived, when that was read (MetricSeriesArrival).
+     * It is then stale only once nothing of it has arrived for longer than a
+     * series may go quiet - or than one and a half times how often its data
+     * arrives, for a source that delivers it in batches - whatever its data
+     * points' own times say. sinceNewestMs still says how old the newest data
+     * point is.
+     */
+    arrival?:
+      | {
+          sinceNewestArrivalMs: number;
+          arrivalIntervalMs: number | null;
+        }
+      | undefined;
   }): MetricForecastResult {
     const points: Array<MetricForecastPoint> = MetricForecast.getFinitePoints(
       input.points,
@@ -206,7 +229,23 @@ export default class MetricForecast {
       (input.dataPointMs || 0) * MetricForecast.STALE_AFTER_DATA_POINTS,
     );
 
-    if (sinceNewestMs > staleAfterMs) {
+    const arrival:
+      | { sinceNewestArrivalMs: number; arrivalIntervalMs: number | null }
+      | undefined =
+      input.arrival && Number.isFinite(input.arrival.sinceNewestArrivalMs)
+        ? input.arrival
+        : undefined;
+
+    const isStale: boolean = arrival
+      ? arrival.sinceNewestArrivalMs >
+        Math.max(
+          staleAfterMs,
+          (arrival.arrivalIntervalMs || 0) *
+            MetricForecast.ARRIVAL_TOLERANCE_FACTOR,
+        )
+      : sinceNewestMs > staleAfterMs;
+
+    if (isStale) {
       return notForecast("Stale");
     }
 

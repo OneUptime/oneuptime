@@ -28,7 +28,7 @@ En dubbelriktad integration, som Jira eller Dynamics 365, använder båda riktni
 | Sätt | Passar bäst för | Exempel |
 | --- | --- | --- |
 | En inbyggd anslutning | Verktyg som OneUptime ansluter till själv. Du fyller i ett formulär, och det finns inget att bygga. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), anslutningarna för [Säkerhetshändelser](/docs/telemetry/security-events) |
-| En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, övervakningsproblem, säkerhetsincidentrapporter och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
+| En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, övervakningsproblem, säkerhetsincidentrapporter och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
 | En Incoming Request-monitor | Larmverktyg som skickar en webhook. Du får en incident per larm, skickad till jouren och löst när larmet återhämtar sig, utan arbetsflöde. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Ett arbetsflöde som du bygger | Alla verktyg med en webhook eller ett REST API, och all egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Zabbix](/docs/integrations/zabbix) | Båda | Gör Zabbix-problem till incidenter eller larm, löser dem när de återhämtat sig, och kvitterar eller stänger problemen från OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande | Gör aviseringar från Alertmanager till incidenter. |
 | [Grafana](/docs/integrations/grafana) | Inkommande | Gör larm från Grafana till incidenter. |
-| [Datadog](/docs/integrations/datadog) | Inkommande | Gör larm från Datadog-monitorer till incidenter. |
+| [Datadog](/docs/integrations/datadog) | Inkommande | Gör larm från Datadog-monitorer till incidenter eller larm, och löser dem när de återhämtat sig. |
+| [New Relic](/docs/integrations/new-relic) | Inkommande | Gör New Relic-ärenden till incidenter eller larm, och löser dem när ärendet stängs. |
 
 ### Säkerhetsverktyg
 
@@ -133,7 +134,7 @@ URL:en är den enda autentiseringsuppgiften, så behandla den som ett lösenord.
 5. Klicka på **Kör arbetsflöde**, välj en incident under **Incident** och kör det. En testkörning skickar begäran på riktigt. Slå sedan på **Aktiverad**.
 :::
 
-När verktyget behöver datan i en annan form lägger du till ett [Run Custom JavaScript](/docs/workflows/components#custom-code)-block mellan de två. Receptet är detsamma för Zendesk, New Relic, AWS (via SNS), StatusCake och alla andra: bara URL:en och innehållet ändras.
+När verktyget behöver datan i en annan form lägger du till ett [Run Custom JavaScript](/docs/workflows/components#custom-code)-block mellan de två. Receptet är detsamma för Zendesk, AWS (via SNS), StatusCake och alla andra: bara URL:en och innehållet ändras.
 
 ## Skydda autentiseringsuppgifter
 

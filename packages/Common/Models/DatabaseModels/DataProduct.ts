@@ -541,8 +541,17 @@ export default class DataProduct extends BaseModel {
   })
   public serviceLevelObjectiveId?: ObjectID = undefined;
 
+  /*
+   * A secret: whoever has it reads the product's status and what its data
+   * is as of, with no sign-in (DataObservabilityAPI's badge route), as the
+   * status page's embedded badge token lets them read its status. Its
+   * readers still read it - the Overview hands them the badge's address to
+   * embed - but the API reference marks it, so the clients made from it,
+   * Terraform's among them, keep it out of what they print.
+   */
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     required: false,
     computed: true,

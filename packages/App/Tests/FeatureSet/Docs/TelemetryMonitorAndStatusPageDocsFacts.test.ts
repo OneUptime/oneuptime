@@ -2134,12 +2134,15 @@ describe("the Metrics monitor", () => {
   });
 
   /*
-   * #4793: All Values waits for a series' data to cover the time range, the
-   * evaluation log quotes the evaluator's own waiting message, and a
-   * Metrics monitor whose data all arrives late (CloudWatch) is judged up
-   * to its newest data point instead of now.
+   * #4793: All Values waits for a series' data to cover the time range, and
+   * the evaluation log quotes the evaluator's own waiting message. #4912's
+   * follow-up: data that keeps arriving late (from CloudWatch, from a
+   * collector whose clock runs behind) counts as far as it reaches -
+   * staleness is judged by when a series' data arrived (createdAt), which
+   * the worker reads when a series looks behind - and the alert or incident
+   * says how late it arrives.
    */
-  it("says All Values waits for the whole time range, quoting the evaluator's own message, and that late data counts up to its newest point", () => {
+  it("says All Values waits for the whole time range, quoting the evaluator's own message, and that data still arriving late counts as far as it reaches", () => {
     const window: MetricEvaluationWindow = {
       startMs: Date.UTC(2026, 9, 16, 12, 0, 30),
       endMs: Date.UTC(2026, 9, 16, 12, 15, 30),
@@ -2177,8 +2180,9 @@ describe("the Metrics monitor", () => {
       )?.label,
     ).toBe("Every value (the whole window)");
     expect(METRICS).toContain(
-      "When all of the monitor's data arrives late, as CloudWatch's does, its newest data point takes the place of now.",
+      "Data that keeps arriving late — from CloudWatch, or from a collector whose clock runs behind — counts as far as it reaches, and the alert or incident says how late it arrives.",
     );
+    expect(METRICS).not.toContain("takes the place of now");
 
     const criteria: string = oneLine(
       readSource(
@@ -2187,15 +2191,62 @@ describe("the Metrics monitor", () => {
     );
 
     expect(criteria).toContain("MetricWindowCoverage.judge(");
-    // The Metrics monitor's step - not the infrastructure monitors'.
+    // Each series is judged with the arrivals of what the criteria compares.
+    expect(criteria).toContain("arrival: getComparedArrival(series.arrivals),");
+    expect(criteria).toContain(
+      "arrival: getComparedArrival(metricResponse.metricResultArrivals),",
+    );
+    expect(criteria).toContain("arrival: input.arrival,");
+    /*
+     * Without arrivals - nothing looked behind - a Metrics monitor's series
+     * are still measured against its own newest data point.
+     */
     expect(criteria).toContain(
       "): boolean { return Boolean(monitorStep.data?.metricMonitor); }",
     );
     expect(criteria).toContain(
       "MetricMonitorCriteria.judgesFreshnessByNewestData(input.monitorStep) ? MetricWindowCoverage.getNewestDataPointMs(",
     );
-    expect(criteria).toContain(
-      "monitorNewestDataPointMs: input.monitorNewestDataPointMs,",
+
+    // Counts as far as it reaches: stale only once nothing has arrived.
+    const windowCoverage: string = oneLine(
+      readSource("Common/Server/Utils/Monitor/Criteria/WindowCoverage.ts"),
+    );
+    expect(windowCoverage).toContain(
+      "? sinceNewestArrivalMs > allowedArrivalGapMs : staleForMs > allowedGapMs;",
+    );
+
+    // The worker reads when each series' data arrived, from createdAt.
+    expect(
+      oneLine(
+        readSource(
+          "App/FeatureSet/Workers/Jobs/TelemetryMonitor/MetricSeriesArrivals.ts",
+        ),
+      ),
+    ).toContain("await MetricService.readSeriesArrivals({");
+    expect(
+      oneLine(readSource("Common/Server/Services/MetricService.ts")),
+    ).toContain("toUnixTimestamp(max(createdAt)) AS __arrival_newest");
+
+    /*
+     * And the alert or incident says how late: the details block of the
+     * whole monitor's root cause - the Metric Details and each of the six
+     * platforms' own blocks - and the lines a grouped monitor opens each
+     * series' alert and incident with.
+     */
+    const evaluator: string = oneLine(
+      readSource("Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts"),
+    );
+    expect(evaluator).toContain("- Data Arrives: about ");
+    expect(
+      evaluator.split("...MonitorCriteriaEvaluator.describeDataLag(").length -
+        1,
+    ).toBe(7);
+    expect(evaluator).toContain(
+      "return mdText`- ${r.rootCause} ${MetricWindowCoverage.describeLag(dataLagMs)}`;",
+    );
+    expect(MetricWindowCoverage.describeLag(11 * 60 * 1000)).toBe(
+      "Its data arrives about 11 minutes late.",
     );
   });
 
