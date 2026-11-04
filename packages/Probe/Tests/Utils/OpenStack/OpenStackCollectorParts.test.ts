@@ -506,6 +506,7 @@ describe("what is kept between collections", () => {
       roleNames: [],
       hasAccessRules: false,
       isUnrestricted: false,
+      isAdminProject: false,
     };
   }
 

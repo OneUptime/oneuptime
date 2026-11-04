@@ -1,0 +1,1381 @@
+import { IsBillingEnabled } from "../../EnvironmentConfig";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import logger from "../Logger";
+import { SubscriptionStatusUtil } from "../../../Types/Billing/SubscriptionStatus";
+import OneUptimeDate from "../../../Types/Date";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import OpenStackCollectionErrorCode, {
+  OpenStackCollectionErrorUtil,
+} from "../../../Types/OpenStack/OpenStackCollectionError";
+import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
+import {
+  DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES,
+  DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
+  OPENSTACK_LIFECYCLE_RUNS_KEPT,
+  OpenStackApiCheckJob,
+  OpenStackApiCheckOutcome,
+  OpenStackApiCheckResult,
+  OpenStackApiServiceResult,
+  OpenStackCertificateResult,
+  OpenStackCheckFault,
+  OpenStackCheckFaultSource,
+  OpenStackCheckRemovedResource,
+  OpenStackCheckReport,
+  OpenStackCheckResourceKind,
+  OpenStackLifecycleCheckJob,
+  OpenStackLifecycleCheckOptions,
+  OpenStackLifecycleJanitorResult,
+  OpenStackLifecyclePhase,
+  OpenStackLifecyclePhaseVerdict,
+  OpenStackLifecycleRecords,
+  OpenStackLifecycleRegionRecord,
+  OpenStackLifecycleRun,
+  OpenStackLifecycleRunBrief,
+  OpenStackLifecycleRunStatus,
+  OpenStackLifecycleStep,
+  OpenStackLifecycleStepResult,
+  isOpenStackLifecycleVerdict,
+} from "../../../Types/OpenStack/OpenStackCheck";
+import { OpenStackCredential } from "../../../Types/OpenStack/OpenStackProbeCollection";
+import {
+  OpenStackCheckConnection,
+  getOpenStackCheckBindingRefusal,
+  getOpenStackCheckConnection,
+  normalizeOpenStackLifecycleOptions,
+  readOpenStackCheckCredential,
+} from "../../../Utils/OpenStack/OpenStackCheckSettings";
+import {
+  getOpenStackApiCheckPoints,
+  getOpenStackLifecycleCheckPoints,
+  toOpenStackCheckResourceMetrics,
+} from "../../../Utils/OpenStack/OpenStackCheckMetrics";
+import OpenStackCollectionSettings from "../../../Utils/OpenStack/OpenStackCollectionSettings";
+import OpenStackProbeCollectionStore, {
+  OpenStackSqlManager,
+} from "./OpenStackProbeCollectionStore";
+import crypto from "crypto";
+
+/*
+ * THE DATABASE HALF OF THE CHECKS: which of them a probe runs now, and what it found. It is the
+ * collection's store (OpenStackProbeCollectionStore), for the same reasons.
+ *
+ * Claiming is atomic (FOR UPDATE SKIP LOCKED) and moves each claimed check's next time an interval
+ * on, so two work requests never hand one check out twice. The checks a probe says it is still
+ * running are left out, so a run slower than its interval is skipped, not stacked: that is the first
+ * of the two things that keep a run from starting while one is going. The other is on the cloud
+ * itself, for a probe that restarted (OpenStackLifecycleCheck).
+ *
+ * Only a probe that may run a check is ever handed one: the check names it, or the cloud does, and
+ * it is the project's own probe, or on a self-hosted install one of the instance's own. The claim
+ * holds rows written before the rules were to them too, so a stale row can be made uncheckable but
+ * never hand its credential to the wrong probe.
+ *
+ * A check's own credential is only ever handed out for what it was entered for
+ * (getOpenStackCheckBindingRefusal), and the lifecycle check is never handed the cloud's.
+ *
+ * Everything a probe reports is bounded and read as the shape it should be before it is stored,
+ * because it goes on a page and in an incident. Text in it came from a cloud.
+ */
+
+// What the store reads of a check, and the cloud's columns it can stand on.
+export interface OpenStackCheckRecord {
+  _id?: string | undefined;
+  id?: ObjectID | null | undefined;
+  projectId?: ObjectID | undefined;
+  openStackCloudId?: ObjectID | undefined;
+  probeId?: ObjectID | undefined;
+  authUrl?: string | undefined;
+  endpointInterface?: string | undefined;
+  regions?: Array<string> | undefined;
+  trustedCertificateFingerprints?: Array<string> | undefined;
+  credentialKind?: string | undefined;
+  applicationCredentialId?: string | undefined;
+  keystoneUsername?: string | undefined;
+  userDomainName?: string | undefined;
+  credentialProjectName?: string | undefined;
+  credentialProjectDomainName?: string | undefined;
+  credentialSecret?: string | undefined;
+  isCredentialSet?: boolean | undefined;
+  credentialBinding?: JSONObject | undefined;
+  isApiCheckEnabled?: boolean | undefined;
+  apiCheckIntervalInMinutes?: number | undefined;
+  isLifecycleCheckEnabled?: boolean | undefined;
+  lifecycleCheckIntervalInMinutes?: number | undefined;
+  lifecycleProjectName?: string | undefined;
+  pinnedLifecycleProjectId?: string | undefined;
+  lifecycleCheckOptions?: OpenStackLifecycleCheckOptions | undefined;
+  lifecycleRecords?: OpenStackLifecycleRecords | undefined;
+  isSweepPending?: boolean | undefined;
+  osProfilerKey?: string | undefined;
+  settingsVersion?: number | undefined;
+  openStackCloud?: OpenStackCheckCloudRecord | undefined;
+  probe?:
+    | { isGlobalProbe?: boolean | undefined; projectId?: ObjectID | undefined }
+    | undefined;
+}
+
+export interface OpenStackCheckCloudRecord {
+  _id?: string | undefined;
+  name?: string | undefined;
+  collectionMethod?: OpenStackCollectionMethod | undefined;
+  collectionProbeId?: ObjectID | undefined;
+  collectionProbe?:
+    | { isGlobalProbe?: boolean | undefined; projectId?: ObjectID | undefined }
+    | undefined;
+  authUrl?: string | undefined;
+  endpointInterface?: string | undefined;
+  collectionRegions?: Array<string> | undefined;
+  trustedCertificateFingerprints?: Array<string> | undefined;
+  credentialKind?: string | undefined;
+  applicationCredentialId?: string | undefined;
+  keystoneUsername?: string | undefined;
+  userDomainName?: string | undefined;
+  projectName?: string | undefined;
+  projectDomainName?: string | undefined;
+  credentialSecret?: string | undefined;
+  isCredentialSet?: boolean | undefined;
+}
+
+// What the store needs of the service that owns the table.
+export interface OpenStackCheckService {
+  executeTransaction: <T>(
+    run: (manager: OpenStackSqlManager) => Promise<T>,
+  ) => Promise<T>;
+  findBy: (options: {
+    query: Record<string, unknown>;
+    select: Record<string, unknown>;
+    limit: number;
+    skip: number;
+    props: { isRoot: boolean };
+  }) => Promise<Array<OpenStackCheckRecord>>;
+  findOneById: (options: {
+    id: ObjectID;
+    select: Record<string, unknown>;
+    props: { isRoot: boolean };
+  }) => Promise<OpenStackCheckRecord | null>;
+  updateColumnsByIdWithoutHooks: (options: {
+    id: ObjectID;
+    data: Record<string, unknown>;
+  }) => Promise<unknown>;
+}
+
+// What recordReport made of a report.
+export interface OpenStackCheckReportOutcome {
+  accepted: boolean;
+  reason?: string | undefined;
+  projectId?: ObjectID | undefined;
+  cloudName?: string | undefined;
+  // What to send to the ingest: what this said, and what the newest lifecycle runs still say.
+  resourceMetrics?: JSONArray | undefined;
+}
+
+export type OpenStackCheckKind = "api" | "lifecycle";
+
+const CHECK_SELECT: Record<string, unknown> = {
+  _id: true,
+  projectId: true,
+  openStackCloudId: true,
+  probeId: true,
+  authUrl: true,
+  endpointInterface: true,
+  regions: true,
+  trustedCertificateFingerprints: true,
+  credentialKind: true,
+  applicationCredentialId: true,
+  keystoneUsername: true,
+  userDomainName: true,
+  credentialProjectName: true,
+  credentialProjectDomainName: true,
+  credentialSecret: true,
+  isCredentialSet: true,
+  credentialBinding: true,
+  isApiCheckEnabled: true,
+  apiCheckIntervalInMinutes: true,
+  isLifecycleCheckEnabled: true,
+  lifecycleCheckIntervalInMinutes: true,
+  lifecycleProjectName: true,
+  pinnedLifecycleProjectId: true,
+  lifecycleCheckOptions: true,
+  lifecycleRecords: true,
+  isSweepPending: true,
+  osProfilerKey: true,
+  settingsVersion: true,
+  openStackCloud: {
+    _id: true,
+    name: true,
+    collectionMethod: true,
+    collectionProbeId: true,
+    authUrl: true,
+    endpointInterface: true,
+    collectionRegions: true,
+    trustedCertificateFingerprints: true,
+    credentialKind: true,
+    applicationCredentialId: true,
+    keystoneUsername: true,
+    userDomainName: true,
+    projectName: true,
+    projectDomainName: true,
+    credentialSecret: true,
+    isCredentialSet: true,
+  },
+};
+
+const MAX_TEXT_LENGTH: number = 1000;
+const MAX_SERVICES: number = 1024;
+const MAX_CERTIFICATES: number = 256;
+const MAX_WARNINGS: number = 20;
+const MAX_REGIONS: number = 64;
+const MAX_STEPS: number = 32;
+const MAX_REMOVED: number = 64;
+
+const API_OUTCOMES: ReadonlyArray<OpenStackApiCheckOutcome> = [
+  "Answered",
+  "Refused",
+  "Failing",
+  "NotChecked",
+];
+const RUN_STATUSES: ReadonlyArray<OpenStackLifecycleRunStatus> = [
+  "Succeeded",
+  "Failed",
+  "Refused",
+  "Skipped",
+  "Swept",
+];
+const FAULT_SOURCES: ReadonlyArray<OpenStackCheckFaultSource> = [
+  "keystone",
+  "nova",
+  "cinder",
+  "neutron",
+  "glance",
+  "probe",
+];
+const RESOURCE_KINDS: ReadonlyArray<OpenStackCheckResourceKind> = [
+  "server",
+  "volume",
+  "floating_ip",
+  "security_group",
+];
+const PHASE_VERDICTS: ReadonlyArray<OpenStackLifecyclePhaseVerdict> = [
+  "Passed",
+  "Failed",
+  "NotReached",
+  "Off",
+];
+
+// Twelve hex characters of a hash of the check's id: what its resources are named for.
+export function getOpenStackCheckKey(openStackCloudCheckId: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(openStackCloudCheckId.toLowerCase())
+    .digest("hex")
+    .substring(0, 12);
+}
+
+function boundText(value: unknown, maxLength: number): string | null {
+  return OpenStackProbeCollectionStore.boundText(value, maxLength);
+}
+
+function wholeCount(value: unknown): number {
+  const number: number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+}
+
+function isoDate(value: unknown): string | null {
+  const text: string | null = boundText(value, 64);
+
+  if (!text) {
+    return null;
+  }
+
+  const time: number = Date.parse(text);
+
+  return Number.isNaN(time) ? null : new Date(time).toISOString();
+}
+
+function boundList(value: unknown, max: number): Array<string> {
+  return (Array.isArray(value) ? value : [])
+    .map((item: unknown): string | null => {
+      return boundText(item, MAX_TEXT_LENGTH);
+    })
+    .filter((item: string | null): item is string => {
+      return item !== null;
+    })
+    .slice(0, max);
+}
+
+/*
+ * ------------------------------------------------------------------
+ * What a probe's report may hold
+ * ------------------------------------------------------------------
+ */
+
+export function sanitizeOpenStackCheckFault(
+  value: unknown,
+): OpenStackCheckFault | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const message: string | null = boundText(raw["message"], MAX_TEXT_LENGTH);
+
+  if (!message) {
+    return undefined;
+  }
+
+  const code: number = wholeCount(raw["code"]);
+
+  return {
+    source: FAULT_SOURCES.includes(raw["source"] as OpenStackCheckFaultSource)
+      ? (raw["source"] as OpenStackCheckFaultSource)
+      : "probe",
+    ...(code ? { code: code } : {}),
+    message: message,
+  };
+}
+
+const LIFECYCLE_STEPS: ReadonlyArray<string> = Object.values(
+  OpenStackLifecycleStep,
+);
+
+function sanitizeStep(value: unknown): OpenStackLifecycleStepResult | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+
+  if (!LIFECYCLE_STEPS.includes(raw["step"] as string)) {
+    return null;
+  }
+
+  const fault: OpenStackCheckFault | undefined = sanitizeOpenStackCheckFault(
+    raw["fault"],
+  );
+  const traceId: string | null = boundText(raw["traceId"], 64);
+
+  return {
+    step: raw["step"] as OpenStackLifecycleStep,
+    status: raw["status"] === "Passed" ? "Passed" : "Failed",
+    durationInMs: wholeCount(raw["durationInMs"]),
+    ...(fault ? { fault: fault } : {}),
+    ...(traceId ? { traceId: traceId } : {}),
+  };
+}
+
+function sanitizeJanitor(
+  value: unknown,
+): OpenStackLifecycleJanitorResult | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const removed: Array<OpenStackCheckRemovedResource> = [];
+
+  for (const item of (Array.isArray(raw["removed"])
+    ? raw["removed"]
+    : []
+  ).slice(0, MAX_REMOVED)) {
+    const entry: Record<string, unknown> = (item || {}) as Record<
+      string,
+      unknown
+    >;
+    const id: string | null = boundText(entry["id"], MAX_TEXT_LENGTH);
+    const name: string | null = boundText(entry["name"], MAX_TEXT_LENGTH);
+
+    if (
+      id &&
+      name &&
+      RESOURCE_KINDS.includes(entry["kind"] as OpenStackCheckResourceKind)
+    ) {
+      removed.push({
+        kind: entry["kind"] as OpenStackCheckResourceKind,
+        id: id,
+        name: name,
+        ageInMinutes: wholeCount(entry["ageInMinutes"]),
+      });
+    }
+  }
+
+  return {
+    removed: removed,
+    remainingCount: wholeCount(raw["remainingCount"]),
+    errors: boundList(raw["errors"], MAX_WARNINGS),
+  };
+}
+
+export function sanitizeOpenStackLifecycleRun(
+  value: unknown,
+): OpenStackLifecycleRun | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const startedAt: string | null = isoDate(raw["startedAt"]);
+  const finishedAt: string | null = isoDate(raw["finishedAt"]);
+  const runId: string | null = boundText(raw["runId"], 64);
+
+  if (
+    !startedAt ||
+    !finishedAt ||
+    !runId ||
+    !RUN_STATUSES.includes(raw["status"] as OpenStackLifecycleRunStatus)
+  ) {
+    return null;
+  }
+
+  const steps: Array<OpenStackLifecycleStepResult> = [];
+
+  for (const item of (Array.isArray(raw["steps"]) ? raw["steps"] : []).slice(
+    0,
+    MAX_STEPS,
+  )) {
+    const step: OpenStackLifecycleStepResult | null = sanitizeStep(item);
+
+    if (step) {
+      steps.push(step);
+    }
+  }
+
+  const phases: Partial<
+    Record<OpenStackLifecyclePhase, OpenStackLifecyclePhaseVerdict>
+  > = {};
+  const rawPhases: Record<string, unknown> =
+    raw["phases"] && typeof raw["phases"] === "object"
+      ? (raw["phases"] as Record<string, unknown>)
+      : {};
+
+  for (const phase of Object.values(OpenStackLifecyclePhase)) {
+    if (
+      PHASE_VERDICTS.includes(
+        rawPhases[phase] as OpenStackLifecyclePhaseVerdict,
+      )
+    ) {
+      phases[phase] = rawPhases[phase] as OpenStackLifecyclePhaseVerdict;
+    }
+  }
+
+  const fault: OpenStackCheckFault | undefined = sanitizeOpenStackCheckFault(
+    raw["fault"],
+  );
+  const message: string | null = boundText(raw["message"], MAX_TEXT_LENGTH);
+  const janitor: OpenStackLifecycleJanitorResult | undefined = sanitizeJanitor(
+    raw["janitor"],
+  );
+  const verifiedProjectId: string | null = boundText(
+    raw["verifiedProjectId"],
+    255,
+  );
+  const verifiedProjectName: string | null = boundText(
+    raw["verifiedProjectName"],
+    255,
+  );
+  const traceId: string | null = boundText(raw["traceId"], 64);
+
+  return {
+    runId: runId,
+    regionName: boundText(raw["regionName"], 255) || "",
+    startedAt: startedAt,
+    finishedAt: finishedAt,
+    status: raw["status"] as OpenStackLifecycleRunStatus,
+    ...(LIFECYCLE_STEPS.includes(raw["failedStep"] as string)
+      ? { failedStep: raw["failedStep"] as OpenStackLifecycleStep }
+      : {}),
+    ...(fault ? { fault: fault } : {}),
+    ...(message ? { message: message } : {}),
+    steps: steps,
+    phases: phases,
+    ...(janitor ? { janitor: janitor } : {}),
+    leftoverCount: wholeCount(raw["leftoverCount"]),
+    ...(verifiedProjectId ? { verifiedProjectId: verifiedProjectId } : {}),
+    ...(verifiedProjectName
+      ? { verifiedProjectName: verifiedProjectName }
+      : {}),
+    ...(traceId ? { traceId: traceId } : {}),
+    requestCount: wholeCount(raw["requestCount"]),
+    writeCount: wholeCount(raw["writeCount"]),
+    warnings: boundList(raw["warnings"], MAX_WARNINGS),
+  };
+}
+
+export function sanitizeOpenStackApiCheckResult(
+  value: unknown,
+): OpenStackApiCheckResult | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const rawToken: Record<string, unknown> =
+    raw["token"] && typeof raw["token"] === "object"
+      ? (raw["token"] as Record<string, unknown>)
+      : {};
+
+  const startedAt: string | null = isoDate(raw["startedAt"]);
+
+  if (!startedAt) {
+    return null;
+  }
+
+  const services: Array<OpenStackApiServiceResult> = [];
+
+  for (const item of (Array.isArray(raw["services"])
+    ? raw["services"]
+    : []
+  ).slice(0, MAX_SERVICES)) {
+    const entry: Record<string, unknown> = (item || {}) as Record<
+      string,
+      unknown
+    >;
+    const serviceType: string | null = boundText(entry["serviceType"], 255);
+
+    if (
+      !serviceType ||
+      !API_OUTCOMES.includes(entry["outcome"] as OpenStackApiCheckOutcome)
+    ) {
+      continue;
+    }
+
+    const status: number = wholeCount(entry["status"]);
+    const message: string | null = boundText(entry["message"], MAX_TEXT_LENGTH);
+
+    services.push({
+      regionName: boundText(entry["regionName"], 255) || "",
+      serviceType: serviceType,
+      serviceName: boundText(entry["serviceName"], 255) || "",
+      read: boundText(entry["read"], MAX_TEXT_LENGTH) || "",
+      outcome: entry["outcome"] as OpenStackApiCheckOutcome,
+      ...(status ? { status: status } : {}),
+      durationInMs: wholeCount(entry["durationInMs"]),
+      ...(message ? { message: message } : {}),
+    });
+  }
+
+  const certificates: Array<OpenStackCertificateResult> = [];
+
+  for (const item of (Array.isArray(raw["certificates"])
+    ? raw["certificates"]
+    : []
+  ).slice(0, MAX_CERTIFICATES)) {
+    const entry: Record<string, unknown> = (item || {}) as Record<
+      string,
+      unknown
+    >;
+    const host: string | null = boundText(entry["host"], 255);
+    const validTo: string | null = isoDate(entry["validTo"]);
+    const port: number = wholeCount(entry["port"]);
+
+    if (!host || !validTo || port <= 0 || port > 65535) {
+      continue;
+    }
+
+    const subject: string | null = boundText(entry["subject"], MAX_TEXT_LENGTH);
+    const issuer: string | null = boundText(entry["issuer"], MAX_TEXT_LENGTH);
+    const fingerprint: string | null = boundText(entry["fingerprint256"], 255);
+
+    certificates.push({
+      host: host,
+      port: port,
+      validTo: validTo,
+      ...(subject ? { subject: subject } : {}),
+      ...(issuer ? { issuer: issuer } : {}),
+      ...(fingerprint ? { fingerprint256: fingerprint } : {}),
+      regionNames: boundList(entry["regionNames"], MAX_REGIONS),
+      serviceTypes: boundList(entry["serviceTypes"], MAX_SERVICES),
+    });
+  }
+
+  const message: string | null = boundText(rawToken["message"], MAX_TEXT_LENGTH);
+
+  return {
+    startedAt: startedAt,
+    durationInMs: wholeCount(raw["durationInMs"]),
+    regionNames: boundList(raw["regionNames"], MAX_REGIONS),
+    token: {
+      status:
+        rawToken["status"] === "Passed"
+          ? "Passed"
+          : rawToken["status"] === "BackingOff"
+            ? "BackingOff"
+            : "Failed",
+      durationInMs: wholeCount(rawToken["durationInMs"]),
+      ...(OpenStackCollectionErrorUtil.isValid(rawToken["errorCode"])
+        ? { errorCode: rawToken["errorCode"] as OpenStackCollectionErrorCode }
+        : {}),
+      ...(message ? { message: message } : {}),
+    },
+    services: services,
+    certificates: certificates,
+    warnings: boundList(raw["warnings"], MAX_WARNINGS),
+  };
+}
+
+/*
+ * ------------------------------------------------------------------
+ * What a report does to a check's record
+ * ------------------------------------------------------------------
+ */
+
+function bootInMsOf(run: OpenStackLifecycleRun): number | undefined {
+  return run.steps.find((step: OpenStackLifecycleStepResult): boolean => {
+    return (
+      step.step === OpenStackLifecycleStep.ServerActive &&
+      step.status === "Passed"
+    );
+  })?.durationInMs;
+}
+
+function briefOf(run: OpenStackLifecycleRun): OpenStackLifecycleRunBrief {
+  const bootInMs: number | undefined = bootInMsOf(run);
+
+  return {
+    runId: run.runId,
+    finishedAt: run.finishedAt,
+    status: run.status,
+    durationInMs: Math.max(
+      0,
+      Date.parse(run.finishedAt) - Date.parse(run.startedAt),
+    ),
+    ...(run.failedStep ? { failedStep: run.failedStep } : {}),
+    ...(run.fault ? { fault: run.fault } : {}),
+    ...(run.message ? { message: run.message } : {}),
+    ...(bootInMs !== undefined ? { bootInMs: bootInMs } : {}),
+    ...(run.traceId ? { traceId: run.traceId } : {}),
+  };
+}
+
+/*
+ * A report's runs on top of what each region already said. A region the probe no longer runs in is
+ * dropped, so it stops being said. A run with no region is one that could not log in and knew no
+ * catalog: it speaks for every region this check already knows, if any.
+ *
+ * What a phase last came to survives a run that did not reach it: see OpenStackLifecyclePhaseVerdict.
+ * A phase someone turned off goes, because nothing will ever say otherwise.
+ */
+export function mergeOpenStackLifecycleRuns(data: {
+  records: OpenStackLifecycleRecords | undefined;
+  runs: ReadonlyArray<OpenStackLifecycleRun>;
+}): OpenStackLifecycleRecords {
+  const before: OpenStackLifecycleRecords = data.records || {};
+  const after: OpenStackLifecycleRecords = {};
+
+  const known: Array<string> = Object.keys(before).filter(
+    (regionName: string): boolean => {
+      return Boolean(regionName);
+    },
+  );
+
+  const expanded: Array<OpenStackLifecycleRun> = [];
+
+  for (const run of data.runs) {
+    if (run.regionName || known.length === 0) {
+      expanded.push(run);
+      continue;
+    }
+
+    for (const regionName of known) {
+      expanded.push({ ...run, regionName: regionName });
+    }
+  }
+
+  for (const run of expanded) {
+    const previous: OpenStackLifecycleRegionRecord | undefined =
+      before[run.regionName];
+
+    const isVerdict: boolean = isOpenStackLifecycleVerdict(run.status);
+    const phaseVerdicts: OpenStackLifecycleRegionRecord["phaseVerdicts"] = {
+      ...(previous?.phaseVerdicts || {}),
+    };
+
+    if (isVerdict) {
+      for (const phase of Object.keys(
+        run.phases,
+      ) as Array<OpenStackLifecyclePhase>) {
+        const verdict: OpenStackLifecyclePhaseVerdict | undefined =
+          run.phases[phase];
+
+        if (verdict === "Passed" || verdict === "Failed") {
+          phaseVerdicts[phase] = verdict;
+        } else if (verdict === "Off") {
+          delete phaseVerdicts[phase];
+        }
+      }
+    }
+
+    const lastVerdict: OpenStackLifecycleRun | undefined = isVerdict
+      ? run
+      : previous?.lastVerdict;
+    const lastAttempt: OpenStackLifecycleRun | undefined = isVerdict
+      ? undefined
+      : run;
+
+    after[run.regionName] = {
+      regionName: run.regionName,
+      ...(lastVerdict ? { lastVerdict: lastVerdict } : {}),
+      ...(lastAttempt ? { lastAttempt: lastAttempt } : {}),
+      phaseVerdicts: phaseVerdicts,
+      recent: [briefOf(run), ...(previous?.recent || [])].slice(
+        0,
+        OPENSTACK_LIFECYCLE_RUNS_KEPT,
+      ),
+    };
+  }
+
+  return after;
+}
+
+export default class OpenStackCheckStore {
+  public static getSafeApiInterval(value: number | null | undefined): number {
+    const interval: number = Number(value);
+
+    return Number.isFinite(interval) && interval >= 1
+      ? Math.round(interval)
+      : DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES;
+  }
+
+  public static getSafeLifecycleInterval(
+    value: number | null | undefined,
+  ): number {
+    const interval: number = Number(value);
+
+    return Number.isFinite(interval) && interval >= 1
+      ? Math.round(interval)
+      : DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES;
+  }
+
+  /*
+   * The check rows that are due, moved an interval on, and locked while they are: nothing else can
+   * hand these out. A check nobody may run any more is claimed and answered with nothing, so it
+   * does not sit at the head of every later claim.
+   */
+  private static async claimDueIds(
+    service: OpenStackCheckService,
+    data: {
+      kind: OpenStackCheckKind;
+      probeId: ObjectID;
+      runningIds: Array<string>;
+      limit: number;
+    },
+  ): Promise<Array<string>> {
+    const currentDate: Date = OneUptimeDate.getCurrentDate();
+
+    const nextColumn: string =
+      data.kind === "api" ? "nextApiCheckAt" : "nextLifecycleCheckAt";
+    const intervalColumn: string =
+      data.kind === "api"
+        ? "apiCheckIntervalInMinutes"
+        : "lifecycleCheckIntervalInMinutes";
+    const isOnCondition: string =
+      data.kind === "api"
+        ? `ck."isApiCheckEnabled" = true`
+        : `(ck."isLifecycleCheckEnabled" = true OR ck."isSweepPending" = true)`;
+
+    const runningIds: Array<string> = data.runningIds.filter(
+      (id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      },
+    );
+
+    return await service.executeTransaction(
+      async (manager: OpenStackSqlManager): Promise<Array<string>> => {
+        const rows: Array<{ _id: string; interval: number | null }> =
+          (await manager.query(
+            `
+        SELECT ck."_id", ck."${intervalColumn}" AS "interval"
+        FROM "OpenStackCloudCheck" ck
+        INNER JOIN "OpenStackCloud" c ON ck."openStackCloudId" = c."_id"
+        INNER JOIN "Project" p ON ck."projectId" = p."_id"
+        INNER JOIN "Probe" pr
+          ON pr."_id" = COALESCE(ck."probeId", c."collectionProbeId")
+        WHERE COALESCE(ck."probeId", c."collectionProbeId") = $1
+          AND ${isOnCondition}
+          AND ck."deletedAt" IS NULL
+          AND c."deletedAt" IS NULL
+          AND c."isArchived" = false
+          AND (ck."${nextColumn}" IS NULL OR ck."${nextColumn}" <= $2)
+          AND NOT (ck."_id" = ANY($5::uuid[]))
+          -- The tenancy backstop: the project's own probe, or a global
+          -- probe on an instance where those are the operator's own.
+          AND (
+            (pr."isGlobalProbe" = false AND pr."projectId" = ck."projectId")
+            OR (pr."isGlobalProbe" = true AND $6::boolean = false)
+          )
+          AND pr."deletedAt" IS NULL
+          AND p."deletedAt" IS NULL
+          AND p."isBlocked" = false
+          AND (p."paymentProviderSubscriptionStatus" IS NULL
+               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
+          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
+               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
+        ORDER BY ck."${nextColumn}" ASC NULLS FIRST
+        LIMIT $3
+        FOR UPDATE OF ck SKIP LOCKED
+      `,
+            [
+              data.probeId.toString(),
+              currentDate,
+              data.limit,
+              SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+              runningIds,
+              IsBillingEnabled,
+            ],
+          )) as Array<{ _id: string; interval: number | null }>;
+
+        if (rows.length === 0) {
+          return [];
+        }
+
+        const caseFragments: Array<string> = [];
+        const parameters: Array<string | Date> = [];
+        let parameterIndex: number = 1;
+
+        for (const row of rows) {
+          const interval: number =
+            data.kind === "api"
+              ? OpenStackCheckStore.getSafeApiInterval(row.interval)
+              : OpenStackCheckStore.getSafeLifecycleInterval(row.interval);
+
+          caseFragments.push(
+            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamptz`,
+          );
+          parameters.push(
+            row._id,
+            OneUptimeDate.addRemoveMinutes(currentDate, interval),
+          );
+          parameterIndex += 2;
+        }
+
+        const ids: Array<string> = rows.map((row: { _id: string }): string => {
+          return row._id;
+        });
+
+        const placeholders: Array<string> = ids.map(
+          (_id: string, index: number): string => {
+            return `$${parameterIndex + index}`;
+          },
+        );
+
+        parameters.push(...ids);
+
+        await manager.query(
+          `UPDATE "OpenStackCloudCheck" SET "${nextColumn}" = CASE "_id" ${caseFragments.join(
+            " ",
+          )} END WHERE "_id" IN (${placeholders.join(", ")})`,
+          parameters,
+        );
+
+        return ids;
+      },
+    );
+  }
+
+  private static async readClaimed(
+    service: OpenStackCheckService,
+    claimedIds: Array<string>,
+  ): Promise<Array<OpenStackCheckRecord>> {
+    if (claimedIds.length === 0) {
+      return [];
+    }
+
+    // Read as OneUptime: the secret and the key are decrypted on read.
+    const rows: Array<OpenStackCheckRecord> = await service.findBy({
+      query: { _id: QueryHelper.any(claimedIds) },
+      select: CHECK_SELECT,
+      limit: claimedIds.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return OpenStackProbeCollectionStore.inClaimOrder(rows, claimedIds);
+  }
+
+  /*
+   * What is true of this check right now that keeps it from running, in a sentence, so the page can
+   * say why it has stopped when nothing about the cloud has.
+   */
+  private static async noteWhyNotRunning(
+    service: OpenStackCheckService,
+    check: OpenStackCheckRecord,
+    reason: string,
+  ): Promise<void> {
+    logger.debug(
+      `OpenStack check ${check._id} was not handed out: ${reason}`,
+    );
+
+    if (check._id) {
+      await service.updateColumnsByIdWithoutHooks({
+        id: new ObjectID(check._id.toString()),
+        data: { checkError: reason },
+      });
+    }
+  }
+
+  private static getApiCredential(data: {
+    check: OpenStackCheckRecord;
+    cloud: OpenStackCheckCloudRecord;
+    connection: OpenStackCheckConnection;
+  }): { credential: OpenStackCredential } | { error: string } {
+    const { check, cloud, connection } = data;
+
+    // Its own, when it has one, and only for what it was entered for.
+    if (check.isCredentialSet) {
+      const refusal: string | null = getOpenStackCheckBindingRefusal({
+        saved: check.credentialBinding,
+        connection: connection,
+      });
+
+      if (refusal) {
+        return { error: refusal };
+      }
+
+      const credential: OpenStackCredential | null =
+        readOpenStackCheckCredential(check);
+
+      return credential
+        ? { credential: credential }
+        : { error: "The saved credential could not be read. Enter it again." };
+    }
+
+    /*
+     * The cloud's, only where it is the very connection the cloud is collected on, by the probe
+     * that collects it. That is where it already goes.
+     */
+    if (
+      connection.isCloudsOwn &&
+      connection.probeId === cloud.collectionProbeId?.toString()
+    ) {
+      const credential: OpenStackCredential | null =
+        OpenStackProbeCollectionStore.readCredential(cloud);
+
+      if (credential) {
+        return { credential: credential };
+      }
+    }
+
+    return {
+      error:
+        "Give these checks a credential: the one this cloud is collected with is gone, or goes through another probe.",
+    };
+  }
+
+  // The API checks due for this probe, with the credential each runs with.
+  public static async claimApiChecks(
+    service: OpenStackCheckService,
+    data: {
+      probeId: ObjectID;
+      runningIds: Array<string>;
+      limit: number;
+    },
+  ): Promise<Array<OpenStackApiCheckJob>> {
+    if (data.limit <= 0) {
+      return [];
+    }
+
+    const claimedIds: Array<string> = await OpenStackCheckStore.claimDueIds(
+      service,
+      {
+        kind: "api",
+        probeId: data.probeId,
+        runningIds: data.runningIds,
+        limit: data.limit,
+      },
+    );
+
+    const jobs: Array<OpenStackApiCheckJob> = [];
+
+    for (const check of await OpenStackCheckStore.readClaimed(
+      service,
+      claimedIds,
+    )) {
+      const cloud: OpenStackCheckCloudRecord | undefined = check.openStackCloud;
+
+      if (!cloud || !check._id || !check.openStackCloudId) {
+        continue;
+      }
+
+      const connection: OpenStackCheckConnection = getOpenStackCheckConnection({
+        check: check,
+        cloud: cloud,
+      });
+
+      if (!connection.authUrl) {
+        await OpenStackCheckStore.noteWhyNotRunning(
+          service,
+          check,
+          "Give these checks Keystone's address and a credential: this cloud no longer has a probe that collects it.",
+        );
+        continue;
+      }
+
+      const read: { credential: OpenStackCredential } | { error: string } =
+        OpenStackCheckStore.getApiCredential({
+          check: check,
+          cloud: cloud,
+          connection: connection,
+        });
+
+      if ("error" in read) {
+        await OpenStackCheckStore.noteWhyNotRunning(service, check, read.error);
+        continue;
+      }
+
+      jobs.push({
+        openStackCloudCheckId: check._id.toString(),
+        openStackCloudId: check.openStackCloudId.toString(),
+        cloudName: cloud.name || "",
+        authUrl: connection.authUrl,
+        regions: connection.regions,
+        endpointInterface: connection.endpointInterface,
+        trustedCertificateFingerprints:
+          OpenStackProbeCollectionStore.readFingerprints(
+            connection.trustedCertificateFingerprints,
+          ),
+        settingsVersion: check.settingsVersion || 0,
+        credential: read.credential,
+        intervalInMinutes: OpenStackCheckStore.getSafeApiInterval(
+          check.apiCheckIntervalInMinutes,
+        ),
+      });
+    }
+
+    return jobs;
+  }
+
+  /*
+   * The lifecycle checks due for this probe. Only ever with the check's own credential, whichever
+   * connection it uses, because it writes.
+   */
+  public static async claimLifecycleChecks(
+    service: OpenStackCheckService,
+    data: {
+      probeId: ObjectID;
+      runningIds: Array<string>;
+      limit: number;
+    },
+  ): Promise<Array<OpenStackLifecycleCheckJob>> {
+    if (data.limit <= 0) {
+      return [];
+    }
+
+    const claimedIds: Array<string> = await OpenStackCheckStore.claimDueIds(
+      service,
+      {
+        kind: "lifecycle",
+        probeId: data.probeId,
+        runningIds: data.runningIds,
+        limit: data.limit,
+      },
+    );
+
+    const jobs: Array<OpenStackLifecycleCheckJob> = [];
+
+    for (const check of await OpenStackCheckStore.readClaimed(
+      service,
+      claimedIds,
+    )) {
+      const cloud: OpenStackCheckCloudRecord | undefined = check.openStackCloud;
+
+      if (!cloud || !check._id || !check.openStackCloudId) {
+        continue;
+      }
+
+      const connection: OpenStackCheckConnection = getOpenStackCheckConnection({
+        check: check,
+        cloud: cloud,
+      });
+
+      const credential: OpenStackCredential | null =
+        readOpenStackCheckCredential(check);
+
+      const refusal: string | null = !connection.authUrl
+        ? "Give this check Keystone's address: this cloud no longer has a probe that collects it."
+        : !credential
+          ? "Give the lifecycle check a credential of its own."
+          : !check.lifecycleProjectName
+            ? "Say which project the lifecycle check has to itself."
+            : getOpenStackCheckBindingRefusal({
+                saved: check.credentialBinding,
+                connection: connection,
+              });
+
+      if (refusal) {
+        await OpenStackCheckStore.noteWhyNotRunning(service, check, refusal);
+        continue;
+      }
+
+      const options:
+        | { options: OpenStackLifecycleCheckOptions }
+        | { error: string } = normalizeOpenStackLifecycleOptions(
+        check.lifecycleCheckOptions,
+      );
+
+      /*
+       * The regions it speaks for if it cannot log in to read the catalog: those set, or else the
+       * ones it last found.
+       */
+      const regions: Array<string> =
+        connection.regions.length > 0
+          ? connection.regions
+          : Object.keys(check.lifecycleRecords || {}).filter(Boolean);
+
+      jobs.push({
+        openStackCloudCheckId: check._id.toString(),
+        openStackCloudId: check.openStackCloudId.toString(),
+        cloudName: cloud.name || "",
+        authUrl: connection.authUrl as string,
+        regions: regions,
+        endpointInterface: connection.endpointInterface,
+        trustedCertificateFingerprints:
+          OpenStackProbeCollectionStore.readFingerprints(
+            connection.trustedCertificateFingerprints,
+          ),
+        settingsVersion: check.settingsVersion || 0,
+        credential: credential as OpenStackCredential,
+        intervalInMinutes: OpenStackCheckStore.getSafeLifecycleInterval(
+          check.lifecycleCheckIntervalInMinutes,
+        ),
+        checkKey: getOpenStackCheckKey(check._id.toString()),
+        expectedProjectName: check.lifecycleProjectName as string,
+        ...(check.pinnedLifecycleProjectId
+          ? { pinnedProjectId: check.pinnedLifecycleProjectId }
+          : {}),
+        options: "options" in options ? options.options : {},
+        ...(check.osProfilerKey ? { osProfilerKey: check.osProfilerKey } : {}),
+        ...(check.isLifecycleCheckEnabled ? {} : { isSweepOnly: true }),
+      });
+    }
+
+    return jobs;
+  }
+
+  /*
+   * What a probe found. Only the check's own probe is heard, and only for its current settings:
+   * what a run found under older ones is about a project or a credential no longer in use.
+   */
+  public static async recordReport(
+    service: OpenStackCheckService,
+    data: {
+      probeId: ObjectID;
+      report: OpenStackCheckReport;
+      scopeVersion: string;
+      now?: Date | undefined;
+    },
+  ): Promise<OpenStackCheckReportOutcome> {
+    const report: OpenStackCheckReport = data.report;
+
+    if (
+      !report.openStackCloudCheckId ||
+      !ObjectID.isValidUUID(report.openStackCloudCheckId)
+    ) {
+      return { accepted: false, reason: "The report names no check." };
+    }
+
+    const check: OpenStackCheckRecord | null = await service.findOneById({
+      id: new ObjectID(report.openStackCloudCheckId),
+      select: {
+        _id: true,
+        projectId: true,
+        probeId: true,
+        isApiCheckEnabled: true,
+        isLifecycleCheckEnabled: true,
+        isSweepPending: true,
+        settingsVersion: true,
+        lifecycleCheckIntervalInMinutes: true,
+        lifecycleRecords: true,
+        pinnedLifecycleProjectId: true,
+        probe: { _id: true, isGlobalProbe: true, projectId: true },
+        openStackCloud: {
+          _id: true,
+          name: true,
+          collectionProbeId: true,
+          collectionProbe: { _id: true, isGlobalProbe: true, projectId: true },
+        },
+      },
+      props: { isRoot: true },
+    });
+
+    const cloud: OpenStackCheckCloudRecord | undefined = check?.openStackCloud;
+    const probeOfCheck: string | undefined =
+      check?.probeId?.toString() || cloud?.collectionProbeId?.toString();
+
+    if (
+      !check ||
+      !check.projectId ||
+      !cloud ||
+      !probeOfCheck ||
+      probeOfCheck.toLowerCase() !== data.probeId.toString().toLowerCase()
+    ) {
+      return {
+        accepted: false,
+        reason:
+          "This probe does not run that check (any more): it was deleted, or moved to another probe.",
+      };
+    }
+
+    const refusal: string | null = OpenStackCollectionSettings.getProbeRefusal({
+      probe: {
+        isGlobalProbe:
+          check.probe?.isGlobalProbe ?? cloud.collectionProbe?.isGlobalProbe,
+        projectId:
+          (check.probe?.projectId || cloud.collectionProbe?.projectId)?.toString() ||
+          null,
+      },
+      projectId: check.projectId.toString(),
+      isBillingEnabled: IsBillingEnabled,
+    });
+
+    if (refusal) {
+      return { accepted: false, reason: refusal };
+    }
+
+    if (Number(report.settingsVersion) !== Number(check.settingsVersion || 0)) {
+      return {
+        accepted: false,
+        reason: "This report is of settings that have since changed.",
+      };
+    }
+
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
+    const values: Record<string, unknown> = {};
+    let records: OpenStackLifecycleRecords = check.lifecycleRecords || {};
+
+    const intervalInMinutes: number =
+      OpenStackCheckStore.getSafeLifecycleInterval(
+        check.lifecycleCheckIntervalInMinutes,
+      );
+
+    const points: ReturnType<typeof getOpenStackApiCheckPoints> = [];
+
+    if (report.kind === "api") {
+      const result: OpenStackApiCheckResult | null =
+        sanitizeOpenStackApiCheckResult(report.api);
+
+      if (!result) {
+        return { accepted: false, reason: "The report holds no API check." };
+      }
+
+      values["apiCheckResult"] = result;
+      values["lastApiCheckAt"] = now;
+      points.push(
+        ...getOpenStackApiCheckPoints({ result: result, now: now.getTime() }),
+      );
+    } else if (report.kind === "lifecycle") {
+      const runs: Array<OpenStackLifecycleRun> = [];
+
+      for (const item of (Array.isArray(report.lifecycle)
+        ? report.lifecycle
+        : []
+      ).slice(0, MAX_REGIONS)) {
+        const run: OpenStackLifecycleRun | null =
+          sanitizeOpenStackLifecycleRun(item);
+
+        if (run) {
+          runs.push(run);
+        }
+      }
+
+      if (runs.length === 0) {
+        return {
+          accepted: false,
+          reason: "The report holds no lifecycle run.",
+        };
+      }
+
+      values["lastLifecycleCheckAt"] = now;
+
+      const isSweep: boolean = runs.every(
+        (run: OpenStackLifecycleRun): boolean => {
+          return run.status === "Swept";
+        },
+      );
+
+      if (isSweep) {
+        /*
+         * A sweep is not a run of the cloud, and what it found is only whether anything is left.
+         * With nothing left and nothing else to do, the secret has done all it was kept for.
+         */
+        const isClean: boolean = runs.every(
+          (run: OpenStackLifecycleRun): boolean => {
+            return (
+              run.janitor !== undefined && run.janitor.remainingCount === 0
+            );
+          },
+        );
+
+        if (isClean && check.isSweepPending) {
+          values["isSweepPending"] = false;
+
+          if (!check.isApiCheckEnabled && !check.isLifecycleCheckEnabled) {
+            values["credentialSecret"] = null;
+            values["osProfilerKey"] = null;
+            values["isCredentialSet"] = false;
+            values["isOsProfilerKeySet"] = false;
+            values["credentialBinding"] = null;
+            values["pinnedLifecycleProjectId"] = null;
+          }
+        }
+      } else {
+        records = mergeOpenStackLifecycleRuns({
+          records: check.lifecycleRecords,
+          runs: runs,
+        });
+
+        values["lifecycleRecords"] = records;
+
+        /*
+         * Pinned the first time a run verifies it, so a credential swapped for one on another
+         * project of the same name is refused from then on.
+         */
+        const verified: OpenStackLifecycleRun | undefined = runs.find(
+          (run: OpenStackLifecycleRun): boolean => {
+            return Boolean(run.verifiedProjectId) && run.status !== "Refused";
+          },
+        );
+
+        if (!check.pinnedLifecycleProjectId && verified?.verifiedProjectId) {
+          values["pinnedLifecycleProjectId"] = verified.verifiedProjectId;
+        }
+      }
+    } else {
+      return { accepted: false, reason: "That is not a kind of report." };
+    }
+
+    points.push(
+      ...getOpenStackLifecycleCheckPoints({
+        records: check.isLifecycleCheckEnabled ? records : {},
+        intervalInMinutes: intervalInMinutes,
+        now: now.getTime(),
+      }),
+    );
+
+    values["checkError"] = null;
+
+    try {
+      await service.updateColumnsByIdWithoutHooks({
+        id: check.id || new ObjectID(report.openStackCloudCheckId),
+        data: values,
+      });
+    } catch (error) {
+      logger.error(
+        `Could not record the check ${report.openStackCloudCheckId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw error;
+    }
+
+    return {
+      accepted: true,
+      projectId: check.projectId,
+      cloudName: cloud.name || undefined,
+      resourceMetrics: toOpenStackCheckResourceMetrics({
+        points: points,
+        now: now.getTime(),
+        scopeVersion: data.scopeVersion,
+      }),
+    };
+  }
+}
