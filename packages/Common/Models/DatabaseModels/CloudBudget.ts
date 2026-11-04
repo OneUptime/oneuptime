@@ -12,6 +12,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -44,6 +45,10 @@ import {
  *
  * Who may set one: those who may change the cloud resources (the Cloud
  * Resource permissions, as an account's are).
+ *
+ * The MCP server has its create, get, list, update, delete and count tools,
+ * and the CLI its `cloud-budget` command, so AI agents and scripts manage
+ * budgets as people do.
  */
 
 // Postgres answers a decimal as text: read it back as the number it is.
@@ -105,6 +110,7 @@ const deletePermissions: Array<Permission> = [
 ];
 
 @EnableDocumentation()
+@EnableMCP()
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,

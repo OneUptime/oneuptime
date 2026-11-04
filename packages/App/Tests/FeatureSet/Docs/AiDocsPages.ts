@@ -489,6 +489,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
  */
 export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "OneUptime Cloud",
+  // A record's model, as the MCP Server page's table names it in every language.
+  "Cloud Budget",
   "OneUptime AI",
   "OneUptime",
   "OpenTelemetry",
