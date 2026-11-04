@@ -253,8 +253,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "clientSecret",
           title: "Client secret",
-          description:
-            "A client secret of the app registration.",
+          description: "A client secret of the app registration.",
           type: "password",
           required: true,
         },
@@ -310,8 +309,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "clientSecret",
           title: "Client secret",
-          description:
-            "A client secret of the app registration.",
+          description: "A client secret of the app registration.",
           type: "password",
           required: true,
         },
@@ -364,8 +362,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "clientSecret",
           title: "Client secret",
-          description:
-            "The Falcon API client secret.",
+          description: "The Falcon API client secret.",
           type: "password",
           required: true,
         },
@@ -517,8 +514,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "secretAccessKey",
           title: "Secret access key",
-          description:
-            "The secret access key for the access key ID above.",
+          description: "The secret access key for the access key ID above.",
           type: "password",
           required: true,
         },
@@ -653,8 +649,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "clientSecret",
           title: "Client secret",
-          description:
-            "A client secret of the app registration.",
+          description: "A client secret of the app registration.",
           type: "password",
           required: true,
         },

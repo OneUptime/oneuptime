@@ -54,6 +54,12 @@ import { LOG_THREATS_PER_SCAN_LIMIT } from "../../../../../Server/Utils/Security
 import SecurityEntityRiskRecorder from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
 import { SecurityRiskFinding } from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
+import SecurityEventDedupe from "../../../../../Server/Utils/SecurityEvent/SecurityEventDedupe";
+import Semaphore from "../../../../../Server/Infrastructure/Semaphore";
+import {
+  entraExport,
+  entraFailedSignIn,
+} from "../../../../Utils/SecurityEvent/Connectors/EntraIdFixtures";
 
 const NOW: Date = new Date("2026-10-19T12:00:00.000Z");
 const UNTIL: Date = new Date(NOW.getTime() - LOG_SCAN_SETTLE_IN_SECONDS * 1000);
@@ -1122,5 +1128,115 @@ describe("SecurityLogScanner.scanSource - threats open cases", () => {
     expect(result.casesOpened).toBe(0);
     expect(installed.updates[0]!["cursor"]).toBe(UNTIL.toISOString());
     expect(installed.updates[0]!["lastError"]).toBeNull();
+  });
+});
+
+/*
+ * A Microsoft Entra ID record Your logs reads from what an Azure diagnostic
+ * setting exported is the same record its connection reads from Graph: it
+ * is stored once, whichever way reads it first (SecurityEventStoreOnce) -
+ * looked up under the product's lock, inserted synchronously, and counted
+ * only when Your logs stored it.
+ */
+describe("SecurityLogScanner.scanSource - a record another way stores too", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function exportLine(id: string): string {
+    return JSON.stringify({
+      records: [
+        entraExport(
+          "SignInLogs",
+          entraFailedSignIn({ id, createdDateTime: "2026-10-19T11:58:00Z" }),
+        ),
+      ],
+    });
+  }
+
+  function installLock(): Array<string> {
+    const keys: Array<string> = [];
+
+    jest.spyOn(Semaphore, "lock").mockImplementation((async (data: {
+      key: string;
+    }) => {
+      keys.push(data.key);
+      return {};
+    }) as never);
+    jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
+
+    return keys;
+  }
+
+  test("a sign-in the connection stored already is skipped and not counted; a new one is stored, synchronously", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const installed: Installed = install([
+      ...logs(1, startAt, 20, exportLine("already-imported")),
+      ...logs(1, startAt, 30, exportLine("only-in-the-logs")),
+      ...logs(1, startAt, 40, SSH_LINES.failedPasswordInvalidUser),
+    ]);
+    const keys: Array<string> = installLock();
+    const insert: SpyInstance<typeof SecurityEventService.insertJsonRows> =
+      jest.mocked(SecurityEventService.insertJsonRows) as never;
+    const lookUp: SpyInstance<
+      typeof SecurityEventDedupe.findExistingEventUids
+    > = jest
+      .spyOn(SecurityEventDedupe, "findExistingEventUids")
+      .mockResolvedValue(new Set(["entra:signin:already-imported"]));
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(startAt.toISOString()),
+    );
+
+    // The SSH sign-in and the new Entra one; the one stored before is not counted.
+    expect(result.eventsFound).toBe(2);
+    expect(result.byFormat).toEqual({
+      [SecurityLogFormat.SshSignIn]: 1,
+      [SecurityLogFormat.AzureActivity]: 1,
+    });
+    expect(
+      installed.inserted.map((row: JSONObject): unknown => {
+        return row["eventUid"];
+      }),
+    ).toEqual(expect.arrayContaining(["entra:signin:only-in-the-logs"]));
+    expect(
+      installed.inserted.some((row: JSONObject): boolean => {
+        return row["eventUid"] === "entra:signin:already-imported";
+      }),
+    ).toBe(false);
+    expect(lookUp.mock.calls[0]![0]).toMatchObject({
+      vendorName: "Microsoft",
+      productName: "Microsoft Entra ID",
+      ids: ["entra:signin:already-imported", "entra:signin:only-in-the-logs"],
+    });
+    // Under the lock the connection takes, and written before it is released.
+    expect(keys).toEqual([`${PROJECT_ID.toString()}:microsoft-entra-id`]);
+    expect(
+      insert.mock.calls.some((call: Array<unknown>): boolean => {
+        return (
+          JSON.stringify(call[1] || {}) ===
+          JSON.stringify({
+            clickhouseSettings: { async_insert: 0, insert_distributed_sync: 1 },
+          })
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("a read with nothing another way stores takes no lock and looks nothing up", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    install(logs(2, startAt, 20, SSH_LINES.failedPasswordInvalidUser));
+    const keys: Array<string> = installLock();
+    const lookUp: SpyInstance<
+      typeof SecurityEventDedupe.findExistingEventUids
+    > = jest.spyOn(SecurityEventDedupe, "findExistingEventUids");
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(startAt.toISOString()),
+    );
+
+    expect(result.eventsFound).toBe(2);
+    expect(keys).toEqual([]);
+    expect(lookUp).not.toHaveBeenCalled();
   });
 });

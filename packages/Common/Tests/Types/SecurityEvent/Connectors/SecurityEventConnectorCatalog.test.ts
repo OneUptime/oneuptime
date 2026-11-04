@@ -1,12 +1,15 @@
 import IconProp from "../../../../Types/Icon/IconProp";
 import {
   ConnectorField,
+  ENTRA_BACKGROUND_SIGN_INS_KEY,
+  MICROSOFT_365_AUDIT_KEY,
   SecurityEventConnectorCatalog,
   SecurityEventConnectorCategories,
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import { VideoCallProviderCatalog } from "../../../../Types/VideoCall/VideoCallProviderCatalog";
 import SecurityEventConnectorProvider, {
   AllSecurityEventConnectorProviders,
   isSecurityEventConnectorProvider,
@@ -369,5 +372,175 @@ describe("getSecurityEventConnectorDefinition", () => {
     ).toBe("CrowdStrike Falcon");
     expect(getSecurityEventConnectorTitle("mystery")).toBe("mystery");
     expect(getSecurityEventConnectorTitle(undefined)).toBe("");
+  });
+});
+
+/*
+ * The connection form's Credentials step says once, above the credentials,
+ * that they are encrypted at rest and never returned by the API; a field
+ * that said it again made each credential read the sentence twice.
+ */
+describe("SecurityEventConnectorCatalog - what the Credentials step says once", () => {
+  test.each(DEFINITION_CASES)(
+    "%s: no field says it is encrypted",
+    (_provider: string, definition: SecurityEventConnectorDefinition) => {
+      for (const field of allFields(definition)) {
+        expect([
+          field.key,
+          /encrypted at rest/i.test(field.description),
+        ]).toEqual([field.key, false]);
+        expect([field.key, /never returned/i.test(field.description)]).toEqual([
+          field.key,
+          false,
+        ]);
+      }
+    },
+  );
+
+  test("nor does a video call provider's credential, read by the same kind of step", () => {
+    const descriptions: Array<string> =
+      JSON.stringify(VideoCallProviderCatalog).match(
+        /"description":"[^"]*"/g,
+      ) || [];
+
+    expect(descriptions.length).toBeGreaterThan(0);
+    expect(
+      descriptions.filter((description: string): boolean => {
+        return /encrypted at rest/i.test(description);
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * Microsoft Sentinel, Microsoft Defender XDR and Microsoft Entra ID read a
+ * tenant in the Azure public cloud unless told otherwise: the cloud is a
+ * setting most people leave as it is, so the form folds it under More
+ * fields, with the public cloud picked.
+ */
+describe("SecurityEventConnectorCatalog - a Microsoft connection's Cloud", () => {
+  const MICROSOFT: Array<SecurityEventConnectorProvider> = [
+    SecurityEventConnectorProvider.MicrosoftSentinel,
+    SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+    SecurityEventConnectorProvider.MicrosoftEntraId,
+  ];
+
+  function cloudOf(provider: SecurityEventConnectorProvider): ConnectorField {
+    const field: ConnectorField | undefined =
+      getSecurityEventConnectorDefinition(provider)?.configFields.find(
+        (candidate: ConnectorField): boolean => {
+          return candidate.key === "cloud";
+        },
+      );
+
+    expect(field).toBeDefined();
+
+    return field!;
+  }
+
+  test.each(MICROSOFT)(
+    "%s folds Cloud under More fields: optional, the public cloud unless set, and last of its settings",
+    (provider: SecurityEventConnectorProvider) => {
+      const cloud: ConnectorField = cloudOf(provider);
+      const settings: Array<ConnectorField> =
+        getSecurityEventConnectorDefinition(provider)!.configFields.filter(
+          (field: ConnectorField): boolean => {
+            return !field.isOption;
+          },
+        );
+
+      expect({
+        type: cloud.type,
+        required: cloud.required,
+        isAdvanced: cloud.isAdvanced,
+        defaultValue: cloud.defaultValue,
+      }).toEqual({
+        type: "dropdown",
+        required: false,
+        isAdvanced: true,
+        defaultValue: "public",
+      });
+      expect(settings[settings.length - 1]!.key).toBe("cloud");
+      // The only setting folded away: every other one is asked of everybody.
+      expect(
+        settings
+          .filter((field: ConnectorField): boolean => {
+            return Boolean(field.isAdvanced);
+          })
+          .map((field: ConnectorField): string => {
+            return field.key;
+          }),
+      ).toEqual(["cloud"]);
+    },
+  );
+
+  test("Entra ID offers every cloud Microsoft 365 runs in, named by its plan", () => {
+    expect(
+      cloudOf(SecurityEventConnectorProvider.MicrosoftEntraId).options,
+    ).toEqual([
+      { label: "Azure public cloud", value: "public" },
+      { label: "Azure public cloud, Microsoft 365 GCC", value: "gcc" },
+      { label: "Azure Government (US), GCC High", value: "usgov" },
+      { label: "Azure Government (US), DoD", value: "dod" },
+    ]);
+  });
+
+  test("Sentinel and Defender XDR offer the public cloud and Azure Government", () => {
+    for (const provider of [
+      SecurityEventConnectorProvider.MicrosoftSentinel,
+      SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+    ]) {
+      expect(
+        (cloudOf(provider).options || []).map(
+          (option: { value: string }): string => {
+            return option.value;
+          },
+        ),
+      ).toEqual(["public", "usgov"]);
+    }
+  });
+});
+
+describe("SecurityEventConnectorCatalog - what Entra ID reads", () => {
+  const entra: SecurityEventConnectorDefinition =
+    getSecurityEventConnectorDefinition(
+      SecurityEventConnectorProvider.MicrosoftEntraId,
+    )!;
+
+  test("background and app sign-ins are an option of the connection, off unless turned on", () => {
+    const option: ConnectorField | undefined = entra.configFields.find(
+      (field: ConnectorField): boolean => {
+        return field.key === ENTRA_BACKGROUND_SIGN_INS_KEY;
+      },
+    );
+
+    expect(option).toMatchObject({
+      title: "Background and app sign-ins",
+      type: "toggle",
+      required: false,
+      defaultValue: false,
+      isOption: true,
+    });
+    // Asked before the Microsoft 365 audit log, the bigger of the two.
+    expect(
+      entra.configFields
+        .filter((field: ConnectorField): boolean => {
+          return Boolean(field.isOption);
+        })
+        .map((field: ConnectorField): string => {
+          return field.key;
+        }),
+    ).toEqual([ENTRA_BACKGROUND_SIGN_INS_KEY, MICROSOFT_365_AUDIT_KEY]);
+  });
+
+  test("the app registration's permissions name what risk detections need", () => {
+    const clientId: ConnectorField | undefined = entra.configFields.find(
+      (field: ConnectorField): boolean => {
+        return field.key === "clientId";
+      },
+    );
+
+    expect(clientId?.description).toContain("AuditLog.Read.All");
+    expect(clientId?.description).toContain("IdentityRiskEvent.Read.All");
   });
 });

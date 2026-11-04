@@ -115,110 +115,112 @@ const SESSION_FIELDS: ReadonlyArray<string> = [
   "action",
 ];
 
-export const PALO_ALTO_FIELDS: ReadonlyMap<string, ReadonlyArray<string>> =
-  lookupTable({
-    [PaloAltoLogType.Traffic]: [
-      ...SESSION_FIELDS,
-      "bytes",
-      "bytes_sent",
-      "bytes_received",
-      "packets",
-      "start",
-      "elapsed",
-      "category",
-      "",
-      "seqno",
-      "actionflags",
-      "srcloc",
-      "dstloc",
-      "",
-      "pkts_sent",
-      "pkts_received",
-      "session_end_reason",
-    ],
-    [PaloAltoLogType.Threat]: [
-      ...SESSION_FIELDS,
-      "misc",
-      "threatid",
-      "category",
-      "severity",
-      "direction",
-      "seqno",
-      "actionflags",
-      "srcloc",
-      "dstloc",
-      "",
-      "contenttype",
-      "pcap_id",
-      "filedigest",
-      "cloud",
-      "url_idx",
-      "user_agent",
-      "filetype",
-      "xff",
-      "referer",
-      "sender",
-      "subject",
-      "recipient",
-      "reportid",
-    ],
-    [PaloAltoLogType.GlobalProtect]: [
-      ...COMMON_START,
-      "vsys",
-      "eventid",
-      "stage",
-      "auth_method",
-      "tunnel_type",
-      "srcuser",
-      "srcregion",
-      "machinename",
-      "public_ip",
-      "public_ipv6",
-      "private_ip",
-      "private_ipv6",
-      "hostid",
-      "serialnumber",
-      "client_ver",
-      "client_os",
-      "client_os_ver",
-      "repeatcnt",
-      "reason",
-      "error",
-      "opaque",
-      "status",
-      "location",
-      "login_duration",
-      "connect_method",
-      "error_code",
-      "portal",
-      "seqno",
-    ],
-    [PaloAltoLogType.System]: [
-      ...COMMON_START,
-      "vsys",
-      "eventid",
-      "object",
-      "",
-      "",
-      "module",
-      "severity",
-      "opaque",
-      "seqno",
-    ],
-    [PaloAltoLogType.Config]: [
-      ...COMMON_START,
-      "host",
-      "vsys",
-      "cmd",
-      "admin",
-      "client",
-      "result",
-      "path",
-      "before_change_detail",
-      "after_change_detail",
-      "seqno",
-    ],
-  });
+export const PALO_ALTO_FIELDS: ReadonlyMap<
+  string,
+  ReadonlyArray<string>
+> = lookupTable({
+  [PaloAltoLogType.Traffic]: [
+    ...SESSION_FIELDS,
+    "bytes",
+    "bytes_sent",
+    "bytes_received",
+    "packets",
+    "start",
+    "elapsed",
+    "category",
+    "",
+    "seqno",
+    "actionflags",
+    "srcloc",
+    "dstloc",
+    "",
+    "pkts_sent",
+    "pkts_received",
+    "session_end_reason",
+  ],
+  [PaloAltoLogType.Threat]: [
+    ...SESSION_FIELDS,
+    "misc",
+    "threatid",
+    "category",
+    "severity",
+    "direction",
+    "seqno",
+    "actionflags",
+    "srcloc",
+    "dstloc",
+    "",
+    "contenttype",
+    "pcap_id",
+    "filedigest",
+    "cloud",
+    "url_idx",
+    "user_agent",
+    "filetype",
+    "xff",
+    "referer",
+    "sender",
+    "subject",
+    "recipient",
+    "reportid",
+  ],
+  [PaloAltoLogType.GlobalProtect]: [
+    ...COMMON_START,
+    "vsys",
+    "eventid",
+    "stage",
+    "auth_method",
+    "tunnel_type",
+    "srcuser",
+    "srcregion",
+    "machinename",
+    "public_ip",
+    "public_ipv6",
+    "private_ip",
+    "private_ipv6",
+    "hostid",
+    "serialnumber",
+    "client_ver",
+    "client_os",
+    "client_os_ver",
+    "repeatcnt",
+    "reason",
+    "error",
+    "opaque",
+    "status",
+    "location",
+    "login_duration",
+    "connect_method",
+    "error_code",
+    "portal",
+    "seqno",
+  ],
+  [PaloAltoLogType.System]: [
+    ...COMMON_START,
+    "vsys",
+    "eventid",
+    "object",
+    "",
+    "",
+    "module",
+    "severity",
+    "opaque",
+    "seqno",
+  ],
+  [PaloAltoLogType.Config]: [
+    ...COMMON_START,
+    "host",
+    "vsys",
+    "cmd",
+    "admin",
+    "client",
+    "result",
+    "path",
+    "before_change_detail",
+    "after_change_detail",
+    "seqno",
+  ],
+});
 
 // The most fields one record is read for; PAN-OS writes about a hundred.
 const MAX_FIELDS: number = 160;
@@ -659,8 +661,7 @@ export default class PaloAltoLogParser {
     const written: (marker: string) => boolean = (marker: string): boolean => {
       return lowerLine.indexOf(marker) !== -1;
     };
-    const isBlocked: boolean =
-      isBlockAction(action) && written(`,${action},`);
+    const isBlocked: boolean = isBlockAction(action) && written(`,${action},`);
 
     switch (record.type) {
       case PaloAltoLogType.Threat: {
@@ -688,8 +689,9 @@ export default class PaloAltoLogParser {
           ? { record, reason: "blocked" }
           : null;
       case PaloAltoLogType.GlobalProtect:
-        return lower(fields, "eventid").endsWith(GLOBALPROTECT_SIGN_IN_SUFFIX) &&
-          written(`${GLOBALPROTECT_SIGN_IN_SUFFIX},`)
+        return lower(fields, "eventid").endsWith(
+          GLOBALPROTECT_SIGN_IN_SUFFIX,
+        ) && written(`${GLOBALPROTECT_SIGN_IN_SUFFIX},`)
           ? { record, reason: "sign-in" }
           : null;
       case PaloAltoLogType.System: {
@@ -882,7 +884,8 @@ export default class PaloAltoLogParser {
       }
       case "config-change": {
         const result: string = lower(fields, "result");
-        const failed: boolean = result === "failed" || result === "unauthorized";
+        const failed: boolean =
+          result === "failed" || result === "unauthorized";
         const admin: string = field("admin");
         const host: string = readRemoteIpAddress(field("host"));
         const command: string = field("cmd") || "change";
@@ -903,4 +906,3 @@ export default class PaloAltoLogParser {
     }
   }
 }
-

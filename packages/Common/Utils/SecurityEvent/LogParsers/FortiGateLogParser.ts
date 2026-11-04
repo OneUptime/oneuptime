@@ -245,7 +245,11 @@ export function readFortiGateRecord(body: string): FortiGateRecord | null {
 
   const pairs: Record<string, string> = readFortiGatePairs(text);
 
-  if (!pairs["logid"] || !pairs["type"] || !(pairs["devid"] || pairs["devname"])) {
+  if (
+    !pairs["logid"] ||
+    !pairs["type"] ||
+    !(pairs["devid"] || pairs["devname"])
+  ) {
     return null;
   }
 
@@ -306,9 +310,7 @@ function readFortiGateTime(pairs: Record<string, string>): Date | undefined {
 export default class FortiGateLogParser {
   // The record a line holds, when it is a security event by the rules above.
   public static read(line: SecurityLogLine): FortiGateReading | null {
-    const record: FortiGateRecord | null = readFortiGateRecord(
-      line.body || "",
-    );
+    const record: FortiGateRecord | null = readFortiGateRecord(line.body || "");
 
     if (!record) {
       return null;
@@ -446,7 +448,8 @@ export default class FortiGateLogParser {
       case "blocked": {
         const isTraffic: boolean = pair("type").toLowerCase() === "traffic";
         const url: string = pair("url");
-        const isRequest: boolean = !isTraffic && Boolean(url || pair("hostname"));
+        const isRequest: boolean =
+          !isTraffic && Boolean(url || pair("hostname"));
         const policy: string = pair("policyname") || pair("policyid");
         const what: string = isTraffic
           ? pair("service") || pair("app") || "Connection"
@@ -477,7 +480,9 @@ export default class FortiGateLogParser {
           pair("status").toLowerCase() === "failure" ||
           holdsAny(said, FAILED_WORDS);
         const ip: string =
-          sourceIp || readRemoteIpAddress(pair("remip")) || uiAddress(pair("ui"));
+          sourceIp ||
+          readRemoteIpAddress(pair("remip")) ||
+          uiAddress(pair("ui"));
         const what: string = pair("logdesc") || "Sign-in";
 
         return buildLogSecurityEvent({

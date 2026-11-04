@@ -18,7 +18,12 @@ import SecurityLogParser, {
 } from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
-import { PAN_FORMATS, PAN_LINES, PAN_SERIAL, panRecord } from "./FirewallFixtures";
+import {
+  PAN_FORMATS,
+  PAN_LINES,
+  PAN_SERIAL,
+  panRecord,
+} from "./FirewallFixtures";
 import { logLine } from "./LogParserFixtures";
 
 /*
@@ -145,31 +150,34 @@ describe("PaloAltoLogParser - each log type's fields, in PAN-OS's documented ord
     PaloAltoLogType.GlobalProtect,
     PaloAltoLogType.System,
     PaloAltoLogType.Config,
-  ])("%s's layout names each documented field where PAN-OS writes it", (type: PaloAltoLogType) => {
-    const documented: Array<string> = PAN_FORMATS[type]!;
-    const layout: ReadonlyArray<string> = PALO_ALTO_FIELDS.get(type)!;
+  ])(
+    "%s's layout names each documented field where PAN-OS writes it",
+    (type: PaloAltoLogType) => {
+      const documented: Array<string> = PAN_FORMATS[type]!;
+      const layout: ReadonlyArray<string> = PALO_ALTO_FIELDS.get(type)!;
 
-    layout.forEach((name: string, index: number): void => {
-      const documentedName: string = documented[index]!;
+      layout.forEach((name: string, index: number): void => {
+        const documentedName: string = documented[index]!;
 
-      if (documentedName === "FUTURE_USE") {
-        expect([index, name]).toEqual([index, ""]);
-        return;
-      }
+        if (documentedName === "FUTURE_USE") {
+          expect([index, name]).toEqual([index, ""]);
+          return;
+        }
 
-      // The second Serial Number of a GlobalProtect record is the client's.
-      if (type === PaloAltoLogType.GlobalProtect && index === 20) {
-        expect(name).toBe("serialnumber");
-        return;
-      }
+        // The second Serial Number of a GlobalProtect record is the client's.
+        if (type === PaloAltoLogType.GlobalProtect && index === 20) {
+          expect(name).toBe("serialnumber");
+          return;
+        }
 
-      expect([index, documentedName, name]).toEqual([
-        index,
-        documentedName,
-        VARIABLE_NAMES[documentedName],
-      ]);
-    });
-  });
+        expect([index, documentedName, name]).toEqual([
+          index,
+          documentedName,
+          VARIABLE_NAMES[documentedName],
+        ]);
+      });
+    },
+  );
 
   test("a record reads every field it was given, by its PAN-OS name", () => {
     const record: { type: string; fields: Record<string, string> } =
@@ -279,11 +287,11 @@ describe("PaloAltoLogParser - what becomes a security event", () => {
     const spyware: NormalizedSecurityEvent = only(PAN_LINES.threatSpyware);
     const virus: NormalizedSecurityEvent = only(PAN_LINES.threatVirus);
 
-    expect([spyware.ruleName, spyware.statusName, spyware.severityName]).toEqual([
-      "Cobalt Strike Beacon C2",
-      "Blocked",
-      "High",
-    ]);
+    expect([
+      spyware.ruleName,
+      spyware.statusName,
+      spyware.severityName,
+    ]).toEqual(["Cobalt Strike Beacon C2", "Blocked", "High"]);
     expect(spyware.principalUser).toBe("corp\\alice");
     expect([virus.ruleName, virus.statusName, virus.severityName]).toEqual([
       "Virus/Win32.WGeneric.abc",
@@ -334,7 +342,8 @@ describe("PaloAltoLogParser - what becomes a security event", () => {
       targetIp: "192.0.2.5",
       targetPort: 3389,
       targetResource: "deny-rdp",
-      message: "ms-rdp from 203.0.113.99 to 192.0.2.5:3389 blocked (deny, rule deny-rdp)",
+      message:
+        "ms-rdp from 203.0.113.99 to 192.0.2.5:3389 blocked (deny, rule deny-rdp)",
     });
     expect(only(PAN_LINES.trafficResetBoth).statusName).toBe("Blocked");
     expect(parse(PAN_LINES.trafficAllow)).toEqual([]);

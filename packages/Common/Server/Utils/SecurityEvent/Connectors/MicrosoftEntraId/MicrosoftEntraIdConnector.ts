@@ -729,7 +729,9 @@ export default class MicrosoftEntraIdConnector
     const risks: string = counts.riskDetections || "0";
     const nothing: boolean = signIns === "0" && audits === "0";
     const parts: Array<string> = [
-      ...(premiumMissing ? [] : [`${signIns} sign-in${signIns === "1" ? "" : "s"}`]),
+      ...(premiumMissing
+        ? []
+        : [`${signIns} sign-in${signIns === "1" ? "" : "s"}`]),
       `${audits} directory change${audits === "1" ? "" : "s"}`,
       ...(risks !== "0"
         ? [`${risks} risk detection${risks === "1" ? "" : "s"}`]
@@ -1614,11 +1616,10 @@ export default class MicrosoftEntraIdConnector
           status: "warn",
           startedAtMs,
           message,
-          remediation:
-            MicrosoftEntraIdConnector.microsoft365Remediation(
-              failure,
-              data.cloud,
-            ),
+          remediation: MicrosoftEntraIdConnector.microsoft365Remediation(
+            failure,
+            data.cloud,
+          ),
         }),
       );
       return;
@@ -1643,11 +1644,10 @@ export default class MicrosoftEntraIdConnector
         message: `${outcome.recordsImported} of ${outcome.recordsRead} audit records in ${outcome.contentBlobs} content blob${outcome.contentBlobs === 1 ? "" : "s"} are activity a security team acts on.${notes.length > 0 ? ` ${notes.join(" ")}` : ""}`,
         ...(outcome.unreadable.length > 0
           ? {
-              remediation:
-                MicrosoftEntraIdConnector.microsoft365Remediation(
-                  null,
-                  data.cloud,
-                ),
+              remediation: MicrosoftEntraIdConnector.microsoft365Remediation(
+                null,
+                data.cloud,
+              ),
             }
           : {}),
       }),

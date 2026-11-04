@@ -98,7 +98,12 @@ describe("SecurityLogFormat - groups", () => {
         "FortiGate",
         SecurityLogFormatGroup.SecurityDevices,
       ],
-      ["Cisco ASA", "Cisco", "Cisco ASA", SecurityLogFormatGroup.SecurityDevices],
+      [
+        "Cisco ASA",
+        "Cisco",
+        "Cisco ASA",
+        SecurityLogFormatGroup.SecurityDevices,
+      ],
     ]);
   });
 

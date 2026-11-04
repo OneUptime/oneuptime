@@ -467,8 +467,7 @@ export const PAN_LINES: {
     Admin: "admin",
     Client: "Web",
     Result: "Submitted",
-    "Configuration Path":
-      "vsys vsys1 rulebase security rules allow-any-any",
+    "Configuration Path": "vsys vsys1 rulebase security rules allow-any-any",
     "Sequence Number": "2000001",
   }),
   configCommitFailed: panRecord("CONFIG", {
@@ -594,8 +593,7 @@ export const ASA_LINES: {
     "%ASA-4-733100: [ Scanning] drop rate-1 exceeded. Current burst rate is 10 per second, max configured rate is 10; Current average rate is 5 per second, max configured rate is 5; Cumulative total count is 3200",
   attackingHost:
     "%ASA-4-733101: Host 203.0.113.7 is attacking. Current burst rate is 200 per second, max configured rate is 100; Current average rate is 120 per second, max configured rate is 80; Cumulative total count is 72000",
-  shunned:
-    "%ASA-4-733102: Threat-detection adds host 203.0.113.7 to shun list",
+  shunned: "%ASA-4-733102: Threat-detection adds host 203.0.113.7 to shun list",
   ips: "%ASA-4-400010: IPS:2000 ICMP Echo Reply from 203.0.113.7 to 192.0.2.5 on interface outside",
   botnet:
     "%ASA-4-338001: Dynamic filter monitored blacklisted TCP traffic from outside:203.0.113.66/52314 (203.0.113.66/52314) to inside:192.0.2.5/443 (192.0.2.5/443), source 203.0.113.66 resolved from dynamic list: bad.example, threat-level: very-high, category: Malware",

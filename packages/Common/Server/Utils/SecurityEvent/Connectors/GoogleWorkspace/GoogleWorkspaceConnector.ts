@@ -266,7 +266,8 @@ export default class GoogleWorkspaceConnector
     const startMs: number = data.window.startTime.getTime();
     const endMs: number = data.window.endTime.getTime();
     const progressFromMs: number = startMs + overlapMs;
-    const everyMs: number = GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS * HOUR_IN_MS;
+    const everyMs: number =
+      GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS * HOUR_IN_MS;
     const boundaryMs: number = Math.floor(endMs / everyMs) * everyMs;
 
     if (
@@ -279,7 +280,8 @@ export default class GoogleWorkspaceConnector
 
     return {
       startTime: new Date(
-        progressFromMs - GOOGLE_WORKSPACE_LATE_SWEEP_LOOK_BACK_HOURS * HOUR_IN_MS,
+        progressFromMs -
+          GOOGLE_WORKSPACE_LATE_SWEEP_LOOK_BACK_HOURS * HOUR_IN_MS,
       ),
       endTime: new Date(startMs),
     };

@@ -491,7 +491,10 @@ export function getStringInsertNames(data: {
   const names: ReadonlyArray<string> | undefined =
     STRING_INSERT_FIELDS.get(key);
 
-  if (!names || data.insertCount < (STRING_INSERT_MINIMUM_COUNTS.get(key) || 1)) {
+  if (
+    !names ||
+    data.insertCount < (STRING_INSERT_MINIMUM_COUNTS.get(key) || 1)
+  ) {
     return [];
   }
 

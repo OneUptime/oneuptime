@@ -2,6 +2,7 @@ import SecurityLogFormat, {
   SecurityLogFormatGroup,
 } from "Common/Types/SecurityEvent/SecurityLogFormat";
 import {
+  ENTRA_BACKGROUND_SIGN_INS_KEY,
   GOOGLE_WORKSPACE_DRIVE_KEY,
   MICROSOFT_365_AUDIT_KEY,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -293,6 +294,12 @@ export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
     title: translationKey("Close alerts when their case closes"),
     description: translationKey(
       "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
+    ),
+  },
+  [ENTRA_BACKGROUND_SIGN_INS_KEY]: {
+    title: translationKey("Background and app sign-ins"),
+    description: translationKey(
+      "Also import the failed sign-ins apps make for people in the background, and service principals' own.",
     ),
   },
   [MICROSOFT_365_AUDIT_KEY]: {

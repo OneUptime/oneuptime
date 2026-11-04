@@ -6,7 +6,9 @@ import {
   EntraLog,
   PRIVILEGED_ENTRA_ROLES,
   isEntraDirectoryAudit,
+  isEntraRiskDetection,
   isEntraSignIn,
+  readEntraBackgroundSignIn,
   readEntraDirectoryAudit,
   readEntraRisk,
   readEntraSignIn,
@@ -17,6 +19,7 @@ import {
   SecurityRecordReading,
   toNormalizedSecurityEvent,
 } from "../../../../Utils/SecurityEvent/SecurityRecordReading";
+import { JSONObject } from "../../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import {
@@ -320,4 +323,87 @@ describe("EntraIdNormalizer: words named after what every object inherits", () =
       }).toEqual({ name, title: name, severity: OcsfSeverity.Medium });
     }
   });
+});
+
+/*
+ * What the Microsoft Entra ID connection reads beside sign-ins and
+ * directory changes: Identity Protection's risk detections, on every poll,
+ * and - as an option - the sign-ins apps make for people in the background
+ * and apps' own, of which only the failures are kept. Each is the same
+ * event whether the connection reads it from Graph or Your logs reads it
+ * from what a diagnostic setting exported, so it is stored once.
+ */
+describe("EntraIdNormalizer - risk detections and background sign-ins, as the connection reads them", () => {
+  test("a risk detection is told apart from a sign-in and a directory change", () => {
+    expect(isEntraRiskDetection(entraRiskDetection())).toBe(true);
+    expect(isEntraRiskDetection(entraSignIn())).toBe(false);
+    expect(isEntraRiskDetection(entraRoleAssignment())).toBe(false);
+    expect(isEntraRiskDetection({})).toBe(false);
+    // The beta list's riskType, and a detection Graph dated only by its activity.
+    expect(
+      isEntraRiskDetection({
+        id: "beta-shape",
+        riskType: "unfamiliarFeatures",
+        activityDateTime: "2026-10-30T09:50:00Z",
+      }),
+    ).toBe(true);
+    expect(
+      isEntraRiskDetection(
+        entraRiskDetection({ detectedDateTime: "", activityDateTime: "" }),
+      ),
+    ).toBe(false);
+    expect(isEntraRiskDetection(entraRiskDetection({ id: "" }))).toBe(false);
+  });
+
+  test("a risk detection read from Graph and the same one exported to the logs are one event", () => {
+    const fromGraph: SecurityRecordReading | null = readEntraRisk(
+      entraRiskDetection(),
+      EntraLog.UserRiskEvents,
+    );
+    const exported: SecurityRecordReading | null = readEntraExportRecord(
+      entraExport("UserRiskEvents", entraRiskDetection()),
+    );
+
+    expect(fromGraph).not.toBeNull();
+    expect(exported?.eventUid).toBe(fromGraph?.eventUid);
+    expect(exported?.message).toBe(fromGraph?.message);
+  });
+
+  test.each([
+    [EntraLog.NonInteractiveUserSignInLogs, "NonInteractiveUserSignInLogs"],
+    [EntraLog.ServicePrincipalSignInLogs, "ServicePrincipalSignInLogs"],
+  ])(
+    "%s: only a sign-in that did not work is kept, and Graph's and the export's are one event",
+    (
+      log:
+        | EntraLog.NonInteractiveUserSignInLogs
+        | EntraLog.ServicePrincipalSignInLogs,
+      category: string,
+    ) => {
+      const failed: JSONObject = entraFailedSignIn({ isInteractive: false });
+
+      expect(
+        readEntraBackgroundSignIn(entraSignIn({ isInteractive: false }), log),
+      ).toBeNull();
+
+      const fromGraph: SecurityRecordReading | null = readEntraBackgroundSignIn(
+        failed,
+        log,
+      );
+      const exported: SecurityRecordReading | null = readEntraExportRecord(
+        entraExport(category, failed),
+      );
+
+      expect(fromGraph?.statusName).toBe("Failure");
+      expect(fromGraph?.attributes?.[ENTRA_LOG_ATTRIBUTE]).toBe(log);
+      expect(exported?.eventUid).toBe(fromGraph?.eventUid);
+      expect(exported?.statusName).toBe(fromGraph?.statusName);
+      // A sign-in waiting on MFA is no failure to keep either way.
+      expect(
+        readEntraExportRecord(
+          entraExport(category, entraSignIn({ isInteractive: false })),
+        ),
+      ).toBeNull();
+    },
+  );
 });

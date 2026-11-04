@@ -54,9 +54,10 @@ describe("FortiGateLogParser - reading key=value pairs", () => {
   });
 
   test("an escaped quote inside a value is part of it; the first of two keys is kept", () => {
-    expect(
-      readFortiGatePairs('msg="say \\"hi\\" now" user=a user=b'),
-    ).toEqual({ msg: 'say "hi" now', user: "a" });
+    expect(readFortiGatePairs('msg="say \\"hi\\" now" user=a user=b')).toEqual({
+      msg: 'say "hi" now',
+      user: "a",
+    });
   });
 
   test("a key starts the line or follows a space: a=b inside a value is not a key", () => {
@@ -151,7 +152,8 @@ describe("FortiGateLogParser - what becomes a security event", () => {
       principalIp: "203.0.113.99",
       targetIp: "192.0.2.5",
       targetPort: 3389,
-      message: "RDP from 203.0.113.99 to 192.0.2.5:3389 blocked (deny, policy 0)",
+      message:
+        "RDP from 203.0.113.99 to 192.0.2.5:3389 blocked (deny, policy 0)",
     });
     expect(parse(FORTIGATE_LINES.trafficAccept)).toEqual([]);
   });

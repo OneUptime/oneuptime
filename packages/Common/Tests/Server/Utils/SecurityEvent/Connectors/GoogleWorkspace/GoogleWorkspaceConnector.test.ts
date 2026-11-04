@@ -1,7 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import GoogleWorkspaceConnector, {
+  GOOGLE_WORKSPACE_LATE_APPLICATIONS,
+  GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS,
+  GOOGLE_WORKSPACE_LATE_SWEEP_LOOK_BACK_HOURS,
+  GOOGLE_WORKSPACE_LATE_SWEEP_PAGES,
   GOOGLE_WORKSPACE_PAGE_BUDGETS,
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceConnector";
+import { GOOGLE_WORKSPACE_PAGE_SIZE } from "../../../../../../Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceClient";
 import SecurityEventConnectorRegistry from "../../../../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
 import {
   ConnectorFetchOptions,
@@ -700,5 +705,374 @@ describe("GoogleWorkspaceConnector - fetchEvents", () => {
 
     expect(result.rejectedCount).toBe(1);
     expect(result.events).toHaveLength(0);
+  });
+});
+
+/*
+ * Google documents every log the connection reads as readable within
+ * minutes, but OAuth token activity, which can take a few hours - past the
+ * two-hour overlap each poll reads again. So once every six hours of UTC
+ * time a poll also sweeps the day before its window for token activity,
+ * with a budget of its own; the id dedupe drops what was imported before.
+ * A sweep adds to a poll: a bound or a failure is a warning, never a
+ * window left unread.
+ */
+describe("GoogleWorkspaceConnector - the late sweep", () => {
+  const OVERLAP_IN_MS: number = 120 * MINUTE_IN_MS;
+
+  // A poll's window as the poller makes it: from the last end, less the overlap.
+  function pollWindow(
+    previousEnd: string,
+    end: string,
+  ): { startTime: Date; endTime: Date } {
+    return {
+      startTime: new Date(new Date(previousEnd).getTime() - OVERLAP_IN_MS),
+      endTime: new Date(end),
+    };
+  }
+
+  test("only the poll whose new ground takes in a six-hour boundary sweeps, the day before that ground", () => {
+    expect(GOOGLE_WORKSPACE_LATE_APPLICATIONS).toEqual([
+      GoogleWorkspaceApplication.Token,
+    ]);
+    expect(GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS).toBe(6);
+    expect(GOOGLE_WORKSPACE_LATE_SWEEP_LOOK_BACK_HOURS).toBe(24);
+
+    // 11:58 to 12:03 takes in 12:00.
+    const sweeping: { startTime: Date; endTime: Date } = pollWindow(
+      "2026-10-30T11:58:00.000Z",
+      "2026-10-30T12:03:00.000Z",
+    );
+
+    expect(
+      GoogleWorkspaceConnector.getLateSweepWindow({ window: sweeping }),
+    ).toEqual({
+      startTime: new Date("2026-10-29T11:58:00.000Z"),
+      endTime: sweeping.startTime,
+    });
+
+    // The next poll, 12:03 to 12:08, adds no boundary.
+    expect(
+      GoogleWorkspaceConnector.getLateSweepWindow({
+        window: pollWindow(
+          "2026-10-30T12:03:00.000Z",
+          "2026-10-30T12:08:00.000Z",
+        ),
+      }),
+    ).toBeNull();
+
+    // A poll that ends right on the boundary leaves it to the next one.
+    expect(
+      GoogleWorkspaceConnector.getLateSweepWindow({
+        window: pollWindow(
+          "2026-10-30T11:55:00.000Z",
+          "2026-10-30T12:00:00.000Z",
+        ),
+      }),
+    ).toBeNull();
+    expect(
+      GoogleWorkspaceConnector.getLateSweepWindow({
+        window: pollWindow(
+          "2026-10-30T12:00:00.000Z",
+          "2026-10-30T12:05:00.000Z",
+        ),
+      }),
+    ).not.toBeNull();
+  });
+
+  test("polls every five minutes for a day sweep four times, once a boundary, whatever the interval", () => {
+    for (const intervalInMinutes of [1, 5, 15, 60]) {
+      const sweeps: Array<string> = [];
+      let previousEnd: number = new Date("2026-10-30T00:01:00.000Z").getTime();
+
+      for (
+        let end: number = previousEnd + intervalInMinutes * MINUTE_IN_MS;
+        end <= new Date("2026-10-31T00:01:00.000Z").getTime();
+        end += intervalInMinutes * MINUTE_IN_MS
+      ) {
+        const sweep: { startTime: Date; endTime: Date } | null =
+          GoogleWorkspaceConnector.getLateSweepWindow({
+            window: pollWindow(
+              new Date(previousEnd).toISOString(),
+              new Date(end).toISOString(),
+            ),
+          });
+
+        if (sweep) {
+          sweeps.push(new Date(end).toISOString());
+          // A day back from the new ground, up to where the window starts.
+          expect(sweep.endTime.getTime() - sweep.startTime.getTime()).toBe(
+            GOOGLE_WORKSPACE_LATE_SWEEP_LOOK_BACK_HOURS * HOUR_IN_MS -
+              OVERLAP_IN_MS,
+          );
+        }
+
+        previousEnd = end;
+      }
+
+      expect([intervalInMinutes, sweeps.length]).toEqual([
+        intervalInMinutes,
+        4,
+      ]);
+    }
+  });
+
+  test("a preview, a backfill and a first poll's day-long look back never sweep", () => {
+    const sweeping: { startTime: Date; endTime: Date } = pollWindow(
+      "2026-10-30T11:58:00.000Z",
+      "2026-10-30T12:03:00.000Z",
+    );
+
+    expect(
+      GoogleWorkspaceConnector.getLateSweepWindow({
+        window: sweeping,
+        purpose: "poll",
+      }),
+    ).not.toBeNull();
+
+    for (const purpose of ["preview", "backfill"]) {
+      expect(
+        GoogleWorkspaceConnector.getLateSweepWindow({
+          window: sweeping,
+          purpose,
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      GoogleWorkspaceConnector.getLateSweepWindow({
+        window: {
+          startTime: new Date("2026-10-29T12:00:00.000Z"),
+          endTime: new Date("2026-10-30T12:03:00.000Z"),
+        },
+      }),
+    ).toBeNull();
+  });
+
+  test("a sweeping poll imports the token activity Google made readable late, once, and reads nothing else again", async () => {
+    const window: { startTime: Date; endTime: Date } = pollWindow(
+      "2026-10-30T11:58:00.000Z",
+      "2026-10-30T12:03:00.000Z",
+    );
+    const late: JSONObject = activity(
+      GoogleWorkspaceApplication.Token,
+      "authorize",
+      "2026-10-30T03:00:00.000Z",
+      "late-token-grant",
+      [
+        { name: "client_id", value: "1234.apps.googleusercontent.com" },
+        { name: "app_name", value: "Mail Exporter Pro" },
+        { name: "scope", multiValue: ["https://mail.google.com/"] },
+      ],
+    );
+    const inWindow: JSONObject = activity(
+      GoogleWorkspaceApplication.Token,
+      "authorize",
+      "2026-10-30T11:00:00.000Z",
+      "window-token-grant",
+      [
+        { name: "client_id", value: "5678.apps.googleusercontent.com" },
+        { name: "app_name", value: "Calendar Sync" },
+        { name: "scope", multiValue: ["https://mail.google.com/"] },
+      ],
+    );
+    const lateSignIn: JSONObject = activity(
+      GoogleWorkspaceApplication.Login,
+      "login_failure",
+      "2026-10-30T03:00:00.000Z",
+      "late-login",
+    );
+    const { api, connector } = connectorFor({
+      activities: {
+        [GoogleWorkspaceApplication.Token]: [late, inWindow],
+        [GoogleWorkspaceApplication.Login]: [lateSignIn],
+      },
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      window,
+      fetchOptions(),
+    );
+
+    expect(result.complete).toBe(true);
+    expect(
+      result.events
+        .map((event: NormalizedSecurityEvent): string => {
+          return event.eventUid;
+        })
+        .filter((uid: string): boolean => {
+          return uid.includes("token-grant") || uid.includes("late-login");
+        })
+        .sort(),
+    ).toEqual(
+      [
+        expect.stringContaining("late-token-grant"),
+        expect.stringContaining("window-token-grant"),
+      ].sort(),
+    );
+    // A sign-in Google makes readable in minutes is never read again.
+    expect(
+      result.events.some((event: NormalizedSecurityEvent): boolean => {
+        return event.eventUid.includes("late-login");
+      }),
+    ).toBe(false);
+
+    const sweepReads: Array<URL> = activityRequests(api).filter(
+      (url: URL): boolean => {
+        return url.searchParams.get("startTime") === "2026-10-29T11:58:00.000Z";
+      },
+    );
+
+    expect(
+      sweepReads.map((url: URL): string => {
+        return url.pathname.split("/").pop() || "";
+      }),
+    ).toEqual([GoogleWorkspaceApplication.Token]);
+    expect(sweepReads[0]!.searchParams.get("endTime")).toBe(
+      window.startTime.toISOString(),
+    );
+    expect(check(result.checks!, "read-late-activity")).toMatchObject({
+      status: "pass",
+    });
+    expect(check(result.checks!, "read-late-activity").message).toContain(
+      "Read OAuth token activity again from 2026-10-29T11:58:00.000Z to 2026-10-30T09:58:00.000Z, which Google can make readable hours late: 1 activity, 1 not in this run already",
+    );
+    expect(result.details!["lateSweep"]).toEqual({
+      from: "2026-10-29T11:58:00.000Z",
+      to: "2026-10-30T09:58:00.000Z",
+      activitiesRead: 1,
+    });
+  });
+
+  test("a poll that does not sweep reads no day before its window", async () => {
+    const { api, connector } = connectorFor({});
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      WINDOW,
+      fetchOptions(),
+    );
+
+    expect(
+      result.checks!.some((candidate: SecurityConnectorCheck): boolean => {
+        return candidate.key === "read-late-activity";
+      }),
+    ).toBe(false);
+    expect(result.details!["lateSweep"]).toBeUndefined();
+    expect(
+      activityRequests(api).every((url: URL): boolean => {
+        return (
+          url.searchParams.get("startTime") === WINDOW.startTime.toISOString()
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("a sweep Google refuses is a warning; the window was read and stays read", async () => {
+    const window: { startTime: Date; endTime: Date } = pollWindow(
+      "2026-10-30T11:58:00.000Z",
+      "2026-10-30T12:03:00.000Z",
+    );
+    const { connector } = connectorFor({
+      activities: {
+        [GoogleWorkspaceApplication.Token]: [
+          activity(
+            GoogleWorkspaceApplication.Token,
+            "authorize",
+            "2026-10-30T11:00:00.000Z",
+            "window-token-grant",
+            [
+              { name: "client_id", value: "5678.apps.googleusercontent.com" },
+              { name: "app_name", value: "Calendar Sync" },
+              { name: "scope", multiValue: ["https://mail.google.com/"] },
+            ],
+          ),
+        ],
+      },
+      failuresStartingBefore: {
+        [GoogleWorkspaceApplication.Token]: {
+          time: window.startTime.toISOString(),
+          failure: {
+            statusCode: 503,
+            body: googleError(
+              503,
+              "UNAVAILABLE",
+              "Backend Error",
+              "backendError",
+            ),
+          },
+        },
+      },
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      window,
+      fetchOptions(),
+    );
+
+    expect(result.complete).toBe(true);
+    expect(result.events.length).toBeGreaterThan(0);
+    expect(check(result.checks!, "read-late-activity").status).toBe("warn");
+    expect(result.warnings.join(" ")).toContain(
+      "Activity Google made readable late was not swept:",
+    );
+  });
+
+  test("a sweep reads within pages of its own, and one its bound stops says so without leaving the window unread", async () => {
+    const window: { startTime: Date; endTime: Date } = pollWindow(
+      "2026-10-30T11:58:00.000Z",
+      "2026-10-30T12:03:00.000Z",
+    );
+    const many: Array<JSONObject> = Array.from(
+      { length: 12 },
+      (_: unknown, index: number): JSONObject => {
+        return activity(
+          GoogleWorkspaceApplication.Token,
+          "authorize",
+          new Date(
+            new Date("2026-10-30T03:00:00.000Z").getTime() -
+              index * MINUTE_IN_MS,
+          ).toISOString(),
+          `late-${index}`,
+          [
+            { name: "client_id", value: `${index}.apps.googleusercontent.com` },
+            { name: "app_name", value: `App ${index}` },
+            { name: "scope", multiValue: ["https://mail.google.com/"] },
+          ],
+        );
+      },
+    );
+    // Two activities a page: the sweep's five pages read ten of the twelve.
+    const { connector } = connectorFor({
+      activities: { [GoogleWorkspaceApplication.Token]: many },
+      pageCap: 2,
+    });
+    const result: ConnectorFetchResult = await connector.fetchEvents(
+      settings(),
+      window,
+      fetchOptions(),
+    );
+
+    expect(GOOGLE_WORKSPACE_LATE_SWEEP_PAGES).toBe(5);
+    expect(result.complete).toBe(true);
+    expect((result.details!["lateSweep"] as JSONObject)["activitiesRead"]).toBe(
+      10,
+    );
+    expect(check(result.checks!, "read-late-activity").status).toBe("warn");
+    expect(result.warnings.join(" ")).toContain(
+      "Stopped sweeping OAuth token activity after 10 activities",
+    );
+    expect(result.warnings.join(" ")).toContain("The window itself was read.");
+  });
+
+  test("the fetch's budget holds the sweep's pages besides every listing's own", () => {
+    const connector: GoogleWorkspaceConnector = new GoogleWorkspaceConnector();
+
+    expect(GoogleWorkspaceConnector.lateSweepPages()).toBe(
+      GOOGLE_WORKSPACE_LATE_APPLICATIONS.length *
+        GOOGLE_WORKSPACE_LATE_SWEEP_PAGES,
+    );
+    expect(connector.fetchBudget.maxEvents).toBe(
+      (connector.fetchBudget.maxRequests! - 3) * GOOGLE_WORKSPACE_PAGE_SIZE,
+    );
   });
 });
