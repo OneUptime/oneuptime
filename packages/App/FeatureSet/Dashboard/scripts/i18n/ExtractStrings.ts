@@ -342,6 +342,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A resource's right-sizing from OneUptime's own readings: its verdict,
+   * what to change and why, on its Overview. Only the words the file marks
+   * are read: a size is its cloud's own name, drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudRightSizing.ts",
+    kind: "keys",
+  },
+  /*
    * A cloud change's title - "Failed: DeleteLoadBalancer on web-alb" - in
    * the reader's language: a cloud resource's and an account's Changes,
    * the chart markers and the security cards word it from what the change

@@ -62,7 +62,8 @@ import {
   getCloudResourceOwnAttentionItems,
 } from "../../../Components/Cloud/CloudResourceAttention";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
-import CloudResourceCostCard from "../../../Components/Cloud/CloudResourceCostCard";
+import CloudResourceSpendCards from "../../../Components/Cloud/CloudResourceSpendCards";
+import { getCloudRightSizingProfile } from "Common/Types/Cloud/CloudRightSizing";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 /*
@@ -81,7 +82,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
  * people read first (CloudHeadlineTiles), all from what the last read kept
  * on the resource. A type with no headline numbers has no tiles: the
  * Metrics card lists everything it reports. What it costs, and how it
- * could cost less, follows its numbers, before its Details.
+ * could cost less - its cloud's recommender's word, or OneUptime's own
+ * right-sizing from its CPU and memory - follows its numbers, before its
+ * Details.
  */
 
 /*
@@ -397,16 +400,18 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         tiles={headlineTiles}
         /*
          * What it costs and how it could cost less, when its cloud says,
-         * under its numbers and before its Details: nothing is drawn for a
-         * resource with neither.
+         * and how its size fits what it uses, from OneUptime's own readings
+         * of a type OneUptime can size - side by side, under its numbers
+         * and before its Details: nothing is drawn for a resource with
+         * neither.
          */
         charts={
-          ProjectUtil.getCurrentProjectId() && r.providerResourceId ? (
-            <CloudResourceCostCard
+          ProjectUtil.getCurrentProjectId() &&
+          (r.providerResourceId ||
+            getCloudRightSizingProfile(provider, type)) ? (
+            <CloudResourceSpendCards
               projectId={ProjectUtil.getCurrentProjectId()!}
-              resourceRecordId={modelId}
-              provider={provider}
-              providerResourceId={r.providerResourceId}
+              resource={r}
             />
           ) : undefined
         }

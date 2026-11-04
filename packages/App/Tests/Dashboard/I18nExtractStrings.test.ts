@@ -1315,7 +1315,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, and the curated metrics' names", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, and the curated metrics' names", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1376,6 +1376,8 @@ describe("the real source roots", () => {
       // A cloud resource's status by its key metrics, and the kinds of saving the clouds recommend.
       "keys packages/Common/Types/Cloud/CloudResourceHealth.ts",
       "keys packages/Common/Types/Cloud/CloudCost.ts",
+      // A resource's right-sizing from OneUptime's own readings: its verdict and why.
+      "keys packages/Common/Types/Cloud/CloudRightSizing.ts",
       // A cloud change's title in the reader's language - only its frame.
       "keys packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
       // The column titles of OneUptime AI's tables - not its prompts.

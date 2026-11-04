@@ -25,20 +25,25 @@ import CloudCostSetupSteps, {
 import { PER_MONTH, formatCloudMoney } from "./CloudCostWords";
 import { SAVING_RECOMMENDATIONS } from "./CloudOverviewTiles";
 import { fetchCloudSavings } from "./CloudSavingsReads";
+import {
+  SAVING_NOT_KNOWN_YET,
+  isCloudSavingAmountKnown,
+} from "./CloudRightSizingText";
 import { CloudCardFooterLink } from "./CloudSpendCard";
 import { CloudAccountRow } from "./UseCloudAccounts";
 
 /*
  * Cloud Overview's Ways to spend less: what your clouds' own recommenders -
  * AWS Cost Optimization Hub, Azure Advisor, Google Cloud's Recommender -
- * say could be saved a month, and the largest few, each with the resource
- * it is about, with the way to all of them (Cloud > Savings). Before any
+ * and OneUptime's own right-sizing, where none speaks for a resource, say
+ * could be saved a month, and the largest few, each with the resource it
+ * is about, with the way to all of them (Cloud > Savings). Before any
  * account's are read it says what each cloud needs for them to be.
  */
 
 export const SAVINGS_CARD_TITLE: string = translationKey("Ways to spend less");
 export const SAVINGS_CARD_DESCRIPTION: string = translationKey(
-  "What your clouds' own recommenders say could be saved.",
+  "What your clouds' recommenders, and OneUptime's right-sizing, say could be saved.",
 );
 export const SAVINGS_UP_TO: string = translationKey("Up to {{amount}} a month");
 export const SAVINGS_NONE_FOUND: string = translationKey(
@@ -234,14 +239,31 @@ const CloudSavingsCard: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                     <div className="text-end">
-                      <div className="text-sm font-semibold tabular-nums text-emerald-700">
-                        <bdi>
-                          {money(Number(recommendation.monthlySavings) || 0)}
-                        </bdi>
-                      </div>
-                      <div className="text-[11px] text-gray-500">
-                        {translator.translateText(PER_MONTH)}
-                      </div>
+                      {isCloudSavingAmountKnown(recommendation) ? (
+                        <>
+                          <div className="text-sm font-semibold tabular-nums text-emerald-700">
+                            <bdi>
+                              {money(
+                                Number(recommendation.monthlySavings) || 0,
+                              )}
+                            </bdi>
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            {translator.translateText(PER_MONTH)}
+                          </div>
+                        </>
+                      ) : (
+                        /*
+                         * OneUptime's own right-sizing of a resource its
+                         * cloud does not bill by name: no amount yet.
+                         */
+                        <div
+                          className="text-sm text-gray-500"
+                          data-testid="cloud-savings-top-row-not-known"
+                        >
+                          {translator.translateText(SAVING_NOT_KNOWN_YET)}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );

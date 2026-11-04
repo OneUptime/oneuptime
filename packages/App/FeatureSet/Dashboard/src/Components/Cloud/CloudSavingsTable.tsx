@@ -32,6 +32,12 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import { formatCloudMoney } from "./CloudCostWords";
+import {
+  SAVING_NOT_KNOWN_YET,
+  getCloudRightSizingEvidenceLine,
+  isCloudSavingAmountKnown,
+} from "./CloudRightSizingText";
+import { readCloudRightSizingEvidence } from "Common/Types/Cloud/CloudRightSizing";
 
 /*
  * The ways to spend less, as a table: every recommendation your clouds'
@@ -52,7 +58,7 @@ import { formatCloudMoney } from "./CloudCostWords";
 
 export const SAVINGS_TABLE_TITLE: string = translationKey("Ways to spend less");
 export const SAVINGS_TABLE_DESCRIPTION: string = translationKey(
-  "What your clouds' own recommenders say could be saved, the largest first. Read again every day: one you act on or dismiss in your cloud's console goes away on the next read.",
+  "What your clouds' recommenders say could be saved, and OneUptime's right-sizing where none does, the largest first. Read every day: one acted on or dismissed goes away on the next read.",
 );
 export const SAVINGS_TABLE_EMPTY: string = translationKey(
   "No ways to spend less yet. Your clouds' recommenders are read once a day.",
@@ -139,6 +145,8 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
         recommendedConfiguration: true,
         region: true,
         provider: true,
+        // What made OneUptime's own right-sizing, said under its change.
+        evidence: true,
       }}
       cardProps={{
         title: SAVINGS_TABLE_TITLE,
@@ -189,6 +197,10 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
           wrapContent: true,
           getElement: (item: CloudCostRecommendation): ReactElement => {
             const change: string = getSavingChangeText(item);
+            const evidence: string | null = getCloudRightSizingEvidenceLine({
+              evidence: readCloudRightSizingEvidence(item.evidence),
+              translator,
+            });
 
             return (
               <div className="min-w-0" data-testid="cloud-saving-row">
@@ -205,6 +217,21 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
                     data-testid="cloud-saving-change"
                   >
                     <bdi>{change}</bdi>
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {/*
+                 * OneUptime's own right-sizing says what it was judged
+                 * from, in the reader's language: a cloud's recommender
+                 * says that in its own console.
+                 */}
+                {evidence ? (
+                  <div
+                    className="mt-0.5 break-words text-xs text-gray-500"
+                    data-testid="cloud-saving-evidence"
+                  >
+                    {evidence}
                   </div>
                 ) : (
                   <></>
@@ -267,6 +294,21 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
           title: "Monthly Savings",
           type: FieldType.Element,
           getElement: (item: CloudCostRecommendation): ReactElement => {
+            /*
+             * OneUptime's own right-sizing of a resource its cloud does not
+             * bill by name has no amount yet: said so, not as nothing.
+             */
+            if (!isCloudSavingAmountKnown(item)) {
+              return (
+                <span
+                  className="text-sm text-gray-500"
+                  data-testid="cloud-saving-amount-not-known"
+                >
+                  {translator.translateText(SAVING_NOT_KNOWN_YET)}
+                </span>
+              );
+            }
+
             return (
               <span
                 className="text-sm font-semibold tabular-nums text-emerald-700"

@@ -58,7 +58,7 @@ export const PROJECTED_TILE_DESCRIPTION: string = translationKey(
   "This month's total if the days left cost what the last week's did.",
 );
 export const SAVINGS_TILE_DESCRIPTION: string = translationKey(
-  "What your clouds' own recommenders say could be saved a month: smaller sizes, idle resources, commitments.",
+  "What your clouds' recommenders, and OneUptime's right-sizing, say could be saved a month: smaller sizes, idle resources, commitments.",
 );
 
 export const ALL_ACCOUNTS_READING: string = translationKey("All reading");

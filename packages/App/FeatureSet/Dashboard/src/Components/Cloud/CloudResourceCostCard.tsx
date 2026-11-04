@@ -35,6 +35,10 @@ import {
   formatCloudMoney,
 } from "./CloudCostWords";
 import { CloudCostFigure } from "./CloudSpendCard";
+import {
+  SAVING_NOT_KNOWN_YET,
+  isCloudSavingAmountKnown,
+} from "./CloudRightSizingText";
 
 /*
  * What one cloud resource costs, on its Overview: this month so far and the
@@ -160,6 +164,10 @@ export async function fetchCloudResourceCost(data: {
         currency: true,
         currentConfiguration: true,
         recommendedConfiguration: true,
+        // Whose it is: a cloud's recommender's, or OneUptime's own right-sizing.
+        recommendationId: true,
+        source: true,
+        evidence: true,
       },
       sort: { monthlySavings: SortOrder.Descending },
       skip: 0,
@@ -197,44 +205,35 @@ export interface ComponentProps {
   providerResourceId: string;
 }
 
-const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+export interface ViewProps {
+  cost: CloudResourceCost;
+  /*
+   * The ways to spend less to list: the cost's own when absent. A resource
+   * whose right-sizing card shows OneUptime's own right-sizing leaves it
+   * out here, so the page says it once.
+   */
+  recommendations?: Array<CloudCostRecommendation> | undefined;
+}
+
+// Whether the card has anything to show: a cost, or a way to spend less.
+export function hasCloudResourceCostToShow(data: {
+  cost: CloudResourceCost | null;
+  recommendations: Array<CloudCostRecommendation>;
+}): boolean {
+  return Boolean(
+    data.cost && (data.cost.hasCosts || data.recommendations.length > 0),
+  );
+}
+
+export const CloudResourceCostCardView: FunctionComponent<ViewProps> = (
+  props: ViewProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [cost, setCost] = useState<CloudResourceCost | null>(null);
+  const cost: CloudResourceCost = props.cost;
+  const recommendations: Array<CloudCostRecommendation> =
+    props.recommendations || cost.recommendations;
 
-  useEffect(() => {
-    let ignore: boolean = false;
-
-    fetchCloudResourceCost({
-      projectId: props.projectId,
-      resourceRecordId: props.resourceRecordId,
-      provider: props.provider,
-      providerResourceId: props.providerResourceId,
-      now: OneUptimeDate.getCurrentDate(),
-    })
-      .then((found: CloudResourceCost): void => {
-        if (!ignore) {
-          setCost(found);
-        }
-      })
-      .catch((): void => {
-        // Only a figure beside the resource: nothing, rather than an error.
-        if (!ignore) {
-          setCost(null);
-        }
-      });
-
-    return (): void => {
-      ignore = true;
-    };
-  }, [
-    props.resourceRecordId.toString(),
-    props.provider,
-    props.providerResourceId,
-  ]);
-
-  if (!cost || (!cost.hasCosts && cost.recommendations.length === 0)) {
+  if (!hasCloudResourceCostToShow({ cost, recommendations })) {
     return <></>;
   }
 
@@ -276,12 +275,12 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        {cost.recommendations.length > 0 ? (
+        {recommendations.length > 0 ? (
           <ul
             className={`divide-y divide-gray-100 ${cost.hasCosts ? "mt-5 border-t border-gray-100" : "-mt-3"}`}
             data-testid="cloud-resource-savings"
           >
-            {cost.recommendations.map(
+            {recommendations.map(
               (recommendation: CloudCostRecommendation): ReactElement => {
                 const kind: CloudSavingKind =
                   (recommendation.kind as CloudSavingKind) ||
@@ -327,17 +326,32 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                     <div className="text-end">
-                      <div className="text-sm font-semibold tabular-nums text-emerald-700">
-                        <bdi>
-                          {money(
-                            Number(recommendation.monthlySavings) || 0,
-                            recommendation.currency,
-                          )}
-                        </bdi>
-                      </div>
-                      <div className="text-[11px] text-gray-500">
-                        {translator.translateText(PER_MONTH)}
-                      </div>
+                      {isCloudSavingAmountKnown(recommendation) ? (
+                        <>
+                          <div className="text-sm font-semibold tabular-nums text-emerald-700">
+                            <bdi>
+                              {money(
+                                Number(recommendation.monthlySavings) || 0,
+                                recommendation.currency,
+                              )}
+                            </bdi>
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            {translator.translateText(PER_MONTH)}
+                          </div>
+                        </>
+                      ) : (
+                        /*
+                         * OneUptime's own right-sizing of a resource its
+                         * cloud does not bill by name: no amount yet.
+                         */
+                        <div
+                          className="text-sm text-gray-500"
+                          data-testid="cloud-resource-saving-not-known"
+                        >
+                          {translator.translateText(SAVING_NOT_KNOWN_YET)}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );
@@ -350,6 +364,49 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
       </div>
     </Card>
   );
+};
+
+const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const [cost, setCost] = useState<CloudResourceCost | null>(null);
+
+  useEffect(() => {
+    let ignore: boolean = false;
+
+    fetchCloudResourceCost({
+      projectId: props.projectId,
+      resourceRecordId: props.resourceRecordId,
+      provider: props.provider,
+      providerResourceId: props.providerResourceId,
+      now: OneUptimeDate.getCurrentDate(),
+    })
+      .then((found: CloudResourceCost): void => {
+        if (!ignore) {
+          setCost(found);
+        }
+      })
+      .catch((): void => {
+        // Only a figure beside the resource: nothing, rather than an error.
+        if (!ignore) {
+          setCost(null);
+        }
+      });
+
+    return (): void => {
+      ignore = true;
+    };
+  }, [
+    props.resourceRecordId.toString(),
+    props.provider,
+    props.providerResourceId,
+  ]);
+
+  if (!cost) {
+    return <></>;
+  }
+
+  return <CloudResourceCostCardView cost={cost} />;
 };
 
 export default CloudResourceCostCard;

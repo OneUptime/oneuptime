@@ -176,8 +176,8 @@ export async function fetchCloudResourceDailyCost(data: {
     -(RIGHT_SIZING_COST_DAYS - 1),
   );
 
-  const result: AggregatedResult =
-    await AnalyticsModelAPI.aggregate<CloudCost>({
+  const result: AggregatedResult = await AnalyticsModelAPI.aggregate<CloudCost>(
+    {
       modelType: CloudCost,
       aggregateBy: {
         query: {
@@ -196,7 +196,8 @@ export async function fetchCloudResourceDailyCost(data: {
         skip: 0,
         sort: { day: SortOrder.Ascending },
       },
-    });
+    },
+  );
 
   const billed: Array<number> = (result.data || [])
     .map((row: AggregatedModel): number => {
