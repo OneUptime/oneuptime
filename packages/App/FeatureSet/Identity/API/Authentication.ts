@@ -1266,6 +1266,7 @@ router.post(
           password: true,
           isBlocked: true,
           isMasterAdmin: true,
+          timezone: true,
         },
         props: {
           isRoot: true,
@@ -1322,6 +1323,16 @@ router.post(
               ),
             ).toString(),
             expiresInMinutes: MAGIC_LINK_EXPIRY_MINUTES.toString(),
+            /*
+             * When, from where and on which device the link was asked for, in
+             * the owner's own time zone. Anybody who knows the address can
+             * ask, so this is how its owner tells their own request from a
+             * stranger's (RequestOriginUtil).
+             */
+            ...RequestOriginUtil.getEmailVars({
+              origin: RequestOriginUtil.fromRequest(req),
+              timezone: account.timezone,
+            }),
           },
         }).catch((err: Error) => {
           logger.error(err, getLogAttributesFromRequest(req as RequestLike));

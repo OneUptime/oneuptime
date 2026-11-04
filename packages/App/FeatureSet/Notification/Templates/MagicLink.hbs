@@ -24,6 +24,20 @@
 
 {{> InfoBlock plainInfo=(concat "The link works once and expires in " expiresInMinutes " minutes. Asking for another link replaces this one.")}}
 
+{{!--
+  Where the request came from (Partials/RequestOriginFields.hbs). Anybody
+  who knows an address can ask for its link, so this is how the owner tells
+  their own request from a stranger's.
+--}}
+{{#if requestedAt}}
+{{> InfoBlock info="Details of the request:"}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Requested at:" plainText=requestedAt }}
+{{> RequestOriginFields this }}
+{{> DetailBoxEnd this }}
+{{/if}}
+
 {{> InfoBlock plainInfo="If you didn't ask to sign in, you can safely ignore this email. Nobody can sign in with it unless the link above is used."}}
 
 {{> SupportBlock this }}

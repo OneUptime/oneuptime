@@ -37,6 +37,7 @@ import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import Timezone from "Common/Types/Timezone";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -608,7 +609,7 @@ function installAccountStore(): void {
 
   jest
     .spyOn(UserService, "updateOneById")
-    .mockImplementation(async (updateById: unknown): Promise<void> => {
+    .mockImplementation(async (updateById: unknown): Promise<number> => {
       const options: { id: ObjectID; data: Record<string, unknown> } =
         updateById as { id: ObjectID; data: Record<string, unknown> };
 
@@ -616,9 +617,12 @@ function installAccountStore(): void {
         `UserService.updateOneById(${Object.keys(options.data).join(",")})`,
       );
 
-      if (row && valueOf(options.id) === valueOf(row["_id"])) {
-        Object.assign(row, options.data);
+      if (!row || valueOf(options.id) !== valueOf(row["_id"])) {
+        return 0;
       }
+
+      Object.assign(row, options.data);
+      return 1;
     });
 
   jest.spyOn(UserService, "getRepository").mockReturnValue({
@@ -653,11 +657,14 @@ interface Answer {
 async function post(
   uri: string,
   body: unknown,
-  options: { from?: string } = {},
+  options: { from?: string | undefined; userAgent?: string | undefined } = {},
 ): Promise<Answer> {
   const handler: RouteHandler = mockRouter.match("post", uri);
   const req: ExpressRequest = buildRequest(body, {
-    headers: { "x-forwarded-for": options.from || CALLER },
+    headers: {
+      "x-forwarded-for": options.from || CALLER,
+      ...(options.userAgent ? { "user-agent": options.userAgent } : {}),
+    },
     socketAddress: "10.0.0.2",
   });
   const headers: Record<string, string> = {};
@@ -683,7 +690,11 @@ async function post(
 
 async function askForLink(
   email: unknown = USER_EMAIL,
-  options: { from?: string; captchaToken?: string } = {},
+  options: {
+    from?: string | undefined;
+    userAgent?: string | undefined;
+    captchaToken?: string | undefined;
+  } = {},
 ): Promise<Answer> {
   return await post(
     "/send-magic-link",
@@ -693,7 +704,7 @@ async function askForLink(
         ? { captchaToken: options.captchaToken }
         : {},
     },
-    { from: options.from },
+    { from: options.from, userAgent: options.userAgent },
   );
 }
 
@@ -848,6 +859,65 @@ describe("POST /send-magic-link", () => {
     expect(expires).toBeLessThanOrEqual(
       after + MAGIC_LINK_EXPIRY_MINUTES * 60 * 1000,
     );
+  });
+
+  /*
+   * Anybody who knows an address can ask for its link, so the email says when,
+   * from which address and on which device it was asked for
+   * (RequestOriginUtil), as the password reset beside it does.
+   */
+  describe("says where the request came from", () => {
+    const FIREFOX_WINDOWS: string =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0";
+
+    function mailedVars(): Record<string, string> {
+      expect(sendMail).toHaveBeenCalledTimes(1);
+
+      return (sendMail.mock.calls[0]![0] as { vars: Record<string, string> })
+        .vars;
+    }
+
+    it("from which address, and on which device", async () => {
+      await askForLink(USER_EMAIL, { userAgent: FIREFOX_WINDOWS });
+
+      expect(mailedVars()["requestIpAddress"]).toBe(CALLER);
+      expect(mailedVars()["requestDevice"]).toBe("Firefox 132 on Windows");
+    });
+
+    it("the address is the one Nginx appended, not the one the caller wrote first", async () => {
+      await askForLink(USER_EMAIL, { from: `198.51.100.66, ${CALLER}` });
+
+      expect(mailedVars()["requestIpAddress"]).toBe(CALLER);
+    });
+
+    it("a User-Agent of the caller's own words is an unknown device, never those words", async () => {
+      const words: string = "Your account is hacked, call 555-0100";
+
+      await askForLink(USER_EMAIL, { userAgent: words });
+
+      expect(mailedVars()["requestDevice"]).toBe("Unknown device");
+      expect(JSON.stringify(mailedVars())).not.toContain("555-0100");
+    });
+
+    it("names no place until the operator names the headers that carry it", async () => {
+      await askForLink();
+
+      expect(mailedVars()["requestLocation"]).toBe("");
+    });
+
+    it("says when, in the owner's own time zone", async () => {
+      row = await accountRow({ timezone: Timezone.AsiaKolkata });
+
+      await askForLink();
+
+      expect(mailedVars()["requestedAt"]).toContain("IST");
+    });
+
+    it("an owner without a time zone of their own reads the time in UTC", async () => {
+      await askForLink();
+
+      expect(mailedVars()["requestedAt"]).toContain("UTC");
+    });
   });
 
   it("stores only the token's hash, never the token", async () => {

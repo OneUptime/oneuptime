@@ -23,7 +23,10 @@ import { MAGIC_LINK_EXPIRY_MINUTES } from "Common/Types/Accounts/MagicLink";
  *  - It says how long the link works and that it works once - the numbers
  *    the server holds it to - and that a newer link replaces it.
  *  - It may reach somebody who never asked (anyone can type an address), so
- *    it says what happens when it is ignored.
+ *    it says what happens when it is ignored, and says when, from where and
+ *    on which device the link was asked for, after the link rather than in
+ *    the way of the button. RequestOriginEmails.test.ts holds the card's rows,
+ *    as it does for every security email.
  */
 
 const handlebars: typeof Handlebars = Handlebars.create();
@@ -156,6 +159,40 @@ describe("MagicLink.hbs", () => {
     expect(htmlAsText(render())).toContain(
       "If you didn't ask to sign in, you can safely ignore this email. Nobody can sign in with it unless the link above is used.",
     );
+  });
+
+  test("says where the request came from, between the link and what to do if it wasn't you", () => {
+    const text: string = htmlAsText(
+      render({
+        requestedAt: "Nov 3, 2026, 2:15 PM CET",
+        requestIpAddress: "203.0.113.7",
+        requestLocation: "Berlin, Germany",
+        requestDevice: "Chrome 130 on macOS",
+      }),
+    );
+
+    for (const value of [
+      "Nov 3, 2026, 2:15 PM CET",
+      "203.0.113.7",
+      "Berlin, Germany",
+      "Chrome 130 on macOS",
+    ]) {
+      expect(text).toContain(value);
+    }
+
+    expect(text.indexOf(LINK)).toBeLessThan(
+      text.indexOf("Details of the request:"),
+    );
+    expect(text.indexOf("Details of the request:")).toBeLessThan(
+      text.indexOf("If you didn't ask to sign in"),
+    );
+  });
+
+  test("still reads as a whole when it is sent with no request details", () => {
+    const text: string = htmlAsText(render());
+
+    expect(text).not.toContain("Details of the request:");
+    expect(text).toContain("If you didn't ask to sign in");
   });
 
   test("loads nothing from outside the installation", () => {
