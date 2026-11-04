@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime Kubernetes AI Agent Dockerfile
 #
@@ -6,6 +6,9 @@
 # cluster, with the pod's own ServiceAccount — read-only unless the
 # kubernetes-agent Helm chart grants writes. Installed by that chart
 # (templates/ai-agent.yaml).
+#
+# Syntax 1.19 is the first whose stable channel has COPY --exclude, which keeps
+# the agent's tests out of the image (see the copy of the agent below).
 #
 
 # kubectl, downloaded and verified in its own stage so the download tool
@@ -107,7 +110,10 @@ ENTRYPOINT ["/sbin/tini", "--"]
 USER node
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-COPY --chown=node:node ./agents/KubernetesAIAgent /usr/src/app
+# Without its tests, which no image runs (see packages/Probe/Dockerfile.tpl):
+# they stay out of this layer and of what the compile below writes to
+# build/dist. `npm test` compiles and runs them on a checkout.
+COPY --chown=node:node --exclude=Tests ./agents/KubernetesAIAgent /usr/src/app
 RUN npm run compile
 USER node
 # Per-build metadata last so the npm ci / compile layers above stay cacheable
