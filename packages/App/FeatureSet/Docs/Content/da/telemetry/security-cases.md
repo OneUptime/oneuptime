@@ -218,7 +218,7 @@ OneUptime giver folk besked om fem ting på en sag. Ingen behøver at sætte nog
 
 ### Vælg, hvad du får besked om
 
-Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**: kanalerne for hver notifikation (e-mail, sms, opkald, push, Telegram, Slack, Microsoft Teams eller webhook) og, under **Ny sikkerhedssag**, den prioritet, der giver dem besked:
+Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**: kanalerne for hver notifikation (e-mail, sms, opkald, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook) og, under **Ny sikkerhedssag**, den prioritet, der giver dem besked:
 
 | Valg | Giver besked om sager med |
 | --- | --- |

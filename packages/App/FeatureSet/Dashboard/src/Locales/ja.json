@@ -42491,7 +42491,7 @@
   "OneUptime can't find {{name}} in Mattermost: their account isn't connected, and OneUptime can't see a Mattermost account with their email address. Ask them to connect Mattermost in User Settings.": "OneUptime は Mattermost で {{name}} を見つけられません。アカウントが接続されておらず、OneUptime からはそのメールアドレスを持つ Mattermost アカウントも見えません。ユーザー設定で Mattermost を接続するよう依頼してください。",
   "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.": "OneUptime からこのチャネルが見えません。チャネルが削除されたか、OneUptime のボットがチャネルから削除されました。",
   "Open Mattermost Settings": "Mattermost の設定を開く",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "このプロジェクトの Mattermost ボットから、オンコールの呼び出しを Mattermost のダイレクトメッセージで受け取ります。",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "このプロジェクトの Mattermost ボットから、OneUptime の通知を Mattermost のダイレクトメッセージで受け取ります。",
   "Test message sent. Check your Mattermost direct messages.": "テストメッセージを送信しました。Mattermost のダイレクトメッセージを確認してください。",
   "This channel is archived. Unarchive it in Mattermost to add people.": "このチャネルはアーカイブされています。メンバーを追加するには、Mattermost でアーカイブを解除してください。",
   "User Mattermost": "ユーザーの Mattermost",

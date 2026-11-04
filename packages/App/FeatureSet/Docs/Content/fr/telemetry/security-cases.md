@@ -218,7 +218,7 @@ OneUptime prévient les personnes concernées de cinq choses sur un dossier. Per
 
 ### Choisir ce dont vous êtes prévenu
 
-Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Paramètres de notification → Sécurité** : les canaux de chaque notification (e-mail, SMS, appel, push, Telegram, Slack, Microsoft Teams ou webhook), et, sous **Nouveau dossier de sécurité**, la priorité à partir de laquelle elle est prévenue :
+Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Paramètres de notification → Sécurité** : les canaux de chaque notification (e-mail, SMS, appel, push, Telegram, Slack, Microsoft Teams, Mattermost ou webhook), et, sous **Nouveau dossier de sécurité**, la priorité à partir de laquelle elle est prévenue :
 
 | Choix | Prévient des dossiers de priorité |
 | --- | --- |

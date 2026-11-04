@@ -42491,7 +42491,7 @@
   "OneUptime can't find {{name}} in Mattermost: their account isn't connected, and OneUptime can't see a Mattermost account with their email address. Ask them to connect Mattermost in User Settings.": "OneUptime 在 Mattermost 中找不到 {{name}}：其账户未连接，OneUptime 也看不到使用其电子邮件地址的 Mattermost 账户。请让其在用户设置中连接 Mattermost。",
   "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.": "OneUptime 看不到此频道。它已被删除，或者 OneUptime 机器人已被移出该频道。",
   "Open Mattermost Settings": "打开 Mattermost 设置",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "通过此项目的 Mattermost 机器人，以 Mattermost 私信接收值班呼叫。",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "通过此项目的 Mattermost 机器人，以 Mattermost 私信接收 OneUptime 通知。",
   "Test message sent. Check your Mattermost direct messages.": "测试消息已发送。请查看您的 Mattermost 私信。",
   "This channel is archived. Unarchive it in Mattermost to add people.": "此频道已归档。要添加成员，请在 Mattermost 中取消归档。",
   "User Mattermost": "用户的 Mattermost",

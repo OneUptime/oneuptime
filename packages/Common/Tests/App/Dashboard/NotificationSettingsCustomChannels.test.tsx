@@ -92,6 +92,7 @@ const OTHER_CHANNEL_KEYS: Array<ChannelKey> = [
   "alertByTelegram",
   "alertBySlack",
   "alertByMicrosoftTeams",
+  "alertByMattermost",
   "alertByWebhook",
 ];
 
@@ -213,6 +214,41 @@ describe("getShownChannelKeys and the custom channels' column", () => {
         "alertByCustomChannel",
       ],
     ],
+    [
+      [WorkspaceType.Mattermost],
+      false,
+      [
+        "alertByEmail",
+        "alertBySMS",
+        "alertByCall",
+        "alertByPush",
+        "alertByWhatsApp",
+        "alertByTelegram",
+        "alertByMattermost",
+        "alertByWebhook",
+      ],
+    ],
+    [
+      [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Mattermost,
+      ],
+      true,
+      [
+        "alertByEmail",
+        "alertBySMS",
+        "alertByCall",
+        "alertByPush",
+        "alertByWhatsApp",
+        "alertByTelegram",
+        "alertBySlack",
+        "alertByMicrosoftTeams",
+        "alertByMattermost",
+        "alertByWebhook",
+        "alertByCustomChannel",
+      ],
+    ],
   ])(
     "with %j connected and custom channels %p",
     (
@@ -259,6 +295,7 @@ describe("getShownChannelKeys and the custom channels' column", () => {
 
     expect(keys).not.toContain("alertBySlack");
     expect(keys).not.toContain("alertByMicrosoftTeams");
+    expect(keys).not.toContain("alertByMattermost");
   });
 
   test("the order the workspaces are offered in changes nothing", () => {

@@ -67,7 +67,7 @@ Os workflows também abrem incidentes: o workflow do [Huntress](/docs/integratio
 
 Na criação, o OneUptime executa a automação que você configurou: regras de privacidade, regras de proprietário, regras de rótulos, regras de plantão e regras de runbook. Todas as políticas de plantão anexadas ao incidente — manualmente, a partir de um modelo ou incluídas por uma regra de plantão que corresponde — são executadas em paralelo.
 
-Os proprietários são notificados nos canais que cada um ativou em **Configurações do usuário → Configurações de notificação**: e-mail, SMS, chamada de voz, push, WhatsApp, Telegram, Slack, Microsoft Teams ou webhook. Se um incidente não tiver nenhum proprietário, a notificação recai sobre os proprietários do projeto em vez de se perder.
+Os proprietários são notificados nos canais que cada um ativou em **Configurações do usuário → Configurações de notificação**: e-mail, SMS, chamada de voz, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost ou webhook. Se um incidente não tiver nenhum proprietário, a notificação recai sobre os proprietários do projeto em vez de se perder.
 
 Se o incidente estiver visível em uma página de status e as notificações aos assinantes estiverem ativadas, os assinantes também são avisados: os assinantes de cada página de status que lista um dos seus monitores, ou apenas os das páginas às quais você o limitou. Veja [Uma página de status por público](/docs/status-pages/one-status-page-per-audience) para dar a cada público a sua própria página de status.
 

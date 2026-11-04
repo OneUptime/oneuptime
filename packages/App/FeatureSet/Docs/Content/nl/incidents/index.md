@@ -67,7 +67,7 @@ Workflows openen ook incidenten: de [Huntress](/docs/integrations/huntress)-work
 
 Bij het aanmaken voert OneUptime de automatisering uit die je hebt ingesteld: privacyregels, eigenaarsregels, labelregels, bereikbaarheidsregels en runbook-regels. Al het bereikbaarheidsbeleid dat aan het incident hangt — met de hand, vanuit een sjabloon, of toegevoegd door een overeenkomende bereikbaarheidsregel — wordt parallel uitgevoerd.
 
-Eigenaren krijgen een melding via de kanalen die ieder van hen heeft aangezet in **Gebruikersinstellingen → Meldingsinstellingen**: e-mail, sms, spraakoproep, push, WhatsApp, Telegram, Slack, Microsoft Teams of webhook. Heeft een incident helemaal geen eigenaren, dan gaat de melding naar de projecteigenaren in plaats van verloren te gaan.
+Eigenaren krijgen een melding via de kanalen die ieder van hen heeft aangezet in **Gebruikersinstellingen → Meldingsinstellingen**: e-mail, sms, spraakoproep, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost of webhook. Heeft een incident helemaal geen eigenaren, dan gaat de melding naar de projecteigenaren in plaats van verloren te gaan.
 
 Is het incident zichtbaar op een statuspagina en staan meldingen aan abonnees aan, dan horen de abonnees het ook: de abonnees van elke statuspagina die een van zijn monitoren toont, of alleen die van de pagina's waartoe je het hebt beperkt. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience) om elke doelgroep een eigen statuspagina te geven.
 

@@ -92,8 +92,6 @@ Tillbaka i OneUptime klickar du på **I've sent the message — check**. Så sna
 2. Klicka på **Add Slack Account**, **Add Microsoft Teams Account** eller **Lägg till Mattermost-konto** på fliken **Arbetsyteappar**. Kontot är verifierat så snart det har lagts till.
 3. Klicka på **Send Test Message** på dess rad. Larm kommer som direktmeddelanden från OneUptime-appen, eller i Mattermost från projektets bot.
 
-Ett Mattermost-konto får bara dina larm, inte uppdateringarna du väljer i **Aviseringsinställningar**.
-
 ## Push-aviseringar
 
 Fliken **Push-aviseringar** listar dina **Enheter för push-aviseringar**.

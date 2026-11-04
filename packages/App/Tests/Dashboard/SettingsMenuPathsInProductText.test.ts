@@ -805,6 +805,10 @@ describe("Microsoft Teams is named as the product, never as the bare Teams", () 
         workspaceType: "MicrosoftTeams",
         label: getWorkspaceTypeDisplayName(WorkspaceType.MicrosoftTeams),
       },
+      {
+        workspaceType: "Mattermost",
+        label: getWorkspaceTypeDisplayName(WorkspaceType.Mattermost),
+      },
     ]);
     expect(getWorkspaceTypeDisplayName(WorkspaceType.MicrosoftTeams)).toBe(
       "Microsoft Teams",

@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"全部關閉"| nothing["不傳送任何內容"]
 ```
 
-- 每一列是一個通知項目，每一欄是一個管道：郵件、簡訊、電話、推播、WhatsApp、Telegram、Slack 和 Microsoft Teams，以及 Webhook。只有在專案已連線 Slack 和 Microsoft Teams 時，它們才會成為欄。
+- 每一列是一個通知項目，每一欄是一個管道：郵件、簡訊、電話、推播、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 和 Webhook。只有在專案已連線 Slack、Microsoft Teams 和 Mattermost 時，它們才會成為欄。
 - 開啟的管道會傳送到你在此專案中該管道上的每種已驗證方式，而不只是其中一種。
 - 開啟的管道如果背後沒有已驗證的方式，就不會傳送任何內容。 **Your setup checklist** 會在 **Staying informed** 下指出這一點。
 - 更新會傳送給記錄的擁有者：被指定為擁有者的人，以及其擁有者團隊的成員。當記錄沒有擁有者時，會改為傳送給專案擁有者。關於被新增為擁有者的通知項目只會傳送給被新增的人。

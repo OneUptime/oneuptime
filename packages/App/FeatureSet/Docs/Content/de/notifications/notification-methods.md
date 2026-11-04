@@ -92,8 +92,6 @@ Klicken Sie zurück in OneUptime auf **Ich habe die Nachricht gesendet — prüf
 2. Klicken Sie auf dem Tab **Workspace-Apps** auf **Slack-Konto hinzufügen**, **Microsoft Teams-Konto hinzufügen** oder **Mattermost-Konto hinzufügen**. Das Konto ist verifiziert, sobald es hinzugefügt ist.
 3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Alarme kommen als Direktnachrichten von der OneUptime-App an, in Mattermost vom Bot des Projekts.
 
-Ein Mattermost-Konto erhält nur Ihre Alarme, nicht die Neuigkeiten, die Sie in den **Benachrichtigungseinstellungen** wählen.
-
 ## Push-Benachrichtigungen
 
 Der Tab **Push-Benachrichtigungen** listet Ihre **Geräte für Push-Benachrichtigungen**.

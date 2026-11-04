@@ -42491,7 +42491,7 @@
   "OneUptime can't find {{name}} in Mattermost: their account isn't connected, and OneUptime can't see a Mattermost account with their email address. Ask them to connect Mattermost in User Settings.": "OneUptime이 Mattermost에서 {{name}}님을 찾을 수 없습니다. 계정이 연결되어 있지 않고 OneUptime에서 해당 이메일 주소를 가진 Mattermost 계정도 볼 수 없습니다. 사용자 설정에서 Mattermost를 연결해 달라고 요청하세요.",
   "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.": "OneUptime에서 이 채널을 볼 수 없습니다. 채널이 삭제되었거나 OneUptime 봇이 채널에서 제거되었습니다.",
   "Open Mattermost Settings": "Mattermost 설정 열기",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "이 프로젝트의 Mattermost 봇이 보내는 Mattermost 다이렉트 메시지로 온콜 호출을 받습니다.",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "이 프로젝트의 Mattermost 봇이 보내는 Mattermost 다이렉트 메시지로 OneUptime 알림을 받습니다.",
   "Test message sent. Check your Mattermost direct messages.": "테스트 메시지를 보냈습니다. Mattermost 다이렉트 메시지를 확인하세요.",
   "This channel is archived. Unarchive it in Mattermost to add people.": "이 채널은 보관되었습니다. 사람을 추가하려면 Mattermost에서 보관을 해제하세요.",
   "User Mattermost": "사용자의 Mattermost",

@@ -42491,7 +42491,7 @@
   "OneUptime can't find {{name}} in Mattermost: their account isn't connected, and OneUptime can't see a Mattermost account with their email address. Ask them to connect Mattermost in User Settings.": "OneUptime non trova {{name}} in Mattermost: il suo account non è collegato e OneUptime non vede alcun account Mattermost con il suo indirizzo email. Chiedigli di collegare Mattermost nelle Impostazioni utente.",
   "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.": "OneUptime non riesce a vedere questo canale. È stato eliminato, oppure il bot di OneUptime ne è stato rimosso.",
   "Open Mattermost Settings": "Apri le impostazioni di Mattermost",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Ricevi le chiamate di reperibilità come messaggi diretti di Mattermost dal bot Mattermost di questo progetto.",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "Ricevi le notifiche di OneUptime come messaggi diretti di Mattermost dal bot Mattermost di questo progetto.",
   "Test message sent. Check your Mattermost direct messages.": "Messaggio di prova inviato. Controlla i tuoi messaggi diretti di Mattermost.",
   "This channel is archived. Unarchive it in Mattermost to add people.": "Questo canale è archiviato. Ripristinalo dall'archivio in Mattermost per aggiungere persone.",
   "User Mattermost": "Mattermost dell'utente",
