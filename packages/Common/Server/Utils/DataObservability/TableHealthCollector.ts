@@ -37,6 +37,7 @@ import ClickHouseHttpApi, {
   readClickHouseConnection,
 } from "./ClickHouseHttpApi";
 import DatabricksApi, { readDatabricksConnection } from "./DatabricksApi";
+import AthenaApi, { readAthenaConnection } from "./AthenaApi";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
@@ -87,6 +88,9 @@ import {
  *    of each insert. system.columns gives the columns.
  *  - Databricks: Unity Catalog's REST API gives every table, view and
  *    column, and each Delta table's last commit, with no SQL warehouse.
+ *  - Amazon Athena: the Glue Data Catalog's API gives every table and view
+ *    of a Glue database, its columns and statistics, and each Iceberg
+ *    table's last commit.
  *
  * Each engine also says which tables feed which, where it can (lineage
  * with no pipeline to report it): a view's tables from its definition
@@ -3334,6 +3338,162 @@ class DatabricksCatalog implements CatalogSession {
   }
 }
 
+// A Glue table's kind: a view, else a table (Iceberg, Hive-style or governed).
+export function readGlueKind(tableType: unknown): DataAssetKind {
+  return String(tableType ?? "").toUpperCase() === "VIRTUAL_VIEW"
+    ? DataAssetKind.View
+    : DataAssetKind.Table;
+}
+
+/*
+ * A Glue table as a table and its columns. An Iceberg table's every commit
+ * updates its Glue table (its metadata location), so its UpdateTime is when
+ * it last changed; a Hive-style table's is only when its definition did,
+ * so it says no change. Rows and size come from the statistics a crawler
+ * or ANALYZE keeps.
+ */
+export function readGlueTable(
+  info: JSONObject,
+  now: Date,
+): { table: RawTable; columns: Array<RawColumn> } | null {
+  const name: string = readText(info["Name"], MAX_IDENTIFIER_LENGTH);
+  const schema: string = readText(info["DatabaseName"], MAX_IDENTIFIER_LENGTH);
+
+  if (!name || !schema) {
+    return null;
+  }
+
+  const kind: DataAssetKind = readGlueKind(info["TableType"]);
+  const parameters: JSONObject =
+    info["Parameters"] && typeof info["Parameters"] === "object"
+      ? (info["Parameters"] as JSONObject)
+      : {};
+  const isIceberg: boolean =
+    String(parameters["table_type"] ?? "").toUpperCase() === "ICEBERG" ||
+    Boolean(parameters["metadata_location"]);
+  const updatedAt: number = Number(info["UpdateTime"]);
+  const storage: JSONObject =
+    info["StorageDescriptor"] && typeof info["StorageDescriptor"] === "object"
+      ? (info["StorageDescriptor"] as JSONObject)
+      : {};
+  const columns: Array<RawColumn> = [
+    ...(Array.isArray(storage["Columns"])
+      ? (storage["Columns"] as Array<unknown>)
+      : []),
+    ...(Array.isArray(info["PartitionKeys"])
+      ? (info["PartitionKeys"] as Array<unknown>)
+      : []),
+  ]
+    .map((value: unknown, index: number): RawColumn | null => {
+      const column: JSONObject =
+        value && typeof value === "object" ? (value as JSONObject) : {};
+      const columnName: string = readText(
+        column["Name"],
+        MAX_COLUMN_NAME_LENGTH,
+      );
+
+      return columnName
+        ? {
+            schema,
+            table: name,
+            column: {
+              name: columnName,
+              dataType: readText(column["Type"], MAX_COLUMN_TYPE_LENGTH)
+                .trim()
+                .toLowerCase(),
+              isNullable: true,
+              position: index + 1,
+            },
+          }
+        : null;
+    })
+    .filter((column: RawColumn | null): column is RawColumn => {
+      return column !== null;
+    });
+  const holdsRows: boolean = kind === DataAssetKind.Table;
+
+  return {
+    table: {
+      schema,
+      name,
+      kind,
+      estimatedRows: holdsRows
+        ? readCount(parameters["numRows"] ?? parameters["recordCount"])
+        : null,
+      sizeInBytes: holdsRows ? readCount(parameters["totalSize"]) : null,
+      writeCount: null,
+      secondsSinceChange:
+        holdsRows && isIceberg && Number.isFinite(updatedAt) && updatedAt > 0
+          ? Math.max(0, Math.floor(now.getTime() / 1000 - updatedAt))
+          : null,
+      readCount: null,
+      secondsSinceRead: null,
+    },
+    columns,
+  };
+}
+
+/*
+ * Amazon Athena, a Glue database at a time (AthenaApi): its tables and
+ * views, their columns, statistics and - for Iceberg - last commit, from
+ * the Glue Data Catalog's API, which reads no data and costs nothing. A
+ * data check runs as an Athena query in the connection's workgroup, its
+ * names in double quotes and its values written in as quoted strings.
+ */
+class AthenaCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "athena";
+  private readonly api: AthenaApi;
+
+  private constructor(api: AthenaApi) {
+    this.api = api;
+  }
+
+  public static async open(connectionString: string): Promise<AthenaCatalog> {
+    const session: AthenaCatalog = new AthenaCatalog(
+      new AthenaApi({ connection: readAthenaConnection(connectionString) }),
+    );
+
+    await session.api.getDatabase();
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const now: Date = new Date();
+    const tables: Array<RawTable> = [];
+    const columns: Array<RawColumn> = [];
+
+    for (const info of await this.api.listTables(options.maxTables)) {
+      const read: ReturnType<typeof readGlueTable> = readGlueTable(info, now);
+
+      if (!read) {
+        continue;
+      }
+
+      tables.push(read.table);
+
+      for (const column of read.columns) {
+        if (columns.length < options.maxColumns) {
+          columns.push(column);
+        }
+      }
+    }
+
+    return { tables, columns, warnings: [], secondsSinceStatsReset: null };
+  }
+
+  public async close(): Promise<void> {
+    // Each call is its own request: nothing is held open.
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
@@ -3354,6 +3514,8 @@ async function openCatalog(
       return await ClickHouseCatalog.open(connection.connectionString);
     case "databricks":
       return await DatabricksCatalog.open(connection.connectionString);
+    case "athena":
+      return await AthenaCatalog.open(connection.connectionString);
     default:
       throw new Error(
         `Data Observability cannot collect ${String(connection.engine)} databases yet.`,

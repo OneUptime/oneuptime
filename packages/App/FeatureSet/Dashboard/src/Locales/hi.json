@@ -41918,5 +41918,6 @@
   "Writes Only Unused Tables": "केवल अप्रयुक्त टेबल लिखता है",
   "Writes unused tables": "अप्रयुक्त टेबल लिखता है",
   "{{bytes}} billed": "{{bytes}} बिल किए गए",
-  "{{credits}} credits": "{{credits}} क्रेडिट"
+  "{{credits}} credits": "{{credits}} क्रेडिट",
+  "Amazon Athena": "Amazon Athena"
 }

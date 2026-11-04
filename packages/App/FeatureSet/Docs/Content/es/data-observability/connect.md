@@ -104,6 +104,12 @@ Un catálogo de Unity Catalog es una base de datos. Conéctate con una entidad d
 ```
 
 El catálogo, sus columnas y el último commit de cada tabla Delta vienen de la API REST de Unity Catalog sin ningún SQL warehouse, así que la recopilación no consume cómputo. Las comprobaciones, y el linaje y las últimas lecturas de `system.access.table_lineage` una vez por hora, se ejecutan en el SQL warehouse que indiques; concede a la entidad de servicio **Can use** sobre él.
+@tab Amazon Athena
+Una base de datos de Glue es una base de datos. Sus tablas y vistas, sus columnas y estadísticas, y el último commit de cada tabla Iceberg provienen de la API del Glue Data Catalog, que no lee datos ni cuesta nada. Las comprobaciones se ejecutan como consultas de Athena en el workgroup que indiques. Conéctate con las claves de un usuario o rol de IAM que pueda llamar a `glue:GetDatabase` y `glue:GetTables` y, para las comprobaciones, ejecutar consultas de Athena en el workgroup con acceso de lectura a los datos de las tablas:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## Qué se lee y con qué frecuencia
