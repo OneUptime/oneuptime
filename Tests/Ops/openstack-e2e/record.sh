@@ -146,7 +146,9 @@ record_api() {
     call neutron-extensions "$neutron/v2.0/extensions"
   fi
 
-  cinder="$(endpoint_of volumev3)"
+  # A current catalog calls it block-storage, an older one volumev3.
+  cinder="$(endpoint_of block-storage)"
+  [ -n "$cinder" ] || cinder="$(endpoint_of volumev3)"
   if [ -n "$cinder" ]; then
     local cmv="OpenStack-API-Version: volume 3.50"
     call cinder-volumes "$cinder/volumes/detail?all_tenants=1&limit=1000" "$cmv"

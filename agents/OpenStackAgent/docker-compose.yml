@@ -21,15 +21,14 @@ services:
       # host:port of the exporter (no scheme). The default is the service below.
       - OPENSTACK_EXPORTER_ADDRESS=${OPENSTACK_EXPORTER_ADDRESS:-openstack-exporter:9180}
     restart: unless-stopped
-    depends_on:
-      - openstack-exporter
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
 
-  # openstack-exporter, pinned. Remove this service and set
+  # openstack-exporter, pinned. COMPOSE_PROFILES=openstack-exporter in .env starts
+  # it, which is what install.sh writes. Leave the profile off and set
   # OPENSTACK_EXPORTER_ADDRESS when you already run the exporter in --multi-cloud
   # mode, for example the one Kolla-Ansible deploys.
   #
@@ -41,21 +40,50 @@ services:
   openstack-exporter:
     image: ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a
     container_name: oneuptime-openstack-exporter
+    profiles: ["openstack-exporter"]
+    # The image runs as uid 65532, and clouds.yaml is readable by its owner alone,
+    # so the exporter has to run as the file's owner or it cannot read the
+    # credential at all. install.sh gives the file to 65532 when it runs as root;
+    # any other user cannot do that, so it writes its own uid:gid here instead.
+    user: "${OPENSTACK_EXPORTER_USER:-65532:65532}"
+    # It only reads clouds.yaml and makes HTTPS calls.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     command:
       - --multi-cloud
       - --os-client-config=/etc/openstack/clouds.yaml
-      - --disable-slow-metrics
+      # Every read below is left out on purpose, by name, instead of with
+      # --disable-slow-metrics, which also takes the image list that the product's
+      # Images page reads with one call. Naming a series that reads the others turns
+      # them all off.
+      #
+      # One call per project, on each scrape:
+      - --disable-metric=nova-quota_cores
+      - --disable-metric=nova-limits_vcpus_max
+      - --disable-metric=nova-server_local_gb
+      - --disable-metric=neutron-quota_network
+      - --disable-metric=cinder-limits_volume_max_gb
+      # Every port in the cloud, which can saturate Neutron (upstream issue 540):
       - --disable-metric=neutron-ports
       - --disable-metric=neutron-port
       - --disable-metric=neutron-ports_no_ips
       - --disable-metric=neutron-ports_lb_not_active
+      # Many series saying what the address pools already say:
+      - --disable-metric=neutron-subnets_total
+      # Nova no longer has this route, so it only fills the exporter's log:
+      - --disable-metric=nova-security_groups
     volumes:
       # The cloud's credential: an application credential, one entry per region.
-      # install.sh writes it readable only by this machine's owner.
+      # install.sh writes it readable only by the user the exporter runs as.
       - ./clouds.yaml:/etc/openstack/clouds.yaml:ro
-      # Uncomment for a cloud with its own certificate authority, and name the
-      # file as `cacert: /etc/openstack/ca.pem` in clouds.yaml.
-      # - ./ca.pem:/etc/openstack/ca.pem:ro
+      # A cloud with its own certificate authority. install.sh copies the file
+      # to ./ca.pem, sets OPENSTACK_CA_FILE=./ca.pem and names it in clouds.yaml
+      # (`cacert: /etc/openstack/ca.pem`). Without one, nothing is mounted here
+      # that anything reads.
+      - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
     restart: unless-stopped
     logging:
       driver: json-file

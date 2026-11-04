@@ -1,7 +1,8 @@
 # Lets the oneuptime_monitoring role read Neutron's agents and address pools.
-# Merge these into your /etc/neutron/policy.yaml. oslo.policy notices a changed
-# file on its own, so no restart is needed.
-"get_agent": "rule:admin_only or role:oneuptime_monitoring"
-"get_network_ip_availability": "rule:admin_only or role:oneuptime_monitoring"
-"get_l3-routers": "rule:admin_only or role:oneuptime_monitoring"
-"get_dhcp-agents": "rule:admin_only or role:oneuptime_monitoring"
+# Merge these into the file named by [oslo_policy] policy_file in neutron.conf, which
+# is /etc/neutron/policy.yaml unless your deployment says otherwise (DevStack says
+# policy.json). oslo.policy notices a changed file on its own, so no restart is needed.
+"get_agent": "role:admin or role:oneuptime_monitoring"
+"get_network_ip_availability": "role:admin or role:oneuptime_monitoring"
+"get_l3-routers": "role:admin or role:oneuptime_monitoring"
+"get_dhcp-agents": "role:admin or role:oneuptime_monitoring"

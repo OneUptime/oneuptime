@@ -49,12 +49,12 @@ READS = [
     ("network", "security groups", "/v2.0/security-groups", "security_groups", {}),
     ("network", "ports", "/v2.0/ports?limit=1000", "ports", {}),
     ("network", "quotas", "/v2.0/quotas", "quotas", {}),
-    ("volumev3", "volumes, all projects", "/volumes/detail?all_tenants=1&limit=1000", "volumes", VOLUME_VERSION),
-    ("volumev3", "services", "/os-services", "services", VOLUME_VERSION),
-    ("volumev3", "pools", "/scheduler-stats/get_pools?detail=true", "pools", VOLUME_VERSION),
-    ("volumev3", "snapshots, all projects", "/snapshots/detail?all_tenants=1&limit=1000", "snapshots", VOLUME_VERSION),
-    ("volumev3", "backups, all projects", "/backups/detail?all_tenants=1&limit=1000", "backups", VOLUME_VERSION),
-    ("volumev3", "volume types", "/types", "volume_types", VOLUME_VERSION),
+    ("block-storage", "volumes, all projects", "/volumes/detail?all_tenants=1&limit=1000", "volumes", VOLUME_VERSION),
+    ("block-storage", "services", "/os-services", "services", VOLUME_VERSION),
+    ("block-storage", "pools", "/scheduler-stats/get_pools?detail=true", "pools", VOLUME_VERSION),
+    ("block-storage", "snapshots, all projects", "/snapshots/detail?all_tenants=1&limit=1000", "snapshots", VOLUME_VERSION),
+    ("block-storage", "backups, all projects", "/backups/detail?all_tenants=1&limit=1000", "backups", VOLUME_VERSION),
+    ("block-storage", "volume types", "/types", "volume_types", VOLUME_VERSION),
     ("image", "images", "/v2/images?limit=1000", "images", {}),
     ("load-balancer", "load balancers", "/v2/lbaas/loadbalancers", "loadbalancers", {}),
     ("load-balancer", "amphorae", "/v2/octavia/amphorae", "amphorae", {}),
@@ -70,7 +70,7 @@ WRITES = [
      {"aggregate": {"name": "ou-write-check"}}, COMPUTE_VERSION),
     ("network", "create a network", "POST", "/v2.0/networks",
      {"network": {"name": "ou-write-check"}}, {}),
-    ("volumev3", "create a volume", "POST", "/volumes",
+    ("block-storage", "create a volume", "POST", "/volumes",
      {"volume": {"size": 1, "name": "ou-write-check"}}, VOLUME_VERSION),
     ("identity", "create a project", "POST", "/v3/projects",
      {"project": {"name": "ou-write-check"}}, {}),
@@ -102,6 +102,9 @@ def endpoints_from_env():
         for endpoint in service.get("Endpoints") or service.get("endpoints") or []:
             if endpoint.get("interface") == "public":
                 found[kind] = endpoint["url"].rstrip("/")
+    # A current catalog calls Cinder block-storage, an older one volumev3.
+    if "block-storage" not in found and "volumev3" in found:
+        found["block-storage"] = found["volumev3"]
     return found
 
 

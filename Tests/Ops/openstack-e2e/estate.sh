@@ -136,7 +136,8 @@ make_volume() {
   openstack volume show "$name" >/dev/null 2>&1 || openstack volume create --size 1 "$name" >/dev/null
   wait_for_volume "$name" available ou-payments
 }
-if openstack volume service list >/dev/null 2>&1; then
+# Listing services takes an admin, and this part of the script runs as a project.
+if OS_PROJECT_NAME=admin openstack volume service list >/dev/null 2>&1; then
   make_volume ou-vol-free
   if [ "$(openstack volume show ou-vol-used -f value -c status 2>/dev/null || true)" != "in-use" ]; then
     make_volume ou-vol-used

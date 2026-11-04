@@ -19,6 +19,9 @@ EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-expo
 COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-collector-contrib' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
 EXPORTER_STABLE_IMAGE="${EXPORTER_STABLE_IMAGE:-ghcr.io/openstack-exporter/openstack-exporter:1.7.0}"
 
+# The same goes for what it is told to leave out: one flag per word, on purpose.
+EXPORTER_FLAGS="$(grep -E '^[[:space:]]*- --disable-metric=' "$AGENT_DIR/docker-compose.yml" | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+
 [ -n "$EXPORTER_IMAGE" ] && [ -n "$COLLECTOR_IMAGE" ] || {
   echo "Could not read the agent's image pins from $AGENT_DIR/docker-compose.yml" >&2
   exit 1
@@ -38,8 +41,7 @@ sudo chmod a+r "$CLOUDS_FILE"
 docker run -d --name ou-openstack-exporter --network host \
   -v "$CLOUDS_FILE:/etc/openstack/clouds.yaml:ro" \
   "$EXPORTER_IMAGE" --multi-cloud --web.listen-address=:9180 --os-client-config=/etc/openstack/clouds.yaml \
-  --disable-slow-metrics --disable-metric=neutron-ports --disable-metric=neutron-port \
-  --disable-metric=neutron-ports_no_ips --disable-metric=neutron-ports_lb_not_active
+  $EXPORTER_FLAGS
 
 docker run -d --name ou-openstack-exporter-stable --network host \
   -v "$CLOUDS_FILE:/etc/openstack/clouds.yaml:ro" \
