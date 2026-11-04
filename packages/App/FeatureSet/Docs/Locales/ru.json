@@ -399,6 +399,7 @@
     "Other Cloud Platforms": "Другие облачные платформы",
     "Cloud Troubleshooting": "Устранение неполадок в облаке",
     "Connect a Cloud Account": "Подключение облачного аккаунта",
+    "Stream CloudWatch Metrics and Logs": "Передача метрик и журналов CloudWatch",
     "Cloud Costs and Savings": "Затраты на облако и экономия",
     "Cloud Resources (IaaS & PaaS)": "Облачные ресурсы (IaaS и PaaS)",
     "AI / LLM Observability": "Наблюдаемость ИИ / LLM",

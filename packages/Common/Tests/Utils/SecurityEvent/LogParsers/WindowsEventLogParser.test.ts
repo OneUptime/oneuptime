@@ -161,7 +161,7 @@ describe("WindowsEventLogParser - every way a Windows event arrives", () => {
     expect(rdp.message).toContain("over Remote Desktop");
   });
 
-  test("an event of another kind of Fluent Bit record keeps its fields as param1, param2...", () => {
+  test("a Fluent Bit record of an event read by position names its fields too: an account created", () => {
     const event: NormalizedSecurityEvent = only(
       fluentBitBody(
         windowsEvent(4720, SECURITY, "Security", [
@@ -172,7 +172,24 @@ describe("WindowsEventLogParser - every way a Windows event arrives", () => {
     );
 
     expect(event.className).toBe("Account Change");
-    expect(event.attributes["param1"]).toBe("mallory");
+    expect(event.attributes["TargetUserName"]).toBe("mallory");
+    expect(event.targetUser).toBe("mallory");
+    expect(event.attributes["param1"]).toBeUndefined();
+  });
+
+  test("a Fluent Bit record of an event no layout names keeps its fields as param1, param2...", () => {
+    const event: NormalizedSecurityEvent = only(
+      fluentBitBody(
+        windowsEvent(2, "Microsoft-Windows-Sysmon", "Sysmon", [
+          ["RuleName", "-"],
+          ["UtcTime", "2026-10-30 10:00:00.000"],
+        ]),
+      ),
+    );
+
+    expect(event.className).toBe("File System Activity");
+    expect(event.attributes["param2"]).toBe("2026-10-30 10:00:00.000");
+    expect(event.attributes["UtcTime"]).toBeUndefined();
   });
 
   test("the log's host names the computer when the event does not", () => {

@@ -1,0 +1,64 @@
+services:
+  oneuptime-openstack-agent:
+    # Upstream collector, pinned. There is no oneuptime/openstack-agent image:
+    # the agent is entirely defined by otel-collector-config.yaml, and that
+    # config reports this pin as the agent's version (oneuptime.agent.version).
+    # Bump the two together; Tests/Ops/validate-collector-configs.sh validates
+    # the config against this version.
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: oneuptime-openstack-agent
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      # The name this cloud has in OneUptime. Keep it stable: changing it later
+      # registers a brand-new cloud.
+      - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
+      # The clouds.yaml entries to read, one per region, in square brackets so
+      # the collector reads a list, e.g. [region-one,region-two].
+      - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[oneuptime]}
+      # host:port of the exporter (no scheme). The default is the service below.
+      - OPENSTACK_EXPORTER_ADDRESS=${OPENSTACK_EXPORTER_ADDRESS:-openstack-exporter:9180}
+    restart: unless-stopped
+    depends_on:
+      - openstack-exporter
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # openstack-exporter, pinned. Remove this service and set
+  # OPENSTACK_EXPORTER_ADDRESS when you already run the exporter in --multi-cloud
+  # mode, for example the one Kolla-Ansible deploys.
+  #
+  # Gentle by default, because monitoring must never be what takes a cloud down:
+  #  - the slow metrics (quotas and limits per project, usage per server) are off;
+  #  - the per-port series are off. Listing every port with an admin credential
+  #    can saturate Neutron on a large cloud (openstack-exporter issue 540).
+  # README.md says what each one gives up, and how to turn it on.
+  openstack-exporter:
+    image: ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a
+    container_name: oneuptime-openstack-exporter
+    command:
+      - --multi-cloud
+      - --os-client-config=/etc/openstack/clouds.yaml
+      - --disable-slow-metrics
+      - --disable-metric=neutron-ports
+      - --disable-metric=neutron-port
+      - --disable-metric=neutron-ports_no_ips
+      - --disable-metric=neutron-ports_lb_not_active
+    volumes:
+      # The cloud's credential: an application credential, one entry per region.
+      # install.sh writes it readable only by this machine's owner.
+      - ./clouds.yaml:/etc/openstack/clouds.yaml:ro
+      # Uncomment for a cloud with its own certificate authority, and name the
+      # file as `cacert: /etc/openstack/ca.pem` in clouds.yaml.
+      # - ./ca.pem:/etc/openstack/ca.pem:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

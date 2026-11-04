@@ -4,6 +4,7 @@ import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataProduct from "../../../Models/DatabaseModels/DataProduct";
 import DataTableDashboards, { TableDashboard } from "./Bi/DataTableDashboards";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import {
@@ -19,6 +20,7 @@ import DataAssetLineageService from "../../Services/DataAssetLineageService";
 import DataAssetService from "../../Services/DataAssetService";
 import DataProductService from "../../Services/DataProductService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
 
 /*
  * "IS THIS TABLE FRESH?" - ONE ANSWER, FOR AN AI AGENT, SLACK AND TEAMS.
@@ -31,6 +33,27 @@ import QueryHelper from "../../Types/Database/QueryHelper";
  * part of with their status. A table is found by its id, its
  * schema.table key, or its name alone; a name several databases share
  * answers with every match, so nobody is told the wrong table is fresh.
+ *
+ * WHO READS THE ANSWER decides which of the table's alerts it names. A
+ * private alert is seen only by its owners, and by the project's owners
+ * and admins (Alert.isPrivate, Utils/Alert/AlertPrivacyFilter), so the
+ * alerts are read with the privacy clause of the answer's reader:
+ *
+ *   - a person who asked - in Ask AI, an investigation's thread, the MCP
+ *     server's table freshness, or Slack and Microsoft Teams, which answer
+ *     only someone whose account is linked and read every record as them
+ *     (WorkspaceAiContext) - is told the alerts they may see;
+ *   - nobody in particular (a reader of null), and a run of OneUptime's
+ *     own, read as root: an investigation's report goes to the feed and
+ *     the Slack and Microsoft Teams channels of the incident or alert it
+ *     investigates, which everyone who may see that one reads, and a
+ *     private alert's title is never written where people who cannot see
+ *     it read it. So such an answer names only the alerts that are not
+ *     private, as to a reader who is no one.
+ *
+ * The clause is added to a read as OneUptime: anyone who may read data
+ * assets may read what a data alert is about (DataAlert), while the alert
+ * table's own read rules would refuse the data roles outright.
  */
 
 // The most tables a reference answers with, and the most of each list told.
@@ -244,10 +267,15 @@ export default class DataTableAnswerer {
     });
   }
 
+  /*
+   * The answer about one table, for its reader: the props of the person who
+   * asked, or null when nobody in particular reads it (see above).
+   */
   public static async answer(
     projectId: ObjectID,
     dataAssetId: ObjectID,
     now: Date,
+    reader: DatabaseCommonInteractionProps | null,
   ): Promise<DataTableAnswer | null> {
     const asset: DataAsset | null = await DataAssetService.findOneBy({
       query: { projectId, _id: dataAssetId },
@@ -333,17 +361,25 @@ export default class DataTableAnswerer {
      * Its alerts still open: in a state the project's states do not count
      * as resolved (Common/Utils/ResolvedState) - so one moved on to a state
      * placed after Resolved, such as "Closed", is over too, flagged or not.
+     * And only the ones its reader may see: a person's own privacy clause,
+     * or, for nobody in particular or a run read as root, the clause of a
+     * reader who is no one - the alerts that are not private.
      */
+    const privacyReader: DatabaseCommonInteractionProps =
+      reader && !reader.isRoot ? reader : {};
     const alertRows: Array<Alert> =
       alertIds.length > 0
         ? await AlertService.findBy({
-            query: {
-              projectId,
-              _id: QueryHelper.any(alertIds),
-              currentAlertStateId: QueryHelper.any(
-                await AlertStateService.getUnresolvedAlertStateIds(projectId),
-              ),
-            },
+            query: applyAlertSelfPrivacyFilter(
+              {
+                projectId,
+                _id: QueryHelper.any(alertIds),
+                currentAlertStateId: QueryHelper.any(
+                  await AlertStateService.getUnresolvedAlertStateIds(projectId),
+                ),
+              },
+              privacyReader,
+            ),
             select: {
               _id: true,
               title: true,

@@ -125,14 +125,17 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
 
 /*
  * A resource's pages, in Cloud. Its metrics are what its provider publishes
- * about it, so it has no logs, traces or instances of its own; it has the
- * Changes its account's activity log records.
+ * about it, so it has no traces or instances of its own; it has the Changes
+ * its account's activity log records, and the logs an AWS connection's
+ * stream delivers from the log group AWS names after it (CloudLogGroups) -
+ * its side menu shows Logs only for a kind of resource a log group names.
  */
 export const RESOURCE_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
 > = {
   [CloudResourceViewTab.Overview]: PageMap.CLOUD_RESOURCE_VIEW,
   [CloudResourceViewTab.Metrics]: PageMap.CLOUD_RESOURCE_VIEW_METRICS,
+  [CloudResourceViewTab.Logs]: PageMap.CLOUD_RESOURCE_VIEW_LOGS,
   [CloudResourceViewTab.Feed]: PageMap.CLOUD_RESOURCE_VIEW_FEED,
   [CloudResourceViewTab.Incidents]: PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
   [CloudResourceViewTab.Alerts]: PageMap.CLOUD_RESOURCE_VIEW_ALERTS,
@@ -180,7 +183,7 @@ function getViewPages(
 
 /*
  * The page key of a row's tab in its own product, or of its Overview when
- * its kind has no such tab (an environment's Changes, a resource's Logs).
+ * its kind has no such tab (an environment's Changes, a resource's Traces).
  */
 export function getCloudResourceViewPageKey(
   cloudResourceKind: string | null | undefined,

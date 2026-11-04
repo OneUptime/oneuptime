@@ -23,6 +23,16 @@ export interface SecurityTelemetrySourceRow {
   icon: IconProp;
   // Only OneUptime Enterprise writes it (the audit log).
   needsEnterprise: boolean;
+  /*
+   * Read with each cloud account's own read (cloud audit logs): says so
+   * where no cloud account is connected under Cloud.
+   */
+  needsCloudAccount?: boolean | undefined;
+  /*
+   * A translation key: what it says while on and not read yet. Left out,
+   * the minute's scan: "The first check runs within a minute."
+   */
+  waitingText?: string | undefined;
 }
 
 export const SECURITY_TELEMETRY_SOURCE_ROWS: ReadonlyArray<SecurityTelemetrySourceRow> =
@@ -63,11 +73,71 @@ export const SECURITY_TELEMETRY_SOURCE_ROWS: ReadonlyArray<SecurityTelemetrySour
       icon: IconProp.Film,
       needsEnterprise: false,
     },
+    {
+      kind: SecurityTelemetrySourceKind.CloudAudit,
+      title: translationKey("Cloud audit logs"),
+      description: translationKey(
+        "Changes, refused calls and AWS console sign-ins in the cloud accounts connected under Cloud, from their own audit logs.",
+      ),
+      icon: IconProp.Cloud,
+      needsEnterprise: false,
+      needsCloudAccount: true,
+      waitingText: translationKey(
+        "The first check runs with your cloud accounts' next read, within a few minutes.",
+      ),
+    },
   ];
 
 export const NEEDS_ENTERPRISE_NOTE: string = translationKey(
   "Available in OneUptime Enterprise, which keeps the audit log.",
 );
+
+// Followed by the link to connect one (CONNECT_CLOUD_ACCOUNT_LINK_TEXT).
+export const NO_CLOUD_ACCOUNT_NOTE: string = translationKey(
+  "No cloud account is connected yet.",
+);
+
+export const CONNECT_CLOUD_ACCOUNT_LINK_TEXT: string = translationKey(
+  "Connect a cloud account",
+);
+
+export const FIRST_CHECK_WITHIN_A_MINUTE: string = translationKey(
+  "The first check runs within a minute.",
+);
+
+// What a row says while it is on and not read yet.
+export function getSecurityTelemetrySourceWaitingText(
+  row: SecurityTelemetrySourceRow,
+): string {
+  return row.waitingText || FIRST_CHECK_WITHIN_A_MINUTE;
+}
+
+/*
+ * The line a row shows while it is on and not read yet, or null for none:
+ * a source with nothing to read - cloud audit logs with no cloud account
+ * connected - says that instead (needsCloudAccountNote), and never that a
+ * first check is coming.
+ */
+export function getSecurityTelemetrySourceWaitingLine(data: {
+  row: SecurityTelemetrySourceRow;
+  isMissingCloudAccount: boolean;
+}): string | null {
+  return data.isMissingCloudAccount
+    ? null
+    : getSecurityTelemetrySourceWaitingText(data.row);
+}
+
+/*
+ * Whether to say a row's source has nothing to read: cloud audit logs where
+ * the project has no cloud account connected. Nothing is said while that is
+ * not known (null): a reader who may not see Cloud is told nothing wrong.
+ */
+export function needsCloudAccountNote(data: {
+  row: SecurityTelemetrySourceRow;
+  cloudConnectionCount: number | null;
+}): boolean {
+  return Boolean(data.row.needsCloudAccount) && data.cloudConnectionCount === 0;
+}
 
 // How many security events the last check found, by signal.
 export function readFoundBySignal(

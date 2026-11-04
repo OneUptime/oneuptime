@@ -49,7 +49,7 @@ Em **Testar**, clique em **Testar conexão**. O OneUptime lê o uso dos últimos
 Clique em **Conectar**. A primeira leitura começa em até um minuto e traz os últimos 30 dias.
 :::
 
-As contas conectadas aparecem abaixo dos blocos, com **Status** e **Última leitura**. **Ler agora** lê na hora, **Testar** confere de novo as configurações guardadas, **Desativar** para de ler e mantém o que foi lido, e **Editar** muda as configurações: um segredo deixado em branco mantém o guardado. **View error** mostra por que uma leitura falhou, sem nenhum segredo.
+As contas conectadas aparecem abaixo dos blocos, com **Status** e **Última leitura**. **Ler agora** lê na hora, **Testar** confere de novo as configurações guardadas, **Desativar** para de ler e mantém o que foi lido, e **Editar** muda as configurações: um segredo deixado em branco mantém o guardado. **Ver erro** mostra por que uma leitura falhou, sem nenhum segredo.
 
 ## O que cada provedor oferece
 

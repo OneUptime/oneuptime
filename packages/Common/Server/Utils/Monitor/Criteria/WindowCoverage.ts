@@ -39,6 +39,28 @@ export interface WindowCoverageInput {
    * end of the window.
    */
   freshAsOfMs?: number | undefined;
+  /*
+   * When the readings arrived, when that is known: how long nothing new had
+   * arrived, and how often readings arrive. Readings stamped with the time
+   * they measure can be old by that time and still keep arriving - a source
+   * that is late by design, a collector whose clock runs behind - and such a
+   * series is late, not stopped. With this, the newest reading goes stale
+   * only once nothing has arrived for longer than the cadence allows,
+   * however old its own time is, and the window counts as far as the
+   * readings reach. freshAsOfMs is not read then.
+   */
+  arrival?: WindowCoverageArrival | undefined;
+}
+
+export interface WindowCoverageArrival {
+  // How long before the end of the window nothing new had arrived.
+  sinceNewestArrivalMs: number;
+  /*
+   * How often readings arrive, when that is coarser than how often they are
+   * taken: a source that delivers five readings at once every five minutes.
+   * Null when unknown.
+   */
+  arrivalIntervalMs?: number | null | undefined;
 }
 
 export interface WindowCoverageResult {
@@ -61,6 +83,13 @@ export interface WindowCoverageResult {
    * by the window's end, whatever the reading was judged fresh against.
    */
   sinceNewestReadingMs: number | null;
+  /*
+   * How long nothing new had arrived, when the arrivals were known (input
+   * .arrival), and the longest it may be before the readings count as
+   * stale. Null when they were not known.
+   */
+  sinceNewestArrivalMs: number | null;
+  allowedArrivalGapMs: number | null;
 }
 
 /**
@@ -118,6 +147,8 @@ export default class WindowCoverage {
         runEndMs: null,
         holeBeforeRunMs: null,
         sinceNewestReadingMs: null,
+        sinceNewestArrivalMs: null,
+        allowedArrivalGapMs: null,
       };
     }
 
@@ -161,11 +192,45 @@ export default class WindowCoverage {
 
     const staleForMs: number = Math.max(0, freshAsOfMs - (newestMs + spanMs));
 
+    /*
+     * Known arrivals decide freshness on their own: stale once nothing has
+     * arrived for one and a half times how often readings come - or arrive,
+     * when they arrive in batches less often than they are taken.
+     */
+    const arrival: WindowCoverageArrival | null =
+      input.arrival &&
+      typeof input.arrival.sinceNewestArrivalMs === "number" &&
+      Number.isFinite(input.arrival.sinceNewestArrivalMs)
+        ? input.arrival
+        : null;
+
+    const sinceNewestArrivalMs: number | null = arrival
+      ? Math.max(0, arrival.sinceNewestArrivalMs)
+      : null;
+
+    const arrivalIntervalMs: number =
+      arrival &&
+      typeof arrival.arrivalIntervalMs === "number" &&
+      Number.isFinite(arrival.arrivalIntervalMs) &&
+      arrival.arrivalIntervalMs > 0
+        ? arrival.arrivalIntervalMs
+        : 0;
+
+    const allowedArrivalGapMs: number | null = arrival
+      ? Math.max(Math.max(0, input.intervalMs), arrivalIntervalMs) *
+        WindowCoverage.TOLERANCE_FACTOR
+      : null;
+
+    const isStale: boolean =
+      sinceNewestArrivalMs !== null && allowedArrivalGapMs !== null
+        ? sinceNewestArrivalMs > allowedArrivalGapMs
+        : staleForMs > allowedGapMs;
+
     const leadingGapMs: number = oldestMs - input.windowStartMs;
 
     let shortfall: WindowCoverageShortfall | null = null;
 
-    if (staleForMs > allowedGapMs) {
+    if (isStale) {
       shortfall = WindowCoverageShortfall.Stale;
     } else if (holeBeforeRunMs !== null) {
       shortfall = WindowCoverageShortfall.Hole;
@@ -187,6 +252,8 @@ export default class WindowCoverage {
       ),
       holeBeforeRunMs: holeBeforeRunMs,
       sinceNewestReadingMs: sinceNewestReadingMs,
+      sinceNewestArrivalMs: sinceNewestArrivalMs,
+      allowedArrivalGapMs: allowedArrivalGapMs,
     };
   }
 

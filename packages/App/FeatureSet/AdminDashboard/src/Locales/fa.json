@@ -1825,6 +1825,7 @@
   "Copy to clipboard": "کپی در کلیپ‌بورد",
   "Copied": "کپی شد",
   "Status: {{status}}": "وضعیت: {{status}}",
+  "Loading content": "در حال بارگذاری محتوا",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

@@ -47,6 +47,7 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudAuditRecord,
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
@@ -65,6 +66,7 @@ import {
   CloudSavingsOptions,
   CloudSavingsResult,
   getCloudSecretValues,
+  keepsAuditRecords,
   readCloudSetting,
 } from "../CloudConnectorTypes";
 import {
@@ -729,6 +731,12 @@ export default class AzureCloudConnector implements CloudConnector {
       complete: true,
     };
     const isLookBack: boolean = Boolean(options.since);
+    const keepAudit: boolean = keepsAuditRecords(options);
+
+    if (keepAudit) {
+      result.auditRecords = [];
+    }
+
     let subscriptionIds: Array<string> =
       options.state.accounts && options.state.accounts.length > 0
         ? options.state.accounts
@@ -754,13 +762,21 @@ export default class AzureCloudConnector implements CloudConnector {
     const busy: Array<string> = [];
 
     const outcomes: Array<
-      Settled<{ changes: Array<CloudChange>; complete: boolean }>
+      Settled<{
+        changes: Array<CloudChange>;
+        complete: boolean;
+        auditRecords: Array<CloudAuditRecord>;
+      }>
     > = await mapWithConcurrency(
       subscriptionIds.slice(0, AZURE_MAX_SUBSCRIPTIONS),
       CONCURRENCY,
       async (
         subscriptionId: string,
-      ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+      ): Promise<{
+        changes: Array<CloudChange>;
+        complete: boolean;
+        auditRecords: Array<CloudAuditRecord>;
+      }> => {
         const listed: { events: Array<JSONObject>; complete: boolean } =
           await arm.listActivityLog({
             subscriptionId,
@@ -782,18 +798,30 @@ export default class AzureCloudConnector implements CloudConnector {
               return change !== null;
             }) as Array<CloudChange>,
           complete: listed.complete,
+          // The events whole, for Security Events' Cloud audit logs.
+          auditRecords: keepAudit
+            ? listed.events.map((event: JSONObject): CloudAuditRecord => {
+                return { accountId: subscriptionId, record: event };
+              })
+            : [],
         };
       },
     );
 
     outcomes.forEach(
       (
-        outcome: Settled<{ changes: Array<CloudChange>; complete: boolean }>,
+        outcome: Settled<{
+          changes: Array<CloudChange>;
+          complete: boolean;
+          auditRecords: Array<CloudAuditRecord>;
+        }>,
         index: number,
       ) => {
         const subscriptionId: string = subscriptionIds[index]!;
 
         if (outcome.ok) {
+          result.auditRecords?.push(...outcome.value.auditRecords);
+
           result.changes.push(
             ...keepNewChanges({
               state: options.state,

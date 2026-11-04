@@ -55,6 +55,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import AskToConnectCard, {
   ASK_TO_CONNECT_POLL_MS,
+  AskToConnectWorkspaceType,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/AskToConnectCard";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -162,7 +163,7 @@ afterEach(() => {
 });
 
 function renderCard(
-  workspaceType: WorkspaceType = WorkspaceType.Slack,
+  workspaceType: AskToConnectWorkspaceType = WorkspaceType.Slack,
 ): ReturnType<typeof render> {
   return render(
     <MemoryRouter>

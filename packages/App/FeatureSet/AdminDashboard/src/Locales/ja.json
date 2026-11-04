@@ -1825,6 +1825,7 @@
   "Copy to clipboard": "クリップボードにコピー",
   "Copied": "コピーしました",
   "Status: {{status}}": "ステータス: {{status}}",
+  "Loading content": "コンテンツを読み込んでいます",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

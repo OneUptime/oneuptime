@@ -64,10 +64,17 @@ La carte **Vos journaux**, en haut de **Connexions**, ne demande aucune installa
 | Journaux d'activité Azure et d'Entra ID | Les modifications faites dans vos abonnements Azure, les alertes de Defender for Cloud, et les connexions et modifications d'annuaire de Microsoft Entra ID |
 | CEF | Les menaces, les connexions bloquées et les authentifications des pare-feu, IDS, WAF et autres produits de sécurité qui envoient le Common Event Format |
 | LEEF | La même chose depuis les produits qui envoient le Log Event Extended Format, comme beaucoup le font pour IBM QRadar |
+| Palo Alto Networks | Les menaces, les connexions bloquées, les connexions GlobalProtect et d'administrateurs, et les modifications de configuration depuis le syslog propre à PAN-OS |
+| Fortinet FortiGate | Les détections IPS et antivirus, le trafic refusé, les connexions VPN et d'administrateurs, et les modifications de configuration depuis le syslog propre à FortiGate |
+| Cisco ASA | Les connexions refusées, les détections de menaces et d'IPS, les connexions VPN et d'administrateurs, et les commandes de Cisco ASA et Firepower Threat Defense |
 | Journaux d'audit Kubernetes | Les modifications du cluster, les shells ouverts dans des pods, les secrets lus et les requêtes refusées |
 | Attaques web | Les requêtes du journal d'accès d'un serveur web qui tentent une injection SQL, une traversée de répertoires ou Log4Shell |
 
 Vos journaux restent tels quels. Seules les lignes qui comptent pour la sécurité deviennent des événements : jamais chaque page servie par un serveur web, ni chaque lecture d'une API.
+
+Une menace qu'un produit de sécurité écrit dans vos journaux, comme une détection CEF ou LEEF ou une détection IPS d'un FortiGate, ouvre un dossier comme le fait l'alerte d'un produit connecté. **Ouvrir des dossiers à partir de**, sur **Vos journaux**, indique à partir de quelle gravité : **Élevé et au-dessus** sauf si vous en choisissez une autre, ou **Jamais**.
+
+Un compte AWS, un projet Google Cloud ou un abonnement Azure connecté sous **Cloud** n'a besoin d'aucun pipeline de journaux : activez **Journaux d'audit cloud**, sous **Vos données OneUptime** sur **Connexions**, et son journal d'audit est lu avec le compte. Voir [Lire les journaux d'audit de vos comptes cloud](/docs/telemetry/security-events#lire-les-journaux-daudit-de-vos-comptes-cloud).
 
 ## Envoyer ce que trouve OneUptime à votre SIEM
 
@@ -88,7 +95,7 @@ Le dossier s'ouvre en général avant que le bouton ne réponde ; quand la règl
 :::
 
 :::details Aucun événement de sécurité ne vient de mes journaux
-Vérifiez que **Trouver des événements de sécurité dans vos journaux** est activé et que la carte **Vos journaux** indique quand la dernière vérification a eu lieu. Seuls les types de lignes du tableau ci-dessus deviennent des événements : un serveur qui n'envoie ni journaux SSH, sudo, Windows, d'audit, CEF, LEEF ou d'accès n'a rien à trouver. Collez l'une de ses lignes dans **Vérifier une ligne de journal**, sur **Vos journaux**, pour voir si OneUptime la lit.
+Vérifiez que **Trouver des événements de sécurité dans vos journaux** est activé et que la carte **Vos journaux** indique quand la dernière vérification a eu lieu. Seuls les types de lignes du tableau ci-dessus deviennent des événements : un serveur qui n'envoie ni journaux SSH, sudo, Windows, d'audit, CEF, LEEF, de pare-feu ou d'accès n'a rien à trouver. Collez l'une de ses lignes dans **Vérifier une ligne de journal**, sur **Vos journaux**, pour voir si OneUptime la lit.
 :::
 
 :::details Vue d'ensemble indique que le dernier événement de sécurité date de plusieurs jours

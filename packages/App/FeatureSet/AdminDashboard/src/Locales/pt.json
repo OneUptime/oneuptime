@@ -1825,6 +1825,7 @@
   "Copy to clipboard": "Copiar para a área de transferência",
   "Copied": "Copiado",
   "Status: {{status}}": "Situação: {{status}}",
+  "Loading content": "Carregando o conteúdo",
   "markdownCallouts": {
     "caution": "Cuidado",
     "danger": "Perigo",
