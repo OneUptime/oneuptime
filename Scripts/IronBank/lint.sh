@@ -14,12 +14,16 @@
 #   3. The Dockerfile through semgrep with the pipeline's Dockerfile rules
 #      (semgrep-dockerfile-lint). Every finding is printed; ERROR ones (root as
 #      the last user, no USER, a relative WORKDIR, a mounted docker socket)
-#      fail here, as they fail Iron Bank's review.
+#      fail here, as they fail Iron Bank's review. Iron Bank accepts root with
+#      a justification: with ALLOW_ROOT=1 the two root rules are reported and
+#      do not fail. The workflow sets it for the ingress and the probe, which
+#      run as root as their releases do (IronBank/README.md says why).
 #
 # Usage:
 #   bash Scripts/IronBank/lint.sh IronBank/App
+#   ALLOW_ROOT=1 bash Scripts/IronBank/lint.sh IronBank/Probe
 #
-# Needs curl, yq and pipx (GitHub's Ubuntu runners have all three).
+# Needs curl, jq, yq and pipx (GitHub's Ubuntu runners have all four).
 
 set -euo pipefail
 
@@ -64,6 +68,28 @@ echo "3. ${DOCKERFILE} through Iron Bank's semgrep rules"
 pipx run --spec "$SEMGREP" semgrep scan --metrics=off --disable-version-check \
 	--config "${WORK}/semgrep-dockerfile-rules.yaml" "$DOCKERFILE"
 pipx run --spec "$SEMGREP" semgrep scan --metrics=off --disable-version-check --quiet \
-	--config "${WORK}/semgrep-dockerfile-rules.yaml" --severity ERROR --error "$DOCKERFILE"
+	--config "${WORK}/semgrep-dockerfile-rules.yaml" --severity ERROR --json "$DOCKERFILE" \
+	> "${WORK}/errors.json"
+
+# semgrep names a rule by the path of the file it came from, then its id.
+ALLOWED='^$'
+if [[ "${ALLOW_ROOT:-0}" == "1" ]]; then
+	ALLOWED='[.](last-user-is-root|missing-user)$'
+fi
+ACCEPTED="$(jq -r --arg allowed "$ALLOWED" \
+	'.results[] | select(.check_id | test($allowed)) | (.check_id | split(".") | last)' \
+	"${WORK}/errors.json")"
+BLOCKING="$(jq -r --arg allowed "$ALLOWED" \
+	'.results[] | select(.check_id | test($allowed) | not) | "\(.check_id | split(".") | last) (line \(.start.line)): \(.extra.message | gsub("\\s+"; " "))"' \
+	"${WORK}/errors.json")"
+if [[ -n "$ACCEPTED" ]]; then
+	echo "::notice file=${DOCKERFILE}::Runs as root, which Iron Bank accepts with a justification (IronBank/README.md): $(echo "$ACCEPTED" | sort -u | paste -sd ',' - | sed 's/,/, /g')"
+fi
+if [[ -n "$BLOCKING" ]]; then
+	while IFS= read -r finding; do
+		echo "::error file=${DOCKERFILE}::Iron Bank's semgrep rules: ${finding}"
+	done <<<"$BLOCKING"
+	exit 1
+fi
 
 echo "✅ ${DIR} passes Iron Bank's lint"

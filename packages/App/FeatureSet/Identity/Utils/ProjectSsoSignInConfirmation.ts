@@ -15,6 +15,8 @@ import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
+import RequestOrigin from "Common/Types/RequestOrigin";
 import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
@@ -306,6 +308,8 @@ export default class ProjectSsoSignInConfirmation {
     projectId: ObjectID;
     kind: ProjectSsoKind;
     providerId: ObjectID;
+    // The sign-in's request: the browser the identity provider sent back.
+    origin?: RequestOrigin | undefined;
   }): Promise<void> {
     try {
       if (!data.user.id || !data.user.email) {
@@ -385,6 +389,14 @@ export default class ProjectSsoSignInConfirmation {
           confirmationUrl: confirmationUrl.toString(),
           expiryNote: `This link expires in ${PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS} hours and can only be used once.`,
           homeUrl: new URL(httpProtocol, host).toString(),
+          /*
+           * When, from where and on which device the sign-in came: the
+           * recipient may never have tried to sign in at all.
+           */
+          ...RequestOriginUtil.getEmailVars({
+            origin: data.origin,
+            timezone: data.user.timezone,
+          }),
         },
       });
     } catch (err) {

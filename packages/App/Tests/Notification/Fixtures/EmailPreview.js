@@ -196,6 +196,12 @@ const common = {
   subject: "Verify your email address",
   code: "482 916",
   tokenVerifyUrl: `${home}/accounts/reset-password?token=preview-only-6ac38353b0a0428dab4ed020f391aae3&email=alex%40example.com`,
+  // Where a security email's request came from (RequestOriginUtil).
+  requestedAt: "Sep 7, 2026, 9:30 AM BST",
+  requestIpAddress: "203.0.113.7",
+  requestLocation: "London, England, United Kingdom",
+  requestDevice: "Chrome 130 on macOS",
+  forgotPasswordUrl: `${home}/accounts/forgot-password`,
   dashboardLink: `${project}/settings/billing`,
   invoicePdfUrl: `${home}/invoices/INV-2026-0094.pdf`,
   incidentNumber: "INC-184",

@@ -98,18 +98,19 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: undefined };
     }
 
-    const products: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        _id: true,
+    /*
+     * Every product the update writes, and the update held to them: each
+     * one's SLA is checked as it will be saved - however many - and never a
+     * product its caller may not write.
+     */
+    const products: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         freshByTimeOfDay: true,
         maxDataAgeInMinutes: true,
         slaTargetPercentage: true,
       },
-      limit: 10,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     for (const product of products) {
       const error: string | null = getDataProductSlaError({

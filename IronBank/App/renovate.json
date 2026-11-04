@@ -5,7 +5,9 @@
   "packageRules": [
     {
       "matchDatasources": ["docker"],
-      "matchPackageNames": ["registry1.dso.mil/ironbank/opensource/nodejs/nodejs26"],
+      "matchPackageNames": [
+        "registry1.dso.mil/ironbank/opensource/nodejs/nodejs26"
+      ],
       "matchUpdateTypes": ["major"],
       "enabled": false
     }
