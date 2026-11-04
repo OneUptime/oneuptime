@@ -75,7 +75,7 @@ describe("readProbeCollectWork", () => {
     expect(
       readProbeCollectWork({
         dataStoreId: "x",
-        engine: "oracle",
+        engine: "redis",
         probeConnectionVariable: "DB",
       }),
     ).toBeNull();

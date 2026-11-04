@@ -228,6 +228,8 @@ Todo acionamento pode ser escalonado de onde ele chegou até você:
 
 Todos os meios, menos a chamada, perguntam antes de fazer qualquer coisa e dizem o que vai acontecer, por exemplo "This will immediately page Platform leads (Level 2 of 3), without waiting."; em uma chamada, pressionar 2 é a resposta. Só a pessoa acionada pode escalonar o acionamento dela: o botão no OneUptime aparece só para ela, e o link de uma mensagem escalona só o acionamento de que trata, para a pessoa a quem foi enviado, durante 7 dias.
 
+Com dois ou mais níveis depois do seu, o OneUptime e as páginas que os links de uma mensagem abrem também perguntam qual nível acionar, em **Escalonar para**, com o próximo nível escolhido. Deixe assim para acionar o próximo nível, como sempre, ou escolha um nível posterior para acioná-lo imediatamente no lugar: os níveis intermediários são pulados, e a política continua a partir do nível escolhido. Uma chamada e o app OneUptime On-Call acionam o próximo nível.
+
 O que acontece depois depende de quem mais está sendo acionado:
 
 - Outras pessoas do mesmo nível ainda estão sendo acionadas: a política espera por elas, como antes. Ela segue quando a espera do nível acaba, ou assim que a última delas também escalona.
@@ -238,7 +240,7 @@ Escalonar um acionamento não o confirma: o incidente ou alerta continua esperan
 
 Um acionamento que um workflow envia diretamente a pessoas não tem níveis: escaloná-lo faz você deixar de ser acionado, e quando todos que ele acionou já escalonaram, os acionamentos param.
 
-Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**.
+Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**. Um nível pulado por um posterior aparece como **Ignorado** na **Linha do tempo de execução**, e o feed diz "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 
 ## Editar, reordenar e excluir regras
 

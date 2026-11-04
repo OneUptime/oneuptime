@@ -9,7 +9,7 @@ Lineage says which tables each table is built from, and which pipelines write it
 | **OpenLineage** | Every run of an Airflow, Dagster, Spark, dbt or Flink job, the tables it read and wrote |
 | **dbt** | What each model is built from, each build as a run, and each test's result |
 | **Fivetran and Airbyte** | Each sync as a run of its connector, and the raw tables it loads |
-| **Views** | A view is built from the tables it is defined on (PostgreSQL, Redshift, MySQL 8, SQL Server, ClickHouse materialized views, Databricks) |
+| **Views** | A view is built from the tables it is defined on (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, ClickHouse materialized views, Databricks, MongoDB) |
 | **Query history** | A query that read one table and wrote another (BigQuery's jobs, Redshift's query log, ClickHouse's query log, Databricks' lineage table) |
 
 A table's **Lineage** tab shows the tables it is built from, the pipelines that write it with their latest run, and the tables built from it. Each edge says where it was seen.

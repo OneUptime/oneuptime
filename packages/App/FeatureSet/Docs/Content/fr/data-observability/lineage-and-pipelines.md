@@ -9,7 +9,7 @@ Le lignage indique à partir de quelles tables chaque table est construite, et q
 | **OpenLineage** | Chaque exécution d'un job Airflow, Dagster, Spark, dbt ou Flink, avec les tables qu'il a lues et écrites |
 | **dbt** | Ce à partir de quoi chaque modèle est construit, chaque build comme une exécution, et le résultat de chaque test |
 | **Fivetran et Airbyte** | Chaque synchronisation comme une exécution de son connecteur, et les tables brutes qu'elle charge |
-| **Vues** | Une vue est construite à partir des tables sur lesquelles elle est définie (PostgreSQL, Redshift, MySQL 8, SQL Server, vues matérialisées ClickHouse, Databricks) |
+| **Vues** | Une vue est construite à partir des tables sur lesquelles elle est définie (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, vues matérialisées ClickHouse, Databricks, MongoDB) |
 | **Historique des requêtes** | Une requête qui a lu une table et en a écrit une autre (les jobs de BigQuery, le journal des requêtes de Redshift, le journal des requêtes de ClickHouse, la table de lignage de Databricks) |
 
 L'onglet **Lignage** d'une table montre les tables à partir desquelles elle est construite, les pipelines qui y écrivent avec leur dernière exécution, et les tables construites à partir d'elle. Chaque lien indique où il a été observé.

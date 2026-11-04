@@ -96,6 +96,7 @@ export const ChangeEventAttribute: {
   readonly CloudAccountId: string;
   readonly CloudRegion: string;
   readonly CloudResourceId: string;
+  readonly CloudResourceName: string;
   readonly CloudOperation: string;
   readonly CloudActor: string;
   readonly CloudEventId: string;
@@ -138,6 +139,12 @@ export const ChangeEventAttribute: {
   CloudAccountId: "cloud.account.id",
   CloudRegion: "cloud.region",
   CloudResourceId: "cloud.resource_id",
+  /*
+   * The name OneUptime holds the changed resource by (its Cloud Resource's),
+   * which the change's title names: the title is worded from it in the
+   * reader's language (Utils/Telemetry/CloudChangeTitle).
+   */
+  CloudResourceName: "oneuptime.cloud.resource_name",
   // What the activity log recorded, and who did it.
   CloudOperation: "oneuptime.cloud.operation",
   CloudActor: "oneuptime.cloud.actor",
@@ -275,6 +282,7 @@ export interface ChangeEventFields {
   cloudAccountId?: string | undefined;
   cloudRegion?: string | undefined;
   cloudResourceId?: string | undefined;
+  cloudResourceName?: string | undefined;
   cloudOperation?: string | undefined;
   cloudActor?: string | undefined;
   cloudAccountRecordId?: string | undefined;
@@ -349,6 +357,7 @@ export function readChangeEventFields(
     cloudAccountId: read(ChangeEventAttribute.CloudAccountId),
     cloudRegion: read(ChangeEventAttribute.CloudRegion),
     cloudResourceId: read(ChangeEventAttribute.CloudResourceId),
+    cloudResourceName: read(ChangeEventAttribute.CloudResourceName),
     cloudOperation: read(ChangeEventAttribute.CloudOperation),
     cloudActor: read(ChangeEventAttribute.CloudActor),
     cloudAccountRecordId: read(ChangeEventAttribute.CloudAccountRecordId),

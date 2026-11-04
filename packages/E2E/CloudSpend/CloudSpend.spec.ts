@@ -572,6 +572,12 @@ test.describe("the Overview", () => {
     await expect(
       appPlatforms.getByTestId("cloud-app-platforms-apps"),
     ).toHaveAttribute("href", `${DASHBOARD}/app-platforms/apps`);
+    // Those lists hold every environment: the one Cloud does not read is said.
+    await expect(
+      appPlatforms.getByTestId("cloud-app-platforms-other-environments"),
+    ).toHaveText(
+      "App Platforms also lists 1 environment, with its apps, from an account not connected to Cloud.",
+    );
 
     /*
      * Needs attention reads only the resources a read found something
@@ -732,6 +738,64 @@ test.describe("the Overview", () => {
     await expect(page.getByTestId("cloud-savings-card")).toContainText(
       "1.279 $",
     );
+
+    /*
+     * #5646's review: a long word that fits a line of its own moves there
+     * whole - "ERFORDERT / AUFMERKSAMKEIT", never "AUFMERK- / SAMKEIT" -
+     * each (i) is on its title's last line, never on a line of its own,
+     * and the four values start on one line however many lines a title
+     * takes.
+     */
+    const attention: Locator = tileOf(
+      page,
+      "cloud-overview-strip",
+      "attention",
+    );
+    const longWord: Locator = attention
+      .getByTestId("cloud-stat-tile-title")
+      .locator("span.inline-block");
+    await expect(longWord).toHaveText(german("Needs attention").split(" ")[1]!);
+    const [wordBox, titleBox] = await boxesInOneFrame([
+      longWord,
+      attention.getByTestId("cloud-stat-tile-title"),
+    ]);
+    // One line: the word whole, no hyphen.
+    expect(wordBox!.height).toBeLessThanOrEqual(17);
+    expect(wordBox!.y + wordBox!.height).toBeGreaterThanOrEqual(
+      titleBox!.y + titleBox!.height - 17,
+    );
+    for (const key of ["accounts", "resources", "attention", "spend"]) {
+      const title: Locator = tileOf(
+        page,
+        "cloud-overview-strip",
+        key,
+      ).getByTestId("cloud-stat-tile-title");
+      const [info, words] = await boxesInOneFrame([
+        title.getByRole("button"),
+        title,
+      ]);
+      // The (i) sits on the title's last line.
+      expect(info!.y, key).toBeGreaterThanOrEqual(
+        words!.y + words!.height - 17,
+      );
+    }
+    const values: Array<FrameBox> = await boxesInOneFrame(
+      ["accounts", "resources", "attention", "spend"].map(
+        (key: string): Locator => {
+          return tileOf(page, "cloud-overview-strip", key).getByTestId(
+            "cloud-stat-tile-value",
+          );
+        },
+      ),
+    );
+    for (const value of values) {
+      expect(Math.round(value.y)).toBe(Math.round(values[0]!.y));
+    }
+
+    // What a way to spend less asks, in German.
+    await expect(
+      page.getByTestId("cloud-savings-top-row").first(),
+    ).toContainText(german("Rightsize"));
 
     // Long German titles wrap inside their tiles; none runs out of it.
     for (const tile of await strip(page, "cloud-overview-strip")
@@ -1155,12 +1219,23 @@ test.describe("Costs", () => {
     expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await expect(breakdownTotal(page)).toHaveText(`${accountSpend} in all`);
 
-    // One account: no breakdown by account.
+    // One account: no breakdown by account, and its card does not offer one.
     await expect(dimensions(page).getByRole("radio")).toHaveText([
       "Services",
       "Regions",
       "Resources",
     ]);
+    await expect(
+      page.getByText("What cost the most, by service, Region or resource.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "What cost the most, by service, Region, account or resource.",
+        { exact: true },
+      ),
+    ).toHaveCount(0);
 
     // Only this account's costs are summed.
     for (const request of (await recorded(page)).aggregateRequests) {

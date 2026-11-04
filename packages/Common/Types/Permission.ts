@@ -6473,8 +6473,20 @@ export class PermissionHelper {
       },
       {
         permission: Permission.CreateProjectOnCallDutyPolicyExecutionLog,
-        title: "Create On-Call Duty Policy Execution Log",
-        description: "This permission can create on-call duty execution log.",
+        /*
+         * The permission a run of an on-call policy is created with: to page
+         * a policy about an incident, an alert or an episode - a record's
+         * Execute On-Call Policy, Page now on a page OneUptime AI holds, a
+         * chat's /oneuptime page, the API. Named after what it allows, as
+         * the lock on those buttons names it ("You need this permission:
+         * Execute On-Call Duty Policy."), not after the row it writes - and
+         * as its siblings name the policy (Create, Edit, Read On-Call Duty
+         * Policy), so it is never the record's button's own words, which a
+         * translated page draws in its language.
+         */
+        title: "Execute On-Call Duty Policy",
+        description:
+          "This permission can execute on-call policies: page their escalation rules about an incident, an alert or an episode.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

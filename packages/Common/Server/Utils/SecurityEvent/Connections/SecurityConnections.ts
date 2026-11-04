@@ -49,6 +49,10 @@ import {
   readChangeEventFields,
 } from "../../../../Utils/Telemetry/ChangeEventFields";
 import {
+  CloudChangeTitleFacts,
+  readCloudChangeTitleFacts,
+} from "../../../../Utils/Telemetry/CloudChangeTitle";
+import {
   keyForHost,
   keyForInventoryEntity,
   keyForKubernetesCluster,
@@ -1352,6 +1356,13 @@ export default class SecurityConnections {
         }
       }
 
+      // A cloud change's title is worded from these on the page.
+      const cloudChange: CloudChangeTitleFacts | null =
+        readCloudChangeTitleFacts({
+          title: row.title,
+          attributes: (row.attributes as Dictionary<unknown>) || {},
+        });
+
       for (const key of Array.from(keys)) {
         const list: Array<SecurityConnectionChangeJson> =
           changes.get(key) || [];
@@ -1362,6 +1373,7 @@ export default class SecurityConnections {
             time: new Date(row.time).toISOString(),
             title: row.title || "",
             eventType: row.eventType || "change",
+            ...(cloudChange ? { cloudChange } : {}),
           });
         }
 

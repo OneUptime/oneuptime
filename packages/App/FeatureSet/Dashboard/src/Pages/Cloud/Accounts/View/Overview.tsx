@@ -44,7 +44,7 @@ import {
   CloudProvider,
   getCloudProviderLabel,
 } from "Common/Types/Cloud/CloudPlatform";
-import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -433,7 +433,7 @@ const CloudAccountOverview: FunctionComponent<
         status={status.label}
         statusLabel={status.label}
         statusTone={status.tone}
-        statusDescription="Reading while a cloud connection has read the account within the last hour."
+        statusDescription={status.description}
         lastSeenAt={account.lastSeenAt}
         description={account.description as string}
         chips={chips}
@@ -480,7 +480,7 @@ const CloudAccountOverview: FunctionComponent<
               (entry: CloudAccountTypeCount): RankedBarItem => {
                 return {
                   key: entry.type,
-                  label: getCloudResourceTypeLabel(provider, entry.type),
+                  label: getCloudResourceTypeDisplayName(provider, entry.type),
                   count: entry.count,
                 };
               },

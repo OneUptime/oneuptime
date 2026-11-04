@@ -228,6 +228,8 @@ Chaque alerte peut être escaladée là où elle vous a atteint :
 
 Chaque moyen, sauf l'appel, demande avant d'agir et dit ce qui va se passer, par exemple « This will immediately page Platform leads (Level 2 of 3), without waiting. » ; lors d'un appel, appuyer sur 2 est la réponse. Seule la personne alertée peut escalader son alerte : le bouton dans OneUptime ne s'affiche que pour elle, et le lien d'un message n'escalade que l'alerte dont il parle, pour la personne à qui il a été envoyé, pendant 7 jours.
 
+Avec deux niveaux ou plus après le vôtre, OneUptime et les pages qu'ouvrent les liens d'un message demandent aussi quel niveau alerter, sous **Escalader vers**, le niveau suivant étant choisi. Laissez-le pour alerter le niveau suivant, comme toujours, ou choisissez un niveau plus loin pour l'alerter immédiatement à la place : les niveaux intermédiaires sont sautés, et la politique continue à partir du niveau choisi. Un appel et l'application OneUptime On-Call alertent le niveau suivant.
+
 La suite dépend des autres personnes encore alertées :
 
 - D'autres personnes du même niveau sont encore alertées : la politique les attend, comme avant. Elle passe à la suite quand le délai du niveau expire, ou dès que la dernière d'entre elles escalade aussi l'alerte.
@@ -238,7 +240,7 @@ Escalader une alerte n'en accuse pas réception : l'incident ou l'alerte attend 
 
 Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
 
-Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at Level 1 of 3. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
+Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at Level 1 of 3. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**. Un niveau sauté pour un niveau plus loin est marqué **Ignoré** dans la **Chronologie d'exécution**, et le fil d'activité indique « On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it. »
 
 ## Modifier, réordonner et supprimer des règles
 

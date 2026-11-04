@@ -16,7 +16,7 @@ Tilføj et tjek på en tabels fane **Tjek**:
 | **Format Mismatch Percent** | Procentdel af værdier, der ikke matcher et regulært udtryk (alle motorer undtagen SQL Server) |
 | **Orphan Count** | Rækker, hvis værdi ikke har noget match i en anden tabels kolonne |
 | **Row Count** | Rækker i tabellen, mest nyttigt med **Segment By** |
-| **Brugerdefineret SQL** | Det tal, som en skrivebeskyttet SELECT af din egen returnerer, med navnet `value` |
+| **Brugerdefineret SQL** | Det tal, som en skrivebeskyttet SELECT af din egen returnerer, med navnet `value` (i MongoDB en aggregeringspipelines) |
 
 Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som én aggregerende sætning i en skrivebeskyttet transaktion med en tidsgrænse for sætningen. Dets værdi skrives som `oneuptime.data.check.value`, med `oneuptime.data.check.id`, `oneuptime.data.check.name` og `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som é
 
 ## Et tjek ud fra en sætning
 
-**Skriv et tjek ud fra en sætning** gør en regel som "ordrer har aldrig en negativ total" til et tjek med brugerdefineret SQL, der tæller de rækker, der bryder den, i din motors egen SQL, med en advarsel, når der er nogen. Du læser forespørgslen, før **Tilføj tjek** tilføjer den, og den skal opfylde de samme krav som ethvert tjek med brugerdefineret SQL. Det kræver, at OneUptime AI er slået til for projektet.
+**Skriv et tjek ud fra en sætning** gør en regel som "ordrer har aldrig en negativ total" til et tjek med brugerdefineret SQL, der tæller de rækker, der bryder den, i din motors egen SQL, med en advarsel, når der er nogen. Du læser forespørgslen, før **Tilføj tjek** tilføjer den, og den skal opfylde de samme krav som ethvert tjek med brugerdefineret SQL. Det kræver, at OneUptime AI er slået til for projektet. I MongoDB er resultatet en aggregeringspipeline.
 
 ## Segmenter
 

@@ -16,7 +16,7 @@ Lägg till en kontroll på en tabells flik **Kontroller**:
 | **Format Mismatch Percent** | Procentandel värden som inte matchar ett reguljärt uttryck (alla motorer utom SQL Server) |
 | **Orphan Count** | Rader vars värde saknar motsvarighet i en annan tabells kolumn |
 | **Row Count** | Rader i tabellen, mest användbart med **Segment By** |
-| **Anpassad SQL** | Talet som en egen SELECT med enbart läsbehörighet returnerar, med namnet `value` |
+| **Anpassad SQL** | Talet som en egen SELECT med enbart läsbehörighet returnerar, med namnet `value` (i MongoDB en aggregeringspipelines) |
 
 Varje kontroll körs var 15:e minut, varje timme, var 6:e timme eller varje dag, som en enda aggregerande sats i en transaktion med enbart läsbehörighet och en tidsgräns för satsen. Dess värde skrivs som `oneuptime.data.check.value`, med `oneuptime.data.check.id`, `oneuptime.data.check.name` och `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Varje kontroll körs var 15:e minut, varje timme, var 6:e timme eller varje dag,
 
 ## En kontroll utifrån en mening
 
-**Skriv en kontroll utifrån en mening** gör en regel som "order har aldrig ett negativt totalbelopp" till en kontroll med anpassad SQL som räknar de rader som bryter mot den, i din motors egen SQL, med ett larm när någon rad gör det. Du läser frågan innan **Lägg till kontroll** lägger till den, och den måste uppfylla samma krav som varje kontroll med anpassad SQL. Det kräver att OneUptime AI är påslaget för projektet.
+**Skriv en kontroll utifrån en mening** gör en regel som "order har aldrig ett negativt totalbelopp" till en kontroll med anpassad SQL som räknar de rader som bryter mot den, i din motors egen SQL, med ett larm när någon rad gör det. Du läser frågan innan **Lägg till kontroll** lägger till den, och den måste uppfylla samma krav som varje kontroll med anpassad SQL. Det kräver att OneUptime AI är påslaget för projektet. I MongoDB blir resultatet en aggregeringspipeline.
 
 ## Segment
 

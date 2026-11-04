@@ -16,7 +16,7 @@ Adicione uma verificação na aba **Verificações** de uma tabela:
 | **Format Mismatch Percent** | Porcentagem de valores que não correspondem a uma expressão regular (todos os mecanismos, exceto o SQL Server) |
 | **Orphan Count** | Linhas cujo valor não tem correspondência na coluna de outra tabela |
 | **Row Count** | Linhas na tabela, mais útil com **Segment By** |
-| **SQL personalizado** | O número que um SELECT somente leitura seu retorna, chamado `value` |
+| **SQL personalizado** | O número que um SELECT somente leitura seu retorna, chamado `value` (no MongoDB, o de um pipeline de agregação) |
 
 Cada verificação roda a cada 15 minutos, hora, 6 horas ou dia, como uma única instrução de agregação em uma transação somente leitura com um tempo limite de instrução. O valor dela é gravado como `oneuptime.data.check.value`, com `oneuptime.data.check.id`, `oneuptime.data.check.name` e `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Cada verificação roda a cada 15 minutos, hora, 6 horas ou dia, como uma única
 
 ## Uma verificação a partir de uma frase
 
-**Escrever uma verificação a partir de uma frase** transforma uma regra como "pedidos nunca têm total negativo" em uma verificação de SQL personalizado que conta as linhas que a violam, no próprio SQL do seu mecanismo, com um alerta quando alguma violar. Você lê a consulta antes que **Adicionar verificação** a adicione, e ela segue as mesmas regras de qualquer verificação de SQL personalizado. É preciso que o OneUptime AI esteja ativado para o projeto.
+**Escrever uma verificação a partir de uma frase** transforma uma regra como "pedidos nunca têm total negativo" em uma verificação de SQL personalizado que conta as linhas que a violam, no próprio SQL do seu mecanismo, com um alerta quando alguma violar. Você lê a consulta antes que **Adicionar verificação** a adicione, e ela segue as mesmas regras de qualquer verificação de SQL personalizado. É preciso que o OneUptime AI esteja ativado para o projeto. No MongoDB, o resultado é um pipeline de agregação.
 
 ## Segmentos
 

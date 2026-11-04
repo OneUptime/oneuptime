@@ -1267,6 +1267,99 @@ describe("a cloud resource's facts", () => {
     );
   });
 
+  test("what changed on it carries the facts its title is worded from in the reader's language", async () => {
+    const CLOUD_ID: string = "ffffffff-ffff-4fff-8fff-fffffffffff7";
+
+    caseRead();
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: [
+        connected(SecurityConnectionKind.CloudResource, CLOUD_ID, "web-alb"),
+      ],
+    });
+    changeSpy.mockResolvedValue([
+      {
+        _id: "cloud-1",
+        time: new Date("2026-10-25T09:50:00.000Z"),
+        eventType: "config-change",
+        title: "Failed: DeleteLoadBalancer on web-alb",
+        attributes: {
+          "oneuptime.change.source": "cloud",
+          "oneuptime.cloud.operation": "DeleteLoadBalancer",
+          "oneuptime.change.status": "failed",
+          "oneuptime.cloud.resource_name": "web-alb",
+          "oneuptime.resource.id": CLOUD_ID,
+        },
+      },
+      // Written before the resource's name was kept: its title says it.
+      {
+        _id: "cloud-2",
+        time: new Date("2026-10-25T09:45:00.000Z"),
+        eventType: "config-change",
+        title: "ModifyLoadBalancerAttributes on web-alb",
+        attributes: {
+          "oneuptime.change.source": "cloud",
+          "oneuptime.cloud.operation": "ModifyLoadBalancerAttributes",
+          "oneuptime.change.status": "succeeded",
+          "oneuptime.resource.id": CLOUD_ID,
+        },
+      },
+      // A health event's title is its provider's: no facts.
+      {
+        _id: "cloud-3",
+        time: new Date("2026-10-25T09:40:00.000Z"),
+        eventType: "provider-event",
+        title: "AWS Health: ELB operational issue (open)",
+        attributes: {
+          "oneuptime.change.source": "cloud-health",
+          "oneuptime.cloud.operation":
+            "AWS_ELASTICLOADBALANCING_OPERATIONAL_ISSUE",
+          "oneuptime.resource.id": CLOUD_ID,
+        },
+      },
+    ] as never);
+
+    const json: SecurityConnectionsJson = (await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    }))!;
+
+    expect(
+      resource(json, SecurityConnectionKind.CloudResource).recentChanges,
+    ).toEqual([
+      {
+        id: "cloud-1",
+        time: "2026-10-25T09:50:00.000Z",
+        title: "Failed: DeleteLoadBalancer on web-alb",
+        eventType: "config-change",
+        cloudChange: {
+          operation: "DeleteLoadBalancer",
+          resource: "web-alb",
+          failed: true,
+        },
+      },
+      {
+        id: "cloud-2",
+        time: "2026-10-25T09:45:00.000Z",
+        title: "ModifyLoadBalancerAttributes on web-alb",
+        eventType: "config-change",
+        cloudChange: {
+          operation: "ModifyLoadBalancerAttributes",
+          resource: "web-alb",
+          failed: false,
+        },
+      },
+      {
+        id: "cloud-3",
+        time: "2026-10-25T09:40:00.000Z",
+        title: "AWS Health: ELB operational issue (open)",
+        eventType: "provider-event",
+      },
+    ]);
+  });
+
   test("a serverless function has no incidents, alerts or monitors of its own to read", async () => {
     caseRead();
     resolveSpy.mockResolvedValue({

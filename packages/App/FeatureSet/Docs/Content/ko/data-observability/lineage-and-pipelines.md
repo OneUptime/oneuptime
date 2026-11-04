@@ -9,7 +9,7 @@
 | **OpenLineage** | Airflow, Dagster, Spark, dbt, Flink 작업의 모든 실행과, 그 실행이 읽고 쓴 테이블 |
 | **dbt** | 각 모델이 무엇으로부터 만들어지는지, 실행으로서의 각 빌드, 그리고 각 테스트의 결과 |
 | **Fivetran과 Airbyte** | 커넥터의 실행으로서의 각 동기화와, 그 동기화가 적재하는 원시 테이블 |
-| **뷰** | 뷰는 그 정의에 쓰인 테이블로부터 만들어집니다(PostgreSQL, Redshift, MySQL 8, SQL Server, ClickHouse 구체화된 뷰, Databricks) |
+| **뷰** | 뷰는 그 정의에 쓰인 테이블로부터 만들어집니다(PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, ClickHouse 구체화된 뷰, Databricks, MongoDB) |
 | **쿼리 기록** | 한 테이블을 읽고 다른 테이블에 쓴 쿼리(BigQuery의 작업, Redshift의 쿼리 로그, ClickHouse의 쿼리 로그, Databricks의 리니지 테이블) |
 
 테이블의 **계보** 탭에는 그 테이블을 만드는 테이블, 그 테이블에 쓰는 파이프라인과 그 최신 실행, 그리고 그 테이블로부터 만들어지는 테이블이 표시됩니다. 각 엣지에는 그것이 어디서 확인되었는지가 나옵니다.

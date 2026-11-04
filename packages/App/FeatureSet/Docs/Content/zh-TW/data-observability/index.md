@@ -1,6 +1,6 @@
 # 資料可觀測性
 
-資料可觀測性會監看你的公司所倚賴的資料表，無論它們位於 PostgreSQL、MySQL、SQL Server、Redshift、Snowflake、BigQuery、ClickHouse 還是 Databricks，並在使用這些資料的人察覺之前，告訴你哪些資料延遲、缺漏、錯誤或損壞。它會自行學習每個資料表的節奏，只讀取每個資料庫的目錄而從不讀取任何一列，並把每個資料問題連結到背後的管線執行、部署或上游資料表。
+資料可觀測性會監看你的公司所倚賴的資料表，無論它們位於 PostgreSQL、MySQL、SQL Server、Oracle、MongoDB、Redshift、Snowflake、BigQuery、ClickHouse、Databricks 還是 Athena，並在使用這些資料的人察覺之前，告訴你哪些資料延遲、缺漏、錯誤或損壞。它會自行學習每個資料表的節奏，只讀取每個資料庫的目錄而從不讀取任何一列，並把每個資料問題連結到背後的管線執行、部署或上游資料表。
 
 它能回答四個疑問：
 

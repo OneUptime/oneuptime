@@ -1,3 +1,4 @@
+import { ON_CALL_TAG_TEXT_CLASS_NAME } from "../OnCallLabelClasses";
 import {
   getColorForUserId,
   getUserAvatarStyle,
@@ -125,7 +126,9 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
           {shift.userName}
         </span>
         {isActive && (
-          <span className="ml-auto shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 ring-1 ring-inset ring-green-200">
+          <span
+            className={`ml-auto shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 ${ON_CALL_TAG_TEXT_CLASS_NAME} text-green-700 ring-1 ring-inset ring-green-200`}
+          >
             {translator.translateText("On call now")}
           </span>
         )}

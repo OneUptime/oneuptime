@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * No index or foreign key is added to the existing table, so nothing scans,
  * locks or rewrites it.
  */
-export class AddCloudConnectionStreams1808992500000
+export class AddCloudConnectionStreams1808992600000
   implements MigrationInterface
 {
-  public name: string = "AddCloudConnectionStreams1808992500000";
+  public name: string = "AddCloudConnectionStreams1808992600000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

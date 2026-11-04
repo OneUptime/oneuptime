@@ -21,6 +21,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import escapeRegExp from "../../../../Utils/RegExpEscape";
 import DataAssetLineageService from "../../../Services/DataAssetLineageService";
 import DataAssetService from "../../../Services/DataAssetService";
 import DataAssetUsageService from "../../../Services/DataAssetUsageService";
@@ -730,9 +731,13 @@ export function readDataChanges(
   return changes.slice(0, MAX_CHANGES);
 }
 
-// A regular expression that finds a column's name as a whole word, in any case.
+/*
+ * A regular expression that finds a column's name as a whole word, in any
+ * case, for ClickHouse's match() (RE2), which reads a backslash before any
+ * of the characters escapeRegExp escapes as that character itself.
+ */
 export function columnPattern(column: string): string {
-  return `(?i)\\b${column.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`;
+  return `(?i)\\b${escapeRegExp(column)}\\b`;
 }
 
 export default class ProductionReviewDataImpact {

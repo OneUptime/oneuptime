@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -10,7 +11,7 @@ import React, {
 import ReadinessDot, { ReadinessUnknownDot } from "../Readiness/ReadinessDot";
 import StatTile, { StatTileGrid } from "../Readiness/StatTile";
 import {
-  NO_ONE_NEXT_LABEL,
+  NO_ONE_NEXT_IN_CHIP_LABEL,
   NO_ONE_NEXT_TOOLTIP,
 } from "./EscalationRuleReadiness";
 import {
@@ -373,7 +374,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                   {responder.isUncovered ? (
                     <>
                       {" "}
-                      <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide">
+                      <span className="whitespace-nowrap font-semibold">
                         {translator.translateText("no one on call")}
                       </span>
                     </>
@@ -385,9 +386,9 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                       {" "}
                       <span
                         data-testid="escalation-summary-no-one-next"
-                        className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide"
+                        className="whitespace-nowrap font-semibold"
                       >
-                        {translator.translateText(NO_ONE_NEXT_LABEL)}
+                        {translator.translateText(NO_ONE_NEXT_IN_CHIP_LABEL)}
                       </span>
                     </>
                   ) : (
@@ -481,7 +482,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
         {/* Condensed escalation timeline */}
         <div>
           {/* Trigger node */}
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <div className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
             <Icon icon={IconProp.Alert} className="h-3.5 w-3.5 text-red-400" />
             {translator.translateText("Incident triggered")}
           </div>

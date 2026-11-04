@@ -32,6 +32,19 @@ const WRITE_OPERATIONS: ReadonlySet<string> = new Set([
   "TRUNCATE",
   "LOAD",
   "BULK",
+  // MongoDB's: what its drivers name each call.
+  "INSERTONE",
+  "INSERTMANY",
+  "UPDATEONE",
+  "UPDATEMANY",
+  "REPLACEONE",
+  "DELETEONE",
+  "DELETEMANY",
+  "BULKWRITE",
+  "FINDANDMODIFY",
+  "FINDONEANDUPDATE",
+  "FINDONEANDREPLACE",
+  "FINDONEANDDELETE",
 ]);
 
 const READ_OPERATIONS: ReadonlySet<string> = new Set([
@@ -40,6 +53,15 @@ const READ_OPERATIONS: ReadonlySet<string> = new Set([
   "SHOW",
   "FETCH",
   "READ",
+  // MongoDB's.
+  "FIND",
+  "FINDONE",
+  "AGGREGATE",
+  "COUNT",
+  "COUNTDOCUMENTS",
+  "ESTIMATEDDOCUMENTCOUNT",
+  "DISTINCT",
+  "GETMORE",
 ]);
 
 // The longest operation name kept, as an instrumentation may send anything.

@@ -13,6 +13,7 @@ import {
   ChangeEventStatus,
   ChangeEventType,
 } from "../../../Utils/Telemetry/ChangeEventFields";
+import { getCloudChangeTitle } from "../../../Utils/Telemetry/CloudChangeTitle";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import CloudAccountService from "../../Services/CloudAccountService";
 import ChangeEventService from "../../Services/ChangeEventService";
@@ -57,7 +58,11 @@ import { CloudChange } from "./CloudConnectorTypes";
  *
  * The words are the provider's - an operation's name, a principal, a
  * health event's own title - clamped to the change event's limits; they
- * are data, never instructions, wherever they are read.
+ * are data, never instructions, wherever they are read. An operation's
+ * title is English ("Failed: DeleteLoadBalancer on web-alb"), for the API
+ * and OneUptime AI; the facts it is worded from are kept beside it - the
+ * operation, whether it failed and the resource's name - so a page words
+ * it in its reader's language (Utils/Telemetry/CloudChangeTitle).
  */
 
 // Change events written in one insert at most.
@@ -166,9 +171,11 @@ export function buildCloudChangeEntry(data: {
   const title: string =
     change.kind === "health"
       ? change.title || change.operation
-      : `${change.failed ? "Failed: " : ""}${change.operation}${
-          subject ? ` on ${subject}` : ""
-        }`;
+      : getCloudChangeTitle({
+          operation: change.operation,
+          resource: subject,
+          failed: change.failed,
+        });
 
   const description: string =
     change.kind === "health"
@@ -222,6 +229,18 @@ export function buildCloudChangeEntry(data: {
   if (resource) {
     attributes[ChangeEventAttribute.ResourceType] = "CloudResource";
     attributes[ChangeEventAttribute.ResourceId] = resource.id.toString();
+
+    /*
+     * The name its title gives the resource, so the title is worded from
+     * it in the reader's language; a change the account names no held
+     * resource for is titled by the cloud's id (cloud.resource_id).
+     */
+    if (change.kind === "change" && resource.name) {
+      attributes[ChangeEventAttribute.CloudResourceName] = clamp(
+        resource.name,
+        300,
+      );
+    }
   }
 
   if (data.accountRecordId) {

@@ -19,7 +19,10 @@ import {
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
   isOnCallPolicyRunEverybodyPassedOnMessage,
 } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
-import { isOnCallPagePassedOnSkipTimelineMessage } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  isOnCallLevelSkippedByEscalationMessage,
+  isOnCallPagePassedOnSkipTimelineMessage,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
   isOnCallPolicyRunEndedWhileWaiting,
@@ -1358,6 +1361,16 @@ export default class OnCallPolicyRunMessage {
       }
 
       if (status !== OnCallDutyExecutionLogTimelineStatus.Skipped) {
+        continue;
+      }
+
+      /*
+       * A level the person escalating skipped for a later one: it paged
+       * nobody on purpose. It is no level that "reached nobody" - no alarm,
+       * no fix to ask for - and the message, which names the level the run
+       * is on, has nothing to say of it.
+       */
+      if (isOnCallLevelSkippedByEscalationMessage(step.statusMessage)) {
         continue;
       }
 
