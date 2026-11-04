@@ -37,6 +37,7 @@ import {
   OpenStackPresentedCertificate,
 } from "../../Types/OpenStack/OpenStackProbeCollection";
 import Permission from "../../Types/Permission";
+import { ResourceAiRemediationMode } from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import { DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES } from "../../Utils/OpenStack/OpenStackCollectionSettings";
 import {
@@ -2103,4 +2104,136 @@ export default class OpenStackCloud extends BaseModel {
     default: 0,
   })
   public collectionSettingsVersion?: number = undefined;
+
+  /*
+   * OneUptime AI access to this OpenStack cloud through its OpenStack AI agent (a
+   * resource AI agent, ResourceAiAgent). The settings are plain columns written through
+   * ordinary CRUD, so they exist before any agent registers. The columns keep the cloud's
+   * own update ACL: anyone who may edit the cloud may make AI do LESS; making it do MORE
+   * is refused by the service unless the caller may author a FullAuto auto-remediation
+   * rule. The aiAccess* columns are written only by the server.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: OPENSTACK_CLOUD_EDITORS,
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Investigate With Read-Only Commands",
+    description:
+      "When on, OneUptime AI runs read-only commands (openstack server, hypervisor, service and agent reads, each one call to the cloud's API) on this OpenStack cloud, through its OpenStack AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the OpenStack cloud can turn it on or off.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isAiInvestigationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: OPENSTACK_CLOUD_EDITORS,
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
+    title: "AI Remediation Mode",
+    description:
+      "Disabled: AI never proposes or runs a change on this OpenStack cloud. OneUptime AI only reads an OpenStack cloud today: it has no command that changes one, so this stays Disabled and any other mode is refused.",
+    defaultValue: ResourceAiRemediationMode.Disabled,
+    example: ResourceAiRemediationMode.Disabled,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: ResourceAiRemediationMode.Disabled,
+  })
+  public aiRemediationMode?: ResourceAiRemediationMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: OPENSTACK_CLOUD_EDITORS,
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Command Allowlist",
+    description:
+      "Optional JSON array of command patterns that Automatic mode may run on this OpenStack cloud without approval. OneUptime AI only reads an OpenStack cloud today, and a read needs no approval, so no pattern is valid here yet and this stays empty.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiCommandAllowlist?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Last Verified At",
+    description:
+      "When a command from OneUptime AI last succeeded on this OpenStack cloud through its OpenStack AI agent. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessLastVerifiedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "AI Access Last Error",
+    description:
+      "The most recent failure OneUptime AI hit while running a command on this OpenStack cloud, kept until the next successful command. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public aiAccessLastError?: string = undefined;
+
+  /*
+   * When this cloud's AI access was first configured, by anyone writing an AI access
+   * setting. Only the server writes it, and nothing ever clears it. A registering OpenStack
+   * AI agent reads it to tell "never configured" (it may apply its first-connection
+   * defaults) from "an operator chose settings, perhaps before installing the agent" (every
+   * setting stays as chosen).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Configured At",
+    description:
+      "When OneUptime AI access to this OpenStack cloud was first configured by anyone saving an AI access setting. Set by the server; never cleared, so an OpenStack AI agent that registers later never overwrites a setting an operator chose.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessConfiguredAt?: Date = undefined;
 }

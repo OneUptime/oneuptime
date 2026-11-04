@@ -4,6 +4,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
   isDefaultIdentityPlaceholder,
   isIdentityResolvedByAgent,
   parseAiResourceType,
@@ -842,6 +843,20 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
 
   let allowWrites: boolean = ai.allowWrites;
 
+  /*
+   * A resource OneUptime AI only reads has no command a fix could run: whatever
+   * the .env says, this agent reads, and it says so rather than report a write
+   * switch that does nothing.
+   */
+  const isReadOnly: boolean = isReadOnlyAiResourceType(resourceType);
+
+  if (isReadOnly && (writeSwitch || ai.settings.fixes !== "Disabled")) {
+    warnings.push(
+      `OneUptime AI only reads this kind of resource: it has no command that changes one, so ${RESOURCE_AI_ALLOW_WRITES_ENV} and ${AI_FIXES_ENV} change nothing here and fixes stay off.`,
+    );
+    allowWrites = false;
+  }
+
   const writeTargets: ParsedTargetList = parseTargetList(
     env[RESOURCE_AI_WRITE_TARGETS_ENV],
     RESOURCE_AI_WRITE_TARGETS_ENV,
@@ -893,7 +908,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
       identityDetails: identity ? identity.details : {},
       allowWrites,
       allowWritesSetting,
-      aiSettings: ai.settings,
+      aiSettings: isReadOnly ? { ...ai.settings, fixes: "Disabled" } : ai.settings,
       writesOffByFixes: writeSwitch && !ai.allowWrites,
       writeTargets: writeTargets.targets,
       protectedTargets: protectedTargets.targets,

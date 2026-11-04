@@ -175,6 +175,7 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
+import Field from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -439,8 +440,7 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     const modeDescriptions: Record<ResourceAiRemediationMode, string> =
       getResourceRemediationModeOptionDescriptions(descriptor);
 
-    const investigationAndFixes: Fields<ResourceAiAccessSettingsFormValues> = [
-      {
+    const investigationField: Field<ResourceAiAccessSettingsFormValues> = {
         field: { isAiInvestigationEnabled: true },
         title: descriptor.investigateTitle,
         description: translator.translateTemplate(
@@ -453,7 +453,14 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         dataTestId: "ai-investigation-field",
-      },
+    };
+
+    // A resource OneUptime AI only reads has no fixes to choose.
+    const investigationAndFixes: Fields<ResourceAiAccessSettingsFormValues> =
+      descriptor.isReadOnly
+        ? [investigationField]
+        : [
+            investigationField,
       {
         // One card per mode, each saying what it does.
         field: { aiRemediationMode: true },
@@ -478,7 +485,7 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           },
         ),
       },
-    ];
+          ];
 
     // While the agent sets them, its .env changes them, not this form.
     const result: Fields<ResourceAiAccessSettingsFormValues> =
@@ -1982,7 +1989,14 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               mode: remediationMode,
               shortNames: RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
             })}
-            sentence={RESOURCE_REMEDIATION_MODE_SUMMARIES[remediationMode]}
+            sentence={
+              descriptor.isReadOnly
+                ? translator.translateTemplate(
+                    "OneUptime AI only reads this {{noun}}: it has no command that changes one, so fixes stay off. An investigation's report says what a person should change.",
+                    { noun: translatableTerm(descriptor.noun) },
+                  )
+                : RESOURCE_REMEDIATION_MODE_SUMMARIES[remediationMode]
+            }
             dataTestId="ai-access-fixes"
           >
             {/*
@@ -2004,7 +2018,8 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                 dataTestId="ai-access-automatic-remediation"
               />
             ) : null}
-            {remediationMode === ResourceAiRemediationMode.Disabled ? (
+            {remediationMode === ResourceAiRemediationMode.Disabled &&
+            !descriptor.isReadOnly ? (
               <AiAccessHint
                 text={
                   isSetByAgent || descriptor.isCloudAccount
@@ -2091,6 +2106,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           fixesDescriptions={getResourceRemediationModeOptionDescriptions(
             descriptor,
           )}
+          hasNoFixes={descriptor.isReadOnly}
           getInstructions={(
             choice: AgentAiSettingsChoice,
           ): AgentAiSettingsInstructions => {

@@ -516,6 +516,90 @@ const INSTALL_SPECS: Readonly<
     installScript: null,
     isStandalone: false,
   },
+  [AiResourceType.OpenStackCloud]: {
+    directory: "/opt/oneuptime-openstack-agent",
+    collectorName: translationKey("OpenStack agent"),
+    collectorShipsAgent: true,
+    runtime: "docker",
+    hasContainerName: true,
+    keyVariable: "ONEUPTIME_TELEMETRY_INGESTION_KEY",
+    keyComposeValue: "${ONEUPTIME_TELEMETRY_INGESTION_KEY}",
+    user: "${OPENSTACK_EXPORTER_USER:-65532:65532}",
+    extraServiceLines: [
+      '    profiles: ["openstack-ai-agent"]',
+      "    volumes:",
+      "      # The credential the exporter reads, and the cloud's CA if it has one",
+      "      - ${OPENSTACK_AI_CLOUDS_FILE:-./clouds.yaml}:/etc/openstack/clouds.yaml:ro",
+      "      - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro",
+    ],
+    connectionVariables: [
+      {
+        name: "OPENSTACK_EXPORTER_CLOUDS",
+        composeValue: "${OPENSTACK_EXPORTER_CLOUDS:-[RegionOne]}",
+        description:
+          "The entries of clouds.yaml the exporter reads: the agent uses the first one the file holds.",
+      },
+      {
+        name: "OPENSTACK_AUTH_URL",
+        composeValue: "${OPENSTACK_AUTH_URL:-}",
+        description:
+          "The Keystone a credential of the agent's own logs in to. clouds.yaml says its own.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_CLOUD",
+        composeValue: "${ONEUPTIME_AI_OPENSTACK_CLOUD:-}",
+        description: "Optional: another entry of clouds.yaml than the first.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID",
+        composeValue: "${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID:-}",
+        description:
+          "Optional: an application credential of the agent's own, used instead of the one in clouds.yaml when set.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET",
+        composeValue:
+          "${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET:-}",
+        description: "That credential's secret. Set both or neither.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_REGION",
+        composeValue: "${ONEUPTIME_AI_OPENSTACK_REGION:-}",
+        description:
+          "Optional: the region a command reads when it names none. clouds.yaml says it unless this does.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_INTERFACE",
+        composeValue: "${ONEUPTIME_AI_OPENSTACK_INTERFACE:-}",
+        description:
+          "Optional: which endpoints to use: public, internal or admin. clouds.yaml says it unless this does, and public otherwise.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_CA_FILE",
+        composeValue: "${ONEUPTIME_AI_OPENSTACK_CA_FILE:-}",
+        description:
+          "Optional: the cloud's certificate authority, mounted into the container. clouds.yaml names it unless this does.",
+      },
+    ],
+    prerequisites: [
+      translationKey(
+        "The credential's roles and access rules are the hard limit. A credential at the access levels the OpenStack agent's README recommends can read and nothing else. One made before this agent existed may not list every read it makes: make a new one from the rules the agent ships, access/application-credential-access-rules.json.",
+      ),
+      translationKey(
+        "Installed the agent without Docker? This one still runs in a container: it needs Docker on some machine with a route to Keystone and to each service's endpoint, and clouds.yaml next to its docker-compose.yml.",
+      ),
+    ],
+    writeTargetNoun: null,
+    writeTargetsExample: null,
+    protectedTargetsDescription: translationKey(
+      "Has no effect yet: OneUptime AI only reads an OpenStack cloud, so there is nothing to protect.",
+    ),
+    writeDisclosure: translationKey(
+      "OneUptime AI only reads an OpenStack cloud: the agent has no command that changes one, whatever is set here.",
+    ),
+    installScript: null,
+    isStandalone: false,
+  },
   [AiResourceType.DatabaseServer]: {
     directory: "/opt/oneuptime-database-agent",
     collectorName: translationKey("database agent"),

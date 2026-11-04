@@ -4,6 +4,7 @@ import DatabaseExecutor from "./DatabaseExecutor";
 import DockerExecutor from "./DockerExecutor";
 import GovcExecutor from "./GovcExecutor";
 import HostExecutor from "./HostExecutor";
+import OpenStackExecutor from "./OpenStackExecutor";
 import ProxmoxExecutor from "./ProxmoxExecutor";
 import {
   ExecutorOptions,
@@ -27,6 +28,8 @@ import AiResourceType, {
  *   Host                                        HostExecutor (nsenter)
  *   AwsAccount, AzureSubscription,              CloudExecutor (the cloud's
  *   GoogleCloudProject                          own APIs)
+ *   OpenStackCloud                              OpenStackExecutor (the cloud's
+ *                                               own APIs, reads only)
  *
  * Every class is constructed the same way (constructor(options:
  * ExecutorOptions)); an agent without a known type gets an
@@ -46,6 +49,7 @@ export const EXECUTOR_CLASSES: Readonly<
   [AiResourceType.AwsAccount]: CloudExecutor,
   [AiResourceType.AzureSubscription]: CloudExecutor,
   [AiResourceType.GoogleCloudProject]: CloudExecutor,
+  [AiResourceType.OpenStackCloud]: OpenStackExecutor,
 };
 
 export function getExecutorClass(
