@@ -57,7 +57,15 @@ HOST="$(openstack compute service list --service nova-compute -f value -c Host |
 IMAGE="$(openstack image list --status active -f value -c Name | grep -i cirros | head -1)"
 # Read here, as the cloud's admin: a member of a project may not list the catalog.
 AUTH_URL="$(openstack endpoint list --service identity --interface public -f value -c URL | head -1)"
+# The catalog says http://host/identity, and every call below is under /v3.
+KEYSTONE_V3="${AUTH_URL%/}"
+case "$KEYSTONE_V3" in
+  */v3) ;;
+  *) KEYSTONE_V3="$KEYSTONE_V3/v3" ;;
+esac
+# Read here, at the admin scope: a scene scoped to a project is refused the catalog's services.
 NOVA_URL="$(openstack endpoint list --service compute --interface public -f value -c URL | head -1)"
+NEUTRON_URL="$(openstack endpoint list --service network --interface public -f value -c URL | head -1)"
 VENV="${DEVSTACK_VENV:-/opt/stack/data/venv}"
 
 # Every service's main config, as DevStack writes it. A release or a network backend may
@@ -240,18 +248,23 @@ record_instance_actions() {
 # The scenes
 # ----------------------------------------------------------------------------
 scene_failed_logins() {
-  local attempt body
+  local attempt body code refused=0 user
   # A real user with the wrong password, a user who does not exist, and a good login.
   for attempt in $(seq 1 12); do
-    body='{"auth":{"identity":{"methods":["password"],"password":{"user":{"name":"admin","domain":{"name":"Default"},"password":"ou-wrong-password"}}}}}'
-    curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H 'Content-Type: application/json' \
-      -d "$body" "$AUTH_URL/auth/tokens"
-    body='{"auth":{"identity":{"methods":["password"],"password":{"user":{"name":"ou-nobody","domain":{"name":"Default"},"password":"ou-wrong-password"}}}}}'
-    curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H 'Content-Type: application/json' \
-      -d "$body" "$AUTH_URL/auth/tokens"
+    for user in admin ou-nobody; do
+      body='{"auth":{"identity":{"methods":["password"],"password":{"user":{"name":"'"$user"'","domain":{"name":"Default"},"password":"ou-wrong-password"}}}}}'
+      code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
+        -d "$body" "$KEYSTONE_V3/auth/tokens")"
+      echo "$user $code"
+      if [ "$code" = 401 ]; then
+        refused=$((refused + 1))
+      fi
+    done
     : "$attempt"
   done
   openstack token issue -f value -c expires
+  # Anything but a refusal is no failed login, and this scene says nothing about them.
+  [ "$refused" = 24 ]
 }
 
 scene_instance_lifecycle() {
@@ -362,6 +375,7 @@ scene_network() {
 
 # Open to the world on a sensitive port, on every port, over IPv6, and a rule that is not.
 scene_security_group() {
+  local group token
   export OS_PROJECT_NAME=ou-payments
   openstack security group create ou-log-sg
   remember security_group "$(openstack security group show ou-log-sg -f value -c id)"
@@ -369,6 +383,12 @@ scene_security_group() {
   openstack security group rule create --ingress --ethertype IPv6 --protocol tcp --dst-port 3389 --remote-ip ::/0 ou-log-sg
   openstack security group rule create --ingress --protocol tcp --dst-port 1:65535 --remote-ip 0.0.0.0/0 ou-log-sg
   openstack security group rule create --ingress --protocol tcp --dst-port 443 --remote-ip 10.0.0.0/8 ou-log-sg
+  # Several rules in one call, as Terraform and Heat can send them: one notification for them all.
+  group="$(openstack security group show ou-log-sg -f value -c id)"
+  token="$(openstack token issue -f value -c id)"
+  curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H "X-Auth-Token: $token" -H 'Content-Type: application/json' \
+    -d '{"security_group_rules":[{"security_group_id":"'"$group"'","direction":"ingress","ethertype":"IPv4","protocol":"tcp","port_range_min":6379,"port_range_max":6379,"remote_ip_prefix":"0.0.0.0/0"},{"security_group_id":"'"$group"'","direction":"ingress","ethertype":"IPv4","protocol":"icmp","remote_ip_prefix":"0.0.0.0/0"}]}' \
+    "$NEUTRON_URL/v2.0/security-group-rules"
   openstack security group delete ou-log-sg
 }
 
@@ -377,6 +397,8 @@ scene_public_image() {
   openstack image create --public --disk-format raw --container-format bare \
     --file "$PHASE_DIR/empty.raw" ou-log-public
   remember public_image "$(openstack image show ou-log-public -f value -c id)"
+  # An edit to an image that was public already, which publishes nothing.
+  openstack image set --property ou_note=routine ou-log-public
   openstack image set --private ou-log-public
   openstack image set --public ou-log-public
   openstack image delete ou-log-public
@@ -399,6 +421,45 @@ scene_identity() {
   openstack application credential delete ou-log-restricted
   openstack application credential delete ou-log-unrestricted
   openstack user delete ou-log-user
+}
+
+# The other shapes a grant comes in, and the records a credential lives in. Each is a line
+# a parser has to read, and none of them may leave a secret anywhere.
+scene_identity_records() {
+  openstack user create --domain default --password ou-log-user-password ou-log-grantee
+  openstack group create --domain default ou-log-group
+  openstack role add --domain default --user ou-log-grantee member || true
+  openstack role add --domain default --user ou-log-grantee --inherited reader || true
+  openstack role add --project ou-payments --group ou-log-group reader || true
+  openstack role add --system all --user ou-log-grantee reader || true
+  openstack role remove --system all --user ou-log-grantee reader || true
+  openstack group add user ou-log-group ou-log-grantee || true
+  openstack group remove user ou-log-group ou-log-grantee || true
+  openstack user set --password ou-log-user-password-changed ou-log-grantee || true
+  openstack credential create --type cert ou-log-grantee ou-log-credential-blob || true
+  openstack ec2 credentials create --user ou-log-grantee --project admin || true
+  openstack trust create --project admin --role admin admin ou-log-grantee || true
+  openstack group delete ou-log-group || true
+  openstack user delete ou-log-grantee
+}
+
+# Someone with a real login asking for what they may not have, which is what someone probing
+# a cloud looks like, and a token that means nothing, which auth_token refuses before the
+# audit filter sees it.
+scene_refused() {
+  openstack user create --domain default --password ou-log-user-password ou-log-prober
+  openstack role add --project ou-payments --user ou-log-prober reader
+  (
+    export OS_USERNAME=ou-log-prober OS_PASSWORD=ou-log-user-password OS_PROJECT_NAME=ou-payments
+    openstack server list --all-projects || true
+    openstack hypervisor list || true
+    openstack compute service list || true
+    openstack flavor create --vcpus 1 --ram 64 --disk 1 ou-log-refused || true
+    openstack network create ou-log-refused || true
+    openstack image create --public ou-log-refused || true
+  )
+  curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H 'X-Auth-Token: ou-not-a-token' "$NOVA_URL/servers" || true
+  openstack user delete ou-log-prober
 }
 
 # Nothing answers on the bus: what a service says about that, while it says it.
@@ -457,8 +518,8 @@ scene_token_validation() {
   sleep 5
   for token in "${tokens[@]}"; do
     curl -sS --max-time 30 -o /dev/null -w 'nova %{http_code}\n' -H "X-Auth-Token: $token" "$NOVA_URL/servers" || true
-    curl -sS --max-time 30 -o /dev/null -w 'keystone %{http_code}\n' -H "X-Auth-Token: $token" "$AUTH_URL/v3/projects" || true
-    curl -sS --max-time 30 -o /dev/null -w 'validate %{http_code}\n' -H "X-Auth-Token: $token" -H "X-Subject-Token: $token" "$AUTH_URL/v3/auth/tokens" || true
+    curl -sS --max-time 30 -o /dev/null -w 'keystone %{http_code}\n' -H "X-Auth-Token: $token" "$KEYSTONE_V3/projects" || true
+    curl -sS --max-time 30 -o /dev/null -w 'validate %{http_code}\n' -H "X-Auth-Token: $token" -H "X-Subject-Token: $token" "$KEYSTONE_V3/auth/tokens" || true
   done
   sleep 30
   sudo rm -rf "$keys"
@@ -615,6 +676,10 @@ done
 # Said out loud, because the defaults and the docs disagree. keystone-defaults says which
 # is true; the guide sets this.
 ini_set /etc/keystone/keystone.conf DEFAULT notification_opt_out identity.authenticate.pending
+# A wrong password's event then holds part of its hash: the very thing that must not be kept,
+# so a test that says it is not has to read a real one.
+ini_set /etc/keystone/keystone.conf security_compliance report_invalid_password_hash event
+ini_set /etc/keystone/keystone.conf security_compliance invalid_password_hash_secret_key ou-log-hash-secret
 
 # keystonemiddleware's audit filter, with the map its project's pycadf ships. A release
 # whose paste file looks different is written down, not fatal.
@@ -640,6 +705,8 @@ start_phase devstack
 start_journald_profile || echo "The journald profile did not start: see $PHASE_DIR/collector.log" >&2
 scene failed-logins scene_failed_logins
 scene identity scene_identity
+scene identity-records scene_identity_records
+scene refused scene_refused
 scene instance-lifecycle scene_instance_lifecycle
 scene failed-build-scheduler scene_failed_build_scheduler
 scene failed-build-compute scene_failed_build_compute
@@ -688,6 +755,11 @@ start_files_profile "$FILES_DIR" || echo "The files profile did not start" >&2
 restart_services
 sudo chmod -R a+rX "$FILES_DIR"
 scene failed-logins scene_failed_logins
+# Who did it, in the format that names a user by ID and not by name.
+scene identity scene_identity
+scene refused scene_refused
+scene security-group scene_security_group
+scene public-image scene_public_image
 scene instance-lifecycle scene_instance_lifecycle
 scene failed-build-scheduler scene_failed_build_scheduler
 scene failed-build-compute scene_failed_build_compute
