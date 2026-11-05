@@ -96,6 +96,7 @@ import {
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
   getOpenStackHostsToReconcile,
+  getOpenStackHostsWithPartReadings,
   getOpenStackRoutersWithoutAgents,
   isOpenStackDatapointKept,
   isOpenStackSnapshotDatapoint,
@@ -4075,6 +4076,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId: data.projectId,
               openStackCloudId,
               shortHostNames: getOpenStackHostsToReconcile(finishedEntries),
+            });
+
+            await OpenStackResourceService.reconcileHypervisorCapacity({
+              projectId: data.projectId,
+              openStackCloudId,
+              hypervisorNames:
+                getOpenStackHostsWithPartReadings(finishedEntries),
             });
 
             await OpenStackResourceService.forgetAgentsOfRouters({

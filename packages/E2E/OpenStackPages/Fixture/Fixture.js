@@ -79,6 +79,7 @@ import {
   getAiLogs,
   withAiAccessColumns,
 } from "./AiAgent";
+import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
 import CloudHypervisors from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Hypervisors";
@@ -218,6 +219,7 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { buildCapacitySnapshotOf } from "./Capacity";
 import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
 /*
@@ -826,17 +828,35 @@ const PRODUCTION_LABEL = {
   projectId: PROJECT_ID,
 };
 
+/*
+ * What the worker would keep on the cloud, worked out from this estate's rows by the same code
+ * (OpenStackCapacitySnapshot). ?capacity=none is a cloud no worker has been through yet.
+ */
+function withCapacity(cloud) {
+  return params.get("capacity") === "none"
+    ? cloud
+    : {
+        ...cloud,
+        capacitySnapshot: buildCapacitySnapshotOf(estate.inventory, {
+          scenario: params.get("capacity"),
+          loadedAt: LOADED_AT,
+        }),
+      };
+}
+
 const store = {
   // Every cloud's row has these, with these defaults, since its migration.
   OpenStackCloud: withAiAccessColumns(
     params.get("clouds") === "none"
       ? []
       : [
-          params.get("collection") === "Probe"
-            ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
-            : params.get("collection")
-              ? { ...estate.cloud, collectionMethod: params.get("collection") }
-              : estate.cloud,
+          withCapacity(
+            params.get("collection") === "Probe"
+              ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
+              : params.get("collection")
+                ? { ...estate.cloud, collectionMethod: params.get("collection") }
+                : estate.cloud,
+          ),
           ...(params.get("archived") === "1"
             ? [
                 {
@@ -2255,6 +2275,7 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS, CloudAiInsights],
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS, CloudAiLogs],
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, CloudAiAgent],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS, CloudHypervisors],

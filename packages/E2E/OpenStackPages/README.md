@@ -120,6 +120,8 @@ a line: what real clouds really said goes through the same pages in
 `Common/Tests/App/Dashboard/OpenStackUsagePagesRecordings.test.tsx`. `?estate=calm` has no source, so
 each page says what is missing and how to add it. And what it costs on a cloud's Settings.
 
+`OpenStackCapacity.spec.ts`: the Capacity page on what real clouds' exporters answered (a host's real ratio and reservation, a stopped nova-compute, a disabled one) and on `?capacity=short`, made up in the snapshot's own shape: a fragmented estate, a zone that can't lose a host, a forecast, an orphaned allocation and a probe's answer. It reads one row whatever the estate, and fits a phone.
+
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.

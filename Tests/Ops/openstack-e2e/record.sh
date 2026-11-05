@@ -365,11 +365,18 @@ record_api() {
     call neutron-ports-limited "$neutron/v2.0/ports?limit=100"
     call neutron-quotas "$neutron/v2.0/quotas"
     call neutron-extensions "$neutron/v2.0/extensions"
-    local router
-    router="$( (openstack router list -f value -c ID 2>/dev/null || true) | head -1)"
+    local router dhcp_agent
+    # The estate's own router, so a drill that takes it off its agent shows in the answer.
+    router="$( (openstack router list --name ou-router -f value -c ID 2>/dev/null || true) | head -1)"
+    [ -n "$router" ] || router="$( (openstack router list -f value -c ID 2>/dev/null || true) | head -1)"
     if [ -n "$router" ]; then
       # OVN has no such agents, and answers with an empty list.
       call neutron-router-l3-agents "$neutron/v2.0/routers/$router/l3-agents"
+    fi
+    dhcp_agent="$( (openstack network agent list --agent-type dhcp -f value -c ID 2>/dev/null || true) | head -1)"
+    if [ -n "$dhcp_agent" ]; then
+      # OVN has none of these either, and there is no agent to ask about.
+      call neutron-agent-dhcp-networks "$neutron/v2.0/agents/$dhcp_agent/dhcp-networks"
     fi
   fi
 
@@ -485,12 +492,17 @@ record_exporter() {
 record_cli() {
   # What an operator would read, so a reviewer can check a page against it.
   {
-    echo "\$ openstack compute service list"; openstack compute service list || true
+    echo "\$ openstack compute service list --long"
+    openstack --os-compute-api-version 2.11 compute service list --long || true
     echo "\$ openstack network agent list"; openstack network agent list || true
     echo "\$ openstack volume service list"; openstack volume service list || true
     echo "\$ openstack server list --all-projects"; openstack server list --all-projects || true
     echo "\$ openstack volume list --all-projects"; openstack volume list --all-projects || true
     echo "\$ openstack hypervisor list"; openstack hypervisor list || true
+    echo "\$ openstack aggregate list --long"; openstack aggregate list --long || true
+    echo "\$ openstack image list --long"; openstack image list --long || true
+    echo "\$ openstack ip availability list"; openstack ip availability list || true
+    echo "\$ openstack floating ip list --long"; openstack floating ip list --long || true
     record_cli_of_other_services
   } >"$SCENE_DIR/cli.txt" 2>&1
 }

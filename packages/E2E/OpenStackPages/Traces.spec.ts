@@ -122,9 +122,7 @@ test.describe("with a real signed boot", () => {
       "openstack server create --wait",
     );
 
-    await page
-      .getByTestId("openstack-trace-id")
-      .fill("that is not one");
+    await page.getByTestId("openstack-trace-id").fill("that is not one");
     await page.getByTestId("openstack-trace-open").click();
     await expect(page.getByTestId("openstack-trace-id-invalid")).toBeVisible();
 
@@ -132,7 +130,9 @@ test.describe("with a real signed boot", () => {
       .getByTestId("openstack-trace-id")
       .fill("Trace ID: 302f30b3-74c2-4a1c-8a64-38124ca5e121");
     await page.getByTestId("openstack-trace-open").click();
-    await expect(page).toHaveURL(/traces\/view\/302f30b374c24a1c8a6438124ca5e121/);
+    await expect(page).toHaveURL(
+      /traces\/view\/302f30b374c24a1c8a6438124ca5e121/,
+    );
   });
 
   test("draws the control plane from it, with the services it really crossed", async ({

@@ -296,6 +296,12 @@ export default class MetricMonitorCriteria {
       seriesBreakdown && seriesBreakdown.length > 0,
     );
 
+    const resultsOfEverySeries: Array<Array<AggregatedResult>> = hasSeries
+      ? seriesBreakdown!.map((series: MetricSeriesResult) => {
+          return series.aggregatedResults;
+        })
+      : [metricResponse.metricResult || []];
+
     /*
      * The data points this criteria compares - its query's or formula's -
      * in every series. Only "All Values" judges a window's coverage, and
@@ -307,28 +313,37 @@ export default class MetricMonitorCriteria {
         CriteriaFilterUtil.isForecastFilterType(
           input.criteriaFilter.filterType,
         ))
-        ? MetricMonitorCriteria.getComparedSamplesOfEverySeries({
-            criteriaFilter: input.criteriaFilter,
+        ? MetricMonitorCriteria.getSamplesOfEverySeries({
+            metricAlias:
+              input.criteriaFilter.metricMonitorOptions?.metricAlias || "",
             queryConfigs,
             formulaConfigs,
-            resultsOfEverySeries: hasSeries
-              ? seriesBreakdown!.map((series: MetricSeriesResult) => {
-                  return series.aggregatedResults;
-                })
-              : [metricResponse.metricResult || []],
+            resultsOfEverySeries,
           })
         : null;
 
     /*
-     * How often the monitor's series report, across all of them: what a
-     * series with too few data points to show its own cadence is judged by
-     * (MetricWindowCoverage).
+     * How often the monitor's series report, across all of them, and the
+     * query the criteria says reports as often when its own come and go:
+     * what a series with too few data points to show its own cadence is
+     * judged by (MetricWindowCoverage).
      */
+    const cadenceMetricAlias: string | undefined =
+      input.criteriaFilter.metricMonitorOptions?.cadenceMetricAlias;
+
     const monitorIntervalMs: number | null | undefined =
       comparedSamplesOfEverySeries
-        ? MetricWindowCoverage.getMonitorIntervalMs(
-            comparedSamplesOfEverySeries,
-          )
+        ? MetricWindowCoverage.getMonitorIntervalMs([
+            ...comparedSamplesOfEverySeries,
+            ...(cadenceMetricAlias
+              ? MetricMonitorCriteria.getSamplesOfEverySeries({
+                  metricAlias: cadenceMetricAlias,
+                  queryConfigs,
+                  formulaConfigs,
+                  resultsOfEverySeries,
+                })
+              : []),
+          ])
         : undefined;
 
     /*
@@ -491,14 +506,14 @@ export default class MetricMonitorCriteria {
    * The data points a criteria compares, in every series: its alias's
    * results in each - or the first query's, when it names none.
    */
-  private static getComparedSamplesOfEverySeries(input: {
-    criteriaFilter: CriteriaFilter;
+  private static getSamplesOfEverySeries(input: {
+    metricAlias: string;
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
     resultsOfEverySeries: Array<Array<AggregatedResult>>;
   }): Array<Array<AggregateModel>> {
     const aliasIndex: number = MetricMonitorCriteria.resolveAlias({
-      metricAlias: input.criteriaFilter.metricMonitorOptions?.metricAlias || "",
+      metricAlias: input.metricAlias,
       queryConfigs: input.queryConfigs,
       formulaConfigs: input.formulaConfigs,
     }).aliasIndex;

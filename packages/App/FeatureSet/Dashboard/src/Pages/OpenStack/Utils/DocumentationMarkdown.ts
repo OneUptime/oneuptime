@@ -792,7 +792,7 @@ function getWithoutDockerTopic(context: GuideContext): SetupGuideTopic {
   return {
     title: "Run without Docker",
     summary: "The same collector and exporter releases, as systemd services.",
-    markdown: `On Linux (x86_64 or arm64) with systemd 235 or later, the install script can run the same collector and exporter releases as systemd services instead:
+    markdown: `On Linux (x86_64 or arm64) with systemd 235 or later and glibc 2.34 or later (not RHEL 8), the install script can run the same collector and exporter releases as systemd services instead:
 
 ${codeBlock(
   "bash",

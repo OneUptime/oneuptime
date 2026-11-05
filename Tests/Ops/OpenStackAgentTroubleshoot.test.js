@@ -337,6 +337,7 @@ function startCloud({
   tokenExtra = {},
   roles = ["admin"],
   loginStatus = 201,
+  loginMessage,
   serviceStatus = {},
   catalogNames = {},
   holds = [],
@@ -402,7 +403,9 @@ function startCloud({
           return send(401, { error: { code: 401, title: "Unauthorized" } });
         }
         if (loginStatus !== 201) {
-          return send(loginStatus, { error: { code: loginStatus } });
+          return send(loginStatus, {
+            error: { code: loginStatus, message: loginMessage },
+          });
         }
         const base = `http://${request.headers.host}`;
         return send(
@@ -1799,6 +1802,34 @@ describe("Keystone, DNS and TLS", () => {
         "For a cloud with its own CA: OPENSTACK_CA_FILE=/path/to/ca.pem bash install.sh",
       );
     }
+  });
+
+  // What a deleted credential's login answered on a real cloud (run 41953871058).
+  test("an application credential Keystone no longer has is called that, and never a wrong address", async () => {
+    const cloud = await startCloud({
+      loginStatus: 404,
+      loginMessage: "Could not find Application Credential: 4c2f.",
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "✗ Keystone has no such application credential (HTTP 404): it was deleted, or the ID in clouds.yaml is wrong.",
+    );
+    expect(run.output).toContain(
+      "ROOT CAUSE: the credential in clouds.yaml gets no token from Keystone.",
+    );
+    expect(run.output).not.toContain("does not answer as Keystone");
+  });
+
+  test("a 404 from anything else is still a wrong address", async () => {
+    const cloud = await startCloud({ loginStatus: 404 });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+
+    expect(run.output).toContain("does not answer as Keystone (HTTP 404)");
+    expect(run.output).not.toContain("no such application credential");
   });
 
   test("an answer that is no token says so", async () => {

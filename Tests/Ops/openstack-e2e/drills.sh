@@ -9,12 +9,19 @@
 #   healthy               the estate as estate.sh left it
 #   compute-disabled      nova-compute disabled on purpose: planned work, must
 #                         never read as a failure
+#   compute-forced-down   nova-compute forced down by an operator, while it runs: Nova
+#                         says so in forced_down, and the exporter has no such label
 #   compute-down          nova-compute stopped
 #   network-agent-down    the Neutron agent stopped (OVN or ML2/OVS, whichever
 #                         this cloud runs)
 #   volume-service-down   cinder-volume stopped
 #   scheduler-down        nova-scheduler stopped
 #   compute-api-down      Nova's API stopped: every other service still answers
+#   external-network-full an external network with no addresses left
+#   router-agents-removed a router taken off the only L3 agent holding it: no series is
+#                         left to say so (ML2/OVS only, OVN has no L3 agents)
+#   l3-agent-down         the L3 agent stopped, and a floating IP associated meanwhile,
+#                         which nothing can bring up (ML2/OVS only)
 #   recovered             everything started again
 #
 # Usage: OUTPUT_DIR=out bash Tests/Ops/openstack-e2e/drills.sh
@@ -50,6 +57,14 @@ wait_until() {
 
 compute_state() {
   openstack compute service list --service nova-compute --host "$HOST" -f value -c State
+}
+
+any_l3_agent_down() {
+  if openstack network agent list --agent-type l3 -f value -c Alive | grep -qiE '^(false|xxx|:-\()$'; then
+    echo down
+  else
+    echo up
+  fi
 }
 
 scheduler_state() {
@@ -114,6 +129,119 @@ drill() {
   }
 }
 
+# Forced down, from an operator's mouth rather than a missed heartbeat: Nova reads it as
+# down at once, while nova-compute goes on running. 2.11 is the microversion it arrived in.
+force_compute() {
+  openstack --os-compute-api-version 2.11 compute service set "--$1" "$HOST" nova-compute
+}
+
+drill_compute_forced_down() {
+  echo "--- A compute service forced down by an operator"
+  if ! force_compute down; then
+    FAILED+=("compute-forced-down: it could not be forced down")
+    return 0
+  fi
+  if wait_until "nova-compute on $HOST, forced" down 12 compute_state; then
+    record compute-forced-down
+  else
+    FAILED+=("compute-forced-down")
+  fi
+  force_compute up || FAILED+=("compute-forced-down: it could not be let back up")
+  wait_until "nova-compute on $HOST, let back up" up 60 compute_state \
+    || FAILED+=("compute-forced-down: it did not come back")
+}
+
+# Five addresses, and DHCP off so all five are there to take. The network type is the
+# cloud's own default, which is all an external network needs for addresses to be taken
+# from it: nothing is routed through it. Its own network rather than DevStack's `public`,
+# which every other scene needs addresses from.
+FULL_POOL="ou-full-pool"
+
+fill_external_pool() {
+  local taken=0 total used
+
+  openstack network create --external "$FULL_POOL" >/dev/null || return 1
+  openstack subnet create --no-dhcp --network "$FULL_POOL" --subnet-range 203.0.113.0/29 \
+    "$FULL_POOL-v4" >/dev/null || return 1
+
+  # One more than it holds, so the last one says Neutron has none left.
+  while [ "$taken" -lt 6 ]; do
+    if ! openstack floating ip create "$FULL_POOL" >/dev/null 2>&1; then
+      break
+    fi
+    taken=$((taken + 1))
+  done
+
+  total="$(openstack ip availability show "$FULL_POOL" -f value -c total_ips)" || return 1
+  used="$(openstack ip availability show "$FULL_POOL" -f value -c used_ips)" || return 1
+  echo "$FULL_POOL: $used of $total addresses taken, by $taken floating IPs"
+  [ -n "$total" ] && [ "$used" = "$total" ] && [ "$total" -gt 0 ]
+}
+
+empty_external_pool() {
+  local address
+  for address in $(openstack floating ip list --network "$FULL_POOL" -f value -c ID 2>/dev/null || true); do
+    openstack floating ip delete "$address" || true
+  done
+  openstack network delete "$FULL_POOL" || FAILED+=("external-network-full: its network is still there")
+}
+
+drill_external_network_full() {
+  echo "--- An external network with no addresses left"
+  if fill_external_pool; then
+    record external-network-full
+  else
+    FAILED+=("external-network-full: it did not fill up")
+  fi
+  empty_external_pool
+}
+
+# What only ML2/OVS has: OVN has no L3 agents, so a router there has none to lose.
+drill_router_agents_removed() {
+  local agent router
+  agent="$(openstack network agent list --agent-type l3 -f value -c ID | head -1)"
+  router="$(openstack router list --name ou-router -f value -c ID | head -1)"
+
+  echo "--- A router taken off the only L3 agent holding it"
+  if ! openstack network agent remove router --l3 "$agent" "$router"; then
+    FAILED+=("router-agents-removed: it could not be taken off $agent")
+    return 0
+  fi
+  record router-agents-removed
+  openstack network agent add router --l3 "$agent" "$router" \
+    || FAILED+=("router-agents-removed: it could not be put back on $agent")
+}
+
+# Neutron leaves a floating IP DOWN until the L3 agent has set it up, so one associated
+# while the agent is stopped stays down: the state the floating IP pages and alert read.
+drill_l3_agent_down() {
+  local spare server unit="devstack@q-l3.service"
+
+  echo "--- The L3 agent stopped"
+  sudo systemctl stop "$unit"
+  if wait_until "the L3 agent" down 60 any_l3_agent_down; then
+    spare="$(openstack floating ip list --tags ou-spare -f value -c "Floating IP Address" | head -1)"
+    server="$( (openstack server list --all-projects --name '^ou-stopped$' -f value -c ID || true) | head -1)"
+    if [ -n "$spare" ] && [ -n "$server" ] && openstack server add floating ip "$server" "$spare"; then
+      record l3-agent-down
+      openstack server remove floating ip "$server" "$spare" \
+        || FAILED+=("l3-agent-down: $spare is still on $server")
+    else
+      # The agent being down is worth recording without the address.
+      FAILED+=("l3-agent-down: no floating IP could be associated")
+      record l3-agent-down
+    fi
+  else
+    explain "$unit"
+    FAILED+=("l3-agent-down")
+  fi
+  sudo systemctl start "$unit"
+  wait_until "the L3 agent" up 60 any_l3_agent_down || {
+    explain "$unit"
+    FAILED+=("l3-agent-down: it did not come back")
+  }
+}
+
 echo "Drilling on host $HOST"
 record healthy
 
@@ -121,6 +249,8 @@ echo "--- A compute service disabled on purpose"
 openstack compute service set --disable --disable-reason "OneUptime drill: planned maintenance" "$HOST" nova-compute
 record compute-disabled
 openstack compute service set --enable "$HOST" nova-compute
+
+drill_compute_forced_down
 
 drill compute-down devstack@n-cpu.service "nova-compute on $HOST" compute_state
 
@@ -142,6 +272,15 @@ sleep 10
 record compute-api-down
 sudo systemctl start devstack@n-api.service
 wait_until "Nova's API" up 24 bash -c 'openstack compute service list >/dev/null 2>&1 && echo up'
+
+drill_external_network_full
+
+if unit_exists devstack@q-l3.service; then
+  drill_router_agents_removed
+  drill_l3_agent_down
+else
+  echo "No L3 agent unit on this cloud, which is what OVN is: skipping those drills."
+fi
 
 record recovered
 

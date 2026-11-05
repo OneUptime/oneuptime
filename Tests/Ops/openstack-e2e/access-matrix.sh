@@ -185,6 +185,10 @@ extra_tokens() {
 export OU_WRITE_FLAVOR_ID OU_WRITE_IMAGE_ID OU_WRITE_EXTERNAL_NETWORK_ID
 OU_WRITE_FLAVOR_ID="$(openstack flavor show ou.tiny -f value -c id)"
 OU_WRITE_IMAGE_ID="$(openstack image list --status active -f value -c ID | head -1)"
+# What the calls per thing ask about. OVN has no DHCP agents, and then that one isn't asked.
+OU_READ_ROUTER_ID="$( (openstack router list --name ou-router -f value -c ID || true) | head -1)"
+OU_READ_DHCP_AGENT_ID="$( (openstack network agent list --agent-type dhcp -f value -c ID || true) | head -1)"
+export OU_READ_ROUTER_ID OU_READ_DHCP_AGENT_ID
 OU_WRITE_EXTERNAL_NETWORK_ID="$(openstack network show public -f value -c id)"
 
 # A credential that could write fails the job, but only at the end: the rest of what

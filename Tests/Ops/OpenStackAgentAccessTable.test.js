@@ -479,6 +479,51 @@ function readOf(release, name, service, label) {
   }).results;
 }
 
+describe("what a probe's reads of a router's agents and a DHCP agent's networks take", () => {
+  function partRead(name, label) {
+    return matrix("gazpacho-ovs", name).partReads.find((row) => {
+      return row.service === "network" && row.read === label;
+    }).results;
+  }
+
+  const ROUTER_AGENTS = "a router's L3 agents";
+  const DHCP_NETWORKS = "a DHCP agent's networks";
+
+  test.each([ROUTER_AGENTS, DHCP_NETWORKS])(
+    "Neutron's default policy gives %s to an admin alone, and says so",
+    (label) => {
+      const results = partRead("matrix-default-policy", label);
+
+      expect(results.admin.status).toBe(200);
+      for (const credential of ["reader", "monitoring-role"]) {
+        expect(results[credential].status).toBe(403);
+        expect(results[credential].reason).toMatch(/disallowed by policy/);
+      }
+    },
+  );
+
+  test.each([ROUTER_AGENTS, DHCP_NETWORKS])(
+    "level 1's access rules give %s, as an admin sees them",
+    (label) => {
+      const results = partRead("matrix-access-rules", label);
+
+      expect(results["monitoring-admin-get"].status).toBe(200);
+      expect(results["monitoring-admin-get"].count).toBe(results.admin.count);
+    },
+  );
+
+  test("the policy file opens them to level 2, as far as its own project can see", () => {
+    const networks = partRead("matrix", DHCP_NETWORKS);
+
+    expect(networks["monitoring-role"].status).toBe(200);
+    expect(networks["monitoring-role"].count).toBeLessThan(networks.admin.count);
+    expect(networks.reader.status).toBe(403);
+
+    // It lists no router of another project, so it's never told to ask about one.
+    expect(partRead("matrix", ROUTER_AGENTS)["monitoring-role"].status).toBe(404);
+  });
+});
+
 describe("what the recordings show, as the pages say it", () => {
   test.each(RELEASES)(
     "%s: level 1 read everything with a 200, and every write answered 401",

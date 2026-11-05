@@ -107,11 +107,11 @@ const EXPORTER_PIN = COMPOSE.services["openstack-exporter"].image
  * README beside it, as `gh release download | tar -t` shows), the binary saying which
  * build it is.
  */
-function writeRelease(releaseDir, archive, binary, build) {
+function writeRelease(releaseDir, archive, binary, build, script) {
   const work = fs.mkdtempSync(path.join(releaseDir, "build-"));
   writeExecutable(
     path.join(work, binary),
-    `#!/bin/sh\necho "fake ${binary} ${build}"\n`,
+    script || `#!/bin/sh\necho "fake ${binary} ${build}"\n`,
   );
   fs.writeFileSync(path.join(work, "LICENSE"), "license\n");
   fs.writeFileSync(path.join(work, "README.md"), "# readme\n");
@@ -619,6 +619,81 @@ printf '{"error":{"code":401}}\\n401'
     expect(env.log("curl")).toHaveLength(1);
     expect(fs.existsSync(env.installDir)).toBe(false);
     expect(env.log("systemctl")).toEqual([]);
+  });
+});
+
+describe("a release that passes its digest and can't run here", () => {
+  // Word for word what the exporter's release says on Rocky 8 (run 41953871058).
+  const OLD_GLIBC = `#!/bin/sh
+echo "/opt/oneuptime-openstack-agent/openstack-exporter: /lib64/libc.so.6: version \\\`GLIBC_2.34' not found (required by /opt/oneuptime-openstack-agent/openstack-exporter)" >&2
+exit 1
+`;
+
+  function onOldGlibc(env) {
+    writeRelease(
+      env.releases,
+      exporterArchive("amd64"),
+      "openstack-exporter",
+      "old-glibc",
+      OLD_GLIBC,
+    );
+  }
+
+  test("says so, and what to do, and installs nothing", () => {
+    const env = setup();
+    onOldGlibc(env);
+    const run = env.run({ input: FRESH });
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "Error: the openstack-exporter release does not run on this machine, so nothing was installed or changed:",
+    );
+    expect(run.output).toContain("GLIBC_2.34");
+    expect(run.output).toContain("It needs glibc 2.34 or later");
+    expect(run.output).toContain("install with Docker instead");
+    expect(fs.existsSync(env.installed("otelcol-contrib"))).toBe(false);
+    expect(fs.existsSync(env.installed("openstack-exporter"))).toBe(false);
+    expect(run.envFile).toBe("");
+    expect(run.cloudsText).toBe("");
+    expect(env.log("systemctl")).toEqual([]);
+    expect(env.log("useradd")).toEqual([]);
+  });
+
+  test("on an upgrade, the agent that runs is left as it is", () => {
+    const env = setup();
+    expect(env.run({ input: FRESH }).status).toBe(0);
+    const before = fs.readFileSync(env.installed("openstack-exporter"), "utf8");
+    fs.rmSync(path.join(env.dir, "systemctl.log"));
+    onOldGlibc(env);
+
+    const again = env.run();
+
+    expect(again.status).toBe(1);
+    expect(fs.readFileSync(env.installed("openstack-exporter"), "utf8")).toBe(
+      before,
+    );
+    expect(env.log("systemctl")).toEqual([]);
+  });
+
+  test("your own exporter leaves only the collector to run, which it can", () => {
+    const env = setup();
+    onOldGlibc(env);
+    const run = env.run({
+      env: { OPENSTACK_EXPORTER_ADDRESS: "10.0.0.5:9180" },
+      input: answers(URL, KEY, "prod", "RegionOne"),
+    });
+
+    expect(run.status).toBe(0);
+    expect(fs.existsSync(env.installed("openstack-exporter"))).toBe(false);
+  });
+
+  test("a binary that runs says nothing, and stays out of what is written", () => {
+    const env = setup();
+    const run = env.run({ input: FRESH });
+
+    expect(run.status).toBe(0);
+    expect(run.output).not.toContain("fake otelcol-contrib");
+    expect(run.output).not.toContain("does not run on this machine");
   });
 });
 

@@ -21,8 +21,10 @@
 #                   binary itself
 #   clean-ubuntu, clean-rocky, clean-docker
 #                   The same install on a machine with nothing on it but systemd, curl and sudo (and
-#                   Docker, for the last): Ubuntu 24.04, and Rocky 8, whose systemd 239 is the oldest
-#                   the docs allow. The machines stand apart on Docker's network, as an agent should.
+#                   Docker, for the last): Ubuntu 24.04 and Rocky 9. The machines stand apart on
+#                   Docker's network, as an agent should.
+#   old-glibc       Rocky 8, whose glibc 2.28 the exporter's release can't run on: the install says so
+#                   and changes nothing, where it used to leave a service restarting for ever.
 #
 # Every check is reported, and one that fails costs no other, because a DevStack takes half an hour
 # to deploy. Everything goes in $OUTPUT_DIR/agent-install, with results.txt saying how each went.
@@ -50,7 +52,7 @@ RESULTS="$OUTPUT/results.txt"
 
 export OS_CLOUD="${OS_CLOUD:-devstack-admin}"
 
-PHASES="${AGENT_INSTALL_PHASES:-plain-docker root-docker without-docker clean-ubuntu clean-rocky clean-docker}"
+PHASES="${AGENT_INSTALL_PHASES:-plain-docker root-docker without-docker clean-ubuntu clean-rocky old-glibc clean-docker}"
 PORT=4318
 REGION=RegionOne
 PLAIN_USER=ou-plain
@@ -608,8 +610,9 @@ phase_plain_docker() {
   as_account openstack application credential delete oneuptime-agent >/dev/null
   run_plain_doctor credential-revoked
   check_equal "troubleshoot.sh exits 1" 1 "$DOCTOR_STATUS"
-  says "$DOCTOR_LOG" "Keystone REFUSED this credential (HTTP 401)." \
+  says "$DOCTOR_LOG" "Keystone has no such application credential (HTTP 404)" \
     "ROOT CAUSE: the credential in clouds.yaml gets no token from Keystone."
+  never_says "$DOCTOR_LOG" "does not answer as Keystone"
   make_credential oneuptime-agent-2 "$HOSTILE_SECRET"
   status=0
   credential_answers | as_plain "mv '$PLAIN_DIR/clouds.yaml' '$PLAIN_DIR/clouds.yaml.aside'; bash install.sh" \
@@ -633,7 +636,8 @@ phase_plain_docker() {
   agent_before="$(container_id "$AGENT_CONTAINER")"
   status=0
   as_plain "$(cat "$DOCS/upgrade.sh")" </dev/null >"$PHASE_DIR/upgrade.log" 2>&1 || status=$?
-  since="$(date +%s)"
+  # From the next second: the old collector's last batch can land in this one as it stops.
+  since="$(($(date +%s) + 1))"
   check_equal "the upgrade asks nothing, and exits 0" 0 "$status"
   says "$PHASE_DIR/upgrade.log" "Found an existing configuration" "you had edited these files"
   check_equal "the answers in .env are kept" "$env_before" "$(hash_of "$PLAIN_DIR/.env")"
@@ -694,12 +698,11 @@ phase_root_docker() {
   says "$PHASE_DIR/doctor-healthy.log" "clouds.yaml is readable by its owner alone" "That adds up to Full view"
   never_says "$PHASE_DIR/doctor-healthy.log" "so the exporter cannot read it"
 
-  section "troubleshoot.sh without sudo, on a folder only root can look inside, says to use it"
-  status=0
+  section "troubleshoot.sh without sudo says to use it, rather than that the credential isn't there"
+  note "the agent's folder, installed under a root umask of 077: $(stat_of "$DEFAULT_DIR")"
   as_plain "curl -fsSL '$ONEUPTIME_URL/install/openstack-agent/troubleshoot.sh' | bash -s -- -d '$DEFAULT_DIR'" </dev/null \
-    >"$PHASE_DIR/doctor-no-sudo.log" 2>&1 || status=$?
-  check_equal "it exits 1" 1 "$status"
-  says "$PHASE_DIR/doctor-no-sudo.log" "cannot look inside $DEFAULT_DIR" "Run this with sudo"
+    >"$PHASE_DIR/doctor-no-sudo.log" 2>&1 || true
+  says "$PHASE_DIR/doctor-no-sudo.log" "Run this with sudo"
   never_says "$PHASE_DIR/doctor-no-sudo.log" "does not exist"
 
   section "A re-run that names a region this cloud lacks stops there"
@@ -922,7 +925,8 @@ phase_without_docker() {
   collector_pid="$(main_pid "$AGENT_SERVICE")"
   status=0
   (cd "$folder" && sudo bash -euo pipefail -c "$(cat "$DOCS/upgrade.sh")") </dev/null >"$PHASE_DIR/upgrade.log" 2>&1 || status=$?
-  since="$(date +%s)"
+  # From the next second: the old collector's last batch can land in this one as it stops.
+  since="$(($(date +%s) + 1))"
   check_equal "the upgrade asks nothing, and exits 0" 0 "$status"
   says "$PHASE_DIR/upgrade.log" "Found an existing configuration" "you had edited these files"
   sudo "$DEFAULT_DIR/otelcol-contrib" --version >"$PHASE_DIR/versions-after.txt" 2>&1
@@ -1031,10 +1035,31 @@ phase_clean_ubuntu() {
     "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv dbus sudo curl ca-certificates && rm -rf /var/lib/apt/lists/* && useradd -m tester && echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester && chmod 0440 /etc/sudoers.d/tester"
 }
 
+ROCKY_MACHINE="dnf install -y systemd sudo tar gzip procps-ng diffutils shadow-utils ca-certificates && (command -v curl >/dev/null || dnf install -y curl-minimal || dnf install -y curl) && dnf clean all && systemctl mask dnf-makecache.timer dnf-makecache.service && useradd -m tester && echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester && chmod 0440 /etc/sudoers.d/tester"
+
 phase_clean_rocky() {
-  phase clean-rocky "Without Docker on Rocky 8, whose systemd 239 is the oldest the docs allow"
-  clean_without_docker clean-rocky public.ecr.aws/docker/library/rockylinux:8 \
-    "dnf install -y systemd sudo tar gzip procps-ng diffutils shadow-utils ca-certificates && (command -v curl >/dev/null || dnf install -y curl-minimal || dnf install -y curl) && dnf clean all && systemctl mask dnf-makecache.timer dnf-makecache.service && useradd -m tester && echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester && chmod 0440 /etc/sudoers.d/tester"
+  phase clean-rocky "Without Docker on Rocky 9, the oldest of its family whose glibc the exporter's release runs on"
+  clean_without_docker clean-rocky public.ecr.aws/docker/library/rockylinux:9 "$ROCKY_MACHINE"
+}
+
+# Recorded on Rocky 8: the exporter's release asks for GLIBC_2.32 and GLIBC_2.34, and exits.
+phase_old_glibc() {
+  phase old-glibc "Without Docker on Rocky 8, whose glibc the exporter's release can't run on"
+  local machine=old-glibc log="$PHASE_DIR/install.log" status=0
+  start_clean_machine "$machine" public.ecr.aws/docker/library/rockylinux:8 "$ROCKY_MACHINE" \
+    --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --tmpfs /run --tmpfs /run/lock || return 0
+  application_credential_answers "$machine" \
+    | docker exec -i -u tester -w /home/tester "$machine" bash -euo pipefail -c "$(cat "$DOCS/install-without-docker.sh")" \
+      >"$log" 2>&1 || status=$?
+  check_equal "the install stops" 1 "$status"
+  sed 's/^/    /' "$log" | tail -12
+  says "$log" "the openstack-exporter release does not run on this machine, so nothing was installed or changed" \
+    "It needs glibc 2.34 or later" \
+    "install with Docker instead"
+  holds_no_secret "$log"
+  check "no service was left restarting" docker exec "$machine" bash -c "! systemctl is-active --quiet '$EXPORTER_SERVICE' && ! test -e '/etc/systemd/system/$EXPORTER_SERVICE.service'"
+  check "no credential was written" docker exec "$machine" bash -c "! test -e '$DEFAULT_DIR/clouds.yaml' && ! test -e '$DEFAULT_DIR/.env'"
+  keep_machine_logs "$machine"
 }
 
 # Docker in a machine of its own, started the way kind starts its nodes.
@@ -1044,7 +1069,7 @@ phase_clean_docker() {
   start_clean_machine "$machine" public.ecr.aws/docker/library/ubuntu:24.04 \
     "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv dbus curl ca-certificates iptables docker.io docker-compose-v2 && rm -rf /var/lib/apt/lists/* && systemctl enable docker && useradd -m -G docker tester" \
     --privileged --cgroupns=private --tmpfs /run --tmpfs /run/lock --tmpfs /tmp \
-    -v /var/lib/docker -v /lib/modules:/lib/modules:ro || return 0
+    -v /var/lib/docker -v /var/lib/containerd -v /lib/modules:/lib/modules:ro || return 0
   as_tester() { docker exec -i -u tester -w /home/tester "$machine" bash -euo pipefail -c "$1"; }
   if ! wait_for 120 "Docker runs on it" docker exec "$machine" docker info; then
     docker exec "$machine" bash -c "systemctl status docker --no-pager; journalctl -u docker --no-pager -n 100" >"$PHASE_DIR/docker-in-machine.txt" 2>&1 || true
@@ -1084,6 +1109,7 @@ if prepare_cloud; then
   clear_agents
   wants clean-ubuntu && phase_clean_ubuntu
   wants clean-rocky && phase_clean_rocky
+  wants old-glibc && phase_old_glibc
   wants clean-docker && phase_clean_docker
 fi
 

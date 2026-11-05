@@ -5,6 +5,7 @@ import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
+  AiResourceTypeInfo,
   READ_ONLY_AI_RESOURCE_TYPES,
   isDefaultIdentityPlaceholder,
   isReadOnlyAiResourceType,

@@ -924,6 +924,14 @@ check_keystone() {
             exit 1
             ;;
         404)
+            # What Keystone answers for an application credential it no longer has.
+            case "$answer" in
+                *[Aa]pplication\ [Cc]redential*)
+                    echo "Error: Keystone has no such application credential (HTTP 404): it was deleted, or the ID is wrong."
+                    echo "Make a new one (README.md, \"Access\"). Nothing was installed or changed."
+                    exit 1
+                    ;;
+            esac
             echo "Error: nothing answers as Keystone at $OPENSTACK_AUTH_URL (HTTP 404). Check the auth URL:"
             echo "it is the identity endpoint, ending in /v3. Nothing was installed or changed."
             exit 1
@@ -1060,6 +1068,28 @@ download_release() {
     fi
     tar --no-same-owner -xzf "$archive" -C "$RELEASE_WORK_DIR" "$binary"
     chmod 0755 "$RELEASE_WORK_DIR/$binary"
+    release_runs_here "$binary"
+}
+
+# A release that passes its digest can still not run here. The exporter's is linked against
+# a newer glibc than RHEL 8 has: on Rocky 8's 2.28 it asks for GLIBC_2.34 and exits, and systemd
+# restarts it for ever with nothing to scrape. So each is run once before anything is installed,
+# which on an upgrade leaves the running agent as it is.
+release_runs_here() {
+    local binary="$1" answer=""
+    if answer="$("$RELEASE_WORK_DIR/$binary" --version 2>&1)"; then
+        return 0
+    fi
+    echo "Error: the $binary release does not run on this machine, so nothing was installed or changed:"
+    printf '%s\n' "$answer" | head -3 | sed 's/^/  /'
+    case "$answer" in
+        *GLIBC_*)
+            echo "It needs glibc 2.34 or later, which RHEL 9, Ubuntu 22.04 and Debian 12 have. On this machine,"
+            echo "install with Docker instead (bash install.sh), or name an exporter you already run with"
+            echo "OPENSTACK_EXPORTER_ADDRESS: the collector's release runs here on its own."
+            ;;
+    esac
+    exit 1
 }
 
 # install_unit <file> <service>: one of the agent's units where systemd reads it,

@@ -165,7 +165,13 @@ exit 0
         exit "\${answer#000 }"
         ;;
       201) cat "$STUB_DIR/keystone-catalog.json" 2>/dev/null ;;
-      *) printf '{"error":{"code":%s,"message":"Refused"}}' "$answer" ;;
+      *)
+        if [ -f "$STUB_DIR/keystone.body" ]; then
+          cat "$STUB_DIR/keystone.body"
+        else
+          printf '{"error":{"code":%s,"message":"Refused"}}' "$answer"
+        fi
+        ;;
     esac
     printf '\\n%s' "$answer"
     exit 0
@@ -2909,6 +2915,27 @@ describe("with the real curl, against a server that answers as OneUptime and Key
     expect(run.status).not.toBe(0);
     expect(run.output).toContain("this machine could not connect to");
     expect(run.output).toContain("Nothing was installed or changed.");
+  });
+});
+
+describe("an application credential Keystone no longer has", () => {
+  // What a deleted credential's login answered on a real cloud (run 41953871058): a 404, not a 401.
+  test("is called that, and never a wrong address", () => {
+    const dir = scratch();
+    fs.writeFileSync(path.join(dir, "keystone.answer"), "404");
+    fs.writeFileSync(
+      path.join(dir, "keystone.body"),
+      '{"error":{"code":404,"message":"Could not find Application Credential: 4c2f.","title":"Not Found"}}',
+    );
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "Error: Keystone has no such application credential (HTTP 404): it was deleted, or the ID is wrong.",
+    );
+    expect(run.output).toContain("Nothing was installed or changed.");
+    expect(run.output).not.toContain("nothing answers as Keystone");
+    expect(run.envFile).toBe("");
   });
 });
 
