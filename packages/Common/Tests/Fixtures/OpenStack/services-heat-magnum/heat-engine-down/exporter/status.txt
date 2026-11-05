@@ -1,6 +1,6 @@
-orchestration 200 60.069289s
-container-infra 200 0.057693s
-compute 200 0.206115s
-volume 200 0.581314s
-identity 200 0.073319s
-all-at-once 200 60.470915s
+orchestration 200 60.055700s
+container-infra 200 0.036783s
+compute 200 0.171748s
+volume 200 0.541097s
+identity 200 0.054320s
+all-at-once 200 60.386546s

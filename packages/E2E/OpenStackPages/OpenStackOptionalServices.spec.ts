@@ -25,8 +25,8 @@ const BOTH_ON_A_WHOLE_CLOUD: string =
   "recording=gazpacho-ovs/healthy&also=services-heat-magnum/access/admin";
 const REFUSED: string = "recording=services-heat-magnum/access/monitoring-role";
 
-const FAILED_STACK: string = "b02c0588-9d8f-4ff3-b1a4-0bafc2274602";
-const FAILED_CLUSTER: string = "ba479656-39aa-4ab4-825f-e2b179837022";
+const FAILED_STACK: string = "8fb1dcc5-0685-434b-8e1a-bf0618776952";
+const FAILED_CLUSTER: string = "df9f1548-93b9-444f-9001-605d49feda4e";
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
   const overflow: number = await page.evaluate((): number => {
@@ -116,7 +116,7 @@ test.describe("a cloud that runs Heat", () => {
     await expect(card.getByText("ou-stack-ok")).toHaveCount(0);
     // The server Nova couldn't place for it reads on its own.
     await expect(
-      card.getByText("ou-stack-failed-server-avtiunql57mh"),
+      card.getByText("ou-stack-failed-server-b2chjl4j7q3r"),
     ).toBeVisible();
 
     await card
@@ -308,7 +308,7 @@ test.describe("a whole cloud that runs both", () => {
     await expect(
       card.getByText("ou-cluster-real", { exact: true }),
     ).toBeVisible();
-    await expect(card.getByText("ou-cluster-real-6uc6ctkch4l4")).toHaveCount(0);
+    await expect(card.getByText("ou-cluster-real-b4a265chwfks")).toHaveCount(0);
     await expect(
       card.getByText("ou-stack-failed", { exact: true }),
     ).toBeVisible();
@@ -325,7 +325,7 @@ test.describe("a whole cloud that runs both", () => {
     const toStack: Locator = page
       .getByTestId("openstack-container-cluster-details-stack")
       .getByRole("link");
-    await expect(toStack).toHaveText("ou-cluster-real-6uc6ctkch4l4");
+    await expect(toStack).toHaveText("ou-cluster-real-b4a265chwfks");
     await toStack.click();
     await expect(page.getByTestId("openstack-stack-overview")).toBeVisible();
     await expect(
@@ -350,8 +350,8 @@ test.describe("a whole cloud that runs both", () => {
  */
 test.describe("a Magnum cluster with OneUptime's Kubernetes agent on it", () => {
   const MAGNUM: string = "estate=magnum";
-  const CLUSTER: string = "ece79e88-fe71-4268-8080-ed81e6887df4";
-  const WITHOUT_AGENT: string = "ba479656-39aa-4ab4-825f-e2b179837022";
+  const CLUSTER: string = "a574ec05-efe3-45ca-a348-6b00a967b446";
+  const WITHOUT_AGENT: string = "df9f1548-93b9-444f-9001-605d49feda4e";
   const KUBERNETES_CLUSTER: string = "76000000-0000-4000-8000-000000000002";
 
   test("links to its Kubernetes cluster, and that page links back", async ({
@@ -414,7 +414,7 @@ test.describe("a Magnum cluster with OneUptime's Kubernetes agent on it", () => 
   }) => {
     await openCloudPage(page, "instances", MAGNUM);
     await page
-      .locator("tr", { hasText: "ou-cluster-real-6uc6ctkch4l4-node-0" })
+      .locator("tr", { hasText: "ou-cluster-real-b4a265chwfks-node-0" })
       .first()
       .getByRole("button", { name: /view/i })
       .first()
@@ -461,14 +461,14 @@ test.describe("a Magnum cluster with OneUptime's Kubernetes agent on it", () => 
     page: Page;
   }) => {
     await page.goto(
-      `${partPath("stacks", "483a2b85-e4e7-4cbc-9aec-2addd10fec70")}?${MAGNUM}`,
+      `${partPath("stacks", "733396c7-a790-4b41-9bfe-59a3342a517d")}?${MAGNUM}`,
     );
     const owns: Locator = page.getByTestId("openstack-stack-owns");
-    await expect(owns).toContainText("ou-cluster-real-6uc6ctkch4l4-master-0");
+    await expect(owns).toContainText("ou-cluster-real-b4a265chwfks-master-0");
     await screenshot(page, "stack-owns");
 
     await owns
-      .getByRole("link", { name: "ou-cluster-real-6uc6ctkch4l4-master-0" })
+      .getByRole("link", { name: "ou-cluster-real-b4a265chwfks-master-0" })
       .click();
     await expect(page.getByTestId("openstack-instance-overview")).toBeVisible();
     await expect(

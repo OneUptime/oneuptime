@@ -495,7 +495,7 @@
     },
     {
       "service": "orchestration",
-      "read": "stacks, as the exporter asks",
+      "read": "stacks",
       "path": "/stacks",
       "results": {
         "admin": {
@@ -507,25 +507,6 @@
           "status": 200,
           "count": 8,
           "seesAll": true
-        }
-      }
-    },
-    {
-      "service": "orchestration",
-      "read": "stacks, all projects",
-      "path": "/stacks?global_tenant=true",
-      "results": {
-        "admin": {
-          "status": 403,
-          "count": null,
-          "seesAll": false,
-          "reason": "You are not authorized to use stacks:global_index."
-        },
-        "monitoring-admin-get": {
-          "status": 403,
-          "count": null,
-          "seesAll": false,
-          "reason": "You are not authorized to use stacks:global_index."
         }
       }
     },
@@ -577,6 +558,41 @@
           "status": 200,
           "count": 1,
           "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "orchestration",
+      "read": "stacks, all projects",
+      "path": "/stacks?global_tenant=true",
+      "results": {
+        "admin": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "You are not authorized to use stacks:global_index."
+        },
+        "monitoring-admin-get": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "You are not authorized to use stacks:global_index."
+        }
+      }
+    }
+  ],
+  "partReads": [
+    {
+      "service": "orchestration",
+      "read": "another project's stack's resources",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1
+        },
+        "monitoring-admin-get": {
+          "status": 200,
+          "count": 1
         }
       }
     }
