@@ -685,7 +685,7 @@ describe("a page's limited view notice", () => {
       );
 
       for (const match of source.matchAll(
-        /<OpenStackLimitedViewNotice\b[^>]*?kind=\{OpenStackResourceKind\.([A-Za-z]+)\}/gs,
+        /<OpenStackLimitedViewNotice\b[^>]*?kind=\{OpenStackResourceKind\.([A-Za-z]+)\}/g,
       )) {
         kinds.add(match[1] as string);
       }
