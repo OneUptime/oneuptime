@@ -88,7 +88,7 @@ const WatchedTablesCost: FunctionComponent<ComponentProps> = (
       ) : (
         <p className="mt-1 text-amber-700">
           {translator.translateText(
-            "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.",
+            "This project has used its free tables. Add a payment method under Project Settings > Billing and Invoices > Billing to watch more.",
           )}
         </p>
       )}

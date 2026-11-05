@@ -801,7 +801,7 @@ export default class TableHealthIngest {
 
     if (tablesLeftOut > 0) {
       snapshot.warnings.push(
-        `${tablesLeftOut} more tables were left out: this project has used its free tables. Add a payment method under Project Settings > Billing to watch them.`,
+        `${tablesLeftOut} more tables were left out: this project has used its free tables. Add a payment method under Project Settings > Billing and Invoices > Billing to watch them.`,
       );
     }
 

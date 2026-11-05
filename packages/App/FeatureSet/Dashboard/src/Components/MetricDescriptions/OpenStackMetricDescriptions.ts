@@ -25,7 +25,7 @@ export const OPENSTACK_METRIC_DESCRIPTIONS: Record<OpenStackMetric, string> = {
     "Whether this cloud's data is reaching OneUptime. Connected means its agent or probe has reported in the last 15 minutes. Disconnected means nothing has arrived since the time shown, so nothing on this page is current.",
   ),
   health: translationKey(
-    "Worked out from what the agent last reported, by the same rules as Needs attention and the alert templates. Unhealthy: something is broken or about to be, such as an API not answering, an enabled service down or a pool past 95%. Degraded: something needs a look soon, such as a host past 90% of what Placement allows or a service disabled for over a week. Healthy: nothing needs attention. A service someone disabled on purpose never counts against it. Health Unknown: there is nothing current to judge, or this credential can't read enough to say.",
+    "Worked out from what the agent last reported, by the rules of Needs attention and the alert templates. Unhealthy: something is broken or about to be. Degraded: something needs a look soon. Healthy: nothing does. A service disabled on purpose never counts. Health Unknown: nothing current to judge, or this credential can't read enough.",
   ),
   controlPlane: translationKey(
     "Each service's API that answered the agent, out of every API in Keystone's catalog, and how many enabled workers are down. A worker someone disabled is planned work and is not counted as down.",
@@ -34,7 +34,7 @@ export const OPENSTACK_METRIC_DESCRIPTIONS: Record<OpenStackMetric, string> = {
     "Hypervisors whose nova-compute is up and enabled, out of all of them. Lost means Nova has lost its nova-compute: its instances may still be running, but Nova can't manage them, and its numbers are the last it had.",
   ),
   vcpusAllocated: translationKey(
-    "vCPUs Nova and Placement have promised to instances, out of what they can promise on the hosts that can take them. This is what is promised, not how busy the hosts are. A lost or disabled host is in neither number. The bar turns amber when a host is past 90%, which is where the alert template fires.",
+    "The vCPUs Nova and Placement have promised to instances, out of what they can promise on the hosts that can take them. This is what is promised, not how busy the hosts are. A lost or disabled host is in neither number. The bar turns amber when a host is past 90%, which is where the alert template fires.",
   ),
   memoryAllocated: translationKey(
     "Memory Nova and Placement have promised to instances, out of what they can promise on the hosts that can take them. This is what is promised, not what is in use. A lost or disabled host is in neither number. The bar turns amber when a host is past 90%, which is where the alert template fires.",

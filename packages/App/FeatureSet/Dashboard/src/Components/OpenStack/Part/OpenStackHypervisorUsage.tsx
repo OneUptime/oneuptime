@@ -205,7 +205,7 @@ const OpenStackHypervisorUsage: FunctionComponent<{
       <div className="mb-6">
         <Card
           title="Busiest instances"
-          description="Which instances are really using this hypervisor, the most first, over the last quarter of an hour. Waiting is how much of its time an instance's vCPUs wanted to run and were made to wait: that one is the victim, and the one using the most is usually why."
+          description="Which instances really use this hypervisor, the most first, over the last 15 minutes. Waiting is time an instance's vCPUs wanted to run and couldn't: that one is the victim, the busiest is usually why."
         >
           {busiest.length === 0 ? (
             <p
