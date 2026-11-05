@@ -12,6 +12,9 @@
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
+ *   ?logs=      <release>: what that real cloud's services wrote, as the cloud's logs and
+ *               change events, through the ingest's own stamp (ServiceLogs.js), and the
+ *               instance, volume and service it wrote about, on any estate.
  *               "<release>/access/<level>" is what its exporter answered each credential:
  *               reader, monitoring-role or monitoring-admin-get.
  *   ?without=   compute, network, volume...: with a recording, a service this cloud doesn't run
@@ -191,7 +194,10 @@ import {
   PROJECT_ID,
   REGION_ONE,
   buildEstate,
+  instance,
+  novaCompute,
   uuid,
+  volume,
 } from "./Data";
 import {
   addCephStatusToPools,
@@ -219,6 +225,7 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { answerRows, hasServiceLogs, readServiceLogs } from "./ServiceLogs";
 import { buildCapacitySnapshotOf } from "./Capacity";
 import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
@@ -361,6 +368,56 @@ const estate = buildEstate(
   },
   LOADED_AT,
 );
+
+/*
+ * What a real cloud's services wrote, and the parts they wrote it about, with the IDs they
+ * really had, beside whatever the estate holds.
+ */
+const serviceLogRows = hasServiceLogs(params.get("logs"))
+  ? readServiceLogs(params.get("logs"), {
+      cloudId: new ObjectID(CLOUD_ID),
+      cloudName: estate.cloud.name,
+      loadedAt: LOADED_AT,
+    })
+  : null;
+
+if (serviceLogRows) {
+  const context = {
+    loadedAt: LOADED_AT,
+    lastSeenAt: LOADED_AT - MINUTE,
+    isConnected: true,
+  };
+  const parts = [
+    instance(context, 9001, "ou-log-novalid", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_no_valid_host,
+      status: "ERROR",
+    }),
+    instance(context, 9002, "ou-log-vm", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_ok,
+    }),
+    instance(context, 9004, "ou-log-broken", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_spawn_failed,
+      status: "ERROR",
+    }),
+    volume(context, 9003, "ou-log-vol", REGION_ONE, {
+      externalId: serviceLogRows.ids.volume_attached,
+    }),
+    novaCompute(context, "devstack-host", REGION_ONE, {
+      adminState: "disabled",
+    }),
+  ];
+
+  parts.forEach((part, index) => {
+    if (part.externalId) {
+      estate.inventory.push({
+        ...part,
+        _id: uuid("74000000", index + 1),
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+      });
+    }
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -1880,6 +1937,13 @@ AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.listRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options);
+  }
+  if (serviceLogRows && modelName.startsWith("ChangeEvent")) {
+    return answerRows(serviceLogRows.changes, options);
+  }
+
   if (modelName.startsWith("Span")) {
     const data = spansFor(options.query).map((record) => {
       return Object.assign(new options.modelType(), record);
@@ -1909,6 +1973,9 @@ AnalyticsModelAPI.count = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options).count;
+  }
   if (modelName.startsWith("Log")) {
     return 0;
   }
