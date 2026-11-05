@@ -1,0 +1,35 @@
+HELD   the API checks answer on a healthy cloud
+HELD   a run passes every step on a healthy cloud
+HELD   a passing run leaves nothing behind
+HELD   a signed run passes, and goes untraced on a cloud with OSProfiler off
+HELD   the key is in nothing a run wrote
+HELD   nova-scheduler stopped fails at the wait for ACTIVE
+HELD   the failed run says what Nova said
+HELD   a failed run still leaves nothing behind
+HELD   nova-scheduler started: the next run passes
+HELD   a killed run leaves what it made
+HELD   a run right after it is skipped, because one may be going
+HELD   the skipped run touched nothing
+HELD   a run an interval on goes ahead
+HELD   and leaves what the dead run made
+HELD   a run past two intervals goes ahead
+HELD   and says what the janitor removed
+HELD   and nothing of the dead run's is left
+HELD   what merely looks like the check's is still there
+HELD   another project's is still there, and holds nothing named for the check
+HELD   a credential scoped elsewhere is refused
+HELD   an admin credential is refused, on the right project
+HELD   an unrestricted application credential is refused
+HELD   refused-scoped-elsewhere wrote nothing
+HELD   refused-admin wrote nothing
+HELD   refused-unrestricted wrote nothing
+HELD   the check's credential cannot write to another project, or beyond its own
+HELD   and everything of the other project's is still there
+HELD   cinder-volume stopped fails in the volume part
+HELD   and the boot still passes
+HELD   a router with no gateway fails in the floating IP part
+HELD   and the boot still passes
+HELD   with everything back, a run passes
+HELD   nothing is left but what merely looks like the check's
+HELD   which is all still there
+HELD   and so is everything of the other project's

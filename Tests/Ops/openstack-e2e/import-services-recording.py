@@ -63,12 +63,14 @@ GROUPS = {
             "calls": ("heat-",),
             "cli": ("openstack stack", "openstack orchestration"),
             # What a stack says it owns, beside what Nova and Cinder say they hold.
-            "first_scene": {"scene": "heat-baseline", "exporter": (), "calls": ("nova-servers", "cinder-volumes")},
+            "first_scene": {"scene": "heat-baseline", "exporter": ("compute", "volume"), "calls": ("nova-servers", "cinder-volumes")},
         }, {
             "scene_prefix": "magnum-",
             "exporter": ("container-infra",),
             "calls": ("magnum-",),
             "cli": ("openstack coe",),
+            # A real cluster's stack and server, which is what its link to Kubernetes joins on.
+            "first_scene": {"scene": "magnum-real-image", "exporter": ("compute", "orchestration"), "calls": ("nova-servers",), "cli": ("openstack server",)},
         },),
     },
     "services-manila": {
@@ -187,6 +189,7 @@ def wanted(scene, parts):
         if first and first["scene"] == scene:
             exporter += first["exporter"]
             calls += first["calls"]
+            cli += first.get("cli", ())
     return tuple(exporter), tuple(calls), tuple(cli)
 
 

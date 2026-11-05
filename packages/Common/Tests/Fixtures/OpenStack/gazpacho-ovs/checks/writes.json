@@ -1,0 +1,140 @@
+{
+ "writes": [
+  {
+   "service": "compute",
+   "write": "delete a server of another project",
+   "method": "DELETE",
+   "status": 404,
+   "wrote": false,
+   "reason": "{\"itemNotFound\": {\"code\": 404, \"message\": \"Instance 5437176e-a688-4b6a-b96b-000a78bf2d03 could not be found.\"}}"
+  },
+  {
+   "service": "compute",
+   "write": "stop a server of another project",
+   "method": "POST",
+   "status": 404,
+   "wrote": false,
+   "reason": "{\"itemNotFound\": {\"code\": 404, \"message\": \"Instance 5437176e-a688-4b6a-b96b-000a78bf2d03 could not be found.\"}}"
+  },
+  {
+   "service": "compute",
+   "write": "attach to a server of another project",
+   "method": "POST",
+   "status": 404,
+   "wrote": false,
+   "reason": "{\"itemNotFound\": {\"code\": 404, \"message\": \"Instance 5437176e-a688-4b6a-b96b-000a78bf2d03 could not be found.\"}}"
+  },
+  {
+   "service": "compute",
+   "write": "create a flavor",
+   "method": "POST",
+   "status": 403,
+   "wrote": false,
+   "reason": "{\"forbidden\": {\"code\": 403, \"message\": \"Policy doesn't allow os_compute_api:os-flavor-manage:create to be performed.\"}}"
+  },
+  {
+   "service": "compute",
+   "write": "create an aggregate",
+   "method": "POST",
+   "status": 403,
+   "wrote": false,
+   "reason": "{\"forbidden\": {\"code\": 403, \"message\": \"Policy doesn't allow os_compute_api:os-aggregates:create to be performed.\"}}"
+  },
+  {
+   "service": "network",
+   "write": "delete a floating IP of another project",
+   "method": "DELETE",
+   "status": 404,
+   "wrote": false,
+   "reason": "{\"NeutronError\": {\"type\": \"FloatingIPNotFound\", \"message\": \"Floating IP 0f691f50-205c-4734-8c47-469e4877b1a4 could not be found\", \"detail\": \"\"}}"
+  },
+  {
+   "service": "network",
+   "write": "delete a security group of another project",
+   "method": "DELETE",
+   "status": 404,
+   "wrote": false,
+   "reason": "{\"NeutronError\": {\"type\": \"SecurityGroupNotFound\", \"message\": \"Security group dab44ca9-6988-415a-a6ba-9c625f9e20aa does not exist\", \"detail\": \"\"}}"
+  },
+  {
+   "service": "network",
+   "write": "delete a network of another project",
+   "method": "DELETE",
+   "status": 404,
+   "wrote": false,
+   "reason": "{\"NeutronError\": {\"type\": \"NetworkNotFound\", \"message\": \"Network 20dbdb91-6655-47e9-8f60-26a3439c98c6 could not be found.\", \"detail\": \"\"}}"
+  },
+  {
+   "service": "network",
+   "write": "create a network in another project",
+   "method": "POST",
+   "status": 400,
+   "wrote": false,
+   "reason": "{\"NeutronError\": {\"type\": \"HTTPBadRequest\", \"message\": \"Specifying 'project_id' or 'tenant_id' other than the authenticated project in request is not allowed for current user.\", \"detail\": \"\"}}"
+  },
+  {
+   "service": "network",
+   "write": "create a security group in another project",
+   "method": "POST",
+   "status": 400,
+   "wrote": false,
+   "reason": "{\"NeutronError\": {\"type\": \"HTTPBadRequest\", \"message\": \"Specifying 'project_id' or 'tenant_id' other than the authenticated project in request is not allowed for current user.\", \"detail\": \"\"}}"
+  },
+  {
+   "service": "network",
+   "write": "create a floating IP in another project",
+   "method": "POST",
+   "status": 400,
+   "wrote": false,
+   "reason": "{\"NeutronError\": {\"type\": \"HTTPBadRequest\", \"message\": \"Specifying 'project_id' or 'tenant_id' other than the authenticated project in request is not allowed for current user.\", \"detail\": \"\"}}"
+  },
+  {
+   "service": "volume",
+   "write": "delete a volume of another project",
+   "method": "DELETE",
+   "status": 404,
+   "wrote": false,
+   "reason": "{\"itemNotFound\": {\"code\": 404, \"message\": \"Volume 3018069f-0a97-44c8-84b8-d3c13f08320d could not be found.\"}}"
+  },
+  {
+   "service": "volume",
+   "write": "create a volume under another project's path",
+   "method": "POST",
+   "status": 400,
+   "wrote": false,
+   "reason": "{\"badRequest\": {\"code\": 400, \"message\": \"Malformed request url\"}}"
+  },
+  {
+   "service": "image",
+   "write": "create a public image",
+   "method": "POST",
+   "status": 403,
+   "wrote": false,
+   "reason": "{\"message\": \"You are not authorized to complete publicize_image action.<br /><br />\\n\\n\\n\", \"code\": \"403 Forbidden\", \"title\": \"Forbidden\"}"
+  },
+  {
+   "service": "identity",
+   "write": "create a project",
+   "method": "POST",
+   "status": 403,
+   "wrote": false,
+   "reason": "{\"error\":{\"code\":403,\"message\":\"You are not authorized to perform the requested action: identity:create_project.\",\"title\":\"Forbidden\"}}\n"
+  },
+  {
+   "service": "identity",
+   "write": "create a user",
+   "method": "POST",
+   "status": 403,
+   "wrote": false,
+   "reason": "{\"error\":{\"code\":403,\"message\":\"You are not authorized to perform the requested action: identity:create_user.\",\"title\":\"Forbidden\"}}\n"
+  },
+  {
+   "service": "identity",
+   "write": "give itself a role on another project",
+   "method": "PUT",
+   "status": 403,
+   "wrote": false,
+   "reason": "{\"error\":{\"code\":403,\"message\":\"You are not authorized to perform the requested action: identity:create_grant.\",\"title\":\"Forbidden\"}}\n"
+  }
+ ]
+}

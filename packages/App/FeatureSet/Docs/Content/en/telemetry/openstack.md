@@ -109,7 +109,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia, Ironic, Heat, Magnum and Manila are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
+Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove and Gnocchi are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 
@@ -170,6 +170,25 @@ service_type = compute
 | `cinder.conf` | `block-storage`. The rules also carry `volume` and `volumev3`, for a Cinder configured that way |
 | `glance-api.conf` | `image` |
 | `placement.conf` | `placement` |
+| `octavia.conf` | `load-balancer` |
+| `ironic.conf` | `baremetal` |
+| `heat.conf` | `orchestration` |
+| `magnum.conf` | `container-infra` |
+| `manila.conf` | `sharev2`. The rules also carry `shared-file-system`, for a Manila configured that way |
+| `designate.conf` | `dns` |
+| `barbican.conf` | `key-manager` |
+| `trove.conf` | `database` |
+| `gnocchi.conf` | `metric` |
+| `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
+
+Only the services your cloud runs need a line.
+
+On the services a cloud may not run, what each level got on real clouds differs from the tables above in four ways:
+
+- **Ironic** answers a project's credential, an admin's too, with only the nodes that project owns, and refuses its conductors. Only system scope reads every node and the conductors, and the agent's credential is on a project. To read a node with it, make its project the owner: `openstack baremetal node set --owner`.
+- **Swift** lists the credential's own project's containers, and no other. Another project's account answers `403` unless the credential has `ResellerAdmin`.
+- **Barbican** answers a credential about its own project alone, and refuses a plain reader. OneUptime reads no secret.
+- **Gnocchi** lets any role on a project create a metric, so on a cloud that runs it, level 2 and level 3 can write there.
 
 Keystone needs nothing. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
 
@@ -747,13 +766,14 @@ The exporter says less about these services than a read of their APIs does, and 
 | Whose a cluster is | From its Heat stack | From Magnum | No |
 | Why a cluster failed, its template and its Kubernetes version | No. Run `openstack coe cluster show` | Yes | No |
 | Heat's engines and Magnum's conductors on **Services** | No | Yes | No |
+| Which instances and volumes a stack owns | No | Where Heat answers it | Its own project's at most |
 
 Two failures read differently, and both are what a real cloud does:
 
 - **A stopped `heat-engine`** reads as **Orchestration API Down**, on either collector. Heat's API asks an engine for its lists, so with none left it can't answer them, after a minute's wait for an RPC timeout. A stack an engine left in progress can stay in progress after the engine comes back, and reads **Stack Stuck In Progress** once two hours have passed.
 - **A stopped `magnum-conductor`** isn't shown anywhere on a cloud the agent collects, because Magnum's API carries on answering without one and the exporter doesn't read conductors. Its clusters just stop moving. A probe with a Full view credential reads them, which is the only way to see this, or run `openstack coe service list`.
 
-Which instances and volumes a stack owns isn't collected yet, so a stack's page doesn't list them, and a failed instance doesn't name a stack you made yourself. Run `openstack stack resource list`.
+Which instances and volumes a stack owns is on one more read of that stack, which the agent's exporter doesn't make. On a cloud a probe collects, a stack's page lists them, and an instance's or a volume's page and alerts name the stack. It reads what its credential may, and a stack's page says when nothing has. On a cloud the agent collects, run `openstack stack resource list`.
 
 ### A cluster with the Kubernetes agent on it
 
@@ -1013,7 +1033,7 @@ Be clear about what you are turning on:
 - **It needs `opentelemetry-sdk` and `opentelemetry-exporter-otlp` in each service**, which no deployment tool's images hold.
 
 > [!WARNING]
-> Stay below version 1.44 of OpenTelemetry's SDK. That version hangs a service when it starts a subprocess ([its bug](https://github.com/open-telemetry/opentelemetry-python/issues/5789)). On our 2026.2 test cloud, whose pins name 1.44.0, it left Neutron's API never answering, and cinder-volume stopped working. The commands here ask for less than 1.44. On 2026.2 that has not been run yet, so use a test cloud first.
+> Stay below version 1.44 of OpenTelemetry's SDK. That version hangs a service when it starts a subprocess ([its bug](https://github.com/open-telemetry/opentelemetry-python/issues/5789)). On our 2026.2 test cloud, whose pins name 1.44.0, it left Neutron's API never answering, and cinder-volume stopped working. The commands here ask for less than 1.44, and that held on the same cloud: with 1.43.0 every service came back with the driver on, and Neutron is in the trace. 2026.2's constraints file names 1.44.0, so it refuses them: leave it out of this one install.
 
 :::cards
 - [What a trace shows](#what-a-trace-shows): What is traced, and what is not, on a stock cloud.
@@ -1031,12 +1051,12 @@ Everything here was read from what the driver really sent for a signed boot on D
 | `nova-api`, `nova-compute`, `neutron-server`, `keystone`, `glance-api`, `cinder-api`, `cinder-scheduler` | In the trace | |
 | Placement | Sends nothing. It keeps a config of its own without `[profiler_otlp]`, so the driver stops as it starts, with `no such option profiler_otlp` in its log | [One line](#placement-one-line) of its code. With `trace_requests` on, `nova-compute` shows its own calls to Placement without it |
 | `nova-conductor`, `nova-scheduler` | On 2025.2 they send nothing while they run more than one worker: they make the driver and then fork on eventlet, and nothing a forked worker made arrived. On 2026.2 they run on threads and are in the trace | On 2025.2, [one worker each](#novas-conductor-and-scheduler-one-worker-each) |
-| `cinder-volume` | On 2025.2 it sends nothing: it always runs each backend in a forked worker | Nothing to set |
+| `cinder-volume` | Sends nothing: it always runs each backend in a forked worker, on 2026.2 too | Nothing to set |
 | Neutron's RPC server | Sends nothing. It never says it started OSProfiler, and Neutron's API does | Nothing to set |
 
 So on a stock 2025.2 cloud, a span that one of those called arrives with a parent that never does. `nova-compute`'s `build_and_run_instance` is called by `nova-conductor`, so everything `nova-compute` did for a boot is under a span whose parent is missing. The trace is whole otherwise, it says **Not in this trace** above the waterfall, and those services' lines are still in [the logs of that request](#from-a-trace-to-its-logs).
 
-On 2026.2 a trace can also hold more than its request. Nova's workers there keep a signed request's context on their threads, so a boot's trace held that instance's delete ten minutes later, and a failed boot's conductor spans arrived under the boot before it. Read a trace's times as well as its services.
+On 2026.2 a trace can also hold what is not its request's, and miss what is. Nova's workers there keep a signed request's context on their threads, so `nova-compute`'s part of attaching a volume arrived under the boot before it, more than a minute after that boot, and not under the attach. A failed boot's conductor spans did the same. Read a trace's times as well as its services.
 
 ### Turn on traces
 
@@ -1054,7 +1074,7 @@ sudo -E bash install-traces.sh
 
 #### Give each service the libraries
 
-In the environment each service runs from. Without them a service says so in its log and carries on, untraced.
+In the environment each service runs from. Without them a service says so in its log and carries on, untraced. On 2026.2, leave its constraints file out of this one install, because it names 1.44.0.
 
 ```bash
 pip install 'opentelemetry-sdk<1.44' 'opentelemetry-exporter-otlp<1.44'
@@ -1124,7 +1144,7 @@ A signed `server list` crosses `nova-api`, `keystone`, `neutron-server` and `gla
 | No `Trace ID` line | The client has no OSProfiler, and ignores your key without it. `pip install osprofiler` where you run `openstack` |
 | A `Trace ID`, and no trace | A wrong key is not an error: the request just goes untraced. Check the key, that the service was restarted, its log, and that the collector answers `curl -i -X POST http://127.0.0.1:4318/v1/traces` |
 | A span missing its parent | It was called by a service that sends nothing. See [What a trace shows](#what-a-trace-shows) |
-| A service hangs or will not answer after a restart | `pip list \| grep opentelemetry-sdk` where it runs. Version 1.44 hangs it as soon as it runs a command. Install below it, or take `[profiler]` off that service. `py-spy dump --pid <worker>` shows it stuck in `TracerProvider._handle_fork` |
+| A service hangs or will not answer after a restart | `pip list \| grep opentelemetry-sdk` where it runs. Version 1.44 hangs it as soon as it runs a command. Install below it, or take `[profiler]` off that service. `py-spy dump --pid <worker>` shows it stuck in `TracerProvider._handle_fork`. If it had already hung, restart again after installing below it: on our test cloud the first restart still did not answer, because Nova's API was waiting on Neutron's hung workers, and the next one did. What hung can stay behind a restart too, so kill what is left |
 
 Your traces are on the cloud's **Traces** page, an instance's, a volume's and a network's are on its **Traces** tab, and a service's and an API's on theirs. An instance a request made is found by the requests that named it: a boot's own `POST` cannot name it, and what follows does.
 
@@ -1150,11 +1170,13 @@ Nothing until a request is signed. With OSProfiler on and nothing signed, a requ
 
 What has been counted is what a signed boot sends, on one machine's DevStack:
 
-| Settings | Spans | What the collector sends on |
+| Settings | On 2025.2: spans, and what the collector sends on | On 2026.2: spans, and what the collector sends on |
 | --- | --- | --- |
-| The defaults above | About 100 | About 50 KB |
-| `trace_requests = True` | About 150 | About 90 KB |
-| `trace_sqlalchemy = True` | About 900 | About 1 MB |
+| The defaults above | About 100, 50 KB | About 180, 80 KB |
+| `trace_requests = True` | About 150, 90 KB | About 320, 170 KB |
+| `trace_sqlalchemy = True` | About 900, 1 MB | About 1,000, 1 MB |
+
+On 2026.2 `nova-conductor` sends too, and later work lands in the trace, so of those 180 about 130 had arrived 15 seconds after the boot.
 
 With the collector stopped, a signed boot still worked and its spans were lost, so tracing did not get in the request's way.
 

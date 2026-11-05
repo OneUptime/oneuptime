@@ -59,6 +59,7 @@ import {
 } from "../OpenStack/OpenStackInstanceMetrics";
 import { getAllOpenStackControlPlaneAlertTemplates } from "./OpenStackControlPlaneAlertTemplates";
 import {
+  OpenStackCheckReportKind,
   OpenStackLifecyclePhase,
   OpenStackLifecycleStep,
 } from "../OpenStack/OpenStackCheck";
@@ -132,6 +133,11 @@ export interface OpenStackAlertTemplate {
    * the agent collects this could never fire either (OpenStackMetricCatalog's onlyFromProbe).
    */
   requiresProbe?: boolean | undefined;
+  /*
+   * Reads what a check from outside reports. With that check off nothing sends its series, so on
+   * such a cloud this could never fire either.
+   */
+  requiresCheck?: OpenStackCheckReportKind | undefined;
   getMonitorStep: (args: OpenStackAlertTemplateArgs) => MonitorStep;
 }
 
@@ -2247,8 +2253,7 @@ const containerInfraConductorDownTemplate: OpenStackAlertTemplate = {
       words: {
         incidentTitle: "[OpenStack] Magnum Conductor Down",
         incidentDescription: `Magnum lists an enabled magnum-conductor as down. Its API carries on answering, so nothing else says this, but with none left no cluster can be created, resized or deleted, and clusters in progress stop moving. Check openstack coe service list, then magnum-conductor's service and logs on the host named above, and its route to RabbitMQ. The incident resolves on its own once it is up again, or disabled.`,
-        criteriaName:
-          "Magnum Conductor Down - enabled magnum-conductor < 1",
+        criteriaName: "Magnum Conductor Down - enabled magnum-conductor < 1",
         criteriaDescription:
           "Triggers when Magnum lists an enabled magnum-conductor as down for the whole window.",
       },
@@ -2743,6 +2748,7 @@ const tokenIssueFailingTemplate: OpenStackAlertTemplate = {
   description: `Alert when Keystone issues no token to the probe checking this cloud from outside, for 5 minutes: it answered with an error, refused the credential, or could not be reached. One incident per region. Nobody can start anything without a token, whatever the services themselves report. ${TURN_ON_API_CHECKS} Check keystone's service and logs, the load balancer in front of it and the database behind it, then run \`openstack token issue\`.`,
   category: "Availability",
   severity: "Critical",
+  requiresCheck: "api",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
     return buildFloorStep({
       args,
@@ -2775,6 +2781,7 @@ const serviceApiCheckFailingTemplate: OpenStackAlertTemplate = {
   description: `Alert when a service the catalog names does not answer a one-row read from a probe outside the cloud, for 5 minutes: it failed, timed out, could not be reached, or refused a token Keystone just issued. One incident per region and service, for every service in the catalog, with no list to keep. One that refuses this credential is answering, so it does not fire. ${TURN_ON_API_CHECKS} Check that service's API and the load balancer in front of it, then run \`openstack endpoint list --interface public\`.`,
   category: "Availability",
   severity: "Critical",
+  requiresCheck: "api",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
     return buildFloorStep({
       args,
@@ -2816,6 +2823,7 @@ function buildCertificateExpiringTemplate(data: {
     description: `Alert when the certificate on an endpoint the catalog names expires in under ${data.days} days, as read by a probe outside the cloud off the connection it made. One incident per host and port, and it stays open past the expiry, when every user's connection starts failing. ${TURN_ON_API_CHECKS} Check \`openstack endpoint list --interface public\` for what is on that host, and ${data.checkNext}`,
     category: "Availability",
     severity: data.severity,
+    requiresCheck: "api",
     getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
       return buildOpenStackMonitorStep({
         openstackMonitor: buildOpenStackSeriesConfig({
@@ -2906,6 +2914,7 @@ const instanceBootFailingTemplate: OpenStackAlertTemplate = {
   description: `Alert when the last lifecycle run in a region could not boot an instance: Nova refused it, its server went to ERROR, or it never reached ACTIVE. Opens within minutes of the run and closes within minutes of the next run that boots. One incident per region, and it says the step and the fault Nova gave. Every service can read healthy while this fires, which is what this is for. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then the scheduler's and conductor's logs, and Placement.`,
   category: "Compute",
   severity: "Critical",
+  requiresCheck: "lifecycle",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
     return buildLifecyclePhaseFloorStep({
       args,
@@ -2930,6 +2939,7 @@ const instanceBootSlowTemplate: OpenStackAlertTemplate = {
   description: `Alert when the last lifecycle run in a region took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to take a server from Nova accepting it to ACTIVE, which is how long OpenStack's own tests allow (Tempest's build_timeout). It boots the small flavor and image the check was given, so your own will take longer. One incident per region. With an OSProfiler key saved on the Checks page, the run has a trace. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then what the image and the network are doing on the compute hosts.`,
   category: "Compute",
   severity: "Warning",
+  requiresCheck: "lifecycle",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
     return buildCeilingStep({
       args,
@@ -2964,6 +2974,7 @@ const volumeAttachFailingTemplate: OpenStackAlertTemplate = {
   description: `Alert when the last lifecycle run in a region could not create a volume or attach it to its server. One incident per region, and it says the step and what Cinder or Nova gave as the reason. ${TURN_ON_LIFECYCLE} It also needs the volume part of the check on. Check \`openstack volume service list\`, then cinder-volume's logs and the storage backend behind it.`,
   category: "Storage",
   severity: "Critical",
+  requiresCheck: "lifecycle",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
     return buildLifecyclePhaseFloorStep({
       args,
@@ -2988,6 +2999,7 @@ const floatingIpUnreachableTemplate: OpenStackAlertTemplate = {
   description: `Alert when the last lifecycle run in a region could not give its server a floating IP, or got no ping back from one. One incident per region, and it says the step and what Neutron gave as the reason. A probe with no route to the floating range reads the same, so run it from where your users are. ${TURN_ON_LIFECYCLE} It also needs the floating IP part of the check on. Check \`openstack network agent list\`, then the router and whatever carries the external network.`,
   category: "Network",
   severity: "Critical",
+  requiresCheck: "lifecycle",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
     return buildLifecyclePhaseFloorStep({
       args,
@@ -3202,10 +3214,21 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
 export function getOpenStackAlertTemplatesForCloud(cloud: {
   services?: ReadonlyArray<string> | null | undefined;
   isCollectedByProbe?: boolean | null | undefined;
+  isApiCheckOn?: boolean | null | undefined;
+  isLifecycleCheckOn?: boolean | null | undefined;
 }): Array<OpenStackAlertTemplate> {
   return getAllOpenStackAlertTemplates().filter(
     (template: OpenStackAlertTemplate): boolean => {
       if (template.requiresProbe && cloud.isCollectedByProbe !== true) {
+        return false;
+      }
+      if (template.requiresCheck === "api" && cloud.isApiCheckOn !== true) {
+        return false;
+      }
+      if (
+        template.requiresCheck === "lifecycle" &&
+        cloud.isLifecycleCheckOn !== true
+      ) {
         return false;
       }
       return (

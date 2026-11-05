@@ -209,11 +209,19 @@ export function readOpenStackScene(
   );
 }
 
+/*
+ * The releases DevStack was recorded on. A deployment tool's recording ("kolla-aio") is not one:
+ * its catalog, its defaults and what it runs are its own, which is what recording it was for, and
+ * OpenStackKollaRecording.test.ts holds it to those.
+ */
 export function getOpenStackReleases(): Array<string> {
   return fs
     .readdirSync(FIXTURES)
     .filter((entry: string): boolean => {
-      return fs.existsSync(path.join(FIXTURES, entry, "healthy", "exporter"));
+      return (
+        !entry.endsWith("-aio") &&
+        fs.existsSync(path.join(FIXTURES, entry, "healthy", "exporter"))
+      );
     })
     .sort();
 }

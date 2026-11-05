@@ -318,7 +318,8 @@ elif " -f value" in args:
       path.join(bin, "sudo"),
       `#!/usr/bin/env bash
 case "$1" in
-  systemctl|journalctl|a2dissite|a2ensite) exit 0 ;;
+  systemctl|journalctl|a2dissite|a2ensite|udevadm|chmod) exit 0 ;;
+  tee) cat >/dev/null; exit 0 ;;
 esac
 exec "$@"
 `,

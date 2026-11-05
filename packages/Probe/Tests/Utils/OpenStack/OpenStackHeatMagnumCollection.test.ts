@@ -21,6 +21,7 @@ import {
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { MAGNUM_CLUSTER_READS_PER_COLLECTION } from "../../../Utils/OpenStack/Collectors/ContainerInfraCollector";
+import { HEAT_STACK_READS_PER_COLLECTION } from "../../../Utils/OpenStack/Collectors/OrchestrationCollector";
 import OpenStackCollector from "../../../Utils/OpenStack/OpenStackCollector";
 import {
   OpenStackHttpRequest,
@@ -52,7 +53,7 @@ import {
  */
 
 const GROUP: string = "services-heat-magnum";
-const PROJECT: string = "4d0acfc18c9d4a0b994a7fe34516bf65";
+const PROJECT: string = "5d1838ef05294dd9a804e284b9f21617";
 const HEAT_URL: string = `${RECORDED_HOST}/heat-api/v1/${PROJECT}`;
 const MAGNUM_URL: string = `${RECORDED_HOST}/container-infra/v1`;
 
@@ -206,6 +207,17 @@ function cloudOf(data: {
 
       if (call && recorded(call)) {
         return respond(recorded(call) as Answer);
+      }
+
+      // What one stack owns, recorded under its name.
+      const ownedBy: RegExpExecArray | null =
+        /\/stacks\/([^/]+)\/[^/]+\/resources$/.exec(path);
+      if (ownedBy) {
+        return respond(
+          recorded(
+            `heat-stack-resources-${decodeURIComponent(ownedBy[1] as string)}`,
+          ) || { status: 404, body: '{"message": "Not found."}' },
+        );
       }
 
       // One cluster's own read, recorded under its name.
@@ -536,11 +548,11 @@ describe("Magnum, on what a real cloud said", () => {
     expect(failed?.facts).toMatchObject({
       statusReason: "default-master failed, default-worker failed",
       healthStatus: "UNKNOWN",
-      clusterTemplateId: "4203498b-8224-4477-b31e-bd0d55236ac6",
+      clusterTemplateId: "4f50d046-1ba6-418e-baa2-151d82926537",
       clusterTemplateName: "ou-template",
       coeVersion: "v1.18.16",
       apiAddress: "https://:6443",
-      stackId: "66b02f15-9492-45b2-84aa-a82a4edf21f7",
+      stackId: "e2fc0fa8-a09b-45c5-b917-68d79adb0ec4",
       nodeCount: 1,
       masterCount: 1,
     });
@@ -762,6 +774,279 @@ describe("what one cluster's own read costs", () => {
   });
 });
 
+describe("what a stack owns", () => {
+  const scene: RecordedScene = loadScene(GROUP, "heat-baseline");
+
+  const seriesOf: (
+    points: Array<ReportedDatapoint>,
+    name: string,
+  ) => ReportedDatapoint = (
+    points: Array<ReportedDatapoint>,
+    name: string,
+  ): ReportedDatapoint => {
+    const found: ReportedDatapoint | undefined = pointsNamed(
+      points,
+      "openstack_heat_stack_status",
+    ).find((point: ReportedDatapoint): boolean => {
+      return point.labels["name"] === name;
+    });
+    expect(found).toBeDefined();
+    return found as ReportedDatapoint;
+  };
+
+  test("is what Heat said, by the IDs Nova and Cinder know them by, on what a real cloud recorded", async () => {
+    const { points } = await collect({ scene });
+    const owner: ReportedDatapoint = seriesOf(points, "ou-stack-ok");
+
+    const servers: Array<JSONObject> = recordedJson(scene, "nova-servers")?.[
+      "servers"
+    ] as Array<JSONObject>;
+    const volumes: Array<JSONObject> = recordedJson(scene, "cinder-volumes")?.[
+      "volumes"
+    ] as Array<JSONObject>;
+    const serverOf: JSONObject | undefined = servers.find(
+      (server: JSONObject): boolean => {
+        return server["id"] === owner.labels["owned_instance_ids"];
+      },
+    );
+    expect(String(serverOf?.["name"])).toContain("ou-stack-ok-server");
+    expect(
+      volumes.some((volume: JSONObject): boolean => {
+        return volume["id"] === owner.labels["owned_volume_ids"];
+      }),
+    ).toBe(true);
+    expect(owner.labels["owned_instance_count"]).toBe("1");
+    expect(owner.labels["owned_volume_count"]).toBe("1");
+    expect(owner.labels["resources_read"]).toBe("true");
+  });
+
+  test("a server Nova couldn't place is still its own, and a stack of none owns none", async () => {
+    const { points } = await collect({ scene });
+    expect(seriesOf(points, "ou-stack-failed").labels["owned_instance_count"]).toBe(
+      "1",
+    );
+    const none: ReportedDatapoint = seriesOf(points, "ou-stack-admin-ok");
+    expect(none.labels["resources_read"]).toBe("true");
+    expect(none.labels["owned_instance_count"]).toBe("0");
+    expect(none.labels["owned_instance_ids"]).toBeUndefined();
+  });
+
+  test("reaches the stack's row, and a stack not read says nothing rather than none", async () => {
+    const { report } = await collect({ scene });
+    const stacks: Array<OpenStackResourceBufferEntry> = rowsOf(
+      report,
+    ).rows.filter((row: OpenStackResourceBufferEntry): boolean => {
+      return row.kind === OpenStackResourceKind.Stack;
+    });
+    const named: (name: string) => OpenStackResourceBufferEntry = (
+      name: string,
+    ): OpenStackResourceBufferEntry => {
+      return stacks.find((row: OpenStackResourceBufferEntry): boolean => {
+        return row.name === name;
+      }) as OpenStackResourceBufferEntry;
+    };
+    expect(named("ou-stack-ok").facts["ownedInstanceIds"]).toHaveLength(1);
+    expect(named("ou-stack-ok").facts["ownedVolumeIds"]).toHaveLength(1);
+    expect(named("ou-stack-admin-ok").facts["ownedInstanceIds"]).toEqual([]);
+
+    const refused: Awaited<ReturnType<typeof collect>> = await collect({
+      scene,
+      override: (path: string): Answer | undefined => {
+        return path.endsWith("/resources")
+          ? { status: 403, body: "{}" }
+          : undefined;
+      },
+    });
+    for (const row of rowsOf(refused.report).rows.filter(
+      (candidate: OpenStackResourceBufferEntry): boolean => {
+        return candidate.kind === OpenStackResourceKind.Stack;
+      },
+    )) {
+      expect(row.facts["ownedInstanceIds"]).toBeNull();
+      expect(row.facts["ownedVolumeIds"]).toBeNull();
+    }
+  });
+
+  function stacks(count: number, status: string = "CREATE_COMPLETE"): string {
+    return JSON.stringify({
+      stacks: Array.from({ length: count }, (_: unknown, index: number) => {
+        return {
+          id: `stack-${index}`,
+          stack_name: `stack ${index}`,
+          project: "a-project",
+          stack_status: status,
+        };
+      }),
+    });
+  }
+
+  const OWNS: string = JSON.stringify({
+    resources: [
+      {
+        resource_type: "OS::Nova::Server",
+        physical_resource_id: "an-instance",
+      },
+      {
+        resource_type: "OS::Cinder::Volume",
+        physical_resource_id: "a-volume",
+      },
+      // Its physical ID is its volume's, so it says nothing of its own.
+      {
+        resource_type: "OS::Cinder::VolumeAttachment",
+        physical_resource_id: "a-volume",
+      },
+      // Never made: it has no ID, and is nothing anyone could look at.
+      { resource_type: "OS::Nova::Server", physical_resource_id: "" },
+      { resource_type: "OS::Heat::TestResource", physical_resource_id: "x" },
+    ],
+  });
+
+  const answers: (list: string) => (path: string) => Answer | undefined = (
+    list: string,
+  ): ((path: string) => Answer | undefined) => {
+    return (path: string): Answer | undefined => {
+      if (path.endsWith("/stacks")) {
+        return { status: 200, body: list };
+      }
+      return path.endsWith("/resources")
+        ? { status: 200, body: OWNS }
+        : undefined;
+    };
+  };
+
+  const readsOf: (requests: Array<string>) => number = (
+    requests: Array<string>,
+  ): number => {
+    return requests.filter((path: string): boolean => {
+      return path.endsWith("/resources");
+    }).length;
+  };
+
+  const heldToHeat: Array<JSONObject> = [
+    CATALOG_KEYSTONE,
+    catalogEntry("orchestration", HEAT_URL),
+  ];
+
+  function due(harness: CollectorHarness): void {
+    harness.clock.advance(6 * 60_000);
+  }
+
+  test("only what exists, once each, and asked for by a name that survives the address", async () => {
+    const { points, requests } = await collect({
+      catalog: heldToHeat,
+      override: answers(stacks(1)),
+    });
+    const owner: ReportedDatapoint = seriesOf(points, "stack 0");
+    expect(owner.labels["owned_instance_ids"]).toBe("an-instance");
+    expect(owner.labels["owned_instance_count"]).toBe("1");
+    expect(owner.labels["owned_volume_ids"]).toBe("a-volume");
+    expect(owner.labels["owned_volume_count"]).toBe("1");
+    expect(requests).toContain(
+      `/heat-api/v1/${PROJECT}/stacks/stack%200/stack-0/resources`,
+    );
+  });
+
+  test("each is read once, and what it owns stays on its series while its status holds", async () => {
+    const first: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      override: answers(stacks(3)),
+    });
+    expect(readsOf(first.requests)).toBe(3);
+
+    due(first.harness);
+    const second: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      harness: first.harness,
+      override: answers(stacks(3)),
+    });
+    expect(second.requests.length).toBeGreaterThan(0);
+    expect(readsOf(second.requests)).toBe(0);
+    expect(seriesOf(second.points, "stack 1").labels["owned_instance_ids"]).toBe(
+      "an-instance",
+    );
+  });
+
+  test("a change of status reads it again, and only those", async () => {
+    const first: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      override: answers(stacks(3)),
+    });
+    due(first.harness);
+    const list: JSONObject = JSON.parse(stacks(3)) as JSONObject;
+    ((list["stacks"] as JSONArray)[1] as JSONObject)["stack_status"] =
+      "UPDATE_FAILED";
+    const second: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      harness: first.harness,
+      override: answers(JSON.stringify(list)),
+    });
+    expect(readsOf(second.requests)).toBe(1);
+  });
+
+  test("however many there are, one collection reads a bounded number, and the next reads on", async () => {
+    const count: number = HEAT_STACK_READS_PER_COLLECTION + 10;
+    const first: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      override: answers(stacks(count)),
+    });
+    expect(readsOf(first.requests)).toBe(HEAT_STACK_READS_PER_COLLECTION);
+    expect(pointsNamed(first.points, "openstack_heat_stack_status")).toHaveLength(
+      count,
+    );
+
+    due(first.harness);
+    const second: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      harness: first.harness,
+      override: answers(stacks(count)),
+    });
+    expect(readsOf(second.requests)).toBe(10);
+  });
+
+  test("a stack that has gone is forgotten, so what is held never grows past what is there", async () => {
+    const first: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      override: answers(stacks(3)),
+    });
+    due(first.harness);
+    await collect({
+      catalog: heldToHeat,
+      harness: first.harness,
+      override: answers(stacks(1)),
+    });
+    due(first.harness);
+    const third: Awaited<ReturnType<typeof collect>> = await collect({
+      catalog: heldToHeat,
+      harness: first.harness,
+      override: answers(stacks(3)),
+    });
+    // The two that went are new again, and the one that stayed is not.
+    expect(readsOf(third.requests)).toBe(2);
+  });
+
+  test("a read Heat refuses costs one try, says nothing, and everything else still goes", async () => {
+    const { requests, points, report } = await collect({
+      catalog: heldToHeat,
+      override: (path: string): Answer | undefined => {
+        if (path.endsWith("/resources")) {
+          return { status: 403, body: "{}" };
+        }
+        return path.endsWith("/stacks")
+          ? { status: 200, body: stacks(5) }
+          : undefined;
+      },
+    });
+    expect(readsOf(requests)).toBe(1);
+    expect(pointsNamed(points, "openstack_heat_stack_status")).toHaveLength(5);
+    expect(
+      pointsNamed(points, "openstack_heat_stack_status")[0]!.labels[
+        "resources_read"
+      ],
+    ).toBeUndefined();
+    expect(report.summary?.warnings).toEqual([]);
+  });
+});
+
 describe("a credential Heat or Magnum holds things back from", () => {
   test("refused Heat's stacks, its API still reads up, and the report says so", async () => {
     const { points, report } = await collect({
@@ -890,7 +1175,7 @@ describe("a cloud that doesn't run either", () => {
 
   test("the same two series a real agent sent for a service its cloud didn't run", () => {
     const real: string = JSON.stringify(loadCollectorExport(GROUP));
-    expect(real).toContain('"dns"');
+    expect(real).toContain('"sharev2"');
   });
 });
 

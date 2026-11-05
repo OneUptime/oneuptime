@@ -1,0 +1,122 @@
+[
+  {
+    "runId": "20261105063443-81bcbd",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:34:43.951Z",
+    "finishedAt": "2026-11-05T06:35:30.221Z",
+    "status": "Succeeded",
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 24
+      },
+      {
+        "step": "credential_check",
+        "status": "Passed",
+        "durationInMs": 39
+      },
+      {
+        "step": "prepare",
+        "status": "Passed",
+        "durationInMs": 227
+      },
+      {
+        "step": "janitor",
+        "status": "Passed",
+        "durationInMs": 0
+      },
+      {
+        "step": "security_group_create",
+        "status": "Passed",
+        "durationInMs": 371,
+        "traceId": "dd8ce89693d24a15b03023ae2faaa591"
+      },
+      {
+        "step": "server_create",
+        "status": "Passed",
+        "durationInMs": 217,
+        "traceId": "ec09be4cc5044b94b91d79cf90c026c6"
+      },
+      {
+        "step": "server_active",
+        "status": "Passed",
+        "durationInMs": 16439
+      },
+      {
+        "step": "floating_ip_create",
+        "status": "Passed",
+        "durationInMs": 773,
+        "traceId": "f4ea12a59c8347b993c5feb670e10e29"
+      },
+      {
+        "step": "ping",
+        "status": "Passed",
+        "durationInMs": 1880
+      },
+      {
+        "step": "volume_create",
+        "status": "Passed",
+        "durationInMs": 1127,
+        "traceId": "619844432f124e8d9b0987ae23d8e0ef"
+      },
+      {
+        "step": "volume_attach",
+        "status": "Passed",
+        "durationInMs": 10634,
+        "traceId": "529a2fd26a3547fbad79e1731968a548"
+      },
+      {
+        "step": "volume_detach",
+        "status": "Passed",
+        "durationInMs": 5148,
+        "traceId": "edce272e5cee4e32b9ee71e8c3252a40"
+      },
+      {
+        "step": "volume_delete",
+        "status": "Passed",
+        "durationInMs": 3244,
+        "traceId": "7b94bc5dc2cf48898707c47692e328e5"
+      },
+      {
+        "step": "floating_ip_delete",
+        "status": "Passed",
+        "durationInMs": 325,
+        "traceId": "5681938f50ce4d149d0bd9c171101b62"
+      },
+      {
+        "step": "server_delete",
+        "status": "Passed",
+        "durationInMs": 5598,
+        "traceId": "145ecd648d3c4593886dd4029e215545"
+      },
+      {
+        "step": "security_group_delete",
+        "status": "Passed",
+        "durationInMs": 52,
+        "traceId": "5b3e6a474cb2437fab64508553a51bfc"
+      }
+    ],
+    "phases": {
+      "credential": "Passed",
+      "boot": "Passed",
+      "floating_ip": "Passed",
+      "volume": "Passed",
+      "cleanup": "Passed"
+    },
+    "janitor": {
+      "removed": [],
+      "remainingCount": 0,
+      "errors": []
+    },
+    "leftoverCount": 0,
+    "verifiedProjectId": "8a5d2d8979d04b4fb3e5dd9a89b731b2",
+    "verifiedProjectName": "oneuptime-checks",
+    "traceId": "ec09be4cc5044b94b91d79cf90c026c6",
+    "requestCount": 51,
+    "writeCount": 11,
+    "warnings": [
+      "Project oneuptime-checks also holds 1 server and 2 volumes this check did not make, so it is not a project of its own. They are not touched, but they share its quota."
+    ]
+  }
+]

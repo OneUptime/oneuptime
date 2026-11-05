@@ -319,10 +319,16 @@ describe("MonitorRecommendationCatalog", () => {
       ["nothing known", undefined],
       ["no services said", {}],
       ["a read that failed", { openStackServices: null }],
-      ["a cloud without Ironic", { openStackServices: ["compute", "identity"] }],
+      [
+        "a cloud without Ironic",
+        { openStackServices: ["compute", "identity"] },
+      ],
     ])(
       "%s: not one bare metal alert",
-      (_name: string, context: { openStackServices?: null | Array<string> } | undefined) => {
+      (
+        _name: string,
+        context: { openStackServices?: null | Array<string> } | undefined,
+      ) => {
         for (const id of BARE_METAL_IDS) {
           expect(offered(context)).not.toContain(id);
         }
@@ -339,7 +345,9 @@ describe("MonitorRecommendationCatalog", () => {
 
       expect(list).toEqual(expect.arrayContaining(BARE_METAL_IDS));
       expect(list).toContain("openstack-compute-api-down");
-      expect(list.length).toBe(offered(undefined).length + BARE_METAL_IDS.length);
+      expect(list.length).toBe(
+        offered(undefined).length + BARE_METAL_IDS.length,
+      );
     });
 
     it("a cloud a probe collects, reporting every one of them, is offered everything", () => {
@@ -349,6 +357,8 @@ describe("MonitorRecommendationCatalog", () => {
           {
             openStackServices: Object.values(OpenStackServiceType),
             openStackIsCollectedByProbe: true,
+            openStackIsApiCheckOn: true,
+            openStackIsLifecycleCheckOn: true,
           },
         ).length,
       ).toBe(

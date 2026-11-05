@@ -352,7 +352,8 @@ drive_lb_error() {
   AMPHORA_PROJECT="$(openstack server show "$compute" -f value -c project_id)"
   printf '%s' "$AMPHORA_PROJECT" >"$OUTPUT_DIR/.amphora-project"
   openstack quota show "$AMPHORA_PROJECT" -f value -c instances >"$OUTPUT_DIR/.amphora-quota" 2>/dev/null || true
-  openstack quota set --instances 0 "$AMPHORA_PROJECT"
+  # Forced: Nova refuses a limit below what the running amphorae already use.
+  openstack quota set --force --instances 0 "$AMPHORA_PROJECT"
 
   openstack loadbalancer create --name ou-lb-failed --vip-subnet-id "$SUBNET_ID" --project "$PAYMENTS" --provider amphora >/dev/null
   if wait_for "ou-lb-failed provisioning status" ERROR 60 10 lb_provisioning ou-lb-failed; then

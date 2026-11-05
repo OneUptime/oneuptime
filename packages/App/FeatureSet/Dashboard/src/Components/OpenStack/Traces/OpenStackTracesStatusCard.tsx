@@ -25,7 +25,7 @@ const GAP_WORDS: Record<OpenStackTraceGap, string> = {
     "On 2025.2 these send nothing while they run more than one worker, because nothing a forked worker made arrived. One worker each brings them into a trace, and costs what it costs: Nova's conductor and scheduler, in the guide below. On 2026.2 they send spans as they are.",
   ),
   [OpenStackTraceGap.AlwaysForks]: translationKey(
-    "On 2025.2 this always runs in a forked worker, so it sends nothing, and there is no setting for that.",
+    "This always runs in a forked worker, so it sends nothing, and there is no setting for that.",
   ),
 };
 

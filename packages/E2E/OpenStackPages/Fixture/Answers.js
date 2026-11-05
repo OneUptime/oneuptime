@@ -517,8 +517,27 @@ export function getBlastRadius(allRows, part) {
     };
   }
 
+  // The stacks whose own read names this part, as readStacksOwning reads them.
+  const stacksOwning = (fact) => {
+    return ofKind(allRows, "Stack")
+      .filter((row) => {
+        return (row.facts?.[fact] || []).includes(part.externalId);
+      })
+      .map(ownerOf);
+  };
+
   if (part.kind === "Instance") {
-    return { ...finish([], false), belongsTo: magnumClustersOf([part.name]) };
+    return {
+      ...finish([], false),
+      belongsTo: [
+        ...magnumClustersOf([part.name]),
+        ...stacksOwning("ownedInstanceIds"),
+      ],
+    };
+  }
+
+  if (part.kind === "Volume") {
+    return { ...finish([], false), belongsTo: stacksOwning("ownedVolumeIds") };
   }
 
   if (part.kind === "Service" && part.name === "nova-compute") {
