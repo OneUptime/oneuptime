@@ -91,7 +91,7 @@ const CATALOGS: Array<Catalog> = [
   {
     name: "OpenStack",
     resourceType: MonitorRecommendationResourceType.OpenStack,
-    // What only its services' logs say is offered beside the metric templates, last.
+    // Its metric templates and the Logs monitors on what its services say.
     templates: [
       ...getAllOpenStackAlertTemplates(),
       ...getAllOpenStackLogAlertTemplates(),

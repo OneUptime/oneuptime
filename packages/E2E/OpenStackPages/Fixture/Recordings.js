@@ -27,6 +27,18 @@ import {
 
 export const RECORDING_NAMES = Object.keys(RECORDINGS).sort();
 
+/*
+ * Drills recorded by a later run than their cloud's healthy recording. Every run deploys its own
+ * cloud with its own IDs, so on top of that recording each part would read twice. Each is a whole
+ * scrape, so it needs nothing under it: nothing in these stops an API that would leave a gap.
+ */
+const SCENES_OF_A_LATER_RUN = new Set([
+  "compute-forced-down",
+  "external-network-full",
+  "router-agents-removed",
+  "l3-agent-down",
+]);
+
 export function hasRecording(name) {
   return Boolean(RECORDINGS[name]);
 }
@@ -207,7 +219,10 @@ export function rowsFromRecording(name, data) {
    * exporter's answer stands alone: it is the only one that cloud's rows ever came from.
    */
   const isItsOwnWhole =
-    name === healthy || name.includes("/access/") || name.includes("@");
+    name === healthy ||
+    name.includes("/access/") ||
+    name.includes("@") ||
+    SCENES_OF_A_LATER_RUN.has(name.split("/")[1]);
   return !isItsOwnWhole && hasRecording(healthy)
     ? onTopOf(readScene(healthy, data), readScene(name, data))
     : readScene(name, data);

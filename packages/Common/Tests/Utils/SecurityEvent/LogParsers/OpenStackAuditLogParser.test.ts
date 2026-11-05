@@ -177,6 +177,33 @@ describe("a login", () => {
     expect(event.principalUser).toBe(USER_ID);
   });
 
+  test("for a user who does not exist names what was typed, and no ID made up from it", () => {
+    const event: NormalizedSecurityEvent = one(
+      cadf("identity.authenticate", {
+        outcome: "failure",
+        reason: {
+          reasonCode: "404",
+          reasonType: "Could not find user: ou-nobody.",
+        },
+        initiator: {
+          id: "538d0206-1d02-5dc9-a264-2dc9b75bc163",
+          user_name: "ou-nobody",
+          domain_id: "default",
+          host: { address: "203.0.113.7" },
+        },
+      }),
+    );
+
+    expect(event.principalUser).toBe("ou-nobody");
+    expect(event.message).toBe("ou-nobody failed to sign in to OpenStack");
+    expect(
+      event.attributes[OpenStackAuditAttribute.InitiatorId],
+    ).toBeUndefined();
+    expect(event.attributes[OpenStackAuditAttribute.Reason]).toBe(
+      "Could not find user: ou-nobody.",
+    );
+  });
+
   test("is dated by what it says", () => {
     expect(
       one(
@@ -283,6 +310,33 @@ describe("a role grant", () => {
       `alice granted role ${ROLE_ID} to u on the system`,
     );
     expect(event.attributes[OpenStackAuditAttribute.TargetType]).toBe("system");
+  });
+
+  test("with no initiator, as a grant handed down has none, says who from its line", () => {
+    const named: NormalizedSecurityEvent = one(
+      cadf("identity.role_assignment.created", {
+        outcome: "success",
+        role: ROLE_ID,
+        domain: "default",
+        user: "u",
+        inherited_to_projects: true,
+        initiator: undefined as unknown as JSONObject,
+      }),
+      { ...CLOUD_ATTRIBUTES, "openstack.user_name": "alice" },
+    );
+    const byId: NormalizedSecurityEvent = one(
+      cadf("identity.role_assignment.created", {
+        outcome: "success",
+        role: ROLE_ID,
+        domain: "default",
+        user: "u",
+        initiator: undefined as unknown as JSONObject,
+      }),
+      { ...CLOUD_ATTRIBUTES, "openstack.user_id": USER_ID },
+    );
+
+    expect(named.principalUser).toBe("alice");
+    expect(byId.principalUser).toBe(USER_ID);
   });
 
   test("taken away says so", () => {
@@ -1105,6 +1159,41 @@ describe("what never gets stored", () => {
         `{"event_type": "identity.authenticate", "x": "${"a".repeat(3_000_000)}"}`,
       ),
     ).toBeNull();
+  });
+});
+
+describe("what can follow a notification on its line", () => {
+  const LINE: string = `INFO oslo.messaging.notification.identity.authenticate [-] ${JSON.stringify(
+    cadf("identity.authenticate", { outcome: "failure" }),
+  )}`;
+
+  test.each([
+    [
+      "uWSGI's next line, which a collector can join on",
+      "\n[pid: 82795|app: 0|req: 40/86] 10.1.0.196 () {58 vars in 1480 bytes} [Thu Nov  5 03:27:28 2026] PUT /identity/v3/projects => generated 0 bytes",
+    ],
+    ["DevStack's colour", "\u001b[00m"],
+    [
+      "DevStack's function",
+      " {{(pid=86963) notify /opt/stack/data/venv/lib/python3.12/site-packages/oslo_messaging/notify/_impl_log.py:42}}",
+    ],
+    ["a brace that never closes", " {"],
+    ["a closing brace too many", " }"],
+  ])("%s", (_what: string, rest: string) => {
+    expect(one(`${LINE}${rest}`).statusName).toBe("Failure");
+  });
+
+  test("a brace in a value is not the end of the notification", () => {
+    const event: NormalizedSecurityEvent = one(
+      cadf("identity.authenticate", {
+        outcome: "failure",
+        reason: { reasonCode: "404", reasonType: 'Could not find user: }{"' },
+      }),
+    );
+
+    expect(event.attributes[OpenStackAuditAttribute.Reason]).toBe(
+      'Could not find user: }{"',
+    );
   });
 });
 

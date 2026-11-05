@@ -4,8 +4,9 @@
 # DevStack just deployed. Every page, health rule and alert template in the
 # OpenStack product is tested on what this estate makes a real cloud answer,
 # so it holds one of everything worth telling apart: instances running, shut
-# off and failed, volumes available, attached and in error, a network with a
-# router and floating IPs, two projects to own them.
+# off and failed, volumes available, attached, in error and stuck, a network with a
+# router and floating IPs, two projects to own them, a host in two aggregates, an
+# image stuck on its way to being usable and an instance booted from a volume.
 #
 # Idempotent enough to run twice on one cloud, because a step that fails
 # half-way on a CI runner is cheaper to run again than a DevStack is to
@@ -89,6 +90,34 @@ IMAGE="$(openstack image list --status active -f value -c Name | grep -i cirros 
 [ -n "$IMAGE" ] || { echo "DevStack left no cirros image" >&2; exit 1; }
 echo "Using $IMAGE"
 
+log "An image stuck in queued"
+# Created and never given any data, which is what a failed upload leaves behind: nothing
+# ever moves it on. Public, so every credential the access matrix tries sees the same list,
+# and a plain reader's row in the docs stays what it was.
+# Through the API, because the CLI with no terminal on its stdin uploads that stdin as the image.
+if ! openstack image show ou-image-stuck >/dev/null 2>&1; then
+  curl -sS --fail-with-body --max-time 60 -o /dev/null -X POST \
+    "$(openstack endpoint list --service image --interface public -f value -c URL | head -1)/v2/images" \
+    -H "X-Auth-Token: $(openstack token issue -f value -c id)" \
+    -H "Content-Type: application/json" \
+    -d '{"name": "ou-image-stuck", "disk_format": "qcow2", "container_format": "bare", "visibility": "public"}'
+fi
+openstack image show ou-image-stuck -f value -c status
+
+log "Aggregates: a host in two of them"
+# Two, because what a reader has to get right is how the exporter joins their names on
+# one series. Neither sets a zone: Nova refuses to move a host holding instances into a
+# zone, and every other recording reads this host's zone as nova. Each has a property of
+# its own, because an aggregate whose only metadata is its zone is left off the exporter's
+# label as not being a group anyone made.
+AGGREGATE_HOST="$(openstack compute service list --service nova-compute -f value -c Host | head -1)"
+for aggregate in ou-fast ou-gpu; do
+  openstack aggregate show "$aggregate" >/dev/null 2>&1 \
+    || openstack aggregate create --property "oneuptime=$aggregate" "$aggregate" >/dev/null
+  openstack aggregate show "$aggregate" -f value -c hosts | grep -q "$AGGREGATE_HOST" \
+    || openstack aggregate add host "$aggregate" "$AGGREGATE_HOST" >/dev/null
+done
+
 log "Network, subnet, router and floating IPs"
 export OS_PROJECT_NAME=ou-payments
 openstack network show ou-net >/dev/null 2>&1 || openstack network create ou-net >/dev/null
@@ -130,7 +159,7 @@ if ! openstack floating ip list --tags ou-spare -f value -c ID | grep -q .; then
   openstack floating ip create public --tag ou-spare >/dev/null
 fi
 
-log "Volumes: available, attached and in error"
+log "Volumes: available, attached, in error and stuck"
 make_volume() {
   local name="$1"
   openstack volume show "$name" >/dev/null 2>&1 || openstack volume create --size 1 "$name" >/dev/null
@@ -150,6 +179,11 @@ if OS_PROJECT_NAME=admin openstack volume service list >/dev/null 2>&1; then
     # produces this on demand; what the series then say is the same.
     OS_PROJECT_NAME=admin openstack volume set --state error "$(openstack volume show ou-vol-bad -f value -c id)"
   fi
+  # Left on its way to something else, which nothing will finish: a volume stuck.
+  if [ "$(openstack volume show ou-vol-stuck -f value -c status 2>/dev/null || true)" != "attaching" ]; then
+    make_volume ou-vol-stuck
+    OS_PROJECT_NAME=admin openstack volume set --state attaching "$(openstack volume show ou-vol-stuck -f value -c id)"
+  fi
   openstack volume snapshot show ou-snap >/dev/null 2>&1 \
     || openstack volume snapshot create --volume ou-vol-free ou-snap >/dev/null
 else
@@ -164,9 +198,28 @@ openstack subnet show ou-research-subnet >/dev/null 2>&1 \
 openstack server show ou-research-1 >/dev/null 2>&1 \
   || openstack server create --flavor ou.tiny --image "$IMAGE" --network ou-research-net ou-research-1 >/dev/null
 wait_for_server ou-research-1 ACTIVE ou-research
+
+log "An instance booted from a volume: Nova says it has no image at all"
+boot_from_volume() {
+  openstack volume show ou-boot-volume >/dev/null 2>&1 \
+    || openstack volume create --image "$IMAGE" --size 1 ou-boot-volume >/dev/null \
+    || return 1
+  wait_for_volume ou-boot-volume available ou-research || return 1
+  openstack server show ou-from-volume >/dev/null 2>&1 \
+    || openstack server create --flavor ou.tiny --volume ou-boot-volume --network ou-research-net \
+      ou-from-volume >/dev/null \
+    || return 1
+  wait_for_server ou-from-volume ACTIVE ou-research
+}
+# Worth having and not worth a run: an estate without it still records everything else.
+if OS_PROJECT_NAME=admin openstack volume service list >/dev/null 2>&1; then
+  boot_from_volume || echo "No instance booted from a volume on this cloud: leaving it out." >&2
+fi
 unset OS_PROJECT_NAME
 
 log "The estate"
+openstack aggregate list --long
+openstack image list -c Name -c Status
 openstack server list --all-projects -c Name -c Status -c "Flavor"
 openstack volume list --all-projects -c Name -c Status 2>/dev/null || true
 openstack floating ip list -c "Floating IP Address" -c Status 2>/dev/null || true

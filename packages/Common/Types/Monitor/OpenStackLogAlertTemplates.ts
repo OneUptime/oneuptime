@@ -416,7 +416,7 @@ const instanceActionFailedTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_INSTANCE_ACTION_FAILED_TEMPLATE_ID,
   name: "Instance Action Failed",
   summary:
-    "Nova says an action on an instance failed, in the last 15 minutes.",
+    "Nova says an action on an instance failed, with the reason it gives.",
   description:
     "Alert when Nova says an action on an instance failed: compute.exception, or any instance.*.error, with the reason it gives named on the alert. Needs notifications with driver = log, or a probe, which reads the same from Nova's instance actions on a cloud that cannot turn those on. It is a Logs monitor over the cloud's service logs.",
   category: "Events",
@@ -448,7 +448,7 @@ const schedulingFailedTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_SCHEDULING_FAILED_TEMPLATE_ID,
   name: "Scheduling Failed",
   summary:
-    "Nova says it could not schedule an instance, in the last 15 minutes.",
+    "Nova says it could not schedule an instance, with the reason it gives.",
   description:
     "Alert when Nova's notifications, or a probe reading its instance actions, say an instance could not be scheduled, with the reason named on the alert. No Valid Host says the same from the log lines alone, on a cloud without notifications turned on. It is a Logs monitor over the cloud's service logs.",
   category: "Events",
