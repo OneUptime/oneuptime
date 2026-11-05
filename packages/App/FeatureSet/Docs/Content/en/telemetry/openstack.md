@@ -12,6 +12,7 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
 - [Trace a request](#trace-requests-through-the-control-plane): One signed request, followed across the control plane.
+- [Check it from outside](#check-the-cloud-from-outside): Whether anyone can actually boot an instance, from a probe outside the cloud.
 - [By deployment tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat and Mirantis.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -107,7 +108,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia and Ironic are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
+Octavia, Ironic, Heat, Magnum and Manila are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 
@@ -332,7 +333,7 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | The compute nodes to read [real usage](#real-usage) from through `prometheus-libvirt-exporter`, in square brackets, such as `[compute-01:9177,compute-02:9177]`. Defaults to none. |
 | `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none. |
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | An exporter already running without `--multi-cloud`, such as Kolla-Ansible's: `[10.0.0.254:9198]`. See [Use the exporter you already run](/docs/telemetry/openstack-deployment-tools#use-the-exporter-you-already-run). |
-| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node, for [what the cloud stands on](/docs/monitor/openstack-monitor#control-plane): `[10.0.0.11:15692,10.0.0.12:15692]`. Defaults to none. |
+| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node, for [what the cloud stands on](#what-the-cloud-stands-on): `[10.0.0.11:15692,10.0.0.12:15692]`. Defaults to none. |
 | `OPENSTACK_MARIADB_TARGETS` | No | mysqld_exporter beside each MariaDB node, usually on `9104`. Defaults to none. |
 | `OPENSTACK_MEMCACHED_TARGETS` | No | memcached_exporter beside each Memcached, usually on `9150`. Defaults to none. |
 | `OPENSTACK_HAPROXY_TARGETS` | No | HAProxy's own Prometheus exporter. Defaults to none. |
@@ -344,6 +345,44 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | No | `openstack_database_exporter`, for [the database path](/docs/telemetry/openstack-very-large-clouds#the-database-path): `[openstack-database-exporter:9180]`. Defaults to none. The other settings of that path are listed there. |
 
 The install script also reads the credential from the environment, to skip its questions: `OPENSTACK_APPLICATION_CREDENTIAL_ID` and `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, or `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` and `OPENSTACK_PROJECT_DOMAIN_NAME`. They have names of their own rather than the `OS_*` ones an openrc file sets, so an admin's sourced openrc never becomes the agent's credential without anyone being asked. An application credential is better than a username and password: it can be limited to reading and can expire.
+
+## What the cloud stands on
+
+Most OpenStack outages begin underneath it: a RabbitMQ gone, Galera out of quorum, an OVN database with no leader. The agent can read the exporters those already have, every minute, and it is off until you name them. Nothing here writes to any of them, and only a few series of each are kept.
+
+Name each in the agent's `.env`, every member of a cluster, then run `docker compose up -d`:
+
+```bash
+OPENSTACK_RABBITMQ_TARGETS=[10.0.0.11:15692,10.0.0.12:15692,10.0.0.13:15692]
+OPENSTACK_MARIADB_TARGETS=[10.0.0.11:9104,10.0.0.12:9104,10.0.0.13:9104]
+OPENSTACK_MEMCACHED_TARGETS=[10.0.0.11:9150,10.0.0.12:9150]
+OPENSTACK_HAPROXY_TARGETS=[10.0.0.11:9101,10.0.0.12:9101]
+OPENSTACK_NETWORK_EXPORTER_TARGETS=[10.0.0.21:1981,10.0.0.22:1981,RegionTwo@10.1.0.21:1981]
+OPENSTACK_LIBVIRT_HEALTH_TARGETS=[10.0.0.21:9177,10.0.0.22:9177]
+OPENSTACK_CONTROL_PLANE_REGION=RegionOne
+```
+
+A target can say which region it is in, as the last one in that list does. One that does not is in `OPENSTACK_CONTROL_PLANE_REGION`. On Kolla-Ansible, whose Prometheus already knows all of them, `control-plane-targets.py` prints these lines for you, and [OpenStack by Deployment Tool](/docs/telemetry/openstack-deployment-tools) says where each exporter is on the others.
+
+What each one reads, and what the agent needs of it:
+
+| Setting | Reads | Enable it with |
+| --- | --- | --- |
+| `OPENSTACK_RABBITMQ_TARGETS` | RabbitMQ's own plugin, `/metrics` and each queue from `/metrics/detailed` | `rabbitmq-plugins enable rabbitmq_prometheus` on each node |
+| `OPENSTACK_MARIADB_TARGETS` | mysqld_exporter beside each node. Its defaults already report Galera | Nothing beyond the exporter |
+| `OPENSTACK_MEMCACHED_TARGETS` | memcached_exporter beside each Memcached | Nothing beyond the exporter |
+| `OPENSTACK_HAPROXY_TARGETS` | HAProxy's own exporter | `http-request use-service prometheus-exporter` on a `frontend` of its own |
+| `OPENSTACK_NETWORK_EXPORTER_TARGETS` | openstack-network-exporter on each machine with Open vSwitch or OVN's databases | Its default collectors. A machine reports what it runs |
+| `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | prometheus-libvirt-exporter on each compute node, and only whether libvirt answers | Nothing beyond the exporter |
+
+Then the cloud's **Control Plane** card has one line for each, and a page per dependency with one line per machine. **Not watched** on that card means you have not named it: it never reads as healthy. Trouble there goes to the cloud's **Needs attention**. The cloud's **Recommendations** page offers [the alert templates](/docs/monitor/openstack-monitor#what-the-cloud-stands-on), and `troubleshoot.sh` checks that each target answers and is what you said it is.
+
+For more of a RabbitMQ or a database than a cloud's health needs, the [Queues](/docs/telemetry/queues) and [Databases](/docs/telemetry/databases) products read them through their own agents, which is more data than this and on its own terms. The Control Plane pages link to them. Installing those is separate, because those products read those agents' series and not these.
+
+Two things to know about openstack-network-exporter 0.3.0, the version these were recorded with:
+
+- **It connects to Open vSwitch's database once.** After Open vSwitch restarts, `ovs_build_info`, its bridges, its interfaces and all of ovn-controller's series stay gone until the exporter restarts too, while Open vSwitch's own series come straight back. **Exporter Lost Open vSwitch's Database** says when that has happened.
+- **It reads one OVN database's cluster status on a machine.** That is Southbound where a machine has both sockets, as Kolla-Ansible's have. So Northbound's leader shows only where a machine has no Southbound to read.
 
 ## What the agent collects
 
@@ -420,6 +459,30 @@ Three open upstream issues shape all this, and the project has also [asked for m
 - [Issue 660](https://github.com/openstack-exporter/openstack-exporter/issues/660): one failing service empties a whole scrape. So there is one scrape job per service. Do not merge them.
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and the diagnostic script asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
+
+## Bare metal
+
+If your cloud runs Ironic, it gets a **Bare Metal** section with every node Ironic shows the credential: where it is in Ironic's state machine, its power, whether someone put it in maintenance and why, its resource class, and when Ironic last saw it move. A cloud without Ironic has no such section, no alert about it and no line on any page.
+
+A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page.
+
+What needs someone, at the same lines as the [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates):
+
+| Reads | Means |
+| --- | --- |
+| A failed state, such as `clean failed` or `deploy failed`, or `error` | It stays failed until someone acts: Ironic retries none of these, and does not always put the node in maintenance |
+| The same passing state, such as `wait call-back`, for 2 hours | Ironic gives up on waiting after 30 minutes by default, so something else is holding it. A long disk erase can honestly take this long: the page reads Ironic's own time, which an erase's heartbeats keep moving, and an alert only reads the word |
+| In maintenance for 7 days | Planned until then, like a service someone disabled, so nothing says it needs attention before that |
+| `active` with its power off | Whatever runs on it has stopped. If its owner stopped the instance on it, the node's page says that is planned. An alert reads one series and cannot tell |
+
+### What it can't see
+
+Each of these was recorded on a real DevStack, and each page says so where it matters:
+
+- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds more nodes than Ironic listed, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
+- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic empties `last_error` within about a minute anyway, with the node still failed. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
+- **The exporter has no conductors.** Only a probe reads them, and Ironic refuses a project's credential the list unless its policy says otherwise (`baremetal:conductor:get`).
+- **A stopped Ironic reads the same as no Ironic.** Asked about one that is stopped, the exporter answers an empty 200, as it does for a cloud that never had it. So a page says only that it hasn't heard from Ironic, and that the nodes are as they last read. It never says down. Two weeks after the rest of the cloud last reported without it, those rows go, and they come back if it does.
 
 ## Capacity
 
@@ -531,9 +594,11 @@ A cloud holds many tenants, so OneUptime keeps track of whose everything is.
 
 On a project's page, add a rule under **Who is told about this** or **Labels on what opens about this**. **Domains** has the same two for a whole domain. From then on, every alert and incident that reaches that project or domain gets those owners or labels.
 
-An alert or incident on a part of the cloud names the projects it reaches in its description, by ID, as ``OpenStack project `<id>` `` and ``OpenStack domain `<id>` ``. A rule here is an ordinary alert rule and an ordinary incident rule that match those words, so the pair also appears under each one's **Owner Rules** or **Label Rules** settings.
+A rule here is an **OpenStack Cloud Owner Rule** or **OpenStack Cloud Label Rule** with the project's or domain's ID on it, so it also appears under the cloud's **Owner Rules** or **Label Rules** settings, where you can write one by hand under **One project or domain**. A rule with either ID adds nothing to the cloud itself. Conditions on the cloud still apply, and a rule made from **Domains** names its cloud, because every cloud has a domain called `default`. If you rename that cloud, update the rule's name condition.
 
-Only what a monitor opens carries those words, and it names at most 50 of the projects it reaches. An incident someone declares by hand carries none, so these rules do not reach it.
+An alert or incident on a part of the cloud reaches each project with something on that part, however many there are. Only a monitor can say what it reaches, so a rule like this does not reach an incident someone declares by hand. Labels go on as the alert opens, and owners right after.
+
+Rules written earlier as a pair of alert and incident rules, matching ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` in the description, keep working and are listed here too. A description names at most 50 of the projects it reaches, so a pair like that stops there. Remove it and add the rule again to lift that limit.
 
 ### Quotas
 
@@ -562,7 +627,7 @@ A part's blast radius is what it takes with it, by count and by project:
 
 A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
 
-The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says which pool holds a volume, when Cinder treats its credential as an admin, and then a pool's blast radius counts its volumes and the instances they are attached to.
+The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says both. The map then joins a volume to its pool, when Cinder treats its credential as an admin, and a pool's blast radius counts its volumes and the instances they are attached to. It also joins an instance to each network it has an address on. Nova names those networks only by name, and Neutron allows two with one name, so the map looks for one in the instance's project, then one shared with it, then any by that name, and draws no join when two are equally likely. What is still unknown stays in the map's notice.
 
 ## Joined up with the rest of OneUptime
 
@@ -594,6 +659,65 @@ What each source says about a pool decides how it links:
 | The agent's exporter | The pool's name, its backend's name and its vendor, which reads `Open Source` for LVM and RBD alike | Nothing says it is on Ceph. A Ceph pool of the same name in exactly one cluster is offered, for someone to confirm once on the pool's page, unless another Cinder pool has that name too. With no such match they can choose a cluster, or say it isn't on Ceph |
 
 Once linked, the pool's page says how its cluster reads, and `HEALTH_WARN` or `HEALTH_ERR` appears in the cloud's **Needs attention**. A suggestion nobody confirmed raises nothing. An answer someone gave can be changed on the pool's page. Only the Full view credential can see pools at all: see [Choose how much the agent sees](#choose-how-much-the-agent-sees).
+
+## Heat and Magnum
+
+If your cloud runs Heat or Magnum, they appear on their own: there is nothing to turn on. A cloud that runs neither shows no trace of them, with no menu entry, no card on **Services** and no alert to choose from. What says so is the cloud's own answer, never a setting: the agent asks about each on every collection, and a service Keystone's catalog doesn't name answers with nothing.
+
+A cloud with Heat gets **Stacks** under **Orchestration**, and one with Magnum gets **Kubernetes Clusters**. Each lists every stack or cluster with its status in the service's own word, and each has a page. A stack or cluster in a failed state reaches **Needs attention** by name, and so does one still in progress after two hours, which is twice what either service gives one of its own accord. Magnum builds a cluster with a Heat stack, so a failed cluster and its failed stack read as one line, by the cluster's name, and each page links to the other.
+
+### What each way of collecting sees
+
+The exporter says less about these services than a read of their APIs does, and neither service shows anything but an admin the whole cloud. So each page says what your cloud's collector can't see.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's stacks and their status | Yes | Yes | Its own project's at most, with no project on them, and no error says so |
+| Whose a stack is | Yes | Yes | No |
+| Why a stack failed | No. Run `openstack stack failures list` | Yes | No |
+| Every project's Kubernetes clusters and their status | Yes | Yes | None of another project's, and no error says so |
+| Whose a cluster is | From its Heat stack | From Magnum | No |
+| Why a cluster failed, its template and its Kubernetes version | No. Run `openstack coe cluster show` | Yes | No |
+| Heat's engines and Magnum's conductors on **Services** | No | Yes | No |
+
+Two failures read differently, and both are what a real cloud does:
+
+- **A stopped `heat-engine`** reads as **Orchestration API Down**, on either collector. Heat's API asks an engine for its lists, so with none left it can't answer them, after a minute's wait for an RPC timeout. A stack an engine left in progress can stay in progress after the engine comes back, and reads **Stack Stuck In Progress** once two hours have passed.
+- **A stopped `magnum-conductor`** isn't shown anywhere on a cloud the agent collects, because Magnum's API carries on answering without one and the exporter doesn't read conductors. Its clusters just stop moving. A probe with a Full view credential reads them, which is the only way to see this, or run `openstack coe service list`.
+
+Which instances and volumes a stack owns isn't collected yet, so a stack's page doesn't list them, and a failed instance doesn't name a stack you made yourself. Run `openstack stack resource list`.
+
+### A cluster with the Kubernetes agent on it
+
+Install the [Kubernetes agent](/docs/telemetry/kubernetes-agent) on a cluster Magnum built and the two link both ways, with nothing to set: the Magnum cluster's page names the Kubernetes cluster, and the Kubernetes cluster's page names the Magnum cluster and the cloud it is in. Each node's page already says which instance and hypervisor it is.
+
+What makes it a link is that the nodes' `spec.providerID` names instances, and those instances' names are what Magnum's Heat driver gives the servers of that cluster's stack: `<stack>-master-0`, `<stack>-node-0`. So it takes three things, and without any of them there is no link and no error:
+
+- The OpenStack cloud provider on the cluster, which is what sets `spec.providerID`, and which Magnum turns on by default.
+- A credential that can read Heat, because the stack's name comes from there.
+- A cluster built with the Heat driver. A driver that builds no Heat stack has nothing to join on.
+
+A link is never a guess. An agent installed twice under two names, or one cluster holding servers of two Magnum clusters, links to neither. A machine you joined to the cluster by hand, or a node group with a stack of its own, says nothing either way.
+
+A server of a Magnum cluster names its cluster on its own page and in any alert about it, and a hypervisor's **What it takes with it** names each Magnum cluster with a server on it.
+
+If a service leaves Keystone's catalog, its rows go about 15 minutes after the exporter starts answering with nothing about it, provided the rest of the cloud is still answering. A failed collection, or a Keystone nobody can log in to, takes nothing away. An incident a monitor had open on it stays open until someone resolves it, because silence never closes an incident.
+
+## Manila
+
+If your cloud runs Manila, a cloud gets **Shares** under **Storage** on its own, and one that doesn't shows no trace of it. Each share has its status in Manila's own word, what it holds room for, its protocol and whose it is, and a page of its own. A share in an error state reaches **Needs attention** by name, and so does one still on its way after an hour: Manila has no timeout of its own for a slow backend, so one that hung reads the same as one that's slow until then. A share migrating or being backed up is left alone, because those last as long as its data takes to copy.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's shares and their status | Yes | Yes | Its own project's at most, and the monitoring role none, and no error says so |
+| Which backend holds a share, and whether its access rules are in force | No. Run `openstack share show` | Yes | No |
+| Why a share failed | No. Run `openstack share message list` | No. Run the same | No |
+| How much of a share is used | No: only its backend knows | No | No |
+| `manila-share`, `manila-scheduler` and `manila-data` on **Services** | No. Run `openstack share service list` | Yes | No |
+
+Manila's API carries on answering without its other services, so on a cloud the agent collects a stopped `manila-share` isn't shown anywhere: its shares just stop changing, and **Share Stuck** is what eventually says so. A probe with a Full view credential reads them, and **Manila Service Down** then says so. Manila says `stopped` for a service that shut down cleanly, and `down` only for one that died, once its heartbeat has grown old.
+
+A cloud without Manila costs nothing for it: the exporter answers with nothing, and that makes no row. If Manila leaves Keystone's catalog, its rows go about 15 minutes after that starts, as [Heat's and Magnum's do](#heat-and-magnum).
 
 ## Service logs
 
@@ -974,7 +1098,111 @@ Your key is in neither. It does travel between a service's own parts, in the con
 
 ### Traces on a schedule
 
-A trace only exists when a request is signed, so nothing here traces a cloud on its own. The planned lifecycle check signs its own requests when it is given the key, so a slow boot it sees has a trace: it is not built yet.
+A trace only exists when a request is signed, so nothing here traces a cloud on its own. [The lifecycle check](#the-lifecycle-check) signs its own writes when it is given the key, each step in a trace of its own, so a slow boot it sees has a trace. The key is the one place OneUptime holds one: encrypted, write-only, and for that check alone.
+
+## Check the cloud from outside
+
+Every service can report healthy while no one can boot an instance, so the truest test is doing what users do, from where they are. A probe does it from outside the cloud, because a check inside a failed cloud says nothing. Run these on [a probe of your own](/docs/probe/custom-probe), somewhere that reaches the cloud's public endpoints the way your users do. On OneUptime Cloud, shared probes never receive OpenStack credentials.
+
+Both are on the cloud's **Checks** page. [The OpenStack monitor's templates](/docs/monitor/openstack-monitor#checks-from-outside) turn what they find into incidents.
+
+### API checks
+
+Every minute by default, and read-only. Keystone issues a token, each service in the catalog answers an authenticated one-row read, and each endpoint's certificate is read for when it expires. Whatever the catalog names is what gets asked, so there is no list to keep.
+
+A cloud a probe already collects needs one click: **Turn On API Checks** uses the same probe, address and credential. A cloud the agent collects has none of those on a probe, so it asks for them. Any credential that can log in will do, because a service that refuses it has still answered.
+
+It costs one login and one small read per service per region, each minute, with no retries. A credential Keystone refuses is asked again later rather than every minute, because repeating one is what locks an account.
+
+### The lifecycle check
+
+Every 30 minutes by default, and only if you opt in. In a project it has to itself, with a credential of its own, it creates a server, waits for `ACTIVE`, optionally attaches a floating IP and pings it, optionally creates and attaches a volume, then deletes everything. Each step's duration is a series, and a failed run names its step and the fault Nova or Cinder gave.
+
+:::warning
+This check writes to your cloud. Everything below is what keeps that to one project, and it is checked before every run.
+:::
+
+Create the project, with room for three runs at once, because what a run that died left behind counts against the quota until the janitor removes it:
+
+```bash
+openstack project create --domain default --description "OneUptime lifecycle check" oneuptime-checks
+openstack quota set --instances 3 --cores 3 --ram 2048 --volumes 3 --gigabytes 3 \
+  --floating-ips 3 --secgroups 6 --secgroup-rules 20 --ports 8 oneuptime-checks
+openstack user create --domain default --password-prompt oneuptime-check
+openstack role add --project oneuptime-checks --user oneuptime-check member
+```
+
+Give the project a network to boot on, as that user on that project. The router is only for the floating IP part:
+
+```bash
+openstack network create oneuptime-check-net
+openstack subnet create --network oneuptime-check-net --subnet-range 192.168.250.0/24 oneuptime-check-subnet
+openstack router create oneuptime-check-router
+openstack router set --external-gateway public oneuptime-check-router
+openstack router add subnet oneuptime-check-router oneuptime-check-subnet
+```
+
+Then make its credential, still as that user:
+
+```bash
+openstack application credential create --role member oneuptime-check
+```
+
+On the **Checks** page, choose **Turn On the Lifecycle Check**, name the project, and paste the credential's ID and secret. Leave the flavor, image and network empty and each run picks them: the small test image if there is one, the smallest flavor that fits it, and the project's one network. If it cannot tell which you mean it says so rather than guessing.
+
+#### What it creates
+
+Everything has a name of exactly this form, in the check's project, and nothing else is ever created:
+
+```text
+oneuptime-check-<key>-<when>-<random>-<part>
+```
+
+`<key>` is twelve hex characters of a hash of this check, so two checks sharing a project never touch each other's. `<when>` is when the run started, in UTC. `<part>` says what it is:
+
+| Part | What it is | When |
+| --- | --- | --- |
+| `server` | One server, of the smallest flavor that fits | Every run |
+| `sg` | One security group, letting ICMP in from anywhere | With the floating IP part |
+| `fip` | One floating IP. A floating IP has no name, so this is its description | With the floating IP part |
+| `volume` | One volume, 1 GiB unless you say otherwise | With the volume part |
+
+Nova also makes the server's port, and deletes it with the server.
+
+#### What it may touch
+
+It deletes what a run just made, and what the janitor finds. The janitor deletes something only if all of this holds, and nothing that merely looks similar does:
+
+- Its name is exactly the form above, for this check's key, and for what it is: `oneuptime-check-web`, a copy called `...-server-old` or a volume with a server's name are all left alone.
+- It names no other project.
+- It is older than two intervals, by both what its name says and what the service says. A run still going is younger than one.
+- For a volume, it is attached to nothing this check did not make.
+
+Each run starts with the janitor, so what a crash left behind is gone within two intervals and a run. Until then a run skips itself if something named for the check is younger than a run can take, because a run may still be going, and a run never starts while one is.
+
+#### What it refuses
+
+Before each run, and again before each write, it refuses to go on with a credential that could reach further than the project it was given. A refused run writes nothing, and the page says why.
+
+- Its token is not scoped to a project, or is scoped to another one. After the first run the project's ID is pinned, so a new project of the same name is refused too.
+- Any of its roles has `admin` or `service` in its name, or Keystone calls this its admin project.
+- It is an application credential created `--unrestricted`, which could make more credentials.
+- It can read what only an admin can: every project, every hypervisor or every network agent. A role can be called anything, so this is asked as well as the names.
+
+An application credential is better than a password here, because it cannot be scoped to any other project.
+
+#### Trace a slow boot
+
+Save your [OSProfiler](#trace-requests-through-the-control-plane) key on the **Checks** page and each step's writes are signed, each step its own trace, so a slow boot has a trace holding the boot and nothing else. The waits are not signed, because a signed request does more work in every service it crosses. The key is encrypted and write-only, like the credential: it goes to this probe and into each signature, and comes back from nowhere.
+
+#### Turning it off
+
+Turn the check off and no more runs start. Until nothing named for it is left, the probe keeps running the janitor alone, which is why the credential is kept that long. Then OneUptime forgets the credential and the key, and you can delete the project. Deleting the cloud in OneUptime forgets them at once and clears nothing up, so turn the check off first and wait for the page to stop saying it is clearing up. If the credential is gone first, find what is left by name:
+
+```bash
+openstack server list --name '^oneuptime-check-'
+openstack volume list --name 'oneuptime-check-'
+```
 
 ### OpenStack's own tracing
 

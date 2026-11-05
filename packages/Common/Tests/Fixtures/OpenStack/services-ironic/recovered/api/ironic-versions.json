@@ -1,0 +1,1 @@
+{"name": "OpenStack Ironic API", "description": "Ironic is an OpenStack project which enables the provision and management of baremetal machines.", "default_version": {"id": "v1", "status": "CURRENT", "min_version": "1.1", "version": "1.111"}, "versions": [{"id": "v1", "status": "CURRENT", "min_version": "1.1", "version": "1.111"}]}

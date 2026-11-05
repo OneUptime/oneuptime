@@ -10,6 +10,11 @@ import {
   isOpenStackBareMetalNodeInError,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+  isOpenStackOptionalService,
+} from "../../../Types/OpenStack/OpenStackOptionalServices";
+import {
   OpenStackQuotaResource,
   getOpenStackQuotaFactKey,
 } from "../../../Types/OpenStack/OpenStackQuota";
@@ -21,6 +26,7 @@ import {
   OPENSTACK_BARE_METAL_IN_SERVICE,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
@@ -68,12 +74,11 @@ export const OPENSTACK_API_UP_METRIC_NAMES: ReadonlyMap<
   ["openstack_neutron_up", OpenStackServiceType.Network],
   ["openstack_cinder_up", OpenStackServiceType.Volume],
   ["openstack_glance_up", OpenStackServiceType.Image],
-  /*
-   * Only a read of Ironic that got somewhere says this. Stopped, the exporter the agent runs answers
-   * an empty 200, as it does for a cloud without Ironic, so this series goes quiet rather than
-   * reading 0: an older exporter (1.7.0) and a probe, which reads the catalog first, can say 0.
-   */
-  ["openstack_ironic_up", OpenStackServiceType.BareMetal],
+  ...OPENSTACK_OPTIONAL_SERVICES.map(
+    (entry: OpenStackOptionalService): [string, OpenStackServiceType] => {
+      return [entry.upMetricName, entry.service];
+    },
+  ),
 ]);
 
 /*
@@ -86,6 +91,9 @@ export const OPENSTACK_SCRAPE_UP_METRIC_NAME: string = "up";
 // Beside it, how long that collection took, which is what asking that API costs.
 export const OPENSTACK_SCRAPE_DURATION_METRIC_NAME: string =
   "scrape_duration_seconds";
+// And how many series it answered with, which is what an empty answer reads as.
+export const OPENSTACK_SCRAPE_SAMPLES_METRIC_NAME: string =
+  "scrape_samples_scraped";
 export const OPENSTACK_SERVICE_LABEL: string = "openstack_service";
 
 export { OPENSTACK_SERVICES_EVERY_CLOUD_RUNS };
@@ -102,6 +110,13 @@ const PLACEMENT_RESOURCE_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_placement_resource_reserved",
   "openstack_placement_resource_allocation_ratio",
   "openstack_placement_resource_usage",
+]);
+
+// What Nova says a host holds, whatever the names say: these are before any allocation or ratio.
+const NOVA_HOST_HOLDS_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "openstack_nova_vcpus_available",
+  "openstack_nova_memory_available_bytes",
+  "openstack_nova_local_storage_available_bytes",
 ]);
 
 const CINDER_POOL_METRIC_NAMES: ReadonlySet<string> = new Set([
@@ -191,6 +206,7 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
   "task_state",
   "fault_message",
   "image_id",
+  "network_names",
   OPENSTACK_SERVICE_LABEL,
   OPENSTACK_REGION_ATTRIBUTE,
   "openstack_region",
@@ -234,11 +250,18 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_neutron_floating_ip",
   "openstack_identity_project_info",
   "openstack_identity_domain_info",
+  "openstack_heat_stack_status",
+  "openstack_heat_agent_state",
+  "openstack_container_infra_cluster_status",
+  "openstack_container_infra_agent_state",
+  "openstack_sharev2_share_gb",
+  "openstack_sharev2_share_status",
+  "openstack_sharev2_agent_state",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
   // Only a probe says this one: the exporter has nothing on Ironic's conductors.
-  "openstack_ironic_conductor_state",
+  "openstack_ironic_agent_state",
 ]);
 
 const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
@@ -269,6 +292,88 @@ export function isOpenStackSnapshotDatapoint(data: {
     return service !== null && OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(service);
   }
   return OPENSTACK_SNAPSHOT_METRIC_NAMES.has(data.metricName);
+}
+
+/*
+ * What a scrape of a service a cloud may not run says, beside the exporter's own series. These can
+ * never make a row, because they read the same on a cloud that has never run the service: they only
+ * ever change one that is already there (OpenStackResourceService.recordOptionalServiceScrapes).
+ */
+export interface OpenStackOptionalServiceScrape {
+  service: string;
+  regionName: string | null;
+  // `up`: whether the exporter answered. It can answer with nothing.
+  answered: boolean | null;
+  // scrape_samples_scraped: how many series it answered with.
+  samples: number | null;
+  // scrape_duration_seconds.
+  seconds: number | null;
+  observedAt: Date;
+}
+
+export function isOpenStackOptionalServiceScrapeDatapoint(data: {
+  metricName: string;
+  datapoint: JSONObject;
+}): boolean {
+  if (
+    data.metricName !== OPENSTACK_SCRAPE_UP_METRIC_NAME &&
+    data.metricName !== OPENSTACK_SCRAPE_DURATION_METRIC_NAME &&
+    data.metricName !== OPENSTACK_SCRAPE_SAMPLES_METRIC_NAME
+  ) {
+    return false;
+  }
+  return isOpenStackOptionalService(
+    getLabel(
+      (data.datapoint["attributes"] as JSONArray) || [],
+      OPENSTACK_SERVICE_LABEL,
+    ),
+  );
+}
+
+export function bufferOpenStackOptionalServiceScrape(data: {
+  metricName: string;
+  datapoint: JSONObject;
+  buffer: Map<string, OpenStackOptionalServiceScrape>;
+}): void {
+  const value: number | null =
+    toNumberOrNull(data.datapoint["asDouble"]) ??
+    toNumberOrNull(data.datapoint["asInt"]);
+  if (value === null) {
+    return;
+  }
+  const attributes: JSONArray =
+    (data.datapoint["attributes"] as JSONArray) || [];
+  const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
+  if (!service) {
+    return;
+  }
+  const regionName: string | null = getLabel(
+    attributes,
+    OPENSTACK_REGION_ATTRIBUTE,
+  );
+  const observedAt: Date = parseUnixNanoToDate(
+    data.datapoint["timeUnixNano"] as string | number | undefined,
+  );
+  const key: string = regional(regionName, service);
+  const scrape: OpenStackOptionalServiceScrape = data.buffer.get(key) || {
+    service,
+    regionName,
+    answered: null,
+    samples: null,
+    seconds: null,
+    observedAt,
+  };
+  if (observedAt > scrape.observedAt) {
+    scrape.observedAt = observedAt;
+  }
+  if (data.metricName === OPENSTACK_SCRAPE_UP_METRIC_NAME) {
+    scrape.answered = value > 0;
+  } else if (data.metricName === OPENSTACK_SCRAPE_SAMPLES_METRIC_NAME) {
+    scrape.samples = value;
+  } else {
+    scrape.seconds = value;
+  }
+  data.buffer.set(key, scrape);
 }
 
 export interface OpenStackResourceBufferEntry {
@@ -472,6 +577,14 @@ function regional(region: string | null, id: string): string {
   return `${region || "default"}/${id}`;
 }
 
+// How an API's row is keyed, for something holding only its service and region.
+export function getOpenStackApiRowExternalId(
+  region: string | null,
+  service: string,
+): string {
+  return regional(region, service);
+}
+
 // How a flavor's row is keyed, for something holding only an instance's flavor ID.
 export function getOpenStackFlavorRowExternalId(
   region: string | null,
@@ -561,7 +674,13 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
     ["openstack_nova_agent_state", OpenStackServiceFamily.Compute],
     ["openstack_neutron_agent_state", OpenStackServiceFamily.Network],
     ["openstack_cinder_agent_state", OpenStackServiceFamily.Volume],
-    ["openstack_ironic_conductor_state", OpenStackServiceFamily.BareMetal],
+    ["openstack_heat_agent_state", OpenStackServiceFamily.Orchestration],
+    [
+      "openstack_container_infra_agent_state",
+      OpenStackServiceFamily.ContainerInfra,
+    ],
+    ["openstack_ironic_agent_state", OpenStackServiceFamily.BareMetal],
+    ["openstack_sharev2_agent_state", OpenStackServiceFamily.SharedFileSystems],
   ]);
 
 function foldServiceState(data: {
@@ -601,9 +720,11 @@ function foldServiceState(data: {
   const forcedDown: string | null = getLabel(data.attributes, "forced_down");
   setStatus(
     entry,
-    data.value > 0 && forcedDown !== "true"
-      ? OPENSTACK_SERVICE_STATUS_UP
-      : OPENSTACK_SERVICE_STATUS_DOWN,
+    getLabel(data.attributes, "state") === OPENSTACK_SERVICE_STATUS_STOPPED
+      ? OPENSTACK_SERVICE_STATUS_STOPPED
+      : data.value > 0 && forcedDown !== "true"
+        ? OPENSTACK_SERVICE_STATUS_UP
+        : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
   /*
@@ -628,9 +749,14 @@ function foldServiceState(data: {
   /*
    * Every record Neutron lists for this host and binary, held until the row is finished.
    * On OVN a crash or a change of system-id can leave an old record beside the live one,
-   * so one row can be reported twice, and which of the two came last is not an answer.
+   * so one row can be reported twice, and which of the two came last is not an answer. Heat's
+   * API lists one record per engine process, and a stopped engine keeps its record for a while.
    */
-  if (data.family === OpenStackServiceFamily.Network && agentId) {
+  if (
+    (data.family === OpenStackServiceFamily.Network ||
+      data.family === OpenStackServiceFamily.Orchestration) &&
+    agentId
+  ) {
     const records: JSONObject =
       (entry.facts[AGENT_RECORDS_FACT] as JSONObject) || {};
     records[agentId] = data.value > 0;
@@ -688,12 +814,12 @@ function finishAgentRecords(entry: OpenStackResourceBufferEntry): void {
  *
  *  - Placement: a UUID holding a class of its own. A host called by a UUID holds VCPU and MEMORY_MB
  *    as well, and those stay its own.
- *  - Nova: a UUID with nothing to say. Its Ironic driver reports every number as 0 and has done for
- *    years, and a host really called by a UUID has more than that. Which a node's own running_vms
- *    breaks, so that one never counts as saying anything: the instance's own row says where it runs.
- *
- * Nothing recorded holds Nova's list with a node in it yet: DevStack mapped its host before any
- * node existed. So the Nova half is from its driver's source.
+ *  - Nova: a UUID that holds nothing. Its Ironic driver gives a node 0 vCPUs, memory and disk, and a
+ *    host really called by a UUID has more than that, so what a host holds is what tells them apart.
+ *    What is in use can't. A node reads the 512 MiB Nova keeps back for a host's own use
+ *    (services-ironic, every scene with Nova reading its nodes), and an instance would add to it. So
+ *    a host called by a UUID has only Placement to say what's in use, and an instance's own row says
+ *    where it runs.
  */
 function isBareMetalNodeReading(data: {
   metricName: string;
@@ -707,7 +833,7 @@ function isBareMetalNodeReading(data: {
   if (PLACEMENT_RESOURCE_METRIC_NAMES.has(data.metricName)) {
     return Boolean(data.resource?.startsWith("CUSTOM_"));
   }
-  return data.metricName === "openstack_nova_running_vms" || data.value <= 0;
+  return !NOVA_HOST_HOLDS_METRIC_NAMES.has(data.metricName) || data.value <= 0;
 }
 
 /*
@@ -1023,6 +1149,28 @@ function setNativeInstanceFacts(
   // An instance that lost its floating IP or its port has no label left to say so.
   entry.facts["addressIpv4"] = getLabel(attributes, "address_ipv4");
   entry.facts["addressIpv6"] = getLabel(attributes, "address_ipv6");
+  entry.facts["networkNames"] = getNetworkNames(attributes);
+}
+
+// Null when the label is not there or cut short: which is not the same as on no network.
+function getNetworkNames(attributes: JSONArray): Array<string> | null {
+  const label: string | null = getLabel(attributes, "network_names");
+
+  if (!label) {
+    return null;
+  }
+
+  try {
+    const names: unknown = JSON.parse(label);
+    return Array.isArray(names) &&
+      names.every((name: unknown): boolean => {
+        return typeof name === "string";
+      })
+      ? (names as Array<string>)
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /*
@@ -1211,6 +1359,59 @@ function foldVolume(data: {
   }
   setBooleanFact(entry, "isBootable", getLabel(data.attributes, "bootable"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
+}
+
+/*
+ * A share, from either of Manila's two series about it. Both say its status, in Manila's word, and
+ * whose it is. Only _share_gb says its zone, and only its value is its size, so its value is what is
+ * read and _share_status's, a code for the word, is not. share_type holds the type's name, recorded,
+ * and share_type_name is empty, because the exporter asks for no microversion.
+ */
+function foldShare(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Share,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    availabilityZone: getLabel(data.attributes, "availability_zone"),
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  if (data.metricName === "openstack_sharev2_share_gb") {
+    entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
+  }
+  setFact(entry, "shareProtocol", getLabel(data.attributes, "share_proto"));
+  setFact(
+    entry,
+    "shareType",
+    getLabel(data.attributes, "share_type_name") ||
+      getLabel(data.attributes, "share_type"),
+  );
+  /*
+   * What only a probe says, which asks for a microversion. Facts merge key by key, so these are
+   * written whatever the collector knows: a cloud moved to the agent must not go on saying them.
+   * Null reads as not known.
+   */
+  entry.facts["accessRulesStatus"] = getLabel(
+    data.attributes,
+    "access_rules_status",
+  );
+  entry.facts["backendHost"] = getLabel(data.attributes, "host");
 }
 
 function foldSnapshot(data: {
@@ -1613,6 +1814,93 @@ function foldFloatingIp(data: {
   );
 }
 
+/*
+ * A stack, from Heat's list. Its status is the word Heat says it in: its value here is that word's
+ * code, and tells nothing the label doesn't. A credential below an admin gets its own project's
+ * stacks with an empty project_id, recorded, and an empty label is no label: nothing can say whose.
+ * Why it failed is only said by a probe: the exporter never asks.
+ */
+function foldStack(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Stack,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  /*
+   * Facts merge key by key, so these are written whatever the collector knows: a cloud moved from a
+   * probe to the agent must not go on saying why a stack failed last week. Null reads as not known.
+   */
+  entry.facts["statusReason"] = getLabel(data.attributes, "status_reason");
+  entry.facts["parentStackId"] = getLabel(data.attributes, "parent_id");
+}
+
+/*
+ * A Kubernetes cluster Magnum built. The exporter's series have an empty project_id, recorded on
+ * every scene: Magnum says whose it is only on a cluster's own read, which only a probe makes. Its
+ * stack_id is always there, and Heat knows whose that stack is, which is what
+ * OpenStackResourceService.reconcileContainerClusterProjects joins. This series has the two counts
+ * in its labels, so the other two per-cluster series (_masters, _nodes) add nothing to a row.
+ */
+function foldContainerCluster(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "uuid");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.ContainerCluster,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  setFact(entry, "stackId", getLabel(data.attributes, "stack_id"));
+  entry.facts["nodeCount"] = toNumberOrNull(
+    getLabel(data.attributes, "node_count"),
+  );
+  entry.facts["masterCount"] = toNumberOrNull(
+    getLabel(data.attributes, "master_count"),
+  );
+  // Only a probe says these, and null reads as not known: see foldStack.
+  entry.facts["statusReason"] = getLabel(data.attributes, "status_reason");
+  entry.facts["healthStatus"] = getLabel(data.attributes, "health_status");
+  entry.facts["clusterTemplateId"] = getLabel(
+    data.attributes,
+    "cluster_template_id",
+  );
+  entry.facts["clusterTemplateName"] = getLabel(
+    data.attributes,
+    "cluster_template_name",
+  );
+  entry.facts["coeVersion"] = getLabel(data.attributes, "coe_version");
+  entry.facts["apiAddress"] = getLabel(data.attributes, "api_address");
+}
+
 function foldProject(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   attributes: JSONArray;
@@ -1948,6 +2236,16 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_identity_domain_info":
       foldDomain({ buffer, attributes, observedAt });
+      return;
+    case "openstack_heat_stack_status":
+      foldStack({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_container_infra_cluster_status":
+      foldContainerCluster({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_sharev2_share_gb":
+    case "openstack_sharev2_share_status":
+      foldShare({ buffer, attributes, region, value, observedAt, metricName });
       return;
     case "openstack_ironic_node":
       foldBareMetalNode({ buffer, attributes, region, observedAt });
@@ -2341,6 +2639,21 @@ export function isOpenStackDatapointKept(data: {
     status: getLabel(attributes, "status"),
     projectId: getLabel(attributes, "tenant_id"),
     keptProjectIds: data.keptProjectIds,
+  });
+}
+
+/*
+ * Whether a batch holds anything a cluster's project can come from: a cluster or a stack. A batch
+ * holds one service, and these are few, so most batches of most clouds answer no at no cost.
+ */
+export function hasOpenStackContainerClusterProjectToJoin(
+  finished: ReadonlyArray<OpenStackResourceBufferEntry>,
+): boolean {
+  return finished.some((entry: OpenStackResourceBufferEntry): boolean => {
+    return (
+      entry.kind === OpenStackResourceKind.ContainerCluster ||
+      entry.kind === OpenStackResourceKind.Stack
+    );
   });
 }
 

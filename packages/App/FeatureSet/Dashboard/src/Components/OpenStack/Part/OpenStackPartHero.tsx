@@ -38,6 +38,10 @@ export const OPENSTACK_PART_SLUGS: Partial<
   [OpenStackResourceKind.Volume]: "volume",
   [OpenStackResourceKind.StoragePool]: "storage-pool",
   [OpenStackResourceKind.Image]: "image",
+  [OpenStackResourceKind.BareMetalNode]: "bare-metal-node",
+  [OpenStackResourceKind.Stack]: "stack",
+  [OpenStackResourceKind.ContainerCluster]: "container-cluster",
+  [OpenStackResourceKind.Share]: "share",
 };
 
 const ICONS: Partial<Record<OpenStackResourceKind, IconProp>> = {
@@ -53,6 +57,10 @@ const ICONS: Partial<Record<OpenStackResourceKind, IconProp>> = {
   [OpenStackResourceKind.Volume]: IconProp.Disc,
   [OpenStackResourceKind.StoragePool]: IconProp.Database,
   [OpenStackResourceKind.Image]: IconProp.Image,
+  [OpenStackResourceKind.BareMetalNode]: IconProp.Server,
+  [OpenStackResourceKind.Stack]: IconProp.Layers,
+  [OpenStackResourceKind.ContainerCluster]: IconProp.Kubernetes,
+  [OpenStackResourceKind.Share]: IconProp.Folder,
 };
 
 const ACCENTS: Partial<Record<OpenStackResourceKind, ResourcePartAccent>> = {
@@ -67,6 +75,10 @@ const ACCENTS: Partial<Record<OpenStackResourceKind, ResourcePartAccent>> = {
   [OpenStackResourceKind.Volume]: "emerald",
   [OpenStackResourceKind.StoragePool]: "emerald",
   [OpenStackResourceKind.Image]: "emerald",
+  [OpenStackResourceKind.BareMetalNode]: "orange",
+  [OpenStackResourceKind.Stack]: "sky",
+  [OpenStackResourceKind.ContainerCluster]: "sky",
+  [OpenStackResourceKind.Share]: "emerald",
 };
 
 const LOCATION_LINK_CLASS_NAME: string =

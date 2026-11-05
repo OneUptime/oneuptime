@@ -136,8 +136,16 @@ const OpenStackCloudDomains: FunctionComponent<
         }}
       />
       <div className="mt-5 space-y-5" data-testid="openstack-domain-rules">
-        <OpenStackScopedRulesCard mode="owner" choices={domains} />
-        <OpenStackScopedRulesCard mode="label" choices={domains} />
+        <OpenStackScopedRulesCard
+          mode="owner"
+          choices={domains}
+          openStackCloudId={modelId}
+        />
+        <OpenStackScopedRulesCard
+          mode="label"
+          choices={domains}
+          openStackCloudId={modelId}
+        />
       </div>
     </>
   );

@@ -97,6 +97,7 @@ import OpenStackCloudService from "./OpenStackCloudService";
 import OpenStackCloudConnectionTestService from "./OpenStackCloudConnectionTestService";
 import OpenStackProjectUsageService from "./OpenStackProjectUsageService";
 import OpenStackBudgetService from "./OpenStackBudgetService";
+import OpenStackCloudCheckService from "./OpenStackCloudCheckService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
@@ -710,6 +711,7 @@ const services: Array<BaseService> = [
   OpenStackCloudConnectionTestService,
   OpenStackProjectUsageService,
   OpenStackBudgetService,
+  OpenStackCloudCheckService,
   DockerSwarmClusterService,
   CephClusterService,
   ProxmoxResourceService,

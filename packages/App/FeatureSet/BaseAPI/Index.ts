@@ -983,6 +983,9 @@ import OpenStackProjectUsageService, {
 import OpenStackBudgetService, {
   Service as OpenStackBudgetServiceType,
 } from "Common/Server/Services/OpenStackBudgetService";
+import OpenStackCloudCheckService, {
+  Service as OpenStackCloudCheckServiceType,
+} from "Common/Server/Services/OpenStackCloudCheckService";
 import VMwareVCenterService, {
   Service as VMwareVCenterServiceType,
 } from "Common/Server/Services/VMwareVCenterService";
@@ -1668,6 +1671,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
+import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -5820,6 +5824,9 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<OpenStackBudget, OpenStackBudgetServiceType>(
         OpenStackBudget,
         OpenStackBudgetService,
+      new BaseAPI<OpenStackCloudCheck, OpenStackCloudCheckServiceType>(
+        OpenStackCloudCheck,
+        OpenStackCloudCheckService,
       ).getRouter(),
     );
 

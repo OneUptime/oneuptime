@@ -1,0 +1,3 @@
+# HELP openstack_ironic_up up
+# TYPE openstack_ironic_up gauge
+openstack_ironic_up 0

@@ -1,3 +1,17 @@
 403 heat-stacks
 200 heat-stacks-own
 200 heat-services
+200 heat-stack-ou-stack-update-fails
+200 heat-stack-resources-ou-stack-update-fails
+200 heat-stack-ou-stack-updating
+200 heat-stack-resources-ou-stack-updating
+200 heat-stack-ou-stack-creating
+200 heat-stack-resources-ou-stack-creating
+200 heat-stack-ou-stack-admin-failed
+200 heat-stack-resources-ou-stack-admin-failed
+200 heat-stack-ou-stack-admin-ok
+200 heat-stack-resources-ou-stack-admin-ok
+200 heat-stack-ou-stack-failed
+200 heat-stack-resources-ou-stack-failed
+200 heat-stack-ou-stack-ok
+200 heat-stack-resources-ou-stack-ok

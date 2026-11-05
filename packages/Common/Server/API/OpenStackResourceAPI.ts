@@ -6,7 +6,6 @@ import OneUptimeDate from "../../Types/Date";
 import OpenStackResourceService, {
   OpenStackAttentionRows,
   OpenStackDomainSummary,
-  OpenStackInventorySummary,
   OpenStackProjectOverview,
   OpenStackProjectSummary,
   OpenStackTopologyRead,
@@ -44,6 +43,7 @@ import {
 } from "../../Types/OpenStack/OpenStackCounts";
 import {
   OPENSTACK_CEPH_STATUS_FACT,
+  OpenStackContainerClusterLink,
   OpenStackLinkedHost,
   OpenStackLinkedKubernetesNode,
   OpenStackLinkedService,
@@ -80,6 +80,10 @@ import { getOpenStackListSeekReads } from "../Utils/OpenStack/OpenStackListSeekQ
  *   POST /openstack-resource/inventory-summary/:cloudId   { regionName? }
  *     The cloud's or a region's counts for its layout and Overview pages, in one round
  *     trip, read from the same rows the lists read. Needs read access to the cloud.
+ *
+ *   POST /openstack-resource/bare-metal-classes/:cloudId   { regionName? }
+ *     How many nodes there are of each resource class, and how many could take an instance,
+ *     from one statement over the nodes' rows. Needs read access to the cloud.
  *
  *   POST /openstack-resource/needs-attention/:cloudId   { regionName? }
  *     The rows that may need someone, for the Overview's Needs attention and health
@@ -131,8 +135,12 @@ import { getOpenStackListSeekReads } from "../Utils/OpenStack/OpenStackListSeekQ
  *   POST /openstack-resource/placement-of-host/:hostId
  *   POST /openstack-resource/placement-of-service/:serviceId
  *   POST /openstack-resource/placement-of-kubernetes-node/:clusterId   { nodeName }
+ *   POST /openstack-resource/magnum-cluster-of-kubernetes-cluster/:clusterId
  *     Which part of which cloud a thing in another product is, for its own page. Needs read
  *     access to that thing and to the cloud, and says nothing at all without both.
+ *
+ *   POST /openstack-resource/kubernetes-cluster-of-magnum-cluster/:cloudId   { externalId }
+ *     The Kubernetes cluster OneUptime's agent reports from a Magnum cluster's servers.
  *
  *   POST /openstack-resource/storage-pool-ceph/:cloudId   { externalId }
  *   POST /openstack-resource/storage-pool-ceph-confirm/:cloudId
@@ -253,6 +261,20 @@ export default class OpenStackResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getInventorySummary(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/bare-metal-classes/:cloudId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getBareMetalClasses(req, res);
         } catch (err) {
           next(err);
         }
@@ -387,6 +409,18 @@ export default class OpenStackResourceAPI extends BaseAPI<
       "host-of-machine",
       (req: ExpressRequest, res: ExpressResponse) => {
         return this.getHostOfMachine(req, res);
+      },
+    );
+    this.registerCloudRead(
+      "kubernetes-cluster-of-magnum-cluster",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        return this.getKubernetesClusterOfMagnumCluster(req, res);
+      },
+    );
+    this.registerPlacementRead(
+      "magnum-cluster-of-kubernetes-cluster",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        return this.getMagnumClusterOfKubernetesCluster(req, res);
       },
     );
     this.registerPlacementRead(
@@ -598,6 +632,65 @@ export default class OpenStackResourceAPI extends BaseAPI<
       });
     return Response.sendJsonObjectResponse(req, res, {
       placement: kept[0]?.placement || null,
+    } as unknown as JSONObject);
+  }
+
+  /*
+   * Worked out on everything in the project, and then read as the caller: the link names a Kubernetes
+   * cluster and a cloud, and someone who can read only one of them is told nothing.
+   */
+  private async getKubernetesClusterOfMagnumCluster(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } =
+      await this.resolveCloudForRequest(req);
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+    const link: OpenStackContainerClusterLink | null =
+      await OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster({
+        projectId,
+        openStackCloudId,
+        externalId: this.readString(req, "externalId"),
+      });
+    const readable: Set<string> = await this.readIdsCallerMayRead({
+      service: KubernetesClusterService,
+      ids: link ? [link.kubernetesClusterId] : [],
+      props,
+    });
+    return Response.sendJsonObjectResponse(req, res, {
+      link: link && readable.has(link.kubernetesClusterId) ? link : null,
+    } as unknown as JSONObject);
+  }
+
+  private async getMagnumClusterOfKubernetesCluster(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+    const clusterId: ObjectID = this.readResourceIdParam(req);
+    const cluster: KubernetesCluster | null =
+      await KubernetesClusterService.findOneById({
+        id: clusterId,
+        select: { _id: true, projectId: true },
+        props,
+      });
+    if (!cluster?.projectId) {
+      throw new NotFoundException("Kubernetes cluster not found");
+    }
+    const link: OpenStackContainerClusterLink | null =
+      await OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster({
+        projectId: cluster.projectId,
+        kubernetesClusterId: clusterId,
+      });
+    const readable: Set<string> = await this.readIdsCallerMayRead({
+      service: OpenStackCloudService,
+      ids: link ? [link.openStackCloudId] : [],
+      props,
+    });
+    return Response.sendJsonObjectResponse(req, res, {
+      link: link && readable.has(link.openStackCloudId) ? link : null,
     } as unknown as JSONObject);
   }
 
@@ -1339,6 +1432,22 @@ export default class OpenStackResourceAPI extends BaseAPI<
     };
   }
 
+  private async getBareMetalClasses(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } =
+      await this.resolveCloudForRequest(req);
+
+    return Response.sendJsonObjectResponse(req, res, {
+      classes: (await this.service.getBareMetalClasses({
+        projectId,
+        openStackCloudId,
+        regionName: this.readRegionName(req),
+      })) as unknown as JSONObject,
+    });
+  }
+
   private async getInventorySummary(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1346,17 +1455,16 @@ export default class OpenStackResourceAPI extends BaseAPI<
     const { projectId, openStackCloudId } =
       await this.resolveCloudForRequest(req);
 
-    const summary: OpenStackInventorySummary =
-      await this.service.getInventorySummary({
-        projectId,
-        openStackCloudId,
-        regionName: this.readRegionName(req),
-      });
+    const regionName: string | null | undefined = this.readRegionName(req);
 
     return Response.sendJsonObjectResponse(
       req,
       res,
-      summary as unknown as JSONObject,
+      (await this.service.getInventorySummary({
+        projectId,
+        openStackCloudId,
+        regionName,
+      })) as unknown as JSONObject,
     );
   }
 }

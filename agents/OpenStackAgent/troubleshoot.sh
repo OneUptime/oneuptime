@@ -993,7 +993,7 @@ classify_read() {
     return 0
   fi
   flat=$(printf '%s\n' "$RESP_BODY" | json_flatten)
-  summary=$(list_summary "$flat" "$key" "$attr")
+  summary=$(list_summary "$flat" "$key" "${attr%\?}")
   rows="${summary%% *}"
   summary="${summary#* }"
   projects="${summary%% *}"
@@ -1001,6 +1001,10 @@ classify_read() {
   names="${names# }"
   if [ "$attr" = "*" ] && [ "$rows" -gt 0 ]; then
     RESULT="all"
+  # Rows that are nobody's: Ironic shows those to no project, so this is more than one's view.
+  elif [ "${attr%\?}" != "$attr" ] && [ "$rows" -gt 0 ] && [ "$projects" = 0 ]; then
+    RESULT="all"
+    REASON=" (no row is any project's)"
   elif [ "$projects" -ge 2 ]; then
     RESULT="all"
     REASON=" ($projects projects in $rows rows)"
@@ -1010,7 +1014,8 @@ classify_read() {
   elif [ "$projects" = 1 ]; then
     RESULT="own"
     REASON=" (every row is in one project)"
-  elif [ "$HAS_ADMIN_ROLE" = 1 ]; then
+  # Ironic shows even an admin only what its project owns, so empty is no likely truth there.
+  elif [ "$HAS_ADMIN_ROLE" = 1 ] && [ "${attr%\?}" = "$attr" ]; then
     RESULT="all"
     REASON=" (nothing here to tell by, and the credential has the admin role)"
   else
@@ -1212,7 +1217,14 @@ block-storage|volume types|/types|volume_types|-|OpenStack-API-Version: volume 3
 image|images|/v2/images?limit=100|images|owner|-|private images in other projects.|text:Glance shows any credential the public images and its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|load balancers|/v2/lbaas/loadbalancers?limit=100&fields=project_id|loadbalancers|project_id|-|load balancers in other projects.|text:Octavia shows a project reader its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|amphorae|/v2/octavia/amphorae?limit=100|amphorae|-|-|amphorae.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
-baremetal|nodes|/v1/nodes/detail?limit=100|nodes|*|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes.|text:Ironic shows a project only the nodes it owns. To read them all: use a full-view credential (README.md, "Level 1: Full view").
+baremetal|nodes|/v1/nodes/detail?limit=100|nodes|owner?|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes other projects own.|text:Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy, or system scope (README.md, "Bare metal").
+orchestration|stacks|/stacks|stacks|project|-|other projects' stacks, and whose each one is.|text:Heat shows anything less its own project's with no project on them, or refuses. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+orchestration|services|/services|services|-|-|Heat's engines.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+container-infra|clusters|/clusters|clusters|*|OpenStack-API-Version: container-infra latest|other projects' Kubernetes clusters.|text:Magnum shows anything less none of them, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+container-infra|services|/mservices|mservices|-|OpenStack-API-Version: container-infra latest|Magnum's conductors.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|shares, all projects|/shares/detail?all_tenants=1|shares|project_id|-|other projects' shares.|text:Manila shows anything less its own project's, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|services|/services|services|-|X-OpenStack-Manila-API-Version: 2.65|Manila's services.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|pools|/scheduler-stats/pools/detail|pools|-|X-OpenStack-Manila-API-Version: 2.65|Manila's pools.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 READS
     check_project_holdings "$REGION"
   done
@@ -1244,7 +1256,7 @@ section "What the cloud stands on"
 #   check_control_plane <variable> <what it is> <a series that says it answers>
 CONTROL_PLANE_NAMED=0
 check_control_plane() {
-  local variable="$1" what="$2" series="$3" list="" target="" answer="" code=""
+  local variable="$1" what="$2" series="$3" zero_means_down="${4:-yes}" list="" target="" answer="" code=""
   list=$(agent_env "$variable")
   if [ -z "$list" ] || [ "$list" = "[]" ]; then
     return 0
@@ -1256,7 +1268,7 @@ check_control_plane() {
     if [ "$code" != "0" ]; then
       fail "$what at $target does not answer from the agent's network: $(explain_curl_exit "$code")."
       add_finding "The collector cannot scrape $what at $target ($variable). Check the address, and that this machine has a route to the network it listens on."
-    elif printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? 0"; then
+    elif [ "$zero_means_down" = "yes" ] && printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? 0"; then
       warn "$what at $target answers, and says the service behind it is down ($series 0)."
     elif printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? "; then
       pass "$what at $target answers."
@@ -1270,7 +1282,10 @@ check_control_plane OPENSTACK_RABBITMQ_TARGETS "RabbitMQ's Prometheus plugin" ra
 check_control_plane OPENSTACK_MARIADB_TARGETS "mysqld_exporter" mysql_up
 check_control_plane OPENSTACK_MEMCACHED_TARGETS "memcached_exporter" memcached_up
 check_control_plane OPENSTACK_HAPROXY_TARGETS "HAProxy's Prometheus exporter" haproxy_process_uptime_seconds
-check_control_plane OPENSTACK_NETWORK_EXPORTER_TARGETS "openstack-network-exporter" ovs_build_info
+# Any of its series: a host of only OVN's databases has no Open vSwitch to report, and it reports
+# no Open vSwitch database from the moment Open vSwitch restarts until it restarts itself. A 0 says
+# little here: its coverage series all read 0 with nothing behind them.
+check_control_plane OPENSTACK_NETWORK_EXPORTER_TARGETS "openstack-network-exporter" '(ovs|ovn|ovnc)_[a-z0-9_]+' no
 check_control_plane OPENSTACK_LIBVIRT_HEALTH_TARGETS "prometheus-libvirt-exporter" libvirt_up
 if [ "$CONTROL_PLANE_NAMED" = 0 ]; then
   info "None named, so the cloud's Control Plane card says each is not watched. README.md says how to name them."

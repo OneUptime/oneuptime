@@ -307,8 +307,28 @@ describe("what a record keeps of an answer", () => {
     ["nothing, on an answer with no such field", undefined, null],
     ["nothing, on an answer that says null", null, null],
     ["nothing, on an image with no id", { links: [] }, null],
-  ])("%s", (_name: string, image: JSONValue | undefined, imageId: string | null) => {
-    expect(toNovaServer({ id: "s1", image: image })?.imageId).toBe(imageId);
+  ])(
+    "%s",
+    (_name: string, image: JSONValue | undefined, imageId: string | null) => {
+      expect(toNovaServer({ id: "s1", image: image })?.imageId).toBe(imageId);
+    },
+  );
+
+  test("its networks, by name, in one order from one collection to the next", () => {
+    expect(
+      toNovaServer({
+        id: "s1",
+        addresses: {
+          storage: [{ addr: "10.0.1.5", version: 4 }],
+          private: [{ addr: "10.0.0.5", version: 4 }],
+        },
+      })?.networkNames,
+    ).toEqual(["private", "storage"]);
+  });
+
+  test("none, on a server with no address yet", () => {
+    expect(toNovaServer({ id: "s1", addresses: {} })?.networkNames).toEqual([]);
+    expect(toNovaServer({ id: "s1" })?.networkNames).toEqual([]);
   });
 
   test("a fault's traceback stays with Nova", () => {
@@ -435,7 +455,11 @@ describe("what a record keeps of an answer", () => {
     },
   ])(
     "its addresses: $why",
-    (data: { server: JSONObject; ipv4: string | null; ipv6: string | null }) => {
+    (data: {
+      server: JSONObject;
+      ipv4: string | null;
+      ipv6: string | null;
+    }) => {
       expect(toNovaServer({ id: "s1", ...data.server })).toMatchObject({
         addressIpv4: data.ipv4,
         addressIpv6: data.ipv6,
@@ -667,6 +691,7 @@ describe("what is kept between collections", () => {
       roleNames: [],
       hasAccessRules: false,
       isUnrestricted: false,
+      isAdminProject: false,
     };
   }
 

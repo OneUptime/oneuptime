@@ -2,7 +2,10 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import { isOpenStackServiceForcedDown } from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  isOpenStackServiceForcedDown,
+  isOpenStackServiceQuiet,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackServiceFamily } from "Common/Types/OpenStack/OpenStackResourceKind";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
@@ -20,10 +23,12 @@ import {
   getOpenStackServiceTitle,
   getOpenStackStaleAgentIds,
   getOpenStackWorkerFamily,
+  getOpenStackWorkersNotListedWords,
   getOpenStackWorkerHost,
   getOpenStackWorkerRank,
   isOpenStackApiScrapeFailed,
 } from "../../Pages/OpenStack/Utils/OpenStackServices";
+import { OPENSTACK_QUIET_LABEL } from "./OpenStackStatus";
 import OpenStackStatusCell from "./OpenStackStatusCell";
 
 /*
@@ -47,6 +52,8 @@ export interface ComponentProps {
   showRegion: boolean;
   // The network backend the agents list reports, on Neutron's card.
   backendName?: string | null | undefined;
+  // How it is collected, which says why a service's workers can't be listed.
+  isCollectedByProbe?: boolean | undefined;
   getRowRoute: (row: OpenStackResource) => Route | undefined;
   now: Date;
 }
@@ -176,7 +183,9 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
             adminState={row.adminState}
             disabledReason={row.disabledReason}
             reasons={
-              isForcedDown ? [{ text: OPENSTACK_REASON_FORCED_DOWN }] : undefined
+              isForcedDown
+                ? [{ text: OPENSTACK_REASON_FORCED_DOWN }]
+                : undefined
             }
           />
         </div>
@@ -194,6 +203,10 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
   const { group } = props;
 
   const seconds: number | null = getOpenStackCollectionSeconds(group.api);
+  const workersNotListed: string | null = getOpenStackWorkersNotListedWords({
+    group,
+    isCollectedByProbe: Boolean(props.isCollectedByProbe),
+  });
   const shown: Array<OpenStackResource> = isExpanded
     ? group.workers
     : group.workers.slice(0, OPENSTACK_SERVICE_GROUP_WORKERS_SHOWN);
@@ -265,13 +278,38 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                     : ""}
                 </div>
                 <div className="min-w-0 sm:w-48">
-                  <OpenStackStatusCell
-                    kind={group.api.kind}
-                    status={group.api.status}
-                    isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
-                  />
+                  {group.api.status !== "down" &&
+                  isOpenStackServiceQuiet({
+                    service: group.api.name,
+                    lastSeenAt: group.api.lastSeenAt,
+                    now: props.now,
+                  }) ? (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      label={OPENSTACK_QUIET_LABEL}
+                      isOpenStackWord={false}
+                      tone="warning"
+                    />
+                  ) : (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
+                    />
+                  )}
                 </div>
               </ResourcePartRow>
+            </li>
+          ) : (
+            <></>
+          )}
+          {workersNotListed ? (
+            <li
+              className="bg-gray-50 px-5 py-2 text-xs text-gray-600 md:px-6"
+              data-testid="openstack-service-group-workers-not-listed"
+            >
+              {translator.translateText(workersNotListed)}
             </li>
           ) : (
             <></>

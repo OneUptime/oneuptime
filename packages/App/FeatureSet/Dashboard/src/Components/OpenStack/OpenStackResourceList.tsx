@@ -80,6 +80,7 @@ import useOpenStackDomainFilter, {
   OPENSTACK_PROJECT_OWNED_KINDS,
   OpenStackDomainFilter,
 } from "./UseOpenStackDomainFilter";
+import { getOpenStackBareMetalProvisionUpdatedAt } from "../../Pages/OpenStack/Utils/OpenStackHealth";
 import OpenStackStatusCell from "./OpenStackStatusCell";
 import {
   OpenStackPartRoutes,
@@ -276,6 +277,8 @@ export function getOpenStackLinkColumn(data: {
   getLink: (row: OpenStackResource) => OpenStackPartLink | null;
   hideOnMobile?: boolean | undefined;
   description?: string | undefined;
+  // Off until the viewer asks for it in Customize Columns.
+  isHiddenByDefault?: boolean | undefined;
 }): OpenStackListColumn {
   return {
     id: data.id,
@@ -285,6 +288,7 @@ export function getOpenStackLinkColumn(data: {
     disableSort: true,
     hideOnMobile: data.hideOnMobile,
     headerTooltip: data.description,
+    isHiddenByDefault: data.isHiddenByDefault,
     hasValue: (row: OpenStackResource): boolean => {
       return Boolean(data.getLink(row));
     },
@@ -579,7 +583,8 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
 
   const showsProject: boolean = props.columns.includes(OpenStackColumn.Project);
 
-  const [apiState, setApiState] = useState<OpenStackApiState>("not-reported");
+  // Nothing can be said of what its API says until that has been read.
+  const [apiState, setApiState] = useState<OpenStackApiState>("not-read");
   const [hypervisorsAreListed, setHypervisorsAreListed] = useState<
     boolean | undefined
   >(undefined);
@@ -979,6 +984,9 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
                     getOpenStackFact(row, "scrapeFailed") === true
                   }
                   stateChangedAt={row.stateChangedAt}
+                  provisionUpdatedAt={getOpenStackBareMetalProvisionUpdatedAt(
+                    row,
+                  )}
                   now={OneUptimeDate.getCurrentDate()}
                   label={state?.label}
                   isOpenStackWord={state?.isOpenStackWord}

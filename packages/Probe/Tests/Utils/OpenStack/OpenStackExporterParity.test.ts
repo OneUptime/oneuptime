@@ -312,6 +312,8 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "imageId",
     // Whether someone said to keep an image, which it doesn't report either.
     "isProtected",
+    // Nor which networks it has an address on.
+    "networkNames",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
     "storageProtocol",
     "cephFsid",
@@ -888,10 +890,7 @@ describe("what only a probe adds, in the rows it fills", () => {
       async (release: string) => {
         const scene: RecordedScene = loadScene(release, "compute-forced-down");
 
-        for (const rows of [
-          await rowsOfScene(scene),
-          exporterRowsOf(scene),
-        ]) {
+        for (const rows of [await rowsOfScene(scene), exporterRowsOf(scene)]) {
           const hypervisors: Array<OpenStackResourceBufferEntry> = rowsOf(
             rows,
             OpenStackResourceKind.Hypervisor,
@@ -922,7 +921,9 @@ describe("what only a probe adds, in the rows it fills", () => {
         ],
       ).toBeUndefined();
       expect(
-        namedIn(rows, OpenStackResourceKind.Router, "router1").facts["l3Agents"],
+        namedIn(rows, OpenStackResourceKind.Router, "router1").facts[
+          "l3Agents"
+        ],
       ).toBeDefined();
     });
 
@@ -1144,6 +1145,67 @@ describe("what only a probe adds, in the rows it fills", () => {
     }
   });
 
+  test("each instance says its networks, as Nova does, and the same collection reports them", async () => {
+    const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
+      "servers"
+    ] as Array<JSONObject>;
+    const rows: Map<string, OpenStackResourceBufferEntry> = await rowsFrom();
+    const instances: Array<OpenStackResourceBufferEntry> = rowsOf(
+      rows,
+      OpenStackResourceKind.Instance,
+    );
+    const networkNames: Array<string | null> = rowsOf(
+      rows,
+      OpenStackResourceKind.Network,
+    ).map((row: OpenStackResourceBufferEntry): string | null => {
+      return row.name;
+    });
+
+    expect(instances).toHaveLength(servers.length);
+
+    let joined: number = 0;
+
+    for (const server of servers) {
+      const names: Array<string> = Object.keys(
+        (server["addresses"] as JSONObject) || {},
+      ).sort();
+
+      expect(
+        instances.find((row: OpenStackResourceBufferEntry): boolean => {
+          return row.externalId === server["id"];
+        })?.facts["networkNames"],
+      ).toEqual(names);
+
+      for (const name of names) {
+        expect(networkNames).toContain(name);
+        joined++;
+      }
+    }
+
+    // ou-failed never got one, and the rest did: this is not passing on nothing.
+    expect(joined).toBeGreaterThan(0);
+  });
+
+  test("each volume names a pool the same collection reports", async () => {
+    const rows: Map<string, OpenStackResourceBufferEntry> = await rowsFrom();
+    const poolNames: Array<string | null> = rowsOf(
+      rows,
+      OpenStackResourceKind.StoragePool,
+    ).map((row: OpenStackResourceBufferEntry): string | null => {
+      return row.name;
+    });
+    const volumes: Array<OpenStackResourceBufferEntry> = rowsOf(
+      rows,
+      OpenStackResourceKind.Volume,
+    );
+
+    expect(volumes.length).toBeGreaterThan(0);
+
+    for (const volume of volumes) {
+      expect(poolNames).toContain(volume.facts["pool"]);
+    }
+  });
+
   test("each instance says what it booted from, in Nova's own answer", async () => {
     const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
       "servers"
@@ -1282,7 +1344,9 @@ describe("what only a probe adds, in the rows it fills", () => {
           return request.url.includes("dhcp-networks");
         }),
       ).toEqual([]);
-      expect(recordedJson(scene, "neutron-agent-dhcp-networks")).toBeUndefined();
+      expect(
+        recordedJson(scene, "neutron-agent-dhcp-networks"),
+      ).toBeUndefined();
     });
 
     test("nothing but DHCP agents say so", async () => {
@@ -1551,7 +1615,11 @@ describe("the catalogue says who collects what", () => {
     expect(onlyFromProbe).toEqual([
       "openstack_cinder_backup_gb",
       "openstack_cinder_snapshot_gb",
+      "openstack_container_infra_agent_state",
+      "openstack_heat_agent_state",
+      "openstack_ironic_agent_state",
       "openstack_placement_flavor_fits",
+      "openstack_sharev2_agent_state",
     ]);
   });
 });

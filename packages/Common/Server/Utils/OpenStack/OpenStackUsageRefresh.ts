@@ -643,11 +643,17 @@ export default class OpenStackUsageRefresh {
           : null;
       };
 
-      const thisMonth: OpenStackUsageQuantities | null = await read(throughDay);
+      // Last month's first: a cloud in its first month has none, and is saved reading this month's.
       const lastMonth: OpenStackUsageQuantities | null =
         await read(lastMonthThroughDay);
 
-      if (!thisMonth || !lastMonth) {
+      if (!lastMonth) {
+        return null;
+      }
+
+      const thisMonth: OpenStackUsageQuantities | null = await read(throughDay);
+
+      if (!thisMonth) {
         return null;
       }
 

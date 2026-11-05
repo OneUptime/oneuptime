@@ -11,6 +11,10 @@ import {
   estimateOpenStackInstanceMetricsVolume,
 } from "./OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "./OpenStackResourceKind";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+} from "./OpenStackOptionalServices";
 
 /*
  * WHAT A CLOUD OF ANY SIZE COSTS, BEFORE ANYTHING IS INSTALLED.
@@ -348,6 +352,9 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Network]: 0,
     [OpenStackServiceType.Volume]: 0,
     [OpenStackServiceType.Image]: 0,
+    [OpenStackServiceType.Orchestration]: 0,
+    [OpenStackServiceType.ContainerInfra]: 0,
+    [OpenStackServiceType.SharedFileSystems]: 0,
     [OpenStackServiceType.BareMetal]: 0,
   };
 }
@@ -381,6 +388,8 @@ export function simulateOpenStackProbeRequests(data: {
   fromMinute: number;
   toMinute: number;
   options?: OpenStackProbeLoadOptions | undefined;
+  // Collections that were not made, because the one before was still running.
+  skippedMinutes?: ReadonlySet<number> | undefined;
 }): OpenStackRequestsByService {
   const { counts } = data;
   const options: OpenStackProbeLoadOptions = data.options || {};
@@ -392,9 +401,6 @@ export function simulateOpenStackProbeRequests(data: {
   const changed: number = options.instancesChangedPerCollection ?? 0;
   const slowEvery: number = getOpenStackSlowServiceEveryMinutes(interval);
 
-  const fullEvery: number =
-    Math.ceil(OPENSTACK_FULL_INSTANCE_READ_EVERY_MINUTES / interval) * interval;
-
   const requests: OpenStackRequestsByService = noRequests();
   const add: (service: OpenStackServiceType, count: number) => void = (
     service: OpenStackServiceType,
@@ -405,10 +411,16 @@ export function simulateOpenStackProbeRequests(data: {
 
   let tokenValidUntil: number = -1;
   let extensionsReadAt: number = -Infinity;
+  let slowServicesReadAt: number = -Infinity;
+  let instancesReadWholeAt: number = -Infinity;
   let actionReadsWaiting: number = 0;
   let dhcpAgentsReadAt: number = -Infinity;
 
   for (let minute: number = 0; minute < data.toMinute; minute += interval) {
+    if (data.skippedMinutes?.has(minute)) {
+      continue;
+    }
+
     const isCounted: boolean = minute >= data.fromMinute;
     const count: (service: OpenStackServiceType, value: number) => void = (
       service: OpenStackServiceType,
@@ -427,7 +439,9 @@ export function simulateOpenStackProbeRequests(data: {
       count(OpenStackServiceType.Identity, 1);
     }
 
-    if (minute % slowEvery === 0) {
+    // Half a minute under, as the collector keeps it, so a turn isn't missed by being early.
+    if (minute - slowServicesReadAt >= slowEvery - 0.5) {
+      slowServicesReadAt = minute;
       // Domains, projects, regions, users and groups: Keystone pages none of them.
       count(OpenStackServiceType.Identity, 5);
       count(
@@ -436,7 +450,13 @@ export function simulateOpenStackProbeRequests(data: {
       );
     }
 
-    const isFullRead: boolean = minute % fullEvery === 0;
+    const isFullRead: boolean =
+      minute - instancesReadWholeAt >=
+      OPENSTACK_FULL_INSTANCE_READ_EVERY_MINUTES;
+
+    if (isFullRead) {
+      instancesReadWholeAt = minute;
+    }
 
     // Its versions, services, aggregates and zones, then the lists.
     count(
@@ -681,7 +701,7 @@ const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
 export interface OpenStackSeriesCounts {
   // Read every collection: Nova, Placement, Neutron and Cinder.
   fast: number;
-  // Read about every five minutes: Keystone and Glance.
+  // Read about every five minutes: Keystone, Glance and the services a cloud may not run.
   slow: number;
   // What goes away in summary mode: an instance's status and three allocations, a volume's two.
   perInstance: number;
@@ -771,6 +791,18 @@ export function getOpenStackSeriesCounts(data: {
 
   const image: number = counts.images * 2 + 1 + 1 + SCRAPE_SERIES_PER_READING;
 
+  /*
+   * A service a cloud may not run still says its collection answered, with nothing, as the agent's
+   * scrape job for it does for ever: that is how a service that left the catalog is told from one
+   * that failed. What it lists on a cloud that runs it isn't here: stacks and clusters are few.
+   */
+  const optionalServices: number =
+    OPENSTACK_OPTIONAL_SERVICES.filter(
+      (entry: OpenStackOptionalService): boolean => {
+        return Boolean(entry.isReadByProbe);
+      },
+    ).length * SCRAPE_SERIES_PER_READING;
+
   const summaryCounts: number = isSummary
     ? STATUSES_USUALLY_PRESENT + counts.projects
     : 0;
@@ -780,7 +812,7 @@ export function getOpenStackSeriesCounts(data: {
       (compute + placement + network + volume) * counts.regions +
       perInstance +
       summaryCounts * counts.regions,
-    slow: identity * counts.regions + image * counts.regions,
+    slow: (identity + image + optionalServices) * counts.regions,
     perInstance: perInstance,
     inTurnsFast:
       (counts.networks +

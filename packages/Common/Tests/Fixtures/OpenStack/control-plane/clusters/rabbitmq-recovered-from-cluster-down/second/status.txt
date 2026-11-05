@@ -1,0 +1,4 @@
+200 rabbitmq-1 http://127.0.1.1:15692/metrics
+200 rabbitmq-2 http://127.0.1.2:15692/metrics
+200 rabbitmq-3 http://127.0.1.3:15692/metrics
+200 rabbitmq-1-detailed http://127.0.1.1:15692/metrics/detailed?family=queue_coarse_metrics&family=queue_consumer_count

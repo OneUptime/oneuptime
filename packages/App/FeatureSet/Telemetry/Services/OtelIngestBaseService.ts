@@ -7,6 +7,7 @@ import DockerHostService from "Common/Server/Services/DockerHostService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import { isOpenStackCheckResource } from "Common/Utils/OpenStack/OpenStackCheckMetrics";
 import OpenStackAcrossProducts from "Common/Server/Utils/OpenStack/OpenStackAcrossProducts";
 import { isOpenStackInstanceId } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
 import { OpenStackPlacement } from "Common/Types/OpenStack/OpenStackLinks";
@@ -2140,6 +2141,15 @@ export default abstract class OtelIngestBaseService {
 
       if (!cloudIdStr) {
         return null;
+      }
+
+      /*
+       * What a probe checked from outside: it belongs to this cloud, and says nothing of
+       * whether whatever collects the cloud is still reporting. An agent that stopped has to
+       * read as stopped, however well the cloud answers.
+       */
+      if (isOpenStackCheckResource(data.attributes)) {
+        return new ObjectID(cloudIdStr);
       }
 
       /*

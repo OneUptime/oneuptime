@@ -1,0 +1,2 @@
+Every member of ou-lb-pool failing its health monitor, with the load balancer still provisioning ACTIVE.
+On their own: every member started failing its health monitor once the security group stopped letting checks through.

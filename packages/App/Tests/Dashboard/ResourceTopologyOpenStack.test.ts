@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
+import { getOpenStackDrilledReleases } from "Common/Tests/Helpers/OpenStackRecordings";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { JSONObject } from "Common/Types/JSON";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -28,6 +31,7 @@ import {
   OPENSTACK_ROOT_ID,
   OPENSTACK_TOPOLOGY_GAP_NETWORKS,
   OPENSTACK_TOPOLOGY_GAP_NETWORKS_AND_POOLS,
+  OPENSTACK_TOPOLOGY_GAP_POOLS,
   OPENSTACK_TOPOLOGY_OPENS_ON,
   buildOpenStackTopology,
   getOpenStackTopologyFocus,
@@ -576,6 +580,240 @@ describe("relations that cross the tree", () => {
   });
 });
 
+describe("an instance and the networks a probe says it is on", () => {
+  const network: (
+    id: string,
+    fields: {
+      name?: string;
+      project?: string;
+      region?: string;
+      isShared?: boolean;
+    },
+  ) => OpenStackResource = (
+    id: string,
+    fields: {
+      name?: string;
+      project?: string;
+      region?: string;
+      isShared?: boolean;
+    },
+  ): OpenStackResource => {
+    const part: OpenStackResource = row(OpenStackResourceKind.Network, id);
+    part.name = fields.name || "private";
+    part.regionName = fields.region || "RegionOne";
+    if (fields.project) {
+      part.openStackProjectId = fields.project;
+    }
+    part.facts = { isShared: Boolean(fields.isShared) };
+    return part;
+  };
+  const onNetworks: (
+    names: Array<string> | undefined,
+    project?: string,
+  ) => OpenStackResource = (
+    names: Array<string> | undefined,
+    project: string = "p-1",
+  ): OpenStackResource => {
+    const part: OpenStackResource = instance("i-1", FULL_NAME);
+    part.regionName = "RegionOne";
+    part.openStackProjectId = project;
+    part.facts = names ? { networkNames: names } : {};
+    return part;
+  };
+  const joinsOf: (rows: Array<OpenStackResource>) => Array<string> = (
+    rows: Array<OpenStackResource>,
+  ): Array<string> => {
+    return build(rows)
+      .relations.filter((relation: { from: string }): boolean => {
+        return relation.from.startsWith("instance:");
+      })
+      .map((relation: { to: string }): string => {
+        return relation.to;
+      });
+  };
+
+  test("joins it to the one by that name", () => {
+    expect(
+      joinsOf([onNetworks(["private"]), network("n-1", { project: "p-1" })]),
+    ).toEqual(["network:n-1"]);
+  });
+
+  test("to each of them", () => {
+    expect(
+      joinsOf([
+        onNetworks(["private", "storage"]),
+        network("n-1", { project: "p-1" }),
+        network("n-2", { name: "storage", project: "p-1" }),
+      ]),
+    ).toEqual(["network:n-1", "network:n-2"]);
+  });
+
+  test("its own project's first, when every project has a private", () => {
+    expect(
+      joinsOf([
+        onNetworks(["private"]),
+        network("n-1", { project: "p-2" }),
+        network("n-2", { project: "p-1" }),
+        network("n-3", { project: "p-3" }),
+      ]),
+    ).toEqual(["network:n-2"]);
+  });
+
+  test("then one shared with it", () => {
+    expect(
+      joinsOf([
+        onNetworks(["public"]),
+        network("n-1", { name: "public", project: "p-2" }),
+        network("n-2", { name: "public", project: "p-3", isShared: true }),
+      ]),
+    ).toEqual(["network:n-2"]);
+  });
+
+  test("not another region's", () => {
+    expect(
+      joinsOf([
+        onNetworks(["private"]),
+        network("n-1", { project: "p-1", region: "RegionTwo" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("nothing at all when the name does not say which", () => {
+    expect(
+      joinsOf([
+        onNetworks(["private"]),
+        network("n-1", { project: "p-1" }),
+        network("n-2", { project: "p-1" }),
+      ]),
+    ).toEqual([]);
+    expect(
+      joinsOf([
+        onNetworks(["public"]),
+        network("n-1", { name: "public", project: "p-2" }),
+        network("n-2", { name: "public", project: "p-3" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("nothing from an exporter, which does not say", () => {
+    expect(
+      joinsOf([onNetworks(undefined), network("n-1", { project: "p-1" })]),
+    ).toEqual([]);
+  });
+});
+
+describe("what real clouds answered, as a probe reads it", () => {
+  /*
+   * Nova's, Neutron's and Cinder's answers as the rig recorded them on a real DevStack. What the
+   * probe makes of an answer is held by OpenStackExporterParity: here it is the map's joins, on
+   * real names and real projects rather than ones made up to suit it.
+   */
+  const answer: (
+    release: string,
+    name: string,
+    key: string,
+  ) => Array<JSONObject> = (
+    release: string,
+    name: string,
+    key: string,
+  ): Array<JSONObject> => {
+    return JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../Common/Tests/Fixtures/OpenStack",
+          release,
+          "healthy/api",
+          `${name}.json`,
+        ),
+        "utf8",
+      ),
+    )[key] as Array<JSONObject>;
+  };
+
+  test.each(getOpenStackDrilledReleases())("%s", (release: string) => {
+    const instances: Array<JSONObject> = answer(
+      release,
+      "nova-servers",
+      "servers",
+    );
+    const volumes: Array<JSONObject> = answer(
+      release,
+      "cinder-volumes",
+      "volumes",
+    );
+
+    const graph: ResourceTopologyGraph = build([
+      ...instances.map((server: JSONObject): OpenStackResource => {
+        return row(OpenStackResourceKind.Instance, server["id"] as string, {
+          name: server["name"] as string,
+          openStackProjectId: server["tenant_id"] as string,
+          facts: {
+            networkNames: Object.keys(
+              (server["addresses"] as JSONObject) || {},
+            ).sort(),
+          },
+        });
+      }),
+      ...answer(release, "neutron-networks", "networks").map(
+        (network: JSONObject): OpenStackResource => {
+          return row(OpenStackResourceKind.Network, network["id"] as string, {
+            name: network["name"] as string,
+            openStackProjectId: network["project_id"] as string,
+            facts: {
+              isShared: network["shared"] === true,
+              isExternal: network["router:external"] === true,
+            },
+          });
+        },
+      ),
+      ...answer(release, "cinder-pools", "pools").map(
+        (pool: JSONObject): OpenStackResource => {
+          return row(
+            OpenStackResourceKind.StoragePool,
+            `RegionOne/${pool["name"] as string}`,
+            { name: pool["name"] as string },
+          );
+        },
+      ),
+      ...volumes.map((volume: JSONObject): OpenStackResource => {
+        return row(OpenStackResourceKind.Volume, volume["id"] as string, {
+          facts: { pool: volume["os-vol-host-attr:host"] as string },
+        });
+      }),
+    ]);
+
+    const joinedTo: (serverName: string) => Array<string> = (
+      serverName: string,
+    ): Array<string> => {
+      const server: JSONObject = instances.find((one: JSONObject): boolean => {
+        return one["name"] === serverName;
+      })!;
+      return (
+        graph.relationsByNode.get(`instance:${server["id"] as string}`) || []
+      )
+        .filter((relation: { label: string }): boolean => {
+          return relation.label === "Connected to";
+        })
+        .map((relation: { to: string }): string => {
+          return node(graph, relation.to).name as string;
+        });
+    };
+
+    expect(joinedTo("ou-running")).toEqual(["ou-net"]);
+    expect(joinedTo("ou-stopped")).toEqual(["ou-net"]);
+    expect(joinedTo("ou-research-1")).toEqual(["ou-research-net"]);
+    expect(joinedTo("ou-failed")).toEqual([]);
+
+    expect(volumes.length).toBeGreaterThan(0);
+    for (const volume of volumes) {
+      expect(
+        graph.relationsByNode.get(`volume:${volume["id"] as string}`)?.[0],
+      ).toMatchObject({ label: "Stored in" });
+    }
+  });
+});
+
 describe("what the map cannot draw, it says", () => {
   test("instances with no network", () => {
     expect(getOpenStackTopologyGap([instance("i-1", FULL_NAME)])).toBe(
@@ -583,13 +821,50 @@ describe("what the map cannot draw, it says", () => {
     );
   });
 
-  test("and volumes with no pool, when the cloud holds pools", () => {
+  test("volumes with no pool, when the cloud holds pools", () => {
     expect(
       getOpenStackTopologyGap([
         row(OpenStackResourceKind.StoragePool, "RegionOne/pool"),
         row(OpenStackResourceKind.Volume, "v-1"),
       ]),
+    ).toBe(OPENSTACK_TOPOLOGY_GAP_POOLS);
+  });
+
+  test("and both, when neither is said", () => {
+    expect(
+      getOpenStackTopologyGap([
+        instance("i-1", FULL_NAME),
+        row(OpenStackResourceKind.StoragePool, "RegionOne/pool"),
+        row(OpenStackResourceKind.Volume, "v-1"),
+      ]),
     ).toBe(OPENSTACK_TOPOLOGY_GAP_NETWORKS_AND_POOLS);
+  });
+
+  test("nothing about what a probe says, including an instance on no network", () => {
+    const placed: OpenStackResource = row(OpenStackResourceKind.Volume, "v-1");
+    placed.facts = { pool: "RegionOne/pool" };
+    const joined: OpenStackResource = instance("i-1", FULL_NAME);
+    joined.facts = { networkNames: ["private"] };
+    const onNone: OpenStackResource = instance("i-2", FULL_NAME);
+    onNone.facts = { networkNames: [] };
+
+    expect(
+      getOpenStackTopologyGap([
+        joined,
+        onNone,
+        row(OpenStackResourceKind.StoragePool, "RegionOne/pool"),
+        placed,
+      ]),
+    ).toBeNull();
+  });
+
+  test("still, while one instance has not said", () => {
+    const joined: OpenStackResource = instance("i-1", FULL_NAME);
+    joined.facts = { networkNames: ["private"] };
+
+    expect(getOpenStackTopologyGap([joined, instance("i-2", FULL_NAME)])).toBe(
+      OPENSTACK_TOPOLOGY_GAP_NETWORKS,
+    );
   });
 
   test("and nothing when a cloud has nothing to be missing", () => {

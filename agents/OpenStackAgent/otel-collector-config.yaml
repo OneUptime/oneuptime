@@ -466,8 +466,9 @@ receivers:
                 openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
           relabel_configs: *openstack_control_plane_target
           metric_relabel_configs:
-            - source_labels: [__name__]
-              regex: ovs_build_info|ovs_bridge_port_count|ovn_raft_cluster_leader|ovn_raft_cluster_server_role|ovn_raft_cluster_server_status|ovn_northd_status|ovnc_encap_ip|ovnc_txn_(error|uncommitted)|ovnc_rconn_(discarded|overflow)|ovs_interface_tx_errors
+            # Of a machine's interfaces only its tunnels: a machine has one interface per port.
+            - source_labels: [__name__, type]
+              regex: (ovs_build_info|ovs_memory_rules_total|ovs_bridge_port_count|ovn_raft_cluster_leader|ovn_northd_status|ovnc_encap_ip|ovnc_rconn_queued);.*|ovs_interface_tx_errors;geneve
               action: keep
         - job_name: oneuptime-openstack-libvirt-health
           scrape_interval: 60s
@@ -703,7 +704,7 @@ processors:
       # one is out. The collector image docker-compose.yml pins, its last number
       # raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.161.3"
         action: upsert
       # The prometheus receiver synthesizes service.name (the scrape job's name)
       # and service.instance.id on every batch. OneUptime routes batches by

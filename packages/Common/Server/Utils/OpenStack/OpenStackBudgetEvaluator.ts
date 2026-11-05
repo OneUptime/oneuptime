@@ -3,6 +3,7 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OpenStackBudget from "../../../Models/DatabaseModels/OpenStackBudget";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
@@ -31,6 +32,9 @@ import CloudBudgetEvaluator, {
 } from "../CloudConnection/CloudBudgetEvaluator";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import OpenStackScopedRules, {
+  OpenStackScopedRulesMatch,
+} from "./OpenStackScopedRules";
 
 /*
  * WATCHES A CLOUD'S OPENSTACK BUDGETS.
@@ -179,7 +183,14 @@ export default class OpenStackBudgetEvaluator {
     );
 
     for (const budget of budgets) {
-      await OpenStackBudgetEvaluator.evaluate({ ...data, budget });
+      await OpenStackBudgetEvaluator.evaluate({
+        cloudName: data.cloudName,
+        openStackCloudId: data.openStackCloudId,
+        snapshot: data.snapshot,
+        projects: data.projects,
+        now: data.now,
+        budget,
+      });
     }
 
     return budgets.length;
@@ -188,6 +199,7 @@ export default class OpenStackBudgetEvaluator {
   private static async evaluate(data: {
     budget: OpenStackBudget;
     cloudName: string;
+    openStackCloudId: ObjectID;
     snapshot: OpenStackSpendSnapshot;
     projects: ReadonlyArray<OpenStackSpendProject>;
     now: Date;
@@ -234,6 +246,12 @@ export default class OpenStackBudgetEvaluator {
       for (const kind of decision.raise) {
         const alertId: ObjectID | null = await OpenStackBudgetEvaluator.raise({
           budget,
+          openStackCloudId: data.openStackCloudId,
+          domainId: data.projects.find(
+            (entry: OpenStackSpendProject): boolean => {
+              return entry.openStackProjectId === budget.openStackProjectId;
+            },
+          )?.domainId,
           scope: OpenStackBudgetEvaluator.getScope(data),
           amount,
           currency: snapshot.currency,
@@ -310,6 +328,8 @@ export default class OpenStackBudgetEvaluator {
 
   private static async raise(data: {
     budget: OpenStackBudget;
+    openStackCloudId: ObjectID;
+    domainId: string | null | undefined;
     scope: string;
     amount: number;
     currency: string | null;
@@ -374,6 +394,27 @@ export default class OpenStackBudgetEvaluator {
     alert.seriesFingerprint = fingerprint;
     alert.isCreatedAutomatically = true;
 
+    // So it's on the cloud's own Alerts page, among everything else that's happening there.
+    const cloud: OpenStackCloud = new OpenStackCloud();
+    cloud.id = data.openStackCloudId;
+    alert.openStackClouds = [cloud];
+
+    // And it reaches whoever a project's alerts go to: the same rules as any other alert of its.
+    const rules: OpenStackScopedRulesMatch = await OpenStackScopedRules.read({
+      projectId,
+      openStackCloudId: data.openStackCloudId,
+      reached: data.budget.openStackProjectId
+        ? [
+            {
+              projectId: data.budget.openStackProjectId,
+              domainId: data.domainId,
+            },
+          ]
+        : [],
+    });
+
+    OpenStackScopedRules.addLabels(alert, rules);
+
     const policies: Array<OnCallDutyPolicy> = (
       data.budget.onCallDutyPolicies || []
     ).filter((policy: OnCallDutyPolicy): boolean => {
@@ -394,6 +435,14 @@ export default class OpenStackBudgetEvaluator {
       data: alert,
       props: { isRoot: true },
     });
+
+    if (created?.id) {
+      await OpenStackScopedRules.finishAlert({
+        projectId,
+        alertId: created.id,
+        match: rules,
+      });
+    }
 
     return created?.id || null;
   }

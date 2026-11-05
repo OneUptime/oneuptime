@@ -141,6 +141,8 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["RouterDetail.tsx", "OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL"],
   ["FloatingIps.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IPS"],
   ["FloatingIpDetail.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL"],
+  ["BareMetalNodes.tsx", "OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES"],
+  ["BareMetalNodeDetail.tsx", "OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL"],
   ["NetworkAgents.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS"],
   ["NetworkAgentDetail.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL"],
   ["Volumes.tsx", "OPENSTACK_CLOUD_VIEW_VOLUMES"],
@@ -150,6 +152,15 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["StoragePoolDetail.tsx", "OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL"],
   ["Images.tsx", "OPENSTACK_CLOUD_VIEW_IMAGES"],
   ["ImageDetail.tsx", "OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL"],
+  ["Stacks.tsx", "OPENSTACK_CLOUD_VIEW_STACKS"],
+  ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
+  ["Shares.tsx", "OPENSTACK_CLOUD_VIEW_SHARES"],
+  ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
+  ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
+  [
+    "ContainerClusterDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL",
+  ],
   ["Projects.tsx", "OPENSTACK_CLOUD_VIEW_PROJECTS"],
   ["ProjectDetail.tsx", "OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL"],
   ["Domains.tsx", "OPENSTACK_CLOUD_VIEW_DOMAINS"],
@@ -162,6 +173,7 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Metrics.tsx", "OPENSTACK_CLOUD_VIEW_METRICS"],
   ["Logs.tsx", "OPENSTACK_CLOUD_VIEW_LOGS"],
   ["Traces.tsx", "OPENSTACK_CLOUD_VIEW_TRACES"],
+  ["Checks.tsx", "OPENSTACK_CLOUD_VIEW_CHECKS"],
   ["Incidents.tsx", "OPENSTACK_CLOUD_VIEW_INCIDENTS"],
   ["Alerts.tsx", "OPENSTACK_CLOUD_VIEW_ALERTS"],
   ["ScheduledMaintenance.tsx", "OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE"],
@@ -467,8 +479,10 @@ describe("the side menus have no dead links", () => {
       "AI",
       "Control Plane",
       "Compute",
+      "Bare Metal",
       "Network",
       "Storage",
+      "Orchestration",
       "Tenancy",
       "Telemetry",
       "Activity",
@@ -535,6 +549,9 @@ describe("the side menus have no dead links", () => {
       ["floatingIpCount", "floatingIps"],
       ["volumeCount", "volumes"],
       ["projectCount", "projects"],
+      ["stackCount", "stacks"],
+      ["containerClusterCount", "containerClusters"],
+      ["shareCount", "shares"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
       expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
@@ -551,6 +568,61 @@ describe("the side menus have no dead links", () => {
       "openStackClouds: new Includes([props.modelId])",
     );
     expect(sideMenu).not.toContain("proxmoxClusters");
+  });
+});
+
+describe("a service a cloud may not run", () => {
+  const sideMenu: string = squash(
+    readSource("Pages", "OpenStack", "View", "SideMenu.tsx"),
+  );
+
+  test.each([
+    ["Stacks", "runsHeat"],
+    ["Shares", "runsManila"],
+    ["Kubernetes Clusters", "runsMagnum"],
+  ])(
+    "%s is in the menu only for a cloud that runs it",
+    (title: string, flag: string) => {
+      const entry: number = sideMenu.indexOf(`title: "${title}"`);
+      expect(entry).toBeGreaterThan(0);
+      expect(
+        sideMenu.substring(0, entry).lastIndexOf(`{${flag} ? (`),
+      ).toBeGreaterThan(0);
+    },
+  );
+
+  test("the section itself only for a cloud that runs one of them", () => {
+    const section: number = sideMenu.indexOf(
+      '<SideMenuSection title="Orchestration">',
+    );
+    expect(sideMenu.substring(section - 30, section)).toContain(
+      "runsHeat || runsMagnum ? (",
+    );
+  });
+
+  test("what it runs is from its rows, in the region being read, never a setting", () => {
+    expect(
+      squash(readSource("Pages", "OpenStack", "View", "Layout.tsx")),
+    ).toContain("optionalServices: summary.optionalServices");
+    expect(
+      squash(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "packages",
+            "App",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Pages",
+            "OpenStack",
+            "Utils",
+            "OpenStackResourceUtils.ts",
+          ),
+          "utf8",
+        ),
+      ),
+    ).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
   });
 });
 
@@ -905,9 +977,9 @@ describe("the inventory lists read on the server", () => {
      */
     expect(page).toContain("fetchOpenStackServiceRows");
     expect(page).toContain("getOpenStackServiceGroups");
-    expect(page).toContain('testId="openstack-services-capped"');
+    expect(page).toContain("rows.leftOut");
     expect(reads).toContain("kind:kind");
-    expect(reads).toContain("limit:LIMIT_PER_PROJECT");
+    expect(reads).toContain("limit:OPENSTACK_WORKERS_READ_WHOLE");
     expect(reads).toContain("read(OpenStackResourceKind.Api)");
     expect(reads).toContain("read(OpenStackResourceKind.Service)");
     expect(reads).not.toContain("read(OpenStackResourceKind.Instance)");

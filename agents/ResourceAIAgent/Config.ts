@@ -19,7 +19,11 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
 } from "./Common/Types/ResourceAiAgent/ResourceAiAccess";
+import ResourceCommandPolicy from "./Common/Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import { ResourceToolPolicy } from "./Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import {
   CloudCatalogProvider,
   getCloudCatalogProvider,
@@ -148,6 +152,11 @@ export interface AgentConfig {
    */
   writesOffByFixes: boolean;
   /*
+   * Why the write switch being on is not enough here, or null: what this kind of
+   * agent still needs before it writes. For the refusal's message and the posture.
+   */
+  writesOffReason: string | null;
+  /*
    * RESOURCE_AI_WRITE_TARGETS_ENV as globs: trimmed, without blanks or
    * duplicates, case kept (target globs match case-sensitively). Empty
    * means any target except the protected ones.
@@ -263,6 +272,57 @@ export function parseTargetList(
   }
 
   return { targets, problem: null };
+}
+
+/*
+ * What an agent of this kind still needs before it may write, each in words an
+ * operator can act on. Short enough for a posture to carry (the reason a person
+ * reads on the resource's AI agent page).
+ */
+export function describeWhatWritesStillNeed(data: {
+  resourceType: AiResourceType;
+  env: NodeJS.ProcessEnv;
+  writeTargets: ReadonlyArray<string>;
+  protectedTargets: ReadonlyArray<string>;
+}): Array<string> {
+  const needs: Array<string> = [];
+  const tool: ResourceToolPolicy = ResourceCommandPolicy.getToolPolicy(
+    data.resourceType,
+  );
+
+  if (tool.describeTargetEntryProblem) {
+    for (const [name, list] of [
+      [RESOURCE_AI_WRITE_TARGETS_ENV, data.writeTargets],
+      [PROTECTED_TARGETS_ENV, data.protectedTargets],
+    ] as Array<[string, ReadonlyArray<string>]>) {
+      for (const entry of list) {
+        const problem: string | null = tool.describeTargetEntryProblem(entry);
+
+        if (problem) {
+          needs.push(`${name}: ${problem}`);
+        }
+      }
+    }
+  }
+
+  if (data.resourceType === AiResourceType.OpenStackCloud) {
+    const id: string = readTrimmed(
+      data.env,
+      RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+    );
+    const secret: string = readTrimmed(
+      data.env,
+      RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
+    );
+
+    if (!id || !secret) {
+      needs.push(
+        `Changes use a credential of their own: set ${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV} and ${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}.`,
+      );
+    }
+  }
+
+  return needs;
 }
 
 /*
@@ -886,6 +946,33 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
     allowWrites = false;
   }
 
+  /*
+   * What this kind of agent still needs before it writes, whatever the switch
+   * says: an entry that can never match reads as protecting something, and an
+   * OpenStack agent makes changes with a credential of their own or not at all.
+   */
+  let writesOffReason: string | null = null;
+
+  const needsMore: Array<string> = resourceType
+    ? describeWhatWritesStillNeed({
+        resourceType,
+        env,
+        writeTargets: writeTargets.targets,
+        protectedTargets: protectedTargets.targets,
+      })
+    : [];
+
+  for (const need of needsMore) {
+    if (allowWrites) {
+      warnings.push(`${need} The agent stays read-only until it is fixed.`);
+    } else {
+      warnings.push(need);
+    }
+
+    writesOffReason = writesOffReason || need;
+    allowWrites = false;
+  }
+
   const agentVersion: string = readTrimmed(env, "APP_VERSION");
   const health: { host: string; problem: string | null } = parseHealthHost(
     env[HEALTH_HOST_ENV],
@@ -912,6 +999,8 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
         ? { ...ai.settings, fixes: "Disabled" }
         : ai.settings,
       writesOffByFixes: writeSwitch && !ai.allowWrites,
+      writesOffReason:
+        writeSwitch && ai.allowWrites && !isReadOnly ? writesOffReason : null,
       writeTargets: writeTargets.targets,
       protectedTargets: protectedTargets.targets,
       port: parsePort(env["PORT"]),
