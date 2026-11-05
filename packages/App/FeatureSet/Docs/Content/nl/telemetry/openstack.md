@@ -39,7 +39,7 @@ De cloud registreert zichzelf met zijn eerste gegevens, onder de naam die de age
 - Docker Engine 20.10 of nieuwer met de Docker Compose v2-plugin, of, om zonder Docker te draaien, een Linux-machine (x86_64 of arm64) met systemd 235 of nieuwer, glibc 2.34 of nieuwer (RHEL 9, Ubuntu 22.04, Debian 12) en root.
 - Een route van die machine naar Keystone en naar het publieke endpoint van elke service.
 - De `openstack`-opdrachtregel, als iemand die de onderstaande referentie kan aanmaken.
-- Een ingestiesleutel. Maak er een aan onder **Project Settings → Telemetry & APM → Ingestion Keys** en kopieer de waarde.
+- Een ingestiesleutel. Maak er een aan onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en kopieer de waarde.
 - Uitgaand HTTPS van die machine naar uw OneUptime-URL.
 
 ### Waar u de agent draait
@@ -134,7 +134,7 @@ Elke OneUptime serveert het installatiescript en de bestanden van de agent voor 
 Kies het niveau dat u hebt gekozen. Elk maakt een application credential aan, dat een `id` en een `secret` toont: het secret wordt maar één keer getoond. Geef het een vervaldatum en nooit `--unrestricted`, want daarmee kan het meer referenties aanmaken.
 
 :::tabs
-@tab Niveau 1: Volledig zicht
+@tab Level 1: Full view
 Maak als admin een project en een account voor de agent aan:
 
 ```bash
@@ -198,7 +198,7 @@ Op de services die een cloud misschien niet draait, verschilt wat elk niveau op 
 Keystone heeft niets nodig. Met de afgestemde regels, `service_type` ingesteld en de API's herstart, werd elke lezing beantwoord met `200` en elke schrijfactie met `401`, op elke release die we vastleggen. De exporter krijgt wat een admin krijgt, behalve Keystones gebruikers en groepen, met opzet. Dat geldt ook voor de services die een cloud misschien niet draait: vastgelegd op DevStack kreeg niveau 1 van elke service die de exporter leest dezelfde reeksen als de referentie van een admin, en elke schrijfactie werd beantwoord met `401`.
 
 Als u die wijziging niet wilt doorvoeren, maak dan dezelfde referentie zonder `--access-rules`: een gewoon admin application credential. Het werkt en het kan schrijven, dus het diagnostische script labelt het als zodanig.
-@tab Niveau 2: Alleen infrastructuur
+@tab Level 2: Infrastructure only
 Maak als admin de rol, een project dat niets bevat en nul quota heeft, en een account aan:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 De rol op een echt project zetten om de volumes en routers ervan te zien laat het account daar ook schrijven, op een cloud waar Cinder `enforce_new_defaults` uit heeft. Het diagnostische script waarschuwt wanneer het project van de referentie iets bevat.
-@tab Niveau 3: Projectzicht
+@tab Level 3: Project view
 Geef een account de gewone rol `reader` op het project en maak daarna, ingelogd als dat account op dat project, de referentie aan:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Zonder Docker
+@tab Without Docker
 Op Linux (x86_64 of arm64) met systemd 235 of nieuwer en glibc 2.34 of nieuwer draait het installatiescript de upstream-releases van dezelfde twee programma's als systemd-services. RHEL 8 en verwanten hebben een oudere glibc, waarop de release van de exporter niet kan draaien: het script zegt dat en wijzigt niets, gebruik dus Docker daar.
 
 ```bash
@@ -337,7 +337,7 @@ Zonder Docker vraagt u `systemctl status oneuptime-openstack-agent oneuptime-ope
 
 ### De cloud vinden in OneUptime
 
-Open **Products → Infrastructure → OpenStack**. De cloud verschijnt onder zijn `OPENSTACK_CLOUD_NAME` na zijn eerste verzameling, binnen enkele minuten. Compute, netwerk, volume en Placement worden elke 2 minuten gelezen, identity en images elke 5.
+Open **Producten → Infrastructuur → OpenStack**. De cloud verschijnt onder zijn `OPENSTACK_CLOUD_NAME` na zijn eerste verzameling, binnen enkele minuten. Compute, netwerk, volume en Placement worden elke 2 minuten gelezen, identity en images elke 5.
 :::
 
 Het **Overzicht** van de cloud zegt of de gegevens OneUptime bereiken, wat het eerst aandacht nodig heeft en hoe elke service het doet:
@@ -359,7 +359,7 @@ Het installatiescript schrijft deze naar `/opt/oneuptime-openstack-agent/.env`; 
 | Variabele | Vereist | Beschrijving |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Uw OneUptime-URL, zoals `https://oneuptime.com` of uw zelf gehoste instantie. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De ingestiesleutel uit **Project Settings → Telemetry & APM → Ingestion Keys**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De ingestiesleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. |
 | `OPENSTACK_CLOUD_NAME` | Ja | De naam van de cloud in OneUptime, op elke metriek gezet als resourceattribuut `openstack.cloud.name`. Houd hem stabiel: wijzigen registreert een nieuwe cloud. Standaard `openstack`. |
 | `OPENSTACK_AUTH_URL` | Meegeleverde exporter | Een antwoord op het installatiescript: de Keystone-auth-URL. `/v3` wordt toegevoegd als het ontbreekt. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Ja | De regio's, tussen vierkante haken, zoals `[RegionOne,RegionTwo]`, elk de naam van een vermelding in `clouds.yaml`. Standaard `[RegionOne]`. |
@@ -707,7 +707,7 @@ Een regel hier is een **Eigenaarsregel voor OpenStack-cloud** of **Labelregel vo
 
 Een waarschuwing of incident op een onderdeel van de cloud bereikt elk project met iets op dat onderdeel, hoeveel het er ook zijn. Alleen een monitor kan zeggen wat hij bereikt, dus een regel als deze bereikt geen incident dat iemand met de hand meldt. Labels komen erop zodra de waarschuwing opent, en eigenaren direct daarna.
 
-Regels die eerder als een paar waarschuwings- en incidentregels zijn geschreven, die ``OpenStack project `<id>` `` of ``OpenStack domain `<id>` `` in de beschrijving matchen, blijven werken en staan hier ook vermeld. Een beschrijving noemt hoogstens 50 van de projecten die hij bereikt, dus een paar als dat stopt daar. Verwijder het en voeg de regel opnieuw toe om die grens op te heffen.
+Regels die eerder als een paar waarschuwings- en incidentregels zijn geschreven, die ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` in de beschrijving matchen, blijven werken en staan hier ook vermeld. Een beschrijving noemt hoogstens 50 van de projecten die hij bereikt, dus een paar als dat stopt daar. Verwijder het en voeg de regel opnieuw toe om die grens op te heffen.
 
 ### Quota's
 
@@ -1136,7 +1136,7 @@ Drie niveaus van gebeurtenissen, zoals het [dropfilter](#wat-het-bewaart-en-kost
 
 Beveiligingsteams moeten weten wie wat in een cloud heeft gewijzigd: rolverleningen, mislukte logins en adminacties. OpenStack kan dat allemaal schrijven, en het gaat dezelfde weg als alles hierboven: naar de logboeken, zonder bus. OneUptime leest het als bron van [Security Events](/docs/telemetry/security-events).
 
-Welke u ook aanzet, OneUptime leest het zodra **Beveiligingsgebeurtenissen in uw logboeken vinden** aan staat, onder **Security Events → Connections**. [De gids van elke tool](/docs/telemetry/openstack-deployment-tools) zegt waar deze instellingen daarop heen gaan.
+Welke u ook aanzet, OneUptime leest het zodra **Beveiligingsgebeurtenissen in uw logboeken vinden** aan staat, onder **Beveiligingsgebeurtenissen → Verbindingen**. [De gids van elke tool](/docs/telemetry/openstack-deployment-tools) zegt waar deze instellingen daarop heen gaan.
 
 ### Keystones audittrail aanzetten
 

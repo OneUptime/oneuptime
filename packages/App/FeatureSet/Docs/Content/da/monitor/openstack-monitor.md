@@ -51,7 +51,7 @@ Under **OpenStack Monitor Configuration** vælger du cloudet i **OpenStack-cloud
 
 En ny monitor starter på **Cloud holdt op med at rapportere** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Switch** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, gruppering og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, gruppering og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) - vælg én metrik i **OpenStack-metrik**, indstil derefter **Aggregering** og **Tidsinterval**, og afgræns med [filtrene](#monitorindstillinger).
 - **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `status`, `adminState` eller `resourcetype`. Brug **Gruppér efter** en [identitetsattribut](#identitetsattributter) for at bedømme hver del for sig.
 
@@ -80,7 +80,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **OpenStack-metrik** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter på metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Seneste 1 minut** til **Seneste 365 dage**. En ny monitor starter på **Seneste 15 minutter**; skabeloner sætter deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregér efter**, **Filtrér efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 Et filter afgrænser kun en serie, der har dets label: `openstack_nova_up` har intet projekt, så et projektfilter lader den være uændret.
 
@@ -210,7 +210,7 @@ Hver skabelon læser mindst tre indsamlinger af det, den overvåger, og udløser
 - **En serie, der lige er dukket op, venter et helt vindue,** så en instans, volumen eller image, der er set én gang på vej til noget andet, udløser intet. Hver skabelon ved, hvor ofte dens tjeneste indsamles, ud fra den tjenestes egen `_up`-serie.
 - **En serie, der forsvinder, tæller som genoprettet:** en worker, som nogen deaktiverede, den sidste instans i ERROR slettet, en pulje fjernet. Hver skabelon læser sin tjenestes egen `_up`-serie ved siden af sin egen, så den kan skelne en del, der forsvandt, fra et cloud, der blev stille. Når der slet ikke kommer noget, forbliver dens hændelser åbne, og **Cloud holdt op med at rapportere** tager ordet.
 - **Når et API er nede, forsvinder dets egne serier også**, så den tjenestes andre skabeloner genoprettes og udløser igen et vindue efter, at det er tilbage, hvis fejlen stadig er der. Hvis alle API'er viser nede på én gang, så kig først på exporteren.
-- **Et cloud, der ikke har en sådan tjeneste, forholder sig i ro.** Exporteren svarer med ingenting for en tjeneste, der ikke er i cloudets katalog, og **Netværk**, **Bloklager**, **Image** og **Placement-API nede** læser ikke det som et udfald. **Identity-** og **Compute-API nede** gør, fordi det også er sådan, exporteren melder, at Keystones eller Novas API er stoppet helt, og alle clouds har dem.
+- **Et cloud, der ikke har en sådan tjeneste, forholder sig i ro.** Exporteren svarer med ingenting for en tjeneste, der ikke er i cloudets katalog, og **Netværk**, **Bloklager**, **Billede** og **Placement-API nede** læser ikke det som et udfald. **Identitet** og **Compute-API nede** gør, fordi det også er sådan, exporteren melder, at Keystones eller Novas API er stoppet helt, og alle clouds har dem.
 
 ### Når en udløses
 
@@ -319,7 +319,7 @@ Metrikkerne nedenfor er det katalog, monitorformularen tilbyder. **Læsninger** 
 | Metrik | Enhed | Læsninger | Beskrivelse |
 | --- | --- | --- | --- |
 | `up` | - | Min | Om exporteren overhovedet svarede på denne indsamling (1) eller ikke gjorde (0): den var stoppet, den fik timeout, eller den svarede med en fejl. 1 siger intet om selve API'et, fordi exporteren svarer, selv når den ikke kunne nå det. Rapporteret af agentens collector, én serie pr. tjeneste pr. region. |
-| `scrape_samples_scraped` | `count` | Min | Hvor mange serier exporteren svarede på en indsamling med. 0 betyder, at den intet havde at sige: den kunne ikke logge ind i Keystone, eller den kunne ikke nå Novas API for at blive enig om en microversion, og de fejl efterlader slet ingen openstack_*-serier. Rapporteret af agentens collector, én serie pr. tjeneste pr. region. |
+| `scrape_samples_scraped` | `count` | Min | Hvor mange serier exporteren svarede på en indsamling med. 0 betyder, at den intet havde at sige: den kunne ikke logge ind i Keystone, eller den kunne ikke nå Novas API for at blive enig om en microversion, og de fejl efterlader slet ingen serier fra exporteren. Rapporteret af agentens collector, én serie pr. tjeneste pr. region. |
 | `openstack_identity_up` | - | Min | Om Keystones API svarede på exporterens kald (1) eller alle fejlede (0). Når der slet ikke kan logges ind i Keystone, svarer exporteren med ingenting, så denne serie forsvinder frem for at vise 0. |
 | `openstack_nova_up` | - | Min | Om Novas API svarede på exporterens kald (1) eller alle fejlede (0). Når Novas API slet ikke kan nås, svarer exporteren med ingenting, så denne serie forsvinder frem for at vise 0. |
 | `openstack_neutron_up` | - | Min | Om Neutrons API svarede på exporterens kald (1) eller alle fejlede (0). |
@@ -757,7 +757,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Middel** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |
-| **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ingen prøver har: **Ignorér** (standarden), **Behandl som nul** eller **Udløs**. |
+| **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ingen prøver har: **Ignorér** (standarden), **Behandl som nul** eller **Trigger**. |
 
 Anomalibetingelser sammenligner hver værdi med den samme time på ugen i baseline. De forbliver i en "Lærer"-tilstand og udløser intet, indtil baseline-vinduet rummer nok historik. Denne monitor filtrerer sine forespørgsler efter attributter, så hver forespørgsel, og hver serie i en grupperet, sammenlignes med sin egen historik, så langt tilbage som dine metrikker gemmes. Hvis det er under to uger, forbliver en Sum, et Antal eller en forespørgsel på et histogram i den tilstand for altid, og alt andet sammenlignes med alle serier for metrikken. En percentil af et histogram forbliver altid i den tilstand.
 

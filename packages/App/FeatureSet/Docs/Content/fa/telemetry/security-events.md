@@ -193,7 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS CloudTrail | یک trail که به CloudWatch Logs تحویل داده می‌شود و گیرندهٔ `awscloudwatch` در collector آن را می‌خواند، یا برای حسابی که زیر **ابر** متصل شده، [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
 | لاگ‌های ممیزی Google Cloud | یک log sink به Pub/Sub، که گیرندهٔ `googlecloudpubsub` در collector آن را با `encoding: raw_text` می‌خواند، یا برای پروژه‌ای که زیر **ابر** متصل شده، [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
 | لاگ‌های فعالیت Azure و Entra ID | یک تنظیم تشخیصی که به یک Event Hub جریان می‌دهد و گیرندهٔ `azureeventhub` در collector آن را با `format: raw` می‌خواند، یا برای Activity Log اشتراکی که زیر **ابر** متصل شده، [لاگ‌های ممیزی ابر](#خواندن-لاگهای-ممیزی-حسابهای-ابری-شما) |
-| ردّ ممیزی OpenStack | اعلان‌ها و فیلتر ممیزی یک ابر که با `driver = log` به لاگ‌هایش فرستاده می‌شود و [پروفایل لاگ](/docs/telemetry/openstack#who-did-what) عامل آن را می‌خواند |
+| ردّ ممیزی OpenStack | اعلان‌ها و فیلتر ممیزی یک ابر که با `driver = log` به لاگ‌هایش فرستاده می‌شود و [پروفایل لاگ](/docs/telemetry/openstack#چه-کسی-چه-کرد) عامل آن را می‌خواند |
 | CEF، LEEF | syslog محصول، که [rsyslog](/docs/telemetry/syslog) آن را بازپخش می‌کند |
 | Palo Alto Networks، FortiGate، Cisco ASA | syslog خود دیوار آتش، که [rsyslog](/docs/telemetry/syslog) آن را بازپخش می‌کند |
 | لاگ‌های ممیزی Kubernetes | پروندهٔ لاگ ممیزی سرور API، که گیرندهٔ `filelog` در collector آن را می‌خواند |

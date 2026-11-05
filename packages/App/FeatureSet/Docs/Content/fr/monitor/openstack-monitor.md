@@ -1,13 +1,13 @@
-# Moniteur OpenStack
+# Surveillance OpenStack
 
 Un moniteur OpenStack surveille un cloud - ses API, les workers qui les soutiennent, les hyperviseurs, les instances, les réseaux, les pools de stockage et les quotas des projets - et vous prévient quand une API cesse de répondre, qu'un worker tombe, qu'un hyperviseur n'a plus de place à offrir ou qu'un pool se remplit. Il lit les séries `openstack_*` que l'agent OpenStack de OneUptime collecte depuis openstack-exporter.
 
 :::cards
-- [Créer le moniteur](#créer-un-moniteur-openstack) : six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prédéfinis) : alertes prêtes à l'emploi, un incident par worker, instance, réseau ou région.
-- [Vérifications depuis l'extérieur](#vérifications-depuis-lextérieur) : savoir si quelqu'un peut réellement démarrer une instance, depuis une sonde située hors du cloud.
-- [Attributs d'identité](#attributs-didentité) : comment cibler une région, un hôte ou un projet.
-- [Métriques](#métriques-collectées) : toutes les séries sur lesquelles le moniteur peut alerter.
+- [Créer le moniteur](#créer-un-moniteur-openstack): six étapes dans le tableau de bord.
+- [Modèles](#modèles-dalerte-prédéfinis): alertes prêtes à l'emploi, un incident par worker, instance, réseau ou région.
+- [Vérifications depuis l'extérieur](#vérifications-depuis-lextérieur): savoir si quelqu'un peut réellement démarrer une instance, depuis une sonde située hors du cloud.
+- [Attributs d'identité](#attributs-didentité): comment cibler une région, un hôte ou un projet.
+- [Métriques](#métriques-collectées): toutes les séries sur lesquelles le moniteur peut alerter.
 :::
 
 ## Fonctionnement
@@ -29,8 +29,8 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Collectez les métriques du cloud** avec l'agent OpenStack. La page **Documentation** du cloud, sous **Products → Infrastructure → OpenStack**, vous guide dans son installation.
-- **Vérifiez que le cloud est enregistré.** Après sa première collecte, il apparaît sous **Products → Infrastructure → OpenStack**, avec le nom donné par `OPENSTACK_CLOUD_NAME` dans l'agent.
+- **Collectez les métriques du cloud** avec l'agent OpenStack. La page **Documentation** du cloud, sous **Produits → Infrastructure → OpenStack**, vous guide dans son installation.
+- **Vérifiez que le cloud est enregistré.** Après sa première collecte, il apparaît sous **Produits → Infrastructure → OpenStack**, avec le nom donné par `OPENSTACK_CLOUD_NAME` dans l'agent.
 
 ## Créer un moniteur OpenStack
 
@@ -65,7 +65,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 :::
 
 > [!TIP]
-> Pour configurer plusieurs modèles d'un coup, ouvrez le cloud depuis **Products → Infrastructure → OpenStack** et allez dans **Recommandations**. Choisissez les modèles voulus, indiquez qui est alerté, et OneUptime crée un moniteur par modèle.
+> Pour configurer plusieurs modèles d'un coup, ouvrez le cloud depuis **Produits → Infrastructure → OpenStack** et allez dans **Recommandations**. Choisissez les modèles voulus, indiquez qui est alerté, et OneUptime crée un moniteur par modèle.
 
 ## Paramètres du moniteur
 
@@ -210,7 +210,7 @@ La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte
 - **Une série qui vient d'apparaître attend une fenêtre complète**, de sorte qu'une instance, un volume ou une image vu une seule fois en route vers autre chose ne déclenche rien. Chaque modèle sait à quelle fréquence son service est collecté grâce à la série `_up` de ce service.
 - **Une série qui disparaît compte comme rétablie :** un worker désactivé par quelqu'un, la dernière instance en ERROR supprimée, un pool retiré. Chaque modèle lit la série `_up` de son service à côté de la sienne, ce qui lui permet de distinguer un élément disparu d'un cloud devenu silencieux. Quand plus rien n'arrive, ses incidents restent ouverts et **Cloud Stopped Reporting** prend la parole.
 - **Quand une API est arrêtée, ses propres séries disparaissent aussi**, de sorte que les autres modèles de ce service se résolvent, puis se redéclenchent une fenêtre après son retour si le défaut persiste. Si toutes les API apparaissent arrêtées en même temps, regardez d'abord l'exporter.
-- **Un cloud qui n'a pas un service donné reste silencieux.** L'exporter répond par un résultat vide pour un service absent du catalogue du cloud, et **Network**, **Block Storage**, **Image** et **Placement API Down** n'y voient pas une panne. **Identity** et **Compute API Down** si, car c'est aussi ainsi que l'exporter signale que l'API de Keystone ou de Nova est complètement arrêtée, et tous les clouds les ont.
+- **Un cloud qui n'a pas un service donné reste silencieux.** L'exporter répond par un résultat vide pour un service absent du catalogue du cloud, et **Réseau**, **Block Storage**, **Image** et **Placement API Down** n'y voient pas une panne. **Identité** et **Compute API Down** si, car c'est aussi ainsi que l'exporter signale que l'API de Keystone ou de Nova est complètement arrêtée, et tous les clouds les ont.
 
 ### Quand l'un se déclenche
 
@@ -312,14 +312,14 @@ Un incident ouvert par un modèle indique quoi exécuter pour l'élément qu'il 
 
 ## Métriques collectées
 
-Les métriques ci-dessous forment le catalogue que propose le formulaire du moniteur. **Lecture** est son agrégation habituelle, sur laquelle démarre un formulaire. Les tailles en GiB et en MiB sont celles que contiennent les champs `_gb` et `_mb` d'OpenStack.
+Les métriques ci-dessous forment le catalogue que propose le formulaire du moniteur. **Lectures** est son agrégation habituelle, sur laquelle démarre un formulaire. Les tailles en GiB et en MiB sont celles que contiennent les champs `_gb` et `_mb` d'OpenStack.
 
 ### Disponibilité
 
 | Métrique | Unité | Lecture | Description |
 | --- | --- | --- | --- |
 | `up` | - | Min | Indique si l'exporter a répondu à cette collecte (1) ou non (0) : il était arrêté, a dépassé le délai, ou a répondu par une erreur. 1 ne dit rien de l'API elle-même, car l'exporter répond même quand il n'a pas pu l'atteindre. Rapporté par le collecteur de l'agent, une série par service et par région. |
-| `scrape_samples_scraped` | `count` | Min | Le nombre de séries avec lequel l'exporter a répondu à une collecte. 0 signifie qu'il n'avait rien à dire : il n'a pas pu se connecter à Keystone, ou n'a pas pu joindre l'API de Nova pour s'accorder sur une microversion, et ces échecs ne laissent aucune série openstack_*. Rapporté par le collecteur de l'agent, une série par service et par région. |
+| `scrape_samples_scraped` | `count` | Min | Le nombre de séries avec lequel l'exporter a répondu à une collecte. 0 signifie qu'il n'avait rien à dire : il n'a pas pu se connecter à Keystone, ou n'a pas pu joindre l'API de Nova pour s'accorder sur une microversion, et ces échecs ne laissent aucune série dont le nom commence par openstack. Rapporté par le collecteur de l'agent, une série par service et par région. |
 | `openstack_identity_up` | - | Min | Indique si l'API de Keystone a répondu aux appels de l'exporter (1) ou si tous ont échoué (0). Quand il est impossible de se connecter à Keystone, l'exporter répond par un résultat vide : cette série disparaît donc au lieu de valoir 0. |
 | `openstack_nova_up` | - | Min | Indique si l'API de Nova a répondu aux appels de l'exporter (1) ou si tous ont échoué (0). Quand l'API de Nova est totalement injoignable, l'exporter répond par un résultat vide : cette série disparaît donc au lieu de valoir 0. |
 | `openstack_neutron_up` | - | Min | Indique si l'API de Neutron a répondu aux appels de l'exporter (1) ou si tous ont échoué (0). |
@@ -841,7 +841,7 @@ Les workers de Nova indiquent le nom court de l'hôte dans `hostname`, tandis qu
 ## Étapes suivantes
 
 :::cards
-- [Moniteur Proxmox](/docs/monitor/proxmox-monitor) : le même type de moniteur pour Proxmox VE.
-- [Moniteur VMware](/docs/monitor/vmware-monitor) : le même type de moniteur pour vCenter.
-- [Incidents](/docs/incidents/index) : ce qui se passe après qu'un critère déclare un incident.
+- [Moniteur Proxmox](/docs/monitor/proxmox-monitor): le même type de moniteur pour Proxmox VE.
+- [Moniteur VMware](/docs/monitor/vmware-monitor): le même type de moniteur pour vCenter.
+- [Incidents](/docs/incidents/index): ce qui se passe après qu'un critère déclare un incident.
 :::

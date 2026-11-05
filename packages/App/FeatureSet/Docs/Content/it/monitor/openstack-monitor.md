@@ -29,8 +29,8 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Raccogli le metriche del cloud** con l'OpenStack Agent. La pagina **Documentazione** del cloud, in **Products → Infrastructure → OpenStack**, ti guida nell'installazione.
-- **Verifica che il cloud sia registrato.** Dopo la prima raccolta compare in **Products → Infrastructure → OpenStack**, con il nome dato da `OPENSTACK_CLOUD_NAME` dell'agent.
+- **Raccogli le metriche del cloud** con l'OpenStack Agent. La pagina **Documentazione** del cloud, in **Prodotti → Infrastruttura → OpenStack**, ti guida nell'installazione.
+- **Verifica che il cloud sia registrato.** Dopo la prima raccolta compare in **Prodotti → Infrastruttura → OpenStack**, con il nome dato da `OPENSTACK_CLOUD_NAME` dell'agent.
 
 ## Crea un monitor OpenStack
 
@@ -51,7 +51,7 @@ In **OpenStack Monitor Configuration**, scegli il cloud da **Cloud OpenStack**. 
 
 Un nuovo monitor parte da **Cloud Stopped Reporting**, sotto **Su cosa avvisare**. Per controllare altro:
 
-- **Switch** - scegli un altro [template](#template-di-avviso-predefiniti). Imposta la metrica, i filtri sugli attributi, l'aggregazione, l'intervallo di tempo, il raggruppamento e le soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
+- **Cambia** - scegli un altro [template](#template-di-avviso-predefiniti). Imposta la metrica, i filtri sugli attributi, l'aggregazione, l'intervallo di tempo, il raggruppamento e le soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
 - **Metrica personalizzata** (sotto **Altri campi**) - scegli una metrica da **Metrica OpenStack**, poi imposta **Aggregazione** e **Intervallo di tempo**, e restringi con i [filtri](#impostazioni-del-monitor).
 - **Avanzato** (sotto **Altri campi**) - costruisci tu stesso query e formule in **Seleziona metriche**, con filtri su attributi come `status`, `adminState` o `resourcetype`. Usa **Raggruppa per** un [attributo di identità](#attributi-di-identità) per valutare ogni parte separatamente.
 
@@ -65,7 +65,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 :::
 
 > [!TIP]
-> Per configurare più template in una volta, apri il cloud da **Products → Infrastructure → OpenStack** e vai su **Raccomandazioni**. Scegli i template che vuoi, decidi chi viene avvisato, e OneUptime crea un monitor per ogni template.
+> Per configurare più template in una volta, apri il cloud da **Prodotti → Infrastruttura → OpenStack** e vai su **Raccomandazioni**. Scegli i template che vuoi, decidi chi viene avvisato, e OneUptime crea un monitor per ogni template.
 
 ## Impostazioni del monitor
 
@@ -80,7 +80,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **Metrica OpenStack** | Metrica personalizzata | Una metrica dal [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Metrica personalizzata | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Ultimo minuto** a **Ultimi 365 giorni**. Un nuovo monitor parte da **Ultimi 15 minuti**; i template impostano il proprio. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggrega per**, **Filtra per attributi**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 Un filtro restringe solo una serie che porta la sua etichetta: `openstack_nova_up` non ha un progetto, quindi un filtro sul progetto la lascia com'è.
 
@@ -210,7 +210,7 @@ Ogni template legge almeno tre raccolte di ciò che controlla e scatta solo quan
 - **Una serie appena comparsa aspetta una finestra intera,** così un'istanza, un volume o un'immagine vista una sola volta mentre diventa altro non genera nulla. Ogni template sa con che frequenza viene raccolto il suo servizio grazie alla serie `_up` di quel servizio.
 - **Una serie che sparisce conta come rientrata:** un worker disabilitato da qualcuno, l'ultima istanza in ERROR eliminata, un pool rimosso. Ogni template legge la serie `_up` del proprio servizio accanto alla propria, così sa distinguere una parte che è sparita da un cloud che è rimasto in silenzio. Quando non arriva proprio nulla, i suoi incidenti restano aperti e parla invece **Cloud Stopped Reporting**.
 - **Quando un'API è giù, spariscono anche le sue serie**, quindi gli altri template di quel servizio rientrano, e scattano di nuovo una finestra dopo il ritorno dell'API se il guasto persiste. Se tutte le API risultano giù insieme, guarda prima l'exporter.
-- **Un cloud privo di un certo servizio resta in silenzio.** L'exporter risponde con nulla per un servizio che non è nel catalogo del cloud, e **Network**, **Block Storage**, **Image** e **Placement API Down** non lo leggono come un'interruzione. **Identity** e **Compute API Down** invece sì, perché è anche il modo in cui l'exporter segnala che l'API di Keystone o di Nova si è fermata del tutto, e ogni cloud li ha.
+- **Un cloud privo di un certo servizio resta in silenzio.** L'exporter risponde con nulla per un servizio che non è nel catalogo del cloud, e **Rete**, **Block Storage**, **Immagine** e **Placement API Down** non lo leggono come un'interruzione. **Identità** e **Compute API Down** invece sì, perché è anche il modo in cui l'exporter segnala che l'API di Keystone o di Nova si è fermata del tutto, e ogni cloud li ha.
 
 ### Quando ne scatta uno
 
@@ -319,7 +319,7 @@ Le metriche qui sotto sono il catalogo offerto dal modulo del monitor. **Letture
 | Metrica | Unità | Letture | Descrizione |
 | --- | --- | --- | --- |
 | `up` | - | Min | Se l'exporter ha risposto a questa raccolta (1) oppure no (0): era fermo, è andato in timeout o ha risposto con un errore. 1 non dice nulla sull'API stessa, perché l'exporter risponde anche quando non è riuscito a raggiungerla. Riportata dal collector dell'agent, una serie per servizio per regione. |
-| `scrape_samples_scraped` | `count` | Min | Con quante serie l'exporter ha risposto a una raccolta. 0 significa che non aveva nulla da dire: non è riuscito ad accedere a Keystone, oppure non ha raggiunto l'API di Nova per concordare una microversione, e questi guasti non lasciano alcuna serie openstack_*. Riportata dal collector dell'agent, una serie per servizio per regione. |
+| `scrape_samples_scraped` | `count` | Min | Con quante serie l'exporter ha risposto a una raccolta. 0 significa che non aveva nulla da dire: non è riuscito ad accedere a Keystone, oppure non ha raggiunto l'API di Nova per concordare una microversione, e questi guasti non lasciano alcuna serie dell'exporter. Riportata dal collector dell'agent, una serie per servizio per regione. |
 | `openstack_identity_up` | - | Min | Se l'API di Keystone ha risposto alle chiamate dell'exporter (1) o se sono fallite tutte (0). Quando non è possibile accedere affatto a Keystone, l'exporter risponde con nulla, quindi questa serie sparisce anziché valere 0. |
 | `openstack_nova_up` | - | Min | Se l'API di Nova ha risposto alle chiamate dell'exporter (1) o se sono fallite tutte (0). Quando l'API di Nova non è raggiungibile affatto, l'exporter risponde con nulla, quindi questa serie sparisce anziché valere 0. |
 | `openstack_neutron_up` | - | Min | Se l'API di Neutron ha risposto alle chiamate dell'exporter (1) o se sono fallite tutte (0). |
@@ -757,7 +757,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | **Soglia** | Il valore con cui confrontare. Accanto compare un elenco di unità quando la metrica ha un'unità. Non mostrata per le condizioni di anomalia. |
 | **Sensibilità** | Solo per le condizioni di anomalia. **Basso** (4σ), **Medio** (3σ, il valore predefinito) o **Alto** (2σ). |
 | **Finestra di riferimento** | Solo per le condizioni di anomalia. 14 giorni (il valore predefinito), 28, 60 o 90 giorni di storico. |
-| **Se nessun dato** | Sotto **Altri campi**. Cosa succede quando la finestra non ha campioni: **Ignora** (il valore predefinito), **Tratta come zero** o **Attiva**. |
+| **Se nessun dato** | Sotto **Altri campi**. Cosa succede quando la finestra non ha campioni: **Ignora** (il valore predefinito), **Tratta come zero** o **Trigger**. |
 
 Le condizioni di anomalia confrontano ogni valore con la stessa ora della settimana nel periodo di riferimento. Restano in stato "Apprendimento", e non generano nulla, finché la finestra di riferimento non contiene abbastanza storico. Questo monitor filtra le sue query per attributi, quindi ogni query, e ogni serie di una raggruppata, viene confrontata con il proprio storico, fin dove vengono conservate le tue metriche. Se è meno di due settimane, una Somma, un Conteggio o una query su un istogramma resta in quello stato per sempre, e tutto il resto viene confrontato con ogni serie della metrica. Un percentile di un istogramma resta sempre in quello stato.
 

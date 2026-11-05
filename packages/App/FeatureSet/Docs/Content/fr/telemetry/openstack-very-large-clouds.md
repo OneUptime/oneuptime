@@ -78,7 +78,7 @@ Les lignes de chaque scrape sont ce qui vous est facturé : les cinq premières 
 | --- | --- | --- | --- | --- |
 | 10 hyperviseurs, 100 instances, 20 projets | 1 075 | 0,7 | Pas en mode synthèse | 2,12 $ |
 | 500 hyperviseurs, 20 000 instances, 1 000 projets | 123 847 | 84,5 | 16,6 | 49,71 $ |
-| 5 000 hyperviseurs, 200 000 instances, 10 000 projets | 1 237 183 | 844,5 | 164,9 | 494,73 $ |
+| 5 000 hyperviseurs, 200 000 instances, 10 000 projets | 1,237,183 | 844,5 | 164,9 | 494,73 $ |
 
 Ces chiffres valent pour l'agent, avec une instance sur mille dans un état qui conserve ses séries. Une sonde au-delà de la taille de synthèse envoie ce qui n'a pas changé une fois par cycle plutôt qu'à chaque collecte, ce qui représente environ 13,2 Go par jour à la deuxième taille et 116 Go à la troisième.
 

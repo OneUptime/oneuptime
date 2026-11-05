@@ -16,7 +16,7 @@
 ```mermaid
 flowchart TB
     OU["OneUptime"] -->|"همین حالا جمع‌آوری کن،<br/>هر ۲ دقیقه"| P["پراب شما"]
-    P -->|"HTTPS، فقط خواندنی:<br/>Keystone, Nova, Placement,<br/>Neutron, Cinder, Glance"| OS["ابر شما"]
+    P -->|"HTTPS، فقط خواندنی:<br/>Keystone, Nova, Placement<br/>Neutron, Cinder, Glance"| OS["ابر شما"]
     P -->|"متریک‌ها، همان‌طور که<br/>عامل OpenStack<br/>می‌فرستد"| OU
     OU --> V["صفحه‌های OpenStack،<br/>مانیتورها، هشدارها و هوش مصنوعی"]
 ```
@@ -76,7 +76,7 @@ OpenStack نقش سراسری فقط‌خواندنی ندارد، پس میزا
 
 :::steps
 ### ابرهای خود را باز کنید
-در OneUptime به **OpenStack → All Clouds** بروید و روی **اتصال ابر** کلیک کنید.
+در OneUptime به **OpenStack** > **همه ابرها** بروید و روی **اتصال ابر** کلیک کنید.
 
 ### آدرس و اعتبارنامه را وارد کنید
 مقدار `auth_url` را از فایل `clouds.yaml` یا `openrc` خود، مانند `https://keystone.example.com:5000/v3`، و شناسه و secret مربوط به application credential را وارد کنید. پرابی را که به ابر دسترسی دارد انتخاب کنید.

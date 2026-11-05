@@ -32,6 +32,7 @@ const PAGES: Array<string> = [
   "telemetry/docker-swarm",
   "telemetry/host-otel-collector",
   "telemetry/kubernetes-agent",
+  "telemetry/openstack",
   "telemetry/proxmox",
   "telemetry/storage-arrays",
   "telemetry/vmware",

@@ -29,7 +29,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | Incidenten, monitoren en andere records te lezen of te wijzigen | [OneUptime-datacomponenten](#oneuptime-datacomponenten)         |
 | Incidenten of waarschuwingen voor de problemen van een ander hulpmiddel te openen, te bevestigen en op te lossen | [Incidenten en waarschuwingen uit andere hulpmiddelen](#incidenten-en-waarschuwingen-uit-andere-hulpmiddelen) |
 | Een Zabbix-probleem te bevestigen of te sluiten | [Zabbix](#zabbix) |
-| Een persoon te vragen een fix voor een OpenStack-cloud goed te keuren | [Een OpenStack-fix voorstellen](#een-openstack-fix-voorstellen) |
+| Een persoon te vragen een fix voor een OpenStack-cloud goed te keuren | [Een OpenStack-fix voorstellen](#propose-an-openstack-fix) |
 
 Een specifiek blok is beter dan een algemeen: het Slack-blok kent de limieten van Slack, en een recordblok kent de velden van het record, dus je krijgt duidelijkere fouten en logboeken dan van een **API**-blok dat hetzelfde werk doet.
 
@@ -431,7 +431,7 @@ Om te bevestigen of te sluiten, leest het blok eerst het probleem. Een probleem 
 
 ## OpenStack
 
-### Een OpenStack-fix voorstellen
+### Propose an OpenStack fix
 
 Vraagt een persoon één wijziging goed te keuren in de OpenStack-cloud waar een waarschuwing of incident over gaat. Het voert de wijziging nooit zelf door. De fix wacht op de waarschuwing of het incident, en in de kanalen waarin hij post, net als een fix die OneUptime AI voorstelt, wat de fixmodus van de cloud ook is. Een workflow kan niet goedkeuren wat hij voorstelt.
 
@@ -441,8 +441,8 @@ Het heeft geen AI-model nodig en volgt dezelfde regels als een fix die OneUptime
 | ---------- | ------------ |
 | **Alert ID** | De waarschuwing waarvoor de fix is, meestal de ID die je trigger teruggaf. Vul dit of **Incident ID** in, en de cloud komt uit wat het record is gekoppeld aan. |
 | **Incident ID** | Het incident waarvoor de fix is, meestal de ID die je trigger teruggaf. Vul dit of **Alert ID** in. |
-| **Command** | De wijziging die je voorstelt, in de ene schrijfwijze die OneUptime accepteert. Zie [de wijzigingen die een fix kan doorvoeren](/docs/telemetry/openstack#fixes). Het kan waarden uit eerdere blokken gebruiken en wordt gelezen nadat die zijn ingevuld. |
-| **Why** | Wat de persoon die goedkeurt als eerste leest. Leeg gelaten staat er welke workflow erom vroeg. |
+| **Opdracht** | De wijziging die je voorstelt, in de ene schrijfwijze die OneUptime accepteert. Zie [de wijzigingen die een fix kan doorvoeren](/docs/telemetry/openstack#fixes). Het kan waarden uit eerdere blokken gebruiken en wordt gelezen nadat die zijn ingevuld. |
+| **Waarom** | Wat de persoon die goedkeurt als eerste leest. Leeg gelaten staat er welke workflow erom vroeg. |
 | **OpenStack Cloud ID** | Onder **Meer velden**. Alleen voor een record dat aan meer dan één cloud is gekoppeld, of aan geen enkele. |
 
 Het geeft **Suggestion ID** terug (de fix die op goedkeuring wacht), **Tier** (Veilig of Riskanter, zoals OneUptime de opdracht leest) en **Already Waiting** (waar wanneer dezelfde wijziging op die cloud al wachtte, zodat er geen tweede is toegevoegd).

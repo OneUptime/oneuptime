@@ -76,7 +76,7 @@ Anslutningstestet säger vilken av dessa en inloggningsuppgift motsvarar, och va
 
 :::steps
 ### Öppna dina moln
-Öppna **OpenStack → All Clouds** i OneUptime och klicka på **Anslut moln**.
+Öppna **OpenStack → Alla moln** i OneUptime och klicka på **Anslut moln**.
 
 ### Ange adressen och inloggningsuppgiften
 Ange `auth_url` från din fil `clouds.yaml` eller `openrc`, till exempel `https://keystone.example.com:5000/v3`, samt applikationsuppgiftens ID och hemlighet. Välj den sond som når molnet.

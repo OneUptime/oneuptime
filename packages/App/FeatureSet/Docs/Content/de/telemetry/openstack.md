@@ -39,7 +39,7 @@ Die Cloud registriert sich mit ihren ersten Daten unter dem Namen, den der Agent
 - Docker Engine 20.10 oder neuer mit dem Docker-Compose-v2-Plugin oder, um ohne Docker zu arbeiten, eine Linux-Maschine (x86_64 oder arm64) mit systemd 235 oder neuer, glibc 2.34 oder neuer (RHEL 9, Ubuntu 22.04, Debian 12) und Root-Rechten.
 - Eine Route von dieser Maschine zu Keystone und zum öffentlichen Endpunkt jedes Dienstes.
 - Die `openstack`-Kommandozeile, als jemand, der die unten genannte Credential erstellen kann.
-- Ein Ingestion-Schlüssel. Erstellen Sie einen unter **Project Settings → Telemetry & APM → Ingestion Keys** und kopieren Sie seinen Wert.
+- Ein Ingestion-Schlüssel. Erstellen Sie einen unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und kopieren Sie seinen Wert.
 - Ausgehendes HTTPS von dieser Maschine zu Ihrer OneUptime-URL.
 
 ### Wo der Agent laufen soll
@@ -134,7 +134,7 @@ Jedes OneUptime stellt das Installationsskript und die Dateien des Agents für s
 Wählen Sie die Ebene, die Sie gewählt haben. Jede erzeugt eine Application Credential, die eine `id` und ein `secret` ausgibt: Das Secret wird nur einmal angezeigt. Geben Sie ihr ein Ablaufdatum und nie `--unrestricted`, womit sie weitere Credentials erstellen dürfte.
 
 :::tabs
-@tab Ebene 1: Vollansicht
+@tab Level 1: Full view
 Erstellen Sie als Admin ein Projekt und ein Konto für den Agent:
 
 ```bash
@@ -198,7 +198,7 @@ Bei den Diensten, die eine Cloud möglicherweise nicht betreibt, unterscheidet s
 Keystone braucht nichts. Mit angepassten Regeln, gesetztem `service_type` und neu gestarteten APIs wurde jeder Lesezugriff mit `200` und jeder Schreibzugriff mit `401` beantwortet, auf jedem Release, das wir aufzeichnen. Der Exporter erhält, was ein Admin erhält, außer Keystones Benutzern und Gruppen, absichtlich. Das gilt auch für die Dienste, die eine Cloud möglicherweise nicht betreibt: Auf DevStack aufgezeichnet erhielt Ebene 1 von jedem vom Exporter gelesenen dieselben Serien wie die Credential eines Admins, und jeder Schreibzugriff wurde mit `401` beantwortet.
 
 Wenn Sie diese Änderung nicht vornehmen wollen, erstellen Sie dieselbe Credential ohne `--access-rules`: eine einfache Admin-Application-Credential. Sie funktioniert und kann schreiben, deshalb kennzeichnet das Diagnoseskript sie als solche.
-@tab Ebene 2: Nur Infrastruktur
+@tab Level 2: Infrastructure only
 Erstellen Sie als Admin die Rolle, ein Projekt, das nichts enthält und Quota null hat, und ein Konto:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Die Rolle auf ein echtes Projekt zu legen, um dessen Volumes und Router zu sehen, lässt das Konto dort auch schreiben, auf einer Cloud, auf der Cinder `enforce_new_defaults` ausgeschaltet hat. Das Diagnoseskript warnt, wenn das Projekt der Credential etwas enthält.
-@tab Ebene 3: Projektansicht
+@tab Level 3: Project view
 Geben Sie einem Konto die einfache Rolle `reader` auf dem Projekt und erstellen Sie dann, angemeldet als dieses Konto auf diesem Projekt, die Credential:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Ohne Docker
+@tab Without Docker
 Auf Linux (x86_64 oder arm64) mit systemd 235 oder neuer und glibc 2.34 oder neuer führt das Installationsskript die Upstream-Releases derselben beiden Programme als systemd-Dienste aus. RHEL 8 und seine Verwandten haben eine ältere glibc, auf der das Release des Exporters nicht laufen kann: Das Skript sagt das und ändert nichts, verwenden Sie dort also Docker.
 
 ```bash
@@ -337,7 +337,7 @@ Ohne Docker fragen Sie `systemctl status oneuptime-openstack-agent oneuptime-ope
 
 ### Die Cloud in OneUptime finden
 
-Öffnen Sie **Products → Infrastructure → OpenStack**. Die Cloud erscheint nach ihrer ersten Erfassung unter ihrem `OPENSTACK_CLOUD_NAME`, innerhalb weniger Minuten. Compute, Netzwerk, Volume und Placement werden alle 2 Minuten gelesen, Identity und Images alle 5.
+Öffnen Sie **Produkte → Infrastruktur → OpenStack**. Die Cloud erscheint nach ihrer ersten Erfassung unter ihrem `OPENSTACK_CLOUD_NAME`, innerhalb weniger Minuten. Compute, Netzwerk, Volume und Placement werden alle 2 Minuten gelesen, Identity und Images alle 5.
 :::
 
 Die **Übersicht** der Cloud sagt, ob ihre Daten OneUptime erreichen, was zuerst Aufmerksamkeit braucht und wie es jedem Dienst geht:
@@ -359,7 +359,7 @@ Das Installationsskript schreibt diese nach `/opt/oneuptime-openstack-agent/.env
 | Variable | Erforderlich | Beschreibung |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Ihre OneUptime-URL, etwa `https://oneuptime.com` oder Ihre selbst gehostete Instanz. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Der Ingestion-Schlüssel aus **Project Settings → Telemetry & APM → Ingestion Keys**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Der Ingestion-Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. |
 | `OPENSTACK_CLOUD_NAME` | Ja | Der Name der Cloud in OneUptime, als Resource-Attribut `openstack.cloud.name` auf jede Metrik geschrieben. Halten Sie ihn stabil: Eine Änderung registriert eine neue Cloud. Standard ist `openstack`. |
 | `OPENSTACK_AUTH_URL` | Mitgelieferter Exporter | Eine Antwort auf das Installationsskript: die Keystone-Auth-URL. `/v3` wird ergänzt, falls es fehlt. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Ja | Die Regionen in eckigen Klammern, etwa `[RegionOne,RegionTwo]`, jede der Name eines `clouds.yaml`-Eintrags. Standard ist `[RegionOne]`. |
@@ -707,7 +707,7 @@ Eine Regel hier ist eine **Eigentümerregel für OpenStack-Clouds** oder **Label
 
 Ein Alarm oder Incident auf einem Teil der Cloud erreicht jedes Projekt, das etwas auf diesem Teil hat, egal wie viele es sind. Nur ein Monitor kann sagen, was er erreicht, eine solche Regel erreicht also keinen Incident, den jemand von Hand meldet. Labels werden gesetzt, wenn der Alarm sich öffnet, Eigentümer gleich danach.
 
-Früher geschriebene Regeln als Paar aus Alarm- und Incident-Regel, die in der Beschreibung ``OpenStack project `<id>` `` oder ``OpenStack domain `<id>` `` abgleichen, funktionieren weiter und werden hier ebenfalls aufgelistet. Eine Beschreibung nennt höchstens 50 der Projekte, die sie erreicht, ein solches Paar hört also dort auf. Entfernen Sie es und fügen Sie die Regel erneut hinzu, um diese Grenze aufzuheben.
+Früher geschriebene Regeln als Paar aus Alarm- und Incident-Regel, die in der Beschreibung ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` abgleichen, funktionieren weiter und werden hier ebenfalls aufgelistet. Eine Beschreibung nennt höchstens 50 der Projekte, die sie erreicht, ein solches Paar hört also dort auf. Entfernen Sie es und fügen Sie die Regel erneut hinzu, um diese Grenze aufzuheben.
 
 ### Quotas
 
@@ -787,7 +787,7 @@ Jede Benachrichtigung geht höchstens einmal hinaus. Stoppt ein Worker mitten im
 
 **Private Seite erstellen**, auf der Seite eines Projekts, erstellt eine private Statusseite für die Leute, die dieses Projekt nutzen: eine Zeile für jeden Dienst, den es nutzt, in jeder Region, in der es ist. Eine Zeile wird nur rot, wenn ein Ausfall dieses Projekt erreicht, und eine Ankündigung sagt, was passiert ist, in denselben Worten, die eine Benachrichtigung verwendet.
 
-Niemand kann sie lesen, bis Sie ihn unter ihren **Privaten Benutzern** hinzufügen, und eine Sitzung auf der Seite eines Projekts liest keine eines anderen. Die Seite listet nur eigene Monitore auf, auf denen nie ein Incident liegt, sodass über sie nichts über ein anderes Projekt gelesen werden kann, weder auf der Seite noch über ihre API.
+Niemand kann sie lesen, bis Sie ihn unter ihren **Private Benutzer** hinzufügen, und eine Sitzung auf der Seite eines Projekts liest keine eines anderen. Die Seite listet nur eigene Monitore auf, auf denen nie ein Incident liegt, sodass über sie nichts über ein anderes Projekt gelesen werden kann, weder auf der Seite noch über ihre API.
 
 ### Geplante Arbeiten an einem Host oder einer Zone
 
@@ -961,7 +961,7 @@ Der Exporter liest Gnocchis Status, was nur ein Admin darf. Gnocchi lehnt alles 
 
 ## Swift
 
-Eine Cloud, die Swift betreibt, erhält von selbst **Objektspeicher** unter **Speicher**, und eine, die es nicht betreibt, zeigt keine Spur davon. Er listet die Container des eigenen Projekts der Credential auf, wie viel jeder hält und wie viele Objekte, und jeder hat eine eigene Seite.
+Eine Cloud, die Swift betreibt, erhält von selbst **Object Storage** unter **Speicher**, und eine, die es nicht betreibt, zeigt keine Spur davon. Er listet die Container des eigenen Projekts der Credential auf, wie viel jeder hält und wie viele Objekte, und jeder hat eine eigene Seite.
 
 | Was | Agent, Vollansicht | Probe, Vollansicht | Probe, mit `ResellerAdmin` | Alles Geringere |
 | --- | --- | --- | --- | --- |
@@ -1136,7 +1136,7 @@ Drei Ereignisebenen, wie der [Drop-Filter](#was-es-behält-und-kostet) sie liest
 
 Sicherheitsteams müssen wissen, wer was in einer Cloud geändert hat: Rollenvergaben, fehlgeschlagene Logins und Admin-Aktionen. OpenStack kann all das schreiben, und es geht denselben Weg wie alles oben: in die Logs, ohne Bus. OneUptime liest es als Quelle für [Sicherheitsereignisse](/docs/telemetry/security-events).
 
-Was auch immer Sie einschalten, OneUptime liest es, sobald **Sicherheitsereignisse in Ihren Protokollen finden** an ist, unter **Security Events → Connections**. [Der Leitfaden jedes Tools](/docs/telemetry/openstack-deployment-tools) sagt, wo diese Einstellungen darauf hingehören.
+Was auch immer Sie einschalten, OneUptime liest es, sobald **Sicherheitsereignisse in Ihren Protokollen finden** an ist, unter **Sicherheitsereignisse → Verbindungen**. [Der Leitfaden jedes Tools](/docs/telemetry/openstack-deployment-tools) sagt, wo diese Einstellungen darauf hingehören.
 
 ### Keystones Audit-Trail einschalten
 

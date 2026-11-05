@@ -7,7 +7,7 @@ Ingen kører "OpenStack". De kører et værktøj, der udruller det, og hvert væ
 - [Videresend det, der allerede udløser](#videresend-det-der-allerede-udløser): Hændelser fra den første time, uden agent.
 - [Kolla-Ansible](#kolla-ansible): Læs de eksportører, det allerede kører.
 - [OpenStack-Ansible](#openstack-ansible): Journald-logs og tilsidesættelser i `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) og [Atmosphere](#atmosphere): En sonde og Kubernetes-agenten.
+- [OpenStack-Helm og Atmosphere](#openstack-helm): En sonde og Kubernetes-agenten.
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift-forudindstillingen og Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): StackLights advarsler.

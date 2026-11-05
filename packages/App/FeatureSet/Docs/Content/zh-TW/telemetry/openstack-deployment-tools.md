@@ -1,17 +1,17 @@
-# 依部署工具設定 OpenStack
+# 依部署工具區分的 OpenStack
 
-沒有人是在執行「OpenStack」本身。大家執行的是部署它的工具，而每個工具都有自己的路徑、自己的日誌，以及對已在執行內容的自己的一套認定。本頁就是 OneUptime 的設定指南針對各個工具所說的內容：開啟 **OpenStack → All Clouds**，連接雲端，然後回答 **您如何部署 OpenStack？**
+沒有人是在執行「OpenStack」本身。大家執行的是部署它的工具，而每個工具都有自己的路徑、自己的日誌，以及對已在執行內容的自己的一套認定。本頁就是 OneUptime 的設定指南針對各個工具所說的內容：開啟 **OpenStack → 所有雲端**，連接雲端，然後回答 **您如何部署 OpenStack？**
 
 :::cards
-- [各指南測試到什麼程度](#各指南測試到什麼程度)：請先閱讀這一節。Kolla-Ansible 與 OpenStack-Ansible 的指南都已在真實部署上執行過。其他的則尚未。
-- [轉發已在觸發的警示](#轉發已在觸發的警示)：從第一個小時起就有事件，無需代理程式。
-- [Kolla-Ansible](#kolla-ansible)：讀取它已在執行的匯出器。
-- [OpenStack-Ansible](#openstack-ansible)：Journald 日誌，以及 `user_variables.yml` 中的覆寫。
-- [OpenStack-Helm](#openstack-helm) 與 [Atmosphere](#atmosphere)：探測器與 Kubernetes 代理程式。
-- [Canonical Sunbeam](#canonical-sunbeam)：Canonical Observability Stack。
-- [OpenShift 上的 Red Hat OpenStack](#openshift-上的-red-hat-openstack)：OpenShift 預設組態與 Ceilometer。
-- [Mirantis MOSK](#mirantis-mosk)：StackLight 的警示。
-- [使用您已在執行的匯出器](#使用您已在執行的匯出器)：在 1.7.0 上頁面缺少哪些資料。
+- [各指南測試到什麼程度](#各指南測試到什麼程度): 請先閱讀這一節。Kolla-Ansible 與 OpenStack-Ansible 的指南都已在真實部署上執行過。其他的則尚未。
+- [轉發已在觸發的警示](#轉發已在觸發的警示): 從第一個小時起就有事件，無需代理程式。
+- [Kolla-Ansible](#kolla-ansible): 讀取它已在執行的匯出器。
+- [OpenStack-Ansible](#openstack-ansible): Journald 日誌，以及 `user_variables.yml` 中的覆寫。
+- [OpenStack-Helm](#openstack-helm): 與 Atmosphere 相同，探測器與 Kubernetes 代理程式。
+- [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack。
+- [OpenShift 上的 Red Hat OpenStack](#openshift-上的-red-hat-openstack): OpenShift 預設組態與 Ceilometer。
+- [Mirantis MOSK](#mirantis-mosk): StackLight 的警示。
+- [使用您已在執行的匯出器](#使用您已在執行的匯出器): 在 1.7.0 上頁面缺少哪些資料。
 :::
 
 ## 各指南測試到什麼程度
@@ -45,7 +45,7 @@
 
 ### 放到雲端上
 
-開啟監控的 **概覽 → 已連結的資源**，並新增該 OpenStack 雲端。之後每個事件都會出現在該雲端的 **事件** 頁面：Incoming Request 監控自己的設定不會指定任何雲端，所以每個雲端的 Alertmanager 都需要自己的監控。雲端要等到第一批資料送達後才會出現在該清單中，因此請在完成下面的步驟之後再做這件事，或先在 **OpenStack → All Clouds** 下新增該雲端。
+開啟監控的 **概覽 → 已連結的資源**，並新增該 OpenStack 雲端。之後每個事件都會出現在該雲端的 **事件** 頁面：Incoming Request 監控自己的設定不會指定任何雲端，所以每個雲端的 Alertmanager 都需要自己的監控。雲端要等到第一批資料送達後才會出現在該清單中，因此請在完成下面的步驟之後再做這件事，或先在 **OpenStack → 所有雲端** 下新增該雲端。
 :::
 
 Alertmanager 已錄製為以這個確切格式送出，位於 `Tests/Ops/openstack-e2e`，版本與 Kolla-Ansible 固定的相同，且該錄製會透過真實的評估器重播：每個警示一個事件，並由其自己的 `resolved` 狀態解決。
@@ -123,7 +123,7 @@ Kolla 自己的 Fluentd 也可以轉發，方法是依 [Fluentd](/docs/telemetry
 
 ### Kolla-Ansible 上的誰做了什麼
 
-Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **Security Events → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。代理程式的日誌設定檔會從 `/var/log/kolla` 讀取兩者。
+Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **安全事件 → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。代理程式的日誌設定檔會從 `/var/log/kolla` 讀取兩者。
 
 ```ini title="/etc/kolla/config/keystone.conf"
 [DEFAULT]
@@ -208,7 +208,7 @@ sudo bash install-logs.sh journald
 
 ### OpenStack-Ansible 上的誰做了什麼
 
-Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **Security Events → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。代理程式的日誌設定檔會從 journal 讀取兩者。
+Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **安全事件 → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。代理程式的日誌設定檔會從 journal 讀取兩者。
 
 ```yaml title="/etc/openstack_deploy/user_variables.yml"
 keystone_keystone_conf_overrides:
@@ -266,7 +266,7 @@ conf:
 
 ### 在 OpenStack-Helm 上讀取 API 並查看 Pod
 
-開啟 **OpenStack → All Clouds**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。接著針對 chart 所在的叢集，依照 **Kubernetes → 文件** 操作：它的 Pod、其日誌與其節點會進入 Kubernetes 頁面。
+開啟 **OpenStack → 所有雲端**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。接著針對 chart 所在的叢集，依照 **Kubernetes → 文件** 操作：它的 Pod、其日誌與其節點會進入 Kubernetes 頁面。
 
 若也希望這些服務的日誌出現在此雲端的 **日誌** 頁面上（每個堆疊追蹤為一筆記錄），請在代理程式的值中指定雲端名稱，以及其服務所在的命名空間：
 
@@ -280,7 +280,7 @@ logs:
 
 ### OpenStack-Helm 上的誰做了什麼
 
-Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **Security Events → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。Kubernetes 代理程式會從 Pod 的日誌讀取兩者，並在其值中指定雲端名稱。
+Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **安全事件 → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。Kubernetes 代理程式會從 Pod 的日誌讀取兩者，並在其值中指定雲端名稱。
 
 ```yaml title="keystone's values.yaml"
 conf:
@@ -344,7 +344,7 @@ kube_prometheus_stack_helm_values:
 
 ### 在 Atmosphere 上讀取 API 並查看 Pod
 
-開啟 **OpenStack → All Clouds**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。接著針對 Atmosphere 所在的叢集，依照 **Kubernetes → 文件** 操作。
+開啟 **OpenStack → 所有雲端**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。接著針對 Atmosphere 所在的叢集，依照 **Kubernetes → 文件** 操作。
 
 若也希望這些服務的日誌出現在此雲端的 **日誌** 頁面上（每個堆疊追蹤為一筆記錄），請在代理程式的值中指定雲端名稱，以及其服務所在的命名空間：
 
@@ -358,7 +358,7 @@ logs:
 
 ### Atmosphere 上的誰做了什麼
 
-Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **Security Events → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。Kubernetes 代理程式會從 Pod 的日誌讀取兩者，並在其值中指定雲端名稱。
+Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **安全事件 → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。Kubernetes 代理程式會從 Pod 的日誌讀取兩者，並在其值中指定雲端名稱。
 
 ```yaml title="your inventory's variables"
 keystone_helm_values:
@@ -454,7 +454,7 @@ spec:
 
 ### 讀取 API 與控制平面
 
-開啟 **OpenStack → All Clouds**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。接著針對執行控制平面的叢集，依照 **Kubernetes → 文件** 操作，並選擇 **Red Hat OpenShift**，這會設定 `preset=openshift`。
+開啟 **OpenStack → 所有雲端**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。接著針對執行控制平面的叢集，依照 **Kubernetes → 文件** 操作，並選擇 **Red Hat OpenShift**，這會設定 `preset=openshift`。
 
 若也希望這些服務的日誌出現在此雲端的 **日誌** 頁面上（每個堆疊追蹤為一筆記錄），請在代理程式的值中指定雲端名稱，以及其服務所在的命名空間：
 
@@ -472,7 +472,7 @@ logs:
 
 ### OpenShift 上的 Red Hat OpenStack 的誰做了什麼
 
-Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **Security Events → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。Kubernetes 代理程式會從 Pod 的日誌讀取兩者，並在其值中指定雲端名稱。
+Keystone 的稽核軌跡與各個 API 上的稽核篩選器，會進入 [Security Events](/docs/telemetry/openstack#誰做了什麼)。兩者都寫入服務自己的日誌，匯流排上沒有任何消費者。一旦在 **安全事件 → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。Kubernetes 代理程式會從 Pod 的日誌讀取兩者，並在其值中指定雲端名稱。
 
 ```yaml title="your OpenStackControlPlane"
 spec:
@@ -527,11 +527,11 @@ alertmanagerSimpleConfig:
 
 ### 讀取 API
 
-開啟 **OpenStack → All Clouds**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。
+開啟 **OpenStack → 所有雲端**，按一下 **連接雲端**，並提供 Keystone 的位址、應用程式憑證以及要使用的探測器。探測器只會以 HTTPS 與雲端通訊。
 
 ### Mirantis MOSK 上的誰做了什麼
 
-至於透過 Nova、Neutron、Cinder 與 Glance 的誰做了什麼，MOSK 有自己的設定，稽核篩選器已就位。使用 log 驅動程式時，每個服務都寫到它的標準輸出，而 Kubernetes 代理程式會從 Pod 的日誌讀取，並在其值中指定雲端名稱。各服務都寫入自己的日誌，匯流排上沒有任何消費者。一旦在 **Security Events → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。
+至於透過 Nova、Neutron、Cinder 與 Glance 的誰做了什麼，MOSK 有自己的設定，稽核篩選器已就位。使用 log 驅動程式時，每個服務都寫到它的標準輸出，而 Kubernetes 代理程式會從 Pod 的日誌讀取，並在其值中指定雲端名稱。各服務都寫入自己的日誌，匯流排上沒有任何消費者。一旦在 **安全事件 → 連線** 下開啟 **在日誌中尋找安全事件**，OneUptime 就會從那裡讀取它們。
 
 ```yaml title="your OpenStackDeployment"
 spec:

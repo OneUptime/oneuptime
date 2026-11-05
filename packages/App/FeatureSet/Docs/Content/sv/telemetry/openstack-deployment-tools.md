@@ -1,13 +1,13 @@
 # OpenStack per driftsättningsverktyg
 
-Ingen kör "OpenStack". De kör ett verktyg som driftsätter det, och varje verktyg har sina egna sökvägar, sina egna loggar och sin egen uppfattning om vad som redan körs. Den här sidan är vad installationsguiden i OneUptime säger för vart och ett: öppna **OpenStack → All Clouds**, anslut ett moln och svara på **Hur driftsätter du OpenStack?**
+Ingen kör "OpenStack". De kör ett verktyg som driftsätter det, och varje verktyg har sina egna sökvägar, sina egna loggar och sin egen uppfattning om vad som redan körs. Den här sidan är vad installationsguiden i OneUptime säger för vart och ett: öppna **OpenStack → Alla moln**, anslut ett moln och svara på **Hur driftsätter du OpenStack?**
 
 :::cards
 - [Hur långt varje guide har testats](#hur-långt-varje-guide-har-testats): Läs detta först. Kolla-Ansibles och OpenStack-Ansibles har körts på riktiga driftsättningar. De andra har inte körts.
 - [Vidarebefordra det som redan larmar](#vidarebefordra-det-som-redan-larmar): Incidenter från första timmen, utan agent.
 - [Kolla-Ansible](#kolla-ansible): Läs de exportrar den redan kör.
 - [OpenStack-Ansible](#openstack-ansible): Journald-loggar och åsidosättningar i `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) och [Atmosphere](#atmosphere): En sond och Kubernetes-agenten.
+- [OpenStack-Helm](#openstack-helm): En sond och Kubernetes-agenten, även för Atmosphere.
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift-förvalet och Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): StackLights larm.
@@ -45,7 +45,7 @@ Skapa en monitor av typen Incoming Request enligt [Prometheus Alertmanager](/doc
 
 ### Lägg den på molnet
 
-Öppna monitorns **Översikt → Länkade resurser** och lägg till OpenStack-molnet. Varje incident finns då på det molnets sida **Incidenter**: en Incoming Request-monitors egna inställningar nämner inget moln, så varje moln med Alertmanager behöver en egen monitor. Molnet dyker upp i den listan när dess första data kommer fram, så gör detta efter stegen nedan, eller lägg till molnet under **OpenStack → All Clouds** först.
+Öppna monitorns **Översikt → Länkade resurser** och lägg till OpenStack-molnet. Varje incident finns då på det molnets sida **Incidenter**: en Incoming Request-monitors egna inställningar nämner inget moln, så varje moln med Alertmanager behöver en egen monitor. Molnet dyker upp i den listan när dess första data kommer fram, så gör detta efter stegen nedan, eller lägg till molnet under **OpenStack → Alla moln** först.
 :::
 
 Alertmanager är inspelad när den postar i exakt den här formen i `Tests/Ops/openstack-e2e`, vid den version Kolla-Ansible fäster, och inspelningen spelas upp genom den riktiga utvärderaren: en incident per larm, löst av sin egen status `resolved`.
@@ -123,7 +123,7 @@ Kollas egen Fluentd kan också vidarebefordra, med en utdata i `/etc/kolla/confi
 
 ### Vem gjorde vad på Kolla-Ansible
 
-Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Security Events → Anslutningar**. Agentens loggprofil läser båda från `/var/log/kolla`.
+Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Säkerhetshändelser → Anslutningar**. Agentens loggprofil läser båda från `/var/log/kolla`.
 
 ```ini title="/etc/kolla/config/keystone.conf"
 [DEFAULT]
@@ -208,7 +208,7 @@ Detta kör agentens loggprofil som en systemd-tjänst och läser `/var/log/journ
 
 ### Vem gjorde vad på OpenStack-Ansible
 
-Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Security Events → Anslutningar**. Agentens loggprofil läser båda från journalen.
+Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Säkerhetshändelser → Anslutningar**. Agentens loggprofil läser båda från journalen.
 
 ```yaml title="/etc/openstack_deploy/user_variables.yml"
 keystone_keystone_conf_overrides:
@@ -266,7 +266,7 @@ conf:
 
 ### Läs API:erna och se poddarna på OpenStack-Helm
 
-Öppna **OpenStack → All Clouds**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln. Följ sedan **Kubernetes → Dokumentation** för klustret som charts körs på: dess poddar, deras loggar och deras noder når Kubernetes-sidorna.
+Öppna **OpenStack → Alla moln**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln. Följ sedan **Kubernetes → Dokumentation** för klustret som charts körs på: dess poddar, deras loggar och deras noder når Kubernetes-sidorna.
 
 För att även ha de tjänsternas loggar på det här molnets sida **Loggar**, med varje stackspårning som en post, ange molnets namn i agentens värden, med de namnrymder dess tjänster körs i:
 
@@ -280,7 +280,7 @@ logs:
 
 ### Vem gjorde vad på OpenStack-Helm
 
-Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Security Events → Anslutningar**. Kubernetes-agenten läser båda från poddarnas loggar, med molnet angivet i sina värden.
+Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Säkerhetshändelser → Anslutningar**. Kubernetes-agenten läser båda från poddarnas loggar, med molnet angivet i sina värden.
 
 ```yaml title="keystone's values.yaml"
 conf:
@@ -344,7 +344,7 @@ kube_prometheus_stack_helm_values:
 
 ### Läs API:erna och se poddarna på Atmosphere
 
-Öppna **OpenStack → All Clouds**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln. Följ sedan **Kubernetes → Dokumentation** för klustret Atmosphere körs på.
+Öppna **OpenStack → Alla moln**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln. Följ sedan **Kubernetes → Dokumentation** för klustret Atmosphere körs på.
 
 För att även ha de tjänsternas loggar på det här molnets sida **Loggar**, med varje stackspårning som en post, ange molnets namn i agentens värden, med de namnrymder dess tjänster körs i:
 
@@ -358,7 +358,7 @@ logs:
 
 ### Vem gjorde vad på Atmosphere
 
-Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Security Events → Anslutningar**. Kubernetes-agenten läser båda från poddarnas loggar, med molnet angivet i sina värden.
+Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Säkerhetshändelser → Anslutningar**. Kubernetes-agenten läser båda från poddarnas loggar, med molnet angivet i sina värden.
 
 ```yaml title="your inventory's variables"
 keystone_helm_values:
@@ -454,7 +454,7 @@ spec:
 
 ### Läs API:erna och kontrollplanet
 
-Öppna **OpenStack → All Clouds**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln. Följ sedan **Kubernetes → Dokumentation** på klustret som kör kontrollplanet, med **Red Hat OpenShift** valt, vilket anger `preset=openshift`.
+Öppna **OpenStack → Alla moln**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln. Följ sedan **Kubernetes → Dokumentation** på klustret som kör kontrollplanet, med **Red Hat OpenShift** valt, vilket anger `preset=openshift`.
 
 För att även ha de tjänsternas loggar på det här molnets sida **Loggar**, med varje stackspårning som en post, ange molnets namn i agentens värden, med de namnrymder dess tjänster körs i:
 
@@ -472,7 +472,7 @@ En sond säger vad som är allokerat, inte vad som är upptaget. För att läsa 
 
 ### Vem gjorde vad på Red Hat OpenStack on OpenShift
 
-Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Security Events → Anslutningar**. Kubernetes-agenten läser båda från poddarnas loggar, med molnet angivet i sina värden.
+Keystones granskningsspår och granskningsfiltret på varje API, in i [Security Events](/docs/telemetry/openstack#vem-gjorde-vad). Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Säkerhetshändelser → Anslutningar**. Kubernetes-agenten läser båda från poddarnas loggar, med molnet angivet i sina värden.
 
 ```yaml title="your OpenStackControlPlane"
 spec:
@@ -527,11 +527,11 @@ alertmanagerSimpleConfig:
 
 ### Läs API:erna
 
-Öppna **OpenStack → All Clouds**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln.
+Öppna **OpenStack → Alla moln**, klicka på **Anslut moln** och ge det Keystones adress, en applikationsuppgift och den sond som ska användas. En sond talar bara HTTPS med ett moln.
 
 ### Vem gjorde vad på Mirantis MOSK
 
-För vem som gjorde vad genom Nova, Neutron, Cinder och Glance har MOSK en egen inställning, med granskningsfiltret redan på plats. Med logdrivrutinen skriver varje tjänst till sin standardutdata, och Kubernetes-agenten läser den från poddarnas loggar, med molnet angivet i sina värden. Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Security Events → Anslutningar**.
+För vem som gjorde vad genom Nova, Neutron, Cinder och Glance har MOSK en egen inställning, med granskningsfiltret redan på plats. Med logdrivrutinen skriver varje tjänst till sin standardutdata, och Kubernetes-agenten läser den från poddarnas loggar, med molnet angivet i sina värden. Var och en skriver till tjänstens egen logg, utan någon konsument på bussen. OneUptime läser dem därifrån när **Hitta säkerhetshändelser i dina loggar** är på, under **Säkerhetshändelser → Anslutningar**.
 
 ```yaml title="your OpenStackDeployment"
 spec:

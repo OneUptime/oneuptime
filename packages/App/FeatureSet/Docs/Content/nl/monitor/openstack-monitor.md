@@ -29,8 +29,8 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Verzamel de metrieken van de cloud** met de OpenStack Agent. De pagina **Documentatie** van de cloud, onder **Products → Infrastructuur → OpenStack**, leidt u door de installatie.
-- **Controleer of de cloud is geregistreerd.** Na de eerste verzameling verschijnt hij onder **Products → Infrastructuur → OpenStack**, met de naam uit `OPENSTACK_CLOUD_NAME` van de agent.
+- **Verzamel de metrieken van de cloud** met de OpenStack Agent. De pagina **Documentatie** van de cloud, onder **Producten → Infrastructuur → OpenStack**, leidt u door de installatie.
+- **Controleer of de cloud is geregistreerd.** Na de eerste verzameling verschijnt hij onder **Producten → Infrastructuur → OpenStack**, met de naam uit `OPENSTACK_CLOUD_NAME` van de agent.
 
 ## Een OpenStack-monitor maken
 
@@ -65,7 +65,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en beoordeel
 :::
 
 > [!TIP]
-> Om meerdere sjablonen in één keer in te stellen, opent u de cloud via **Products → Infrastructuur → OpenStack** en gaat u naar **Aanbevelingen**. Kies de sjablonen die u wilt, bepaal wie een melding krijgt, en OneUptime maakt per sjabloon één monitor.
+> Om meerdere sjablonen in één keer in te stellen, opent u de cloud via **Producten → Infrastructuur → OpenStack** en gaat u naar **Aanbevelingen**. Kies de sjablonen die u wilt, bepaal wie een melding krijgt, en OneUptime maakt per sjabloon één monitor.
 
 ## Monitorinstellingen
 
@@ -210,7 +210,7 @@ Elk sjabloon leest minstens drie verzamelingen van wat het bewaakt en gaat allee
 - **Een reeks die net is verschenen wacht een heel venster af,** zodat een instance, volume of image dat één keer is gezien op weg naar iets anders niets veroorzaakt. Elk sjabloon weet hoe vaak zijn service wordt verzameld uit de eigen `_up`-reeks van die service.
 - **Een reeks die verdwijnt telt als hersteld:** een worker die iemand uitschakelde, de laatste instance in ERROR die is verwijderd, een pool die is weggehaald. Elk sjabloon leest de `_up`-reeks van zijn service naast zijn eigen reeks, zodat het een onderdeel dat verdween kan onderscheiden van een cloud die stil werd. Als er helemaal niets binnenkomt, blijven de incidenten open en spreekt **Cloud Stopped Reporting**.
 - **Als een API uitvalt, verdwijnen ook zijn eigen reeksen**, zodat de andere sjablonen van die service worden opgelost en een venster nadat de API terug is weer afgaan als de fout er nog is. Als elke API tegelijk als uitgevallen wordt gemeld, kijk dan eerst naar de exporter.
-- **Een cloud zonder zo'n service blijft stil.** De exporter antwoordt met niets voor een service die niet in de catalogus van de cloud staat, en **Network**, **Block Storage**, **Image** en **Placement API Down** lezen dat niet als een storing. **Identity** en **Compute API Down** wel, want zo meldt de exporter ook dat Keystone of de API van Nova helemaal is gestopt, en elke cloud heeft ze.
+- **Een cloud zonder zo'n service blijft stil.** De exporter antwoordt met niets voor een service die niet in de catalogus van de cloud staat, en **Netwerk**, **Block Storage**, **Afbeelding** en **Placement API Down** lezen dat niet als een storing. **Identiteit** en **Compute API Down** wel, want zo meldt de exporter ook dat Keystone of de API van Nova helemaal is gestopt, en elke cloud heeft ze.
 
 ### Wanneer er een afgaat
 
@@ -319,7 +319,7 @@ De onderstaande metrieken vormen de catalogus die het monitorformulier aanbiedt.
 | Metriek | Eenheid | Leesacties | Beschrijving |
 | --- | --- | --- | --- |
 | `up` | - | Min | Of de exporter deze verzameling überhaupt beantwoordde (1) of niet (0): hij was gestopt, kreeg een time-out of antwoordde met een fout. 1 zegt niets over de API zelf, omdat de exporter ook antwoordt als hij de API niet kon bereiken. Gerapporteerd door de collector van de agent, één reeks per service per regio. |
-| `scrape_samples_scraped` | `count` | Min | Met hoeveel reeksen de exporter een verzameling beantwoordde. 0 betekent dat hij niets te melden had: hij kon niet inloggen bij Keystone, of kon de API van Nova niet bereiken om een microversie af te spreken, en die fouten laten helemaal geen openstack_*-reeksen achter. Gerapporteerd door de collector van de agent, één reeks per service per regio. |
+| `scrape_samples_scraped` | `count` | Min | Met hoeveel reeksen de exporter een verzameling beantwoordde. 0 betekent dat hij niets te melden had: hij kon niet inloggen bij Keystone, of kon de API van Nova niet bereiken om een microversie af te spreken, en die fouten laten helemaal geen reeksen van de exporter achter. Gerapporteerd door de collector van de agent, één reeks per service per regio. |
 | `openstack_identity_up` | - | Min | Of de API van Keystone de aanroepen van de exporter beantwoordde (1) of elke aanroep mislukte (0). Als er helemaal niet bij Keystone kan worden ingelogd, antwoordt de exporter met niets, dus deze reeks verdwijnt in plaats van 0 te geven. |
 | `openstack_nova_up` | - | Min | Of de API van Nova de aanroepen van de exporter beantwoordde (1) of elke aanroep mislukte (0). Als de API van Nova helemaal niet bereikt kan worden, antwoordt de exporter met niets, dus deze reeks verdwijnt in plaats van 0 te geven. |
 | `openstack_neutron_up` | - | Min | Of de API van Neutron de aanroepen van de exporter beantwoordde (1) of elke aanroep mislukte (0). |
@@ -757,7 +757,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | **Drempel** | De waarde om mee te vergelijken. Een eenhedenlijst staat ernaast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen aan geschiedenis. |
-| **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen samples heeft: **Negeren** (de standaard), **Behandelen als nul** of **Activeren**. |
+| **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen samples heeft: **Negeren** (de standaard), **Behandelen als nul** of **Trigger**. |
 
 Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in de status "Leren" en veroorzaken niets totdat het baseline-venster genoeg geschiedenis bevat. Deze monitor filtert zijn queries op attributen, dus elke query, en elke reeks van een gegroepeerde, wordt vergeleken met zijn eigen geschiedenis, zo ver terug als uw metrieken worden bewaard. Als dat minder dan twee weken is, blijft een Som, een Aantal of een query op een histogram voorgoed in die status, en wordt al het andere vergeleken met elke reeks van de metriek. Een percentiel van een histogram blijft altijd in die status.
 

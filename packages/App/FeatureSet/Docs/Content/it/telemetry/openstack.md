@@ -1,4 +1,4 @@
-# Agente OpenStack
+# Agent OpenStack
 
 L'agente OpenStack di OneUptime monitora un cloud OpenStack: i suoi servizi e agenti, hypervisor, istanze, reti, router, volumi, pool di archiviazione, immagini e progetti, in ogni regione. Legge le API del cloud con una credenziale a tua scelta e invia ciò che trova a OneUptime, dove il cloud compare con le sue regioni, i suoi hypervisor e i suoi progetti. I [monitor OpenStack](/docs/monitor/openstack-monitor) generano avvisi su ciò che arriva, e una [probe](/docs/telemetry/openstack-agentless) può raccogliere i dati di un cloud senza installare nulla.
 
@@ -39,7 +39,7 @@ Il cloud si registra da solo con i primi dati, con il nome che l'agente imposta 
 - Docker Engine 20.10 o successivo con il plugin Docker Compose v2 oppure, per eseguirlo senza Docker, una macchina Linux (x86_64 o arm64) con systemd 235 o successivo, glibc 2.34 o successiva (RHEL 9, Ubuntu 22.04, Debian 12) e root.
 - Una route da quella macchina a Keystone e all'endpoint pubblico di ogni servizio.
 - La riga di comando `openstack`, usata da qualcuno che possa creare la credenziale qui sotto.
-- Una chiave di ingestione. Creane una in **Impostazioni progetto → Telemetria e APM → Chiavi di ingestione** e copiane il valore.
+- Una chiave di ingestione. Creane una in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e copiane il valore.
 - HTTPS in uscita da quella macchina verso l'URL di OneUptime.
 
 ### Dove eseguire l'agente
@@ -103,7 +103,7 @@ Questo è ciò che hanno risposto cinque cloud reali, su Epoxy, Flamingo, Gazpac
 | Cinder: tipi di volume | tutti | ciò che vede chiunque | ciò che vede chiunque |
 | Glance: immagini | tutte | ciò che vede chiunque | ciò che vede chiunque |
 
-- **tutti**: le stesse righe che ha visto un admin.
+- **tutte le**: le stesse righe che ha visto un admin.
 - **solo il proprio progetto**: le righe di quel progetto, e tutto ciò che è condiviso o esterno. Su un progetto che non contiene nulla, sono solo quelle condivise ed esterne.
 - **rifiutato**: un `401` o un `403`.
 - **ciò che vede chiunque**: ogni credenziale ha visto ogni riga, su cloud che contengono solo flavor, tipi di volume e immagini pubblici. Uno privato in un altro progetto richiede il livello 1.
@@ -134,7 +134,7 @@ Ogni OneUptime serve lo script di installazione e i file dell'agente per la prop
 Scegli il livello che hai deciso. Ognuno crea una credenziale applicativa, che stampa un `id` e un `secret`: il secret viene mostrato una sola volta. Dalle una scadenza e mai `--unrestricted`, che le permetterebbe di creare altre credenziali.
 
 :::tabs
-@tab Livello 1: Vista completa
+@tab Level 1: Full view
 Come admin, crea un progetto e un account per l'agente:
 
 ```bash
@@ -198,7 +198,7 @@ Sui servizi che un cloud potrebbe non eseguire, ciò che ha ottenuto ogni livell
 Keystone non richiede nulla. Con le regole adattate, `service_type` impostato e le API riavviate, ogni lettura ha risposto `200` e ogni scrittura `401`, su ogni release che registriamo. L'exporter ottiene ciò che ottiene un admin, tranne utenti e gruppi di Keystone, di proposito. Vale anche per i servizi che un cloud potrebbe non eseguire: registrato su DevStack, il livello 1 ha ottenuto le stesse serie della credenziale di un admin da ciascuno di quelli che l'exporter legge, e ogni scrittura ha risposto `401`.
 
 Se non vuoi fare questa modifica, crea la stessa credenziale senza `--access-rules`: una semplice credenziale applicativa admin. Funziona e può scrivere, quindi lo script diagnostico la etichetta come tale.
-@tab Livello 2: Solo infrastruttura
+@tab Level 2: Infrastructure only
 Come admin, crea il ruolo, un progetto che non contiene nulla e ha quota zero, e un account:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Dare il ruolo su un progetto reale per vederne i volumi e i router permette all'account anche di scrivere lì, su un cloud dove Cinder ha `enforce_new_defaults` disattivato. Lo script diagnostico avvisa quando il progetto della credenziale contiene delle risorse.
-@tab Livello 3: Vista progetto
+@tab Level 3: Project view
 Assegna a un account il semplice ruolo `reader` sul progetto, poi, autenticato con quell'account su quel progetto, crea la credenziale:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Senza Docker
+@tab Without Docker
 Su Linux (x86_64 o arm64) con systemd 235 o successivo e glibc 2.34 o successiva, lo script di installazione esegue come servizi systemd le release upstream degli stessi due programmi. RHEL 8 e derivate hanno una glibc più vecchia, su cui la release dell'exporter non può girare: lo script lo dice e non modifica nulla, quindi lì usa Docker.
 
 ```bash
@@ -359,7 +359,7 @@ Lo script di installazione le scrive in `/opt/oneuptime-openstack-agent/.env`; u
 | Variabile | Obbligatoria | Descrizione |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Sì | L'URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di ingestione da **Impostazioni progetto → Telemetria e APM → Chiavi di ingestione**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di ingestione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
 | `OPENSTACK_CLOUD_NAME` | Sì | Il nome del cloud in OneUptime, impostato su ogni metrica come attributo di risorsa `openstack.cloud.name`. Mantienilo stabile: cambiarlo registra un nuovo cloud. Il default è `openstack`. |
 | `OPENSTACK_AUTH_URL` | Exporter incluso | Una risposta allo script di installazione: l'URL di autenticazione di Keystone. `/v3` viene aggiunto se manca. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Sì | Le regioni, tra parentesi quadre, come `[RegionOne,RegionTwo]`, ciascuna il nome di una voce di `clouds.yaml`. Il default è `[RegionOne]`. |
@@ -707,7 +707,7 @@ Una regola qui è una **Regola proprietario cloud OpenStack** o una **Regola eti
 
 Un avviso o incidente su una parte del cloud raggiunge ogni progetto che ha qualcosa su quella parte, quanti che siano. Solo un monitor può dire cosa raggiunge, quindi una regola come questa non raggiunge un incidente dichiarato a mano. Le etichette vengono applicate all'apertura dell'avviso, e i proprietari subito dopo.
 
-Le regole scritte in precedenza come coppia di regole per avvisi e incidenti, che corrispondono a ``OpenStack project `<id>` `` o ``OpenStack domain `<id>` `` nella descrizione, continuano a funzionare e sono elencate anch'esse qui. Una descrizione nomina al massimo 50 dei progetti che raggiunge, quindi una coppia così si ferma lì. Rimuovila e aggiungi di nuovo la regola per togliere questo limite.
+Le regole scritte in precedenza come coppia di regole per avvisi e incidenti, che corrispondono a ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` nella descrizione, continuano a funzionare e sono elencate anch'esse qui. Una descrizione nomina al massimo 50 dei progetti che raggiunge, quindi una coppia così si ferma lì. Rimuovila e aggiungi di nuovo la regola per togliere questo limite.
 
 ### Quote
 
@@ -832,7 +832,7 @@ Una volta collegato, la pagina del pool dice come si legge il suo cluster, e `HE
 
 Se il tuo cloud esegue Heat o Magnum, compaiono da soli: non c'è nulla da attivare. Un cloud che non esegue né l'uno né l'altro non mostra traccia di essi, senza voci di menu, schede in **Servizi** né avvisi tra cui scegliere. Ciò che lo stabilisce è la risposta del cloud stesso, mai un'impostazione: l'agente chiede di ciascuno a ogni raccolta, e un servizio che il catalogo di Keystone non nomina risponde con nulla.
 
-Un cloud con Heat ottiene **Stack** sotto **Orchestrazione**, e uno con Magnum ottiene **Cluster Kubernetes**. Ciascuno elenca ogni stack o cluster con il suo stato nella parola del servizio, e ognuno ha una pagina. Uno stack o cluster in stato di errore arriva in **Richiede attenzione** per nome, e così anche uno ancora in corso dopo due ore, che è il doppio di quanto ne dà uno dei due servizi di sua iniziativa. Magnum costruisce un cluster con uno stack Heat, quindi un cluster in errore e il suo stack in errore si leggono come una sola riga, con il nome del cluster, e ogni pagina rimanda all'altra.
+Un cloud con Heat ottiene **Stacks** sotto **Orchestration**, e uno con Magnum ottiene **Cluster Kubernetes**. Ciascuno elenca ogni stack o cluster con il suo stato nella parola del servizio, e ognuno ha una pagina. Uno stack o cluster in stato di errore arriva in **Richiede attenzione** per nome, e così anche uno ancora in corso dopo due ore, che è il doppio di quanto ne dà uno dei due servizi di sua iniziativa. Magnum costruisce un cluster con uno stack Heat, quindi un cluster in errore e il suo stack in errore si leggono come una sola riga, con il nome del cluster, e ogni pagina rimanda all'altra.
 
 ### Cosa vede ogni modo di raccolta
 
@@ -961,7 +961,7 @@ L'exporter legge lo status di Gnocchi, che solo un admin può usare. Gnocchi rif
 
 ## Swift
 
-Un cloud che esegue Swift ottiene da solo **Archiviazione a oggetti** sotto **Archiviazione**, e uno che non lo esegue non mostra traccia di esso. Elenca i container del progetto proprio della credenziale, quanto contiene ciascuno e quanti oggetti, e ognuno ha una pagina propria.
+Un cloud che esegue Swift ottiene da solo **Object Storage** sotto **Archiviazione**, e uno che non lo esegue non mostra traccia di esso. Elenca i container del progetto proprio della credenziale, quanto contiene ciascuno e quanti oggetti, e ognuno ha una pagina propria.
 
 | Cosa | Agente, Vista completa | Probe, Vista completa | Probe, con `ResellerAdmin` | Qualsiasi cosa meno |
 | --- | --- | --- | --- | --- |
@@ -1489,7 +1489,7 @@ Se li attivi, i loro span raggiungono comunque la pagina **Tracce** di questo cl
 
 ## Agente IA
 
-Il `docker-compose.yml` dell'agente esegue anche l'**agente IA OpenStack**, `oneuptime-openstack-ai-agent` (immagine `oneuptime/resource-ai-agent:release`). Mentre OneUptime AI indaga su un incidente o un avviso su questo cloud, esegue tramite esso comandi `openstack` di sola lettura — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — e cita ciò che ha eseguito. Nell'agente non c'è alcun binario `openstack` né una shell: ogni comando diventa una `GET` al servizio che risponde, con la credenziale dell'agente stesso. L'agente si registra con lo stesso `OPENSTACK_CLOUD_NAME` che riporta il collector, quindi serve questo cloud.
+Il `docker-compose.yml` dell'agente esegue anche l'**Agente IA OpenStack**, `oneuptime-openstack-ai-agent` (immagine `oneuptime/resource-ai-agent:release`). Mentre OneUptime AI indaga su un incidente o un avviso su questo cloud, esegue tramite esso comandi `openstack` di sola lettura — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — e cita ciò che ha eseguito. Nell'agente non c'è alcun binario `openstack` né una shell: ogni comando diventa una `GET` al servizio che risponde, con la credenziale dell'agente stesso. L'agente si registra con lo stesso `OPENSTACK_CLOUD_NAME` che riporta il collector, quindi serve questo cloud.
 
 - **Le indagini IA sono attive per default.** Una volta connesso l'agente, OneUptime AI indaga con esso su incidenti e avvisi di questo cloud, e la **Panoramica** del cloud mostra lo stato dell'agente. Per fermarle, imposta `ONEUPTIME_AI_INVESTIGATION=false` dove gira l'agente. **IA > Agente** ha lo stato dell'agente, **Testa la connessione**, **Reimposta l'agente** e le istruzioni di installazione, **IA > Insights** ciò che ha fatto, e **IA > Registri** i comandi che ha eseguito.
 - **Legge, finché non dici altrimenti.** Le correzioni sono disattivate finché non le scegli due volte, e usano una credenziale propria: vedi [Correzioni](#correzioni). Utenti, credenziali e assegnazioni di ruoli di Keystone, console, ciò che un guest ha stampato e i secret di Barbican sono off-limits per esso, da leggere o da modificare.

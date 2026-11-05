@@ -7,7 +7,7 @@ Ninguém executa "o OpenStack". Executam uma ferramenta que o implanta, e cada f
 - [Encaminhe o que já está disparando](#encaminhe-o-que-já-está-disparando): Incidentes desde a primeira hora, sem agente.
 - [Kolla-Ansible](#kolla-ansible): Leia os exportadores que ele já executa.
 - [OpenStack-Ansible](#openstack-ansible): Registros do journald e substituições em `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) e [Atmosphere](#atmosphere): Uma sonda e o agente do Kubernetes.
+- [OpenStack-Helm](#openstack-helm): Uma sonda e o agente do Kubernetes; o Atmosphere também.
 - [Canonical Sunbeam](#canonical-sunbeam): A Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): O preset do OpenShift e o Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): Os alertas do StackLight.
@@ -45,7 +45,7 @@ Crie um monitor de Incoming Request como diz o [Prometheus Alertmanager](/docs/i
 
 ### Associe-o à nuvem
 
-Abra **Visão geral → Recursos vinculados** do monitor e adicione a nuvem OpenStack. Cada incidente passa a aparecer na página **Incidentes** dessa nuvem: as configurações de um monitor Incoming Request não nomeiam nenhuma nuvem, então o Alertmanager de cada nuvem precisa de um monitor próprio. A nuvem aparece nessa lista assim que seus primeiros dados chegam, então faça isso depois dos passos abaixo, ou adicione a nuvem antes em **OpenStack → Todas as nuvens**.
+Abra **Visão geral → Recursos Vinculados** do monitor e adicione a nuvem OpenStack. Cada incidente passa a aparecer na página **Incidentes** dessa nuvem: as configurações de um monitor Incoming Request não nomeiam nenhuma nuvem, então o Alertmanager de cada nuvem precisa de um monitor próprio. A nuvem aparece nessa lista assim que seus primeiros dados chegam, então faça isso depois dos passos abaixo, ou adicione a nuvem antes em **OpenStack → Todas as nuvens**.
 :::
 
 O Alertmanager foi gravado enviando exatamente neste formato em `Tests/Ops/openstack-e2e`, na versão que o Kolla-Ansible fixa, e a gravação é reproduzida no avaliador real: um incidente por alerta, resolvido pelo seu próprio status `resolved`.

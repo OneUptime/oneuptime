@@ -1,4 +1,4 @@
-# Cloud OpenStack di dimensioni molto grandi
+# Cloud OpenStack molto grandi
 
 Quanto costa un cloud di qualsiasi dimensione prima ancora di installare qualcosa: quanto pesa il monitoraggio sul suo piano di controllo, quanti dati invia e cosa fa OneUptime in modo diverso man mano che un cloud cresce. Quasi nessun cloud ha bisogno di tutto questo: i valori predefiniti dell'[agente OpenStack](/docs/telemetry/openstack) e di una [sonda](/docs/telemetry/openstack-agentless) reggono fino a migliaia di istanze senza impostare nulla.
 

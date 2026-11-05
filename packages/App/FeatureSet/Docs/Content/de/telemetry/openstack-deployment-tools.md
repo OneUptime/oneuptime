@@ -1,4 +1,4 @@
-# OpenStack nach Bereitstellungstool
+# OpenStack nach Bereitstellungswerkzeug
 
 Niemand betreibt „OpenStack“. Man betreibt ein Tool, das es bereitstellt, und jedes Tool hat seine eigenen Pfade, seine eigenen Protokolle und seine eigene Vorstellung davon, was schon läuft. Diese Seite gibt wieder, was die Einrichtungsanleitung in OneUptime für jedes davon sagt: Öffnen Sie **OpenStack → Alle Clouds**, verbinden Sie eine Cloud und beantworten Sie **Wie stellen Sie OpenStack bereit?**
 
@@ -7,7 +7,7 @@ Niemand betreibt „OpenStack“. Man betreibt ein Tool, das es bereitstellt, un
 - [Weiterleiten, was bereits ausgelöst wird](#weiterleiten-was-bereits-ausgelöst-wird): Vorfälle ab der ersten Stunde, ohne Agent.
 - [Kolla-Ansible](#kolla-ansible): Die Exporter lesen, die es bereits betreibt.
 - [OpenStack-Ansible](#openstack-ansible): Journald-Protokolle und Overrides in `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) und [Atmosphere](#atmosphere): Eine Sonde und der Kubernetes-Agent.
+- [OpenStack-Helm](#openstack-helm): Eine Sonde und der Kubernetes-Agent, ebenso bei [Atmosphere](#atmosphere).
 - [Canonical Sunbeam](#canonical-sunbeam): Der Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): Das OpenShift-Preset und Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): Die Warnungen von StackLight.

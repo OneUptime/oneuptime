@@ -1,13 +1,13 @@
 # OpenStack بر اساس ابزار استقرار
 
-هیچ‌کس «OpenStack» را اجرا نمی‌کند. آن‌ها ابزاری را اجرا می‌کنند که OpenStack را مستقر می‌کند، و هر ابزار مسیرها، لاگ‌ها و تصور خودش از آنچه از قبل در حال اجراست را دارد. این صفحه همان چیزی است که راهنمای راه‌اندازی در OneUptime برای هر کدام می‌گوید: **OpenStack → All Clouds** را باز کنید، یک ابر را متصل کنید، و به **OpenStack را چگونه مستقر می‌کنید؟** پاسخ دهید.
+هیچ‌کس «OpenStack» را اجرا نمی‌کند. آن‌ها ابزاری را اجرا می‌کنند که OpenStack را مستقر می‌کند، و هر ابزار مسیرها، لاگ‌ها و تصور خودش از آنچه از قبل در حال اجراست را دارد. این صفحه همان چیزی است که راهنمای راه‌اندازی در OneUptime برای هر کدام می‌گوید: **OpenStack** > **همه ابرها** را باز کنید، یک ابر را متصل کنید، و به **OpenStack را چگونه مستقر می‌کنید؟** پاسخ دهید.
 
 :::cards
 - [هر راهنما تا کجا آزمایش شده](#هر-راهنما-تا-کجا-آزمایش-شده): اول این را بخوانید. راهنمای Kolla-Ansible و راهنمای OpenStack-Ansible روی استقرارهای واقعی اجرا شده‌اند. بقیه اجرا نشده‌اند.
 - [آنچه از قبل فعال است را ارسال کنید](#آنچه-از-قبل-فعال-است-را-ارسال-کنید): حوادث از همان ساعت اول، بدون عامل.
 - [Kolla-Ansible](#kolla-ansible): exporterهایی را که از قبل اجرا می‌کند بخوانید.
 - [OpenStack-Ansible](#openstack-ansible): لاگ‌های Journald، و overrideها در `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) و [Atmosphere](#atmosphere): یک پراب، و عامل Kubernetes.
+- [OpenStack-Helm](#openstack-helm): یک پراب و عامل Kubernetes، و همین‌طور در [Atmosphere](#atmosphere).
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): پریست OpenShift، و Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): هشدارهای StackLight.
@@ -45,7 +45,7 @@
 
 ### آن را روی ابر قرار دهید
 
-**نمای کلی → منابع پیوندشده** مانیتور را باز کنید و ابر OpenStack را اضافه کنید. هر حادثه سپس در صفحه **حوادث** همان ابر است: تنظیمات خود مانیتور Incoming Request هیچ ابری را نام نمی‌برد، پس Alertmanager هر ابر به مانیتور مخصوص خودش نیاز دارد. ابر پس از رسیدن اولین داده‌اش در آن فهرست ظاهر می‌شود، پس این کار را پس از گام‌های زیر انجام دهید، یا ابتدا ابر را زیر **OpenStack → All Clouds** اضافه کنید.
+**نمای کلی** > **منابع پیوندشده** مانیتور را باز کنید و ابر OpenStack را اضافه کنید. هر حادثه سپس در صفحه **حوادث** همان ابر است: تنظیمات خود مانیتور Incoming Request هیچ ابری را نام نمی‌برد، پس Alertmanager هر ابر به مانیتور مخصوص خودش نیاز دارد. ابر پس از رسیدن اولین داده‌اش در آن فهرست ظاهر می‌شود، پس این کار را پس از گام‌های زیر انجام دهید، یا ابتدا ابر را زیر **OpenStack** > **همه ابرها** اضافه کنید.
 :::
 
 Alertmanager در `Tests/Ops/openstack-e2e` ضبط شده که با همین شکل دقیق ارسال می‌کند، در نسخه‌ای که Kolla-Ansible پین می‌کند، و ضبط از طریق evaluator واقعی بازپخش می‌شود: یک حادثه برای هر هشدار، که با وضعیت `resolved` خودش حل می‌شود.
@@ -84,8 +84,8 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 با `source /etc/kolla/admin-openrc.sh`، که `kolla-ansible post-deploy` آن را می‌نویسد، به‌عنوان admin وارد شوید.
 
-- **دید کامل** به یک تغییر نیاز دارد، در Cinder. templateهای Kolla-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` در Nova، Neutron، Glance و Placement تنظیم می‌کنند، اما Cinder آن `volume` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type = block-storage` را زیر `[keystone_authtoken]` در `/etc/kolla/config/cinder.conf` اضافه کنید، سپس `kolla-ansible reconfigure -i <inventory> --tags cinder` را اجرا کنید.
-- **فقط زیرساخت** overrideهایش را در `/etc/kolla/config/nova/policy.yaml` می‌گیرد، و همین برای `neutron`، `keystone` و `placement`، ادغام‌شده با هر چیزی که از قبل آنجا هست. آن‌ها را با `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` اعمال کنید.
+- **Full view** به یک تغییر نیاز دارد، در Cinder. templateهای Kolla-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` در Nova، Neutron، Glance و Placement تنظیم می‌کنند، اما Cinder آن `volume` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type = block-storage` را زیر `[keystone_authtoken]` در `/etc/kolla/config/cinder.conf` اضافه کنید، سپس `kolla-ansible reconfigure -i <inventory> --tags cinder` را اجرا کنید.
+- **Infrastructure only** overrideهایش را در `/etc/kolla/config/nova/policy.yaml` می‌گیرد، و همین برای `neutron`، `keystone` و `placement`، ادغام‌شده با هر چیزی که از قبل آنجا هست. آن‌ها را با `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` اعمال کنید.
 
 ### آنچه ابر Kolla-Ansible بر آن بنا شده را پایش کنید
 
@@ -123,7 +123,7 @@ Fluentd خود Kolla هم می‌تواند ارسال کند، با یک output
 
 ### چه کسی چه کرد در Kolla-Ansible
 
-ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **Security Events → Connections**. پروفایل لاگ‌های عامل هر دو را از `/var/log/kolla` می‌خواند.
+ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **رویدادهای امنیتی** > **اتصال‌ها**. پروفایل لاگ‌های عامل هر دو را از `/var/log/kolla` می‌خواند.
 
 ```ini title="/etc/kolla/config/keystone.conf"
 [DEFAULT]
@@ -161,8 +161,8 @@ OpenStack-Ansible لاگ‌های سرویس‌هایش را در journald نگ�
 
 از کانتینر utility به‌عنوان admin وارد شوید: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`، سپس `. ~/openrc`. `curl` ندارد، که دستورهای زیر از آن استفاده می‌کنند، پس ابتدا `apt-get install -y curl` را آنجا اجرا کنید.
 
-- **دید کامل** به یک تغییر نیاز دارد، در Cinder. roleهای OpenStack-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` تنظیم می‌کنند، اما Cinder آن `volumev3` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type: block-storage` را زیر `keystone_authtoken` در `cinder_cinder_conf_overrides` در `/etc/openstack_deploy/user_variables.yml` تنظیم کنید، سپس `openstack-ansible openstack.osa.cinder --tags cinder-config` را اجرا کنید.
-- **فقط زیرساخت** overrideهایش را به‌صورت `nova_policy_overrides`، `neutron_policy_overrides`، `keystone_policy_overrides` و `placement_policy_overrides` در `/etc/openstack_deploy/user_variables.yml` می‌گیرد. هر کدام را با playbook و tag مخصوص خودش اعمال کنید، مانند `openstack-ansible openstack.osa.nova --tags nova-policy-override`. برداشتن بعدی یکی از آن‌ها به‌جای هیچ، یک فایل خالی به جا می‌گذارد، پس چیزی شکست نمی‌خورد.
+- **Full view** به یک تغییر نیاز دارد، در Cinder. roleهای OpenStack-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` تنظیم می‌کنند، اما Cinder آن `volumev3` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type: block-storage` را زیر `keystone_authtoken` در `cinder_cinder_conf_overrides` در `/etc/openstack_deploy/user_variables.yml` تنظیم کنید، سپس `openstack-ansible openstack.osa.cinder --tags cinder-config` را اجرا کنید.
+- **Infrastructure only** overrideهایش را به‌صورت `nova_policy_overrides`، `neutron_policy_overrides`، `keystone_policy_overrides` و `placement_policy_overrides` در `/etc/openstack_deploy/user_variables.yml` می‌گیرد. هر کدام را با playbook و tag مخصوص خودش اعمال کنید، مانند `openstack-ansible openstack.osa.nova --tags nova-policy-override`. برداشتن بعدی یکی از آن‌ها به‌جای هیچ، یک فایل خالی به جا می‌گذارد، پس چیزی شکست نمی‌خورد.
 
 ### آنچه ابر OpenStack-Ansible بر آن بنا شده را پایش کنید
 
@@ -208,7 +208,7 @@ sudo bash install-logs.sh journald
 
 ### چه کسی چه کرد در OpenStack-Ansible
 
-ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **Security Events → Connections**. پروفایل لاگ‌های عامل هر دو را از journal می‌خواند.
+ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **رویدادهای امنیتی** > **اتصال‌ها**. پروفایل لاگ‌های عامل هر دو را از journal می‌خواند.
 
 ```yaml title="/etc/openstack_deploy/user_variables.yml"
 keystone_keystone_conf_overrides:
@@ -266,7 +266,7 @@ conf:
 
 ### APIها را بخوانید و podها را در OpenStack-Helm ببینید
 
-**OpenStack → All Clouds** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes → مستندات** را برای کلاستری که chartها روی آن اجرا می‌شوند دنبال کنید: podها، لاگ‌هایشان و نودهایشان به صفحه‌های Kubernetes می‌رسند.
+**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes** > **مستندات** را برای کلاستری که chartها روی آن اجرا می‌شوند دنبال کنید: podها، لاگ‌هایشان و نودهایشان به صفحه‌های Kubernetes می‌رسند.
 
 برای اینکه لاگ‌های آن سرویس‌ها در صفحه **لاگ‌ها**ی این ابر هم باشند، با هر stack trace به‌صورت یک رکورد، ابر را در مقادیر عامل نام ببرید، همراه با namespaceهایی که سرویس‌هایش در آن اجرا می‌شوند:
 
@@ -280,7 +280,7 @@ logs:
 
 ### چه کسی چه کرد در OpenStack-Helm
 
-ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **Security Events → Connections**. عامل Kubernetes هر دو را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است.
+ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **رویدادهای امنیتی** > **اتصال‌ها**. عامل Kubernetes هر دو را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است.
 
 ```yaml title="keystone's values.yaml"
 conf:
@@ -344,7 +344,7 @@ kube_prometheus_stack_helm_values:
 
 ### APIها را بخوانید و podها را در Atmosphere ببینید
 
-**OpenStack → All Clouds** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes → مستندات** را برای کلاستری که Atmosphere روی آن اجرا می‌شود دنبال کنید.
+**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes** > **مستندات** را برای کلاستری که Atmosphere روی آن اجرا می‌شود دنبال کنید.
 
 برای اینکه لاگ‌های آن سرویس‌ها در صفحه **لاگ‌ها**ی این ابر هم باشند، با هر stack trace به‌صورت یک رکورد، ابر را در مقادیر عامل نام ببرید، همراه با namespaceهایی که سرویس‌هایش در آن اجرا می‌شوند:
 
@@ -358,7 +358,7 @@ logs:
 
 ### چه کسی چه کرد در Atmosphere
 
-ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **Security Events → Connections**. عامل Kubernetes هر دو را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است.
+ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **رویدادهای امنیتی** > **اتصال‌ها**. عامل Kubernetes هر دو را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است.
 
 ```yaml title="your inventory's variables"
 keystone_helm_values:
@@ -454,7 +454,7 @@ spec:
 
 ### APIها و control plane را بخوانید
 
-**OpenStack → All Clouds** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes → مستندات** را روی کلاستری که control plane را اجرا می‌کند دنبال کنید، با انتخاب **Red Hat OpenShift**، که `preset=openshift` را تنظیم می‌کند.
+**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes** > **مستندات** را روی کلاستری که control plane را اجرا می‌کند دنبال کنید، با انتخاب **Red Hat OpenShift**، که `preset=openshift` را تنظیم می‌کند.
 
 برای اینکه لاگ‌های آن سرویس‌ها در صفحه **لاگ‌ها**ی این ابر هم باشند، با هر stack trace به‌صورت یک رکورد، ابر را در مقادیر عامل نام ببرید، همراه با namespaceهایی که سرویس‌هایش در آن اجرا می‌شوند:
 
@@ -472,7 +472,7 @@ logs:
 
 ### چه کسی چه کرد در Red Hat OpenStack on OpenShift
 
-ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **Security Events → Connections**. عامل Kubernetes هر دو را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است.
+ردپای ممیزی Keystone و فیلتر ممیزی روی هر API، به [رویدادهای امنیتی](/docs/telemetry/openstack#چه-کسی-چه-کرد). هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **رویدادهای امنیتی** > **اتصال‌ها**. عامل Kubernetes هر دو را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است.
 
 ```yaml title="your OpenStackControlPlane"
 spec:
@@ -527,11 +527,11 @@ alertmanagerSimpleConfig:
 
 ### APIها را بخوانید
 
-**OpenStack → All Clouds** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند.
+**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند.
 
 ### چه کسی چه کرد در Mirantis MOSK
 
-برای اینکه بدانید چه کسی چه کرد از طریق Nova، Neutron، Cinder و Glance، MOSK تنظیم مخصوص خودش را دارد، با فیلتر ممیزی که از قبل سر جایش است. با log driver، هر سرویس در standard output خود می‌نویسد، و عامل Kubernetes آن را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است. هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **Security Events → Connections**.
+برای اینکه بدانید چه کسی چه کرد از طریق Nova، Neutron، Cinder و Glance، MOSK تنظیم مخصوص خودش را دارد، با فیلتر ممیزی که از قبل سر جایش است. با log driver، هر سرویس در standard output خود می‌نویسد، و عامل Kubernetes آن را از لاگ‌های podها می‌خواند، با ابری که در مقادیرش نام برده شده است. هر کدام در لاگ خود سرویس می‌نویسد، بدون هیچ مصرف‌کننده‌ای روی bus. OneUptime آن‌ها را از همان‌جا می‌خواند، وقتی **یافتن رویدادهای امنیتی در لاگ‌های شما** روشن باشد، زیر **رویدادهای امنیتی** > **اتصال‌ها**.
 
 ```yaml title="your OpenStackDeployment"
 spec:

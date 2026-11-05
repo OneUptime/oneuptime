@@ -104,6 +104,12 @@ const CEPH: string = "telemetry/ceph";
 const STORAGE_ARRAYS: string = "telemetry/storage-arrays";
 const DOCKER_SWARM: string = "telemetry/docker-swarm";
 const VMWARE: string = "telemetry/vmware";
+const OPENSTACK: string = "telemetry/openstack";
+const OPENSTACK_AGENTLESS: string = "telemetry/openstack-agentless";
+const OPENSTACK_DEPLOYMENT_TOOLS: string =
+  "telemetry/openstack-deployment-tools";
+const OPENSTACK_VERY_LARGE_CLOUDS: string =
+  "telemetry/openstack-very-large-clouds";
 const DATABASES: string = "telemetry/databases";
 const QUEUES: string = "telemetry/queues";
 const SERVERLESS: string = "telemetry/serverless-functions";
@@ -123,10 +129,38 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: STORAGE_ARRAYS, navTitle: "Storage Array Agent" },
   { page: DOCKER_SWARM, navTitle: "Docker Swarm Agent" },
   { page: VMWARE, navTitle: "VMware Agent" },
+  { page: OPENSTACK, navTitle: "OpenStack Agent" },
+  { page: OPENSTACK_AGENTLESS, navTitle: "OpenStack Without an Agent" },
+  {
+    page: OPENSTACK_DEPLOYMENT_TOOLS,
+    navTitle: "OpenStack by Deployment Tool",
+  },
+  {
+    page: OPENSTACK_VERY_LARGE_CLOUDS,
+    navTitle: "Very Large OpenStack Clouds",
+  },
   { page: DATABASES, navTitle: "Databases" },
   { page: QUEUES, navTitle: "Queues" },
   { page: SERVERLESS, navTitle: "Serverless Functions" },
 ];
+
+/*
+ * The pages that follow the agent page template (a captioned diagram, steps
+ * after "How it works", a closing Next steps of cards). The OpenStack guides
+ * for deployment tools, very large clouds and the agentless probe are
+ * reference pages: they are held to every translation rule, not to that shape.
+ */
+const REFERENCE_PAGES: Array<string> = [
+  OPENSTACK_AGENTLESS,
+  OPENSTACK_DEPLOYMENT_TOOLS,
+  OPENSTACK_VERY_LARGE_CLOUDS,
+];
+
+const SHAPED_PAGES: ReadonlyArray<TranslatedPage> = PAGES.filter(
+  (entry: TranslatedPage): boolean => {
+    return !REFERENCE_PAGES.includes(entry.page);
+  },
+);
 
 const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
   return entry.page;
@@ -172,12 +206,71 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   /*
    * The pod and container pages' link to a database (OPEN_DATABASE_LABEL)
-   * and a recommended monitor's template name. (The Overview's engine
+   * and recommended monitors' template names (DatabaseAlertTemplates,
+   * created with English names, as above). (The Overview's engine
    * charts, Row operations and Handler operations among them, read their
    * catalog titles in the reader's language: DatabaseServerMetricCatalog's
    * titles are keys.)
    */
-  [DATABASES]: ["Open database", "Engine Metrics Stopped"],
+  [DATABASES]: [
+    "Open database",
+    "Engine Metrics Stopped",
+    "Galera Node Out of Sync",
+  ],
+  /*
+   * Alert template names (OpenStackAlertTemplates and
+   * OpenStackControlPlaneAlertTemplates), the log pipeline rules
+   * (OpenStackAlertTemplates), the health rules and security detection
+   * rules, and the workflow steps, all created with English names.
+   */
+  [OPENSTACK]: [
+    "Block Storage Service Down",
+    "Storage Pool Warning",
+    "Storage Pool Critical",
+    "Compute Service Down",
+    "Network Agent Down",
+    "Exporter Lost Open vSwitch's Database",
+    "Hypervisor CPU Saturated",
+    "Hypervisor Memory Pressure",
+    "Flavor Can No Longer Be Placed",
+    "Reserved Headroom Gone",
+    "Rating API Down",
+    "Instance Disk Latency High",
+    "Instance CPU Saturated",
+    "Compute Service Disabled",
+    "libvirt Service Down",
+    "Orchestration API Down",
+    "Stack Stuck In Progress",
+    "Share Stuck",
+    "Manila Service Down",
+    "DNS API Down",
+    "DNS Zone Stuck Pending",
+    "Database Instance Stuck",
+    "Gnocchi Backlog Growing",
+    "Swift Storage Server Not Answering",
+    "Swift Rings Differ",
+    "Swift Replication Stale",
+    "Object Container Growth Forecast",
+    "No Valid Host",
+    "RabbitMQ Connection Lost",
+    "Database Connection Lost",
+    "Too Many Errors from a Service",
+    "Token Validation Failing",
+    "OpenStack: DEBUG lines",
+    "OpenStack: health checks",
+    "OpenStack: routine notifications",
+    "Instance Action Failed",
+    "Scheduling Failed",
+    "OpenStack admin credential used from a new address",
+    "OpenStack failed logins burst",
+    "OpenStack role granted on a protected project",
+    "OpenStack application credential created",
+    "OpenStack security group opened to the world",
+    "OpenStack public image published",
+    "Propose an OpenStack fix",
+    "Propose taking a failing OpenStack compute service out of scheduling",
+    "Capacity Forecast Under 14 Days",
+  ],
 };
 
 // Permission names, which the docs write as the product names them, in English.
@@ -265,6 +358,8 @@ const NAMES: Record<string, Array<string>> = {
   [COST]: ["OpenCost"],
   [PROXMOX]: ["PVEAuditor", "n"],
   [VMWARE]: ["vCenter Server"],
+  // OpenStack's services, named as the project names them.
+  [OPENSTACK]: ["Ironic", "Barbican", "Gnocchi"],
   [STORAGE_ARRAYS]: [
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
@@ -399,6 +494,141 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "AI investigations are on by default.",
     "must run on a manager node",
   ],
+  [OPENSTACK]: [
+    "1. Full view",
+    "2. Infrastructure only",
+    "3. Project view",
+    "own project only",
+    "refused",
+    "what anyone sees",
+    "nothing",
+    "none recorded",
+    "409, expected",
+    "To take the overrides off again, empty the file (`{}`) and never delete it.",
+    "Through the agent it shows no instances at all.",
+    "It may be able to write.",
+    "Placement reads as not answering.",
+    "named for the region",
+    "It connects to Open vSwitch's database once.",
+    "It reads one OVN database's cluster status on a machine.",
+    "Project quotas:",
+    "Slow metrics:",
+    "Per-port series:",
+    "Intervals:",
+    "Ironic shows a project only the nodes it owns.",
+    "The exporter doesn't carry why a node failed.",
+    "The exporter has no conductors.",
+    "A stopped Ironic reads the same as no Ironic.",
+    "What capacity is.",
+    "Bare metal.",
+    "How many more fit.",
+    "Sees traits and nested providers",
+    "A host's `max_unit`",
+    "Beside what hosts really use.",
+    "When things fill up.",
+    "Whether a zone can lose a host.",
+    "Allocations no instance explains.",
+    "Alerts.",
+    "What it costs.",
+    "This month against last",
+    "A resize moves hours from one flavor to the other",
+    "A part counts until the inventory lets go of it,",
+    "An instance holds its flavor from when it's placed until it's deleted.",
+    "A volume or snapshot in error, or still being made, doesn't count,",
+    "Hours OneUptime wasn't reading aren't guessed at.",
+    "The agent's exporter reports how many snapshots there are, not which,",
+    "Only a [probe](/docs/telemetry/openstack-agentless) can read it.",
+    "What it sees is what the credential may see.",
+    "A CloudKitty per region adds up.",
+    "Its figures are the one part of this that's telemetry.",
+    "It doesn't say a currency.",
+    "If it stops answering,",
+    "A real CloudKitty has answered this,",
+    "Every list of what a project owns",
+    "In this cloud",
+    "project notice",
+    "A stopped `heat-engine`",
+    "A stopped `magnum-conductor`",
+    "A stopped Designate API says nothing at all.",
+    "`openstack_designate_up` reading 0 means a refusal.",
+    "Follow request",
+    "It is off until you ask for it, and it is per request.",
+    "Its [OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) is marked experimental",
+    "It can only post plain HTTP",
+    "It needs `opentelemetry-sdk` and `opentelemetry-exporter-otlp` in each service",
+    "AI investigations are on by default.",
+    "AI > Agent",
+    "AI > Insights",
+    "AI > Logs",
+    "It reads, until you say otherwise.",
+    "The credential is the hard limit.",
+    "Secrets stay out.",
+    "Fixes are off until you opt in twice.",
+    "Before a person approves a change,",
+    "Where a change may land.",
+    "Its own account, on an empty project with no quota.",
+    "Access rules: four paths, and nothing else.",
+    "A policy file, for what access rules cannot see.",
+    "reads everything",
+    "may be own project only",
+    "not deployed",
+  ],
+  [OPENSTACK_AGENTLESS]: [
+    "A probe that can reach Keystone and every service's API over HTTPS.",
+    "A credential.",
+    "One login, kept.",
+    "Lists in pages.",
+    "Instances by what changed.",
+    "A hypervisor's inventories once.",
+    "A stated load.",
+    "Only the fields it reads.",
+    "Never stacked.",
+    "A time budget.",
+    "Backing off.",
+    "Slowing down.",
+    "A refused credential waits longest.",
+    "Less of a large cloud.",
+  ],
+  [OPENSTACK_DEPLOYMENT_TOOLS]: [
+    "OVN's databases:",
+    "Before 2026.1",
+    "OpenStack admin credential used from a new address",
+    "RabbitMQ:",
+    "HAProxy:",
+    "MariaDB and Memcached:",
+    "With `--multi-cloud`,",
+    "Without it,",
+    "Storage pools",
+    "Block Storage API Down",
+    "Block Storage Service Down",
+    "Storage Pool Warning",
+    "Storage Pool Critical",
+    "Volumes in Error",
+    "Volume Stuck",
+    "Image Stuck",
+  ],
+  [OPENSTACK_VERY_LARGE_CLOUDS]: [
+    "Collect every",
+    "What it keeps:",
+    "What it gives up:",
+    "To keep an instance's series anyway",
+    "Through a probe",
+    "A new cloud's lists fill over its first cycle.",
+    "A part that has gone stays listed a little longer.",
+    "Each pair of a region and a service belongs to one agent.",
+    "Keystone belongs to one agent.",
+    "One agent per region",
+    "One agent per service",
+    "With probes",
+    "1,500 hypervisors or 100,000 instances",
+    "What it asks of you:",
+    "To turn it on",
+    "What it covers.",
+    "What it does not:",
+    "How far this is proven.",
+    "What this leaves out.",
+    "Inventory writes",
+  ],
   [VMWARE]: [
     "standalone ESXi host",
     "without",
@@ -498,10 +728,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Polling CloudWatch",
     "Leave `stats` unset.",
     "Late metrics",
-    "Streaming",
     "From the queue's page.",
     "Counters.",
-    "By hand",
     "Late metrics.",
     "Same-named destinations on two clusters or accounts are one queue.",
     "Kafka clients on Event Hubs are Kafka.",
@@ -1120,7 +1348,7 @@ describe("the English pages", () => {
     expect(englishPage(entry.page).split("\n")[0]).toBe(`# ${entry.navTitle}`);
   });
 
-  it.each(PAGES)(
+  it.each(SHAPED_PAGES)(
     "$page draws at least one diagram, with a caption",
     (entry: TranslatedPage) => {
       const diagrams: Array<DocsFence> = diagramsOf(englishPage(entry.page));
@@ -1133,7 +1361,7 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(PAGES)(
+  it.each(SHAPED_PAGES)(
     "$page opens on cards and ends on a Next steps section of cards, after its Troubleshooting",
     (entry: TranslatedPage) => {
       const markdown: string = englishPage(entry.page);
@@ -1165,7 +1393,7 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(PAGES)(
+  it.each(SHAPED_PAGES)(
     "$page installs or sends with steps, and says how it works first",
     (entry: TranslatedPage) => {
       const markdown: string = englishPage(entry.page);

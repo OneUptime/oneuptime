@@ -7,7 +7,7 @@ Niemand draait "OpenStack". Men draait een tool die het uitrolt, en elke tool he
 - [Doorsturen wat al afgaat](#doorsturen-wat-al-afgaat): Incidenten vanaf het eerste uur, zonder agent.
 - [Kolla-Ansible](#kolla-ansible): Lees de exporters die het al draait.
 - [OpenStack-Ansible](#openstack-ansible): Journald-logboeken en overrides in `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) en [Atmosphere](#atmosphere): Een sonde en de Kubernetes-agent.
+- [OpenStack-Helm](#openstack-helm): Een sonde, en voor Atmosphere de Kubernetes-agent.
 - [Canonical Sunbeam](#canonical-sunbeam): De Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): De OpenShift-preset en Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): De alerts van StackLight.
@@ -45,7 +45,7 @@ Maak een monitor van het type Incoming Request zoals [Prometheus Alertmanager](/
 
 ### Aan de cloud koppelen
 
-Open **Overzicht → Gekoppelde bronnen** van de monitor en voeg de OpenStack-cloud toe. Elk incident staat dan op de pagina **Incidenten** van die cloud: de eigen instellingen van een Incoming Request-monitor noemen geen cloud, dus de Alertmanager van elke cloud heeft een eigen monitor nodig. De cloud verschijnt in die lijst zodra zijn eerste gegevens binnenkomen, dus doe dit na de stappen hieronder, of voeg de cloud eerst toe onder **OpenStack → Alle clouds**.
+Open **Overzicht → Gekoppelde resources** van de monitor en voeg de OpenStack-cloud toe. Elk incident staat dan op de pagina **Incidenten** van die cloud: de eigen instellingen van een Incoming Request-monitor noemen geen cloud, dus de Alertmanager van elke cloud heeft een eigen monitor nodig. De cloud verschijnt in die lijst zodra zijn eerste gegevens binnenkomen, dus doe dit na de stappen hieronder, of voeg de cloud eerst toe onder **OpenStack → Alle clouds**.
 :::
 
 Van Alertmanager is opgenomen dat hij in precies deze vorm post in `Tests/Ops/openstack-e2e`, in de versie die Kolla-Ansible vastzet, en de opname wordt afgespeeld via de echte evaluator: één incident per alert, opgelost door zijn eigen status `resolved`.

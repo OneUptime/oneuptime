@@ -1,13 +1,13 @@
-# OpenStack per strumento di distribuzione
+# OpenStack per strumento di deployment
 
-Nessuno esegue "OpenStack". Si esegue uno strumento che lo distribuisce, e ogni strumento ha i propri percorsi, i propri log e la propria idea di cosa sia già in esecuzione. Questa pagina riporta ciò che la guida di configurazione in OneUptime dice per ciascuno: apri **OpenStack → All Clouds**, connetti un cloud e rispondi a **Come distribuisci OpenStack?**
+Nessuno esegue "OpenStack". Si esegue uno strumento che lo distribuisce, e ogni strumento ha i propri percorsi, i propri log e la propria idea di cosa sia già in esecuzione. Questa pagina riporta ciò che la guida di configurazione in OneUptime dice per ciascuno: apri **OpenStack → Tutti i cloud**, connetti un cloud e rispondi a **Come distribuisci OpenStack?**
 
 :::cards
 - [Fino a che punto è stata testata ogni guida](#fino-a-che-punto-è-stata-testata-ogni-guida): leggi prima questa. Quelle di Kolla-Ansible e di OpenStack-Ansible sono state eseguite su distribuzioni reali. Le altre no.
 - [Inoltra ciò che sta già scattando](#inoltra-ciò-che-sta-già-scattando): incidenti fin dalla prima ora, senza agente.
 - [Kolla-Ansible](#kolla-ansible): leggi gli exporter che già esegue.
 - [OpenStack-Ansible](#openstack-ansible): log di journald e override in `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) e [Atmosphere](#atmosphere): una sonda e l'agente Kubernetes.
+- [OpenStack-Helm](#openstack-helm): per Atmosphere, una sonda e l'agente Kubernetes.
 - [Canonical Sunbeam](#canonical-sunbeam): il Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): il preset OpenShift e Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): gli avvisi di StackLight.
@@ -45,7 +45,7 @@ Crea un monitor Incoming Request come indica [Prometheus Alertmanager](/docs/int
 
 ### Collegalo al cloud
 
-Apri **Overview → Linked Resources** del monitor e aggiungi il cloud OpenStack. Ogni incidente compare poi nella pagina **Incidenti** di quel cloud: le impostazioni di un monitor Incoming Request non nominano nessun cloud, quindi l'Alertmanager di ogni cloud ha bisogno di un monitor proprio. Il cloud compare in quell'elenco quando arrivano i suoi primi dati, quindi fallo dopo i passaggi qui sotto, oppure aggiungi prima il cloud in **OpenStack → All Clouds**.
+Apri **Panoramica → Risorse collegate** del monitor e aggiungi il cloud OpenStack. Ogni incidente compare poi nella pagina **Incidenti** di quel cloud: le impostazioni di un monitor Incoming Request non nominano nessun cloud, quindi l'Alertmanager di ogni cloud ha bisogno di un monitor proprio. Il cloud compare in quell'elenco quando arrivano i suoi primi dati, quindi fallo dopo i passaggi qui sotto, oppure aggiungi prima il cloud in **OpenStack → Tutti i cloud**.
 :::
 
 Alertmanager è registrato mentre invia esattamente questa struttura in `Tests/Ops/openstack-e2e`, alla versione fissata da Kolla-Ansible, e la registrazione viene riprodotta nel vero valutatore: un incidente per avviso, risolto dal proprio stato `resolved`.
@@ -266,7 +266,7 @@ conf:
 
 ### Leggi le API e vedi i pod su OpenStack-Helm
 
-Apri **OpenStack → All Clouds**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** per il cluster su cui girano i chart: i suoi pod, i loro log e i suoi nodi arrivano alle pagine Kubernetes.
+Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** per il cluster su cui girano i chart: i suoi pod, i loro log e i suoi nodi arrivano alle pagine Kubernetes.
 
 Per avere i log di quei servizi anche nella pagina **Registri** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
 
@@ -344,7 +344,7 @@ kube_prometheus_stack_helm_values:
 
 ### Leggi le API e vedi i pod su Atmosphere
 
-Apri **OpenStack → All Clouds**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** per il cluster su cui gira Atmosphere.
+Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** per il cluster su cui gira Atmosphere.
 
 Per avere i log di quei servizi anche nella pagina **Registri** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
 
@@ -454,7 +454,7 @@ spec:
 
 ### Leggi le API e il piano di controllo
 
-Apri **OpenStack → All Clouds**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** sul cluster che esegue il piano di controllo, con **Red Hat OpenShift** selezionato, che imposta `preset=openshift`.
+Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS. Poi segui **Kubernetes → Documentazione** sul cluster che esegue il piano di controllo, con **Red Hat OpenShift** selezionato, che imposta `preset=openshift`.
 
 Per avere i log di quei servizi anche nella pagina **Registri** di questo cloud, con ogni stack trace in un unico record, indica il cloud nei valori dell'agente, con i namespace in cui girano i suoi servizi:
 
@@ -527,7 +527,7 @@ alertmanagerSimpleConfig:
 
 ### Leggi le API
 
-Apri **OpenStack → All Clouds**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS.
+Apri **OpenStack → Tutti i cloud**, fai clic su **Connetti cloud** e indica l'indirizzo di Keystone, una application credential e la sonda da usare. Una sonda parla con un cloud solo in HTTPS.
 
 ### Chi ha fatto cosa su Mirantis MOSK
 

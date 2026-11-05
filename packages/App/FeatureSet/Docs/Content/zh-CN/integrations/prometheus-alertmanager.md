@@ -86,7 +86,7 @@ https://oneuptime.com/heartbeat/<secret key>
 > [!WARNING]
 > 请按同一个通知内各告警之间互不相同的值分组。Alertmanager 的 `fingerprint` 是告警整个标签集的哈希，所以总是不同。路由 `group_by` 中的标签则永远相同：正是它们把告警放进了同一个通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分组，会把通知中的所有告警合并成一个事件，而该事件会跟随第一个告警的状态。
 
-在 OpenStack 云上，还要把监视器关联到该云。Incoming Request 监视器自身的设置不指明任何云，因此它的事件只会出现在 **事件** 中，而不会出现在云上。打开监视器的 **概览 → 关联资源** 并添加该 OpenStack 云：之后每个事件也会出现在该云的 **事件** 页面上。[按部署工具配置 OpenStack](/docs/telemetry/openstack-deployment-tools) 为每个运行 Alertmanager 的工具提供了接收器，位于该工具读取它的位置。
+在 OpenStack 云上，还要把监视器关联到该云。Incoming Request 监视器自身的设置不指明任何云，因此它的事件只会出现在 **事件** 中，而不会出现在云上。打开监视器的 **概览 → 已关联资源** 并添加该 OpenStack 云：之后每个事件也会出现在该云的 **事件** 页面上。[按部署工具配置 OpenStack](/docs/telemetry/openstack-deployment-tools) 为每个运行 Alertmanager 的工具提供了接收器，位于该工具读取它的位置。
 
 ## 为事件命名
 

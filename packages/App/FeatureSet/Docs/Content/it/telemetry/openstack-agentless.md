@@ -1,4 +1,4 @@
-# OpenStack senza agente
+# OpenStack senza agent
 
 Monitora un cloud OpenStack senza installare nulla: inserisci in OneUptime l'indirizzo di Keystone e una application credential, scegli la sonda che può raggiungere il cloud, e la sonda raccoglie gli stessi dati che raccoglierebbe l'[agente OpenStack](/docs/telemetry/openstack). Non c'è nessun agente da installare, aggiornare o mantenere in esecuzione, e nessuna macchina dedicata da predisporre.
 
@@ -76,7 +76,7 @@ Il test della connessione dice a quale di questi livelli corrisponde una credenz
 
 :::steps
 ### Apri i tuoi cloud
-In OneUptime apri **OpenStack → All Clouds** e fai clic su **Connetti cloud**.
+In OneUptime apri **OpenStack → Tutti i cloud** e fai clic su **Connetti cloud**.
 
 ### Inserisci l'indirizzo e la credenziale
 Inserisci l'`auth_url` del tuo file `clouds.yaml` o `openrc`, ad esempio `https://keystone.example.com:5000/v3`, e l'ID e il secret della application credential. Scegli la sonda che raggiunge il cloud.

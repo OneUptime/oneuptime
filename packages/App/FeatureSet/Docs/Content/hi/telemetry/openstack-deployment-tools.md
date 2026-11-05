@@ -7,7 +7,7 @@
 - [जो पहले से फ़ायर हो रहा है उसे फ़ॉरवर्ड करें](#जो-पहले-से-फ़ायर-हो-रहा-है-उसे-फ़ॉरवर्ड-करें): पहले घंटे से घटनाएं, बिना किसी एजेंट के।
 - [Kolla-Ansible](#kolla-ansible): जो एक्सपोर्टर वह पहले से चलाता है उन्हें पढ़ें।
 - [OpenStack-Ansible](#openstack-ansible): Journald लॉग, और `user_variables.yml` में ओवरराइड।
-- [OpenStack-Helm](#openstack-helm) और [Atmosphere](#atmosphere): एक प्रोब, और Kubernetes एजेंट।
+- [OpenStack-Helm](#openstack-helm): एक प्रोब, और [Atmosphere](#atmosphere) के लिए Kubernetes एजेंट।
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack।
 - [OpenShift पर Red Hat OpenStack](#openshift-पर-red-hat-openstack): OpenShift प्रीसेट, और Ceilometer।
 - [Mirantis MOSK](#mirantis-mosk): StackLight के अलर्ट।
@@ -84,8 +84,8 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 `source /etc/kolla/admin-openrc.sh` से admin के रूप में लॉगिन करें, जिसे `kolla-ansible post-deploy` लिखता है।
 
-- **पूरा दृश्य** को एक बदलाव चाहिए, Cinder में। Kolla-Ansible के टेम्पलेट Nova, Neutron, Glance और Placement पर `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करते हैं, लेकिन उसका Cinder `volume` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/kolla/config/cinder.conf` में `[keystone_authtoken]` के नीचे `service_type = block-storage` जोड़ें, फिर `kolla-ansible reconfigure -i <inventory> --tags cinder` चलाएं।
-- **केवल इंफ्रास्ट्रक्चर** अपने ओवरराइड `/etc/kolla/config/nova/policy.yaml` पर लेता है, और `neutron`, `keystone` और `placement` के लिए भी वैसे ही, वहाँ पहले से जो है उसके साथ मर्ज करके। उन्हें `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` से लागू करें।
+- **Full view** को एक बदलाव चाहिए, Cinder में। Kolla-Ansible के टेम्पलेट Nova, Neutron, Glance और Placement पर `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करते हैं, लेकिन उसका Cinder `volume` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/kolla/config/cinder.conf` में `[keystone_authtoken]` के नीचे `service_type = block-storage` जोड़ें, फिर `kolla-ansible reconfigure -i <inventory> --tags cinder` चलाएं।
+- **Infrastructure only** अपने ओवरराइड `/etc/kolla/config/nova/policy.yaml` पर लेता है, और `neutron`, `keystone` और `placement` के लिए भी वैसे ही, वहाँ पहले से जो है उसके साथ मर्ज करके। उन्हें `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` से लागू करें।
 
 ### Kolla-Ansible का क्लाउड जिन पर टिका है उन पर नज़र रखें
 
@@ -161,8 +161,8 @@ OpenStack-Ansible अपनी सेवाओं के लॉग journald म�
 
 यूटिलिटी कंटेनर से admin के रूप में लॉगिन करें: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, फिर `. ~/openrc`। उसमें `curl` नहीं है, जिसे नीचे के कमांड इस्तेमाल करते हैं, इसलिए पहले वहाँ `apt-get install -y curl` चलाएँ।
 
-- **पूरा दृश्य** को एक बदलाव चाहिए, Cinder में। OpenStack-Ansible की भूमिकाएँ `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करती हैं, लेकिन उसका Cinder `volumev3` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/openstack_deploy/user_variables.yml` में `cinder_cinder_conf_overrides` के अंदर `keystone_authtoken` के नीचे `service_type: block-storage` सेट करें, फिर `openstack-ansible openstack.osa.cinder --tags cinder-config` चलाएं।
-- **केवल इंफ्रास्ट्रक्चर** अपने ओवरराइड `/etc/openstack_deploy/user_variables.yml` में `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` और `placement_policy_overrides` के रूप में लेता है। हर एक को उसके अपने प्लेबुक और टैग से लागू करें, जैसे `openstack-ansible openstack.osa.nova --tags nova-policy-override`। बाद में किसी को हटाने पर फ़ाइल हट जाने के बजाय खाली रह जाती है, इसलिए कुछ विफल नहीं होता।
+- **Full view** को एक बदलाव चाहिए, Cinder में। OpenStack-Ansible की भूमिकाएँ `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करती हैं, लेकिन उसका Cinder `volumev3` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/openstack_deploy/user_variables.yml` में `cinder_cinder_conf_overrides` के अंदर `keystone_authtoken` के नीचे `service_type: block-storage` सेट करें, फिर `openstack-ansible openstack.osa.cinder --tags cinder-config` चलाएं।
+- **Infrastructure only** अपने ओवरराइड `/etc/openstack_deploy/user_variables.yml` में `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` और `placement_policy_overrides` के रूप में लेता है। हर एक को उसके अपने प्लेबुक और टैग से लागू करें, जैसे `openstack-ansible openstack.osa.nova --tags nova-policy-override`। बाद में किसी को हटाने पर फ़ाइल हट जाने के बजाय खाली रह जाती है, इसलिए कुछ विफल नहीं होता।
 
 ### OpenStack-Ansible का क्लाउड जिन पर टिका है उन पर नज़र रखें
 

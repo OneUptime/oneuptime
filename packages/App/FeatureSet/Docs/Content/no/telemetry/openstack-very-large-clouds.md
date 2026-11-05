@@ -78,7 +78,7 @@ Radene fra hver skraping er det du faktureres for: de første fem linjene kommer
 | --- | --- | --- | --- | --- |
 | 10 hypervisorer, 100 instanser, 20 prosjekter | 1 075 | 0,7 | Ikke i sammendragsmodus | $2.12 |
 | 500 hypervisorer, 20 000 instanser, 1 000 prosjekter | 123 847 | 84,5 | 16,6 | $49.71 |
-| 5 000 hypervisorer, 200 000 instanser, 10 000 prosjekter | 1 237 183 | 844,5 | 164,9 | $494.73 |
+| 5 000 hypervisorer, 200 000 instanser, 10 000 prosjekter | 1,237,183 | 844,5 | 164,9 | $494.73 |
 
 Disse er gjennom agenten, med én instans av tusen i en tilstand som beholder seriene sine. En sonde over sammendragsstørrelsen sender det som ikke er endret én gang per syklus i stedet for ved hver innsamling, noe som blir omtrent 13,2 GB per dag ved den andre størrelsen og 116 GB ved den tredje.
 

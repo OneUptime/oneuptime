@@ -303,7 +303,7 @@ service:
 - `delay` wacht tot CloudWatch een periode publiceert (dat duurt een paar minuten), dus met deze configuratie komen de brokermetrics van een wachtrij 11 tot 17 minuten te laat binnen: een monitor daarover heeft een langer venster nodig (zie **Late metrics** onder [Waarschuwingen](#waarschuwingen)).
 - Eén receiver leest één regio en één namespace: voeg per regio een instantie toe.
 
-**Streaming** pusht de metrics zodra CloudWatch ze publiceert. Maak voor de namespaces `AWS/SQS` (en `AWS/SNS`) een CloudWatch Metric Stream met het uitvoerformaat **OpenTelemetry 1.0** die aflevert aan een Amazon Data Firehose-stream waarvan de bestemming een HTTP-endpoint is: je collector, met een toegangssleutel. Firehose levert alleen af aan `https://` op poort 443, dus de collector heeft een certificaat en een openbare poort 443 nodig (bijvoorbeeld achter een load balancer):
+**Streamt**: pusht de metrics zodra CloudWatch ze publiceert. Maak voor de namespaces `AWS/SQS` (en `AWS/SNS`) een CloudWatch Metric Stream met het uitvoerformaat **OpenTelemetry 1.0** die aflevert aan een Amazon Data Firehose-stream waarvan de bestemming een HTTP-endpoint is: je collector, met een toegangssleutel. Firehose levert alleen af aan `https://` op poort 443, dus de collector heeft een certificaat en een openbare poort 443 nodig (bijvoorbeeld achter een load balancer):
 
 ```yaml
 extensions:
@@ -994,7 +994,7 @@ service:
 
 Elk punt van `rabbitmq.message.published.delta` is het aantal berichten dat sinds de vorige scrape is gepubliceerd, dus een metrics-monitor erop, gefilterd op `resource.rabbitmq.queue.name` en opgeteld over zijn venster, telt wat in dat venster is gepubliceerd: onder 1 in 15 minuten betekent dat niemand publiceert. Na elke start van de collector heeft de processor geen eerdere waarde om het eerste punt van een wachtrij van af te trekken, en standaard verstuurt hij dat punt zoals het is: het hele lopende totaal van de teller, alsof elk bericht dat de wachtrij ooit heeft gehad in één scrape is gepubliceerd. `initial_value: drop` houdt dat punt tegen, zodat de kopie van een wachtrij begint met de tweede scrape die haar teller rapporteert. Kopieer een andere teller op dezelfde manier, met elk een `copy_metric`-instructie en een `include`-item. De JMX Scraper van ActiveMQ moet dan via zo'n collector versturen, naar een `otlp`-receiver in plaats van `rabbitmq`; de tellers van RocketMQ krijgen dezelfde twee processors in de pipeline van zijn `prometheus`-receiver.
 
-**Handmatig** filter je op het attribuut dat de wachtrij in die metric noemt; het is voor elke wachtrij van een systeem hetzelfde:
+**By hand** filter je op het attribuut dat de wachtrij in die metric noemt; het is voor elke wachtrij van een systeem hetzelfde:
 
 | Waarschuwen wanneer | Metric | Filter | Aggregatie |
 | --- | --- | --- | --- |

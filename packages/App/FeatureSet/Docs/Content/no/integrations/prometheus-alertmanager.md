@@ -86,7 +86,7 @@ En selvdriftet installasjon har sin egen vert i stedet for `oneuptime.com`.
 > [!WARNING]
 > Grupper etter en verdi som varierer fra varsel til varsel innenfor én varsling. Alertmanagers `fingerprint` er en hash av hele etikettsettet til et varsel, så den varierer alltid. En etikett i `group_by` for ruten din varierer aldri: det er nettopp den som samler varslene i én varsling. Gruppering etter `requestBody.alerts[*].labels.alertname` med ruten nedenfor slår sammen hvert varsel i en varsling til én hendelse, som får statusen til det første varselet.
 
-På en OpenStack-sky kobler du monitoren til skyen også. Innstillingene til en Incoming Request-monitor navngir ingen sky, så hendelsene dens ville havnet under **Hendelser** og ikke i skyen. Åpne monitorens **Oversikt → Linked Resources** og legg til OpenStack-skyen: hver hendelse er da også på skyens side **Hendelser**. [OpenStack etter distribusjonsverktøy](/docs/telemetry/openstack-deployment-tools) har mottakeren for hvert verktøy som kjører en Alertmanager, på stedet verktøyet leser den fra.
+På en OpenStack-sky kobler du monitoren til skyen også. Innstillingene til en Incoming Request-monitor navngir ingen sky, så hendelsene dens ville havnet under **Hendelser** og ikke i skyen. Åpne monitorens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen: hver hendelse er da også på skyens side **Hendelser**. [OpenStack etter distribusjonsverktøy](/docs/telemetry/openstack-deployment-tools) har mottakeren for hvert verktøy som kjører en Alertmanager, på stedet verktøyet leser den fra.
 
 ## Navngi hendelsene
 

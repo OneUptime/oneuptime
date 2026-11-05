@@ -1,4 +1,4 @@
-# OpenStack-monitor
+# OpenStack-övervakning
 
 En OpenStack-monitor bevakar ett moln - dess API:er, arbetarprocesserna bakom dem, hypervisorer, instanser, nätverk, lagringspooler och projektkvoter - och talar om när ett API slutar svara, en arbetarprocess går ner, en hypervisor inte har något utrymme kvar eller en pool blir full. Den läser `openstack_*`-serierna som OneUptimes OpenStack-agent samlar in från openstack-exporter.
 
@@ -49,15 +49,15 @@ Under **OpenStack Monitor Configuration** väljer du molnet i **OpenStack-moln**
 
 ### Välj vad som ska bevakas
 
-En ny monitor startar med **Molnet slutade rapportera**, under **Vad som ska larmas om**. Så här bevakar du något annat:
+En ny monitor startar med **Cloud Stopped Reporting**, under **Vad som ska larmas om**. Så här bevakar du något annat:
 
 - **Ändra** - välj en annan [mall](#färdiga-larmmallar). Den anger mätvärde, attributfilter, aggregering, tidsintervall, gruppering och trösklar, och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Eget mätvärde** (under **Fler fält**) - välj ett mätvärde i **OpenStack-mätvärde**, ställ sedan in **Aggregering** och **Tidsintervall**, och avgränsa med [filtren](#monitorinställningar).
+- **Custom Metric** (under **Fler fält**) - välj ett mätvärde i **OpenStack-mätvärde**, ställ sedan in **Aggregering** och **Tidsintervall**, och avgränsa med [filtren](#monitorinställningar).
 - **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mått**, med filter på attribut som `status`, `adminState` eller `resourcetype`. Använd **Gruppera efter** ett [identitetsattribut](#identitetsattribut) för att bedöma varje del för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dessa. Med **Eget mätvärde** eller **Avancerad** startar monitorn med standardkriterierna, som bara märker att mätvärdet inte skickar någon data, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dessa. Med **Custom Metric** eller **Avancerad** startar monitorn med standardkriterierna, som bara märker att mätvärdet inte skickar någon data, så ange din egen tröskel.
 
 ### Skapa monitorn
 
@@ -79,12 +79,12 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Projekt-ID** | Eget mätvärde, Avancerad | Valfritt. Ett projekt: `tenant_id` på Novas och Cinders serier samt på nätverk och subnät, `project_id` på flytande IP-adresser, routrar och adresstillgänglighet. |
 | **OpenStack-mätvärde** | Eget mätvärde | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Eget mätvärde | Hur värden kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
-| **Tidsintervall** | Alla | Det rullande fönster som frågan läser, från **Senaste 1 minuten** till **Senaste 365 dagarna**. En ny monitor börjar på **Senaste 15 minuterna**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera efter attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Tidsintervall** | Alla | Det rullande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Senaste 15 minuterna**; mallar anger sitt eget. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Ett filter avgränsar bara en serie som har dess etikett: `openstack_nova_up` har inget projekt, så ett projektfilter låter den vara som den är.
 
-Låt fönstret vara minst tre insamlingar av det du läser: 6 minuter för compute, network, volume och placement, 15 för identity och image. Ett kortare fönster rymmer inte tillräckligt många insamlingar för att **Alla värden** ska kunna betyda en varaktighet.
+Låt fönstret vara minst tre insamlingar av det du läser: 6 minuter för compute, network, volume och placement, 15 för identity och image. Ett kortare fönster rymmer inte tillräckligt många insamlingar för att **All Values** ska kunna betyda en varaktighet.
 
 ## Identitetsattribut
 
@@ -171,7 +171,7 @@ Varje mall läser minst tre insamlingar av det den bevakar och utlöses bara nä
 | DNS-zon fastnat i pending | Nätverk | Varning | Ett antal av `openstack_designate_zone_status` med `status=PENDING`, per zon, **senaste 30 minuterna** | En zon visar `PENDING` under hela fönstret. Dess worker ger upp efter några minuter, så ingenting arbetar med den | Den visar något annat |
 | DNS-recordset i fel | Nätverk | Varning | Ett antal av `openstack_designate_recordsets_status` med `status=ERROR` och varje typ någon ber om, per zon, **senaste 15 minuterna** | Ett recordset som inte är en zons egna SOA och NS visar `ERROR`. Dessa två visar `ERROR` tillsammans med sin zon, så DNS-zon i fel anger det | Det visar något annat |
 | Mätvärdes-API nere | Tillgänglighet | Kritisk | `openstack_gnocchi_up` och `up` för `gnocchi`, Min per region, **senaste 15 minuterna** | Exporterns läsning av Gnocchi misslyckades, eller exportern svarade inte. En inloggningsuppgift som Gnocchi nekar visar samma sak, så ett moln vars inloggningsuppgift aldrig har läst Gnocchi erbjuds inte denna | Båda visar 1 |
-| Gnocchi utan processorer | Mätvärden | Kritisk | `openstack_gnocchi_status_metricd_processors`, Max per region, **senaste 15 minuterna** | Gnocchis status anger ingen processor. Dess API fortsätter svara och ta emot mätningar, så **Mätvärdes-API nere** säger ingenting om detta | Den anger en |
+| Gnocchi utan processorer | Mätvärden | Kritisk | `openstack_gnocchi_status_metricd_processors`, Max per region, **senaste 15 minuterna** | Gnocchis status anger ingen processor. Dess API fortsätter svara och ta emot mätningar, så **Metrics API Down** säger ingenting om detta | Den anger en |
 | Gnocchi-backlog växer | Mätvärden | Varning | `openstack_gnocchi_status_measures_to_process`, en linje genom de **senaste 2 timmarna** | Linjen passerar 10 000 mätningar inom nästa timme. En backlog som är större än så och minskar utlöser inte | Linjen når inte längre 9 000 |
 | Objektlagrings-API nere | Tillgänglighet | Kritisk | `openstack_object_store_up` och `up` för `object-store`, Min per region, **senaste 15 minuterna** | Exporterns läsning av Swift misslyckades, eller exportern svarade inte. En inloggningsuppgift som Swift nekar visar samma sak, så ett moln vars inloggningsuppgift aldrig har läst Swift erbjuds inte denna | Båda visar 1 |
 | Prognos för objektcontainerns tillväxt | Lagring | Varning | `openstack_object_store_bytes`, en linje genom de **senaste 7 dagarna**, per container | Linjen passerar 1 TiB inom nästa vecka. Ändra den till det ditt moln bör höra om | Linjen når inte längre 90 % av det |
@@ -208,9 +208,9 @@ Varje mall läser minst tre insamlingar av det den bevakar och utlöses bara nä
 - **Varje mall utom Molnet slutade rapportera grupperar efter det en incident handlar om:** en arbetarprocess värd och binärfil, ett API:s region, en instans, en router, ett nätverk, en pool, ett projekt. Incidenten namnger det, med [kommandona att köra härnäst](#kommandon-att-köra-härnäst).
 - **En statusserie har en kod som värde**, inte ett antal: `openstack_nova_server_status` visar 4 för en instans i ERROR. Mallarna filtrerar på ordet i `status`.
 - **En serie som precis har dykt upp väntar ett helt fönster,** så en instans, volym eller image som setts en gång på väg till något annat ger ingenting. Varje mall vet hur ofta dess tjänst samlas in från den tjänstens egen `_up`-serie.
-- **En serie som försvinner räknas som återställd:** en arbetarprocess som någon har inaktiverat, den sista instansen i ERROR som tas bort, en pool som tas bort. Varje mall läser sin tjänsts egen `_up`-serie vid sidan av sin egen, så att den kan skilja en del som försvunnit från ett moln som blivit tyst. När ingenting kommer in alls förblir dess incidenter öppna och **Molnet slutade rapportera** talar i stället.
+- **En serie som försvinner räknas som återställd:** en arbetarprocess som någon har inaktiverat, den sista instansen i ERROR som tas bort, en pool som tas bort. Varje mall läser sin tjänsts egen `_up`-serie vid sidan av sin egen, så att den kan skilja en del som försvunnit från ett moln som blivit tyst. När ingenting kommer in alls förblir dess incidenter öppna och **Cloud Stopped Reporting** talar i stället.
 - **När ett API är nere försvinner också dess egna serier**, så att den tjänstens andra mallar återställs, och utlöses igen ett fönster efter att det är tillbaka om felet fortfarande finns. Om alla API:er visar nere samtidigt, titta på exportern först.
-- **Ett moln som inte har en sådan tjänst förblir tyst.** Exportern svarar med ingenting för en tjänst som inte finns i molnets katalog, och **Nätverks-**, **Blocklagrings-**, **Image-** och **Placement-API nere** tolkar inte det som ett avbrott. **Identity-** och **Compute-API nere** gör det, eftersom det också är så exportern rapporterar att Keystones eller Novas API har stoppat helt, och varje moln har dem.
+- **Ett moln som inte har en sådan tjänst förblir tyst.** Exportern svarar med ingenting för en tjänst som inte finns i molnets katalog, och **Nätverk**, **Blocklagring**, **Bild** och **Placement API Down** tolkar inte det som ett avbrott. **Identitet** och **Compute API Down** gör det, eftersom det också är så exportern rapporterar att Keystones eller Novas API har stoppat helt, och varje moln har dem.
 
 ### När en utlöses
 
@@ -218,7 +218,7 @@ När `nova-compute` är stoppad går dess rad på molnets sida **Tjänster** ner
 
 ![Sidan Tjänster med nova-compute nere på sin värd i 10 minuter, och alla andra tjänster och API:er uppe](/docs/static/images/OpenStackServicesComputeDown.png)
 
-När det har varat under mallens hela fönster öppnar **Compute-tjänst nere** en incident, som namnger värden och återställs av sig själv när tjänsten är tillbaka:
+När det har varat under mallens hela fönster öppnar **Compute Service Down** en incident, som namnger värden och återställs av sig själv när tjänsten är tillbaka:
 
 ![En incident från mallen Compute-tjänst nere, som namnger värd, tjänst och region, berättar vad som hände, med monitorn och molnet under Berörda resurser](/docs/static/images/OpenStackIncidentComputeDown.png)
 
@@ -292,7 +292,7 @@ Incidenten anger vad den tar ner, och ett larm på en arbetarprocess medan dess 
 
 De tre **Kapacitet**-mallarna läser serier som OneUptime själv skriver utifrån molnets inventarie, var annan minut medan molnet rapporterar. Ingen exporterserie har en zon eller en flavors antal i sig. Se [Kapacitet](/docs/telemetry/openstack#kapacitet) för vad de betyder. Alla tre handlar om allokering, det som har utlovats, och ingen handlar om belastning.
 
-**Projektkvot nästan nådd** läser `openstack_nova_limits_*` och `openstack_cinder_limits_*`, som är avstängda som standard eftersom de kostar API-anrop per projekt. Mallen förblir tyst tills du slår på dem: kör agentens `install.sh` igen med `OPENSTACK_COLLECT_QUOTAS=true`. En andra exporter läser dem då en gång i timmen, och mallen väntar på tre av de avläsningarna. På ett moln som en sond läser slår du på **Projektgränser** under **Datainsamling** på dess sida **Inställningar**.
+**Project Quota Nearly Reached** läser `openstack_nova_limits_*` och `openstack_cinder_limits_*`, som är avstängda som standard eftersom de kostar API-anrop per projekt. Mallen förblir tyst tills du slår på dem: kör agentens `install.sh` igen med `OPENSTACK_COLLECT_QUOTAS=true`. En andra exporter läser dem då en gång i timmen, och mallen väntar på tre av de avläsningarna. På ett moln som en sond läser slår du på **Projektgränser** under **Datainsamling** på dess sida **Inställningar**.
 
 ### Kommandon att köra härnäst
 
@@ -319,7 +319,7 @@ Mätvärdena nedan är katalogen som monitorformuläret erbjuder. **Läsningar**
 | Mätvärde | Enhet | Läsningar | Beskrivning |
 | --- | --- | --- | --- |
 | `up` | - | Min | Om exportern alls svarade på den här insamlingen (1) eller inte (0): den stoppades, fick timeout eller svarade med ett fel. 1 säger ingenting om själva API:et, eftersom exportern svarar även när den inte kunde nå det. Rapporteras av agentens collector, en serie per tjänst och region. |
-| `scrape_samples_scraped` | `count` | Min | Hur många serier exportern svarade på en insamling med. 0 betyder att den inte hade något att säga: den kunde inte logga in i Keystone, eller kunde inte nå Novas API för att komma överens om en mikroversion, och de felen lämnar inga openstack_*-serier alls. Rapporteras av agentens collector, en serie per tjänst och region. |
+| `scrape_samples_scraped` | `count` | Min | Hur många serier exportern svarade på en insamling med. 0 betyder att den inte hade något att säga: den kunde inte logga in i Keystone, eller kunde inte nå Novas API för att komma överens om en mikroversion, och de felen lämnar inga serier alls från exportern. Rapporteras av agentens collector, en serie per tjänst och region. |
 | `openstack_identity_up` | - | Min | Om Keystones API svarade på exporterns anrop (1) eller om alla misslyckades (0). När det inte går att logga in i Keystone alls svarar exportern med ingenting, så den här serien försvinner i stället för att visa 0. |
 | `openstack_nova_up` | - | Min | Om Novas API svarade på exporterns anrop (1) eller om alla misslyckades (0). När Novas API inte kan nås alls svarar exportern med ingenting, så den här serien försvinner i stället för att visa 0. |
 | `openstack_neutron_up` | - | Min | Om Neutrons API svarade på exporterns anrop (1) eller om alla misslyckades (0). |
@@ -752,12 +752,12 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | Fält | Vad det gör |
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, med sitt variabelnamn. |
-| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximalt värde**, **Minimalt värde**, **Alla värden** (varje värde måste stämma, över hela fönstret) eller **Valfritt värde** (ett räcker). |
-| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Onormalt högt**, **Onormalt lågt** eller **Onormalt**. **Inga data** stämmer när frågan inte skickade något i fönstret, **Har data** när den skickade något. **Väntas stiga över** och **Väntas sjunka under** stämmer när mätvärdets trend över fönstret kommer att ha passerat tröskeln vid slutet av **Tidshorisont**. |
+| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste stämma, över hela fönstret) eller **Any Value** (ett räcker). |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Inga data** stämmer när frågan inte skickade något i fönstret, **Har data** när den skickade något. **Väntas stiga över** och **Väntas sjunka under** stämmer när mätvärdets trend över fönstret kommer att ha passerat tröskeln vid slutet av **Tidshorisont**. |
 | **Tröskel** | Värdet att jämföra med. En enhetslista finns bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
-| **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret saknar värden: **Ignorera** (standard), **Behandla som noll** eller **Utlösare**. |
+| **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret saknar värden: **Ignore** (standard), **Treat As Zero** eller **Utlösare**. |
 
 Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De förblir i läget "Learning", och ger ingenting, tills baslinjefönstret innehåller tillräckligt med historik. Den här monitorn filtrerar sina frågor på attribut, så varje fråga, och varje serie i en grupperad, jämförs med sin egen historik, så långt tillbaka som dina mätvärden sparas. Om det är under två veckor förblir en Summa, ett Antal eller en fråga på ett histogram i det läget för gott, och allt annat jämförs med varje serie av mätvärdet. En percentil av ett histogram förblir alltid i det läget.
 
@@ -774,8 +774,8 @@ En monitor som du inte bygger från en mall startar med två kriterier:
 
 | Ordning | Kriterium | Stämmer när | Då |
 | --- | --- | --- | --- |
-| 1 | Kontrollera om _monitornamn_ är offline | Den första frågan saknar data under hela fönstret | Markerar monitorn som **Offline** och skapar incidenten "_monitornamn_ är offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
+| 1 | Check if _monitor name_ is offline | Den första frågan saknar data under hela fönstret | Markerar monitorn som **Offline** och skapar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
 > Värdet `0` är data, så ett mätvärde som ofta är noll, till exempel omstarter eller fel, gör inte monitorn offline. Om du vill larma på ett värde, utgå från en mall eller lägg till ett kriterium med en tröskel. När ingen data kommer in alls och inget kriterium stämmer behåller monitorn sin status och öppna incidenter förblir öppna: tystnad är inte återhämtning. Tid då OneUptime självt inte tog emot något är aldrig ingen data: en kontroll vars fönster innehåller den väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
@@ -827,7 +827,7 @@ Ett moln på OVN har inga L3-agenter, så `openstack_neutron_l3_agent_of_router`
 :::
 
 :::details Blocklagrings-API nere utlöstes inte när Keystone gick ner
-Utan Keystone kan exportern inte läsa något, för någon tjänst, och svarar på varje insamling med ingenting. **Identity-API nere** och **Molnet slutade rapportera** är de som utlöses.
+Utan Keystone kan exportern inte läsa något, för någon tjänst, och svarar på varje insamling med ingenting. **Identity API Down** och **Cloud Stopped Reporting** är de som utlöses.
 :::
 
 :::details En arbetarprocess jag inaktiverade syns fortfarande i ett diagram

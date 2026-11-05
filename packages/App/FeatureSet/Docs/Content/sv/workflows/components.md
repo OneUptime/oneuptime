@@ -441,8 +441,8 @@ Det behöver ingen AI-modell, och det följer samma regler som en åtgärd som O
 | ----------- | ----------- |
 | **Alert ID** | Larmet som åtgärden gäller, oftast det ID som din trigger returnerade. Fyll i antingen det här eller **Incident ID**, så hämtas molnet från det som posten är länkad till. |
 | **Incident ID** | Incidenten som åtgärden gäller, oftast det ID som din trigger returnerade. Fyll i antingen det här eller **Alert ID**. |
-| **Command** | Ändringen som ska föreslås, i den enda stavning som OneUptime tar emot. Se [ändringarna en åtgärd kan göra](/docs/telemetry/openstack#åtgärder). Den kan använda värden från tidigare block, och läses efter att de har fyllts i. |
-| **Why** | Det som personen som godkänner den läser först. Om den lämnas tom anges vilket arbetsflöde som bad om den. |
+| **Kommando** | Ändringen som ska föreslås, i den enda stavning som OneUptime tar emot. Se [ändringarna en åtgärd kan göra](/docs/telemetry/openstack#åtgärder). Den kan använda värden från tidigare block, och läses efter att de har fyllts i. |
+| **Varför** | Det som personen som godkänner den läser först. Om den lämnas tom anges vilket arbetsflöde som bad om den. |
 | **OpenStack Cloud ID** | Under **Fler fält**. Bara för en post som är länkad till fler än ett moln, eller till inget. |
 
 Det returnerar **Suggestion ID** (åtgärden som väntar på godkännande), **Tier** (Safe eller Riskier, så som OneUptime läser kommandot) och **Already Waiting** (sant när samma ändring i det molnet redan väntade, så ingen andra lades till).

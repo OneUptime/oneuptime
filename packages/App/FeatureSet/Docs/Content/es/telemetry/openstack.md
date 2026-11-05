@@ -103,7 +103,7 @@ Esto es lo que respondieron cinco nubes reales, en Epoxy, Flamingo, Gazpacho (OV
 | Cinder: tipos de volumen | todos | lo que ve cualquiera | lo que ve cualquiera |
 | Glance: imágenes | todas | lo que ve cualquiera | lo que ve cualquiera |
 
-- **todos**: las mismas filas que vio un admin.
+- **todas las**: las mismas filas que vio un admin.
 - **solo el proyecto propio**: las filas de ese proyecto y todo lo compartido o externo. En un proyecto que no contiene nada, eso son solo las compartidas y externas.
 - **rechazado**: un `401` o un `403`.
 - **lo que ve cualquiera**: todas las credenciales vieron todas las filas, en nubes que solo contienen flavors, tipos de volumen e imágenes públicos. Uno privado en otro proyecto requiere el nivel 1.
@@ -134,7 +134,7 @@ Cada OneUptime sirve el script de instalación del agente y sus archivos para su
 Elige el nivel que escogiste. Cada uno crea una credencial de aplicación, que imprime un `id` y un `secret`: el secreto se muestra una sola vez. Dale una fecha de caducidad y nunca `--unrestricted`, que le permitiría crear más credenciales.
 
 :::tabs
-@tab Nivel 1: Vista completa
+@tab Level 1: Full view
 Como admin, crea un proyecto y una cuenta para el agente:
 
 ```bash
@@ -198,7 +198,7 @@ En los servicios que una nube puede no ejecutar, lo que obtuvo cada nivel en nub
 Keystone no necesita nada. Con las reglas ajustadas, `service_type` definido y las API reiniciadas, toda lectura respondió `200` y toda escritura `401`, en todas las versiones que registramos. El exporter obtiene lo que obtiene un admin, salvo los usuarios y grupos de Keystone, a propósito. Eso vale también para los servicios que una nube puede no ejecutar: registrado en DevStack, el nivel 1 obtuvo las mismas series que la credencial de un admin de cada uno que lee el exporter, y toda escritura respondió `401`.
 
 Si no vas a hacer ese cambio, crea la misma credencial sin `--access-rules`: una credencial de aplicación de admin simple. Funciona y puede escribir, por lo que el script de diagnóstico la etiqueta como tal.
-@tab Nivel 2: Solo infraestructura
+@tab Level 2: Infrastructure only
 Como admin, crea el rol, un proyecto que no contenga nada y tenga cuota cero, y una cuenta:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Poner el rol en un proyecto real para ver sus volúmenes y routers también permite a la cuenta escribir ahí, en una nube donde Cinder tiene `enforce_new_defaults` desactivado. El script de diagnóstico avisa cuando el proyecto de la credencial contiene cosas.
-@tab Nivel 3: Vista de proyecto
+@tab Level 3: Project view
 Da a una cuenta el rol `reader` simple en el proyecto y, después, con la sesión iniciada con esa cuenta en ese proyecto, crea la credencial:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Sin Docker
+@tab Without Docker
 En Linux (x86_64 o arm64) con systemd 235 o posterior y glibc 2.34 o posterior, el script de instalación ejecuta las versiones upstream de los mismos dos programas como servicios de systemd. RHEL 8 y sus derivados tienen una glibc más antigua, en la que la versión del exporter no puede ejecutarse: el script lo dice y no cambia nada, así que usa Docker ahí.
 
 ```bash
@@ -499,7 +499,7 @@ Tres problemas abiertos en upstream condicionan todo esto, y el proyecto tambié
 
 ## Bare metal
 
-Si tu nube ejecuta Ironic, obtiene una sección **Bare metal** con todos los nodos que Ironic muestra a la credencial: en qué punto de la máquina de estados de Ironic está, su energía, si alguien lo puso en mantenimiento y por qué, su clase de recurso y cuándo vio Ironic por última vez que se movía. Una nube sin Ironic no tiene esa sección, ni alertas al respecto, ni una sola línea en ninguna página.
+Si tu nube ejecuta Ironic, obtiene una sección **Bare Metal** con todos los nodos que Ironic muestra a la credencial: en qué punto de la máquina de estados de Ironic está, su energía, si alguien lo puso en mantenimiento y por qué, su clase de recurso y cuándo vio Ironic por última vez que se movía. Una nube sin Ironic no tiene esa sección, ni alertas al respecto, ni una sola línea en ninguna página.
 
 Un nodo no es un hipervisor, aunque Nova y Placement lo listen como tal con su UUID, así que no se cuenta como un lugar donde ejecutar una máquina virtual. Cuántos nodos de cada clase de recurso podrían alojar una instancia aparece en la página Bare metal, para los nodos que Ironic muestra a esta credencial, y en la página [Capacidad](#capacidad), para todos los nodos que tiene Placement.
 

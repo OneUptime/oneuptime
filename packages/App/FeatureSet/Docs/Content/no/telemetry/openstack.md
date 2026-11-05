@@ -134,7 +134,7 @@ Hver OneUptime serverer agentens installasjonsskript og filer for sin egen utgav
 Velg nivået du har valgt. Hvert nivå lager en applikasjonslegitimasjon, som skriver ut en `id` og en `secret`: hemmeligheten vises bare én gang. Gi den en utløpsdato og bruk aldri `--unrestricted`, som ville latt den lage flere legitimasjoner.
 
 :::tabs
-@tab Nivå 1: Full visning
+@tab Level 1: Full view
 Som admin oppretter du et prosjekt og en konto for agenten:
 
 ```bash
@@ -198,7 +198,7 @@ På tjenestene en sky kanskje ikke kjører, avviker det hvert nivå fikk i ekte 
 Keystone trenger ingenting. Med reglene tilpasset, `service_type` satt og API-ene startet på nytt, ble hver lesing besvart med `200` og hver skriving med `401`, på hver utgave vi har registrert. Exporteren får det en admin får, bortsett fra Keystones brukere og grupper, med vilje. Det gjelder også tjenestene en sky kanskje ikke kjører: registrert på DevStack fikk nivå 1 de samme seriene som en admins legitimasjon fra hver tjeneste exporteren leser, og hver skriving ble besvart med `401`.
 
 Hvis du ikke vil gjøre den endringen, lag den samme legitimasjonen uten `--access-rules`: en vanlig admin-applikasjonslegitimasjon. Den fungerer, og den kan skrive, så diagnoseskriptet merker den som det.
-@tab Nivå 2: Bare infrastruktur
+@tab Level 2: Infrastructure only
 Som admin oppretter du rollen, et prosjekt som ikke inneholder noe og har null kvote, og en konto:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Å legge rollen på et ekte prosjekt for å se volumene og ruterne dets lar også kontoen skrive der, i en sky der Cinder har `enforce_new_defaults` av. Diagnoseskriptet advarer når legitimasjonens prosjekt inneholder ting.
-@tab Nivå 3: Prosjektvisning
+@tab Level 3: Project view
 Gi en konto den vanlige `reader`-rollen på prosjektet, og deretter, innlogget som den kontoen på det prosjektet, oppretter du legitimasjonen:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Uten Docker
+@tab Without Docker
 På Linux (x86_64 eller arm64) med systemd 235 eller nyere og glibc 2.34 eller nyere kjører installasjonsskriptet oppstrømsutgavene av de samme to programmene som systemd-tjenester. RHEL 8 og beslektede systemer har en eldre glibc, som exporterens utgave ikke kan kjøre på: skriptet sier fra om det og endrer ingenting, så bruk Docker der.
 
 ```bash
@@ -686,8 +686,8 @@ Hva én instans koster, med to vCPU-er, én disk og ett nettverksgrensesnitt:
 
 | Kilde | Serier per instans | Rader per time | Rader per måned, 100 instanser | Rader per måned, 1 000 instanser |
 | --- | --- | --- | --- | --- |
-| `prometheus-libvirt-exporter`, lest hvert minutt | 30 | 1 800 | 131 400 000 | 1 314 000 000 |
-| Ceilometers exporter, lest hvert minutt og pollet hvert 5. | 24 | 864 | 63 072 000 | 630 720 000 |
+| `prometheus-libvirt-exporter`, lest hvert minutt | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
+| Ceilometers exporter, lest hvert minutt og pollet hvert 5. | 24 | 864 | 63,072,000 | 630,720,000 |
 
 Hver ekstra disk legger til 12 serier for begge, og hvert ekstra grensesnitt 4. Hver ekstra vCPU legger til 1 fra libvirt. Agentens collector holder disse i minnet på vei ut, så en stor sky kan trenge mer enn standarden på 512 MiB. Veiledningens kalkulator, under **Dokumentasjon** på en sky, setter en pris på disse for en sky i din størrelse.
 
@@ -707,7 +707,7 @@ En regel her er en **Eierregel for OpenStack-sky** eller **Etikettregel for Open
 
 Et varsel eller en hendelse på en del av skyen når hvert prosjekt som har noe på den delen, uansett hvor mange det er. Bare en monitor kan si hva den når, så en slik regel når ikke en hendelse noen erklærer for hånd. Etiketter settes på idet varselet åpnes, og eiere rett etter.
 
-Regler skrevet tidligere som et par av varsel- og hendelsesregler, som matcher ``OpenStack project `<id>` `` eller ``OpenStack domain `<id>` `` i beskrivelsen, fortsetter å virke og er listet her også. En beskrivelse navngir høyst 50 av prosjektene den når, så et slikt par stopper der. Fjern det og legg til regelen på nytt for å fjerne den grensen.
+Regler skrevet tidligere som et par av varsel- og hendelsesregler, som matcher ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` i beskrivelsen, fortsetter å virke og er listet her også. En beskrivelse navngir høyst 50 av prosjektene den når, så et slikt par stopper der. Fjern det og legg til regelen på nytt for å fjerne den grensen.
 
 ### Kvoter
 

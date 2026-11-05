@@ -103,7 +103,7 @@ Isto é o que cinco nuvens reais responderam, no Epoxy, no Flamingo, no Gazpacho
 | Cinder: tipos de volume | tudo | o que qualquer um vê | o que qualquer um vê |
 | Glance: imagens | tudo | o que qualquer um vê | o que qualquer um vê |
 
-- **tudo**: as mesmas linhas que um admin viu.
+- **todas as**: as mesmas linhas que um admin viu.
 - **somente o próprio projeto**: as linhas desse projeto e tudo o que é compartilhado ou externo. Em um projeto que não contém nada, são apenas as compartilhadas e externas.
 - **recusado**: um `401` ou um `403`.
 - **o que qualquer um vê**: toda credencial viu todas as linhas, em nuvens que só têm flavors, tipos de volume e imagens públicos. Um privado em outro projeto exige o nível 1.
@@ -134,7 +134,7 @@ Todo OneUptime serve o script de instalação do agente e os arquivos da própri
 Escolha o nível que você definiu. Cada um cria uma credencial de aplicação, que imprime um `id` e um `secret`: o segredo é exibido uma única vez. Defina uma expiração e nunca use `--unrestricted`, que permitiria a ela criar mais credenciais.
 
 :::tabs
-@tab Nível 1: Visão completa
+@tab Level 1: Full view
 Como admin, crie um projeto e uma conta para o agente:
 
 ```bash
@@ -198,7 +198,7 @@ Nos serviços que uma nuvem pode não executar, o que cada nível obteve em nuve
 O Keystone não precisa de nada. Com as regras ajustadas, `service_type` definido e as APIs reiniciadas, toda leitura respondeu `200` e toda escrita `401`, em todas as versões que registramos. O exporter obtém o que um admin obtém, exceto os usuários e grupos do Keystone, de propósito. Isso vale também para os serviços que uma nuvem pode não executar: registrado no DevStack, o nível 1 obteve as mesmas séries que a credencial de um admin em cada um que o exporter lê, e toda escrita respondeu `401`.
 
 Se você não fizer essa alteração, crie a mesma credencial sem `--access-rules`: uma credencial de aplicação admin simples. Ela funciona e pode escrever, por isso o script de diagnóstico a identifica como tal.
-@tab Nível 2: Somente infraestrutura
+@tab Level 2: Infrastructure only
 Como admin, crie a função, um projeto que não contém nada e tem cota zero, e uma conta:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Colocar a função em um projeto real para ver seus volumes e roteadores também permite que a conta escreva ali, em uma nuvem onde o Cinder tem `enforce_new_defaults` desativado. O script de diagnóstico avisa quando o projeto da credencial contém recursos.
-@tab Nível 3: Visão do projeto
+@tab Level 3: Project view
 Dê a uma conta a função `reader` simples no projeto e, depois, autenticado com essa conta nesse projeto, crie a credencial:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Sem Docker
+@tab Without Docker
 Em Linux (x86_64 ou arm64) com systemd 235 ou posterior e glibc 2.34 ou posterior, o script de instalação executa as versões upstream dos mesmos dois programas como serviços do systemd. O RHEL 8 e seus derivados têm uma glibc mais antiga, na qual a versão do exporter não consegue rodar: o script avisa e não altera nada, então use Docker nesses casos.
 
 ```bash
@@ -707,7 +707,7 @@ Uma regra aqui é uma **Regra de proprietário de nuvem OpenStack** ou uma **Reg
 
 Um alerta ou incidente em uma parte da nuvem atinge cada projeto que tem algo nessa parte, sejam quantos forem. Somente um monitor consegue dizer o que ele atinge, então uma regra como esta não alcança um incidente que alguém declara à mão. Os rótulos são aplicados quando o alerta abre, e os proprietários logo depois.
 
-Regras escritas antes como um par de regras de alerta e incidente, que correspondem a ``OpenStack project `<id>` `` ou ``OpenStack domain `<id>` `` na descrição, continuam funcionando e também são listadas aqui. Uma descrição nomeia no máximo 50 dos projetos que ela atinge, então um par assim para por aí. Remova-o e adicione a regra de novo para eliminar esse limite.
+Regras escritas antes como um par de regras de alerta e incidente, que correspondem a ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` na descrição, continuam funcionando e também são listadas aqui. Uma descrição nomeia no máximo 50 dos projetos que ela atinge, então um par assim para por aí. Remova-o e adicione a regra de novo para eliminar esse limite.
 
 ### Cotas
 

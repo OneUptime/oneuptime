@@ -78,7 +78,7 @@ Varje scrapes rader är vad du faktureras för: de första fem raderna kommer va
 | --- | --- | --- | --- | --- |
 | 10 hypervisorer, 100 instanser, 20 projekt | 1 075 | 0,7 | Inte i sammanfattningsläge | $2,12 |
 | 500 hypervisorer, 20 000 instanser, 1 000 projekt | 123 847 | 84,5 | 16,6 | $49,71 |
-| 5 000 hypervisorer, 200 000 instanser, 10 000 projekt | 1 237 183 | 844,5 | 164,9 | $494,73 |
+| 5 000 hypervisorer, 200 000 instanser, 10 000 projekt | 1,237,183 | 844.5 | 164.9 | $494.73 |
 
 Dessa gäller genom agenten, med en instans av tusen i ett tillstånd som behåller sina serier. En sond över sammanfattningsstorleken skickar det som inte ändrats en gång per cykel i stället för vid varje insamling, vilket blir ungefär 13,2 GB per dag vid den andra storleken och 116 GB vid den tredje.
 

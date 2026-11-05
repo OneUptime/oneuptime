@@ -1,4 +1,4 @@
-# OpenStack-Monitor
+# OpenStack-Überwachung
 
 Ein OpenStack-Monitor überwacht eine Cloud - ihre APIs, die Worker dahinter, Hypervisoren, Instanzen, Netzwerke, Speicherpools und Projektquoten - und meldet sich, wenn eine API nicht mehr antwortet, ein Worker ausfällt, ein Hypervisor keinen Platz mehr hat oder ein Pool vollläuft. Er liest die `openstack_*`-Serien, die der OneUptime OpenStack Agent vom openstack-exporter sammelt.
 
@@ -41,11 +41,11 @@ Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**.
 
 ### OpenStack wählen
 
-Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **OpenStack** unter **Infrastruktur**, oder geben Sie `openstack` in das Suchfeld ein. Geben Sie einen **Namen** ein - er wird in Titeln von Vorfällen und Warnungen verwendet - und klicken Sie auf **Weiter**.
+Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **OpenStack** unter **Infrastruktur**, oder geben Sie `openstack` in das Suchfeld ein. Geben Sie im Feld **Name** einen Namen ein - er wird in Titeln von Vorfällen und Warnungen verwendet - und klicken Sie auf **Weiter**.
 
 ### Cloud auswählen
 
-Wählen Sie unter **OpenStack-Monitor-Konfiguration** die Cloud bei **OpenStack-Cloud** aus. Jede Cloud, die Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten eintreffen.
+Wählen Sie unter **OpenStack Monitor Configuration** die Cloud bei **OpenStack-Cloud** aus. Jede Cloud, die Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten eintreffen.
 
 ### Festlegen, was überwacht wird
 
@@ -210,7 +210,7 @@ Der **Schweregrad** ist das Label, das die Auswahl anzeigt. Der Vorfall und die 
 - **Eine Serie, die gerade erst erschienen ist, wartet ein volles Fenster ab,** sodass eine Instanz, ein Volume oder ein Image, das einmal auf dem Weg zu etwas anderem gesehen wurde, nichts auslöst. Jede Vorlage weiß anhand der eigenen `_up`-Serie ihres Dienstes, wie oft dieser Dienst erfasst wird.
 - **Eine Serie, die verschwindet, gilt als zurückgesetzt:** ein Worker, den jemand deaktiviert hat, die letzte gelöschte Instanz in ERROR, ein entfernter Pool. Jede Vorlage liest die `_up`-Serie ihres Dienstes neben ihrer eigenen, sodass sie einen verschwundenen Teil von einer verstummten Cloud unterscheiden kann. Wenn gar nichts mehr eintrifft, bleiben ihre Vorfälle offen, und **Cloud Stopped Reporting** meldet sich stattdessen.
 - **Wenn eine API ausfällt, verschwinden auch ihre eigenen Serien**, sodass die anderen Vorlagen dieses Dienstes zurückgesetzt werden und ein Fenster nach ihrer Rückkehr erneut auslösen, falls der Fehler noch besteht. Wenn alle APIs gleichzeitig als ausgefallen erscheinen, schauen Sie zuerst auf den Exporter.
-- **Eine Cloud, die keinen solchen Dienst hat, bleibt still.** Der Exporter antwortet mit nichts für einen Dienst, der nicht im Katalog der Cloud steht, und **Network**, **Block Storage**, **Image** und **Placement API Down** werten das nicht als Ausfall. **Identity** und **Compute API Down** tun es, weil der Exporter so auch meldet, dass die API von Keystone oder Nova ganz gestoppt ist, und jede Cloud beide hat.
+- **Eine Cloud, die keinen solchen Dienst hat, bleibt still.** Der Exporter antwortet mit nichts für einen Dienst, der nicht im Katalog der Cloud steht, und **Netzwerk**, **Block Storage**, **Image** und **Placement API Down** werten das nicht als Ausfall. **Identität** und **Compute API Down** tun es, weil der Exporter so auch meldet, dass die API von Keystone oder Nova ganz gestoppt ist, und jede Cloud beide hat.
 
 ### Wenn eine auslöst
 
@@ -290,7 +290,7 @@ Der Vorfall nennt, was er mitreißt, und eine Warnung zu einem Worker, während 
 
 ### Limits-Serien einschalten
 
-Die drei **Capacity**-Vorlagen lesen Serien, die OneUptime selbst aus dem Inventar der Cloud schreibt, alle zwei Minuten, solange die Cloud berichtet. Keine Exporter-Serie enthält eine Zone oder die Anzahl eines Flavors. Was sie bedeuten, steht unter [Kapazität](/docs/telemetry/openstack#kapazität). Alle drei betreffen die Zuteilung, also das, was zugesagt wurde, und keine betrifft die Last.
+Die drei **Kapazität**-Vorlagen lesen Serien, die OneUptime selbst aus dem Inventar der Cloud schreibt, alle zwei Minuten, solange die Cloud berichtet. Keine Exporter-Serie enthält eine Zone oder die Anzahl eines Flavors. Was sie bedeuten, steht unter [Kapazität](/docs/telemetry/openstack#kapazität). Alle drei betreffen die Zuteilung, also das, was zugesagt wurde, und keine betrifft die Last.
 
 **Project Quota Nearly Reached** liest `openstack_nova_limits_*` und `openstack_cinder_limits_*`, die standardmäßig aus sind, weil sie pro Projekt API-Aufrufe kosten. Die Vorlage bleibt still, bis Sie sie einschalten: Führen Sie das `install.sh` des Agents erneut mit `OPENSTACK_COLLECT_QUOTAS=true` aus. Ein zweiter Exporter liest sie dann einmal pro Stunde, und die Vorlage wartet auf drei dieser Messungen. Bei einer Cloud, die eine Probe liest, schalten Sie **Projektlimits** unter **Datenerfassung** auf ihrer Seite **Einstellungen** ein.
 
@@ -312,14 +312,14 @@ Ein Vorfall, den eine Vorlage öffnet, nennt, was für den benannten Teil auszuf
 
 ## Erfasste Metriken
 
-Die folgenden Metriken sind der Katalog, den das Monitor-Formular anbietet. **Liest** ist ihre übliche Aggregation, mit der ein Formular beginnt. Größen in GiB und MiB sind das, was die eigenen Felder `_gb` und `_mb` von OpenStack enthalten.
+Die folgenden Metriken sind der Katalog, den das Monitor-Formular anbietet. **Lesezugriffe** ist ihre übliche Aggregation, mit der ein Formular beginnt. Größen in GiB und MiB sind das, was die eigenen Felder `_gb` und `_mb` von OpenStack enthalten.
 
 ### Verfügbarkeit
 
 | Metrik | Einheit | Liest | Beschreibung |
 | --- | --- | --- | --- |
 | `up` | - | Min | Ob der Exporter diese Erfassung überhaupt beantwortet hat (1) oder nicht (0): Er wurde gestoppt, lief in ein Timeout oder antwortete mit einem Fehler. 1 sagt nichts über die API selbst, weil der Exporter auch antwortet, wenn er sie nicht erreichen konnte. Vom Collector des Agents gemeldet, eine Serie pro Dienst und Region. |
-| `scrape_samples_scraped` | `count` | Min | Mit wie vielen Serien der Exporter eine Erfassung beantwortet hat. 0 bedeutet, er hatte nichts zu sagen: Er konnte sich nicht bei Keystone anmelden oder die API von Nova nicht erreichen, um eine Microversion auszuhandeln, und diese Fehler hinterlassen überhaupt keine openstack_*-Serien. Vom Collector des Agents gemeldet, eine Serie pro Dienst und Region. |
+| `scrape_samples_scraped` | `count` | Min | Mit wie vielen Serien der Exporter eine Erfassung beantwortet hat. 0 bedeutet, er hatte nichts zu sagen: Er konnte sich nicht bei Keystone anmelden oder die API von Nova nicht erreichen, um eine Microversion auszuhandeln, und diese Fehler hinterlassen überhaupt keine Serien des Exporters. Vom Collector des Agents gemeldet, eine Serie pro Dienst und Region. |
 | `openstack_identity_up` | - | Min | Ob die API von Keystone die Aufrufe des Exporters beantwortet hat (1) oder jeder einzelne fehlschlug (0). Wenn die Anmeldung bei Keystone gar nicht möglich ist, antwortet der Exporter mit nichts, sodass diese Serie verschwindet, statt 0 zu zeigen. |
 | `openstack_nova_up` | - | Min | Ob die API von Nova die Aufrufe des Exporters beantwortet hat (1) oder jeder einzelne fehlschlug (0). Wenn die API von Nova gar nicht erreichbar ist, antwortet der Exporter mit nichts, sodass diese Serie verschwindet, statt 0 zu zeigen. |
 | `openstack_neutron_up` | - | Min | Ob die API von Neutron die Aufrufe des Exporters beantwortet hat (1) oder jeder einzelne fehlschlug (0). |
@@ -753,11 +753,11 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, mit ihrem Variablennamen. |
 | **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Alle Werte** (jeder Wert muss passen, über das ganze Fenster) oder **Beliebiger Wert** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomal hoch**, **Anomal niedrig** oder **Anomal**. **Keine Daten** trifft zu, wenn die Abfrage im Fenster nichts gesendet hat, **Daten vorhanden**, wenn sie irgendetwas gesendet hat. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik über das Fenster bis zum Ende des **Prognosezeitraums** den Schwellenwert überschritten haben wird. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomal hoch**, **Anomal niedrig** oder **Anomal**. **Keine Daten** trifft zu, wenn die Abfrage im Fenster nichts gesendet hat, **Daten vorhanden**, wenn sie irgendetwas gesendet hat. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik über das Fenster bis zum Ende von **Prognosezeitraum** den Schwellenwert überschritten haben wird. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
-| **Bei keinen Daten** | Unter **Weitere Felder**. Was passiert, wenn das Fenster keine Messwerte hat: **Ignorieren** (der Standard), **Als Null behandeln** oder **Auslösen**. |
+| **Bei keinen Daten** | Unter **Weitere Felder**. Was passiert, wenn das Fenster keine Messwerte hat: **Ignorieren** (der Standard), **Als Null behandeln** oder **Auslöser**. |
 
 Anomaliebedingungen vergleichen jeden Wert mit derselben Stunde der Woche in der Baseline. Sie bleiben im Zustand „Learning“ und lösen nichts aus, bis das Baseline-Fenster genug Verlauf enthält. Dieser Monitor filtert seine Abfragen nach Attributen, sodass jede Abfrage und jede Serie einer gruppierten mit ihrem eigenen Verlauf verglichen wird, so weit zurück, wie Ihre Metriken aufbewahrt werden. Sind das weniger als zwei Wochen, bleibt eine Summe, eine Anzahl oder eine Abfrage auf einem Histogramm für immer in diesem Zustand, und alles andere wird mit jeder Serie der Metrik verglichen. Ein Perzentil eines Histogramms bleibt immer in diesem Zustand.
 

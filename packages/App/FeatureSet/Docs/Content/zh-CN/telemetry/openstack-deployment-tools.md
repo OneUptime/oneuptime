@@ -1,17 +1,17 @@
 # 按部署工具划分的 OpenStack
 
-没有人是直接运行“OpenStack”的。他们运行的是部署它的工具，而每种工具都有自己的路径、自己的日志，以及对“已经在运行什么”的自己的理解。本页就是 OneUptime 的设置指南对每种工具所说的内容：打开 **OpenStack → All Clouds**，连接云，然后回答 **您如何部署 OpenStack？**
+没有人是直接运行“OpenStack”的。他们运行的是部署它的工具，而每种工具都有自己的路径、自己的日志，以及对“已经在运行什么”的自己的理解。本页就是 OneUptime 的设置指南对每种工具所说的内容：打开 **OpenStack → 所有云**，连接云，然后回答 **您如何部署 OpenStack？**
 
 :::cards
-- [各指南的测试程度](#各指南的测试程度)：请先阅读此节。Kolla-Ansible 和 OpenStack-Ansible 的指南都已在真实部署上运行过。其他的尚未运行。
-- [转发已经触发的告警](#转发已经触发的告警)：从第一个小时起就有事件，无需代理。
-- [Kolla-Ansible](#kolla-ansible)：读取它已在运行的导出器。
-- [OpenStack-Ansible](#openstack-ansible)：Journald 日志，以及 `user_variables.yml` 中的覆盖设置。
-- [OpenStack-Helm](#openstack-helm) 和 [Atmosphere](#atmosphere)：一个探测器，以及 Kubernetes 代理。
-- [Canonical Sunbeam](#canonical-sunbeam)：Canonical Observability Stack。
-- [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift)：OpenShift 预设，以及 Ceilometer。
-- [Mirantis MOSK](#mirantis-mosk)：StackLight 的告警。
-- [使用您已在运行的导出器](#使用您已在运行的导出器)：在 1.7.0 上页面缺少哪些内容。
+- [各指南的测试程度](#各指南的测试程度): 请先阅读此节。Kolla-Ansible 和 OpenStack-Ansible 的指南都已在真实部署上运行过。其他的尚未运行。
+- [转发已经触发的告警](#转发已经触发的告警): 从第一个小时起就有事件，无需代理。
+- [Kolla-Ansible](#kolla-ansible): 读取它已在运行的导出器。
+- [OpenStack-Ansible](#openstack-ansible): Journald 日志，以及 `user_variables.yml` 中的覆盖设置。
+- [OpenStack-Helm](#openstack-helm): 针对 OpenStack-Helm 和 Atmosphere：一个探测器，以及 Kubernetes 代理。
+- [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack。
+- [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift 预设，以及 Ceilometer。
+- [Mirantis MOSK](#mirantis-mosk): StackLight 的告警。
+- [使用您已在运行的导出器](#使用您已在运行的导出器): 在 1.7.0 上页面缺少哪些内容。
 :::
 
 ## 各指南的测试程度
@@ -45,7 +45,7 @@
 
 ### 将它关联到云
 
-打开监控器的 **概览 → 关联资源**，添加该 OpenStack 云。之后每个事件都出现在该云的 **事件** 页面上：Incoming Request 监控器自身的设置不指明任何云，因此每个云的 Alertmanager 都需要一个专属的监控器。该云在其首批数据到达后才会出现在列表中，所以请在完成下面的步骤之后再做这一步，或先在 **OpenStack → All Clouds** 下添加该云。
+打开监控器的 **概览 → 已关联资源**，添加该 OpenStack 云。之后每个事件都出现在该云的 **事件** 页面上：Incoming Request 监控器自身的设置不指明任何云，因此每个云的 Alertmanager 都需要一个专属的监控器。该云在其首批数据到达后才会出现在列表中，所以请在完成下面的步骤之后再做这一步，或先在 **OpenStack → 所有云** 下添加该云。
 :::
 
 Alertmanager 已按这个确切的格式发送请求，记录于 `Tests/Ops/openstack-e2e` 中，使用的是 Kolla-Ansible 所固定的版本，且该记录通过真实的评估器回放：每个告警一个事件，由它自己的 `resolved` 状态解决。
@@ -266,7 +266,7 @@ conf:
 
 ### 在 OpenStack-Helm 上读取 API 并查看 pod
 
-打开 **OpenStack → All Clouds**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 chart 所运行的集群，按 **Kubernetes → 文档** 操作：其 pod、日志和节点会进入 Kubernetes 页面。
+打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 chart 所运行的集群，按 **Kubernetes → 文档** 操作：其 pod、日志和节点会进入 Kubernetes 页面。
 
 若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
@@ -344,7 +344,7 @@ kube_prometheus_stack_helm_values:
 
 ### 在 Atmosphere 上读取 API 并查看 pod
 
-打开 **OpenStack → All Clouds**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 Atmosphere 所运行的集群，按 **Kubernetes → 文档** 操作。
+打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 Atmosphere 所运行的集群，按 **Kubernetes → 文档** 操作。
 
 若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
@@ -454,7 +454,7 @@ spec:
 
 ### 读取 API 和控制平面
 
-打开 **OpenStack → All Clouds**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对运行控制平面的集群，按 **Kubernetes → 文档** 操作，并选择 **Red Hat OpenShift**，这会设置 `preset=openshift`。
+打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对运行控制平面的集群，按 **Kubernetes → 文档** 操作，并选择 **Red Hat OpenShift**，这会设置 `preset=openshift`。
 
 若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
@@ -527,7 +527,7 @@ alertmanagerSimpleConfig:
 
 ### 读取 API
 
-打开 **OpenStack → All Clouds**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。
+打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。
 
 ### Mirantis MOSK 上的谁做了什么
 

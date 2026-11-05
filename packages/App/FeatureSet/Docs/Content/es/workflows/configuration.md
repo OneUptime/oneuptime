@@ -85,7 +85,7 @@ El archivo contiene el nombre del flujo de trabajo, su descripción, su estado d
 - **Las variables globales.** Un bloque que lee `{{global.variables.MY_SECRET}}` conserva esa referencia, pero el valor no está en el archivo. Crea las variables en el proyecto de destino antes de ejecutar el flujo de trabajo importado.
 - **Los propietarios y las etiquetas.** Las reglas de etiquetas y de propietarios de tu proyecto se aplican al flujo de trabajo importado, igual que si lo hubieras creado a mano.
 
-Un flujo de trabajo importado siempre se crea **deshabilitado**, aunque estuviera habilitado donde se exportó: su grafo puede apuntar a monitores, políticas de guardia u otros flujos de trabajo que no existen en el proyecto de destino. Revísalo, pruébalo con **Ejecutar flujo de trabajo** y después actívalo. Duplicar un flujo de trabajo se comporta igual, así que una copia nunca empieza a saltar junto al original antes de que la hayas editado.
+Un flujo de trabajo importado siempre se crea **disabled**, aunque estuviera habilitado donde se exportó: su grafo puede apuntar a monitores, políticas de guardia u otros flujos de trabajo que no existen en el proyecto de destino. Revísalo, pruébalo con **Ejecutar flujo de trabajo** y después actívalo. Duplicar un flujo de trabajo se comporta igual, así que una copia nunca empieza a saltar junto al original antes de que la hayas editado.
 
 Como el grafo viaja tal cual, todo lo que se escribió directamente en un bloque viaja con él. Esa es la razón práctica para guardar las credenciales en variables secretas: exportar un flujo de trabajo con un token escrito a mano entrega ese token a quien reciba el archivo.
 

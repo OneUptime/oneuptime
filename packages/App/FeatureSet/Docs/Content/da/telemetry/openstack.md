@@ -39,7 +39,7 @@ Clouden registrerer sig selv med sine første data, under det navn, agenten stem
 - Docker Engine 20.10 eller nyere med Docker Compose v2-pluginet, eller, hvis du vil køre uden Docker, en Linux-maskine (x86_64 eller arm64) med systemd 235 eller nyere, glibc 2.34 eller nyere (RHEL 9, Ubuntu 22.04, Debian 12) og root.
 - En rute fra den maskine til Keystone og til hver tjenestes offentlige endpoint.
 - Kommandolinjen `openstack`, som en person der kan oprette legitimationen nedenfor.
-- En indlæsningsnøgle. Opret en under **Project Settings → Telemetry & APM → Ingestion Keys** og kopiér dens værdi.
+- En indlæsningsnøgle. Opret en under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** og kopiér dens værdi.
 - Udgående HTTPS fra den maskine til din OneUptime-URL.
 
 ### Hvor agenten skal køre
@@ -134,7 +134,7 @@ Hver OneUptime serverer agentens installationsscript og filer til sin egen versi
 Vælg det niveau, du valgte. Hvert opretter en applikationslegitimation, som udskriver et `id` og en `secret`: hemmeligheden vises kun én gang. Giv den en udløbsdato og aldrig `--unrestricted`, som ville lade den oprette flere legitimationer.
 
 :::tabs
-@tab Niveau 1: Fuld visning
+@tab Level 1: Full view
 Opret som admin et projekt og en konto til agenten:
 
 ```bash
@@ -198,7 +198,7 @@ På de tjenester, en cloud måske ikke kører, afviger det, hvert niveau fik på
 Keystone kræver intet. Med reglerne tilpasset, `service_type` sat og API'erne genstartet blev hver læsning besvaret med `200` og hver skrivning med `401`, på hver version vi har optaget. Exporteren får det, en admin får, bortset fra Keystones brugere og grupper, med vilje. Det gælder også de tjenester, en cloud måske ikke kører: optaget på DevStack fik niveau 1 de samme serier som en admins legitimation fra hver, exporteren læser, og hver skrivning blev besvaret med `401`.
 
 Hvis du ikke vil lave den ændring, så opret den samme legitimation uden `--access-rules`: en almindelig admin-applikationslegitimation. Den virker, og den kan skrive, så diagnosescriptet mærker den som sådan.
-@tab Niveau 2: Kun infrastruktur
+@tab Level 2: Infrastructure only
 Opret som admin rollen, et projekt der intet rummer og har nul kvote, og en konto:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Hvis du lægger rollen på et rigtigt projekt for at se dets volumener og routere, kan kontoen også skrive der, på en cloud hvor Cinder har `enforce_new_defaults` slået fra. Diagnosescriptet advarer, når legitimationens projekt rummer noget.
-@tab Niveau 3: Projektvisning
+@tab Level 3: Project view
 Giv en konto den almindelige `reader`-rolle på projektet, og opret derefter legitimationen, logget ind som den konto på det projekt:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Uden Docker
+@tab Without Docker
 På Linux (x86_64 eller arm64) med systemd 235 eller nyere og glibc 2.34 eller nyere kører installationsscriptet de samme to programmers upstream-udgivelser som systemd-tjenester. RHEL 8 og dets slægtninge har en ældre glibc, som exporterens udgivelse ikke kan køre på: scriptet siger det og ændrer intet, så brug Docker der.
 
 ```bash
@@ -337,7 +337,7 @@ Uden Docker kan du spørge med `systemctl status oneuptime-openstack-agent oneup
 
 ### Find clouden i OneUptime
 
-Åbn **Products → Infrastructure → OpenStack**. Clouden vises under sit `OPENSTACK_CLOUD_NAME` efter sin første indsamling, inden for få minutter. Compute, netværk, volumen og Placement læses hvert 2. minut, identitet og images hvert 5.
+Åbn **Produkter → Infrastruktur → OpenStack**. Clouden vises under sit `OPENSTACK_CLOUD_NAME` efter sin første indsamling, inden for få minutter. Compute, netværk, volumen og Placement læses hvert 2. minut, identitet og images hvert 5.
 :::
 
 Cloudens **Oversigt** fortæller, om dens data når frem til OneUptime, hvad der kræver opmærksomhed først, og hvordan hver tjeneste klarer sig:
@@ -359,7 +359,7 @@ Installationsscriptet skriver dem til `/opt/oneuptime-openstack-agent/.env`; en 
 | Variabel | Påkrævet | Beskrivelse |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, såsom `https://oneuptime.com` eller din selvhostede instans. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Indlæsningsnøglen fra **Project Settings → Telemetry & APM → Ingestion Keys**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Indlæsningsnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `OPENSTACK_CLOUD_NAME` | Ja | Cloudens navn i OneUptime, stemplet på hver metrik som ressourceattributten `openstack.cloud.name`. Hold det stabilt: en ændring registrerer en ny cloud. Er som standard `openstack`. |
 | `OPENSTACK_AUTH_URL` | Medfølgende exporter | Et svar til installationsscriptet: Keystones auth-URL. `/v3` tilføjes, hvis det mangler. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Ja | Regionerne, i firkantede parenteser, såsom `[RegionOne,RegionTwo]`, hver navnet på en post i `clouds.yaml`. Er som standard `[RegionOne]`. |
@@ -707,7 +707,7 @@ En regel her er en **Ejerregel for OpenStack-cloud** eller **Etiketregel for Ope
 
 En advarsel eller hændelse på en del af clouden når hvert projekt, der har noget på den del, uanset hvor mange der er. Kun en monitor kan sige, hvad den når, så en regel som denne når ikke en hændelse, nogen erklærer i hånden. Etiketter sættes på, når advarslen åbnes, og ejere lige efter.
 
-Regler skrevet tidligere som et par af advarsels- og hændelsesregler, der matcher ``OpenStack project `<id>` `` eller ``OpenStack domain `<id>` `` i beskrivelsen, bliver ved med at virke og er også listet her. En beskrivelse nævner højst 50 af de projekter, den når, så et sådant par stopper der. Fjern det, og tilføj reglen igen for at ophæve den grænse.
+Regler skrevet tidligere som et par af advarsels- og hændelsesregler, der matcher ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` i beskrivelsen, bliver ved med at virke og er også listet her. En beskrivelse nævner højst 50 af de projekter, den når, så et sådant par stopper der. Fjern det, og tilføj reglen igen for at ophæve den grænse.
 
 ### Kvoter
 
@@ -1136,7 +1136,7 @@ Tre niveauer af hændelse, som [drop-filteret](#hvad-den-beholder-og-koster) læ
 
 Sikkerhedsteams har brug for at vide, hvem der ændrede hvad i en cloud: rolletildelinger, fejlede logins og admin-handlinger. OpenStack kan skrive alt det, og det går samme vej som alt ovenfor: til logs, uden bus. OneUptime læser det som en kilde til [sikkerhedshændelser](/docs/telemetry/security-events).
 
-Uanset hvilken du slår til, læser OneUptime den, når **Find sikkerhedshændelser i dine logs** er slået til, under **Security Events → Connections**. [Hvert værktøjs vejledning](/docs/telemetry/openstack-deployment-tools) siger, hvor disse indstillinger hører til på det.
+Uanset hvilken du slår til, læser OneUptime den, når **Find sikkerhedshændelser i dine logs** er slået til, under **Sikkerhedshændelser → Forbindelser**. [Hvert værktøjs vejledning](/docs/telemetry/openstack-deployment-tools) siger, hvor disse indstillinger hører til på det.
 
 ### Slå Keystones revisionsspor til
 
@@ -1489,7 +1489,7 @@ Hvis du slår dem til, når deres spans stadig denne clouds side **Spor** gennem
 
 ## AI-agent
 
-Agentens `docker-compose.yml` kører også **OpenStack AI-agenten**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Mens OneUptime AI undersøger en hændelse eller advarsel på denne cloud, kører den skrivebeskyttede `openstack`-kommandoer gennem den — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — og angiver, hvad den kørte. Der er ingen `openstack`-binær i agenten og intet shell: hver kommando bliver til ét `GET` til den tjeneste, der besvarer den, med agentens egen legitimation. Agenten registrerer sig med det samme `OPENSTACK_CLOUD_NAME`, collectoren rapporterer, så den betjener denne cloud.
+Agentens `docker-compose.yml` kører også **OpenStack AI-agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Mens OneUptime AI undersøger en hændelse eller advarsel på denne cloud, kører den skrivebeskyttede `openstack`-kommandoer gennem den — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — og angiver, hvad den kørte. Der er ingen `openstack`-binær i agenten og intet shell: hver kommando bliver til ét `GET` til den tjeneste, der besvarer den, med agentens egen legitimation. Agenten registrerer sig med det samme `OPENSTACK_CLOUD_NAME`, collectoren rapporterer, så den betjener denne cloud.
 
 - **AI-undersøgelser er slået til som standard.** Når agenten forbinder, undersøger OneUptime AI hændelser og advarsler på denne cloud med den, og cloudens **Oversigt** viser agentens status. For at stoppe skal du sætte `ONEUPTIME_AI_INVESTIGATION=false`, hvor agenten kører. **AI > Agent** har agentens status, **Test forbindelse**, **Nulstil agent** og installationsvejledningen, **AI > Insights** hvad den har gjort og **AI > Logs** de kommandoer, den kørte.
 - **Den læser, til du siger andet.** Rettelser er slået fra, til du vælger dem til to gange, og bruger en legitimation for sig: se [Rettelser](#rettelser). Keystones brugere, legitimationer og rolletildelinger, konsoller, hvad en gæst udskrev, og Barbicans hemmeligheder er forbudt for den, både at læse og at ændre.

@@ -86,7 +86,7 @@ Uma instalação auto-hospedada tem o próprio host no lugar de `oneuptime.com`.
 > [!WARNING]
 > Agrupe por um valor que muda de um alerta para outro dentro de uma notificação. O `fingerprint` do Alertmanager é um hash do conjunto inteiro de rótulos de um alerta, então ele sempre muda. Um rótulo do `group_by` da sua rota nunca muda: é ele que põe os alertas em uma mesma notificação. Agrupar por `requestBody.alerts[*].labels.alertname` com a rota abaixo junta todos os alertas de uma notificação em um incidente, que assume o status do primeiro alerta.
 
-Em uma nuvem OpenStack, vincule o monitor também à nuvem. As configurações de um monitor Incoming Request não nomeiam nenhuma nuvem, então os incidentes dele chegariam a **Incidentes** e não à nuvem. Abra **Visão geral → Recursos vinculados** do monitor e adicione a nuvem OpenStack: cada incidente passa a aparecer também na página **Incidentes** dessa nuvem. [OpenStack por ferramenta de implantação](/docs/telemetry/openstack-deployment-tools) traz o receptor de cada ferramenta que executa um Alertmanager, no lugar de onde essa ferramenta o lê.
+Em uma nuvem OpenStack, vincule o monitor também à nuvem. As configurações de um monitor Incoming Request não nomeiam nenhuma nuvem, então os incidentes dele chegariam a **Incidentes** e não à nuvem. Abra **Visão geral → Recursos Vinculados** do monitor e adicione a nuvem OpenStack: cada incidente passa a aparecer também na página **Incidentes** dessa nuvem. [OpenStack por ferramenta de implantação](/docs/telemetry/openstack-deployment-tools) traz o receptor de cada ferramenta que executa um Alertmanager, no lugar de onde essa ferramenta o lê.
 
 ## Dar nome aos incidentes
 

@@ -193,7 +193,7 @@ Jede Art erreicht OneUptime als gewöhnliche Logs:
 | AWS CloudTrail | Einem Trail, der an CloudWatch Logs geliefert und vom Empfänger `awscloudwatch` des Collectors gelesen wird, oder, bei einem unter **Cloud** verbundenen Konto, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
 | Google Cloud-Audit-Logs | Einer Log-Senke nach Pub/Sub, gelesen vom Empfänger `googlecloudpubsub` des Collectors mit `encoding: raw_text`, oder, bei einem unter **Cloud** verbundenen Projekt, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
 | Azure-Aktivitäts- und Entra-ID-Logs | Einer Diagnoseeinstellung, die an einen Event Hub streamt, gelesen vom Empfänger `azureeventhub` des Collectors mit `format: raw`, oder, für das Aktivitätsprotokoll eines unter **Cloud** verbundenen Abonnements, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
-| OpenStack-Audit-Trail | Den Benachrichtigungen und dem Audit-Filter einer Cloud, die mit `driver = log` in deren Logs geschrieben und vom [Logs-Profil](/docs/telemetry/openstack#who-did-what) des Agents gelesen werden |
+| OpenStack-Audit-Trail | Den Benachrichtigungen und dem Audit-Filter einer Cloud, die mit `driver = log` in deren Logs geschrieben und vom [Logs-Profil](/docs/telemetry/openstack#wer-was-getan-hat) des Agents gelesen werden |
 | CEF, LEEF | Dem Syslog des Produkts, weitergeleitet von [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Dem eigenen Syslog der Firewall, weitergeleitet von [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-Audit-Logs | Der Audit-Log-Datei des API-Servers, gelesen vom Empfänger `filelog` des Collectors |

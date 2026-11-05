@@ -1,4 +1,4 @@
-# OpenStack etter distribusjonsverktøy
+# OpenStack etter utrullingsverktøy
 
 Ingen kjører «OpenStack». De kjører et verktøy som distribuerer det, og hvert verktøy har sine egne stier, sine egne logger og sin egen oppfatning av hva som allerede kjører. Denne siden er det oppsettsguiden i OneUptime sier for hvert av dem: åpne **OpenStack → Alle skyer**, koble til en sky og svar på **Hvordan distribuerer du OpenStack?**
 
@@ -7,7 +7,7 @@ Ingen kjører «OpenStack». De kjører et verktøy som distribuerer det, og hve
 - [Videresend det som allerede utløses](#videresend-det-som-allerede-utløses): Hendelser fra første time, uten agent.
 - [Kolla-Ansible](#kolla-ansible): Les eksportørene den allerede kjører.
 - [OpenStack-Ansible](#openstack-ansible): Journald-logger og overstyringer i `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) og [Atmosphere](#atmosphere): En sonde, og Kubernetes-agenten.
+- [OpenStack-Helm](#openstack-helm): En sonde, og Kubernetes-agenten, også for Atmosphere.
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift-forhåndsvalget og Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): StackLights varsler.
@@ -45,7 +45,7 @@ Lag en Incoming Request-overvåker slik [Prometheus Alertmanager](/docs/integrat
 
 ### Legg den på skyen
 
-Åpne overvåkerens **Oversikt → Koblede ressurser** og legg til OpenStack-skyen. Hver hendelse er da på den skyens **Hendelser**-side: en Incoming Request-overvåkers egne innstillinger navngir ingen sky, så hver skys Alertmanager trenger en overvåker for seg. Skyen dukker opp i den listen når de første dataene kommer, så gjør dette etter stegene nedenfor, eller legg til skyen under **OpenStack → Alle skyer** først.
+Åpne overvåkerens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen. Hver hendelse er da på den skyens **Hendelser**-side: en Incoming Request-overvåkers egne innstillinger navngir ingen sky, så hver skys Alertmanager trenger en overvåker for seg. Skyen dukker opp i den listen når de første dataene kommer, så gjør dette etter stegene nedenfor, eller legg til skyen under **OpenStack → Alle skyer** først.
 :::
 
 Alertmanager er tatt opp mens den poster i akkurat denne formen i `Tests/Ops/openstack-e2e`, i versjonen Kolla-Ansible fester, og opptaket spilles av gjennom den ekte evaluatoren: én hendelse per varsel, løst av sin egen `resolved`-status.

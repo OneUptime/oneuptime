@@ -14,7 +14,7 @@ En VMware-monitor følger med på ett vCenter - datasentrene, klyngene, ESXi-ver
 Metrikkene kommer fra vCenters API og leses med en skrivebeskyttet konto på en av to måter:
 
 - **VMware Agent**, en OpenTelemetry Collector med receiveren `vcenter`, som du kjører på en maskin som kan nå vCenter. Se [VMware-agent](/docs/telemetry/vmware).
-- **En probe**, uten noe å installere: du kobler til vCenteret i OneUptime og velger proben som kan nå det. Se [VMware uten agent](/docs/telemetry/vmware-agentless).
+- **A probe**, uten noe å installere: du kobler til vCenteret i OneUptime og velger proben som kan nå det. Se [VMware uten agent](/docs/telemetry/vmware-agentless).
 
 Begge sender de samme seriene hvert innsamlingsintervall (2 minutter som standard), merket med vCenterets navn, `vmware.vcenter.name`. Et vCenter er ett vSphere-endepunkt: en vCenter Server eller en frittstående ESXi-vert. En VMware-monitor er knyttet til ett vCenter. Hvert minutt kjører den spørringen sin på det vCenterets metrikker og sammenligner resultatet med kriteriene sine.
 

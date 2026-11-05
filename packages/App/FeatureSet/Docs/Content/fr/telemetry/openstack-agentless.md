@@ -76,7 +76,7 @@ Le test de connexion indique à quel niveau correspond un identifiant, et averti
 
 :::steps
 ### Ouvrir vos clouds
-Dans OneUptime, ouvrez **OpenStack → All Clouds** et cliquez sur **Connecter le cloud**.
+Dans OneUptime, ouvrez **OpenStack → Tous les clouds** et cliquez sur **Connecter le cloud**.
 
 ### Saisir l'adresse et l'identifiant
 Saisissez l'`auth_url` de votre fichier `clouds.yaml` ou `openrc`, par exemple `https://keystone.example.com:5000/v3`, ainsi que l'ID et le secret de l'identifiant d'application. Choisissez la sonde qui joint le cloud.

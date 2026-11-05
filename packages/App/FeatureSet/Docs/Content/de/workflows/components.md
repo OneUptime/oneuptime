@@ -29,7 +29,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | Vorfälle, Monitore und andere Datensätze zu lesen oder zu ändern | [OneUptime-Datenkomponenten](#oneuptime-datenkomponenten) |
 | Vorfälle oder Warnungen zu den Problemen eines anderen Tools zu öffnen, zu bestätigen und zu lösen | [Vorfälle und Warnungen aus anderen Tools](#vorfälle-und-warnungen-aus-anderen-tools) |
 | Ein Zabbix-Problem zu bestätigen oder zu schließen | [Zabbix](#zabbix) |
-| Eine Person eine Korrektur an einer OpenStack-Cloud genehmigen zu lassen | [Eine OpenStack-Korrektur vorschlagen](#eine-openstack-korrektur-vorschlagen) |
+| Eine Person eine Korrektur an einer OpenStack-Cloud genehmigen zu lassen | [Eine OpenStack-Korrektur vorschlagen](#propose-an-openstack-fix) |
 
 Ein spezieller Baustein schlägt einen allgemeinen: Der Slack-Baustein kennt die Grenzen von Slack, und ein Datensatz-Baustein kennt die Felder des Datensatzes, sodass Sie klarere Fehler und Protokolle bekommen als von einem **API**-Baustein, der dieselbe Aufgabe erledigt.
 
@@ -431,7 +431,7 @@ Zum Bestätigen oder Schließen liest der Baustein zuerst das Problem. Ein Probl
 
 ## OpenStack
 
-### Eine OpenStack-Korrektur vorschlagen
+### Propose an OpenStack fix
 
 Bittet eine Person, eine Änderung an der OpenStack-Cloud zu genehmigen, um die es in einer Warnung oder einem Vorfall geht. Er nimmt die Änderung nie selbst vor. Die Korrektur wartet an der Warnung oder dem Vorfall und in den Kanälen, in die er postet, wie eine, die OneUptime AI vorschlägt, gleich welchen Korrekturmodus die Cloud hat. Ein Workflow kann nicht genehmigen, was er vorschlägt.
 

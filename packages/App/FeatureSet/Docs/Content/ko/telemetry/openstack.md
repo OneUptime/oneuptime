@@ -39,7 +39,7 @@ flowchart TB
 - Docker Compose v2 플러그인이 있는 Docker Engine 20.10 이상. Docker 없이 실행하려면 systemd 235 이상, glibc 2.34 이상(RHEL 9, Ubuntu 22.04, Debian 12)을 갖춘 Linux 머신(x86_64 또는 arm64)과 root 권한이 필요합니다.
 - 해당 머신에서 Keystone과 각 서비스의 공개 엔드포인트로 가는 경로.
 - 아래 자격 증명을 만들 수 있는 사용자 권한의 `openstack` 명령줄 도구.
-- 수집 키. **Project Settings → Telemetry & APM → Ingestion Keys**에서 만들고 값을 복사하세요.
+- 수집 키. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키** 에서 만들고 값을 복사하세요.
 - 해당 머신에서 OneUptime URL로 나가는 HTTPS 연결.
 
 ### 에이전트를 실행할 위치
@@ -62,7 +62,7 @@ OpenStack에는 전역 읽기 전용 역할이 없으며, 이것이 OpenStack �
 | 단계 | 필요한 것 | 볼 수 있는 것 | 볼 수 없는 것 |
 | --- | --- | --- | --- |
 | **1. 전체 보기** | 자체 프로젝트에서 `admin` 권한을 가진 계정의 애플리케이션 자격 증명. 액세스 규칙으로 읽기만 하도록 제한하고, 각 서비스에 `service_type`을 설정 | 에이전트가 수행하는 모든 읽기, 그리고 이 단계에서만 보이는 `cinder-volume`과 `cinder-scheduler` 상태 및 스토리지 풀 | Keystone의 사용자와 그룹(의도적으로 제외). 쓰기는 불가: 모든 쓰기가 `401`로 응답 |
-| **2. 인프라만** | 아무것도 없고 할당량이 0인 자체 프로젝트의 `oneuptime_monitoring` 및 `reader` 역할, 그리고 에이전트가 제공하는 정책 재정의 | Keystone의 모든 프로젝트, 도메인, 서비스, 엔드포인트, 모든 프로젝트의 서버를 포함한 Nova 전체, Placement 전체, Neutron의 에이전트와 IP 가용성 | Neutron의 네트워크, 서브넷, 라우터, 유동 IP, 포트와 Cinder의 볼륨 및 스냅샷은 자기 프로젝트 것만 보이므로, 빈 프로젝트에서는 공유 및 외부 항목만 보입니다. `cinder-volume`, `cinder-scheduler` 상태와 스토리지 풀은 볼 수 없습니다. 쓰기는 불가: 모든 쓰기가 `403`으로 응답하거나 할당량 때문에 `409`와 `413`으로 응답 |
+| **2. 인프라만** | 아무것도 없고 할당량이 없는 자체 프로젝트의 `oneuptime_monitoring` 및 `reader` 역할, 그리고 에이전트가 제공하는 정책 재정의 | Keystone의 모든 프로젝트, 도메인, 서비스, 엔드포인트, 모든 프로젝트의 서버를 포함한 Nova 전체, Placement 전체, Neutron의 에이전트와 IP 가용성 | Neutron의 네트워크, 서브넷, 라우터, 유동 IP, 포트와 Cinder의 볼륨 및 스냅샷은 자기 프로젝트 것만 보이므로, 빈 프로젝트에서는 공유 및 외부 항목만 보입니다. `cinder-volume`, `cinder-scheduler` 상태와 스토리지 풀은 볼 수 없습니다. 쓰기는 불가: 모든 쓰기가 `403`으로 응답하거나 할당량 때문에 `409`와 `413`으로 응답 |
 | **3. 프로젝트 보기** | 다른 사람이 운영하는 클라우드에서 자기 팀 영역만 감시하는 경우, 실제 프로젝트의 일반 `reader` | Cinder와 Neutron에서 가져온 해당 프로젝트의 볼륨, 네트워크, 라우터 | 모든 인프라: 하이퍼바이저, 서비스, 에이전트, 풀, 용량이 없습니다. 에이전트를 통해서는 인스턴스도 볼 수 없는데, exporter의 전체 프로젝트 읽기가 거부되기 때문입니다. 그리고 많은 클라우드에서 `reader`가 그곳에 쓸 수 있습니다 |
 
 **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical** 템플릿은 1단계가 필요합니다. **Compute Service Down**, **Network Agent Down**, 그리고 Placement 및 하이퍼바이저 템플릿은 1단계 또는 2단계가 필요하며, 3단계에서는 인스턴스를 전혀 읽지 못합니다.
@@ -103,7 +103,7 @@ OpenStack에는 전역 읽기 전용 역할이 없으며, 이것이 OpenStack �
 | Cinder: 볼륨 유형 | 전부 | 누구나 보는 범위 | 누구나 보는 범위 |
 | Glance: 이미지 | 전부 | 누구나 보는 범위 | 누구나 보는 범위 |
 
-- **전부**: admin이 본 것과 같은 행입니다.
+- **모든**: admin이 본 것과 같은 행입니다.
 - **자기 프로젝트만**: 해당 프로젝트의 행과, 공유되었거나 외부인 항목입니다. 아무것도 없는 프로젝트에서는 공유 및 외부 항목만 보입니다.
 - **거부됨**: `401` 또는 `403`.
 - **누구나 보는 범위**: 공개 플레이버, 볼륨 유형, 이미지만 있는 클라우드에서 모든 자격 증명이 모든 행을 보았습니다. 다른 프로젝트의 비공개 항목은 1단계가 필요합니다.
@@ -134,7 +134,7 @@ Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove, Gnocch
 선택한 단계에 맞게 진행하세요. 각 단계는 애플리케이션 자격 증명을 만들고, `id`와 `secret`이 출력됩니다. secret은 한 번만 표시됩니다. 만료 시점을 지정하고, 자격 증명을 추가로 만들 수 있게 되는 `--unrestricted`는 절대 사용하지 마세요.
 
 :::tabs
-@tab 1단계: 전체 보기
+@tab Level 1: Full view
 admin 권한으로 에이전트용 프로젝트와 계정을 만듭니다.
 
 ```bash
@@ -198,7 +198,7 @@ service_type = compute
 Keystone은 아무것도 필요하지 않습니다. 규칙을 조정하고, `service_type`을 설정하고, API를 재시작하면 기록된 모든 릴리스에서 모든 읽기는 `200`, 모든 쓰기는 `401`로 응답했습니다. exporter는 Keystone의 사용자와 그룹(의도적으로 제외)을 빼면 admin이 얻는 것과 같은 결과를 얻습니다. 클라우드가 실행하지 않을 수도 있는 서비스도 마찬가지입니다. DevStack에서 기록한 바로는, 1단계는 exporter가 읽는 각 서비스에서 admin 자격 증명과 같은 시리즈를 얻었고 모든 쓰기는 `401`로 응답했습니다.
 
 이 변경을 하지 않으려면 `--access-rules` 없이 같은 자격 증명, 즉 일반 admin 애플리케이션 자격 증명을 만드세요. 작동하지만 쓰기도 가능하므로, 진단 스크립트가 그렇게 표시합니다.
-@tab 2단계: 인프라만
+@tab Level 2: Infrastructure only
 admin 권한으로 역할, 아무것도 없고 할당량이 0인 프로젝트, 계정을 만듭니다.
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 볼륨과 라우터를 보려고 실제 프로젝트에 역할을 부여하면, Cinder의 `enforce_new_defaults`가 꺼져 있는 클라우드에서는 그 계정이 거기에 쓸 수도 있게 됩니다. 자격 증명의 프로젝트에 항목이 있으면 진단 스크립트가 경고합니다.
-@tab 3단계: 프로젝트 보기
+@tab Level 3: Project view
 계정에 해당 프로젝트의 일반 `reader` 역할을 부여한 다음, 그 계정으로 그 프로젝트에 로그인한 상태에서 자격 증명을 만듭니다.
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Docker 없이
+@tab Without Docker
 systemd 235 이상과 glibc 2.34 이상을 갖춘 Linux(x86_64 또는 arm64)에서는 설치 스크립트가 같은 두 프로그램의 업스트림 릴리스를 systemd 서비스로 실행합니다. RHEL 8과 그 계열은 glibc가 더 오래되어 exporter 릴리스가 실행되지 않습니다. 이 경우 스크립트가 그렇게 알려 주고 아무것도 변경하지 않으므로, 그곳에서는 Docker를 사용하세요.
 
 ```bash
@@ -337,7 +337,7 @@ Docker 없이 설치했다면 `systemctl status oneuptime-openstack-agent oneupt
 
 ### OneUptime에서 클라우드 찾기
 
-**Products → Infrastructure → OpenStack**을 엽니다. 클라우드는 첫 수집 후 몇 분 안에 `OPENSTACK_CLOUD_NAME` 이름으로 나타납니다. 컴퓨트, 네트워크, 볼륨, Placement는 2분마다, identity와 이미지는 5분마다 읽습니다.
+**제품 → 인프라 → OpenStack**을 엽니다. 클라우드는 첫 수집 후 몇 분 안에 `OPENSTACK_CLOUD_NAME` 이름으로 나타납니다. 컴퓨트, 네트워크, 볼륨, Placement는 2분마다, identity와 이미지는 5분마다 읽습니다.
 :::
 
 클라우드의 **개요**에서 데이터가 OneUptime에 도달하고 있는지, 무엇을 먼저 확인해야 하는지, 각 서비스가 어떤 상태인지 확인할 수 있습니다.
@@ -359,7 +359,7 @@ Docker 없이 설치했다면 `systemctl status oneuptime-openstack-agent oneupt
 | 변수 | 필수 | 설명 |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 예 | `https://oneuptime.com` 또는 셀프 호스팅 인스턴스 등 OneUptime URL. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **Project Settings → Telemetry & APM → Ingestion Keys**의 수집 키. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키** 의 수집 키. |
 | `OPENSTACK_CLOUD_NAME` | 예 | OneUptime에서 사용할 클라우드 이름으로, 모든 메트릭에 `openstack.cloud.name` 리소스 속성으로 붙습니다. 고정해 두세요. 바꾸면 새 클라우드가 등록됩니다. 기본값은 `openstack`입니다. |
 | `OPENSTACK_AUTH_URL` | 번들 exporter | 설치 스크립트 질문의 답으로, Keystone 인증 URL. 없으면 `/v3`이 추가됩니다. |
 | `OPENSTACK_EXPORTER_CLOUDS` | 예 | 대괄호 안의 리전(예: `[RegionOne,RegionTwo]`)이며, 각각 `clouds.yaml` 항목의 이름입니다. 기본값은 `[RegionOne]`입니다. |
@@ -707,7 +707,7 @@ vCPU 두 개, 디스크 하나, 네트워크 인터페이스 하나를 가진 �
 
 클라우드의 어느 부분에 대한 알림이나 인시던트는 그 부분에 무언가가 있는 모든 프로젝트에 도달하며, 몇 개이든 마찬가지입니다. 무엇에 도달하는지는 모니터만 알 수 있으므로, 이런 규칙은 누군가 직접 선언한 인시던트에는 도달하지 않습니다. 레이블은 알림이 열리는 즉시, 소유자는 그 직후에 지정됩니다.
 
-이전에 알림 규칙과 인시던트 규칙 한 쌍으로 작성되어 설명에서 ``OpenStack project `<id>` `` 또는 ``OpenStack domain `<id>` ``와 일치시키던 규칙도 계속 작동하며 여기에 함께 나열됩니다. 설명에는 도달하는 프로젝트가 최대 50개까지만 적히므로 그런 쌍은 거기서 멈춥니다. 이 제한을 없애려면 제거하고 규칙을 다시 추가하세요.
+이전에 알림 규칙과 인시던트 규칙 한 쌍으로 작성되어 설명에서 ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` ``와 일치시키던 규칙도 계속 작동하며 여기에 함께 나열됩니다. 설명에는 도달하는 프로젝트가 최대 50개까지만 적히므로 그런 쌍은 거기서 멈춥니다. 이 제한을 없애려면 제거하고 규칙을 다시 추가하세요.
 
 ### 할당량
 
@@ -772,13 +772,13 @@ exporter는 인스턴스가 어느 네트워크에 있는지, 볼륨이 어느 �
 
 | 상황 | 알림을 받는 대상 |
 | --- | --- |
-| 호스트에 프로젝트 3개, 그중 하나만 켜짐 | 그 프로젝트 하나, 그 호스트에 있는 항목과 함께 |
+| 호스트에 프로젝트 세 개, 그중 하나만 켜짐 | 그 프로젝트 하나, 그 호스트에 있는 항목과 함께 |
 | 알림이 꺼진 프로젝트 | 없음. 인시던트 피드에 그렇게 표시됨 |
 | 프로젝트 500개에 도달하는 구성 요소 | 켜진 프로젝트 모두. 인시던트 설명이 지목하는 50개를 넘어도 마찬가지 |
 | 프로젝트가 없는 인스턴스 | 없음. 합계에는 집계되며, 미리 보기에 그렇게 표시됨 |
 | 삭제된 프로젝트에 남은 인스턴스 | 알림 설정과 관계없이 없음 |
 | 이미 알림이 나간 구성 요소의 두 번째 인시던트 | 둘 다 끝날 때까지는 없음. 그 후에 끝났다고 한 번 알림 |
-| 발송 직전 1분 사이에 꺼진 알림 | 없음. **전송된 내용**에 이유가 표시됨 |
+| 발송 직전 일 분 사이에 꺼진 알림 | 없음. **전송된 내용**에 이유가 표시됨 |
 | 유지 관리 이벤트 없이 누군가 비활성화한 호스트 | 없음. 팀에 호출이 가며, 프로젝트가 거기서 실행하는 것은 계속 동작함 |
 
 각 알림은 최대 한 번만 나갑니다. 워커가 발송 도중에 멈추면 해당 알림은 다시 보내지 않으며, **전송된 내용**에 나갔을 수도 있고 아닐 수도 있다고 표시됩니다. 웹훅은 변하지 않는 `id`가 포함된 JSON POST이고, 수신되지 않았다는 응답(`429` 또는 `5xx`)만 재시도합니다.
@@ -892,7 +892,7 @@ Manila가 없는 클라우드에는 이에 드는 비용이 전혀 없습니다.
 
 클라우드가 Octavia를 실행하면 **네트워크** 아래에 **로드 밸런서**가 저절로 생기며, 실행하지 않으면 흔적이 전혀 나타나지 않습니다. 각 로드 밸런서에는 Octavia 자체 표기의 프로비저닝 상태와 운영 상태, 공급자(`amphora` 또는 `ovn`), 가상 IP, 소유자가 표시됩니다. 풀과 amphora에는 각각 자체 페이지가 있고, amphora는 실행 중인 인스턴스로 연결됩니다.
 
-`ERROR` 상태의 로드 밸런서, 한 시간 동안 `PENDING_UPDATE` 또는 `PENDING_CREATE`에 멈춘 로드 밸런서, 모든 멤버가 헬스 체크에 실패하는 풀, `ERROR` 상태의 amphora, 마스터가 둘인 active-standby 쌍, 인증서 잔여 기간이 14일 미만인 amphora는 모두 이름과 함께 **확인 필요**에 나타납니다. amphora의 인증서는 생성일로부터 정확히 30일 동안 유효하고(기록됨), Octavia의 하우스키핑은 기본적으로 14일이 남았을 때 갱신하므로, 30일 기준선이면 모든 amphora가 평생 동안 매번 경고를 발생시킬 것입니다.
+`ERROR` 상태의 로드 밸런서, 한 시간 동안 `PENDING_UPDATE` 또는 `PENDING_CREATE`에 멈춘 로드 밸런서, 모든 멤버가 상태 확인에 실패하는 풀, `ERROR` 상태의 amphora, 마스터가 둘인 active-standby 쌍, 인증서 잔여 기간이 14일 미만인 amphora는 모두 이름과 함께 **확인 필요**에 나타납니다. amphora의 인증서는 생성일로부터 정확히 30일 동안 유효하고(기록됨), Octavia의 하우스키핑은 기본적으로 14일이 남았을 때 갱신하므로, 30일 기준선이면 모든 amphora가 평생 동안 매번 경고를 발생시킬 것입니다.
 
 | 항목 | 에이전트, 전체 보기 | 그보다 낮은 권한 |
 | --- | --- | --- |
@@ -902,7 +902,7 @@ Manila가 없는 클라우드에는 이에 드는 비용이 전혀 없습니다.
 | 트래픽: 연결, 바이트, 요청 오류 | 아니요: exporter에 `stats_*` 시리즈가 없고 Octavia의 API가 유일한 출처임. 프로브가 읽어 두 읽기 사이의 속도를 차트로 표시 | 프로브: 자기 프로젝트 것만 |
 | **서비스**에서 Octavia 자체 워커 | 아니요: 에이전트가 읽는 것 중에 이를 나열하는 것이 없음 | 아니요 |
 
-멤버가 모두 헬스 체크에 실패한 풀은 운영 상태가 `ERROR`이지만 풀과 그 로드 밸런서의 프로비저닝 상태는 `ACTIVE`로 유지되므로(기록됨), 프로비저닝만 읽는 페이지는 아무 문제도 보여 주지 않을 것입니다. 프로비저닝 `ERROR`인 로드 밸런서는 운영 상태가 `OFFLINE`으로 읽힙니다. OVN 공급자는 모든 트래픽 카운터에 0을 보고하며, 이는 결함이 아닙니다.
+멤버가 모두 상태 확인에 실패한 풀은 운영 상태가 `ERROR`이지만 풀과 그 로드 밸런서의 프로비저닝 상태는 `ACTIVE`로 유지되므로(기록됨), 프로비저닝만 읽는 페이지는 아무 문제도 보여 주지 않을 것입니다. 프로비저닝 `ERROR`인 로드 밸런서는 운영 상태가 `OFFLINE`으로 읽힙니다. OVN 공급자는 모든 트래픽 카운터에 0을 보고하며, 이는 결함이 아닙니다.
 
 중지된 Octavia API는 exporter에 `openstack_loadbalancer_up 0`이 아니라 빈 응답을 주며, 이는 Octavia가 없는 클라우드와 같습니다. 그래서 에이전트가 수집하는 클라우드에서는 Load Balancers API Down 템플릿이 조용히 있고, 페이지에 Octavia에서 마지막으로 응답을 받은 시점이 표시됩니다. Octavia가 Keystone 카탈로그에서 사라지면, 빈 응답으로는 사라진 서비스와 중지된 서비스를 구별할 수 없으므로 Heat보다 훨씬 오래 지난 후에 행이 사라집니다.
 
@@ -994,7 +994,7 @@ Barbican은 일반 reader를 거부하며, 그것은 있는 그대로 읽힙니�
 
 :::cards
 - [logs 프로필 설치](#logs-프로필-설치): 머신당 명령 하나, 또는 차트 값 하나입니다.
-- [요청 추적](#요청-추적): 인스턴스 페이지에서 스케줄러 줄까지 클릭 두 번으로 이동합니다.
+- [요청 따라가기](#요청-따라가기): 인스턴스 페이지에서 스케줄러 줄까지 클릭 두 번으로 이동합니다.
 - [로그 알림](#로그-알림): 모든 운영자가 그 문구로 아는 실패입니다.
 - [보관 항목과 비용](#보관-항목과-비용): 기본으로 켜지는 필터와 절감되는 양입니다.
 - [시크릿](#로그-속-시크릿): 저장되지 않는 항목과 그 방법입니다.
@@ -1038,7 +1038,7 @@ logs:
       - openstack
 ```
 
-### 요청 추적
+### 요청 따라가기
 
 OneUptime이 읽는 모든 줄에는 서비스 설정과 관계없이 레벨, 서비스, 머신, 요청, 사용자, 프로젝트, 인스턴스가 속성으로 붙습니다. oslo.log의 기본 형식, DevStack의 저널 형식, `use_json`, `use_journal`이 모두 같은 것으로 읽힙니다. 따라서 다음과 같이 할 수 있습니다.
 
@@ -1191,12 +1191,12 @@ Keystone은 시스템에 부여된 역할에 대해서는 아무것도 보내지
 
 | 탐지 | 의미 |
 | --- | --- |
-| **OpenStack failed logins burst** | 한 주소에서 5분 안에 로그인 실패 10회 이상 |
+| **OpenStack failed logins burst** | 한 주소에서 오 분 안에 로그인 실패 열 번 이상 |
 | **OpenStack role granted on a protected project** | `admin`이나 `service`에 역할이 부여됨. 규칙의 목록에 사용자 프로젝트를 추가하세요. 프로젝트 이름을 읽으므로 클라우드 인벤토리가 필요합니다 |
-| **OpenStack admin credential used from a new address** | `admin` 계정이 30일 동안 사용하지 않은 주소에서 사용됨: 로그인, 변경, 또는 감사 필터를 통한 호출. 클라이언트 주소를 전달하지 않는 로드 밸런서 뒤에서는 모든 주소가 로드 밸런서의 주소임 |
+| **OpenStack admin credential used from a new address** | `admin` 계정이 삼십 일 동안 사용하지 않은 주소에서 사용됨: 로그인, 변경, 또는 감사 필터를 통한 호출. 클라이언트 주소를 전달하지 않는 로드 밸런서 뒤에서는 모든 주소가 로드 밸런서의 주소임 |
 | **OpenStack application credential created** | 하나가 생성됨. Keystone의 알림은 제한 없는 자격 증명도 똑같이 읽히므로, 모든 생성에서 발생하며 그렇게 표시됩니다. 어느 쪽이었는지는 `openstack application credential show`가 알려 줍니다 |
 | **OpenStack security group opened to the world** | `0.0.0.0/0`, `::/0` 또는 주소 없음, 인바운드, 민감한 포트 또는 모든 포트 |
-| **OpenStack public image published** | 30일 만에 처음으로 공개 상태로 확인된 이미지. 이미 알려진 이미지의 수정은 조용히 넘어갑니다. Glance는 이미지가 무엇인지만 알려 주고 무엇이었는지는 알려 주지 않기 때문입니다. 그래서 30일 안에 비공개로 바꿨다가 다시 공개한 이미지는 두 번 알리지 않습니다 |
+| **OpenStack public image published** | 삼십 일 만에 처음으로 공개 상태로 확인된 이미지. 이미 알려진 이미지의 수정은 조용히 넘어갑니다. Glance는 이미지가 무엇인지만 알려 주고 무엇이었는지는 알려 주지 않기 때문입니다. 그래서 삼십 일 안에 비공개로 바꿨다가 다시 공개한 이미지는 두 번 알리지 않습니다 |
 
 ### 절대 저장되지 않는 항목
 
@@ -1345,7 +1345,7 @@ OSProfiler와 oslo.log는 서로를 모르기 때문에, 어떤 스팬에도 요
 | API가 같은 시각에 같은 호출을 기록함 | 확실함. 다른 누군가가 그 시각에 같은 호출을 하지 않았다면 |
 | 같은 시각의 같은 서비스뿐 | 조용한 클라우드에서는 그 요청이지만 바쁜 클라우드에서는 아닐 수 있음 |
 
-각각 서비스 전체에 걸친 [해당 요청](#요청-추적)을 열며, 스팬을 보내지 않는 서비스도 포함됩니다.
+각각 서비스 전체에 걸친 [해당 요청](#요청-따라가기)을 열며, 스팬을 보내지 않는 서비스도 포함됩니다.
 
 ### 추적 비용
 
@@ -1508,7 +1508,7 @@ OneUptime AI는 클라우드에서 열 가지 변경만 할 수 있습니다. �
 | --- | --- |
 | 안전 | `openstack server start SERVER-ID`, `openstack server reboot --soft SERVER-ID`, `openstack compute service set --enable HOST nova-compute`, `openstack network agent set --enable AGENT-ID` |
 | 위험도 높음 | `openstack server reboot --hard SERVER-ID`, `openstack server migrate SERVER-ID [--host HOST]`, `openstack server migrate live SERVER-ID [--host HOST]`, `openstack compute service set --disable --disable-reason "REASON" HOST nova-compute`, `openstack network agent set --disable AGENT-ID` |
-| 항상 사람에게 확인 | `openstack server evacuate SERVER-ID... [--host HOST]`. 허용 목록에 무엇이 있든 모든 모드에서 해당. 확인 없이 대피시킬 수 있는 인스턴스 수는 0입니다. Nova는 호스트가 중단된 후에만 대피를 받으므로, 실행 가능한 모든 대피는 죽은 하이퍼바이저의 것입니다 |
+| 항상 사람에게 확인 | `openstack server evacuate SERVER-ID... [--host HOST]`. 허용 목록에 무엇이 있든 모든 모드에서 해당. 확인 없이 대피시킬 수 있는 인스턴스는 하나도 없습니다. Nova는 호스트가 중단된 후에만 대피를 받으므로, 실행 가능한 모든 대피는 죽은 하이퍼바이저의 것입니다 |
 | 누가 승인해도 거부 | 삭제하는 모든 것(`server delete`, `volume delete`, `project delete`...), Keystone, 할당량, 보안 그룹에 대한 모든 것, `--state`와 `--down`, 그리고 이 표에 없는 모든 명령 |
 
 각 변경은 위에 적힌 순서대로 한 가지 표기만 허용합니다. 다른 플래그 순서, 약어, 실제 클라이언트가 받는 다른 플래그는 거부됩니다. 그래서 사람이 승인하는 것, 허용 목록 항목이 지정하는 것, 실행되는 것이 같은 문장입니다. 콜드 `server migrate`는 사람이 확인할 때까지 인스턴스를 `VERIFY_RESIZE` 상태로 두며, OneUptime AI는 이를 절대 확인하지 않습니다.

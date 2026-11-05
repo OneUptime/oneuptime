@@ -1,13 +1,13 @@
 # OpenStack por herramienta de despliegue
 
-Nadie ejecuta «OpenStack». Ejecutan una herramienta que lo despliega, y cada herramienta tiene sus propias rutas, sus propios registros y su propia idea de lo que ya está en ejecución. Esta página es lo que dice la guía de configuración de OneUptime para cada una: abre **OpenStack → All Clouds**, conecta una nube y responde a **¿Cómo despliegas OpenStack?**
+Nadie ejecuta «OpenStack». Ejecutan una herramienta que lo despliega, y cada herramienta tiene sus propias rutas, sus propios registros y su propia idea de lo que ya está en ejecución. Esta página es lo que dice la guía de configuración de OneUptime para cada una: abre **OpenStack → Todas las nubes**, conecta una nube y responde a **¿Cómo despliegas OpenStack?**
 
 :::cards
 - [Hasta dónde se ha probado cada guía](#hasta-dónde-se-ha-probado-cada-guía): Léelo primero. La de Kolla-Ansible se ha ejecutado en un despliegue real, salvo una alerta. La de OpenStack-Ansible se ha ejecutado en parte. Las demás no.
 - [Reenviar lo que ya está disparado](#reenviar-lo-que-ya-está-disparado): Incidentes desde la primera hora, sin agente.
 - [Kolla-Ansible](#kolla-ansible): Lee los exportadores que ya ejecuta.
 - [OpenStack-Ansible](#openstack-ansible): Registros de journald y anulaciones en `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) y [Atmosphere](#atmosphere): Una sonda y el agente de Kubernetes.
+- [OpenStack-Helm](#openstack-helm): Una sonda y el agente de Kubernetes, igual en [Atmosphere](#atmosphere).
 - [Canonical Sunbeam](#canonical-sunbeam): La Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): El preajuste de OpenShift y Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): Las alertas de StackLight.
@@ -45,7 +45,7 @@ Crea un monitor de Incoming Request como indica [Prometheus Alertmanager](/docs/
 
 ### Ponlo en la nube
 
-Abre **Overview → Linked Resources** del monitor y añade la nube de OpenStack. Cada incidente aparece entonces en la página de **Incidentes** de esa nube: los propios ajustes de un monitor de Incoming Request no nombran ninguna nube, así que el Alertmanager de cada nube necesita un monitor propio. La nube aparece en esa lista cuando llegan sus primeros datos, así que haz esto después de los pasos de abajo, o añade antes la nube en **OpenStack → All Clouds**.
+Abre **Vista general → Recursos vinculados** del monitor y añade la nube de OpenStack. Cada incidente aparece entonces en la página de **Incidentes** de esa nube: los propios ajustes de un monitor de Incoming Request no nombran ninguna nube, así que el Alertmanager de cada nube necesita un monitor propio. La nube aparece en esa lista cuando llegan sus primeros datos, así que haz esto después de los pasos de abajo, o añade antes la nube en **OpenStack → Todas las nubes**.
 :::
 
 Se ha registrado a Alertmanager publicando exactamente con esta forma en `Tests/Ops/openstack-e2e`, en la versión que fija Kolla-Ansible, y el registro se reproduce a través del evaluador real: un incidente por alerta, resuelto por su propio estado `resolved`.
@@ -123,7 +123,7 @@ El propio Fluentd de Kolla también puede reenviar, con una salida en `/etc/koll
 
 ### Quién hizo qué en Kolla-Ansible
 
-El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Security Events → Connections**. El perfil de registros del agente lee ambos desde `/var/log/kolla`.
+El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Eventos de seguridad → Conexiones**. El perfil de registros del agente lee ambos desde `/var/log/kolla`.
 
 ```ini title="/etc/kolla/config/keystone.conf"
 [DEFAULT]
@@ -208,7 +208,7 @@ Esto ejecuta el perfil de registros del agente como servicio de systemd y lee `/
 
 ### Quién hizo qué en OpenStack-Ansible
 
-El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Security Events → Connections**. El perfil de registros del agente lee ambos desde el journal.
+El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Eventos de seguridad → Conexiones**. El perfil de registros del agente lee ambos desde el journal.
 
 ```yaml title="/etc/openstack_deploy/user_variables.yml"
 keystone_keystone_conf_overrides:
@@ -266,7 +266,7 @@ conf:
 
 ### Leer las API y ver los pods en OpenStack-Helm
 
-Abre **OpenStack → All Clouds**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube. Luego sigue **Kubernetes → Documentación** para el clúster en el que se ejecutan los charts: sus pods, sus registros y sus nodos llegan a las páginas de Kubernetes.
+Abre **OpenStack → Todas las nubes**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube. Luego sigue **Kubernetes → Documentación** para el clúster en el que se ejecutan los charts: sus pods, sus registros y sus nodos llegan a las páginas de Kubernetes.
 
 Para tener también los registros de esos servicios en la página de **Registros** de esta nube, con cada traza de pila como un solo registro, nombra la nube en los valores del agente, con los namespaces en los que se ejecutan sus servicios:
 
@@ -280,7 +280,7 @@ logs:
 
 ### Quién hizo qué en OpenStack-Helm
 
-El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Security Events → Connections**. El agente de Kubernetes lee ambos desde los registros de los pods, con la nube nombrada en sus valores.
+El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Eventos de seguridad → Conexiones**. El agente de Kubernetes lee ambos desde los registros de los pods, con la nube nombrada en sus valores.
 
 ```yaml title="keystone's values.yaml"
 conf:
@@ -344,7 +344,7 @@ kube_prometheus_stack_helm_values:
 
 ### Leer las API y ver los pods en Atmosphere
 
-Abre **OpenStack → All Clouds**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube. Luego sigue **Kubernetes → Documentación** para el clúster en el que se ejecuta Atmosphere.
+Abre **OpenStack → Todas las nubes**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube. Luego sigue **Kubernetes → Documentación** para el clúster en el que se ejecuta Atmosphere.
 
 Para tener también los registros de esos servicios en la página de **Registros** de esta nube, con cada traza de pila como un solo registro, nombra la nube en los valores del agente, con los namespaces en los que se ejecutan sus servicios:
 
@@ -358,7 +358,7 @@ logs:
 
 ### Quién hizo qué en Atmosphere
 
-El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Security Events → Connections**. El agente de Kubernetes lee ambos desde los registros de los pods, con la nube nombrada en sus valores.
+El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Eventos de seguridad → Conexiones**. El agente de Kubernetes lee ambos desde los registros de los pods, con la nube nombrada en sus valores.
 
 ```yaml title="your inventory's variables"
 keystone_helm_values:
@@ -454,7 +454,7 @@ spec:
 
 ### Leer las API y el plano de control
 
-Abre **OpenStack → All Clouds**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube. Luego sigue **Kubernetes → Documentación** en el clúster que ejecuta el plano de control, con **Red Hat OpenShift** elegido, lo que establece `preset=openshift`.
+Abre **OpenStack → Todas las nubes**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube. Luego sigue **Kubernetes → Documentación** en el clúster que ejecuta el plano de control, con **Red Hat OpenShift** elegido, lo que establece `preset=openshift`.
 
 Para tener también los registros de esos servicios en la página de **Registros** de esta nube, con cada traza de pila como un solo registro, nombra la nube en los valores del agente, con los namespaces en los que se ejecutan sus servicios:
 
@@ -472,7 +472,7 @@ Una sonda dice qué está asignado, no qué está ocupado. Para leer el uso real
 
 ### Quién hizo qué en Red Hat OpenStack on OpenShift
 
-El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Security Events → Connections**. El agente de Kubernetes lee ambos desde los registros de los pods, con la nube nombrada en sus valores.
+El rastro de auditoría de Keystone y el filtro de auditoría de cada API, hacia [Eventos de seguridad](/docs/telemetry/openstack#quién-hizo-qué). Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Eventos de seguridad → Conexiones**. El agente de Kubernetes lee ambos desde los registros de los pods, con la nube nombrada en sus valores.
 
 ```yaml title="your OpenStackControlPlane"
 spec:
@@ -527,11 +527,11 @@ alertmanagerSimpleConfig:
 
 ### Leer las API
 
-Abre **OpenStack → All Clouds**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube.
+Abre **OpenStack → Todas las nubes**, haz clic en **Conectar nube** y dale la dirección de Keystone, una credencial de aplicación y la sonda que usar. Una sonda solo habla HTTPS con una nube.
 
 ### Quién hizo qué en Mirantis MOSK
 
-Para saber quién hizo qué a través de Nova, Neutron, Cinder y Glance, MOSK tiene un ajuste propio, con el filtro de auditoría ya en su sitio. Con el driver de log, cada servicio escribe en su salida estándar, y el agente de Kubernetes la lee desde los registros de los pods, con la nube nombrada en sus valores. Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Security Events → Connections**.
+Para saber quién hizo qué a través de Nova, Neutron, Cinder y Glance, MOSK tiene un ajuste propio, con el filtro de auditoría ya en su sitio. Con el driver de log, cada servicio escribe en su salida estándar, y el agente de Kubernetes la lee desde los registros de los pods, con la nube nombrada en sus valores. Cada uno escribe en el propio registro del servicio, sin ningún consumidor en el bus. OneUptime los lee desde allí una vez activado **Encontrar eventos de seguridad en tus registros**, en **Eventos de seguridad → Conexiones**.
 
 ```yaml title="your OpenStackDeployment"
 spec:

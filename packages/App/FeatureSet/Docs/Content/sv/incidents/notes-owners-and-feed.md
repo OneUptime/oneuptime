@@ -306,7 +306,7 @@ Det finns fem vägar in på listan över ägare:
 - **Från en incidentmall** — mallar har ett fält **Ägare**: personerna och teamen som äger incidenten och meddelas när den skapas eller uppdateras, valda från samma lista som **Lägg till ägare**. Att skapa en incident från mallen förifyller dem, och de läggs till när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem. Instrumentpanelen, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, lägger till dem utan aviseringen "du har lagts till"; ett [formulär](/docs/forms/on-submit) med en mall meddelar dem och håller tillbaka incidentens avisering **Incident skapad** tills de har lagts till. Se [Deklarera en incident](/docs/incidents/declaring-incidents).
 - **Från Ägarregler för incidenter** — matchande regler lägger till ägare automatiskt när incidenten skapas.
 - **Vid skapande via API:t** — användare och team som anges som ägare med skapandeanropet läggs till på samma sätt, när kanalerna finns, och utan aviseringen "du har lagts till".
-- **För hand** — kontrollen **Lägg till ägare** på sidan **Ägare**, när som helst under incidenten, eller **Lägg till** under ägarna i rubriken på **Översikt** så länge den är öppen.
+- **By hand** — kontrollen **Lägg till ägare** på sidan **Ägare**, när som helst under incidenten, eller **Lägg till** under ägarna i rubriken på **Översikt** så länge den är öppen.
 
 Att lägga till samma person två gånger är ofarligt; ägare som redan är tilldelade dupliceras inte.
 

@@ -29,7 +29,7 @@ Raramente você vai precisar dela aberta enquanto monta. As configurações de c
 | Ler ou alterar incidentes, monitores e outros registros       | [Componentes de dados do OneUptime](#componentes-de-dados-do-oneuptime)   |
 | Abrir, reconhecer e resolver incidentes ou alertas para os problemas de outra ferramenta | [Incidentes e alertas de outras ferramentas](#incidentes-e-alertas-de-outras-ferramentas) |
 | Reconhecer ou fechar um problema do Zabbix | [Zabbix](#zabbix) |
-| Pedir a uma pessoa que aprove uma correção em uma nuvem OpenStack | [Propor uma correção do OpenStack](#propor-uma-correção-do-openstack) |
+| Pedir a uma pessoa que aprove uma correção em uma nuvem OpenStack | [Propor uma correção do OpenStack](#propose-an-openstack-fix) |
 
 Um bloco dedicado é melhor que um genérico: o bloco do Slack conhece os limites do Slack, e um bloco de registro conhece os campos do registro, então você recebe erros e logs mais claros do que com um bloco **API** fazendo o mesmo trabalho.
 
@@ -431,7 +431,7 @@ Para reconhecer ou fechar, o bloco lê o problema primeiro. Um problema que o Za
 
 ## OpenStack
 
-### Propor uma correção do OpenStack
+### Propose an OpenStack fix
 
 Pede a uma pessoa que aprove uma alteração na nuvem OpenStack de que um alerta ou incidente trata. Ele nunca faz a alteração. A correção espera no alerta ou incidente, e nos canais em que ele publica, como uma que a OneUptime IA propõe, seja qual for o modo de correção da nuvem. Um workflow não pode aprovar o que propõe.
 
@@ -441,8 +441,8 @@ Ele não precisa de nenhum modelo de IA e segue as mesmas regras de uma correç�
 | ------------ | --------- |
 | **Alert ID** | O alerta para o qual a correção se destina, em geral o ID que o seu gatilho retornou. Preencha este ou **Incident ID**, e a nuvem vem daquilo a que o registro está vinculado. |
 | **Incident ID** | O incidente para o qual a correção se destina, em geral o ID que o seu gatilho retornou. Preencha este ou **Alert ID**. |
-| **Command** | A alteração a propor, na única grafia que a OneUptime aceita. Veja [as alterações que uma correção pode fazer](/docs/telemetry/openstack#correções). Ele pode usar valores de blocos anteriores e é lido depois que eles são preenchidos. |
-| **Why** | O que a pessoa que aprova lê primeiro. Deixado vazio, diz qual workflow pediu. |
+| **Comando** | A alteração a propor, na única grafia que a OneUptime aceita. Veja [as alterações que uma correção pode fazer](/docs/telemetry/openstack#correções). Ele pode usar valores de blocos anteriores e é lido depois que eles são preenchidos. |
+| **Por quê** | O que a pessoa que aprova lê primeiro. Deixado vazio, diz qual workflow pediu. |
 | **OpenStack Cloud ID** | Em **Mais campos**. Só para um registro vinculado a mais de uma nuvem, ou a nenhuma. |
 
 Ele retorna **Suggestion ID** (a correção que espera aprovação), **Tier** (Safe ou Riskier, como a OneUptime lê o comando) e **Already Waiting** (verdadeiro quando a mesma alteração naquela nuvem já estava esperando, de modo que nenhuma segunda foi adicionada).

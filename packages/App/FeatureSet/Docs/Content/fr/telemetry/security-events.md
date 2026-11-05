@@ -193,7 +193,7 @@ Chaque type parvient à OneUptime sous forme de journaux ordinaires :
 | AWS CloudTrail | Un trail livré à CloudWatch Logs, lu par le récepteur `awscloudwatch` du collecteur, ou, pour un compte connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
 | Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text`, ou, pour un projet connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
 | Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw`, ou, pour le journal d'activité d'un abonnement connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
-| Piste d'audit OpenStack | Les notifications et le filtre d'audit d'un cloud envoyés vers ses journaux avec `driver = log`, lus par le [profil de journaux](/docs/telemetry/openstack#who-did-what) de l'agent |
+| Piste d'audit OpenStack | Les notifications et le filtre d'audit d'un cloud envoyés vers ses journaux avec `driver = log`, lus par le [profil de journaux](/docs/telemetry/openstack#qui-a-fait-quoi) de l'agent |
 | CEF, LEEF | Le syslog du produit, relayé par [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Le syslog propre au pare-feu, relayé par [rsyslog](/docs/telemetry/syslog) |
 | Journaux d'audit Kubernetes | Le fichier de journal d'audit du serveur d'API, lu par le récepteur `filelog` du collecteur |

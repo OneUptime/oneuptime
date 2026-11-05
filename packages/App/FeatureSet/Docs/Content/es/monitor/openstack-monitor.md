@@ -45,7 +45,7 @@ En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **OpenStac
 
 ### Elige la nube
 
-En **Configuración del monitor de OpenStack**, elige la nube en **Nube OpenStack**. En la lista aparece toda nube que haya enviado datos. Una vez elegida, una línea bajo el campo indica si están llegando datos.
+En **OpenStack Monitor Configuration**, elige la nube en **Nube OpenStack**. En la lista aparece toda nube que haya enviado datos. Una vez elegida, una línea bajo el campo indica si están llegando datos.
 
 ### Elige qué vigilar
 
@@ -210,7 +210,7 @@ Cada plantilla lee al menos tres recopilaciones de lo que vigila, y solo dispara
 - **Una serie que acaba de aparecer espera una ventana completa,** de modo que una instancia, un volumen o una imagen vistos una vez de camino a otra cosa no generan nada. Cada plantilla sabe con qué frecuencia se recopila su servicio a partir de la propia serie `_up` de ese servicio.
 - **Una serie que desaparece cuenta como recuperada:** un worker que alguien deshabilitó, la última instancia en ERROR eliminada, un pool retirado. Cada plantilla lee la serie `_up` de su servicio junto a la suya, así que distingue una pieza que desapareció de una nube que se quedó en silencio. Cuando no llega nada en absoluto, sus incidentes siguen abiertos y avisa **Cloud Stopped Reporting**.
 - **Cuando una API está caída, sus propias series también desaparecen**, así que las demás plantillas de ese servicio se resuelven y vuelven a disparar una ventana después de que vuelva si el fallo persiste. Si todas las API aparecen caídas a la vez, mira primero el exporter.
-- **Una nube que no tiene ese servicio permanece en silencio.** El exporter responde con nada para un servicio que no está en el catálogo de la nube, y **Network**, **Block Storage**, **Image** y **Placement API Down** no lo interpretan como una caída. **Identity** y **Compute API Down** sí, porque así es también como el exporter informa de que Keystone o la API de Nova se han detenido por completo, y todas las nubes los tienen.
+- **Una nube que no tiene ese servicio permanece en silencio.** El exporter responde con nada para un servicio que no está en el catálogo de la nube, y **Red**, **Block Storage**, **Imagen** y **Placement API Down** no lo interpretan como una caída. **Identidad** y **Compute API Down** sí, porque así es también como el exporter informa de que Keystone o la API de Nova se han detenido por completo, y todas las nubes los tienen.
 
 ### Cuando una dispara
 
@@ -319,7 +319,7 @@ Las métricas de abajo son el catálogo que ofrece el formulario del monitor. **
 | Métrica | Unidad | Lecturas | Descripción |
 | --- | --- | --- | --- |
 | `up` | - | Mín. | Si el exporter respondió a esta recopilación (1) o no (0): estaba detenido, agotó el tiempo de espera o respondió con un error. 1 no dice nada de la API en sí, porque el exporter responde incluso cuando no pudo llegar a ella. Lo informa el collector del agente, una serie por servicio y región. |
-| `scrape_samples_scraped` | `count` | Mín. | Con cuántas series respondió el exporter a una recopilación. 0 significa que no tenía nada que decir: no pudo iniciar sesión en Keystone, o no pudo llegar a la API de Nova para acordar una microversión, y esos fallos no dejan ninguna serie openstack_*. Lo informa el collector del agente, una serie por servicio y región. |
+| `scrape_samples_scraped` | `count` | Mín. | Con cuántas series respondió el exporter a una recopilación. 0 significa que no tenía nada que decir: no pudo iniciar sesión en Keystone, o no pudo llegar a la API de Nova para acordar una microversión, y esos fallos no dejan ninguna serie con prefijo openstack en absoluto. Lo informa el collector del agente, una serie por servicio y región. |
 | `openstack_identity_up` | - | Mín. | Si la API de Keystone respondió a las llamadas del exporter (1) o todas fallaron (0). Cuando no se puede iniciar sesión en Keystone en absoluto, el exporter responde con nada, así que esta serie desaparece en lugar de valer 0. |
 | `openstack_nova_up` | - | Mín. | Si la API de Nova respondió a las llamadas del exporter (1) o todas fallaron (0). Cuando no se puede llegar a la API de Nova en absoluto, el exporter responde con nada, así que esta serie desaparece en lugar de valer 0. |
 | `openstack_neutron_up` | - | Mín. | Si la API de Neutron respondió a las llamadas del exporter (1) o todas fallaron (0). |

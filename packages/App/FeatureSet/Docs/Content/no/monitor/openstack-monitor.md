@@ -1,4 +1,4 @@
-# OpenStack-monitor
+# OpenStack-overvåking
 
 En OpenStack-monitor overvåker én sky - API-ene, arbeiderne bak dem, hypervisorer, instanser, nettverk, lagringspooler og prosjektkvoter - og varsler deg når et API slutter å svare, en arbeider går ned, en hypervisor ikke har mer å gi eller en pool fylles opp. Den leser `openstack_*`-seriene som OneUptime OpenStack Agent samler inn fra openstack-exporter.
 
@@ -29,8 +29,8 @@ flowchart TB
 
 ## Før du begynner
 
-- **Samle inn skyens metrikker** med OpenStack Agent. Skyens **Dokumentasjon**-side, under **Products → Infrastruktur → OpenStack**, veileder deg gjennom installasjonen.
-- **Sjekk at skyen er registrert.** Den vises under **Products → Infrastruktur → OpenStack**, oppkalt etter agentens `OPENSTACK_CLOUD_NAME`, etter første innsamling.
+- **Samle inn skyens metrikker** med OpenStack Agent. Skyens **Dokumentasjon**-side, under **Produkter → Infrastruktur → OpenStack**, veileder deg gjennom installasjonen.
+- **Sjekk at skyen er registrert.** Den vises under **Produkter → Infrastruktur → OpenStack**, oppkalt etter agentens `OPENSTACK_CLOUD_NAME`, etter første innsamling.
 
 ## Opprett en OpenStack-monitor
 
@@ -65,7 +65,7 @@ Klikk **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den hve
 :::
 
 > [!TIP]
-> For å sette opp flere maler på én gang åpner du skyen fra **Products → Infrastruktur → OpenStack** og går til **Anbefalinger**. Velg malene du vil ha, velg hvem som varsles, og OneUptime oppretter én monitor per mal.
+> For å sette opp flere maler på én gang åpner du skyen fra **Produkter → Infrastruktur → OpenStack** og går til **Anbefalinger**. Velg malene du vil ha, velg hvem som varsles, og OneUptime oppretter én monitor per mal.
 
 ## Monitorinnstillinger
 
@@ -80,7 +80,7 @@ Klikk **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den hve
 | **OpenStack-metrikk** | Egendefinert metrikk | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Egendefinert metrikk | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det rullerende vinduet spørringen leser, fra **Siste 1 minutt** til **Siste 365 dager**. En ny monitor starter på **Siste 15 minutter**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
 Et filter avgrenser bare en serie som har etiketten sin: `openstack_nova_up` har ikke noe prosjekt, så et prosjektfilter lar den være som den er.
 
@@ -210,7 +210,7 @@ Hver mal leser minst tre innsamlinger av det den overvåker, og utløses bare n�
 - **En serie som nettopp har dukket opp, venter et helt vindu**, så en instans, et volum eller en image som er sett én gang på vei til noe annet, utløser ingenting. Hver mal vet hvor ofte tjenesten samles inn fra tjenestens egen `_up`-serie.
 - **En serie som forsvinner, regnes som gjenopprettet:** en arbeider noen deaktiverte, den siste instansen i ERROR som ble slettet, en pool som ble fjernet. Hver mal leser tjenestens egen `_up`-serie ved siden av sin egen, så den kan skille en del som forsvant fra en sky som ble stille. Når ingenting kommer inn i det hele tatt, forblir hendelsene åpne, og **Cloud Stopped Reporting** tar over.
 - **Når et API er nede, forsvinner også seriene det har**, så den tjenestens andre maler løses, og utløses igjen et vindu etter at det er tilbake hvis feilen fortsatt er der. Hvis alle API-er leser nede samtidig, se først på exporteren.
-- **En sky som ikke har en slik tjeneste, forblir stille.** Exporteren svarer med ingenting for en tjeneste som ikke står i skyens katalog, og **Network**, **Block Storage**, **Image** og **Placement API Down** leser ikke det som et utfall. **Identity** og **Compute API Down** gjør det, fordi det også er slik exporteren melder at Keystone eller Novas API stoppet helt, og alle skyer har dem.
+- **En sky som ikke har en slik tjeneste, forblir stille.** Exporteren svarer med ingenting for en tjeneste som ikke står i skyens katalog, og **Nettverk**, **Block Storage**, **Bilde** og **Placement API Down** leser ikke det som et utfall. **Identitet** og **Compute API Down** gjør det, fordi det også er slik exporteren melder at Keystone eller Novas API stoppet helt, og alle skyer har dem.
 
 ### Når en utløses
 
@@ -319,7 +319,7 @@ Metrikkene nedenfor er katalogen monitorskjemaet tilbyr. **Lesinger** er metrikk
 | Metrikk | Enhet | Lesinger | Beskrivelse |
 | --- | --- | --- | --- |
 | `up` | - | Min | Om exporteren svarte på denne innsamlingen i det hele tatt (1) eller ikke (0): den var stoppet, fikk tidsavbrudd eller svarte med en feil. 1 sier ingenting om selve API-et, fordi exporteren svarer selv når den ikke nådde det. Rapportert av agentens collector, én serie per tjeneste per region. |
-| `scrape_samples_scraped` | `count` | Min | Hvor mange serier exporteren svarte på en innsamling med. 0 betyr at den ikke hadde noe å si: den kunne ikke logge inn på Keystone, eller nådde ikke Novas API for å bli enig om en microversion, og slike feil etterlater ingen openstack_*-serier i det hele tatt. Rapportert av agentens collector, én serie per tjeneste per region. |
+| `scrape_samples_scraped` | `count` | Min | Hvor mange serier exporteren svarte på en innsamling med. 0 betyr at den ikke hadde noe å si: den kunne ikke logge inn på Keystone, eller nådde ikke Novas API for å bli enig om en microversion, og slike feil etterlater ingen serier fra exporteren i det hele tatt. Rapportert av agentens collector, én serie per tjeneste per region. |
 | `openstack_identity_up` | - | Min | Om Keystones API svarte på exporterens kall (1) eller alle feilet (0). Når det ikke går an å logge inn på Keystone i det hele tatt, svarer exporteren med ingenting, så denne serien forsvinner i stedet for å lese 0. |
 | `openstack_nova_up` | - | Min | Om Novas API svarte på exporterens kall (1) eller alle feilet (0). Når Novas API ikke kan nås i det hele tatt, svarer exporteren med ingenting, så denne serien forsvinner i stedet for å lese 0. |
 | `openstack_neutron_up` | - | Min | Om Neutrons API svarte på exporterens kall (1) eller alle feilet (0). |

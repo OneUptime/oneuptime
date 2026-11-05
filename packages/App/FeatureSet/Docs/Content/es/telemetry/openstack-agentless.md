@@ -76,7 +76,7 @@ La prueba de conexión indica a cuál de estos equivale una credencial, y avisa 
 
 :::steps
 ### Abre tus nubes
-En OneUptime, abre **OpenStack → All Clouds** y haz clic en **Conectar nube**.
+En OneUptime, abre **OpenStack → Todas las nubes** y haz clic en **Conectar nube**.
 
 ### Introduce la dirección y la credencial
 Introduce el `auth_url` de tu archivo `clouds.yaml` o `openrc`, como `https://keystone.example.com:5000/v3`, y el ID y el secreto de la credencial de aplicación. Elige la sonda que alcanza la nube.

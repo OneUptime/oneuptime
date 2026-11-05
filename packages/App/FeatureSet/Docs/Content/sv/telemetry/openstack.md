@@ -39,7 +39,7 @@ Molnet registrerar sig självt med sina första data, under det namn som agenten
 - Docker Engine 20.10 eller senare med Docker Compose v2-insticksmodulen, eller, för att köra utan Docker, en Linux-maskin (x86_64 eller arm64) med systemd 235 eller senare, glibc 2.34 eller senare (RHEL 9, Ubuntu 22.04, Debian 12) och root.
 - En väg från den maskinen till Keystone och till varje tjänsts publika slutpunkt.
 - Kommandoraden `openstack`, som någon som kan skapa autentiseringsuppgiften nedan.
-- En inmatningsnyckel. Skapa en under **Projektinställningar → Telemetri och APM → Inmatningsnycklar** och kopiera dess värde.
+- En inmatningsnyckel. Skapa en under **Projektinställningar → Telemetri och APM → Intagningsnycklar** och kopiera dess värde.
 - Utgående HTTPS från den maskinen till din OneUptime-URL.
 
 ### Var du ska köra agenten
@@ -134,7 +134,7 @@ Varje OneUptime serverar agentens installationsskript och filer för sin egen ve
 Välj den nivå du valde. Var och en skapar en applikationsautentiseringsuppgift, som skriver ut ett `id` och en `secret`: hemligheten visas bara en gång. Ge den ett utgångsdatum och aldrig `--unrestricted`, som skulle låta den skapa fler autentiseringsuppgifter.
 
 :::tabs
-@tab Nivå 1: Full vy
+@tab Level 1: Full view
 Som admin, skapa ett projekt och ett konto åt agenten:
 
 ```bash
@@ -198,7 +198,7 @@ På de tjänster som ett moln kanske inte kör skiljer sig vad varje nivå fick 
 Keystone behöver ingenting. Med reglerna anpassade, `service_type` satt och API:erna omstartade svarade varje läsning `200` och varje skrivning `401`, på varje version vi har registrerat. Exportern får det en admin får, utom Keystones användare och grupper, avsiktligt. Det gäller även tjänsterna som ett moln kanske inte kör: registrerat på DevStack fick nivå 1 samma serier som en admins autentiseringsuppgift från var och en som exportern läser, och varje skrivning besvarades med `401`.
 
 Om du inte vill göra den ändringen, skapa samma autentiseringsuppgift utan `--access-rules`: en vanlig applikationsautentiseringsuppgift för admin. Den fungerar och kan skriva, så diagnostikskriptet märker den som en sådan.
-@tab Nivå 2: Endast infrastruktur
+@tab Level 2: Infrastructure only
 Som admin, skapa rollen, ett projekt som inte innehåller något och har noll kvot, och ett konto:
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Att ge rollen på ett riktigt projekt för att se dess volymer och routrar låter också kontot skriva där, på ett moln där Cinder har `enforce_new_defaults` avstängt. Diagnostikskriptet varnar när autentiseringsuppgiftens projekt innehåller saker.
-@tab Nivå 3: Projektvy
+@tab Level 3: Project view
 Ge ett konto den vanliga rollen `reader` på projektet och skapa sedan autentiseringsuppgiften, inloggad som det kontot på det projektet:
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Utan Docker
+@tab Without Docker
 På Linux (x86_64 eller arm64) med systemd 235 eller senare och glibc 2.34 eller senare kör installationsskriptet uppströmsversionerna av samma två program som systemd-tjänster. RHEL 8 och dess släktingar har en äldre glibc, som exporterns version inte kan köras på: skriptet säger det och ändrar ingenting, så använd Docker där.
 
 ```bash
@@ -359,7 +359,7 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-openstack-agent/.env`; 
 | Variabel | Obligatorisk | Beskrivning |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, till exempel `https://oneuptime.com` eller din egenvärdade instans. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inmatningsnyckeln från **Projektinställningar → Telemetri och APM → Inmatningsnycklar**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inmatningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
 | `OPENSTACK_CLOUD_NAME` | Ja | Molnets namn i OneUptime, satt på varje mätvärde som resursattributet `openstack.cloud.name`. Håll det stabilt: om du ändrar det registreras ett nytt moln. Standardvärdet är `openstack`. |
 | `OPENSTACK_AUTH_URL` | Medföljande exporter | Ett svar till installationsskriptet: Keystones autentiserings-URL. `/v3` läggs till om det saknas. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Ja | Regionerna, inom hakparenteser, till exempel `[RegionOne,RegionTwo]`, var och en namnet på en post i `clouds.yaml`. Standardvärdet är `[RegionOne]`. |
@@ -686,8 +686,8 @@ Vad en instans kostar, med två vCPU:er, en disk och ett nätverksgränssnitt:
 
 | Källa | Serier per instans | Rader per timme | Rader per månad, 100 instanser | Rader per månad, 1 000 instanser |
 | --- | --- | --- | --- | --- |
-| `prometheus-libvirt-exporter`, läst varje minut | 30 | 1 800 | 131 400 000 | 1 314 000 000 |
-| Ceilometers exporter, läst varje minut och pollad var 5:e | 24 | 864 | 63 072 000 | 630 720 000 |
+| `prometheus-libvirt-exporter`, läst varje minut | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
+| Ceilometers exporter, läst varje minut och pollad var 5:e | 24 | 864 | 63,072,000 | 630,720,000 |
 
 Varje ytterligare disk lägger till 12 serier till någon av dem, och varje ytterligare gränssnitt 4. Varje ytterligare vCPU lägger till 1 från libvirt. Agentens collector håller dessa i minnet på väg ut, så ett stort moln kan behöva mer än sina standard 512 MiB. Guidens kalkylator, under **Dokumentation** på ett moln, sätter ett pris på dessa för ett moln av din storlek.
 
@@ -707,7 +707,7 @@ En regel här är en **Ägarregel för OpenStack-moln** eller **Etikettregel fö
 
 Ett larm eller en incident på en del av molnet når varje projekt som har något på den delen, hur många de än är. Bara en monitor kan säga vad den når, så en regel som denna når inte en incident som någon deklarerar för hand. Etiketter sätts på när larmet öppnas, och ägare strax efter.
 
-Regler skrivna tidigare som ett par av larm- och incidentregler, som matchar ``OpenStack project `<id>` `` eller ``OpenStack domain `<id>` `` i beskrivningen, fortsätter att fungera och listas också här. En beskrivning namnger högst 50 av de projekt den når, så ett sådant par slutar där. Ta bort det och lägg till regeln igen för att häva den gränsen.
+Regler skrivna tidigare som ett par av larm- och incidentregler, som matchar ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` i beskrivningen, fortsätter att fungera och listas också här. En beskrivning namnger högst 50 av de projekt den når, så ett sådant par slutar där. Ta bort det och lägg till regeln igen för att häva den gränsen.
 
 ### Kvoter
 
@@ -832,7 +832,7 @@ När den väl är länkad säger poolens sida hur dess kluster läses, och `HEAL
 
 Om ditt moln kör Heat eller Magnum visas de av sig själva: det finns inget att slå på. Ett moln som kör ingetdera visar inga spår av dem, ingen menypost, inget kort på **Tjänster** och inget larm att välja bland. Det som avgör är molnets eget svar, aldrig en inställning: agenten frågar efter vardera vid varje insamling, och en tjänst som Keystones katalog inte namnger svarar med ingenting.
 
-Ett moln med Heat får **Stackar** under **Orkestrering**, och ett med Magnum får **Kubernetes-kluster**. Var och en listar varje stack eller kluster med dess status med tjänstens eget ord, och var och en har en sida. En stack eller ett kluster i ett felat tillstånd når **Kräver uppmärksamhet** med namn, och det gör också ett som fortfarande pågår efter två timmar, vilket är dubbelt så mycket som någon av tjänsterna ger ett av egen vilja. Magnum bygger ett kluster med en Heat-stack, så ett felat kluster och dess felade stack läses som en rad, med klustrets namn, och varje sida länkar till den andra.
+Ett moln med Heat får **Stacks** under **Orkestrering**, och ett med Magnum får **Kubernetes-kluster**. Var och en listar varje stack eller kluster med dess status med tjänstens eget ord, och var och en har en sida. En stack eller ett kluster i ett felat tillstånd når **Kräver uppmärksamhet** med namn, och det gör också ett som fortfarande pågår efter två timmar, vilket är dubbelt så mycket som någon av tjänsterna ger ett av egen vilja. Magnum bygger ett kluster med en Heat-stack, så ett felat kluster och dess felade stack läses som en rad, med klustrets namn, och varje sida länkar till den andra.
 
 ### Vad varje sätt att samla in ser
 
@@ -874,7 +874,7 @@ Om en tjänst lämnar Keystones katalog försvinner dess rader ungefär 15 minut
 
 ## Manila
 
-Om ditt moln kör Manila får ett moln **Delningar** under **Lagring** av sig självt, och ett som inte gör det visar inga spår av det. Varje delning har sin status med Manilas eget ord, hur mycket utrymme den rymmer, sitt protokoll och vems den är, och en egen sida. En delning i ett feltillstånd når **Kräver uppmärksamhet** med namn, och det gör också en som fortfarande är på väg efter en timme: Manila har ingen egen timeout för en långsam backend, så en som hängt läses likadant som en som är långsam till dess. En delning som migreras eller säkerhetskopieras lämnas ifred, eftersom de varar så länge dess data tar att kopiera.
+Om ditt moln kör Manila får ett moln **Shares** under **Lagring** av sig självt, och ett som inte gör det visar inga spår av det. Varje delning har sin status med Manilas eget ord, hur mycket utrymme den rymmer, sitt protokoll och vems den är, och en egen sida. En delning i ett feltillstånd når **Kräver uppmärksamhet** med namn, och det gör också en som fortfarande är på väg efter en timme: Manila har ingen egen timeout för en långsam backend, så en som hängt läses likadant som en som är långsam till dess. En delning som migreras eller säkerhetskopieras lämnas ifred, eftersom de varar så länge dess data tar att kopiera.
 
 | Vad | Agent, Full vy | Probe, Full vy | Allt mindre |
 | --- | --- | --- | --- |
@@ -1066,7 +1066,7 @@ Ett moln skriver väldigt mycket som ingen läser. Första gången ett projekts 
 | Filter | Vad det släpper | Vad det sparar | Vad det kostar dig |
 | --- | --- | --- | --- |
 | **OpenStack: DEBUG lines** | Varje `DEBUG`-rad. Det är där ett molns hemligheter har läckt | Med `debug = True`, det mesta av det ett moln skriver: 85 till 87 % av raderna och 70 till 76 % av byten på våra testmoln, över tre versioner. Ingenting med `debug = False` | Den detalj du slår på `debug` för att läsa. Slå av det här medan du felsöker en tjänst |
-| **OpenStack: health checks** | En lastbalanserare som frågar varje API efter `/` eller `/healthcheck`: en rad med några sekunders mellanrum, per API, per kontrollernod | Vid en kontroll varannan sekund, 43 200 rader om dagen för varje API på varje kontrollernod. Vid de 220 till 490 byte som de här raderna var på våra testmoln är det 10 till 21 MB om dagen. Detta är aritmetik utifrån en rads storlek: våra testmoln har ingen lastbalanserare | Ingenting en människa läser. Samma rad från en människa ser likadan ut |
+| **OpenStack: health checks** | En lastbalanserare som frågar varje API efter `/` eller `/healthcheck`: en rad med några sekunders mellanrum, per API, per kontrollernod | Vid en kontroll var 2:a sekund, 43,200 rader om dagen för varje API på varje kontrollernod. Vid de 220 till 490 byte som de här raderna var på våra testmoln är det 10 till 21 MB om dagen. Detta är aritmetik utifrån en rads storlek: våra testmoln har ingen lastbalanserare | Ingenting en människa läser. Samma rad från en människa ser likadan ut |
 | **OpenStack: routine notifications** | `metrics.update`, och varje `*.exists` och `*.usage`. Se [Livscykelhändelser](#livscykelhändelser) | Inte mätt: våra inspelningar är för korta för att hålla många. Det växer med antalet instanser | Ingenting som säger att något ändrats. Slå av det här för att behålla varje notis |
 
 Dessa filter matchar bara det OneUptime läste från ett moln loggar, så inget annat i ett projekt berörs.
@@ -1083,7 +1083,7 @@ oslo.log maskerar en hel del själv, men inte allt: våra testmolns Cinder skrev
 
 Var och en blir:
 
-- En rad i delens **Flöde**, och i molnets.
+- En rad i delens **Feed**, och i molnets.
 - En markering på delens diagram, och en misstänkt när OneUptime AI undersöker en incident på den.
 - Den verkliga tid då en dels tillstånd ändrades, i stället för när nästa insamling märkte det.
 - För det som felade, larmen **Instance Action Failed** och **Scheduling Failed**, var och ett med den orsak det anger.

@@ -1,13 +1,13 @@
-# OpenStack 监视器
+# OpenStack 监控
 
 OpenStack 监视器负责监视一套云：它的 API、API 背后的工作进程、虚拟机监控程序（hypervisor）、实例、网络、存储池和项目配额，并在 API 不再响应、某个工作进程宕机、某台 hypervisor 没有余量可分配或某个存储池被占满时通知你。它读取 OneUptime OpenStack Agent 从 openstack-exporter 收集的 `openstack_*` 系列指标。
 
 :::cards
-- [创建监视器](#创建-openstack-监视器)：在 Dashboard 中分六步完成。
-- [模板](#预置警报模板)：现成的警报，每个工作进程、实例、网络或区域各对应一个事件。
-- [从外部检查](#从外部检查)：通过云外部的探测点，检查是否真的有人能启动实例。
-- [身份属性](#身份属性)：如何锁定某个区域、主机或项目。
-- [指标](#收集的指标)：监视器可以据以告警的所有指标系列。
+- [创建监视器](#创建-openstack-监视器): 在 Dashboard 中分六步完成。
+- [模板](#预置警报模板): 现成的警报，每个工作进程、实例、网络或区域各对应一个事件。
+- [从外部检查](#从外部检查): 通过云外部的探测点，检查是否真的有人能启动实例。
+- [身份属性](#身份属性): 如何锁定某个区域、主机或项目。
+- [指标](#收集的指标): 监视器可以据以告警的所有指标系列。
 :::
 
 ## 工作原理
@@ -29,8 +29,8 @@ flowchart TB
 
 ## 开始之前
 
-- **用 OpenStack Agent 收集云的指标。** 云的**文档**页面位于 **Products → 基础设施 → OpenStack** 下，其中有安装它的完整步骤。
-- **确认云已注册。** 首次收集之后，它会出现在 **Products → 基础设施 → OpenStack** 下，名称取自 Agent 的 `OPENSTACK_CLOUD_NAME`。
+- **用 OpenStack Agent 收集云的指标。** 云的**文档**页面位于 **产品 → 基础设施 → OpenStack** 下，其中有安装它的完整步骤。
+- **确认云已注册。** 首次收集之后，它会出现在 **产品 → 基础设施 → OpenStack** 下，名称取自 Agent 的 `OPENSTACK_CLOUD_NAME`。
 
 ## 创建 OpenStack 监视器
 
@@ -65,7 +65,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 若要一次设置多个模板，请从 **Products → 基础设施 → OpenStack** 打开云，进入**Suggest**。选择你想要的模板，指定通知谁，OneUptime 会为每个模板创建一个监视器。
+> 若要一次设置多个模板，请从 **产品 → 基础设施 → OpenStack** 打开云，进入**建议**。选择你想要的模板，指定通知谁，OneUptime 会为每个模板创建一个监视器。
 
 ## 监视器设置
 
@@ -79,12 +79,12 @@ flowchart TB
 | **项目 ID** | Custom Metric、高级 | 可选。指定一个项目：Nova 和 Cinder 的指标系列以及网络和子网上用 `tenant_id`，浮动 IP、路由器和地址可用性上用 `project_id`。 |
 | **OpenStack 指标** | Custom Metric | 从[目录](#收集的指标)中选择一个指标。 |
 | **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**、**最小值**、**总和**或**计数**。默认使用该指标通常的聚合方式。 |
-| **时间范围** | 全部 | 查询读取的滚动窗口，从**过去 1 分钟**到**过去 365 天**。新监视器默认为**过去 15 分钟**；模板会设置自己的值。 |
-| **选择指标** | 高级 | 查询构建器：**指标**、**聚合方式**、**按属性过滤**、**分组依据**，以及用于组合查询的**添加指标**和**添加公式**。 |
+| **时间范围** | 全部 | 查询读取的滚动窗口，从**Past 1 Minute**到**Past 365 Days**。新监视器默认为**过去 15 分钟**；模板会设置自己的值。 |
+| **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于组合查询的**添加指标**和**添加公式**。 |
 
 过滤器只会缩小带有对应标签的指标系列：`openstack_nova_up` 没有项目，因此项目过滤器对它不起作用。
 
-请把窗口设置为所读内容至少三次收集的长度：计算、网络、卷和 placement 为 6 分钟，身份和镜像为 15 分钟。更短的窗口容纳不了足够多次收集，**所有值**就无法表示一段持续时间。
+请把窗口设置为所读内容至少三次收集的长度：计算、网络、卷和 placement 为 6 分钟，身份和镜像为 15 分钟。更短的窗口容纳不了足够多次收集，**All Values** 就无法表示一段持续时间。
 
 ## 身份属性
 
@@ -210,7 +210,7 @@ OneUptime 提供 120 个针对常见 OpenStack 问题的模板，**告警内容*
 - **刚出现的指标系列要等满一个窗口**，因此一个只是在变为其他状态的途中被看到一次的实例、卷或镜像不会引发任何事件。每个模板通过该服务自己的 `_up` 指标系列了解这个服务多久被收集一次。
 - **消失的指标系列视为已恢复**：被人禁用的工作进程、被删除的最后一个 ERROR 实例、被移除的存储池。每个模板都会把所属服务的 `_up` 指标系列与自己的指标系列一起读取，因此能分辨是某个部分消失了，还是整个云不再上报。当完全没有任何数据到达时，它的事件保持打开，由 **Cloud Stopped Reporting** 来告警。
 - **API 宕机时，它自己的指标系列也会消失**，因此该服务的其他模板会被判定为已恢复，如果故障仍然存在，则在 API 恢复后一个窗口再次触发。如果所有 API 同时读为宕机，请先检查 exporter。
-- **没有某项服务的云会保持静默。** 对于不在云目录中的服务，exporter 的应答为空，**Network**、**Block Storage**、**Image** 和 **Placement API Down** 不会把这当作故障。**Identity** 和 **Compute API Down** 则会，因为 exporter 在 Keystone 或 Nova 的 API 彻底停止时也是这样报告的，而且每个云都有这两项服务。
+- **没有某项服务的云会保持静默。** 对于不在云目录中的服务，exporter 的应答为空，**网络**、**Block Storage**、**镜像** 和 **Placement API Down** 不会把这当作故障。**身份** 和 **Compute API Down** 则会，因为 exporter 在 Keystone 或 Nova 的 API 彻底停止时也是这样报告的，而且每个云都有这两项服务。
 
 ### 触发时的样子
 
@@ -312,14 +312,14 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 ## 收集的指标
 
-下列指标是监视器表单提供的目录。**读取方式**是其通常的聚合方式，表单默认使用它。以 GiB 和 MiB 为单位的大小，指的是 OpenStack 自己的 `_gb` 和 `_mb` 字段所存放的值。
+下列指标是监视器表单提供的目录。**读取次数**是其通常的聚合方式，表单默认使用它。以 GiB 和 MiB 为单位的大小，指的是 OpenStack 自己的 `_gb` 和 `_mb` 字段所存放的值。
 
 ### 可用性
 
 | 指标 | 单位 | 读取方式 | 说明 |
 | --- | --- | --- | --- |
 | `up` | - | 最小值 | exporter 是否应答了本次收集（1）或没有（0）：它已停止、超时，或返回了错误。1 并不说明 API 本身的情况，因为即使 exporter 没能连上 API，它也会应答。由 Agent 的 collector 上报，每个区域的每个服务一个指标系列。 |
-| `scrape_samples_scraped` | `count` | 最小值 | exporter 在一次收集中应答了多少个指标系列。0 表示它没有可说的内容：它无法登录 Keystone，或无法连接 Nova 的 API 来协商 microversion，这些故障不会留下任何 openstack_* 指标系列。由 Agent 的 collector 上报，每个区域的每个服务一个指标系列。 |
+| `scrape_samples_scraped` | `count` | 最小值 | exporter 在一次收集中应答了多少个指标系列。0 表示它没有可说的内容：它无法登录 Keystone，或无法连接 Nova 的 API 来协商 microversion，这些故障不会留下 exporter 的任何指标系列。由 Agent 的 collector 上报，每个区域的每个服务一个指标系列。 |
 | `openstack_identity_up` | - | 最小值 | Keystone 的 API 是否应答了 exporter 的调用（1），或所有调用都失败了（0）。当完全无法登录 Keystone 时，exporter 的应答为空，因此这个指标系列会消失，而不是读为 0。 |
 | `openstack_nova_up` | - | 最小值 | Nova 的 API 是否应答了 exporter 的调用（1），或所有调用都失败了（0）。当完全无法连接 Nova 的 API 时，exporter 的应答为空，因此这个指标系列会消失，而不是读为 0。 |
 | `openstack_neutron_up` | - | 最小值 | Neutron 的 API 是否应答了 exporter 的调用（1），或所有调用都失败了（0）。 |
@@ -422,7 +422,7 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_nova_current_workload` | `count` | 最大值 | 一台 hypervisor 上正在运行多少个构建、调整大小、快照、迁移和救援操作。它不是 CPU 负载。 |
 | `openstack_nova_running_vms` | `count` | 最大值 | 一台 hypervisor 上有多少个 ACTIVE 实例。hostname 是 hypervisor 的完整名称。 |
 | `openstack_nova_server_status` | - | 最大值 | 每个实例一个指标系列，其值是该实例状态的数字代码：ACTIVE 为 0，BUILD 为 1，ERROR 为 4。请从 status 标签读取状态词并按它过滤：这个代码既不是计数，也不是严重程度。在真实的云上，Agent 的 exporter 会把 address_ipv4 和 address_ipv6 留空，探测点则根据 Nova 列出的地址填入。hypervisor_hostname、host_id 和 availability_zone 在实例被调度之前为空。image_id 是它所启动的镜像：只有探测点会发送它，且从卷启动的实例没有。network_names 以 JSON 数组列出它拥有地址的网络的名称：只有探测点会发送它。 |
-| `openstack_nova_server_local_gb` | `GiB` | 最大值 | 一个实例占用的本地磁盘。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-server_local_gb`。 |
+| `openstack_nova_server_local_gb` | `GiB` | 最大值 | 一个实例占用的本地磁盘。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-server_local_gb`。 |
 | `openstack_nova_total_vms` | `count` | 最大值 | 区域内有多少个实例，无论处于什么状态。 |
 | `openstack_nova_instances_by_status` | `count` | 最大值 | 每种状态下有多少个实例，每个区域中每种状态一个指标系列。超过汇总规模的云保留它，以取代每个实例一个指标系列。其他云不会发送它。 |
 | `openstack_nova_instances_by_project` | `count` | 最大值 | 每个项目持有多少个实例，每个区域中每个项目一个指标系列。超过汇总规模的云保留它，以取代每个实例一个指标系列。其他云不会发送它。 |
@@ -462,18 +462,18 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | `openstack_neutron_networks` | `count` | 最大值 | 区域内有多少个网络。 |
 | `openstack_neutron_subnet` | `count` | 最大值 | 每个子网一个指标系列，值始终为 1，详细信息在标签中。 |
 | `openstack_neutron_subnets` | `count` | 最大值 | 区域内有多少个子网。 |
-| `openstack_neutron_subnets_total` | `count` | 最大值 | 一个子网池总共能容纳多少个某前缀长度的子网。_默认关闭：_请从 exporter 中删除 `--disable-metric=neutron-subnets_total`。 |
-| `openstack_neutron_subnets_used` | `count` | 最大值 | 一个子网池已分配出多少个某前缀长度的子网。_默认关闭：_请从 exporter 中删除 `--disable-metric=neutron-subnets_total`。 |
-| `openstack_neutron_subnets_free` | `count` | 最小值 | 一个子网池还剩下多少个某前缀长度的子网可供分配。_默认关闭：_请从 exporter 中删除 `--disable-metric=neutron-subnets_total`。 |
+| `openstack_neutron_subnets_total` | `count` | 最大值 | 一个子网池总共能容纳多少个某前缀长度的子网。_默认关闭_：请从 exporter 中删除 `--disable-metric=neutron-subnets_total`。 |
+| `openstack_neutron_subnets_used` | `count` | 最大值 | 一个子网池已分配出多少个某前缀长度的子网。_默认关闭_：请从 exporter 中删除 `--disable-metric=neutron-subnets_total`。 |
+| `openstack_neutron_subnets_free` | `count` | 最小值 | 一个子网池还剩下多少个某前缀长度的子网可供分配。_默认关闭_：请从 exporter 中删除 `--disable-metric=neutron-subnets_total`。 |
 | `openstack_neutron_router` | `count` | 最大值 | 每个路由器一个指标系列，值始终为 1，带有 status 和 admin_state_up 标签。 |
 | `openstack_neutron_routers` | `count` | 最大值 | 区域内有多少个路由器。 |
 | `openstack_neutron_floating_ip` | `count` | 最大值 | 每个浮动 IP 一个指标系列，值始终为 1，其状态和所经过的路由器在标签中。闲置的读为 DOWN，且没有 router_id。 |
 | `openstack_neutron_floating_ips` | `count` | 最大值 | 区域内有多少个浮动 IP。 |
 | `openstack_neutron_security_groups` | `count` | 最大值 | Neutron 在区域内有多少个安全组。 |
-| `openstack_neutron_port` | `count` | 最大值 | 每个端口一个指标系列，值始终为 1，带有 status 和 binding_vif_type 标签。Agent 默认将其关闭，因为在大型云上用管理员凭据列出每个端口可能会使 Neutron 饱和。_默认关闭：_请从 exporter 中删除 `--disable-metric=neutron-port`。 |
-| `openstack_neutron_ports` | `count` | 最大值 | 区域内有多少个端口。Agent 默认将其关闭，因为在大型云上用管理员凭据列出每个端口可能会使 Neutron 饱和。_默认关闭：_请从 exporter 中删除 `--disable-metric=neutron-ports`。 |
-| `openstack_neutron_ports_no_ips` | `count` | 最大值 | 有多少个 ACTIVE 端口没有地址。Agent 与其他端口指标系列一起将其关闭。_默认关闭：_请从 exporter 中删除 `--disable-metric=neutron-ports_no_ips`。 |
-| `openstack_neutron_ports_lb_not_active` | `count` | 最大值 | 有多少个负载均衡器端口不是 ACTIVE。Agent 与其他端口指标系列一起将其关闭。_默认关闭：_请从 exporter 中删除 `--disable-metric=neutron-ports_lb_not_active`。 |
+| `openstack_neutron_port` | `count` | 最大值 | 每个端口一个指标系列，值始终为 1，带有 status 和 binding_vif_type 标签。Agent 默认将其关闭，因为在大型云上用管理员凭据列出每个端口可能会使 Neutron 饱和。_默认关闭_：请从 exporter 中删除 `--disable-metric=neutron-port`。 |
+| `openstack_neutron_ports` | `count` | 最大值 | 区域内有多少个端口。Agent 默认将其关闭，因为在大型云上用管理员凭据列出每个端口可能会使 Neutron 饱和。_默认关闭_：请从 exporter 中删除 `--disable-metric=neutron-ports`。 |
+| `openstack_neutron_ports_no_ips` | `count` | 最大值 | 有多少个 ACTIVE 端口没有地址。Agent 与其他端口指标系列一起将其关闭。_默认关闭_：请从 exporter 中删除 `--disable-metric=neutron-ports_no_ips`。 |
+| `openstack_neutron_ports_lb_not_active` | `count` | 最大值 | 有多少个负载均衡器端口不是 ACTIVE。Agent 与其他端口指标系列一起将其关闭。_默认关闭_：请从 exporter 中删除 `--disable-metric=neutron-ports_lb_not_active`。 |
 | `openstack_neutron_vpn_endpoint_groups` | `count` | 最大值 | 区域内有多少个 VPN 端点组。 |
 | `openstack_neutron_vpn_ike_policies` | `count` | 最大值 | 区域内有多少个 VPN IKE 策略。 |
 | `openstack_neutron_vpn_ipsec_policies` | `count` | 最大值 | 区域内有多少个 VPN IPsec 策略。 |
@@ -668,40 +668,40 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 
 | 指标 | 单位 | 读取方式 | 说明 |
 | --- | --- | --- | --- |
-| `openstack_nova_limits_vcpus_max` | `count` | 最大值 | 一个项目最多可以使用多少个 vCPU，-1 表示无限制。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_nova_limits_vcpus_used` | `count` | 最大值 | 一个项目的实例占用了多少个 vCPU。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_nova_limits_memory_max` | `MiB` | 最大值 | 一个项目最多可以使用多少内存（单位 MiB），-1 表示无限制。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_nova_limits_memory_used` | `MiB` | 最大值 | 一个项目的实例占用了多少内存（单位 MiB）。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_nova_limits_instances_max` | `count` | 最大值 | 一个项目最多可以拥有多少个实例，-1 表示无限制。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_nova_limits_instances_used` | `count` | 最大值 | 一个项目拥有多少个实例。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_cinder_limits_volume_max_gb` | `GiB` | 最大值 | 一个项目最多可以使用多少卷空间，-1 表示无限制。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_cinder_limits_volume_used_gb` | `GiB` | 最大值 | 一个项目占用了多少卷空间。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_cinder_limits_backup_max_gb` | `GiB` | 最大值 | 一个项目最多可以使用多少备份空间，-1 表示无限制。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_cinder_limits_backup_used_gb` | `GiB` | 最大值 | 一个项目占用了多少备份空间。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_cinder_volume_type_quota_gigabytes` | `GiB` | 最大值 | 一个项目最多可以使用某一种卷类型多少空间。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_nova_quota_cores` | `count` | 最大值 | 项目的 vCPU 配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_instances` | `count` | 最大值 | 项目的实例配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_ram` | `MiB` | 最大值 | 项目的内存配额，单位 MiB。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_key_pairs` | `count` | 最大值 | 项目的密钥对配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_metadata_items` | `count` | 最大值 | 项目中每个实例的元数据条目配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_server_groups` | `count` | 最大值 | 项目的服务器组配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_server_group_members` | `count` | 最大值 | 项目中每个服务器组的成员数配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_fixed_ips` | `count` | 最大值 | 项目在 Nova 中的固定 IP 配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_floating_ips` | `count` | 最大值 | 项目在 Nova 中的浮动 IP 配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_security_groups` | `count` | 最大值 | 项目在 Nova 中的安全组配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_security_group_rules` | `count` | 最大值 | 项目在 Nova 中的安全组规则配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_injected_files` | `count` | 最大值 | 项目中每个实例可注入文件数的配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_injected_file_content_bytes` | `bytes` | 最大值 | 项目对注入文件大小的配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_nova_quota_injected_file_path_bytes` | `bytes` | 最大值 | 项目对注入文件路径长度的配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭：_请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
-| `openstack_neutron_quota_network` | `count` | 最大值 | 项目的网络配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_subnet` | `count` | 最大值 | 项目的子网配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_subnetpool` | `count` | 最大值 | 项目的子网池配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_port` | `count` | 最大值 | 项目的端口配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_router` | `count` | 最大值 | 项目的路由器配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_floatingip` | `count` | 最大值 | 项目的浮动 IP 配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_security_group` | `count` | 最大值 | 项目的安全组配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_security_group_rule` | `count` | 最大值 | 项目的安全组规则配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
-| `openstack_neutron_quota_rbac_policy` | `count` | 最大值 | 项目的 RBAC 策略配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭：_请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_nova_limits_vcpus_max` | `count` | 最大值 | 一个项目最多可以使用多少个 vCPU，-1 表示无限制。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_nova_limits_vcpus_used` | `count` | 最大值 | 一个项目的实例占用了多少个 vCPU。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_nova_limits_memory_max` | `MiB` | 最大值 | 一个项目最多可以使用多少内存（单位 MiB），-1 表示无限制。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_nova_limits_memory_used` | `MiB` | 最大值 | 一个项目的实例占用了多少内存（单位 MiB）。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_nova_limits_instances_max` | `count` | 最大值 | 一个项目最多可以拥有多少个实例，-1 表示无限制。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_nova_limits_instances_used` | `count` | 最大值 | 一个项目拥有多少个实例。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_cinder_limits_volume_max_gb` | `GiB` | 最大值 | 一个项目最多可以使用多少卷空间，-1 表示无限制。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_cinder_limits_volume_used_gb` | `GiB` | 最大值 | 一个项目占用了多少卷空间。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_cinder_limits_backup_max_gb` | `GiB` | 最大值 | 一个项目最多可以使用多少备份空间，-1 表示无限制。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_cinder_limits_backup_used_gb` | `GiB` | 最大值 | 一个项目占用了多少备份空间。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_cinder_volume_type_quota_gigabytes` | `GiB` | 最大值 | 一个项目最多可以使用某一种卷类型多少空间。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_nova_quota_cores` | `count` | 最大值 | 项目的 vCPU 配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_instances` | `count` | 最大值 | 项目的实例配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_ram` | `MiB` | 最大值 | 项目的内存配额，单位 MiB。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_key_pairs` | `count` | 最大值 | 项目的密钥对配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_metadata_items` | `count` | 最大值 | 项目中每个实例的元数据条目配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_server_groups` | `count` | 最大值 | 项目的服务器组配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_server_group_members` | `count` | 最大值 | 项目中每个服务器组的成员数配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_fixed_ips` | `count` | 最大值 | 项目在 Nova 中的固定 IP 配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_floating_ips` | `count` | 最大值 | 项目在 Nova 中的浮动 IP 配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_security_groups` | `count` | 最大值 | 项目在 Nova 中的安全组配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_security_group_rules` | `count` | 最大值 | 项目在 Nova 中的安全组规则配额，新式的云把它交给 Neutron 管理。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_injected_files` | `count` | 最大值 | 项目中每个实例可注入文件数的配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_injected_file_content_bytes` | `bytes` | 最大值 | 项目对注入文件大小的配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_nova_quota_injected_file_path_bytes` | `bytes` | 最大值 | 项目对注入文件路径长度的配额。其 type 标签说明这是哪个数字：in_use、reserved 或 limit。_默认关闭_：请从 exporter 中删除 `--disable-metric=nova-quota_cores`。 |
+| `openstack_neutron_quota_network` | `count` | 最大值 | 项目的网络配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_subnet` | `count` | 最大值 | 项目的子网配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_subnetpool` | `count` | 最大值 | 项目的子网池配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_port` | `count` | 最大值 | 项目的端口配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_router` | `count` | 最大值 | 项目的路由器配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_floatingip` | `count` | 最大值 | 项目的浮动 IP 配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_security_group` | `count` | 最大值 | 项目的安全组配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_security_group_rule` | `count` | 最大值 | 项目的安全组规则配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
+| `openstack_neutron_quota_rbac_policy` | `count` | 最大值 | 项目的 RBAC 策略配额。其 type 标签说明这是哪个数字：used、reserved 或 limit。_默认关闭_：请使用 `OPENSTACK_COLLECT_QUOTAS=true` 运行 Agent 的 `install.sh`，以每小时读取一次。 |
 
 ### 检查
 
@@ -752,12 +752,12 @@ exporter 用访问机器所用的地址来命名机器，而 Neutron 用主机�
 | 字段 | 作用 |
 | --- | --- |
 | **指标** | 要检查的查询或公式，用其变量名指定。 |
-| **聚合** | 窗口内的值如何合并为一个结果：**平均值**、**总和**、**最大值**、**最小值**、**所有值**（整个窗口内每个值都必须匹配）或**任一值**（一个即可）。 |
-| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于**或**等于**，或者异常条件：**异常偏高**、**异常偏低**或**异常**。**无数据**在查询于窗口内没有发送任何数据时匹配，**有数据**在查询发送了任何数据时匹配。**预计高于**和**预计低于**在指标于窗口内的趋势将在**预测范围**结束时越过阈值时匹配。 |
+| **聚合** | 窗口内的值如何合并为一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（整个窗口内每个值都必须匹配）或 **Any Value**（一个即可）。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于**或**等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**无数据**在查询于窗口内没有发送任何数据时匹配，**有数据**在查询发送了任何数据时匹配。**预计高于**和**预计低于**在指标于窗口内的趋势将在**预测范围**结束时越过阈值时匹配。 |
 | **阈值** | 用来比较的值。指标有单位时，旁边会有一个单位列表。异常条件下不显示。 |
 | **灵敏度** | 仅用于异常条件。**低**（4σ）、**中**（3σ，默认）或**高**（2σ）。 |
 | **基线窗口** | 仅用于异常条件。14 天（默认）、28 天、60 天或 90 天的历史数据。 |
-| **如果无数据** | 在**更多字段**下。窗口内没有样本时的处理方式：**忽略**（默认）、**视为零**或**触发器**。 |
+| **如果无数据** | 在**更多字段**下。窗口内没有样本时的处理方式：**Ignore**（默认）、**Treat As Zero** 或**触发器**。 |
 
 异常条件会把每个值与基线中一周内同一小时的值进行比较。在基线窗口内的历史数据足够之前，它们会保持“学习中”状态，不会触发任何内容。此监视器按属性过滤其查询，所以每个查询，以及分组查询的每个指标系列，都与自己的历史数据比较，回溯到你的指标所保留的最早时间。如果保留时间不足两周，总和、计数或对直方图的查询会一直保持该状态，其他查询则与该指标的所有指标系列比较。直方图的百分位数则始终保持该状态。
 
@@ -841,7 +841,7 @@ Nova 的工作进程在 `hostname` 中使用主机的短名称，而 hypervisor�
 ## 后续步骤
 
 :::cards
-- [Proxmox 监视器](/docs/monitor/proxmox-monitor)：针对 Proxmox VE 的同类监视器。
-- [VMware 监视器](/docs/monitor/vmware-monitor)：针对 vCenter 的同类监视器。
-- [事件](/docs/incidents/index)：条件创建事件之后会发生什么。
+- [Proxmox 监视器](/docs/monitor/proxmox-monitor): 针对 Proxmox VE 的同类监视器。
+- [VMware 监视器](/docs/monitor/vmware-monitor): 针对 vCenter 的同类监视器。
+- [事件](/docs/incidents/index): 条件创建事件之后会发生什么。
 :::

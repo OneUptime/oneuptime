@@ -1,4 +1,4 @@
-# OpenStack по инструменту развёртывания
+# OpenStack по инструментам развёртывания
 
 Никто не запускает «OpenStack» как таковой. Запускают инструмент, который его разворачивает, и у каждого инструмента свои пути, свои журналы и своё представление о том, что уже работает. На этой странице собрано то, что мастер настройки в OneUptime говорит про каждый из них: откройте **OpenStack → Все облака**, подключите облако и ответьте на вопрос **Как вы развёртываете OpenStack?**
 
@@ -7,7 +7,7 @@
 - [Пересылка того, что уже сработало](#пересылка-того-что-уже-сработало): Инциденты с первого часа, без агента.
 - [Kolla-Ansible](#kolla-ansible): Чтение экспортёров, которые он уже запускает.
 - [OpenStack-Ansible](#openstack-ansible): Журналы journald и переопределения в `user_variables.yml`.
-- [OpenStack-Helm](#openstack-helm) и [Atmosphere](#atmosphere): Зонд и агент для Kubernetes.
+- [OpenStack-Helm](#openstack-helm): Зонд и агент для Kubernetes; то же для Atmosphere.
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): Пресет для OpenShift и Ceilometer.
 - [Mirantis MOSK](#mirantis-mosk): Оповещения StackLight.

@@ -1,4 +1,4 @@
-# Meget store OpenStack-clouds
+# Meget store OpenStack-skyer
 
 Hvad en cloud af enhver størrelse koster, før du installerer noget: hvor hårdt monitorering belaster dens kontrolplan, hvor meget data den sender, og hvad OneUptime gør anderledes, når en cloud vokser. Næsten alle clouds har brug for intet af dette: standardindstillingerne for [OpenStack-agenten](/docs/telemetry/openstack) og en [sonde](/docs/telemetry/openstack-agentless) holder op til tusindvis af instanser, uden at noget skal sættes.
 

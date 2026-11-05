@@ -78,7 +78,7 @@ Las filas de cada scrape son por lo que se te factura: las primeras cinco línea
 | --- | --- | --- | --- | --- |
 | 10 hipervisores, 100 instancias, 20 proyectos | 1075 | 0,7 | No en modo resumen | $2,12 |
 | 500 hipervisores, 20 000 instancias, 1000 proyectos | 123 847 | 84,5 | 16,6 | $49,71 |
-| 5000 hipervisores, 200 000 instancias, 10 000 proyectos | 1 237 183 | 844,5 | 164,9 | $494,73 |
+| 5000 hipervisores, 200 000 instancias, 10 000 proyectos | 1,237,183 | 844,5 | 164,9 | $494,73 |
 
 Estas cifras son a través del agente, con una instancia de cada mil en un estado que conserva sus series. Una sonda pasado el tamaño de resumen envía lo que no ha cambiado una vez por ciclo en lugar de en cada recopilación, lo que suma unos 13,2 GB al día en el segundo tamaño y 116 GB en el tercero.
 

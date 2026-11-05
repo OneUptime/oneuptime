@@ -1,4 +1,4 @@
-# Monitor OpenStack
+# Monitor de OpenStack
 
 Um monitor OpenStack observa uma nuvem - suas APIs, os workers por trás delas, hipervisores, instâncias, redes, pools de armazenamento e cotas de projetos - e avisa quando uma API deixa de responder, um worker cai, um hipervisor não tem mais espaço para oferecer ou um pool enche. Ele lê as séries `openstack_*` que o OneUptime OpenStack Agent coleta do openstack-exporter.
 
@@ -45,7 +45,7 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **OpenStac
 
 ### Escolha a nuvem
 
-Em **Configuração do monitor OpenStack**, escolha a nuvem em **Nuvem OpenStack**. Toda nuvem que já enviou dados está na lista. Depois de escolhida, uma linha sob o campo informa se há dados chegando.
+Em **OpenStack Monitor Configuration**, escolha a nuvem em **Nuvem OpenStack**. Toda nuvem que já enviou dados está na lista. Depois de escolhida, uma linha sob o campo informa se há dados chegando.
 
 ### Escolha o que observar
 
@@ -80,7 +80,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | **Métrica do OpenStack** | Métrica personalizada | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Métrica personalizada | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação habitual da métrica. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Último 1 minuto** a **Últimos 365 dias**. Um novo monitor começa em **Últimos 15 minutos**; os templates definem a sua própria. |
-| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Agregar por**, **Filtrar por atributos**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
+| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
 Um filtro restringe apenas uma série que possui o seu rótulo: `openstack_nova_up` não tem projeto, então um filtro de projeto a deixa como está.
 
@@ -210,7 +210,7 @@ Todo template lê pelo menos três coletas do que observa e só dispara quando a
 - **Uma série que acabou de surgir espera uma janela inteira,** então uma instância, volume ou imagem vista uma vez a caminho de outra coisa não gera nada. Cada template sabe com que frequência seu serviço é coletado pela série `_up` desse mesmo serviço.
 - **Uma série que desaparece conta como recuperada:** um worker que alguém desabilitou, a última instância em ERROR excluída, um pool removido. Cada template lê a série `_up` do seu serviço junto com a sua, para distinguir uma parte que sumiu de uma nuvem que ficou em silêncio. Quando nada chega, seus incidentes permanecem abertos e **Cloud Stopped Reporting** se manifesta.
 - **Quando uma API está fora do ar, suas próprias séries somem junto**, então os outros templates desse serviço são resolvidos, e disparam de novo uma janela depois que ela volta, se a falha persistir. Se todas as APIs marcarem fora do ar ao mesmo tempo, olhe primeiro o exporter.
-- **Uma nuvem que não tem determinado serviço fica quieta.** O exporter responde com nada para um serviço que não está no catálogo da nuvem, e **Network**, **Block Storage**, **Image** e **Placement API Down** não leem isso como uma queda. **Identity** e **Compute API Down** leem, porque é também assim que o exporter relata uma API do Keystone ou do Nova totalmente parada, e toda nuvem os tem.
+- **Uma nuvem que não tem determinado serviço fica quieta.** O exporter responde com nada para um serviço que não está no catálogo da nuvem, e **Rede**, **Block Storage**, **Imagem** e **Placement API Down** não leem isso como uma queda. **Identidade** e **Compute API Down** leem, porque é também assim que o exporter relata uma API do Keystone ou do Nova totalmente parada, e toda nuvem os tem.
 
 ### Quando um dispara
 
@@ -319,7 +319,7 @@ As métricas abaixo são o catálogo que o formulário do monitor oferece. **Lei
 | Métrica | Unidade | Leituras | Descrição |
 | --- | --- | --- | --- |
 | `up` | - | Mín. | Se o exporter respondeu a esta coleta (1) ou não (0): ele foi parado, esgotou o tempo, ou respondeu com um erro. 1 não diz nada sobre a API em si, porque o exporter responde mesmo quando não conseguiu alcançá-la. Reportada pelo coletor do agente, uma série por serviço por região. |
-| `scrape_samples_scraped` | `count` | Mín. | Com quantas séries o exporter respondeu a uma coleta. 0 significa que ele não tinha nada a dizer: não conseguiu fazer login no Keystone, ou não conseguiu alcançar a API do Nova para acertar uma microversão, e essas falhas não deixam nenhuma série openstack_*. Reportada pelo coletor do agente, uma série por serviço por região. |
+| `scrape_samples_scraped` | `count` | Mín. | Com quantas séries o exporter respondeu a uma coleta. 0 significa que ele não tinha nada a dizer: não conseguiu fazer login no Keystone, ou não conseguiu alcançar a API do Nova para acertar uma microversão, e essas falhas não deixam nenhuma série do OpenStack. Reportada pelo coletor do agente, uma série por serviço por região. |
 | `openstack_identity_up` | - | Mín. | Se a API do Keystone respondeu às chamadas do exporter (1) ou todas falharam (0). Quando não é possível fazer login no Keystone, o exporter responde com nada, então esta série some em vez de marcar 0. |
 | `openstack_nova_up` | - | Mín. | Se a API do Nova respondeu às chamadas do exporter (1) ou todas falharam (0). Quando a API do Nova não pode ser alcançada, o exporter responde com nada, então esta série some em vez de marcar 0. |
 | `openstack_neutron_up` | - | Mín. | Se a API do Neutron respondeu às chamadas do exporter (1) ou todas falharam (0). |

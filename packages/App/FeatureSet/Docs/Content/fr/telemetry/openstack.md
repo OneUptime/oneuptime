@@ -3,21 +3,21 @@
 L'agent OpenStack de OneUptime surveille un cloud OpenStack : ses services et ses agents, ses hyperviseurs, ses instances, ses réseaux, ses routeurs, ses volumes, ses pools de stockage, ses images et ses projets, dans chaque région. Il lit les API du cloud avec un identifiant que vous choisissez et envoie ce qu'il trouve à OneUptime, où le cloud apparaît avec ses régions, ses hyperviseurs et ses projets. Les [moniteurs OpenStack](/docs/monitor/openstack-monitor) alertent sur ce qui arrive, et une [sonde](/docs/telemetry/openstack-agentless) peut collecter un cloud sans rien installer.
 
 :::cards
-- [Sonde ou agent ?](/docs/telemetry/openstack-agentless#sonde-ou-agent) : lequel choisir, pour un cloud qui pourrait utiliser l'un ou l'autre.
-- [Choisir ce qu'il voit](#choisir-ce-que-lagent-voit) : OpenStack n'a pas de rôle global en lecture seule, il y a donc trois niveaux.
-- [Installer l'agent](#installer-lagent) : un identifiant, puis le script d'installation, Docker Compose ou aucun Docker du tout.
-- [Ce qu'il coûte à votre cloud](#ce-quil-coûte-à-votre-cloud) : ce que lit chaque paramètre, et comment le modifier.
-- [Capacité](#capacité) : combien d'instances de plus de chaque flavor tiennent, et combien de jours avant que chaque ressource soit pleine.
-- [Dépenses](#dépenses) : qui utilise quoi, ce que cela représente à vos tarifs ou tel que CloudKitty l'a valorisé, et ce qui pourrait être récupéré.
-- [Pages de statut et information des projets](#pages-de-statut-et-information-des-projets) : une page par région en une seule étape, et n'informer que les projets qu'une panne atteint.
-- [Journaux de service](#journaux-de-service) : analysés, avec une requête suivie à travers les services.
-- [Événements de cycle de vie](#événements-de-cycle-de-vie) : les actions sur les instances dans le fil d'activité et sur les graphiques, à partir des notifications ou d'une sonde.
-- [Qui a fait quoi](#qui-a-fait-quoi) : des pistes d'audit vers les événements de sécurité.
-- [Tracer une requête](#tracer-les-requêtes-à-travers-le-plan-de-contrôle) : une requête signée, suivie à travers le plan de contrôle.
-- [Vérifier depuis l'extérieur](#vérifier-le-cloud-depuis-lextérieur) : si quelqu'un peut réellement démarrer une instance, depuis une sonde extérieure au cloud.
-- [Sans internet](#sans-internet) : les quatre images de l'agent, et comment les copier dans un registre à vous.
-- [Par outil de déploiement](/docs/telemetry/openstack-deployment-tools) : Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat et Mirantis.
-- [Dépannage](#dépannage) : un script de diagnostic, et les problèmes habituels.
+- [Sonde ou agent ?](/docs/telemetry/openstack-agentless#sonde-ou-agent): lequel choisir, pour un cloud qui pourrait utiliser l'un ou l'autre.
+- [Choisir ce qu'il voit](#choisir-ce-que-lagent-voit): OpenStack n'a pas de rôle global en lecture seule, il y a donc trois niveaux.
+- [Installer l'agent](#installer-lagent): un identifiant, puis le script d'installation, Docker Compose ou aucun Docker du tout.
+- [Ce qu'il coûte à votre cloud](#ce-quil-coûte-à-votre-cloud): ce que lit chaque paramètre, et comment le modifier.
+- [Capacité](#capacité): combien d'instances de plus de chaque flavor tiennent, et combien de jours avant que chaque ressource soit pleine.
+- [Dépenses](#dépenses): qui utilise quoi, ce que cela représente à vos tarifs ou tel que CloudKitty l'a valorisé, et ce qui pourrait être récupéré.
+- [Pages de statut et information des projets](#pages-de-statut-et-information-des-projets): une page par région en une seule étape, et n'informer que les projets qu'une panne atteint.
+- [Journaux de service](#journaux-de-service): analysés, avec une requête suivie à travers les services.
+- [Événements de cycle de vie](#événements-de-cycle-de-vie): les actions sur les instances dans le fil d'activité et sur les graphiques, à partir des notifications ou d'une sonde.
+- [Qui a fait quoi](#qui-a-fait-quoi): des pistes d'audit vers les événements de sécurité.
+- [Tracer une requête](#tracer-les-requêtes-à-travers-le-plan-de-contrôle): une requête signée, suivie à travers le plan de contrôle.
+- [Vérifier depuis l'extérieur](#vérifier-le-cloud-depuis-lextérieur): si quelqu'un peut réellement démarrer une instance, depuis une sonde extérieure au cloud.
+- [Sans internet](#sans-internet): les quatre images de l'agent, et comment les copier dans un registre à vous.
+- [Par outil de déploiement](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat et Mirantis.
+- [Dépannage](#dépannage): un script de diagnostic, et les problèmes habituels.
 :::
 
 ## Fonctionnement
@@ -39,7 +39,7 @@ Le cloud s'enregistre avec ses premières données, sous le nom que l'agent appo
 - Docker Engine 20.10 ou version ultérieure avec le plugin Docker Compose v2 ou, pour fonctionner sans Docker, une machine Linux (x86_64 ou arm64) avec systemd 235 ou version ultérieure, glibc 2.34 ou version ultérieure (RHEL 9, Ubuntu 22.04, Debian 12) et root.
 - Une route depuis cette machine vers Keystone et vers le point de terminaison public de chaque service.
 - La ligne de commande `openstack`, en tant que quelqu'un qui peut créer l'identifiant ci-dessous.
-- Une clé d'ingestion. Créez-en une sous **Paramètres du projet → Télémétrie et APM → Clés d'ingestion** et copiez sa valeur.
+- Une clé d'ingestion. Créez-en une sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et copiez sa valeur.
 - HTTPS sortant depuis cette machine vers l'URL de votre OneUptime.
 
 ### Où exécuter l'agent
@@ -103,7 +103,7 @@ Voici ce que cinq vrais clouds ont répondu, sur Epoxy, Flamingo, Gazpacho (OVN 
 | Cinder : types de volume | tout | ce que tout le monde voit | ce que tout le monde voit |
 | Glance : images | tout | ce que tout le monde voit | ce que tout le monde voit |
 
-- **tout** : les mêmes lignes que celles vues par un admin.
+- **toutes les** lignes : les mêmes que celles vues par un admin.
 - **son projet uniquement** : les lignes de ce projet, et tout ce qui est partagé ou externe. Sur un projet qui ne contient rien, ce sont seulement les partagées et les externes.
 - **refusé** : un `401` ou un `403`.
 - **ce que tout le monde voit** : tous les identifiants ont vu toutes les lignes, sur des clouds qui ne contiennent que des flavors, des types de volume et des images publics. Un élément privé dans un autre projet exige le niveau 1.
@@ -134,7 +134,7 @@ Chaque OneUptime sert le script d'installation de l'agent et ses fichiers pour s
 Choisissez le niveau que vous avez retenu. Chacun crée un identifiant d'application, qui affiche un `id` et un `secret` : le secret n'est montré qu'une seule fois. Donnez-lui une expiration et jamais `--unrestricted`, qui lui permettrait de créer d'autres identifiants.
 
 :::tabs
-@tab Niveau 1 : Vue complète
+@tab Level 1: Full view
 En tant qu'admin, créez un projet et un compte pour l'agent :
 
 ```bash
@@ -198,7 +198,7 @@ Sur les services qu'un cloud peut ne pas exécuter, ce que chaque niveau a obten
 Keystone n'exige rien. Avec les règles ajustées, `service_type` défini et les API redémarrées, chaque lecture a répondu `200` et chaque écriture `401`, sur chaque version que nous enregistrons. L'exporter obtient ce qu'obtient un admin, sauf les utilisateurs et groupes de Keystone, volontairement. Cela vaut aussi pour les services qu'un cloud peut ne pas exécuter : enregistré sur DevStack, le niveau 1 a obtenu les mêmes séries que l'identifiant d'un admin pour chacun de ceux que l'exporter lit, et chaque écriture a répondu `401`.
 
 Si vous ne voulez pas faire ce changement, créez le même identifiant sans `--access-rules` : un identifiant d'application admin ordinaire. Il fonctionne, et il peut écrire ; le script de diagnostic l'étiquette donc comme tel.
-@tab Niveau 2 : Infrastructure uniquement
+@tab Level 2: Infrastructure only
 En tant qu'admin, créez le rôle, un projet qui ne contient rien et a un quota nul, et un compte :
 
 ```bash
@@ -234,7 +234,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 ```
 
 Mettre le rôle sur un vrai projet pour voir ses volumes et ses routeurs permet aussi au compte d'y écrire, sur un cloud où Cinder a `enforce_new_defaults` désactivé. Le script de diagnostic avertit quand le projet de l'identifiant contient des éléments.
-@tab Niveau 3 : Vue du projet
+@tab Level 3: Project view
 Donnez à un compte le rôle `reader` ordinaire sur le projet, puis, connecté avec ce compte sur ce projet, créez l'identifiant :
 
 ```bash
@@ -302,7 +302,7 @@ sudo chown 65532:65532 clouds.yaml
 sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
-@tab Sans Docker
+@tab Without Docker
 Sur Linux (x86_64 ou arm64) avec systemd 235 ou version ultérieure et glibc 2.34 ou version ultérieure, le script d'installation exécute les versions amont des mêmes deux programmes comme services systemd. RHEL 8 et ses dérivés ont une glibc plus ancienne, sur laquelle la version de l'exporter ne peut pas s'exécuter : le script le dit et ne change rien, utilisez donc Docker dans ce cas.
 
 ```bash
@@ -359,7 +359,7 @@ Le script d'installation les écrit dans `/opt/oneuptime-openstack-agent/.env` ;
 | Variable | Obligatoire | Description |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Oui | L'URL de votre OneUptime, comme `https://oneuptime.com` ou votre instance auto-hébergée. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Oui | La clé d'ingestion de **Paramètres du projet → Télémétrie et APM → Clés d'ingestion**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Oui | La clé d'ingestion de **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. |
 | `OPENSTACK_CLOUD_NAME` | Oui | Le nom du cloud dans OneUptime, apposé sur chaque métrique comme attribut de ressource `openstack.cloud.name`. Gardez-le stable : le changer enregistre un nouveau cloud. Vaut `openstack` par défaut. |
 | `OPENSTACK_AUTH_URL` | Exporter intégré | Une réponse au script d'installation : l'URL d'authentification Keystone. `/v3` est ajouté s'il manque. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Oui | Les régions, entre crochets, comme `[RegionOne,RegionTwo]`, chacune étant le nom d'une entrée de `clouds.yaml`. Vaut `[RegionOne]` par défaut. |
@@ -686,8 +686,8 @@ Ce que coûte une instance, avec deux vCPU, un disque et une interface réseau :
 
 | Source | Séries par instance | Lignes par heure | Lignes par mois, 100 instances | Lignes par mois, 1 000 instances |
 | --- | --- | --- | --- | --- |
-| `prometheus-libvirt-exporter`, lu chaque minute | 30 | 1 800 | 131 400 000 | 1 314 000 000 |
-| L'exporter de Ceilometer, lu chaque minute et interrogé toutes les 5 | 24 | 864 | 63 072 000 | 630 720 000 |
+| `prometheus-libvirt-exporter`, lu chaque minute | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
+| L'exporter de Ceilometer, lu chaque minute et interrogé toutes les 5 | 24 | 864 | 63,072,000 | 630,720,000 |
 
 Chaque disque supplémentaire ajoute 12 séries à l'un ou l'autre, et chaque interface supplémentaire 4. Chaque vCPU supplémentaire en ajoute 1 avec libvirt. Le collector de l'agent les garde en mémoire avant de les envoyer, un grand cloud peut donc vouloir plus que ses 512 Mio par défaut. Le calculateur du guide, sous **Documentation** sur un cloud, met un prix dessus pour un cloud de votre taille.
 
@@ -707,7 +707,7 @@ Une règle ici est une **Règle de propriétaire de cloud OpenStack** ou une **R
 
 Une alerte ou un incident sur une partie du cloud atteint chaque projet qui a quelque chose sur cette partie, quel qu'en soit le nombre. Seul un moniteur peut dire ce qu'il atteint ; une règle comme celle-ci n'atteint donc pas un incident que quelqu'un déclare à la main. Les étiquettes sont posées à l'ouverture de l'alerte, et les propriétaires juste après.
 
-Les règles écrites auparavant sous forme d'une paire de règles d'alerte et d'incident, qui correspondent à ``OpenStack project `<id>` `` ou ``OpenStack domain `<id>` `` dans la description, continuent de fonctionner et sont aussi listées ici. Une description nomme au plus 50 des projets qu'elle atteint, une paire comme celle-là s'arrête donc là. Supprimez-la et ajoutez à nouveau la règle pour lever cette limite.
+Les règles écrites auparavant sous forme d'une paire de règles d'alerte et d'incident, qui correspondent à ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` dans la description, continuent de fonctionner et sont aussi listées ici. Une description nomme au plus 50 des projets qu'elle atteint, une paire comme celle-là s'arrête donc là. Supprimez-la et ajoutez à nouveau la règle pour lever cette limite.
 
 ### Quotas
 
@@ -993,11 +993,11 @@ Barbican refuse un simple reader, et cela se lit pour ce que c'est : son API a r
 L'agent ci-dessus lit les API d'un cloud de l'extérieur. La raison pour laquelle une instance n'a pas pu être construite se trouve ailleurs : dans `nova-api`, `nova-conductor`, `nova-scheduler`, `nova-compute`, Neutron et Cinder, sur plusieurs machines. Un profil de journaux facultatif envoie ces lignes à OneUptime, analysées, avec une trace de pile comme un seul enregistrement. Contrairement à l'agent, il s'exécute sur les propres contrôleurs et nœuds de calcul du cloud, et il ne fait que lire.
 
 :::cards
-- [Installer le profil de journaux](#installer-le-profil-de-journaux) : une commande par machine, ou une valeur de chart.
-- [Suivre une requête](#suivre-une-requête) : de la page d'une instance à sa ligne du planificateur en deux clics.
-- [Alertes de journaux](#alertes-de-journaux) : les défaillances que tout opérateur connaît par leurs mots.
-- [Ce qu'il conserve et ce qu'il coûte](#ce-quil-conserve-et-ce-quil-coûte) : les filtres avec lesquels il démarre, et ce qu'ils économisent.
-- [Secrets](#secrets-dans-les-journaux) : ce qui n'est jamais stocké, et comment c'est fait.
+- [Installer le profil de journaux](#installer-le-profil-de-journaux): une commande par machine, ou une valeur de chart.
+- [Suivre une requête](#suivre-une-requête): de la page d'une instance à sa ligne du planificateur en deux clics.
+- [Alertes de journaux](#alertes-de-journaux): les défaillances que tout opérateur connaît par leurs mots.
+- [Ce qu'il conserve et ce qu'il coûte](#ce-quil-conserve-et-ce-quil-coûte): les filtres avec lesquels il démarre, et ce qu'ils économisent.
+- [Secrets](#secrets-dans-les-journaux): ce qui n'est jamais stocké, et comment c'est fait.
 :::
 
 ### Installer le profil de journaux
@@ -1217,10 +1217,10 @@ Soyez clair sur ce que vous activez :
 > Restez en dessous de la version 1.44 du SDK d'OpenTelemetry. Cette version bloque un service quand il démarre un sous-processus ([son bug](https://github.com/open-telemetry/opentelemetry-python/issues/5789)). Sur notre cloud de test 2026.2, dont les contraintes nomment 1.44.0, l'API de Neutron ne répondait plus jamais, et cinder-volume a cessé de fonctionner. Les commandes ici demandent moins que 1.44, et cela a tenu sur le même cloud : avec 1.43.0, chaque service est revenu avec le pilote activé, et Neutron figure dans la trace. Le fichier de contraintes de 2026.2 nomme 1.44.0, il les refuse donc : laissez-le de côté pour cette seule installation.
 
 :::cards
-- [Ce que montre une trace](#ce-que-montre-une-trace) : ce qui est tracé, et ce qui ne l'est pas, sur un cloud standard.
-- [Activer les traces](#activer-les-traces) : le collector, les bibliothèques et la configuration.
-- [Tracer une requête](#tracer-une-requête) : la commande pour votre cloud, et où se trouve sa trace.
-- [Ce que coûte le traçage](#ce-que-coûte-le-traçage) : ce qui a été compté, et ce que personne n'a mesuré.
+- [Ce que montre une trace](#ce-que-montre-une-trace): ce qui est tracé, et ce qui ne l'est pas, sur un cloud standard.
+- [Activer les traces](#activer-les-traces): le collector, les bibliothèques et la configuration.
+- [Tracer une requête](#tracer-une-requête): la commande pour votre cloud, et où se trouve sa trace.
+- [Ce que coûte le traçage](#ce-que-coûte-le-traçage): ce qui a été compté, et ce que personne n'a mesuré.
 :::
 
 ### Ce que montre une trace
@@ -1762,7 +1762,7 @@ Chaque service a besoin de `driver = log` et d'un redémarrage, et Nova de `noti
 ## Étapes suivantes
 
 :::cards
-- [Moniteur OpenStack](/docs/monitor/openstack-monitor) : alertez sur les services, hyperviseurs, instances, réseaux et pools de stockage.
-- [OpenStack sans agent](/docs/telemetry/openstack-agentless) : collectez un cloud depuis une sonde, sans rien installer.
-- [OpenTelemetry Collector d'hôte](/docs/telemetry/host-otel-collector) : la vue au niveau du système d'exploitation de chaque contrôleur et hyperviseur.
+- [Moniteur OpenStack](/docs/monitor/openstack-monitor): alertez sur les services, hyperviseurs, instances, réseaux et pools de stockage.
+- [OpenStack sans agent](/docs/telemetry/openstack-agentless): collectez un cloud depuis une sonde, sans rien installer.
+- [OpenTelemetry Collector d'hôte](/docs/telemetry/host-otel-collector): la vue au niveau du système d'exploitation de chaque contrôleur et hyperviseur.
 :::

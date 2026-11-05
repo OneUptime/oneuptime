@@ -29,7 +29,7 @@
 | 读取或更改事件、监视器和其他记录                              | [OneUptime 数据组件](#oneuptime-数据组件)                  |
 | 为其他工具的问题打开、确认和解决事件或警报                     | [来自其他工具的事件和警报](#来自其他工具的事件和警报) |
 | 确认或关闭 Zabbix 问题                                         | [Zabbix](#zabbix)                                                 |
-| 请人批准对 OpenStack 云的修复 | [提出 OpenStack 修复](#提出-openstack-修复) |
+| 请人批准对 OpenStack 云的修复 | [提出 OpenStack 修复](#propose-an-openstack-fix) |
 
 专用块胜过通用块：Slack 块知道 Slack 的限制，记录块知道记录的字段，因此你得到的错误和日志比用一个 **API** 块做同样的事更清楚。
 
@@ -431,7 +431,7 @@ Zabbix 接受了更新时触发 **Updated**；无法连接 Zabbix 或 Zabbix 拒
 
 ## OpenStack
 
-### 提出 OpenStack 修复
+### Propose an OpenStack fix
 
 请一个人批准对某个警报或事件所涉及的 OpenStack 云的一项更改。它从不自己做出更改。无论云的修复模式是什么，这项修复都会等在该警报或事件上，并像 OneUptime AI 提出的修复一样，等在它发布到的渠道里。工作流无法批准它自己提出的修复。
 

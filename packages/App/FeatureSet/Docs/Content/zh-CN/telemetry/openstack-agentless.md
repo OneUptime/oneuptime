@@ -1,4 +1,4 @@
-# 无需代理监控 OpenStack
+# 无需代理的 OpenStack
 
 无需安装任何东西即可监控 OpenStack 云：在 OneUptime 中输入 Keystone 的地址和应用凭据，选择能够访问该云的探测器，探测器就会收集与 [OpenStack 代理](/docs/telemetry/openstack)相同的数据。无需安装、升级或持续运行代理，也无需单独准备机器。
 
@@ -6,9 +6,9 @@
 > 探测器只通过 HTTPS 与云通信。凭据及其令牌绝不会通过明文 HTTP 发送，而 DevStack 和 Kolla-Ansible 默认以明文 HTTP 提供 API。对于这类云，请为其 API 启用 TLS，或使用运行在云旁边的 [OpenStack 代理](/docs/telemetry/openstack)。连接测试发现明文 HTTP 地址时会给出提示。
 
 :::cards
-- [开始之前](#开始之前)：一个能访问 API 的探测器，以及一个凭据。
-- [连接云](#连接云)：地址、凭据、测试和名称。
-- [故障排查](#故障排查)：每条消息的含义及解决方法。
+- [开始之前](#开始之前): 一个能访问 API 的探测器，以及一个凭据。
+- [连接云](#连接云): 地址、凭据、测试和名称。
+- [故障排查](#故障排查): 每条消息的含义及解决方法。
 :::
 
 ## 工作原理
@@ -76,7 +76,7 @@ OpenStack 没有全局只读角色，因此探测器能看到多少取决于凭�
 
 :::steps
 ### 打开您的云
-在 OneUptime 中，打开 **OpenStack → All Clouds**，然后点击 **连接云**。
+在 OneUptime 中，打开 **OpenStack → 所有云**，然后点击 **连接云**。
 
 ### 输入地址和凭据
 输入 `clouds.yaml` 或 `openrc` 文件中的 `auth_url`，例如 `https://keystone.example.com:5000/v3`，以及应用凭据的 ID 和密钥。选择能够访问该云的探测器。
@@ -280,7 +280,7 @@ Keystone 返回了服务器错误。探测器会在登录之间等待更久，�
 ## 后续步骤
 
 :::cards
-- [OpenStack 监控器](/docs/monitor/openstack-monitor)：对服务、Hypervisor、实例、网络和卷发出告警。
-- [自定义探测器](/docs/probe/custom-probe)：在云的网络中运行探测器。
-- [OpenStack 代理](/docs/telemetry/openstack)：改用代理收集云。
+- [OpenStack 监控器](/docs/monitor/openstack-monitor): 对服务、Hypervisor、实例、网络和卷发出告警。
+- [自定义探测器](/docs/probe/custom-probe): 在云的网络中运行探测器。
+- [OpenStack 代理](/docs/telemetry/openstack): 改用代理收集云。
 :::

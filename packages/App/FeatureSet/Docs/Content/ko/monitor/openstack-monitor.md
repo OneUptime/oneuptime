@@ -29,8 +29,8 @@ flowchart TB
 
 ## 시작하기 전에
 
-- OpenStack 에이전트로 **클라우드의 메트릭을 수집**하세요. 클라우드의 **문서** 페이지(**Products → 인프라 → OpenStack**)에서 설치 방법을 안내합니다.
-- **클라우드가 등록되었는지 확인**하세요. 첫 수집이 끝나면 에이전트의 `OPENSTACK_CLOUD_NAME`이라는 이름으로 **Products → 인프라 → OpenStack**에 나타납니다.
+- OpenStack 에이전트로 **클라우드의 메트릭을 수집**하세요. 클라우드의 **문서** 페이지(**제품 → 인프라 → OpenStack**)에서 설치 방법을 안내합니다.
+- **클라우드가 등록되었는지 확인**하세요. 첫 수집이 끝나면 에이전트의 `OPENSTACK_CLOUD_NAME`이라는 이름으로 **제품 → 인프라 → OpenStack**에 나타납니다.
 
 ## OpenStack 모니터 생성
 
@@ -45,7 +45,7 @@ flowchart TB
 
 ### 클라우드 선택
 
-**OpenStack 모니터 구성** 아래의 **OpenStack 클라우드**에서 클라우드를 선택합니다. 데이터를 보낸 적이 있는 모든 클라우드가 목록에 있습니다. 선택하면 필드 아래 한 줄에 데이터가 들어오고 있는지 표시됩니다.
+**OpenStack Monitor Configuration** 아래의 **OpenStack 클라우드**에서 클라우드를 선택합니다. 데이터를 보낸 적이 있는 모든 클라우드가 목록에 있습니다. 선택하면 필드 아래 한 줄에 데이터가 들어오고 있는지 표시됩니다.
 
 ### 감시 대상 선택
 
@@ -65,7 +65,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 여러 템플릿을 한 번에 설정하려면 **Products → 인프라 → OpenStack**에서 클라우드를 열고 **권장 사항**으로 이동하세요. 원하는 템플릿을 선택하고 호출할 대상을 정하면 OneUptime이 템플릿마다 모니터를 하나씩 생성합니다.
+> 여러 템플릿을 한 번에 설정하려면 **제품 → 인프라 → OpenStack**에서 클라우드를 열고 **권장 사항**으로 이동하세요. 원하는 템플릿을 선택하고 호출할 대상을 정하면 OneUptime이 템플릿마다 모니터를 하나씩 생성합니다.
 
 ## 모니터 설정
 
@@ -80,7 +80,7 @@ flowchart TB
 | **OpenStack 메트릭** | 사용자 지정 메트릭 | [카탈로그](#수집되는-메트릭)에서 고른 메트릭 하나입니다. |
 | **집계** | 사용자 지정 메트릭 | 샘플을 합치는 방식입니다: **평균**, **최대**, **최소**, **합계**, **개수**. 해당 메트릭의 일반적인 집계 방식으로 시작합니다. |
 | **시간 범위** | 전체 | 쿼리가 읽는 롤링 윈도우로, **지난 1분**부터 **지난 365일**까지입니다. 새 모니터는 **지난 15분**으로 시작하며 템플릿은 자체 값을 설정합니다. |
-| **메트릭 선택** | 고급 | 쿼리 빌더입니다: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 결합하는 **Add Metric**과 **Add Formula**가 있습니다. |
+| **메트릭 선택** | 고급 | 쿼리 빌더입니다: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 결합하는 **메트릭 추가**와 **수식 추가**가 있습니다. |
 
 필터는 해당 레이블이 있는 시계열만 좁힙니다. `openstack_nova_up`에는 프로젝트가 없으므로 프로젝트 필터를 걸어도 그대로 남습니다.
 
@@ -164,8 +164,8 @@ OneUptime은 흔한 OpenStack 문제를 위한 템플릿 120개를 제공하며,
 | Load Balancer in Error | 로드 밸런서 | 치명적 | `provisioning_status=ERROR`인 `openstack_loadbalancer_loadbalancer_status`, 로드 밸런서별 개수, **지난 15분** | 로드 밸런서가 윈도우 전체에서 프로비저닝 ERROR를 유지함. Octavia는 이를 재시도하지 않음 | ACTIVE로 돌아오거나 삭제됨 |
 | Load Balancer Stuck Pending | 로드 밸런서 | 경고 | 각 `PENDING_*` 프로비저닝 상태의 `openstack_loadbalancer_loadbalancer_status`, 로드 밸런서별 개수, **지난 1시간** | 로드 밸런서가 윈도우 전체에서 PENDING 상태를 유지함: Octavia의 워커가 중지되었거나 요청을 놓침 | ACTIVE 또는 ERROR에 도달하거나 삭제됨 |
 | Load Balancer With Two Masters | 로드 밸런서 | 치명적 | `role=MASTER` 및 `status=ALLOCATED`인 `openstack_loadbalancer_amphora_status`, 로드 밸런서별 개수, **지난 15분**. amphora를 나열할 수 있는 자격 증명 필요 | 할당된 amphora 둘 이상이 한 로드 밸런서에 대해 MASTER로 표시됨 | 하나만 그렇게 표시됨 |
-| Amphora in Error | 로드 밸런서 | 치명적 | `status=ERROR`인 `openstack_loadbalancer_amphora_status`, amphora별 개수, **지난 15분**. amphora를 나열할 수 있는 자격 증명 필요 | amphora가 윈도우 전체에서 ERROR를 유지함: 헬스 매니저가 교체하지 못함 | 교체됨 |
-| Pool Has No Healthy Members | 로드 밸런서 | 치명적 | `operating_status=ERROR`인 `openstack_loadbalancer_pool_status`, 풀별 개수, **지난 15분** | 풀과 로드 밸런서는 여전히 ACTIVE로 프로비저닝되지만 풀의 모든 멤버가 헬스 체크에 실패함 | 멤버가 다시 정상이 됨 |
+| Amphora in Error | 로드 밸런서 | 치명적 | `status=ERROR`인 `openstack_loadbalancer_amphora_status`, amphora별 개수, **지난 15분**. amphora를 나열할 수 있는 자격 증명 필요 | amphora가 윈도우 전체에서 ERROR를 유지함: 상태 관리자가 교체하지 못함 | 교체됨 |
+| Pool Has No Healthy Members | 로드 밸런서 | 치명적 | `operating_status=ERROR`인 `openstack_loadbalancer_pool_status`, 풀별 개수, **지난 15분** | 풀과 로드 밸런서는 여전히 ACTIVE로 프로비저닝되지만 풀의 모든 멤버가 상태 확인에 실패함 | 멤버가 다시 정상이 됨 |
 | DNS API Down | 가용성 | 치명적 | `openstack_designate_up`, 지역별 최소, **지난 15분**. 프로브만 이 값을 제공함 | 1 미만. Designate가 중지되면 에이전트의 exporter는 Designate가 없는 클라우드와 같은 빈 응답을 받으므로, 에이전트가 수집하는 클라우드에서는 응답이 끊겼다고만 알 수 있음 | 1로 읽힘 |
 | DNS Zone in Error | 네트워크 | 경고 | `status=ERROR`인 `openstack_designate_zone_status`의 개수, 존별, **지난 15분** | 존이 윈도우 전체에서 `ERROR`로 읽힘: 워커가 DNS 서버에 기록하기를 포기함 | 다른 값으로 읽힘 |
 | DNS Zone Stuck Pending | 네트워크 | 경고 | `status=PENDING`인 `openstack_designate_zone_status`의 개수, 존별, **지난 30분** | 존이 윈도우 전체에서 `PENDING`으로 읽힘. 워커는 몇 분 안에 포기하므로 해당 존을 처리 중인 것이 없음 | 다른 값으로 읽힘 |
@@ -210,7 +210,7 @@ OneUptime은 흔한 OpenStack 문제를 위한 템플릿 120개를 제공하며,
 - **방금 나타난 시계열은 윈도우 전체를 기다립니다.** 따라서 다른 상태로 넘어가는 도중에 한 번 관찰된 인스턴스, 볼륨, 이미지는 아무것도 발생시키지 않습니다. 각 템플릿은 해당 서비스 자체의 `_up` 시계열로 그 서비스가 얼마나 자주 수집되는지 알고 있습니다.
 - **사라진 시계열은 복구된 것으로 처리합니다.** 누군가 비활성화한 워커, 삭제된 마지막 ERROR 인스턴스, 제거된 풀이 그 예입니다. 각 템플릿은 자체 시계열과 함께 해당 서비스의 `_up` 시계열을 읽으므로, 사라진 부분과 조용해진 클라우드를 구분할 수 있습니다. 아무것도 들어오지 않으면 인시던트는 열린 채로 유지되고 **Cloud Stopped Reporting**이 대신 알립니다.
 - **API가 중단되면 해당 서비스의 시계열도 함께 사라지므로** 그 서비스의 다른 템플릿은 해결되고, 장애가 계속되면 API가 복구된 뒤 한 윈도우가 지나 다시 발생합니다. 모든 API가 한꺼번에 중단된 것으로 읽히면 exporter부터 확인하세요.
-- **해당 서비스가 없는 클라우드는 조용합니다.** exporter는 클라우드 카탈로그에 없는 서비스에 대해 아무것도 반환하지 않으며, **네트워크**, **Block Storage**, **이미지**, **Placement API Down**은 이를 장애로 보지 않습니다. **Identity**와 **Compute API Down**은 장애로 봅니다. exporter가 Keystone이나 Nova의 API가 완전히 중지되었음을 알리는 방식도 같고 모든 클라우드에 이 둘이 있기 때문입니다.
+- **해당 서비스가 없는 클라우드는 조용합니다.** exporter는 클라우드 카탈로그에 없는 서비스에 대해 아무것도 반환하지 않으며, **네트워크**, **Block Storage**, **이미지**, **Placement API Down**은 이를 장애로 보지 않습니다. **아이덴티티**와 **Compute API Down**은 장애로 봅니다. exporter가 Keystone이나 Nova의 API가 완전히 중지되었음을 알리는 방식도 같고 모든 클라우드에 이 둘이 있기 때문입니다.
 
 ### 발생했을 때
 
@@ -319,7 +319,7 @@ exporter는 머신을 접근하는 주소로, Neutron은 호스트 이름으로 
 | 메트릭 | 단위 | 읽기 | 설명 |
 | --- | --- | --- | --- |
 | `up` | - | 최소 | exporter가 이번 수집에 응답했는지(1) 아닌지(0)를 나타냅니다. 중지되었거나, 시간 초과되었거나, 오류로 응답한 경우입니다. API에 접근하지 못한 경우에도 exporter는 응답하므로 1이어도 API 자체에 대해서는 알 수 없습니다. 에이전트의 콜렉터가 보고하며 지역별 서비스마다 시계열 하나입니다. |
-| `scrape_samples_scraped` | `count` | 최소 | exporter가 수집에 대해 응답한 시계열의 수입니다. 0이면 말할 것이 없었다는 뜻입니다. Keystone에 로그인하지 못했거나, 마이크로버전을 합의하기 위해 Nova의 API에 접근하지 못한 경우이며, 이런 실패는 openstack_* 시계열을 전혀 남기지 않습니다. 에이전트의 콜렉터가 보고하며 지역별 서비스마다 시계열 하나입니다. |
+| `scrape_samples_scraped` | `count` | 최소 | exporter가 수집에 대해 응답한 시계열의 수입니다. 0이면 말할 것이 없었다는 뜻입니다. Keystone에 로그인하지 못했거나, 마이크로버전을 합의하기 위해 Nova의 API에 접근하지 못한 경우이며, 이런 실패는 exporter의 시계열을 하나도 남기지 않습니다. 에이전트의 콜렉터가 보고하며 지역별 서비스마다 시계열 하나입니다. |
 | `openstack_identity_up` | - | 최소 | Keystone의 API가 exporter의 호출에 응답했는지(1) 모든 호출이 실패했는지(0)를 나타냅니다. Keystone에 아예 로그인할 수 없으면 exporter가 아무것도 응답하지 않으므로, 이 시계열은 0으로 읽히지 않고 사라집니다. |
 | `openstack_nova_up` | - | 최소 | Nova의 API가 exporter의 호출에 응답했는지(1) 모든 호출이 실패했는지(0)를 나타냅니다. Nova의 API에 아예 접근할 수 없으면 exporter가 아무것도 응답하지 않으므로, 이 시계열은 0으로 읽히지 않고 사라집니다. |
 | `openstack_neutron_up` | - | 최소 | Neutron의 API가 exporter의 호출에 응답했는지(1) 모든 호출이 실패했는지(0)를 나타냅니다. |
@@ -774,8 +774,8 @@ Ironic을 실행하는 클라우드만 이 메트릭을 보내며, 실행하지 
 
 | 순서 | 기준 | 일치 조건 | 동작 |
 | --- | --- | --- | --- |
-| 1 | _모니터 이름_이(가) 오프라인인지 확인 | 첫 번째 쿼리에 윈도우 전체에서 데이터가 없음 | 모니터를 **오프라인**으로 표시하고 "_모니터 이름_ 오프라인" 인시던트를 선언하며, 모니터가 복구되면 저절로 해결됩니다. |
-| 2 | _모니터 이름_이(가) 온라인인지 확인 | 첫 번째 쿼리에 데이터가 있음 | 모니터를 **정상 작동**으로 표시합니다. |
+| 1 | _모니터 이름_ 오프라인인지 확인 | 첫 번째 쿼리에 윈도우 전체에서 데이터가 없음 | 모니터를 **오프라인**으로 표시하고 "_모니터 이름_ 오프라인" 인시던트를 선언하며, 모니터가 복구되면 저절로 해결됩니다. |
+| 2 | _모니터 이름_ 온라인인지 확인 | 첫 번째 쿼리에 데이터가 있음 | 모니터를 **정상 작동**으로 표시합니다. |
 
 > [!IMPORTANT]
 > `0`이라는 값도 데이터이므로, 재시작이나 오류처럼 0인 경우가 많은 메트릭이 모니터를 오프라인으로 만들지는 않습니다. 값을 기준으로 알림을 받으려면 템플릿에서 시작하거나 임계값이 있는 기준을 추가하세요. 데이터가 전혀 들어오지 않고 일치하는 기준도 없으면 모니터는 상태를 유지하고 열린 인시던트도 열린 채로 남습니다. 침묵은 복구가 아닙니다. OneUptime 자체가 데이터를 받지 못한 시간은 데이터 없음으로 취급되지 않으며, 그 시간이 윈도우에 포함된 점검은 대신 기다립니다. 자세한 내용은 [OneUptime이 데이터를 수신하지 못하는 경우](/docs/monitor/when-oneuptime-is-not-receiving)를 참고하세요.

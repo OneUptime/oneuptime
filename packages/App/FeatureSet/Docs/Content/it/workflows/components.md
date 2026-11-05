@@ -441,8 +441,8 @@ Non richiede alcun modello IA e passa per le stesse regole di una correzione pro
 | ------------ | ------- |
 | **Alert ID** | L'avviso a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Incident ID**, e il cloud deriva da ciò a cui è collegato il record. |
 | **Incident ID** | L'incidente a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Alert ID**. |
-| **Command** | La modifica da proporre, nell'unica grafia che OneUptime accetta. Vedi [le modifiche che una correzione può fare](/docs/telemetry/openstack#correzioni). Può usare valori dei blocchi precedenti, e viene letto dopo che sono stati compilati. |
-| **Why** | Ciò che la persona che approva legge per primo. Se vuoto, indica quale workflow l'ha chiesto. |
+| **Comando** | La modifica da proporre, nell'unica grafia che OneUptime accetta. Vedi [le modifiche che una correzione può fare](/docs/telemetry/openstack#correzioni). Può usare valori dei blocchi precedenti, e viene letto dopo che sono stati compilati. |
+| **Perché** | Ciò che la persona che approva legge per primo. Se vuoto, indica quale workflow l'ha chiesto. |
 | **OpenStack Cloud ID** | In **Altri campi**. Solo per un record collegato a più di un cloud, o a nessuno. |
 
 Restituisce **Suggestion ID** (la correzione in attesa di approvazione), **Tier** (Safe o Riskier, come OneUptime legge il comando) e **Already Waiting** (true quando la stessa modifica su quel cloud era già in attesa, quindi non ne è stata aggiunta una seconda).

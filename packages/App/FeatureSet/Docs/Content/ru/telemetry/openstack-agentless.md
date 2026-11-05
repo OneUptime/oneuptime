@@ -76,7 +76,7 @@ Heat, Magnum, Manila, Trove, Gnocchi, Designate, Swift и Barbican читают�
 
 :::steps
 ### Откройте свои облака
-В OneUptime откройте **OpenStack → All Clouds** и нажмите **Подключить облако**.
+В OneUptime откройте **OpenStack → Все облака** и нажмите **Подключить облако**.
 
 ### Введите адрес и учётные данные
 Введите `auth_url` из файла `clouds.yaml` или `openrc`, например `https://keystone.example.com:5000/v3`, а также ID и секрет application credential. Выберите зонд, который достаёт до облака.

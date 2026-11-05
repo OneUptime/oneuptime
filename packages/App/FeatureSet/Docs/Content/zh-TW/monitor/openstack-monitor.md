@@ -1,13 +1,13 @@
-# OpenStack 監測器
+# OpenStack 監控
 
 OpenStack 監測器會監看一座雲端，包括它的 API、API 背後的工作程序、虛擬化主機、執行個體、網路、儲存池和專案配額，並在 API 不再回應、工作程序停止、虛擬化主機已無餘裕可分配或儲存池寫滿時通知你。它讀取 OneUptime OpenStack Agent 從 openstack-exporter 收集的 `openstack_*` 序列。
 
 :::cards
-- [建立監測器](#建立-openstack-監測器)：在儀表板中分六個步驟完成。
-- [範本](#預先建立的警示範本)：現成的警示，每個工作程序、執行個體、網路或地區各產生一個事件。
-- [從外部檢查](#從外部檢查)：從雲端之外的探測點確認是否真的有人能啟動執行個體。
-- [身分屬性](#身分屬性)：如何鎖定單一地區、主機或專案。
-- [指標](#收集的指標)：監測器可以設定警示的所有序列。
+- [建立監測器](#建立-openstack-監測器): 在儀表板中分六個步驟完成。
+- [範本](#預先建立的警示範本): 現成的警示，每個工作程序、執行個體、網路或地區各產生一個事件。
+- [從外部檢查](#從外部檢查): 從雲端之外的探測點確認是否真的有人能啟動執行個體。
+- [身分屬性](#身分屬性): 如何鎖定單一地區、主機或專案。
+- [指標](#收集的指標): 監測器可以設定警示的所有序列。
 :::
 
 ## 運作方式
@@ -29,58 +29,58 @@ flowchart TB
 
 ## 開始之前
 
-- **以 OpenStack Agent 收集雲端的指標。** 雲端的 **Documentation** 頁面位於 **Products → Infrastructure → OpenStack** 之下，會逐步帶你完成安裝。
-- **確認雲端已註冊。** 第一次收集之後，它會以 Agent 的 `OPENSTACK_CLOUD_NAME` 為名，出現在 **Products → Infrastructure → OpenStack** 之下。
+- **以 OpenStack Agent 收集雲端的指標。** 雲端的 **文件** 頁面位於 **產品 → 基礎設施 → OpenStack** 之下，會逐步帶你完成安裝。
+- **確認雲端已註冊。** 第一次收集之後，它會以 Agent 的 `OPENSTACK_CLOUD_NAME` 為名，出現在 **產品 → 基礎設施 → OpenStack** 之下。
 
 ## 建立 OpenStack 監測器
 
 :::steps
 ### 開始新的監測器
 
-前往 **Monitors**，然後按一下 **Create Monitor**。
+前往 **監測器**，然後按一下 **建立監測器**。
 
 ### 選擇 OpenStack
 
-在 **Monitor Type** 下按一下 **More monitor types**，然後在 **Infrastructure** 下選擇 **OpenStack**，或在搜尋方塊中輸入 `openstack`。輸入 **Name**，它會用在事件和警示的標題中，然後按一下 **Next**。
+在 **監測器類型** 下按一下 **更多監測器類型**，然後在 **基礎設施** 下選擇 **OpenStack**，或在搜尋方塊中輸入 `openstack`。輸入 **名稱**，它會用在事件和警示的標題中，然後按一下 **下一步**。
 
 ### 選擇雲端
 
-在 **OpenStack Monitor Configuration** 下，從 **OpenStack Cloud** 選擇雲端。凡是傳送過資料的雲端都會出現在清單中。選好之後，欄位下方會有一行文字說明資料是否正在送達。
+在 **OpenStack Monitor Configuration** 下，從 **OpenStack 雲端** 選擇雲端。凡是傳送過資料的雲端都會出現在清單中。選好之後，欄位下方會有一行文字說明資料是否正在送達。
 
 ### 選擇要監看的項目
 
-新的監測器預設使用 **What to alert on** 下的 **Cloud Stopped Reporting**。若要監看其他項目：
+新的監測器預設使用 **告警內容** 下的 **Cloud Stopped Reporting**。若要監看其他項目：
 
-- **Change** - 選擇另一個[範本](#預先建立的警示範本)。它會設定指標、屬性篩選器、彙總方式、時間範圍、分組依據和閾值，並以自己的內容取代下方的條件。你仍然可以更改 **Time Range**。
-- **Custom Metric**（位於 **More fields** 下）- 從 **OpenStack Metric** 選擇一個指標，然後設定 **Aggregation** 和 **Time Range**，並以[篩選器](#監測器設定)縮小範圍。
-- **Advanced**（位於 **More fields** 下）- 在 **Select Metrics** 下自行建立查詢和公式，並以 `status`、`adminState` 或 `resourcetype` 等屬性進行篩選。使用 **Group by** 依[身分屬性](#身分屬性)分組，即可分別判斷每個部分。
+- **變更** - 選擇另一個[範本](#預先建立的警示範本)。它會設定指標、屬性篩選器、彙總方式、時間範圍、分組依據和閾值，並以自己的內容取代下方的條件。你仍然可以更改 **時間範圍**。
+- **Custom Metric**（位於 **更多欄位** 下）- 從 **OpenStack 指標** 選擇一個指標，然後設定 **彙總** 和 **時間範圍**，並以[篩選器](#監測器設定)縮小範圍。
+- **進階**（位於 **更多欄位** 下）- 在 **選擇指標** 下自行建立查詢和公式，並以 `status`、`adminState` 或 `resourcetype` 等屬性進行篩選。使用 **分組依據** 依[身分屬性](#身分屬性)分組，即可分別判斷每個部分。
 
 ### 檢查條件
 
-展開 **Monitor Criteria** 下的每個條件，檢查它的 **Metric**、**Aggregation**、**Condition** 和 **Threshold**。範本會自動填入這些欄位。若使用 **Custom Metric** 或 **Advanced**，監測器一開始採用預設條件，只會偵測指標是否沒有送出資料，因此請自行設定閾值。
+展開 **監測器條件** 下的每個條件，檢查它的 **指標**、**彙總**、**條件** 和 **閾值**。範本會自動填入這些欄位。若使用 **Custom Metric** 或 **進階**，監測器一開始採用預設條件，只會偵測指標是否沒有送出資料，因此請自行設定閾值。
 
 ### 建立監測器
 
-按一下 **Create Monitor**。OneUptime 會開啟該監測器的頁面，並每分鐘評估一次。它所產生的事件和警示，也會列在雲端的 **Incidents** 和 **Alerts** 頁面中。
+按一下 **建立監測器**。OneUptime 會開啟該監測器的頁面，並每分鐘評估一次。它所產生的事件和警示，也會列在雲端的 **事件** 和 **警示** 頁面中。
 :::
 
 > [!TIP]
-> 若要一次設定多個範本，請從 **Products → Infrastructure → OpenStack** 開啟該雲端，前往 **Recommendations**。選擇你要的範本，指定要呼叫哪些人，OneUptime 就會為每個範本建立一個監測器。
+> 若要一次設定多個範本，請從 **產品 → 基礎設施 → OpenStack** 開啟該雲端，前往 **建議**。選擇你要的範本，指定要呼叫哪些人，OneUptime 就會為每個範本建立一個監測器。
 
 ## 監測器設定
 
 | 欄位 | 分頁 | 作用 |
 | --- | --- | --- |
-| **OpenStack Cloud** | 全部 | 必填。將每個查詢限定在 `resource.openstack.cloud.name`。 |
-| **Region** | Custom Metric、Advanced | 選填。指定單一地區：`openstack.region.name`。每個序列都帶有此屬性。 |
-| **Availability Zone** | Custom Metric、Advanced | 選填。指定單一區域：虛擬化主機、執行個體、磁碟區和 Neutron agent 上用 `availability_zone`，Nova 和 Cinder 的工作程序上用 `zone`。 |
-| **Hypervisor** | Custom Metric、Advanced | 選填。指定單一主機：工作程序、虛擬化主機和 Placement 上用 `hostname`，執行個體上用 `hypervisor_hostname`。Nova 的工作程序使用主機的簡短名稱，而虛擬化主機、Placement 和執行個體使用完整名稱，因此請採用序列所標示的那一個。 |
-| **Service** | Custom Metric、Advanced | 選填。指定單一工作程序的執行檔，例如 `nova-compute`：`service`。 |
-| **Project ID** | Custom Metric、Advanced | 選填。指定單一專案：Nova 和 Cinder 的序列以及網路和子網路上用 `tenant_id`，浮動 IP、路由器和位址可用性上用 `project_id`。 |
-| **OpenStack Metric** | Custom Metric | 從[目錄](#收集的指標)中選擇一個指標。 |
-| **Aggregation** | Custom Metric | 取樣值的合併方式：**Average**、**Maximum**、**Minimum**、**Sum** 或 **Count**。預設為該指標常用的彙總方式。 |
-| **Time Range** | 全部 | 查詢所讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新的監測器預設為 **Past 15 Minutes**；範本會設定自己的值。 |
-| **Select Metrics** | Advanced | 查詢建立器：**Metric**、**Aggregate by**、**Filter by attributes**、**Group by**，以及用來組合查詢的 **Add Metric** 和 **Add Formula**。 |
+| **OpenStack 雲端** | 全部 | 必填。將每個查詢限定在 `resource.openstack.cloud.name`。 |
+| **地區** | Custom Metric、Advanced | 選填。指定單一地區：`openstack.region.name`。每個序列都帶有此屬性。 |
+| **可用性區域** | Custom Metric、Advanced | 選填。指定單一區域：虛擬化主機、執行個體、磁碟區和 Neutron agent 上用 `availability_zone`，Nova 和 Cinder 的工作程序上用 `zone`。 |
+| **虛擬化主機** | Custom Metric、Advanced | 選填。指定單一主機：工作程序、虛擬化主機和 Placement 上用 `hostname`，執行個體上用 `hypervisor_hostname`。Nova 的工作程序使用主機的簡短名稱，而虛擬化主機、Placement 和執行個體使用完整名稱，因此請採用序列所標示的那一個。 |
+| **服務** | Custom Metric、Advanced | 選填。指定單一工作程序的執行檔，例如 `nova-compute`：`service`。 |
+| **專案 ID** | Custom Metric、Advanced | 選填。指定單一專案：Nova 和 Cinder 的序列以及網路和子網路上用 `tenant_id`，浮動 IP、路由器和位址可用性上用 `project_id`。 |
+| **OpenStack 指標** | Custom Metric | 從[目錄](#收集的指標)中選擇一個指標。 |
+| **彙總** | Custom Metric | 取樣值的合併方式：**平均**、**最大值**、**最小值**、**總和** 或 **計數**。預設為該指標常用的彙總方式。 |
+| **時間範圍** | 全部 | 查詢所讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新的監測器預設為 **Past 15 Minutes**；範本會設定自己的值。 |
+| **選擇指標** | Advanced | 查詢建立器：**指標**、**Aggregate by**、**Filter by attributes**、**分組依據**，以及用來組合查詢的 **新增指標** 和 **新增公式**。 |
 
 篩選器只會縮小帶有該標籤的序列：`openstack_nova_up` 沒有專案，因此專案篩選器不會影響它。
 
@@ -106,7 +106,7 @@ flowchart TB
 
 ## 預先建立的警示範本
 
-OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **What to alert on** 清單中選用。雲端的 Recommendations 頁面只會把 Heat、Magnum、Ironic、Manila、Octavia、Trove、Designate、Gnocchi 或 Swift 的範本提供給實際執行該服務的雲端；只有探測點才會送出的序列所對應的範本，只提供給由探測點收集的雲端；以[從外部檢查](#從外部檢查)為基礎的範本，只提供給已啟用該檢查的雲端：在其他雲端上，這些序列根本不存在，範本永遠不會觸發。每個範本都會建立完整的監測器：指標查詢、屬性篩選器、依一個事件所針對的對象設定的分組、一個觸發條件和一個復原條件。閾值與雲端自身頁面所畫的線相同，只是你可以自行修改的起點。
+OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **告警內容** 清單中選用。雲端的 Recommendations 頁面只會把 Heat、Magnum、Ironic、Manila、Octavia、Trove、Designate、Gnocchi 或 Swift 的範本提供給實際執行該服務的雲端；只有探測點才會送出的序列所對應的範本，只提供給由探測點收集的雲端；以[從外部檢查](#從外部檢查)為基礎的範本，只提供給已啟用該檢查的雲端：在其他雲端上，這些序列根本不存在，範本永遠不會觸發。每個範本都會建立完整的監測器：指標查詢、屬性篩選器、依一個事件所針對的對象設定的分組、一個觸發條件和一個復原條件。閾值與雲端自身頁面所畫的線相同，只是你可以自行修改的起點。
 
 每個範本至少讀取所監看對象的三次收集，而且只有在條件於整個視窗內都成立時才會觸發。以比例為基礎的閾值，會在越過該線 10% 後才復原，因此徘徊在線附近的值不會反覆觸發與復原。
 
@@ -202,7 +202,7 @@ OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **Wha
 | Capacity Forecast Under 14 Days | 容量 | 警告 | `openstack_capacity_days_until_full`，**每個區域和資源類別、外部網路或儲存池** | 依過去一週的成長速度，距離寫滿不到 14 天，並持續 10 分鐘。歷史資料不到一天，或沒有成長時保持安靜 | 超過 15.4 天，或不再有預測 |
 | Reserved Headroom Gone | 容量 | 警告 | `openstack_capacity_can_lose_a_host`，**每個區域** | 持續 10 分鐘無法在損失最大主機後仍容納其上執行的項目。只有一台主機的區域，或有主機被人停用時保持安靜 | 可以，或不再評估該區域 |
 
-**Severity** 是挑選器顯示的標籤。範本所建立的事件和警示，一開始使用你專案中最嚴重的事件嚴重程度和警示嚴重程度；請在條件中修改。
+**嚴重程度** 是挑選器顯示的標籤。範本所建立的事件和警示，一開始使用你專案中最嚴重的事件嚴重程度和警示嚴重程度；請在條件中修改。
 
 - **Up、alive 和 state 序列使用 Min**，因此只要有任何一個停機就會讀到 0。**計數和資訊序列使用 Max。** 沒有任何範本使用 Sum，因為監測器是跨序列與跨抓取讀取一分鐘的區間，而 Sum 會把它們加在一起。
 - **除了 Cloud Stopped Reporting 之外，每個範本都依一個事件所針對的對象分組：** 工作程序的主機和執行檔、API 的地區、執行個體、路由器、網路、儲存池、專案。事件會指名該對象，並附上[接下來要執行的指令](#接下來要執行的指令)。
@@ -210,11 +210,11 @@ OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **Wha
 - **剛出現的序列要等滿一個完整視窗**，因此只看到一次、正在轉往其他狀態的執行個體、磁碟區或映像檔不會觸發任何事件。每個範本會從該服務自己的 `_up` 序列得知其服務多久收集一次。
 - **消失的序列視為已復原：** 被人停用的工作程序、最後一個處於 ERROR 而被刪除的執行個體、被移除的儲存池。每個範本都會在自己的序列旁讀取其服務自己的 `_up` 序列，所以能分辨是某個部分消失了，還是整座雲端沉默了。當完全沒有任何資料送達時，它的事件會保持開啟，並由 **Cloud Stopped Reporting** 發聲。
 - **API 停機時，它自己的序列也會消失**，因此該服務的其他範本會解除，若故障仍在，會在 API 恢復後一個視窗再次觸發。如果每個 API 同時讀到停機，請先檢查 exporter。
-- **沒有該服務的雲端保持安靜。** 對於不在雲端目錄中的服務，exporter 會回應空結果，而 **Network**、**Block Storage**、**Image** 和 **Placement API Down** 不會把這視為中斷。**Identity** 和 **Compute API Down** 則會，因為 exporter 回報 Keystone 或 Nova 的 API 完全停止時也是這樣，而且每座雲端都有這兩者。
+- **沒有該服務的雲端保持安靜。** 對於不在雲端目錄中的服務，exporter 會回應空結果，而 **網路**、**Block Storage**、**映像檔** 和 **Placement API Down** 不會把這視為中斷。**身分** 和 **Compute API Down** 則會，因為 exporter 回報 Keystone 或 Nova 的 API 完全停止時也是這樣，而且每座雲端都有這兩者。
 
 ### 觸發時的樣子
 
-`nova-compute` 停止後，它在雲端 **Services** 頁面上的那一列會在幾分鐘內變成停機：
+`nova-compute` 停止後，它在雲端 **服務** 頁面上的那一列會在幾分鐘內變成停機：
 
 ![The Services page with nova-compute down on its host for 10 minutes, and every other service and API up](/docs/static/images/OpenStackServicesComputeDown.png)
 
@@ -290,9 +290,9 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 ### 啟用 limits 序列
 
-三個 **Capacity** 範本讀取的是 OneUptime 在雲端回報期間，每兩分鐘根據雲端的清單自行寫入的序列。沒有任何 exporter 序列帶有區域或 flavor 的數量。它們的意義請見[容量](/docs/telemetry/openstack#容量)。這三個範本談的都是分配量，也就是已經承諾出去的部分，沒有任何一個談的是負載。
+三個 **容量** 範本讀取的是 OneUptime 在雲端回報期間，每兩分鐘根據雲端的清單自行寫入的序列。沒有任何 exporter 序列帶有區域或 flavor 的數量。它們的意義請見[容量](/docs/telemetry/openstack#容量)。這三個範本談的都是分配量，也就是已經承諾出去的部分，沒有任何一個談的是負載。
 
-**Project Quota Nearly Reached** 讀取 `openstack_nova_limits_*` 和 `openstack_cinder_limits_*`，這些序列預設是關閉的，因為每個專案都要花費 API 呼叫。在你啟用之前，這個範本會保持安靜：請以 `OPENSTACK_COLLECT_QUOTAS=true` 再次執行 Agent 的 `install.sh`。接著會有第二個 exporter 每小時讀取一次，而範本要等到累積三次讀數。對於由探測點讀取的雲端，請在其 **Settings** 頁面的 **Data Collection** 下啟用 **Project limits**。
+**Project Quota Nearly Reached** 讀取 `openstack_nova_limits_*` 和 `openstack_cinder_limits_*`，這些序列預設是關閉的，因為每個專案都要花費 API 呼叫。在你啟用之前，這個範本會保持安靜：請以 `OPENSTACK_COLLECT_QUOTAS=true` 再次執行 Agent 的 `install.sh`。接著會有第二個 exporter 每小時讀取一次，而範本要等到累積三次讀數。對於由探測點讀取的雲端，請在其 **設定** 頁面的 **資料收集** 下啟用 **專案限制**。
 
 ### 接下來要執行的指令
 
@@ -319,7 +319,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | 指標 | 單位 | 讀取 | 說明 |
 | --- | --- | --- | --- |
 | `up` | - | 最小值 | exporter 是否回應了這次收集（1）或完全沒有回應（0）：它已停止、逾時，或回應了錯誤。1 並不代表 API 本身正常，因為即使 exporter 無法連到 API，它也會回應。由 Agent 的 collector 回報，每個服務在每個地區各一個序列。 |
-| `scrape_samples_scraped` | `count` | 最小值 | exporter 以多少個序列回應了一次收集。0 表示它沒有東西可說：它無法登入 Keystone，或無法連到 Nova 的 API 協商 microversion，而這些失敗完全不會留下任何 openstack_* 序列。由 Agent 的 collector 回報，每個服務在每個地區各一個序列。 |
+| `scrape_samples_scraped` | `count` | 最小值 | exporter 以多少個序列回應了一次收集。0 表示它沒有東西可說：它無法登入 Keystone，或無法連到 Nova 的 API 協商 microversion，而這些失敗完全不會留下該 exporter 的任何序列。由 Agent 的 collector 回報，每個服務在每個地區各一個序列。 |
 | `openstack_identity_up` | - | 最小值 | Keystone 的 API 是否回應了 exporter 的呼叫（1）或每一次都失敗（0）。當完全無法登入 Keystone 時，exporter 會回應空結果，所以這個序列會消失，而不是讀到 0。 |
 | `openstack_nova_up` | - | 最小值 | Nova 的 API 是否回應了 exporter 的呼叫（1）或每一次都失敗（0）。當完全無法連到 Nova 的 API 時，exporter 會回應空結果，所以這個序列會消失，而不是讀到 0。 |
 | `openstack_neutron_up` | - | 最小值 | Neutron 的 API 是否回應了 exporter 的呼叫（1）或每一次都失敗（0）。 |
@@ -726,7 +726,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 ## 從外部檢查
 
-每個服務都可能回報健康，但沒有人能啟動執行個體。`oslo.middleware` 的 `/healthcheck` 只能顯示服務是否可連線，所以最可靠的測試就是做使用者做的事。探測點從雲端外部執行這些操作，因為在已故障的雲端內部進行的檢查什麼也說明不了。請從雲端的 **Checks** 頁面啟用它們。[指南](/docs/telemetry/openstack#從外部檢查雲端)說明了做法，以及生命週期檢查會建立哪些東西、可能碰觸哪些東西。
+每個服務都可能回報健康，但沒有人能啟動執行個體。`oslo.middleware` 的 `/healthcheck` 只能顯示服務是否可連線，所以最可靠的測試就是做使用者做的事。探測點從雲端外部執行這些操作，因為在已故障的雲端內部進行的檢查什麼也說明不了。請從雲端的 **檢查** 頁面啟用它們。[指南](/docs/telemetry/openstack#從外部檢查雲端)說明了做法，以及生命週期檢查會建立哪些東西、可能碰觸哪些東西。
 
 - **API 檢查**預設每分鐘執行一次，而且只讀取。Keystone 發出一個權杖，目錄中的每個服務回應一次經過驗證的單列讀取，並讀取每個端點的憑證到期時間。不需要維護清單：有人加入目錄的服務，從那一刻起就會被檢查。
 - **生命週期檢查**預設每 30 分鐘執行一次，而且只有在你選擇啟用時才會執行。它在一個專用的專案中自行完成：建立伺服器、等待 `ACTIVE`、選擇性地附加浮動 IP 並 ping 它、選擇性地建立並掛接磁碟區，然後刪除所有東西。每個步驟的耗時都是一個序列。
@@ -747,26 +747,26 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 ## 監測條件
 
-條件會將監測器的某個查詢或公式與閾值比較。OpenStack 監測器的條件沒有 **Filter Type**：每條規則都檢查指標值，並使用下列欄位。
+條件會將監測器的某個查詢或公式與閾值比較。OpenStack 監測器的條件沒有 **篩選器類型**：每條規則都檢查指標值，並使用下列欄位。
 
 | 欄位 | 作用 |
 | --- | --- |
-| **Metric** | 要檢查的查詢或公式，以其變數名稱指定。 |
-| **Aggregation** | 視窗內的值如何變成一個答案：**Average**、**Sum**、**Maximum Value**、**Minimum Value**、**All Values**（整個視窗內每個值都必須符合）或 **Any Value**（一個符合即可）。 |
-| **Condition** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**，也可以是異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**Has No Data** 在查詢於視窗內沒有送出任何資料時符合，**Has Data** 在送出任何資料時符合。**Forecast To Rise Above** 和 **Forecast To Fall Below** 在指標於視窗內的趨勢將在 **Within** 結束時超過閾值時符合。 |
-| **Threshold** | 用來比較的值。指標有單位時，旁邊會有單位清單。異常條件不會顯示。 |
-| **Sensitivity** | 僅限異常條件。**Low**（4σ）、**Medium**（3σ，預設值）或 **High**（2σ）。 |
-| **Baseline Window** | 僅限異常條件。14 天（預設值）、28、60 或 90 天的歷史資料。 |
-| **If No Data** | 位於 **More fields** 下。視窗內沒有取樣時的處理方式：**Ignore**（預設值）、**Treat As Zero** 或 **Trigger**。 |
+| **指標** | 要檢查的查詢或公式，以其變數名稱指定。 |
+| **彙總** | 視窗內的值如何變成一個答案：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**（整個視窗內每個值都必須符合）或 **Any Value**（一個符合即可）。 |
+| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**，也可以是異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。**無資料** 在查詢於視窗內沒有送出任何資料時符合，**有資料** 在送出任何資料時符合。**預計高於** 和 **預計低於** 在指標於視窗內的趨勢將在 **預測範圍** 結束時超過閾值時符合。 |
+| **閾值** | 用來比較的值。指標有單位時，旁邊會有單位清單。異常條件不會顯示。 |
+| **敏感度** | 僅限異常條件。**低**（4σ）、**中**（3σ，預設值）或 **高**（2σ）。 |
+| **基準視窗** | 僅限異常條件。14 天（預設值）、28、60 或 90 天的歷史資料。 |
+| **如果沒有資料** | 位於 **更多欄位** 下。視窗內沒有取樣時的處理方式：**Ignore**（預設值）、**Treat As Zero** 或 **觸發器**。 |
 
 異常條件會將每個值與基準中每週同一小時的值比較。在基準視窗累積足夠歷史資料之前，它們會停留在「Learning」狀態，不會觸發任何事件。這個監測器依屬性篩選查詢，所以每個查詢以及分組查詢的每個序列，都會與自己的歷史資料比較，範圍追溯到你的指標保存的最早時間。如果保存期間少於兩週，Sum、Count 或針對直方圖的查詢會永遠停留在該狀態，其他查詢則會與該指標的每個序列比較。直方圖的百分位數則一律停留在該狀態。
 
 幾個可作為起點的條件：
 
-- **某個區域的 nova-compute 停機：** `openstack_nova_agent_state`，篩選為 `service = nova-compute`、`adminState = enabled` 和 `zone = nova`，最小值，依 `hostname` 分組，**Less Than** `1`，範圍為過去 10 分鐘。
-- **某台主機承載過多執行個體：** `openstack_nova_running_vms`，最大值，依 `hostname` 分組，**Greater Than** 一台主機應該承載的數量。
-- **儲存池剩餘空間很少：** `openstack_cinder_pool_capacity_free_gb`，最小值，依 `name` 分組，**Less Than** `100`。
-- **同時有太多執行個體在建置中：** `openstack_nova_server_status`，篩選為 `status = BUILD`，計數，依 `openstack.region.name` 分組，**Greater Than** `20`。
+- **某個區域的 nova-compute 停機：** `openstack_nova_agent_state`，篩選為 `service = nova-compute`、`adminState = enabled` 和 `zone = nova`，最小值，依 `hostname` 分組，**小於** `1`，範圍為過去 10 分鐘。
+- **某台主機承載過多執行個體：** `openstack_nova_running_vms`，最大值，依 `hostname` 分組，**大於** 一台主機應該承載的數量。
+- **儲存池剩餘空間很少：** `openstack_cinder_pool_capacity_free_gb`，最小值，依 `name` 分組，**小於** `100`。
+- **同時有太多執行個體在建置中：** `openstack_nova_server_status`，篩選為 `status = BUILD`，計數，依 `openstack.region.name` 分組，**大於** `20`。
 
 ### 預設條件
 
@@ -774,8 +774,8 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 | 順序 | 條件 | 符合時機 | 結果 |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | 第一個查詢在整個視窗內都沒有資料 | 將監測器標示為 **Offline**，並宣告事件「_monitor name_ is offline」，該事件會在監測器恢復時自動解除。 |
-| 2 | Check if _monitor name_ is online | 第一個查詢有資料 | 將監測器標示為 **Operational**。 |
+| 1 | Check if _monitor name_ is offline | 第一個查詢在整個視窗內都沒有資料 | 將監測器標示為 **離線**，並宣告事件「_monitor name_ is offline」，該事件會在監測器恢復時自動解除。 |
+| 2 | Check if _monitor name_ is online | 第一個查詢有資料 | 將監測器標示為 **運作中**。 |
 
 > [!IMPORTANT]
 > 值 `0` 也算資料，所以經常為零的指標，例如重新啟動次數或錯誤數，不會讓監測器變成離線。若要針對某個值設定警示，請從範本開始，或新增帶有閾值的條件。當完全沒有資料送達且沒有任何條件符合時，監測器會維持其狀態，開啟中的事件也會保持開啟：沉默不等於復原。OneUptime 本身沒有在接收資料的時間，絕不會被當成沒有資料：視窗涵蓋該段時間的檢查會改為等待，詳見[OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
@@ -841,7 +841,7 @@ Nova 的工作程序在 `hostname` 中使用主機的簡短名稱，而虛擬化
 ## 後續步驟
 
 :::cards
-- [Proxmox 監測器](/docs/monitor/proxmox-monitor)：針對 Proxmox VE 的同類監測器。
-- [VMware 監測器](/docs/monitor/vmware-monitor)：針對 vCenter 的同類監測器。
-- [事件](/docs/incidents/index)：條件宣告事件之後會發生什麼事。
+- [Proxmox 監測器](/docs/monitor/proxmox-monitor): 針對 Proxmox VE 的同類監測器。
+- [VMware 監測器](/docs/monitor/vmware-monitor): 針對 vCenter 的同類監測器。
+- [事件](/docs/incidents/index): 條件宣告事件之後會發生什麼事。
 :::

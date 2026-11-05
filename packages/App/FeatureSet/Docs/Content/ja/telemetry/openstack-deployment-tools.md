@@ -1,13 +1,13 @@
 # デプロイツール別の OpenStack
 
-「OpenStack」そのものを運用している人はいません。実際に運用しているのは OpenStack をデプロイするツールであり、ツールごとにパス、ログ、すでに動いているものの捉え方が異なります。このページは、OneUptime のセットアップガイドが各ツールについて案内する内容です。**OpenStack → All Clouds** を開き、クラウドを接続して、**OpenStack をどのようにデプロイしていますか？** に答えてください。
+「OpenStack」そのものを運用している人はいません。実際に運用しているのは OpenStack をデプロイするツールであり、ツールごとにパス、ログ、すでに動いているものの捉え方が異なります。このページは、OneUptime のセットアップガイドが各ツールについて案内する内容です。**OpenStack → すべてのクラウド** を開き、クラウドを接続して、**OpenStack をどのようにデプロイしていますか？** に答えてください。
 
 :::cards
 - [各ガイドの検証範囲](#各ガイドの検証範囲): 最初にお読みください。Kolla-Ansible と OpenStack-Ansible のガイドは、実環境で実行済みです。その他は未実行です。
 - [すでに発火しているアラートを転送する](#すでに発火しているアラートを転送する): エージェントなしで、最初の 1 時間からインシデントを作成します。
 - [Kolla-Ansible](#kolla-ansible): すでに動いているエクスポーターを読み取ります。
 - [OpenStack-Ansible](#openstack-ansible): Journald のログと、`user_variables.yml` の上書き設定。
-- [OpenStack-Helm](#openstack-helm) と [Atmosphere](#atmosphere): プローブと Kubernetes エージェント。
+- [OpenStack-Helm](#openstack-helm): Atmosphere にも使える、プローブと Kubernetes エージェント。
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack。
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift プリセットと Ceilometer。
 - [Mirantis MOSK](#mirantis-mosk): StackLight のアラート。
@@ -20,8 +20,8 @@
 
 | ツール | 読み取り元 | 実際に実行したもの |
 | --- | --- | --- |
-| Kolla-Ansible | master と `stable/2026.1` のソース | `stable/2026.1` の Open vSwitch 構成の実際の all-in-one で、このガイドのコマンドを実行: 各クレデンシャルでのエージェント(Docker なし)、Kolla-Ansible 自身のエクスポーターと、固定バージョンおよび 1.7.0 での自前のエクスポーター、実際の `prometheus.yml` から読み取ったターゲット、ログプロファイル。1 つだけうまくいかなかった点がある: Memcached と nova-compute を停止しても Alertmanager は何も送信しなかったため、Kolla-Ansible のスタックから OneUptime へアラートが届いたことはない。固定されているバージョンの Alertmanager が送信する内容をテストクラスターで記録したものは、稼働中の OneUptime で正しいクラウドのインシデントを作成し、解決した |
-| OpenStack-Ansible | ソースとドキュメント | `stable/2026.1` の実際の all-in-one(LXC コンテナ)で、このガイドのコマンドを実行: 最初のクレデンシャルでのエージェント、2 つ目のクレデンシャルでのエクスポーター(ポリシーのオーバーライド付き)、RabbitMQ と HAProxy の設定(エージェントがそれぞれを読み取る)、ジャーナルに対するログプロファイル |
+| Kolla-Ansible | master と `stable/2026.1` のソース | `stable/2026.1` の Open vSwitch 構成の実際の all-in-one で、このガイドのコマンドを実行: 各クレデンシャルでのエージェント(Docker なし)、Kolla-Ansible 自身のエクスポーターと、固定バージョンおよび 1.7.0 での自前のエクスポーター、実際の `prometheus.yml` から読み取ったターゲット、ログプロファイル。一点だけうまくいかなかった点がある: Memcached と nova-compute を停止しても Alertmanager は何も送信しなかったため、Kolla-Ansible のスタックから OneUptime へアラートが届いたことはない。固定されているバージョンの Alertmanager が送信する内容をテストクラスターで記録したものは、稼働中の OneUptime で正しいクラウドのインシデントを作成し、解決した |
+| OpenStack-Ansible | ソースとドキュメント | `stable/2026.1` の実際の all-in-one(LXC コンテナ)で、このガイドのコマンドを実行: 最初のクレデンシャルでのエージェント、二つ目のクレデンシャルでのエクスポーター(ポリシーのオーバーライド付き)、RabbitMQ と HAProxy の設定(エージェントがそれぞれを読み取る)、ジャーナルに対するログプロファイル |
 | OpenStack-Helm | チャートの values | プローブと Kubernetes エージェントを、それぞれ単独で |
 | Atmosphere | ドキュメントとソース | プローブと Kubernetes エージェントを、それぞれ単独で |
 | Canonical Sunbeam | Canonical のドキュメントと、チャームのソース | Sunbeam 上では何も実行していない。Sunbeam 自身のドキュメントには、エクスポーターのチャームについての記載がない |
@@ -45,7 +45,7 @@ Alertmanager があるツールなら、今日からインシデントを作成�
 
 ### クラウドに関連付ける
 
-モニターの**概要 → Linked Resources** を開き、OpenStack クラウドを追加します。すると各インシデントは、そのクラウドの**インシデント**ページに表示されます。Incoming Request モニター自体の設定にはクラウドを指定する項目がないため、各クラウドの Alertmanager ごとに専用のモニターが必要です。クラウドは最初のデータが届くとこの一覧に表示されるので、以下の手順を終えてから行うか、先に **OpenStack → All Clouds** でクラウドを追加してください。
+モニターの**概要 → リンクされたリソース** を開き、OpenStack クラウドを追加します。すると各インシデントは、そのクラウドの**インシデント**ページに表示されます。Incoming Request モニター自体の設定にはクラウドを指定する項目がないため、各クラウドの Alertmanager ごとに専用のモニターが必要です。クラウドは最初のデータが届くとこの一覧に表示されるので、以下の手順を終えてから行うか、先に **OpenStack → すべてのクラウド** でクラウドを追加してください。
 :::
 
 Alertmanager が正確にこの形式で送信する様子は、Kolla-Ansible が固定しているバージョンで `Tests/Ops/openstack-e2e` に記録してあります。この記録は実際の評価器で再生され、アラートごとに 1 件のインシデントが作成され、それぞれの `resolved` ステータスで解決されます。
@@ -266,7 +266,7 @@ conf:
 
 ### OpenStack-Helm で API を読み取り、ポッドを監視する
 
-**OpenStack → All Clouds** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。続いて、チャートが動作するクラスターについて **Kubernetes → ドキュメント**に従ってください。ポッド、そのログ、ノードが Kubernetes のページに表示されます。
+**OpenStack → すべてのクラウド** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。続いて、チャートが動作するクラスターについて **Kubernetes → ドキュメント**に従ってください。ポッド、そのログ、ノードが Kubernetes のページに表示されます。
 
 これらのサービスのログをこのクラウドの**ログ**ページにも表示し、スタックトレースを 1 件のレコードにまとめるには、サービスが動作する名前空間とともに、エージェントの values にクラウド名を指定します。
 
@@ -344,7 +344,7 @@ kube_prometheus_stack_helm_values:
 
 ### Atmosphere で API を読み取り、ポッドを監視する
 
-**OpenStack → All Clouds** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。続いて、Atmosphere が動作するクラスターについて **Kubernetes → ドキュメント**に従ってください。
+**OpenStack → すべてのクラウド** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。続いて、Atmosphere が動作するクラスターについて **Kubernetes → ドキュメント**に従ってください。
 
 これらのサービスのログをこのクラウドの**ログ**ページにも表示し、スタックトレースを 1 件のレコードにまとめるには、サービスが動作する名前空間とともに、エージェントの values にクラウド名を指定します。
 
@@ -454,7 +454,7 @@ spec:
 
 ### API とコントロールプレーンを読み取る
 
-**OpenStack → All Clouds** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。続いて、コントロールプレーンが動作するクラスターで **Kubernetes → ドキュメント**に従い、**Red Hat OpenShift** を選んでください。これで `preset=openshift` が設定されます。
+**OpenStack → すべてのクラウド** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。続いて、コントロールプレーンが動作するクラスターで **Kubernetes → ドキュメント**に従い、**Red Hat OpenShift** を選んでください。これで `preset=openshift` が設定されます。
 
 これらのサービスのログをこのクラウドの**ログ**ページにも表示し、スタックトレースを 1 件のレコードにまとめるには、サービスが動作する名前空間とともに、エージェントの values にクラウド名を指定します。
 
@@ -527,7 +527,7 @@ alertmanagerSimpleConfig:
 
 ### API を読み取る
 
-**OpenStack → All Clouds** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。
+**OpenStack → すべてのクラウド** を開いて**クラウドを接続**をクリックし、Keystone のアドレス、アプリケーションクレデンシャル、使用するプローブを指定します。プローブがクラウドと通信するのは HTTPS のみです。
 
 ### Mirantis MOSK で誰が何をしたか
 
@@ -581,7 +581,7 @@ bash install.sh
 | 表示されないもの | 理由 | 影響 |
 | --- | --- | --- |
 | Cinder に関するすべて | カタログに `volumev3` を問い合わせるが、Cinder が `block-storage` として登録されている環境では見つからない | **ボリューム**と**ストレージプール**が空のままになり、**サービス**に Block Storage API、`cinder-volume`、`cinder-scheduler` が表示されない。**Block Storage API Down**、**Block Storage Service Down**、**Storage Pool Warning**、**Storage Pool Critical**、**Volumes in Error**、**Volume Stuck** は発火しない |
-| ハイパーバイザーが保持するインスタンス数と、そのアグリゲート | Kolla-Ansible が要求する最新のマイクロバージョンで、Nova のハイパーバイザー一覧が失敗する | **ハイパーバイザー**のこの 2 項目と、ホストを失ったときに一緒に失われるものの表示。vCPU、メモリ、ディスクは Placement から取得するため引き続き表示される |
+| ハイパーバイザーが保持するインスタンス数と、そのアグリゲート | Kolla-Ansible が要求する最新のマイクロバージョンで、Nova のハイパーバイザー一覧が失敗する | **ハイパーバイザー**のこの二項目と、ホストを失ったときに一緒に失われるものの表示。vCPU、メモリ、ディスクは Placement から取得するため引き続き表示される |
 | ドメイン | 該当する系列がない | **ドメイン**が空のままになる |
 | イメージのステータス、公開範囲、作成日 | 該当するラベルがない | **イメージ**のそれらの列。**Image Stuck** は発火しないため、`active` に至る途中で止まったイメージに気付けない |
 | ネットワークの MTU | 該当するラベルがない | ネットワークのページのその行 |

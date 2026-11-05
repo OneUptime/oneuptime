@@ -193,7 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS CloudTrail | CloudWatch Logs को दिया गया ट्रेल, जिसे कलेक्टर का `awscloudwatch` रिसीवर पढ़ता है, या **क्लाउड** के अंतर्गत कनेक्ट किए गए खाते के लिए [क्लाउड ऑडिट लॉग](#अपने-क्लाउड-खातों-के-ऑडिट-लॉग-पढ़ें) |
 | Google Cloud ऑडिट लॉग | Pub/Sub तक जाने वाला लॉग सिंक, जिसे कलेक्टर का `googlecloudpubsub` रिसीवर `encoding: raw_text` के साथ पढ़ता है, या **क्लाउड** के अंतर्गत कनेक्ट किए गए प्रोजेक्ट के लिए [क्लाउड ऑडिट लॉग](#अपने-क्लाउड-खातों-के-ऑडिट-लॉग-पढ़ें) |
 | Azure गतिविधि और Entra ID लॉग | Event Hub में स्ट्रीम करने वाली डायग्नोस्टिक सेटिंग, जिसे कलेक्टर का `azureeventhub` रिसीवर `format: raw` के साथ पढ़ता है, या **क्लाउड** के अंतर्गत कनेक्ट की गई सदस्यता के Activity Log के लिए [क्लाउड ऑडिट लॉग](#अपने-क्लाउड-खातों-के-ऑडिट-लॉग-पढ़ें) |
-| OpenStack ऑडिट ट्रेल | क्लाउड की नोटिफ़िकेशन और ऑडिट फ़िल्टर, जो `driver = log` के साथ उसके लॉग में भेजे जाते हैं, और जिन्हें एजेंट की [लॉग प्रोफ़ाइल](/docs/telemetry/openstack#who-did-what) पढ़ती है |
+| OpenStack ऑडिट ट्रेल | क्लाउड की नोटिफ़िकेशन और ऑडिट फ़िल्टर, जो `driver = log` के साथ उसके लॉग में भेजे जाते हैं, और जिन्हें एजेंट की [लॉग प्रोफ़ाइल](/docs/telemetry/openstack#किसने-क्या-किया) पढ़ती है |
 | CEF, LEEF | उत्पाद का syslog, जिसे [rsyslog](/docs/telemetry/syslog) आगे भेजता है |
 | Palo Alto Networks, FortiGate, Cisco ASA | फ़ायरवॉल का अपना syslog, जिसे [rsyslog](/docs/telemetry/syslog) आगे भेजता है |
 | Kubernetes ऑडिट लॉग | API सर्वर की ऑडिट लॉग फ़ाइल, जिसे कलेक्टर का `filelog` रिसीवर पढ़ता है |
