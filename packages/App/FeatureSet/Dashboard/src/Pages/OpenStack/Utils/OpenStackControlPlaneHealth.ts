@@ -7,17 +7,23 @@ import {
   OPENSTACK_CONTROL_PLANE_FACTS,
   OPENSTACK_DEPENDENCIES,
   OPENSTACK_DEPENDENCY_DEFINITIONS,
-  OPENSTACK_GALERA_STATE_DONOR_DESYNCED,
   OPENSTACK_GALERA_STATE_SYNCED,
+  OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT,
+  OPENSTACK_HAPROXY_ERROR_RESPONSES_WARNING_PERCENT,
   OPENSTACK_KEYED_FACT_CURRENT_MINUTES,
   OPENSTACK_MARIADB_CONNECTIONS_WARNING_PERCENT,
+  OPENSTACK_MARIADB_SLOW_QUERIES_WARNING_PER_MINUTE,
+  OPENSTACK_MEMCACHED_EVICTIONS_WARNING_PER_MINUTE,
+  OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS,
   OPENSTACK_NETWORK_FACTS,
   OPENSTACK_RABBITMQ_FILE_DESCRIPTORS_WARNING_PERCENT,
+  OPENSTACK_RABBITMQ_LINK_DOWN_FACT_PREFIX,
   OPENSTACK_RABBITMQ_UNACKNOWLEDGED_MESSAGES_WARNING,
   OPENSTACK_RAFT_LEADER_FACT_PREFIX,
   OPENSTACK_RAFT_MEMBER_FACT_PREFIX,
   OPENSTACK_SERVER_DOWN_FACT_PREFIX,
   OpenStackDependency,
+  getOpenStackBackendErrorPercents,
   getOpenStackDependencyOfRow,
   getOpenStackKeyedFacts,
   isOpenStackControlPlaneRowCurrent,
@@ -105,6 +111,27 @@ const REASON_NO_LEADER: string = translationKey(
   "The {{database}} database has no leader",
 );
 const REASON_LIBVIRT_DOWN: string = translationKey("libvirt isn't answering");
+const REASON_PARTITION: string = translationKey(
+  "{{node}} can't reach {{peer}}: the cluster has split",
+);
+const REASON_CLUSTER_SMALLER: string = translationKey(
+  "Galera has {{size}} of the {{count}} nodes read",
+);
+const REASON_SLOW_QUERIES: string = translationKey(
+  "{{count}} slow queries in the last minute",
+);
+const REASON_EVICTIONS: string = translationKey(
+  "{{count}} items evicted in the last minute",
+);
+const REASON_NOBODY_CONNECTED: string = translationKey(
+  "Nothing connects to it or asks it anything",
+);
+const REASON_BACKEND_5XX: string = translationKey(
+  "{{percent}} of {{backend}}'s responses are 5xx",
+);
+const REASON_BACKEND_4XX: string = translationKey(
+  "{{percent}} of {{backend}}'s responses are 4xx",
+);
 
 export interface OpenStackControlPlaneAssessment {
   severity: ResourceAttentionSeverity | null;
@@ -122,6 +149,10 @@ function numberFact(row: OpenStackResource, fact: string): number | null {
 
 function isDown(row: OpenStackResource): boolean {
   return row.status === OPENSTACK_SERVICE_STATUS_DOWN;
+}
+
+function isUp(row: OpenStackResource): boolean {
+  return !isDown(row);
 }
 
 // Whether a series that goes away with what it reports has gone, with the row still read.
@@ -230,25 +261,52 @@ export function assessOpenStackControlPlaneRow(
       break;
     }
     case OpenStackDependency.MariaDb: {
-      if (facts[OPENSTACK_CONTROL_PLANE_FACTS.ClusterPrimary] === false) {
+      /*
+       * Only where Galera is on: MariaDB's packages build it in, so a server nobody clustered
+       * reports all of this too, none of it meaning anything.
+       */
+      const isGaleraOn: boolean =
+        facts[OPENSTACK_CONTROL_PLANE_FACTS.GaleraOn] === true;
+      if (
+        isGaleraOn &&
+        facts[OPENSTACK_CONTROL_PLANE_FACTS.ClusterPrimary] === false
+      ) {
         critical({ text: REASON_NOT_PRIMARY });
       }
-      if (facts[OPENSTACK_CONTROL_PLANE_FACTS.Ready] === false) {
+      const isReady: boolean =
+        facts[OPENSTACK_CONTROL_PLANE_FACTS.Ready] !== false;
+      if (isGaleraOn && !isReady) {
         warning({ text: REASON_NOT_READY });
       }
       const state: number | null = numberFact(
         row,
         OPENSTACK_CONTROL_PLANE_FACTS.LocalState,
       );
-      const isDesyncedOnPurpose: boolean =
-        facts[OPENSTACK_CONTROL_PLANE_FACTS.Desynced] === true &&
-        state === OPENSTACK_GALERA_STATE_DONOR_DESYNCED;
+      /*
+       * A node asked to fall out of step, for a backup, is planned work. One not ready has
+       * said so above, once.
+       */
       if (
+        isGaleraOn &&
+        isReady &&
         state !== null &&
-        state !== OPENSTACK_GALERA_STATE_SYNCED &&
-        !isDesyncedOnPurpose
+        state < OPENSTACK_GALERA_STATE_SYNCED &&
+        facts[OPENSTACK_CONTROL_PLANE_FACTS.Desynced] !== true
       ) {
         warning({ text: REASON_OUT_OF_SYNC });
+      }
+      const slowQueries: number | null = numberFact(
+        row,
+        OPENSTACK_CONTROL_PLANE_FACTS.SlowQueries,
+      );
+      if (
+        slowQueries !== null &&
+        slowQueries > OPENSTACK_MARIADB_SLOW_QUERIES_WARNING_PER_MINUTE
+      ) {
+        warning({
+          text: REASON_SLOW_QUERIES,
+          values: { count: `${Math.round(slowQueries)}` },
+        });
       }
       const connections: number | null = percentOf(
         numberFact(row, OPENSTACK_CONTROL_PLANE_FACTS.ThreadsConnected),
@@ -261,6 +319,22 @@ export function assessOpenStackControlPlaneRow(
         warning({
           text: REASON_CONNECTIONS_HIGH,
           values: { percent: formatPercent(connections) },
+        });
+      }
+      break;
+    }
+    case OpenStackDependency.Memcached: {
+      const evictions: number | null = numberFact(
+        row,
+        OPENSTACK_CONTROL_PLANE_FACTS.Evictions,
+      );
+      if (
+        evictions !== null &&
+        evictions > OPENSTACK_MEMCACHED_EVICTIONS_WARNING_PER_MINUTE
+      ) {
+        warning({
+          text: REASON_EVICTIONS,
+          values: { count: `${Math.round(evictions)}` },
         });
       }
       break;
@@ -319,6 +393,104 @@ export function getOpenStackDependencyFindings(data: {
     },
   );
 
+  if (dependency === OpenStackDependency.RabbitMq && rows.every(isUp)) {
+    /*
+     * Every node answers and a link between two is not up, so the cluster has split. A peer
+     * that stopped has no series, so a node that is down never reads as this.
+     */
+    for (const row of rows) {
+      for (const peer of getOpenStackKeyedFacts(
+        row,
+        OPENSTACK_RABBITMQ_LINK_DOWN_FACT_PREFIX,
+      )) {
+        findings.push({
+          severity: ResourceAttentionSeverity.Critical,
+          reason: {
+            text: REASON_PARTITION,
+            values: {
+              node:
+                (factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.Node] as
+                  | string
+                  | undefined) ||
+                row.name ||
+                "",
+              peer,
+            },
+          },
+        });
+      }
+    }
+  }
+
+  if (dependency === OpenStackDependency.MariaDb && answering.length > 0) {
+    /*
+     * Galera says it has fewer nodes than the agent reads. A node cut off from the others says
+     * it is not ready, once, and a cluster with no quorum has been said above.
+     */
+    const sizes: Array<number> = answering
+      .filter((row: OpenStackResource): boolean => {
+        return (
+          factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.GaleraOn] === true &&
+          factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.Ready] !== false
+        );
+      })
+      .map((row: OpenStackResource): number | null => {
+        return numberFact(row, OPENSTACK_CONTROL_PLANE_FACTS.ClusterSize);
+      })
+      .filter((size: number | null): size is number => {
+        return size !== null;
+      });
+    const isEveryoneReady: boolean = answering.every(
+      (row: OpenStackResource): boolean => {
+        return factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.Ready] !== false;
+      },
+    );
+    if (
+      sizes.length > 0 &&
+      isEveryoneReady &&
+      Math.min(...sizes) < rows.length
+    ) {
+      findings.push({
+        severity: ResourceAttentionSeverity.Warning,
+        reason: {
+          text: REASON_CLUSTER_SMALLER,
+          values: {
+            size: `${Math.min(...sizes)}`,
+            count: `${rows.length}`,
+          },
+        },
+      });
+    }
+  }
+
+  if (dependency === OpenStackDependency.Memcached && answering.length > 0) {
+    /*
+     * Nothing connected to any of them, and none asked anything lately. Its connection count
+     * never reads 0, and a client that asks nothing still counts as connected.
+     */
+    const isNobodyUsingIt: boolean = answering.every(
+      (row: OpenStackResource): boolean => {
+        const connections: number | null = numberFact(
+          row,
+          OPENSTACK_CONTROL_PLANE_FACTS.CurrentConnections,
+        );
+        return (
+          connections !== null &&
+          connections < OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS &&
+          (typeof factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.AskedAt] !==
+            "string" ||
+            hasGoneFrom(row, OPENSTACK_CONTROL_PLANE_FACTS.AskedAt))
+        );
+      },
+    );
+    if (isNobodyUsingIt) {
+      findings.push({
+        severity: ResourceAttentionSeverity.Warning,
+        reason: { text: REASON_NOBODY_CONNECTED },
+      });
+    }
+  }
+
   if (dependency === OpenStackDependency.HaProxy && answering.length > 0) {
     const onEvery: (prefix: string) => Array<string> = (
       prefix: string,
@@ -334,6 +506,17 @@ export function getOpenStackDependencyFindings(data: {
         });
       });
     };
+    const onAny: (prefix: string) => Array<string> = (
+      prefix: string,
+    ): Array<string> => {
+      return Array.from(
+        new Set(
+          answering.flatMap((row: OpenStackResource): Array<string> => {
+            return getOpenStackKeyedFacts(row, prefix);
+          }),
+        ),
+      ).sort();
+    };
 
     const backends: Array<string> = onEvery(OPENSTACK_BACKEND_DOWN_FACT_PREFIX);
     for (const backend of backends) {
@@ -343,7 +526,7 @@ export function getOpenStackDependencyFindings(data: {
       });
     }
     // A backend with no server says so once, and not again for each of its servers.
-    for (const server of onEvery(OPENSTACK_SERVER_DOWN_FACT_PREFIX)) {
+    for (const server of onAny(OPENSTACK_SERVER_DOWN_FACT_PREFIX)) {
       if (
         !backends.some((backend: string): boolean => {
           return server.startsWith(`${backend}/`);
@@ -352,6 +535,50 @@ export function getOpenStackDependencyFindings(data: {
         findings.push({
           severity: ResourceAttentionSeverity.Warning,
           reason: { text: REASON_SERVER_DOWN, values: { server } },
+        });
+      }
+    }
+    // The worst any load balancer reads of each, and not of one with no server left.
+    const worst: Map<string, { percent5xx: number; percent4xx: number }> =
+      new Map();
+    for (const row of answering) {
+      for (const [backend, percents] of getOpenStackBackendErrorPercents(row)) {
+        const seen: { percent5xx: number; percent4xx: number } = worst.get(
+          backend,
+        ) || { percent5xx: 0, percent4xx: 0 };
+        worst.set(backend, {
+          percent5xx: Math.max(seen.percent5xx, percents.percent5xx),
+          percent4xx: Math.max(seen.percent4xx, percents.percent4xx),
+        });
+      }
+    }
+    for (const backend of Array.from(worst.keys()).sort()) {
+      const percents: { percent5xx: number; percent4xx: number } =
+        worst.get(backend)!;
+      if (backends.includes(backend)) {
+        continue;
+      }
+      if (
+        percents.percent5xx > OPENSTACK_HAPROXY_ERROR_RESPONSES_WARNING_PERCENT
+      ) {
+        findings.push({
+          severity: ResourceAttentionSeverity.Critical,
+          reason: {
+            text: REASON_BACKEND_5XX,
+            values: { backend, percent: formatPercent(percents.percent5xx) },
+          },
+        });
+      }
+      if (
+        percents.percent4xx >
+        OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT
+      ) {
+        findings.push({
+          severity: ResourceAttentionSeverity.Warning,
+          reason: {
+            text: REASON_BACKEND_4XX,
+            values: { backend, percent: formatPercent(percents.percent4xx) },
+          },
         });
       }
     }

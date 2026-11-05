@@ -39,6 +39,7 @@ import SeriesContextEnricher from "./SeriesContextEnricher";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import MonitorDependencyRule from "../../../Utils/Monitor/MonitorDependencyRule";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -495,10 +496,14 @@ export default class MonitorIncident {
      * purpose — an incident raised before the parent went down must still
      * resolve normally; only new creation is silenced.
      */
-    if (input.dependencySuppression?.isSuppressed) {
+    if (
+      MonitorDependencyRule.isWholeMonitorSuppressed(
+        input.dependencySuppression,
+      )
+    ) {
       const suppressionReason: string =
         MonitorDependencySuppression.buildSuppressionReason(
-          input.dependencySuppression.suppressingParents,
+          input.dependencySuppression!.suppressingParents,
         );
 
       logger.debug(
@@ -611,6 +616,28 @@ export default class MonitorIncident {
               title: "Incident suppressed by scheduled maintenance",
               message:
                 "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              at: OneUptimeDate.getCurrentDate(),
+            });
+            continue;
+          }
+
+          /*
+           * The same, for a parent that speaks for only some of this
+           * monitor's series.
+           */
+          if (
+            MonitorDependencyRule.isSeriesSuppressed({
+              suppression: input.dependencySuppression,
+              labels: seriesLabels,
+            })
+          ) {
+            input.evaluationSummary?.events.push({
+              type: "incident-skipped",
+              title: "Incident suppressed by monitor dependency",
+              message: `Skipped creating an incident for this series because ${MonitorDependencySuppression.buildSuppressionReason(
+                input.dependencySuppression!.suppressingParents,
+              )}. This monitor's status still updates normally; open incidents still auto-resolve.`,
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });

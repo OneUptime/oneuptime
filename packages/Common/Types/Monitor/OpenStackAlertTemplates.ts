@@ -39,6 +39,7 @@ import {
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
+import { getAllOpenStackControlPlaneAlertTemplates } from "./OpenStackControlPlaneAlertTemplates";
 import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -49,6 +50,12 @@ import {
 export type OpenStackAlertTemplateCategory =
   | "Availability"
   | "Control Plane"
+  | "RabbitMQ"
+  | "MariaDB and Galera"
+  | "Memcached"
+  | "HAProxy"
+  | "OVN and Open vSwitch"
+  | "libvirt"
   | "Compute"
   | "Network"
   | "Storage"
@@ -316,7 +323,7 @@ export interface OpenStackFormula {
   legendUnit?: string | undefined;
 }
 
-function buildOpenStackSeriesConfig(args: {
+export function buildOpenStackSeriesConfig(args: {
   cloudIdentifier: string;
   queries: Array<OpenStackQuery>;
   formulas?: Array<OpenStackFormula> | undefined;
@@ -410,7 +417,7 @@ function countGoneSeriesAsRecovered(
   return instance;
 }
 
-interface IncidentWords {
+export interface IncidentWords {
   incidentTitle: string;
   incidentDescription: string;
   criteriaName: string;
@@ -421,7 +428,7 @@ interface TemplateNotification extends IncidentWords {
   args: OpenStackAlertTemplateArgs;
 }
 
-function buildOfflineCriteria(data: {
+export function buildOfflineCriteria(data: {
   notification: TemplateNotification;
   metricAlias: string;
   filterType: FilterType;
@@ -1953,6 +1960,7 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     everySchedulerOrConductorDownTemplate,
     networkAgentDownTemplate,
     blockStorageServiceDownTemplate,
+    ...getAllOpenStackControlPlaneAlertTemplates(),
     vcpuAllocationHighTemplate,
     memoryAllocationHighTemplate,
     localDiskAllocationHighTemplate,

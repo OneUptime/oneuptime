@@ -1,0 +1,4 @@
+ovn_northd_status 0
+ovn_raft_cluster_leader{cluster_uuid="8ab3fdf1-9b60-4cb8-a32c-95993d43069e",database="OVN_Southbound",server_uuid="f0fd125c-5c92-4c07-bb8c-fdb0cddffa37"} 0
+ovn_raft_cluster_server_role{cluster_uuid="8ab3fdf1-9b60-4cb8-a32c-95993d43069e",database="OVN_Southbound",role="follower",server_uuid="f0fd125c-5c92-4c07-bb8c-fdb0cddffa37"} 1
+ovn_raft_cluster_server_status{cluster_uuid="8ab3fdf1-9b60-4cb8-a32c-95993d43069e",database="OVN_Southbound",server_uuid="f0fd125c-5c92-4c07-bb8c-fdb0cddffa37",status="cluster member"} 1

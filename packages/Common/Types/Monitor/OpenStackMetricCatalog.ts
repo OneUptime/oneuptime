@@ -9,12 +9,19 @@ import {
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
+import { OpenStackDependency } from "../OpenStack/OpenStackControlPlane";
 import { OpenStackServiceType } from "../OpenStack/OpenStackResourceKind";
 import { translationKey } from "../Translator";
 
 export type OpenStackMetricCategory =
   | "Availability"
   | "Control Plane"
+  | "RabbitMQ"
+  | "MariaDB and Galera"
+  | "Memcached"
+  | "HAProxy"
+  | "OVN and Open vSwitch"
+  | "libvirt"
   | "Compute"
   | "Network"
   | "Storage"
@@ -30,8 +37,16 @@ export interface OpenStackMetricDefinition {
   category: OpenStackMetricCategory;
   // Up, alive and state series read Min; counts, sizes and info series read Max.
   defaultAggregation: MetricsAggregationType;
-  // The agent's scrape job that collects it, so how often it reports.
-  service: OpenStackServiceType;
+  /*
+   * The agent's scrape job that collects it, so how often it reports. What a cloud stands on
+   * says which of that in `dependency` instead.
+   */
+  service?: OpenStackServiceType | undefined;
+  /*
+   * What the cloud stands on that this is read from, by one of the agent's control plane jobs.
+   * Empty until someone names that job's targets, and collected every 60 seconds.
+   */
+  dependency?: OpenStackDependency | undefined;
   /*
    * The exporter's own labels on this series, as openstack-exporter spells them.
    * Every series also carries the `openstack.cloud.name` resource attribute, and
@@ -132,6 +147,9 @@ const HYPERVISOR_USAGE_LABELS: ReadonlyArray<string> = [
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
   OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
 ];
+
+// What a job names each series with, whichever exporter it is from.
+const DEPENDENCY_LABELS: ReadonlyArray<string> = ["openstack_exporter_host"];
 
 const FROM_INSTANCE_SOURCE: string =
   "Reported only where libvirt's or Ceilometer's exporter is read.";
@@ -1755,6 +1773,297 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "How many instances those series add up, so a total can be told from a total with some of them missing.",
     identityAttributes: HYPERVISOR_USAGE_LABELS,
   }),
+
+  // What the cloud stands on, as each exporter says it. Keep these to what something reads.
+  metric({
+    metricName: "erlang_vm_dist_node_state",
+    friendlyName: translationKey("RabbitMQ Link State"),
+    description:
+      "The state of this node's link to another: 3 is up, 1 is pending, which is what a peer cut off by a partition reads. A peer that stopped has no series at all.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: [...DEPENDENCY_LABELS, "peer"],
+  }),
+  metric({
+    metricName: "rabbitmq_alarms_memory_used_watermark",
+    friendlyName: translationKey("RabbitMQ Memory Alarm"),
+    description:
+      "1 while this node has passed its memory watermark. RabbitMQ stops every publisher in the cluster while it lasts.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "rabbitmq_alarms_free_disk_space_watermark",
+    friendlyName: translationKey("RabbitMQ Disk Alarm"),
+    description:
+      "1 while this node has less free disk than its limit. RabbitMQ stops every publisher in the cluster while it lasts.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "rabbitmq_process_open_fds",
+    friendlyName: translationKey("RabbitMQ Open File Descriptors"),
+    description:
+      "File descriptors this node has open. Each connection holds one.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_process_max_fds",
+    friendlyName: translationKey("RabbitMQ File Descriptor Limit"),
+    description: "How many file descriptors this node may open.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_queue_messages_unacked",
+    friendlyName: translationKey("RabbitMQ Messages Unacknowledged"),
+    description:
+      "Messages this node's queues have delivered and not had acknowledged. A count that only climbs is a consumer that has stopped working without letting go.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_queue_messages",
+    friendlyName: translationKey("RabbitMQ Messages"),
+    description: "Messages in this node's queues, ready or unacknowledged.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_connections",
+    friendlyName: translationKey("RabbitMQ Connections"),
+    description: "Connections this node holds.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_detailed_queue_messages_ready",
+    friendlyName: translationKey("RabbitMQ Queue Messages Ready"),
+    description:
+      "Messages waiting in one queue, from RabbitMQ's detailed endpoint. Reply and fanout queues are left out.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: [...DEPENDENCY_LABELS, "vhost", "queue"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_detailed_queue_consumers",
+    friendlyName: translationKey("RabbitMQ Queue Consumers"),
+    description:
+      "Consumers on one queue, from RabbitMQ's detailed endpoint. Reply and fanout queues are left out.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: [...DEPENDENCY_LABELS, "vhost", "queue"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_up",
+    friendlyName: translationKey("MariaDB Answering"),
+    description:
+      "Whether MariaDB answered its exporter (1) or not (0). The exporter sits beside it, so a stopped MariaDB leaves this reading 0 rather than going away.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_cluster_status",
+    friendlyName: translationKey("Galera Primary Component"),
+    description:
+      "1 while this node is in the Primary component, 0 otherwise. A MariaDB nobody clustered reads 0 too, so read it beside Galera On.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_variables_wsrep_on",
+    friendlyName: translationKey("Galera On"),
+    description:
+      "1 where Galera is on. MariaDB's packages build Galera in, so a server nobody clustered also reports the rest of these series, with this at 0.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_cluster_size",
+    friendlyName: translationKey("Galera Cluster Size"),
+    description: "How many nodes this node says the cluster has.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_ready",
+    friendlyName: translationKey("Galera Node Ready"),
+    description: "1 while this node takes queries, 0 while it refuses them.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_local_state",
+    friendlyName: translationKey("Galera Local State"),
+    description:
+      "Where this node stands, as a code rather than an amount: 4 is Synced, 3 Joined, 2 Donor or Desynced, 1 Joining, and 0 outside the Primary component.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_variables_wsrep_desync",
+    friendlyName: translationKey("Galera Desynced on Purpose"),
+    description:
+      "1 while someone has told this node to fall out of step, usually for a backup. That is planned work, and no alert fires on it.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_threads_connected",
+    friendlyName: translationKey("MariaDB Connections"),
+    description: "Connections this node holds.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_global_variables_max_connections",
+    friendlyName: translationKey("MariaDB Connection Limit"),
+    description: "How many connections this node takes.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_slow_queries_increase",
+    friendlyName: translationKey("MariaDB Slow Queries"),
+    description:
+      "How many queries over long_query_time this node counted since the last collection: how much mysql_global_status_slow_queries grew.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "memcached_up",
+    friendlyName: translationKey("Memcached Answering"),
+    description:
+      "Whether Memcached answered its exporter (1) or not (0). The exporter sits beside it, so a stopped Memcached leaves this reading 0 rather than going away.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "memcached_current_connections",
+    friendlyName: translationKey("Memcached Connections"),
+    description:
+      "Connections this Memcached holds. It never reads 0, because its own listeners and the exporter hold a few.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "memcached_commands_increase",
+    friendlyName: translationKey("Memcached Commands"),
+    description:
+      "How many times this Memcached was asked each thing since the last collection: how much memcached_commands_total grew.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: [...DEPENDENCY_LABELS, "command", "status"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "memcached_items_evicted_increase",
+    friendlyName: translationKey("Memcached Evictions"),
+    description:
+      "How many items this Memcached threw out early to make room since the last collection: how much memcached_items_evicted_total grew.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "haproxy_backend_status",
+    friendlyName: translationKey("HAProxy Backend Status"),
+    description:
+      "One series per state a backend could be in, with 1 on the state it is in. The state label is the word.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy", "state"],
+  }),
+  metric({
+    metricName: "haproxy_server_status",
+    friendlyName: translationKey("HAProxy Server Status"),
+    description:
+      "One series per state a backend's server could be in, with 1 on the state it is in. The state label is the word. Maintenance reads as neither up nor down.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy", "server", "state"],
+  }),
+  metric({
+    metricName: "haproxy_backend_active_servers",
+    friendlyName: translationKey("HAProxy Backend Servers Up"),
+    description:
+      "How many servers each backend has up. A section with no servers reads 0 for ever, so this alone never says a backend is down.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "haproxy_backend_http_responses_increase",
+    friendlyName: translationKey("HAProxy Responses"),
+    description:
+      "How many responses each backend gave since the last collection, by class: 2xx, 3xx, 4xx and 5xx. HAProxy counts them no finer, so a 401 is a 4xx.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy", "code"],
+    unit: "count",
+  }),
 ];
 
 export function getAllOpenStackMetrics(): Array<OpenStackMetricDefinition> {
@@ -1789,6 +2098,10 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
   return [
     "Availability",
     "Control Plane",
+    "RabbitMQ",
+    "MariaDB and Galera",
+    "Memcached",
+    "HAProxy",
     "Compute",
     "Network",
     "Storage",

@@ -118,6 +118,7 @@ import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplate
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import InfrastructureResourceBinding from "../Utils/Monitor/InfrastructureResourceBinding";
+import OpenStackMonitorDependencies from "../Utils/OpenStack/OpenStackMonitorDependencies";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import ProbeMonitorsNotification, {
@@ -2358,6 +2359,17 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
         logger.error(error as Error);
       }
     }
+
+    /*
+     * A monitor made from one of OpenStack's templates waits for what its cloud stands on,
+     * and what stands on it waits for it. Zero queries for any other monitor.
+     */
+    await OpenStackMonitorDependencies.linkMonitor({
+      monitorId: createdItem.id,
+      projectId: createdItem.projectId,
+      monitorType: createdItem.monitorType,
+      monitor: createdItem,
+    });
 
     // Execute operations sequentially with error handling (workspace first)
     Promise.resolve()

@@ -41,6 +41,7 @@ import SeriesResourceLinker, {
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import MonitorDependencyRule from "../../../Utils/Monitor/MonitorDependencyRule";
 import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import DataAlertCause, {
   DataAlertSubject,
@@ -456,10 +457,14 @@ export default class MonitorAlert {
      * purpose — an alert raised before the parent went down must still
      * resolve normally; only new creation is silenced.
      */
-    if (input.dependencySuppression?.isSuppressed) {
+    if (
+      MonitorDependencyRule.isWholeMonitorSuppressed(
+        input.dependencySuppression,
+      )
+    ) {
       const suppressionReason: string =
         MonitorDependencySuppression.buildSuppressionReason(
-          input.dependencySuppression.suppressingParents,
+          input.dependencySuppression!.suppressingParents,
         );
 
       logger.debug(
@@ -563,6 +568,28 @@ export default class MonitorAlert {
               title: "Alert suppressed by scheduled maintenance",
               message:
                 "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              at: OneUptimeDate.getCurrentDate(),
+            });
+            continue;
+          }
+
+          /*
+           * The same, for a parent that speaks for only some of this
+           * monitor's series.
+           */
+          if (
+            MonitorDependencyRule.isSeriesSuppressed({
+              suppression: input.dependencySuppression,
+              labels: seriesMatch?.labels,
+            })
+          ) {
+            input.evaluationSummary?.events.push({
+              type: "alert-skipped",
+              title: "Alert suppressed by monitor dependency",
+              message: `Skipped creating an alert for this series because ${MonitorDependencySuppression.buildSuppressionReason(
+                input.dependencySuppression!.suppressingParents,
+              )}. This monitor's status still updates normally; open alerts still auto-resolve.`,
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });

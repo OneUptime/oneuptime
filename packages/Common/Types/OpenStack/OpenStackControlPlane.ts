@@ -40,6 +40,13 @@ export const OPENSTACK_DEPENDENCY_LABEL: string = "openstack_dependency";
 export const OPENSTACK_EXPORTER_HOST_LABEL: string = "openstack_exporter_host";
 
 /*
+ * What the agent's job for each RabbitMQ queue stamps. Its own word, so no row is kept for it,
+ * and an `up` of 0 from a RabbitMQ too old for that endpoint says no node is down.
+ */
+export const OPENSTACK_RABBITMQ_QUEUE_DEPENDENCY_LABEL_VALUE: string =
+  "rabbitmq-queues";
+
+/*
  * Where a cluster's failure is the whole dependency failing, and where it is one machine's.
  * RabbitMQ with one node of three gone carries on. libvirt or Open vSwitch gone takes only
  * what is on that host, however many other hosts are fine.
@@ -128,7 +135,30 @@ export const OPENSTACK_DEPENDENCY_DEFINITIONS: Readonly<
 export const OPENSTACK_RABBITMQ_FILE_DESCRIPTORS_WARNING_PERCENT: number = 90;
 export const OPENSTACK_RABBITMQ_UNACKNOWLEDGED_MESSAGES_WARNING: number = 1000;
 export const OPENSTACK_MARIADB_CONNECTIONS_WARNING_PERCENT: number = 80;
+export const OPENSTACK_MARIADB_SLOW_QUERIES_WARNING_PER_MINUTE: number = 10;
 export const OPENSTACK_HAPROXY_ERROR_RESPONSES_WARNING_PERCENT: number = 5;
+
+/*
+ * Higher than for 5xx, because OpenStack's clients ask for what is not there as a matter of
+ * course: a 404 is how they find out. HAProxy counts responses by class and no finer, so a 401
+ * is one of these.
+ */
+export const OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT: number = 25;
+
+export const OPENSTACK_MEMCACHED_EVICTIONS_WARNING_PER_MINUTE: number = 100;
+
+/*
+ * Memcached's own listeners and the exporter hold 2 to 8 connections with no client at all
+ * (the exporter opens one a scrape, and lets Go's collector close them), and a real cloud's
+ * services hold dozens: 41 on a DevStack. So this is the line, and never 0.
+ */
+export const OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS: number = 10;
+
+/*
+ * erlang_vm_dist_node_state, for a link between two RabbitMQ nodes: 1 is pending, 2 up pending
+ * and 3 up. A peer that stopped has no series at all.
+ */
+export const OPENSTACK_RABBITMQ_LINK_UP: number = 3;
 
 /*
  * wsrep_local_state: 4 is Synced, and 2 is a node a person took out with wsrep_desync to
@@ -169,6 +199,10 @@ export const OPENSTACK_CONTROL_PLANE_FACTS: {
   MaxConnections: string;
   CurrentConnections: string;
   BridgePorts: string;
+  GaleraOn: string;
+  SlowQueries: string;
+  Evictions: string;
+  AskedAt: string;
 } = {
   Dependency: "dependency",
   Node: "node",
@@ -194,6 +228,13 @@ export const OPENSTACK_CONTROL_PLANE_FACTS: {
   MaxConnections: "maxConnections",
   CurrentConnections: "currentConnections",
   BridgePorts: "bridgePorts",
+  // Whether wsrep_on says Galera is on: without it the rest of Galera's say nothing.
+  GaleraOn: "galeraOn",
+  // How much each grew in the last collection.
+  SlowQueries: "slowQueries",
+  Evictions: "evictions",
+  // When a Memcached was last asked anything: a time, as OPENSTACK_NETWORK_FACTS' are.
+  AskedAt: "askedAt",
 };
 
 /*
@@ -221,6 +262,14 @@ export const OPENSTACK_BACKEND_DOWN_FACT_PREFIX: string = "backendDown/";
 export const OPENSTACK_SERVER_DOWN_FACT_PREFIX: string = "serverDown/";
 export const OPENSTACK_RAFT_MEMBER_FACT_PREFIX: string = "raftMember/";
 export const OPENSTACK_RAFT_LEADER_FACT_PREFIX: string = "raftLeader/";
+export const OPENSTACK_RABBITMQ_LINK_DOWN_FACT_PREFIX: string = "linkDown/";
+
+/*
+ * How many responses a backend gave in a collection, one fact per backend and class, each a
+ * number: `backendResponses/nova_api_back/5xx`.
+ */
+export const OPENSTACK_BACKEND_RESPONSES_FACT_PREFIX: string =
+  "backendResponses/";
 
 // How far behind its row's last reading one of those can be, and still be current.
 export const OPENSTACK_KEYED_FACT_CURRENT_MINUTES: number = 5;
@@ -320,9 +369,58 @@ export function getOpenStackKeyedFacts(
 }
 
 /*
+ * What a backend's responses add up to, by class, as its alert template works them out: only the
+ * classes that say an answer was given, and a share only of something.
+ */
+export function getOpenStackBackendErrorPercents(
+  row: OpenStackControlPlaneRow,
+): Map<string, { percent5xx: number; percent4xx: number }> {
+  const facts: JSONObject = factsOf(row);
+  const byBackend: Map<string, Record<string, number>> = new Map();
+
+  for (const key of Object.keys(facts)) {
+    if (!key.startsWith(OPENSTACK_BACKEND_RESPONSES_FACT_PREFIX)) {
+      continue;
+    }
+    const value: unknown = facts[key];
+    const rest: string = key.substring(
+      OPENSTACK_BACKEND_RESPONSES_FACT_PREFIX.length,
+    );
+    const slash: number = rest.lastIndexOf("/");
+    if (typeof value !== "number" || slash < 1) {
+      continue;
+    }
+    const backend: string = rest.substring(0, slash);
+    const counts: Record<string, number> = byBackend.get(backend) || {};
+    counts[rest.substring(slash + 1)] = value;
+    byBackend.set(backend, counts);
+  }
+
+  const percents: Map<string, { percent5xx: number; percent4xx: number }> =
+    new Map();
+
+  for (const [backend, counts] of byBackend) {
+    const total: number =
+      (counts["2xx"] || 0) +
+      (counts["3xx"] || 0) +
+      (counts["4xx"] || 0) +
+      (counts["5xx"] || 0);
+    if (total > 0) {
+      percents.set(backend, {
+        percent5xx: ((counts["5xx"] || 0) / total) * 100,
+        percent4xx: ((counts["4xx"] || 0) / total) * 100,
+      });
+    }
+  }
+
+  return percents;
+}
+
+/*
  * What is wrong with a dependency as a whole, in one region. A cluster is down when no node
  * of it answers, or for Galera when no node is in the Primary component: every node
- * answering and none of them taking writes is the same outage to whatever needs them.
+ * answering and none of them taking writes is the same outage to whatever needs them. A
+ * MariaDB nobody clustered reports no Primary component either, and says Galera is off.
  */
 export function isOpenStackDependencyDown(data: {
   dependency: OpenStackDependency;
@@ -345,8 +443,10 @@ export function isOpenStackDependencyDown(data: {
       },
     );
     return answering.every((row: OpenStackControlPlaneRow): boolean => {
+      const facts: JSONObject = factsOf(row);
       return (
-        factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.ClusterPrimary] === false
+        facts[OPENSTACK_CONTROL_PLANE_FACTS.ClusterPrimary] === false &&
+        facts[OPENSTACK_CONTROL_PLANE_FACTS.GaleraOn] === true
       );
     });
   }
