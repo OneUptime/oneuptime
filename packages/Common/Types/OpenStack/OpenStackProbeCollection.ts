@@ -99,6 +99,11 @@ export interface OpenStackCollectionOptions {
   collectPorts?: boolean | undefined;
   portNetworkIds?: Array<string> | undefined;
   portProjectIds?: Array<string> | undefined;
+  /*
+   * Swift's storage servers, as host:port, to read their /recon: replication and rings. It isn't in
+   * Keystone's catalog, so only someone who runs the cloud can say where it is. No credential goes to it.
+   */
+  swiftReconAddresses?: Array<string> | undefined;
   // Quotas and limits per project.
   collectProjectLimits?: boolean | undefined;
   /*

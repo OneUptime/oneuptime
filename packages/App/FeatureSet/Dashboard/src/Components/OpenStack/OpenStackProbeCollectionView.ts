@@ -989,5 +989,13 @@ export function readOpenStackOptions(
     options.portProjectIds = portProjectIds;
   }
 
+  const swiftReconAddresses: Array<string> = readOpenStackNames(
+    raw["swiftReconAddresses"],
+  );
+
+  if (swiftReconAddresses.length > 0) {
+    options.swiftReconAddresses = swiftReconAddresses;
+  }
+
   return options;
 }

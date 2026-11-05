@@ -1423,8 +1423,51 @@ export function toSwiftContainer(
   };
 }
 
+/*
+ * What one of Swift's storage servers says of itself through /recon. Each ring's replication says when it last
+ * finished and how many of its last attempts failed. Each ring file's checksum says whether this server has the
+ * same ring as the others.
+ */
+export interface SwiftReconReplication {
+  ring: string;
+  ageSeconds: number | null;
+  failures: number | null;
+}
+
+export interface SwiftReconServerRecord {
+  address: string;
+  isAnswering: boolean;
+  replication: Array<SwiftReconReplication>;
+  ringChecksums: Record<string, string>;
+  unmountedDrives: number | null;
+}
+
+// "/etc/swift/object-1.ring.gz" is "object-1".
+export function toSwiftRingName(file: string): string {
+  const name: string = file.substring(file.lastIndexOf("/") + 1);
+  return name.endsWith(".ring.gz")
+    ? name.substring(0, name.length - ".ring.gz".length)
+    : name;
+}
+
+export function toSwiftReconReplication(data: {
+  ring: string;
+  body: JSONObject;
+  nowInSeconds: number;
+}): SwiftReconReplication {
+  const last: number | null = numeric(data.body["replication_last"]);
+  const stats: JSONObject = object(data.body["replication_stats"]);
+  return {
+    ring: data.ring,
+    ageSeconds:
+      last === null ? null : Math.max(0, Math.round(data.nowInSeconds - last)),
+    failures: numeric(stats["failure"]),
+  };
+}
+
 export interface OpenStackObjectStoreInventory {
   containers?: Array<SwiftContainerRecord> | undefined;
+  reconServers?: Array<SwiftReconServerRecord> | undefined;
 }
 
 // Only how many: OneUptime reads no secret, and a list says only that one exists.

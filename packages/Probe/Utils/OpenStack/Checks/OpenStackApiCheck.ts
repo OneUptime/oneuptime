@@ -118,6 +118,10 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
   },
   // A project's own: which is why this answers where the exporter's list reads as refused.
   [OpenStackServiceType.Database]: { path: "/instances", query: "limit=1" },
+  [OpenStackServiceType.LoadBalancer]: {
+    path: "/v2/lbaas/loadbalancers",
+    query: "limit=1",
+  },
   [OpenStackServiceType.KeyManager]: { path: "/v1/secrets", query: "limit=1" },
   [OpenStackServiceType.ObjectStore]: {
     path: "",
@@ -130,7 +134,6 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
 };
 
 const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
-  "load-balancer": { path: "/v2/lbaas/loadbalancers", query: "limit=1" },
   alarming: { path: "/v2/alarms", query: "limit=1" },
 };
 
