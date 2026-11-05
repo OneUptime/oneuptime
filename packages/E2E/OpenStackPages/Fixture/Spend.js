@@ -212,8 +212,7 @@ export function buildSpendOf(rows, options) {
   const lastMonth = lastMonthDate.toISOString().slice(0, 7);
   const hoursSoFar = Math.max(
     1,
-    (now.getTime() -
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) /
+    (now.getTime() - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) /
       (60 * 60 * 1000),
   );
   const storedPriceList = priceListOf(scenario);

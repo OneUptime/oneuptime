@@ -16,11 +16,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * WHAT THINGS COST, IN THE OPERATOR'S OWN WORDS.
@@ -172,7 +168,10 @@ const OpenStackPriceListModal: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const advanced: FormFieldCollapsibleSection<JSONObject> =
     getAdvancedFormSection<JSONObject>();
-  const priceValidation: (values: FormValues<JSONObject>, key: string) => string | null = (
+  const priceValidation: (
+    values: FormValues<JSONObject>,
+    key: string,
+  ) => string | null = (
     values: FormValues<JSONObject>,
     key: string,
   ): string | null => {

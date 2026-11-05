@@ -178,7 +178,10 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
                           )}
                         </td>
                         <td className={CELL_CLASS_NAME}>
-                          {formatOpenStackUsageNumber(line.quantity, translator)}{" "}
+                          {formatOpenStackUsageNumber(
+                            line.quantity,
+                            translator,
+                          )}{" "}
                           {OPENSTACK_COST_LINE_UNITS[line.kind]}
                         </td>
                         <td className={CELL_CLASS_NAME}>
@@ -238,10 +241,16 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
                       {formatOpenStackUsageNumber(row.vcpuHours, translator)}
                     </td>
                     <td className={WIDE_CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(row.memoryGbHours, translator)}
+                      {formatOpenStackUsageNumber(
+                        row.memoryGbHours,
+                        translator,
+                      )}
                     </td>
                     <td className={WIDE_CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(row.volumeGbHours, translator)}
+                      {formatOpenStackUsageNumber(
+                        row.volumeGbHours,
+                        translator,
+                      )}
                     </td>
                     <td className={CELL_CLASS_NAME}>
                       {money(row.estimatedCost)}

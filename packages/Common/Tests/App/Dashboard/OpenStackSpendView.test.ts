@@ -99,10 +99,18 @@ describe("what a page says about money", () => {
 
   test("a currency that's set is said, and none that isn't", () => {
     expect(
-      formatOpenStackSpendMoney({ amount: 12.345, currency: "EUR", translator }),
+      formatOpenStackSpendMoney({
+        amount: 12.345,
+        currency: "EUR",
+        translator,
+      }),
     ).toContain("12.35");
     expect(
-      formatOpenStackSpendMoney({ amount: 12.345, currency: "EUR", translator }),
+      formatOpenStackSpendMoney({
+        amount: 12.345,
+        currency: "EUR",
+        translator,
+      }),
     ).toContain("€");
 
     const plain: string = formatOpenStackSpendMoney({
@@ -387,7 +395,10 @@ describe("one project's days", () => {
   test("a month's rows aren't days, and nothing reads below nothing", () => {
     expect(getOpenStackDailyVcpuHours([day("2026-11", 40)])).toEqual([]);
     expect(
-      getOpenStackDailyVcpuHours([day("2026-11-01", 10), day("2026-11-02", 5)])[1],
+      getOpenStackDailyVcpuHours([
+        day("2026-11-01", 10),
+        day("2026-11-02", 5),
+      ])[1],
     ).toEqual({ day: "2026-11-02", vcpuHours: 0 });
   });
 });

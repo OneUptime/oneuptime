@@ -24,7 +24,12 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import OpenStackWasteCard from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackWasteCard";
 import OpenStackCloudSpend from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Spend";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import { CLOUD_ID, renderPage, resetServer, server } from "./OpenStackPartHarness";
+import {
+  CLOUD_ID,
+  renderPage,
+  resetServer,
+  server,
+} from "./OpenStackPartHarness";
 
 jest.mock("react-i18next", () => {
   return {
@@ -319,15 +324,16 @@ describe("what could be reclaimed", () => {
     waste: Array<OpenStackWasteFinding> | null,
     currency: string | null = null,
   ): Promise<void> {
-    const Wrapped: React.FunctionComponent<PageComponentProps> =
-      (): React.ReactElement => {
-        return (
-          <OpenStackWasteCard
-            openStackCloudId={new ObjectID(CLOUD_ID)}
-            snapshot={snapshot({ waste, currency })}
-          />
-        );
-      };
+    const Wrapped: React.FunctionComponent<
+      PageComponentProps
+    > = (): React.ReactElement => {
+      return (
+        <OpenStackWasteCard
+          openStackCloudId={new ObjectID(CLOUD_ID)}
+          snapshot={snapshot({ waste, currency })}
+        />
+      );
+    };
 
     resetServer();
     await renderPage(Wrapped, "/recommendations");
@@ -398,7 +404,9 @@ describe("what could be reclaimed", () => {
   });
 
   test("says nothing was found when nothing was", async () => {
-    await renderWaste([finding({ rule: OpenStackWasteRuleId.ShutOffInstance })]);
+    await renderWaste([
+      finding({ rule: OpenStackWasteRuleId.ShutOffInstance }),
+    ]);
 
     expect(
       within(ruleOf(OpenStackWasteRuleId.ShutOffInstance)).getByTestId(

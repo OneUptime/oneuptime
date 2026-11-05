@@ -75,7 +75,11 @@ test.describe("usage with no prices", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=zero");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=zero",
+    );
 
     await expect(
       page.locator(
@@ -92,7 +96,11 @@ test.describe("usage with no prices", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=none");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=none",
+    );
 
     await expect(page.getByTestId("openstack-spend-not-yet")).toContainText(
       "every quarter of an hour",
@@ -106,7 +114,11 @@ test.describe("with prices", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=priced");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=priced",
+    );
 
     const strip = page.getByTestId("openstack-spend-strip");
 
@@ -135,11 +147,15 @@ test.describe("with prices", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=partial");
-
-    await expect(page.getByTestId("openstack-spend-partly-priced")).toContainText(
-      "no price set",
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=partial",
     );
+
+    await expect(
+      page.getByTestId("openstack-spend-partly-priced"),
+    ).toContainText("no price set");
   });
 
   test("hours nobody was reading are said, not guessed at", async ({
@@ -147,7 +163,11 @@ test.describe("with prices", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=gap");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=gap",
+    );
 
     await expect(page.getByTestId("openstack-spend-coverage")).toContainText(
       "42 hours",
@@ -159,7 +179,11 @@ test.describe("with prices", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=priced");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=priced",
+    );
 
     const download = page.waitForEvent("download");
     await page.getByTestId("openstack-spend-export").click();
@@ -177,7 +201,11 @@ test.describe("with prices", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=priced");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=priced",
+    );
     await page
       .getByTestId("openstack-spend-project")
       .first()
@@ -190,9 +218,9 @@ test.describe("with prices", () => {
     await expect(
       page.getByTestId("openstack-project-usage-line").first(),
     ).toBeVisible();
-    await expect(
-      page.getByTestId("openstack-project-usage-month"),
-    ).toHaveCount(1);
+    await expect(page.getByTestId("openstack-project-usage-month")).toHaveCount(
+      1,
+    );
   });
 });
 
@@ -279,7 +307,11 @@ test.describe("budgets", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=priced");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=priced",
+    );
 
     const budgets = page.getByTestId("openstack-budgets");
 
@@ -313,9 +345,9 @@ test.describe("budgets", () => {
       name: "Payments team",
       alertThresholds: "80,100",
     });
-    expect(String((write?.data as Record<string, unknown>)["openStackCloudId"])).toBe(
-      CLOUD_ID,
-    );
+    expect(
+      String((write?.data as Record<string, unknown>)["openStackCloudId"]),
+    ).toBe(CLOUD_ID);
 
     // A budget nobody's checked yet says so, and doesn't call itself within budget.
     await expect(page.getByTestId("openstack-budget-status")).toContainText(
@@ -326,7 +358,9 @@ test.describe("budgets", () => {
 
 test.describe("what could be reclaimed", () => {
   const rule = (page: Page, id: string) => {
-    return page.locator(`[data-testid="openstack-waste-rule"][data-rule="${id}"]`);
+    return page.locator(
+      `[data-testid="openstack-waste-rule"][data-rule="${id}"]`,
+    );
   };
 
   test("finds what's been left on a real cloud, and nothing that's in use", async ({
@@ -350,7 +384,9 @@ test.describe("what could be reclaimed", () => {
     );
     await volumes.getByTestId("openstack-waste-toggle").click();
     await expect(
-      volumes.locator('[data-testid="openstack-waste-item"][data-item="ou-vol-free"]'),
+      volumes.locator(
+        '[data-testid="openstack-waste-item"][data-item="ou-vol-free"]',
+      ),
     ).toBeVisible();
     await expect(volumes).not.toContainText("ou-vol-used");
     await expect(volumes).not.toContainText("ou-vol-bad");
@@ -399,7 +435,11 @@ test.describe("what could be reclaimed", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "recommendations", "recording=hibiscus-ovn/healthy");
+    await openCloudPage(
+      page,
+      "recommendations",
+      "recording=hibiscus-ovn/healthy",
+    );
 
     await expect(rule(page, "unattached-volume")).toHaveAttribute(
       "data-count",
@@ -431,7 +471,11 @@ test.describe("what the page reads, and how it looks", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=priced");
+    await openCloudPage(
+      page,
+      "spend",
+      "recording=hibiscus-ovn/healthy&spend=priced",
+    );
     await expect(
       page.getByTestId("openstack-spend-project").first(),
     ).toBeVisible();
@@ -491,7 +535,11 @@ test.describe("what the page reads, and how it looks", () => {
         width: viewport.width,
         height: viewport.height,
       });
-      await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=priced");
+      await openCloudPage(
+        page,
+        "spend",
+        "recording=hibiscus-ovn/healthy&spend=priced",
+      );
       await expect(page.getByTestId("openstack-spend-strip")).toBeVisible();
 
       const scrolls: boolean = await page.evaluate((): boolean => {

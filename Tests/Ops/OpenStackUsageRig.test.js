@@ -55,11 +55,11 @@ describe("the rig's usage run", () => {
   });
 
   test("runs every waste rule's own command, word for word", () => {
-    const commands = Array.from(RULES.matchAll(/command:\s*"(openstack [^"]+)"/g)).map(
-      (match) => {
-        return match[1];
-      },
-    );
+    const commands = Array.from(
+      RULES.matchAll(/command:\s*"(openstack [^"]+)"/g),
+    ).map((match) => {
+      return match[1];
+    });
 
     expect(commands.length).toBe(6);
 
@@ -86,11 +86,17 @@ describe("the rig's usage run", () => {
     const resize = SCRIPT.indexOf("openstack server resize --flavor");
     const remove = SCRIPT.indexOf("openstack server delete ou-usage-deleted");
 
-    expect(resize).toBeGreaterThan(SCRIPT.indexOf("reading usage-before-resize"));
+    expect(resize).toBeGreaterThan(
+      SCRIPT.indexOf("reading usage-before-resize"),
+    );
     expect(resize).toBeLessThan(SCRIPT.indexOf("reading usage-after-resize"));
-    expect(remove).toBeGreaterThan(SCRIPT.indexOf("reading usage-before-delete"));
+    expect(remove).toBeGreaterThan(
+      SCRIPT.indexOf("reading usage-before-delete"),
+    );
     expect(remove).toBeLessThan(SCRIPT.indexOf("reading usage-after-delete"));
-    expect(SCRIPT).toContain("openstack server resize confirm ou-usage-resized");
+    expect(SCRIPT).toContain(
+      "openstack server resize confirm ou-usage-resized",
+    );
   });
 
   test("is asked for by name, runs on its own, and keeps its recording", () => {

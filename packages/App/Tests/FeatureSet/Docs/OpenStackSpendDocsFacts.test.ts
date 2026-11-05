@@ -56,9 +56,15 @@ describe("what the docs say of a cloud's Spend page", () => {
   );
 
   test("each rule's line says what the rule does", () => {
-    expect(SPEND).toContain(`Unassociated for ${OPENSTACK_WASTE_FLOATING_IP_DAYS} days`);
-    expect(SPEND).toContain(`Shut off for ${OPENSTACK_WASTE_INSTANCE_DAYS} days`);
-    expect(SPEND).toContain(`Available for ${OPENSTACK_WASTE_VOLUME_DAYS} days`);
+    expect(SPEND).toContain(
+      `Unassociated for ${OPENSTACK_WASTE_FLOATING_IP_DAYS} days`,
+    );
+    expect(SPEND).toContain(
+      `Shut off for ${OPENSTACK_WASTE_INSTANCE_DAYS} days`,
+    );
+    expect(SPEND).toContain(
+      `Available for ${OPENSTACK_WASTE_VOLUME_DAYS} days`,
+    );
     expect(SPEND).toContain(`Made ${OPENSTACK_WASTE_SNAPSHOT_DAYS} days ago`);
     expect(SPEND).toContain(`${OPENSTACK_WASTE_IMAGE_DAYS} days old`);
     expect(SPEND).toContain(

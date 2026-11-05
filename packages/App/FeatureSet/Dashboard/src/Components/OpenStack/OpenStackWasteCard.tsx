@@ -59,25 +59,27 @@ export function getOpenStackWasteFreesText(data: {
 
   if (frees.hosts > 0) {
     parts.push(
-      translator.translateTemplate(
-        translationKey("{{count}} hosts"),
-        { count: number(frees.hosts) },
-      ),
+      frees.hosts === 1
+        ? translator.translateText(translationKey("1 host"))
+        : translator.translateTemplate(translationKey("{{count}} hosts"), {
+            count: number(frees.hosts),
+          }),
     );
   }
   if (frees.vcpus > 0) {
     parts.push(
-      translator.translateTemplate(translationKey("{{count}} vCPUs"), {
-        count: number(frees.vcpus),
-      }),
+      frees.vcpus === 1
+        ? translator.translateText(translationKey("1 vCPU"))
+        : translator.translateTemplate(translationKey("{{count}} vCPUs"), {
+            count: number(frees.vcpus),
+          }),
     );
   }
   if (frees.memoryGb > 0) {
     parts.push(
-      translator.translateTemplate(
-        translationKey("{{count}} GB of memory"),
-        { count: number(frees.memoryGb) },
-      ),
+      translator.translateTemplate(translationKey("{{count}} GB of memory"), {
+        count: number(frees.memoryGb),
+      }),
     );
   }
   if (frees.diskGb > 0) {
@@ -90,18 +92,19 @@ export function getOpenStackWasteFreesText(data: {
   }
   if (frees.storageGb > 0) {
     parts.push(
-      translator.translateTemplate(
-        translationKey("{{count}} GB of storage"),
-        { count: number(frees.storageGb) },
-      ),
+      translator.translateTemplate(translationKey("{{count}} GB of storage"), {
+        count: number(frees.storageGb),
+      }),
     );
   }
   if (frees.floatingIps > 0) {
     parts.push(
-      translator.translateTemplate(
-        translationKey("{{count}} floating IPs"),
-        { count: number(frees.floatingIps) },
-      ),
+      frees.floatingIps === 1
+        ? translator.translateText(translationKey("1 floating IP"))
+        : translator.translateTemplate(
+            translationKey("{{count}} floating IPs"),
+            { count: number(frees.floatingIps) },
+          ),
     );
   }
 
