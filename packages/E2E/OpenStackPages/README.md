@@ -27,7 +27,7 @@ tell them apart:
   release's agent names, Nova's short and full host names, a floating IP's labels. A drill
   reads on top of its cloud's healthy recording, as the rows OneUptime holds would: a
   stopped API's scrape says nothing of its workers, whose rows stay as they last were.
-- **Made up:** `?estate=busy|calm|new|multi-region|overflow|ovn-stale|tenants|parts`
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
