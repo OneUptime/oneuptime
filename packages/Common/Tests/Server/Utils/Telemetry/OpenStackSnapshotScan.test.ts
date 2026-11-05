@@ -1,6 +1,7 @@
 import {
   OpenStackResourceBufferEntry,
   OPENSTACK_API_UP_METRIC_NAMES,
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SNAPSHOT_METRIC_NAMES,
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
@@ -130,6 +131,84 @@ describe("isOpenStackSnapshotDatapoint", () => {
       }),
     ).toBe(false);
   });
+});
+
+/*
+ * The agent asks for every service the exporter can read, on every cloud. Recorded on a
+ * DevStack with none of these: each answered 200 with nothing, so `up` reads 1 with no
+ * series beside it, and when the exporter is down it reads 0 for all of them.
+ *
+ * Adding one of these to OpenStackServiceType must not change this, or every cloud gets a
+ * row for a service it does not run, on Services and Topology, and a red one whenever the
+ * exporter restarts. A row for one comes from the series the exporter says about it.
+ */
+describe("a scrape of a service this cloud may not run", () => {
+  const SERVICES_A_CLOUD_MAY_NOT_RUN: Array<string> = [
+    "load-balancer",
+    "baremetal",
+    "orchestration",
+    "container-infra",
+    "sharev2",
+    "dns",
+    "object-store",
+    "database",
+    "gnocchi",
+  ];
+
+  test.each(SERVICES_A_CLOUD_MAY_NOT_RUN)(
+    "%s: an empty scrape, and an exporter that is down, leave no trace",
+    (service: string) => {
+      for (const [metricName, value] of [
+        ["up", 1],
+        ["up", 0],
+        ["scrape_duration_seconds", 0.013],
+      ] as Array<[string, number]>) {
+        expect(
+          isOpenStackSnapshotDatapoint({
+            metricName,
+            datapoint: datapoint({
+              value,
+              labels: { openstack_service: service },
+            }),
+          }),
+        ).toBe(false);
+      }
+    },
+  );
+
+  test("the services every cloud runs keep their rows, so a failed scrape still reads down", () => {
+    for (const service of OPENSTACK_SERVICES_EVERY_CLOUD_RUNS) {
+      for (const metricName of ["up", "scrape_duration_seconds"]) {
+        expect(
+          isOpenStackSnapshotDatapoint({
+            metricName,
+            datapoint: datapoint({
+              value: 0,
+              labels: { openstack_service: service },
+            }),
+          }),
+        ).toBe(true);
+      }
+    }
+    expect(Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS).sort()).toEqual(
+      ["compute", "identity", "image", "network", "placement", "volume"].sort(),
+    );
+  });
+
+  test.each(["libvirt", "ceilometer"])(
+    "%s, which reads compute nodes, is no API to list either",
+    (service: string) => {
+      expect(
+        isOpenStackSnapshotDatapoint({
+          metricName: "up",
+          datapoint: datapoint({
+            value: 1,
+            labels: { openstack_service: service },
+          }),
+        }),
+      ).toBe(false);
+    },
+  );
 });
 
 describe("an API's state", () => {
