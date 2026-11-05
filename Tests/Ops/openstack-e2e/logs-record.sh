@@ -110,7 +110,8 @@ delete_on_all() {
 wait_until_answers() {
   local attempt
   for attempt in $(seq 1 60); do
-    if openstack compute service list -f value -c State 2>/dev/null | grep -q '^up$'; then
+    # With its own limit: a service that hangs rather than refuses would otherwise hold this for good.
+    if timeout 60 openstack compute service list -f value -c State 2>/dev/null | grep -q '^up$'; then
       return 0
     fi
     sleep 5
@@ -129,6 +130,7 @@ restart_services() {
   # The service list reads up from before the restart, while nova-compute is still starting,
   # and an instance scheduled to it now fails on its own account.
   sleep 45
+  check_the_cloud_answers
 }
 
 # ----------------------------------------------------------------------------
@@ -665,8 +667,69 @@ stop_files_profile() {
 }
 
 # ----------------------------------------------------------------------------
+# The cloud this starts from
+# ----------------------------------------------------------------------------
+# A step that runs out of time is killed with no time to put anything back. The traces step that
+# ran out of it on Hibiscus left OSProfiler on, with a driver Neutron hung on and nothing listening
+# for it, and every scene after it waited five minutes for a 500 from Neutron, until the job's own
+# limit took the upload too. So this takes that off, whoever left it, and looks at what a scene
+# needs before it starts a scene.
+take_off_what_a_step_left() {
+  local key found=""
+  for key in enabled hmac_keys connection_string trace_sqlalchemy trace_requests; do
+    if sudo grep -qs "^$key[[:space:]]*=" /etc/nova/nova.conf /etc/neutron/neutron.conf; then
+      found=yes
+    fi
+    delete_on_all profiler "$key"
+  done
+  if [ -n "$found" ]; then
+    log "OSProfiler was left on by a step that did not finish"
+    restart_services
+  fi
+}
+
+# Whether the scenes that make instances, volumes and networks can run. What cannot is said once,
+# with what the service said for itself, and costs a few seconds rather than five minutes a scene.
+CAN_BUILD=yes
+check_the_cloud_answers() {
+  local attempt
+  CAN_BUILD=yes
+  for attempt in $(seq 1 12); do
+    if timeout 30 openstack network show ou-net -f value -c id >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 10
+    : "$attempt"
+  done
+  CAN_BUILD=""
+  echo "Neutron does not answer, so the scenes that need it are left out until a restart brings it back." >&2
+  {
+    date -u
+    sudo systemctl --no-pager --failed 'devstack@*' || true
+    sudo journalctl --no-pager --all -n 200 -u 'devstack@neutron-api*' -u 'devstack@q-svc*' || true
+  } >>"$LOGS_DIR/neutron-did-not-answer.txt" 2>&1
+  tail -20 "$LOGS_DIR/neutron-did-not-answer.txt" >&2 || true
+}
+
+needs_the_cloud() {
+  if [ -z "$CAN_BUILD" ]; then
+    printf '{"scene":"%s","startedAt":"","endedAt":"","exitCode":"left out"}\n' "$1" >>"$PHASE_DIR/scenes.jsonl"
+    return 1
+  fi
+}
+
+# A scene that makes instances, volumes or networks.
+building_scene() {
+  if needs_the_cloud "$1"; then
+    scene "$@"
+  fi
+}
+
+# ----------------------------------------------------------------------------
 # The phases
 # ----------------------------------------------------------------------------
+take_off_what_a_step_left
+
 openstack flavor show ou.tiny2 >/dev/null 2>&1 \
   || openstack flavor create --vcpus 1 --ram 192 --disk 1 ou.tiny2 >/dev/null
 # The estate leaves this project at its quota on purpose, and these scenes add to it. Memory and
@@ -724,16 +787,16 @@ scene failed-logins scene_failed_logins
 scene identity scene_identity
 scene identity-records scene_identity_records
 scene refused scene_refused
-scene instance-lifecycle scene_instance_lifecycle
-scene failed-build-scheduler scene_failed_build_scheduler
-scene failed-build-compute scene_failed_build_compute
-scene failed-rebuild scene_failed_rebuild
-scene migrate scene_migrate
+building_scene instance-lifecycle scene_instance_lifecycle
+building_scene failed-build-scheduler scene_failed_build_scheduler
+building_scene failed-build-compute scene_failed_build_compute
+building_scene failed-rebuild scene_failed_rebuild
+building_scene migrate scene_migrate
 scene service-disabled scene_service_disabled
-scene failed-volume scene_failed_volume
-scene volume-attach scene_volume_attach
-scene network scene_network
-scene security-group scene_security_group
+building_scene failed-volume scene_failed_volume
+building_scene volume-attach scene_volume_attach
+building_scene network scene_network
+building_scene security-group scene_security_group
 scene public-image scene_public_image
 scene health-checks scene_health_checks
 scene conductor-down scene_conductor_down
@@ -776,11 +839,11 @@ scene failed-logins scene_failed_logins
 # Who did it, in the format that names a user by ID and not by name.
 scene identity scene_identity
 scene refused scene_refused
-scene security-group scene_security_group
+building_scene security-group scene_security_group
 scene public-image scene_public_image
-scene instance-lifecycle scene_instance_lifecycle
-scene failed-build-scheduler scene_failed_build_scheduler
-scene failed-build-compute scene_failed_build_compute
+building_scene instance-lifecycle scene_instance_lifecycle
+building_scene failed-build-scheduler scene_failed_build_scheduler
+building_scene failed-build-compute scene_failed_build_compute
 scene cleanup scene_cleanup
 stop_files_profile || true
 end_phase
@@ -797,9 +860,9 @@ set_on_all DEFAULT use_json True
 restart_services
 start_journald_profile || echo "The journald profile did not start" >&2
 scene failed-logins scene_failed_logins
-scene instance-lifecycle scene_instance_lifecycle
-scene failed-build-scheduler scene_failed_build_scheduler
-scene failed-build-compute scene_failed_build_compute
+building_scene instance-lifecycle scene_instance_lifecycle
+building_scene failed-build-scheduler scene_failed_build_scheduler
+building_scene failed-build-compute scene_failed_build_compute
 scene cleanup scene_cleanup
 stop_journald_profile || true
 end_phase
@@ -814,9 +877,9 @@ if sudo apt-get install -y libsystemd-dev pkg-config >/dev/null 2>&1 \
   restart_services
   start_journald_profile || echo "The journald profile did not start" >&2
   scene failed-logins scene_failed_logins
-  scene instance-lifecycle scene_instance_lifecycle
-  scene failed-build-scheduler scene_failed_build_scheduler
-  scene failed-build-compute scene_failed_build_compute
+  building_scene instance-lifecycle scene_instance_lifecycle
+  building_scene failed-build-scheduler scene_failed_build_scheduler
+  building_scene failed-build-compute scene_failed_build_compute
   scene cleanup scene_cleanup
   stop_journald_profile || true
   delete_on_all DEFAULT use_journal

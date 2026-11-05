@@ -358,6 +358,8 @@ describe("the journal profile, which reads OpenStack-Ansible's and DevStack's", 
     expect(receiver.units).toBe("${env:OPENSTACK_LOGS_UNITS}");
     // DevStack's colours make journalctl write a line as a list of bytes.
     expect(receiver.convert_message_bytes).toBe(true);
+    // Without it, a line over 4096 bytes arrives empty.
+    expect(receiver.all).toBe(true);
     // OpenStack-Ansible passes its containers' journals through.
     expect(receiver.merge).toBe(true);
     expect(receiver.storage).toBe("file_storage");

@@ -920,6 +920,27 @@ describe("an instance's page", () => {
     ).toHaveTextContent("10.0.0.5, fd00::5");
   });
 
+  test("an address a probe found none of reads None, and not as something nobody collected", async () => {
+    server.rows = [
+      instanceRow({
+        facts: {
+          updatedAt: "2026-11-04T11:00:00Z",
+          addressIpv4: null,
+          addressIpv6: null,
+        },
+      }),
+    ];
+
+    await renderPage(OpenStackCloudInstanceDetail, PATH);
+
+    const addresses: HTMLElement = await screen.findByTestId(
+      "openstack-instance-details-addresses",
+    );
+
+    expect(addresses).toHaveTextContent("None");
+    expect(addresses).not.toHaveTextContent("Not collected");
+  });
+
   test("one that failed before it was placed says that, and has no hypervisor to link to", async () => {
     server.rows = [
       instanceRow({

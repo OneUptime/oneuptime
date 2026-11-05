@@ -27,8 +27,9 @@ receivers:
     # journalctl writes a line holding a control character as a list of bytes.
     # DevStack colours its lines, so without this every one would arrive as numbers.
     convert_message_bytes: true
-    # And a field over 4096 bytes as null, without this: a stack trace, and most of Nova's
-    # notifications. The rig recorded them going.
+    # Without this journalctl writes a line over 4096 bytes as null, so it arrives empty.
+    # Real clouds' notifications are that long: Cinder's volume.attach.end, Neutron's
+    # security_group.delete.end, and with use_json on, nearly every one of them.
     all: true
     operators:
       # systemd's own lines about a service come from PID 1, and name the service in UNIT.
