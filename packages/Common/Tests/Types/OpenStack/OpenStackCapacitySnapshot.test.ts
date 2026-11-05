@@ -1373,7 +1373,11 @@ describe("bare metal, by resource class", () => {
     const snapshot: OpenStackCapacitySnapshot = buildOpenStackCapacitySnapshot({
       hosts: [],
       bareMetalProviders: [
-        nodeOf("elsewhere", { reserved: 0, used: 0 }, { regionName: "RegionTwo" }),
+        nodeOf(
+          "elsewhere",
+          { reserved: 0, used: 0 },
+          { regionName: "RegionTwo" },
+        ),
       ],
       flavors: [classFlavor(ASKS_FOR_GOLD)],
       pools: [],
