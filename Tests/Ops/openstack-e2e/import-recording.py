@@ -8,8 +8,12 @@ keeps what is read, and gives the runner one stable name:
     gh run download <run id> --pattern 'openstack-recording-*' --dir /tmp/recordings
     python3 -I import-recording.py /tmp/recordings packages/Common/Tests/Fixtures/OpenStack
 
+With --only-instance-metrics it refreshes only each release's instance-metrics and
+instance-metrics-drill folders, which a run that recorded only one of them leaves the other of.
+
 Standard library only, and it reads a recording as data: nothing in one is run.
 """
+import gzip
 import json
 import os
 import re
@@ -180,28 +184,155 @@ def import_api(folder, scene, release_target, short, full):
             handle.write("\n".join(lines) + "\n")
 
 
-# Real VM metrics: enough scrapes in a row to cross two of Ceilometer's polling cycles from
-# the releases read at depth, and two from the others, which only show whether a name or a
-# label moved between releases. Its servers.json is what joins a domain to its hypervisor.
-INSTANCE_METRIC_SCRAPES_DEEP = 6
-INSTANCE_METRIC_SCRAPES_OTHER = 2
+# Real VM metrics: every scrape from the releases read at depth, and enough from the others to
+# cross three of Ceilometer's polling cycles, which is what a rate needs to be read on its own.
+# Its servers.json is what joins a domain to its hypervisor.
+INSTANCE_METRIC_SCRAPES_DEEP = 12
+INSTANCE_METRIC_SCRAPES_OTHER = 8
+
+# Only what the product reads of each exporter, which is under half of what it says, and the
+# two series that say why it reads no others: the balloon's size, which reads as a flavor's
+# memory on an idle instance, and a domain's state, which is what a CPU time of 0 means.
+INSTANCE_METRIC_SERIES = re.compile(
+    r"^(?:libvirt_domain_openstack_info"
+    r"|libvirt_domain_info_(?:cpu_time_seconds_total|virtual_cpus|memory_usage_bytes|maximum_memory_bytes|state)"
+    r"|libvirt_domain_memory_stats_(?:available|usable|unused|rss)_bytes"
+    r"|libvirt_domain_block_stats_(?:read|write)_(?:bytes|requests|time_seconds)_total"
+    r"|libvirt_domain_interface_stats_(?:receive|transmit)_bytes_total"
+    r"|libvirt_domain_vcpu_delay_seconds_total"
+    r"|libvirt_up"
+    r"|ceilometer_(?:cpu|cpu_delay|vcpus|memory_usage|memory_resident)"
+    r"|ceilometer_disk_device_(?:read|write)_(?:bytes|requests|latency)"
+    r"|ceilometer_network_(?:incoming|outgoing)_bytes"
+    r")(?:\{| )"
+)
+
+
+def copy_instance_metric_scrape(source, target, short, full):
+    with open(source, errors="replace") as handle:
+        lines = [line for line in handle if INSTANCE_METRIC_SERIES.match(line)]
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target, "w") as handle:
+        handle.write(rename("".join(lines), short, full))
 
 
 def import_instance_metrics(folder, release, release_target, short, full):
     source = os.path.join(folder, "instance-metrics")
     if not os.path.isdir(source):
         return
+    target = os.path.join(release_target, "instance-metrics")
+    shutil.rmtree(target, ignore_errors=True)
     keep = INSTANCE_METRIC_SCRAPES_DEEP if release in DEEP_RELEASES else INSTANCE_METRIC_SCRAPES_OTHER
     scrapes = sorted(name for name in os.listdir(source) if name.startswith("scrape-"))
     for scrape in scrapes[:keep]:
-        for name in ("at.txt", "libvirt.prom", "ceilometer.prom"):
+        for name in ("libvirt.prom", "ceilometer.prom"):
             path = os.path.join(source, scrape, name)
             if os.path.isfile(path):
-                copy_text(path, os.path.join(release_target, "instance-metrics", scrape, name), short, full)
-    for name in ("servers.json", "hypervisors.json", "status.txt"):
+                copy_instance_metric_scrape(path, os.path.join(target, scrape, name), short, full)
+        path = os.path.join(source, scrape, "at.txt")
+        if os.path.isfile(path):
+            copy_text(path, os.path.join(target, scrape, "at.txt"), short, full)
+    for name in ("servers.json", "hypervisors.json"):
         path = os.path.join(source, name)
         if os.path.isfile(path):
-            copy_text(path, os.path.join(release_target, "instance-metrics", name), short, full)
+            copy_text(path, os.path.join(target, name), short, full)
+    status = os.path.join(source, "status.txt")
+    if os.path.isfile(status):
+        chosen = set(scrapes[:keep])
+        with open(status, errors="replace") as handle:
+            lines = [line for line in handle if line.split(" ")[0] in chosen]
+        with open(os.path.join(target, "status.txt"), "w") as handle:
+            handle.write("".join(lines))
+
+
+# The long drill: what the agent's collector really sent, as OneUptime would have received it,
+# for as long as an alert template's window takes to fill and to empty. Only the series the
+# product reads, and only the labels it reads of Ceilometer's, whose others are most of the
+# bytes and say the same thing on every point. Compressed, because it is a lot of the same.
+DRILL_SERIES = re.compile(
+    r"^(?:libvirt_domain_openstack_info"
+    r"|libvirt_domain_info_(?:cpu_time_seconds_total|virtual_cpus)"
+    r"|libvirt_domain_memory_stats_(?:available|usable|unused|rss)_bytes"
+    r"|libvirt_domain_block_stats_(?:read|write)_(?:bytes|requests|time_seconds)_total"
+    r"|libvirt_domain_interface_stats_(?:receive|transmit)_bytes_total"
+    r"|libvirt_domain_vcpu_delay_seconds_total"
+    r"|ceilometer_(?:cpu|cpu_delay|vcpus|memory_usage|memory_resident)"
+    r"|ceilometer_disk_device_(?:read|write)_(?:bytes|requests|latency)"
+    r"|ceilometer_network_(?:incoming|outgoing)_bytes"
+    # What every alert template's window reads beside what it compares.
+    r"|openstack_nova_up"
+    r")$"
+)
+DRILL_CEILOMETER_LABELS = {"resource", "resource_name", "project", "unit", "openstack_exporter_host", "openstack_service"}
+
+
+def drill_metric(metric):
+    """A metric as the drill keeps it, or nothing when it is none of the drill's."""
+    if not DRILL_SERIES.match(metric.get("name", "")):
+        return None
+    kept = {key: value for key, value in metric.items() if key not in ("description", "metadata")}
+    if metric["name"].startswith("ceilometer_"):
+        for holder in ("gauge", "sum"):
+            for point in (metric.get(holder) or {}).get("dataPoints", []):
+                point["attributes"] = [
+                    attribute
+                    for attribute in point.get("attributes", [])
+                    if attribute.get("key") in DRILL_CEILOMETER_LABELS
+                ]
+    return kept
+
+
+def import_instance_metrics_drill(folder, release_target, short, full):
+    source = os.path.join(folder, "instance-metrics-drill")
+    path = os.path.join(folder, "otlp", "metrics.json")
+    timeline = os.path.join(source, "timeline.txt")
+    if not os.path.isfile(timeline) or not os.path.isfile(path):
+        return
+    target = os.path.join(release_target, "instance-metrics-drill")
+    shutil.rmtree(target, ignore_errors=True)
+    os.makedirs(target)
+    copy_text(timeline, os.path.join(target, "timeline.txt"), short, full)
+    for name in ("servers.json", "hypervisors.json"):
+        if os.path.isfile(os.path.join(source, name)):
+            copy_text(os.path.join(source, name), os.path.join(target, name), short, full)
+    with open(path, errors="replace") as handle, gzip.open(
+        os.path.join(target, "otlp.jsonl.gz"), "wt", compresslevel=9
+    ) as out:
+        for line in handle:
+            try:
+                export = json.loads(line)
+            except ValueError:
+                continue
+            for resource_metrics in export.get("resourceMetrics", []):
+                metrics = [
+                    kept
+                    for scope in resource_metrics.get("scopeMetrics", [])
+                    for kept in (drill_metric(metric) for metric in scope.get("metrics", []))
+                    if kept
+                ]
+                if metrics:
+                    envelope = {
+                        "resource": resource_metrics.get("resource", {}),
+                        "scopeMetrics": [{"metrics": metrics}],
+                    }
+                    out.write(rename(json.dumps(envelope, separators=(",", ":")), short, full) + "\n")
+
+
+def runner_names_of_instance_metrics(folder):
+    """The same two names, from a recording whose scenes didn't have them to say."""
+    for name in ("instance-metrics", "instance-metrics-drill"):
+        path = os.path.join(folder, name, "servers.json")
+        if os.path.isfile(path):
+            break
+    else:
+        return None, None
+    with open(path, errors="replace") as handle:
+        try:
+            hosts = [server.get("Host") for server in json.load(handle)]
+        except ValueError:
+            return None, None
+    full = next((host for host in hosts if host), None)
+    return (full.split(".")[0], full) if full else (None, None)
 
 
 def import_otlp(folder, release_target, short, full):
@@ -235,12 +366,20 @@ def import_otlp(folder, release_target, short, full):
 
 
 def main():
-    recordings, fixtures = sys.argv[1], sys.argv[2]
+    # Only real VM metrics, leaving everything else a release holds as it is.
+    only_instance_metrics = "--only-instance-metrics" in sys.argv
+    arguments = [argument for argument in sys.argv[1:] if not argument.startswith("--")]
+    recordings, fixtures = arguments[0], arguments[1]
     for entry in sorted(os.listdir(recordings)):
         if not entry.startswith("openstack-recording-"):
             continue
         release = entry[len("openstack-recording-"):]
         folder = os.path.join(recordings, entry)
+        if only_instance_metrics:
+            short, full = runner_names_of_instance_metrics(folder)
+            import_instance_metrics(folder, release, os.path.join(fixtures, release), short, full)
+            import_instance_metrics_drill(folder, os.path.join(fixtures, release), short, full)
+            continue
         short, full = runner_names(folder)
         if not short:
             print(f"{release}: no scene with Nova's services in it, so leaving it out", file=sys.stderr)
@@ -257,6 +396,7 @@ def main():
         if release in DEEP_RELEASES:
             import_otlp(folder, target, short, full)
         import_instance_metrics(folder, release, target, short, full)
+        import_instance_metrics_drill(folder, target, short, full)
         access = os.path.join(folder, "access")
         for name in ("matrix-default-policy.json", "matrix.json", "matrix-access-rules.json"):
             path = os.path.join(access, name)

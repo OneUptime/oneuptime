@@ -21,10 +21,14 @@ import {
   OpenStackUsageGap,
   getOpenStackCounterRate,
   getOpenStackHostThroughput,
+  OPENSTACK_USAGE_GAP_TEXT,
   getOpenStackHypervisorLoad,
   getOpenStackHypervisorPhysicalCapacity,
   getOpenStackInstanceUsageGap,
+  getOpenStackVcpusOfReading,
   isOpenStackInstanceContended,
+  isOpenStackInstanceDiskSlow,
+  isOpenStackUsageChartable,
   isOpenStackInstanceCpuSaturated,
   isOpenStackPhysicalNetworkDevice,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackUsage";
@@ -95,8 +99,87 @@ describe("what a page says when it has no usage to show", () => {
     ).toBe("not-kept-selected");
   });
 
-  test("a host that reports and a cloud that keeps everything is a new instance, or one with no source on its host", () => {
-    expect(gapOf({ hypervisorHasSource: true })).toBe("no-source");
+  test("a host that reports and a cloud that keeps it is an instance with no reading yet", () => {
+    expect(gapOf({ hypervisorHasSource: true })).toBe("no-reading-yet");
+    expect(
+      gapOf({
+        hypervisorHasSource: true,
+        options: options(OpenStackInstanceMetricsMode.All),
+        instanceCount: 100000,
+      }),
+    ).toBe("no-reading-yet");
+  });
+
+  test("and so is one in a project someone chose", () => {
+    expect(
+      gapOf({
+        hypervisorHasSource: true,
+        row: row({ status: "ACTIVE", openStackProjectId: "chosen" }),
+        options: {
+          mode: OpenStackInstanceMetricsMode.Selected,
+          projectIds: ["chosen"],
+          aggregates: [],
+        },
+      }),
+    ).toBe("no-reading-yet");
+  });
+
+  test.each([
+    [null, true],
+    ["not-running", true],
+    ["no-reading-yet", true],
+    ["no-source", false],
+    ["not-kept-past-size", false],
+    ["not-kept-off", false],
+    ["not-kept-selected", false],
+  ] as Array<[OpenStackUsageGap, boolean]>)(
+    "charts for %s: %s, rather than empty frames under a sentence saying why",
+    (gap: OpenStackUsageGap, isChartable: boolean) => {
+      expect(isOpenStackUsageChartable(gap)).toBe(isChartable);
+    },
+  );
+
+  test("every gap has something to say", () => {
+    for (const gap of [
+      "no-source",
+      "not-kept-past-size",
+      "not-kept-off",
+      "not-kept-selected",
+      "not-running",
+      "no-reading-yet",
+    ] as Array<Exclude<OpenStackUsageGap, null>>) {
+      expect(OPENSTACK_USAGE_GAP_TEXT[gap].length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe("how many vCPUs a busy instance was given", () => {
+  test.each([
+    [{ cpuCores: 3.8, cpuPercent: 63.3 }, 6],
+    [{ cpuCores: 1.002, cpuPercent: 100.2 }, 1],
+    [{ cpuCores: 0.003, cpuPercent: 0.3 }, 1],
+    [{ cpuCores: null, cpuPercent: 50 }, null],
+    [{ cpuCores: 1, cpuPercent: null }, null],
+    // Nothing to work it out from.
+    [{ cpuCores: 0, cpuPercent: 0 }, null],
+  ] as Array<
+    [{ cpuCores: number | null; cpuPercent: number | null }, number | null]
+  >)(
+    "%j: %s",
+    (
+      reading: { cpuCores: number | null; cpuPercent: number | null },
+      vcpus: number | null,
+    ) => {
+      expect(getOpenStackVcpusOfReading(reading)).toBe(vcpus);
+    },
+  );
+});
+
+describe("a slow disk", () => {
+  test("is past the template's own line, and not on it", () => {
+    expect(isOpenStackInstanceDiskSlow(50)).toBe(false);
+    expect(isOpenStackInstanceDiskSlow(50.1)).toBe(true);
+    expect(isOpenStackInstanceDiskSlow(null)).toBe(false);
   });
 });
 
@@ -139,6 +222,56 @@ describe("a hypervisor's real load", () => {
         physicalMemoryBytes: 100,
       }).isMemoryPressured,
     ).toBe(true);
+  });
+
+  describe("where OneUptime's agent runs on it", () => {
+    const quiet: Parameters<typeof getOpenStackHypervisorLoad>[0] = {
+      cpuCores: 1,
+      memoryResidentBytes: 100,
+      physicalCores: 4,
+      physicalMemoryBytes: 1000,
+    };
+
+    test("the machine's own reading can put it over the line while its instances are under it", () => {
+      const load: OpenStackHypervisorLoad = getOpenStackHypervisorLoad({
+        ...quiet,
+        hostCpuPercent: 97,
+        hostMemoryPercent: 95,
+      });
+      expect(load.isCpuSaturated).toBe(true);
+      expect(load.isCpuSaturatedByHost).toBe(true);
+      expect(load.isMemoryPressured).toBe(true);
+      expect(load.isMemoryPressuredByHost).toBe(true);
+      // What its instances come to is still what it was.
+      expect(load.cpuPercent).toBe(25);
+    });
+
+    test("under the line on both, it is under the line", () => {
+      const load: OpenStackHypervisorLoad = getOpenStackHypervisorLoad({
+        ...quiet,
+        hostCpuPercent: 40,
+        hostMemoryPercent: 40,
+      });
+      expect(load.isCpuSaturated).toBe(false);
+      expect(load.isMemoryPressured).toBe(false);
+    });
+
+    test("over the line on its instances' own numbers, that is why", () => {
+      const load: OpenStackHypervisorLoad = getOpenStackHypervisorLoad({
+        ...quiet,
+        cpuCores: 3.9,
+        hostCpuPercent: 99,
+      });
+      expect(load.isCpuSaturated).toBe(true);
+      expect(load.isCpuSaturatedByHost).toBe(false);
+    });
+
+    test("an agent that doesn't say changes nothing", () => {
+      expect(
+        getOpenStackHypervisorLoad({ ...quiet, hostCpuPercent: null })
+          .isCpuSaturated,
+      ).toBe(false);
+    });
   });
 
   test("with nothing to measure against, says nothing", () => {

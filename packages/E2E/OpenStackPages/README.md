@@ -32,7 +32,7 @@ tell them apart:
   `?recording=hibiscus-ovn/access/reader` is what the exporter answered one credential on a healthy
   cloud, for each level of access the docs describe: `reader`, `monitoring-role` and
   `monitoring-admin-get`. `&without=volume` makes a recording's cloud one with no such service.
-- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts`
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
@@ -104,6 +104,13 @@ instance, a floating IP to its router), on what real clouds' exporters answered:
 nova-compute, a stopped L3 agent, OVN's routers and the exporter's snapshot count. `?estate=busy`
 holds a full pool, a full external network and a stuck volume, and `?estate=parts` is busy with hosts
 in zones and aggregates, a stuck image and the rows only the probe sends, which no recording holds.
+
+`OpenStackInstanceUsage.spec.ts`: what is really busy, as apart from what is promised: a hypervisor
+past its line naming the instances responsible, the step to the busiest one's page, its tiles and
+charts beside its flavor's size, a phone and the dark theme. `?estate=usage` is made up to put it over
+a line: what real clouds really said goes through the same pages in
+`Common/Tests/App/Dashboard/OpenStackUsagePagesRecordings.test.tsx`. `?estate=calm` has no source, so
+each page says what is missing and how to add it. And what it costs on a cloud's Settings.
 
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service

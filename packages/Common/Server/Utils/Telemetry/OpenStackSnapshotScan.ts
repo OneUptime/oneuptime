@@ -443,6 +443,14 @@ function regional(region: string | null, id: string): string {
   return `${region || "default"}/${id}`;
 }
 
+// How a flavor's row is keyed, for something holding only an instance's flavor ID.
+export function getOpenStackFlavorRowExternalId(
+  region: string | null,
+  flavorId: string,
+): string {
+  return regional(region, flavorId);
+}
+
 function serviceRowId(data: {
   region: string | null;
   family: OpenStackServiceFamily;

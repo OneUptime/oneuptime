@@ -412,19 +412,31 @@ Nova and Placement say what is promised on a hypervisor, not what is busy: an id
 
 After changing either, run `docker compose up -d`. Each exporter speaks for one compute node, so name every node you want read.
 
+Ceilometer only says what its `polling.yaml` asks for, and the file it ships leaves some of this out. Add these meters to it for the whole picture:
+
+| Meter | Without it |
+| --- | --- |
+| `vcpus` | An instance's CPU is measured against what its flavor says instead. Epoxy has no such meter. |
+| `memory.resident` | Nothing says what instances hold on their hypervisor, so no **Hypervisor Memory Pressure** |
+| `disk.device.read.latency`, `disk.device.write.latency` | No disk latency, so no **Instance Disk Latency High** |
+
 OneUptime turns both into one set of series as they arrive, beside the originals: `openstack.instance.*` for each instance, by its UUID, and `openstack.hypervisor.instances.*` for what a hypervisor's instances add up to. The [OpenStack monitor](/docs/monitor/openstack-monitor#collected-metrics) lists them. So pages and alerts mean the same thing whichever source a cloud has:
 
 | What it reads | libvirt | Ceilometer |
 | --- | --- | --- |
 | CPU in use | How much CPU time passed, over the time between two readings | The same, from a cumulative number in nanoseconds |
-| CPU waiting, what the guest calls steal | `libvirt_domain_vcpu_delay_seconds_total` | `ceilometer_cpu_delay`, on releases that have it. Others show no reading |
+| CPU waiting, what the guest calls steal | `libvirt_domain_vcpu_delay_seconds_total` | `ceilometer_cpu_delay`, once a release has it. No released Ceilometer does yet, from Epoxy to Hibiscus, so these show no reading |
 | Memory in use | What the guest's balloon driver says: available less usable | `ceilometer_memory_usage`, which is the same sum. Without a balloon driver neither has this, and it is left out rather than guessed |
-| Memory on the hypervisor | `libvirt_domain_memory_stats_rss_bytes` | `ceilometer_memory_resident` |
+| Memory on the hypervisor | `libvirt_domain_memory_stats_rss_bytes` | `ceilometer_memory_resident`. It holds more than the flavor's size, because QEMU itself is in it |
 | Disk and network | Rates per disk and interface, and latency as the time requests took over how many there were | The same |
 
-Ceilometer's readings only change once a polling cycle, five minutes by default, however often they are read. A rate is worked out between the moments a reading changed, so it doesn't read 0, 0, then five times the truth, and a reading that didn't change adds no data. A reading that hasn't changed for 11 minutes reads 0. A counter that goes backwards has restarted, after an instance rebooted or moved, and counts from zero. `libvirt_domain_info_memory_usage_bytes` is not read as usage: it is the size of the balloon, which on an idle instance is its flavor's memory.
+Ceilometer's readings only change once a polling cycle, five minutes by default, however often they are read. A rate is worked out between the moments a reading changed, so it doesn't read 0, 0, then five times the truth, and a reading that didn't change adds no data. The first value seen says nothing about when it was polled, so the first rate takes two polls. Once a poll has moved something about an instance, what it left as it was reads 0, and a reading on an instance where nothing moves reads 0 after 11 minutes. A counter that goes backwards has restarted, after an instance rebooted or moved, and counts from zero. `libvirt_domain_info_memory_usage_bytes` is not read as usage: it is the size of the balloon, which on an idle instance is its flavor's memory.
 
-An instance's page shows CPU, memory, disk and network beside its flavor's size. A hypervisor's page shows what its instances use, measured against what it has before any allocation ratio, and names the busiest. Past a line it says which instances are responsible, and which are being made to wait. Without a source each page says so, and what to add. Where OneUptime's [host agent](/docs/telemetry/hosts) runs on a hypervisor, its page reads that machine's own CPU, memory, disk and network from there, which includes the host's own processes.
+A shut-off instance has no reading from either source: libvirt reports a CPU time of 0 and Ceilometer says nothing, and neither is an instance doing nothing. A config drive is a CD-ROM, which libvirt's exporter leaves out and Ceilometer doesn't, so with Ceilometer an instance that has one shows one more disk, usually `hda`, reading nothing.
+
+An instance's page shows CPU, memory, disk and network beside its flavor's size, with their charts under **Usage**. A hypervisor's page shows what its instances use, measured against what it has before any allocation ratio, and names the busiest beside what each was given, with their charts under **Metrics**. Past a line it says which instances are responsible, and which are being made to wait. Without a source each page says so, and what to add. Where OneUptime's [host agent](/docs/telemetry/hosts) runs on a hypervisor, its page reads that machine's own CPU, memory, disk and network from there, which includes the host's own processes, so it can be past the line while its instances aren't.
+
+The agent's troubleshooting script reads each exporter you named, says how many instances it knows and which meters Ceilometer isn't polling, and what each one costs you.
 
 Four [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates) read these: **Hypervisor CPU Saturated**, **Hypervisor Memory Pressure**, **Instance CPU Saturated** and **Instance Disk Latency High**. Without a source they stay quiet.
 
@@ -446,9 +458,9 @@ What one instance costs, with two vCPUs, one disk and one network interface:
 | Source | Series per instance | Rows per hour | Rows per month, 100 instances | Rows per month, 1,000 instances |
 | --- | --- | --- | --- | --- |
 | `prometheus-libvirt-exporter`, read every minute | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
-| Ceilometer's exporter, read every 2 minutes and polled every 5 | 26 | 546 | 39,858,000 | 398,580,000 |
+| Ceilometer's exporter, read every minute and polled every 5 | 24 | 864 | 63,072,000 | 630,720,000 |
 
-Each further disk adds 12 series to either, and each further interface 4. Each further vCPU adds 1 from libvirt. The agent's collector holds these in memory on their way out, so a large cloud may want more than its default 512 MiB.
+Each further disk adds 12 series to either, and each further interface 4. Each further vCPU adds 1 from libvirt. The agent's collector holds these in memory on their way out, so a large cloud may want more than its default 512 MiB. The guide's calculator, under **Documentation** on a cloud, puts a price on these for a cloud of your size.
 
 ## Projects and domains
 
