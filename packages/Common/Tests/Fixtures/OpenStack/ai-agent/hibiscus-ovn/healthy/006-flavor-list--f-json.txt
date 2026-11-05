@@ -1,0 +1,127 @@
+$ openstack flavor list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "1",
+    "name": "m1.tiny",
+    "vcpus": 1,
+    "ram": 512,
+    "disk": 1,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "2",
+    "name": "m1.small",
+    "vcpus": 1,
+    "ram": 2048,
+    "disk": 20,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "3",
+    "name": "m1.medium",
+    "vcpus": 2,
+    "ram": 4096,
+    "disk": 40,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "4",
+    "name": "m1.large",
+    "vcpus": 4,
+    "ram": 8192,
+    "disk": 80,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "5",
+    "name": "m1.xlarge",
+    "vcpus": 8,
+    "ram": 16384,
+    "disk": 160,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "786bea6f-2982-4891-b920-9895b1d2feb1",
+    "name": "ou.impossible",
+    "vcpus": 1,
+    "ram": 1048576,
+    "disk": 1,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "bb66c0fd-ba7d-47e7-8fcf-afc4df8bc83a",
+    "name": "ou.tiny",
+    "vcpus": 1,
+    "ram": 128,
+    "disk": 1,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "c1",
+    "name": "cirros256",
+    "vcpus": 1,
+    "ram": 256,
+    "disk": 1,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "d1",
+    "name": "ds512M",
+    "vcpus": 1,
+    "ram": 512,
+    "disk": 5,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "d2",
+    "name": "ds1G",
+    "vcpus": 1,
+    "ram": 1024,
+    "disk": 10,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "d3",
+    "name": "ds2G",
+    "vcpus": 2,
+    "ram": 2048,
+    "disk": 10,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  },
+  {
+    "id": "d4",
+    "name": "ds4G",
+    "vcpus": 4,
+    "ram": 4096,
+    "disk": 20,
+    "OS-FLV-EXT-DATA:ephemeral": 0,
+    "swap": 0,
+    "os-flavor-access:is_public": true
+  }
+]

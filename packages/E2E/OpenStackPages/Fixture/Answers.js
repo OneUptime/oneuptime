@@ -8,10 +8,18 @@
  * tests (Common/Tests/Server/Services/OpenStackResourcePostgres.test.ts) hold the SQL.
  */
 import {
+  canOpenStackBareMetalNodeTakeAnInstance,
+  isOpenStackBareMetalMaintenanceTooLong,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeInMaintenance,
+  isOpenStackBareMetalNodeStuck,
+  isOpenStackBareMetalPowerUnexpected,
+  isOpenStackServiceQuiet,
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
@@ -24,6 +32,8 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -114,6 +124,8 @@ export function getInventorySummary(allRows, regionName) {
     downServiceCount: services.filter((row) => {
       return row.status === "down" && !isAdminDown(row);
     }).length,
+    bareMetalNodeCount: ofKind(rows, "BareMetalNode").length,
+    bareMetalProviderCount: ofKind(rows, "PlacementProvider").length,
     vcpuCapacity: sum(giving, "vcpuCapacity"),
     vcpuAllocated: sum(giving, "vcpuAllocated"),
     memoryCapacityBytes: sum(giving, "memoryCapacityBytes"),
@@ -122,6 +134,7 @@ export function getInventorySummary(allRows, regionName) {
     storageUsedBytes: sum(pools, "diskAllocatedBytes"),
     stackCount: ofKind(rows, "Stack").length,
     containerClusterCount: ofKind(rows, "ContainerCluster").length,
+    shareCount: ofKind(rows, "Share").length,
     services: Array.from(
       new Set(
         ofKind(rows, "Api").map((row) => {
@@ -219,8 +232,40 @@ function stuckSince(row, minutes, now) {
 const ATTENTION_QUERIES = [
   {
     kind: "Api",
-    where: (row) => {
-      return row.status === "down";
+    where: (row, now) => {
+      return (
+        row.status === "down" ||
+        isOpenStackServiceQuiet({
+          service: row.name,
+          lastSeenAt: row.lastSeenAt,
+          now,
+        })
+      );
+    },
+  },
+  {
+    kind: "BareMetalNode",
+    where: (row, now) => {
+      return (
+        isOpenStackBareMetalNodeInError(row.status) ||
+        isOpenStackBareMetalNodeStuck({
+          status: row.status,
+          adminState: row.adminState,
+          stateChangedAt: row.stateChangedAt,
+          provisionUpdatedAt: row.facts?.provisionUpdatedAt,
+          now,
+        }) ||
+        isOpenStackBareMetalMaintenanceTooLong({
+          adminState: row.adminState,
+          stateChangedAt: row.stateChangedAt,
+          now,
+        }) ||
+        isOpenStackBareMetalPowerUnexpected({
+          status: row.status,
+          adminState: row.adminState,
+          powerState: row.facts?.powerState,
+        })
+      );
     },
   },
   { kind: "Service", where: () => true, whole: true },
@@ -263,6 +308,16 @@ const ATTENTION_QUERIES = [
       return (
         OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status) &&
         stuckSince(row, OPENSTACK_IMAGE_STUCK_MINUTES, now)
+      );
+    },
+  },
+  {
+    kind: "Share",
+    where: (row, now) => {
+      return (
+        OPENSTACK_SHARE_ERROR_STATUSES.has(row.status) ||
+        (OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_SHARE_STUCK_MINUTES, now))
       );
     },
   },
@@ -363,6 +418,37 @@ function countsByProject(rows) {
   return Array.from(counts.entries()).map(([projectId, count]) => {
     return { projectId, count };
   });
+}
+
+// What the server's statement counts: OpenStackResourceService.getBareMetalClasses.
+export function getBareMetalClasses(allRows, regionName) {
+  const classes = new Map();
+  for (const row of ofKind(ofRegion(allRows, regionName), "BareMetalNode")) {
+    const resourceClass = row.facts?.resourceClass || null;
+    const one = classes.get(resourceClass) || {
+      resourceClass,
+      nodeCount: 0,
+      availableCount: 0,
+      deployedCount: 0,
+      maintenanceCount: 0,
+      failedCount: 0,
+    };
+    const inMaintenance = isOpenStackBareMetalNodeInMaintenance(row.adminState);
+    one.nodeCount += 1;
+    one.availableCount += canOpenStackBareMetalNodeTakeAnInstance({
+      status: row.status,
+      adminState: row.adminState,
+      powerState: row.facts?.powerState,
+      isRetired: row.facts?.isRetired,
+    })
+      ? 1
+      : 0;
+    one.deployedCount += row.status === "active" ? 1 : 0;
+    one.maintenanceCount += inMaintenance ? 1 : 0;
+    one.failedCount += isOpenStackBareMetalNodeInError(row.status) ? 1 : 0;
+    classes.set(resourceClass, one);
+  }
+  return Array.from(classes.values());
 }
 
 export function getBlastRadius(allRows, part) {
@@ -487,6 +573,17 @@ export function getBlastRadius(allRows, part) {
     ]);
   }
 
+  if (part.kind === "BareMetalNode") {
+    return buildOpenStackBlastRadius({
+      counts: [
+        {
+          count: "instanceCount",
+          byProject: countsByProject(instancesOn(part.externalId)),
+        },
+      ],
+      projectNames,
+    });
+  }
   if (part.kind === "Router") {
     return finish([
       {
@@ -545,6 +642,13 @@ export function getBlastRadius(allRows, part) {
       });
     };
     switch (part.name) {
+      case "sharev2":
+        return finish([
+          {
+            count: "shareCount",
+            byProject: countsByProject(inRegion("Share")),
+          },
+        ]);
       case "orchestration":
         return finish([
           {
@@ -688,6 +792,7 @@ export function getProjectSummaries(allRows, projectIds) {
       floatingIpCount: count("FloatingIp"),
       stackCount: count("Stack"),
       containerClusterCount: count("ContainerCluster"),
+      shareCount: count("Share"),
     };
   });
 }

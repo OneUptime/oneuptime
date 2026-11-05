@@ -47,7 +47,9 @@ export interface OpenStackAccessReadDefinition {
   /*
    * The field naming each row's project. "-" for a list that is not per project, so a
    * 200 is the answer. "*" for one a project's own view of is empty, so any row proves
-   * it: a plain reader's list of Neutron's agents is a 200 with nothing in it.
+   * it: a plain reader's list of Neutron's agents is a 200 with nothing in it. Ending in
+   * "?" for one whose rows may be nobody's: Ironic shows those to no project, so such a
+   * row proves it too.
    */
   projectField: string;
   goesWithout: string;
@@ -330,6 +332,23 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       fix: `Glance shows any credential the public images and its own. To read every project's: ${USE_FULL_VIEW}.`,
     },
     /*
+     * Where a cloud has Ironic. A project sees the nodes it owns: recorded on DevStack. Only the
+     * count of what comes back is kept of this answer, and not its driver_info. By Ironic's default
+     * policy only a system-scoped credential reads them all, and a probe's cannot be one, because
+     * it reads Nova's lists through the same credential. The Services page says what its refusal
+     * of the conductors means, once a collection has read them.
+     */
+    {
+      service: OpenStackServiceType.BareMetal,
+      read: "nodes",
+      path: "/v1/nodes/detail",
+      query: { limit: "100" },
+      key: "nodes",
+      projectField: "owner?",
+      goesWithout: "bare metal nodes other projects own.",
+      fix: "Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy.",
+    },
+    /*
      * The services a cloud may not run, each asked only of a cloud whose catalog names it. Recorded
      * on real credentials: only an admin reads these two, and no policy line has been tried.
      */
@@ -351,6 +370,29 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       key: "services",
       projectField: "-",
       goesWithout: "Heat's engines on the Services page.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.SharedFileSystems,
+      read: "shares, all projects",
+      path: "/shares/detail",
+      query: { all_tenants: "1" },
+      key: "shares",
+      projectField: "project_id",
+      goesWithout:
+        "other projects' shares. Manila shows anything less its own project's, or none, and no error.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.SharedFileSystems,
+      read: "services",
+      path: "/services",
+      key: "services",
+      projectField: "-",
+      goesWithout:
+        "Manila's services on the Services page, so a stopped one isn't shown anywhere: Manila's API carries on answering without it.",
       fix: `To read them: ${USE_FULL_VIEW}.`,
       tells: "adminOnly",
     },
@@ -454,6 +496,10 @@ export function classifyAccessList(data: {
 
   const rows: JSONValue | undefined = data.body[data.key];
   const projects: Set<string> = new Set();
+  const mayBeNobodys: boolean = data.projectField.endsWith("?");
+  const projectField: string = mayBeNobodys
+    ? data.projectField.slice(0, -1)
+    : data.projectField;
   let rowCount: number = 0;
 
   if (Array.isArray(rows)) {
@@ -464,7 +510,7 @@ export function classifyAccessList(data: {
         continue;
       }
 
-      const project: JSONValue | undefined = row[data.projectField];
+      const project: JSONValue | undefined = row[projectField];
 
       if (typeof project === "string" && project) {
         projects.add(project);
@@ -474,6 +520,10 @@ export function classifyAccessList(data: {
 
   if (data.projectField === "*" && rowCount > 0) {
     return { access: "ReadsEverything" };
+  }
+
+  if (mayBeNobodys && rowCount > 0 && projects.size === 0) {
+    return { access: "ReadsEverything", reason: "no row is any project's" };
   }
 
   if (projects.size >= 2) {
@@ -494,7 +544,8 @@ export function classifyAccessList(data: {
     return { access: "OwnProjectOnly", reason: "every row is in one project" };
   }
 
-  if (data.hasAdminRole) {
+  // Ironic shows even an admin only what its project owns, so empty is no likely truth there.
+  if (data.hasAdminRole && !mayBeNobodys) {
     return {
       access: "ReadsEverything",
       reason: "nothing here to tell by, and the credential has the admin role",

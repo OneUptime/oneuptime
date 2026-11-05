@@ -8,6 +8,7 @@ What a cloud of any size costs before you install anything: how hard monitoring 
 - [Summary mode](#summary-mode): What a cloud past 5,000 instances keeps, and gives up.
 - [Sharing a cloud between collectors](#sharing-a-cloud-between-collectors): One agent per region or per service.
 - [The database path](#the-database-path): Reading the largest clouds from their databases.
+- [What the largest size was held to](#what-the-largest-size-was-held-to): An hour at 200,000 instances, with its budgets and what it measured.
 :::
 
 ## The load on your control plane
@@ -69,15 +70,15 @@ A cloud's series follow from its counts. The calculator on a cloud's **Documenta
 | Cinder | Services, snapshots and backups, 2 per storage pool, plus 26 |
 | Instances and volumes, unless summary mode is on | 4 per instance, 2 per volume |
 | Summary mode's counts, when it is on | One per status and one per project: about 6 plus projects |
-| Keystone, Glance | Projects, domains and 9, and 2 per image plus 5 |
+| Keystone, Glance | Projects, domains and 9, and 2 per image plus 5. A probe adds 3 for each of Heat and Magnum, whether or not a cloud runs them |
 
 Each scrape's rows are what you are billed for: the first five lines arrive every 2 minutes, 720 times a day, and the last every 5 minutes, 288 times. The price is the one on your bill, [per GB for how long it is kept](/docs/telemetry/openstack#what-it-costs). The bill reads the real size of each row, and this works it out at 1,024 bytes a row, what OneUptime's billing falls back on when it has no size for a row. A row with many labels, such as an instance's, costs more than that, and one with none costs less.
 
 | Cloud | Series | GB a day, every series | GB a day, in summary mode | A month kept 15 days, in summary mode |
 | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instances, 20 projects | 1,051 | 0.7 | Not in summary mode | $2.10 |
-| 500 hypervisors, 20,000 instances, 1,000 projects | 123,823 | 84.5 | 16.6 | $49.69 |
-| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,159 | 844.5 | 164.9 | $494.71 |
+| 10 hypervisors, 100 instances, 20 projects | 1,057 | 0.7 | Not in summary mode | $2.10 |
+| 500 hypervisors, 20,000 instances, 1,000 projects | 123,829 | 84.5 | 16.6 | $49.69 |
+| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,165 | 844.5 | 164.9 | $494.71 |
 
 Those are through the agent, with one instance in a thousand in a state that keeps its series. A probe past the summary size sends what has not changed once a cycle rather than every collection, which comes to about 13.2 GB a day at the second size and 116 GB at the third.
 
@@ -186,6 +187,27 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 | Whether an API answers | `openstack_<service>_up` says whether its database does. A stopped API with a healthy database reads as up, so watch the APIs themselves with a [website monitor](/docs/monitor/website-monitor) |
 
 **How far this is proven.** The series were read from the exporter's source and its own tests at the tag the agent pins, and each line up with what OneUptime reads. It has not been run here against a real database.
+
+## What the largest size was held to
+
+The real collector read a mock API of 5,000 hypervisors, 200,000 instances and 10,000 projects every two minutes for 60 minutes, on a real clock. What it sent went through the real fold and the real writes into a real Postgres, with the Overview's reads and the stale-row sweep running beside them every 30 seconds, and 200 instances changing every collection. Each budget below is asserted, and a run that misses one fails.
+
+| What | Budget | Measured |
+| --- | --- | --- |
+| Requests a minute, as asked of each service | Exactly what the collector's schedule says, service by service | Exact. Keystone 1.3, Nova 25.1, Placement 1,166, Neutron 43.5, Cinder 62.4, Glance 0.5 |
+| Collections skipped because the one before was still running | None | 0 of 30 |
+| Ingest lag, from a collection starting to its last row being written | Under 2 minutes | 37 s at the median, 112 s at worst |
+| An Overview opening, every read it makes at once | Under 6 seconds | 0.6 s at the median, 4.1 s at worst, and 5,008 bytes of what needs attention |
+| The longest any writer waited on a lock on the inventory table | Under 5 seconds | 0.0 s, in 2,739 looks once a second |
+| Parts deleted that were still there | None | 0 |
+
+And what it took, which has no budget: 73 MiB of metrics a collection before compression, in up to 2 uploads, 14 s of this process's CPU a collection for reading, sending and writing together, and at most 998 MiB of JavaScript heap. A probe that collects a cloud this size needs that memory on top of its other work.
+
+This ran on a Mac with 10 cores, shared with other work at a load average of about 33, and PostgreSQL 14 on the same machine, so the times are what a busy machine managed rather than what a server would. It was measured on 2026-11-05. An hour's requests hold its first collection, which asks Placement for every hypervisor's inventories, so they read a little above [the table](#through-a-probe) of a settled one, and 200 instances changing every collection is the rest of what Nova's reads there.
+
+The margin is not wide on a machine that busy. An earlier hour, at a load average of about 42 that reached 95, ran as far as one collection's last row landing at 124 seconds, so the next collection was skipped, and every other budget held.
+
+**What this leaves out.** The mock answers at once, so this says nothing about how fast your APIs are: [what a collection's time allows](#through-a-probe) is about that. It leaves out the HTTP server and queue between a probe and ingest, and ClickHouse, so a chart's or a monitor's read of the series is not in here, only the inventory's writes and reads. The rows are shaped like a real DevStack's and the counts are made up. No cloud this size has run against it.
 
 ## What the pages read
 

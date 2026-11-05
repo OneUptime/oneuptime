@@ -31,6 +31,8 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -50,6 +52,10 @@ import {
   OpenStackTopConsumer,
   OpenStackTopConsumers,
 } from "../../Types/OpenStack/OpenStackOverview";
+import {
+  OPENSTACK_BARE_METAL_CLASS_LIMIT,
+  OpenStackBareMetalClass,
+} from "../../Types/OpenStack/OpenStackBareMetal";
 import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusCount,
@@ -73,6 +79,7 @@ import {
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
   OPENSTACK_QUIET_SERVICE_MINUTES,
@@ -161,6 +168,7 @@ export interface OpenStackInventorySummary {
   // Of a service a cloud may not run, so 0 on one that doesn't.
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
 }
 
 // What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
@@ -198,6 +206,7 @@ export interface OpenStackProjectSummary {
   floatingIpCount: number;
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
 }
 
 export interface OpenStackProjectLabel {
@@ -918,6 +927,7 @@ export class Service extends DatabaseService<Model> {
       storageUsedBytes: toNumber(pools?.diskAllocated),
       stackCount: countOf(OpenStackResourceKind.Stack),
       containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
+      shareCount: countOf(OpenStackResourceKind.Share),
     };
   }
 
@@ -1173,6 +1183,10 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_IMAGE_STUCK_MINUTES,
     );
+    const shareStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_SHARE_STUCK_MINUTES,
+    );
     const stackStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
       data.now,
       -OPENSTACK_STACK_STUCK_MINUTES,
@@ -1270,6 +1284,16 @@ export class Service extends DatabaseService<Model> {
         params: [
           statuses(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES),
           imageStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.Share,
+        where: `("status" = ANY($3::text[]) OR ("status" = ANY($4::text[]) AND "stateChangedAt" <= $5))`,
+        params: [
+          statuses(OPENSTACK_SHARE_ERROR_STATUSES),
+          statuses(OPENSTACK_SHARE_TRANSITIONAL_STATUSES),
+          shareStuckBefore,
         ],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
       },
@@ -2103,6 +2127,10 @@ export class Service extends DatabaseService<Model> {
         [OpenStackServiceType.ContainerInfra]: [
           [OpenStackResourceKind.ContainerCluster, "containerClusterCount"],
         ],
+        // Shares already mounted carry on: their data doesn't go through this API.
+        [OpenStackServiceType.SharedFileSystems]: [
+          [OpenStackResourceKind.Share, "shareCount"],
+        ],
       };
       for (const [kind, count] of kinds[part.name || ""] || []) {
         counts.push({
@@ -2216,7 +2244,11 @@ export class Service extends DatabaseService<Model> {
            AND "deletedAt" IS NULL
            AND "facts"->>'stackId' = $3
          LIMIT 2`,
-        [data.projectId.toString(), data.openStackCloudId.toString(), data.stackId],
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          data.stackId,
+        ],
       );
     return rows.length === 1 ? rows : [];
   }
@@ -2238,6 +2270,65 @@ export class Service extends DatabaseService<Model> {
         data.stackIds,
       ],
     );
+  }
+
+  /**
+   * What there is of each resource class, for the Bare Metal page: one statement over a node's rows,
+   * so it reads the same however many there are. What can take an instance is
+   * canOpenStackBareMetalNodeTakeAnInstance, which a test holds this to on the same rows.
+   */
+  @CaptureSpan()
+  public async getBareMetalClasses(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    regionName?: string | null | undefined;
+  }): Promise<Array<OpenStackBareMetalClass>> {
+    const rows: Array<{
+      resourceClass: string | null;
+      nodeCount: string;
+      availableCount: string;
+      deployedCount: string;
+      maintenanceCount: string;
+      failedCount: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "facts"->>'resourceClass' AS "resourceClass",
+              COUNT(*)::text AS "nodeCount",
+              COUNT(*) FILTER (
+                WHERE "status" = 'available'
+                  AND COALESCE("adminState", '') <> '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+                  AND COALESCE("facts"->>'powerState', '') NOT IN ('', 'error')
+                  AND COALESCE("facts"->>'isRetired', 'false') <> 'true'
+              )::text AS "availableCount",
+              COUNT(*) FILTER (WHERE "status" = 'active')::text AS "deployedCount",
+              COUNT(*) FILTER (
+                WHERE "adminState" = '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+              )::text AS "maintenanceCount",
+              COUNT(*) FILTER (WHERE "status" = ANY($3::text[]))::text AS "failedCount"
+       FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.BareMetalNode}' AND "deletedAt" IS NULL
+         AND ($4::text IS NULL OR "regionName" = $4)
+       GROUP BY "facts"->>'resourceClass'
+       ORDER BY COUNT(*) DESC, "facts"->>'resourceClass' ASC NULLS LAST
+       LIMIT ${OPENSTACK_BARE_METAL_CLASS_LIMIT}`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        Array.from(OPENSTACK_BARE_METAL_ERROR_STATES),
+        data.regionName || null,
+      ],
+    );
+
+    return rows.map((row: (typeof rows)[number]): OpenStackBareMetalClass => {
+      return {
+        resourceClass: row.resourceClass,
+        nodeCount: Number.parseInt(row.nodeCount, 10) || 0,
+        availableCount: Number.parseInt(row.availableCount, 10) || 0,
+        deployedCount: Number.parseInt(row.deployedCount, 10) || 0,
+        maintenanceCount: Number.parseInt(row.maintenanceCount, 10) || 0,
+        failedCount: Number.parseInt(row.failedCount, 10) || 0,
+      };
+    });
   }
 
   /**
@@ -2283,6 +2374,7 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.FloatingIp,
           OpenStackResourceKind.Stack,
           OpenStackResourceKind.ContainerCluster,
+          OpenStackResourceKind.Share,
         ],
         ids,
       ],
@@ -2302,6 +2394,7 @@ export class Service extends DatabaseService<Model> {
             floatingIpCount: 0,
             stackCount: 0,
             containerClusterCount: 0,
+            shareCount: 0,
           },
         ];
       }),
@@ -2337,6 +2430,9 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.ContainerCluster:
           summary.containerClusterCount = count;
+          break;
+        case OpenStackResourceKind.Share:
+          summary.shareCount = count;
           break;
         default:
           break;
@@ -2578,6 +2674,7 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.Instance,
       OpenStackResourceKind.Volume,
       OpenStackResourceKind.StoragePool,
+      OpenStackResourceKind.Share,
       OpenStackResourceKind.Network,
       OpenStackResourceKind.Subnet,
       OpenStackResourceKind.Router,

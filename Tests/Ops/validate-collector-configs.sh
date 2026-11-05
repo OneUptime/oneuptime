@@ -201,6 +201,8 @@ ENV_ARGS=(
   # libpq's sslmode for the PostgreSQL config's SQL checks, as install.sh
   # works it out from the two switches above.
   -e "DATABASE_TLS_SSLMODE=disable"
+  # And as the MySQL driver's tls, for the MySQL config's readings of Galera.
+  -e "DATABASE_TLS_MYSQL=false"
   -e "DATABASE_COLLECTION_INTERVAL=30s"
   -e "DATABASE_QUERY_EVENTS=true"
   # The optional link to an existing database is EMPTY in a default install,
