@@ -33,6 +33,7 @@ import OpenStackControlPlaneCard, {
   useOpenStackDependencyLine,
 } from "../../../Components/OpenStack/OpenStackControlPlaneCard";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
+import useIsOpenStackProbeCollected from "../../../Components/OpenStack/Part/UseIsOpenStackProbeCollected";
 import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
@@ -252,10 +253,11 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const listClassName: string = useCardRuledListClassName();
-  const lineOf: (summary: OpenStackDependencySummary) => string =
-    useOpenStackDependencyLine();
   const factsOfRow: (row: OpenStackResource) => Array<string> = useRowFacts();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(modelId);
+  const lineOf: (summary: OpenStackDependencySummary) => string =
+    useOpenStackDependencyLine(isProbeCollected);
   const word: string = Navigation.getLastParamAsString();
   const { region } = useOpenStackRegion();
   const now: Date = useMemo(() => {
@@ -400,10 +402,15 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
           tone="warning"
         >
           <span>
-            {translator.translateTemplate(
-              "Nothing reads this, so nothing here says whether it is fine. Name its targets in {{variable}} in the agent's .env, then run docker compose up -d.",
-              { variable: definition.targetsVariable },
-            )}{" "}
+            {isProbeCollected
+              ? translator.translateTemplate(
+                  "Nothing reads this, so nothing here says whether it is fine. A probe reads the cloud's APIs and not what they stand on. To read it, collect this cloud with the OpenStack agent, from its Settings page, and name its targets in {{variable}} in the agent's .env.",
+                  { variable: definition.targetsVariable },
+                )
+              : translator.translateTemplate(
+                  "Nothing reads this, so nothing here says whether it is fine. Name its targets in {{variable}} in the agent's .env, then run docker compose up -d.",
+                  { variable: definition.targetsVariable },
+                )}{" "}
             <Link
               to={new Route("/docs/telemetry/openstack-deployment-tools")}
               openInNewTab={true}

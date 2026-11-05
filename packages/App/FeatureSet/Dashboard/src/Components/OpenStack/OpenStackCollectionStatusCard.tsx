@@ -114,6 +114,7 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
         collectionError: true,
         presentedCertificate: true,
         collectionSummary: true,
+        nextCollectionAt: true,
         lastCollectionAt: true,
         lastSuccessfulCollectionAt: true,
         collectionIntervalInMinutes: true,

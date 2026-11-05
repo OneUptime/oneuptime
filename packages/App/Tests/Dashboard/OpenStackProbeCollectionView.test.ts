@@ -40,6 +40,7 @@ import {
   getOpenStackInventoryPhrases,
   getOpenStackServiceRows,
   getOpenStackSwitchToProbeStart,
+  isOpenStackCollectionOverdue,
   isOpenStackConnectionTestSettled,
   isOpenStackProbeCollected,
   keepOpenStackCredentialKind,
@@ -512,6 +513,96 @@ describe("what a connection test found", () => {
   });
 });
 
+describe("whether a probe is still coming for it", () => {
+  const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
+  const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
+    return new Date(NOW.getTime() - minutes * 60 * 1000);
+  };
+
+  test.each([
+    ["nothing due yet", null, false],
+    ["due in a minute", minutesAgo(-1), false],
+    ["due just now, as new settings make it", minutesAgo(0), false],
+    // A running collection holds its next one back for up to its budget of ten minutes.
+    ["held back by a collection at its time budget", minutesAgo(10), false],
+    ["right at the line", minutesAgo(15), false],
+    ["past the line", minutesAgo(15.1), true],
+    ["hours past", minutesAgo(600), true],
+  ])("%s", (_name: string, due: Date | null, isOverdue: boolean) => {
+    expect(
+      isOpenStackCollectionOverdue(
+        { nextCollectionAt: due as unknown as Date },
+        NOW,
+      ),
+    ).toBe(isOverdue);
+  });
+
+  test.each([
+    ["Succeeded", OpenStackCollectionStatus.Succeeded],
+    ["PartiallySucceeded", OpenStackCollectionStatus.PartiallySucceeded],
+    ["Failed", OpenStackCollectionStatus.Failed],
+    ["Pending", OpenStackCollectionStatus.Pending],
+  ])(
+    "overdue, a last report of %s stops being what the card says",
+    (_name: string, status: OpenStackCollectionStatus) => {
+      const advice: ReturnType<typeof OpenStackCollectionErrorUtil.getAdvice> =
+        OpenStackCollectionErrorUtil.getAdvice(
+          OpenStackCollectionErrorCode.ProbeNotAvailable,
+        );
+
+      expect(
+        getOpenStackCollectionStatusView(
+          {
+            collectionStatus: status,
+            collectionErrorCode: OpenStackCollectionErrorCode.ServiceOverloaded,
+            collectionError: "Neutron kept answering HTTP 503.",
+            nextCollectionAt: minutesAgo(60),
+          },
+          ENGLISH,
+          NOW,
+        ),
+      ).toMatchObject({
+        tone: OpenStackCollectionTone.Failing,
+        label: "Not collecting",
+        title: advice.title,
+        nextStep: advice.nextStep,
+        certificate: null,
+        // It goes on asking, so the card follows the probe coming back.
+        isPending: true,
+      });
+    },
+  );
+
+  test("overdue, an old certificate is nothing to trust: nobody is there to try it", () => {
+    expect(
+      getOpenStackCollectionStatusView(
+        {
+          collectionStatus: OpenStackCollectionStatus.Failed,
+          collectionErrorCode:
+            OpenStackCollectionErrorCode.UntrustedCertificate,
+          presentedCertificate: CERTIFICATE,
+          nextCollectionAt: minutesAgo(60),
+        },
+        ENGLISH,
+        NOW,
+      ).certificate,
+    ).toBeNull();
+  });
+
+  test("on time, what it last reported is what it says", () => {
+    expect(
+      getOpenStackCollectionStatusView(
+        {
+          collectionStatus: OpenStackCollectionStatus.Succeeded,
+          nextCollectionAt: minutesAgo(-1),
+        },
+        ENGLISH,
+        NOW,
+      ).tone,
+    ).toBe(OpenStackCollectionTone.Collecting);
+  });
+});
+
 describe("how the last collection went", () => {
   test("nothing yet: checking, and the page asks again", () => {
     for (const status of [undefined, OpenStackCollectionStatus.Pending]) {
@@ -680,6 +771,28 @@ describe("what Test connection tries", () => {
     expect(getOpenStackConnectionTestBlocker(input({ probeId: "" }))).toBe(
       message,
     );
+  });
+
+  test("never tries what the server would refuse, and says what to do about plain HTTP", () => {
+    const refusal: string | null = getOpenStackConnectionTestBlocker(
+      input({ authUrl: "http://keystone.example.com:5000/v3" }),
+    );
+
+    expect(refusal).toContain(
+      "OneUptime never sends a credential or a token unencrypted.",
+    );
+    expect(refusal).toContain("turn on TLS, or use the OpenStack agent");
+
+    // With a saved secret too: it goes no more over plain HTTP than a typed one.
+    expect(
+      getOpenStackConnectionTestBlocker(
+        input({
+          authUrl: "http://keystone.example.com:5000/v3",
+          credentialSecret: "",
+          openStackCloudId: ObjectID.generate(),
+        }),
+      ),
+    ).toBe(refusal);
   });
 
   test("a secret typed goes with what it belongs to", () => {

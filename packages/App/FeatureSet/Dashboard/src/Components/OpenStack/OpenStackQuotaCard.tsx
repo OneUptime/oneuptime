@@ -7,6 +7,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
@@ -18,6 +19,7 @@ import React, {
 import { OPENSTACK_QUOTA_TITLES } from "../../Pages/OpenStack/Utils/OpenStackHealth";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { OPENSTACK_COLLECTION_OPTIONS_ANCHOR } from "./OpenStackProbeCollectionView";
 
 /*
  * What a project may use and has used, or how to start reading that. Most clouds do not
@@ -120,9 +122,12 @@ export const OpenStackQuotaSetup: FunctionComponent<SetupProps> = (
             slots={{
               settings: (
                 <Link
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
-                    { modelId: props.openStackCloudId },
+                  to={getRouteToPageAnchor(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
+                      { modelId: props.openStackCloudId },
+                    ),
+                    OPENSTACK_COLLECTION_OPTIONS_ANCHOR,
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >

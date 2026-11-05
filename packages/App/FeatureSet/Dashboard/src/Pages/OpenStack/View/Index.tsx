@@ -784,6 +784,7 @@ const OpenStackCloudOverview: FunctionComponent<
     RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION] as Route,
     { modelId: modelId },
   );
+  const isProbeCollected: boolean = isOpenStackProbeCollected(cloud);
   const cloudRoute: Route = routes.cloudRoute;
 
   const inScope: (row: OpenStackResource) => boolean = (
@@ -1191,6 +1192,14 @@ const OpenStackCloudOverview: FunctionComponent<
       <OpenStackAccessNotice
         gaps={accessGaps}
         documentationRoute={documentationRoute}
+        settingsRouteOfProbeCloud={
+          isProbeCollected
+            ? RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )
+            : null
+        }
       />
 
       {/*
@@ -1435,7 +1444,15 @@ const OpenStackCloudOverview: FunctionComponent<
         <></>
       )}
 
-      {isCurrent ? <OpenStackControlPlaneCard modelId={modelId} /> : <></>}
+      {isCurrent ? (
+        <OpenStackControlPlaneCard
+          modelId={modelId}
+          isProbeCollected={isProbeCollected}
+          hidesWhenNothingIsWatched={isProbeCollected}
+        />
+      ) : (
+        <></>
+      )}
 
       {/*
        * What Security Events found about this cloud this week, for whoever may read it:
