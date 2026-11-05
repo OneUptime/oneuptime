@@ -155,7 +155,7 @@ OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 **要开启它**，在 `.env` 中：
 
 ```bash
-COMPOSE_PROFILES=openstack-database-exporter
+COMPOSE_PROFILES=openstack-database-exporter,openstack-ai-agent
 # Read from the databases, and from nowhere else: with the two together every series arrives twice.
 OPENSTACK_EXPORTER_CLOUDS=[]
 OPENSTACK_DATABASE_EXPORTER_TARGETS=[openstack-database-exporter:9180]

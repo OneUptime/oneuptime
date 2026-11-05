@@ -155,7 +155,7 @@ OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 **有効にするには**、`.env` に次のように記述します。
 
 ```bash
-COMPOSE_PROFILES=openstack-database-exporter
+COMPOSE_PROFILES=openstack-database-exporter,openstack-ai-agent
 # Read from the databases, and from nowhere else: with the two together every series arrives twice.
 OPENSTACK_EXPORTER_CLOUDS=[]
 OPENSTACK_DATABASE_EXPORTER_TARGETS=[openstack-database-exporter:9180]

@@ -155,7 +155,7 @@ OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 **켜려면** `.env`에 다음을 설정합니다.
 
 ```bash
-COMPOSE_PROFILES=openstack-database-exporter
+COMPOSE_PROFILES=openstack-database-exporter,openstack-ai-agent
 # Read from the databases, and from nowhere else: with the two together every series arrives twice.
 OPENSTACK_EXPORTER_CLOUDS=[]
 OPENSTACK_DATABASE_EXPORTER_TARGETS=[openstack-database-exporter:9180]

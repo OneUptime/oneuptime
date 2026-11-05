@@ -185,6 +185,24 @@ describe("the database path", () => {
     expect(install).toContain('for name in $VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES; do');
   });
 
+  test("the docs and the README start what a re-run of the installer starts", () => {
+    // OpenStackAgentInstallers.test.js runs the installer on the docs' own block.
+    for (const page of [
+      path.join(AGENT, "README.md"),
+      path.join(
+        __dirname,
+        "../../packages/App/FeatureSet/Docs/Content/en/telemetry/openstack-very-large-clouds.md",
+      ),
+    ]) {
+      const text = read(page);
+
+      expect(text).toContain("openstack-database-exporter,openstack-ai-agent");
+      expect(text).not.toContain(
+        "COMPOSE_PROFILES=openstack-database-exporter\n",
+      );
+    }
+  });
+
   test("is read on /metrics, with the service and region the per-service jobs give", () => {
     const main = job("oneuptime-openstack-database-exporter");
 

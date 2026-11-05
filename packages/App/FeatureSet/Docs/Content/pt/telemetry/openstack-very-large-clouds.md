@@ -155,7 +155,7 @@ Acima de **1.500 hipervisores ou 100.000 instâncias**, o agente pode ler os ban
 **Para ativá-lo**, no `.env`:
 
 ```bash
-COMPOSE_PROFILES=openstack-database-exporter
+COMPOSE_PROFILES=openstack-database-exporter,openstack-ai-agent
 # Read from the databases, and from nowhere else: with the two together every series arrives twice.
 OPENSTACK_EXPORTER_CLOUDS=[]
 OPENSTACK_DATABASE_EXPORTER_TARGETS=[openstack-database-exporter:9180]

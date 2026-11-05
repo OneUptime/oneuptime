@@ -827,6 +827,33 @@ describe("what it downloads is held to a pinned sha256", () => {
 });
 
 describe("a re-run, the upgrade", () => {
+  test("an agent reading a cloud's databases stays on them, and there is no Compose profile to keep", () => {
+    const env = setup();
+    const first = env.run({ input: FRESH });
+    expect(first.status).toBe(0);
+    fs.appendFileSync(
+      env.installed(".env"),
+      [
+        "OPENSTACK_EXPORTER_CLOUDS=[]",
+        "OPENSTACK_DATABASE_EXPORTER_TARGETS=[10.0.0.9:9180]",
+        "OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]",
+        "",
+      ].join("\n"),
+    );
+
+    const second = env.run({ args: [] });
+
+    expect(second.status).toBe(0);
+    expect(systemdRead(second.envFile)).toMatchObject({
+      OPENSTACK_EXPORTER_CLOUDS: "[]",
+      OPENSTACK_DATABASE_EXPORTER_TARGETS: "[10.0.0.9:9180]",
+      OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+      COMPOSE_PROFILES: "",
+    });
+    expect(second.cloudsText).toBe(first.cloudsText);
+    expect(backupsIn(env.installDir)).toEqual([]);
+  });
+
   test("needs no flag, asks nothing, keeps .env and clouds.yaml, and restarts on new binaries", () => {
     const env = setup();
     const first = env.run({ input: FRESH });
