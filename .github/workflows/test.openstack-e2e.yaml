@@ -302,7 +302,7 @@ jobs:
       - name: Give the runner a name a certificate can hold
         run: |
           sudo hostnamectl set-hostname devstack
-          echo "127.0.1.1 devstack" | sudo tee -a /etc/hosts
+          printf '\n127.0.1.1 devstack\n' | sudo tee -a /etc/hosts
           hostname -f
 
       # The record job's cloud, with every API behind TLS, because a probe never sends a credential
@@ -338,11 +338,16 @@ jobs:
         timeout-minutes: 20
         run: |
           set -euo pipefail
+          # The first echo because the merge that writes config.env leaves no newline at its end,
+          # which would put the first of these on the end of its last setting.
           {
+            echo
             echo "ONEUPTIME_HTTP_PORT=8880"
             echo "STATUS_PAGE_HTTPS_PORT=8843"
           } >>config.env
           export $(grep -v '^#' config.env | xargs)
+          test "$ONEUPTIME_HTTP_PORT" = 8880
+          test "$STATUS_PAGE_HTTPS_PORT" = 8843
           export APP_TAG=test
           services="$(docker compose -f docker-compose.yml config --services | grep -vx 'probe-1' | tr '\n' ' ')"
           docker compose -f docker-compose.yml up --remove-orphans -d $services
