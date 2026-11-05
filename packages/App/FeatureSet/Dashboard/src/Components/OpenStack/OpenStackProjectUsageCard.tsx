@@ -19,9 +19,11 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import useOpenStackRead, { OpenStackRead } from "./Part/UseOpenStackRead";
+import OpenStackDailyUsageChart from "./OpenStackDailyUsageChart";
 import {
   formatOpenStackSpendMoney,
   formatOpenStackUsageNumber,
+  getOpenStackDailyVcpuHours,
 } from "../../Pages/OpenStack/Utils/OpenStackSpendView";
 
 /*
@@ -40,6 +42,7 @@ const ROW_CLASS_NAME: string = "border-b border-gray-100 last:border-0";
 
 interface ProjectUsageRead {
   months: Array<OpenStackProjectUsage>;
+  days: Array<{ day: string; vcpuHours: number }>;
   cost: OpenStackUsageCost | null;
   currency: string | null;
 }
@@ -95,6 +98,7 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
 
       return {
         months,
+        days: getOpenStackDailyVcpuHours(rows.data),
         currency: priceList?.currency ?? null,
         cost: latest
           ? getOpenStackUsageCost({
@@ -174,7 +178,7 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
                           )}
                         </td>
                         <td className={CELL_CLASS_NAME}>
-                          {formatOpenStackUsageNumber(line.quantity)}{" "}
+                          {formatOpenStackUsageNumber(line.quantity, translator)}{" "}
                           {OPENSTACK_COST_LINE_UNITS[line.kind]}
                         </td>
                         <td className={CELL_CLASS_NAME}>
@@ -186,6 +190,16 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
                 )}
               </tbody>
             </table>
+          </div>
+        ) : (
+          <></>
+        )}
+        {data.days.length > 0 ? (
+          <div className="mt-6">
+            <OpenStackDailyUsageChart
+              testId="openstack-project-usage-days"
+              days={data.days}
+            />
           </div>
         ) : (
           <></>
@@ -221,13 +235,13 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
                   >
                     <td className={CELL_CLASS_NAME}>{row.period}</td>
                     <td className={CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(row.vcpuHours)}
+                      {formatOpenStackUsageNumber(row.vcpuHours, translator)}
                     </td>
                     <td className={WIDE_CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(row.memoryGbHours)}
+                      {formatOpenStackUsageNumber(row.memoryGbHours, translator)}
                     </td>
                     <td className={WIDE_CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(row.volumeGbHours)}
+                      {formatOpenStackUsageNumber(row.volumeGbHours, translator)}
                     </td>
                     <td className={CELL_CLASS_NAME}>
                       {money(row.estimatedCost)}

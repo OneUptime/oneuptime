@@ -6,6 +6,7 @@ import {
   formatOpenStackSpendMoney,
   formatOpenStackUsageNumber,
   getOpenStackCoverageNote,
+  getOpenStackDailyVcpuHours,
   getOpenStackSpendCsv,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackSpendView";
 import {
@@ -38,6 +39,7 @@ const translator: Translator = {
   formatNumber: (value: number): string => {
     return String(value);
   },
+  language: "en",
 } as unknown as Translator;
 
 const SNAPSHOT: OpenStackSpendSnapshot = {
@@ -92,7 +94,7 @@ describe("what a page says about money", () => {
         translator,
       }),
     ).toBe("–");
-    expect(formatOpenStackUsageNumber(null)).toBe("–");
+    expect(formatOpenStackUsageNumber(null, translator)).toBe("–");
   });
 
   test("a currency that's set is said, and none that isn't", () => {
@@ -192,6 +194,27 @@ describe("the tiles", () => {
     expect(tiles[2]!.value).toBe("–");
     expect(tiles[2]!.sublabel).toBe("Not enough history yet");
     expect(tiles[0]!.sublabel).toBeUndefined();
+  });
+
+  test("a last month read for only part of it says from when", () => {
+    const tiles: ReturnType<typeof getOpenStackSpendTiles> =
+      getOpenStackSpendTiles({
+        snapshot: {
+          ...SNAPSHOT,
+          currency: "USD",
+          thisMonth: 110,
+          lastMonth: 20,
+          lastMonthCoverage: {
+            firstReadAt: "2026-10-20T00:00:00.000Z",
+            countedHours: 288,
+            notCountedHours: 0,
+          },
+        },
+        recommendationsRoute: ROUTE,
+        translator,
+      });
+
+    expect(tiles[2]!.sublabel).toContain("Only counted from");
   });
 
   test("what could be reclaimed adds up across the rules, and leads to them", () => {
@@ -333,6 +356,39 @@ describe("the CSV", () => {
     });
 
     expect(csv).not.toContain(",=HYPERLINK");
+  });
+});
+
+describe("one project's days", () => {
+  function day(period: string, vcpuHours: number): OpenStackProjectUsage {
+    const usage: OpenStackProjectUsage = new OpenStackProjectUsage();
+    usage.period = period;
+    usage.vcpuHours = vcpuHours;
+    return usage;
+  }
+
+  test("each is its row less the one before it, and a month starts over", () => {
+    expect(
+      getOpenStackDailyVcpuHours([
+        day("2026-11-02", 30),
+        day("2026-11", 40),
+        day("2026-10-31", 100),
+        day("2026-11-01", 10),
+        day("2026-10-30", 90),
+      ]),
+    ).toEqual([
+      { day: "2026-10-30", vcpuHours: 90 },
+      { day: "2026-10-31", vcpuHours: 10 },
+      { day: "2026-11-01", vcpuHours: 10 },
+      { day: "2026-11-02", vcpuHours: 20 },
+    ]);
+  });
+
+  test("a month's rows aren't days, and nothing reads below nothing", () => {
+    expect(getOpenStackDailyVcpuHours([day("2026-11", 40)])).toEqual([]);
+    expect(
+      getOpenStackDailyVcpuHours([day("2026-11-01", 10), day("2026-11-02", 5)])[1],
+    ).toEqual({ day: "2026-11-02", vcpuHours: 0 });
   });
 });
 

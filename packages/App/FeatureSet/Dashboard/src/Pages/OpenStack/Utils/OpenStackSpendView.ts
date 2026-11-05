@@ -88,7 +88,7 @@ export const OPENSTACK_SPEND_NO_SNAPSHOTS_TEXT: string = translationKey(
   "The OpenStack agent's exporter doesn't report snapshots one by one, so snapshot storage isn't counted on this cloud. Connecting it without an agent counts them.",
 );
 
-// An estimate as a page says it. With no currency, a number alone.
+// An estimate as a page says it, in the reader's own way. With no currency, a number alone.
 export function formatOpenStackSpendMoney(data: {
   amount: number | null | undefined;
   currency: string | null | undefined;
@@ -99,16 +99,17 @@ export function formatOpenStackSpendMoney(data: {
   }
 
   const rounded: number = Math.round(data.amount * 100) / 100;
+  const locale: string = data.translator.language || "en";
 
   if (!data.currency) {
-    return rounded.toLocaleString(undefined, {
+    return rounded.toLocaleString(locale, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   }
 
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: data.currency,
     }).format(rounded);
@@ -119,14 +120,51 @@ export function formatOpenStackSpendMoney(data: {
 
 export function formatOpenStackUsageNumber(
   value: number | null | undefined,
+  translator: Translator,
 ): string {
   if (value === null || value === undefined) {
     return "–";
   }
 
-  return (Math.round(value * 100) / 100).toLocaleString(undefined, {
-    maximumFractionDigits: 2,
+  return (Math.round(value * 100) / 100).toLocaleString(
+    translator.language || "en",
+    { maximumFractionDigits: 2 },
+  );
+}
+
+/*
+ * One project's vCPU-hours each day, from the rows kept at each midnight: each holds its month so far,
+ * so a day's own is its row less the one before it in the same month. A day with no row before it in
+ * its month is that month's first, or follows a gap, and is taken as it stands.
+ */
+export function getOpenStackDailyVcpuHours(
+  rows: ReadonlyArray<OpenStackProjectUsage>,
+): Array<{ day: string; vcpuHours: number }> {
+  const days: Array<OpenStackProjectUsage> = rows
+    .filter((row: OpenStackProjectUsage): boolean => {
+      return (row.period || "").length === 10;
+    })
+    .sort((first: OpenStackProjectUsage, second: OpenStackProjectUsage) => {
+      return (first.period || "").localeCompare(second.period || "");
+    });
+  const points: Array<{ day: string; vcpuHours: number }> = [];
+
+  days.forEach((row: OpenStackProjectUsage, index: number): void => {
+    const before: OpenStackProjectUsage | undefined = days[index - 1];
+    const isSameMonth: boolean =
+      before?.period?.slice(0, 7) === row.period?.slice(0, 7);
+
+    points.push({
+      day: row.period as string,
+      vcpuHours: Math.max(
+        0,
+        Number(row.vcpuHours || 0) -
+          (isSameMonth ? Number(before?.vcpuHours || 0) : 0),
+      ),
+    });
   });
+
+  return points;
 }
 
 /*

@@ -53,7 +53,9 @@ export function getOpenStackWasteFreesText(data: {
 }): string {
   const { frees, translator } = data;
   const parts: Array<string> = [];
-  const number: (value: number) => string = formatOpenStackUsageNumber;
+  const number: (value: number) => string = (value: number): string => {
+    return formatOpenStackUsageNumber(value, translator);
+  };
 
   if (frees.hosts > 0) {
     parts.push(

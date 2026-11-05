@@ -7,6 +7,7 @@ import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
+  OpenStackSpendDay,
   OpenStackSpendDomain,
   OpenStackSpendFlavorRow,
   OpenStackSpendProject,
@@ -35,6 +36,7 @@ import CloudStatStrip, {
   CloudStatTile,
 } from "../../../Components/Cloud/CloudStatStrip";
 import OpenStackBudgetsCard from "../../../Components/OpenStack/OpenStackBudgetsCard";
+import OpenStackDailyUsageChart from "../../../Components/OpenStack/OpenStackDailyUsageChart";
 import OpenStackPriceListModal from "../../../Components/OpenStack/OpenStackPriceListModal";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import {
@@ -122,7 +124,7 @@ export function getOpenStackSpendTiles(data: {
       {
         key: "vcpu",
         title: translationKey("vCPU-Hours This Month"),
-        value: formatOpenStackUsageNumber(snapshot.usage.vcpuHours),
+        value: formatOpenStackUsageNumber(snapshot.usage.vcpuHours, translator),
         ...(snapshot.lastMonthUsage
           ? {
               sublabel: translator.translateTemplate(
@@ -130,6 +132,7 @@ export function getOpenStackSpendTiles(data: {
                 {
                   count: formatOpenStackUsageNumber(
                     snapshot.lastMonthUsage.vcpuHours,
+                    translator,
                   ),
                 },
               ),
@@ -142,14 +145,14 @@ export function getOpenStackSpendTiles(data: {
       {
         key: "memory",
         title: translationKey("Memory GB-Hours This Month"),
-        value: formatOpenStackUsageNumber(snapshot.usage.memoryGbHours),
+        value: formatOpenStackUsageNumber(snapshot.usage.memoryGbHours, translator),
         icon: IconProp.SquareStack,
         color: "blue",
       },
       {
         key: "volume",
         title: translationKey("Volume GB-Hours This Month"),
-        value: formatOpenStackUsageNumber(snapshot.usage.volumeGbHours),
+        value: formatOpenStackUsageNumber(snapshot.usage.volumeGbHours, translator),
         icon: IconProp.Database,
         color: "sky",
       },
@@ -158,6 +161,11 @@ export function getOpenStackSpendTiles(data: {
   }
 
   const comparison: OpenStackSpendSnapshot["comparison"] = snapshot.comparison;
+  const lastMonthFrom: string | null | undefined =
+    snapshot.lastMonthCoverage?.firstReadAt;
+  const isLastMonthPartial: boolean = Boolean(
+    lastMonthFrom && new Date(lastMonthFrom).getUTCDate() > 1,
+  );
   const change: number | null =
     comparison &&
     comparison.thisMonth !== null &&
@@ -208,10 +216,24 @@ export function getOpenStackSpendTiles(data: {
       key: "lastMonth",
       title: translationKey("Last Month"),
       value: money(snapshot.lastMonth),
-      sublabel:
-        snapshot.lastMonth === null
-          ? translationKey("Not enough history yet")
-          : translationKey("At today's prices"),
+      ...(isLastMonthPartial
+        ? {
+            sublabel: translator.translateTemplate(
+              translationKey("Only counted from {{date}}"),
+              {
+                date: new Date(lastMonthFrom as string).toLocaleDateString(
+                  translator.language || "en",
+                ),
+              },
+            ),
+            sublabelIsTranslated: true,
+          }
+        : {
+            sublabel:
+              snapshot.lastMonth === null
+                ? translationKey("Not enough history yet")
+                : translationKey("At today's prices"),
+          }),
       icon: IconProp.Calendar,
       color: "sky",
     },
@@ -338,8 +360,23 @@ const OpenStackCloudSpend: FunctionComponent<
         <span data-source={snapshot.source}>
           {translator.translateText(OPENSTACK_SPEND_SOURCE_TEXT[snapshot.source])}{" "}
           {translator.translateText(OPENSTACK_SPEND_NOT_BILLING_TEXT)}
-          {isAgent && snapshot.source !== "cloudkitty" ? (
+          {isAgent ? (
             <> {translator.translateText(OPENSTACK_SPEND_AGENT_CLOUDKITTY_TEXT)}</>
+          ) : (
+            <></>
+          )}
+          {snapshot.cloudKittyReadAt ? (
+            <>
+              {" "}
+              {translator.translateTemplate(
+                translationKey("CloudKitty was last read at {{time}}."),
+                {
+                  time: new Date(snapshot.cloudKittyReadAt).toLocaleString(
+                    translator.language || "en",
+                  ),
+                },
+              )}
+            </>
           ) : (
             <></>
           )}
@@ -406,6 +443,7 @@ const OpenStackCloudSpend: FunctionComponent<
                                   {
                                     count: formatOpenStackUsageNumber(
                                       project.growth,
+                                      translator,
                                     ),
                                   },
                                 ),
@@ -417,6 +455,26 @@ const OpenStackCloudSpend: FunctionComponent<
                 },
               )}
             </ul>
+          </Card>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {snapshot.days.length > 0 ? (
+        <div className="mb-6">
+          <Card
+            title={translationKey("Each Day")}
+            description={translationKey(
+              "vCPU-hours each day across this cloud, over the last two months.",
+            )}
+          >
+            <OpenStackDailyUsageChart
+              testId="openstack-spend-days"
+              days={snapshot.days.map((day: OpenStackSpendDay) => {
+                return { day: day.day, vcpuHours: day.vcpuHours };
+              })}
+            />
           </Card>
         </div>
       ) : (
@@ -570,7 +628,7 @@ const OpenStackCloudSpend: FunctionComponent<
               title: "vCPU-Hours",
               type: FieldType.Element,
               getElement: (item: OpenStackProjectUsage): ReactElement => {
-                return <span>{formatOpenStackUsageNumber(item.vcpuHours)}</span>;
+                return <span>{formatOpenStackUsageNumber(item.vcpuHours, translator)}</span>;
               },
             },
             {
@@ -580,7 +638,7 @@ const OpenStackCloudSpend: FunctionComponent<
               hideOnMobile: true,
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
-                  <span>{formatOpenStackUsageNumber(item.memoryGbHours)}</span>
+                  <span>{formatOpenStackUsageNumber(item.memoryGbHours, translator)}</span>
                 );
               },
             },
@@ -591,7 +649,7 @@ const OpenStackCloudSpend: FunctionComponent<
               hideOnMobile: true,
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
-                  <span>{formatOpenStackUsageNumber(item.volumeGbHours)}</span>
+                  <span>{formatOpenStackUsageNumber(item.volumeGbHours, translator)}</span>
                 );
               },
             },
@@ -603,7 +661,7 @@ const OpenStackCloudSpend: FunctionComponent<
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
                   <span>
-                    {formatOpenStackUsageNumber(item.floatingIpHours)}
+                    {formatOpenStackUsageNumber(item.floatingIpHours, translator)}
                   </span>
                 );
               },
@@ -680,7 +738,7 @@ const OpenStackCloudSpend: FunctionComponent<
                             {domain.projectCount.toLocaleString()}
                           </td>
                           <td className={CELL_CLASS_NAME}>
-                            {formatOpenStackUsageNumber(domain.vcpuHours)}
+                            {formatOpenStackUsageNumber(domain.vcpuHours, translator)}
                           </td>
                         </tr>
                       );
@@ -711,6 +769,7 @@ const OpenStackCloudSpend: FunctionComponent<
       <div className="mb-6">
         <OpenStackBudgetsCard
           openStackCloudId={modelId}
+          month={snapshot.month}
           currency={snapshot.currency}
           isPriced={isPriced}
         />
@@ -789,13 +848,13 @@ const OpenStackCloudSpend: FunctionComponent<
                               </bdi>
                             </td>
                             <td className={CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(row.instanceHours)}
+                              {formatOpenStackUsageNumber(row.instanceHours, translator)}
                             </td>
                             <td className={CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(row.vcpuHours)}
+                              {formatOpenStackUsageNumber(row.vcpuHours, translator)}
                             </td>
                             <td className={WIDE_CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(row.memoryGbHours)}
+                              {formatOpenStackUsageNumber(row.memoryGbHours, translator)}
                             </td>
                             <td className={CELL_CLASS_NAME}>
                               {money(row.amount)}
@@ -843,7 +902,7 @@ const OpenStackCloudSpend: FunctionComponent<
                               </bdi>
                             </td>
                             <td className={CELL_CLASS_NAME}>
-                              {formatOpenStackUsageNumber(row.gbHours)}
+                              {formatOpenStackUsageNumber(row.gbHours, translator)}
                             </td>
                             <td className={CELL_CLASS_NAME}>
                               {money(row.amount)}

@@ -109,6 +109,10 @@ server_is_gone() {
   ! openstack server show "$1" >/dev/null 2>&1
 }
 
+volume_status_is() {
+  [ "$(openstack volume show "$1" -f value -c status 2>/dev/null || true)" = "$2" ]
+}
+
 # A reading, and when it was taken: the time is the whole point of it.
 reading() {
   local scene="$1"
@@ -124,6 +128,11 @@ boot() {
 }
 
 IMAGE="$(openstack image list --status active -f value -c Name | grep -i cirros | head -1)"
+WORK="$(mktemp -d)"
+
+# Ten more instances than a project's default leaves room for, and this all runs as one project.
+openstack quota set --instances 50 --cores 100 --ram 204800 \
+  "$(openstack token issue -f value -c project_id)"
 
 log "Four hosts, on the fake driver, in a zone of their own"
 for name in ou-use-1 ou-use-2 ou-use-3 ou-use-quiet; do
@@ -159,28 +168,27 @@ log "What's been left, each beside something in use"
 upload() {
   local name="$1" protected="$2"
   openstack image show "$name" >/dev/null 2>&1 && return 0
-  head -c 1048576 /dev/zero >"$STATE/blank.raw" 2>/dev/null \
-    || sudo sh -c "head -c 1048576 /dev/zero > '$STATE/blank.raw'"
+  head -c 1048576 /dev/zero >"$WORK/blank.raw"
+  # shellcheck disable=SC2086 # Nothing, or the one word it says.
   openstack image create --private --disk-format raw --container-format bare \
-    $protected --file "$STATE/blank.raw" "$name" >/dev/null
+    $protected --file "$WORK/blank.raw" "$name" >/dev/null
 }
 upload ou-image-unused ""
 upload ou-image-protected "--protected"
 # A real image, because what boots from it or is made from it has to get somewhere.
 openstack image show ou-image-used >/dev/null 2>&1 || {
-  openstack image save --file "$STATE/cirros.img" "$IMAGE"
+  openstack image save --file "$WORK/cirros.img" "$IMAGE"
   openstack image create --private --disk-format qcow2 --container-format bare \
-    --file "$STATE/cirros.img" ou-image-used >/dev/null
+    --file "$WORK/cirros.img" ou-image-used >/dev/null
 }
 openstack image show ou-image-behind-volume >/dev/null 2>&1 \
   || openstack image create --private --disk-format qcow2 --container-format bare \
-    --file "$STATE/cirros.img" ou-image-behind-volume >/dev/null
+    --file "$WORK/cirros.img" ou-image-behind-volume >/dev/null
 boot ou-usage-on-image ou.tiny ou-use-1 ou-image-used
 wait_until "ou-usage-on-image is ACTIVE" 60 server_status_is ou-usage-on-image ACTIVE
 openstack volume show ou-vol-from-image >/dev/null 2>&1 \
   || openstack volume create --size 1 --image ou-image-behind-volume ou-vol-from-image >/dev/null
-wait_until "ou-vol-from-image is available" 60 test \
-  "$(openstack volume show ou-vol-from-image -f value -c status 2>/dev/null || true)" = available
+wait_until "ou-vol-from-image is available" 60 volume_status_is ou-vol-from-image available
 
 log "A test period: a resize and a deletion, with readings between"
 boot ou-usage-resized ou.tiny ou-use-1 "$IMAGE"

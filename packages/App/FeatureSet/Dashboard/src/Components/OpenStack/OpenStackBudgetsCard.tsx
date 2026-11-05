@@ -45,6 +45,7 @@ const PROJECT_OPTIONS: number = 1000;
 
 export interface ComponentProps {
   openStackCloudId: ObjectID;
+  month: string;
   currency: string | null;
   isPriced: boolean;
 }
@@ -62,25 +63,21 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
         modelType: OpenStackProjectUsage,
         query: {
           openStackCloudId: props.openStackCloudId,
+          period: props.month,
         },
-        select: { openStackProjectId: true, name: true, period: true },
-        sort: { period: SortOrder.Descending, sortValue: SortOrder.Descending },
+        select: { openStackProjectId: true, name: true },
+        sort: { sortValue: SortOrder.Descending },
         skip: 0,
         limit: PROJECT_OPTIONS,
       });
-    const seen: Map<string, DropdownOption> = new Map();
 
-    for (const row of rows.data) {
-      if (row.openStackProjectId && !seen.has(row.openStackProjectId)) {
-        seen.set(row.openStackProjectId, {
-          value: row.openStackProjectId,
-          label: row.name || row.openStackProjectId,
-        });
-      }
-    }
-
-    return Array.from(seen.values());
-  }, [props.openStackCloudId.toString()]);
+    return rows.data.map((row: OpenStackProjectUsage): DropdownOption => {
+      return {
+        value: row.openStackProjectId || "",
+        label: row.name || row.openStackProjectId || "",
+      };
+    });
+  }, [props.openStackCloudId.toString(), props.month]);
 
   const nameOfProject: (id: string | undefined) => string = (
     id: string | undefined,

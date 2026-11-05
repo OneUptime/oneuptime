@@ -221,6 +221,10 @@ A large cloud's pages read as fast as a small one's, because none of them reads 
 | **Topology** | Past 5,000 parts, the structure, what has failed and what that takes with it. It says what it left out |
 | **Inventory writes** | At most 500 rows to a statement, and 5,000 to a delete, each its own transaction, so no writer waits long on another. A row nothing has changed on is not rewritten for up to 5 minutes, which cuts the write-ahead log more than twentyfold |
 
+## Usage and spend
+
+A cloud's [Spend page](/docs/telemetry/openstack#spend) reads the inventory's rows rather than any instance's series, so it works the same in summary mode, and its cost grows with projects rather than instances. It reads one row of the cloud and one page of projects. [Its own section](/docs/telemetry/openstack#at-each-size) has the numbers at each size.
+
 ## Next steps
 
 :::cards
