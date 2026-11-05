@@ -269,6 +269,9 @@ describe.each([
     "2026-10-30 10:00:00.123 1234 DEBUG nova.virt.libvirt.driver Written with no request by a format of someone's own",
     "INFO nova.compute.manager Written with no request by a format of someone's own",
     '{"message": "Started", "levelname": "INFO", "name": "nova.compute.manager"}',
+    // Keystone's extensions name their notifications with a colon.
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [None req-r admin admin] {}",
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [\u001b[01;36mNone req-r \u001b[00;36madmin admin] \u001b[01;35m{}",
   ])("starts a record: %s", (line) => {
     expect(isFirstEntry(line)).toBe(true);
   });

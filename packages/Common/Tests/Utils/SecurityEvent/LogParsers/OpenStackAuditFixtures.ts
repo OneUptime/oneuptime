@@ -146,6 +146,59 @@ export function readRecordedPhase(
     });
 }
 
+/*
+ * What a real collector sent, attributes and all, read the way ingest reads it. Not always what
+ * the service wrote: the agent's journal profile joins lines.
+ */
+export function readRecordedCollector(
+  release: string,
+  phase: string,
+): Array<RecordedLine> {
+  const file: string = path.join(
+    ROOT,
+    release,
+    "audit",
+    `collector-${phase}.jsonl`,
+  );
+
+  if (!fs.existsSync(file)) {
+    return [];
+  }
+
+  return fs
+    .readFileSync(file, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((text: string, index: number): RecordedLine => {
+      const record: JSONObject = JSON.parse(text);
+      const raw: string = record["body"] as string;
+      const attributes: JSONObject = record["attributes"] as JSONObject;
+      const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+        attributes,
+        body: raw,
+        severityNumber: 0,
+      });
+      const stored: JSONObject = { ...attributes, ...stamp.attributes };
+
+      return {
+        raw,
+        body: stamp.body,
+        attributes: stored,
+        stamp,
+        events: SecurityLogParser.parse({
+          body: stamp.body,
+          attributes: stored,
+          time: new Date("2026-11-04T00:00:00.000Z"),
+          logId: `collector-${phase}-${index}`,
+        }).filter((event: NormalizedSecurityEvent): boolean => {
+          return (
+            typeof event.attributes[OpenStackAuditAttribute.Cloud] === "string"
+          );
+        }),
+      };
+    });
+}
+
 export function eventsOf(
   lines: Array<RecordedLine>,
 ): Array<NormalizedSecurityEvent> {

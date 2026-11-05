@@ -1,0 +1,14 @@
+[
+  {
+    "ID": "cd9e7900-0a2a-4881-b8ae-d126d55b1f08",
+    "Name": "",
+    "MAC Address": "fa:16:3e:54:77:e8",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "955ab9ec-e64f-4860-a028-556bdd72d700",
+        "ip_address": "192.0.2.10"
+      }
+    ],
+    "Status": "ACTIVE"
+  }
+]

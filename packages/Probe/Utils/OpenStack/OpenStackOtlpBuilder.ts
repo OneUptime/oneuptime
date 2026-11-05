@@ -10,6 +10,7 @@ import {
 } from "./OpenStackInventory";
 import { OpenStackSendGate } from "./OpenStackRollingSend";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { toOpenStackResourcesQuery } from "Common/Types/OpenStack/OpenStackCapacity";
 import {
   OpenStackRbdLocation,
   isOpenStackRbdProtocol,
@@ -566,6 +567,17 @@ function writeCompute(
           ram: flavor.ram,
           disk: flavor.disk,
           is_public: flavor.isPublic,
+          /*
+           * What only a native collector reads, because the exporter leaves extra specs behind:
+           * what one of these would really ask for. An empty label is no label, so a flavor that
+           * asks for nothing unusual still says what it asks for, and only that.
+           */
+          placement_resources: toOpenStackResourcesQuery(
+            flavor.request.resources,
+          ),
+          placement_required: flavor.request.requiredTraits.join(","),
+          placement_forbidden: flavor.request.forbiddenTraits.join(","),
+          is_disabled: flavor.isDisabled ? true : null,
         },
         1,
       );
@@ -692,6 +704,45 @@ function writePlacement(
           resourcetype: allocation.resourceClass,
         },
         allocation.amount,
+      );
+    }
+  }
+
+  /*
+   * What Placement said of each flavor, as it last stood: one series for the region, which says
+   * when it was asked and how far to trust it, and one for each zone and aggregate.
+   */
+  for (const answer of inventory.flavorAnswers || []) {
+    const flavor: Labels = {
+      flavor_id: answer.flavorId,
+      flavor: answer.flavorName,
+    };
+
+    writer.add(
+      "flavor_fits",
+      {
+        ...flavor,
+        scope: "region",
+        asked_at: answer.askedAt,
+        hosts_with_room: answer.hostsWithRoom,
+        is_capped: answer.isCapped,
+      },
+      answer.fits,
+    );
+
+    for (const zone of Object.keys(answer.byZone).sort()) {
+      writer.add(
+        "flavor_fits",
+        { ...flavor, scope: "zone", scope_name: zone },
+        answer.byZone[zone]!,
+      );
+    }
+
+    for (const aggregate of Object.keys(answer.byAggregate).sort()) {
+      writer.add(
+        "flavor_fits",
+        { ...flavor, scope: "aggregate", scope_name: aggregate },
+        answer.byAggregate[aggregate]!,
       );
     }
   }

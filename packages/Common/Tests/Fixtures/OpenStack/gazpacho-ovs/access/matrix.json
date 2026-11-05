@@ -146,7 +146,7 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 4,
+          "count": 5,
           "seesAll": true
         },
         "reader": {
@@ -157,12 +157,12 @@
         },
         "monitoring-role": {
           "status": 200,
-          "count": 4,
+          "count": 5,
           "seesAll": true
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 4,
+          "count": 5,
           "seesAll": true
         }
       }
@@ -230,7 +230,7 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 0,
+          "count": 2,
           "seesAll": true
         },
         "reader": {
@@ -241,12 +241,12 @@
         },
         "monitoring-role": {
           "status": 200,
-          "count": 0,
+          "count": 2,
           "seesAll": true
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 0,
+          "count": 2,
           "seesAll": true
         }
       }
@@ -559,7 +559,7 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 13,
+          "count": 14,
           "seesAll": true
         },
         "reader": {
@@ -616,13 +616,13 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 5,
+          "count": 8,
           "seesAll": true
         },
         "reader": {
           "status": 200,
-          "count": 5,
-          "seesAll": true
+          "count": 6,
+          "seesAll": false
         },
         "monitoring-role": {
           "status": 200,
@@ -631,8 +631,8 @@
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 5,
-          "seesAll": true
+          "count": 6,
+          "seesAll": false
         }
       }
     },
@@ -656,13 +656,13 @@
           "status": 403,
           "count": null,
           "seesAll": false,
-          "reason": "User does not have admin privileges"
+          "reason": "Policy doesn't allow volume_extension:services:index to be performed."
         },
         "role-on-a-project": {
           "status": 403,
           "count": null,
           "seesAll": false,
-          "reason": "User does not have admin privileges"
+          "reason": "Policy doesn't allow volume_extension:services:index to be performed."
         }
       }
     },
@@ -686,13 +686,13 @@
           "status": 403,
           "count": null,
           "seesAll": false,
-          "reason": "User does not have admin privileges\nTraceback (most recent call last):\n\n  File \"/opt/stack/data/venv/lib/python3.12/site-packages/oslo_messaging/rpc/server.py\", line 174, in _process_incoming\n    res "
+          "reason": "Policy doesn't allow scheduler_extension:scheduler_stats:get_pools to be performed."
         },
         "role-on-a-project": {
           "status": 403,
           "count": null,
           "seesAll": false,
-          "reason": "User does not have admin privileges\nTraceback (most recent call last):\n\n  File \"/opt/stack/data/venv/lib/python3.12/site-packages/oslo_messaging/rpc/server.py\", line 174, in _process_incoming\n    res "
+          "reason": "Policy doesn't allow scheduler_extension:scheduler_stats:get_pools to be performed."
         }
       }
     },
@@ -784,23 +784,72 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
         },
         "reader": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
         },
         "monitoring-role": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
+        }
+      }
+    }
+  ],
+  "partReads": [
+    {
+      "service": "network",
+      "read": "a router's L3 agents",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_l3-agents is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 404,
+          "count": null,
+          "reason": "Router 4c0e08d6-d054-43fb-9545-2fbd0738956d could not be found"
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 1
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "a DHCP agent's networks",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_dhcp-networks is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 1
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 2
         }
       }
     }

@@ -144,6 +144,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.FlowDiagram}
         />
+        <SideMenuItem
+          link={{
+            title: "Capacity",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ChartBar}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Control Plane">

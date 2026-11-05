@@ -539,6 +539,12 @@ describe("an instance", () => {
               ram: 512,
               disk: 1,
               isPublic: true,
+              isDisabled: false,
+              request: {
+                resources: { VCPU: 1, MEMORY_MB: 512, DISK_GB: 1 },
+                requiredTraits: [],
+                forbiddenTraits: [],
+              },
             },
           ],
           servers: [SERVER],

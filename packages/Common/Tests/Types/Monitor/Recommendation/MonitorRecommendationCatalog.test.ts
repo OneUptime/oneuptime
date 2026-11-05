@@ -20,6 +20,7 @@ import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/Kubern
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllOpenShiftAlertTemplates } from "../../../../Types/Monitor/OpenShiftAlertTemplates";
 import { getAllOpenStackAlertTemplates } from "../../../../Types/Monitor/OpenStackAlertTemplates";
+import { getAllOpenStackLogAlertTemplates } from "../../../../Types/Monitor/OpenStackLogAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
@@ -172,9 +173,17 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.OpenStack,
-    monitorTypes: [MonitorType.OpenStack],
-    templateCount: getAllOpenStackAlertTemplates().length,
-    contextFreeTemplateCount: getAllOpenStackAlertTemplates().length,
+    /*
+     * The metric templates, and what a cloud's own services write and say:
+     * Logs monitors scoped to the cloud (OpenStackLogAlertTemplates).
+     */
+    monitorTypes: [MonitorType.OpenStack, MonitorType.Logs],
+    templateCount:
+      getAllOpenStackAlertTemplates().length +
+      getAllOpenStackLogAlertTemplates().length,
+    contextFreeTemplateCount:
+      getAllOpenStackAlertTemplates().length +
+      getAllOpenStackLogAlertTemplates().length,
     identifierFieldName: "cloudIdentifier",
   },
   {

@@ -118,7 +118,7 @@ const AgentOverview: FunctionComponent<{
       label: "Networks it serves",
       value: translator.formatNumber(dhcpNetworkCount),
       description:
-        "As Neutron last said. It is asked every ten minutes, in turns on a cloud with many DHCP agents.",
+        "Those this credential can see, as Neutron last said. It is asked every ten minutes, in turns on a cloud with many DHCP agents.",
     });
   }
   if (row.regionName) {
@@ -260,7 +260,7 @@ const OpenStackCloudNetworkAgentDetail: FunctionComponent<
                   query={{ facts: dhcpFacts }}
                   tableId="openstack-network-agent-networks-table"
                   title="Networks this agent serves"
-                  description="The networks Neutron has scheduled on this DHCP agent, as Neutron last said."
+                  description="The networks Neutron has scheduled on this DHCP agent that this credential can see, as Neutron last said."
                   emptyTitle="No networks on this agent"
                   emptyDescription="Neutron has scheduled no network here, or this credential can't see the ones it has."
                 />

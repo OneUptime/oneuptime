@@ -791,7 +791,15 @@ else
     LOGIN_EXIT=$?
     LOGIN_CODE=$(printf '%s\n' "$LOGIN" | sed -n 's/^OUSTATUS:\([0-9]\{3\}\).*/\1/p' | head -1)
     [ -z "$LOGIN_CODE" ] && LOGIN_CODE="000"
+    # Keystone answers 404 for an application credential it no longer has, which is no wrong URL.
+    if [ "$LOGIN_CODE" = "404" ] && printf '%s' "$LOGIN" | grep -qi 'application credential'; then
+      LOGIN_CODE="no-such-credential"
+    fi
     case "$LOGIN_CODE" in
+      no-such-credential)
+        fail "Keystone has no such application credential (HTTP 404): it was deleted, or the ID in clouds.yaml is wrong."
+        add_finding "Keystone no longer has the application credential in $CLOUDS_FILE. Make a new one (README.md, \"Access\"), move clouds.yaml aside and run install.sh again."
+        ;;
       200|201)
         pass "DNS and TLS are fine, and Keystone accepted the credential (HTTP $LOGIN_CODE)."
         KEYSTONE_OK=1

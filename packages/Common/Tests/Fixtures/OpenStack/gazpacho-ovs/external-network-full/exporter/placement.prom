@@ -1,0 +1,41 @@
+# HELP openstack_placement_resource_allocation_ratio resource_allocation_ratio
+# TYPE openstack_placement_resource_allocation_ratio gauge
+openstack_placement_resource_allocation_ratio{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 1
+openstack_placement_resource_allocation_ratio{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 1
+openstack_placement_resource_allocation_ratio{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
+# HELP openstack_placement_resource_generation resource_generation
+# TYPE openstack_placement_resource_generation gauge
+openstack_placement_resource_generation{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 10
+openstack_placement_resource_generation{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 10
+openstack_placement_resource_generation{hostname="compute-01.example.internal",resourcetype="VCPU"} 10
+# HELP openstack_placement_resource_provider_allocations resource_provider_allocations
+# TYPE openstack_placement_resource_provider_allocations gauge
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="716d0b76-0476-47cb-84be-97009c7782dd"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="8665dba7-da4b-497e-a8f5-bebba68b2d32"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="df677f88-8270-4359-8ca7-8794429c41b8"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="1479bfe4-f28f-4a01-8a3e-2f945d95b995"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="716d0b76-0476-47cb-84be-97009c7782dd"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="8665dba7-da4b-497e-a8f5-bebba68b2d32"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="df677f88-8270-4359-8ca7-8794429c41b8"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="1479bfe4-f28f-4a01-8a3e-2f945d95b995"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="716d0b76-0476-47cb-84be-97009c7782dd"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="8665dba7-da4b-497e-a8f5-bebba68b2d32"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="df677f88-8270-4359-8ca7-8794429c41b8"} 1
+# HELP openstack_placement_resource_reserved resource_reserved
+# TYPE openstack_placement_resource_reserved gauge
+openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 0
+openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 512
+openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="VCPU"} 0
+# HELP openstack_placement_resource_total resource_total
+# TYPE openstack_placement_resource_total gauge
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 144
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 15983
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
+# HELP openstack_placement_resource_usage resource_usage
+# TYPE openstack_placement_resource_usage gauge
+openstack_placement_resource_usage{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 3
+openstack_placement_resource_usage{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 512
+openstack_placement_resource_usage{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
+# HELP openstack_placement_up up
+# TYPE openstack_placement_up gauge
+openstack_placement_up 1

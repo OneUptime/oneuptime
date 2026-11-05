@@ -1,0 +1,346 @@
+import { Locator, Page } from "@playwright/test";
+import fsPromises from "fs/promises";
+import {
+  CLOUD_PATH,
+  FixtureRecord,
+  VIEWPORTS,
+  expect,
+  fixtureRecord,
+  openCloudPage,
+  screenshot,
+  test,
+} from "./Helpers";
+
+/*
+ * "Can we fit this?": the Capacity page, in a real browser. On a recording, what a real cloud's
+ * exporter answered is read through the real scan and the snapshot the worker writes, by the same
+ * code. ?capacity=short is made up in the snapshot's own shape, for what no recording holds.
+ */
+
+function flavorRow(page: Page, name: string): Locator {
+  return page.locator(
+    `[data-testid="openstack-capacity-flavor"][data-flavor="${name}"]`,
+  );
+}
+
+test.describe("on a real cloud's answers", () => {
+  test("every flavor is counted by hand's numbers, and it says it calculated", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "recording=gazpacho-ovs/healthy");
+
+    await expect(page.getByTestId("openstack-capacity-headline")).toBeVisible();
+
+    // 13 vCPUs, 15086 MB and 141 GB free: see OpenStackCapacity.test.ts.
+    await expect(
+      flavorRow(page, "m1.small").getByTestId("openstack-capacity-flavor-fits"),
+    ).toContainText("7");
+    await expect(
+      flavorRow(page, "m1.large").getByTestId("openstack-capacity-flavor-fits"),
+    ).toContainText("1");
+    await expect(
+      flavorRow(page, "ou.impossible").getByTestId(
+        "openstack-capacity-flavor-fits",
+      ),
+    ).toContainText("Too large for every host");
+
+    await expect(page.getByTestId("openstack-capacity-source")).toHaveAttribute(
+      "data-source",
+      "inventories",
+    );
+    await expect(page.getByTestId("openstack-capacity-source")).toContainText(
+      "can't see traits",
+    );
+
+    // A DevStack has room for all it was asked to run, and nothing's history to go on.
+    await expect(
+      page.getByTestId("openstack-capacity-nothing-short"),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '[data-testid="openstack-capacity-forecast"][data-state="not-enough-history"]',
+      ),
+    ).not.toHaveCount(0);
+    await expect(
+      page.getByTestId("openstack-capacity-forecasts"),
+    ).toContainText("Not enough history");
+
+    await screenshot(page, "capacity-recording");
+  });
+
+  test("a stopped nova-compute isn't room, says so, and leaves its flavors short", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(
+      page,
+      "capacity",
+      "recording=gazpacho-ovs/compute-down",
+    );
+
+    await expect(
+      page.getByTestId("openstack-capacity-not-counted"),
+    ).toContainText("lost");
+    await expect(
+      flavorRow(page, "m1.small").getByTestId("openstack-capacity-flavor-fits"),
+    ).toContainText("0");
+    await expect(
+      page.locator(
+        '[data-testid="openstack-capacity-shortage"][data-kind="flavor-cannot-be-placed"]',
+      ),
+    ).not.toHaveCount(0);
+  });
+
+  test("one someone disabled is planned work, not a shortage", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(
+      page,
+      "capacity",
+      "recording=gazpacho-ovs/compute-disabled",
+    );
+
+    await expect(
+      flavorRow(page, "m1.small").getByTestId("openstack-capacity-flavor-fits"),
+    ).toContainText("Room only on hosts someone disabled");
+    await expect(
+      page.locator(
+        '[data-testid="openstack-capacity-shortage"][data-kind="flavor-cannot-be-placed"]',
+      ),
+    ).toHaveCount(0);
+  });
+});
+
+test.describe("with something short", () => {
+  test("what is short comes first, soonest first, each in its own words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+
+    const kinds: Array<string | null> = await page
+      .getByTestId("openstack-capacity-shortage")
+      .evaluateAll((rows: Array<Element>) => {
+        return rows.map((row: Element) => {
+          return row.getAttribute("data-kind");
+        });
+      });
+
+    expect(kinds).toEqual([
+      "flavor-cannot-be-placed",
+      // Neither zone could lose a host: zone-b is already down one, and holds what ran on it.
+      "headroom-gone",
+      "headroom-gone",
+      "fills-up",
+      "fills-up",
+      "allocations-disagree",
+    ]);
+
+    await expect(page.getByTestId("openstack-capacity-headline")).toContainText(
+      "Room for 340 m1.small, and 0 m1.xlarge.",
+    );
+
+    await expect(page.getByTestId("openstack-capacity-tiles")).toContainText(
+      "until full, at this week's growth",
+    );
+
+    // Nothing says when an orphaned allocation fills anything: it isn't growing.
+    await expect(
+      page.locator(
+        '[data-testid="openstack-capacity-shortage"][data-kind="allocations-disagree"]',
+      ),
+    ).not.toContainText("days");
+
+    await screenshot(page, "capacity-short");
+  });
+
+  test("a fragmented flavor says what it would be as one pool", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+
+    await expect(
+      flavorRow(page, "m1.xlarge").getByTestId(
+        "openstack-capacity-flavor-fragmented",
+      ),
+    ).toContainText("if it were one pool");
+  });
+
+  test("each count says whether Placement answered it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+
+    await expect(
+      flavorRow(page, "m1.small").getByTestId(
+        "openstack-capacity-flavor-source",
+      ),
+    ).toHaveAttribute("data-source", "placement");
+
+    const gold: Locator = flavorRow(page, "gold.large").getByTestId(
+      "openstack-capacity-flavor-source",
+    );
+
+    await expect(gold).toHaveAttribute("data-source", "inventories");
+    await expect(gold).toContainText("Can't see its traits");
+  });
+
+  test("an orphaned allocation names its host, and the command that finds it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+
+    const orphans: Locator = page.getByTestId("openstack-capacity-orphans");
+
+    await expect(orphans).toContainText("cmp-a2.acme.example");
+    await expect(orphans).toContainText(
+      "nova-manage placement audit --verbose",
+    );
+    await expect(orphans.getByRole("link")).toHaveAttribute(
+      "href",
+      "https://docs.openstack.org/nova/latest/admin/troubleshooting/orphaned-allocations.html",
+    );
+  });
+
+  test("the ratio sits beside what hosts really use, only where something says", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+
+    await expect(
+      page.getByTestId("openstack-capacity-overcommit"),
+    ).toContainText("9:1");
+
+    await openCloudPage(page, "capacity", "recording=gazpacho-ovs/healthy");
+
+    await expect(
+      page.getByTestId("openstack-capacity-no-real-usage"),
+    ).toContainText("prometheus-libvirt-exporter");
+  });
+
+  test("aggregates are folded until someone asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+
+    await expect(page.getByTestId("openstack-capacity-aggregates")).toHaveCount(
+      0,
+    );
+
+    await page.getByTestId("openstack-capacity-aggregates-toggle").click();
+
+    await expect(
+      page.getByTestId("openstack-capacity-aggregates"),
+    ).toContainText("rack-1");
+  });
+
+  test("the CSV holds the tables, as a spreadsheet can read them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Export CSV" }).click(),
+    ]);
+
+    expect(download.suggestedFilename()).toBe("openstack-capacity.csv");
+
+    const csv: string = await fsPromises.readFile(
+      await download.path(),
+      "utf8",
+    );
+
+    expect(csv).toContain("\nFlavors\n");
+    expect(csv).toContain("RegionOne,m1.small,");
+    expect(csv).toContain("\nWhen things fill up\n");
+  });
+});
+
+test.describe("however large the cloud", () => {
+  test("it reads one row, and asks nothing of the metric store", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short");
+    await expect(page.getByTestId("openstack-capacity-headline")).toBeVisible();
+
+    const record: FixtureRecord = await fixtureRecord(page);
+    const capacityReads: Array<unknown> = record.itemRequests.filter(
+      (request: FixtureRecord["itemRequests"][number]): boolean => {
+        return JSON.stringify(request.select).includes("capacitySnapshot");
+      },
+    );
+
+    expect(capacityReads).toHaveLength(1);
+    expect(record.aggregateRequests).toEqual(
+      expect.not.arrayContaining([
+        expect.objectContaining({
+          name: expect.stringContaining("openstack_capacity"),
+        }),
+      ]),
+    );
+  });
+
+  test("a cloud no worker has been through says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=none");
+
+    await expect(page.getByTestId("openstack-capacity-not-yet")).toBeVisible();
+  });
+});
+
+test.describe("on a phone", () => {
+  for (const viewport of VIEWPORTS) {
+    test(`nothing runs off the page at ${viewport.width} pixels`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize(viewport);
+      await openCloudPage(page, "capacity", "capacity=short");
+      await expect(
+        page.getByTestId("openstack-capacity-headline"),
+      ).toBeVisible();
+
+      const scrollWidth: number = await page.evaluate(() => {
+        return document.documentElement.scrollWidth;
+      });
+
+      expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
+
+      await screenshot(page, `capacity-${viewport.width}`);
+    });
+  }
+});
+
+test("the side menu reaches it", async ({ page }: { page: Page }) => {
+  await openCloudPage(page, "");
+
+  await page.getByRole("link", { name: "Capacity", exact: true }).click();
+
+  await expect(page).toHaveURL(new RegExp(`${CLOUD_PATH}/capacity`));
+  await expect(page.getByTestId("openstack-capacity")).toBeVisible();
+});

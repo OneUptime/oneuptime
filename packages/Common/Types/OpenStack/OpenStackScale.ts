@@ -292,6 +292,23 @@ export const OPENSTACK_PER_PART_READS_PER_COLLECTION: number = 2000;
 export const OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION: number = 250;
 
 /*
+ * What asking Placement how many of a flavor fit costs. GET /allocation_candidates is the one read
+ * here that makes Placement work: it is what Nova's scheduler asks once for every boot. So it is
+ * asked about one shape of flavor at a time, at most this many a collection and in turns, however
+ * many flavors there are: a couple of boots' worth of work a minute. What was not asked this time
+ * is sent as it last stood. A first collection asks nothing, because nothing is known yet of what
+ * to ask about, and neither does one that has already been told to slow down.
+ */
+export const OPENSTACK_CANDIDATE_READS_PER_COLLECTION: number = 4;
+
+/*
+ * The most candidates one answer holds: Nova's own [scheduler] max_placement_results, so a read
+ * asks for what one boot does. An answer this long may not be all of them, so a count from it is
+ * a floor, and its page says so. Zero is exact either way, which is what an alert reads.
+ */
+export const OPENSTACK_CANDIDATE_RESULT_LIMIT: number = 1000;
+
+/*
  * What happened to an instance that changed, which only Nova's own record says. A call per
  * instance, this many a collection, and what is left waits for the next.
  */
@@ -464,7 +481,9 @@ export function simulateOpenStackProbeRequests(data: {
             Math.min(
               options.providersChangedPerCollection ?? 0,
               OPENSTACK_PER_PART_READS_PER_COLLECTION,
-            ),
+            ) +
+            // What each shape of flavor would be told: see above. None on a first collection.
+            Math.min(counts.flavors, OPENSTACK_CANDIDATE_READS_PER_COLLECTION),
     );
 
     // Agents, networks, subnets, routers, floating IPs, address pools and security groups.
@@ -684,6 +703,12 @@ export function getOpenStackSeriesCounts(data: {
   // In summary mode, the series that stay: chosen projects, and any part in a bad state.
   keptInstances?: number | undefined;
   isOvs?: boolean | undefined;
+  /*
+   * How many flavors a probe has had an answer from Placement about: all of them, once it has
+   * been round them. Each says the region's number and its zones', and this counts one zone. The
+   * agent's exporter never asks, so none unless this says so.
+   */
+  flavorsAnswered?: number | undefined;
 }): OpenStackSeriesCounts {
   const { counts } = data;
   const isSummary: boolean = Boolean(data.isSummaryMode);
@@ -704,7 +729,10 @@ export function getOpenStackSeriesCounts(data: {
 
   // Four series for each of three resource classes, and three usages.
   const placement: number =
-    counts.hypervisors * 15 + 1 + SCRAPE_SERIES_PER_READING;
+    counts.hypervisors * 15 +
+    1 +
+    SCRAPE_SERIES_PER_READING +
+    (data.flavorsAnswered ?? 0) * 2;
 
   const network: number =
     counts.networkAgents +
@@ -810,8 +838,11 @@ export function estimateOpenStackVolume(data: {
    */
   collectionIntervalInMinutes?: number | undefined;
 }): OpenStackVolumeEstimate {
-  const series: OpenStackSeriesCounts = getOpenStackSeriesCounts(data);
   const probeInterval: number | undefined = data.collectionIntervalInMinutes;
+  const series: OpenStackSeriesCounts = getOpenStackSeriesCounts({
+    ...data,
+    flavorsAnswered: probeInterval !== undefined ? data.counts.flavors : 0,
+  });
   const fastPerDay: number =
     probeInterval !== undefined
       ? (24 * 60) / probeInterval

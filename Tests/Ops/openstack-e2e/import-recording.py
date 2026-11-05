@@ -25,11 +25,15 @@ import sys
 SCENES = (
     "healthy",
     "compute-disabled",
+    "compute-forced-down",
     "compute-down",
     "network-agent-down",
     "volume-service-down",
     "scheduler-down",
     "compute-api-down",
+    "external-network-full",
+    "router-agents-removed",
+    "l3-agent-down",
     "recovered",
 )
 
@@ -50,8 +54,8 @@ ACCESS_LEVELS_WALKED = ("monitoring-admin-get", "monitoring-role", "reader")
 # of the APIs, and only from one release beyond a healthy cloud. Each scene's own
 # api-status.txt says what status each answer came with.
 API_SCENES = {
-    "hibiscus-ovn": ("healthy", "compute-disabled", "compute-down", "compute-api-down"),
-    "gazpacho-ovs": ("healthy", "compute-disabled"),
+    "hibiscus-ovn": ("healthy", "compute-disabled", "compute-forced-down", "compute-down", "compute-api-down"),
+    "gazpacho-ovs": ("healthy", "compute-disabled", "compute-forced-down", "router-agents-removed", "l3-agent-down"),
 }
 API_CALLS = (
     "cinder-backups",
@@ -67,6 +71,7 @@ API_CALLS = (
     "keystone-regions",
     "keystone-services",
     "keystone-users",
+    "neutron-agent-dhcp-networks",
     "neutron-agents",
     "neutron-extensions",
     "neutron-floatingips",

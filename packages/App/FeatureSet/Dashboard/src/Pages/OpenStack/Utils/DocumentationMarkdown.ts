@@ -703,8 +703,8 @@ Only the largest clouds need these, and none is asked for:
 | \`OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX\` | What Nova adds to a host's name to make a hypervisor's, such as \`.example.org\`, so an instance finds the hypervisor it runs on |
 | \`OPENSTACK_WORKER_STATE_CLOUDS\` | The \`clouds.yaml\` entries to read from Nova's and Cinder's APIs what their databases cannot say: whether each worker is alive, and how full each pool is |
 | \`OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
-| \`OPENSTACK_QUOTA_CLOUDS\` | The \`clouds.yaml\` entries whose projects' quotas are read once an hour, such as \`[RegionOne]\`. Running the installer with \`OPENSTACK_COLLECT_QUOTAS=true\` sets this, and it is empty until then |
-| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads them. Leave it out for the bundled one |`,
+| \`OPENSTACK_QUOTA_CLOUDS\` | The \`clouds.yaml\` entries to read each project's quotas from, once an hour. Empty reads none, and \`OPENSTACK_COLLECT_QUOTAS=true\` in the install script fills it in |
+| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |`,
   };
 }
 
@@ -778,7 +778,7 @@ function getWithoutDockerTopic(context: GuideContext): SetupGuideTopic {
   return {
     title: "Run without Docker",
     summary: "The same collector and exporter releases, as systemd services.",
-    markdown: `On Linux (x86_64 or arm64) with systemd 235 or later, the install script can run the same collector and exporter releases as systemd services instead:
+    markdown: `On Linux (x86_64 or arm64) with systemd 235 or later and glibc 2.34 or later (not RHEL 8), the install script can run the same collector and exporter releases as systemd services instead:
 
 ${codeBlock(
   "bash",

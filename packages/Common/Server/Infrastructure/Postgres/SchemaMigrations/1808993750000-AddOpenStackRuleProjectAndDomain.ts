@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddOpenStackRuleProjectAndDomain1808992975000
+export class AddOpenStackRuleProjectAndDomain1808993750000
   implements MigrationInterface
 {
-  public name: string = "AddOpenStackRuleProjectAndDomain1808992975000";
+  public name: string = "AddOpenStackRuleProjectAndDomain1808993750000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

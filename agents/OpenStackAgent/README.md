@@ -8,7 +8,7 @@ One agent watches one cloud: one Keystone, with one region or several. It only e
 
 ## Prerequisites
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later and root
+- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later, glibc 2.34 or later (RHEL 9, Ubuntu 22.04, Debian 12) and root
 - A route from that machine to Keystone and to each service's public endpoint
 - A credential for the cloud: see [Access](#access)
 - A **OneUptime Telemetry Ingestion Key**: create one from *Project Settings → Telemetry Ingestion Keys*
@@ -305,7 +305,7 @@ Kolla-Ansible serves it on its internal VIP on `9198`, behind an HAProxy that gi
 | Everything of Cinder's | It asks the catalog for `volumev3`, and finds no such thing where Cinder registers as `block-storage` | **Volumes** and **Storage pools** stay empty, and **Services** has no Block Storage API, `cinder-volume` or `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** and **Volume Stuck** stay quiet |
 | How many instances a hypervisor holds, and its aggregates | Nova's list of hypervisors fails at the newest microversion, which Kolla-Ansible asks for | Those two on **Hypervisors**, and what a lost host says it takes with it. Its vCPUs, memory and disk are still there: they come from Placement |
 | Domains | It has no such series | **Domains** stays empty |
-| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**, and an image stuck on its way to `active` goes unnoticed |
+| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**. **Image Stuck** stays quiet, so an image stuck on its way to `active` goes unnoticed |
 | A network's MTU | It has no such label | That line on a network's page |
 
 ## What the cloud stands on
@@ -343,7 +343,7 @@ sudo -E bash install-traces.sh
 
 It uses Docker Compose where the machine has it, and otherwise a systemd service (`bash install-traces.sh native` asks for that). It listens on `127.0.0.1:4318`, because [OSProfiler's OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) can only post plain HTTP, removes what a traced call was handed (`args`, `kwargs`, `result`, `db.params`), stamps the cloud, region and machine, which the driver never says, and forwards the rest to OneUptime over TLS.
 
-It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, and this, with a key of your own that is the same on every service:
+It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, below version 1.44, which [hangs a service as it starts a subprocess](https://github.com/open-telemetry/opentelemetry-python/issues/5789), and this, with a key of your own that is the same on every service:
 
 ```ini
 [profiler]
@@ -353,7 +353,7 @@ connection_string = otlp://127.0.0.1:4318
 trace_sqlalchemy = False
 ```
 
-Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement, `nova-conductor`, `nova-scheduler` and `cinder-volume` send nothing, each for its own reason: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
+Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement sends nothing, and on 2025.2 `nova-conductor`, `nova-scheduler` and `cinder-volume` do not either: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
 
 | Setting | Default | What it is for |
 | --- | --- | --- |
