@@ -1,0 +1,3 @@
+gnocchi 200 0.025478s
+identity 200 0.096777s
+all-at-once 200 0.656770s

@@ -154,7 +154,7 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 4,
+          "count": 5,
           "seesAll": true
         },
         "reader": {
@@ -244,7 +244,7 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 0,
+          "count": 2,
           "seesAll": true
         },
         "reader": {
@@ -581,7 +581,7 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 13,
+          "count": 14,
           "seesAll": true
         },
         "reader": {
@@ -638,13 +638,13 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 3,
+          "count": 6,
           "seesAll": true
         },
         "reader": {
           "status": 200,
-          "count": 3,
-          "seesAll": true
+          "count": 4,
+          "seesAll": false
         },
         "monitoring-role": {
           "status": 200,
@@ -653,8 +653,8 @@
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 3,
-          "seesAll": true
+          "count": 4,
+          "seesAll": false
         }
       }
     },
@@ -806,23 +806,75 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
         },
         "reader": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
         },
         "monitoring-role": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
+        }
+      }
+    }
+  ],
+  "partReads": [
+    {
+      "service": "network",
+      "read": "a router's L3 agents",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_l3-agents is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_l3-agents is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_l3-agents is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "a DHCP agent's networks",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_dhcp-networks is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_dhcp-networks is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "reason": "rule:get_dhcp-networks is disallowed by policy"
         }
       }
     }

@@ -463,9 +463,29 @@ describe("how a cloud's services group", () => {
     expect(
       groupsOf(
         [row(OpenStackResourceKind.Api, { name: undefined })],
-        [worker("baremetal", "ironic-conductor", "c-1")],
+        [worker("something-else", "something-conductor", "c-1")],
       ),
     ).toEqual([]);
+  });
+
+  test("Ironic has a card where it reports, with what only a probe says of its conductors", () => {
+    const [group] = groupsOf(
+      [api("baremetal")],
+      [worker("baremetal", "ironic-conductor", "c-1")],
+    );
+
+    expect(group?.service).toBe("baremetal");
+    expect(group?.counts.total).toBe(1);
+  });
+
+  test("a cloud without Ironic has no card for it, and no card is made from nothing", () => {
+    expect(
+      groupsOf([api("identity")], []).map(
+        (group: OpenStackServiceGroup): string => {
+          return group.service;
+        },
+      ),
+    ).toEqual(["identity"]);
   });
 
   test("what needs someone comes first: broken, then to look at, then calm", () => {
@@ -509,6 +529,7 @@ describe("how a cloud's services group", () => {
         api("placement"),
         api("compute"),
         api("identity"),
+        api("baremetal"),
         api("dns"),
       ]).map((group: OpenStackServiceGroup): string => {
         return group.service;

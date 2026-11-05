@@ -47,6 +47,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
   CLOUD_AI_RESOURCE_TYPES,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
@@ -85,6 +86,7 @@ const COLLECTOR_DIRECTORIES: Record<ComposeInstalledAiResourceType, string> = {
   [AiResourceType.CephCluster]: "CephAgent",
   [AiResourceType.DatabaseServer]: "DatabaseAgent",
   [AiResourceType.Host]: "HostAIAgent",
+  [AiResourceType.OpenStackCloud]: "OpenStackAgent",
 };
 
 interface ComposeService {
@@ -189,7 +191,7 @@ function installerDirectory(
     "utf8",
   );
   const match: RegExpMatchArray | null = installer.match(
-    /^INSTALL_DIR="(?:\$\{INSTALL_DIR:-)?([^"}]+)\}?"/m,
+    /^(?:DEFAULT_)?INSTALL_DIR="(?:\$\{INSTALL_DIR:-)?([^"}]+)\}?"/m,
   );
 
   return match ? match[1]! : null;
@@ -229,6 +231,7 @@ describe("the agent's service", () => {
       "oneuptime-ceph-ai-agent",
       "oneuptime-database-ai-agent",
       "oneuptime-host-ai-agent",
+      "oneuptime-openstack-ai-agent",
     ]);
   });
 
@@ -1025,7 +1028,10 @@ describe("the write switch", () => {
         `compose up -d ${getResourceAiAgentServiceName(type)}`,
       );
 
-      if (type === AiResourceType.DatabaseServer) {
+      if (
+        type === AiResourceType.DatabaseServer ||
+        isReadOnlyAiResourceType(type)
+      ) {
         // A session id is not a target anyone can scope in advance.
         expect(commands.scopedEnv).toBeNull();
         expect(commands.scopedNote).toBeNull();
@@ -1085,6 +1091,11 @@ describe("the write switch", () => {
     "%s: the disclosure says what writes allow and what OneUptime never does",
     (type: ComposeInstalledAiResourceType) => {
       const disclosure: string = getResourceAiAgentWriteDisclosure(type);
+
+      if (isReadOnlyAiResourceType(type)) {
+        expect(disclosure).toMatch(/only reads/);
+        return;
+      }
 
       expect(disclosure).toMatch(/^Write access lets the agent /);
       expect(disclosure).toContain("OneUptime still holds the line");
@@ -1194,6 +1205,43 @@ describe("what AI may do, set where the agent runs", () => {
     },
   );
 
+  test("a resource AI only reads has the one setting, and says the others do nothing", () => {
+    const variables: Array<{ name: string; description: string }> =
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.OpenStackCloud,
+        resourceId: "71000000-0000-4000-8000-000000000001",
+        identity: "prod-eu",
+      }).variables;
+    const descriptionOf: (name: string) => string | undefined = (
+      name: string,
+    ): string | undefined => {
+      return variables.find((variable: { name: string }): boolean => {
+        return variable.name === name;
+      })?.description;
+    };
+
+    for (const name of [
+      "ONEUPTIME_AI_FIXES",
+      "ONEUPTIME_AI_ALLOW_WRITES",
+      "ONEUPTIME_AI_WRITE_TARGETS",
+    ]) {
+      expect(descriptionOf(name)).toBe(
+        "Has no effect yet: this agent only reads, whatever this says.",
+      );
+    }
+    expect(descriptionOf("ONEUPTIME_AI_INVESTIGATION")).toContain(
+      "whether AI may run read-only commands",
+    );
+
+    const code: string | undefined = getResourceAiAgentSettingsInstructions({
+      resourceType: AiResourceType.OpenStackCloud,
+      choice: { investigation: false, fixes: "Disabled" },
+      doesAgentReportSettings: true,
+    }).steps[0]?.ways[0]?.code;
+
+    expect(code).toBe("ONEUPTIME_AI_INVESTIGATION=false");
+  });
+
   test("a Docker host: how to do it with install.sh first, then the .env and the restart", () => {
     const instructions: AgentAiSettingsInstructions =
       getResourceAiAgentSettingsInstructions({
@@ -1295,10 +1343,12 @@ describe("what AI may do, set where the agent runs", () => {
 
       // The same .env lines first.
       expect(instructions.steps[0]!.ways[0]!.code).toBe(
-        getResourceAiAgentSettingsEnv({
-          investigation: true,
-          fixes: "RequireApproval",
-        }),
+        isReadOnlyAiResourceType(type)
+          ? "ONEUPTIME_AI_INVESTIGATION=true"
+          : getResourceAiAgentSettingsEnv({
+              investigation: true,
+              fixes: "RequireApproval",
+            }),
       );
       expect(instructions.steps[1]!.title).toBe(
         RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,

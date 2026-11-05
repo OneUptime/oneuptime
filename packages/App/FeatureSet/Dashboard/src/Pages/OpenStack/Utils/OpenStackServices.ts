@@ -67,6 +67,7 @@ export const OPENSTACK_CATALOG_ORDER: ReadonlyArray<string> = [
   OpenStackServiceType.Network,
   OpenStackServiceType.Volume,
   OpenStackServiceType.Image,
+  OpenStackServiceType.BareMetal,
 ];
 
 // Which API answers for each family of workers: the exporter reads them through it.
@@ -74,6 +75,7 @@ const SERVICE_OF_FAMILY: Record<string, OpenStackServiceType> = {
   [OpenStackServiceFamily.Compute]: OpenStackServiceType.Compute,
   [OpenStackServiceFamily.Network]: OpenStackServiceType.Network,
   [OpenStackServiceFamily.Volume]: OpenStackServiceType.Volume,
+  [OpenStackServiceFamily.BareMetal]: OpenStackServiceType.BareMetal,
 };
 
 function factsOf(row: OpenStackResource | null | undefined): JSONObject {
@@ -742,6 +744,7 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.Network]: "openstack-network-api-down",
   [OpenStackServiceType.Volume]: "openstack-block-storage-api-down",
   [OpenStackServiceType.Image]: "openstack-image-api-down",
+  [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
 };
 
 const SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS: Array<string> = [

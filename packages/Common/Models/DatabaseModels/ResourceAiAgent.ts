@@ -47,6 +47,7 @@ const RESOURCE_READERS: Array<Permission> = [
   Permission.ReadProxmoxCluster,
   Permission.ReadVMwareVCenter,
   Permission.ReadCephCluster,
+  Permission.ReadOpenStackCloud,
   Permission.ReadDatabaseServer,
   Permission.ReadHost,
   Permission.ReadCloudResource,

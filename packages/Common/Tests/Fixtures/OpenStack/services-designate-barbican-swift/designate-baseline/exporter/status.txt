@@ -1,4 +1,4 @@
-dns 200 1.226274s
-object-store 200 0.224506s
-identity 200 0.272696s
-all-at-once 200 2.709869s
+dns 200 1.255953s
+object-store 200 0.235809s
+identity 200 0.291345s
+all-at-once 200 2.773765s

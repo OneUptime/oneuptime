@@ -218,6 +218,46 @@ describe("search_logs", () => {
     );
   });
 
+  test("filters by attribute, as the context names a resource's", async () => {
+    const findBy: jest.SpyInstance = jest
+      .spyOn(LogService, "findBy")
+      .mockResolvedValue([]);
+
+    await SearchLogsTool.execute(
+      {
+        attributes: {
+          "resource.openstack.cloud.name": "prod-eu",
+          "openstack.request_root_id": "req-5a1d",
+        },
+      },
+      context(),
+    );
+
+    expect(queryOf(findBy)["attributes"]).toEqual({
+      "resource.openstack.cloud.name": "prod-eu",
+      "openstack.request_root_id": "req-5a1d",
+    });
+  });
+
+  test.each([
+    ["not an object", "req-5a1d"],
+    ["a list", ["req-5a1d"]],
+    ["a value that is itself an object", { key: { nested: "x" } }],
+    ["a value too long to be one", { key: "x".repeat(2000) }],
+  ])(
+    "refuses attributes that are %s",
+    async (_name: string, value: unknown) => {
+      const findBy: jest.SpyInstance = jest
+        .spyOn(LogService, "findBy")
+        .mockResolvedValue([]);
+
+      await expect(
+        SearchLogsTool.execute({ attributes: value as JSONObject }, context()),
+      ).rejects.toThrow(/attribute/i);
+      expect(findBy).not.toHaveBeenCalled();
+    },
+  );
+
   test("ignores empty, whitespace-only and wrongly-typed filters", async () => {
     const findBy: jest.SpyInstance = jest
       .spyOn(LogService, "findBy")
@@ -233,7 +273,12 @@ describe("search_logs", () => {
       context(),
     );
     await SearchLogsTool.execute(
-      { severityTexts: "Error", bodySearchText: null, traceId: [] },
+      {
+        severityTexts: "Error",
+        bodySearchText: null,
+        traceId: [],
+        attributes: null,
+      },
       context(),
     );
 

@@ -504,10 +504,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false,
-          "reason": "The request you have made requires authentication."
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -522,10 +521,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false,
-          "reason": "The request you have made requires authentication."
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     }

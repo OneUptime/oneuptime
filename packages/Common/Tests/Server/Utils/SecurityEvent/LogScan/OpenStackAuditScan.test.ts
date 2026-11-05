@@ -32,7 +32,10 @@ import OneUptimeDate from "../../../../../Types/Date";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import { OpenStackResourceKind } from "../../../../../Types/OpenStack/OpenStackResourceKind";
-import { SecurityEntity } from "../../../../../Types/SecurityCase/SecurityEntity";
+import {
+  SecurityEntity,
+  SecurityEntityType,
+} from "../../../../../Types/SecurityCase/SecurityEntity";
 import ServiceType from "../../../../../Types/Telemetry/ServiceType";
 import { readSecurityLogResource } from "../../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import { OpenStackAuditAttribute } from "../../../../../Utils/SecurityEvent/LogParsers/OpenStackAuditLogParser";
@@ -284,6 +287,74 @@ describe.each(OPENSTACK_AUDIT_RECORDED_RELEASES)(
       expect(
         entitiesOf({ groupByField: "targetResource", rows: grants }),
       ).toEqual(expect.arrayContaining(["project admin", "admin", "devstack"]));
+    });
+
+    test("failed logins are stored saying who, from where and against what", () => {
+      const failed: Array<JSONObject> = rowsOf("identity.authenticate").filter(
+        (row: JSONObject): boolean => {
+          return row["statusName"] === "Failure";
+        },
+      );
+
+      expect(failed).toHaveLength(24);
+      expect(
+        new Set(
+          failed.map((row: JSONObject): unknown => {
+            return row["principalUser"];
+          }),
+        ),
+      ).toEqual(new Set(["admin", "ou-nobody"]));
+
+      for (const row of failed) {
+        expect(row["principalIp"]).toBeTruthy();
+        expect(row["targetResource"]).toBe("Keystone");
+        expect(row["targetHost"]).toBe("devstack");
+        expect(row["message"]).toContain("failed to sign in to OpenStack");
+      }
+    });
+
+    test("a case about a burst of them names the address and the accounts", () => {
+      const failed: Array<JSONObject> = rowsOf("identity.authenticate").filter(
+        (row: JSONObject): boolean => {
+          return row["statusName"] === "Failure";
+        },
+      );
+      const rule: DetectionRule = new DetectionRule();
+
+      rule.groupByField = OpenStackAuditAttribute.InitiatorAddress;
+
+      const address: string = String(
+        attributeOf(
+          failed[0] as JSONObject,
+          OpenStackAuditAttribute.InitiatorAddress,
+        ),
+      );
+      const entities: Array<SecurityEntity> =
+        DetectionRuleEvaluator.getMatchGroupEntities({
+          rule,
+          matchGroup: {
+            groupValue: address,
+            matchCount: failed.length,
+            distinctCount: 0,
+            sampleMessage: String(failed[0]?.["message"]),
+            sampleObservables: failed.flatMap(
+              (row: JSONObject): Array<string> => {
+                return row["observables"] as Array<string>;
+              },
+            ),
+          },
+        });
+
+      expect(
+        entities.find((entity: SecurityEntity): boolean => {
+          return entity.value === address;
+        })?.type,
+      ).toBe(SecurityEntityType.IpAddress);
+      expect(
+        entities.map((entity: SecurityEntity): string => {
+          return entity.value;
+        }),
+      ).toEqual(expect.arrayContaining(["admin", "ou-nobody", "devstack"]));
     });
 
     test("an opened security group is stored saying who, what and on what, by name", () => {

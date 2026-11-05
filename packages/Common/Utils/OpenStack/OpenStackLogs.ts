@@ -243,6 +243,10 @@ const LEVELS: ReadonlySet<string> = new Set([
   "FATAL",
 ]);
 
+/*
+ * A colon as well: oslo.messaging names a logger after what it notifies of, and Keystone's
+ * extensions name their records OS-TRUST:trust and OS-OAUTH1:consumer.
+ */
 function isLoggerCharacter(code: number): boolean {
   return (
     isDigit(code) ||
@@ -250,7 +254,8 @@ function isLoggerCharacter(code: number): boolean {
     (code >= 97 && code <= 122) ||
     code === 95 ||
     code === 46 ||
-    code === 45
+    code === 45 ||
+    code === 58
   );
 }
 
@@ -441,15 +446,27 @@ export function readOpenStackLogLine(text: string): OpenStackLogLine | null {
 
   const loggerStart: number = position;
 
+  /*
+   * A colon only inside a name: Keystone's extensions log their notifications under
+   * oslo.messaging.notification.identity.OS-TRUST:trust.created, and "ERROR something: went
+   * wrong" has no logger at all.
+   */
   while (
     position < header.length &&
     position - loggerStart <= MAX_LOGGER_LENGTH &&
-    isLoggerCharacter(header.charCodeAt(position))
+    (isLoggerCharacter(header.charCodeAt(position)) ||
+      (header.charCodeAt(position) === 58 &&
+        isLoggerCharacter(header.charCodeAt(position + 1))))
   ) {
     position++;
   }
 
-  if (position === loggerStart || position - loggerStart > MAX_LOGGER_LENGTH) {
+  // "ERROR something: went wrong" is a sentence, which no logger's name ends like.
+  if (
+    position === loggerStart ||
+    position - loggerStart > MAX_LOGGER_LENGTH ||
+    header.charCodeAt(position - 1) === 58
+  ) {
     return null;
   }
 
@@ -1121,7 +1138,7 @@ function holdsOsloJournalFields(attributes: Record<string, unknown>): boolean {
  * Where the JSON object starting at a place ends, by its braces outside its strings: -1 if it
  * never does. What follows it can hold braces of its own.
  */
-function findJsonObjectEnd(text: string, start: number): number {
+export function findJsonObjectEnd(text: string, start: number): number {
   let depth: number = 0;
   let isInString: boolean = false;
 
