@@ -51,8 +51,8 @@ finish() {
 trap finish EXIT
 
 # Named for the region, as the agent names each clouds.yaml entry.
-sudo sed "s/^\( *\)devstack-admin:/\1$REGION:/" /etc/openstack/clouds.yaml | sudo tee "$CLOUDS_FILE" >/dev/null
-sudo chmod a+r "$CLOUDS_FILE"
+sudo sed "s/^\( *\)devstack-admin:/\1$REGION:/" /etc/openstack/clouds.yaml >"$CLOUDS_FILE"
+chmod a+r "$CLOUDS_FILE"
 
 # shellcheck disable=SC2086 # One flag per word, on purpose.
 docker run -d --name ou-openstack-quota-exporter --network host \
