@@ -32,6 +32,7 @@ import Permission, {
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { getJestSpyOn } from "../../Spy";
@@ -179,8 +180,9 @@ it("the wiring table covers every resource type", () => {
       return wiring.resourceType;
     }),
   ).toEqual(
+    // What holds for a resource AI only reads: OpenStackAiSettings.test.ts.
     ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-      return !isCloudAiResourceType(type);
+      return !isCloudAiResourceType(type) && !isReadOnlyAiResourceType(type);
     }),
   );
 });

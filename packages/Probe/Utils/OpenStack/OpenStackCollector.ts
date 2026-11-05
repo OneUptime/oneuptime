@@ -36,10 +36,12 @@ import {
 import {
   OpenStackInventoryByService,
   OpenStackComputeInventory,
+  OpenStackContainerInfraInventory,
   OpenStackIdentityInventory,
   OpenStackBareMetalInventory,
   OpenStackImageInventory,
   OpenStackNetworkInventory,
+  OpenStackOrchestrationInventory,
   OpenStackPlacementInventory,
   OpenStackVolumeInventory,
 } from "./OpenStackInventory";
@@ -79,9 +81,13 @@ import collectCompute, {
   chooseComputeMicroversion,
   computeMicroversionHeaders,
 } from "./Collectors/ComputeCollector";
+import collectContainerInfra, {
+  CONTAINER_INFRA_MICROVERSION_HEADERS,
+} from "./Collectors/ContainerInfraCollector";
 import collectIdentity from "./Collectors/IdentityCollector";
 import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
+import collectOrchestration from "./Collectors/OrchestrationCollector";
 import collectPlacement from "./Collectors/PlacementCollector";
 import collectBareMetal, {
   IRONIC_MICROVERSION,
@@ -100,6 +106,11 @@ import SSRFProtection, {
 } from "Common/Server/Utils/SSRFProtection";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+  isOpenStackOptionalService,
+} from "Common/Types/OpenStack/OpenStackOptionalServices";
 import { OpenStackInstanceMetricsMode } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
 import {
   OPENSTACK_ROLLING_BYTES_PER_DATAPOINT,
@@ -186,6 +197,9 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Image,
   // As often as the agent's job for it reads it, which the alert templates count on.
   OpenStackServiceType.BareMetal,
+  // As the agent's jobs read every service a cloud may not run.
+  OpenStackServiceType.Orchestration,
+  OpenStackServiceType.ContainerInfra,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -195,7 +209,13 @@ const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
   OpenStackServiceType.Network,
   OpenStackServiceType.Volume,
   OpenStackServiceType.Image,
-  OpenStackServiceType.BareMetal,
+  ...OPENSTACK_OPTIONAL_SERVICES.filter(
+    (entry: OpenStackOptionalService): boolean => {
+      return Boolean(entry.isReadByProbe);
+    },
+  ).map((entry: OpenStackOptionalService): OpenStackServiceType => {
+    return entry.service;
+  }),
 ];
 
 const MAX_SUMMARY_WARNINGS: number = 20;
@@ -427,7 +447,9 @@ function countRollingDatapoints(
       (inventory.network?.routers?.length || 0) +
       (inventory.network?.floatingIps?.length || 0) +
       (inventory.image?.images?.length || 0) * 2 +
-      (inventory.identity?.projects?.length || 0);
+      (inventory.identity?.projects?.length || 0) +
+      (inventory.orchestration?.stacks?.length || 0) +
+      (inventory["container-infra"]?.clusters?.length || 0) * 3;
   }
 
   return count;
@@ -1141,24 +1163,20 @@ export default class OpenStackCollector {
 
         /*
          * Not in this region's catalog, which is what a cloud without Cinder is. Its
-         * collection answers with nothing, as the agent's job for it does for ever.
+         * collection answers with nothing, as the agent's job for it does for ever. A cloud
+         * without a service it may not run hears nothing about that in the collection's report:
+         * nobody needs telling a cloud doesn't run Magnum, the way they do about Cinder.
          */
         if (!catalogUrl) {
-          /*
-           * A service a cloud may not run is not one it is missing, so a cloud without Ironic has
-           * no line saying so, and no series: nothing here may hint it was ever asked for.
-           */
-          if (!OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(service)) {
-            continue;
+          if (!isOpenStackOptionalService(service)) {
+            summaries.push({
+              service: service,
+              regionName: regionName,
+              outcome: "NotDeployed",
+              durationInMs: 0,
+              requestCount: 0,
+            });
           }
-
-          summaries.push({
-            service: service,
-            regionName: regionName,
-            outcome: "NotDeployed",
-            durationInMs: 0,
-            requestCount: 0,
-          });
           readings.push({
             service: service,
             regionName: regionName,
@@ -1331,6 +1349,18 @@ export default class OpenStackCollector {
             const inventory: OpenStackBareMetalInventory = {};
             byService.baremetal = inventory;
             work = collectBareMetal(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.Orchestration: {
+            const inventory: OpenStackOrchestrationInventory = {};
+            byService.orchestration = inventory;
+            work = collectOrchestration(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.ContainerInfra: {
+            const inventory: OpenStackContainerInfraInventory = {};
+            byService["container-infra"] = inventory;
+            work = collectContainerInfra(context(inventory));
             break;
           }
           default: {
@@ -1832,6 +1862,10 @@ export default class OpenStackCollector {
 
           if (client.service === OpenStackServiceType.BareMetal) {
             return { "X-OpenStack-Ironic-API-Version": IRONIC_MICROVERSION };
+          }
+
+          if (client.service === OpenStackServiceType.ContainerInfra) {
+            return CONTAINER_INFRA_MICROVERSION_HEADERS;
           }
 
           if (client.service !== OpenStackServiceType.Compute) {

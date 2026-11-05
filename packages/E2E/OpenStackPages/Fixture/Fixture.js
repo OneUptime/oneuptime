@@ -12,9 +12,14 @@
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
+ *   ?logs=      <release>: what that real cloud's services wrote, as the cloud's logs and
+ *               change events, through the ingest's own stamp (ServiceLogs.js), and the
+ *               instance, volume and service it wrote about, on any estate.
  *               "<release>/access/<level>" is what its exporter answered each credential:
  *               reader, monitoring-role or monitoring-admin-get.
  *   ?without=   compute, network, volume...: with a recording, a service this cloud doesn't run
+ *   ?also=      <group>/<scene>: with a recording, what a real cloud said of a service a cloud may
+ *               not run, on top of what a release's cloud said of the rest
  *   ?traces=    <release>/signed-boot: what OSProfiler's driver really sent for a signed
  *               boot, through the real reader (TraceRecordings.js). With none, a cloud has
  *               no traces, which is how every cloud starts.
@@ -33,6 +38,8 @@
  *   ?probes=    many: a choice of probes, where a new cloud starts on none
  *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
  *               untrusted | plain-http | refused | not-found | no-probe
+ *   ?aiAgent=   connected | unreachable: the OneUptime AI agent's state (AiAgent.js); none
+ *               has connected by default
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
  *   ?archived=  1: the project also has an archived cloud
  *   ?linked=    1: an incident, an alert and a maintenance event linked to this cloud, and one of
@@ -68,6 +75,15 @@ import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
+import CloudAiInsights from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Insights";
+import CloudAiLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Logs";
+import CloudAiAgent from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Agent";
+import {
+  getAiAccessStatus,
+  getAiInsights,
+  getAiLogs,
+  withAiAccessColumns,
+} from "./AiAgent";
 import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
@@ -100,6 +116,10 @@ import CloudStoragePools from "../../../App/FeatureSet/Dashboard/src/Pages/OpenS
 import CloudStoragePoolDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StoragePoolDetail";
 import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Images";
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
+import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
+import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudContainerClusters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
+import CloudContainerClusterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusterDetail";
 import CloudProjects from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Projects";
 import CloudProjectDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ProjectDetail";
 import CloudDomains from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Domains";
@@ -183,7 +203,10 @@ import {
   PROJECT_ID,
   REGION_ONE,
   buildEstate,
+  instance,
+  novaCompute,
   uuid,
+  volume,
 } from "./Data";
 import {
   addCephStatusToPools,
@@ -211,6 +234,7 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { answerRows, hasServiceLogs, readServiceLogs } from "./ServiceLogs";
 import { buildCapacitySnapshotOf } from "./Capacity";
 import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
@@ -341,11 +365,17 @@ const estate = buildEstate(
     estate: ESTATE,
     recording: RECORDING,
     recordedRows: RECORDING
-      ? rowsFromRecording(RECORDING, {
-          region: REGION_ONE,
-          loadedAt: IS_CONNECTED ? LOADED_AT - MINUTE : LOADED_AT - QUIET_FOR,
-          without: params.get("without") || "",
-        })
+      ? [RECORDING, ...(params.get("also") ? [params.get("also")] : [])].flatMap(
+          (name) => {
+            return rowsFromRecording(name, {
+              region: REGION_ONE,
+              loadedAt: IS_CONNECTED
+                ? LOADED_AT - MINUTE
+                : LOADED_AT - QUIET_FOR,
+              without: params.get("without") || "",
+            });
+          },
+        )
       : null,
     isConnected: IS_CONNECTED,
     quietFor: QUIET_FOR,
@@ -353,6 +383,56 @@ const estate = buildEstate(
   },
   LOADED_AT,
 );
+
+/*
+ * What a real cloud's services wrote, and the parts they wrote it about, with the IDs they
+ * really had, beside whatever the estate holds.
+ */
+const serviceLogRows = hasServiceLogs(params.get("logs"))
+  ? readServiceLogs(params.get("logs"), {
+      cloudId: new ObjectID(CLOUD_ID),
+      cloudName: estate.cloud.name,
+      loadedAt: LOADED_AT,
+    })
+  : null;
+
+if (serviceLogRows) {
+  const context = {
+    loadedAt: LOADED_AT,
+    lastSeenAt: LOADED_AT - MINUTE,
+    isConnected: true,
+  };
+  const parts = [
+    instance(context, 9001, "ou-log-novalid", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_no_valid_host,
+      status: "ERROR",
+    }),
+    instance(context, 9002, "ou-log-vm", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_ok,
+    }),
+    instance(context, 9004, "ou-log-broken", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_spawn_failed,
+      status: "ERROR",
+    }),
+    volume(context, 9003, "ou-log-vol", REGION_ONE, {
+      externalId: serviceLogRows.ids.volume_attached,
+    }),
+    novaCompute(context, "devstack-host", REGION_ONE, {
+      adminState: "disabled",
+    }),
+  ];
+
+  parts.forEach((part, index) => {
+    if (part.externalId) {
+      estate.inventory.push({
+        ...part,
+        _id: uuid("74000000", index + 1),
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+      });
+    }
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -837,7 +917,8 @@ function withCapacity(cloud) {
 }
 
 const store = {
-  OpenStackCloud:
+  // Every cloud's row has these, with these defaults, since its migration.
+  OpenStackCloud: withAiAccessColumns(
     params.get("clouds") === "none"
       ? []
       : [
@@ -859,7 +940,9 @@ const store = {
               ]
             : []),
         ],
+  ),
   OpenStackCloudConnectionTest: [],
+  RunnerJob: [],
   OpenStackCloudOwnerUser: [],
   OpenStackCloudOwnerTeam: [],
   OpenStackCloudOwnerRule: [],
@@ -925,7 +1008,7 @@ const store = {
   ],
   Incident: incidents,
   Alert: alerts,
-  // What a project's and a domain's owner and label rules are stored as.
+  // What a project's and a domain's owner and label rules were stored as.
   AlertOwnerRule: [],
   IncidentOwnerRule: [],
   AlertLabelRule: [],
@@ -1869,6 +1952,13 @@ AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.listRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options);
+  }
+  if (serviceLogRows && modelName.startsWith("ChangeEvent")) {
+    return answerRows(serviceLogRows.changes, options);
+  }
+
   if (modelName.startsWith("Span")) {
     const data = spansFor(options.query).map((record) => {
       return Object.assign(new options.modelType(), record);
@@ -1898,6 +1988,9 @@ AnalyticsModelAPI.count = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options).count;
+  }
   if (modelName.startsWith("Log")) {
     return 0;
   }
@@ -1931,6 +2024,22 @@ async function handleApi(method, options) {
   });
 
   if (method === "POST") {
+    if (parsed.pathname.endsWith("/resource-ai-access/status")) {
+      return ok(
+        getAiAccessStatus({
+          aiAgent: params.get("aiAgent"),
+          cloudId: body.resourceId,
+          cloudName: store.OpenStackCloud[0]?.name || "",
+          now: new Date(LOADED_AT).toISOString(),
+        }),
+      );
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/logs")) {
+      return ok(getAiLogs());
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/insights")) {
+      return ok(getAiInsights());
+    }
     if (parsed.pathname.includes("/openstack-resource/inventory-summary/")) {
       return FAILS.has("inventory")
         ? failed()
@@ -2252,6 +2361,9 @@ function withNavigation(Component, pageKey) {
 
 const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW, CloudOverview],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS, CloudAiInsights],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS, CloudAiLogs],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, CloudAiAgent],
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
@@ -2290,6 +2402,13 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS, CloudStacks],
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL, CloudStackDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS, CloudContainerClusters],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
+    CloudContainerClusterDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS, CloudProjects],
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL, CloudProjectDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS, CloudDomains],

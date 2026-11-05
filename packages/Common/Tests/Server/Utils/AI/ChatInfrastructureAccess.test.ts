@@ -343,7 +343,6 @@ describe("ChatInfrastructureAccess.getAiResourceType", () => {
 
   test.each([
     [AIResourceType.KubernetesCluster],
-    [AIResourceType.OpenStackCloud],
     [AIResourceType.StorageArray],
     [AIResourceType.ServerlessFunction],
     [AIResourceType.CloudResource],

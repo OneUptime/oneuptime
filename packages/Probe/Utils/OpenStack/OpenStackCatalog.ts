@@ -35,6 +35,8 @@ export const OPENSTACK_CATALOG_TYPES: Readonly<
   [OpenStackServiceType.Network]: ["network"],
   [OpenStackServiceType.Volume]: ["block-storage", "volumev3"],
   [OpenStackServiceType.Image]: ["image"],
+  [OpenStackServiceType.Orchestration]: ["orchestration"],
+  [OpenStackServiceType.ContainerInfra]: ["container-infra"],
   [OpenStackServiceType.BareMetal]: ["baremetal"],
 };
 
@@ -198,6 +200,8 @@ export function toOpenStackServiceBaseUrl(
       return lastSegment(url) === "v1"
         ? url.substring(0, url.length - "/v1".length)
         : url;
+    case OpenStackServiceType.ContainerInfra:
+      return lastSegment(url) === "v1" ? url : `${url}/v1`;
     default:
       return url;
   }

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
@@ -160,6 +161,14 @@ function loginAnswering(
   };
 }
 
+// What a cloud that runs none of those it may not is asked.
+const READS_EVERY_CLOUD_HAS: ReadonlyArray<OpenStackAccessReadDefinition> =
+  OPENSTACK_ACCESS_READS.filter(
+    (definition: OpenStackAccessReadDefinition): boolean => {
+      return !isOpenStackOptionalService(definition.service);
+    },
+  );
+
 describe("a credential that can read everything", () => {
   test("reads everything, and is told what it is", async () => {
     const { report, summary } = await runTest({});
@@ -180,9 +189,13 @@ describe("a credential that can read everything", () => {
       accessLevel: "FullView",
     });
     expect(summary.servicesByRegion[RECORDED_REGION]?.sort()).toEqual(
-      Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS).sort(),
+      Object.values(OpenStackServiceType)
+        .filter((service: OpenStackServiceType): boolean => {
+          return !isOpenStackOptionalService(service);
+        })
+        .sort(),
     );
-    expect(summary.reads).toHaveLength(READS_OF_EVERY_CLOUD.length);
+    expect(summary.reads).toHaveLength(READS_EVERY_CLOUD_HAS.length);
 
     for (const read of summary.reads) {
       expect([read.read, read.access]).toEqual([read.read, "ReadsEverything"]);
@@ -1140,7 +1153,7 @@ describe("what each service can be missing", () => {
     expect(report.status).toBe("Failed");
     expect(report.errorCode).toBe(OpenStackCollectionErrorCode.NoPermission);
     expect(report.errorMessage).toContain("The list below");
-    expect(summary.reads).toHaveLength(READS_OF_EVERY_CLOUD.length);
+    expect(summary.reads).toHaveLength(READS_EVERY_CLOUD_HAS.length);
     expect(summary.accessLevel).toBe("Other");
   });
 
@@ -1875,6 +1888,8 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Volume]: "block-storage",
     [OpenStackServiceType.Image]: "image",
     [OpenStackServiceType.BareMetal]: "baremetal",
+    [OpenStackServiceType.Orchestration]: "orchestration",
+    [OpenStackServiceType.ContainerInfra]: "container-infra",
   };
 
   test.each(
@@ -1950,20 +1965,26 @@ describe("the reads themselves", () => {
   );
 
   test("the matrix these are checked against covers every one", () => {
-    const matrix: Array<AccessMatrixRead> = loadAccessMatrix(
-      "hibiscus-ovn",
-      "matrix",
-    );
+    const matrix: Array<AccessMatrixRead> = [
+      ...loadAccessMatrix("hibiscus-ovn", "matrix"),
+      // The services a cloud may not run have recordings of their own.
+      ...loadAccessMatrix("services-heat-magnum", "matrix", "access-check"),
+    ];
 
-    for (const definition of READS_OF_EVERY_CLOUD) {
-      expect(
-        matrix.some((read: AccessMatrixRead): boolean => {
+    for (const definition of OPENSTACK_ACCESS_READS) {
+      expect({
+        read: `${definition.service}: ${definition.read}`,
+        isRecorded: matrix.some((read: AccessMatrixRead): boolean => {
           return (
             read.service === SCRIPT_SERVICE[definition.service] &&
-            read.read === definition.read
+            (read.read === definition.read ||
+              read.read === `${definition.read}, as the exporter asks`)
           );
         }),
-      ).toBe(true);
+      }).toEqual({
+        read: `${definition.service}: ${definition.read}`,
+        isRecorded: true,
+      });
     }
   });
 });

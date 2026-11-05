@@ -28,6 +28,7 @@ export type OpenStackMetricCategory =
   | "Storage"
   | "Images"
   | "Identity"
+  | "Orchestration"
   | "Bare Metal"
   | "Projects"
   | "Capacity";
@@ -631,6 +632,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "updated_at",
       "fault_message",
       "image_id",
+      "network_names",
     ],
   }),
   metric({
@@ -1898,6 +1900,146 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "How many instances those series add up, so a total can be told from a total with some of them missing.",
     identityAttributes: HYPERVISOR_USAGE_LABELS,
   }),
+  // Orchestration: only on a cloud that runs Heat or Magnum.
+  metric({
+    metricName: "openstack_heat_up",
+    friendlyName: translationKey("Orchestration API Up"),
+    description:
+      "Whether Heat's API answered the exporter's calls (1) or every one of them failed (0). Heat's API asks an engine for its lists, so a stopped heat-engine reads 0 too, after a minute's wait. Only a cloud whose catalog names Heat has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
+  }),
+  metric({
+    metricName: "openstack_container_infra_up",
+    friendlyName: translationKey("Kubernetes Clusters API Up"),
+    description:
+      "Whether Magnum's API answered the exporter's calls (1) or every one of them failed (0). A stopped magnum-conductor leaves this at 1. Only a cloud whose catalog names Magnum has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
+  }),
+  metric({
+    metricName: "openstack_heat_stack_status",
+    friendlyName: translationKey("Stack Status"),
+    description:
+      "One series per stack. The value is a code for its status: read the `status` label for the word (CREATE_FAILED, UPDATE_IN_PROGRESS). An admin's list holds every project's stacks, with `project_id`. Any lesser credential gets its own project's with `project_id` empty, or none.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: ["id", "name", "project_id", "status"],
+    probeOnlyAttributes: ["status_reason", "parent_id"],
+  }),
+  metric({
+    metricName: "openstack_heat_stack_status_counter",
+    friendlyName: translationKey("Stacks by Status"),
+    description:
+      "How many stacks hold each status, per region, every word read as 0 until a stack holds it. A count: it cannot say which stack, or tell one stuck from a stream passing through.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: ["status"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_heat_agent_state",
+    friendlyName: translationKey("Heat Engine Up"),
+    description:
+      "Whether Heat lists each heat-engine as up (1) or down (0), one series per engine record. Only a probe sends this, because the exporter never reads Heat's services, and only an admin may. With every engine stopped Heat's API can't list them, so this goes away and Orchestration API Up reads 0.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: ["hostname", "service", "id"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_container_infra_total_clusters",
+    friendlyName: translationKey("Kubernetes Clusters"),
+    description:
+      "How many clusters Magnum listed for this credential, per region. Anything below an admin is shown none of another project's, and no error says so.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_container_infra_cluster_status",
+    friendlyName: translationKey("Kubernetes Cluster Status"),
+    description:
+      "One series per cluster. The value is a code for its status: read the `status` label for the word (CREATE_FAILED, CREATE_IN_PROGRESS). `stack_id` is its Heat stack. `project_id` is empty from the exporter, because Magnum says it only on a cluster's own read.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [
+      "uuid",
+      "name",
+      "stack_id",
+      "status",
+      "node_count",
+      "master_count",
+      "project_id",
+    ],
+    probeOnlyAttributes: [
+      "status_reason",
+      "health_status",
+      "cluster_template_id",
+      "cluster_template_name",
+      "coe_version",
+      "api_address",
+    ],
+  }),
+  metric({
+    metricName: "openstack_container_infra_cluster_masters",
+    friendlyName: translationKey("Kubernetes Cluster Control Plane Nodes"),
+    description:
+      "How many control plane nodes each cluster was asked for, one series per cluster.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [
+      "uuid",
+      "name",
+      "stack_id",
+      "status",
+      "node_count",
+      "project_id",
+    ],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_container_infra_cluster_nodes",
+    friendlyName: translationKey("Kubernetes Cluster Worker Nodes"),
+    description:
+      "How many worker nodes each cluster was asked for, one series per cluster.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [
+      "uuid",
+      "name",
+      "stack_id",
+      "status",
+      "master_count",
+      "project_id",
+    ],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_container_infra_agent_state",
+    friendlyName: translationKey("Magnum Conductor Up"),
+    description:
+      "Whether Magnum lists each magnum-conductor as up (1) or down (0). Only a probe sends this, because the exporter never reads Magnum's services, and only an admin may. Magnum's API carries on answering without a conductor, so nothing else says one has stopped.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: ["hostname", "service", "adminState", "disabledReason"],
+    onlyFromProbe: true,
+  }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_ironic_up",
@@ -2016,6 +2158,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Storage",
     "Images",
     "Identity",
+    "Orchestration",
     "Bare Metal",
     "Projects",
     "Capacity",

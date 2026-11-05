@@ -26,8 +26,20 @@ import {
 import ObjectID from "../../../../Types/ObjectID";
 import {
   OpenStackCapacityHost,
+  OpenStackCapacityResource,
+  OpenStackFlavorFit,
+  OpenStackFlavorRequest,
+  OpenStackPlacementAnswer,
   getOpenStackAllocationMismatches,
+  getOpenStackFitOnHost,
+  getOpenStackFlavorFit,
+  getOpenStackFlavorRequest,
+  getOpenStackInventoryCapacity,
+  getOpenStackInventoryFree,
+  getOpenStackPlacementAnswer,
+  readOpenStackAllocationCandidates,
 } from "../../../../Types/OpenStack/OpenStackCapacity";
+import { getOpenStackShortHostName } from "../../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
   OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
@@ -42,6 +54,7 @@ import {
   OpenStackCapacityHostSourceRow,
   OpenStackCapacitySnapshot,
   buildOpenStackCapacitySnapshot,
+  getOpenStackCapacityResourceOf,
   readOpenStackCapacityFlavor,
   readOpenStackCapacityHost,
 } from "../../../../Types/OpenStack/OpenStackCapacitySnapshot";
@@ -464,8 +477,8 @@ describe("Reserved Headroom Gone", () => {
 
   /*
    * Made from a real recording, and edited: the exporter's own answer for its one host, again under
-   * a second name, with what each has allocated scaled by hand. Until the rig's capacity scenes are
-   * read here (OpenStackCapacityRecordings is where they go), this is hand-checked.
+   * a second name, with what each has allocated scaled by hand, to hold the line to the vCPU. The
+   * real drill is further down, on three real hosts.
    */
   function twoHosts(vcpusEach: number): OpenStackCapacitySnapshot {
     const compute: string = recorded("hibiscus-ovn", "healthy", "compute");
@@ -535,6 +548,484 @@ describe("Reserved Headroom Gone", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * THREE REAL HOSTS ON A REAL PLACEMENT.
+ *
+ * capacity-record.sh adds three hosts to a DevStack, on Nova's fake driver, which reports what it
+ * is told. Each holds two m1.small, and each is set up differently, so a sum that gets any of it
+ * wrong can't land on the same number:
+ *
+ *            total       reserved   cpu ratio  ram ratio   capacity (vCPU, MB, GB)   free
+ *   ou-cap-1  10/8192/1028    512        4        1.0        40,  7680, 1028      38, 3584, 988
+ *   ou-cap-2  10/8192/1028   1024        2        1.5        20, 10752, 1028      18, 6656, 988
+ *   ou-cap-3  10/8192/1028   2048        1        1.0        10,  6144, 1028       8, 2048, 988
+ *
+ * Every number below is worked out from that table by hand, per host, and written here. All this
+ * reads is what each cloud really answered: the exporter's series and Placement's own
+ * GET /allocation_candidates, on each release that recorded them. The DevStack's own host is in
+ * those answers too, and differs by runner, so each flavor is held to its count in the zone.
+ */
+const ZONE: string = "ou-zone-a";
+
+interface HandFlavor {
+  name: string;
+  // Per host, ou-cap-1, ou-cap-2, ou-cap-3.
+  perHost: [number, number, number];
+  // All of what is free in the zone, 64 vCPUs, 12288 MB and 2964 GB, as one host.
+  ifOnePool: number;
+}
+
+const HAND_TABLE: ReadonlyArray<HandFlavor> = [
+  // 3584 / 512, 6656 / 512, 2048 / 512: memory runs out first on each.
+  { name: "m1.tiny", perHost: [7, 13, 4], ifOnePool: 24 },
+  // 3584 / 2048, 6656 / 2048, 2048 / 2048.
+  { name: "m1.small", perHost: [1, 3, 1], ifOnePool: 6 },
+  // Only ou-cap-2 has 4096 free, thanks to its 1.5 ratio: three fit if it were one pool.
+  { name: "m1.medium", perHost: [0, 1, 0], ifOnePool: 3 },
+  { name: "m1.large", perHost: [0, 0, 0], ifOnePool: 1 },
+  { name: "m1.xlarge", perHost: [0, 0, 0], ifOnePool: 0 },
+  // THE FRAGMENTED ONE. 12288 MB is free in the zone, and no host has 6912 of it.
+  { name: "ou.fragmented", perHost: [0, 0, 0], ifOnePool: 1 },
+  { name: "ou.impossible", perHost: [0, 0, 0], ifOnePool: 0 },
+  /*
+   * 128 MB each, so what runs out differs by host: memory at 4:1 (3584 / 128 = 28 < 38), vCPUs at
+   * 2:1 (18 < 52) and at 1:1 (8 < 16). A ratio read wrong moves two of the three.
+   */
+  { name: "ou.tiny", perHost: [28, 18, 8], ifOnePool: 64 },
+  { name: "cirros256", perHost: [14, 18, 8], ifOnePool: 48 },
+  { name: "ds512M", perHost: [7, 13, 4], ifOnePool: 24 },
+  { name: "ds1G", perHost: [3, 6, 2], ifOnePool: 12 },
+  { name: "ds2G", perHost: [1, 3, 1], ifOnePool: 6 },
+  { name: "ds4G", perHost: [0, 1, 0], ifOnePool: 3 },
+];
+
+function sumOf(perHost: ReadonlyArray<number>): number {
+  return perHost.reduce((total: number, fit: number): number => {
+    return total + fit;
+  }, 0);
+}
+
+function recordedJson(
+  release: string,
+  scene: string,
+  file: string,
+): JSONObject {
+  return JSON.parse(
+    fs.readFileSync(path.join(FIXTURES, release, scene, file), "utf8"),
+  ) as JSONObject;
+}
+
+describe.each(["hibiscus-ovn", "gazpacho-ovn", "epoxy-ovn"])(
+  "three real hosts on a real Placement, on %s",
+  (release: string) => {
+    const HEALTHY: string = "capacity/healthy";
+    const LOST: string = "capacity/host-lost";
+
+    function hostsOfScene(scene: string): Array<OpenStackCapacityHost> {
+      return hostsOf(
+        scan([
+          recorded(release, scene, "compute"),
+          recorded(release, scene, "placement"),
+        ]),
+      );
+    }
+
+    function zoneHosts(scene: string): Array<OpenStackCapacityHost> {
+      return hostsOfScene(scene).filter(
+        (host: OpenStackCapacityHost): boolean => {
+          return host.zone === ZONE;
+        },
+      );
+    }
+
+    function requestOf(scene: string, name: string): Array<number> {
+      const flavors: Array<JSONObject> = recordedJson(
+        release,
+        scene,
+        "candidates/nova-flavors.json",
+      )["flavors"] as Array<JSONObject>;
+      const flavor: JSONObject = flavors.find((row: JSONObject): boolean => {
+        return row["name"] === name;
+      })!;
+
+      return [
+        flavor["vcpus"] as number,
+        flavor["ram"] as number,
+        flavor["disk"] as number,
+      ];
+    }
+
+    function resourcesOf(scene: string, name: string): Record<string, number> {
+      const [vcpus, ram, disk]: Array<number> = requestOf(scene, name);
+
+      return { VCPU: vcpus!, MEMORY_MB: ram!, DISK_GB: disk! };
+    }
+
+    // What Placement answered, added up as a probe adds it up, with the hosts Nova's scrape names.
+    function placementAnswered(
+      scene: string,
+      file: string,
+    ): OpenStackPlacementAnswer {
+      const providers: Array<JSONObject> = recordedJson(
+        release,
+        scene,
+        "placement/placement-providers.json",
+      )["resource_providers"] as Array<JSONObject>;
+      const hosts: Map<string, OpenStackCapacityHost> = new Map(
+        hostsOfScene(scene).map(
+          (host: OpenStackCapacityHost): [string, OpenStackCapacityHost] => {
+            return [getOpenStackShortHostName(host.name), host];
+          },
+        ),
+      );
+
+      return getOpenStackPlacementAnswer({
+        candidates: readOpenStackAllocationCandidates(
+          recordedJson(release, scene, `candidates/${file}.json`),
+        ),
+        providerNames: new Map(
+          providers.map((row: JSONObject): [string, string] => {
+            return [row["uuid"] as string, row["name"] as string];
+          }),
+        ),
+        hostsByShortName: hosts,
+        candidateLimit: 1000,
+      });
+    }
+
+    describe("what each host holds, by hand", () => {
+      test.each([
+        // (10 - 0) * 4, (8192 - 512) * 1, (1028 - 0) * 1
+        ["ou-cap-1", 40, 7680, 1028, 38, 3584, 988],
+        // (10 - 0) * 2, (8192 - 1024) * 1.5, (1028 - 0) * 1
+        ["ou-cap-2", 20, 10752, 1028, 18, 6656, 988],
+        // (10 - 0) * 1, (8192 - 2048) * 1, (1028 - 0) * 1
+        ["ou-cap-3", 10, 6144, 1028, 8, 2048, 988],
+      ])(
+        "%s has %d vCPUs, %d MB and %d GB to promise, and %d, %d and %d of them left",
+        (
+          name: string,
+          vcpus: number,
+          memory: number,
+          disk: number,
+          vcpusFree: number,
+          memoryFree: number,
+          diskFree: number,
+        ) => {
+          const host: OpenStackCapacityHost = zoneHosts(HEALTHY).find(
+            (row: OpenStackCapacityHost): boolean => {
+              return row.name === name;
+            },
+          )!;
+
+          expect(host.state).toBe("up");
+          expect(
+            ["VCPU", "MEMORY_MB", "DISK_GB"].map((resource: string): number => {
+              return getOpenStackInventoryCapacity(host.inventories[resource]!);
+            }),
+          ).toEqual([vcpus, memory, disk]);
+          expect(
+            ["VCPU", "MEMORY_MB", "DISK_GB"].map((resource: string): number => {
+              return getOpenStackInventoryFree(host.inventories[resource]!);
+            }),
+          ).toEqual([vcpusFree, memoryFree, diskFree]);
+        },
+      );
+
+      test("the zone adds them up, and what's allocated isn't what's left", () => {
+        const zone: OpenStackCapacitySnapshot["zones"][number] =
+          snapshotOfScene(release, HEALTHY).zones.find(
+            (row: OpenStackCapacitySnapshot["zones"][number]): boolean => {
+              return row.name === ZONE;
+            },
+          )!;
+
+        expect(zone.hostCount).toBe(3);
+        expect(
+          ["VCPU", "MEMORY_MB", "DISK_GB"].map(
+            (name: string): Array<number> => {
+              const resource: OpenStackCapacityResource =
+                getOpenStackCapacityResourceOf(zone, name)!;
+
+              return [resource.capacity, resource.used];
+            },
+          ),
+        ).toEqual([
+          [70, 6],
+          [24576, 12288],
+          [3084, 120],
+        ]);
+      });
+    });
+
+    describe("how many of each flavor fit, by hand, from what the agent's exporter says", () => {
+      test.each(
+        HAND_TABLE.map((row: HandFlavor) => {
+          return [row.name, row] as [string, HandFlavor];
+        }),
+      )("%s", (name: string, hand: HandFlavor) => {
+        const hosts: Array<OpenStackCapacityHost> = zoneHosts(HEALTHY);
+        const resources: Record<string, number> = resourcesOf(HEALTHY, name);
+
+        expect(
+          ["ou-cap-1", "ou-cap-2", "ou-cap-3"].map((host: string): number => {
+            return getOpenStackFitOnHost({
+              inventories: hosts.find((row: OpenStackCapacityHost): boolean => {
+                return row.name === host;
+              })!.inventories,
+              resources,
+            }).fit;
+          }),
+        ).toEqual(hand.perHost);
+
+        const fit: OpenStackFlavorFit = getOpenStackFlavorFit({
+          resources,
+          hosts,
+        });
+
+        expect(fit.fits).toBe(sumOf(hand.perHost));
+        expect(fit.fitsIfOnePool).toBe(hand.ifOnePool);
+        expect(fit.byZone[ZONE]).toBe(sumOf(hand.perHost));
+
+        // And the page's row, through the scan and the snapshot, says the same of the zone.
+        expect(
+          flavorRow(snapshotOfScene(release, HEALTHY), name).byZone[ZONE] ?? 0,
+        ).toBe(sumOf(hand.perHost));
+      });
+
+      test("a fragmented estate: room as one pool, and on no host", () => {
+        const fit: OpenStackFlavorFit = getOpenStackFlavorFit({
+          resources: resourcesOf(HEALTHY, "ou.fragmented"),
+          hosts: zoneHosts(HEALTHY),
+        });
+
+        expect(fit).toMatchObject({
+          fits: 0,
+          hostsWithRoom: 0,
+          fitsIfOnePool: 1,
+          fitsOnAnEmptyHost: true,
+          limitedBy: "MEMORY_MB",
+        });
+      });
+
+      test("too large for any host is not fragmentation", () => {
+        const fit: OpenStackFlavorFit = getOpenStackFlavorFit({
+          resources: resourcesOf(HEALTHY, "ou.impossible"),
+          hosts: zoneHosts(HEALTHY),
+        });
+
+        expect(fit).toMatchObject({
+          fits: 0,
+          fitsIfOnePool: 0,
+          fitsOnAnEmptyHost: false,
+        });
+      });
+    });
+
+    describe("how many fit, from what Placement itself answered", () => {
+      test.each(
+        HAND_TABLE.map((row: HandFlavor) => {
+          return [row.name, row] as [string, HandFlavor];
+        }),
+      )(
+        "%s, asked as Nova asks, comes to the same sum",
+        (name: string, hand: HandFlavor) => {
+          expect(
+            placementAnswered(HEALTHY, `placement-candidates-${name}`).byZone[
+              ZONE
+            ] ?? 0,
+          ).toBe(sumOf(hand.perHost));
+        },
+      );
+
+      test("a trait only Placement can see: 7 on the one host that holds it, not all 24", () => {
+        // 3584 / 512 on ou-cap-1. It's the only host CUSTOM_OU_GOLD is on.
+        expect(
+          placementAnswered(HEALTHY, "placement-candidates-ou.gold"),
+        ).toMatchObject({
+          fits: 7,
+          hostsWithRoom: 1,
+          isCapped: false,
+          byZone: { [ZONE]: 7 },
+        });
+
+        // Asked with the trait left out, it's what inventories count: 7 + 13 + 4.
+        expect(
+          placementAnswered(HEALTHY, "placement-candidates-bare-ou.gold")
+            .byZone[ZONE],
+        ).toBe(24);
+        expect(
+          getOpenStackFlavorFit({
+            resources: resourcesOf(HEALTHY, "ou.gold"),
+            hosts: zoneHosts(HEALTHY),
+          }).fits,
+        ).toBe(24);
+      });
+
+      test("every flavor that asks only for amounts: the two paths agree on the whole region", () => {
+        for (const hand of HAND_TABLE) {
+          expect({
+            flavor: hand.name,
+            fits: getOpenStackFlavorFit({
+              resources: resourcesOf(HEALTHY, hand.name),
+              hosts: hostsOfScene(HEALTHY),
+            }).fits,
+          }).toEqual({
+            flavor: hand.name,
+            fits: placementAnswered(
+              HEALTHY,
+              `placement-candidates-${hand.name}`,
+            ).fits,
+          });
+        }
+      });
+
+      test("asks Placement what the recording asked it", () => {
+        const flavors: Array<JSONObject> = recordedJson(
+          release,
+          HEALTHY,
+          "candidates/nova-flavors.json",
+        )["flavors"] as Array<JSONObject>;
+
+        for (const flavor of flavors) {
+          const request: OpenStackFlavorRequest = getOpenStackFlavorRequest({
+            vcpus: flavor["vcpus"] as number,
+            ramMib: flavor["ram"] as number,
+            diskGib: flavor["disk"] as number,
+            ephemeralGib: flavor["OS-FLV-EXT-DATA:ephemeral"] as number,
+            swapMib: Number(flavor["swap"]) || 0,
+            extraSpecs: flavor["extra_specs"] as Record<string, string>,
+          });
+          const answer: JSONObject = recordedJson(
+            release,
+            HEALTHY,
+            `candidates/placement-candidates-${flavor["name"] as string}.json`,
+          );
+
+          for (const asked of answer[
+            "allocation_requests"
+          ] as Array<JSONObject>) {
+            const allocations: JSONObject = asked["allocations"] as JSONObject;
+
+            for (const provider of Object.keys(allocations)) {
+              expect(
+                (allocations[provider] as JSONObject)["resources"],
+              ).toEqual(request.resources);
+            }
+          }
+
+          if (flavor["name"] === "ou.gold") {
+            expect(request.requiredTraits).toEqual(["CUSTOM_OU_GOLD"]);
+          }
+        }
+      });
+    });
+
+    describe("a host lost, as Nova says and Placement doesn't", () => {
+      test("Placement goes on offering it, and only Nova's say takes it back out", () => {
+        const body: JSONObject = recordedJson(
+          release,
+          LOST,
+          "candidates/placement-candidates-m1.medium.json",
+        );
+        const uuids: Array<string> = readOpenStackAllocationCandidates(
+          body,
+        ).map((candidate: { rootProviderUuid: string }): string => {
+          return candidate.rootProviderUuid;
+        });
+        const providers: Array<JSONObject> = recordedJson(
+          release,
+          LOST,
+          "placement/placement-providers.json",
+        )["resource_providers"] as Array<JSONObject>;
+        const lost: JSONObject = providers.find((row: JSONObject): boolean => {
+          return row["name"] === "ou-cap-2";
+        })!;
+
+        expect(uuids).toContain(lost["uuid"]);
+        // ou-cap-2 was the one host with room for an m1.medium, so now none has.
+        expect(
+          placementAnswered(LOST, "placement-candidates-m1.medium").byZone[
+            ZONE
+          ] ?? 0,
+        ).toBe(0);
+        expect(
+          getOpenStackFlavorFit({
+            resources: resourcesOf(LOST, "m1.medium"),
+            hosts: zoneHosts(LOST),
+          }).byZone[ZONE] ?? 0,
+        ).toBe(0);
+      });
+
+      const ID: string = "openstack-reserved-headroom-gone";
+      const ALIAS: string = "can_lose_a_host";
+
+      function headroomOf(
+        scene: string,
+      ): OpenStackCapacitySnapshot["zones"][number]["headroom"] {
+        return snapshotOfScene(release, scene).zones.find(
+          (row: OpenStackCapacitySnapshot["zones"][number]): boolean => {
+            return row.name === ZONE;
+          },
+        )!.headroom;
+      }
+
+      function zoneCanLoseAHost(scene: string): number {
+        return seriesPoints(
+          snapshotOfScene(release, scene),
+          OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+        )
+          .filter((point: { labels: Record<string, string> }): boolean => {
+            return point.labels["availability_zone"] === ZONE;
+          })
+          .reduce((worst: number, point: { value: number }): number => {
+            return Math.min(worst, point.value);
+          }, 1);
+      }
+
+      test("Reserved Headroom Gone stays quiet while the zone could lose its largest host", async () => {
+        // 24576 MB - the largest, 10752, leaves 13824, and 12288 is allocated.
+        expect(headroomOf(HEALTHY).state).toBe("can-lose-a-host");
+        expect(zoneCanLoseAHost(HEALTHY)).toBe(1);
+        expect(await judged(ID, ALIAS, zoneCanLoseAHost(HEALTHY))).toEqual({
+          breached: false,
+          healthy: true,
+        });
+      });
+
+      test("fires when one is lost, and says by how much", async () => {
+        // 7680 + 6144 left, less the largest of them, is 6144, and 12288 is still allocated.
+        const headroom: OpenStackCapacitySnapshot["zones"][number]["headroom"] =
+          headroomOf(LOST);
+
+        expect(headroom.state).toBe("cannot-lose-a-host");
+        expect(
+          headroom.resources.find(
+            (resource: { resourceClass: string }): boolean => {
+              return resource.resourceClass === "MEMORY_MB";
+            },
+          )?.shortBy,
+        ).toBe(6144);
+        expect(zoneCanLoseAHost(LOST)).toBe(0);
+        expect(await judged(ID, ALIAS, zoneCanLoseAHost(LOST))).toEqual({
+          breached: true,
+          healthy: false,
+        });
+      });
+
+      test("the lost host isn't counted as room, and says so", () => {
+        expect(
+          snapshotOfScene(release, LOST).hostsNotCounted.map(
+            (host: { name: string; state: string }): string => {
+              return `${host.name} ${host.state}`;
+            },
+          ),
+        ).toEqual(["ou-cap-2 lost"]);
+      });
+    });
+  },
+);
 
 describe("Capacity Forecast Under N Days", () => {
   const ID: string = "openstack-capacity-forecast-under-days";

@@ -30,6 +30,7 @@ import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import { isOpenStackRuleScoped } from "../../Types/OpenStack/OpenStackScopedRule";
 
 class OpenStackCloudOwnerRuleEngineServiceClass
   implements RuleRunEngine<OpenStackCloud, OpenStackCloudOwnerRule>
@@ -42,6 +43,8 @@ class OpenStackCloudOwnerRuleEngineServiceClass
     openStackCloudLabels: { _id: true },
     openStackCloudNamePattern: true,
     openStackCloudDescriptionPattern: true,
+    openStackProjectId: true,
+    openStackDomainId: true,
     ownerUsers: { _id: true },
     ownerTeams: { _id: true },
   };
@@ -129,6 +132,64 @@ class OpenStackCloudOwnerRuleEngineServiceClass
     }
   }
 
+  /*
+   * The enabled rules on one project or domain whose conditions on the cloud this cloud
+   * meets. What they add, and where, is for OpenStackScopedRules: this is what it asks of
+   * the rules themselves.
+   */
+  @RuleEvaluation()
+  public async getScopedRulesForCloud(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<Array<OpenStackCloudOwnerRule>> {
+    const allRules: Array<OpenStackCloudOwnerRule> =
+      await OpenStackCloudOwnerRuleService.findBy({
+        query: {
+          projectId: data.projectId,
+          isEnabled: true,
+        },
+        props: { isRoot: true },
+        select: this.ruleSelect,
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
+        skip: 0,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "OpenStackCloudOwnerRule",
+      projectId: data.projectId,
+      rulesRead: allRules.length,
+    });
+
+    const rules: Array<OpenStackCloudOwnerRule> = allRules.filter(
+      (rule: OpenStackCloudOwnerRule): boolean => {
+        return isOpenStackRuleScoped(rule);
+      },
+    );
+
+    if (rules.length === 0) {
+      return [];
+    }
+
+    const cloud: OpenStackCloud | null =
+      await OpenStackCloudService.findOneById({
+        id: data.openStackCloudId,
+        select: {
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!cloud) {
+      return [];
+    }
+
+    return rules.filter((rule: OpenStackCloudOwnerRule): boolean => {
+      return this.doesOpenStackCloudMatchRule(cloud, rule);
+    });
+  }
+
   @RuleEvaluation()
   private async applyRules(data: {
     openStackCloud: OpenStackCloud;
@@ -171,6 +232,10 @@ class OpenStackCloudOwnerRuleEngineServiceClass
     let anyRuleMatched: boolean = false;
 
     for (const rule of rules) {
+      // A rule on one project or domain adds to what opens there, not to the cloud.
+      if (isOpenStackRuleScoped(rule)) {
+        continue;
+      }
       const matches: boolean = this.doesOpenStackCloudMatchRule(
         openStackCloudWithDetails,
         rule,

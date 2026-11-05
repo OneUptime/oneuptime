@@ -14,10 +14,8 @@ import {
   OpenStackEndpointInterface,
   OpenStackReadAccess,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import {
-  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
-  OpenStackServiceType,
-} from "Common/Types/OpenStack/OpenStackResourceKind";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import OpenStackServiceClient, {
   OpenStackJsonAnswer,
@@ -349,6 +347,53 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       projectField: "owner?",
       goesWithout: "bare metal nodes other projects own.",
       fix: "Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy.",
+    },
+    /*
+     * The services a cloud may not run, each asked only of a cloud whose catalog names it. Recorded
+     * on real credentials: only an admin reads these two, and no policy line has been tried.
+     */
+    {
+      service: OpenStackServiceType.Orchestration,
+      read: "stacks",
+      path: "/stacks",
+      key: "stacks",
+      projectField: "project",
+      goesWithout:
+        "other projects' stacks, and whose each one is. Heat shows anything less its own project's with no project on them, or refuses.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.Orchestration,
+      read: "services",
+      path: "/services",
+      key: "services",
+      projectField: "-",
+      goesWithout: "Heat's engines on the Services page.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.ContainerInfra,
+      read: "clusters",
+      path: "/clusters",
+      key: "clusters",
+      projectField: "*",
+      goesWithout:
+        "other projects' Kubernetes clusters. Magnum shows anything less none of them, and no error.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.ContainerInfra,
+      read: "services",
+      path: "/mservices",
+      key: "mservices",
+      projectField: "-",
+      goesWithout:
+        "Magnum's conductors on the Services page, so a stopped one isn't shown anywhere: Magnum's API carries on answering without it.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
     },
   ];
 
@@ -697,14 +742,13 @@ export async function runOpenStackAccessCheck(data: {
       }
 
       if (!client) {
-        // A service a cloud may not run is not one it is missing, and a test says nothing of it.
-        if (!OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(definition.service)) {
-          continue;
+        // A cloud without a service it may not run hears nothing about it.
+        if (!isOpenStackOptionalService(definition.service)) {
+          write({
+            access: "NotDeployed",
+            reason: "not in this region's catalog",
+          });
         }
-        write({
-          access: "NotDeployed",
-          reason: "not in this region's catalog",
-        });
         continue;
       }
 

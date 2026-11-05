@@ -18,6 +18,8 @@ import {
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
   isOpenStackAdminDisabled,
+  isOpenStackContainerClusterFailed,
+  isOpenStackContainerClusterStuck,
   isOpenStackBareMetalMaintenanceTooLong,
   isOpenStackBareMetalNodeInError,
   isOpenStackBareMetalNodeStuck,
@@ -27,6 +29,8 @@ import {
   isOpenStackInstanceStuck,
   isOpenStackServiceDown,
   isOpenStackServiceForcedDown,
+  isOpenStackStackFailed,
+  isOpenStackStackStuck,
   isOpenStackServiceQuiet,
   isOpenStackVolumeInError,
   isOpenStackVolumeStuck,
@@ -38,7 +42,10 @@ import {
   OpenStackQuotaResource,
   getOpenStackProjectQuotas,
 } from "Common/Types/OpenStack/OpenStackQuota";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
+  OpenStackResourceKind,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionItem,
@@ -74,7 +81,8 @@ import {
  *     network past 90%; a router or floating IP that should be active and is not; a
  *     service disabled for more than a week; a bare metal node failed, stuck, left in
  *     maintenance for more than a week, or deployed with its power off; a service a cloud
- *     may not run that has gone quiet.
+ *     may not run that has gone quiet; a stack or Kubernetes cluster that failed, or has
+ *     stayed in progress past what Heat and Magnum give one of their own accord.
  *
  * Three things these rules never do:
  *
@@ -137,6 +145,9 @@ export const OPENSTACK_REASON_INSTANCE_ERROR: string =
   translationKey("In ERROR");
 const REASON_STUCK: string = translationKey("{{status}} for {{duration}}");
 const REASON_VOLUME_ERROR: string = translationKey("In {{status}}");
+const REASON_CLUSTER_UNHEALTHY: string = translationKey(
+  "Magnum reads it as unhealthy",
+);
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
 const REASON_CEPH_ERROR: string = translationKey(
   "Its Ceph cluster {{cluster}} reads HEALTH_ERR",
@@ -237,6 +248,8 @@ const KIND_ROUTER: string = translationKey("Router");
 const KIND_FLOATING_IP: string = translationKey("Floating IP");
 const KIND_PROJECT: string = translationKey("Project");
 const KIND_IMAGE: string = translationKey("Image");
+const KIND_STACK: string = translationKey("Stack");
+const KIND_CONTAINER_CLUSTER: string = translationKey("Kubernetes cluster");
 const KIND_BARE_METAL_NODE: string = translationKey("Bare metal node");
 
 // The order Needs attention lists the kinds in, at one severity.
@@ -249,6 +262,8 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_STORAGE_POOL,
   KIND_NETWORK,
   KIND_ROUTER,
+  KIND_CONTAINER_CLUSTER,
+  KIND_STACK,
   KIND_VOLUME,
   KIND_INSTANCE,
   KIND_FLOATING_IP,
@@ -761,6 +776,72 @@ export function assessOpenStackImage(data: {
 }
 
 /*
+ * A stack that failed stays failed until someone updates or deletes it, whoever's it is, so it
+ * reads here however long ago it happened, as a volume in error does. A warning, like one: what the
+ * project already runs carries on, and only this one thing has not got where it was going.
+ */
+export function assessOpenStackStack(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackStackFailed(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackStackStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+/*
+ * The same for a cluster. Only a probe says what Magnum thinks of a running cluster's health, and
+ * nothing here reads Magnum's UNKNOWN as anything: it is what Magnum says of any cluster it could not
+ * reach, recorded on every scene.
+ */
+export function assessOpenStackContainerCluster(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackContainerClusterFailed(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackContainerClusterStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  if (factsOf(row)["healthStatus"] === OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_CLUSTER_UNHEALTHY }],
+    };
+  }
+  return FINE;
+}
+
+/*
  * A project at a quota: its next instance or volume is about to be refused. A warning,
  * however far past the line, since nothing it runs now has stopped. Says nothing without
  * quota data, which most clouds do not collect, and nothing about a reading so old that
@@ -951,6 +1032,10 @@ export function assessOpenStackResource(data: {
       return assessOpenStackProject({ row, now });
     case OpenStackResourceKind.Image:
       return assessOpenStackImage({ row, now });
+    case OpenStackResourceKind.Stack:
+      return assessOpenStackStack({ row, now });
+    case OpenStackResourceKind.ContainerCluster:
+      return assessOpenStackContainerCluster({ row, now });
     case OpenStackResourceKind.BareMetalNode:
       return assessOpenStackBareMetalNode({
         row,
@@ -974,6 +1059,8 @@ const KIND_WORDS: Partial<Record<string, string>> = {
   [OpenStackResourceKind.FloatingIp]: KIND_FLOATING_IP,
   [OpenStackResourceKind.Project]: KIND_PROJECT,
   [OpenStackResourceKind.Image]: KIND_IMAGE,
+  [OpenStackResourceKind.Stack]: KIND_STACK,
+  [OpenStackResourceKind.ContainerCluster]: KIND_CONTAINER_CLUSTER,
   [OpenStackResourceKind.BareMetalNode]: KIND_BARE_METAL_NODE,
 };
 
@@ -996,9 +1083,36 @@ function iconOf(kind: string | undefined): IconProp {
       return IconProp.Cog;
     case OpenStackResourceKind.Project:
       return IconProp.Folder;
+    case OpenStackResourceKind.Stack:
+      return IconProp.Layers;
+    case OpenStackResourceKind.ContainerCluster:
+      return IconProp.Kubernetes;
     default:
       return IconProp.Cube;
   }
+}
+
+/*
+ * The stacks of clusters that themselves need someone. Magnum builds a cluster with a Heat stack,
+ * so one failed cluster is one failed stack too, recorded together: said once, by the name the person
+ * who asked for it knows it by. The cluster's page links to the stack.
+ */
+function getStacksSaidByTheirClusters(data: {
+  rows: Array<OpenStackResource>;
+  now: Date;
+}): Set<string> {
+  const stackIds: Set<string> = new Set();
+  for (const row of data.rows) {
+    const stackId: unknown = factsOf(row)["stackId"];
+    if (
+      row.kind === OpenStackResourceKind.ContainerCluster &&
+      typeof stackId === "string" &&
+      assessOpenStackContainerCluster({ row, now: data.now }).severity
+    ) {
+      stackIds.add(stackId);
+    }
+  }
+  return stackIds;
 }
 
 /*
@@ -1126,12 +1240,23 @@ export function getOpenStackAttentionItems(data: {
     }),
   );
 
+  const stacksOfClusters: Set<string> = getStacksSaidByTheirClusters({
+    rows: data.rows,
+    now: data.now,
+  });
+
   const items: Array<ResourceAttentionItem> = [...everyWorkerDown];
 
   for (const row of data.rows) {
     if (
       row.kind === OpenStackResourceKind.Service &&
       coveredByEveryWorkerDown.has(`${row.regionName}/${row.name}`)
+    ) {
+      continue;
+    }
+    if (
+      row.kind === OpenStackResourceKind.Stack &&
+      stacksOfClusters.has(row.externalId || "")
     ) {
       continue;
     }
@@ -1162,6 +1287,7 @@ export function getOpenStackAttentionItems(data: {
       detail: getOpenStackDetail(row),
       severity: assessment.severity,
       reasons: assessment.reasons,
+      // What the service recorded about why, in its own words. Only a probe has most of these.
       message: getOpenStackAttentionMessage(row),
       route: data.routeFor?.(row),
     });
@@ -1186,7 +1312,11 @@ function getOpenStackAttentionMessage(
   row: OpenStackResource,
 ): string | undefined {
   const facts: JSONObject = factsOf(row);
-  for (const said of [facts["faultMessage"], facts["lastError"]]) {
+  for (const said of [
+    facts["faultMessage"],
+    facts["lastError"],
+    facts["statusReason"],
+  ]) {
     if (typeof said === "string" && said) {
       return said;
     }

@@ -1,3 +1,4 @@
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import { describe, expect, test } from "@jest/globals";
 import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
@@ -66,8 +67,19 @@ describe("what the catalog says", () => {
 
     expect(getOpenStackCatalogRegions(catalog)).toEqual(["RegionOne"]);
 
-    // A recording of a cloud runs what every cloud does, and none of what a cloud may not.
-    for (const service of OPENSTACK_SERVICES_EVERY_CLOUD_RUNS) {
+    for (const service of Object.values(OpenStackServiceType)) {
+      // These recordings' cloud runs none of those a cloud may not run.
+      if (isOpenStackOptionalService(service)) {
+        expect(
+          findOpenStackEndpoint({
+            catalog,
+            service,
+            regionName: "RegionOne",
+            endpointInterface: "public",
+          }),
+        ).toBeNull();
+        continue;
+      }
       expect({
         service,
         url: findOpenStackEndpoint({
@@ -302,5 +314,46 @@ describe("where a service's own paths live", () => {
     ["https://c.example.com:8774/v2.1", "https://c.example.com:8774/"],
   ])("Nova at %s says what it speaks at %s", (base: string, root: string) => {
     expect(getOpenStackComputeRootUrl(base)).toBe(root);
+  });
+});
+
+describe("the services a cloud may not run", () => {
+  test("Heat's URL holds its project already, and is used as it is", () => {
+    expect(
+      toOpenStackServiceBaseUrl(
+        OpenStackServiceType.Orchestration,
+        "https://openstack.example/heat-api/v1/4d0acfc18c9d4a0b994a7fe34516bf65",
+      ),
+    ).toBe(
+      "https://openstack.example/heat-api/v1/4d0acfc18c9d4a0b994a7fe34516bf65",
+    );
+  });
+
+  test.each([
+    ["https://openstack.example/container-infra/v1"],
+    ["https://openstack.example/container-infra/v1/"],
+    ["https://openstack.example/container-infra"],
+  ])("Magnum's %s answers under its /v1", (url: string) => {
+    expect(
+      toOpenStackServiceBaseUrl(OpenStackServiceType.ContainerInfra, url),
+    ).toBe("https://openstack.example/container-infra/v1");
+  });
+
+  test("a region only they are in is still a region to read", () => {
+    expect(
+      getOpenStackCatalogRegions([
+        {
+          type: "orchestration",
+          name: "heat",
+          endpoints: [
+            {
+              url: "https://openstack.example/heat-api/v1/p",
+              interfaceName: "public",
+              regionName: "RegionTwo",
+            },
+          ],
+        },
+      ]),
+    ).toEqual(["RegionTwo"]);
   });
 });

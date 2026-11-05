@@ -360,7 +360,7 @@ function heredocLines(script) {
   return heredoc[1].split("\n");
 }
 
-// What the script writes to .env, in order: the heredoc, then the two lists it writes after it.
+// What the script writes to .env, in order: the heredoc, then the lists it writes after it.
 function writtenNames(script) {
   return [
     ...heredocLines(script).map((line) => {
@@ -368,6 +368,7 @@ function writtenNames(script) {
     }),
     ...namesIn(script, "TARGET_LIST_NAMES"),
     ...namesIn(script, "VERY_LARGE_CLOUD_NAMES"),
+    ...namesIn(script, "AI_AGENT_NAMES"),
   ];
 }
 
@@ -465,7 +466,7 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       // Run as uid 1000, which cannot give the file to the image's own user.
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
-      COMPOSE_PROFILES: "'openstack-exporter'",
+      COMPOSE_PROFILES: "'openstack-exporter,openstack-ai-agent'",
       OPENSTACK_COLLECT_QUOTAS: "'false'",
       OPENSTACK_QUOTA_CLOUDS: "'[]'",
       OPENSTACK_QUOTA_EXPORTER_ADDRESS: "'openstack-quota-exporter:9180'",
@@ -682,7 +683,7 @@ describe("each project's quotas", () => {
 
     expect(run.status).toBe(0);
     const env = composeReadAll(run.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent");
     expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("false");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
     expect(run.output).not.toContain("quotas are read once an hour");
@@ -697,7 +698,7 @@ describe("each project's quotas", () => {
 
     expect(run.status).toBe(0);
     const env = composeReadAll(run.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-quotas");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent,openstack-quotas");
     expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("true");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
     expect(env.OPENSTACK_QUOTA_EXPORTER_ADDRESS).toBe(
@@ -722,7 +723,7 @@ describe("each project's quotas", () => {
 
     expect(again.status).toBe(0);
     const env = composeReadAll(again.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-quotas");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent,openstack-quotas");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
   });
 
@@ -739,7 +740,7 @@ describe("each project's quotas", () => {
 
     expect(off.status).toBe(0);
     const env = composeReadAll(off.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
   });
 
@@ -1550,6 +1551,40 @@ describe("bring your own exporter", () => {
     });
   }
 
+  test("starts no AI agent, and a re-run keeps one someone asked for with a credential of its own", () => {
+    const dir = scratch();
+    const installDir = path.join(dir, "agent");
+    fs.mkdirSync(installDir);
+    fs.writeFileSync(
+      path.join(installDir, ".env"),
+      [
+        `ONEUPTIME_URL=${URL}`,
+        `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+        "OPENSTACK_CLOUD_NAME=prod",
+        "OPENSTACK_EXPORTER_CLOUDS=[RegionOne]",
+        `OPENSTACK_EXPORTER_ADDRESS=${OWN}`,
+        "COMPOSE_PROFILES=openstack-ai-agent",
+        "OPENSTACK_AI_CLOUDS_FILE=/dev/null",
+        "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=its-own-id",
+        "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=its-own-secret",
+        "",
+      ].join("\n"),
+    );
+
+    const run = install(dir, {});
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile)).toMatchObject({
+      COMPOSE_PROFILES: "openstack-ai-agent",
+      OPENSTACK_AI_CLOUDS_FILE: "/dev/null",
+      ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID: "its-own-id",
+      ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET: "its-own-secret",
+    });
+    expect(
+      envLines(ownExporter(scratch()).envFile).COMPOSE_PROFILES,
+    ).toBe("''");
+  });
+
   test("asks for no credential, asks Keystone nothing, writes no clouds.yaml, and turns the profile off", () => {
     const dir = scratch();
     const run = ownExporter(dir);
@@ -1616,7 +1651,7 @@ describe("bring your own exporter", () => {
 
     expect(run.status).toBe(0);
     expect(composeReadAll(run.envFile).COMPOSE_PROFILES).toBe(
-      "openstack-exporter",
+      "openstack-exporter,openstack-ai-agent",
     );
     expect(run.cloudsText).not.toBe("");
   });
@@ -1900,7 +1935,8 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_EXPORTER_ADDRESS: "openstack-exporter:9180",
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "",
-      COMPOSE_PROFILES: "openstack-exporter",
+      // What a re-run starts: the bundled exporter, and now the AI agent beside it.
+      COMPOSE_PROFILES: "openstack-exporter,openstack-ai-agent",
       // What it did not say takes its default, so the next hand has it to change.
       OPENSTACK_COLLECT_QUOTAS: "false",
       OPENSTACK_QUOTA_CLOUDS: "[]",
@@ -2312,16 +2348,16 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
 
   test("keeps every variable docker-compose.yml reads and writes exactly those, with what it and the doctor read", () => {
     const names = envNames(script);
-    const expected = [
+    const expected = new Set([
       ...composeVariables(),
       // Compose itself reads which profiles to start from .env.
       "COMPOSE_PROFILES",
-      // This script and troubleshoot.sh.
+      // This script and troubleshoot.sh, and the AI agent's own credential in the compose file.
       "OPENSTACK_AUTH_URL",
       // This script: what turns on the exporter and the list that follow from it.
       "OPENSTACK_COLLECT_QUOTAS",
-    ];
-    expect([...names].sort()).toEqual(expected.sort());
+    ]);
+    expect([...names].sort()).toEqual([...expected].sort());
     expect(writtenNames(script)).toEqual(names);
   });
 
@@ -2337,8 +2373,13 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
       expect(lines).toContain(line);
     }
     // Each list is written one name at a time, by the same helper.
-    for (const list of ["TARGET_LIST_NAMES", "VERY_LARGE_CLOUD_NAMES"]) {
-      const loop = script.slice(script.indexOf(`for name in $${list}; do`));
+    for (const list of [
+      "$TARGET_LIST_NAMES",
+      "$VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES",
+    ]) {
+      const head = `for name in ${list}; do`;
+      expect(script).toContain(head);
+      const loop = script.slice(script.indexOf(head));
       expect(loop.slice(0, loop.indexOf("\ndone"))).toContain(
         `printf '%s=%s\\n' "$name" "$(env_value "\${!name}")" >> "$ENV_FILE"`,
       );
@@ -2465,8 +2506,29 @@ describe("the .env the installer writes, as the real Docker Compose reads it (re
       const config = realComposeConfig(run.installDir);
       expect(Object.keys(config.services).sort()).toEqual([
         "oneuptime-openstack-agent",
+        "oneuptime-openstack-ai-agent",
         "openstack-exporter",
       ]);
+      // The AI agent serves the cloud the collector reports, with the same file.
+      const aiAgent = config.services["oneuptime-openstack-ai-agent"];
+      expect(
+        serviceEnvironment(config, "oneuptime-openstack-ai-agent"),
+      ).toMatchObject({
+        ONEUPTIME_URL: URL,
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
+        ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+        OPENSTACK_CLOUD_NAME: cloudName,
+        OPENSTACK_EXPORTER_CLOUDS: "[RegionOne,RegionTwo]",
+        ONEUPTIME_AI_ALLOW_WRITES: "false",
+      });
+      expect(aiAgent.user).toBe("1000:1000");
+      expect(aiAgent.read_only).toBe(true);
+      expect(aiAgent.cap_drop).toEqual(["ALL"]);
+      expect(
+        aiAgent.volumes.map((volume) => {
+          return `${path.basename(volume.source)}:${volume.target}:${volume.read_only}`;
+        }),
+      ).toContain("clouds.yaml:/etc/openstack/clouds.yaml:true");
       expect(
         serviceEnvironment(config, "oneuptime-openstack-agent"),
       ).toMatchObject({

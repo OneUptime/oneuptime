@@ -31,6 +31,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
+  isReadOnlyAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceCommandPolicy, {
@@ -429,6 +430,22 @@ export default class ResourceAiAccessSettings {
         `AI remediation mode must be one of ${RESOURCE_REMEDIATION_MODES_BY_AUTONOMY.join(
           ", ",
         )} (got ${JSON.stringify(mode)}).`,
+      );
+    }
+
+    /*
+     * A resource OneUptime AI only reads has no command a fix could run, so a
+     * mode that promises one is refused rather than saved and never honoured.
+     */
+    if (
+      mode !== undefined &&
+      mode !== ResourceAiRemediationMode.Disabled &&
+      isReadOnlyAiResourceType(data.resourceType)
+    ) {
+      throw new BadDataException(
+        `OneUptime AI only reads this ${getResourceSentenceName(
+          data.resourceType,
+        )}: it has no command that changes it, so fixes stay off.`,
       );
     }
 

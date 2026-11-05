@@ -70,6 +70,12 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.Image]: translationKey(
     "This image is not in this cloud's inventory. It may have been deleted, or Glance may not have reported it yet.",
   ),
+  [OpenStackResourceKind.Stack]: translationKey(
+    "This stack is not in this cloud's inventory. It may have been deleted, or Heat may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.ContainerCluster]: translationKey(
+    "This Kubernetes cluster is not in this cloud's inventory. It may have been deleted, or Magnum may not have reported it yet.",
+  ),
 };
 
 export interface ComponentProps {

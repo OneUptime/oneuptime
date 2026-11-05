@@ -8,7 +8,7 @@ $ openstack object store account show
 +------------+---------------------------------------+
 | Field      | Value                                 |
 +------------+---------------------------------------+
-| Account    | AUTH_3e5d001dee9a477087fc3b0e5278eb81 |
+| Account    | AUTH_ae4a67bb74a44dddb73258c2b4fa0bb6 |
 | Bytes      | 2048                                  |
 | Containers | 1                                     |
 | Objects    | 1                                     |

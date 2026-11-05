@@ -377,10 +377,12 @@ scene_volume_attach() {
   remember volume_attached "$(openstack volume show ou-log-vol -f value -c id)"
   openstack server add volume ou-log-vm ou-log-vol
   wait_for_volume ou-log-vol in-use
-  openstack volume snapshot create --force --volume ou-log-vol ou-log-snap
-  sleep 10
-  openstack volume snapshot delete ou-log-snap
-  sleep 5
+  # Hibiscus refuses a snapshot of a volume in use, and the detach is still to come.
+  if openstack volume snapshot create --force --volume ou-log-vol ou-log-snap; then
+    sleep 10
+    openstack volume snapshot delete ou-log-snap
+    sleep 5
+  fi
   openstack server remove volume ou-log-vm ou-log-vol
   wait_for_volume ou-log-vol available
   openstack volume delete ou-log-vol
