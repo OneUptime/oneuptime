@@ -288,6 +288,120 @@ describe("reading instances", () => {
     expect(namesOf(read)).toEqual(["a"]);
   });
 
+  describe("Nova asks Neutron about every instance it lists, so with Neutron down", () => {
+    const NOVA_WITHOUT_NEUTRON: OpenStackHttpResponse = {
+      status: 500,
+      headers: {},
+      // What a real Nova answered, with its Neutron stopped behind tls-proxy.
+      body: JSON.stringify({
+        computeFault: {
+          code: 500,
+          message:
+            "Unexpected API Error. Please contact the administrator\n<class 'neutronclient.common.exceptions.ServiceUnavailable'>",
+        },
+      }),
+    };
+
+    test("a full read falling due keeps what is known, and asks what changed", async () => {
+      const cloud: Nova = nova();
+
+      cloud.answer(() => {
+        return servers([server("a"), server("b")]);
+      });
+      await cloud.read();
+
+      cloud.clock.advance(FULL_INSTANCE_READ_INTERVAL_IN_MS);
+      cloud.answer((url: globalThis.URL) => {
+        return url.searchParams.get("changes-since")
+          ? servers([])
+          : NOVA_WITHOUT_NEUTRON;
+      });
+
+      const read: OpenStackInstanceRead = await cloud.read();
+
+      expect(read.mode).toBe("Incremental");
+      expect(namesOf(read)).toEqual(["a", "b"]);
+    });
+
+    test("once Neutron is back, the full read that fell due is made", async () => {
+      const cloud: Nova = nova();
+
+      cloud.answer(() => {
+        return servers([server("a"), server("left-without-saying")]);
+      });
+      await cloud.read();
+
+      cloud.clock.advance(FULL_INSTANCE_READ_INTERVAL_IN_MS);
+      cloud.answer((url: globalThis.URL) => {
+        return url.searchParams.get("changes-since")
+          ? servers([])
+          : NOVA_WITHOUT_NEUTRON;
+      });
+      await cloud.read();
+
+      cloud.answer(() => {
+        return servers([server("a")]);
+      });
+
+      const read: OpenStackInstanceRead = await cloud.read();
+
+      expect(read.mode).toBe("Full");
+      expect(namesOf(read)).toEqual(["a"]);
+    });
+
+    test("an instance that changed fails the read too, and what is known stays", async () => {
+      const cloud: Nova = nova();
+
+      cloud.answer(() => {
+        return servers([server("a")]);
+      });
+      await cloud.read();
+
+      cloud.answer(() => {
+        return NOVA_WITHOUT_NEUTRON;
+      });
+      await expect(cloud.read()).rejects.toMatchObject({ kind: "failing" });
+
+      cloud.answer(() => {
+        return servers([]);
+      });
+
+      expect(namesOf(await cloud.read())).toEqual(["a"]);
+    });
+
+    test("a probe with nothing known has nothing to fall back on", async () => {
+      const cloud: Nova = nova();
+
+      cloud.answer(() => {
+        return NOVA_WITHOUT_NEUTRON;
+      });
+
+      await expect(cloud.read()).rejects.toMatchObject({ kind: "failing" });
+    });
+  });
+
+  test("a full read Nova itself refuses is not put off", async () => {
+    const cloud: Nova = nova();
+
+    cloud.answer(() => {
+      return servers([server("a")]);
+    });
+    await cloud.read();
+
+    cloud.clock.advance(FULL_INSTANCE_READ_INTERVAL_IN_MS);
+    cloud.requests.length = 0;
+    cloud.answer(() => {
+      return { status: 429, headers: {}, body: "" };
+    });
+
+    await expect(cloud.read()).rejects.toMatchObject({ kind: "overloaded" });
+    expect(
+      cloud.requests.filter((request: OpenStackHttpRequest): boolean => {
+        return request.url.includes("changes-since");
+      }),
+    ).toEqual([]);
+  });
+
   test("a failed read leaves the list and the time as they were", async () => {
     const cloud: Nova = nova();
 

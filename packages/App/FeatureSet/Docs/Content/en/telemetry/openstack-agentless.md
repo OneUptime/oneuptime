@@ -23,7 +23,7 @@ flowchart TB
 
 Every two minutes the probe reads each service of each region you picked, and sends what it found to OneUptime. It arrives exactly as the OpenStack Agent's does, so every OpenStack page, [OpenStack monitor](/docs/monitor/openstack-monitor) and alert template reads it the same way.
 
-Each service is read on its own and at the same time as the others. A Neutron that fails or hangs costs Neutron's series, and Nova's data arrives as usual.
+Each service is read on its own and at the same time as the others. A Neutron that fails or hangs costs Neutron's series, and Nova's data arrives as usual, with one catch Nova makes for itself: it asks Neutron about every instance it lists. So while Neutron is down, a probe keeps the instances it last read and asks only what changed. If an instance has changed, or the probe has only just started, Nova can't answer that list either: Nova reads as failing, its other series still arrive, and each instance stays on its page as it last was until Neutron is back.
 
 Heat and Magnum are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
 
@@ -242,8 +242,8 @@ Pick from the regions the catalog names. The connection test lists them.
 Keystone answered with a server error. The probe waits longer between logins until it recovers, and nothing else can be read without a login. Check Keystone's service and the database behind it.
 :::
 
-:::details A service is too busy to answer
-It kept answering `429` or a server error, so the probe waits longer between collections until it recovers. Collect less often, or check its load.
+:::details A service is stopped or too busy to answer
+It kept answering `429` or a server error, so the probe waits longer between collections until it recovers. Check that it is running, then its load. Collecting less often helps a busy one.
 :::
 
 :::details Collecting took too long

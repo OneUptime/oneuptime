@@ -31,6 +31,7 @@ import OpenStackCollector, {
   OpenStackCollectorDependencies,
 } from "../../../Utils/OpenStack/OpenStackCollector";
 import OpenStackCollectorMemory from "../../../Utils/OpenStack/OpenStackCollectorMemory";
+import { FULL_INSTANCE_READ_INTERVAL_IN_MS } from "../../../Utils/OpenStack/OpenStackInstanceReader";
 import {
   OpenStackHttpRequest,
   OpenStackHttpResponse,
@@ -619,13 +620,24 @@ describeLive("the probe against a real cloud, over real TLS", () => {
     test(
       "a failing Neutron leaves Nova's data intact",
       async () => {
+        // A probe that has been collecting, as one has by the time something goes wrong.
+        const live: LiveRun = liveRun();
+        const before: OpenStackCollectionReport =
+          await OpenStackCollector.collect(collectionJob(), live.dependencies);
+        const instances: number = points(
+          before,
+          "openstack_nova_server_status",
+        ).length;
+
+        expect(instances).toBeGreaterThan(0);
+
         run(`sudo systemctl stop ${NEUTRON_UNIT}`);
 
         try {
           const report: OpenStackCollectionReport =
             await OpenStackCollector.collect(
               collectionJob(),
-              liveRun().dependencies,
+              live.dependencies,
             );
 
           keep("collection-neutron-down", report.summary);
@@ -633,11 +645,52 @@ describeLive("the probe against a real cloud, over real TLS", () => {
           expect(report.status).toBe("PartiallySucceeded");
           expect(valueOf(report, "openstack_neutron_up")).toBe(0);
           expect(valueOf(report, "openstack_nova_up")).toBe(1);
-          expect(
-            points(report, "openstack_nova_server_status").length,
-          ).toBeGreaterThan(0);
+          expect(points(report, "openstack_nova_server_status").length).toBe(
+            instances,
+          );
           expect(
             points(report, "openstack_cinder_volume_gb").length,
+          ).toBeGreaterThan(0);
+
+          // A full read falling due: Nova can't list its instances, and nothing is lost.
+          live.advance(FULL_INSTANCE_READ_INTERVAL_IN_MS);
+
+          const fullReadDue: OpenStackCollectionReport =
+            await OpenStackCollector.collect(
+              collectionJob(),
+              live.dependencies,
+            );
+
+          keep("collection-neutron-down-full-read-due", {
+            summary: fullReadDue.summary,
+            requests: live.answered,
+          });
+
+          expect(valueOf(fullReadDue, "openstack_nova_up")).toBe(1);
+          expect(
+            points(fullReadDue, "openstack_nova_server_status").length,
+          ).toBe(instances);
+
+          /*
+           * A probe started now has nothing to keep, and Nova asks Neutron about every instance it
+           * lists: what Nova's list couldn't say goes unsaid, and the rest of Nova is read.
+           */
+          const fresh: OpenStackCollectionReport =
+            await OpenStackCollector.collect(
+              collectionJob(),
+              liveRun().dependencies,
+            );
+
+          keep("collection-neutron-down-new-probe", fresh.summary);
+
+          expect(fresh.status).toBe("PartiallySucceeded");
+          expect(valueOf(fresh, "openstack_nova_up")).toBe(0);
+          expect(points(fresh, "openstack_nova_server_status")).toEqual([]);
+          expect(
+            points(fresh, "openstack_nova_vcpus_available").length,
+          ).toBeGreaterThan(0);
+          expect(
+            points(fresh, "openstack_cinder_volume_gb").length,
           ).toBeGreaterThan(0);
         } finally {
           run(`sudo systemctl start ${NEUTRON_UNIT}`);
