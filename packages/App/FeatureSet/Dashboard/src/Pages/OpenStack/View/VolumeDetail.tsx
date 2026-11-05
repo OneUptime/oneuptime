@@ -36,6 +36,7 @@ import { fetchOpenStackNames } from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS,
   getOpenStackPartExplanation,
+  getOpenStackStoragePoolExternalId,
   getOpenStackTimeInState,
 } from "../Utils/OpenStackPartFacts";
 import {
@@ -45,11 +46,12 @@ import {
 
 /*
  * One volume: its status in Cinder's word, how long it has been there, what holds it and
- * whose it is. The exporter doesn't say which pool a volume is on, so that is said to be
- * not collected rather than left out, because it is the next thing someone looks for.
+ * whose it is. Which pool it is on comes from a probe, for a credential Cinder tells. Anywhere
+ * else that is said to be not collected rather than left out, because it is the next thing
+ * someone looks for.
  */
 const POOL_NOT_COLLECTED: string = translationKey(
-  "Not collected: neither the agent's exporter nor a probe says which pool a volume is on. openstack volume show has it, for a credential that can read it.",
+  "Not collected: the agent's exporter doesn't say which pool a volume is on, and Cinder only tells a probe when its credential is an admin's. openstack volume show has it, for a credential that can read it.",
 );
 
 const VolumeOverview: FunctionComponent<{
@@ -121,10 +123,21 @@ const VolumeOverview: FunctionComponent<{
       translator.translateText("Nothing") || "Nothing"
     ),
   });
+  const poolName: string = getOpenStackFactText(row, "pool");
   detailRows.push({
     key: "pool",
     label: "Storage pool",
-    value: (
+    value: poolName ? (
+      <Link
+        to={part.routes.getPartRoute(
+          OpenStackResourceKind.StoragePool,
+          getOpenStackStoragePoolExternalId(row.regionName, poolName),
+        )}
+        className="text-indigo-600 hover:text-indigo-700 hover:underline"
+      >
+        <bdi>{poolName}</bdi>
+      </Link>
+    ) : (
       <span className="text-gray-500">
         {translator.translateText(POOL_NOT_COLLECTED) || POOL_NOT_COLLECTED}
       </span>

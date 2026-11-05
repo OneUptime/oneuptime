@@ -189,10 +189,14 @@ export const PROXMOX_AGENT_VERSION: string = "0.161.1";
 export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 /*
  * The version the OpenStack agent reports. Its files changed on the same collector -
- * 0.161.1, real per-instance usage read from libvirt or Ceilometer when asked - so an
- * agent still running the old files reports 0.161.0 and is told to upgrade.
+ * 0.161.1, real per-instance usage read from libvirt or Ceilometer when asked; 0.161.2,
+ * load balancers, bare metal, stacks, clusters, shares, DNS, object storage, databases
+ * and Gnocchi read where a cloud runs them - so an agent still running the old files
+ * reports what it reported and is told to upgrade.
  */
-export const OPENSTACK_AGENT_VERSION: string = "0.161.1";
+export const OPENSTACK_AGENT_VERSION: string = "0.161.2";
+// The collector the OpenStack agent runs: the image its docker-compose.yml pins.
+export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 export const CEPH_AGENT_VERSION: string = "0.161.0";
 export const VMWARE_AGENT_VERSION: string = "0.161.0";
 export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
@@ -266,7 +270,7 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OneUptime OpenStack Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: OPENSTACK_AGENT_VERSION,
-    collectorVersion: OPENSTACK_AGENT_VERSION,
+    collectorVersion: OPENSTACK_AGENT_COLLECTOR_VERSION,
   },
   [AgentKind.CephAgent]: {
     name: "OneUptime Ceph Agent",

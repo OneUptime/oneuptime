@@ -1,0 +1,105 @@
+[
+  {
+    "ID": "362cd6a3-c594-47b4-af54-8aa379059f1f",
+    "Name": "ou-burner",
+    "Status": "ACTIVE",
+    "Task State": null,
+    "Power State": 1,
+    "Networks": {
+      "ou-research-net": [
+        "10.78.0.52"
+      ]
+    },
+    "Image Name": "cirros-0.6.3-x86_64-disk",
+    "Image ID": "455c0dec-88b2-48cb-87d5-c2f7f344018c",
+    "Flavor": "ou.tiny",
+    "Availability Zone": "nova",
+    "Host": "compute-01.example.internal",
+    "Properties": {},
+    "Pinned Availability Zone": null,
+    "Host Status": "UP"
+  },
+  {
+    "ID": "be8545a1-df96-46ea-b0fc-f131d85beaf9",
+    "Name": "ou-research-1",
+    "Status": "ACTIVE",
+    "Task State": null,
+    "Power State": 1,
+    "Networks": {
+      "ou-research-net": [
+        "10.78.0.117"
+      ]
+    },
+    "Image Name": "cirros-0.6.3-x86_64-disk",
+    "Image ID": "455c0dec-88b2-48cb-87d5-c2f7f344018c",
+    "Flavor": "ou.tiny",
+    "Availability Zone": "nova",
+    "Host": "compute-01.example.internal",
+    "Properties": {},
+    "Pinned Availability Zone": null,
+    "Host Status": "UP"
+  },
+  {
+    "ID": "7cda806e-e9e8-44fe-baaf-12d1ebbe67df",
+    "Name": "ou-failed",
+    "Status": "ERROR",
+    "Task State": null,
+    "Power State": 0,
+    "Networks": {},
+    "Image Name": "cirros-0.6.3-x86_64-disk",
+    "Image ID": "455c0dec-88b2-48cb-87d5-c2f7f344018c",
+    "Flavor": "ou.impossible",
+    "Availability Zone": "",
+    "Host": null,
+    "Properties": {
+      "owner": "ou-payments"
+    },
+    "Pinned Availability Zone": null,
+    "Host Status": ""
+  },
+  {
+    "ID": "0c77c2ee-ee45-45e4-89d6-3a94e473d341",
+    "Name": "ou-stopped",
+    "Status": "SHUTOFF",
+    "Task State": null,
+    "Power State": 4,
+    "Networks": {
+      "ou-net": [
+        "10.77.0.106"
+      ]
+    },
+    "Image Name": "cirros-0.6.3-x86_64-disk",
+    "Image ID": "455c0dec-88b2-48cb-87d5-c2f7f344018c",
+    "Flavor": "ou.tiny",
+    "Availability Zone": "nova",
+    "Host": "compute-01.example.internal",
+    "Properties": {
+      "owner": "ou-payments"
+    },
+    "Pinned Availability Zone": null,
+    "Host Status": "UP"
+  },
+  {
+    "ID": "780b95b0-3322-426b-a9b4-918b4d0717d7",
+    "Name": "ou-running",
+    "Status": "ACTIVE",
+    "Task State": null,
+    "Power State": 1,
+    "Networks": {
+      "ou-net": [
+        "10.77.0.48",
+        "172.24.4.227"
+      ]
+    },
+    "Image Name": "cirros-0.6.3-x86_64-disk",
+    "Image ID": "455c0dec-88b2-48cb-87d5-c2f7f344018c",
+    "Flavor": "ou.tiny",
+    "Availability Zone": "nova",
+    "Host": "compute-01.example.internal",
+    "Properties": {
+      "owner": "ou-payments"
+    },
+    "Pinned Availability Zone": null,
+    "Host Status": "UP"
+  }
+]

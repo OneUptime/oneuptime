@@ -446,6 +446,30 @@ describe("a volume's page", () => {
     ).toHaveTextContent(/Not collected/);
   });
 
+  test("the pool a probe was told is one step from its page, by its row's name", async () => {
+    server.rows = [
+      volumeRow({
+        regionName: "RegionOne",
+        facts: { pool: "compute-01@lvmdriver-1#lvmdriver-1" },
+      }),
+    ];
+
+    await renderPage(OpenStackCloudVolumeDetail, PATH);
+
+    const pool: HTMLElement = await screen.findByTestId(
+      "openstack-volume-details-pool",
+    );
+
+    expect(pool).toHaveTextContent("compute-01@lvmdriver-1#lvmdriver-1");
+    expect(pool).not.toHaveTextContent(/Not collected/);
+    expect(within(pool).getByRole("link")).toHaveAttribute(
+      "href",
+      expect.stringContaining(
+        encodeURIComponent("RegionOne/compute-01@lvmdriver-1#lvmdriver-1"),
+      ),
+    );
+  });
+
   test("its alerts are the volume templates", async () => {
     server.rows = [volumeRow()];
 
@@ -609,6 +633,48 @@ describe("a storage pool's page", () => {
     expect(
       screen.getByTestId("openstack-storage-pool-details-vendor"),
     ).toHaveTextContent("Open Source");
+  });
+
+  describe("its volumes", () => {
+    test("are listed where a probe says which they are, and only its own", async () => {
+      server.rows = [
+        poolAt(50),
+        volumeRow({ name: "on-this-pool", facts: { pool: POOL_NAME } }),
+        volumeRow({
+          name: "on-another-pool",
+          facts: { pool: "compute-02@lvmdriver-1#lvmdriver-1" },
+        }),
+        volumeRow({
+          name: "in-another-region",
+          regionName: "RegionTwo",
+          facts: { pool: POOL_NAME },
+        }),
+        volumeRow({ name: "nothing-says", facts: {} }),
+      ];
+
+      await renderPage(OpenStackCloudStoragePoolDetail, PATH);
+
+      fireEvent.click(await screen.findByRole("tab", { name: "Volumes" }));
+      await settle();
+
+      expect(await screen.findByText("on-this-pool")).toBeInTheDocument();
+      expect(screen.queryByText("on-another-pool")).not.toBeInTheDocument();
+      expect(screen.queryByText("in-another-region")).not.toBeInTheDocument();
+      expect(screen.queryByText("nothing-says")).not.toBeInTheDocument();
+    });
+
+    test("have no tab where nothing says, and the page says why", async () => {
+      server.rows = [poolAt(50), volumeRow({ facts: {} })];
+
+      await renderPage(OpenStackCloudStoragePoolDetail, PATH);
+      await screen.findByRole("tab", { name: "Metrics" });
+      await settle();
+
+      expect(screen.queryByRole("tab", { name: "Volumes" })).toBeNull();
+      expect(
+        await screen.findByTestId("openstack-storage-pool-blast"),
+      ).toHaveTextContent("Nothing collected says which pool");
+    });
   });
 
   test("its Metrics tab is there", async () => {
@@ -838,6 +904,21 @@ describe("images", () => {
       screen.getByTestId("openstack-image-details-hidden"),
     ).toHaveTextContent("No");
     expect(tile("openstack-image-tiles", "Size")).toHaveTextContent("21 MiB");
+  });
+
+  test("its alert is the stuck image template", async () => {
+    server.rows = [imageRow()];
+
+    await renderPage(OpenStackCloudImageDetail, partPath("images", IMAGE_ID));
+
+    expect(
+      within(await screen.findByTestId("openstack-image-alerts"))
+        .getAllByTestId("openstack-image-alerts-item")
+        .map((item: HTMLElement) => {
+          return item.textContent;
+        })
+        .join(" "),
+    ).toContain("Image Stuck");
   });
 });
 

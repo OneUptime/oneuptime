@@ -8,7 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
 import {
   OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES,
@@ -289,6 +289,154 @@ describe("a healthy cloud", () => {
     expect(
       pointsNamed(report, "openstack_neutron_l3_agent_of_router").length,
     ).toBeGreaterThan(0);
+  });
+
+  describe("which networks a DHCP agent serves", () => {
+    const OVS: () => RecordedScene = (): RecordedScene => {
+      return loadScene("gazpacho-ovs", "healthy");
+    };
+
+    function dhcpPaths(cloud: RecordedCloud): Array<string> {
+      return cloud.paths().filter((p: string) => {
+        return p.endsWith("/dhcp-networks");
+      });
+    }
+
+    test("on ML2/OVS it asks each DHCP agent, and only those", async () => {
+      const scene: RecordedScene = OVS();
+      const cloud: RecordedCloud = createRecordedCloud(scene);
+
+      await OpenStackCollector.collect(
+        collectionJob(),
+        createCollectorHarness({ transport: cloud.transport }).dependencies,
+      );
+
+      const agents: Array<JSONObject> = recordedJson(
+        scene,
+        "neutron-agents",
+      )?.["agents"] as Array<JSONObject>;
+      const dhcp: Array<JSONObject> = agents.filter((agent: JSONObject) => {
+        return agent["binary"] === "neutron-dhcp-agent";
+      });
+
+      expect(dhcp.length).toBeGreaterThan(0);
+      expect(dhcpPaths(cloud)).toEqual(
+        dhcp.map((agent: JSONObject): string => {
+          return `/networking/v2.0/agents/${agent["id"] as string}/dhcp-networks`;
+        }),
+      );
+    });
+
+    test("on OVN, which has none, it asks nothing", async () => {
+      const cloud: RecordedCloud = createRecordedCloud(HEALTHY);
+
+      await OpenStackCollector.collect(
+        collectionJob(),
+        createCollectorHarness({ transport: cloud.transport }).dependencies,
+      );
+
+      expect(dhcpPaths(cloud)).toEqual([]);
+    });
+
+    test.each<[string, number, JSONValue]>([
+      [
+        "refused, as a credential that may not read it is",
+        403,
+        { error: { message: "Forbidden" } },
+      ],
+      [
+        "unknown to this Neutron",
+        404,
+        { NeutronError: { message: "The resource could not be found." } },
+      ],
+    ])(
+      "%s, it costs itself and nothing else, and one call a round",
+      async (_name: string, status: number, body: JSONValue) => {
+        const cloud: RecordedCloud = createRecordedCloud(OVS(), {
+          answer: (
+            request: OpenStackHttpRequest,
+          ): OpenStackHttpResponse | undefined => {
+            return request.url.includes("/dhcp-networks")
+              ? { status, headers: {}, body: JSON.stringify(body) }
+              : undefined;
+          },
+        });
+        const harness: CollectorHarness = createCollectorHarness({
+          transport: cloud.transport,
+        });
+
+        const report: OpenStackCollectionReport =
+          await OpenStackCollector.collect(
+            collectionJob(),
+            harness.dependencies,
+          );
+
+        expect(report.status).toBe("Succeeded");
+        expect(report.summary?.warnings).toEqual([]);
+        expect(valueOf(report, "openstack_neutron_up")).toBe(1);
+        expect(dhcpPaths(cloud)).toHaveLength(1);
+
+        const asked: number = dhcpPaths(cloud).length;
+
+        // Not again on the next collection: a refusal waits its turn as an answer does.
+        harness.clock.advance(2 * 60_000);
+        await OpenStackCollector.collect(collectionJob(), harness.dependencies);
+
+        expect(dhcpPaths(cloud)).toHaveLength(asked);
+      },
+    );
+
+    test("failing isn't Neutron being down, and nothing vouches for rows on it", async () => {
+      const cloud: RecordedCloud = createRecordedCloud(OVS(), {
+        answer: (
+          request: OpenStackHttpRequest,
+        ): OpenStackHttpResponse | undefined => {
+          return request.url.includes("/dhcp-networks")
+            ? { status: 500, headers: {}, body: "{}" }
+            : undefined;
+        },
+      });
+
+      const report: OpenStackCollectionReport =
+        await OpenStackCollector.collect(
+          collectionJob(),
+          createCollectorHarness({ transport: cloud.transport }).dependencies,
+        );
+
+      expect(valueOf(report, "openstack_neutron_up")).toBe(1);
+      expect(
+        pointsNamed(report, "openstack_neutron_network").length,
+      ).toBeGreaterThan(0);
+    });
+
+    test("past half of the collection's time, it isn't started", async () => {
+      let isOutOfTime: boolean = false;
+      const harness: { clock?: FakeClock } = {};
+      const cloud: RecordedCloud = createRecordedCloud(OVS(), {
+        answer: (
+          request: OpenStackHttpRequest,
+        ): OpenStackHttpResponse | undefined => {
+          // The last list Neutron is asked for before it, as a slow one reaches it.
+          if (!isOutOfTime && request.url.includes("/security-groups")) {
+            isOutOfTime = true;
+            harness.clock!.advance(60_000);
+          }
+          return undefined;
+        },
+      });
+      const collector: CollectorHarness = createCollectorHarness({
+        transport: cloud.transport,
+        overrides: { collectionTimeoutInMs: 100_000 },
+      });
+      harness.clock = collector.clock;
+
+      await OpenStackCollector.collect(
+        collectionJob(),
+        collector.dependencies,
+      );
+
+      expect(dhcpPaths(cloud)).toEqual([]);
+    });
   });
 
   /*
@@ -691,8 +839,9 @@ describe("a failing Neutron leaves Nova's data intact", () => {
       overrides: { collectionTimeoutInMs: 20 },
     });
 
+    // A global Node 24 made read-only, and nothing here reads it.
     jest.useFakeTimers({
-      doNotFake: ["setImmediate", "nextTick", "queueMicrotask"],
+      doNotFake: ["setImmediate", "nextTick", "queueMicrotask", "performance"],
     });
 
     try {

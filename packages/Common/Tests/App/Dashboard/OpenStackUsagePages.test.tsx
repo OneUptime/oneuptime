@@ -63,6 +63,35 @@ import {
  * with no source says what is missing and how to add it.
  */
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceMetricsTab",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: { queryConfigs: Array<any> }) => {
+        return (
+          <div data-testid="resource-metrics-tab">
+            {props.queryConfigs.map((config: any) => {
+              return (
+                <div
+                  key={config.metricAliasData.metricVariable}
+                  data-testid="metric-query"
+                  data-metric={config.metricQueryData.filterData.metricName}
+                  data-attributes={JSON.stringify(
+                    config.metricQueryData.filterData.attributes,
+                  )}
+                >
+                  {config.metricAliasData.title}
+                </div>
+              );
+            })}
+          </div>
+        );
+      },
+    };
+  },
+);
+
 configure({ testIdAttribute: "data-testid" });
 
 const BURNER_ID: string = "a1b2c3d4-0000-4000-8000-000000000001";
@@ -215,6 +244,61 @@ describe("a hypervisor's page", () => {
     expect(rows[1]).toHaveTextContent("waiting 24%");
   });
 
+  test("each instance named says what it uses of what it was given", async () => {
+    reportFromSource();
+    server.metrics[OpenStackInstanceMetric.CpuUsage] = [
+      { group: BURNER_ID, value: 3.8 },
+    ];
+    server.metrics[OpenStackInstanceMetric.CpuUtilization] = [
+      { group: BURNER_ID, value: 63.3 },
+    ];
+    await openHypervisor({
+      facts: { resourceTotals: { VCPU: 4, MEMORY_MB: 16384 } },
+    });
+    expect(
+      screen.getByTestId("openstack-hypervisor-busiest-instance"),
+    ).toHaveTextContent("3.8 CPU threads, of 6 vCPUs it was given");
+  });
+
+  test("its Metrics tab has what its instances really use, once something says", async () => {
+    reportFromSource();
+    await openHypervisor();
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await settle();
+    const queries: Array<HTMLElement> = screen.getAllByTestId("metric-query");
+    expect(
+      queries.map((query: HTMLElement): string | null => {
+        return query.getAttribute("data-metric");
+      }),
+    ).toEqual([
+      OpenStackHypervisorMetric.InstancesCpuUtilization,
+      OpenStackHypervisorMetric.InstancesMemoryUtilization,
+      "openstack_placement_resource_usage",
+      "openstack_placement_resource_usage",
+      "openstack_placement_resource_usage",
+      "openstack_nova_running_vms",
+    ]);
+    expect(JSON.parse(queries[0]!.getAttribute("data-attributes")!)).toEqual(
+      expect.objectContaining({
+        "resource.openstack.cloud.name": "prod-eu",
+        hostname: HYPERVISOR_NAME,
+      }),
+    );
+  });
+
+  test("and no empty frames for it when nothing does", async () => {
+    await openHypervisor();
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await settle();
+    expect(
+      screen
+        .getAllByTestId("metric-query")
+        .map((query: HTMLElement): string | null => {
+          return query.getAttribute("data-metric");
+        }),
+    ).not.toContain(OpenStackHypervisorMetric.InstancesCpuUtilization);
+  });
+
   test("under the line it says nothing of the kind", async () => {
     reportFromSource();
     server.metrics[OpenStackHypervisorMetric.InstancesCpuUsage] = [
@@ -297,12 +381,15 @@ describe("a hypervisor's page", () => {
       const throughput: HTMLElement = screen.getByTestId(
         "openstack-hypervisor-host-throughput",
       );
-      // A partition's bytes are its disk's, and a tap's are its interface's.
+      /*
+       * A partition's bytes are its disk's, and a tap's are its interface's.
+       * Six MiB over the minute between its two readings.
+       */
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes(100 * 1024)}/s read`,
+        `${formatOpenStackBytes((6 * 1024 * 1024) / 60)}/s read`,
       );
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes(200 * 1024)}/s written`,
+        `${formatOpenStackBytes((12 * 1024 * 1024) / 60)}/s written`,
       );
       expect(throughput).toHaveTextContent(
         `${formatOpenStackBytes(1024 * 1024)}/s in`,
@@ -314,6 +401,32 @@ describe("a hypervisor's page", () => {
       expect(
         screen.getByTestId("openstack-hypervisor-tiles"),
       ).toHaveTextContent("vCPUs allocated");
+    });
+
+    test("over the line by its own reading, with its instances under it, it says which and names them", async () => {
+      reportFromSource();
+      server.metrics[OpenStackHypervisorMetric.InstancesCpuUsage] = [
+        { group: OpenStackInstanceMetricSource.Libvirt, value: 1 },
+      ];
+      server.metrics[OpenStackInstanceMetric.CpuUsage] = [
+        { group: BURNER_ID, value: 1 },
+      ];
+      agentReports({
+        "system.cpu.utilization": [
+          { value: 0.97, timestamp: new Date(NOW_MS).toISOString() },
+        ],
+        "system.disk.io": [],
+        "system.network.io": [],
+      });
+      await openHypervisor({
+        facts: { resourceTotals: { VCPU: 4, MEMORY_MB: 16384 } },
+      });
+      expect(
+        screen.getByTestId("openstack-hypervisor-over-line"),
+      ).toHaveTextContent("nearly all of this machine's CPU is in use");
+      expect(
+        screen.getByTestId("openstack-hypervisor-busiest-instance"),
+      ).toHaveTextContent("burner");
     });
 
     test("an agent that reports neither says so, and is never read as nothing moving", async () => {
@@ -472,6 +585,140 @@ describe("an instance's page", () => {
     );
   });
 
+  test("its disks and interfaces add up, and its slowest disk is the one it says", async () => {
+    server.metrics[OpenStackInstanceMetric.CpuUsage] = [
+      { group: OpenStackInstanceMetricSource.Libvirt, value: 1 },
+    ];
+    server.metrics[OpenStackInstanceMetric.DiskReadRate] = [
+      { group: "vda", value: 1024 },
+      { group: "vdb", value: 2048 },
+    ];
+    server.metrics[OpenStackInstanceMetric.DiskWriteRate] = [
+      { group: "vda", value: 4096 },
+    ];
+    server.metrics[OpenStackInstanceMetric.DiskWriteLatency] = [
+      { group: "vda", value: 3 },
+      { group: "vdb", value: 75.5 },
+    ];
+    server.metrics[OpenStackInstanceMetric.NetworkReceiveRate] = [
+      { group: "tap1", value: 512 },
+      { group: "tap2", value: 512 },
+    ];
+    server.metrics[OpenStackInstanceMetric.NetworkTransmitRate] = [
+      { group: "tap1", value: 2048 },
+    ];
+    await openInstance();
+    const usage: HTMLElement = screen.getByTestId("openstack-instance-usage");
+    expect(usage).toHaveTextContent(
+      `${formatOpenStackBytes(3072)}/s read, ${formatOpenStackBytes(4096)}/s written`,
+    );
+    expect(usage).toHaveTextContent("75.5 ms");
+    expect(usage).toHaveTextContent(
+      `${formatOpenStackBytes(1024)}/s in, ${formatOpenStackBytes(2048)}/s out`,
+    );
+  });
+
+  test("a source that doesn't say how long its disks took says that, and no 0 stands in for it", async () => {
+    server.metrics[OpenStackInstanceMetric.CpuUsage] = [
+      { group: OpenStackInstanceMetricSource.Ceilometer, value: 1 },
+    ];
+    await openInstance();
+    const usage: HTMLElement = screen.getByTestId("openstack-instance-usage");
+    expect(usage).toHaveTextContent("No requests, or this source doesn't say");
+    expect(usage).toHaveTextContent("This source doesn't say");
+    expect(usage).not.toHaveTextContent("0.0 ms");
+  });
+
+  test("a hypervisor that reports, and an instance that doesn't yet, says that rather than how to add a source", async () => {
+    reportFromSource();
+    await openInstance();
+    const notice: HTMLElement = screen.getByTestId(
+      "openstack-instance-usage-missing",
+    );
+    expect(notice).toHaveTextContent(
+      "nothing has been said about this instance yet",
+    );
+    expect(notice).not.toHaveTextContent("Point the OpenStack agent");
+  });
+
+  describe("its Usage tab", () => {
+    async function openUsage(
+      fields: Record<string, unknown> = {},
+    ): Promise<void> {
+      await openInstance(fields);
+      fireEvent.click(await screen.findByRole("tab", { name: "Usage" }));
+      await settle();
+    }
+
+    test("has CPU, memory, disk and network charts beside its flavor's size", async () => {
+      server.metrics[OpenStackInstanceMetric.CpuUsage] = [
+        { group: OpenStackInstanceMetricSource.Libvirt, value: 1 },
+      ];
+      await openUsage();
+      const flavor: HTMLElement = screen.getByTestId(
+        "openstack-instance-usage-flavor",
+      );
+      expect(flavor).toHaveTextContent("m1.small");
+      expect(flavor).toHaveTextContent("2 vCPUs");
+      expect(flavor).toHaveTextContent(
+        formatOpenStackBytes(2048 * 1024 * 1024),
+      );
+      expect(flavor).toHaveTextContent(
+        formatOpenStackBytes(20 * 1024 * 1024 * 1024),
+      );
+      const queries: Array<HTMLElement> = screen.getAllByTestId("metric-query");
+      expect(
+        queries.map((query: HTMLElement): string | null => {
+          return query.getAttribute("data-metric");
+        }),
+      ).toEqual([
+        OpenStackInstanceMetric.CpuUtilization,
+        OpenStackInstanceMetric.CpuContention,
+        OpenStackInstanceMetric.MemoryUsage,
+        OpenStackInstanceMetric.MemoryResident,
+        OpenStackInstanceMetric.DiskReadRate,
+        OpenStackInstanceMetric.DiskWriteRate,
+        OpenStackInstanceMetric.DiskReadLatency,
+        OpenStackInstanceMetric.DiskWriteLatency,
+        OpenStackInstanceMetric.NetworkReceiveRate,
+        OpenStackInstanceMetric.NetworkTransmitRate,
+      ]);
+      expect(JSON.parse(queries[0]!.getAttribute("data-attributes")!)).toEqual(
+        expect.objectContaining({
+          "resource.openstack.cloud.name": "prod-eu",
+          "openstack.instance.id": BURNER_ID,
+        }),
+      );
+    });
+
+    test("with no source it says what is missing and how to add it, with no empty frames", async () => {
+      await openUsage();
+      expect(
+        screen.getByTestId("openstack-instance-usage-charts-missing"),
+      ).toHaveTextContent("prometheus-libvirt-exporter");
+      expect(screen.queryByTestId("metric-query")).toBeNull();
+      // What it was promised is still there, and still says that is what it is.
+      expect(
+        screen.getByTestId("openstack-instance-usage-flavor"),
+      ).toHaveTextContent("promises it");
+    });
+
+    test("an instance that stopped says so, and still has what it did before", async () => {
+      await openUsage({ status: "SHUTOFF" });
+      expect(
+        screen.getByTestId("openstack-instance-usage-charts-missing"),
+      ).toHaveTextContent("isn't running");
+      expect(screen.getAllByTestId("metric-query").length).toBeGreaterThan(0);
+    });
+
+    test("an instance whose flavor nobody knows goes without that line", async () => {
+      await openUsage({ facts: {} });
+      expect(
+        screen.queryByTestId("openstack-instance-usage-flavor"),
+      ).toBeNull();
+    });
+  });
+
   test("without a balloon driver, memory falls back to what it holds on its hypervisor", async () => {
     server.metrics[OpenStackInstanceMetric.MemoryResident] = [
       {
@@ -529,11 +776,6 @@ describe("an instance's page", () => {
     expect(
       screen.getByTestId("openstack-instance-usage-missing"),
     ).toHaveTextContent("in none of them");
-  });
-
-  test("it has a tab of charts", async () => {
-    await openInstance();
-    expect(screen.getAllByText("Usage").length).toBeGreaterThan(0);
   });
 
   test("it names what it also is elsewhere in OneUptime, and nothing when it is nothing", async () => {
@@ -852,7 +1094,11 @@ describe("a cloud's settings", () => {
     ).toHaveTextContent("This cloud has 100 instances");
     expect(
       screen.getByTestId("openstack-instance-metrics-cost"),
-    ).toHaveTextContent("180,000");
+    ).toHaveTextContent("180,000 rows an hour, about $13 a month");
+    // What Ceilometer costs, which is less: only a poll's worth of rows gets worked out.
+    expect(
+      screen.getByTestId("openstack-instance-metrics-cost"),
+    ).toHaveTextContent("86,400 rows an hour, about $6 a month");
   });
 
   test("only ask which projects and aggregates once that is the choice", async () => {

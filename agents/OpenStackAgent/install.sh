@@ -311,9 +311,20 @@ download_agent_file() {
     fi
 }
 
-# Installation directory (decided first so an existing .env can be reused)
-INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-openstack-agent}"
+# Installation directory (decided first so an existing .env can be reused). Docker asks for
+# the docker group and nothing else, so a person with no rights on /opt gets a folder in their
+# home, and a re-run finds it there. A folder already in /opt stays the answer: if it is someone
+# else's, the check on .env below says so, rather than a second agent starting beside it.
 DEFAULT_INSTALL_DIR="/opt/oneuptime-openstack-agent"
+INSTALL_DIR_IS_IN_HOME=0
+if [ -z "${INSTALL_DIR:-}" ]; then
+    INSTALL_DIR="$DEFAULT_INSTALL_DIR"
+    if [ "$WITHOUT_DOCKER" != "true" ] && [ "$(id -u)" != "0" ] && [ -n "${HOME:-}" ] \
+        && [ ! -e "$DEFAULT_INSTALL_DIR" ] && [ ! -w "${DEFAULT_INSTALL_DIR%/*}" ]; then
+        INSTALL_DIR="$HOME/oneuptime-openstack-agent"
+        INSTALL_DIR_IS_IN_HOME=1
+    fi
+fi
 ENV_FILE="$INSTALL_DIR/.env"
 CLOUDS_FILE="$INSTALL_DIR/clouds.yaml"
 # What this script installed (see download_agent_file).
@@ -922,7 +933,15 @@ fi
 # Create installation directory
 echo ""
 echo "Installing to: $INSTALL_DIR"
-mkdir -p "$INSTALL_DIR"
+if [ "$INSTALL_DIR_IS_IN_HOME" = 1 ]; then
+    echo "This user has no rights on ${DEFAULT_INSTALL_DIR%/*}, so the agent goes in its home folder. It needs none:"
+    echo "Docker runs it. Run this with sudo instead to put it in $DEFAULT_INSTALL_DIR."
+fi
+if ! mkdir -p "$INSTALL_DIR"; then
+    echo "Error: could not create $INSTALL_DIR. Nothing was installed or changed."
+    echo "Run this with sudo, or name a folder this user can write to: INSTALL_DIR=\$HOME/oneuptime-openstack-agent bash install.sh"
+    exit 1
+fi
 
 # ----------------------------------------------------------------------------
 # Where the agent's files come from

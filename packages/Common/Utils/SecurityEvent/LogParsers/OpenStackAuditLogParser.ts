@@ -1,8 +1,16 @@
 import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
+import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
-import { readOpenStackNotificationTime } from "../../OpenStack/OpenStackNotifications";
+import {
+  isOpenStackKeystoneId,
+  isOpenStackUuid,
+} from "../../OpenStack/OpenStackLogs";
+import {
+  OPENSTACK_NOTIFICATION_LOGGER_PREFIX,
+  readOpenStackNotificationTime,
+} from "../../OpenStack/OpenStackNotifications";
 import {
   MAX_JSON_LINE_LENGTH,
   MAX_RECORD_ATTRIBUTE_VALUE_LENGTH,
@@ -26,8 +34,20 @@ import {
  *     identity.<resource>.<operation>;
  *   - keystonemiddleware's audit filter on the other APIs: audit.http.response, for what
  *     changed something or was refused, never every read;
- *   - Neutron's security_group_rule.create.end, for a rule open to the world;
- *   - Glance's image.* for an image made public, which says it in its own fields.
+ *   - Neutron's security_group_rule.create.end, for a rule open to the world, one or several
+ *     in a notification;
+ *   - Glance's image.* for an image that is public, which says it in its own fields.
+ *
+ * WHAT A RECORDING SAID, AND A DOCUMENT DID NOT:
+ *
+ *   - The audit filter's target names the service at best, and on a cloud whose endpoints
+ *     have no port of their own it says "unknown" for its id, name and type. What an API call
+ *     touched is in its path, so that is where this reads it (readOpenStackPartOfPath).
+ *   - Its initiator says "unknown" too, for a request with no user.
+ *   - A role grant's target is a UUID made up for the occasion, so its project or domain is
+ *     what this calls its target.
+ *   - Neither kind of application credential says which it is: restricted and unrestricted
+ *     read the same, down to the last field.
  *
  * CREDENTIALS. A CADF event can hold what should never be stored: its initiator's
  * credential holds a part of the token, an invalid password's attachment holds part of its
@@ -36,9 +56,8 @@ import {
  * someone reads it and adds it here. Nothing is ever flattened whole, as the Kubernetes
  * audit parser does with a record whose fields rules are written against.
  *
- * Project and user names come from OpenStackAuditJoin, which reads the inventory by the IDs
- * these events hold. These attribute keys are read by the rule library and stored on
- * events: never rename one.
+ * Names come from OpenStackAuditJoin, which reads the inventory by the IDs these events hold.
+ * These attribute keys are read by the rule library and stored on events: never rename one.
  */
 
 export const OPENSTACK_AUDIT_VENDOR: string = "OpenStack";
@@ -58,6 +77,8 @@ export enum OpenStackAuditAttribute {
   // From the inventory, by the project's ID: see OpenStackAuditJoin.
   ProjectName = "openstack.audit.project_name",
   UserId = "openstack.audit.user_id",
+  // From what the cloud's own events have said of this ID: see OpenStackAuditJoin.
+  UserName = "openstack.audit.user_name",
   GroupId = "openstack.audit.group_id",
   DomainId = "openstack.audit.domain_id",
   RoleId = "openstack.audit.role_id",
@@ -68,6 +89,13 @@ export enum OpenStackAuditAttribute {
   Cloud = "openstack.audit.cloud",
   Signal = "openstack.audit.signal",
   OpenPort = "openstack.audit.open_port",
+  /*
+   * The part of the cloud an event touched: an OpenStackResourceKind, its id, and its name
+   * from the inventory. Who Changed This reads a part's events by this id.
+   */
+  PartKind = "openstack.audit.part_kind",
+  PartId = "openstack.audit.part_id",
+  PartName = "openstack.audit.part_name",
 }
 
 // What a detection in the rule library reads an event by.
@@ -83,6 +111,12 @@ const USER_ACCESS_CLASS_UID: number = 3005;
 const API_ACTIVITY_CLASS_UID: number = 6003;
 
 const CADF_EVENT_TYPE_URI: string = "/cloud/audit/";
+
+// The most rules of one notification that become events.
+const MAX_RULES_PER_NOTIFICATION: number = 200;
+
+// What pyCADF says of whatever it could not find out: an id, a name, a type.
+const CADF_UNKNOWN: string = "unknown";
 
 /*
  * The ports that are an open door when the whole internet can reach them: remote shells and
@@ -100,8 +134,75 @@ const HIGH_VALUE_IDENTITY_RESOURCES: ReadonlySet<string> = new Set([
   "trust",
   "role",
   "policy",
-  "OS-OAUTH1",
-  "oauth1",
+  "access_token",
+  "request_token",
+  "consumer",
+]);
+
+/*
+ * What a word in an API's path says the UUID after it is: a word each service uses for its
+ * own records, whatever prefix the cloud serves them under. A kind is what the inventory
+ * calls it, for the parts it holds.
+ */
+export interface OpenStackPathPart {
+  noun: string;
+  kind?: OpenStackResourceKind | undefined;
+}
+
+const PARTS_BY_PATH_WORD: ReadonlyMap<string, OpenStackPathPart> = new Map<
+  string,
+  OpenStackPathPart
+>([
+  ["servers", { noun: "instance", kind: OpenStackResourceKind.Instance }],
+  ["volumes", { noun: "volume", kind: OpenStackResourceKind.Volume }],
+  ["snapshots", { noun: "snapshot", kind: OpenStackResourceKind.Snapshot }],
+  ["backups", { noun: "backup", kind: OpenStackResourceKind.Backup }],
+  ["images", { noun: "image", kind: OpenStackResourceKind.Image }],
+  ["networks", { noun: "network", kind: OpenStackResourceKind.Network }],
+  ["subnets", { noun: "subnet", kind: OpenStackResourceKind.Subnet }],
+  ["routers", { noun: "router", kind: OpenStackResourceKind.Router }],
+  [
+    "floatingips",
+    { noun: "floating IP", kind: OpenStackResourceKind.FloatingIp },
+  ],
+  ["ports", { noun: "port" }],
+  ["security-groups", { noun: "security group" }],
+  ["security-group-rules", { noun: "security group rule" }],
+  ["attachments", { noun: "volume attachment" }],
+  ["os-services", { noun: "compute service" }],
+]);
+
+// The words the inventory's parts go by, from their kinds: what OpenStackAuditJoin renames.
+const NOUNS_BY_KIND: ReadonlyMap<string, string> = new Map<string, string>(
+  Array.from(PARTS_BY_PATH_WORD.values())
+    .filter((part: OpenStackPathPart): boolean => {
+      return Boolean(part.kind);
+    })
+    .map((part: OpenStackPathPart): [string, string] => {
+      return [part.kind as string, part.noun];
+    }),
+);
+
+/*
+ * What the services tell one another, on nobody's behalf: Neutron and Cinder telling Nova a
+ * port or a volume is ready. A third of a recorded cloud's writes, and never anyone's doing.
+ */
+const INTERNAL_PATH_ENDINGS: ReadonlyArray<string> = [
+  "/os-server-external-events",
+];
+
+// The protocols whose rule's two numbers are ports, by name and by number.
+const PROTOCOLS_WITH_PORTS: ReadonlySet<string> = new Set([
+  "tcp",
+  "udp",
+  "dccp",
+  "sctp",
+  "udplite",
+  "6",
+  "17",
+  "33",
+  "132",
+  "136",
 ]);
 
 /*
@@ -189,6 +290,77 @@ function set(attributes: JSONObject, key: string, value: string): void {
   }
 }
 
+// A field, unless it is pyCADF saying it does not know.
+function readKnown(source: JSONObject | null, ...keys: Array<string>): string {
+  const value: string = readText(source, ...keys);
+
+  return value.toLowerCase() === CADF_UNKNOWN ? "" : value;
+}
+
+/*
+ * The part of the cloud a path names: the first UUID after a word that says what it is, so
+ * /servers/<instance>/os-volume_attachments/<volume> is about its instance. A project's id in
+ * a path has no dashes, and a name is no part: only a read looks one up by name.
+ */
+export function readOpenStackPartOfPath(
+  path: string,
+): (OpenStackPathPart & { id: string }) | null {
+  const words: Array<string> = path.split("/");
+
+  for (let index: number = 1; index < words.length; index++) {
+    const part: OpenStackPathPart | undefined = PARTS_BY_PATH_WORD.get(
+      words[index - 1] as string,
+    );
+
+    if (part && isOpenStackUuid(words[index] as string)) {
+      return { ...part, id: words[index] as string };
+    }
+  }
+
+  return null;
+}
+
+// How an event names a part, in its message and for a case: "instance web-1".
+export function describeOpenStackPart(
+  kind: OpenStackResourceKind | string,
+  idOrName: string,
+): string {
+  return `${NOUNS_BY_KIND.get(kind) || kind} ${idOrName}`;
+}
+
+// How a case names a user it has only an ID for: a bare ID would read as a file's hash.
+export function describeOpenStackUser(id: string): string {
+  return `user ${id}`;
+}
+
+/*
+ * What a case reads an event's entities from, beside its typed columns: the project and the
+ * part it touched, whole, so a case names them. A user known only by ID is said to be one.
+ */
+function namesOf(
+  event: NormalizedSecurityEvent,
+  more: Array<string>,
+): NormalizedSecurityEvent {
+  const names: Array<string> = event.observables.map(
+    (value: string): string => {
+      return (value === event.principalUser || value === event.targetUser) &&
+        isOpenStackKeystoneId(value)
+        ? describeOpenStackUser(value)
+        : value;
+    },
+  );
+
+  for (const value of more) {
+    if (value && !names.includes(value)) {
+      names.push(value);
+    }
+  }
+
+  event.observables = names;
+
+  return event;
+}
+
 interface Initiator {
   id: string;
   name: string;
@@ -205,9 +377,9 @@ function readInitiator(payload: JSONObject): Initiator {
      * identity.authenticate's `id` is a hash of the user, and its user_id the user. Any
      * other event's `id` is the user's own.
      */
-    id: readText(initiator, "user_id", "id"),
-    name: readText(initiator, "username", "name"),
-    projectId: readText(initiator, "project_id"),
+    id: readKnown(initiator, "user_id", "id"),
+    name: readKnown(initiator, "username", "name"),
+    projectId: readKnown(initiator, "project_id"),
     address: readIpAddress(readText(host, "address")),
   };
 }
@@ -242,10 +414,14 @@ function baseAttributes(data: {
   set(
     attributes,
     OpenStackAuditAttribute.TargetType,
-    readText(target, "typeURI"),
+    readKnown(target, "typeURI"),
   );
-  set(attributes, OpenStackAuditAttribute.TargetId, readText(target, "id"));
-  set(attributes, OpenStackAuditAttribute.TargetName, readText(target, "name"));
+  set(attributes, OpenStackAuditAttribute.TargetId, readKnown(target, "id"));
+  set(
+    attributes,
+    OpenStackAuditAttribute.TargetName,
+    readKnown(target, "name"),
+  );
   set(
     attributes,
     OpenStackAuditAttribute.ReasonCode,
@@ -312,24 +488,27 @@ function parseAuthentication(data: {
     payload: data.payload,
   });
 
-  return buildLogSecurityEvent({
-    line: data.line,
-    format: SecurityLogFormat.OpenStackAudit,
-    classUid: AUTHENTICATION_CLASS_UID,
-    activityName: "Logon",
-    statusName: statusOf(outcome),
-    severity: isSuccess ? OcsfSeverity.Informational : OcsfSeverity.Low,
-    message: isSuccess
-      ? `${who} signed in to OpenStack`
-      : `${who} failed to sign in to OpenStack`,
-    time: data.time,
-    principalUser: initiator.name || initiator.id,
-    principalIp: readRemoteIpAddress(initiator.address),
-    targetHost: readCloud(data.line),
-    targetResource: "Keystone",
-    attributes,
-    eventUid: data.uid,
-  });
+  return namesOf(
+    buildLogSecurityEvent({
+      line: data.line,
+      format: SecurityLogFormat.OpenStackAudit,
+      classUid: AUTHENTICATION_CLASS_UID,
+      activityName: "Logon",
+      statusName: statusOf(outcome),
+      severity: isSuccess ? OcsfSeverity.Informational : OcsfSeverity.Low,
+      message: isSuccess
+        ? `${who} signed in to OpenStack`
+        : `${who} failed to sign in to OpenStack`,
+      time: data.time,
+      principalUser: initiator.name || initiator.id,
+      principalIp: readRemoteIpAddress(initiator.address),
+      targetHost: readCloud(data.line),
+      targetResource: "Keystone",
+      attributes,
+      eventUid: data.uid,
+    }),
+    [],
+  );
 }
 
 function parseRoleAssignment(data: {
@@ -364,32 +543,55 @@ function parseRoleAssignment(data: {
   set(attributes, OpenStackAuditAttribute.UserId, user);
   set(attributes, OpenStackAuditAttribute.GroupId, group);
 
+  // The event's own target is a UUID made up for the occasion.
+  delete attributes[OpenStackAuditAttribute.TargetId];
+  delete attributes[OpenStackAuditAttribute.TargetType];
+  set(attributes, OpenStackAuditAttribute.TargetId, project || domain);
+  set(
+    attributes,
+    OpenStackAuditAttribute.TargetType,
+    project ? "project" : domain ? "domain" : "system",
+  );
+
+  if (project) {
+    attributes[OpenStackAuditAttribute.PartKind] =
+      OpenStackResourceKind.Project;
+    attributes[OpenStackAuditAttribute.PartId] = project;
+  }
+
   const where: string = project
     ? describeOpenStackProject(project)
     : domain
       ? `domain ${domain}`
       : "the system";
   const whom: string = user || (group ? `group ${group}` : "someone");
+  const inherited: string =
+    data.payload["inherited_to_projects"] === true
+      ? ", and every project under it"
+      : "";
 
-  return buildLogSecurityEvent({
-    line: data.line,
-    format: SecurityLogFormat.OpenStackAudit,
-    classUid: USER_ACCESS_CLASS_UID,
-    activityName: isGrant ? "Assign Privileges" : "Revoke Privileges",
-    statusName: statusOf(outcome),
-    severity: OcsfSeverity.Medium,
-    message: isGrant
-      ? `${who} granted role ${role} to ${whom} on ${where}`
-      : `${who} took role ${role} from ${whom} on ${where}`,
-    time: data.time,
-    principalUser: initiator.name || initiator.id,
-    principalIp: readRemoteIpAddress(initiator.address),
-    targetUser: user,
-    targetHost: readCloud(data.line),
-    targetResource: where,
-    attributes,
-    eventUid: data.uid,
-  });
+  return namesOf(
+    buildLogSecurityEvent({
+      line: data.line,
+      format: SecurityLogFormat.OpenStackAudit,
+      classUid: USER_ACCESS_CLASS_UID,
+      activityName: isGrant ? "Assign Privileges" : "Revoke Privileges",
+      statusName: statusOf(outcome),
+      severity: OcsfSeverity.Medium,
+      message: isGrant
+        ? `${who} granted role ${role} to ${whom} on ${where}${inherited}`
+        : `${who} took role ${role} from ${whom} on ${where}${inherited}`,
+      time: data.time,
+      principalUser: initiator.name || initiator.id,
+      principalIp: readRemoteIpAddress(initiator.address),
+      targetUser: user,
+      targetHost: readCloud(data.line),
+      targetResource: where,
+      attributes,
+      eventUid: data.uid,
+    }),
+    [project ? describeOpenStackProject(project) : ""],
+  );
 }
 
 function parseIdentityChange(data: {
@@ -400,7 +602,9 @@ function parseIdentityChange(data: {
   time: Date | undefined;
 }): NormalizedSecurityEvent | null {
   const words: Array<string> = data.eventType.split(".");
-  const resource: string = words[1] || "";
+  const named: string = words[1] || "";
+  // OS-TRUST:trust and OS-OAUTH1:consumer, as Keystone's extensions name their records.
+  const resource: string = named.slice(named.indexOf(":") + 1);
   const operation: string = words[2] || "";
 
   if (!resource || !operation) {
@@ -424,36 +628,44 @@ function parseIdentityChange(data: {
 
   const noun: string = resource.split("_").join(" ");
   let targetResource: string = id ? `${noun} ${id}` : noun;
+  let project: string = "";
 
   if (resource === "project" && id) {
+    project = describeOpenStackProject(id);
     set(attributes, OpenStackAuditAttribute.ProjectId, id);
-    targetResource = describeOpenStackProject(id);
+    attributes[OpenStackAuditAttribute.PartKind] =
+      OpenStackResourceKind.Project;
+    attributes[OpenStackAuditAttribute.PartId] = id;
+    targetResource = project;
   }
 
   if (resource === "user" && id) {
     set(attributes, OpenStackAuditAttribute.UserId, id);
   }
 
-  return buildLogSecurityEvent({
-    line: data.line,
-    format: SecurityLogFormat.OpenStackAudit,
-    classUid:
-      resource === "user" ? ACCOUNT_CHANGE_CLASS_UID : API_ACTIVITY_CLASS_UID,
-    activityName: operation,
-    statusName: outcome ? statusOf(outcome) : "Success",
-    severity: HIGH_VALUE_IDENTITY_RESOURCES.has(resource)
-      ? OcsfSeverity.Medium
-      : OcsfSeverity.Low,
-    message: `${who} ${operation} ${noun}${id ? ` ${id}` : ""}`,
-    time: data.time,
-    principalUser: initiator.name || initiator.id,
-    principalIp: readRemoteIpAddress(initiator.address),
-    targetUser: resource === "user" ? id : "",
-    targetHost: readCloud(data.line),
-    targetResource,
-    attributes,
-    eventUid: data.uid,
-  });
+  return namesOf(
+    buildLogSecurityEvent({
+      line: data.line,
+      format: SecurityLogFormat.OpenStackAudit,
+      classUid:
+        resource === "user" ? ACCOUNT_CHANGE_CLASS_UID : API_ACTIVITY_CLASS_UID,
+      activityName: operation,
+      statusName: outcome ? statusOf(outcome) : "Success",
+      severity: HIGH_VALUE_IDENTITY_RESOURCES.has(resource)
+        ? OcsfSeverity.Medium
+        : OcsfSeverity.Low,
+      message: `${who} ${operation} ${noun}${id ? ` ${id}` : ""}`,
+      time: data.time,
+      principalUser: initiator.name || initiator.id,
+      principalIp: readRemoteIpAddress(initiator.address),
+      targetUser: resource === "user" ? id : "",
+      targetHost: readCloud(data.line),
+      targetResource,
+      attributes,
+      eventUid: data.uid,
+    }),
+    [project],
+  );
 }
 
 /*
@@ -478,14 +690,22 @@ function parseApiCall(data: {
     return null;
   }
 
-  const initiator: Initiator = readInitiator(data.payload);
-  const who: string = initiator.name || initiator.id || "Someone";
-  const target: JSONObject | null = asObject(data.payload["target"]);
-  const targetType: string = readText(target, "typeURI");
-  const targetId: string = readText(target, "id");
   const path: string = withoutQueryString(
     readText(data.payload, "requestPath"),
   );
+
+  if (
+    INTERNAL_PATH_ENDINGS.some((ending: string): boolean => {
+      return path.endsWith(ending);
+    })
+  ) {
+    return null;
+  }
+
+  const initiator: Initiator = readInitiator(data.payload);
+  const who: string = initiator.name || initiator.id || "Someone";
+  const part: (OpenStackPathPart & { id: string }) | null =
+    readOpenStackPartOfPath(path);
   const attributes: JSONObject = baseAttributes({
     line: data.line,
     eventType: data.eventType,
@@ -498,28 +718,39 @@ function parseApiCall(data: {
   set(attributes, OpenStackAuditAttribute.RequestPath, path);
   set(attributes, OpenStackAuditAttribute.ProjectId, initiator.projectId);
 
-  const what: string = targetType || path;
+  if (part) {
+    set(attributes, OpenStackAuditAttribute.PartKind, part.kind || "");
+    attributes[OpenStackAuditAttribute.PartId] = part.id;
+  }
 
-  return buildLogSecurityEvent({
-    line: data.line,
-    format: SecurityLogFormat.OpenStackAudit,
-    classUid: API_ACTIVITY_CLASS_UID,
-    activityName: action,
-    statusName: statusOf(outcome),
-    severity: isRefused ? OcsfSeverity.Medium : OcsfSeverity.Informational,
-    message: isRefused
-      ? `${who} was refused ${action} on ${what} (${code})`
-      : `${who} ${action} on ${what}${targetId ? ` ${targetId}` : ""}`,
-    time: data.time,
-    principalUser: initiator.name || initiator.id,
-    principalIp: readRemoteIpAddress(initiator.address),
-    targetHost: readCloud(data.line),
-    targetResource: initiator.projectId
-      ? `${describeOpenStackProject(initiator.projectId)} ${what}`
-      : what,
-    attributes,
-    eventUid: data.uid,
-  });
+  const what: string = part
+    ? `${part.noun} ${part.id}`
+    : readKnown(asObject(data.payload["target"]), "typeURI") || path;
+  const project: string = initiator.projectId
+    ? describeOpenStackProject(initiator.projectId)
+    : "";
+
+  return namesOf(
+    buildLogSecurityEvent({
+      line: data.line,
+      format: SecurityLogFormat.OpenStackAudit,
+      classUid: API_ACTIVITY_CLASS_UID,
+      activityName: action,
+      statusName: statusOf(outcome),
+      severity: isRefused ? OcsfSeverity.Medium : OcsfSeverity.Informational,
+      message: isRefused
+        ? `${who} was refused ${action} on ${what} (${code})`
+        : `${who} ${action} on ${what}`,
+      time: data.time,
+      principalUser: initiator.name || initiator.id,
+      principalIp: readRemoteIpAddress(initiator.address),
+      targetHost: readCloud(data.line),
+      targetResource: project ? `${project} ${what}` : what,
+      attributes,
+      eventUid: data.uid,
+    }),
+    [project, part ? what : ""],
+  );
 }
 
 // Whether a rule lets a port in: none named means every port.
@@ -573,32 +804,27 @@ export function isOpenStackRuleOpenToWorld(rule: JSONObject): boolean {
 function parseSecurityGroupRule(data: {
   line: SecurityLogLine;
   eventType: string;
-  payload: JSONObject;
+  rule: JSONObject;
   uid: string;
   time: Date | undefined;
+  recordIndex: number | undefined;
 }): NormalizedSecurityEvent | null {
-  const rule: JSONObject | null = asObject(data.payload["security_group_rule"]);
+  const { rule } = data;
 
-  if (!rule || !isOpenStackRuleOpenToWorld(rule)) {
+  if (!isOpenStackRuleOpenToWorld(rule)) {
     return null;
   }
 
   const min: number | null = readRuleNumber(rule["port_range_min"]);
   const max: number | null = readRuleNumber(rule["port_range_max"]);
-  const protocol: string = readText(rule, "protocol");
+  const protocol: string = readText(rule, "protocol").toLowerCase();
   // ICMP's numbers in these two are its type and code, and hold no port.
-  const hasPorts: boolean =
-    !protocol ||
-    protocol === "tcp" ||
-    protocol === "udp" ||
-    protocol === "6" ||
-    protocol === "17";
+  const hasPorts: boolean = !protocol || PROTOCOLS_WITH_PORTS.has(protocol);
   const openPort: number | undefined = hasPorts
     ? OPENSTACK_SENSITIVE_PORTS.find((port: number): boolean => {
         return isOpenStackPortInRule({ port, min, max });
       })
     : undefined;
-  const isEveryPort: boolean = hasPorts && min === null && max === null;
   const groupId: string = readText(rule, "security_group_id");
   const project: string = readText(rule, "project_id", "tenant_id");
   const who: string =
@@ -607,11 +833,14 @@ function parseSecurityGroupRule(data: {
       "openstack.user_id",
     ]) || "Someone";
   const prefix: string = readText(rule, "remote_ip_prefix") || "anywhere";
-  const ports: string = isEveryPort
-    ? "every port"
-    : min === max
-      ? `port ${min}`
-      : `ports ${min} to ${max}`;
+  const reach: string = !hasPorts
+    ? `for ${protocol}`
+    : min === null && max === null
+      ? "on every port"
+      : min === max || max === null || min === null
+        ? `on port ${min ?? max}`
+        : `on ports ${min} to ${max}`;
+  const projectName: string = project ? describeOpenStackProject(project) : "";
   const attributes: JSONObject = {};
 
   set(attributes, OpenStackAuditAttribute.EventType, data.eventType);
@@ -645,33 +874,85 @@ function parseSecurityGroupRule(data: {
     attributes[OpenStackAuditAttribute.OpenPort] = String(openPort);
   }
 
-  return buildLogSecurityEvent({
-    line: data.line,
-    format: SecurityLogFormat.OpenStackAudit,
-    classUid: API_ACTIVITY_CLASS_UID,
-    activityName: "create",
-    statusName: "Success",
-    severity:
-      openPort !== undefined ? OcsfSeverity.High : OcsfSeverity.Informational,
-    message: `${who} opened security group ${groupId} to ${prefix} on ${ports}${
-      project ? ` in ${describeOpenStackProject(project)}` : ""
-    }`,
-    time: data.time,
-    principalUser: who === "Someone" ? "" : who,
-    targetHost: readCloud(data.line),
-    targetPort: openPort,
-    targetResource: project
-      ? `${describeOpenStackProject(project)} security group ${groupId}`
-      : `security group ${groupId}`,
-    attributes,
-    eventUid: data.uid,
-  });
+  return namesOf(
+    buildLogSecurityEvent({
+      line: data.line,
+      format: SecurityLogFormat.OpenStackAudit,
+      classUid: API_ACTIVITY_CLASS_UID,
+      activityName: "create",
+      statusName: "Success",
+      severity:
+        openPort !== undefined ? OcsfSeverity.High : OcsfSeverity.Informational,
+      message: `${who} opened security group ${groupId} to ${prefix} ${reach}${
+        projectName ? ` in ${projectName}` : ""
+      }`,
+      time: data.time,
+      principalUser: who === "Someone" ? "" : who,
+      targetHost: readCloud(data.line),
+      targetPort: openPort,
+      targetResource: projectName
+        ? `${projectName} security group ${groupId}`
+        : `security group ${groupId}`,
+      attributes,
+      eventUid: data.uid
+        ? data.recordIndex !== undefined
+          ? `${data.uid}:${data.recordIndex}`
+          : data.uid
+        : "",
+      recordIndex: data.recordIndex,
+    }),
+    [projectName],
+  );
 }
 
-const IMAGE_EVENTS_THAT_PUBLISH: ReadonlySet<string> = new Set([
-  "image.create",
-  "image.update",
-  "image.activate",
+/*
+ * A notification holds one rule, or every rule of a call that made several: Neutron's API
+ * sends a list as a list, under the plural. Each is an event of its own, because each is a
+ * door of its own.
+ */
+function parseSecurityGroupRules(data: {
+  line: SecurityLogLine;
+  eventType: string;
+  payload: JSONObject;
+  uid: string;
+  time: Date | undefined;
+}): Array<NormalizedSecurityEvent> {
+  const one: JSONObject | null = asObject(data.payload["security_group_rule"]);
+  const several: unknown = data.payload["security_group_rules"];
+  const rules: Array<JSONObject> = one
+    ? [one]
+    : Array.isArray(several)
+      ? several
+          .slice(0, MAX_RULES_PER_NOTIFICATION)
+          .map(asObject)
+          .filter((rule: JSONObject | null): rule is JSONObject => {
+            return rule !== null;
+          })
+      : [];
+  const events: Array<NormalizedSecurityEvent> = [];
+
+  rules.forEach((rule: JSONObject, index: number): void => {
+    const event: NormalizedSecurityEvent | null = parseSecurityGroupRule({
+      line: data.line,
+      eventType: data.eventType,
+      rule,
+      uid: data.uid,
+      time: data.time,
+      recordIndex: one ? undefined : index,
+    });
+
+    if (event) {
+      events.push(event);
+    }
+  });
+
+  return events;
+}
+
+const IMAGE_EVENT_VERBS: ReadonlyMap<string, string> = new Map<string, string>([
+  ["image.create", "created"],
+  ["image.update", "changed"],
+  ["image.activate", "activated"],
 ]);
 
 function parseImage(data: {
@@ -682,7 +963,7 @@ function parseImage(data: {
   time: Date | undefined;
 }): NormalizedSecurityEvent | null {
   if (
-    !IMAGE_EVENTS_THAT_PUBLISH.has(data.eventType) ||
+    !IMAGE_EVENT_VERBS.has(data.eventType) ||
     readText(data.payload, "visibility").toLowerCase() !== "public"
   ) {
     return null;
@@ -716,29 +997,74 @@ function parseImage(data: {
     OpenStackAuditAttribute.InitiatorName,
     readAttribute(data.line.attributes, ["openstack.user_name"]),
   );
+  set(
+    attributes,
+    OpenStackAuditAttribute.RequestId,
+    readAttribute(data.line.attributes, ["openstack.request_id"]),
+  );
+  attributes[OpenStackAuditAttribute.PartKind] = OpenStackResourceKind.Image;
+  set(attributes, OpenStackAuditAttribute.PartId, id);
   attributes[OpenStackAuditAttribute.Signal] = OpenStackAuditSignal.ImagePublic;
 
-  return buildLogSecurityEvent({
-    line: data.line,
-    format: SecurityLogFormat.OpenStackAudit,
-    classUid: API_ACTIVITY_CLASS_UID,
-    activityName: data.eventType,
-    statusName: "Success",
-    severity: OcsfSeverity.Medium,
-    message: `${who} made image ${name || id} public`,
-    time: data.time,
-    principalUser: who === "Someone" ? "" : who,
-    targetHost: readCloud(data.line),
-    targetResource: owner
-      ? `${describeOpenStackProject(owner)} image ${name || id}`
-      : `image ${name || id}`,
-    attributes,
-    eventUid: data.uid,
-  });
+  const project: string = owner ? describeOpenStackProject(owner) : "";
+  const image: string = describeOpenStackPart(
+    OpenStackResourceKind.Image,
+    name || id,
+  );
+
+  /*
+   * Glance says what an image is now, and not what it was, so an edit to one that was public
+   * already reads the same as one being made public. The rule library's detection tells the
+   * two apart, by whether this image has been seen public before.
+   */
+  return namesOf(
+    buildLogSecurityEvent({
+      line: data.line,
+      format: SecurityLogFormat.OpenStackAudit,
+      classUid: API_ACTIVITY_CLASS_UID,
+      activityName: data.eventType,
+      statusName: "Success",
+      severity: OcsfSeverity.Low,
+      message: `${who} ${IMAGE_EVENT_VERBS.get(data.eventType)} public ${image}`,
+      time: data.time,
+      principalUser: who === "Someone" ? "" : who,
+      targetHost: readCloud(data.line),
+      targetResource: project ? `${project} ${image}` : image,
+      attributes,
+      eventUid: data.uid,
+    }),
+    [project, image],
+  );
+}
+
+/*
+ * Whether a line is the log driver's own. Anyone able to reach an API can have a service log a
+ * name they chose, so a line that only holds something shaped like a notification, in a server's
+ * name say, must not become an event saying someone signed in. The stamp says which logger wrote
+ * a line of a cloud. Without one, the line says so itself before its JSON, or is nothing but
+ * JSON, as a forwarder that ships the notification alone sends it.
+ */
+function isFromTheLogDriver(line: SecurityLogLine): boolean {
+  const logger: string = readAttribute(line.attributes, ["openstack.logger"]);
+
+  if (logger) {
+    return logger.startsWith(OPENSTACK_NOTIFICATION_LOGGER_PREFIX);
+  }
+
+  const json: number = line.body.indexOf("{");
+  const prefix: number = line.body.indexOf(
+    OPENSTACK_NOTIFICATION_LOGGER_PREFIX,
+  );
+
+  return json === 0 || (prefix !== -1 && prefix < json);
 }
 
 export default class OpenStackAuditLogParser {
   public static parse(line: SecurityLogLine): Array<NormalizedSecurityEvent> {
+    if (!isFromTheLogDriver(line)) {
+      return [];
+    }
+
     const notification: JSONObject | null = readOpenStackAuditNotification(
       line.body,
     );
@@ -764,6 +1090,10 @@ export default class OpenStackAuditLogParser {
       time: Date | undefined;
     } = { line, eventType, payload, uid, time };
 
+    if (eventType === "security_group_rule.create.end") {
+      return parseSecurityGroupRules(data);
+    }
+
     let event: NormalizedSecurityEvent | null = null;
 
     if (typeUri.indexOf(CADF_EVENT_TYPE_URI) !== -1) {
@@ -776,8 +1106,6 @@ export default class OpenStackAuditLogParser {
       } else if (eventType === "audit.http.response") {
         event = parseApiCall(data);
       }
-    } else if (eventType === "security_group_rule.create.end") {
-      event = parseSecurityGroupRule(data);
     } else if (eventType.startsWith("image.")) {
       event = parseImage(data);
     }

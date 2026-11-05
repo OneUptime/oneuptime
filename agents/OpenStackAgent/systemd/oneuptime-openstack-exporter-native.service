@@ -23,7 +23,7 @@ Type=simple
 #  - nova-security_groups: Nova no longer has this route, so it only fills the log.
 # README.md says what each one gives up, and how to turn it on. It answers on this
 # machine alone: the only thing that asks it is the collector beside it.
-ExecStart=/opt/oneuptime-openstack-agent/openstack-exporter --multi-cloud --os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml --web.listen-address=127.0.0.1:9180 --disable-metric=nova-quota_cores --disable-metric=nova-limits_vcpus_max --disable-metric=nova-server_local_gb --disable-metric=neutron-quota_network --disable-metric=cinder-limits_volume_max_gb --disable-metric=neutron-ports --disable-metric=neutron-port --disable-metric=neutron-ports_no_ips --disable-metric=neutron-ports_lb_not_active --disable-metric=neutron-subnets_total --disable-metric=nova-security_groups
+ExecStart=/opt/oneuptime-openstack-agent/openstack-exporter --multi-cloud --os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml --web.listen-address=127.0.0.1:9180 --disable-metric=nova-quota_cores --disable-metric=nova-limits_vcpus_max --disable-metric=nova-server_local_gb --disable-metric=neutron-quota_network --disable-metric=cinder-limits_volume_max_gb --disable-metric=neutron-ports --disable-metric=neutron-port --disable-metric=neutron-ports_no_ips --disable-metric=neutron-ports_lb_not_active --disable-metric=neutron-subnets_total --disable-metric=nova-security_groups --disable-metric=gnocchi-total_metrics
 Restart=always
 RestartSec=10
 TimeoutStopSec=30

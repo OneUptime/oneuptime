@@ -1,0 +1,2 @@
+dns 200 1 series
+object-store 200 1 series

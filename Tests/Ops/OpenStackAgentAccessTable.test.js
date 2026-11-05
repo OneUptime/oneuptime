@@ -651,6 +651,8 @@ describe("what the recordings show, as the pages say it", () => {
     };
     expect(paths("block-storage").length).toBeGreaterThan(0);
     expect(paths("volumev3")).toEqual(paths("block-storage"));
+    // What Kolla-Ansible 2026.1 has Cinder say, where its catalog says block-storage.
+    expect(paths("volume")).toEqual(paths("block-storage"));
     expect(paths("identity")).not.toContain("/v3/users");
     expect(paths("identity")).not.toContain("/v3/groups");
   });

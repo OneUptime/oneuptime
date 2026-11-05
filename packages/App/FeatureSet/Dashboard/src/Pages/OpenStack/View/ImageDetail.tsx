@@ -9,6 +9,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  OpenStackPartAlerts,
+  OpenStackPartOpenEvents,
+} from "../../../Components/OpenStack/Part/OpenStackPartActivity";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import useOpenStackPart, {
@@ -22,6 +26,7 @@ import ResourcePartDetailsCard, {
 import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
 import {
+  OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS,
   getOpenStackPartExplanation,
   getOpenStackTimeInState,
 } from "../Utils/OpenStackPartFacts";
@@ -172,6 +177,22 @@ const ImageOverview: FunctionComponent<{
           description="How long since OneUptime saw this image's status change. One already in this state when OneUptime first saw it counts from then."
         />
       </div>
+
+      <OpenStackPartOpenEvents
+        testId="openstack-image-open"
+        title="Open on this image"
+        description="Unresolved incidents and alerts about this image, incidents first."
+        part={part}
+        row={row}
+      />
+
+      <OpenStackPartAlerts
+        testId="openstack-image-alerts"
+        title="Image alerts"
+        description="The cloud's alert that watches every image, this one included: it is one monitor on the cloud."
+        templateIds={OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS}
+        part={part}
+      />
 
       <ResourcePartDetailsCard
         testId="openstack-image-details"

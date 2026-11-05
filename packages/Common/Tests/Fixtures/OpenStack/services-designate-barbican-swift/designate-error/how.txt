@@ -1,0 +1,3 @@
+A zone and a recordset in ERROR, because the DNS server they go to is stopped.
+On its own: the DNS server the worker writes to is stopped, and the worker gave up on the zone.
+The recordset written into its row, because it had not reached ERROR: UPDATE records SET status='ERROR', which is where a recordset's status comes from.
