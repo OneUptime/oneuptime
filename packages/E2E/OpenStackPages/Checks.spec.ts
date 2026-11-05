@@ -9,6 +9,7 @@ import {
   test,
   VIEWPORTS,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A cloud's Checks page, in a real browser, over a check's row as a probe's reports leave it
@@ -255,14 +256,10 @@ test.describe("with the checks on", () => {
         height: viewport.height,
       });
 
-      const overflow: number = await page.evaluate(() => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `${viewport.width} wide`,
       });
-
-      expect(overflow, `${viewport.width} wide`).toBeLessThanOrEqual(1);
       await screenshot(page, `checks-failed-${viewport.width}`);
     }
   });

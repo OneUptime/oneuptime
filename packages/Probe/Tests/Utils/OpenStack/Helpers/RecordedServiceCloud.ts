@@ -1,4 +1,3 @@
-import { OpenStackCollectionOptions } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import OpenStackProbeMetrics from "Common/Server/Utils/OpenStack/OpenStackProbeMetrics";
 import {
   OpenStackOptionalServiceScrape,
@@ -16,6 +15,7 @@ import {
 } from "Common/Types/Monitor/OpenStackMetricCatalog";
 import {
   OpenStackAccessRead,
+  OpenStackCollectionOptions,
   OpenStackCollectionReport,
   OpenStackConnectionTestReport,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";

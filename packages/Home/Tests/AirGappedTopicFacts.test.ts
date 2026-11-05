@@ -2278,18 +2278,6 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     ),
     fact("a read-only token", PROXMOX, "with a read-only token"),
   ],
-  "infrastructure/capability/ceph": [
-    fact(
-      "reach your mgr daemons on port 9283",
-      CEPH,
-      "on a machine that can reach your Ceph mgr daemons on port 9283.",
-    ),
-    fact(
-      "cluster health, OSDs, pools and placement groups",
-      CEPH,
-      "its health, monitor quorum, OSDs, pools and placement groups",
-    ),
-  ],
   "infrastructure/capability/openstack": [
     fact(
       "reach Keystone and each service's endpoint",
@@ -2304,12 +2292,22 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
   ],
   "infrastructure/capability/storage": [
     fact(
-      "reach the array's management interface over HTTPS",
+      "reach your mgr daemons on port 9283",
+      CEPH,
+      "on a machine that can reach your Ceph mgr daemons on port 9283.",
+    ),
+    fact(
+      "cluster health",
+      CEPH,
+      "its health, monitor quorum, OSDs, pools and placement groups",
+    ),
+    fact(
+      "the array's management interface over HTTPS",
       STORAGE_ARRAYS,
       "on a machine that can reach the array's management interface over HTTPS (TCP 443).",
     ),
     fact(
-      "capacity, latency, volumes and hardware health",
+      "capacity, latency and hardware health",
       STORAGE_ARRAYS,
       "capacity and data reduction, latency, IOPS and bandwidth, volumes, hosts, pods and replication, hardware health",
     ),

@@ -69,20 +69,23 @@ describe("stuck", () => {
     OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   );
 
-  test.each(onItsWay)("%s: stuck at the line and not before it", (status) => {
-    const under: boolean = isOpenStackBareMetalNodeStuck({
-      status,
-      stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES - 1),
-      now: NOW,
-    });
-    const at: boolean = isOpenStackBareMetalNodeStuck({
-      status,
-      stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES),
-      now: NOW,
-    });
+  test.each(onItsWay)(
+    "%s: stuck at the line and not before it",
+    (status: string) => {
+      const under: boolean = isOpenStackBareMetalNodeStuck({
+        status,
+        stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES - 1),
+        now: NOW,
+      });
+      const at: boolean = isOpenStackBareMetalNodeStuck({
+        status,
+        stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES),
+        now: NOW,
+      });
 
-    expect([under, at]).toEqual([false, true]);
-  });
+      expect([under, at]).toEqual([false, true]);
+    },
+  );
 
   test.each([
     "available",
@@ -326,6 +329,8 @@ describe("a node's UUID, which is what Nova and Placement call it", () => {
       "212d8778807c",
     ]);
 
+    const notAHexDigitOrHyphen: RegExp = /[^a-fA-F0-9-]/;
+
     for (const text of texts) {
       const isUuidShaped: boolean =
         text.length === 36 &&
@@ -336,7 +341,7 @@ describe("a node's UUID, which is what Nova and Placement call it", () => {
             return group.length;
           })
           .join() === "8,4,4,4,12" &&
-        !(/[^a-fA-F0-9-]/).test(text);
+        !notAHexDigitOrHyphen.test(text);
 
       expect(isOpenStackBareMetalNodeId(text)).toBe(isUuidShaped);
     }

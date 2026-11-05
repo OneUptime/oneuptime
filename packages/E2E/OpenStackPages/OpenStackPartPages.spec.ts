@@ -394,9 +394,9 @@ test.describe("network", () => {
 
     await page.getByRole("tab", { name: "Networks" }).click();
     await expect(rowOf(page, "research-net")).toBeVisible();
-    await expect(
-      page.locator("tr").filter({ hasText: "web-net" }),
-    ).toHaveCount(0);
+    await expect(page.locator("tr").filter({ hasText: "web-net" })).toHaveCount(
+      0,
+    );
 
     await openRow(page, "research-net");
     await expect(
@@ -599,7 +599,9 @@ test.describe("storage", () => {
     await page.getByRole("tab", { name: "Volumes" }).click();
     await expect(rowOf(page, "payments-db-data")).toBeVisible();
     await expect(rowOf(page, "research-archive")).toBeVisible();
-    await expect(page.locator("tr").filter({ hasText: "web-assets" })).toHaveCount(0);
+    await expect(
+      page.locator("tr").filter({ hasText: "web-assets" }),
+    ).toHaveCount(0);
   });
 
   test("a pool no volume names holds nothing, when the others name theirs", async ({

@@ -283,10 +283,12 @@ describe("the cloud connection migrations", () => {
   });
 
   test("every migration file that adds a column to the connections table is listed here, oldest first", () => {
+    const migrationFile: RegExp = /^\d{13}-.+\.ts$/;
+    const addsAColumn: RegExp = /ALTER TABLE "CloudConnection" ADD "/;
     const files: Array<string> = fs
       .readdirSync(MIGRATIONS_FOLDER)
       .filter((file: string): boolean => {
-        return /^\d{13}-.+\.ts$/.test(file);
+        return migrationFile.test(file);
       })
       .filter((file: string): boolean => {
         const source: string = fs.readFileSync(
@@ -294,7 +296,7 @@ describe("the cloud connection migrations", () => {
           "utf8",
         );
 
-        return /ALTER TABLE "CloudConnection" ADD "/.test(source);
+        return addsAColumn.test(source);
       })
       .sort();
 

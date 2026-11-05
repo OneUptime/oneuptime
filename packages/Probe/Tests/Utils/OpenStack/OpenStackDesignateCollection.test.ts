@@ -11,6 +11,7 @@ import {
   RecordedScene,
   loadScene,
 } from "./Helpers/RecordedCloud";
+import { ReportedDatapoint } from "./Helpers/CollectorHarness";
 import {
   RecordedAnswer,
   RecordedRequest,
@@ -59,8 +60,9 @@ async function collect(
       if (path.endsWith("/v2/service_statuses")) {
         return recordedCall(scene, "designate-service-statuses");
       }
-      const zone: RegExpExecArray | null =
-        /\/v2\/zones\/([^/]+)\/recordsets$/.exec(path);
+      const zone: RegExpMatchArray | null = path.match(
+        /\/v2\/zones\/([^/]+)\/recordsets$/,
+      );
       if (zone) {
         const answer: JSONObject = JSON.parse(
           scene.api.get("designate-zones") as string,
@@ -162,7 +164,10 @@ describe("what it costs", () => {
 describe("what only a native read says", () => {
   test("Designate's workers, as its own list says them", async () => {
     const { points } = await collect(loadScene(GROUP, "designate-baseline"));
-    const states = pointsNamed(points, "openstack_designate_agent_state");
+    const states: Array<ReportedDatapoint> = pointsNamed(
+      points,
+      "openstack_designate_agent_state",
+    );
     expect(states).toHaveLength(5);
     expect(
       states.every((one: { value: number }): boolean => {

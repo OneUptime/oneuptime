@@ -7,6 +7,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A service a cloud may not run, in a real browser through the real router, on what a real
@@ -27,16 +28,6 @@ const REFUSED: string = "recording=services-heat-magnum/access/monitoring-role";
 
 const FAILED_STACK: string = "8fb1dcc5-0685-434b-8e1a-bf0618776952";
 const FAILED_CLUSTER: string = "df9f1548-93b9-444f-9001-605d49feda4e";
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
 
 function sideMenuLink(page: Page, name: string): Locator {
   return page.getByRole("link", { name, exact: false });
@@ -494,13 +485,13 @@ test.describe("at every width", () => {
       ] as Array<[string, string]>) {
         await openCloudPage(page, address, BOTH_ON_A_WHOLE_CLOUD);
         await expect(page.getByText(ready).first()).toBeVisible();
-        await expectNoSidewaysScroll(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       }
       await page.goto(
         `${partPath("stacks", FAILED_STACK)}?${BOTH_ON_A_WHOLE_CLOUD}`,
       );
       await expect(page.getByTestId("openstack-stack-overview")).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });

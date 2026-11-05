@@ -874,12 +874,17 @@ test.describe("a service's page", () => {
     await expect(page.getByTestId("openstack-service-hero-status")).toHaveText(
       "down",
     );
-    await expect(page.getByTestId("openstack-service-forced-down")).toContainText(
+    await expect(
+      page.getByTestId("openstack-service-forced-down"),
+    ).toContainText(
       "openstack compute service set --up compute-02 nova-compute",
     );
     await expect(
       page.getByTestId("openstack-service-attention-reason"),
-    ).toHaveText(["Down, with 11 instances on it", "Forced down by an operator"]);
+    ).toHaveText([
+      "Down, with 11 instances on it",
+      "Forced down by an operator",
+    ]);
 
     const details: Locator = page.getByTestId("openstack-service-details");
     await expect(details).toContainText("Forced down");
@@ -925,9 +930,9 @@ test.describe("a service's page", () => {
       `${partPath("services", "RegionOne/compute/compute-01/nova-compute")}?estate=calm`,
     );
     await expect(page.getByTestId("openstack-service-details")).toBeVisible();
-    await expect(page.getByTestId("openstack-service-details")).not.toContainText(
-      "Forced down",
-    );
+    await expect(
+      page.getByTestId("openstack-service-details"),
+    ).not.toContainText("Forced down");
   });
 
   test("one forgotten for 12 days gets a look, in the words of the Overview", async ({

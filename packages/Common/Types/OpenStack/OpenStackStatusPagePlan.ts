@@ -306,7 +306,8 @@ const SERVICE_OF_PROJECT_KIND: Readonly<
   [OpenStackResourceKind.Router]: OpenStackStatusPageService.Networking,
   [OpenStackResourceKind.FloatingIp]: OpenStackStatusPageService.Networking,
   [OpenStackResourceKind.Volume]: OpenStackStatusPageService.BlockStorage,
-  [OpenStackResourceKind.LoadBalancer]: OpenStackStatusPageService.LoadBalancing,
+  [OpenStackResourceKind.LoadBalancer]:
+    OpenStackStatusPageService.LoadBalancing,
 };
 
 export const OPENSTACK_PROJECT_PAGE_KINDS: ReadonlyArray<OpenStackResourceKind> =

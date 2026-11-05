@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { DataSource } from "typeorm";
+import { DataSource } from "Common/Tests/Helpers/TypeOrmDataSource";
 import Entities from "Common/Models/DatabaseModels/Index";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import OpenStackResourceService, {

@@ -577,10 +577,7 @@ describe("what the soak measured, as the docs publish it", () => {
   // What OpenStackSoak.test.ts wrote at the end of the hour the docs publish. Nothing else writes it.
   const MEASURED: Record<string, never> = JSON.parse(
     fs.readFileSync(
-      path.resolve(
-        __dirname,
-        "../../Fixtures/OpenStackSoak/measured.json",
-      ),
+      path.resolve(__dirname, "../../Fixtures/OpenStackSoak/measured.json"),
       "utf8",
     ),
   );

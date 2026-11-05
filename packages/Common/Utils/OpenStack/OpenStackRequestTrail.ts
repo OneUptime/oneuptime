@@ -208,15 +208,20 @@ export function joinOpenStackRequest(data: {
   const joined: Array<OpenStackRequestJoinedService> = Array.from(
     byService.entries(),
   )
-    .map(([service, known]: [string, ServiceTally]): OpenStackRequestJoinedService => {
-      return {
-        service,
-        hosts: Array.from(known.hosts).sort(),
-        lineCount: known.lineCount,
-        failed: known.failed,
-        firstAt: known.first ? new Date(known.first) : null,
-      };
-    })
+    .map(
+      ([service, known]: [
+        string,
+        ServiceTally,
+      ]): OpenStackRequestJoinedService => {
+        return {
+          service,
+          hosts: Array.from(known.hosts).sort(),
+          lineCount: known.lineCount,
+          failed: known.failed,
+          firstAt: known.first ? new Date(known.first) : null,
+        };
+      },
+    )
     .sort(
       (
         a: OpenStackRequestJoinedService,

@@ -565,7 +565,8 @@ describe("what a record keeps of an answer", () => {
 
   test("a volume says which image it was made from, and an image whether it's protected", () => {
     expect(
-      toCinderVolume({ volume_image_metadata: { image_id: "image-1" } }).imageId,
+      toCinderVolume({ volume_image_metadata: { image_id: "image-1" } })
+        .imageId,
     ).toBe("image-1");
     expect(toCinderVolume({}).imageId).toBeNull();
     expect(toGlanceImage({ protected: true }).isProtected).toBe(true);

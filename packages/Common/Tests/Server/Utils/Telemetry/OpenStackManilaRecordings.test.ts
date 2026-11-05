@@ -89,17 +89,20 @@ describe("every scene with Manila answering", () => {
     ["share-service-killed", 4],
     ["scheduler-stopped", 4],
     ["recovered", 4],
-  ])("%s holds %i shares, and its API reads up", (name: string, count: number) => {
-    const recorded: RecordedServiceScene = scene(name);
+  ])(
+    "%s holds %i shares, and its API reads up",
+    (name: string, count: number) => {
+      const recorded: RecordedServiceScene = scene(name);
 
-    expect(shares(recorded)).toHaveLength(count);
-    expect(
-      recorded.seriesNamed("openstack_sharev2_shares_counter")[0]?.value,
-    ).toBe(count);
-    expect(recorded.api(OpenStackServiceType.SharedFileSystems)?.status).toBe(
-      "up",
-    );
-  });
+      expect(shares(recorded)).toHaveLength(count);
+      expect(
+        recorded.seriesNamed("openstack_sharev2_shares_counter")[0]?.value,
+      ).toBe(count);
+      expect(recorded.api(OpenStackServiceType.SharedFileSystems)?.status).toBe(
+        "up",
+      );
+    },
+  );
 
   test.each([
     "share-error",
@@ -331,9 +334,7 @@ describe("api-down: Manila's API stopped", () => {
   const recorded: RecordedServiceScene = scene("api-down");
 
   test("the exporter does say so, unlike Ironic's and Designate's", () => {
-    expect(
-      recorded.seriesNamed("openstack_sharev2_up")[0]?.value,
-    ).toBe(0);
+    expect(recorded.seriesNamed("openstack_sharev2_up")[0]?.value).toBe(0);
     expect(recorded.api(OpenStackServiceType.SharedFileSystems)?.status).toBe(
       "down",
     );
@@ -397,9 +398,7 @@ describe("Topology", () => {
 
   test("draws each share under its region's Storage, and links to its page", () => {
     const recorded: RecordedServiceScene = scene("share-stuck");
-    const nodes: Array<ResourceTopologyNode> = sharesOf(
-      graphOf(recorded.rows),
-    );
+    const nodes: Array<ResourceTopologyNode> = sharesOf(graphOf(recorded.rows));
 
     expect(
       nodes
@@ -572,11 +571,13 @@ describe("what the agent's real collector sent", () => {
       samples: 0,
     });
     expect(
-      scanned.entries.filter((entry: OpenStackResourceBufferEntry): boolean => {
-        return entry.kind === OpenStackResourceKind.Api;
-      }).map((entry: OpenStackResourceBufferEntry): string | null => {
-        return entry.name;
-      }),
+      scanned.entries
+        .filter((entry: OpenStackResourceBufferEntry): boolean => {
+          return entry.kind === OpenStackResourceKind.Api;
+        })
+        .map((entry: OpenStackResourceBufferEntry): string | null => {
+          return entry.name;
+        }),
     ).toEqual([OpenStackServiceType.SharedFileSystems]);
   });
 });

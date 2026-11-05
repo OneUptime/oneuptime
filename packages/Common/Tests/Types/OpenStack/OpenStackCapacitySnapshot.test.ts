@@ -2,6 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
 import {
   OpenStackCapacityHost,
+  OpenStackCapacityRollup,
+  OpenStackHostAllocationMismatch,
   OpenStackInventories,
   getOpenStackInventoryFactKey,
 } from "../../../Types/OpenStack/OpenStackCapacity";
@@ -17,6 +19,7 @@ import {
   OpenStackCapacityMismatchRow,
   OpenStackCapacityShortage,
   OpenStackCapacitySnapshot,
+  OpenStackCapacityZone,
   buildOpenStackCapacitySnapshot,
   carryOpenStackAllocationMismatches,
   getOpenStackBareMetalCapacityRows,
@@ -529,7 +532,7 @@ describe("the whole cloud", () => {
     expect(snapshot.cloud.hostCount).toBe(3);
     expect(snapshot.cloud.resources[0]!.capacity).toBe(30);
     expect(
-      snapshot.regions.map((region) => {
+      snapshot.regions.map((region: OpenStackCapacityRollup) => {
         return [region.regionName, region.hostCount];
       }),
     ).toEqual([
@@ -537,7 +540,7 @@ describe("the whole cloud", () => {
       ["RegionTwo", 1],
     ]);
     expect(
-      snapshot.zones.map((zone) => {
+      snapshot.zones.map((zone: OpenStackCapacityZone) => {
         return [zone.regionName, zone.name, zone.hostCount];
       }),
     ).toEqual([
@@ -546,12 +549,12 @@ describe("the whole cloud", () => {
       ["RegionTwo", "zone-a", 1],
     ]);
     expect(
-      snapshot.aggregates.map((aggregate) => {
+      snapshot.aggregates.map((aggregate: OpenStackCapacityRollup) => {
         return [aggregate.name, aggregate.hostCount];
       }),
     ).toEqual([["ssd", 2]]);
     expect(
-      snapshot.flavors.map((flavor) => {
+      snapshot.flavors.map((flavor: OpenStackCapacityFlavorRow) => {
         return [flavor.regionName, flavor.fits];
       }),
     ).toEqual([
@@ -722,7 +725,7 @@ describe("the whole cloud", () => {
 });
 
 describe("allocations that go on disagreeing", () => {
-  const found = {
+  const found: OpenStackHostAllocationMismatch = {
     regionName: "RegionOne",
     hypervisorName: "compute-01",
     vcpuExcess: 2,

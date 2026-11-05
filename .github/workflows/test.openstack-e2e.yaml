@@ -625,7 +625,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
-      - run: cd Tests/Ops && npm install --no-audit --no-fund
+      - name: Install the Ops tests' dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
+          args: --no-audit --no-fund
       - run: bash Tests/Ops/validate-collector-configs.sh
 
   # A real deployment by Kolla-Ansible, as its quick start says, and its guide followed on

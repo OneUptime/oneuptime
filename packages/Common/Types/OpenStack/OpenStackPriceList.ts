@@ -111,8 +111,10 @@ function readPrices(value: unknown): Record<string, number> {
   return prices;
 }
 
+const CURRENCY_CODE: RegExp = /^[A-Za-z]{3}$/;
+
 export function isOpenStackCurrency(value: unknown): boolean {
-  return typeof value === "string" && /^[A-Za-z]{3}$/.test(value.trim());
+  return typeof value === "string" && CURRENCY_CODE.test(value.trim());
 }
 
 /*

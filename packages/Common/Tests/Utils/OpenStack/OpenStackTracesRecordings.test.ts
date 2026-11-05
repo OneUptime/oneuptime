@@ -377,21 +377,25 @@ describe.each(getRecordedTraceReleases())(
     });
 
     describe("from a trace to the logs of its requests", () => {
-      function logRows(scene: string): Array<OpenStackTraceLogRow> {
-        return recording.journal(scene).map((line): OpenStackTraceLogRow => {
-          const stamp: { attributes: Record<string, string>; body: string } =
-            stampOpenStackLogRecord({
-              attributes: { "journald.unit": line.unit },
-              body: line.message,
-              severityNumber: 9,
-            });
+      type JournalLine = ReturnType<OpenStackTraceRecording["journal"]>[number];
 
-          return {
-            time: new Date(line.time * 1000),
-            body: stamp.body,
-            attributes: stamp.attributes,
-          };
-        });
+      function logRows(scene: string): Array<OpenStackTraceLogRow> {
+        return recording
+          .journal(scene)
+          .map((line: JournalLine): OpenStackTraceLogRow => {
+            const stamp: { attributes: Record<string, string>; body: string } =
+              stampOpenStackLogRecord({
+                attributes: { "journald.unit": line.unit },
+                body: line.message,
+                severityNumber: 9,
+              });
+
+            return {
+              time: new Date(line.time * 1000),
+              body: stamp.body,
+              attributes: stamp.attributes,
+            };
+          });
       }
 
       function spansForLogs(scene: string): Array<OpenStackTraceSpanForLogs> {
@@ -514,11 +518,12 @@ describe.each(getRecordedTraceReleases())(
       });
 
       test("the HMAC key turned up nowhere it was recorded", () => {
+        const row: RegExp = /^\d+ /;
         const lines: Array<string> = recording
           .text("key-check.txt")
           .split("\n")
           .filter((line: string): boolean => {
-            return /^\d+ /.test(line);
+            return row.test(line);
           });
 
         expect(lines.length).toBeGreaterThan(10);

@@ -68,11 +68,7 @@ for (const [backend, release] of BACKENDS) {
       );
     });
 
-    test("that network's page says why", async ({
-      page,
-    }: {
-      page: Page;
-    }) => {
+    test("that network's page says why", async ({ page }: { page: Page }) => {
       await openCloudPage(
         page,
         "networks",
@@ -155,7 +151,9 @@ test.describe("ML2/OVS, with its only L3 agent stopped", () => {
     await expect(
       page.getByTestId("openstack-router-explanation"),
     ).toContainText("No L3 agent holding this router is alive");
-    await expect(page.getByTestId("openstack-router-agent").first()).toBeVisible();
+    await expect(
+      page.getByTestId("openstack-router-agent").first(),
+    ).toBeVisible();
   });
 
   test("the address's page says Neutron doesn't call it active", async ({

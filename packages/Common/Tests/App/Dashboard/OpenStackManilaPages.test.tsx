@@ -198,10 +198,7 @@ describe("Shares", () => {
   });
 
   test("an empty list with Manila up is what the monitoring role gets, so it says that", async () => {
-    server.rows = recorded(
-      "access-check",
-      "exporter/monitoring-role",
-    );
+    server.rows = recorded("access-check", "exporter/monitoring-role");
 
     await renderPage(OpenStackCloudShares, "/shares");
 
@@ -300,7 +297,7 @@ describe("a share's page", () => {
         ? {
             ...row,
             facts: {
-              ...(row["facts"] as object),
+              ...(row["facts"] as Record<string, unknown>),
               backendHost: "compute-01@alpha#fake_pool_for_ALPHA",
               accessRulesStatus: "active",
             },

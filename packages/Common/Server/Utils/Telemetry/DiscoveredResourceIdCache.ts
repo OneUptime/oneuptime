@@ -94,7 +94,8 @@ export interface DiscoveredResourceKind {
 
 export type DiscoveredResourceKindName =
   | "KubernetesCluster"
-  | "ProxmoxCluster" | "OpenStackCloud"
+  | "ProxmoxCluster"
+  | "OpenStackCloud"
   | "VMwareVCenter"
   | "IoTFleet"
   | "DockerSwarmCluster"

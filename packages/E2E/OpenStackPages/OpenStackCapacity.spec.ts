@@ -10,6 +10,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * "Can we fit this?": the Capacity page, in a real browser. On a recording, what a real cloud's
@@ -373,11 +374,7 @@ test.describe("on a phone", () => {
         page.getByTestId("openstack-capacity-headline"),
       ).toBeVisible();
 
-      const scrollWidth: number = await page.evaluate(() => {
-        return document.documentElement.scrollWidth;
-      });
-
-      expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await screenshot(page, `capacity-${viewport.width}`);
     });

@@ -1377,6 +1377,8 @@ export interface OctaviaAmphoraRecord {
   managementIp: string | null;
 }
 
+const ENDS_IN_A_TIME_ZONE: RegExp = /(Z|[+-]\d\d:?\d\d)$/;
+
 export function toOctaviaAmphora(item: JSONObject): OctaviaAmphoraRecord {
   const expiration: string | null = text(item["cert_expiration"]);
 
@@ -1387,7 +1389,7 @@ export function toOctaviaAmphora(item: JSONObject): OctaviaAmphoraRecord {
     role: text(item["role"]),
     status: text(item["status"]),
     certExpiration:
-      expiration && !/(Z|[+-]\d\d:?\d\d)$/.test(expiration)
+      expiration && !ENDS_IN_A_TIME_ZONE.test(expiration)
         ? `${expiration}Z`
         : expiration,
     haIp: text(item["ha_ip"]),

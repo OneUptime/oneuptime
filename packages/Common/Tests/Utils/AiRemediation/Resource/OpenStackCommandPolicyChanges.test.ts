@@ -924,17 +924,33 @@ describe("the blast-radius guard: an evacuation always asks", () => {
     bypassApproval: boolean;
     allowlist: (command: string) => Array<string>;
   }> = [
-    { name: "Automatic", bypassApproval: false, allowlist: () => [] },
+    {
+      name: "Automatic",
+      bypassApproval: false,
+      allowlist: () => {
+        return [];
+      },
+    },
     {
       name: "Automatic, with the exact command on the allowlist",
       bypassApproval: false,
-      allowlist: (command: string) => [command],
+      allowlist: (command: string) => {
+        return [command];
+      },
     },
-    { name: "Bypass approval", bypassApproval: true, allowlist: () => [] },
+    {
+      name: "Bypass approval",
+      bypassApproval: true,
+      allowlist: () => {
+        return [];
+      },
+    },
     {
       name: "Bypass approval, with the exact command on the allowlist",
       bypassApproval: true,
-      allowlist: (command: string) => [command],
+      allowlist: (command: string) => {
+        return [command];
+      },
     },
   ];
 
@@ -1684,10 +1700,10 @@ describe("it never throws, whatever it is handed", () => {
            * only a value its own rule took.
            */
           if (result.tier !== ResourceCommandTier.Denied) {
-            expect(/[\n\0'"$;%é]/.test(text)).toBe(false);
+            expect(text).not.toMatch(/[\n\0'"$;%é]/);
 
             if (canonical[at - 1] !== "--disable-reason") {
-              expect(/[/=]/.test(text)).toBe(false);
+              expect(text).not.toMatch(/[/=]/);
             }
           }
         }
@@ -1705,7 +1721,16 @@ describe("it never throws, whatever it is handed", () => {
       [],
       [null],
       ["openstack", 7],
-      ["openstack", "server", "start", { toString: () => SERVER }],
+      [
+        "openstack",
+        "server",
+        "start",
+        {
+          toString: () => {
+            return SERVER;
+          },
+        },
+      ],
     ]) {
       expect(
         OpenStackCommandPolicy.evaluateArgv(argv as unknown as Array<string>)

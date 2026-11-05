@@ -792,18 +792,21 @@ describe("a price of zero is no price, not a free cloud", () => {
         imageGbHour: null,
       }),
     ],
-  ])("%s has no amount, and says what it used", (_name: string, list) => {
-    expect(list).toBeNull();
+  ])(
+    "%s has no amount, and says what it used",
+    (_name: string, list: ReturnType<typeof readOpenStackPriceList>) => {
+      expect(list).toBeNull();
 
-    const cost: OpenStackUsageCost = getOpenStackUsageCost({
-      quantities,
-      priceList: list as null,
-    });
+      const cost: OpenStackUsageCost = getOpenStackUsageCost({
+        quantities,
+        priceList: list as null,
+      });
 
-    expect(cost.amount).toBeNull();
-    expect(cost.lines.length).toBeGreaterThan(0);
-    expect(cost.unpricedLineCount).toBe(cost.lines.length);
-  });
+      expect(cost.amount).toBeNull();
+      expect(cost.lines.length).toBeGreaterThan(0);
+      expect(cost.unpricedLineCount).toBe(cost.lines.length);
+    },
+  );
 
   test("a list with one price comes to what's priced, and counts what isn't", () => {
     const cost: OpenStackUsageCost = getOpenStackUsageCost({

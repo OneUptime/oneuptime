@@ -275,11 +275,11 @@ describe("two moments of one active-standby pair", () => {
       expect(probe?.labels["operating_status"]).toBe(said);
       expect(probe?.value).toBe(said === "ONLINE" ? 0 : -1);
       // Everything else about every load balancer is the exporter's.
-      const strip = (list: Array<string>): Array<string> => {
+      function strip(list: Array<string>): Array<string> {
         return list.filter((line: string): boolean => {
           return !line.includes("ou-lb-ha");
         });
-      };
+      }
       expect(
         strip(
           comparableOfProbe(
@@ -537,15 +537,13 @@ describe("traffic is a rate between two readings", () => {
 });
 
 describe("rates, on awkward counters", () => {
-  const counters = (
-    total: number,
-  ): {
+  function counters(total: number): {
     activeConnections: number;
     totalConnections: number;
     bytesIn: number;
     bytesOut: number;
     requestErrors: number;
-  } => {
+  } {
     return {
       activeConnections: 1,
       totalConnections: total,
@@ -553,7 +551,7 @@ describe("rates, on awkward counters", () => {
       bytesOut: total * 20,
       requestErrors: total / 10,
     };
-  };
+  }
 
   test.each([
     ["10 seconds apart", 10_000, 100, 200, 10],

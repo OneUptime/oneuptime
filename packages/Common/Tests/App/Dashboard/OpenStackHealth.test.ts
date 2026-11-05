@@ -1706,12 +1706,7 @@ describe("on the line, and in the words that say so", () => {
           return item.name;
         })
         .sort(),
-    ).toEqual([
-      "cluster-failed",
-      "instance-failed",
-      "stack-s-2",
-      "stack-s-3",
-    ]);
+    ).toEqual(["cluster-failed", "instance-failed", "stack-s-2", "stack-s-3"]);
   });
 
   test("a bare metal node that failed says so in Ironic's words", () => {

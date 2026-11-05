@@ -1110,9 +1110,9 @@ describe("Cinder", () => {
       }),
     );
 
-    expect(named(points, "openstack_cinder_volume_gb")[0]?.labels["image_id"]).toBe(
-      "image-1",
-    );
+    expect(
+      named(points, "openstack_cinder_volume_gb")[0]?.labels["image_id"],
+    ).toBe("image-1");
   });
 
   test("a volume names the pool that holds it on the series the scan reads, and only there", () => {

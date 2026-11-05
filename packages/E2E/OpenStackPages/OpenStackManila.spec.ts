@@ -7,6 +7,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Manila in a real browser through the real router, on what a real stable/2026.1 DevStack recorded
@@ -26,22 +27,12 @@ function sideMenuLink(page: Page, name: string): Locator {
   return page.getByRole("link", { name, exact: false });
 }
 
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
 function needsAttention(page: Page): Locator {
   return page.getByTestId("openstack-needs-attention");
 }
 
 test.describe("a cloud that doesn't run Manila", () => {
-  test("its menu says nothing of it", async ({ page }) => {
+  test("its menu says nothing of it", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", WITHOUT_MANILA);
     await expect(sideMenuLink(page, "Hypervisors").first()).toBeVisible();
     await expect(sideMenuLink(page, "Shares")).toHaveCount(0);
@@ -49,6 +40,8 @@ test.describe("a cloud that doesn't run Manila", () => {
 
   test("nor does its Services page, or what it is offered to alert on", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "services", WITHOUT_MANILA);
     await expect(page.getByText("Compute (Nova)").first()).toBeVisible();
@@ -61,6 +54,8 @@ test.describe("a cloud that doesn't run Manila", () => {
 
   test("an old link says it doesn't run it, and is no error", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "shares", WITHOUT_MANILA);
     await expect(
@@ -70,13 +65,15 @@ test.describe("a cloud that doesn't run Manila", () => {
 });
 
 test.describe("a cloud that runs Manila", () => {
-  test("gets its shares under Storage", async ({ page }) => {
+  test("gets its shares under Storage", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", BASELINE);
     await expect(sideMenuLink(page, "Shares").first()).toBeVisible();
   });
 
   test("a share in error reaches Needs attention by name, and lands on its page", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", STUCK);
     const card: Locator = needsAttention(page);
@@ -94,6 +91,8 @@ test.describe("a cloud that runs Manila", () => {
 
   test("the list holds every project's, each in Manila's word", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "shares", STUCK);
     const row: Locator = page
@@ -106,7 +105,11 @@ test.describe("a cloud that runs Manila", () => {
     await screenshot(page, "shares");
   });
 
-  test("its API stopped is what needs someone", async ({ page }) => {
+  test("its API stopped is what needs someone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openCloudPage(page, "", API_DOWN);
     await expect(
       needsAttention(page).getByText("Shared File Systems (Manila)"),
@@ -115,6 +118,8 @@ test.describe("a cloud that runs Manila", () => {
 
   test("the Services page says a stopped service shows nowhere here", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "services", BASELINE);
     await expect(
@@ -122,7 +127,11 @@ test.describe("a cloud that runs Manila", () => {
     ).toContainText("a stopped one isn't shown anywhere here");
   });
 
-  test("Topology draws its shares under Storage", async ({ page }) => {
+  test("Topology draws its shares under Storage", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openCloudPage(page, "topology", STUCK);
     await expect(page.getByText("Storage").first()).toBeVisible();
   });
@@ -130,6 +139,8 @@ test.describe("a cloud that runs Manila", () => {
   for (const viewport of VIEWPORTS) {
     test(`shares and a share's page fit at ${viewport.width} pixels`, async ({
       page,
+    }: {
+      page: Page;
     }) => {
       await page.setViewportSize({
         width: viewport.width,
@@ -137,11 +148,11 @@ test.describe("a cloud that runs Manila", () => {
       });
       await openCloudPage(page, "shares", STUCK);
       await expect(page.getByText("ou-share-error").first()).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await page.goto(`${partPath("shares", SHARE_IN_ERROR)}?${STUCK}`);
       await expect(page.getByTestId("openstack-share-overview")).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });

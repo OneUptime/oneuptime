@@ -1944,10 +1944,9 @@ describe("a Heat stack", () => {
 
   test("with no project, as anything below an admin reads it, holds none rather than an empty one", () => {
     const buffer: Buffer = new Map();
-    const { project_id: _ignored, ...withoutProject } = LABELS;
     fold(buffer, "openstack_heat_stack_status", {
       value: 4,
-      labels: { ...withoutProject, project_id: "" },
+      labels: { ...LABELS, project_id: "" },
     });
     expect(
       rowOf(buffer, OpenStackResourceKind.Stack, LABELS["id"] as string)
@@ -1957,7 +1956,8 @@ describe("a Heat stack", () => {
 
   test("with no ID is nothing anyone could link to, and has no row", () => {
     const buffer: Buffer = new Map();
-    const { id: _ignored, ...withoutId } = LABELS;
+    const withoutId: Record<string, string> = { ...LABELS };
+    delete withoutId["id"];
     fold(buffer, "openstack_heat_stack_status", {
       value: 4,
       labels: withoutId,
