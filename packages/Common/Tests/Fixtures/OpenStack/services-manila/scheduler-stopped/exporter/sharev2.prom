@@ -1,0 +1,39 @@
+# HELP openstack_sharev2_share_gb share_gb
+# TYPE openstack_sharev2_share_gb gauge
+openstack_sharev2_share_gb{availability_zone="",id="dc946347-57a2-4171-b8c7-b7935405cc1d",name="ou-share-error",project_id="80e140ff1a3e4adc9a3d0bc5c265bc5c",share_proto="NFS",share_type="ou-nowhere",share_type_name="",status="error"} 1
+openstack_sharev2_share_gb{availability_zone="manila-zone-0",id="8368778a-6846-4835-a47a-a5f23ef1f490",name="ou-share-payments",project_id="54d6a0e7c09b4888854fea4ea2db7ec3",share_proto="NFS",share_type="ou-alpha",share_type_name="",status="available"} 2
+openstack_sharev2_share_gb{availability_zone="manila-zone-0",id="9c7ff065-917f-4025-a3a4-f8d1fe1b7a3c",name="ou-share-admin",project_id="80e140ff1a3e4adc9a3d0bc5c265bc5c",share_proto="NFS",share_type="ou-alpha",share_type_name="",status="available"} 1
+openstack_sharev2_share_gb{availability_zone="manila-zone-1",id="2180dd6b-7f08-4327-82c1-02f25b1508d8",name="ou-share-stuck",project_id="80e140ff1a3e4adc9a3d0bc5c265bc5c",share_proto="NFS",share_type="ou-slow",share_type_name="",status="creating"} 1
+# HELP openstack_sharev2_share_status share_status
+# TYPE openstack_sharev2_share_status gauge
+openstack_sharev2_share_status{id="2180dd6b-7f08-4327-82c1-02f25b1508d8",name="ou-share-stuck",project_id="80e140ff1a3e4adc9a3d0bc5c265bc5c",share_proto="NFS",share_type="ou-slow",share_type_name="",size="1",status="creating"} 0
+openstack_sharev2_share_status{id="8368778a-6846-4835-a47a-a5f23ef1f490",name="ou-share-payments",project_id="54d6a0e7c09b4888854fea4ea2db7ec3",share_proto="NFS",share_type="ou-alpha",share_type_name="",size="2",status="available"} 1
+openstack_sharev2_share_status{id="9c7ff065-917f-4025-a3a4-f8d1fe1b7a3c",name="ou-share-admin",project_id="80e140ff1a3e4adc9a3d0bc5c265bc5c",share_proto="NFS",share_type="ou-alpha",share_type_name="",size="1",status="available"} 1
+openstack_sharev2_share_status{id="dc946347-57a2-4171-b8c7-b7935405cc1d",name="ou-share-error",project_id="80e140ff1a3e4adc9a3d0bc5c265bc5c",share_proto="NFS",share_type="ou-nowhere",share_type_name="",size="1",status="error"} 9
+# HELP openstack_sharev2_share_status_counter share_status_counter
+# TYPE openstack_sharev2_share_status_counter gauge
+openstack_sharev2_share_status_counter{status="available"} 2
+openstack_sharev2_share_status_counter{status="creating"} 1
+openstack_sharev2_share_status_counter{status="deleting"} 0
+openstack_sharev2_share_status_counter{status="error"} 1
+openstack_sharev2_share_status_counter{status="error_deleting"} 0
+openstack_sharev2_share_status_counter{status="extending"} 0
+openstack_sharev2_share_status_counter{status="inactive"} 0
+openstack_sharev2_share_status_counter{status="managing"} 0
+openstack_sharev2_share_status_counter{status="migrating"} 0
+openstack_sharev2_share_status_counter{status="migration_error"} 0
+openstack_sharev2_share_status_counter{status="restoring"} 0
+openstack_sharev2_share_status_counter{status="reverting"} 0
+openstack_sharev2_share_status_counter{status="reverting_error"} 0
+openstack_sharev2_share_status_counter{status="reverting_to_snapshot"} 0
+openstack_sharev2_share_status_counter{status="shrinking"} 0
+openstack_sharev2_share_status_counter{status="shrinking_error"} 0
+openstack_sharev2_share_status_counter{status="soft_deleting"} 0
+openstack_sharev2_share_status_counter{status="unmanaging"} 0
+openstack_sharev2_share_status_counter{status="updating"} 0
+# HELP openstack_sharev2_shares_counter shares_counter
+# TYPE openstack_sharev2_shares_counter gauge
+openstack_sharev2_shares_counter 4
+# HELP openstack_sharev2_up up
+# TYPE openstack_sharev2_up gauge
+openstack_sharev2_up 1

@@ -266,9 +266,11 @@ export function toInstanceActionNotification(data: {
   failedStep: NovaFailedStep | null;
   // The instance's own fault, only for its newest failure: it says nothing of the older.
   faultMessage: string | null;
+  // Whether it failed, when the action does not say so itself: see readServerActions.
+  hasFailed?: boolean | undefined;
 }): JSONObject {
   const { server, action, failedStep } = data;
-  const failed: boolean = Boolean(action.message);
+  const failed: boolean = Boolean(action.message) || Boolean(data.hasFailed);
   const step: string = STEP_OF_ACTION.get(action.action) || action.action;
   const reason: string | null =
     (failedStep && failedStep.details) ||
@@ -380,21 +382,36 @@ async function readServerActions(data: {
     )
     .slice(-MAX_ACTIONS_READ_PER_SERVER);
 
+  /*
+   * Nova can write off a build with nothing on its action. On a real cloud, a build whose image
+   * would not fit its flavor left the action's message empty and its step "Success", with the
+   * instance in ERROR and the reason in its fault. So the newest action of an instance in ERROR
+   * has failed, whatever it says.
+   */
+  const newest: NovaInstanceActionRecord | undefined =
+    actions[actions.length - 1];
+  const hasFailed: (action: NovaInstanceActionRecord) => boolean = (
+    action: NovaInstanceActionRecord,
+  ): boolean => {
+    return (
+      Boolean(action.message) ||
+      (action === newest && isFailed(server) && !server.taskState)
+    );
+  };
   const newestFailure: NovaInstanceActionRecord | undefined = actions
-    .filter((action: NovaInstanceActionRecord): boolean => {
-      return Boolean(action.message);
-    })
+    .filter(hasFailed)
     .pop();
 
   for (const action of actions) {
-    const key: string = `${server.id}/${action.requestId}/${action.message ? "failed" : "done"}`;
+    const failed: boolean = hasFailed(action);
+    const key: string = `${server.id}/${action.requestId}/${failed ? "failed" : "done"}`;
 
     if (said.has(key)) {
       continue;
     }
 
     // Said once it has finished: see the top of this file.
-    if (!action.message && server.taskState) {
+    if (!failed && server.taskState) {
       continue;
     }
 
@@ -402,6 +419,7 @@ async function readServerActions(data: {
       toInstanceActionNotification({
         server,
         action,
+        // What says nothing failed has no step that did.
         failedStep: action.message
           ? await readFailedStep({
               client,
@@ -411,6 +429,7 @@ async function readServerActions(data: {
           : null,
         faultMessage:
           action === newestFailure ? server.faultMessage || null : null,
+        hasFailed: failed,
       }),
     );
     said.add(key);

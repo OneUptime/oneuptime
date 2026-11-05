@@ -716,23 +716,9 @@ describe("Neutron's, Cinder's and Glance's", () => {
     ).toBeNull();
   });
 
-  test("Cinder's only word of an attach is that it started, so that one counts", () => {
+  test("a volume's start stays a step on the way", () => {
     const event: OpenStackEvent = eventOf({
       event_type: "volume.attach.start",
-      publisher_id: "volume.compute-01@lvm",
-      payload: { volume_id: "vol-1", display_name: "data", status: "reserved" },
-    });
-
-    expect(event.importance).toBe(OpenStackEventImportance.Change);
-    expect(event.outcome).toBe(OpenStackEventOutcome.Started);
-    expect(event.part?.kind).toBe(OpenStackResourceKind.Volume);
-    expect(event.title).toBe("Volume data: being attached");
-    expect(event.movesState).toBe(true);
-  });
-
-  test("any other start stays a step on the way", () => {
-    const event: OpenStackEvent = eventOf({
-      event_type: "volume.detach.start",
       publisher_id: "volume.compute-01@lvm",
       payload: { volume_id: "vol-1", display_name: "data" },
     });

@@ -50,6 +50,12 @@ A cloud's Traces page reads spans, so it has a recording of its own: `?traces=fl
 is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
 (`Fixture/TraceRecordings.js`). With none, the cloud has no traces, which is how every cloud starts.
 
+A cloud's logs and change events can be read on top of either: `?logs=epoxy-ovn` is what that real
+cloud's services wrote (`Common/Tests/Fixtures/OpenStack/service-logs`), through the ingest's own
+stamp and the code that writes a change event (`Fixture/ServiceLogs.js`), with what the default drop
+filters take out left out, and the instances, volume and service it wrote about in the inventory
+under the IDs they really had. Only the clock moves.
+
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
 `?probe=checking|collecting|partial|untrusted|plain-http|gone`, `?probes=many`,
@@ -127,6 +133,11 @@ each page says what is missing and how to add it. And what it costs on a cloud's
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.
+
+`OpenStackLogs.spec.ts`: on what real clouds' services wrote, a failed build from its instance's
+page to the scheduler's line in two clicks, which services a request reached and which it could
+not be followed to, and what happened to an instance, a volume and a compute service on each one's
+Feed.
 
 `OpenStackLinks.spec.ts`: a cloud joined to the rest of OneUptime (`?estate=links`, every record
 made up): a hypervisor and the host on its machine with its real load beside what Nova has

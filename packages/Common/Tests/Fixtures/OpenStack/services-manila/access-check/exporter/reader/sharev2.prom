@@ -1,9 +1,9 @@
 # HELP openstack_sharev2_share_gb share_gb
 # TYPE openstack_sharev2_share_gb gauge
-openstack_sharev2_share_gb{availability_zone="manila-zone-0",id="b2f8ff8e-9652-4764-87f1-3eba060cc593",name="ou-share-payments",project_id="69f379f1b6a4479c89e90f67155fde30",share_proto="NFS",share_type="ou-alpha",share_type_name="",status="available"} 2
+openstack_sharev2_share_gb{availability_zone="manila-zone-0",id="8368778a-6846-4835-a47a-a5f23ef1f490",name="ou-share-payments",project_id="54d6a0e7c09b4888854fea4ea2db7ec3",share_proto="NFS",share_type="ou-alpha",share_type_name="",status="available"} 2
 # HELP openstack_sharev2_share_status share_status
 # TYPE openstack_sharev2_share_status gauge
-openstack_sharev2_share_status{id="b2f8ff8e-9652-4764-87f1-3eba060cc593",name="ou-share-payments",project_id="69f379f1b6a4479c89e90f67155fde30",share_proto="NFS",share_type="ou-alpha",share_type_name="",size="2",status="available"} 1
+openstack_sharev2_share_status{id="8368778a-6846-4835-a47a-a5f23ef1f490",name="ou-share-payments",project_id="54d6a0e7c09b4888854fea4ea2db7ec3",share_proto="NFS",share_type="ou-alpha",share_type_name="",size="2",status="available"} 1
 # HELP openstack_sharev2_share_status_counter share_status_counter
 # TYPE openstack_sharev2_share_status_counter gauge
 openstack_sharev2_share_status_counter{status="available"} 1
