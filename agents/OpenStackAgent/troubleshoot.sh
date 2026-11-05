@@ -499,8 +499,61 @@ SINGLE_CLOUD_TARGETS=$(agent_env OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS)
 [ "$SINGLE_CLOUD_TARGETS" = "[]" ] && SINGLE_CLOUD_TARGETS=""
 [ -n "$SINGLE_CLOUD_TARGETS" ] && EXPORTER_BUNDLED=0
 
+# The largest clouds' path: an exporter that reads each service's database, on /metrics, and
+# one more that reads what a database cannot say. "The database path" in the docs turns it on,
+# and with OPENSTACK_EXPORTER_CLOUDS=[] nothing asks the exporter of the APIs for anything.
+DATABASE_EXPORTER_CONTAINER="oneuptime-openstack-database-exporter"
+WORKER_STATE_EXPORTER_CONTAINER="oneuptime-openstack-worker-state-exporter"
+DATABASE_TARGETS=$(agent_env OPENSTACK_DATABASE_EXPORTER_TARGETS)
+[ "$DATABASE_TARGETS" = "[]" ] && DATABASE_TARGETS=""
+WORKER_STATE_CLOUDS=$(agent_env OPENSTACK_WORKER_STATE_CLOUDS)
+[ "$WORKER_STATE_CLOUDS" = "[]" ] && WORKER_STATE_CLOUDS=""
+WORKER_STATE_ADDRESS=$(agent_env OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS)
+if [ -z "$WORKER_STATE_ADDRESS" ]; then
+  if [ "$NATIVE" = 1 ]; then
+    WORKER_STATE_ADDRESS="127.0.0.1:9181"
+  else
+    WORKER_STATE_ADDRESS="openstack-worker-state-exporter:9180"
+  fi
+fi
+DATABASE_PATH=0
+if [ -n "$DATABASE_TARGETS" ] && [ "$(agent_env OPENSTACK_EXPORTER_CLOUDS | tr -d '[:space:]')" = "[]" ]; then
+  DATABASE_PATH=1
+  # What reads clouds.yaml on this path, for the checks on its user below.
+  EXPORTER_CONTAINER="$WORKER_STATE_EXPORTER_CONTAINER"
+fi
+
+# One of the path's containers: running, stopped, or never started.
+check_database_path_container() {
+  local container="$1" what="$2" state=""
+  state=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
+  if [ "$state" = "running" ]; then
+    pass "$what '$container' is running"
+  elif [ -n "$state" ]; then
+    fail "$what '$container' is NOT running (state: $state)"
+    add_finding "Its container is down. Check: docker logs $container"
+  else
+    fail "$what '$container' does not exist."
+    add_finding "It never started. Add openstack-database-exporter to COMPOSE_PROFILES in $ENV_FILE and run: cd $DIR && docker compose up -d. Running install.sh again does that too."
+  fi
+  [ "$state" = "running" ]
+}
+
 if [ -n "$SINGLE_CLOUD_TARGETS" ]; then
   info "No bundled exporter: the agent reads your own at $SINGLE_CLOUD_TARGETS on /metrics (OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS), and its clouds.yaml holds the credential."
+elif [ "$DATABASE_PATH" = 1 ]; then
+  info "No exporter of the APIs: the agent reads this cloud from its databases, at $DATABASE_TARGETS (OPENSTACK_DATABASE_EXPORTER_TARGETS)."
+  if [ "$NATIVE" = 0 ]; then
+    case "$DATABASE_TARGETS" in
+      *openstack-database-exporter:*)
+        check_database_path_container "$DATABASE_EXPORTER_CONTAINER" "Database exporter"
+        ;;
+    esac
+    if [ -n "$WORKER_STATE_CLOUDS" ] && [ "$WORKER_STATE_ADDRESS" = "openstack-worker-state-exporter:9180" ]; then
+      check_database_path_container "$WORKER_STATE_EXPORTER_CONTAINER" "Worker-state exporter" \
+        && OPENSTACK_NETWORK="$WORKER_STATE_EXPORTER_CONTAINER"
+    fi
+  fi
 elif [ "$EXPORTER_BUNDLED" = 0 ]; then
   info "No bundled exporter: the agent reads your own at $EXPORTER_ADDRESS (OPENSTACK_EXPORTER_ADDRESS), and its clouds.yaml holds the credential."
 elif [ "$NATIVE" = 1 ]; then
@@ -654,6 +707,88 @@ if [ -n "$SINGLE_CLOUD_TARGETS" ]; then
   done
 fi
 
+# One of the two small lists the collector asks for on the database path, as it asks for it.
+check_worker_state_read() {
+  local region="$1" service="$2" series="$3" what="$4" answer="" code=0 found=0
+  answer=$(network_curl "$AGENT_NETWORK" -sS -m 110 "http://${WORKER_STATE_ADDRESS}/probe?cloud=${region// /%20}&include_services=$service")
+  code=$?
+  found=$(printf '%s\n' "$answer" | grep -Ec "$series" 2>/dev/null || true)
+  if [ "$code" != "0" ]; then
+    fail "Region $region: cannot reach the worker-state exporter at $WORKER_STATE_ADDRESS from the agent's network."
+    detail "curl: $(printf '%s' "$answer" | tr '\n' ' ' | head -c 200)"
+    add_finding "The collector cannot scrape $WORKER_STATE_ADDRESS, so nothing says $what in region $region. Look at why: docker logs $WORKER_STATE_EXPORTER_CONTAINER"
+  elif [ "$found" = "0" ]; then
+    warn "Region $region: the worker-state exporter answers, and does not say $what."
+    add_finding "The worker-state exporter says nothing of $what in region $region. It needs an entry named \"$region\" in clouds.yaml that can log in, and that can read this list: section 5 asks for it with that credential."
+  else
+    pass "Region $region: the worker-state exporter says $what ($found series)."
+  fi
+}
+
+# What the collector asks of a database exporter: everything, on /metrics. On a very large cloud
+# that answer runs to tens of megabytes, so only what this needs is kept of it.
+declare -a WORKER_REGIONS=()
+if [ -n "$DATABASE_TARGETS" ]; then
+  if [ "$DATABASE_PATH" = 0 ] && [ "${#REGIONS[@]}" != 0 ]; then
+    warn "OPENSTACK_EXPORTER_CLOUDS reads this cloud from its APIs, and OPENSTACK_DATABASE_EXPORTER_TARGETS from its databases, so every series arrives twice."
+    add_finding "Each series is stored and billed twice. Set OPENSTACK_EXPORTER_CLOUDS=[] in $ENV_FILE to read the databases alone, or take OPENSTACK_DATABASE_EXPORTER_TARGETS out to read the APIs, then run install.sh again."
+  fi
+  for TARGET in $(target_addresses "$DATABASE_TARGETS"); do
+    SCRAPE_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 110 "http://${TARGET}/metrics" | awk '
+      /^curl:/ { print }
+      /^openstack_/ {
+        series++
+        if ($1 ~ /^openstack_[a-z_]+_up$/) {
+          name = $1
+          sub(/^openstack_/, "", name)
+          sub(/_up$/, "", name)
+          if ($2 + 0 == 0) {
+            down = down (down == "" ? "" : ", ") name
+          } else {
+            up = up (up == "" ? "" : ", ") name
+          }
+        }
+      }
+      END { print "series " series + 0; print "up " up; print "down " down }')
+    SCRAPE_EXIT=$?
+    SERIES=$(printf '%s\n' "$SCRAPE_OUT" | sed -n 's/^series //p')
+    READS_UP=$(printf '%s\n' "$SCRAPE_OUT" | sed -n 's/^up //p')
+    READS_DOWN=$(printf '%s\n' "$SCRAPE_OUT" | sed -n 's/^down //p')
+    if [ "$SCRAPE_EXIT" != "0" ]; then
+      fail "Cannot reach the database exporter at $TARGET from the agent's network."
+      detail "$(printf '%s\n' "$SCRAPE_OUT" | sed -n '/^curl:/p' | head -1 | head -c 200)"
+      add_finding "The collector cannot scrape $TARGET. If docker-compose.yml starts it, look at why: docker logs $DATABASE_EXPORTER_CONTAINER. Anywhere else, check this machine has a route there."
+    elif [ "$SERIES" = "0" ]; then
+      fail "The database exporter at $TARGET answers /metrics with no openstack_* series."
+      add_finding "A database left out is a service it leaves alone, and this one reads none. Check NOVA_DATABASE_URL and the others in $ENV_FILE, and its log: docker logs $DATABASE_EXPORTER_CONTAINER"
+    elif [ -n "$READS_DOWN" ] && [ -z "$READS_UP" ]; then
+      fail "The database exporter at $TARGET answers, and cannot read the database of: $READS_DOWN."
+      add_finding "It cannot read any database. Check its URLs in $ENV_FILE, the read-only account, the route from this machine, and its log: docker logs $DATABASE_EXPORTER_CONTAINER"
+    elif [ -n "$READS_DOWN" ]; then
+      warn "The database exporter at $TARGET reads $READS_UP, and cannot read the database of: $READS_DOWN."
+      add_finding "Those services' series are missing. Check each one's URL in $ENV_FILE, the read-only account, and that the exporter still reads your release's schema: docker logs $DATABASE_EXPORTER_CONTAINER"
+      EXPORTER_OK=1
+    else
+      pass "The database exporter at $TARGET reads ${READS_UP:-the databases} ($SERIES openstack_* series)."
+      EXPORTER_OK=1
+    fi
+  done
+
+  while IFS= read -r REGION; do
+    [ -n "$REGION" ] && WORKER_REGIONS+=("$REGION")
+  done <<EOF
+$(printf '%s' "$WORKER_STATE_CLOUDS" | sed 's/^\[//; s/\]$//' | tr ',' '\n' | sed "s/^[[:space:]\"']*//; s/[[:space:]\"']*\$//")
+EOF
+  if [ "${#WORKER_REGIONS[@]}" = 0 ]; then
+    warn "Nothing says whether each Nova worker is alive, or how full each storage pool is: a database says neither."
+    add_finding "Set OPENSTACK_WORKER_STATE_CLOUDS in $ENV_FILE to the entries of clouds.yaml to read them from, such as [$(agent_env OPENSTACK_CONTROL_PLANE_REGION)], and run install.sh again."
+  fi
+  for REGION in ${WORKER_REGIONS[@]+"${WORKER_REGIONS[@]}"}; do
+    check_worker_state_read "$REGION" compute '^openstack_nova_agent_state' "whether each Nova worker is alive"
+    check_worker_state_read "$REGION" volume '^openstack_cinder_pool_capacity_(free|total)_gb' "how full each storage pool is"
+  done
+fi
+
 # One scrape of the lightest service, per region: exactly what the collector
 # asks, from the collector's network. It logs in to Keystone with the entry
 # named for that region, so it tests the whole chain to Keystone.
@@ -687,6 +822,16 @@ for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
     fi
   fi
 done
+
+# On the database path nothing is read per region, so the sections below go by the regions read
+# with this credential: the entries it names, or the region the databases are in.
+if [ "$DATABASE_PATH" = 1 ]; then
+  REGIONS=(${WORKER_REGIONS[@]+"${WORKER_REGIONS[@]}"})
+  if [ "${#REGIONS[@]}" = 0 ]; then
+    CONTROL_PLANE_REGION=$(agent_env OPENSTACK_CONTROL_PLANE_REGION)
+    REGIONS=("${CONTROL_PLANE_REGION:-RegionOne}")
+  fi
+fi
 
 # What the hourly job asks of the quota exporter, for one region's Nova. It costs a call per
 # project, so only when someone turned them on, and it may take as long as the job allows.
@@ -908,6 +1053,10 @@ section "4. Every service in the catalog"
 if [ "$KEYSTONE_OK" = 0 ]; then
   info "Skipped: it takes a login to Keystone to get the catalog."
 else
+  API_COST=", so its series go missing (the others keep reporting)"
+  if [ "$DATABASE_PATH" = 1 ]; then
+    API_COST=". Its series come from its database, so nothing else here says so: watch it with a website monitor"
+  fi
   for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
     IN_REGION=$(printf '%s\n' "$CATALOG" | awk -F '\t' -v r="$REGION" '$2 == r && $3 == "public" { print $1 "\t" $4 }')
     if [ -z "$IN_REGION" ]; then
@@ -921,11 +1070,11 @@ else
       case "$RESP_CODE" in
         000)
           fail "$SERVICE_TYPE: no answer at $SERVICE_URL: $(explain_curl_exit "$RESP_EXIT")."
-          add_finding "$SERVICE_TYPE does not answer at $SERVICE_URL from where the exporter runs, so its series go missing (the others keep reporting)."
+          add_finding "$SERVICE_TYPE does not answer at $SERVICE_URL from where the exporter runs$API_COST."
           ;;
         5*)
           warn "$SERVICE_TYPE: failing at $SERVICE_URL (HTTP $RESP_CODE)."
-          add_finding "$SERVICE_TYPE answers HTTP $RESP_CODE at $SERVICE_URL, so its series go missing (the others keep reporting)."
+          add_finding "$SERVICE_TYPE answers HTTP $RESP_CODE at $SERVICE_URL$API_COST."
           ;;
         *) pass "$SERVICE_TYPE: answers at $SERVICE_URL (HTTP $RESP_CODE)." ;;
       esac
@@ -1162,6 +1311,14 @@ else
     info "Region $REGION"
     NETWORKS_RESULT=""
     while IFS='|' read -r SERVICE READ READ_PATH KEY ATTR VERSION COST FIX <&3; do
+      # On this path the pages read the databases, so a page goes without nothing for what the
+      # rest would say. These two are all the collector asks of this credential.
+      if [ "$DATABASE_PATH" = 1 ]; then
+        case "$SERVICE:$READ" in
+          compute:services | block-storage:pools) ;;
+          *) continue ;;
+        esac
+      fi
       # Keystone is one for the whole cloud.
       if [ "$SERVICE" = "identity" ] && [ "$REGION_COUNT" -gt 1 ]; then
         continue
@@ -1255,7 +1412,9 @@ READS
   EXPECTED_NOTE=""
   [ "$COUNT_EXPECTED" = 0 ] || EXPECTED_NOTE=" Expected on a project with zero quota: $COUNT_EXPECTED."
   info "Reads everything: $COUNT_ALL. May be own project only: $COUNT_OWN. Refused: $COUNT_REFUSED. Not deployed: $COUNT_ABSENT. Could not ask: $COUNT_FAILING.$EXPECTED_NOTE"
-  if [ "$INFRA_READS" -gt 0 ] && [ "$INFRA_GAPS" = 0 ] && [ "$PROJECT_GAPS" = 0 ] && [ "$ADMIN_ONLY_GAPS" = 0 ]; then
+  if [ "$DATABASE_PATH" = 1 ]; then
+    info "The pages read the databases, so these lists are all the collector asks of this credential. The AI agent reads with it too, and says what it is refused."
+  elif [ "$INFRA_READS" -gt 0 ] && [ "$INFRA_GAPS" = 0 ] && [ "$PROJECT_GAPS" = 0 ] && [ "$ADMIN_ONLY_GAPS" = 0 ]; then
     pass "That adds up to Full view: hypervisors, services and capacity, and every project's instances, volumes and networks."
   elif [ "$INFRA_READS" -gt 0 ] && [ "$INFRA_GAPS" = 0 ]; then
     info "That adds up to Infrastructure only: control-plane health and capacity, and every project's instances, with volumes, networks and routers only where this account has a role. Not cinder-volume or cinder-scheduler state, or storage pools: only a full-view credential reads those."
@@ -1612,10 +1771,19 @@ elif [ "$EGRESS" = "FAIL" ]; then
   printf "%s%sROOT CAUSE: the agent can't deliver telemetry to OneUptime (network/URL/TLS).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
 elif [ "$EXPORTER_BUNDLED" = 1 ] && [ "$CLOUDS_READABLE" = 1 ] && [ -n "$CREDENTIAL_KIND" ] && [ "$KEYSTONE_OK" = 0 ]; then
   printf "%s%sROOT CAUSE: the credential in clouds.yaml gets no token from Keystone.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
-  printf "Fix it (see Section 3) — without a token the exporter reads nothing.\n"
+  if [ "$DATABASE_PATH" = 1 ]; then
+    printf "Fix it (see Section 3). The databases go on reporting, and without a token nothing reads whether\n"
+    printf "each Nova worker is alive or how full each storage pool is, and the AI agent reads nothing.\n"
+  else
+    printf "Fix it (see Section 3) — without a token the exporter reads nothing.\n"
+  fi
 elif [ "$EXPORTER_OK" != 1 ]; then
   printf "%s%sROOT CAUSE: the collector has no OpenStack metrics to ship (exporter scrape failing).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
-  printf "Fix the exporter (see Section 2) — usually clouds.yaml, or OPENSTACK_EXPORTER_ADDRESS.\n"
+  if [ "$DATABASE_PATH" = 1 ]; then
+    printf "Fix the database exporter (see Section 2) — usually its database URLs, or its route to them.\n"
+  else
+    printf "Fix the exporter (see Section 2) — usually clouds.yaml, or OPENSTACK_EXPORTER_ADDRESS.\n"
+  fi
 elif [ "$CLOUD_NAME_OK" != 1 ]; then
   printf "%s%sROOT CAUSE: OPENSTACK_CLOUD_NAME is missing — no cloud can register.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
 elif [ "$TOKEN_HAS_WS" = 1 ]; then
