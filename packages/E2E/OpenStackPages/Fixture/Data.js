@@ -1240,7 +1240,7 @@ function partsRow(row) {
         addressIpv4: "10.77.0.12",
         // The stuck image of this estate, which is what it says it booted from.
         imageId: openStackUuid("79490afb", 3),
-        updatedAt: new Date(row.lastSeenAt).toISOString(),
+        updatedAt: "2026-11-04T11:00:00Z",
       },
     };
   }
