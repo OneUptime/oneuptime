@@ -31,6 +31,8 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
@@ -41,6 +43,8 @@ import {
 } from "../../Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_EMPTY_ANSWER_SINCE_FACT,
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
   getOpenStackOptionalService,
   hasOpenStackOptionalServiceLeft,
   isOpenStackOptionalService,
@@ -75,6 +79,8 @@ import {
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
@@ -155,6 +161,8 @@ export interface OpenStackInventorySummary {
   bareMetalProviderCount: number;
   // The services a read has heard from, with what each is called in Keystone's catalog.
   services: Array<string>;
+  // Of those, the ones that have never once let this credential in: isOpenStackApiClosedToThisCredential.
+  closedServices: Array<string>;
   vcpuCapacity: number;
   vcpuAllocated: number;
   memoryCapacityBytes: number;
@@ -165,6 +173,7 @@ export interface OpenStackInventorySummary {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  databaseInstanceCount: number;
 }
 
 // What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
@@ -203,6 +212,7 @@ export interface OpenStackProjectSummary {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  databaseInstanceCount: number;
 }
 
 export interface OpenStackProjectLabel {
@@ -226,6 +236,18 @@ export interface OpenStackProjectOverview {
   hostsDown: Array<OpenStackProjectHostDown>;
   labels: Array<OpenStackProjectLabel>;
 }
+
+// A closed list of OpenStack's own names, so nothing a request says reaches the SQL.
+const OPENSTACK_SERVICES_READ_DOWN_WHEN_REFUSED_SQL: string =
+  OPENSTACK_OPTIONAL_SERVICES.filter(
+    (entry: OpenStackOptionalService): boolean => {
+      return Boolean(entry.readsDownWhenRefused);
+    },
+  )
+    .map((entry: OpenStackOptionalService): string => {
+      return `'${entry.service}'`;
+    })
+    .join(", ");
 
 export interface OpenStackDomainSummary {
   domainId: string;
@@ -838,11 +860,18 @@ export class Service extends DatabaseService<Model> {
       regionCount: string;
       availabilityZoneCount: string;
       services: Array<string> | null;
+      closedServices: Array<string> | null;
     }> = await this.getRepository().manager.query(
       `SELECT COUNT(DISTINCT "regionName")::text AS "regionCount",
               ARRAY_AGG(DISTINCT "name") FILTER (
                 WHERE "kind" = '${OpenStackResourceKind.Api}'
               ) AS "services",
+              ARRAY_AGG(DISTINCT "name") FILTER (
+                WHERE "kind" = '${OpenStackResourceKind.Api}'
+                  AND "status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'
+                  AND "facts"->>'vouchedAt' IS NULL
+                  AND "name" IN (${OPENSTACK_SERVICES_READ_DOWN_WHEN_REFUSED_SQL})
+              ) AS "closedServices",
               COUNT(DISTINCT "availabilityZone") FILTER (
                 WHERE "availabilityZone" <> 'internal' AND (
                   "kind" = '${OpenStackResourceKind.Hypervisor}'
@@ -915,6 +944,7 @@ export class Service extends DatabaseService<Model> {
           return Boolean(service);
         },
       ),
+      closedServices: places[0]?.closedServices || [],
       vcpuCapacity: toNumber(hypervisors?.vcpuCapacity),
       vcpuAllocated: toNumber(hypervisors?.vcpuAllocated),
       memoryCapacityBytes: toNumber(hypervisors?.memoryCapacity),
@@ -924,6 +954,7 @@ export class Service extends DatabaseService<Model> {
       stackCount: countOf(OpenStackResourceKind.Stack),
       containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
       shareCount: countOf(OpenStackResourceKind.Share),
+      databaseInstanceCount: countOf(OpenStackResourceKind.DatabaseInstance),
     };
   }
 
@@ -1179,6 +1210,10 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_IMAGE_STUCK_MINUTES,
     );
+    const databaseStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+    );
     const shareStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
       data.now,
       -OPENSTACK_SHARE_STUCK_MINUTES,
@@ -1280,6 +1315,20 @@ export class Service extends DatabaseService<Model> {
         params: [
           statuses(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES),
           imageStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.DatabaseInstance,
+        where: `("status" = ANY($3::text[])
+          OR ("status" = ANY($4::text[]) AND "stateChangedAt" <= $5)
+          OR ("diskCapacityBytes" > 0
+            AND "diskAllocatedBytes" * 100 >= "diskCapacityBytes" * $6::numeric))`,
+        params: [
+          statuses(OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES),
+          statuses(OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES),
+          databaseStuckBefore,
+          OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
         ],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
       },
@@ -2127,6 +2176,10 @@ export class Service extends DatabaseService<Model> {
         [OpenStackServiceType.SharedFileSystems]: [
           [OpenStackResourceKind.Share, "shareCount"],
         ],
+        // Databases already running carry on: only creating, resizing and backing up stop.
+        [OpenStackServiceType.Database]: [
+          [OpenStackResourceKind.DatabaseInstance, "databaseInstanceCount"],
+        ],
       };
       for (const [kind, count] of kinds[part.name || ""] || []) {
         counts.push({
@@ -2240,7 +2293,11 @@ export class Service extends DatabaseService<Model> {
            AND "deletedAt" IS NULL
            AND "facts"->>'stackId' = $3
          LIMIT 2`,
-        [data.projectId.toString(), data.openStackCloudId.toString(), data.stackId],
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          data.stackId,
+        ],
       );
     return rows.length === 1 ? rows : [];
   }
@@ -2308,6 +2365,7 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.Stack,
           OpenStackResourceKind.ContainerCluster,
           OpenStackResourceKind.Share,
+          OpenStackResourceKind.DatabaseInstance,
         ],
         ids,
       ],
@@ -2328,6 +2386,7 @@ export class Service extends DatabaseService<Model> {
             stackCount: 0,
             containerClusterCount: 0,
             shareCount: 0,
+            databaseInstanceCount: 0,
           },
         ];
       }),
@@ -2366,6 +2425,9 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.Share:
           summary.shareCount = count;
+          break;
+        case OpenStackResourceKind.DatabaseInstance:
+          summary.databaseInstanceCount = count;
           break;
         default:
           break;
@@ -2608,6 +2670,7 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.Volume,
       OpenStackResourceKind.StoragePool,
       OpenStackResourceKind.Share,
+      OpenStackResourceKind.DatabaseInstance,
       OpenStackResourceKind.Network,
       OpenStackResourceKind.Subnet,
       OpenStackResourceKind.Router,

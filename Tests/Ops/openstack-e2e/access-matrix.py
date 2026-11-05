@@ -67,6 +67,8 @@ READS = [
     ("sharev2", "shares, all projects", "/shares/detail?all_tenants=1", "shares", {}),
     ("sharev2", "services", "/services", "services", MANILA_VERSION),
     ("sharev2", "pools", "/scheduler-stats/pools/detail", "pools", MANILA_VERSION),
+    ("database", "instances, as the exporter asks", "/mgmt/instances?include_clustered=False&deleted=False", "instances", {}),
+    ("database", "instances, own project", "/instances", "instances", {}),
 ]
 
 # One call per thing, which a table of lists has no row for: whichever things this cloud has
@@ -153,8 +155,6 @@ OTHER_SERVICES_READS = [
     ("key-manager", "secrets", "/v1/secrets", "secrets", {}),
     ("key-manager", "orders", "/v1/orders", "orders", {}),
     ("object-store", "own account", "", None, {}),
-    ("database", "instances, as the exporter asks", "/mgmt/instances?include_clustered=False&deleted=False", "instances", {}),
-    ("database", "instances, own project", "/instances", "instances", {}),
     ("metric", "status", "/v1/status?details=true", "storage", {}),
 ]
 

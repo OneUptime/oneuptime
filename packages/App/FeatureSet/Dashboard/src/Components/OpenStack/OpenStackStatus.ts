@@ -3,6 +3,7 @@ import {
   isOpenStackBareMetalNodeStuck,
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
+  isOpenStackDatabaseInstanceStuck,
   isOpenStackShareStuck,
   isOpenStackStackStuck,
   isOpenStackVolumeStuck,
@@ -18,6 +19,8 @@ import {
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
@@ -219,6 +222,19 @@ function shareTone(word: string): ResourceStatusTone {
     : "neutral";
 }
 
+function databaseInstanceTone(word: string): ResourceStatusTone {
+  const upper: string = word.toUpperCase();
+  if (upper === "ACTIVE" || upper === "HEALTHY") {
+    return "positive";
+  }
+  if (OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES.has(upper)) {
+    return "danger";
+  }
+  return OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(upper)
+    ? "warning"
+    : "neutral";
+}
+
 function enabledTone(word: string): ResourceStatusTone {
   return word.toLowerCase() === "enabled" ? "positive" : "neutral";
 }
@@ -287,6 +303,8 @@ function toneOf(
       return stackOrClusterTone(word);
     case OpenStackResourceKind.Share:
       return shareTone(word);
+    case OpenStackResourceKind.DatabaseInstance:
+      return databaseInstanceTone(word);
     default:
       return "neutral";
   }
@@ -314,6 +332,8 @@ function isStuck(input: OpenStackStatusInput, word: string): boolean {
       return isOpenStackContainerClusterStuck(reading);
     case OpenStackResourceKind.Share:
       return isOpenStackShareStuck(reading);
+    case OpenStackResourceKind.DatabaseInstance:
+      return isOpenStackDatabaseInstanceStuck(reading);
     case OpenStackResourceKind.BareMetalNode:
       return isOpenStackBareMetalNodeStuck({
         ...reading,
@@ -340,6 +360,8 @@ function isOnTheWay(kind: string | null | undefined, word: string): boolean {
       return OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(word);
     case OpenStackResourceKind.Share:
       return OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.DatabaseInstance:
+      return OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(word);
     case OpenStackResourceKind.BareMetalNode:
       return OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(word);
     default:
@@ -477,6 +499,15 @@ export const OPENSTACK_STATUS_WORDS: Partial<
   [OpenStackResourceKind.Router]: ["ACTIVE", "ALLOCATED", "DOWN", "ERROR"],
   [OpenStackResourceKind.FloatingIp]: ["ACTIVE", "DOWN", "ERROR"],
   [OpenStackResourceKind.Project]: ["enabled", "disabled"],
+  [OpenStackResourceKind.DatabaseInstance]: [
+    "ACTIVE",
+    ...OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+    ...OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
+    "BACKUP",
+    "BLOCKED",
+    "RESTART_REQUIRED",
+    "SHUTDOWN",
+  ],
   [OpenStackResourceKind.Share]: [
     "available",
     ...OPENSTACK_SHARE_ERROR_STATUSES,

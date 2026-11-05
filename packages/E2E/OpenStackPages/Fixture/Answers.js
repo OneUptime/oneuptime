@@ -12,6 +12,8 @@ import {
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  isOpenStackDatabaseVolumeNearlyFull,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
@@ -25,6 +27,8 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
@@ -37,6 +41,7 @@ import {
   getEmptyOpenStackBlastRadius,
 } from "../../../Common/Types/OpenStack/OpenStackBlastRadius";
 import { getOpenStackStackNameOfServer } from "../../../Common/Types/OpenStack/OpenStackLinks";
+import { isOpenStackApiClosedToThisCredential } from "../../../Common/Types/OpenStack/OpenStackOptionalServices";
 import { getOpenStackProjectQuotas } from "../../../Common/Types/OpenStack/OpenStackQuota";
 
 const ATTENTION_ROWS_PER_KIND = 100;
@@ -126,6 +131,18 @@ export function getInventorySummary(allRows, regionName) {
     stackCount: ofKind(rows, "Stack").length,
     containerClusterCount: ofKind(rows, "ContainerCluster").length,
     shareCount: ofKind(rows, "Share").length,
+    databaseInstanceCount: ofKind(rows, "DatabaseInstance").length,
+    closedServices: Array.from(
+      new Set(
+        ofKind(rows, "Api")
+          .filter((row) => {
+            return isOpenStackApiClosedToThisCredential(row);
+          })
+          .map((row) => {
+            return row.name;
+          }),
+      ),
+    ),
     services: Array.from(
       new Set(
         ofKind(rows, "Api").map((row) => {
@@ -267,6 +284,20 @@ const ATTENTION_QUERIES = [
       return (
         OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status) &&
         stuckSince(row, OPENSTACK_IMAGE_STUCK_MINUTES, now)
+      );
+    },
+  },
+  {
+    kind: "DatabaseInstance",
+    where: (row, now) => {
+      return (
+        OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES.has(row.status) ||
+        (OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES, now)) ||
+        isOpenStackDatabaseVolumeNearlyFull({
+          usedBytes: row.diskAllocatedBytes,
+          sizeBytes: row.diskCapacityBytes,
+        })
       );
     },
   },
@@ -559,6 +590,13 @@ export function getBlastRadius(allRows, part) {
       });
     };
     switch (part.name) {
+      case "database":
+        return finish([
+          {
+            count: "databaseInstanceCount",
+            byProject: countsByProject(inRegion("DatabaseInstance")),
+          },
+        ]);
       case "sharev2":
         return finish([
           {
@@ -710,6 +748,7 @@ export function getProjectSummaries(allRows, projectIds) {
       stackCount: count("Stack"),
       containerClusterCount: count("ContainerCluster"),
       shareCount: count("Share"),
+      databaseInstanceCount: count("DatabaseInstance"),
     };
   });
 }

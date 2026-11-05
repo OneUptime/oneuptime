@@ -516,11 +516,15 @@ describe("what a probe's reads of a router's agents and a DHCP agent's networks 
     const networks = partRead("matrix", DHCP_NETWORKS);
 
     expect(networks["monitoring-role"].status).toBe(200);
-    expect(networks["monitoring-role"].count).toBeLessThan(networks.admin.count);
+    expect(networks["monitoring-role"].count).toBeLessThan(
+      networks.admin.count,
+    );
     expect(networks.reader.status).toBe(403);
 
     // It lists no router of another project, so it's never told to ask about one.
-    expect(partRead("matrix", ROUTER_AGENTS)["monitoring-role"].status).toBe(404);
+    expect(partRead("matrix", ROUTER_AGENTS)["monitoring-role"].status).toBe(
+      404,
+    );
   });
 });
 
@@ -665,10 +669,12 @@ describe("what the recordings show, as the pages say it", () => {
       "sharev2: shares, all projects",
       "sharev2: services",
       "sharev2: pools",
+      "database: instances, as the exporter asks",
+      "database: instances, own project",
     ]);
     for (const file of [README, DOCS_PAGE]) {
       expect(read(file)).toContain(
-        "Octavia, Ironic, Heat, Magnum and Manila are not here because those clouds do not run them.",
+        "Octavia, Ironic, Heat, Magnum, Manila and Trove are not here because those clouds do not run them.",
       );
     }
   });
@@ -914,11 +920,11 @@ describe("the docs page", () => {
     const exporter = compose.match(
       /^ {2}openstack-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m,
     )[1];
-    const flags = Array.from(exporter.matchAll(/- (--disable-metric=\S+)/g)).map(
-      (match) => {
-        return match[1];
-      },
-    );
+    const flags = Array.from(
+      exporter.matchAll(/- (--disable-metric=\S+)/g),
+    ).map((match) => {
+      return match[1];
+    });
     expect(flags.length).toBeGreaterThan(5);
     for (const flag of flags) {
       for (const text of [page, readme]) {

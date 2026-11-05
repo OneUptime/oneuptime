@@ -118,6 +118,8 @@ import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
 import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
 import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudDatabaseInstances from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstances";
+import CloudDatabaseInstanceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstanceDetail";
 import CloudShares from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Shares";
 import CloudShareDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ShareDetail";
 import CloudContainerClusters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
@@ -371,17 +373,16 @@ const estate = buildEstate(
     estate: ESTATE,
     recording: RECORDING,
     recordedRows: RECORDING
-      ? [RECORDING, ...(params.get("also") ? [params.get("also")] : [])].flatMap(
-          (name) => {
-            return rowsFromRecording(name, {
-              region: REGION_ONE,
-              loadedAt: IS_CONNECTED
-                ? LOADED_AT - MINUTE
-                : LOADED_AT - QUIET_FOR,
-              without: params.get("without") || "",
-            });
-          },
-        )
+      ? [
+          RECORDING,
+          ...(params.get("also") ? [params.get("also")] : []),
+        ].flatMap((name) => {
+          return rowsFromRecording(name, {
+            region: REGION_ONE,
+            loadedAt: IS_CONNECTED ? LOADED_AT - MINUTE : LOADED_AT - QUIET_FOR,
+            without: params.get("without") || "",
+          });
+        })
       : null,
     isConnected: IS_CONNECTED,
     quietFor: QUIET_FOR,
@@ -513,13 +514,10 @@ const alerts = [];
 const scheduledMaintenances = [];
 const LINKED = params.get("linked") === "1";
 if (LINKED) {
-  incidents.push(
-    openIncident(61, "Nova API errors in RegionOne", [], 45),
-    {
-      ...openIncident(62, "A payment provider is slow", [], 30),
-      openStackCloudIds: [],
-    },
-  );
+  incidents.push(openIncident(61, "Nova API errors in RegionOne", [], 45), {
+    ...openIncident(62, "A payment provider is slow", [], 30),
+    openStackCloudIds: [],
+  });
   alerts.push(openAlert(61, "Volume stuck in creating", [], 20), {
     ...openAlert(62, "A certificate expires soon", [], 10),
     openStackCloudIds: [],
@@ -938,9 +936,16 @@ const store = {
       : [
           withCapacity(
             params.get("collection") === "Probe"
-              ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
+              ? probeCollectedCloud(
+                  estate.cloud,
+                  params.get("probe"),
+                  LOADED_AT,
+                )
               : params.get("collection")
-                ? { ...estate.cloud, collectionMethod: params.get("collection") }
+                ? {
+                    ...estate.cloud,
+                    collectionMethod: params.get("collection"),
+                  }
                 : estate.cloud,
           ),
           ...(params.get("archived") === "1"
@@ -1611,9 +1616,7 @@ function usageSeries(metricName, attributes) {
     if (devices) {
       for (const [device, readings] of Object.entries(devices[0])) {
         if (readings[devices[1]] !== undefined) {
-          out.push(
-            seriesFromRow({ ...labels, device }, readings[devices[1]]),
-          );
+          out.push(seriesFromRow({ ...labels, device }, readings[devices[1]]));
         }
       }
     }
@@ -2225,7 +2228,9 @@ async function handleApi(method, options) {
         ),
       });
     }
-    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")) {
+    if (
+      parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")
+    ) {
       fixture.writeRequests.push({
         kind: "storage-pool-ceph-confirm",
         data: serialize(body),
@@ -2239,7 +2244,9 @@ async function handleApi(method, options) {
         ? ok({})
         : new HTTPErrorResponse(
             404,
-            { message: "That pool or that Ceph cluster is not in this project" },
+            {
+              message: "That pool or that Ceph cluster is not in this project",
+            },
             {},
           );
     }
@@ -2433,6 +2440,11 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES, CloudDatabaseInstances],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+    CloudDatabaseInstanceDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARES, CloudShares],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, CloudShareDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACKS, CloudStacks],
@@ -2476,7 +2488,10 @@ const PAGES = [
 
 const FixtureLayout = withNavigation(CloudLayout, PageMap.OPENSTACK_CLOUD_VIEW);
 const FixtureCloudsList = withNavigation(CloudsList, PageMap.OPENSTACK_CLOUDS);
-const FixtureArchived = withNavigation(CloudsArchived, PageMap.OPENSTACK_ARCHIVED);
+const FixtureArchived = withNavigation(
+  CloudsArchived,
+  PageMap.OPENSTACK_ARCHIVED,
+);
 const FixtureOwnerRules = withNavigation(
   OwnerRules,
   PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
@@ -2514,7 +2529,9 @@ const OTHER_PRODUCT_PAGES = [
     PageMap.HOST_VIEW,
     otherProductPage("other-product-host", (path) => {
       return (
-        <OpenStackPlacementOfHost hostId={new ObjectID(path[path.length - 1])} />
+        <OpenStackPlacementOfHost
+          hostId={new ObjectID(path[path.length - 1])}
+        />
       );
     }),
   ],

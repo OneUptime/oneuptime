@@ -153,6 +153,11 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
   ["Shares.tsx", "OPENSTACK_CLOUD_VIEW_SHARES"],
   ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
+  ["DatabaseInstances.tsx", "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES"],
+  [
+    "DatabaseInstanceDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL",
+  ],
   ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
   [
     "ContainerClusterDetail.tsx",
@@ -548,6 +553,7 @@ describe("the side menus have no dead links", () => {
       ["stackCount", "stacks"],
       ["containerClusterCount", "containerClusters"],
       ["shareCount", "shares"],
+      ["databaseInstanceCount", "databases"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
       expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
@@ -575,14 +581,18 @@ describe("a service a cloud may not run", () => {
   test.each([
     ["Stacks", "runsHeat"],
     ["Shares", "runsManila"],
+    ["Databases", "runsTrove"],
     ["Kubernetes Clusters", "runsMagnum"],
-  ])("%s is in the menu only for a cloud that runs it", (title: string, flag: string) => {
-    const entry: number = sideMenu.indexOf(`title: "${title}"`);
-    expect(entry).toBeGreaterThan(0);
-    expect(sideMenu.substring(0, entry).lastIndexOf(`{${flag} ? (`)).toBeGreaterThan(
-      0,
-    );
-  });
+  ])(
+    "%s is in the menu only for a cloud that runs it",
+    (title: string, flag: string) => {
+      const entry: number = sideMenu.indexOf(`title: "${title}"`);
+      expect(entry).toBeGreaterThan(0);
+      expect(
+        sideMenu.substring(0, entry).lastIndexOf(`{${flag} ? (`),
+      ).toBeGreaterThan(0);
+    },
+  );
 
   test("the section itself only for a cloud that runs one of them", () => {
     const section: number = sideMenu.indexOf(
@@ -597,9 +607,25 @@ describe("a service a cloud may not run", () => {
     expect(
       squash(readSource("Pages", "OpenStack", "View", "Layout.tsx")),
     ).toContain("optionalServices: summary.optionalServices");
-    expect(squash(fs.readFileSync(path.join(
-      REPO_ROOT, "packages", "App", "FeatureSet", "Dashboard", "src", "Pages", "OpenStack", "Utils", "OpenStackResourceUtils.ts",
-    ), "utf8"))).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
+    expect(
+      squash(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "packages",
+            "App",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Pages",
+            "OpenStack",
+            "Utils",
+            "OpenStackResourceUtils.ts",
+          ),
+          "utf8",
+        ),
+      ),
+    ).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
   });
 });
 

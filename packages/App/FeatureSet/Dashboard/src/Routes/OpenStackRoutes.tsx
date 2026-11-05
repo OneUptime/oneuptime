@@ -47,6 +47,8 @@ import OpenStackCloudStacks from "../Pages/OpenStack/View/Stacks";
 import OpenStackCloudStackDetail from "../Pages/OpenStack/View/StackDetail";
 import OpenStackCloudContainerClusters from "../Pages/OpenStack/View/ContainerClusters";
 import OpenStackCloudContainerClusterDetail from "../Pages/OpenStack/View/ContainerClusterDetail";
+import OpenStackCloudDatabaseInstances from "../Pages/OpenStack/View/DatabaseInstances";
+import OpenStackCloudDatabaseInstanceDetail from "../Pages/OpenStack/View/DatabaseInstanceDetail";
 import OpenStackCloudShares from "../Pages/OpenStack/View/Shares";
 import OpenStackCloudShareDetail from "../Pages/OpenStack/View/ShareDetail";
 import OpenStackCloudProjects from "../Pages/OpenStack/View/Projects";
@@ -658,7 +660,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudContainerClusters
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS
+                ] as Route
               }
             />
           }
@@ -674,6 +678,39 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        {/* Databases: only a cloud that runs Trove links here. */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+          )}
+          element={
+            <OpenStackCloudDatabaseInstances
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudDatabaseInstanceDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL
                 ] as Route
               }
             />

@@ -45,6 +45,7 @@ export function toOpenStackRow(
     adminState: entry.adminState || undefined,
     disabledReason: entry.disabledReason || undefined,
     diskCapacityBytes: entry.diskCapacityBytes ?? undefined,
+    diskAllocatedBytes: entry.diskAllocatedBytes ?? undefined,
     facts: entry.facts,
     lastSeenAt: entry.observedAt,
     stateChangedAt: entry.observedAt,

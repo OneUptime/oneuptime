@@ -288,8 +288,16 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         await fetchOpenStackInventorySummary(data.model.id as ObjectID);
       return {
         ...data.context,
+        /*
+         * A service that has never let this credential in has nothing for its alerts to read but its
+         * API, and that would read down for as long as the credential stays as it is.
+         */
         openStackServices: summary
-          ? getOpenStackOptionalServicesOf(summary.services)
+          ? getOpenStackOptionalServicesOf(summary.services).filter(
+              (service: string): boolean => {
+                return !summary.closedServices.includes(service);
+              },
+            )
           : null,
       };
     },

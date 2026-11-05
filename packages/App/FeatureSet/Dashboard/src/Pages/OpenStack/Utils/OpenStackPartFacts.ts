@@ -14,6 +14,8 @@ import {
   isOpenStackContainerClusterFailed,
   isOpenStackFloatingIpAssociated,
   isOpenStackServiceDown,
+  isOpenStackDatabaseInstanceInError,
+  isOpenStackDatabaseInstanceStuck,
   isOpenStackShareInError,
   isOpenStackStackFailed,
   isSameOpenStackHost,
@@ -145,6 +147,12 @@ export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
 export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-storage-pool-warning",
   "openstack-storage-pool-critical",
+];
+
+export const OPENSTACK_DATABASE_INSTANCE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-database-instance-in-error",
+  "openstack-database-instance-stuck",
+  "openstack-database-volume-nearly-full",
 ];
 
 export const OPENSTACK_SHARE_ALERT_TEMPLATE_IDS: Array<string> = [
@@ -1063,6 +1071,15 @@ const EXPLAIN_POOL_FULL: string = translationKey(
 const EXPLAIN_POOL_FILLING: string = translationKey(
   "This pool is filling up. Add capacity or free space before Cinder's scheduler runs out of room for new volumes.",
 );
+const EXPLAIN_DATABASE_ERROR: string = translationKey(
+  "Trove gave up on this database, and it stays like this until someone deals with it. Whoever asked for it doesn't have it. Usually Nova refused its guest, or the guest never reported. openstack database instance show says which, in its fault.",
+);
+const EXPLAIN_DATABASE_STUCK: string = translationKey(
+  "This database has been on its way to something else for longer than Trove gives a guest of its own accord, so nothing is working on it any more. Trove has no list of its workers to say so: check that trove-taskmanager is running on its controller.",
+);
+const EXPLAIN_DATABASE_FULL: string = translationKey(
+  "This database's volume is nearly full, and it stops taking writes when that fills. Resize it with openstack database instance resize volume, or have whoever owns it clear out what it holds.",
+);
 const EXPLAIN_SHARE_ERROR: string = translationKey(
   "Manila couldn't do what this share was asked for, and it stays like this until someone deals with it. Whoever asked for it doesn't have what they asked for. openstack share message list says what Manila recorded about it. A share with no zone never reached a backend, which is what a share type nothing matches looks like.",
 );
@@ -1132,6 +1149,17 @@ export function getOpenStackPartExplanation(
         : EXPLAIN_POOL_FILLING;
     case OpenStackResourceKind.Image:
       return EXPLAIN_IMAGE_STUCK;
+    case OpenStackResourceKind.DatabaseInstance:
+      if (isOpenStackDatabaseInstanceInError(row.status)) {
+        return EXPLAIN_DATABASE_ERROR;
+      }
+      return isOpenStackDatabaseInstanceStuck({
+        status: row.status,
+        stateChangedAt: row.stateChangedAt,
+        now,
+      })
+        ? EXPLAIN_DATABASE_STUCK
+        : EXPLAIN_DATABASE_FULL;
     case OpenStackResourceKind.Share:
       return isOpenStackShareInError(row.status)
         ? EXPLAIN_SHARE_ERROR
@@ -1239,6 +1267,7 @@ export function isOpenStackIssueAbout(
       );
     case OpenStackResourceKind.Stack:
     case OpenStackResourceKind.Share:
+    case OpenStackResourceKind.DatabaseInstance:
       return (
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
@@ -1308,7 +1337,13 @@ export { getOpenStackForecast } from "Common/Types/OpenStack/OpenStackForecast";
  * What an empty list means
  * ---------------------------------------------------------------------------
  */
-export type OpenStackApiState = "up" | "down" | "not-reported" | "not-read";
+export type OpenStackApiState =
+  | "up"
+  | "down"
+  // Down, and it has never once let this credential in: isOpenStackApiClosedToThisCredential.
+  | "closed"
+  | "not-reported"
+  | "not-read";
 
 export interface OpenStackEmptyWords {
   title: string;
@@ -1336,12 +1371,24 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.Stack]: OpenStackServiceType.Orchestration,
   [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
   [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,
+  [OpenStackResourceKind.DatabaseInstance]: OpenStackServiceType.Database,
 };
 
 const NOT_ANSWERING: OpenStackEmptyWords = {
   title: translationKey("This service's API isn't answering"),
   description: translationKey(
     "Nothing could be read from it, so this list may fill up again once it answers. Check the service's API on the Services page.",
+  ),
+};
+
+/*
+ * What a credential a service refuses is told, on an empty list of it. The exporter's read of each of
+ * these asks for what only an admin may, and refused, it reads just as a stopped API does, recorded.
+ */
+const CLOSED_TO_THIS_CREDENTIAL: OpenStackEmptyWords = {
+  title: translationKey("This credential has never read this service"),
+  description: translationKey(
+    "OneUptime has never had an answer from it with this credential. Either it refuses this credential, which reads just as its API being down does, or it has been down since OneUptime started reading it. Seeing it takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
   ),
 };
 
@@ -1444,6 +1491,9 @@ export function getOpenStackEmptyWords(data: {
 }): OpenStackEmptyWords | null {
   if (data.api === "down") {
     return NOT_ANSWERING;
+  }
+  if (data.api === "closed") {
+    return CLOSED_TO_THIS_CREDENTIAL;
   }
   /*
    * Nothing said anything about this service, so far as OneUptime knows this cloud doesn't run it.

@@ -1220,6 +1220,8 @@ container-infra|services|/mservices|mservices|-|OpenStack-API-Version: container
 sharev2|shares, all projects|/shares/detail?all_tenants=1|shares|project_id|-|other projects' shares.|text:Manila shows anything less its own project's, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 sharev2|services|/services|services|-|X-OpenStack-Manila-API-Version: 2.65|Manila's services.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 sharev2|pools|/scheduler-stats/pools/detail|pools|-|X-OpenStack-Manila-API-Version: 2.65|Manila's pools.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+database|instances, as the exporter asks|/mgmt/instances?include_clustered=False&deleted=False|instances|tenant_id|-|every database, and whether Trove answers at all: refused, the exporter reads as though Trove were down.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+database|instances, own project|/instances|instances|tenant_id|-|this credential's own project's databases.|text:Trove refuses anything but an admin or one of its project's members this.
 READS
     check_project_holdings "$REGION"
   done

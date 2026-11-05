@@ -2255,8 +2255,7 @@ const containerInfraConductorDownTemplate: OpenStackAlertTemplate = {
       words: {
         incidentTitle: "[OpenStack] Magnum Conductor Down",
         incidentDescription: `Magnum lists an enabled magnum-conductor as down. Its API carries on answering, so nothing else says this, but with none left no cluster can be created, resized or deleted, and clusters in progress stop moving. Check openstack coe service list, then magnum-conductor's service and logs on the host named above, and its route to RabbitMQ. The incident resolves on its own once it is up again, or disabled.`,
-        criteriaName:
-          "Magnum Conductor Down - enabled magnum-conductor < 1",
+        criteriaName: "Magnum Conductor Down - enabled magnum-conductor < 1",
         criteriaDescription:
           "Triggers when Magnum lists an enabled magnum-conductor as down for the whole window.",
       },
@@ -2642,7 +2641,7 @@ const databaseInstanceInErrorTemplate: OpenStackAlertTemplate = {
   name: "Database Instance in Error",
   forService: OpenStackServiceType.Database,
   summary: "A Trove database instance is in an error state.",
-  description: `Alert when a database instance reads one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES).join(", ")} for 15 minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove retries none of these by itself, so one stays until someone deals with it, and recovers when it is fixed or deleted.`,
+  description: `Alert when a database instance reads one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES).join(", ")} for 15 minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove retries none of these by itself, so one stays until someone deals with it, and recovers when it is fixed or deleted. Check \`openstack database instance show <instance>\`, whose fault says why.`,
   category: "Databases",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2661,7 +2660,7 @@ const databaseInstanceInErrorTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] Database Instance in Error",
-        incidentDescription: `This database instance is in the error state named above, and whoever asked for it does not have it. Check openstack database instance show for its fault, which says why Trove gave up: usually Nova refused its guest, or the guest never reported.`,
+        incidentDescription: `This database instance is in the error state named above, and whoever asked for it does not have it. Check openstack database instance show for its fault, which says why Trove gave up: usually Nova refused its guest, or the guest never reported. The incident resolves on its own once it is fixed or deleted.`,
         criteriaName:
           "Database Instance in Error - an error state for the whole window",
         criteriaDescription:
@@ -2676,7 +2675,7 @@ const databaseInstanceStuckTemplate: OpenStackAlertTemplate = {
   name: "Database Instance Stuck",
   forService: OpenStackServiceType.Database,
   summary: `A Trove database instance stays on its way for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes.`,
-  description: `Alert when a database instance stays in one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove has no list of its own workers, so a stopped trove-taskmanager shows up nowhere else: its lists keep answering without it, recorded, and what it was working on just stops moving.`,
+  description: `Alert when a database instance stays in one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove has no list of its own workers, so a stopped trove-taskmanager shows up nowhere else: its lists keep answering without it, recorded, and what it was working on just stops moving. Check that trove-taskmanager is running, then \`openstack database instance show <instance>\`.`,
   category: "Databases",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2696,7 +2695,7 @@ const databaseInstanceStuckTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] Database Instance Stuck",
-        incidentDescription: `This database instance has held the status named above for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes. Trove gives up on a guest by itself well before that, so nothing is working on it any more. Check that trove-taskmanager is running, then openstack database instance show.`,
+        incidentDescription: `This database instance has held the status named above for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes. Trove gives up on a guest by itself well before that, so nothing is working on it any more. Check that trove-taskmanager is running, then openstack database instance show. The incident resolves on its own once it reaches its next status, or is deleted.`,
         criteriaName: `Database Instance Stuck - same status for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes`,
         criteriaDescription: `Triggers when an instance holds a passing status for the whole ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES}-minute window.`,
       },
@@ -2714,7 +2713,7 @@ const databaseVolumeNearlyFullTemplate: OpenStackAlertTemplate = {
   name: "Database Volume Nearly Full",
   forService: OpenStackServiceType.Database,
   summary: `A Trove database's volume is past ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% used.`,
-  description: `Alert when a database instance has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% of its volume for 15 minutes (openstack_trove_instance_volume_used_gb over openstack_trove_instance_volume_size_gb). One incident per instance, in a region. A database that fills its volume stops taking writes, and resizing it is a change someone has to plan. It recovers when the volume is resized or the database shrinks.`,
+  description: `Alert when a database instance has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% of its volume for 15 minutes (openstack_trove_instance_volume_used_gb over openstack_trove_instance_volume_size_gb). One incident per instance, in a region. A database that fills its volume stops taking writes, and resizing it is a change someone has to plan. It recovers when the volume is resized or the database shrinks. Check \`openstack database instance show <instance>\`, then \`openstack database instance resize volume\`.`,
   category: "Databases",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2747,7 +2746,7 @@ const databaseVolumeNearlyFullTemplate: OpenStackAlertTemplate = {
       value: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
       words: {
         incidentTitle: "[OpenStack] Database Volume Nearly Full",
-        incidentDescription: `This database has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% or more of its volume, and it stops taking writes when that fills. Resize it with openstack database instance resize volume, or have whoever owns it clear out what it holds.`,
+        incidentDescription: `This database has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% or more of its volume, and it stops taking writes when that fills. Check openstack database instance show, then resize it with openstack database instance resize volume, or have whoever owns it clear out what it holds. The incident resolves on its own once it has room again.`,
         criteriaName: `Database Volume Nearly Full - used >= ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}%`,
         criteriaDescription: `Triggers when a database has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% of its volume for the whole window.`,
       },
@@ -2755,19 +2754,16 @@ const databaseVolumeNearlyFullTemplate: OpenStackAlertTemplate = {
   },
 };
 
-const databaseApiDownTemplate: OpenStackAlertTemplate = {
-  ...buildApiDownTemplate({
-    id: "openstack-database-api-down",
-    name: "Databases API Down",
-    summary: "Trove's API does not answer for 15 minutes.",
-    description:
-      "Alert when the exporter's read of Trove fails for 15 minutes (openstack_trove_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. The exporter reads Trove's mgmt API, which only an admin may, so a credential it refuses reads the same as a stopped API, recorded. A cloud whose credential has never read Trove isn't offered this. A stopped trove-taskmanager leaves this at 1: Database Instance Stuck is what says that.",
-    service: OpenStackServiceType.Database,
-    collectionMetricName: "up",
-    incidentDescription: `The exporter's read of Trove is failing: its API stopped answering, or this credential is no longer allowed its mgmt API, which reads the same. Databases already running carry on, but none can be created, resized or backed up. Check the trove-api service and its log, then openstack database instance list --all-projects with this credential.`,
-  }),
-  forService: OpenStackServiceType.Database,
-};
+const databaseApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
+  id: "openstack-database-api-down",
+  name: "Databases API Down",
+  summary: "Trove's API does not answer for 15 minutes.",
+  description:
+    "Alert when the exporter's read of Trove fails for 15 minutes (openstack_trove_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. The exporter reads Trove's mgmt API, which only an admin may, so a credential it refuses reads the same as a stopped API, recorded. A cloud whose credential has never read Trove isn't offered this. A stopped trove-taskmanager leaves this at 1: Database Instance Stuck is what says that. Check the trove-api service and its log, then `openstack database instance list --all-projects`.",
+  service: OpenStackServiceType.Database,
+  collectionMetricName: "up",
+  incidentDescription: `The exporter's read of Trove is failing: its API stopped answering, or this credential is no longer allowed its mgmt API, which reads the same. Databases already running carry on, but none can be created, resized or backed up. Check the trove-api service and its log, then openstack database instance list --all-projects with this credential. The incident resolves on its own once it answers again.`,
+});
 
 // --- Projects ---
 

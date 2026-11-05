@@ -44,6 +44,7 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
@@ -333,6 +334,16 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
    * per collection, and these jobs collect no more than once a minute.
    */
   "openstack-instances-in-error|instances_in_error": "Count",
+  "openstack-database-instance-in-error|in_error": "Count",
+  "openstack-database-instance-in-error|in_failed": "Count",
+  "openstack-database-instance-stuck|in_build": "Count",
+  "openstack-database-instance-stuck|in_reboot": "Count",
+  "openstack-database-instance-stuck|in_hard_reboot": "Count",
+  "openstack-database-instance-stuck|in_resize": "Count",
+  "openstack-database-instance-stuck|in_upgrade": "Count",
+  "openstack-database-instance-stuck|in_promote": "Count",
+  "openstack-database-instance-stuck|in_eject": "Count",
+  "openstack-database-instance-stuck|in_detach": "Count",
   "openstack-router-with-two-active-agents|active_agents": "Count",
   /*
    * The network's value is a code, 0 for ACTIVE: a Count says the row is there.
@@ -557,6 +568,22 @@ const THRESHOLDS: Readonly<
   "openstack-share-service-down": {
     filterType: FilterType.LessThan,
     value: 1,
+  },
+  "openstack-database-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-database-instance-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-database-instance-stuck": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-database-volume-nearly-full": {
+    filterType: FilterType.GreaterThanOrEqualTo,
+    value: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   },
   "openstack-share-in-error": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-share-stuck": { filterType: FilterType.GreaterThan, value: 0 },
@@ -845,6 +872,23 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { manila_service_up: 0 },
     healthy: { manila_service_up: 1 },
   },
+  "openstack-database-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  // How many datapoints a window holds of that word, because its code says nothing.
+  "openstack-database-instance-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-database-instance-stuck": {
+    breached: { in_build: 1 },
+    healthy: { in_build: 0 },
+  },
+  "openstack-database-volume-nearly-full": {
+    breached: { used_gb: 9, size_gb: 10 },
+    healthy: { used_gb: 1, size_gb: 10 },
+  },
   // A share's size, which is what its _share_gb series reads, whatever its status.
   "openstack-share-in-error": {
     breached: { in_error: 1 },
@@ -1003,6 +1047,10 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Manila Service Down",
         "Share in Error",
         "Share Stuck",
+        "Databases API Down",
+        "Database Instance in Error",
+        "Database Instance Stuck",
+        "Database Volume Nearly Full",
         "Compute Service Down",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
@@ -1076,6 +1124,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Storage",
         "Orchestration",
         "Bare Metal",
+        "Databases",
         "Projects",
         "Capacity",
       ] as const
@@ -2003,6 +2052,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
       ["openstack-share-in-error", ["id", "name"]],
       ["openstack-share-stuck", ["id", "name"]],
+      ["openstack-database-instance-in-error", ["id", "name"]],
+      ["openstack-database-instance-stuck", ["id", "name"]],
+      ["openstack-database-volume-nearly-full", ["id", "name"]],
     ])("%s names what it is about", (id: string, keys: Array<string>) => {
       const groupBy: Array<string> = MonitorStep.getGroupByAttributeKeys(
         stepOf(getOpenStackAlertTemplateById(id)!),
@@ -2223,9 +2275,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         for (const word of ["clean failed", "deploy failed"]) {
           expect(OPENSTACK_BARE_METAL_ERROR_STATES.has(word)).toBe(true);
         }
-        expect(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back")).toBe(
-          true,
-        );
+        expect(
+          OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back"),
+        ).toBe(true);
       });
 
       test("API Down never reads the scrape's own up, which reads 0 for this job on every cloud when the exporter is down", () => {

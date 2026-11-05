@@ -108,7 +108,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia, Ironic, Heat, Magnum and Manila are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
+Octavia, Ironic, Heat, Magnum, Manila and Trove are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 
@@ -694,6 +694,23 @@ If your cloud runs Manila, a cloud gets **Shares** under **Storage** on its own,
 Manila's API carries on answering without its other services, so on a cloud the agent collects a stopped `manila-share` isn't shown anywhere: its shares just stop changing, and **Share Stuck** is what eventually says so. A probe with a Full view credential reads them, and **Manila Service Down** then says so. Manila says `stopped` for a service that shut down cleanly, and `down` only for one that died, once its heartbeat has grown old.
 
 A cloud without Manila costs nothing for it: the exporter answers with nothing, and that makes no row. If Manila leaves Keystone's catalog, its rows go about 15 minutes after that starts, as [Heat's and Magnum's do](#heat-and-magnum).
+
+## Trove
+
+A cloud that runs Trove gets **Databases** on its own, and one that doesn't shows no trace of it. Each database has its status in Trove's own word, what it runs, its volume and whose it is, and a page of its own. One in an error state reaches **Needs attention** by name, and so does one still on its way after an hour, or one past 85% of its volume.
+
+| What | Agent, Full view | Anything less |
+| --- | --- | --- |
+| Every project's databases and their status | Yes | Nothing at all: see below |
+| How full a running database's volume is | Yes | No |
+| Why a database failed | No. Run `openstack database instance show` | No |
+| `trove-taskmanager` and `trove-conductor` | No: Trove has no list of them | No |
+
+The exporter reads Trove's mgmt API, which only an admin may. Trove refuses anything less, and the exporter reads a refusal just as it reads Trove stopped: `openstack_trove_up` reads 0 and nothing else is said. So a credential that has never once read Trove is told that, rather than that Trove is down, and isn't offered Trove's alerts. Once it has read Trove, a 0 reads as down, which is also what a credential that has since lost its access reads as.
+
+A stopped `trove-taskmanager` isn't shown anywhere, because Trove's lists answer without it and it has no list of workers: what it was working on just stops moving, and **Database Instance Stuck** is what says so. Trove gives up on a guest by itself well before that hour.
+
+Nothing has been recorded of a database reaching `ACTIVE`, because Nova refused the guest on every test run, so how full a volume reads has only been checked on made-up numbers. An instance that isn't running reads 0 used, and that reads as nothing rather than as empty.
 
 ## Service logs
 

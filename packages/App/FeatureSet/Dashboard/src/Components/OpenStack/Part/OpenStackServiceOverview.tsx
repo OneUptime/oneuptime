@@ -12,6 +12,7 @@ import {
   isSameOpenStackHost,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_API_STATUS_CLOSED,
   OpenStackResourceKind,
   OpenStackServiceFamily,
   OpenStackServiceType,
@@ -48,6 +49,7 @@ import {
 } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import {
   getOpenStackAttentionName,
+  getOpenStackClosedToThisCredentialWords,
   getOpenStackCollectionSeconds,
   getOpenStackServiceAlertTemplateIds,
   getOpenStackServiceTitle,
@@ -354,6 +356,10 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
     );
   });
 
+  const closedWords: string | null =
+    isApi && row.status === OPENSTACK_API_STATUS_CLOSED
+      ? getOpenStackClosedToThisCredentialWords(service)
+      : null;
   const isLastKnown: boolean = !isApi && api.data?.status === "down";
   const staleAgentIds: Array<string> = isApi
     ? []
@@ -523,6 +529,16 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="openstack-service-overview">
+      {closedWords ? (
+        <OpenStackPartNotice
+          testId="openstack-service-closed"
+          tone="warning"
+          text={closedWords}
+        />
+      ) : (
+        <></>
+      )}
+
       {isLastKnown ? (
         <OpenStackPartNotice
           testId="openstack-service-last-known"

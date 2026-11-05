@@ -16,6 +16,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
+import { isOpenStackApiClosedToThisCredential } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import ObjectID from "Common/Types/ObjectID";
 import {
   OpenStackBlastRadius,
@@ -266,14 +267,22 @@ export async function fetchOpenStackApiStates(
       },
       limit: 200,
       skip: 0,
-      select: { name: true, status: true },
+      select: { name: true, status: true, facts: true },
       sort: {},
     });
   const states: Record<string, OpenStackApiState> = {};
   for (const row of result.data) {
     const name: string = row.name || "";
     if (name && states[name] !== "down") {
-      states[name] = row.status === "down" ? "down" : "up";
+      states[name] = isOpenStackApiClosedToThisCredential({
+        name: row.name,
+        status: row.status,
+        facts: row.facts as JSONObject | undefined,
+      })
+        ? "closed"
+        : row.status === "down"
+          ? "down"
+          : "up";
     }
   }
   return states;

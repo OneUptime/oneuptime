@@ -106,6 +106,8 @@ the pages while working on them.
 
 `OpenStackManila.spec.ts`: Manila, the same way: no trace on a cloud without it, its shares under Storage on one with it, a share in error from Needs attention to its own page, its API stopped, Topology, and every width.
 
+`OpenStackTrove.spec.ts`: Trove, the same way, and a credential it refuses, which reads just as its API stopped does: closed, with no alerts offered and no red anywhere.
+
 `DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
 
 `ExporterVersions.spec.ts`: the Overview and each list on what the agent's own exporter and exporter 1.7.0 said of one cloud: less to say on 1.7.0, and nothing false.
