@@ -263,13 +263,7 @@ describe("Infrastructure alert template summaries", () => {
           catalog.resourceType,
         );
 
-      // A cloud's Recommendations offer what its logs say as well, with their own rules.
-      expect(recommendations.length).toBe(
-        catalog.templates.length +
-          (catalog.resourceType === MonitorRecommendationResourceType.OpenStack
-            ? getAllOpenStackLogAlertTemplates().length
-            : 0),
-      );
+      expect(recommendations.length).toBe(catalog.templates.length);
 
       for (const template of catalog.templates) {
         const recommendation: MonitorRecommendation | undefined =

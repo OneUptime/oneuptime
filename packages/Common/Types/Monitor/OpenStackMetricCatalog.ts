@@ -2290,6 +2290,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     dependency: OpenStackDependency.Libvirt,
     identityAttributes: DEPENDENCY_LABELS,
+  }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_ironic_up",
