@@ -661,6 +661,41 @@ export function createRecordedCloud(
         return json(200, recorded("neutron-extensions"));
       }
 
+      const dhcpAgent: Array<string> = rest.split("/");
+
+      /*
+       * Not recorded yet in most scenes: what a DHCP agent's networks really are, which are the
+       * ones holding a port it owns, in the API reference's shape.
+       */
+      if (dhcpAgent[0] === "agents" && dhcpAgent[2] === "dhcp-networks") {
+        const recordedNetworks: JSONObject | undefined = recordedJson(
+          scene,
+          "neutron-agent-dhcp-networks",
+        );
+
+        if (recordedNetworks) {
+          return json(200, recordedNetworks);
+        }
+
+        const owned: Set<string> = new Set(
+          (recorded("neutron-ports-limited")["ports"] as Array<JSONObject>)
+            .filter((port: JSONObject): boolean => {
+              return port["device_owner"] === "network:dhcp";
+            })
+            .map((port: JSONObject): string => {
+              return port["network_id"] as string;
+            }),
+        );
+
+        return json(200, {
+          networks: (
+            recorded("neutron-networks")["networks"] as Array<JSONObject>
+          ).filter((network: JSONObject): boolean => {
+            return owned.has(network["id"] as string);
+          }),
+        });
+      }
+
       const l3Agents: Array<string> = rest.split("/");
 
       // Not recorded yet: the exporter's series, in the API reference's shape.

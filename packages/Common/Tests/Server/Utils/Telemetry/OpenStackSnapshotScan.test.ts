@@ -1299,6 +1299,72 @@ describe("networks", () => {
     );
   });
 
+  describe("which DHCP agents serve a network", () => {
+    function networkWith(labels: LabelMap): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_neutron_network", {
+        value: 0,
+        labels: { id: "net-1", name: "private", status: "ACTIVE", ...labels },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Network, "net-1");
+    }
+
+    test.each<[string, LabelMap, Array<string> | null]>([
+      ["one agent", { dhcp_agent_ids: "agent-1" }, ["agent-1"]],
+      ["two agents", { dhcp_agent_ids: "a,b" }, ["a", "b"]],
+      // A label is cut at a length, and then its last id is no id.
+      ["a cut label loses its cut id", { dhcp_agent_ids: "a,b…" }, ["a"]],
+      // Written, because facts merge key by key and one taken off its agents has no label.
+      ["none said", {}, null],
+    ])(
+      "%s",
+      (_name: string, labels: LabelMap, wanted: Array<string> | null) => {
+        const row: OpenStackResourceBufferEntry = networkWith(labels);
+        expect(Object.keys(row.facts)).toContain("dhcpAgentIds");
+        expect(row.facts["dhcpAgentIds"]).toEqual(wanted);
+      },
+    );
+
+    test("an agent says how many it serves, and only a DHCP agent has anything to say", () => {
+      const agentRow: (
+        binary: string,
+        labels: LabelMap,
+      ) => OpenStackResourceBufferEntry = (
+        binary: string,
+        labels: LabelMap,
+      ): OpenStackResourceBufferEntry => {
+        const buffer: Buffer = new Map();
+        fold(buffer, "openstack_neutron_agent_state", {
+          value: 1,
+          labels: { hostname: "net-01", service: binary, id: "a1", ...labels },
+        });
+        return rowOf(
+          buffer,
+          OpenStackResourceKind.Service,
+          `RegionOne/network/net-01/${binary}`,
+        );
+      };
+
+      expect(
+        agentRow("neutron-dhcp-agent", { dhcp_network_count: "3" }).facts[
+          "dhcpNetworkCount"
+        ],
+      ).toBe(3);
+      expect(
+        agentRow("neutron-dhcp-agent", { dhcp_network_count: "0" }).facts[
+          "dhcpNetworkCount"
+        ],
+      ).toBe(0);
+      // Nothing says, as on the agent, which a page reads as not known.
+      expect(
+        agentRow("neutron-dhcp-agent", {}).facts["dhcpNetworkCount"],
+      ).toBeNull();
+      expect(Object.keys(agentRow("neutron-l3-agent", {}).facts)).not.toContain(
+        "dhcpNetworkCount",
+      );
+    });
+  });
+
   test("a floating IP is named by its address, and a spare one has no router", () => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_neutron_floating_ip", {

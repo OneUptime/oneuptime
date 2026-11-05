@@ -43,6 +43,8 @@ export interface OpenStackCloudCounts {
   novaControlServices: number;
   // Neutron's agents, however many a hypervisor runs.
   networkAgents: number;
+  // Those that are DHCP agents, which ML2/OVS runs on its network nodes, and OVN has none of.
+  dhcpAgents: number;
   cinderServices: number;
   storagePools: number;
 }
@@ -80,6 +82,7 @@ export function getOpenStackCountsOfSize(data: {
     novaControlServices: 6,
     // OVN's controller and metadata agent on every hypervisor.
     networkAgents: data.hypervisors * 2,
+    dhcpAgents: 3,
     cinderServices: 6,
     storagePools: Math.max(1, Math.ceil(data.hypervisors / 250)),
   };
@@ -279,6 +282,16 @@ export const OPENSTACK_PER_PART_READS_PER_COLLECTION: number = 2000;
 // A project's quotas are four calls, and change on a person's timescale.
 export const OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION: number = 250;
 
+/*
+ * Which networks a DHCP agent serves. Neutron answers with each of them in full, and takes no
+ * field list on that route, so one agent's answer costs Neutron what listing its networks does.
+ * And what it says hardly moves: a network gets its agents when its subnet is made, and changes
+ * them when an agent dies. So this is far gentler than the other calls per thing: a few at a
+ * time, and not on every collection. A cloud with more agents than that goes round them in turns.
+ */
+export const OPENSTACK_DHCP_AGENT_READS_PER_ROUND: number = 20;
+export const OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES: number = 10;
+
 export type OpenStackNetworkBackend = "ovn" | "ovs";
 
 export interface OpenStackProbeLoadOptions {
@@ -358,6 +371,7 @@ export function simulateOpenStackProbeRequests(data: {
 
   let tokenValidUntil: number = -1;
   let extensionsReadAt: number = -Infinity;
+  let dhcpAgentsReadAt: number = -Infinity;
 
   for (let minute: number = 0; minute < data.toMinute; minute += interval) {
     const isCounted: boolean = minute >= data.fromMinute;
@@ -445,6 +459,19 @@ export function simulateOpenStackProbeRequests(data: {
       network += Math.min(
         counts.routers,
         OPENSTACK_PER_PART_READS_PER_COLLECTION,
+      );
+    }
+
+    // Half a minute under, as the collector keeps it, so a round isn't missed by being early.
+    if (
+      isOvs &&
+      !isSummary &&
+      minute - dhcpAgentsReadAt >= OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES - 0.5
+    ) {
+      dhcpAgentsReadAt = minute;
+      network += Math.min(
+        counts.dhcpAgents,
+        OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
       );
     }
 
