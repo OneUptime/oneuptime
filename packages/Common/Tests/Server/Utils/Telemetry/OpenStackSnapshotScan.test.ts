@@ -5,6 +5,7 @@ import {
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
   finishOpenStackResource,
+  getOpenStackRoutersWithoutAgents,
   isOpenStackSnapshotDatapoint,
 } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONObject } from "../../../../Types/JSON";
@@ -1177,6 +1178,125 @@ describe("networks", () => {
         expect(Object.keys(row!.facts)).not.toContain("forcedDown");
       }
     });
+  });
+
+  describe("a router that lost its agents", () => {
+    const ROUTER_LABELS: LabelMap = {
+      id: "router-1",
+      name: "edge",
+      project_id: "payments",
+      admin_state_up: "true",
+      status: "ACTIVE",
+    };
+    const AGENT_LABELS: LabelMap = {
+      router_id: "router-1",
+      l3_agent_id: "agent-1",
+      ha_state: "",
+      agent_alive: "true",
+      agent_admin_up: "true",
+      agent_host: "network-01",
+    };
+
+    function batch(
+      series: Array<[string, LabelMap]>,
+      atMs: number = BASE_MS,
+    ): Array<OpenStackResourceBufferEntry> {
+      const buffer: Buffer = new Map();
+      for (const [metric, labels] of series) {
+        fold(buffer, metric, { value: 1, atMs, labels });
+      }
+      return finishOpenStackBatch(buffer.values());
+    }
+
+    test("a router heard with its agents has nothing to forget", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([
+            ["openstack_neutron_router", ROUTER_LABELS],
+            ["openstack_neutron_l3_agent_of_router", AGENT_LABELS],
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("a router heard with none is one that might have, ten minutes on", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_router", ROUTER_LABELS]]),
+        ),
+      ).toEqual([
+        {
+          externalId: "router-1",
+          agentsReportedBefore: new Date(BASE_MS - 10 * 60 * 1000),
+        },
+      ]);
+    });
+
+    test("agents heard with no router say nothing about the router: it may be in the next batch", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_l3_agent_of_router", AGENT_LABELS]]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("nothing else a batch holds is a router", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([
+            [
+              "openstack_neutron_network",
+              { id: "net-1", name: "public", status: "ACTIVE" },
+            ],
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("agents say when they were heard, to five minutes, so an unchanged row isn't rewritten for it", () => {
+      const reportedAt: (atMs: number) => unknown = (atMs: number): unknown => {
+        return batch(
+          [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
+          atMs,
+        )[0]!.facts["l3AgentsReportedAt"];
+      };
+      const start: number = Date.UTC(2026, 10, 4, 12, 0, 0);
+
+      expect(reportedAt(start)).toBe("2026-11-04T12:00:00.000Z");
+      // Two scrapes, at the agent's two minutes, say the same.
+      expect(reportedAt(start + 2 * 60 * 1000)).toBe(reportedAt(start));
+      expect(reportedAt(start + 299 * 1000)).toBe(reportedAt(start));
+      expect(reportedAt(start + 300 * 1000)).toBe("2026-11-04T12:05:00.000Z");
+    });
+
+    /*
+     * The line this draws. What a batch says at any moment against the last time its agents were
+     * heard: nothing here can read as gone inside what one scrape's batches can take to arrive.
+     */
+    test.each<[string, number, boolean]>([
+      ["heard in the same scrape", 0, false],
+      ["heard one scrape ago, as a router arriving before its agents reads", 2, false],
+      ["heard two scrapes ago, with one read of its agents failing", 4, false],
+      ["heard five minutes ago", 5, false],
+      ["heard well past the window", 16, true],
+    ])(
+      "%s",
+      (_name: string, minutesAgo: number, isGone: boolean) => {
+        const now: number = Date.UTC(2026, 10, 4, 12, 3, 0);
+        const [heard] = batch(
+          [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
+          now - minutesAgo * 60 * 1000,
+        );
+        const [router] = getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_router", ROUTER_LABELS]], now),
+        );
+
+        expect(
+          new Date(heard!.facts["l3AgentsReportedAt"] as string).getTime() <
+            router!.agentsReportedBefore.getTime(),
+        ).toBe(isGone);
+      },
+    );
   });
 
   test("a floating IP is named by its address, and a spare one has no router", () => {

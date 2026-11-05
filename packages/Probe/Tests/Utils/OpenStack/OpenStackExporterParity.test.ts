@@ -291,6 +291,8 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "vouchedAt",
     // How long one collection took: its own reading on each path.
     "collectionSeconds",
+    // When a router's agents were last heard, which is each path's own time too.
+    "l3AgentsReportedAt",
     // What an operator told Nova, which the exporter has no label for.
     "forcedDown",
     // What an instance booted from, nor for this.
