@@ -419,7 +419,7 @@ const fernetKeysOutOfStepTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_FERNET_KEYS_OUT_OF_STEP_TEMPLATE_ID,
   name: "Fernet Key Rotation Out of Step",
   summary: `Keystone logs ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more refusals of tokens it cannot read in 5 minutes.`,
-  description: `Alert when Keystone on a machine says ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more times in 5 minutes that a token is not a recognized Fernet token. It gave that token out, or another controller did, and it holds no key that opens it: a rotation that did not reach this controller, or a restore of an old key repository. Users get 401s for as long as requests land on it, so about one in as many as there are controllers. One incident per machine. A client sending the same garbage over and over reads the same, so check before you rotate: compare /etc/keystone/fernet-keys on each controller, which must be identical, and copy them from the one that last rotated.`,
+  description: `A Logs monitor that alerts when Keystone on a machine says ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more times in 5 minutes that a token is not a recognized Fernet token. It gave that token out, or another controller did, and it holds no key that opens it: a rotation that did not reach this controller, or a restore of an old key repository. Users get 401s for as long as requests land on it, so about one in as many as there are controllers. One incident per machine. A client sending the same garbage over and over reads the same, so check before you rotate: compare /etc/keystone/fernet-keys on each controller, which must be identical, and copy them from the one that last rotated.`,
   category: "Service Logs",
   severity: "Critical",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -438,7 +438,7 @@ const fernetKeysOutOfStepTemplate: OpenStackLogAlertTemplate = {
       criteria: buildCriteria({
         args,
         title,
-        description: `Keystone on the machine named above keeps refusing tokens it cannot read with any key it has, so users get 401s for as long as requests land on it. Compare /etc/keystone/fernet-keys on each controller: they must be identical, and a rotation that did not reach one is the usual cause. Copy them from the one that last rotated (keystone-manage fernet_rotate writes them there). The incident resolves on its own once it stops.`,
+        description: `Keystone on the machine of ${args.monitorName} named above keeps refusing tokens it cannot read with any key it has, so users get 401s for as long as requests land on it. Compare /etc/keystone/fernet-keys on each controller: they must be identical, and a rotation that did not reach one is the usual cause. Copy them from the one that last rotated (keystone-manage fernet_rotate writes them there). The incident resolves on its own once it stops.`,
         criteriaName: `${args.monitorName} - Fernet keys out of step`,
         criteriaDescription: `Keystone logged ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more refusals of tokens it cannot read in 5 minutes.`,
         healthyDescription: `Keystone logged fewer than ${OPENSTACK_TOKEN_FAILING_MIN_LINES} such refusals in 5 minutes.`,

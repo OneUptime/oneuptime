@@ -303,10 +303,7 @@ function isAbsent(value: string | undefined): boolean {
  *   req-r user project - - -                       before global IDs, and OpenStack-Helm's
  *   None req-r project-name user-name              DevStack's own identity format
  */
-function readContext(
-  context: string,
-  line: OpenStackLogLine,
-): void {
+function readContext(context: string, line: OpenStackLogLine): void {
   const words: Array<string> = context.trim().split(" ");
   const first: string | undefined = words[0];
   const second: string | undefined = words[1];
@@ -875,7 +872,10 @@ function findInstanceMention(message: string): string {
     while (position < limit) {
       const code: number = text.charCodeAt(position);
 
-      if (isHexDigit(code) && isOpenStackUuid(text.slice(position, position + UUID_LENGTH))) {
+      if (
+        isHexDigit(code) &&
+        isOpenStackUuid(text.slice(position, position + UUID_LENGTH))
+      ) {
         return text.slice(position, position + UUID_LENGTH);
       }
 
@@ -974,8 +974,7 @@ function readRecordHost(
       "resource.k8s.node.name",
       "resource.host.name",
       "host.name",
-    ) ||
-    (line ? line.hostname : "")
+    ) || (line ? line.hostname : "")
   );
 }
 
@@ -991,7 +990,8 @@ function fillFromJournal(
       MAX_LOGGER_LENGTH,
     );
   line.level =
-    line.level || cut(readRecordString(attributes, "journald.logger_level"), 16);
+    line.level ||
+    cut(readRecordString(attributes, "journald.logger_level"), 16);
   line.requestId =
     line.requestId || cut(readRecordString(attributes, "journald.request_id"));
   line.globalRequestId =
@@ -1137,8 +1137,7 @@ export function stampOpenStackLogRecord(data: {
 
       // The line as it came, with its fields replaced by what may be kept.
       const start: number = body.indexOf(line.message);
-      body =
-        start > 0 ? `${body.slice(0, start)}${read.text}` : read.text;
+      body = start > 0 ? `${body.slice(0, start)}${read.text}` : read.text;
     }
   }
 
@@ -1236,7 +1235,9 @@ export function stampOpenStackLogRecord(data: {
      */
     if (known !== undefined) {
       severityNumber =
-        level === "TRACE" && !line.requestId && line.format === OpenStackLogFormat.Oslo
+        level === "TRACE" &&
+        !line.requestId &&
+        line.format === OpenStackLogFormat.Oslo
           ? 17
           : known;
     }

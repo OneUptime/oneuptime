@@ -14,6 +14,7 @@ The recording itself is an artifact of Tests/Ops/openstack-e2e/control-plane-clu
 control-plane-cloud.sh. It is data: this reads it as text, and runs nothing from it.
 """
 
+import json
 import os
 import re
 import shutil
@@ -130,10 +131,41 @@ def import_reading(source, target, keep_endpoint, jobs):
                 out.writelines(lines)
 
 
+def import_what_the_collector_sent(source):
+    """Which series the collector really sent, and the attributes each had, from its own file."""
+    path = os.path.join(source, "otlp", "metrics.json")
+    if not os.path.exists(path):
+        return
+    resource = set()
+    metrics = {}
+    for line in open(path, encoding="utf-8"):
+        if not line.strip():
+            continue
+        for batch in json.loads(line).get("resourceMetrics", []):
+            resource.update(a["key"] for a in batch.get("resource", {}).get("attributes", []))
+            for scope in batch.get("scopeMetrics", []):
+                for metric in scope.get("metrics", []):
+                    body = metric.get("gauge") or metric.get("sum") or {}
+                    keys = metrics.setdefault(metric["name"], set())
+                    for point in body.get("dataPoints", []):
+                        keys.update(a["key"] for a in point.get("attributes", []))
+    with open(os.path.join(FIXTURES, "collector-sent.json"), "w", encoding="utf-8") as out:
+        json.dump(
+            {
+                "resource": sorted(resource),
+                "metrics": {name: sorted(keys) for name, keys in sorted(metrics.items())},
+            },
+            out,
+            indent=1,
+        )
+        out.write("\n")
+
+
 def import_clusters(source):
     jobs = job_keep_lists()
     target = os.path.join(FIXTURES, "clusters")
     shutil.rmtree(target, ignore_errors=True)
+    import_what_the_collector_sent(source)
     for scene in sorted(os.listdir(source)):
         folder = os.path.join(source, scene)
         if not os.path.isdir(folder) or not os.path.isdir(os.path.join(folder, "first")):

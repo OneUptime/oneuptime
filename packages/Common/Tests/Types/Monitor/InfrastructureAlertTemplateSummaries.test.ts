@@ -10,6 +10,7 @@ import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/Kubernete
 import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllOpenShiftAlertTemplates } from "../../../Types/Monitor/OpenShiftAlertTemplates";
 import { getAllOpenStackAlertTemplates } from "../../../Types/Monitor/OpenStackAlertTemplates";
+import { getAllOpenStackLogAlertTemplates } from "../../../Types/Monitor/OpenStackLogAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
@@ -258,7 +259,13 @@ describe("Infrastructure alert template summaries", () => {
           catalog.resourceType,
         );
 
-      expect(recommendations.length).toBe(catalog.templates.length);
+      // A cloud's Recommendations offer what its logs say as well, with their own rules.
+      expect(recommendations.length).toBe(
+        catalog.templates.length +
+          (catalog.resourceType === MonitorRecommendationResourceType.OpenStack
+            ? getAllOpenStackLogAlertTemplates().length
+            : 0),
+      );
 
       for (const template of catalog.templates) {
         const recommendation: MonitorRecommendation | undefined =

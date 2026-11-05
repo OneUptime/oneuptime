@@ -183,6 +183,12 @@ const PICKER_CASES: Array<PickerCase> = [
     headings: [
       "Availability",
       "Control Plane",
+      "RabbitMQ",
+      "MariaDB and Galera",
+      "Memcached",
+      "HAProxy",
+      "OVN and Open vSwitch",
+      "libvirt",
       "Compute",
       "Network",
       "Storage",

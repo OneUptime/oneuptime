@@ -24,7 +24,14 @@ import {
   getAllOpenStackLogAlertTemplates,
 } from "../../../../Types/Monitor/OpenStackLogAlertTemplates";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * One failure, one incident, without anyone having to set it up: a monitor made from one of
@@ -71,7 +78,9 @@ function monitorOf(templateId: string, cloud: string = CLOUD): Monitor {
 }
 
 // The links written, by the monitor they were written on.
-function linksWritten(update: jest.SpiedFunction<never>): Map<string, Array<string>> {
+function linksWritten(
+  update: jest.SpiedFunction<never>,
+): Map<string, Array<string>> {
   const links: Map<string, Array<string>> = new Map();
 
   for (const call of update.mock.calls as unknown as Array<
@@ -158,10 +167,22 @@ describe("who waits for whom", () => {
     );
 
     /*
-     * A parent about one machine would quiet its child's alerts about every other machine,
-     * for as long as that one machine stayed down. Each of these reads a whole region.
+     * A parent about one machine would quiet its child's alerts about every other machine
+     * for as long as that one machine stayed down. Each of these reads a whole region, but for
+     * the two on one machine's switch, which OpenStackDependencySuppression holds to the agents
+     * that live on it.
      */
     for (const parent of parents) {
+      if (
+        parent === "openstack-ovn-controller-not-running" ||
+        parent === "openstack-ovs-service-down"
+      ) {
+        expect(getOpenStackTemplateChildren(parent)).toEqual([
+          "openstack-network-agent-down",
+        ]);
+        continue;
+      }
+
       const template: OpenStackAlertTemplate =
         getOpenStackAlertTemplateById(parent)!;
       const step: MonitorStep = template.getMonitorStep({
@@ -173,10 +194,17 @@ describe("who waits for whom", () => {
         monitorName: CLOUD,
       });
 
+      // A database's leader is that whole database's.
       expect({
         parent,
         groups: MonitorStep.getGroupByAttributeKeys(step),
-      }).toEqual({ parent, groups: ["openstack.region.name"] });
+      }).toEqual({
+        parent,
+        groups:
+          parent === "openstack-ovn-database-without-leader"
+            ? ["openstack.region.name", "database"]
+            : ["openstack.region.name"],
+      });
     }
     expect(parents.size).toBeGreaterThan(0);
   });
@@ -229,7 +257,9 @@ describe("who waits for whom", () => {
 
   test("what waits reads a longer window than what it waits for, so the parent speaks first", () => {
     const windowOf: (id: string) => string = (id: string): string => {
-      const step: MonitorStep = getOpenStackAlertTemplateById(id)!.getMonitorStep({
+      const step: MonitorStep = getOpenStackAlertTemplateById(
+        id,
+      )!.getMonitorStep({
         cloudIdentifier: CLOUD,
         onlineMonitorStatusId: ObjectID.generate(),
         offlineMonitorStatusId: ObjectID.generate(),
@@ -246,6 +276,17 @@ describe("who waits for whom", () => {
     for (const template of getAllOpenStackControlPlaneAlertTemplates()) {
       for (const child of getOpenStackTemplateChildren(template.id)) {
         if (getOpenStackAlertTemplateById(child)) {
+          /*
+           * HAProxy's exporter is inside it, so its own series go with it. What reads them
+           * cannot fire while it is down, whatever its window, and has nothing to outlast.
+           */
+          if (
+            template.id === "openstack-haproxy-down" &&
+            child.startsWith("openstack-haproxy-")
+          ) {
+            continue;
+          }
+
           expect({
             child,
             isLonger: longer[windowOf(template.id)]?.includes(windowOf(child)),
@@ -263,14 +304,14 @@ describe("linking a new monitor", () => {
 
   beforeEach(() => {
     others = [];
-    find = jest
-      .spyOn(MonitorService, "findBy")
-      .mockImplementation((() => {
-        return Promise.resolve(others);
-      }) as never) as unknown as jest.SpiedFunction<never>;
+    find = jest.spyOn(MonitorService, "findBy").mockImplementation((() => {
+      return Promise.resolve(others);
+    }) as never) as unknown as jest.SpiedFunction<never>;
     update = jest
       .spyOn(MonitorService, "updateOneById")
-      .mockResolvedValue(undefined as never) as unknown as jest.SpiedFunction<never>;
+      .mockResolvedValue(
+        undefined as never,
+      ) as unknown as jest.SpiedFunction<never>;
   });
 
   afterEach(() => {
@@ -299,7 +340,7 @@ describe("linking a new monitor", () => {
       new Map([
         [
           worker.id!.toString(),
-          [rabbit.id!.toString(), database.id!.toString()].sort(),
+          [rabbit.id!.toString(), database.id!.toString()],
         ],
       ]),
     );

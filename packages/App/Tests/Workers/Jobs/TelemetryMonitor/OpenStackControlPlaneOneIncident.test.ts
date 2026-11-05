@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -67,10 +74,6 @@ import ObjectID from "Common/Types/ObjectID";
  * node of a DevStack is one machine of everything.
  */
 
-// MonitorResource reaches the native isolated-vm addon through the criteria evaluator's sandbox.
-jest.mock("isolated-vm", () => {
-  return {};
-});
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
     __esModule: true,
@@ -78,6 +81,7 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
     QueueName: { Telemetry: "Telemetry" },
   };
 });
+// The criteria evaluator's sandbox reaches the native isolated-vm addon. Nothing here runs one.
 jest.mock("Common/Server/Utils/VM/VMRunner", () => {
   return { __esModule: true, default: {} };
 });
@@ -96,6 +100,7 @@ jest.mock("Common/Server/Services/OpenStackCloudService", () => {
 jest.mock("Common/Server/Services/OpenStackResourceService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
+// It fails to compile under ts-jest, and nothing about a password is under test.
 jest.mock("Common/Server/Utils/PasswordHash", () => {
   return { __esModule: true, default: {} };
 });
@@ -132,6 +137,7 @@ interface WorldMonitor {
 }
 
 interface WorldRecord {
+  model: Incident | Alert;
   monitor: WorldMonitor;
   title: string;
   description: string;
@@ -277,7 +283,8 @@ function readingAt(drill: RecordedDrill, minute: number): RecordedReading {
     return drill.before;
   }
 
-  const lastOfOutage: RecordedReading = drill.minutes[drill.minutes.length - 1]!;
+  const lastOfOutage: RecordedReading =
+    drill.minutes[drill.minutes.length - 1]!;
 
   if (minute < OUTAGE_MINUTES) {
     return drill.minutes[minute] || lastOfOutage;
@@ -319,6 +326,7 @@ function recordOf(data: {
   description: string | undefined;
 }): WorldRecord {
   const record: WorldRecord = {
+    model: data.model,
     monitor: evaluating!,
     title: data.title || "",
     description: data.description || "",
@@ -333,15 +341,16 @@ function recordOf(data: {
   return record;
 }
 
-function modelOfOpen<T extends Incident | Alert>(
-  build: () => T,
+// What a check reads as open for its monitor: what it opened, as it was opened.
+function openRecords(
   records: Array<WorldRecord>,
   args: unknown,
-): Promise<Array<T>> {
-  const ids: Array<string> = (
-    ((args as { query: { monitors?: Array<unknown> } }).query.monitors ||
-      []) as Array<unknown>
-  ).map(String);
+): Promise<never> {
+  // An incident has monitors, and an alert one monitor.
+  const query: { monitors?: Array<unknown>; monitor?: unknown } = (
+    args as { query: { monitors?: Array<unknown>; monitor?: unknown } }
+  ).query;
+  const ids: Array<string> = (query.monitors || [query.monitor]).map(String);
 
   return Promise.resolve(
     records
@@ -351,20 +360,14 @@ function modelOfOpen<T extends Incident | Alert>(
           ids.includes(record.monitor.monitor.id!.toString())
         );
       })
-      .map((record: WorldRecord): T => {
-        const model: T = build();
-        model._id = record.id;
-        model.projectId = PROJECT_ID;
-        model.title = record.title;
-        model.seriesLabels = record.labels;
-        model.seriesFingerprint = record.labels["fingerprint"] as string;
-        return model;
+      .map((record: WorldRecord): Incident | Alert => {
+        return record.model;
       }),
-  );
+  ) as never;
 }
 
 beforeEach(() => {
-  jest.useFakeTimers({ advanceTimers: true });
+  jest.useFakeTimers({ advanceTimers: true, doNotFake: ["performance"] });
   mockProjectStates();
 
   incidents = [];
@@ -407,7 +410,9 @@ beforeEach(() => {
     .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
   jest.spyOn(MonitorProbeService, "findBy").mockResolvedValue([] as never);
-  jest.spyOn(MonitorStatusService, "findOneBy").mockResolvedValue(null as never);
+  jest
+    .spyOn(MonitorStatusService, "findOneBy")
+    .mockResolvedValue(null as never);
   jest
     .spyOn(ProjectScopedReferenceValidator, "isUsableInProject")
     .mockResolvedValue(true);
@@ -438,11 +443,13 @@ beforeEach(() => {
   });
 
   // The world's monitors, and their parents as MonitorDependencySuppression reads them.
-  jest.spyOn(MonitorService, "findOneById").mockImplementation((args: unknown) => {
-    return Promise.resolve(
-      monitorById((args as { id: ObjectID }).id)?.monitor || null,
-    ) as never;
-  });
+  jest
+    .spyOn(MonitorService, "findOneById")
+    .mockImplementation((args: unknown) => {
+      return Promise.resolve(
+        monitorById((args as { id: ObjectID }).id)?.monitor || null,
+      ) as never;
+    });
   jest.spyOn(MonitorService, "findBy").mockImplementation(() => {
     return Promise.resolve(
       parentsOf(evaluating!).map((parent: WorldMonitor): Monitor => {
@@ -512,22 +519,10 @@ beforeEach(() => {
 
   // Records: what earlier checks opened, and closing takes one off the open ones.
   jest.spyOn(IncidentService, "findBy").mockImplementation((args: unknown) => {
-    return modelOfOpen(
-      (): Incident => {
-        return new Incident();
-      },
-      incidents,
-      args,
-    ) as never;
+    return openRecords(incidents, args);
   });
   jest.spyOn(AlertService, "findBy").mockImplementation((args: unknown) => {
-    return modelOfOpen(
-      (): Alert => {
-        return new Alert();
-      },
-      alerts,
-      args,
-    ) as never;
+    return openRecords(alerts, args);
   });
   jest
     .spyOn(IncidentService, "create")
@@ -615,17 +610,24 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function runDrill(release: string, name: string): Promise<void> {
+async function runDrill(
+  release: string,
+  name: string,
+  untilMinute: number = OUTAGE_MINUTES + MINUTES_AFTER,
+  options: { linked: boolean } = { linked: true },
+): Promise<void> {
   const drill: RecordedDrill = readCloudDrill(release, name);
 
   buildWorld();
   timelineRows = rowsOfTimeline(drill);
 
-  for (
-    minuteNow = 0;
-    minuteNow <= OUTAGE_MINUTES + MINUTES_AFTER;
-    minuteNow++
-  ) {
+  if (!options.linked) {
+    for (const one of world) {
+      one.monitor.dependsOnMonitors = [];
+    }
+  }
+
+  for (minuteNow = 0; minuteNow <= untilMinute; minuteNow++) {
     const now: Date = new Date(OUTAGE_START_MS + minuteNow * 60000 + 5000);
 
     jest.setSystemTime(now);
@@ -651,32 +653,169 @@ async function runDrill(release: string, name: string): Promise<void> {
   }
 }
 
-function describeRecords(records: Array<WorldRecord>): Array<string> {
+// What opened, in the order it opened, and when it closed, in the fewest words.
+function summaryOf(records: Array<WorldRecord>): Array<string> {
   return records.map((record: WorldRecord): string => {
-    return `${record.monitor.template.id} ${JSON.stringify(record.labels)} opened ${record.openedAtMinute} resolved ${record.resolvedAtMinute}`;
+    return `${record.monitor.template.id} opened ${record.openedAtMinute}, ${
+      record.resolvedAtMinute === null
+        ? "still open"
+        : `resolved ${record.resolvedAtMinute}`
+    }`;
   });
 }
 
+function incidentOf(templateId: string): WorldRecord {
+  return incidents.find((record: WorldRecord): boolean => {
+    return record.monitor.template.id === templateId;
+  })!;
+}
+
+function monitorOf(templateId: string): WorldMonitor {
+  return world.find((one: WorldMonitor): boolean => {
+    return one.template.id === templateId;
+  })!;
+}
+
+/*
+ * The outage ends at OUTAGE_MINUTES (14). Everything fires at minute 5, because that is what its
+ * window reads, and resolves at the first good collection.
+ */
 describe("one failure opens one incident", () => {
   test.each([
-    ["gazpacho-ovn", "rabbitmq-down"],
-    ["gazpacho-ovs", "rabbitmq-down"],
-    ["gazpacho-ovn", "mariadb-down"],
-    ["gazpacho-ovn", "ovn-controller-down"],
-    ["gazpacho-ovn", "ovs-down"],
-    ["gazpacho-ovs", "ovs-down"],
-    ["gazpacho-ovn", "libvirt-down"],
-    ["gazpacho-ovn", "memcached-down"],
+    ["gazpacho-ovn", "OVN"],
+    ["gazpacho-ovs", "ML2/OVS"],
   ])(
-    "%s %s",
-    async (release: string, name: string) => {
-      await runDrill(release, name);
-      // eslint-disable-next-line no-console
-      console.log(
-        `${release} ${name}\n${describeRecords(incidents).join("\n")}\nalerts\n${describeRecords(alerts).join("\n")}`,
+    "a stopped RabbitMQ on %s (%s) opens one incident, names what it takes down, and resolves on its own",
+    async (release: string) => {
+      await runDrill(release, "rabbitmq-down");
+
+      expect(summaryOf(incidents)).toEqual([
+        "openstack-rabbitmq-down opened 5, resolved 15",
+      ]);
+      expect(summaryOf(alerts)).toEqual([
+        "openstack-rabbitmq-down opened 5, resolved 15",
+      ]);
+
+      const { title, description, labels } = incidentOf(
+        "openstack-rabbitmq-down",
       );
-      expect(incidents.length).toBeGreaterThan(0);
+
+      expect(title).toContain("[OpenStack] RabbitMQ Down");
+      expect(description).toContain("nova-compute stops reporting");
+      expect(description).toContain("Instances that are already running");
+      expect(description).toContain("resolves on its own");
+      expect(labels["openstack.region.name"]).toBe("RegionOne");
     },
-    900000,
+    120000,
   );
+
+  test("the workers it took down read as down on their own pages, and open nothing", async () => {
+    await runDrill("gazpacho-ovs", "rabbitmq-down", OUTAGE_MINUTES - 1);
+
+    for (const templateId of [
+      "openstack-rabbitmq-down",
+      "openstack-compute-service-down",
+      "openstack-network-agent-down",
+      "openstack-rabbitmq-node-down",
+    ]) {
+      expect({
+        templateId,
+        isOffline: isOffline(monitorOf(templateId)),
+      }).toEqual({ templateId, isOffline: true });
+    }
+
+    expect(summaryOf(incidents)).toEqual([
+      "openstack-rabbitmq-down opened 5, still open",
+    ]);
+  }, 120000);
+
+  test("a stopped MariaDB opens one incident, names what it takes down, and resolves on its own", async () => {
+    await runDrill("gazpacho-ovn", "mariadb-down");
+
+    expect(summaryOf(incidents)).toEqual([
+      "openstack-mariadb-cluster-down opened 5, resolved 15",
+    ]);
+
+    const { title, description } = incidentOf("openstack-mariadb-cluster-down");
+
+    expect(title).toContain("[OpenStack] MariaDB Cluster Down");
+    expect(description).toContain("Every API keeps its state in MariaDB");
+    expect(description).toContain("resolves on its own");
+  }, 120000);
+
+  test("a stopped ovn-controller opens one incident, names what it takes down, and resolves on its own", async () => {
+    await runDrill("gazpacho-ovn", "ovn-controller-down");
+
+    expect(summaryOf(incidents)).toEqual([
+      "openstack-ovn-controller-not-running opened 5, resolved 15",
+    ]);
+
+    const { title, description, labels } = incidentOf(
+      "openstack-ovn-controller-not-running",
+    );
+
+    expect(title).toContain("[OpenStack] OVN Controller Not Running");
+    expect(description).toContain("new ports do not come up");
+    expect(description).toContain("neutron-ovn-agent");
+    expect(description).toContain("resolves on its own");
+    expect(labels["openstack_exporter_host"]).toBe("127.0.0.1");
+  }, 120000);
+
+  test.each(["gazpacho-ovn", "gazpacho-ovs"])(
+    "a stopped Open vSwitch on %s is one incident, and then says the exporter needs restarting",
+    async (release: string) => {
+      await runDrill(release, "ovs-down");
+
+      expect(summaryOf(incidents)).toEqual([
+        "openstack-ovs-service-down opened 5, resolved 15",
+        // Ten minutes of Open vSwitch answering and its database unread, and it is still so.
+        "openstack-ovs-database-not-read opened 23, still open",
+      ]);
+    },
+    120000,
+  );
+
+  test("a stopped Memcached is one incident", async () => {
+    await runDrill("gazpacho-ovn", "memcached-down");
+
+    expect(summaryOf(incidents)).toEqual([
+      "openstack-memcached-cluster-down opened 5, resolved 15",
+    ]);
+  }, 120000);
+
+  /*
+   * This recording's libvirt_up stayed 0 after the restart, because the rig mounted libvirt's
+   * socket file and a restart makes a new one. It mounts the folder now, as Kolla-Ansible does, so
+   * the next recording should resolve. No recording has proved that yet.
+   */
+  test("a stopped libvirt is one incident: nova-compute disables itself, so nothing else fires", async () => {
+    await runDrill("gazpacho-ovn", "libvirt-down");
+
+    expect(summaryOf(incidents)).toEqual([
+      "openstack-libvirt-service-down opened 5, still open",
+    ]);
+  }, 120000);
+
+  test("with nothing linked, a stopped RabbitMQ opens what each thing reads, which is what the links are for", async () => {
+    await runDrill(
+      "gazpacho-ovs",
+      "rabbitmq-down",
+      OUTAGE_MINUTES + MINUTES_AFTER,
+      {
+        linked: false,
+      },
+    );
+
+    expect(summaryOf(incidents).sort()).toEqual([
+      // Each worker goes on reading down until the agent next reads it: LAG_MINUTES.
+      "openstack-compute-service-down opened 10, resolved 20",
+      "openstack-network-agent-down opened 10, resolved 20",
+      "openstack-network-agent-down opened 10, resolved 20",
+      "openstack-network-agent-down opened 10, resolved 20",
+      // neutron-openvswitch-agent read as down a minute after the others did.
+      "openstack-network-agent-down opened 11, resolved 20",
+      "openstack-rabbitmq-down opened 5, resolved 15",
+      "openstack-rabbitmq-node-down opened 10, resolved 15",
+    ]);
+  }, 120000);
 });

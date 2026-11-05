@@ -114,8 +114,16 @@ const REASON_NO_LEADER: string = translationKey(
   "The {{database}} database has no leader",
 );
 const REASON_LIBVIRT_DOWN: string = translationKey("libvirt isn't answering");
+interface RabbitMqLink {
+  node: string;
+  peer: string;
+}
+
 const REASON_PARTITION: string = translationKey(
-  "{{node}} can't reach {{peer}}: the cluster has split",
+  "The cluster has split: {{node}} can't reach {{peer}}",
+);
+const REASON_NO_NORTHD: string = translationKey(
+  "No ovn-northd is active, so changes to the network do not reach the machines",
 );
 const REASON_CLUSTER_SMALLER: string = translationKey(
   "Galera has {{size}} of the {{count}} nodes read",
@@ -410,27 +418,32 @@ export function getOpenStackDependencyFindings(data: {
      * Every node answers and a link between two is not up, so the cluster has split. A peer
      * that stopped has no series, so a node that is down never reads as this.
      */
-    for (const row of rows) {
-      for (const peer of getOpenStackKeyedFacts(
-        row,
-        OPENSTACK_RABBITMQ_LINK_DOWN_FACT_PREFIX,
-      )) {
-        findings.push({
-          severity: ResourceAttentionSeverity.Critical,
-          reason: {
-            text: REASON_PARTITION,
-            values: {
-              node:
-                (factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.Node] as
-                  | string
-                  | undefined) ||
-                row.name ||
-                "",
-              peer,
-            },
-          },
+    const links: Array<RabbitMqLink> = rows
+      .flatMap((row: OpenStackResource): Array<RabbitMqLink> => {
+        const node: string =
+          (factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.Node] as
+            | string
+            | undefined) ||
+          row.name ||
+          "";
+
+        return getOpenStackKeyedFacts(
+          row,
+          OPENSTACK_RABBITMQ_LINK_DOWN_FACT_PREFIX,
+        ).map((peer: string): RabbitMqLink => {
+          return { node, peer };
         });
-      }
+      })
+      .sort((a: RabbitMqLink, b: RabbitMqLink): number => {
+        return `${a.node}/${a.peer}`.localeCompare(`${b.node}/${b.peer}`);
+      });
+
+    // One failure, however many links it cut: this names the first, and the page each machine.
+    if (links[0]) {
+      findings.push({
+        severity: ResourceAttentionSeverity.Critical,
+        reason: { text: REASON_PARTITION, values: { ...links[0] } },
+      });
     }
   }
 
@@ -614,6 +627,25 @@ export function getOpenStackDependencyFindings(data: {
           reason: { text: REASON_NO_LEADER, values: { database } },
         });
       }
+    }
+
+    /*
+     * One standby is fine, and a machine that runs none says nothing. With OVN's databases all
+     * stopped there is no leader to read, and this is what says so.
+     */
+    const northds: Array<unknown> = answering
+      .map((row: OpenStackResource): unknown => {
+        return factsOf(row)[OPENSTACK_NETWORK_FACTS.NorthdActive];
+      })
+      .filter((active: unknown): boolean => {
+        return active !== undefined;
+      });
+
+    if (northds.length > 0 && !northds.includes(true)) {
+      findings.push({
+        severity: ResourceAttentionSeverity.Critical,
+        reason: { text: REASON_NO_NORTHD },
+      });
     }
   }
 

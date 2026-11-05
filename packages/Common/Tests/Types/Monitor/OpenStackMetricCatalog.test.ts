@@ -87,6 +87,17 @@ const DISABLED_METRICS: Array<string> = Array.from(
 
 const METRICS: Array<OpenStackMetricDefinition> = getAllOpenStackMetrics();
 
+/*
+ * What the cloud stands on is read from each dependency's own exporter, and not from
+ * openstack-exporter, so what that exporter has says nothing of them. OpenStackControlPlaneScenes
+ * holds those to what real ones said.
+ */
+const OF_THE_EXPORTER: Array<OpenStackMetricDefinition> = METRICS.filter(
+  (metric: OpenStackMetricDefinition): boolean => {
+    return !metric.dependency;
+  },
+);
+
 type MetricCase = [string, OpenStackMetricDefinition];
 
 const METRIC_CASES: Array<MetricCase> = METRICS.map(
@@ -106,6 +117,24 @@ function metricNames(): Array<string> {
  * is 0 or 1, and Placement's resource series change unit with their resourcetype.
  */
 const NO_UNIT_SERIES: ReadonlyArray<string> = [
+  // What the cloud stands on says 0 or 1, or a state's code.
+  "erlang_vm_dist_node_state",
+  "haproxy_backend_status",
+  "haproxy_server_status",
+  "libvirt_up",
+  "memcached_up",
+  "mysql_global_status_wsrep_cluster_status",
+  "mysql_global_status_wsrep_local_state",
+  "mysql_global_status_wsrep_ready",
+  "mysql_global_variables_wsrep_desync",
+  "mysql_global_variables_wsrep_on",
+  "mysql_up",
+  "ovn_northd_status",
+  "ovn_raft_cluster_leader",
+  "ovnc_encap_ip",
+  "ovs_build_info",
+  "rabbitmq_alarms_free_disk_space_watermark",
+  "rabbitmq_alarms_memory_used_watermark",
   "up",
   "openstack_identity_up",
   "openstack_nova_up",
@@ -145,7 +174,7 @@ describe("OpenStackMetricCatalog", () => {
     });
 
     test("names nothing the exporter does not have, but the collection's own two and what only the probe sends", () => {
-      const extra: Array<string> = METRICS.filter(
+      const extra: Array<string> = OF_THE_EXPORTER.filter(
         (metric: OpenStackMetricDefinition): boolean => {
           return !OPENSTACK_EXPORTER_SERIES[metric.metricName];
         },
@@ -230,7 +259,8 @@ describe("OpenStackMetricCatalog", () => {
           !OPENSTACK_RECEIVER_SERIES.includes(metricCase[0]) &&
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
-          metricCase[1].fromSummaryMode !== true
+          metricCase[1].fromSummaryMode !== true &&
+          !metricCase[1].dependency
         );
       }),
     )(

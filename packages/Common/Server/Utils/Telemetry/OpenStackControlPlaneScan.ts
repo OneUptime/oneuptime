@@ -129,6 +129,7 @@ const BOOLEAN_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
     OPENSTACK_CONTROL_PLANE_FACTS.Desynced,
   ],
   ["mysql_global_variables_wsrep_on", OPENSTACK_CONTROL_PLANE_FACTS.GaleraOn],
+  ["ovn_northd_status", OPENSTACK_NETWORK_FACTS.NorthdActive],
 ]);
 
 /*
@@ -353,8 +354,9 @@ export function foldOpenStackControlPlaneDatapoint(data: {
     const proxy: string | null = labelOf(data.attributes, "proxy");
     const code: string | null = labelOf(data.attributes, "code");
     if (proxy && code) {
-      entry.facts[`${OPENSTACK_BACKEND_RESPONSES_FACT_PREFIX}${proxy}/${code}`] =
-        value;
+      entry.facts[
+        `${OPENSTACK_BACKEND_RESPONSES_FACT_PREFIX}${proxy}/${code}`
+      ] = value;
     }
     return true;
   }

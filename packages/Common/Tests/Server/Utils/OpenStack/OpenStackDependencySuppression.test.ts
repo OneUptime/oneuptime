@@ -39,7 +39,11 @@ const PARENT_ID: string = "11111111-1111-4111-8111-111111111111";
 const SUPPRESSED: DependencySuppressionResult = {
   isSuppressed: true,
   suppressingParents: [
-    { monitorId: PARENT_ID, monitorName: "RabbitMQ Down", statusName: "Offline" },
+    {
+      monitorId: PARENT_ID,
+      monitorName: "RabbitMQ Down",
+      statusName: "Offline",
+    },
   ],
 };
 
@@ -48,7 +52,9 @@ const NOT_SUPPRESSED: DependencySuppressionResult = {
   suppressingParents: [],
 };
 
-function childMonitor(monitorType: MonitorType = MonitorType.OpenStack): Monitor {
+function childMonitor(
+  monitorType: MonitorType = MonitorType.OpenStack,
+): Monitor {
   const parent: Monitor = new Monitor();
   parent.id = new ObjectID(PARENT_ID);
 
@@ -115,6 +121,62 @@ describe("for a parent that is down now", () => {
         labels: { [REGION]: "RegionTwo", hostname: "compute-1" },
       }),
     ).toBe(false);
+  });
+
+  test("an ovn-controller gone from one machine holds back the agents on its switch, and nothing else", async () => {
+    incidents.mockResolvedValue([
+      incidentAbout({
+        [REGION]: "RegionOne",
+        openstack_exporter_host: "10.0.0.21",
+      }),
+    ] as never);
+
+    const suppression: DependencySuppressionResult =
+      await OpenStackDependencySuppression.forEvaluation({
+        monitor: childMonitor(),
+        suppression: SUPPRESSED,
+      });
+
+    for (const [service, region, waits] of [
+      ["ovn-controller", "RegionOne", true],
+      ["neutron-ovn-agent", "RegionOne", true],
+      ["neutron-openvswitch-agent", "RegionOne", true],
+      ["neutron-dhcp-agent", "RegionOne", false],
+      ["neutron-l3-agent", "RegionOne", false],
+      ["ovn-controller", "RegionTwo", false],
+    ] as Array<[string, string, boolean]>) {
+      expect({
+        service,
+        region,
+        waits: MonitorDependencyRule.isSeriesSuppressed({
+          suppression,
+          labels: { [REGION]: region, service, hostname: "compute-1" },
+        }),
+      }).toEqual({ service, region, waits });
+    }
+  });
+
+  test("a whole dependency and one machine in the same region: the whole one speaks for all of it", async () => {
+    incidents.mockResolvedValue([
+      incidentAbout({
+        [REGION]: "RegionOne",
+        openstack_exporter_host: "10.0.0.21",
+      }),
+      incidentAbout({ [REGION]: "RegionOne" }),
+    ] as never);
+
+    const suppression: DependencySuppressionResult =
+      await OpenStackDependencySuppression.forEvaluation({
+        monitor: childMonitor(),
+        suppression: SUPPRESSED,
+      });
+
+    expect(
+      MonitorDependencyRule.isSeriesSuppressed({
+        suppression,
+        labels: { [REGION]: "RegionOne", service: "neutron-dhcp-agent" },
+      }),
+    ).toBe(true);
   });
 
   test("a series with no region is the whole cloud's, and waits", async () => {
@@ -236,7 +298,9 @@ describe("for a parent that has just come back", () => {
   });
 
   test("it goes on holding back the monitor for as long as a worker's series takes to catch up", async () => {
-    timelines.mockResolvedValue([timelineOf({ isOfflineState: true })] as never);
+    timelines.mockResolvedValue([
+      timelineOf({ isOfflineState: true }),
+    ] as never);
 
     const suppression: DependencySuppressionResult =
       await OpenStackDependencySuppression.forEvaluation({
@@ -263,13 +327,26 @@ describe("for a parent that has just come back", () => {
       suppression: NOT_SUPPRESSED,
     });
 
-    const query: { endsAt: { value: Date }; monitorId: unknown } = (
+    // QueryHelper's Raw holds the moment among the parameters of its condition.
+    const query: {
+      endsAt: { objectLiteralParameters: Record<string, Date> };
+    } = (
       timelines.mock.calls as unknown as Array<
-        [{ query: { endsAt: { value: Date }; monitorId: unknown } }]
+        [
+          {
+            query: {
+              endsAt: { objectLiteralParameters: Record<string, Date> };
+            };
+          },
+        ]
       >
     )[0]![0].query;
     const minutesAgo: number =
-      (Date.now() - new Date(query.endsAt.value).getTime()) / 60000;
+      (Date.now() -
+        new Date(
+          Object.values(query.endsAt.objectLiteralParameters)[0]!,
+        ).getTime()) /
+      60000;
 
     expect(minutesAgo).toBeGreaterThan(OPENSTACK_DEPENDENCY_SETTLE_MINUTES - 1);
     expect(minutesAgo).toBeLessThan(OPENSTACK_DEPENDENCY_SETTLE_MINUTES + 1);
@@ -354,16 +431,15 @@ describe("any other monitor", () => {
   });
 
   test("a Logs monitor counts only when it reads a cloud's logs", () => {
-    const step: MonitorStep = getAllOpenStackLogAlertTemplates()[0]!.getMonitorStep(
-      {
+    const step: MonitorStep =
+      getAllOpenStackLogAlertTemplates()[0]!.getMonitorStep({
         cloudIdentifier: "production",
         onlineMonitorStatusId: ObjectID.generate(),
         offlineMonitorStatusId: ObjectID.generate(),
         defaultIncidentSeverityId: ObjectID.generate(),
         defaultAlertSeverityId: ObjectID.generate(),
         monitorName: "production",
-      },
-    );
+      });
     const monitorSteps: MonitorSteps = new MonitorSteps();
     monitorSteps.data = {
       monitorStepsInstanceArray: [step],

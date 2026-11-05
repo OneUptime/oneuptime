@@ -1,7 +1,7 @@
-mysql_global_status_slow_queries 140
-mysql_global_status_threads_connected 3
+mysql_global_status_slow_queries 141
+mysql_global_status_threads_connected 5
 mysql_global_status_threads_running 3
-mysql_global_status_uptime 433
+mysql_global_status_uptime 434
 mysql_global_status_wsrep_cluster_size 3
 mysql_global_status_wsrep_cluster_status 1
 mysql_global_status_wsrep_connected 1

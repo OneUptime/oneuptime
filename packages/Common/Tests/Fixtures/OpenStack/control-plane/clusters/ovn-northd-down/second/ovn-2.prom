@@ -1,3 +1,1 @@
-ovn_raft_cluster_leader{cluster_uuid="1dd18685-bb5d-4abd-9cff-5f699c2a7103",database="OVN_Southbound",server_uuid="94f48567-a660-47f1-b00d-339239ae4512"} 0
-ovn_raft_cluster_server_role{cluster_uuid="1dd18685-bb5d-4abd-9cff-5f699c2a7103",database="OVN_Southbound",role="follower",server_uuid="94f48567-a660-47f1-b00d-339239ae4512"} 1
-ovn_raft_cluster_server_status{cluster_uuid="1dd18685-bb5d-4abd-9cff-5f699c2a7103",database="OVN_Southbound",server_uuid="94f48567-a660-47f1-b00d-339239ae4512",status="cluster member"} 1
+ovn_raft_cluster_leader{cluster_uuid="d89a2f90-e235-40a2-baa6-03da71a680bb",database="OVN_Southbound",server_uuid="aef09cbc-9241-4582-9e41-74db8fa0d7d8"} 0

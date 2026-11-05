@@ -282,7 +282,7 @@ receivers:
           metric_relabel_configs:
             # Of a machine's interfaces only its tunnels: a machine has one interface per port.
             - source_labels: [__name__, type]
-              regex: (ovs_build_info|ovs_memory_rules_total|ovs_bridge_port_count|ovn_raft_cluster_leader|ovn_raft_cluster_server_role|ovn_raft_cluster_server_status|ovn_northd_status|ovnc_encap_ip|ovnc_rconn_queued);.*|ovs_interface_tx_errors;geneve
+              regex: (ovs_build_info|ovs_memory_rules_total|ovs_bridge_port_count|ovn_raft_cluster_leader|ovn_northd_status|ovnc_encap_ip|ovnc_rconn_queued);.*|ovs_interface_tx_errors;geneve
               action: keep
         - job_name: oneuptime-openstack-libvirt-health
           scrape_interval: 60s

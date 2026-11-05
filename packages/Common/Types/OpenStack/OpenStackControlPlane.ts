@@ -255,11 +255,14 @@ export const OPENSTACK_NETWORK_FACTS: {
   OvsDatabaseSeenAt: string;
   OvnChassisSeenAt: string;
   OvnControllerSeenAt: string;
+  // A yes or no, and not a time: ovn_northd_status stays with ovn-northd stopped, at 0.
+  NorthdActive: string;
 } = {
   OvsSeenAt: "ovsSeenAt",
   OvsDatabaseSeenAt: "ovsDatabaseSeenAt",
   OvnChassisSeenAt: "ovnChassisSeenAt",
   OvnControllerSeenAt: "ovnControllerSeenAt",
+  NorthdActive: "northdActive",
 };
 
 /*

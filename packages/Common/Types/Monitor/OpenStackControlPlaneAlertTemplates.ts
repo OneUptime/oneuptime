@@ -238,12 +238,15 @@ function readGoneSeriesAsZero(
  * The agent's own `up`, whichever job it is from: while any job answers, the agent is sending,
  * so a window with nothing of this dependency in it means this dependency's series went, and
  * not that the agent stopped. See the top of OpenStackAlertTemplates. No criteria compares it.
+ * A function, because that file lists these templates and so is still loading when this one is.
  */
-const ANCHOR: OpenStackQuery = {
-  alias: OPENSTACK_ANCHOR_METRIC_ALIAS,
-  metricName: "up",
-  aggregationType: MetricsAggregationType.Min,
-};
+function anchorQuery(): OpenStackQuery {
+  return {
+    alias: OPENSTACK_ANCHOR_METRIC_ALIAS,
+    metricName: "up",
+    aggregationType: MetricsAggregationType.Min,
+  };
+}
 
 function upOf(
   alias: string,
@@ -280,7 +283,7 @@ function buildStep(data: {
     openstackMonitor: {
       ...buildOpenStackSeriesConfig({
         cloudIdentifier: data.args.cloudIdentifier,
-        queries: [...data.queries, ANCHOR],
+        queries: [...data.queries, anchorQuery()],
         formulas: data.formulas,
         rollingTime: data.rollingTime,
         groupByAttributeKeys: data.groupByAttributeKeys,
@@ -411,7 +414,8 @@ const rabbitMqNodeDownTemplate: OpenStackAlertTemplate = {
 const rabbitMqPartitionTemplate: OpenStackAlertTemplate = {
   id: "openstack-rabbitmq-partition-detected",
   name: "RabbitMQ Partition Detected",
-  summary: "RabbitMQ nodes that all answer cannot reach each other for 5 minutes.",
+  summary:
+    "RabbitMQ nodes that all answer cannot reach each other for 5 minutes.",
   description: `Alert when RabbitMQ's nodes all answer and a link between two of them is not up for 5 minutes (erlang_vm_dist_node_state below ${OPENSTACK_RABBITMQ_LINK_UP}, recorded reading 1 for a peer cut off by a firewall). One incident per region: a partition is one failure, however many links it cuts. A peer that stopped has no series at all and reads as Node Down instead. With cluster_partition_handling set to pause_minority, the smaller side stops answering and this reads as Node Down too. Check \`rabbitmqctl cluster_status\` on each side, and the network between them. A side has to be restarted to heal: RabbitMQ will not guess which to keep.`,
   category: "RabbitMQ",
   severity: "Critical",
@@ -594,7 +598,9 @@ const rabbitMqMessagesUnacknowledgedTemplate: OpenStackAlertTemplate = {
           aggregationType: MetricsAggregationType.Max,
         },
       ],
-      firing: [above(alias, OPENSTACK_RABBITMQ_UNACKNOWLEDGED_MESSAGES_WARNING)],
+      firing: [
+        above(alias, OPENSTACK_RABBITMQ_UNACKNOWLEDGED_MESSAGES_WARNING),
+      ],
       recovery: [
         atMost(
           alias,
@@ -823,7 +829,8 @@ const galeraNodeNotReadyTemplate: OpenStackAlertTemplate = {
 const galeraNodeOutOfSyncTemplate: OpenStackAlertTemplate = {
   id: "openstack-galera-node-out-of-sync",
   name: "Galera Node Out of Sync",
-  summary: "A Galera node is out of sync, and nobody asked for it, for 10 minutes.",
+  summary:
+    "A Galera node is out of sync, and nobody asked for it, for 10 minutes.",
   description: `Alert when a node that is ready has not been Synced for 10 minutes (wsrep_local_state below ${OPENSTACK_GALERA_STATE_SYNCED}), and nobody asked for that: a node desynced on purpose for a backup, with wsrep_desync on, stays quiet. One incident per node. It serves stale reads meanwhile, and a node catching up can hold the whole cluster back through flow control. Check \`SHOW STATUS LIKE 'wsrep_local_state_comment'\`, then what is holding it: a long-running lock, a dump, or a slow disk.`,
   category: "MariaDB and Galera",
   severity: "Warning",
@@ -1041,7 +1048,10 @@ const memcachedNoConnectionsTemplate: OpenStackAlertTemplate = {
       ],
       firingCondition: FilterCondition.All,
       recovery: [
-        atLeast("busiest_connections", OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS),
+        atLeast(
+          "busiest_connections",
+          OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS,
+        ),
         above("busiest_commands", 0),
       ],
       recoveryCondition: FilterCondition.Any,
@@ -1435,7 +1445,8 @@ const ovnNorthdNotActiveTemplate: OpenStackAlertTemplate = {
 const geneveTransmitErrorsTemplate: OpenStackAlertTemplate = {
   id: "openstack-geneve-transmit-errors",
   name: "Geneve Transmit Errors",
-  summary: "A machine's Geneve tunnels fail to send, in every minute for 10 minutes.",
+  summary:
+    "A machine's Geneve tunnels fail to send, in every minute for 10 minutes.",
   description:
     "Alert when a machine's Geneve tunnels report transmit errors in every minute for 10 minutes (ovs_interface_tx_errors_increase, for interfaces of type geneve). One incident per machine. Instances on it lose traffic to other machines while those on the same machine are fine, which is what a bad NIC, a wrong MTU or a route gone from the tunnel network looks like. Check `ovs-vsctl list interface` for the tunnel's error, and `ip -s link` on the machine's tunnel network. Only a machine with a peer has a Geneve tunnel.",
   category: "OVN and Open vSwitch",
@@ -1511,7 +1522,8 @@ const ovsServiceDownTemplate: OpenStackAlertTemplate = {
 const ovsDatabaseNotReadTemplate: OpenStackAlertTemplate = {
   id: "openstack-ovs-database-not-read",
   name: "Exporter Lost Open vSwitch's Database",
-  summary: "An exporter stops reading a running Open vSwitch's database for 10 minutes.",
+  summary:
+    "An exporter stops reading a running Open vSwitch's database for 10 minutes.",
   description:
     "Alert when Open vSwitch is running on a machine and openstack-network-exporter has not read its database for 10 minutes (ovs_build_info is gone, and ovs_memory_rules_total is there). Version 0.3.0 connects to that database once, so this follows every restart of Open vSwitch and lasts until the exporter restarts. Nothing is wrong with the network, but until then OVN Controller Not Running and Geneve Transmit Errors cannot see this machine. One incident per machine. Check for a recent restart of Open vSwitch, then restart the exporter on that machine: `docker restart prometheus_openstack_network_exporter` on Kolla-Ansible.",
   category: "OVN and Open vSwitch",

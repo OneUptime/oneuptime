@@ -329,7 +329,7 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | The compute nodes to read [real usage](#real-usage) from through `prometheus-libvirt-exporter`, in square brackets, such as `[compute-01:9177,compute-02:9177]`. Defaults to none. |
 | `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none. |
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | An exporter already running without `--multi-cloud`, such as Kolla-Ansible's: `[10.0.0.254:9198]`. See [Use the exporter you already run](/docs/telemetry/openstack-deployment-tools#use-the-exporter-you-already-run). |
-| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node, for [what the cloud stands on](/docs/monitor/openstack-monitor#what-the-cloud-stands-on): `[10.0.0.11:15692,10.0.0.12:15692]`. Defaults to none. |
+| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node, for [what the cloud stands on](#what-the-cloud-stands-on): `[10.0.0.11:15692,10.0.0.12:15692]`. Defaults to none. |
 | `OPENSTACK_MARIADB_TARGETS` | No | mysqld_exporter beside each MariaDB node, usually on `9104`. Defaults to none. |
 | `OPENSTACK_MEMCACHED_TARGETS` | No | memcached_exporter beside each Memcached, usually on `9150`. Defaults to none. |
 | `OPENSTACK_HAPROXY_TARGETS` | No | HAProxy's own Prometheus exporter. Defaults to none. |
@@ -338,6 +338,44 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target above that does not say its own. A target can: `RegionTwo@10.1.0.11:15692`. Defaults to the first region. |
 
 The install script also reads the credential from the environment, to skip its questions: `OPENSTACK_APPLICATION_CREDENTIAL_ID` and `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, or `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` and `OPENSTACK_PROJECT_DOMAIN_NAME`. They have names of their own rather than the `OS_*` ones an openrc file sets, so an admin's sourced openrc never becomes the agent's credential without anyone being asked. An application credential is better than a username and password: it can be limited to reading and can expire.
+
+## What the cloud stands on
+
+Most OpenStack outages begin underneath it: a RabbitMQ gone, Galera out of quorum, an OVN database with no leader. The agent can read the exporters those already have, every minute, and it is off until you name them. Nothing here writes to any of them, and only a few series of each are kept.
+
+Name each in the agent's `.env`, every member of a cluster, then run `docker compose up -d`:
+
+```bash
+OPENSTACK_RABBITMQ_TARGETS=[10.0.0.11:15692,10.0.0.12:15692,10.0.0.13:15692]
+OPENSTACK_MARIADB_TARGETS=[10.0.0.11:9104,10.0.0.12:9104,10.0.0.13:9104]
+OPENSTACK_MEMCACHED_TARGETS=[10.0.0.11:9150,10.0.0.12:9150]
+OPENSTACK_HAPROXY_TARGETS=[10.0.0.11:9101,10.0.0.12:9101]
+OPENSTACK_NETWORK_EXPORTER_TARGETS=[10.0.0.21:1981,10.0.0.22:1981,RegionTwo@10.1.0.21:1981]
+OPENSTACK_LIBVIRT_HEALTH_TARGETS=[10.0.0.21:9177,10.0.0.22:9177]
+OPENSTACK_CONTROL_PLANE_REGION=RegionOne
+```
+
+A target can say which region it is in, as the last one in that list does. One that does not is in `OPENSTACK_CONTROL_PLANE_REGION`. On Kolla-Ansible, whose Prometheus already knows all of them, `control-plane-targets.py` prints these lines for you, and [OpenStack by Deployment Tool](/docs/telemetry/openstack-deployment-tools) says where each exporter is on the others.
+
+What each one reads, and what the agent needs of it:
+
+| Setting | Reads | Enable it with |
+| --- | --- | --- |
+| `OPENSTACK_RABBITMQ_TARGETS` | RabbitMQ's own plugin, `/metrics` and each queue from `/metrics/detailed` | `rabbitmq-plugins enable rabbitmq_prometheus` on each node |
+| `OPENSTACK_MARIADB_TARGETS` | mysqld_exporter beside each node. Its defaults already report Galera | Nothing beyond the exporter |
+| `OPENSTACK_MEMCACHED_TARGETS` | memcached_exporter beside each Memcached | Nothing beyond the exporter |
+| `OPENSTACK_HAPROXY_TARGETS` | HAProxy's own exporter | `http-request use-service prometheus-exporter` on a `frontend` of its own |
+| `OPENSTACK_NETWORK_EXPORTER_TARGETS` | openstack-network-exporter on each machine with Open vSwitch or OVN's databases | Its default collectors. A machine reports what it runs |
+| `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | prometheus-libvirt-exporter on each compute node, and only whether libvirt answers | Nothing beyond the exporter |
+
+Then the cloud's **Control Plane** card has one line for each, and a page per dependency with one line per machine. **Not watched** on that card means you have not named it: it never reads as healthy. Trouble there goes to the cloud's **Needs attention**. The cloud's **Recommendations** page offers [the alert templates](/docs/monitor/openstack-monitor#what-the-cloud-stands-on), and `troubleshoot.sh` checks that each target answers and is what you said it is.
+
+For more of a RabbitMQ or a database than a cloud's health needs, the [Queues](/docs/telemetry/queues) and [Databases](/docs/telemetry/databases) products read them through their own agents, which is more data than this and on its own terms. The Control Plane pages link to them. Installing those is separate, because those products read those agents' series and not these.
+
+Two things to know about openstack-network-exporter 0.3.0, the version these were recorded with:
+
+- **It connects to Open vSwitch's database once.** After Open vSwitch restarts, `ovs_build_info`, its bridges, its interfaces and all of ovn-controller's series stay gone until the exporter restarts too, while Open vSwitch's own series come straight back. **Exporter Lost Open vSwitch's Database** says when that has happened.
+- **It reads one OVN database's cluster status on a machine.** That is Southbound where a machine has both sockets, as Kolla-Ansible's have. So Northbound's leader shows only where a machine has no Southbound to read.
 
 ## What the agent collects
 

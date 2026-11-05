@@ -170,6 +170,8 @@ const CASES: Array<OrderCase> = [
     path: "openstack",
     templates: getAllOpenStackAlertTemplates(),
     categories: OPENSTACK_TEMPLATE_CATEGORIES,
+    // What its logs say are Logs monitors, which Quick Setup does not offer.
+    afterQuickSetup: ["Service Logs", "Events"],
   },
   {
     name: "VMware",

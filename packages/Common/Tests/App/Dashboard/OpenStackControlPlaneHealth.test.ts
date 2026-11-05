@@ -19,12 +19,14 @@ import {
   ResourceAttentionText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 import {
+  RecordedDrill,
   RecordedScene,
   RecordedReading,
   SCENE_REGION,
   StoredMetricRow,
   foldIntoInventory,
   getClusterSceneNames,
+  readCloudDrill,
   readClusterScene,
   rowsOfReading,
 } from "../../Types/Monitor/Utils/OpenStackControlPlaneScenes";
@@ -94,13 +96,282 @@ const EXPECTED: ReadonlyArray<{
   says: Array<string>;
 }> = [
   {
+    scene: "haproxy-api-401",
+    dependency: OpenStackDependency.HaProxy,
+    state: "NeedsALook",
+    says: ["100% of nova_api_back's responses are 4xx"],
+  },
+  {
+    scene: "haproxy-api-5xx",
+    dependency: OpenStackDependency.HaProxy,
+    state: "Broken",
+    says: ["100% of nova_api_back's responses are 5xx"],
+  },
+  {
+    scene: "haproxy-backend-down",
+    dependency: OpenStackDependency.HaProxy,
+    state: "Broken",
+    says: ["Backend nova_api_back has no server left"],
+  },
+  {
+    scene: "haproxy-down",
+    dependency: OpenStackDependency.HaProxy,
+    state: "Broken",
+    says: ["Every node is down"],
+  },
+  {
+    scene: "haproxy-recovered-from-down",
+    dependency: OpenStackDependency.HaProxy,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "haproxy-healthy",
+    dependency: OpenStackDependency.HaProxy,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "haproxy-recovered",
+    dependency: OpenStackDependency.HaProxy,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "haproxy-recovered-from-errors",
+    dependency: OpenStackDependency.HaProxy,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "haproxy-server-down",
+    dependency: OpenStackDependency.HaProxy,
+    state: "NeedsALook",
+    says: ["Server nova_api_back/controller-2 is down"],
+  },
+  {
+    scene: "mariadb-cluster-down",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Broken",
+    says: ["Every node is down"],
+  },
+  {
+    scene: "mariadb-healthy",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "mariadb-node-cut-off",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Broken",
+    says: ["Not in the Primary component", "Not ready for queries"],
+  },
+  {
+    scene: "mariadb-node-desynced",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "mariadb-node-down",
+    dependency: OpenStackDependency.MariaDb,
+    state: "NeedsALook",
+    says: ["Galera has 2 of the 3 nodes read", "Not answering"],
+  },
+  {
+    scene: "mariadb-node-out-of-sync",
+    dependency: OpenStackDependency.MariaDb,
+    state: "NeedsALook",
+    says: ["Out of sync with the cluster"],
+  },
+  {
+    scene: "mariadb-quorum-lost",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Broken",
+    says: ["No node is in the Primary component, so none takes writes"],
+  },
+  {
+    scene: "mariadb-recovered",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "mariadb-recovered-from-cluster-down",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "mariadb-slow-queries",
+    dependency: OpenStackDependency.MariaDb,
+    state: "NeedsALook",
+    says: ["212 slow queries in the last minute"],
+  },
+  {
+    scene: "mariadb-too-many-connections",
+    dependency: OpenStackDependency.MariaDb,
+    state: "NeedsALook",
+    says: ["90% of connections in use"],
+  },
+  {
+    scene: "mariadb-without-galera-down",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Broken",
+    says: ["Every node is down"],
+  },
+  {
+    scene: "mariadb-without-galera-healthy",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "mariadb-without-galera-recovered",
+    dependency: OpenStackDependency.MariaDb,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "memcached-cluster-down",
+    dependency: OpenStackDependency.Memcached,
+    state: "NeedsALook",
+    says: ["Every node is down"],
+  },
+  {
+    scene: "memcached-evictions-high",
+    dependency: OpenStackDependency.Memcached,
+    state: "NeedsALook",
+    says: ["600 items evicted in the last minute"],
+  },
+  {
+    scene: "memcached-no-clients",
+    dependency: OpenStackDependency.Memcached,
+    state: "NeedsALook",
+    says: ["Nothing connects to it or asks it anything"],
+  },
+  {
+    scene: "memcached-one-down",
+    dependency: OpenStackDependency.Memcached,
+    state: "NeedsALook",
+    says: ["Not answering"],
+  },
+  {
+    scene: "memcached-recovered",
+    dependency: OpenStackDependency.Memcached,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "memcached-with-clients",
+    dependency: OpenStackDependency.Memcached,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "ovn-every-member-down",
+    dependency: OpenStackDependency.Network,
+    state: "Broken",
+    says: [
+      "No ovn-northd is active, so changes to the network do not reach the machines",
+    ],
+  },
+  {
+    scene: "ovn-healthy",
+    dependency: OpenStackDependency.Network,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "ovn-member-down",
+    dependency: OpenStackDependency.Network,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "ovn-no-leader",
+    dependency: OpenStackDependency.Network,
+    state: "Broken",
+    says: [
+      "The OVN_Southbound database has no leader",
+      "No ovn-northd is active, so changes to the network do not reach the machines",
+    ],
+  },
+  {
+    scene: "ovn-northd-down",
+    dependency: OpenStackDependency.Network,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "ovn-recovered",
+    dependency: OpenStackDependency.Network,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "ovn-recovered-from-every-member-down",
+    dependency: OpenStackDependency.Network,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "rabbitmq-cluster-down",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Broken",
+    says: ["Every node is down"],
+  },
+  {
+    scene: "rabbitmq-disk-alarm",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Broken",
+    says: ["Disk alarm: it has stopped taking messages"],
+  },
+  {
     scene: "rabbitmq-empty",
     dependency: OpenStackDependency.RabbitMq,
     state: "Fine",
     says: [],
   },
   {
+    scene: "rabbitmq-file-descriptors-high",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "NeedsALook",
+    says: ["97% of file descriptors in use"],
+  },
+  {
     scene: "rabbitmq-healthy",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "rabbitmq-memory-alarm",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Broken",
+    says: ["Memory alarm: it has stopped taking messages"],
+  },
+  {
+    scene: "rabbitmq-messages-unacknowledged",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "NeedsALook",
+    says: ["2000 messages unacknowledged"],
+  },
+  {
+    scene: "rabbitmq-node-down",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "NeedsALook",
+    says: ["Not answering"],
+  },
+  {
+    scene: "rabbitmq-partition",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Broken",
+    says: ["The cluster has split: rabbit@rabbit1 can't reach rabbit@rabbit3"],
+  },
+  {
+    scene: "rabbitmq-queue-without-consumers",
     dependency: OpenStackDependency.RabbitMq,
     state: "Fine",
     says: [],
@@ -111,28 +382,45 @@ const EXPECTED: ReadonlyArray<{
     state: "Fine",
     says: [],
   },
+  {
+    scene: "rabbitmq-recovered-from-alarms",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "rabbitmq-recovered-from-cluster-down",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "rabbitmq-recovered-from-file-descriptors",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Fine",
+    says: [],
+  },
+  {
+    scene: "rabbitmq-recovered-from-queue-without-consumers",
+    dependency: OpenStackDependency.RabbitMq,
+    state: "Fine",
+    says: [],
+  },
 ];
 
 describe("what a recording of each thing breaking reads as", () => {
-  test("prints the table", () => {
-    const lines: Array<string> = [];
-    for (const name of getClusterSceneNames()) {
-      const scene: RecordedScene = readClusterScene(name);
-      const summaries: Array<OpenStackDependencySummary> =
-        getOpenStackDependencySummaries({ rows: rowsOf(scene), now: NOW });
-      for (const summary of summaries) {
-        if (summary.state !== "NotWatched") {
-          lines.push(
-            `${name} ${summary.dependency} ${summary.state} ${summary.nodesUp}/${summary.nodesCurrent} ${JSON.stringify(wordsOf(summary))}`,
-          );
-        }
-      }
-    }
-    // eslint-disable-next-line no-console
-    console.log(lines.join("\n"));
-    expect(lines.length).toBeGreaterThan(0);
+  test("every scene there is has a row, so a new one has to say what it reads as", () => {
+    expect(
+      EXPECTED.map((row: { scene: string }): string => {
+        return row.scene;
+      }).sort(),
+    ).toEqual(getClusterSceneNames());
   });
 
+  /*
+   * A queue with messages and nobody reading is on an alert of its own and in the Queues product.
+   * Every node of it is fine, which is what this card says of a RabbitMQ: it reads no queue.
+   */
   test.each(EXPECTED)(
     "$scene reads as $state",
     (row: {
@@ -163,9 +451,11 @@ describe("what nobody reads", () => {
       summaries.map((summary: OpenStackDependencySummary): string => {
         return summary.state;
       }),
-    ).toEqual(OPENSTACK_DEPENDENCIES.map((): string => {
-      return "NotWatched";
-    }));
+    ).toEqual(
+      OPENSTACK_DEPENDENCIES.map((): string => {
+        return "NotWatched";
+      }),
+    );
   });
 
   test("one dependency named says nothing of the others", () => {
@@ -279,6 +569,85 @@ describe("a region says nothing of another", () => {
         return item.detail;
       }),
     ).toEqual(["RegionOne"]);
+  });
+});
+
+/*
+ * What goes away with what it reports, on a real DevStack. A row keeps when each was last seen, so
+ * these fold what came before the drill, then what came after it, ten minutes on.
+ */
+describe("what a machine's network says, on a real cloud with something stopped on it", () => {
+  function networkWords(
+    release: string,
+    name: string,
+    readingOf: (drill: RecordedDrill) => RecordedReading,
+  ): Array<string> {
+    const drill: RecordedDrill = readCloudDrill(release, name);
+    const scene: RecordedScene = { name, readings: [drill.before] };
+
+    return wordsOf(
+      getOpenStackDependencySummaries({
+        rows: foldIntoInventory([
+          ...rowsOfReading({
+            scene,
+            reading: drill.before,
+            time: new Date(NOW.getTime() - 11 * 60000),
+          }),
+          ...rowsOfReading({
+            scene,
+            reading: readingOf(drill),
+            time: new Date(NOW.getTime() - 60000),
+          }),
+        ]),
+        now: NOW,
+      }).find((summary: OpenStackDependencySummary): boolean => {
+        return summary.dependency === OpenStackDependency.Network;
+      })!,
+    );
+  }
+
+  function lastMinute(drill: RecordedDrill): RecordedReading {
+    return drill.minutes[drill.minutes.length - 1]!;
+  }
+
+  function recovered(drill: RecordedDrill): RecordedReading {
+    return drill.recovered;
+  }
+
+  test("a stopped ovn-controller reads as that", () => {
+    expect(
+      networkWords("gazpacho-ovn", "ovn-controller-down", lastMinute),
+    ).toEqual(["ovn-controller isn't answering"]);
+  });
+
+  test("started again, it reads as nothing", () => {
+    expect(
+      networkWords("gazpacho-ovn", "ovn-controller-down", recovered),
+    ).toEqual([]);
+  });
+
+  test.each(["gazpacho-ovn", "gazpacho-ovs"])(
+    "a stopped Open vSwitch on %s reads as that, and not as a stopped ovn-controller as well",
+    (release: string) => {
+      expect(networkWords(release, "ovs-down", lastMinute)).toEqual([
+        "Open vSwitch isn't answering",
+      ]);
+    },
+  );
+
+  test.each(["gazpacho-ovn", "gazpacho-ovs"])(
+    "started again on %s, the exporter does not read its database until it restarts, and it says so",
+    (release: string) => {
+      expect(networkWords(release, "ovs-down", recovered)).toEqual([
+        "The exporter lost Open vSwitch's database: restart it to read this machine's interfaces and ovn-controller",
+      ]);
+    },
+  );
+
+  test("a host of only OVN's databases has lost nothing, because it never had any of it", () => {
+    expect(
+      wordsOf(summaryOf("ovn-healthy", OpenStackDependency.Network)),
+    ).toEqual([]);
   });
 });
 

@@ -664,7 +664,7 @@ while True:
   sleep 10
   RECORD_GAP=10 record memcached-recovered
   kill "$clients" 2>/dev/null
-  wait "$clients" 2>/dev/null
+  wait "$clients" 2>/dev/null || true
 }
 
 # ----------------------------------------------------------------------------
