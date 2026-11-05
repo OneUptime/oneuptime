@@ -1,7 +1,6 @@
 baseline recorded
 instance-building recorded
-instance-active FAILED: line 130: return 1 
+instance-active FAILED: line 132: return 1 
 instance-error recorded
 taskmanager-down recorded
-api-down FAILED: line 94: sudo systemctl stop "$1" 
-api-down: could not put the cloud back (exit 5)
+api-down recorded

@@ -1,0 +1,4 @@
+200 gnocchi-versions
+200 gnocchi-status
+200 gnocchi-archive-policies
+200 gnocchi-metrics-some
