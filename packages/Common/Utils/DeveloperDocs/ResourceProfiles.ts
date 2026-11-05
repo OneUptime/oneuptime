@@ -1788,6 +1788,16 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     ],
   },
 
+  OpenStackCloud: {
+    createNote:
+      "The OneUptime agent adds a cloud the first time it reports. Its name must match the openstack.cloud.name the agent reports, or the agent adds a second cloud beside this one. Creating it here is for a cloud a probe reads with no agent.",
+    fields: [
+      field("name", literal("openstack-production")),
+      field("description", literal("Production OpenStack cloud.")),
+      "labels",
+    ],
+  },
+
   VMwareVCenter: {
     createNote:
       "The OneUptime agent adds a vCenter the first time it reports. Its name must match the vcenter name the agent reports.",
