@@ -1,0 +1,5811 @@
+{
+"resourceMetrics": [
+{
+"resource": {
+"attributes": [
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.161.3"
+}
+},
+{
+"key": "server.address",
+"value": {
+"stringValue": "openstack-exporter"
+}
+},
+{
+"key": "openstack.cloud.name",
+"value": {
+"stringValue": "osa-aio"
+}
+},
+{
+"key": "server.port",
+"value": {
+"stringValue": "9180"
+}
+},
+{
+"key": "url.scheme",
+"value": {
+"stringValue": "http"
+}
+}
+]
+},
+"scopeMetrics": [
+{
+"scope": {
+"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+"version": "0.161.0"
+},
+"metrics": [
+{
+"name": "openstack_cinder_up",
+"description": "up",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "volume"
+}
+}
+],
+"timeUnixNano": "1793881037428000000",
+"asDouble": 0
+}
+]
+}
+},
+{
+"name": "openstack_glance_image_bytes",
+"description": "image_bytes",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "id",
+"value": {
+"stringValue": "2325ca95-b464-4075-ba39-5dd55e0ce7a4"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-image-stuck"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "id",
+"value": {
+"stringValue": "ff6775fc-e939-477b-897e-eabb07df571d"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "cirros"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 21692416
+}
+]
+}
+},
+{
+"name": "openstack_glance_image_created_at",
+"description": "image_created_at",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "hidden",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "2325ca95-b464-4075-ba39-5dd55e0ce7a4"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-image-stuck"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "queued"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+},
+{
+"key": "visibility",
+"value": {
+"stringValue": "public"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 1793880505
+},
+{
+"attributes": [
+{
+"key": "hidden",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "ff6775fc-e939-477b-897e-eabb07df571d"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "cirros"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "active"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+},
+{
+"key": "visibility",
+"value": {
+"stringValue": "public"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 1793880485
+}
+]
+}
+},
+{
+"name": "openstack_glance_images",
+"description": "images",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 2
+}
+]
+}
+},
+{
+"name": "openstack_glance_up",
+"description": "up",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_identity_domain_info",
+"description": "domain_info",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "description",
+"value": {
+"stringValue": "The default domain"
+}
+},
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "default"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "Default"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_identity_domains",
+"description": "domains",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_identity_project_info",
+"description": "project_info",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "description",
+"value": {
+"stringValue": "Bootstrap project for initializing the cloud."
+}
+},
+{
+"key": "domain_id",
+"value": {
+"stringValue": "default"
+}
+},
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+},
+{
+"key": "is_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+},
+{
+"key": "parent_id",
+"value": {
+"stringValue": "default"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "description",
+"value": {
+"stringValue": "OneUptime test estate"
+}
+},
+{
+"key": "domain_id",
+"value": {
+"stringValue": "default"
+}
+},
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "18e6bc2f960c44c7abd673516dabc608"
+}
+},
+{
+"key": "is_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-research"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+},
+{
+"key": "parent_id",
+"value": {
+"stringValue": "default"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "description",
+"value": {
+"stringValue": "OneUptime test estate"
+}
+},
+{
+"key": "domain_id",
+"value": {
+"stringValue": "default"
+}
+},
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "is_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-payments"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+},
+{
+"key": "parent_id",
+"value": {
+"stringValue": "default"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "description",
+"value": {
+"stringValue": "OpenStack Services"
+}
+},
+{
+"key": "domain_id",
+"value": {
+"stringValue": "default"
+}
+},
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "9411beadceae433c8185e8c2a4062181"
+}
+},
+{
+"key": "is_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "service"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+},
+{
+"key": "parent_id",
+"value": {
+"stringValue": "default"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "domain_id",
+"value": {
+"stringValue": "default"
+}
+},
+{
+"key": "enabled",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "531a43ecd3fc471e9f2cd196ff15709f"
+}
+},
+{
+"key": "is_domain",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "oneuptime-monitoring"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+},
+{
+"key": "parent_id",
+"value": {
+"stringValue": "default"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_identity_projects",
+"description": "projects",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 5
+}
+]
+}
+},
+{
+"name": "openstack_identity_regions",
+"description": "regions",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_identity_up",
+"description": "up",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_neutron_agent_state",
+"description": "agent_state",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "adminState",
+"value": {
+"stringValue": "up"
+}
+},
+{
+"key": "availability_zone",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "ad40fcc2-420d-5133-8427-33356a597751"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "service",
+"value": {
+"stringValue": "neutron-ovn-metadata-agent"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "adminState",
+"value": {
+"stringValue": "up"
+}
+},
+{
+"key": "availability_zone",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "e922f351-19b2-4421-8dc7-c244ed018f23"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "service",
+"value": {
+"stringValue": "ovn-controller"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_neutron_floating_ip",
+"description": "floating_ip",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "floating_ip_address",
+"value": {
+"stringValue": "172.29.248.125"
+}
+},
+{
+"key": "floating_network_id",
+"value": {
+"stringValue": "6ba041c8-808c-45be-abdd-5c15e48111bd"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "c1661fa7-1c6a-4e00-aa3f-0c4041d09a24"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "DOWN"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "floating_ip_address",
+"value": {
+"stringValue": "172.29.248.150"
+}
+},
+{
+"key": "floating_network_id",
+"value": {
+"stringValue": "6ba041c8-808c-45be-abdd-5c15e48111bd"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "617a7922-9171-45b1-84ae-a357749a060c"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "router_id",
+"value": {
+"stringValue": "72b9fb78-40b5-4360-b971-84bb6e0a604f"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_neutron_floating_ips",
+"description": "floating_ips",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 2
+}
+]
+}
+},
+{
+"name": "openstack_neutron_floating_ips_associated_not_active",
+"description": "floating_ips_associated_not_active",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 0
+}
+]
+}
+},
+{
+"name": "openstack_neutron_network",
+"description": "network",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "id",
+"value": {
+"stringValue": "3190c4ee-7ff1-4f1f-9dd9-6142f7f3dd40"
+}
+},
+{
+"key": "is_external",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "is_shared",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "mtu",
+"value": {
+"stringValue": "1442"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-net"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "provider_network_type",
+"value": {
+"stringValue": "geneve"
+}
+},
+{
+"key": "provider_segmentation_id",
+"value": {
+"stringValue": "394"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+},
+{
+"key": "subnets",
+"value": {
+"stringValue": "67c3c310-ca37-4f48-acf1-51d610f0716f"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "id",
+"value": {
+"stringValue": "6ba041c8-808c-45be-abdd-5c15e48111bd"
+}
+},
+{
+"key": "is_external",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "is_shared",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "mtu",
+"value": {
+"stringValue": "1500"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "public"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "provider_network_type",
+"value": {
+"stringValue": "flat"
+}
+},
+{
+"key": "provider_physical_network",
+"value": {
+"stringValue": "physnet1"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+},
+{
+"key": "subnets",
+"value": {
+"stringValue": "29b5458a-1414-4432-9dc6-f9adc7dbf151"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "id",
+"value": {
+"stringValue": "78047083-a8d0-48ef-a3f2-5cefe47dc35d"
+}
+},
+{
+"key": "is_external",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "is_shared",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "mtu",
+"value": {
+"stringValue": "1442"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-research-net"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "provider_network_type",
+"value": {
+"stringValue": "geneve"
+}
+},
+{
+"key": "provider_segmentation_id",
+"value": {
+"stringValue": "23"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+},
+{
+"key": "subnets",
+"value": {
+"stringValue": "f5edd8fb-7f30-427c-bc35-47c886db0833"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "18e6bc2f960c44c7abd673516dabc608"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 0
+}
+]
+}
+},
+{
+"name": "openstack_neutron_network_ip_availabilities_total",
+"description": "network_ip_availabilities_total",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "10.77.0.0/24"
+}
+},
+{
+"key": "ip_version",
+"value": {
+"stringValue": "4"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "3190c4ee-7ff1-4f1f-9dd9-6142f7f3dd40"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "ou-net"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "subnet_name",
+"value": {
+"stringValue": "ou-subnet"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 253
+},
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "10.78.0.0/24"
+}
+},
+{
+"key": "ip_version",
+"value": {
+"stringValue": "4"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "78047083-a8d0-48ef-a3f2-5cefe47dc35d"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "ou-research-net"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "18e6bc2f960c44c7abd673516dabc608"
+}
+},
+{
+"key": "subnet_name",
+"value": {
+"stringValue": "ou-research-subnet"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 253
+},
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "172.29.248.0/22"
+}
+},
+{
+"key": "ip_version",
+"value": {
+"stringValue": "4"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "6ba041c8-808c-45be-abdd-5c15e48111bd"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "public"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+},
+{
+"key": "subnet_name",
+"value": {
+"stringValue": "public-subnet"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 91
+}
+]
+}
+},
+{
+"name": "openstack_neutron_network_ip_availabilities_used",
+"description": "network_ip_availabilities_used",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "10.77.0.0/24"
+}
+},
+{
+"key": "ip_version",
+"value": {
+"stringValue": "4"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "3190c4ee-7ff1-4f1f-9dd9-6142f7f3dd40"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "ou-net"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "subnet_name",
+"value": {
+"stringValue": "ou-subnet"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 4
+},
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "10.78.0.0/24"
+}
+},
+{
+"key": "ip_version",
+"value": {
+"stringValue": "4"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "78047083-a8d0-48ef-a3f2-5cefe47dc35d"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "ou-research-net"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "18e6bc2f960c44c7abd673516dabc608"
+}
+},
+{
+"key": "subnet_name",
+"value": {
+"stringValue": "ou-research-subnet"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 3
+},
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "172.29.248.0/22"
+}
+},
+{
+"key": "ip_version",
+"value": {
+"stringValue": "4"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "6ba041c8-808c-45be-abdd-5c15e48111bd"
+}
+},
+{
+"key": "network_name",
+"value": {
+"stringValue": "public"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+},
+{
+"key": "subnet_name",
+"value": {
+"stringValue": "public-subnet"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 3
+}
+]
+}
+},
+{
+"name": "openstack_neutron_networks",
+"description": "networks",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 3
+}
+]
+}
+},
+{
+"name": "openstack_neutron_router",
+"description": "router",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "admin_state_up",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "external_network_id",
+"value": {
+"stringValue": "6ba041c8-808c-45be-abdd-5c15e48111bd"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "72b9fb78-40b5-4360-b971-84bb6e0a604f"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-router"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "project_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_neutron_routers",
+"description": "routers",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_neutron_routers_not_active",
+"description": "routers_not_active",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 0
+}
+]
+}
+},
+{
+"name": "openstack_neutron_security_groups",
+"description": "security_groups",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 6
+}
+]
+}
+},
+{
+"name": "openstack_neutron_subnet",
+"description": "subnet",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "10.77.0.0/24"
+}
+},
+{
+"key": "enable_dhcp",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "gateway_ip",
+"value": {
+"stringValue": "10.77.0.1"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "67c3c310-ca37-4f48-acf1-51d610f0716f"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-subnet"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "3190c4ee-7ff1-4f1f-9dd9-6142f7f3dd40"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "10.78.0.0/24"
+}
+},
+{
+"key": "enable_dhcp",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "gateway_ip",
+"value": {
+"stringValue": "10.78.0.1"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "f5edd8fb-7f30-427c-bc35-47c886db0833"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-research-subnet"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "78047083-a8d0-48ef-a3f2-5cefe47dc35d"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "18e6bc2f960c44c7abd673516dabc608"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "cidr",
+"value": {
+"stringValue": "172.29.248.0/22"
+}
+},
+{
+"key": "enable_dhcp",
+"value": {
+"stringValue": "false"
+}
+},
+{
+"key": "gateway_ip",
+"value": {
+"stringValue": "172.29.248.100"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "29b5458a-1414-4432-9dc6-f9adc7dbf151"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "public-subnet"
+}
+},
+{
+"key": "network_id",
+"value": {
+"stringValue": "6ba041c8-808c-45be-abdd-5c15e48111bd"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_neutron_subnets",
+"description": "subnets",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 3
+}
+]
+}
+},
+{
+"name": "openstack_neutron_up",
+"description": "up",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_nova_agent_state",
+"description": "agent_state",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "adminState",
+"value": {
+"stringValue": "enabled"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-269baa4e"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "10df72be-d629-443d-ad3b-104bbf967427"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "service",
+"value": {
+"stringValue": "nova-conductor"
+}
+},
+{
+"key": "zone",
+"value": {
+"stringValue": "internal"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "adminState",
+"value": {
+"stringValue": "enabled"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-269baa4e"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "e2895847-4a22-45ca-a524-fb84509ea22e"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "service",
+"value": {
+"stringValue": "nova-scheduler"
+}
+},
+{
+"key": "zone",
+"value": {
+"stringValue": "internal"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "adminState",
+"value": {
+"stringValue": "enabled"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "1286ff2a-164e-4588-aab6-4c4f8e27d171"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "service",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "zone",
+"value": {
+"stringValue": "nova"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_nova_availability_zones",
+"description": "availability_zones",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_nova_current_workload",
+"description": "current_workload",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 0
+}
+]
+}
+},
+{
+"name": "openstack_nova_flavor",
+"description": "flavor",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "disk",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "71eb0d5d-0c6e-4f8c-a6e0-798e374c53ea"
+}
+},
+{
+"key": "is_public",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou.tiny"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "ram",
+"value": {
+"stringValue": "128"
+}
+},
+{
+"key": "vcpus",
+"value": {
+"stringValue": "1"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "disk",
+"value": {
+"stringValue": "1"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "ab356a57-775f-4913-af0d-d67ae2631eb5"
+}
+},
+{
+"key": "is_public",
+"value": {
+"stringValue": "true"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou.impossible"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "ram",
+"value": {
+"stringValue": "1048576"
+}
+},
+{
+"key": "vcpus",
+"value": {
+"stringValue": "1"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_nova_flavors",
+"description": "flavors",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 2
+}
+]
+}
+},
+{
+"name": "openstack_nova_free_disk_bytes",
+"description": "free_disk_bytes",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1093069176832
+}
+]
+}
+},
+{
+"name": "openstack_nova_local_storage_available_bytes",
+"description": "local_storage_available_bytes",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1098437885952
+}
+]
+}
+},
+{
+"name": "openstack_nova_local_storage_used_bytes",
+"description": "local_storage_used_bytes",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 5368709120
+}
+]
+}
+},
+{
+"name": "openstack_nova_memory_available_bytes",
+"description": "memory_available_bytes",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 16759390208
+}
+]
+}
+},
+{
+"name": "openstack_nova_memory_used_bytes",
+"description": "memory_used_bytes",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 805306368
+}
+]
+}
+},
+{
+"name": "openstack_nova_running_vms",
+"description": "running_vms",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 4
+}
+]
+}
+},
+{
+"name": "openstack_nova_server_status",
+"description": "server_status",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "availability_zone",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "flavor_id",
+"value": {
+"stringValue": "71eb0d5d-0c6e-4f8c-a6e0-798e374c53ea"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "1f39d9e5d7db44978c5a72f3e6f14f7f26c0228a7c763107b5d48ba0"
+}
+},
+{
+"key": "hypervisor_hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "3d3a2e7d-957d-4594-855b-ed107e066f8e"
+}
+},
+{
+"key": "instance_libvirt",
+"value": {
+"stringValue": "instance-00000002"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-stopped"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "SHUTOFF"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "user_id",
+"value": {
+"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3d3a2e7d-957d-4594-855b-ed107e066f8e"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 11
+},
+{
+"attributes": [
+{
+"key": "availability_zone",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "flavor_id",
+"value": {
+"stringValue": "71eb0d5d-0c6e-4f8c-a6e0-798e374c53ea"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "1f39d9e5d7db44978c5a72f3e6f14f7f26c0228a7c763107b5d48ba0"
+}
+},
+{
+"key": "hypervisor_hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "980aef78-683d-41f4-acb2-1ecf843a1d17"
+}
+},
+{
+"key": "instance_libvirt",
+"value": {
+"stringValue": "instance-00000001"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-running"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "user_id",
+"value": {
+"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "980aef78-683d-41f4-acb2-1ecf843a1d17"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "availability_zone",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "flavor_id",
+"value": {
+"stringValue": "71eb0d5d-0c6e-4f8c-a6e0-798e374c53ea"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "603ea5bdb1fbb7b00b0365f292ce11f5082576567b74f1b1fca3c5fd"
+}
+},
+{
+"key": "hypervisor_hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "207e88d5-dfec-41c5-963a-5c6bc61e695a"
+}
+},
+{
+"key": "instance_libvirt",
+"value": {
+"stringValue": "instance-00000004"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-from-volume"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "18e6bc2f960c44c7abd673516dabc608"
+}
+},
+{
+"key": "user_id",
+"value": {
+"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "207e88d5-dfec-41c5-963a-5c6bc61e695a"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "availability_zone",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "flavor_id",
+"value": {
+"stringValue": "71eb0d5d-0c6e-4f8c-a6e0-798e374c53ea"
+}
+},
+{
+"key": "host_id",
+"value": {
+"stringValue": "603ea5bdb1fbb7b00b0365f292ce11f5082576567b74f1b1fca3c5fd"
+}
+},
+{
+"key": "hypervisor_hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "21d14b91-9f7b-456b-94d1-20d9e9ee9853"
+}
+},
+{
+"key": "instance_libvirt",
+"value": {
+"stringValue": "instance-00000003"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-research-1"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ACTIVE"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "18e6bc2f960c44c7abd673516dabc608"
+}
+},
+{
+"key": "user_id",
+"value": {
+"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "21d14b91-9f7b-456b-94d1-20d9e9ee9853"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "flavor_id",
+"value": {
+"stringValue": "ab356a57-775f-4913-af0d-d67ae2631eb5"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "0eb23bed-0c5d-4f5f-abbf-c7d73ee39057"
+}
+},
+{
+"key": "instance_libvirt",
+"value": {
+"stringValue": "instance-00000001"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-failed"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ERROR"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "e19b55c707ae4756a56e0b7e5d6d6bb0"
+}
+},
+{
+"key": "user_id",
+"value": {
+"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "0eb23bed-0c5d-4f5f-abbf-c7d73ee39057"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 4
+}
+]
+}
+},
+{
+"name": "openstack_nova_total_vms",
+"description": "total_vms",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 5
+}
+]
+}
+},
+{
+"name": "openstack_nova_up",
+"description": "up",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_nova_vcpus_available",
+"description": "vcpus_available",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 4
+}
+]
+}
+},
+{
+"name": "openstack_nova_vcpus_used",
+"description": "vcpus_used",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "aggregates",
+"value": {
+"stringValue": "ou-fast,ou-gpu"
+}
+},
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 4
+}
+]
+}
+},
+{
+"name": "openstack_placement_resource_allocation_ratio",
+"description": "resource_allocation_ratio",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 2
+}
+]
+}
+},
+{
+"name": "openstack_placement_resource_generation",
+"description": "resource_generation",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 8
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 8
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 8
+}
+]
+}
+},
+{
+"name": "openstack_placement_resource_provider_allocations",
+"description": "resource_provider_allocations",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "21d14b91-9f7b-456b-94d1-20d9e9ee9853"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3d3a2e7d-957d-4594-855b-ed107e066f8e"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "980aef78-683d-41f4-acb2-1ecf843a1d17"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "207e88d5-dfec-41c5-963a-5c6bc61e695a"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 128
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "21d14b91-9f7b-456b-94d1-20d9e9ee9853"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 128
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3d3a2e7d-957d-4594-855b-ed107e066f8e"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 128
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "980aef78-683d-41f4-acb2-1ecf843a1d17"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 128
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "207e88d5-dfec-41c5-963a-5c6bc61e695a"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "21d14b91-9f7b-456b-94d1-20d9e9ee9853"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "3d3a2e7d-957d-4594-855b-ed107e066f8e"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+},
+{
+"key": "uuid",
+"value": {
+"stringValue": "980aef78-683d-41f4-acb2-1ecf843a1d17"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "openstack_placement_resource_reserved",
+"description": "resource_reserved",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 2
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 256
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 0
+}
+]
+}
+},
+{
+"name": "openstack_placement_resource_total",
+"description": "resource_total",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1023
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 15983
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 4
+}
+]
+}
+},
+{
+"name": "openstack_placement_resource_usage",
+"description": "resource_usage",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "DISK_GB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 3
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "MEMORY_MB"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 512
+},
+{
+"attributes": [
+{
+"key": "hostname",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+},
+{
+"key": "resourcetype",
+"value": {
+"stringValue": "VCPU"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 4
+}
+]
+}
+},
+{
+"name": "openstack_placement_up",
+"description": "up",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "scrape_duration_seconds",
+"description": "Duration of the scrape",
+"unit": "s",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "baremetal"
+}
+}
+],
+"timeUnixNano": "1793880871013000000",
+"asDouble": 0.404705297
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 0.746980538
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "container-infra"
+}
+}
+],
+"timeUnixNano": "1793880934671000000",
+"asDouble": 0.405543005
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793880938542000000",
+"asDouble": 0.402392578
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "dns"
+}
+}
+],
+"timeUnixNano": "1793880842481000000",
+"asDouble": 0.405024338
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793880871983000000",
+"asDouble": 0.412445171
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 0.907885837
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 0.51205411
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793881021326000000",
+"asDouble": 0.403357781
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1.005002865
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793880978477000000",
+"asDouble": 0.410928692
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "orchestration"
+}
+}
+],
+"timeUnixNano": "1793881022609000000",
+"asDouble": 0.404684134
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 0.509997934
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "volume"
+}
+}
+],
+"timeUnixNano": "1793881037428000000",
+"asDouble": 1.026782966
+}
+]
+}
+},
+{
+"name": "scrape_samples_post_metric_relabeling",
+"description": "The number of samples remaining after metric relabeling was applied",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "baremetal"
+}
+}
+],
+"timeUnixNano": "1793880871013000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 23
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "container-infra"
+}
+}
+],
+"timeUnixNano": "1793880934671000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793880938542000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "dns"
+}
+}
+],
+"timeUnixNano": "1793880842481000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793880871983000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 10
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 6
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793881021326000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 25
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793880978477000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "orchestration"
+}
+}
+],
+"timeUnixNano": "1793881022609000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 27
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "volume"
+}
+}
+],
+"timeUnixNano": "1793881037428000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "scrape_samples_scraped",
+"description": "The number of samples the target exposed",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "baremetal"
+}
+}
+],
+"timeUnixNano": "1793880871013000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 23
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "container-infra"
+}
+}
+],
+"timeUnixNano": "1793880934671000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793880938542000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "dns"
+}
+}
+],
+"timeUnixNano": "1793880842481000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793880871983000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 10
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 6
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793881021326000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 25
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793880978477000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "orchestration"
+}
+}
+],
+"timeUnixNano": "1793881022609000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 27
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "volume"
+}
+}
+],
+"timeUnixNano": "1793881037428000000",
+"asDouble": 1
+}
+]
+}
+},
+{
+"name": "scrape_series_added",
+"description": "The approximate number of new series in this scrape",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "baremetal"
+}
+}
+],
+"timeUnixNano": "1793880871013000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "container-infra"
+}
+}
+],
+"timeUnixNano": "1793880934671000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793880938542000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "dns"
+}
+}
+],
+"timeUnixNano": "1793880842481000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793880871983000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 10
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 6
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793881021326000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793880978477000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "orchestration"
+}
+}
+],
+"timeUnixNano": "1793881022609000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "volume"
+}
+}
+],
+"timeUnixNano": "1793881037428000000",
+"asDouble": 0
+}
+]
+}
+},
+{
+"name": "up",
+"description": "The scraping was successful",
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+],
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "baremetal"
+}
+}
+],
+"timeUnixNano": "1793880871013000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "compute"
+}
+}
+],
+"timeUnixNano": "1793880926230000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "container-infra"
+}
+}
+],
+"timeUnixNano": "1793880934671000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793880938542000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "dns"
+}
+}
+],
+"timeUnixNano": "1793880842481000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793880871983000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "identity"
+}
+}
+],
+"timeUnixNano": "1793880849991000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "image"
+}
+}
+],
+"timeUnixNano": "1793880801809000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793881021326000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "network"
+}
+}
+],
+"timeUnixNano": "1793881007323000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793880978477000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "orchestration"
+}
+}
+],
+"timeUnixNano": "1793881022609000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "placement"
+}
+}
+],
+"timeUnixNano": "1793880997720000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "volume"
+}
+}
+],
+"timeUnixNano": "1793881037428000000",
+"asDouble": 1
+}
+]
+}
+}
+]
+}
+]
+}
+]
+}
