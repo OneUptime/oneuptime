@@ -1,90 +1,262 @@
 {
+  "byScene": {
+    "collector-down-signed-boot": {
+      "hot": {
+        "devstack@c-vol.service": 25.4
+      },
+      "seconds": 25
+    },
+    "collector-down-signed-list": {
+      "hot": {
+        "devstack@c-vol.service": 16.43
+      },
+      "seconds": 16
+    },
+    "native-always-on-boot": {
+      "hot": {},
+      "seconds": 30
+    },
+    "native-always-on-failed-boot": {
+      "hot": {},
+      "seconds": 18
+    },
+    "native-always-on-idle": {
+      "hot": {},
+      "seconds": 195
+    },
+    "native-always-on-volume": {
+      "hot": {},
+      "seconds": 45
+    },
+    "native-both-boot": {
+      "hot": {},
+      "seconds": 30
+    },
+    "native-both-idle": {
+      "hot": {},
+      "seconds": 75
+    },
+    "native-crossing-boot": {
+      "hot": {},
+      "seconds": 30
+    },
+    "native-messaging-boot": {
+      "hot": {},
+      "seconds": 30
+    },
+    "native-messaging-idle": {
+      "hot": {},
+      "seconds": 75
+    },
+    "native-with-osprofiler-boot": {
+      "hot": {},
+      "seconds": 25
+    },
+    "no-libraries-signed-list": {
+      "hot": {},
+      "seconds": 16
+    },
+    "off-again-signed-boot": {
+      "hot": {},
+      "seconds": 26
+    },
+    "off-signed-list": {
+      "hot": {},
+      "seconds": 16
+    },
+    "signed-boot": {
+      "hot": {
+        "devstack@c-vol.service": 22.29
+      },
+      "seconds": 22
+    },
+    "signed-boot-failed": {
+      "hot": {
+        "devstack@c-vol.service": 17.84
+      },
+      "seconds": 18
+    },
+    "signed-boot-failed-whole": {
+      "hot": {},
+      "seconds": 20
+    },
+    "signed-boot-osprofiler-fix": {
+      "hot": {},
+      "seconds": 25
+    },
+    "signed-boot-placement": {
+      "hot": {
+        "devstack@c-vol.service": 25.32
+      },
+      "seconds": 25
+    },
+    "signed-boot-requests": {
+      "hot": {
+        "devstack@c-vol.service": 25.28
+      },
+      "seconds": 25
+    },
+    "signed-boot-sql": {
+      "hot": {
+        "devstack@c-vol.service": 25.25
+      },
+      "seconds": 26
+    },
+    "signed-boot-whole": {
+      "hot": {},
+      "seconds": 26
+    },
+    "signed-by-header": {
+      "hot": {
+        "devstack@c-vol.service": 17.51
+      },
+      "seconds": 18
+    },
+    "signed-delete": {
+      "hot": {
+        "devstack@c-vol.service": 20.28
+      },
+      "seconds": 20
+    },
+    "signed-image": {
+      "hot": {
+        "devstack@c-vol.service": 16.2
+      },
+      "seconds": 16
+    },
+    "signed-list": {
+      "hot": {
+        "devstack@c-vol.service": 16.45
+      },
+      "seconds": 17
+    },
+    "signed-network": {
+      "hot": {
+        "devstack@c-vol.service": 25.82
+      },
+      "seconds": 26
+    },
+    "signed-show": {
+      "hot": {
+        "devstack@c-vol.service": 16.65
+      },
+      "seconds": 16
+    },
+    "signed-token": {
+      "hot": {
+        "devstack@c-vol.service": 16.07
+      },
+      "seconds": 16
+    },
+    "signed-volume": {
+      "hot": {
+        "devstack@c-vol.service": 38.74
+      },
+      "seconds": 35
+    },
+    "unsigned-list": {
+      "hot": {
+        "devstack@c-vol.service": 16.7
+      },
+      "seconds": 17
+    },
+    "wrong-key-list": {
+      "hot": {
+        "devstack@c-vol.service": 16.94
+      },
+      "seconds": 16
+    }
+  },
   "off": {
     "answers": {
       "compute": {
-        "p50Milliseconds": 0.0,
-        "p95Milliseconds": 0.0,
+        "p50Milliseconds": 47.6,
+        "p95Milliseconds": 106.0,
         "requests": 40
       },
       "image": {
-        "p50Milliseconds": 0.0,
-        "p95Milliseconds": 0.0,
+        "p50Milliseconds": 5.4,
+        "p95Milliseconds": 16.0,
         "requests": 40
       },
       "network": {
-        "p50Milliseconds": 0.0,
-        "p95Milliseconds": 0.0,
+        "p50Milliseconds": 15.5,
+        "p95Milliseconds": 25.1,
         "requests": 40
       }
     },
     "collectorBytesWhileQuiet": 0,
     "cpuSecondsWhileQuiet": {
-      "devstack@c-api.service": 0.04,
-      "devstack@c-sch.service": 0.15,
-      "devstack@c-vol.service": 0.03,
-      "devstack@ceilometer-acompute.service": 1.16,
-      "devstack@etcd.service": 0.01,
-      "devstack@g-api.service": 0.11,
-      "devstack@keystone.service": 0.13,
-      "devstack@n-api-meta.service": 0.01,
-      "devstack@n-api.service": 0.01,
-      "devstack@n-cond-cell1.service": 0.46,
-      "devstack@n-cpu.service": 0.09,
-      "devstack@n-novnc-cell1.service": 0.03,
-      "devstack@n-sch.service": 0.12,
-      "devstack@n-super-cond.service": 0.04,
-      "devstack@neutron-api.service": 0.15,
-      "devstack@neutron-ovn-maintenance-worker.service": 0.02,
-      "devstack@neutron-periodic-workers.service": 0.19,
-      "devstack@neutron-rpc-server.service": 2.12,
-      "devstack@placement-api.service": 0.05
+      "devstack@c-api.service": 0.02,
+      "devstack@c-sch.service": 0.07,
+      "devstack@c-vol.service": 0.95,
+      "devstack@ceilometer-acompute.service": 0.09,
+      "devstack@etcd.service": 0.23,
+      "devstack@g-api.service": 0.0,
+      "devstack@keystone.service": 0.0,
+      "devstack@n-api-meta.service": 0.03,
+      "devstack@n-api.service": 0.08,
+      "devstack@n-cond-cell1.service": 0.44,
+      "devstack@n-cpu.service": 0.69,
+      "devstack@n-novnc-cell1.service": 0.01,
+      "devstack@n-sch.service": 0.09,
+      "devstack@n-super-cond.service": 0.1,
+      "devstack@neutron-api.service": 0.09,
+      "devstack@neutron-ovn-maintenance-worker.service": 0.01,
+      "devstack@neutron-periodic-workers.service": 0.03,
+      "devstack@neutron-rpc-server.service": 0.02,
+      "devstack@placement-api.service": 0.06,
+      "devstack@q-ovn-agent.service": 0.02
     },
-    "cpuSecondsWhileQuietInAll": 4.92,
+    "cpuSecondsWhileQuietInAll": 3.03,
     "quietSeconds": 120,
+    "spansTheCollectorSendsWhileQuiet": 0,
     "spansWhileQuiet": 0
   },
   "on": {
     "answers": {
       "compute": {
-        "p50Milliseconds": 0.0,
-        "p95Milliseconds": 0.0,
+        "p50Milliseconds": 31.9,
+        "p95Milliseconds": 57.2,
         "requests": 40
       },
       "image": {
-        "p50Milliseconds": 0.0,
-        "p95Milliseconds": 0.0,
+        "p50Milliseconds": 7.9,
+        "p95Milliseconds": 17.5,
         "requests": 40
       },
       "network": {
-        "p50Milliseconds": 0.0,
-        "p95Milliseconds": 0.0,
+        "p50Milliseconds": 18.0,
+        "p95Milliseconds": 27.0,
         "requests": 40
       }
     },
-    "collectorBytesWhileQuiet": 52496,
+    "collectorBytesWhileQuiet": 3620,
     "cpuSecondsWhileQuiet": {
-      "devstack@c-api.service": 0.04,
-      "devstack@c-sch.service": 0.22,
-      "devstack@c-vol.service": 0.03,
-      "devstack@ceilometer-acompute.service": 1.3,
-      "devstack@etcd.service": 0.08,
-      "devstack@g-api.service": 0.23,
-      "devstack@keystone.service": 0.14,
-      "devstack@n-api-meta.service": 0.01,
-      "devstack@n-api.service": 0.01,
-      "devstack@n-cond-cell1.service": 0.54,
-      "devstack@n-cpu.service": 0.1,
-      "devstack@n-novnc-cell1.service": 0.06,
-      "devstack@n-sch.service": 0.14,
-      "devstack@n-super-cond.service": 0.04,
-      "devstack@neutron-api.service": 0.18,
-      "devstack@neutron-ovn-maintenance-worker.service": 0.02,
-      "devstack@neutron-periodic-workers.service": 0.2,
-      "devstack@neutron-rpc-server.service": 2.22,
-      "devstack@placement-api.service": 0.05
+      "devstack@c-api.service": 0.05,
+      "devstack@c-sch.service": 0.08,
+      "devstack@c-vol.service": 1.12,
+      "devstack@ceilometer-acompute.service": 0.09,
+      "devstack@etcd.service": 0.32,
+      "devstack@g-api.service": 0.01,
+      "devstack@keystone.service": 0.01,
+      "devstack@n-api-meta.service": 0.04,
+      "devstack@n-api.service": 0.1,
+      "devstack@n-cond-cell1.service": 0.64,
+      "devstack@n-cpu.service": 0.78,
+      "devstack@n-novnc-cell1.service": 0.01,
+      "devstack@n-sch.service": 0.13,
+      "devstack@n-super-cond.service": 0.17,
+      "devstack@neutron-api.service": 0.11,
+      "devstack@neutron-ovn-maintenance-worker.service": 0.01,
+      "devstack@neutron-periodic-workers.service": 0.03,
+      "devstack@neutron-rpc-server.service": 0.03,
+      "devstack@placement-api.service": 0.15,
+      "devstack@q-ovn-agent.service": 0.02
     },
-    "cpuSecondsWhileQuietInAll": 5.61,
+    "cpuSecondsWhileQuietInAll": 3.9,
     "quietSeconds": 120,
+    "spansTheCollectorSendsWhileQuiet": 4,
     "spansWhileQuiet": 60
   }
 }

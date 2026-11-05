@@ -14,7 +14,7 @@
   "OS-EXT-STS:power_state": 1,
   "OS-EXT-STS:task_state": null,
   "OS-EXT-STS:vm_state": "active",
-  "OS-SRV-USG:launched_at": "2026-11-05T18:27:44.000000",
+  "OS-SRV-USG:launched_at": "2026-11-05T23:23:39.000000",
   "OS-SRV-USG:terminated_at": null,
   "accessIPv4": "",
   "accessIPv6": "",
@@ -24,7 +24,7 @@
     ]
   },
   "config_drive": "",
-  "created": "2026-11-05T18:27:39Z",
+  "created": "2026-11-05T23:23:37Z",
   "description": null,
   "flavor": {
     "name": "ou.tiny",
@@ -42,17 +42,17 @@
     "id": "ou.tiny",
     "location": null
   },
-  "hostId": "62f2d7c8e24dde6708cd32c8be97811ffd15fed48f0dddb0a0648d29",
+  "hostId": "5760a54adac4a307b48feeb5f70041d488f15cf2726f4b4304f7cdf4",
   "host_status": null,
-  "id": "02e3008e-2b35-4726-816e-708f59e0840c",
-  "image": "cirros-0.6.3-x86_64-disk (fd2ed212-701a-4914-8bd9-b17439fa8afe)",
+  "id": "e4f2ca50-8891-45dc-b58c-6814a114a350",
+  "image": "cirros-0.6.3-x86_64-disk (87cee402-fa75-4ac9-8344-0c3c8386dff1)",
   "key_name": null,
   "locked": false,
   "locked_reason": null,
   "name": "ou-trace-native-always",
   "pinned_availability_zone": null,
   "progress": 0,
-  "project_id": "8ec9ea3c29fa424ab548900d2ee7dce6",
+  "project_id": "73fe10ae28b34c7391a5259edb943cb3",
   "properties": {},
   "scheduler_hints": {},
   "security_groups": [
@@ -64,7 +64,7 @@
   "status": "ACTIVE",
   "tags": [],
   "trusted_image_certificates": null,
-  "updated": "2026-11-05T18:27:45Z",
-  "user_id": "799b8fa21de1450bbcfcc2d3eae61797",
+  "updated": "2026-11-05T23:23:40Z",
+  "user_id": "f1e68117a18343c2a05f9a177130398f",
   "volumes_attached": []
 }

@@ -1364,6 +1364,8 @@ On 2026.2 `nova-conductor` sends too, and later work lands in the trace, so of t
 
 With the collector stopped, a signed boot still worked and its spans were lost, so tracing did not get in the request's way.
 
+On 2026.2 `cinder-volume`, which still runs on eventlet, sometimes spun a whole core after a restart, mostly with OSProfiler's driver on and once with it off. Another restart cleared it. We do not know why, so look there first if a machine runs hot.
+
 ### What a span holds
 
 OSProfiler's driver copies what a traced call was handed into its span, written out as Python would print it: an instance's admin password and user data, and a volume's connection info. The collector removes `args`, `kwargs`, `result` and `db.params` before they leave the machine, and OneUptime removes them on arrival for a span that came some other way. Nothing turns that off. A statement from `trace_sqlalchemy` is kept with its placeholders, and its values are not.
@@ -1411,9 +1413,18 @@ sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "o
 
 A boot's trace then crosses Neutron and Glance too, for what `nova-api` asks them. `nova-compute` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace.
 
-@@COST@@
+What it cost on one machine's DevStack, with one compute node and one reader. That is no busy cloud, and three APIs answered no slower that we could tell from noise:
 
-This was run on DevStack on 2026.2, and nowhere else.
+| Read 40 times, or measured | Off | On |
+| --- | --- | --- |
+| `GET /servers`, half answered within | 48 ms | 32 ms |
+| `GET /v2.0/networks`, half answered within | 16 ms | 18 ms |
+| `GET /v2/images`, half answered within | 5 ms | 8 ms |
+| CPU over two quiet minutes, every service together | 3.0 s | 3.9 s |
+
+A boot makes about 220 spans, and the collector sends on about 110 of them, about 75 KB. An idle minute makes about 33, and it sends on about 2, because it drops `nova-compute` asking its conductor to read or save an object unless one failed. Those are most of a boot's RPC spans and nearly all of an idle cloud's. Take `filter/nova-object-calls` out of the collector's pipeline to keep them.
+
+This was run on DevStack on 2026.2, from a real boot to a running OneUptime, and nowhere else.
 
 ## Check the cloud from outside
 

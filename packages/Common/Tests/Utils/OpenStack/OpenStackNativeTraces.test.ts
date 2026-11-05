@@ -745,6 +745,63 @@ describe("on a real 2026.2, with nothing signed", () => {
     expect(failed[0]!.read.statusMessage).not.toContain("Traceback");
   });
 
+  describe("what leaving it on cost, as the docs and the guide say it did", () => {
+    interface Summary {
+      spans: number;
+      spansTheCollectorSends: number;
+    }
+
+    interface Cost {
+      answers: Record<string, { p50Milliseconds: number }>;
+      cpuSecondsWhileQuietInAll: number;
+      quietSeconds: number;
+    }
+
+    const summary: Record<string, Summary> = recording.json<
+      Record<string, Summary>
+    >("native-summary.json");
+    const cost: Record<string, Cost> =
+      recording.json<Record<string, Cost>>("native-cost.json");
+
+    test("an idle minute makes about 33 spans, and the collector sends on about 2", () => {
+      const idle: Summary = summary["native-always-on-idle"]!;
+
+      expect(Math.round(idle.spans / 3)).toBe(33);
+      expect(Math.round(idle.spansTheCollectorSends / 3)).toBe(2);
+    });
+
+    test("a boot makes about 220, and it sends on about 110", () => {
+      const boot: Summary = summary["native-always-on-boot"]!;
+
+      expect(Math.abs(boot.spans - 220)).toBeLessThan(20);
+      expect(Math.abs(boot.spansTheCollectorSends - 110)).toBeLessThan(15);
+    });
+
+    test.each([
+      ["compute", 48, 32],
+      ["network", 16, 18],
+      ["image", 5, 8],
+    ])(
+      "%s answered in about the time the table says, off and on",
+      (api: string, off: number, on: number) => {
+        expect(Math.round(cost["off"]!.answers[api]!.p50Milliseconds)).toBe(
+          off,
+        );
+        expect(Math.round(cost["on"]!.answers[api]!.p50Milliseconds)).toBe(on);
+      },
+    );
+
+    test("two quiet minutes cost about a CPU-second more", () => {
+      const off: Cost = cost["off"]!;
+      const on: Cost = cost["on"]!;
+
+      expect(off.quietSeconds).toBe(120);
+      expect(on.quietSeconds).toBe(120);
+      expect(off.cpuSecondsWhileQuietInAll.toFixed(1)).toBe("3.0");
+      expect(on.cpuSecondsWhileQuietInAll.toFixed(1)).toBe("3.9");
+    });
+  });
+
   test("an idle cloud's spans are nearly all nova-compute's object calls", () => {
     const spans: Array<Read> = readScene("native-always-on-idle");
     const objectCalls: Array<Read> = spans.filter((span: Read): boolean => {

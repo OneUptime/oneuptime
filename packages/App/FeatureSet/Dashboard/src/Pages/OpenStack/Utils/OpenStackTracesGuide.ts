@@ -466,7 +466,9 @@ OpenStack gives no overhead figure for a signed one, so none is promised here, a
 
 What has been counted is what a signed boot sends, on one machine's DevStack. On 2025.2 that is about 100 spans and 50 KB, about 150 spans with \`trace_requests\`, and about 900 spans and 1 MB with \`trace_sqlalchemy\`, which is why that stays off until you have a database question. On 2026.2, where \`nova-conductor\` sends too and later work lands in the trace, it is about 180 spans and 80 KB, about 320 spans, and about 1,000 spans and 1 MB.
 
-With the collector stopped, a signed boot still worked, and its spans were lost: tracing did not get in the request's way.`,
+With the collector stopped, a signed boot still worked, and its spans were lost: tracing did not get in the request's way.
+
+On 2026.2 \`cinder-volume\`, which still runs on eventlet, sometimes spun a whole core after a restart, mostly with OSProfiler's driver on and once with it off. Another restart cleared it. We do not know why, so look there first if a machine runs hot.`,
   };
 }
 
@@ -523,9 +525,9 @@ ${codeBlock("bash", `${OPENSTACK_KEYSTONEAUTH_PATCH} "$(python3 -c 'import keyst
 
 A boot's trace then crosses Neutron and Glance too, for what \`nova-api\` asks them. \`nova-compute\` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace.
 
-@@COST@@
+What it cost on one machine's DevStack, with one compute node and one reader: three APIs answered no slower that we could tell from noise, and two quiet minutes cost about a CPU-second more across every service. A boot makes about 220 spans, and the collector sends on about 110 of them, about 75 KB. An idle minute makes about 33, and it sends on about 2, because it drops \`nova-compute\` asking its conductor to read or save an object unless one failed. Take \`filter/nova-object-calls\` out of the collector's pipeline to keep them.
 
-This was run on DevStack on 2026.2, and nowhere else.`,
+This was run on DevStack on 2026.2, from a real boot to a running OneUptime, and nowhere else.`,
   };
 }
 
