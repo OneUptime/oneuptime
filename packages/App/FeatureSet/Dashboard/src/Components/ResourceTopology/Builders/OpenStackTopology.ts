@@ -745,6 +745,23 @@ export function buildOpenStackTopology(
     });
   }
 
+  for (const row of rowsOf(OpenStackResourceKind.ObjectContainer)) {
+    nodes.push({
+      id: `object-container:${row.externalId}`,
+      parentId: sectionId(row.regionName, "storage", SECTION_STORAGE),
+      kind: "openstack.object-container",
+      name: getOpenStackDisplayName(row),
+      health: "healthy",
+      status: asWritten(row),
+      reasons: [],
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
+
   for (const row of rowsOf(OpenStackResourceKind.DatabaseInstance)) {
     const verdict: {
       health: ResourceTopologyHealth;

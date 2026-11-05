@@ -30,6 +30,7 @@ export interface OpenStackBlastRadiusProject {
   shareCount: number;
   databaseInstanceCount: number;
   dnsZoneCount: number;
+  objectContainerCount: number;
 }
 
 export interface OpenStackBlastRadius {
@@ -43,6 +44,7 @@ export interface OpenStackBlastRadius {
   shareCount: number;
   databaseInstanceCount: number;
   dnsZoneCount: number;
+  objectContainerCount: number;
   // The real number, which `projects` can be shorter than: see the cap.
   projectCount: number;
   // Most affected first, at most OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT of them.
@@ -94,6 +96,7 @@ export function getEmptyOpenStackBlastRadius(
     shareCount: 0,
     databaseInstanceCount: 0,
     dnsZoneCount: 0,
+    objectContainerCount: 0,
     projectCount: 0,
     projects: [],
     isKnown,
@@ -109,7 +112,8 @@ export type OpenStackBlastRadiusCount =
   | "containerClusterCount"
   | "shareCount"
   | "databaseInstanceCount"
-  | "dnsZoneCount";
+  | "dnsZoneCount"
+  | "objectContainerCount";
 
 /*
  * Every count a radius holds and what it is called, which is all there is to adding one. What a page
@@ -133,6 +137,11 @@ export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
   },
   { count: "shareCount", one: "share", other: "shares" },
   { count: "databaseInstanceCount", one: "database", other: "databases" },
+  {
+    count: "objectContainerCount",
+    one: "object container",
+    other: "object containers",
+  },
   { count: "dnsZoneCount", one: "DNS zone", other: "DNS zones" },
 ];
 
@@ -175,6 +184,7 @@ export function buildOpenStackBlastRadius(data: {
         shareCount: 0,
         databaseInstanceCount: 0,
         dnsZoneCount: 0,
+        objectContainerCount: 0,
       };
       project[count] += amount;
       projects.set(projectId, project);

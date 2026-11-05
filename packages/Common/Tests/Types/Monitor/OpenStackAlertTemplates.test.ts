@@ -46,6 +46,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+  OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
@@ -617,6 +618,14 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.ForecastAbove,
     value: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   },
+  "openstack-object-store-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-object-container-growth": {
+    filterType: FilterType.ForecastAbove,
+    value: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
+  },
   "openstack-database-api-down": {
     filterType: FilterType.LessThan,
     value: 1,
@@ -956,6 +965,15 @@ const SCENES: Readonly<Record<string, Scene>> = {
     },
     healthy: { measures_to_process: 0 },
   },
+  "openstack-object-store-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  // Made up: no runner holds a week of growth.
+  "openstack-object-container-growth": {
+    breached: { bytes: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES * 2 },
+    healthy: { bytes: 0 },
+  },
   "openstack-database-api-down": {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
@@ -1138,6 +1156,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Metrics API Down",
         "Gnocchi No Processors",
         "Gnocchi Backlog Growing",
+        "Object Storage API Down",
+        "Object Container Growth Forecast",
         "Databases API Down",
         "Database Instance in Error",
         "Database Instance Stuck",
@@ -2156,6 +2176,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-dns-zone-in-error", ["id", "name"]],
       ["openstack-dns-zone-stuck-pending", ["id", "name"]],
       ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],
+      ["openstack-object-container-growth", ["container_name"]],
       ["openstack-database-instance-in-error", ["id", "name"]],
       ["openstack-database-instance-stuck", ["id", "name"]],
       ["openstack-database-volume-nearly-full", ["id", "name"]],

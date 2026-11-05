@@ -165,6 +165,7 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_designate_recordsets_status",
   "openstack_designate_agent_state",
   "openstack_gnocchi_up",
+  "openstack_object_store_up",
   "openstack_trove_up",
   "openstack_trove_instance_status",
   "openstack_sharev2_up",

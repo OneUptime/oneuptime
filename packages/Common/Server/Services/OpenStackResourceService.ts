@@ -187,6 +187,8 @@ export interface OpenStackInventorySummary {
   containerClusterCount: number;
   shareCount: number;
   databaseInstanceCount: number;
+  objectContainerCount: number;
+  objectContainerCount: number;
   dnsZoneCount: number;
 }
 
@@ -993,6 +995,7 @@ export class Service extends DatabaseService<Model> {
       containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
       shareCount: countOf(OpenStackResourceKind.Share),
       databaseInstanceCount: countOf(OpenStackResourceKind.DatabaseInstance),
+      objectContainerCount: countOf(OpenStackResourceKind.ObjectContainer),
       dnsZoneCount: countOf(OpenStackResourceKind.DnsZone),
     };
   }
@@ -2268,6 +2271,10 @@ export class Service extends DatabaseService<Model> {
         [OpenStackServiceType.Database]: [
           [OpenStackResourceKind.DatabaseInstance, "databaseInstanceCount"],
         ],
+        // A stopped proxy stops every read and write of an object, in everything it reads of.
+        [OpenStackServiceType.ObjectStore]: [
+          [OpenStackResourceKind.ObjectContainer, "objectContainerCount"],
+        ],
         // Names already served go on answering from their DNS servers: only changing them stops.
         [OpenStackServiceType.Dns]: [
           [OpenStackResourceKind.DnsZone, "dnsZoneCount"],
@@ -2545,6 +2552,8 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.ContainerCluster,
           OpenStackResourceKind.Share,
           OpenStackResourceKind.DatabaseInstance,
+          OpenStackResourceKind.ObjectContainer,
+          OpenStackResourceKind.ObjectContainer,
           OpenStackResourceKind.DnsZone,
         ],
         ids,
@@ -2567,6 +2576,7 @@ export class Service extends DatabaseService<Model> {
             containerClusterCount: 0,
             shareCount: 0,
             databaseInstanceCount: 0,
+            objectContainerCount: 0,
             dnsZoneCount: 0,
           },
         ];
@@ -2609,6 +2619,9 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.DatabaseInstance:
           summary.databaseInstanceCount = count;
+          break;
+        case OpenStackResourceKind.ObjectContainer:
+          summary.objectContainerCount = count;
           break;
         case OpenStackResourceKind.DnsZone:
           summary.dnsZoneCount = count;

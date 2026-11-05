@@ -103,6 +103,12 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       readsDownWhenRefused: true,
     },
     {
+      service: OpenStackServiceType.ObjectStore,
+      upMetricName: "openstack_object_store_up",
+      isReadByProbe: true,
+      readsDownWhenRefused: true,
+    },
+    {
       service: OpenStackServiceType.Database,
       upMetricName: "openstack_trove_up",
       isReadByProbe: true,

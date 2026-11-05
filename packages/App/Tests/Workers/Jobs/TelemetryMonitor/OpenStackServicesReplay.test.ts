@@ -116,6 +116,29 @@ const BOTH_DATABASES: Array<string> = ["ou-db-no-host", "ou-db-ok"];
 
 const REPLAYS: ReadonlyArray<OpenStackServiceReplay> = [
   {
+    group: "services-designate-barbican-swift",
+    service: OpenStackServiceType.ObjectStore,
+    job: "object-store",
+    metricPrefix: "openstack_object_store_",
+    scenes: [
+      "swift-baseline",
+      "swift-object-down",
+      "swift-reseller-admin",
+      "swift-api-down",
+    ],
+    heldMinutes: {
+      "openstack-object-container-growth": 7 * 24 * 60 + 30,
+      "openstack-object-store-api-down": 30,
+    },
+    firesOn: {
+      // A runner holds no week of growth, and what it holds is 2 KiB.
+      "openstack-object-container-growth": {},
+      "openstack-object-store-api-down": {
+        "swift-api-down": [REGION],
+      },
+    },
+  },
+  {
     group: "services-gnocchi",
     service: OpenStackServiceType.Metric,
     job: "gnocchi",

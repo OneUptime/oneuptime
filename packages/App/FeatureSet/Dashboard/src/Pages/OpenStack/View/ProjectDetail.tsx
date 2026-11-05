@@ -91,7 +91,8 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     | "containerClusterCount"
     | "shareCount"
     | "databaseInstanceCount"
-    | "dnsZoneCount";
+    | "dnsZoneCount"
+    | "objectContainerCount";
   page: PageMap;
   one: string;
   other: string;
@@ -149,6 +150,12 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
     one: "{{count}} database",
     other: "{{count}} databases",
+  },
+  {
+    key: "objectContainerCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS,
+    one: "{{count}} container",
+    other: "{{count}} containers",
   },
   {
     key: "dnsZoneCount",

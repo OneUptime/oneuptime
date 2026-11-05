@@ -158,6 +158,8 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
   ["DnsZones.tsx", "OPENSTACK_CLOUD_VIEW_DNS_ZONES"],
   ["DnsZoneDetail.tsx", "OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL"],
+  ["ObjectContainers.tsx", "OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS"],
+  ["ObjectContainerDetail.tsx", "OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL"],
   ["DatabaseInstances.tsx", "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES"],
   [
     "DatabaseInstanceDetail.tsx",
@@ -560,6 +562,7 @@ describe("the side menus have no dead links", () => {
       ["containerClusterCount", "containerClusters"],
       ["shareCount", "shares"],
       ["databaseInstanceCount", "databases"],
+      ["objectContainerCount", "objectContainers"],
       ["dnsZoneCount", "dnsZones"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
@@ -589,6 +592,7 @@ describe("a service a cloud may not run", () => {
     ["Stacks", "runsHeat"],
     ["Shares", "runsManila"],
     ["Databases", "runsTrove"],
+    ["Object Storage", "runsSwift"],
     ["DNS Zones", "runsDesignate"],
     ["Kubernetes Clusters", "runsMagnum"],
   ])(

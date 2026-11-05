@@ -865,6 +865,25 @@ The exporter reads Gnocchi's status, which only an admin may. Gnocchi refuses an
 
 **Gnocchi Backlog Growing** reads a line through the last two hours. A busy cloud's backlog never reads 0, so a large one that is falling is fine, and one that isn't falling is what it says. The runners only ever got to a backlog of 10 measures, so its line has only been checked on made-up numbers.
 
+## Swift
+
+A cloud that runs Swift gets **Object Storage** under **Storage** on its own, and one that doesn't shows no trace of it. It lists the containers of the credential's own project, how much each holds and how many objects, and each has a page of its own.
+
+| What | Agent, Full view | Anything less |
+| --- | --- | --- |
+| This credential's own project's containers, and how much each holds | Yes | Nothing: see below |
+| Whether its proxy answers | Yes | No |
+| Another project's containers | No | No |
+| A stopped object, container or account server | No | No |
+
+Swift keeps every project's account from every other project's credentials, recorded, so this list is never the whole cloud's. Only `ResellerAdmin` reads another project's, and the exporter asks only for its own either way.
+
+A credential Swift refuses reads `openstack_object_store_up` 0, just as a stopped proxy does. So a credential that has never once read Swift is told that, rather than that Swift is down, and isn't offered its alerts. An application credential with access rules also needs `include_service_catalog = True` in `proxy-server.conf`.
+
+A stopped object server changes nothing here, recorded: Swift's lists come from its account and container servers, and its proxy goes on answering. Only what each storage server says through its own `/recon` would say so, and that isn't in Keystone's catalog.
+
+**Object Container Growth Forecast** reads a line through the last week of each container, and looks a week ahead. Swift says nothing here of how much room a cloud has, so its line of 1 TiB is one to hear about rather than one anything breaks at. Change it to fit your cloud. No runner holds a week of growth, so it has only been checked on made-up numbers.
+
 ## Service logs
 
 The agent above reads a cloud's APIs from outside. Why an instance failed to build is somewhere else: in `nova-api`, `nova-conductor`, `nova-scheduler`, `nova-compute`, Neutron and Cinder, on several machines. An optional logs profile sends those lines to OneUptime, parsed, with a stack trace as one record. Unlike the agent, it runs on the cloud's own controllers and compute nodes, and it only reads.

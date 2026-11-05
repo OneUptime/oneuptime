@@ -261,6 +261,20 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       ["Project", "OpenStack", "View Cloud", "DNS Zones", "DNS Zone Detail"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS,
+      ["Project", "OpenStack", "View Cloud", "Object Storage"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL,
+      [
+        "Project",
+        "OpenStack",
+        "View Cloud",
+        "Object Storage",
+        "Container Detail",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
       ["Project", "OpenStack", "View Cloud", "Databases"],
     ),

@@ -2750,6 +2750,39 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     service: OpenStackServiceType.Metric,
     identityAttributes: [],
   }),
+  // Object storage: Swift, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_object_store_up",
+    friendlyName: translationKey("Object Storage API Up"),
+    description:
+      "Whether the exporter's read of Swift answered (1) or failed (0). A credential Swift refuses reads 0 just as a stopped proxy does, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_object_store_bytes",
+    friendlyName: translationKey("Object Container Size"),
+    description:
+      "How much a container holds. Only the containers of the credential's own project, with no project label, recorded: Swift keeps every other project's account from anything without ResellerAdmin.",
+    category: "Storage",
+    unit: "bytes",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["container_name"],
+  }),
+  metric({
+    metricName: "openstack_object_store_objects",
+    friendlyName: translationKey("Objects in a Container"),
+    description:
+      "How many objects a container holds. Only the containers of the credential's own project, with no project label, recorded.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["container_name"],
+  }),
   // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_trove_up",

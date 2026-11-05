@@ -383,6 +383,8 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]: `${RouteParams.ModelID}/shares/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES]: `${RouteParams.ModelID}/dns-zones`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL]: `${RouteParams.ModelID}/dns-zones/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS]: `${RouteParams.ModelID}/object-containers`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL]: `${RouteParams.ModelID}/object-containers/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]: `${RouteParams.ModelID}/databases`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL]: `${RouteParams.ModelID}/databases/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]: `${RouteParams.ModelID}/projects`,
@@ -4896,6 +4898,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL]
     }`,
   ),
 

@@ -44,6 +44,8 @@ export interface OpenStackAccessReadDefinition {
   path: string;
   query?: Record<string, string | Array<string>> | undefined;
   key: string;
+  // The answer is a list rather than an object, as Swift's are: it reads as though under `key`.
+  isBareList?: boolean | undefined;
   /*
    * The field naming each row's project. "-" for a list that is not per project, so a
    * 200 is the answer. "*" for one a project's own view of is empty, so any row proves
@@ -394,6 +396,19 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       goesWithout:
         "zones and recordsets in other projects, and the alerts on them. Designate refuses anything less a list of every project's zones.",
       fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.ObjectStore,
+      read: "own account",
+      path: "",
+      query: { format: "json", limit: "100" },
+      key: "containers",
+      isBareList: true,
+      projectField: "-",
+      goesWithout:
+        "this project's containers and how much they hold. Swift refuses a plain reader, and answers about one project's account at a time.",
+      fix: `To read this one: ${USE_FULL_VIEW}.`,
       tells: "adminOnly",
     },
     {
@@ -816,6 +831,7 @@ export async function runOpenStackAccessCheck(data: {
           read: definition.read,
           path: definition.path,
           query: definition.query,
+          bareListKey: definition.isBareList ? definition.key : undefined,
         });
 
         let result: {
