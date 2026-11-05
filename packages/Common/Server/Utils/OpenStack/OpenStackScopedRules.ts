@@ -62,11 +62,25 @@ export interface OpenStackScopedRulesMatch {
   // The notifying set first, so an owner two rules disagree about is told.
   owners: Array<OpenStackScopedRuleOwners>;
   ownerRuleNames: Array<string>;
+  /*
+   * Which project brought each rule's owners in, and what it holds on the part: a hypervisor's
+   * failure reaches many projects, and each owner wants to find their own among them.
+   */
+  ownersProjects: Array<{ ruleName: string; project: OpenStackReachedProject }>;
 }
 
 function emptyMatch(): OpenStackScopedRulesMatch {
-  return { labelIds: [], labelRuleNames: [], owners: [], ownerRuleNames: [] };
+  return {
+    labelIds: [],
+    labelRuleNames: [],
+    owners: [],
+    ownerRuleNames: [],
+    ownersProjects: [],
+  };
 }
+
+// Enough for a feed line. The incident's description has every project.
+const OWNERS_PROJECTS_IN_A_FEED_LINE: number = 20;
 
 function idsOf(rows: Array<User | Team | Label> | undefined): Array<string> {
   return (rows || [])
@@ -185,6 +199,19 @@ export default class OpenStackScopedRules {
         labelRuleNames: labelRules.map(ruleName),
         owners,
         ownerRuleNames: ownerRules.map(ruleName),
+        ownersProjects: ownerRules.flatMap(
+          (
+            rule: OpenStackCloudOwnerRule,
+          ): Array<{ ruleName: string; project: OpenStackReachedProject }> => {
+            return data.reached
+              .filter((project: OpenStackReachedProject): boolean => {
+                return doesOpenStackRuleReach(rule, [project]);
+              })
+              .map((project: OpenStackReachedProject) => {
+                return { ruleName: ruleName(rule), project };
+              });
+          },
+        ),
       };
     } catch (error) {
       logger.error(
@@ -439,6 +466,27 @@ export default class OpenStackScopedRules {
       },
     );
 
+    const theirOwn: Array<MarkdownText> = match.ownersProjects
+      .slice(0, OWNERS_PROJECTS_IN_A_FEED_LINE)
+      .map(
+        (one: {
+          ruleName: string;
+          project: OpenStackReachedProject;
+        }): MarkdownText => {
+          const name: string = one.project.name || one.project.projectId;
+
+          return one.project.holdings
+            ? mdText`${one.ruleName}: ${name}, ${one.project.holdings}`
+            : mdText`${one.ruleName}: ${name}`;
+        },
+      );
+    const left: number =
+      match.ownersProjects.length - OWNERS_PROJECTS_IN_A_FEED_LINE;
+
+    if (left > 0) {
+      theirOwn.push(mdText`and ${left} more`);
+    }
+
     return {
       labels:
         labelNames.length > 0
@@ -454,7 +502,11 @@ export default class OpenStackScopedRules {
               emoji: "🛡️",
               ruleKind: "OpenStack Owner Rule",
               ruleNames: match.ownerRuleNames,
-            })}\n\nAssigned the following owner${users.length + teams.length === 1 ? "" : "s"} to the ${subject}:\n${RuleFeedMarkdown.ownersList({ users, teams })}`
+            })}\n\nAssigned the following owner${users.length + teams.length === 1 ? "" : "s"} to the ${subject}:\n${RuleFeedMarkdown.ownersList({ users, teams })}${
+              theirOwn.length > 0
+                ? mdText`\n\nWhich of this is each rule's own:\n${FeedMarkdown.bulletList(theirOwn)}`
+                : FeedMarkdown.empty()
+            }`
           : null,
     };
   }

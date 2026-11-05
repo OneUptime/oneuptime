@@ -343,12 +343,14 @@ export function getOpenStackProjectsReached(
   for (const project of context.radius?.everyProject ||
     context.radius?.projects ||
     []) {
-    if (!reached.has(project.projectId)) {
-      reached.set(project.projectId, {
-        projectId: project.projectId,
-        domainId: project.domainId,
-      });
-    }
+    const holdings: string = describeOpenStackBlastRadiusCounts(project);
+
+    reached.set(project.projectId, {
+      projectId: project.projectId,
+      domainId: reached.get(project.projectId)?.domainId ?? project.domainId,
+      ...(project.name ? { name: project.name } : {}),
+      ...(holdings ? { holdings } : {}),
+    });
   }
 
   return Array.from(reached.values());
@@ -854,11 +856,13 @@ export default class OpenStackAlertContext {
 
     if (radius?.magnumClusters && radius.magnumClusters.length > 0) {
       sections.push(
-        mdText`**Kubernetes clusters with a server on it:** ${radius.magnumClusters
-          .map((owner: OpenStackBlastRadiusOwner): string => {
-            return owner.name || owner.externalId;
-          })
-          .join(", ")}.`,
+        mdText`**Kubernetes clusters with a server on it:** ${FeedMarkdown.join(
+          radius.magnumClusters.map(
+            (owner: OpenStackBlastRadiusOwner): string => {
+              return owner.name || owner.externalId;
+            },
+          ),
+        )}.`,
       );
     }
 

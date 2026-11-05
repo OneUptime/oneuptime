@@ -357,6 +357,7 @@ export default class OpenStackProjectNoticeSender {
           openStackProjectNoticeId: true,
           openStackProjectId: true,
           event: true,
+          dedupeKey: true,
           partKey: true,
           incidentId: true,
           scheduledMaintenanceId: true,
@@ -566,7 +567,16 @@ export default class OpenStackProjectNoticeSender {
     message: OpenStackProjectNoticeMessage;
   }): Promise<OpenStackNoticeSendOutcome> {
     if (data.notice.statusPageId) {
-      return OpenStackProjectPages.tell(data);
+      try {
+        return await OpenStackProjectPages.tell(data);
+      } catch (error) {
+        // Part of it may be on the page, and nothing is said twice.
+        return {
+          isSent: false,
+          canTryAgain: false,
+          message: error instanceof Error ? error.message : String(error),
+        };
+      }
     }
 
     return data.notice.email

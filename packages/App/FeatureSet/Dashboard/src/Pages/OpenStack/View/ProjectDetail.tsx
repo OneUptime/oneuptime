@@ -28,6 +28,8 @@ import React, {
 } from "react";
 import OpenStackProjectUsageCard from "../../../Components/OpenStack/OpenStackProjectUsageCard";
 import OpenStackQuotaCard from "../../../Components/OpenStack/OpenStackQuotaCard";
+import OpenStackProjectNoticesCard from "../../../Components/OpenStack/OpenStackProjectNoticesCard";
+import OpenStackProjectPageButton from "../../../Components/OpenStack/OpenStackProjectPageButton";
 import OpenStackScopedRulesCard, {
   OpenStackRuleScope,
 } from "../../../Components/OpenStack/OpenStackScopedRulesCard";
@@ -451,6 +453,18 @@ const OpenStackCloudProjectDetail: FunctionComponent<
         alertsRoute={routes.alertsRoute}
       />
 
+      <div className="mb-6">
+        <OpenStackProjectNoticesCard
+          openStackCloudId={modelId}
+          openStackProjectId={projectId}
+        />
+      </div>
+      <div className="mb-6">
+        <OpenStackProjectPageButton
+          openStackCloudId={modelId}
+          openStackProjectId={projectId}
+        />
+      </div>
       <OpenStackScopedRulesCard mode="owner" scope={scope} />
       <OpenStackScopedRulesCard mode="label" scope={scope} />
 

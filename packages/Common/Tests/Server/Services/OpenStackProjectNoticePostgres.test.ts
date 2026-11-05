@@ -10,18 +10,25 @@ import {
 } from "@jest/globals";
 import { DataSource } from "typeorm";
 import Entities from "../../../Models/DatabaseModels/Index";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackProjectNotice from "../../../Models/DatabaseModels/OpenStackProjectNotice";
 import OpenStackProjectNoticeDelivery from "../../../Models/DatabaseModels/OpenStackProjectNoticeDelivery";
+import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import MailService from "../../../Server/Services/MailService";
+import MonitorService from "../../../Server/Services/MonitorService";
+import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
+import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
 import OpenStackProjectNoticeDeliveryService from "../../../Server/Services/OpenStackProjectNoticeDeliveryService";
 import OpenStackProjectNoticeService from "../../../Server/Services/OpenStackProjectNoticeService";
 import OpenStackResourceService, {
   ParsedOpenStackResource,
 } from "../../../Server/Services/OpenStackResourceService";
 import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledMaintenanceFeedService";
+import StatusPageAnnouncementService from "../../../Server/Services/StatusPageAnnouncementService";
 import logger from "../../../Server/Utils/Logger";
 import OpenStackAlertContext, {
   OpenStackSeriesDescription,
@@ -45,6 +52,7 @@ import {
   OpenStackProjectNotToldReason,
 } from "../../../Types/OpenStack/OpenStackProjectNotice";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
+import { OpenStackStatusPageService } from "../../../Types/OpenStack/OpenStackStatusPageService";
 import API from "../../../Utils/API";
 
 /*
@@ -785,6 +793,128 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
     expect(
       (emails.mock.calls[1] as Array<{ subject: string }>)[0]!.subject,
     ).toContain("ended");
+  });
+
+  test("a project's own page is told like any notice: its row goes red once, and back when it is over", async () => {
+    const pageId: ObjectID = ObjectID.generate();
+    const monitorId: ObjectID = ObjectID.generate();
+    const otherRow: ObjectID = ObjectID.generate();
+    const announcementId: ObjectID = ObjectID.generate();
+
+    const notice: OpenStackProjectNotice = new OpenStackProjectNotice();
+    notice.projectId = PROJECT_ID;
+    notice.openStackCloudId = CLOUD_ID;
+    notice.openStackProjectId = PAYMENTS;
+    notice.statusPageRows = [
+      {
+        regionName: "RegionOne",
+        service: OpenStackStatusPageService.Compute,
+        monitorId: monitorId.toString(),
+      },
+      {
+        regionName: "RegionOne",
+        service: OpenStackStatusPageService.BlockStorage,
+        monitorId: otherRow.toString(),
+      },
+    ];
+    // By its id alone: this clone holds no status page for a reference to be checked against.
+    await database.query(
+      `INSERT INTO "OpenStackProjectNotice" ("_id", "projectId", "openStackCloudId", "openStackProjectId", "statusPageId", "statusPageRows", "isEnabled", "previewSeenAt", "previewedRecipient", "version")
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, true, now(), $7, 1)`,
+      [
+        ObjectID.generate().toString(),
+        PROJECT_ID.toString(),
+        CLOUD_ID.toString(),
+        PAYMENTS,
+        pageId.toString(),
+        JSON.stringify(notice.statusPageRows),
+        `statusPage:${pageId.toString()}`,
+      ],
+    );
+
+    const statusOf: Record<string, string> = {};
+    const online: MonitorStatus = new MonitorStatus();
+    online.id = ObjectID.generate();
+    const offline: MonitorStatus = new MonitorStatus();
+    offline.id = ObjectID.generate();
+
+    jest
+      .spyOn(MonitorStatusService, "findOneBy")
+      .mockImplementation((async (args: {
+        query: { isOfflineState?: boolean };
+      }) => {
+        return args.query.isOfflineState ? offline : online;
+      }) as never);
+    jest.spyOn(MonitorService, "findOneById").mockImplementation((async (args: {
+      id: ObjectID;
+    }) => {
+      const monitor: Monitor = new Monitor();
+      monitor.currentMonitorStatusId = new ObjectID(
+        statusOf[args.id.toString()] || online.id!.toString(),
+      );
+      return monitor;
+    }) as never);
+    const turned: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MonitorStatusTimelineService, "create")
+      .mockImplementation((async (args: {
+        data: { monitorId: ObjectID; monitorStatusId: ObjectID };
+      }) => {
+        statusOf[args.data.monitorId.toString()] =
+          args.data.monitorStatusId.toString();
+      }) as never);
+    const announced: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(StatusPageAnnouncementService, "create")
+      .mockImplementation((async () => {
+        const announcement: StatusPageAnnouncement =
+          new StatusPageAnnouncement();
+        announcement.id = announcementId;
+        return announcement;
+      }) as never);
+    const ended: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(StatusPageAnnouncementService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    const incidentId: ObjectID = await incident();
+    await failureOfTheHost(incidentId);
+    await OpenStackProjectNoticeSender.run();
+
+    // Told, in its own words, on its own page and nowhere else.
+    expect(announced).toHaveBeenCalledTimes(1);
+    const made: {
+      data: StatusPageAnnouncement;
+    } = (announced.mock.calls[0] as Array<never>)[0]!;
+    expect(made.data.statusPages?.map((page: { _id?: string }) => {
+      return page._id;
+    })).toEqual([pageId.toString()]);
+    expect(made.data.description).toContain("3 instances");
+    for (const word of ["ou-research", "ou-web", "compute-01", RESEARCH, WEB]) {
+      expect(made.data.description).not.toContain(word);
+      expect(made.data.title).not.toContain(word);
+    }
+
+    // Its Compute row is red, and its other row isn't.
+    expect(statusOf[monitorId.toString()]).toBe(offline.id!.toString());
+    expect(statusOf[otherRow.toString()]).toBeUndefined();
+    expect(turned).toHaveBeenCalledTimes(1);
+
+    // However long it lasts.
+    await OpenStackProjectNoticeSender.run();
+    expect(announced).toHaveBeenCalledTimes(1);
+    expect(turned).toHaveBeenCalledTimes(1);
+
+    await resolve(incidentId);
+    await OpenStackProjectNoticeSender.run();
+    await OpenStackProjectNoticeSender.run();
+
+    expect(ended).toHaveBeenCalledTimes(1);
+    expect((ended.mock.calls[0] as Array<{ id: ObjectID }>)[0]!.id.toString()).toBe(
+      announcementId.toString(),
+    );
+    expect(statusOf[monitorId.toString()]).toBe(online.id!.toString());
+    expect(turned).toHaveBeenCalledTimes(2);
+    // No email or webhook was anywhere near this.
+    expect(emails).not.toHaveBeenCalled();
+    expect(webhooks).not.toHaveBeenCalled();
   });
 
   test("a zone comes to the hosts in it, for what it reaches and what it quiets", async () => {

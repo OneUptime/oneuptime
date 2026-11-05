@@ -142,6 +142,14 @@ import CloudChecks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
 import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
 import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
+import CloudStatusPages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StatusPages";
+import {
+  buildOpenStackProjectPagePlan,
+  buildOpenStackStatusPagePlan,
+  getOpenStackStatusPagePlanKey,
+} from "../../../Common/Types/OpenStack/OpenStackStatusPagePlan";
+import { getAllOpenStackAlertTemplates } from "../../../Common/Types/Monitor/OpenStackAlertTemplates";
+import { writeOpenStackProjectNotice } from "../../../Common/Utils/OpenStack/OpenStackProjectNoticeText";
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
 import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
@@ -960,6 +968,8 @@ function withSpend(cloud) {
 const store = {
   OpenStackProjectUsage: SPEND.usage,
   OpenStackBudget: [],
+  OpenStackProjectNotice: [],
+  OpenStackProjectNoticeDelivery: [],
   OpenStackCloudCheck: checkRow ? [checkRow] : [],
   // Every cloud's row has these, with these defaults, since its migration.
   OpenStackCloud: withAiAccessColumns(
@@ -1431,6 +1441,7 @@ function writeRow(modelName, id, data) {
 
 const WRITABLE_TABLES = new Set([
   "OpenStackBudget",
+  "OpenStackProjectNotice",
   "OpenStackCloudCheck",
   "OpenStackCloudOwnerUser",
   "OpenStackCloudOwnerTeam",
@@ -2056,6 +2067,157 @@ function ok(data) {
   return new HTTPResponse(200, data, {});
 }
 
+function statusPagePlanOf() {
+  const regions = new Map();
+  for (const row of estate.inventory) {
+    if (row.kind === "Api") {
+      const key = row.regionName || "";
+      regions.set(key, {
+        regionName: row.regionName || null,
+        apiNames: [...(regions.get(key)?.apiNames || []), row.name],
+      });
+    }
+  }
+  const templateNames = {};
+  for (const template of getAllOpenStackAlertTemplates()) {
+    templateNames[template.id] = template.name;
+  }
+  return buildOpenStackStatusPagePlan({
+    cloudName: store.OpenStackCloud[0]?.name || "cloud",
+    regions: Array.from(regions.values()),
+    existingMonitors: [],
+    templateNames,
+    isTemplateOffered: (id) => {
+      return !id.endsWith("-failing") && !id.endsWith("-unreachable");
+    },
+  });
+}
+
+function projectRowOf(id) {
+  return estate.inventory.find((row) => {
+    return row.kind === "Project" && row.externalId === id;
+  });
+}
+
+function answerProjectNotice(pathname, body) {
+  const noticeOf = () => {
+    const id = pathname.split("/").pop();
+    return store.OpenStackProjectNotice.find((row) => {
+      return row._id === id;
+    });
+  };
+
+  if (pathname.includes("/status-page-plan/")) {
+    const plan = statusPagePlanOf();
+    return ok({ plan, planKey: getOpenStackStatusPagePlanKey(plan) });
+  }
+  if (pathname.includes("/make-status-page/")) {
+    return ok({
+      statusPageId: "72000000-0000-4000-8000-000000000001",
+      monitorsMade: statusPagePlanOf().monitorsToMake,
+    });
+  }
+  if (pathname.includes("/make-objectives/")) {
+    return ok({ objectivesMade: 5, objectivesLeft: 0, monitorsMade: 0 });
+  }
+  if (pathname.includes("/project-page-plan/")) {
+    const counts = new Map();
+    for (const row of estate.inventory) {
+      if (row.openStackProjectId === body.openStackProjectId) {
+        const key = `${row.kind}|${row.regionName || ""}`;
+        counts.set(key, {
+          kind: row.kind,
+          regionName: row.regionName || null,
+          count: (counts.get(key)?.count || 0) + 1,
+        });
+      }
+    }
+    const project = projectRowOf(body.openStackProjectId);
+    return ok({
+      ...buildOpenStackProjectPagePlan({
+        projectName: project?.name || null,
+        projectId: body.openStackProjectId,
+        holdings: Array.from(counts.values()),
+      }),
+      isProjectInCloud: Boolean(project),
+    });
+  }
+  if (pathname.includes("/make-project-page/")) {
+    return ok({
+      statusPageId: "72000000-0000-4000-8000-000000000002",
+      monitorsMade: 1,
+    });
+  }
+  if (pathname.includes("/preview/")) {
+    const notice = noticeOf();
+    const project = projectRowOf(notice?.openStackProjectId);
+    const message = writeOpenStackProjectNotice({
+      event: "Incident Opened",
+      projectId: notice?.openStackProjectId || "",
+      projectName: project?.name || null,
+      partKind: "Hypervisor",
+      partWords: "A compute host",
+      regionName: null,
+      holdings: { instanceCount: 3 },
+      occurredAt: new Date(LOADED_AT).toISOString(),
+    });
+    return ok({
+      previewToken: "the-token-its-preview-gave",
+      channel: notice?.webhookUrl ? "Webhook" : "Email",
+      address: plain(notice?.email) || plain(notice?.webhookUrl) || "",
+      projectId: notice?.openStackProjectId || "",
+      projectName: project?.name || null,
+      isProjectInCloud: Boolean(project),
+      instanceCount: 3,
+      example: { subject: message.subject, markdown: message.markdown },
+    });
+  }
+  if (pathname.includes("/turn-on/")) {
+    if (body.previewToken !== "the-token-its-preview-gave") {
+      return new HTTPErrorResponse(400, { message: "See who this tells first" }, {});
+    }
+    Object.assign(noticeOf(), { isEnabled: true });
+    return ok({});
+  }
+  if (pathname.includes("/turn-off/")) {
+    Object.assign(noticeOf(), { isEnabled: false });
+    return ok({});
+  }
+  if (pathname.includes("/who-would-be-told/")) {
+    const armed = store.OpenStackProjectNotice.filter((row) => {
+      return row.isEnabled;
+    });
+    return ok({
+      summary: "3 instances in 2 projects",
+      isReachKnown: true,
+      ofNoProject: {},
+      told: armed.map((row) => {
+        return {
+          projectId: row.openStackProjectId,
+          name: projectRowOf(row.openStackProjectId)?.name || null,
+          channel: row.webhookUrl ? "Webhook" : "Email",
+          address: plain(row.email) || plain(row.webhookUrl) || "",
+          instanceCount: 3,
+          volumeCount: 0,
+          routerCount: 0,
+          floatingIpCount: 0,
+        };
+      }),
+      notTold: [],
+    });
+  }
+  if (pathname.includes("/maintenance-covering/")) {
+    return ok({
+      events:
+        params.get("maintenance") === "on"
+          ? [{ id: "73000000-0000-4000-8000-000000000001", title: "Kernel upgrade" }]
+          : [],
+    });
+  }
+  fixture.unhandled.push({ kind: "post", url: pathname });
+  return ok({});
+}
+
 function failed() {
   return new HTTPErrorResponse(500, { message: SERVER_ERROR }, {});
 }
@@ -2092,6 +2254,10 @@ async function handleApi(method, options) {
     }
     if (parsed.pathname.endsWith("/resource-ai-access/insights")) {
       return ok(getAiInsights());
+    }
+    // Who is told, and what a status page would make: the real rules, over this estate.
+    if (parsed.pathname.includes("/openstack-project-notice/")) {
+      return answerProjectNotice(parsed.pathname, body);
     }
     if (parsed.pathname.includes("/openstack-resource/inventory-summary/")) {
       return FAILS.has("inventory")
@@ -2451,6 +2617,7 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, CloudAiAgent],
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
   [PageMap.OPENSTACK_CLOUD_VIEW_SPEND, CloudSpend],
+  [PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES, CloudStatusPages],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS, CloudHypervisors],

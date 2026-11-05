@@ -604,3 +604,126 @@ describe("never in the way of the alert", () => {
     expect(read).not.toHaveBeenCalled();
   });
 });
+
+describe("each owner sees their own", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the feed says which project brought a rule's team in, and what it holds there", async () => {
+    standIn({
+      ownerRules: [ownerRule({ openStackProjectId: OU_PAYMENTS })],
+    });
+
+    const match: OpenStackScopedRulesMatch = await OpenStackScopedRules.read({
+      projectId: PROJECT_ID,
+      openStackCloudId: ObjectID.generate(),
+      reached: [
+        {
+          projectId: OU_PAYMENTS,
+          name: "ou-payments",
+          holdings: "3 instances",
+        },
+        { projectId: OU_RESEARCH, name: "ou-research", holdings: "1 instance" },
+      ],
+    });
+
+    expect(
+      match.ownersProjects.map(
+        (one: { project: { projectId: string } }): string => {
+          return one.project.projectId;
+        },
+      ),
+    ).toEqual([OU_PAYMENTS]);
+
+    const feed: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(IncidentOwnerUserService, "findBy").mockResolvedValue([]);
+    jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest.spyOn(TeamService, "findBy").mockResolvedValue([TEAM]);
+    jest.spyOn(UserService, "findBy").mockResolvedValue([]);
+
+    await OpenStackScopedRules.finishIncident({
+      projectId: PROJECT_ID,
+      incidentId: ObjectID.generate(),
+      match,
+    });
+
+    const line: string = (
+      feed.mock.calls[0] as Array<{ feedInfoInMarkdown: string }>
+    )[0]!.feedInfoInMarkdown;
+
+    expect(line).toContain("ou-payments");
+    expect(line).toContain("3 instances");
+    expect(line).not.toContain("ou-research");
+  });
+
+  test("an owner rule that matches nobody adds nobody, and says nothing", async () => {
+    standIn({
+      ownerRules: [ownerRule({ openStackProjectId: "nobody-has-this-id" })],
+    });
+
+    const match: OpenStackScopedRulesMatch = await OpenStackScopedRules.read({
+      projectId: PROJECT_ID,
+      openStackCloudId: ObjectID.generate(),
+      reached: [{ projectId: OU_PAYMENTS, holdings: "3 instances" }],
+    });
+
+    expect(match.owners).toEqual([]);
+    expect(match.ownersProjects).toEqual([]);
+
+    const addOwners: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(undefined);
+
+    await OpenStackScopedRules.finishIncident({
+      projectId: PROJECT_ID,
+      incidentId: ObjectID.generate(),
+      match,
+    });
+
+    expect(addOwners).not.toHaveBeenCalled();
+  });
+
+  test("a rule past the twentieth project's line is counted, not listed", async () => {
+    standIn({ ownerRules: [ownerRule({ openStackDomainId: "acme" })] });
+
+    const match: OpenStackScopedRulesMatch = await OpenStackScopedRules.read({
+      projectId: PROJECT_ID,
+      openStackCloudId: ObjectID.generate(),
+      reached: Array.from({ length: 500 }, (_item: unknown, index: number) => {
+        return {
+          projectId: `project-${index}`,
+          domainId: "acme",
+          name: `tenant-${index}`,
+          holdings: "1 instance",
+        };
+      }),
+    });
+
+    const feed: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(IncidentOwnerUserService, "findBy").mockResolvedValue([]);
+    jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(IncidentService, "addOwners").mockResolvedValue(undefined);
+    jest.spyOn(TeamService, "findBy").mockResolvedValue([TEAM]);
+    jest.spyOn(UserService, "findBy").mockResolvedValue([]);
+
+    await OpenStackScopedRules.finishIncident({
+      projectId: PROJECT_ID,
+      incidentId: ObjectID.generate(),
+      match,
+    });
+
+    const line: string = (
+      feed.mock.calls[0] as Array<{ feedInfoInMarkdown: string }>
+    )[0]!.feedInfoInMarkdown;
+
+    expect(line).toContain("tenant-19");
+    expect(line).not.toContain("tenant-20");
+    expect(line).toContain("and 480 more");
+  });
+});
