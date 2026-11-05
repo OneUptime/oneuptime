@@ -35,7 +35,7 @@ Heat, Magnum, Manila and Trove are read where Keystone's catalog names them. A c
 | Where the credential is kept | Encrypted in OneUptime, sent only to the probe | In the agent's `clouds.yaml` file |
 | What it needs to reach | Keystone and each service's API, over HTTPS | Keystone and each service's API |
 | APIs on plain HTTP | Not collected: a token is never sent unencrypted | Collected |
-| Largest cloud | Tested at [200,000 instances](/docs/telemetry/openstack-very-large-clouds), in up to ten uploads of 48 MiB | Tested at nothing yet: [its scrape runs out of time](/docs/telemetry/openstack-very-large-clouds#through-the-agent) well before that |
+| Largest cloud | Tested at [200,000 instances](/docs/telemetry/openstack-very-large-clouds) against a simulated cloud, not a real one, in up to ten uploads of 48 MiB | Tested at nothing yet: [its scrape runs out of time](/docs/telemetry/openstack-very-large-clouds#through-the-agent) well before that |
 | Service logs and the AI agent | Not included | Included |
 | What the cloud stands on: RabbitMQ, MariaDB, Memcached, HAProxy, OVN, libvirt | Not included: a probe reads the cloud's APIs | Included, with its targets named |
 | Each instance's real CPU, memory and disk, from libvirt or Ceilometer | Not included | Included, with their exporters named |
