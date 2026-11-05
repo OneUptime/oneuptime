@@ -1,6 +1,6 @@
 # Mycket stora OpenStack-moln
 
-Vad ett moln av vilken storlek som helst kostar innan du installerar något: hur hårt övervakningen belastar dess kontrollplan, hur mycket data den skickar och vad OneUptime gör annorlunda när ett moln växer. Nästan varje moln behöver inget av detta: standardvärdena för [OpenStack Agent](/docs/telemetry/openstack) och en [sond](/docs/telemetry/openstack-agentless) klarar tusentals instanser utan att något ställs in.
+Vad ett moln av vilken storlek som helst kostar innan du installerar något: hur hårt övervakningen belastar dess kontrollplan, hur mycket data den skickar och vad OneUptime gör annorlunda när ett moln växer. Nästan varje moln borde inte behöva något av detta: enligt antalen nedan klarar standardvärdena för [OpenStack Agent](/docs/telemetry/openstack) och en [sond](/docs/telemetry/openstack-agentless) tusentals instanser utan att något ställs in.
 
 :::cards
 - [Belastningen på ditt kontrollplan](#belastningen-på-ditt-kontrollplan): Begäranden per minut och tjänst, vid varje storlek.
@@ -54,13 +54,13 @@ Dessa är räknade ur exporterns källkod, och exportern har inte körts vid des
 
 ### När ett API blir långsammare
 
-En sond bevakar vad varje tjänst brukar svara på, och när ett svar tar tre gånger så lång tid och minst en sekund, eller fem sekunder oavsett vad som är brukligt, väntar den lika länge som svaret tog innan den frågar den tjänsten igen. Flera läsningar som väntar samtidigt turas om, så en paus slutar inte i en skur. En tjänst som fortsätter svara `429` eller `503` lämnas i fred en minut, sedan två, sedan fyra, upp till en halvtimme. Inget annat hålls upp: varje tjänst tillfrågas för sig.
+En sond bevakar vad varje tjänst brukar svara på, och drar sig tillbaka när ett svar är långsamt eller nekas: [Vad det kostar ditt moln](/docs/telemetry/openstack-agentless#vad-det-kostar-ditt-moln) säger med hur mycket. Flera läsningar som väntar samtidigt turas om, så en paus slutar inte i en skur. Inget annat hålls upp: varje tjänst tillfrågas för sig.
 
 Molnets kort **Datainsamling** anger detta medan det pågår, tjänst för tjänst: hur långsamt dess långsammaste svar var och hur länge sonden höll tillbaka. Agentens exporter kan inte göra detta. En scrape körs hel, med sitt intervall: höj `scrape_interval` och `scrape_timeout` för det jobbet för att vara skonsammare mot en tjänst.
 
 ## Datan den skickar
 
-Ett molns serier följer av dess antal. Kalkylatorn på ett molns sida **Dokumentation** i OneUptime räknar ut detta från tre tal. För att räkna ut det själv, för en region:
+Ett molns serier följer av dess antal. Kalkylatorn under **OpenStack → Dokumentation** i OneUptime räknar ut detta från tre tal. För att räkna ut det själv, för en region:
 
 | Serier | Hur många |
 | --- | --- |
@@ -72,7 +72,7 @@ Ett molns serier följer av dess antal. Kalkylatorn på ett molns sida **Dokumen
 | Sammanfattningslägets antal, när det är på | En per status och en per projekt: ungefär 6 plus projekt |
 | Keystone, Glance | Projekt, domäner och 9, samt 2 per avbildning plus 5. En sond lägger till 3 för vardera Heat och Magnum, oavsett om ett moln kör dem |
 
-Varje scrapes rader är vad du faktureras för: de första fem raderna kommer var 2:a minut, 720 gånger per dag, och den sista var 5:e minut, 288 gånger. Priset är det på din faktura, [per GB för hur länge det sparas](/docs/telemetry/openstack#vad-det-kostar). Fakturan läser varje rads verkliga storlek, och detta räknar ut det vid 1 024 byte per rad, det OneUptimes fakturering faller tillbaka på när den saknar storlek för en rad. En rad med många etiketter, som en instans, kostar mer än så, och en utan några kostar mindre.
+Varje scrapes rader är vad du faktureras för: de första fem raderna kommer var 2:a minut, 720 gånger per dag, och den sista var 5:e minut, 288 gånger. Priset är det på din faktura, [per GB för hur länge det sparas](/docs/telemetry/data-retention#vad-lagring-kostar). Fakturan läser varje rads verkliga storlek, och detta räknar ut det vid 1 024 byte per rad, det OneUptimes fakturering faller tillbaka på när den saknar storlek för en rad. En rad med många etiketter, som en instans, kostar mer än så, och en utan några kostar mindre.
 
 | Moln | Serier | GB per dag, alla serier | GB per dag, i sammanfattningsläge | En månad sparad 15 dagar, i sammanfattningsläge |
 | --- | --- | --- | --- | --- |
@@ -114,7 +114,7 @@ En agent läser ett moln hur många regioner det än har, och det är det att b�
 - **Varje par av region och tjänst tillhör en agent.** En rad är samma rad hur många agenter som än rapporterar den, men varje agents serier lagras och faktureras.
 - **Keystone tillhör en agent.** Det är ett för hela molnet, vilken region som än frågar det.
 
-**En agent per region** är vad de flesta moln vill ha. Lista bara den regionens poster i `clouds.yaml` och `OPENSTACK_EXPORTER_CLOUDS`. Bara den första agenten behåller Keystone:
+**En agent per region** är vad de flesta moln vill ha. Lista bara den regionens poster i `clouds.yaml` och `OPENSTACK_EXPORTER_CLOUDS`. Bara den första agenten behåller Keystone. En agent som sätter `OPENSTACK_AGENT_SERVICES` läser bara det den nämner, så lägg till varje annan tjänst som ditt moln kör, till exempel `load-balancer`:
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## Vad den största storleken hölls till
 
-Den riktiga insamlaren läste ett mock-API med 5 000 hypervisorer, 200 000 instanser och 10 000 projekt varannan minut i 60 minuter, på en riktig klocka. Det den skickade gick genom den riktiga sammanfogningen och de riktiga skrivningarna in i en riktig Postgres, med Översiktens läsningar och svepet efter inaktuella rader körande bredvid dem var 30:e sekund, och 200 instanser som ändrades vid varje insamling. Varje budget nedan är verifierad, och en körning som missar en misslyckas.
+Den riktiga insamlaren läste ett mock-API med 5 000 hypervisorer, 200 000 instanser och 10 000 projekt varannan minut i 60 minuter, på en riktig klocka. Det den skickade gick genom den riktiga inmatningen och de riktiga skrivningarna in i en riktig Postgres, med Översiktens läsningar och svepet efter inaktuella rader körande bredvid dem var 30:e sekund, och 200 instanser som ändrades vid varje insamling. Varje budget nedan är verifierad, och en körning som missar en misslyckas.
 
 | Vad | Budget | Uppmätt |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ Marginalen är inte stor på en så upptagen maskin. En tidigare timme, vid ett 
 
 ## Vad sidorna läser
 
-Ett stort molns sidor läses lika snabbt som ett litet, eftersom ingen av dem läser hela molnet.
+Ett stort molns sidor läser knappt mer än ett litet molns, eftersom ingen av dem läser hela molnet.
 
 | Sida | Vad den läser |
 | --- | --- |

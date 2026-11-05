@@ -64,7 +64,7 @@ Kubernetes AI एजेंट की तरह, संसाधन AI एजे�
 | AWS खाता | `aws` | क्लाउड AI एजेंट | `AWS_ACCOUNT_ID` (खाली: वह खाता जिसमें यह चलता है) | `cloud` — एक तय कैटलॉग का एक ऑपरेशन, कभी कोई `aws` कमांड नहीं | AWS API, अपनी खुद की IAM भूमिकाओं के साथ |
 | Azure सब्सक्रिप्शन | `azure` | क्लाउड AI एजेंट | `AZURE_SUBSCRIPTION_ID` (इसकी सेटअप कमांड इसे सेट करती है) | `cloud` — एक तय कैटलॉग का एक ऑपरेशन, कभी कोई `az` कमांड नहीं | Azure Resource Manager, अपने Container App की प्रबंधित पहचान के रूप में |
 | Google Cloud प्रोजेक्ट | `gcp` (या `google-cloud`) | क्लाउड AI एजेंट | `GOOGLE_CLOUD_PROJECT` (खाली: वह प्रोजेक्ट जिसमें यह चलता है) | `cloud` — एक तय कैटलॉग का एक ऑपरेशन, कभी कोई `gcloud` कमांड नहीं | Google Cloud API, अपने खुद के सेवा खाते के रूप में |
-| OpenStack क्लाउड | `openstack` | OpenStack AI एजेंट | `OPENSTACK_CLOUD_NAME` | `openstack` कमांड, जो क्लाउड के API को भेजी जाती हैं (एजेंट में कोई `openstack` बाइनरी नहीं है) — यह केवल पढ़ता है, और इसके पास क्लाउड को बदलने वाली कोई कमांड नहीं है |
+| OpenStack क्लाउड | `openstack` | OpenStack AI एजेंट | `OPENSTACK_CLOUD_NAME` | `openstack` कमांड (एजेंट में कोई `openstack` बाइनरी नहीं है)। यह केवल पढ़ता है, जब तक आप [फ़िक्स](#openstack-क्लाउड-पर-सुधार) के लिए सहमति न दें | क्लाउड के API, `clouds.yaml` में मौजूद एप्लिकेशन क्रेडेंशियल के साथ |
 
 डेटाबेस सर्वर: डेटाबेस AI एजेंट के पास PostgreSQL, MySQL (और MariaDB व Percona Server), Redis (और Valkey, KeyDB व Dragonfly) और MongoDB के लिए डायग्नोस्टिक्स हैं। किसी भी दूसरे इंजन के लिए यह कुछ नहीं चलाता और डेटाबेस के AI एजेंट पेज पर यह बता देता है।
 
@@ -245,7 +245,7 @@ Podman होस्ट Podman के Docker-संगत API के ज़रि
 - जो कोई क्लाउड न चलाता हो, जहाँ उसका कैटलॉग उसका नाम लेता है: Manila के लिए `openstack share list --all-projects --limit 50`, `openstack share service list` और `openstack share pool list`; Designate में एक ज़ोन के रिकॉर्डसेट के लिए `openstack zone list --all-projects --limit 50` और `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`; Swift के लिए `openstack container list`, जो केवल इस क्रेडेंशियल के अपने प्रोजेक्ट का होता है; Trove के लिए `openstack database instance list`, हर प्रोजेक्ट का, जिसे केवल एडमिन देख सकता है; और Gnocchi के बैकलॉग और प्रोसेसर के लिए `openstack metric status`।
 - क्लाउड का स्वरूप: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list`, और ID के साथ `project show`।
 - टेनेंटों के पार किसी सूची में `--limit N` कहना ज़रूरी है, अधिकतम 200, और वह `--marker ID` से आगे बढ़ती है। हर दूसरी सूची 100 पंक्तियों पर रुक जाती है, जब तक वह कुछ और न कहे, और बताती है कि और भी हैं। एजेंट अपने आप कभी `next` लिंक का पीछा नहीं करता।
-- कभी नहीं: क्लाउड को बदलने वाली कोई भी चीज़ — ऐसी कोई कमांड चलाने को है ही नहीं — Keystone के उपयोगकर्ता, क्रेडेंशियल, रोल असाइनमेंट और टोकन, कंसोल और कंसोल लॉग, Barbican के सीक्रेट, `--os-cloud` और हर दूसरा लॉगिन या एंडपॉइंट विकल्प।
+- कभी नहीं: क्लाउड को बदलने वाली कोई भी चीज़ — केवल [एक फ़िक्स](#openstack-क्लाउड-पर-सुधार) ऐसा करता है — Keystone के उपयोगकर्ता, क्रेडेंशियल, रोल असाइनमेंट और टोकन, कंसोल और कंसोल लॉग, Barbican के सीक्रेट, `--os-cloud` और हर दूसरा लॉगिन या एंडपॉइंट विकल्प।
 
 किसी इंस्टेंस का `user_data`, उसका एडमिन पासवर्ड, किसी इमेज का `direct_url`, किसी वॉल्यूम का `provider_auth` और सीक्रेट के रूप में चिह्नित हर दूसरी चीज़ आउटपुट के मॉडल या किसी लॉग तक पहुँचने से पहले मास्क कर दी जाती है।
 

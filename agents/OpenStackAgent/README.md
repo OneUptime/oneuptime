@@ -189,7 +189,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/keystone
 curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/placement.yaml
 ```
 
-There is no file for Cinder. Its `os-services` and `scheduler-stats/get_pools` answer the role with `403 User does not have admin privileges`, on all five releases we record. That comes from Cinder's own code requiring an admin context, after policy has already passed, so no override can open them. So this level does not see `cinder-volume` or `cinder-scheduler` state or storage pools. Only level 1 does, and the **Block Storage Service Down**, **Storage Pool Warning** and **Storage Pool Critical** alerts need it.
+There is no file for Cinder. Its `os-services` and `scheduler-stats/get_pools` answer the role with `403 User does not have admin privileges`, on all five clouds we record. That comes from Cinder's own code requiring an admin context, after policy has already passed, so no override can open them. So this level does not see `cinder-volume` or `cinder-scheduler` state or storage pools. Only level 1 does, and the **Block Storage Service Down**, **Storage Pool Warning** and **Storage Pool Critical** alerts need it.
 
 **To take the overrides off again, empty the file (`{}`) and never delete it.** On Flamingo (2025.2) and Epoxy (2025.1), oslo.policy raises on every check once a policy file it has read is gone, so that service fails every request. When the service is Keystone, it stops validating tokens and the whole cloud answers `503`. If it has already happened, restart the service.
 
@@ -207,7 +207,7 @@ Then, logged in as that account on that project: `openstack application credenti
 
 - **Through the agent it shows no instances at all.** The exporter asks Nova for all projects' servers, Nova refuses a plain reader, and that read fails whole. Only a OneUptime probe, collecting without this agent, can list one project's instances.
 - **It may be able to write.** On a cloud where Cinder has `enforce_new_defaults` off, plain `reader` can create volumes in its project too. On Epoxy, Flamingo and Gazpacho it did (`202`), and on Hibiscus it was refused (`403`), because DevStack only turns `enforce_new_defaults` on there. Cinder's own default is off.
-- **Placement reads as not answering.** Every call it makes is refused, and the exporter reports that the way it reports a stopped Placement: `openstack_placement_up 0`, on all five releases we record. The pages can tell, from what else is closed to this credential, and say so. The Placement API Down template can't, so leave that one out at this level.
+- **Placement reads as not answering.** Every call it makes is refused, and the exporter reports that the way it reports a stopped Placement: `openstack_placement_up 0`, on all five clouds we record. The pages can tell, from what else is closed to this credential, and say so. The Placement API Down template can't, so leave that one out at this level.
 
 ### Replacing a credential
 

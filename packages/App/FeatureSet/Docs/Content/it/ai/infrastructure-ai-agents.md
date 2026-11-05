@@ -64,7 +64,7 @@ Come l'agente IA di Kubernetes, un agente IA di risorsa non è un Runner. Non co
 | Account AWS | `aws` | Agente IA cloud | `AWS_ACCOUNT_ID` (vuoto: l'account in cui gira) | `cloud`: un'operazione da un catalogo fisso, mai un comando `aws` | le API di AWS, con ruoli IAM propri |
 | Sottoscrizione Azure | `azure` | Agente IA cloud | `AZURE_SUBSCRIPTION_ID` (la imposta il suo comando di configurazione) | `cloud`: un'operazione da un catalogo fisso, mai un comando `az` | Azure Resource Manager, come identità gestita della sua Container App |
 | Progetto Google Cloud | `gcp` (o `google-cloud`) | Agente IA cloud | `GOOGLE_CLOUD_PROJECT` (vuoto: il progetto in cui gira) | `cloud`: un'operazione da un catalogo fisso, mai un comando `gcloud` | le API di Google Cloud, come un account di servizio proprio |
-| Cloud OpenStack | `openstack` | Agente IA OpenStack | `OPENSTACK_CLOUD_NAME` | comandi `openstack`, inviati alle API del cloud (nell'agente non c'è alcun binario `openstack`): legge soltanto e non ha alcun comando che modifichi un cloud |
+| Cloud OpenStack | `openstack` | Agente IA OpenStack | `OPENSTACK_CLOUD_NAME` | comandi `openstack` (nell'agente non c'è alcun binario `openstack`). Legge soltanto, finché non attivi le [correzioni](#correzioni-sui-cloud-openstack) | le API del cloud, con la credenziale applicativa in `clouds.yaml` |
 
 Server di database: l'agente IA per database ha diagnostica per PostgreSQL, MySQL (e MariaDB e Percona Server), Redis (e Valkey, KeyDB e Dragonfly) e MongoDB. Per qualsiasi altro motore non esegue nulla e lo indica nella pagina dell'agente IA del database.
 
@@ -245,7 +245,7 @@ Nell'agente non c'è alcun binario `openstack`, né una shell. Un comando è scr
 - Ciò che un cloud può non eseguire, dove il suo catalogo lo nomina: `openstack share list --all-projects --limit 50`, `openstack share service list` e `openstack share pool list` per Manila; `openstack zone list --all-projects --limit 50` e `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` per i recordset di una zona in Designate; `openstack container list` per Swift, che riguarda solo il progetto della credenziale stessa; `openstack database instance list` per Trove, di ogni progetto, che solo un amministratore può vedere; e `openstack metric status` per l'arretrato e i processori di Gnocchi.
 - La forma del cloud: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list`, e `project show` con un ID.
 - Un elenco tra più tenant deve indicare `--limit N`, fino a 200, e prosegue con `--marker ID`. Ogni altro elenco si ferma a 100 righe se non dice altrimenti, e segnala quando ce ne sono altre. L'agente non segue mai da solo un link `next`.
-- Mai: qualsiasi cosa modifichi il cloud — non esiste un comando del genere da eseguire — utenti, credenziali, assegnazioni di ruoli e token di Keystone, console e log delle console, i secret di Barbican, `--os-cloud` e ogni altra opzione di login o di endpoint.
+- Mai: qualsiasi cosa modifichi il cloud — solo [una correzione](#correzioni-sui-cloud-openstack) lo fa — utenti, credenziali, assegnazioni di ruoli e token di Keystone, console e log delle console, i secret di Barbican, `--os-cloud` e ogni altra opzione di login o di endpoint.
 
 Il `user_data` di un'istanza, la sua password di amministratore, il `direct_url` di un'immagine, il `provider_auth` di un volume e qualsiasi altra cosa contrassegnata come segreta vengono mascherati prima che l'output raggiunga il modello o un log.
 

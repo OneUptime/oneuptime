@@ -1,6 +1,6 @@
 # OpenStack-monitor
 
-Een OpenStack-monitor bewaakt één cloud: de API's, de workers erachter, hypervisors, instances, netwerken, opslagpools en projectquota. Hij meldt het wanneer een API niet meer antwoordt, een worker uitvalt, een hypervisor geen ruimte meer heeft of een pool volloopt. De monitor leest de `openstack_*`-reeksen die de OneUptime OpenStack Agent uit openstack-exporter verzamelt.
+Een OpenStack-monitor bewaakt één cloud: de API's, de workers erachter, hypervisors, instances, netwerken, opslagpools en projectquota. Hij meldt het wanneer een API niet meer antwoordt, een worker uitvalt, een hypervisor geen ruimte meer heeft of een pool volloopt. De monitor leest de `openstack_*`-reeksen die de OneUptime OpenStack Agent uit openstack-exporter verzamelt, of die een sonde uit de API's van de cloud verzamelt.
 
 :::cards
 - [De monitor maken](#een-openstack-monitor-maken): Zes stappen in het dashboard.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Verzamel de metrieken van de cloud** met de OpenStack Agent. De pagina **Documentatie** van de cloud, onder **Producten → Infrastructuur → OpenStack**, leidt u door de installatie.
+- **Verzamel de metrieken van de cloud** met de OpenStack Agent, of [een sonde](/docs/telemetry/openstack-agentless). **Documentatie**, onder **Producten → Infrastructuur → OpenStack**, leidt u door de installatie van de agent.
 - **Controleer of de cloud is geregistreerd.** Na de eerste verzameling verschijnt hij onder **Producten → Infrastructuur → OpenStack**, met de naam uit `OPENSTACK_CLOUD_NAME` van de agent.
 
 ## Een OpenStack-monitor maken

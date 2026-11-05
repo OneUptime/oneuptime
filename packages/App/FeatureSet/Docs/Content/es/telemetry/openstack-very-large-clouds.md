@@ -1,6 +1,6 @@
 # Nubes OpenStack muy grandes
 
-Lo que cuesta una nube de cualquier tamaño antes de instalar nada: cuánto presiona la monitorización su plano de control, cuántos datos envía y qué hace OneUptime de forma distinta a medida que una nube crece. Casi ninguna nube necesita nada de esto: los valores predeterminados del [agente de OpenStack](/docs/telemetry/openstack) y de una [sonda](/docs/telemetry/openstack-agentless) aguantan miles de instancias sin configurar nada.
+Lo que cuesta una nube de cualquier tamaño antes de instalar nada: cuánto presiona la monitorización su plano de control, cuántos datos envía y qué hace OneUptime de forma distinta a medida que una nube crece. Casi ninguna nube debería necesitar nada de esto: según los recuentos de abajo, los valores predeterminados del [agente de OpenStack](/docs/telemetry/openstack) y de una [sonda](/docs/telemetry/openstack-agentless) aguantan miles de instancias sin configurar nada.
 
 :::cards
 - [La carga sobre tu plano de control](#la-carga-sobre-tu-plano-de-control): Peticiones por minuto a cada servicio, a cada tamaño.
@@ -54,13 +54,13 @@ Estas cifras se cuentan a partir del código fuente del exportador, y el exporta
 
 ### Cuando una API se ralentiza
 
-Una sonda vigila en cuánto suele responder cada servicio, y cuando una respuesta tarda tres veces eso y al menos un segundo, o cinco segundos sea cual sea lo habitual, espera tanto como tardó esa respuesta antes de volver a preguntar a ese servicio. Varias lecturas que esperan a la vez se turnan, de modo que una pausa no acaba en una ráfaga. Un servicio que sigue respondiendo `429` o `503` se deja en paz durante un minuto, luego dos, luego cuatro, hasta media hora. Nada más se retiene: cada servicio se consulta por separado.
+Una sonda vigila en cuánto suele responder cada servicio, y se contiene cuando una respuesta es lenta o rechazada: [Lo que le cuesta a tu nube](/docs/telemetry/openstack-agentless#lo-que-le-cuesta-a-tu-nube) dice en qué medida. Varias lecturas que esperan a la vez se turnan, de modo que una pausa no acaba en una ráfaga. Nada más se retiene: cada servicio se consulta por separado.
 
 La tarjeta **Recopilación de datos** de la nube lo indica mientras dura, servicio por servicio: cuánto tardó su respuesta más lenta y cuánto se contuvo la sonda. El exportador del agente no puede hacer esto. Un scrape se ejecuta entero, a su intervalo: sube `scrape_interval` y `scrape_timeout` para ese job para ser más suave con un servicio.
 
 ## Los datos que envía
 
-Las series de una nube se derivan de sus recuentos. La calculadora de la página de **Documentación** de una nube en OneUptime lo calcula a partir de tres números. Para calcularlo tú mismo, para una región:
+Las series de una nube se derivan de sus recuentos. La calculadora de **OpenStack → Documentación** en OneUptime lo calcula a partir de tres números. Para calcularlo tú mismo, para una región:
 
 | Series | Cuántas |
 | --- | --- |
@@ -72,11 +72,11 @@ Las series de una nube se derivan de sus recuentos. La calculadora de la página
 | Recuentos del modo resumen, cuando está activado | Uno por estado y uno por proyecto: unos 6 más los proyectos |
 | Keystone, Glance | Proyectos, dominios y 9, y 2 por imagen más 5. Una sonda añade 3 por cada uno de Heat y Magnum, los ejecute o no una nube |
 
-Las filas de cada scrape son por lo que se te factura: las primeras cinco líneas llegan cada 2 minutos, 720 veces al día, y la última cada 5 minutos, 288 veces. El precio es el de tu factura, [por GB según el tiempo que se conserva](/docs/telemetry/openstack#lo-que-cuesta). La factura lee el tamaño real de cada fila, y esto lo calcula a 1024 bytes por fila, a lo que recurre la facturación de OneUptime cuando no tiene tamaño para una fila. Una fila con muchas etiquetas, como la de una instancia, cuesta más que eso, y una sin ninguna cuesta menos.
+Las filas de cada scrape son por lo que se te factura: las primeras cinco líneas llegan cada 2 minutos, 720 veces al día, y la última cada 5 minutos, 288 veces. El precio es el de tu factura, [por GB según el tiempo que se conserva](/docs/telemetry/data-retention#lo-que-cuesta-la-retención). La factura lee el tamaño real de cada fila, y esto lo calcula a 1024 bytes por fila, a lo que recurre la facturación de OneUptime cuando no tiene tamaño para una fila. Una fila con muchas etiquetas, como la de una instancia, cuesta más que eso, y una sin ninguna cuesta menos.
 
 | Nube | Series | GB al día, todas las series | GB al día, en modo resumen | Un mes conservado 15 días, en modo resumen |
 | --- | --- | --- | --- | --- |
-| 10 hipervisores, 100 instancias, 20 proyectos | 1075 | 0,7 | No en modo resumen | $2,12 |
+| 10 hipervisores, 100 instancias, 20 proyectos | 1084 | 0,7 | No en modo resumen | $2,12 |
 | 500 hipervisores, 20 000 instancias, 1000 proyectos | 123 856 | 84,5 | 16,6 | $49,71 |
 | 5000 hipervisores, 200 000 instancias, 10 000 proyectos | 1,237,192 | 844,5 | 164,9 | $494,73 |
 
@@ -114,7 +114,7 @@ Un agente lee una nube tenga las regiones que tenga, y con eso hay que empezar. 
 - **Cada par de región y servicio pertenece a un agente.** Una fila es la misma fila por muchos agentes que la informen, pero las series de cada agente se almacenan y se facturan.
 - **Keystone pertenece a un agente.** Es uno para toda la nube, la región que lo pregunte.
 
-**Un agente por región** es lo que quieren la mayoría de las nubes. Enumera solo las entradas de esa región en `clouds.yaml` y `OPENSTACK_EXPORTER_CLOUDS`. Solo el primer agente conserva Keystone:
+**Un agente por región** es lo que quieren la mayoría de las nubes. Enumera solo las entradas de esa región en `clouds.yaml` y `OPENSTACK_EXPORTER_CLOUDS`. Solo el primer agente conserva Keystone. Un agente que define `OPENSTACK_AGENT_SERVICES` lee solo lo que nombra, así que añade cualquier otro servicio que ejecute tu nube, como `load-balancer`:
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## A qué se sometió el tamaño más grande
 
-El recopilador real leyó una API simulada de 5000 hipervisores, 200 000 instancias y 10 000 proyectos cada dos minutos durante 60 minutos, con un reloj real. Lo que envió pasó por el fold real y las escrituras reales en un Postgres real, con las lecturas de la Vista general y el barrido de filas obsoletas ejecutándose a su lado cada 30 segundos, y 200 instancias cambiando en cada recopilación. Cada presupuesto de abajo se verifica, y una ejecución que incumple uno falla.
+El recopilador real leyó una API simulada de 5000 hipervisores, 200 000 instancias y 10 000 proyectos cada dos minutos durante 60 minutos, con un reloj real. Lo que envió pasó por la ingesta real y las escrituras reales en un Postgres real, con las lecturas de la Vista general y el barrido de filas obsoletas ejecutándose a su lado cada 30 segundos, y 200 instancias cambiando en cada recopilación. Cada presupuesto de abajo se verifica, y una ejecución que incumple uno falla.
 
 | Qué | Presupuesto | Medido |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ El margen no es amplio en una máquina tan ocupada. Una hora anterior, con una c
 
 ## Lo que leen las páginas
 
-Las páginas de una nube grande se leen tan rápido como las de una pequeña, porque ninguna lee toda la nube.
+Las páginas de una nube grande leen poco más que las de una pequeña, porque ninguna lee toda la nube.
 
 | Página | Qué lee |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Zeer grote OpenStack-clouds
 
-Wat een cloud van elke omvang kost voordat u iets installeert: hoe zwaar monitoring op het controlevlak leunt, hoeveel gegevens het verstuurt en wat OneUptime anders doet naarmate een cloud groeit. Vrijwel elke cloud heeft hier niets van nodig: de standaardinstellingen van de [OpenStack-agent](/docs/telemetry/openstack) en een [sonde](/docs/telemetry/openstack-agentless) volstaan tot duizenden instanties zonder dat er iets wordt ingesteld.
+Wat een cloud van elke omvang kost voordat u iets installeert: hoe zwaar monitoring op het controlevlak leunt, hoeveel gegevens het verstuurt en wat OneUptime anders doet naarmate een cloud groeit. Vrijwel elke cloud zou hier niets van nodig moeten hebben: volgens de aantallen hieronder volstaan de standaardinstellingen van de [OpenStack-agent](/docs/telemetry/openstack) en een [sonde](/docs/telemetry/openstack-agentless) tot duizenden instanties zonder dat er iets wordt ingesteld.
 
 :::cards
 - [De belasting van uw controlevlak](#de-belasting-van-uw-controlevlak): Verzoeken per minuut per service, op elke omvang.
@@ -54,13 +54,13 @@ Deze zijn geteld uit de broncode van de exporter, en de exporter is niet op deze
 
 ### Wanneer een API vertraagt
 
-Een sonde let op waarin elke service gewoonlijk antwoordt, en wanneer een antwoord drie keer zo lang duurt en minstens een seconde, of vijf seconden wat gebruikelijk ook is, wacht hij zo lang als dat antwoord duurde voordat hij die service opnieuw vraagt. Meerdere leesacties die tegelijk wachten komen om de beurt, zodat een pauze niet eindigt in een uitbarsting. Een service die `429` of `503` blijft antwoorden, wordt een minuut met rust gelaten, dan twee, dan vier, tot een half uur. Niets anders wordt opgehouden: elke service wordt afzonderlijk gevraagd.
+Een sonde let op waarin elke service gewoonlijk antwoordt, en houdt zich in wanneer een antwoord traag is of geweigerd wordt: [Wat het uw cloud kost](/docs/telemetry/openstack-agentless#wat-het-uw-cloud-kost) zegt hoeveel. Meerdere leesacties die tegelijk wachten komen om de beurt, zodat een pauze niet eindigt in een uitbarsting. Niets anders wordt opgehouden: elke service wordt afzonderlijk gevraagd.
 
 De kaart **Gegevensverzameling** van de cloud meldt het zolang het duurt, service voor service: hoe traag het traagste antwoord was en hoe lang de sonde terugwachtte. De exporter van de agent kan dit niet. Een scrape loopt geheel, op zijn interval: verhoog `scrape_interval` en `scrape_timeout` voor die job om een service te ontzien.
 
 ## De gegevens die het verstuurt
 
-De reeksen van een cloud volgen uit zijn aantallen. De calculator op de pagina **Documentatie** van een cloud in OneUptime rekent dit uit drie getallen uit. Om het zelf uit te rekenen, voor één regio:
+De reeksen van een cloud volgen uit zijn aantallen. De calculator onder **OpenStack → Documentatie** in OneUptime rekent dit uit drie getallen uit. Om het zelf uit te rekenen, voor één regio:
 
 | Reeks | Hoeveel |
 | --- | --- |
@@ -72,7 +72,7 @@ De reeksen van een cloud volgen uit zijn aantallen. De calculator op de pagina *
 | De tellingen van de samenvattingsmodus, wanneer die aanstaat | Eén per status en één per project: ongeveer 6 plus projecten |
 | Keystone, Glance | Projecten, domeinen en 9, en 2 per image plus 5. Een sonde voegt 3 toe voor elk van Heat en Magnum, of een cloud ze nu draait of niet |
 
-De rijen van elke scrape zijn waarvoor u wordt gefactureerd: de eerste vijf regels komen elke 2 minuten binnen, 720 keer per dag, en de laatste elke 5 minuten, 288 keer. De prijs is die op uw factuur, [per GB voor hoe lang het wordt bewaard](/docs/telemetry/openstack#wat-het-kost). De factuur leest de echte omvang van elke rij, en dit rekent het uit met 1.024 bytes per rij, waar de facturering van OneUptime op terugvalt wanneer het geen omvang voor een rij heeft. Een rij met veel labels, zoals die van een instantie, kost meer dan dat, en een zonder labels kost minder.
+De rijen van elke scrape zijn waarvoor u wordt gefactureerd: de eerste vijf regels komen elke 2 minuten binnen, 720 keer per dag, en de laatste elke 5 minuten, 288 keer. De prijs is die op uw factuur, [per GB voor hoe lang het wordt bewaard](/docs/telemetry/data-retention#wat-bewaring-kost). De factuur leest de echte omvang van elke rij, en dit rekent het uit met 1.024 bytes per rij, waar de facturering van OneUptime op terugvalt wanneer het geen omvang voor een rij heeft. Een rij met veel labels, zoals die van een instantie, kost meer dan dat, en een zonder labels kost minder.
 
 | Cloud | Reeksen | GB per dag, elke reeks | GB per dag, in samenvattingsmodus | Een maand met 15 dagen bewaren, in samenvattingsmodus |
 | --- | --- | --- | --- | --- |
@@ -114,7 +114,7 @@ Eén agent leest een cloud, hoeveel regio's die ook heeft, en daarmee begint u h
 - **Elk paar van een regio en een service hoort bij één agent.** Een rij is dezelfde rij, hoeveel agents hem ook melden, maar de reeksen van elke agent worden opgeslagen en gefactureerd.
 - **Keystone hoort bij één agent.** Het is er één voor de hele cloud, welke regio het ook vraagt.
 
-**Eén agent per regio** is wat de meeste clouds willen. Noem alleen de items van die regio in `clouds.yaml` en `OPENSTACK_EXPORTER_CLOUDS`. Alleen de eerste agent houdt Keystone:
+**Eén agent per regio** is wat de meeste clouds willen. Noem alleen de items van die regio in `clouds.yaml` en `OPENSTACK_EXPORTER_CLOUDS`. Alleen de eerste agent houdt Keystone. Een agent die `OPENSTACK_AGENT_SERVICES` instelt, leest alleen wat die noemt, dus voeg elke andere service toe die uw cloud draait, zoals `load-balancer`:
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## Waaraan de grootste omvang is getoetst
 
-De echte verzamelaar las 60 minuten lang elke twee minuten een mock-API van 5.000 hypervisors, 200.000 instanties en 10.000 projecten, op een echte klok. Wat hij verstuurde ging door de echte fold en de echte schrijfacties naar een echte Postgres, met de leesacties van het Overzicht en de sweep van verouderde rijen elke 30 seconden ernaast, en 200 instanties die bij elke verzameling veranderden. Elk budget hieronder wordt gecontroleerd, en een run die er een mist, mislukt.
+De echte verzamelaar las 60 minuten lang elke twee minuten een mock-API van 5.000 hypervisors, 200.000 instanties en 10.000 projecten, op een echte klok. Wat hij verstuurde ging door de echte ingest en de echte schrijfacties naar een echte Postgres, met de leesacties van het Overzicht en de sweep van verouderde rijen elke 30 seconden ernaast, en 200 instanties die bij elke verzameling veranderden. Elk budget hieronder wordt gecontroleerd, en een run die er een mist, mislukt.
 
 | Wat | Budget | Gemeten |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ De marge is niet groot op zo'n drukke machine. Een eerder uur, bij een gemiddeld
 
 ## Wat de pagina's lezen
 
-De pagina's van een grote cloud lezen even snel als die van een kleine, omdat geen ervan de hele cloud leest.
+De pagina's van een grote cloud lezen nauwelijks meer dan die van een kleine, omdat geen ervan de hele cloud leest.
 
 | Pagina | Wat hij leest |
 | --- | --- |

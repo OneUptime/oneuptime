@@ -1,6 +1,6 @@
 # OpenStack etter utrullingsverktøy
 
-Ingen kjører «OpenStack». De kjører et verktøy som distribuerer det, og hvert verktøy har sine egne stier, sine egne logger og sin egen oppfatning av hva som allerede kjører. Denne siden er det oppsettsguiden i OneUptime sier for hvert av dem: åpne **OpenStack → Alle skyer**, koble til en sky og svar på **Hvordan distribuerer du OpenStack?**
+Ingen kjører «OpenStack». De kjører et verktøy som distribuerer det, og hvert verktøy har sine egne stier, sine egne logger og sin egen oppfatning av hva som allerede kjører. Denne siden er det oppsettsguiden i OneUptime sier for hvert av dem: åpne **OpenStack → Dokumentasjon** og svar på **Hvordan distribuerer du OpenStack?**
 
 :::cards
 - [Hvor langt hver guide er testet](#hvor-langt-hver-guide-er-testet): Les dette først. Kolla-Ansibles og OpenStack-Ansibles er kjørt på ekte distribusjoner. De andre er ikke kjørt.
@@ -16,23 +16,23 @@ Ingen kjører «OpenStack». De kjører et verktøy som distribuerer det, og hve
 
 ## Hvor langt hver guide er testet
 
-Hver sti, port og variabel nedenfor er lest fra verktøyets egen kildekode eller dokumentasjon. Riggen som tar opp OneUptimes testdata distribuerer også Kolla-Ansible og OpenStack-Ansible på en CI-runner, og kjører guidenes egne kommandoer der, med en stand-in for OneUptime som beholder det agenten sender. Så ingen guide her har rapportert til en kjørende OneUptime fra en ekte distribusjon av verktøyet sitt. Dette er hva hver er kontrollert mot:
+Hver sti, port og variabel nedenfor er lest fra verktøyets egen kildekode eller dokumentasjon. Guidene til Kolla-Ansible og OpenStack-Ansible er også fulgt på ekte distribusjoner, med deres egne kommandoer og en stand-in for OneUptime som beholder det agenten sender. Så ingen guide her har rapportert til en kjørende OneUptime fra en ekte distribusjon av verktøyet sitt. Dette er hva hver er kontrollert mot:
 
 | Verktøy | Lest fra | Kjørt for ekte |
 | --- | --- | --- |
-| Kolla-Ansible | Kildekoden, på master og `stable/2026.1` | Denne guidens kommandoer, på en ekte all-in-one på `stable/2026.1` med Open vSwitch: agenten på hver legitimasjon, uten Docker, på Kolla-Ansibles egen eksportør og på din egen i den festede versjonen og i 1.7.0, målene lest fra dens ekte `prometheus.yml`, og loggprofilen. Med Memcached stoppet der postet Alertmanager en firing-webhook og deretter en resolved-webhook, og det den postet, sendt til en kjørende OneUptime, åpnet én hendelse på riktig sky og ingen andre, og løste den |
-| OpenStack-Ansible | Kildekoden og dokumentasjonen | Denne guidens kommandoer, på en ekte all-in-one på `stable/2026.1`, i LXC-containere: agenten på den første legitimasjonen, eksportøren på den andre med policy-overstyringene sine, RabbitMQ- og HAProxy-innstillingene med agenten som leste hver av dem, og loggprofilen på journalen |
-| OpenStack-Helm | Chartenes verdier | Sonden og Kubernetes-agenten, hver for seg |
-| Atmosphere | Dokumentasjonen og kildekoden | Sonden og Kubernetes-agenten, hver for seg |
+| Kolla-Ansible | Kildekoden, på master og `stable/2026.1` | Denne guidens kommandoer, på en ekte all-in-one på `stable/2026.1` med Open vSwitch: agenten på Full visning-legitimasjonen, uten Docker, på Kolla-Ansibles egen eksportør og på din egen i den festede versjonen og i 1.7.0, agentens eksportør på Kun infrastruktur-legitimasjonen, målene lest fra dens ekte `prometheus.yml`, og loggprofilen. Med Memcached stoppet der postet Alertmanager en firing-webhook og deretter en resolved-webhook, og det den postet, sendt til en kjørende OneUptime, åpnet én hendelse på riktig sky og ingen andre, og løste den |
+| OpenStack-Ansible | Kildekoden og dokumentasjonen | Denne guidens kommandoer, på en ekte all-in-one på `stable/2026.1`, i LXC-containere: agenten på Full visning-legitimasjonen, agentens eksportør på Kun infrastruktur-legitimasjonen med policy-overstyringene sine, RabbitMQ- og HAProxy-innstillingene med agenten som leste hver av dem, og loggprofilen på journalen |
+| OpenStack-Helm | Chartenes verdier | Ingenting på OpenStack-Helm. Sonden og Kubernetes-agenten ble testet hver for seg |
+| Atmosphere | Dokumentasjonen og kildekoden | Ingenting på Atmosphere. Sonden og Kubernetes-agenten ble testet hver for seg |
 | Canonical Sunbeam | Canonicals dokumentasjon og kildekoden til charmene | Ingenting på Sunbeam. Sunbeams egen dokumentasjon nevner ikke eksportør-charmen |
-| Red Hat OpenStack on OpenShift | Telemetry Operators kildekode | OpenShift-forhåndsvalget og Ceilometers eksportør, hver for seg |
+| Red Hat OpenStack on OpenShift | Telemetry Operators kildekode | Ingenting på Red Hats distribusjon. OpenShift-forhåndsvalget og Ceilometers eksportør ble testet hver for seg |
 | Mirantis MOSK | Mirantis' dokumentasjon, hvis eksempler viser andre mottakere i stedet for en webhook | Ingenting på MOSK |
 
-Det **Hvem gjorde hva** slår på i hver guide ble tatt opp på DevStack, på hver utgave riggen kjører, og på ingen av disse verktøyene. Hvor hvert verktøy tar det, er lest fra det verktøyets kildekode eller dokumentasjon.
+Det **Hvem gjorde hva** slår på i hver guide ble tatt opp på DevStack, og på ingen av disse verktøyene. Hvor hvert verktøy tar det, er lest fra det verktøyets kildekode eller dokumentasjon.
 
-Ved siden av dem har hele veien kjørt på en levende OneUptime, startet slik Docker Compose starter den, med app og sonde bygget fra denne koden, og på en ekte DevStack i stedet for noen av disse verktøyene. Agenten, installert med dokumentasjonens kommandoer, registrerte skyen fra de første dataene, og hver instans, hvert volum og hver hypervisor hadde en rad med statusen skyen selv ga den. Med `nova-compute` virkelig stoppet gikk raden ned, en overvåker fra malen Compute Service Down åpnet én hendelse som navnga verten 746 sekunder senere, og den ble løst 48 sekunder etter at tjenesten startet igjen. Et prosjekts sonde koblet til den samme skyen gjennom dashbordets egne ruter og leste radene tilbake, og 114 spenn fra en signert oppstart kom fram på tvers av tjenestene, fra traceprofilen.
+Ved siden av dem har hele veien kjørt på en levende OneUptime, startet slik Docker Compose starter den, på en ekte DevStack i stedet for noen av disse verktøyene. Agenten, installert med dokumentasjonens kommandoer, registrerte skyen fra de første dataene, og hver instans, hvert volum og hver hypervisor hadde en rad med statusen skyen selv ga den. Med `nova-compute` virkelig stoppet gikk raden ned, en overvåker fra malen Compute Service Down åpnet én hendelse som navnga verten omtrent 12 minutter senere, og den ble løst innen ett minutt etter at tjenesten startet igjen. Et prosjekts sonde koblet til den samme skyen gjennom dashbordets egne ruter og leste radene tilbake, og 114 spenn fra en signert oppstart kom fram på tvers av tjenestene, fra traceprofilen.
 
-Separat ble det en ekte agent og en ekte Alertmanager hadde sendt, tatt opp på DevStack og i en testklynge, ikke på en sky noen av disse verktøyene distribuerte. Sendt til en levende OneUptime åpnet webhooken for utløsning én hendelse på riktig sky og på ingen annen, den samme webhooken igjen åpnet ingenting, og webhooken for løsning løste den.
+Separat ble det en ekte agent sendte på DevStack og det Kolla-Ansibles Alertmanager postet tatt opp, og deretter sendt til en levende OneUptime: webhooken for utløsning åpnet én hendelse på riktig sky og på ingen annen, den samme webhooken igjen åpnet ingenting, og webhooken for løsning løste den.
 
 ## Videresend det som allerede utløses
 
@@ -48,7 +48,7 @@ Lag en Incoming Request-overvåker slik [Prometheus Alertmanager](/docs/integrat
 Åpne overvåkerens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen. Hver hendelse er da på den skyens **Hendelser**-side: en Incoming Request-overvåkers egne innstillinger navngir ingen sky, så hver skys Alertmanager trenger en overvåker for seg. Skyen dukker opp i den listen når de første dataene kommer, så gjør dette etter stegene nedenfor, eller legg til skyen under **OpenStack → Alle skyer** først.
 :::
 
-Alertmanager er tatt opp mens den poster i akkurat denne formen i `Tests/Ops/openstack-e2e`, i versjonen Kolla-Ansible fester, og opptaket spilles av gjennom den ekte evaluatoren: én hendelse per varsel, løst av sin egen `resolved`-status.
+Alertmanager, i versjonen Kolla-Ansible fester, er tatt opp mens den poster i akkurat denne formen, og det den postet åpnet én hendelse på en kjørende OneUptime, som dens egen `resolved`-status løste.
 
 ## Kolla-Ansible
 
@@ -576,7 +576,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
 bash install.sh
 ```
 
-Den gjennomgangen kommer på toppen av at Kolla-Ansibles egen Prometheus spør hvert minutt. Kolla-Ansible fester eksportør 1.7.0, og svaret dens sier også mindre enn eksportøren agenten fester. Dette er hva sidene gikk uten på fem virkelige skyer, og en test holder det opp mot disse opptakene:
+Den avlesningen kommer på toppen av at Kolla-Ansibles egen Prometheus spør hvert minutt. Kolla-Ansible fester eksportør 1.7.0, og svaret dens sier også mindre enn eksportøren agenten fester. Dette er hva sidene gikk uten på fem virkelige skyer, og en test holder det opp mot disse opptakene:
 
 | Går uten | Fordi | Hva det koster |
 | --- | --- | --- |

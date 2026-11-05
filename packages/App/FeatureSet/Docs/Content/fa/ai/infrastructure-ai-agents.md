@@ -64,7 +64,7 @@ flowchart TB
 | حساب AWS | `aws` | عامل هوش مصنوعی ابری | `AWS_ACCOUNT_ID` (خالی: حسابی که در آن اجرا می‌شود) | `cloud` — یک عملیات از یک کاتالوگ ثابت، هرگز یک فرمان `aws` | APIهای AWS، با نقش‌های IAM مخصوص خودش |
 | اشتراک Azure | `azure` | عامل هوش مصنوعی ابری | `AZURE_SUBSCRIPTION_ID` (فرمان راه‌اندازی‌اش آن را تنظیم می‌کند) | `cloud` — یک عملیات از یک کاتالوگ ثابت، هرگز یک فرمان `az` | Azure Resource Manager، به‌عنوان هویت مدیریت‌شدهٔ Container App خودش |
 | پروژهٔ Google Cloud | `gcp` (یا `google-cloud`) | عامل هوش مصنوعی ابری | `GOOGLE_CLOUD_PROJECT` (خالی: پروژه‌ای که در آن اجرا می‌شود) | `cloud` — یک عملیات از یک کاتالوگ ثابت، هرگز یک فرمان `gcloud` | APIهای Google Cloud، به‌عنوان یک حساب سرویس مخصوص خودش |
-| ابر OpenStack | `openstack` | عامل هوش مصنوعی OpenStack | `OPENSTACK_CLOUD_NAME` | فرمان‌های `openstack`، که به APIهای ابر فرستاده می‌شوند (در عامل هیچ فایل اجرایی `openstack` وجود ندارد) — فقط می‌خواند و هیچ فرمانی ندارد که ابر را تغییر دهد |
+| ابر OpenStack | `openstack` | عامل هوش مصنوعی OpenStack | `OPENSTACK_CLOUD_NAME` | فرمان‌های `openstack` (در عامل هیچ فایل اجرایی `openstack` وجود ندارد). فقط می‌خواند، تا وقتی [اصلاح‌ها](#اصلاحها-روی-ابرهای-openstack) را فعال کنید | APIهای ابر، با اعتبارنامه برنامه در `clouds.yaml` |
 
 سرورهای پایگاه داده: عامل هوش مصنوعی پایگاه داده برای PostgreSQL، MySQL (و MariaDB و Percona Server)، Redis (و Valkey، KeyDB و Dragonfly) و MongoDB ابزار تشخیص دارد. برای هر موتور دیگری هیچ چیزی اجرا نمی‌کند و این را در صفحهٔ عامل هوش مصنوعی پایگاه داده می‌گوید.
 
@@ -245,7 +245,7 @@ ONEUPTIME_AI_ALLOW_WRITES=true
 - آنچه ممکن است یک ابر نداشته باشد، جایی که کاتالوگش آن را نام برده است: `openstack share list --all-projects --limit 50`، `openstack share service list` و `openstack share pool list` برای Manila؛ `openstack zone list --all-projects --limit 50` و `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` برای recordsetهای یک zone در Designate؛ `openstack container list` برای Swift، که فقط مال پروژهٔ خود این اعتبارنامه است؛ `openstack database instance list` برای Trove، مال همهٔ پروژه‌ها، که فقط یک ادمین می‌تواند؛ و `openstack metric status` برای صف و پردازنده‌های Gnocchi.
 - شکل ابر: `openstack endpoint list`، `openstack service list`، `openstack region list`، `openstack project list`، `openstack domain list`، و `project show` با یک شناسه.
 - فهرستی که چند tenant را در بر بگیرد باید `--limit N` داشته باشد، تا ۲۰۰، و با `--marker ID` ادامه می‌یابد. هر فهرست دیگر، مگر خلافش گفته شود، در ۱۰۰ ردیف متوقف می‌شود و می‌گوید که ردیف‌های بیشتری هست. عامل هرگز خودش پیوند `next` را دنبال نمی‌کند.
-- هرگز: هر چیزی که ابر را تغییر دهد — چنین فرمانی برای اجرا وجود ندارد — کاربران، اعتبارنامه‌ها، انتساب نقش‌ها و توکن‌های Keystone، کنسول‌ها و لاگ‌های کنسول، رازهای Barbican، `--os-cloud` و هر گزینهٔ ورود یا endpoint دیگر.
+- هرگز: هر چیزی که ابر را تغییر دهد — فقط [یک اصلاح](#اصلاحها-روی-ابرهای-openstack) این کار را می‌کند — کاربران، اعتبارنامه‌ها، انتساب نقش‌ها و توکن‌های Keystone، کنسول‌ها و لاگ‌های کنسول، رازهای Barbican، `--os-cloud` و هر گزینهٔ ورود یا endpoint دیگر.
 
 `user_data` یک نمونه، گذرواژهٔ ادمین آن، `direct_url` یک ایمیج، `provider_auth` یک حجم و هر چیز دیگری که محرمانه علامت خورده باشد، پیش از رسیدن خروجی به مدل یا یک لاگ پوشانده می‌شود.
 

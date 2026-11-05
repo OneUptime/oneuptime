@@ -1,6 +1,6 @@
 # OpenStack 모니터
 
-OpenStack 모니터는 클라우드 하나를 감시합니다. API, API 뒤에서 동작하는 워커, 하이퍼바이저, 인스턴스, 네트워크, 스토리지 풀, 프로젝트 할당량을 대상으로 하며, API가 응답을 멈추거나 워커가 중단되거나 하이퍼바이저에 여유가 없거나 풀이 가득 차면 알려 줍니다. OneUptime OpenStack 에이전트가 openstack-exporter에서 수집하는 `openstack_*` 시계열을 읽습니다.
+OpenStack 모니터는 클라우드 하나를 감시합니다. API, API 뒤에서 동작하는 워커, 하이퍼바이저, 인스턴스, 네트워크, 스토리지 풀, 프로젝트 할당량을 대상으로 하며, API가 응답을 멈추거나 워커가 중단되거나 하이퍼바이저에 여유가 없거나 풀이 가득 차면 알려 줍니다. OneUptime OpenStack 에이전트가 openstack-exporter에서 수집하거나 프로브가 클라우드의 API에서 수집하는 `openstack_*` 시계열을 읽습니다.
 
 :::cards
 - [모니터 생성](#openstack-모니터-생성): 대시보드에서 진행하는 여섯 단계입니다.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- OpenStack 에이전트로 **클라우드의 메트릭을 수집**하세요. 클라우드의 **문서** 페이지(**제품 → 인프라 → OpenStack**)에서 설치 방법을 안내합니다.
+- OpenStack 에이전트 또는 [프로브](/docs/telemetry/openstack-agentless)로 **클라우드의 메트릭을 수집**하세요. **문서**(**제품 → 인프라 → OpenStack**)에서 에이전트 설치 방법을 안내합니다.
 - **클라우드가 등록되었는지 확인**하세요. 첫 수집이 끝나면 에이전트의 `OPENSTACK_CLOUD_NAME`이라는 이름으로 **제품 → 인프라 → OpenStack**에 나타납니다.
 
 ## OpenStack 모니터 생성

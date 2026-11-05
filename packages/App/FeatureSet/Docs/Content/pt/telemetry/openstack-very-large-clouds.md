@@ -1,6 +1,6 @@
 # Nuvens OpenStack muito grandes
 
-O que uma nuvem de qualquer tamanho custa antes de você instalar qualquer coisa: o quanto o monitoramento pesa sobre o plano de controle dela, quantos dados ele envia e o que o OneUptime faz de diferente à medida que a nuvem cresce. Quase toda nuvem não precisa de nada disto: os padrões do [agente OpenStack](/docs/telemetry/openstack) e de uma [sonda](/docs/telemetry/openstack-agentless) aguentam milhares de instâncias sem que nada precise ser configurado.
+O que uma nuvem de qualquer tamanho custa antes de você instalar qualquer coisa: o quanto o monitoramento pesa sobre o plano de controle dela, quantos dados ele envia e o que o OneUptime faz de diferente à medida que a nuvem cresce. Quase toda nuvem deveria dispensar isto: pelas contagens abaixo, os padrões do [agente OpenStack](/docs/telemetry/openstack) e de uma [sonda](/docs/telemetry/openstack-agentless) aguentam milhares de instâncias sem que nada precise ser configurado.
 
 :::cards
 - [A carga sobre o seu plano de controle](#a-carga-sobre-o-seu-plano-de-controle): Requisições por minuto por serviço, em cada tamanho.
@@ -54,13 +54,13 @@ Esses números são contados a partir do código-fonte do exportador, e o export
 
 ### Quando uma API fica lenta
 
-Uma sonda observa em quanto tempo cada serviço costuma responder, e quando uma resposta leva três vezes isso e pelo menos um segundo, ou cinco segundos seja qual for o usual, ela espera o mesmo tempo que essa resposta levou antes de consultar o serviço de novo. Várias leituras esperando ao mesmo tempo se revezam, então uma pausa não termina em uma rajada. Um serviço que continua respondendo `429` ou `503` é deixado em paz por um minuto, depois dois, depois quatro, até meia hora. Nada mais fica retido: cada serviço é consultado por conta própria.
+Uma sonda observa em quanto tempo cada serviço costuma responder, e recua quando uma resposta é lenta ou recusada: [O que custa à sua nuvem](/docs/telemetry/openstack-agentless#o-que-isso-custa-à-sua-nuvem) diz em quanto. Várias leituras esperando ao mesmo tempo se revezam, então uma pausa não termina em uma rajada. Nada mais fica retido: cada serviço é consultado por conta própria.
 
 O cartão **Coleta de dados** da nuvem informa isso enquanto durar, serviço por serviço: quão lenta foi a resposta mais lenta e por quanto tempo a sonda se conteve. O exportador do agente não consegue fazer isso. Uma coleta executa inteira, no seu intervalo: aumente `scrape_interval` e `scrape_timeout` desse job para pesar menos sobre um serviço.
 
 ## Os dados que ele envia
 
-As séries de uma nuvem decorrem das suas contagens. A calculadora na página **Documentação** de uma nuvem no OneUptime calcula isso a partir de três números. Para calcular você mesmo, para uma região:
+As séries de uma nuvem decorrem das suas contagens. A calculadora em **OpenStack → Documentação** no OneUptime calcula isso a partir de três números. Para calcular você mesmo, para uma região:
 
 | Série | Quantas |
 | --- | --- |
@@ -72,7 +72,7 @@ As séries de uma nuvem decorrem das suas contagens. A calculadora na página **
 | Contagens do modo resumo, quando ele está ativado | Uma por status e uma por projeto: cerca de 6 mais os projetos |
 | Keystone, Glance | Projetos, domínios e 9, e 2 por imagem mais 5. Uma sonda acrescenta 3 para cada um entre Heat e Magnum, quer a nuvem os execute ou não |
 
-As linhas de cada coleta são o que você paga: as cinco primeiras chegam a cada 2 minutos, 720 vezes por dia, e a última a cada 5 minutos, 288 vezes. O preço é o da sua fatura, [por GB pelo tempo em que é mantido](/docs/telemetry/openstack#quanto-custa). A fatura lê o tamanho real de cada linha, e este cálculo usa 1.024 bytes por linha, o que o faturamento do OneUptime usa quando não tem o tamanho de uma linha. Uma linha com muitos rótulos, como a de uma instância, custa mais que isso, e uma sem nenhum custa menos.
+As linhas de cada coleta são o que você paga: as cinco primeiras chegam a cada 2 minutos, 720 vezes por dia, e a última a cada 5 minutos, 288 vezes. O preço é o da sua fatura, [por GB pelo tempo em que é mantido](/docs/telemetry/data-retention#quanto-custa-a-retenção). A fatura lê o tamanho real de cada linha, e este cálculo usa 1.024 bytes por linha, o que o faturamento do OneUptime usa quando não tem o tamanho de uma linha. Uma linha com muitos rótulos, como a de uma instância, custa mais que isso, e uma sem nenhum custa menos.
 
 | Nuvem | Séries | GB por dia, todas as séries | GB por dia, no modo resumo | Um mês mantido por 15 dias, no modo resumo |
 | --- | --- | --- | --- | --- |
@@ -114,7 +114,7 @@ Um agente lê uma nuvem com quantas regiões ela tiver, e é por isso que se dev
 - **Cada par de região e serviço pertence a um agente.** Uma linha é a mesma linha por mais agentes que a reportem, mas as séries de cada agente são armazenadas e cobradas.
 - **O Keystone pertence a um agente.** Ele é um só para a nuvem inteira, qualquer que seja a região que o consulte.
 
-**Um agente por região** é o que a maioria das nuvens quer. Liste apenas as entradas dessa região em `clouds.yaml` e `OPENSTACK_EXPORTER_CLOUDS`. Somente o primeiro agente fica com o Keystone:
+**Um agente por região** é o que a maioria das nuvens quer. Liste apenas as entradas dessa região em `clouds.yaml` e `OPENSTACK_EXPORTER_CLOUDS`. Somente o primeiro agente fica com o Keystone. Um agente que define `OPENSTACK_AGENT_SERVICES` lê apenas o que ele nomeia, então acrescente qualquer outro serviço que a sua nuvem execute, como `load-balancer`:
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## A que o maior tamanho foi submetido
 
-O coletor real leu uma API simulada com 5.000 hipervisores, 200.000 instâncias e 10.000 projetos a cada dois minutos durante 60 minutos, em um relógio real. O que ele enviou passou pelo fold real e pelas escritas reais em um Postgres real, com as leituras da Visão geral e a varredura de linhas obsoletas executando ao lado a cada 30 segundos, e 200 instâncias mudando a cada coleta. Cada orçamento abaixo é verificado por asserção, e uma execução que não cumpre um deles falha.
+O coletor real leu uma API simulada com 5.000 hipervisores, 200.000 instâncias e 10.000 projetos a cada dois minutos durante 60 minutos, em um relógio real. O que ele enviou passou pela ingestão real e pelas escritas reais em um Postgres real, com as leituras da Visão geral e a varredura de linhas obsoletas executando ao lado a cada 30 segundos, e 200 instâncias mudando a cada coleta. Cada orçamento abaixo é verificado por asserção, e uma execução que não cumpre um deles falha.
 
 | O quê | Orçamento | Medido |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ A margem não é larga em uma máquina tão ocupada. Uma hora anterior, com uma 
 
 ## O que as páginas leem
 
-As páginas de uma nuvem grande são lidas tão rápido quanto as de uma pequena, porque nenhuma delas lê a nuvem inteira.
+As páginas de uma nuvem grande leem pouco mais do que as de uma pequena, porque nenhuma delas lê a nuvem inteira.
 
 | Página | O que ela lê |
 | --- | --- |

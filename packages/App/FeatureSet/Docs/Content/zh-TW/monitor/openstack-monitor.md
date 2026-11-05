@@ -1,6 +1,6 @@
 # OpenStack 監控
 
-OpenStack 監測器會監看一座雲端，包括它的 API、API 背後的工作程序、虛擬化主機、執行個體、網路、儲存池和專案配額，並在 API 不再回應、工作程序停止、虛擬化主機已無餘裕可分配或儲存池寫滿時通知你。它讀取 OneUptime OpenStack Agent 從 openstack-exporter 收集的 `openstack_*` 序列。
+OpenStack 監測器會監看一座雲端，包括它的 API、API 背後的工作程序、虛擬化主機、執行個體、網路、儲存池和專案配額，並在 API 不再回應、工作程序停止、虛擬化主機已無餘裕可分配或儲存池寫滿時通知你。它讀取 OneUptime OpenStack Agent 從 openstack-exporter 收集的 `openstack_*` 序列，或由探測器從雲端的 API 收集的序列。
 
 :::cards
 - [建立監測器](#建立-openstack-監測器): 在儀表板中分六個步驟完成。
@@ -29,7 +29,7 @@ flowchart TB
 
 ## 開始之前
 
-- **以 OpenStack Agent 收集雲端的指標。** 雲端的 **文件** 頁面位於 **產品 → 基礎設施 → OpenStack** 之下，會逐步帶你完成安裝。
+- **以 OpenStack Agent 收集雲端的指標**，或使用[探測器](/docs/telemetry/openstack-agentless)。**文件**位於 **產品 → 基礎設施 → OpenStack** 之下，會逐步帶你完成代理程式的安裝。
 - **確認雲端已註冊。** 第一次收集之後，它會以 Agent 的 `OPENSTACK_CLOUD_NAME` 為名，出現在 **產品 → 基礎設施 → OpenStack** 之下。
 
 ## 建立 OpenStack 監測器

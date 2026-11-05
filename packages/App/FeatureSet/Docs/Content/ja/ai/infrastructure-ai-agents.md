@@ -64,7 +64,7 @@ Kubernetes AI エージェントと同じく、リソース AI エージェン�
 | AWS アカウント | `aws` | クラウド AI エージェント | `AWS_ACCOUNT_ID`(空の場合は動作しているアカウント) | `cloud` — 固定のカタログの操作を一つ実行し、`aws` コマンドは決して実行しない | AWS の API、専用の IAM ロールを使用 |
 | Azure サブスクリプション | `azure` | クラウド AI エージェント | `AZURE_SUBSCRIPTION_ID`(セットアップコマンドが設定) | `cloud` — 固定のカタログの操作を一つ実行し、`az` コマンドは決して実行しない | Azure Resource Manager、Container App のマネージド ID として |
 | Google Cloud プロジェクト | `gcp`(または `google-cloud`) | クラウド AI エージェント | `GOOGLE_CLOUD_PROJECT`(空の場合は動作しているプロジェクト) | `cloud` — 固定のカタログの操作を一つ実行し、`gcloud` コマンドは決して実行しない | Google Cloud の API、専用のサービス アカウントとして |
-| OpenStack クラウド | `openstack` | OpenStack AI エージェント | `OPENSTACK_CLOUD_NAME` | `openstack` コマンドをクラウドの API に送る(エージェントに `openstack` バイナリはありません)— 読み取りのみで、クラウドを変更するコマンドはありません |
+| OpenStack クラウド | `openstack` | OpenStack AI エージェント | `OPENSTACK_CLOUD_NAME` | `openstack` コマンド(エージェントに `openstack` バイナリはありません)。[修正](#openstack-クラウドでの修正)を有効にするまでは読み取りのみ | クラウドの API。`clouds.yaml` のアプリケーション認証情報を使用 |
 
 データベースサーバー: データベース AI エージェントには、PostgreSQL、MySQL(および MariaDB と Percona Server)、Redis(および Valkey、KeyDB、Dragonfly)、MongoDB 向けの診断があります。それ以外のエンジンでは何も実行せず、データベースの AI エージェントのページでその旨を表示します。
 
@@ -245,7 +245,7 @@ Podman ホストは、Podman の Docker 互換 API を通じて同じ `docker` C
 - クラウドが実行していないこともあるもの(カタログに名前がある場合のみ): Manila では `openstack share list --all-projects --limit 50`、`openstack share service list`、`openstack share pool list`。Designate では `openstack zone list --all-projects --limit 50` と、一つのゾーンのレコードセットを見る `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`。Swift では `openstack container list`(この認証情報自身のプロジェクトのものだけ)。Trove では `openstack database instance list`(すべてのプロジェクトのもので、管理者だけが実行できます)。Gnocchi のバックログとプロセッサーには `openstack metric status`。
 - クラウドの構成: `openstack endpoint list`、`openstack service list`、`openstack region list`、`openstack project list`、`openstack domain list`、そして ID を指定する `project show`。
 - テナントをまたぐ一覧には `--limit N`(200 まで)が必須で、続きは `--marker ID` で取得します。それ以外の一覧は、指定がなければ 100 行で止まり、まだ続きがあることを示します。エージェントが `next` リンクを自分でたどることはありません。
-- 決して不可: クラウドを変更するものすべて(そのようなコマンドは存在しません)、Keystone のユーザー、認証情報、ロール割り当て、トークン、コンソールとコンソールログ、Barbican のシークレット、`--os-cloud` とそのほかすべてのログインやエンドポイントのオプション。
+- 決して不可: クラウドを変更するものすべて([修正](#openstack-クラウドでの修正)だけがそれを行います)、Keystone のユーザー、認証情報、ロール割り当て、トークン、コンソールとコンソールログ、Barbican のシークレット、`--os-cloud` とそのほかすべてのログインやエンドポイントのオプション。
 
 インスタンスの `user_data`、管理者パスワード、イメージの `direct_url`、ボリュームの `provider_auth`、そのほかシークレットとされるものは、出力がモデルやログに届く前にマスクされます。
 
