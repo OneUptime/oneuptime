@@ -70,7 +70,16 @@ instance-metrics-drill/timeline.txt         when each thing in the long drill ha
 instance-metrics-drill/servers.json         what Nova says each instance is, at the end of it
 otlp/metrics.json            what the collector would have sent to OneUptime
 logs/                        the containers' logs
+traces/otlp-driver.json.gz   on the entries that record it: what OSProfiler's driver sent for each signed request
+traces/otlp-agent.json.gz    what the agent's traces profile would have sent to OneUptime for them
+traces/scenes.jsonl          each scene: how long, its exit code, its Trace IDs, its spans
+traces/summary.json          each scene's trace, service by service
+traces/check.txt             whether the issue's "done when" held on this run
+traces/native-summary.json   what OpenStack's own OpenTelemetry tracing made, where a release ships it
+traces/journal.jsonl.gz      what the services logged, to hold a trace's requests against
 ```
+
+`-f logs_only=true -f traces_only=true` runs only the traces step, on Hibiscus and Flamingo. `traces-record.sh` says what each scene is for. Its fixtures come from `python3 -I import-trace-recording.py <release> <artifact>/traces`, into `packages/Common/Tests/Fixtures/OpenStack/traces/<release>/`.
 
 Tokens are scrubbed and addresses replaced, although nothing here is a secret: it is a throwaway cloud on a runner that is gone when the job ends.
 

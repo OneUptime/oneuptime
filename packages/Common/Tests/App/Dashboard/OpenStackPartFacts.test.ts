@@ -62,11 +62,13 @@ import {
   getOpenStackHostGroupId,
   getOpenStackInstanceImage,
   getOpenStackCountTotals,
+  getOpenStackDhcpNetworkCount,
   getOpenStackHostGroups,
   getOpenStackHypervisorExternalId,
   getOpenStackInstanceAddresses,
   getOpenStackL3AgentExternalId,
   getOpenStackNetworkBackend,
+  getOpenStackNetworkDhcpAgentIds,
   getOpenStackNetworkSubnets,
   getOpenStackPartExplanation,
   getOpenStackPartName,
@@ -83,6 +85,7 @@ import {
   isOpenStackListPossiblyOneProject,
   isOpenStackNetworkAgent,
   isOpenStackNetworkExternal,
+  isOpenStackDhcpAgent,
   isOpenStackNetworkShared,
   parseOpenStackAggregates,
   parseOpenStackHostGroupId,
@@ -1816,6 +1819,44 @@ describe("what an empty list means", () => {
         knownProjectCount: 3,
       }),
     ).toBe(true);
+  });
+});
+
+describe("DHCP agents", () => {
+  function rowWith(
+    name: string,
+    facts: JSONObject,
+  ): OpenStackResource {
+    return Object.assign(new OpenStackResource(), { name, facts });
+  }
+
+  test.each<[string, boolean]>([
+    ["neutron-dhcp-agent", true],
+    ["DHCP agent", true],
+    ["neutron-l3-agent", false],
+    ["ovn-controller", false],
+    ["", false],
+  ])("%s is one: %s", (name: string, isOne: boolean) => {
+    expect(isOpenStackDhcpAgent(rowWith(name, {}))).toBe(isOne);
+  });
+
+  test.each<[JSONObject, number | null]>([
+    [{ dhcpNetworkCount: 3 }, 3],
+    [{ dhcpNetworkCount: 0 }, 0],
+    [{ dhcpNetworkCount: null }, null],
+    [{}, null],
+  ])("%j serves %s", (facts: JSONObject, count: number | null) => {
+    expect(getOpenStackDhcpNetworkCount(rowWith("x", facts))).toBe(count);
+  });
+
+  test.each<[JSONObject, Array<string>]>([
+    [{ dhcpAgentIds: ["a", "b"] }, ["a", "b"]],
+    [{ dhcpAgentIds: null }, []],
+    [{}, []],
+    [{ dhcpAgentIds: "a" }, []],
+    [{ dhcpAgentIds: ["a", 1, null] }, ["a"]],
+  ])("%j reads %j", (facts: JSONObject, ids: Array<string>) => {
+    expect(getOpenStackNetworkDhcpAgentIds(rowWith("x", facts))).toEqual(ids);
   });
 });
 

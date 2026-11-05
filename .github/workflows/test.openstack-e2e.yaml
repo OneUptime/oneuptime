@@ -816,7 +816,7 @@ jobs:
       - name: Record what OSProfiler's driver sends for a signed request
         if: ${{ matrix.traces && !inputs.instance_metrics_only }}
         continue-on-error: true
-        timeout-minutes: 45
+        timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording

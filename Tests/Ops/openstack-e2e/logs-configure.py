@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Edit a DevStack service's config files for logs-record.sh, and read the journal.
+"""Edit a DevStack service's config files for the recordings, and read the journal.
 
-Three small jobs, each of which a shell one-liner gets wrong on a real file:
+A few small jobs, each of which a shell one-liner gets wrong on a real file:
 
     logs-configure.py ini-set FILE SECTION KEY VALUE
     logs-configure.py ini-delete FILE SECTION KEY
     logs-configure.py paste-audit FILE MAP_FILE
+    logs-configure.py paste-otel FILE
+    logs-configure.py insert-after FILE LINE NEW_LINE [NEW_LINE ...]
     journalctl -o json ... | logs-configure.py journal-lines > journal.jsonl
 
 ini-set keeps everything else in the file exactly as it is: a service's config holds
@@ -14,6 +16,13 @@ rewrite.
 
 paste-audit puts keystonemiddleware's audit filter into a service's paste pipelines,
 after auth_token as its documentation asks, right before the application at the end.
+
+paste-otel puts oslo.middleware's tracing filter into them, just before osprofiler, which is
+where Nova's and Neutron's own pipelines put it on the branches that ship it.
+
+insert-after adds lines after the one line of a source file that says LINE, and fails if no
+line does, so a patch that no longer applies is an error rather than a scene that proves
+nothing.
 
 journal-lines keeps the fields a recording reads, and turns a MESSAGE journalctl wrote
 as a list of bytes back into text: it does that for any line holding a control
@@ -25,6 +34,8 @@ import json
 import sys
 
 AUDIT_FILTER = "audit"
+OTEL_FILTER = "otel_tracing"
+OTEL_FILTER_NEIGHBOUR = "osprofiler"
 
 JOURNAL_FIELDS = (
     "__REALTIME_TIMESTAMP",
@@ -139,6 +150,44 @@ def paste_audit(path, map_file):
     return changed
 
 
+def paste_otel(path):
+    """Returns how many pipelines now run the filter: none means nothing changed."""
+    lines = read_lines(path)
+    changed = 0
+    for index, line in enumerate(lines):
+        key = key_of(line)
+        if key is None:
+            continue
+        name, value = line.split("=", 1)
+        words = value.split()
+        if OTEL_FILTER_NEIGHBOUR not in words or OTEL_FILTER in words:
+            continue
+        words.insert(words.index(OTEL_FILTER_NEIGHBOUR), OTEL_FILTER)
+        lines[index] = f"{name.rstrip()} = {' '.join(words)}"
+        changed += 1
+    if changed and not any(section_header(line) == f"filter:{OTEL_FILTER}" for line in lines):
+        lines.extend(
+            [
+                "",
+                f"[filter:{OTEL_FILTER}]",
+                "paste.filter_factory = oslo_middleware:TracingMiddleware.factory",
+                "",
+            ]
+        )
+    write_lines(path, lines)
+    return changed
+
+
+def insert_after(path, wanted, new_lines):
+    lines = read_lines(path)
+    for index, line in enumerate(lines):
+        if line.strip() == wanted:
+            lines[index + 1 : index + 1] = new_lines
+            write_lines(path, lines)
+            return
+    raise SystemExit(f"{path}: no line says {wanted}")
+
+
 def journal_lines(source, sink):
     for raw in source:
         raw = raw.strip()
@@ -173,6 +222,10 @@ def main(arguments):
         ini_delete(arguments[1], arguments[2], arguments[3])
     elif command == "paste-audit" and len(arguments) == 3:
         print(paste_audit(arguments[1], arguments[2]))
+    elif command == "paste-otel" and len(arguments) == 2:
+        print(paste_otel(arguments[1]))
+    elif command == "insert-after" and len(arguments) >= 4:
+        insert_after(arguments[1], arguments[2], arguments[3:])
     elif command == "journal-lines" and len(arguments) == 1:
         journal_lines(sys.stdin, sys.stdout)
     else:
