@@ -31,7 +31,9 @@ tell them apart:
   said of that same cloud at the same moment, on its own.
   `?recording=hibiscus-ovn/access/reader` is what the exporter answered one credential on a healthy
   cloud, for each level of access the docs describe: `reader`, `monitoring-role` and
-  `monitoring-admin-get`. `&without=volume` makes a recording's cloud one with no such service.
+  `monitoring-admin-get`. `?recording=hibiscus-ovn/capacity/healthy` is three more hosts, set up
+  differently on a real Placement, and `capacity/host-lost` is one of them gone. `&without=volume`
+  makes a recording's cloud one with no such service.
 - **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
