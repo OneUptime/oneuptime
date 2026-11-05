@@ -1,0 +1,6 @@
+# HELP openstack_trove_total_instances total_instances
+# TYPE openstack_trove_total_instances gauge
+openstack_trove_total_instances 0
+# HELP openstack_trove_up up
+# TYPE openstack_trove_up gauge
+openstack_trove_up 1

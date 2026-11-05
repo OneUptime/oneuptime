@@ -80,6 +80,80 @@ const SERVER: NonNullable<OpenStackComputeInventory["servers"]>[number] = {
   faultMessage: null,
 };
 
+describe("a DHCP agent's networks", () => {
+  const AGENT: NonNullable<OpenStackNetworkInventory["agents"]>[number] = {
+    id: "agent-1",
+    binary: "neutron-dhcp-agent",
+    host: "net-01",
+    availabilityZone: "nova",
+    isAlive: true,
+    isAdminUp: true,
+  };
+
+  const NETWORK: NonNullable<OpenStackNetworkInventory["networks"]>[number] = {
+    id: "net-1",
+    name: "private",
+    tenantId: "project-1",
+    status: "ACTIVE",
+    isShared: false,
+    isExternal: false,
+    networkType: "vxlan",
+    physicalNetwork: null,
+    segmentationId: "1",
+    subnets: [],
+    tags: [],
+    mtu: 1450,
+  };
+
+  function pointsOf(inventory: OpenStackNetworkInventory): {
+    agent: ReportedDatapoint | undefined;
+    network: ReportedDatapoint | undefined;
+    count: number;
+  } {
+    const built: OpenStackOtlpBuildResult = build(
+      reading(OpenStackServiceType.Network, inventory),
+    );
+
+    return {
+      agent: named(built, "openstack_neutron_agent_state")[0],
+      network: named(built, "openstack_neutron_network")[0],
+      count: built.datapointCount,
+    };
+  }
+
+  test("are said on the series already sent, sorted, so a large cloud pays no more datapoints", () => {
+    const without: ReturnType<typeof pointsOf> = pointsOf({
+      agents: [AGENT, { ...AGENT, id: "agent-2", host: "net-02" }],
+      networks: [NETWORK],
+    });
+    const withThem: ReturnType<typeof pointsOf> = pointsOf({
+      agents: [AGENT, { ...AGENT, id: "agent-2", host: "net-02" }],
+      networks: [NETWORK],
+      dhcpAgentNetworks: [
+        { agentId: "agent-2", networkIds: ["net-1", "net-2"] },
+        { agentId: "agent-1", networkIds: ["net-1"] },
+      ],
+    });
+
+    expect(withThem.count).toBe(without.count);
+    expect(withThem.network?.labels["dhcp_agent_ids"]).toBe("agent-1,agent-2");
+    expect(withThem.agent?.labels["dhcp_network_count"]).toBe("1");
+    expect(without.network?.labels["dhcp_agent_ids"]).toBeUndefined();
+    expect(without.agent?.labels["dhcp_network_count"]).toBeUndefined();
+  });
+
+  test("an agent that serves none says none, which isn't an agent nothing has asked", () => {
+    const { agent, network } = pointsOf({
+      agents: [AGENT],
+      networks: [NETWORK],
+      dhcpAgentNetworks: [{ agentId: "agent-1", networkIds: [] }],
+    });
+
+    expect(agent?.labels["dhcp_network_count"]).toBe("0");
+    expect(network?.labels["dhcp_agent_ids"]).toBeUndefined();
+  });
+});
+
 describe("every datapoint", () => {
   test("is a gauge, at its time, with its region and service, sorted, and no empty label", () => {
     const point: ReportedDatapoint = named(

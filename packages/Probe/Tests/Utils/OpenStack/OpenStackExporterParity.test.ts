@@ -295,6 +295,9 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "l3AgentsReportedAt",
     // What an operator told Nova, which the exporter has no label for.
     "forcedDown",
+    // Which networks a DHCP agent serves, which it never asks.
+    "dhcpAgentIds",
+    "dhcpNetworkCount",
     // What an instance booted from, nor for this.
     "imageId",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
@@ -1046,6 +1049,64 @@ describe("what only a probe adds, in the rows it fills", () => {
 
     expect(instance).toBeDefined();
     expect(Object.keys(instance?.facts || {})).not.toContain("imageId");
+  });
+
+  describe("a DHCP agent's networks, on ML2/OVS", () => {
+    const OVS: RecordedScene = loadScene("gazpacho-ovs", "healthy");
+
+    async function rowsOfOvs(): Promise<
+      Map<string, OpenStackResourceBufferEntry>
+    > {
+      const report: OpenStackCollectionReport =
+        await OpenStackCollector.collect(
+          collectionJob(),
+          createCollectorHarness({
+            transport: createRecordedCloud(OVS).transport,
+          }).dependencies,
+        );
+
+      return scanAsIngest(
+        OpenStackProbeMetrics.prepare({
+          resourceMetrics: report.resourceMetrics,
+          cloudName: "devstack",
+        }).resourceMetrics,
+      );
+    }
+
+    test("the agent says how many, and the networks say which agent", async () => {
+      const rows: Map<string, OpenStackResourceBufferEntry> = await rowsOfOvs();
+
+      const agent: OpenStackResourceBufferEntry = rowsOf(
+        rows,
+        OpenStackResourceKind.Service,
+      ).find((row: OpenStackResourceBufferEntry): boolean => {
+        return row.name === "neutron-dhcp-agent";
+      })!;
+      const agentId: string = agent.facts["agentId"] as string;
+
+      const served: Array<OpenStackResourceBufferEntry> = rowsOf(
+        rows,
+        OpenStackResourceKind.Network,
+      ).filter((row: OpenStackResourceBufferEntry): boolean => {
+        return ((row.facts["dhcpAgentIds"] as Array<string>) || []).includes(
+          agentId,
+        );
+      });
+
+      expect(served.length).toBeGreaterThan(0);
+      expect(agent.facts["dhcpNetworkCount"]).toBe(served.length);
+    });
+
+    test("nothing but DHCP agents say so", async () => {
+      for (const row of rowsOf(
+        await rowsOfOvs(),
+        OpenStackResourceKind.Service,
+      )) {
+        if (row.name !== "neutron-dhcp-agent") {
+          expect(Object.keys(row.facts)).not.toContain("dhcpNetworkCount");
+        }
+      }
+    });
   });
 
   test("each snapshot is a row of its own, which the exporter only counts", async () => {

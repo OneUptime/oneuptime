@@ -447,6 +447,66 @@ describe("recording a batch", () => {
     });
   });
 
+  describe("Nova saying each thing in both its forms", () => {
+    function older(): OpenStackRecordedEvent {
+      return recordedOf("compute.instance.power_off.end", {
+        instance_id: INSTANCE,
+        display_name: "web-1",
+      });
+    }
+
+    function newer(): OpenStackRecordedEvent {
+      return recordedOf("instance.power_off.end", INSTANCE_FIELDS);
+    }
+
+    test("a cloud sending only the older form is read by it", async () => {
+      await record(entryOf(older()));
+
+      expect(submitted).toHaveLength(1);
+      expect(submitted[0]?.["title"]).toBe("Instance web-1: stopped");
+    });
+
+    test("in one batch, the thing is said once", async () => {
+      await record(entryOf(older(), newer()));
+
+      expect(submitted).toHaveLength(1);
+      expect(feedLines).toHaveLength(1);
+      expect(stateChanges).toHaveLength(1);
+    });
+
+    test("across batches too, once the newer has been heard", async () => {
+      await record(entryOf(newer()));
+
+      submitted.length = 0;
+
+      await record(entryOf(older()));
+
+      expect(submitted).toHaveLength(0);
+    });
+
+    test("another service's events are nothing to do with it", async () => {
+      await record(entryOf(newer()));
+
+      submitted.length = 0;
+
+      await record(
+        entryOf(recordedOf("volume.attach.end", { volume_id: "v" })),
+      );
+
+      expect(submitted).toHaveLength(1);
+    });
+
+    test("a cache that cannot answer keeps both rather than losing one", async () => {
+      jest.spyOn(GlobalCache, "getString").mockImplementation(async () => {
+        throw new Error("Cache is not connected");
+      });
+
+      await record(entryOf(older()));
+
+      expect(submitted).toHaveLength(1);
+    });
+  });
+
   describe("when something behind it fails", () => {
     test("the change events going wrong costs the feed nothing, and throws nothing", async () => {
       jest

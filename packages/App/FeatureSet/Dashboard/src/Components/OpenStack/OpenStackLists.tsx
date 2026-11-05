@@ -901,7 +901,7 @@ export const OpenStackNetworkAgentList: FunctionComponent<
       title={props.title || "Network Agents"}
       description={
         props.description ||
-        "Neutron's agents, as openstack network agent list shows them. Each one says which routers it holds, where the backend reports that."
+        "Neutron's agents, as openstack network agent list shows them. Each one says which routers it holds and which networks it serves, where the backend reports that."
       }
       singularName="network agent"
       pluralName="network agents"

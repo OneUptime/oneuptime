@@ -22,6 +22,7 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -232,7 +233,25 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
 
   const isOwner: boolean = props.mode === "owner";
 
+  /*
+   * These are Alerts' and Incidents' own rules. A role that reads OpenStack and not those has
+   * nothing here it may see, which is no error on a page it may: the card isn't drawn.
+   */
+  const mayRead: boolean =
+    PermissionGate.check(
+      isOwner ? new AlertOwnerRule() : new AlertLabelRule(),
+      ModelAction.Read,
+    ).isAllowed &&
+    PermissionGate.check(
+      isOwner ? new IncidentOwnerRule() : new IncidentLabelRule(),
+      ModelAction.Read,
+    ).isAllowed;
+
   const load: () => void = useCallback((): void => {
+    if (!mayRead) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError("");
 
@@ -371,7 +390,13 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       .finally(() => {
         setIsLoading(false);
       });
-  }, [props.mode, props.scope?.kind, props.scope?.id, Boolean(props.choices)]);
+  }, [
+    mayRead,
+    props.mode,
+    props.scope?.kind,
+    props.scope?.id,
+    Boolean(props.choices),
+  ]);
 
   useEffect(() => {
     load();
@@ -418,6 +443,10 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       );
     }
   };
+
+  if (!mayRead) {
+    return <></>;
+  }
 
   return (
     <Card

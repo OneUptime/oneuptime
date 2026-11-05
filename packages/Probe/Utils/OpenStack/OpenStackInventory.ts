@@ -499,6 +499,12 @@ export interface NeutronL3AgentRecord {
   isAdminUp: boolean;
 }
 
+// The networks one DHCP agent serves, which is all that is kept of Neutron's answer.
+export interface NeutronDhcpAgentNetworksRecord {
+  agentId: string;
+  networkIds: Array<string>;
+}
+
 export interface NeutronFloatingIpRecord {
   id: string | null;
   address: string | null;
@@ -899,6 +905,7 @@ export interface OpenStackNetworkInventory {
   subnets?: Array<NeutronSubnetRecord> | undefined;
   routers?: Array<NeutronRouterRecord> | undefined;
   l3Agents?: Array<NeutronL3AgentRecord> | undefined;
+  dhcpAgentNetworks?: Array<NeutronDhcpAgentNetworksRecord> | undefined;
   floatingIps?: Array<NeutronFloatingIpRecord> | undefined;
   ipAvailabilities?: Array<NeutronSubnetAvailabilityRecord> | undefined;
   securityGroupCount?: number | undefined;

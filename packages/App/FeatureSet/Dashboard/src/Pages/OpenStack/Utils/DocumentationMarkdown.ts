@@ -16,6 +16,11 @@ import {
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import {
+  OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT,
+  OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT,
+  OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
+} from "Common/Types/OpenStack/OpenStackScale";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   DEFAULT_OPENSTACK_DEPLOYMENT_TOOL,
@@ -170,7 +175,7 @@ export const OPENSTACK_AGENT_IDENTITY_CONFIG: string = `processors:
         value: \${env:OPENSTACK_CLOUD_NAME}
         action: upsert
       - key: oneuptime.agent.version
-        value: "0.161.1"
+        value: "0.161.2"
         action: upsert
       - key: service.name
         action: delete
@@ -717,6 +722,21 @@ Regions with a Keystone of their own are separate clouds to OneUptime: run one a
   };
 }
 
+function getVeryLargeCloudTopic(): SetupGuideTopic {
+  return {
+    title: "Very large clouds",
+    summary:
+      "What changes past 5,000 instances, how to share a cloud between agents, and reading it from its databases.",
+    markdown: `**[Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds)** has what each size costs and how each of these works.
+
+**Past ${OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT.toLocaleString("en-US")} instances, summary mode.** The cloud keeps a row for every part and counts per hypervisor, project and status, and its series per instance and per volume stop. It gives up the history of each settled instance's and volume's status, and a chart or a monitor over those series. An instance or volume in a state an alert watches keeps its series, so every alert template goes on working. To keep them for some, choose their projects under **Real usage per instance** on the cloud's **Settings** page.
+
+**Sharing a cloud between agents.** Run one agent per region, or per service for the largest clouds, each with the same \`OPENSTACK_CLOUD_NAME\`. A region and a service belong to one agent, and Keystone to one agent for the whole cloud, or their series arrive twice. List an agent's regions in \`OPENSTACK_EXPORTER_CLOUDS\`, and its services in \`OPENSTACK_AGENT_SERVICES\`, such as \`compute|placement\`.
+
+**Past ${OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT.toLocaleString("en-US")} hypervisors or ${OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT.toLocaleString("en-US")} instances, the database path.** The agent can read the cloud's databases rather than its APIs, which at that size cannot be read in a scrape's time. It asks for a read-only account on each service's database, a route to them from this machine, and one exporter per region and Nova cell. It reads the same series, but for whether each Nova worker is alive and how full each storage pool is, which it still reads from the API, and it cannot say whether an API answers. It has not yet been run against a real database.`,
+  };
+}
+
 function getOwnExporterTopic(context: GuideContext): SetupGuideTopic {
   const how: string =
     context.method === "install-script"
@@ -884,6 +904,7 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
     getAccessLevelsTopic(),
     getCollectedDataTopic(),
     getRegionsTopic(context),
+    getVeryLargeCloudTopic(),
     getEnvironmentVariablesTopic(context),
     getOwnExporterTopic(context),
     getCertificateTopic(context),

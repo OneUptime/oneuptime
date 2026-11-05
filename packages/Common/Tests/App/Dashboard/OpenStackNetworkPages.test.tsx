@@ -1166,10 +1166,103 @@ describe("network agents", () => {
       partPath("network-agents", dhcp),
     );
 
-    expect(
-      await screen.findByTestId("openstack-network-agent-serves-unknown"),
-    ).toHaveTextContent(/isn't in what's collected/);
+    const notice: HTMLElement = await screen.findByTestId(
+      "openstack-network-agent-serves-unknown",
+    );
+    expect(notice).toHaveTextContent(/isn't in what's collected/);
+    expect(notice).toHaveTextContent(`openstack network list --agent ${AGENT_ID}`);
     expect(screen.queryByRole("tab", { name: "Routers" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Networks" })).toBeNull();
+  });
+
+  test("a DHCP agent a probe has asked lists the networks it serves, by its own id", async () => {
+    const dhcp: string = "RegionOne/network/net-01/neutron-dhcp-agent";
+    server.rows = [
+      agentRow({
+        name: "neutron-dhcp-agent",
+        externalId: dhcp,
+        facts: { family: "network", host: "net-01", agentId: AGENT_ID, dhcpNetworkCount: 1 },
+      }),
+      privateNetwork({
+        name: "served-here",
+        facts: { dhcpAgentIds: [AGENT_ID] },
+      }),
+      privateNetwork({
+        name: "served-elsewhere",
+        externalId: "cccccccc-1111-4111-8111-000000000099",
+        facts: { dhcpAgentIds: ["another-agent"] },
+      }),
+    ];
+
+    await renderPage(
+      OpenStackCloudNetworkAgentDetail,
+      partPath("network-agents", dhcp),
+    );
+
+    await screen.findByTestId("openstack-network-agent-details");
+    expect(
+      screen.queryByTestId("openstack-network-agent-serves-unknown"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("openstack-network-agent-details-dhcp-networks"),
+    ).toHaveTextContent("1");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Networks" }));
+    await settle();
+
+    expect(await screen.findByText("served-here")).toBeInTheDocument();
+    expect(screen.queryByText("served-elsewhere")).not.toBeInTheDocument();
+  });
+
+  test("a DHCP agent serving none says so, which isn't an agent nothing asked", async () => {
+    const dhcp: string = "RegionOne/network/net-01/neutron-dhcp-agent";
+    server.rows = [
+      agentRow({
+        name: "neutron-dhcp-agent",
+        externalId: dhcp,
+        facts: { family: "network", host: "net-01", agentId: AGENT_ID, dhcpNetworkCount: 0 },
+      }),
+    ];
+
+    await renderPage(
+      OpenStackCloudNetworkAgentDetail,
+      partPath("network-agents", dhcp),
+    );
+
+    expect(
+      await screen.findByTestId("openstack-network-agent-details-dhcp-networks"),
+    ).toHaveTextContent("0");
+    expect(
+      screen.queryByTestId("openstack-network-agent-serves-unknown"),
+    ).toBeNull();
+  });
+
+  test("a network says which DHCP agents serve it, one step away, only where a probe has said", async () => {
+    server.rows = [
+      agentRow({
+        name: "neutron-dhcp-agent",
+        externalId: "RegionOne/network/net-01/neutron-dhcp-agent",
+        facts: { family: "network", host: "net-01", agentId: AGENT_ID, dhcpNetworkCount: 1 },
+      }),
+      privateNetwork({ facts: { dhcpAgentIds: [AGENT_ID, "gone-since"] } }),
+    ];
+
+    await renderPage(OpenStackCloudNetworkDetail, partPath("networks", PRIVATE_NETWORK_ID));
+
+    const row: HTMLElement = await screen.findByTestId(
+      "openstack-network-details-dhcp-agents",
+    );
+    await within(row).findByRole("link", { name: "net-01" });
+    // One whose record has gone since reads by its id, rather than not at all.
+    expect(row).toHaveTextContent("gone-since");
+    cleanup();
+
+    server.rows = [privateNetwork()];
+    await renderPage(OpenStackCloudNetworkDetail, partPath("networks", PRIVATE_NETWORK_ID));
+    await screen.findByTestId("openstack-network-details");
+    expect(
+      screen.queryByTestId("openstack-network-details-dhcp-agents"),
+    ).toBeNull();
   });
 });
 

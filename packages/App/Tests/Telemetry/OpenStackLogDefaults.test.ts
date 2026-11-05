@@ -15,8 +15,11 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import ObjectID from "Common/Types/ObjectID";
 import {
   ScrubRegExp,
+  ScrubRuleCustomRegexCheck,
+  checkScrubRuleCustomRegex,
   compileScrubRuleCustomRegex,
 } from "Common/Types/Telemetry/ScrubRule";
+import { validateDropFilter } from "Common/Server/Utils/DropFilterValidation";
 import { JSONObject } from "Common/Types/JSON";
 import {
   OPENSTACK_LOG_NOISE_HEALTH_CHECK,
@@ -56,7 +59,7 @@ function filterNamed(fragment: string): OpenStackDefaultDropFilter {
   return filter as OpenStackDefaultDropFilter;
 }
 
-// As the ingest asks: the row it is about to write, its attributes at the top level.
+// As the ingest asks: the row it is about to write, with the record's attributes as one field.
 function rowOf(body: string): JSONObject {
   const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
     attributes: {},
@@ -68,7 +71,6 @@ function rowOf(body: string): JSONObject {
     severityText: "Information",
     body: stamp.body,
     attributes: stamp.attributes,
-    ...stamp.attributes,
   } as JSONObject;
 }
 
@@ -172,6 +174,44 @@ describe("the drop filters", () => {
   });
 });
 
+describe("what a project's save would say of each", () => {
+  test.each(
+    OPENSTACK_DEFAULT_DROP_FILTERS.map((filter: OpenStackDefaultDropFilter) => {
+      return [filter.name, filter] as const;
+    }),
+  )(
+    "%s is one the drop filter form would take",
+    (_name: string, filter: OpenStackDefaultDropFilter) => {
+      expect(() => {
+        return validateDropFilter(
+          {
+            action: LogDropFilterAction.Drop,
+            samplePercentage: null,
+            filterQuery: filter.filterQuery,
+          },
+          { recordNoun: "logs" },
+        );
+      }).not.toThrow();
+    },
+  );
+
+  test.each(
+    OPENSTACK_DEFAULT_SCRUB_RULES.map((rule: OpenStackDefaultScrubRule) => {
+      return [rule.name, rule] as const;
+    }),
+  )(
+    "%s is one the scrub rule form would take",
+    (_name: string, rule: OpenStackDefaultScrubRule) => {
+      const check: ScrubRuleCustomRegexCheck | null = checkScrubRuleCustomRegex(
+        rule.customRegex,
+      );
+
+      // Null says nothing is wrong with it: not missing, invalid, unrunnable or empty-matching.
+      expect(check).toBeNull();
+    },
+  );
+});
+
 describe("the scrub rules", () => {
   function scrubbed(rule: OpenStackDefaultScrubRule, text: string): string {
     const compiled: ScrubRegExp | null = compileScrubRuleCustomRegex(
@@ -202,9 +242,12 @@ describe("the scrub rules", () => {
     OPENSTACK_DEFAULT_SCRUB_RULES.map((rule: OpenStackDefaultScrubRule) => {
       return [rule.name, rule] as const;
     }),
-  )("%s compiles, as a project's own pattern must", (_name: string, rule: OpenStackDefaultScrubRule) => {
-    expect(compileScrubRuleCustomRegex(rule.customRegex)).not.toBeNull();
-  });
+  )(
+    "%s compiles, as a project's own pattern must",
+    (_name: string, rule: OpenStackDefaultScrubRule) => {
+      expect(compileScrubRuleCustomRegex(rule.customRegex)).not.toBeNull();
+    },
+  );
 
   test("a Fernet token goes wherever it stands", () => {
     const token: string = `gAAAAABp${"AbC123_-".repeat(10)}`;
@@ -355,7 +398,11 @@ describe("adding them to a project", () => {
     expect(LogDropFilterService.findBy).not.toHaveBeenCalled();
   });
 
-  test("one someone already has is left as they left it", async () => {
+  /*
+   * What says they were added is in the cache, which a restart can empty. A project that deleted
+   * one of these chose to keep what it drops, and it must not come back then.
+   */
+  test("a project holding any of a kind gets none of that kind, so one it deleted stays gone", async () => {
     const added: { filters: Array<LogDropFilter>; rules: Array<LogScrubRule> } =
       mockServices({
         existingFilters: [OPENSTACK_DEFAULT_DROP_FILTERS[0]!.name],
@@ -364,15 +411,47 @@ describe("adding them to a project", () => {
 
     await OpenStackLogDefaults.ensureForProject(PROJECT_ID);
 
-    expect(added.filters).toHaveLength(
-      OPENSTACK_DEFAULT_DROP_FILTERS.length - 1,
-    );
-    expect(added.rules).toHaveLength(OPENSTACK_DEFAULT_SCRUB_RULES.length - 1);
-    expect(added.filters[0]?.sortOrder).toBe(1);
+    expect(added.filters).toHaveLength(0);
+    expect(added.rules).toHaveLength(0);
   });
 
-  test("a database that cannot answer costs the logs nothing", async () => {
+  test("a project's own filters and rules say nothing either way, and go first", async () => {
+    const added: { filters: Array<LogDropFilter>; rules: Array<LogScrubRule> } =
+      mockServices({
+        existingFilters: ["My own filter"],
+        existingRules: ["My own rule", "Another"],
+      });
+
+    await OpenStackLogDefaults.ensureForProject(PROJECT_ID);
+
+    expect(added.filters).toHaveLength(OPENSTACK_DEFAULT_DROP_FILTERS.length);
+    expect(added.rules).toHaveLength(OPENSTACK_DEFAULT_SCRUB_RULES.length);
+    expect(added.filters[0]?.sortOrder).toBe(1);
+    expect(added.rules[0]?.sortOrder).toBe(2);
+  });
+
+  test("a project with filters and no rules gets the rules", async () => {
+    const added: { filters: Array<LogDropFilter>; rules: Array<LogScrubRule> } =
+      mockServices({
+        existingFilters: [OPENSTACK_DEFAULT_DROP_FILTERS[1]!.name],
+      });
+
+    await OpenStackLogDefaults.ensureForProject(PROJECT_ID);
+
+    expect(added.filters).toHaveLength(0);
+    expect(added.rules).toHaveLength(OPENSTACK_DEFAULT_SCRUB_RULES.length);
+  });
+
+  test("a database that cannot answer costs the logs nothing, and the next batch asks again", async () => {
     mockServices({});
+    const forgotten: Array<string> = [];
+
+    jest.spyOn(GlobalCache, "deleteKey").mockImplementation((async (
+      _namespace: string,
+      key: string,
+    ) => {
+      forgotten.push(key);
+    }) as never);
     jest.spyOn(LogDropFilterService, "findBy").mockImplementation((async () => {
       throw new Error("Postgres is down");
     }) as never);
@@ -380,5 +459,21 @@ describe("adding them to a project", () => {
     await expect(
       OpenStackLogDefaults.ensureForProject(PROJECT_ID),
     ).resolves.toBeUndefined();
+
+    expect(forgotten).toEqual([PROJECT_ID.toString()]);
+  });
+
+  test("a cache that cannot answer costs the logs nothing either", async () => {
+    mockServices({});
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockImplementation((async () => {
+        throw new Error("Redis is down");
+      }) as never);
+
+    await expect(
+      OpenStackLogDefaults.ensureForProject(PROJECT_ID),
+    ).resolves.toBeUndefined();
+    expect(LogDropFilterService.findBy).not.toHaveBeenCalled();
   });
 });

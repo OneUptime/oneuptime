@@ -243,6 +243,8 @@ export interface OpenStackCollectionSummary {
    */
   isSummaryMode?: boolean | undefined;
   refreshCycleInMinutes?: number | undefined;
+  // ISO date. Until then its rows are still arriving for the first time, so its lists are filling.
+  firstCycleEndsAt?: string | undefined;
   /*
    * Parts that were left out without failing the collection, in words: what a
    * credential cannot read, a list cut short by Keystone's list_limit.

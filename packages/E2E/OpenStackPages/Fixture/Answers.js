@@ -213,7 +213,9 @@ const ATTENTION_QUERIES = [
     where: (row) => {
       return (
         row.diskAllocatedBytes * 100 >
-        row.diskCapacityBytes * OPENSTACK_STORAGE_POOL_WARNING_PERCENT
+          row.diskCapacityBytes * OPENSTACK_STORAGE_POOL_WARNING_PERCENT ||
+        Boolean(row.facts?.cephLink) ||
+        Boolean(row.facts?.cephFsid)
       );
     },
   },

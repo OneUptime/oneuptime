@@ -1,0 +1,2 @@
+A cluster that ran out of its time: CREATE_FAILED, beside one still CREATE_IN_PROGRESS.
+On its own: the cluster's Heat stack ran out of its time, waiting for an agent cirros does not have.
