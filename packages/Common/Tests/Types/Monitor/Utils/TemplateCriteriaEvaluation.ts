@@ -163,7 +163,10 @@ function bucketsOf(data: {
 }): Array<AggregateModel> {
   const buckets: Map<number, Array<number>> = new Map();
   for (const sample of data.samples) {
-    if (sample.timeMs < data.windowStartMs || sample.timeMs >= data.windowEndMs) {
+    if (
+      sample.timeMs < data.windowStartMs ||
+      sample.timeMs >= data.windowEndMs
+    ) {
       continue;
     }
     const minute: number = Math.floor(sample.timeMs / MINUTE_MS) * MINUTE_MS;
@@ -236,11 +239,7 @@ export async function walkTemplateCriteria(data: {
   const instances: Array<MonitorCriteriaInstance> =
     data.step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
   const steps: Array<TemplateWalkStep> = [];
-  for (
-    let atMs: number = data.startMs;
-    atMs <= data.endMs;
-    atMs += MINUTE_MS
-  ) {
+  for (let atMs: number = data.startMs; atMs <= data.endMs; atMs += MINUTE_MS) {
     const response: MetricMonitorResponse = buildMetricResponseOverWindow({
       viewConfig: data.viewConfig,
       samplesByAlias: data.samplesByAlias,

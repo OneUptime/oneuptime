@@ -364,7 +364,7 @@ export function getDrilledInstanceMetricsReleases(): Array<string> {
     .sort();
 }
 
-function labelOf(point: JSONObject, key: string): string | undefined {
+export function labelOf(point: JSONObject, key: string): string | undefined {
   const found: JSONObject | undefined = (
     (point["attributes"] as Array<JSONObject> | undefined) || []
   ).find((attribute: JSONObject): boolean => {

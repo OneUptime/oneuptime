@@ -23,6 +23,7 @@ import {
   drillAnchorSamples,
   drillInstanceNamed,
   getDrilledInstanceMetricsReleases,
+  labelOf,
   pointsOfHypervisor,
   pointsOfInstance,
   readInstanceMetricsDrill,
@@ -162,7 +163,10 @@ describe.each(CASES)(
   "%s, read from %s",
   (release: string, source: OpenStackInstanceMetricSource) => {
     const drill: InstanceMetricsDrill = readInstanceMetricsDrill(release);
-    const burner: RecordedDrillInstance = drillInstanceNamed(drill, "ou-burner");
+    const burner: RecordedDrillInstance = drillInstanceNamed(
+      drill,
+      "ou-burner",
+    );
     const idle: RecordedDrillInstance = drillInstanceNamed(drill, "ou-running");
     const points: Array<ReplayedPoint> = replayDrillSource({
       drill,
@@ -386,59 +390,38 @@ describe.each(CASES)(
     });
 
     describe("what a counter really does through a hard reboot", () => {
-      test("its CPU counter really went backwards", () => {
-        if (source !== LIBVIRT) {
-          return;
-        }
-        const domain: string | undefined = (() => {
-          for (const envelope of drill.envelopes) {
-            for (const point of dataPointsOf(
-              envelope,
-              "libvirt_domain_openstack_info",
-            )) {
-              const labels: Array<{ key: string; value: { stringValue: string } }> =
-                point["attributes"] as unknown as Array<{
-                  key: string;
-                  value: { stringValue: string };
-                }>;
-              const id: string | undefined = labels.find((label) => {
-                return label.key === "instance_id";
-              })?.value.stringValue;
-              if (id === idle.id) {
-                return labels.find((label) => {
-                  return label.key === "domain";
-                })?.value.stringValue;
-              }
-            }
-          }
-          return undefined;
-        })();
+      test.each(
+        source === LIBVIRT
+          ? ["libvirt_domain_info_cpu_time_seconds_total"]
+          : ["ceilometer_cpu"],
+      )("%s really went backwards", (metricName: string) => {
+        // libvirt names a domain on all but one of its series. Ceilometer names the instance.
+        let domain: string | undefined = undefined;
         const readings: Array<number> = [];
         for (const envelope of drill.envelopes) {
           for (const point of dataPointsOf(
             envelope,
-            "libvirt_domain_info_cpu_time_seconds_total",
+            "libvirt_domain_openstack_info",
           )) {
-            const labels: Array<{ key: string; value: { stringValue: string } }> =
-              point["attributes"] as unknown as Array<{
-                key: string;
-                value: { stringValue: string };
-              }>;
+            if (labelOf(point, "instance_id") === idle.id) {
+              domain = labelOf(point, "domain");
+            }
+          }
+          for (const point of dataPointsOf(envelope, metricName)) {
             if (
-              labels.find((label) => {
-                return label.key === "domain";
-              })?.value.stringValue === domain
+              labelOf(point, "resource") === idle.id ||
+              (domain && labelOf(point, "domain") === domain)
             ) {
               readings.push(Number(point["asDouble"]));
             }
           }
         }
-        const fell: boolean = readings.some(
-          (value: number, index: number): boolean => {
+        expect(readings.length).toBeGreaterThan(5);
+        expect(
+          readings.some((value: number, index: number): boolean => {
             return index > 0 && value < readings[index - 1]!;
-          },
-        );
-        expect(fell).toBe(true);
+          }),
+        ).toBe(true);
       });
 
       test("and every rate across it reads as what it used since, never negative, never past what it has", () => {

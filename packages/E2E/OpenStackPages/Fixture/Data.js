@@ -1288,6 +1288,7 @@ function usageOfInstance(index) {
   if (index === 0) {
     // The noisy neighbour: nearly all of its 32 vCPUs, which is nearly all of the host's 32 threads.
     return {
+      flavorId: "huge",
       cpuCores: 29.4,
       cpuPercent: 91.9,
       contentionPercent: 2,
@@ -1300,10 +1301,11 @@ function usageOfInstance(index) {
       interfaces: { "tap5e2d1c0a-44": { receive: 25 * MIB, transmit: 310 * MIB } },
     };
   }
-  // Everyone else, doing very little and being made to wait for it.
+  // Everyone else, on m1.xlarge's 8 vCPUs, doing very little and being made to wait for it.
   return {
+    flavorId: "5",
     cpuCores: 0.3 + index / 10,
-    cpuPercent: 8 + index,
+    cpuPercent: ((0.3 + index / 10) / 8) * 100,
     contentionPercent: 24 - index,
     memoryUsageBytes: 2 * GIB,
     memoryResidentBytes: (4 + index) * GIB,
@@ -1314,7 +1316,7 @@ function usageOfInstance(index) {
 
 function usageInventory(context) {
   let index = -1;
-  return calmInventory(context).map((row) => {
+  const rows = calmInventory(context).map((row) => {
     if (row.kind === "Hypervisor" && row.name === USAGE_HOST) {
       return {
         ...row,
@@ -1334,14 +1336,23 @@ function usageInventory(context) {
     }
     if (row.kind === "Instance" && row.hypervisorName === USAGE_HOST) {
       index += 1;
+      const usage = usageOfInstance(index);
       return {
         ...row,
-        facts: { ...row.facts, flavorId: "5" },
-        usage: usageOfInstance(index),
+        facts: { ...row.facts, flavorId: usage.flavorId },
+        usage,
       };
     }
     return row;
   });
+  return [
+    ...rows,
+    flavor(context, "huge", "m1.huge", REGION_ONE, {
+      vcpuCapacity: 32,
+      memoryCapacityBytes: 64 * GIB,
+      diskCapacityBytes: 320 * GIB,
+    }),
+  ];
 }
 
 const ESTATES = {
