@@ -1,6 +1,7 @@
-import { Page } from "@playwright/test";
+import { Locator, Page } from "@playwright/test";
 import fsPromises from "fs/promises";
 import {
+  CLOUD_ID,
   CLOUD_PATH,
   FixtureRecord,
   VIEWPORTS,
@@ -19,6 +20,22 @@ import {
 
 const BILLING_WORDS: RegExp =
   /\b(invoice|invoiced|invoices|amount due|payment due|bill to|statement of account)\b/i;
+
+interface WriteRequest {
+  kind: string;
+  modelName: string;
+  data?: Record<string, unknown>;
+}
+
+async function writesOf(page: Page): Promise<Array<WriteRequest>> {
+  return await page.evaluate((): Array<WriteRequest> => {
+    return (
+      window as unknown as {
+        __openStackPagesFixture: { writeRequests: Array<WriteRequest> };
+      }
+    ).__openStackPagesFixture.writeRequests;
+  });
+}
 
 test.describe("usage with no prices", () => {
   test("says what was used, says no prices are set, and never a price of nothing", async ({
@@ -145,7 +162,7 @@ test.describe("with prices", () => {
     await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy&spend=priced");
 
     const download = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Export CSV" }).click();
+    await page.getByTestId("openstack-spend-export").click();
     const file: string | null = await (await download).path();
     const csv: string = await fsPromises.readFile(file as string, "utf8");
 
@@ -217,17 +234,17 @@ test.describe("setting prices", () => {
   }) => {
     await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy");
 
-    await page.getByRole("button", { name: "Prices" }).click();
+    await page.getByTestId("openstack-spend-prices").click();
     await page.getByLabel("Per vCPU, per hour").fill("0.02");
     await page.getByRole("button", { name: "Save prices" }).click();
 
-    const record: FixtureRecord = await fixtureRecord(page);
-    const write: FixtureRecord["writeRequests"][number] | undefined =
-      record.writeRequests.find(
-        (entry: FixtureRecord["writeRequests"][number]): boolean => {
-          return entry.modelName === "OpenStackCloud";
-        },
-      );
+    await expect(page.getByRole("dialog")).toBeHidden();
+
+    const write: WriteRequest | undefined = (await writesOf(page)).find(
+      (entry: WriteRequest): boolean => {
+        return entry.modelName === "OpenStackCloud";
+      },
+    );
 
     expect(write?.data).toMatchObject({
       priceList: {
@@ -246,14 +263,13 @@ test.describe("setting prices", () => {
   }) => {
     await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy");
 
-    await page.getByRole("button", { name: "Prices" }).click();
+    await page.getByTestId("openstack-spend-prices").click();
     await page.getByLabel("Per vCPU, per hour").fill("cheap");
     await page.getByRole("button", { name: "Save prices" }).click();
 
     await expect(page.getByText("Write a price as a number")).toBeVisible();
 
-    const record: FixtureRecord = await fixtureRecord(page);
-    expect(record.writeRequests).toEqual([]);
+    expect(await writesOf(page)).toEqual([]);
   });
 });
 
@@ -268,11 +284,43 @@ test.describe("budgets", () => {
     const budgets = page.getByTestId("openstack-budgets");
 
     await expect(budgets).toContainText("No budgets yet");
-    await budgets.getByRole("button", { name: "Create" }).first().click();
-    await page.getByLabel("Name").fill("Payments team");
-    await page.getByLabel("Monthly Amount").fill("500");
+    await budgets
+      .getByRole("button", { name: "Create OpenStack Budget" })
+      .first()
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
 
+    await dialog.getByLabel("Name", { exact: true }).fill("Payments team");
+    await dialog.getByLabel("Monthly Amount", { exact: true }).fill("500");
     await screenshot(page, "spend-budget-form");
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+
+    // 80% and 100% are already there, as on any budget.
+    await expect(dialog.getByLabel("Alert At", { exact: true })).toHaveValue(
+      "80,100",
+    );
+    await dialog.getByTestId("modal-footer-submit-button").click();
+    await expect(dialog).toBeHidden();
+
+    const write: WriteRequest | undefined = (await writesOf(page)).find(
+      (entry: WriteRequest): boolean => {
+        return entry.modelName === "OpenStackBudget";
+      },
+    );
+
+    expect(write?.kind).toBe("create");
+    expect(write?.data).toMatchObject({
+      name: "Payments team",
+      alertThresholds: "80,100",
+    });
+    expect(String((write?.data as Record<string, unknown>)["openStackCloudId"])).toBe(
+      CLOUD_ID,
+    );
+
+    // A budget nobody's checked yet says so, and doesn't call itself within budget.
+    await expect(page.getByTestId("openstack-budget-status")).toContainText(
+      "Not checked yet",
+    );
   });
 });
 
@@ -426,7 +474,7 @@ test.describe("what the page reads, and how it looks", () => {
         `recording=hibiscus-ovn/healthy&${query}`,
       );
       await expect(page.getByTestId("openstack-spend-strip")).toBeVisible();
-      const text: string = await page.locator("main").innerText();
+      const text: string = await page.locator("body").innerText();
       expect(text.replace("doesn't invoice anyone", "")).not.toMatch(
         BILLING_WORDS,
       );

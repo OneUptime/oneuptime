@@ -940,6 +940,7 @@ const SPEND =
     : buildSpendOf(estate.inventory, {
         scenario: params.get("spend"),
         waste: params.get("waste"),
+        openStackCloudId: estate.cloud._id,
         loadedAt: LOADED_AT,
         observedAt: LOADED_AT,
       });
@@ -1425,6 +1426,7 @@ function writeRow(modelName, id, data) {
 }
 
 const WRITABLE_TABLES = new Set([
+  "OpenStackBudget",
   "OpenStackCloudCheck",
   "OpenStackCloudOwnerUser",
   "OpenStackCloudOwnerTeam",

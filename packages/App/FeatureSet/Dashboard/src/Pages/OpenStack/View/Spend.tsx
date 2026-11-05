@@ -15,7 +15,7 @@ import {
   OpenStackSpendVolumeTypeRow,
 } from "Common/Types/OpenStack/OpenStackSpendSnapshot";
 import { OpenStackWasteFinding } from "Common/Types/OpenStack/OpenStackWaste";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -112,7 +112,8 @@ export function getOpenStackSpendTiles(data: {
   const reclaim: CloudStatTile = {
     key: "reclaim",
     title: translationKey("Could Be Reclaimed"),
-    value: getWasteCount(snapshot).toLocaleString(),
+    // The rules run hourly, and a first reading may not have run them yet.
+    value: snapshot.waste ? getWasteCount(snapshot).toLocaleString() : "–",
     sublabel: translationKey("See Recommendations"),
     icon: IconProp.Archive,
     color: "amber",
@@ -356,6 +357,60 @@ const OpenStackCloudSpend: FunctionComponent<
         })}
       />
 
+      <div className="mb-4 flex flex-wrap justify-end gap-2">
+        <Button
+          dataTestId="openstack-spend-prices"
+          title={translationKey("Prices")}
+          buttonStyle={ButtonStyleType.OUTLINE}
+          icon={IconProp.Wallet}
+          onClick={() => {
+            setIsPricesOpen(true);
+          }}
+        />
+        <Button
+          dataTestId="openstack-spend-export"
+          title={translationKey("Export CSV")}
+          buttonStyle={ButtonStyleType.OUTLINE}
+          icon={IconProp.Download}
+          isLoading={isExporting}
+          onClick={() => {
+            setIsExporting(true);
+            setCsvError("");
+            fetchOpenStackSpendRows({
+              openStackCloudId: modelId,
+              month: snapshot.month,
+            })
+              .then((rows: Array<OpenStackProjectUsage>) => {
+                TableColumnsToCsv.downloadCsv({
+                  csv: getOpenStackSpendCsv({
+                    rows,
+                    month: snapshot.month,
+                    priceList: spend.priceList,
+                    currency: snapshot.currency,
+                  }),
+                  filename: `openstack-usage-${snapshot.month}.csv`,
+                });
+                setIsExporting(false);
+              })
+              .catch((err: unknown) => {
+                setCsvError(API.getFriendlyErrorMessage(err as Error));
+                setIsExporting(false);
+              });
+          }}
+        />
+      </div>
+
+      {csvError ? (
+        <p
+          className="mb-4 text-sm text-red-700"
+          data-testid="openstack-spend-csv-error"
+        >
+          {csvError}
+        </p>
+      ) : (
+        <></>
+      )}
+
       <OpenStackPartNotice testId="openstack-spend-source">
         <span data-source={snapshot.source}>
           {translator.translateText(OPENSTACK_SPEND_SOURCE_TEXT[snapshot.source])}{" "}
@@ -502,46 +557,6 @@ const OpenStackCloudSpend: FunctionComponent<
             description: translationKey(
               "What each project has used this month, the largest first.",
             ),
-            buttons: [
-              {
-                title: translationKey("Prices"),
-                buttonStyle: ButtonStyleType.OUTLINE,
-                icon: IconProp.Wallet,
-                onClick: (): void => {
-                  setIsPricesOpen(true);
-                },
-              },
-              {
-                title: translationKey("Export CSV"),
-                buttonStyle: ButtonStyleType.OUTLINE,
-                icon: IconProp.Download,
-                isLoading: isExporting,
-                onClick: (): void => {
-                  setIsExporting(true);
-                  setCsvError("");
-                  fetchOpenStackSpendRows({
-                    openStackCloudId: modelId,
-                    month: snapshot.month,
-                  })
-                    .then((rows: Array<OpenStackProjectUsage>) => {
-                      TableColumnsToCsv.downloadCsv({
-                        csv: getOpenStackSpendCsv({
-                          rows,
-                          month: snapshot.month,
-                          priceList: spend.priceList,
-                          currency: snapshot.currency,
-                        }),
-                        filename: `openstack-usage-${snapshot.month}.csv`,
-                      });
-                      setIsExporting(false);
-                    })
-                    .catch((err: unknown) => {
-                      setCsvError(API.getFriendlyErrorMessage(err as Error));
-                      setIsExporting(false);
-                    });
-                },
-              },
-            ],
           }}
           noItemsMessage={translationKey(
             "Nothing has been used yet this month, as far as this cloud's inventory shows.",
@@ -668,16 +683,6 @@ const OpenStackCloudSpend: FunctionComponent<
             },
           ]}
         />
-        {csvError ? (
-          <p
-            className="mt-2 text-sm text-red-700"
-            data-testid="openstack-spend-csv-error"
-          >
-            {csvError}
-          </p>
-        ) : (
-          <></>
-        )}
       </div>
 
       {snapshot.domainCount > 1 ? (

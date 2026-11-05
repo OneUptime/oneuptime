@@ -292,6 +292,7 @@ export function buildSpendOf(rows, options) {
     reads.push(read);
     usage.push({
       _id: `7a000000-0000-4000-8000-${String(reads.length).padStart(12, "0")}`,
+      openStackCloudId: options.openStackCloudId,
       openStackProjectId: id,
       period: month,
       name: read.project.name,
