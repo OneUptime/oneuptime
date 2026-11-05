@@ -39,6 +39,9 @@ logged() {
     tee -a "$OSA_RECORDING/timings.txt"
   if [ "$status" != 0 ]; then
     tail -n 150 "$file"
+    # What the LXC base image's build said, which Ansible only reports the exit code of.
+    sudo tail -n 60 /var/lib/machines/ubuntu-24-amd64/var/log/lxc-cache-prep-commands.log 2>/dev/null \
+      | tee "$OSA_RECORDING/lxc-cache-prep.log" || true
   fi
   df -h / | tail -n 1
   free -m | sed -n 2p
@@ -70,6 +73,11 @@ prepare_host() {
   sudo iptables -t mangle -X || true
   sudo iptables -P INPUT ACCEPT
   sudo iptables -P FORWARD ACCEPT
+
+  # A runner carries a dozen vendors' package sources, and the LXC base image inherits the
+  # machine's, without their keys, so its first apt-get fails. A real host has its distribution's.
+  log "Only the distribution's own package sources"
+  sudo find /etc/apt/sources.list.d -type f ! -name 'ubuntu.sources' -print -delete
 
   log "What the playbooks log in to this machine with"
   sudo systemctl start ssh.socket ssh 2>/dev/null || sudo systemctl start ssh
