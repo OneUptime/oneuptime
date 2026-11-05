@@ -61,6 +61,13 @@ export interface OpenStackReachHost {
   disabledReason: string | null;
 }
 
+// The network agent a change is about, as the agent read it.
+export interface OpenStackReachAgent {
+  id: string;
+  binary: string | null;
+  host: string | null;
+}
+
 export type OpenStackReachKind =
   // The instances listed are the ones it changes.
   | "changes"
@@ -77,6 +84,8 @@ export interface OpenStackChangeReach {
   instances: Array<OpenStackReachInstance>;
   projects: Array<OpenStackReachProject>;
   hosts: Array<OpenStackReachHost>;
+  // The network agent it changes, when that is what it changes.
+  agent: OpenStackReachAgent | null;
   /*
    * What the host of an evacuation still holds that it does not name. A person
    * approving "evacuate this hypervisor" should see what stays dead.
@@ -132,6 +141,7 @@ export function buildOpenStackChangeReach(data: {
   instances: ReadonlyArray<OpenStackReachInstance>;
   projectNames: ReadonlyMap<string, string>;
   hosts: ReadonlyArray<OpenStackReachHost>;
+  agent?: OpenStackReachAgent | null | undefined;
   leftBehind: ReadonlyArray<OpenStackReachInstance>;
   isComplete: boolean;
   problems: ReadonlyArray<string>;
@@ -181,6 +191,7 @@ export function buildOpenStackChangeReach(data: {
       .map(named),
     projects: projects.slice(0, OPENSTACK_REACH_MAX_LISTED_PROJECTS),
     hosts: data.hosts.slice(0, OPENSTACK_REACH_MAX_HOSTS),
+    agent: data.agent || null,
     leftBehindCount: data.leftBehind.length,
     leftBehind: data.leftBehind
       .slice(0, OPENSTACK_REACH_MAX_LISTED_LEFT_BEHIND)
@@ -250,6 +261,15 @@ export function renderOpenStackChangeReach(
         } ${orDash(cut(host.disabledReason, MAX_NAME_LENGTH))}`,
       );
     }),
+    ...(reach.agent
+      ? [
+          line(
+            `agent ${reach.agent.id} ${orDash(
+              asWord(reach.agent.host, MAX_HOST_LENGTH),
+            )} ${orDash(asWord(reach.agent.binary, MAX_NAME_LENGTH))}`,
+          ),
+        ]
+      : []),
     ...reach.problems.map((problem: string): string => {
       return line(`problem ${cut(problem, MAX_TEXT_LENGTH) || "-"}`);
     }),
@@ -301,6 +321,7 @@ export function readOpenStackChangeReach(
     instances: [],
     projects: [],
     hosts: [],
+    agent: null,
     leftBehindCount: 0,
     leftBehind: [],
     isComplete: false,
@@ -400,6 +421,19 @@ export function readOpenStackChangeReach(
               words[3] === "yes" ? true : words[3] === "no" ? false : null,
             disabledReason: fromDash(words.slice(4).join(" ")),
           });
+        }
+        break;
+      }
+      case "agent": {
+        const words: Array<string> = rest.split(" ");
+        const id: string | null = asWord(words[0], MAX_ID_LENGTH);
+
+        if (id && words.length >= 3) {
+          reach.agent = {
+            id,
+            host: fromDash(words[1]),
+            binary: fromDash(words[2]),
+          };
         }
         break;
       }
@@ -551,6 +585,24 @@ export function parseStoredOpenStackChangeReach(
     ),
     projects,
     hosts,
+    agent: ((): OpenStackReachAgent | null => {
+      const row: unknown = obj["agent"];
+
+      if (!row || typeof row !== "object" || Array.isArray(row)) {
+        return null;
+      }
+
+      const agent: Record<string, unknown> = row as Record<string, unknown>;
+      const id: string | null = asWord(agent["id"], MAX_ID_LENGTH);
+
+      return id
+        ? {
+            id,
+            binary: asWord(agent["binary"], MAX_NAME_LENGTH),
+            host: asWord(agent["host"], MAX_HOST_LENGTH),
+          }
+        : null;
+    })(),
     leftBehindCount: asCount(obj["leftBehindCount"]),
     leftBehind: instancesOf(
       obj["leftBehind"],

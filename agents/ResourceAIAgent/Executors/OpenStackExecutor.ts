@@ -44,6 +44,7 @@ import {
 } from "../Common/Utils/AiRemediation/Resource/OpenStackCommandPolicy";
 import {
   OpenStackChangeReach,
+  OpenStackReachAgent,
   OpenStackReachHost,
   OpenStackReachInstance,
   OPENSTACK_REACH_MAX_LISTED_PROJECTS,
@@ -2060,7 +2061,7 @@ interface OpenStackChangeFacts {
   hosts: Array<OpenStackReachHost>;
   // What their host holds: everything, or only what the change does not name.
   onHost: Array<OpenStackReachInstance>;
-  // The host a change that moves nothing is about, when there is one.
+  agent: OpenStackReachAgent | null;
   isComplete: boolean;
   problems: Array<string>;
 }
@@ -2485,6 +2486,59 @@ export default class OpenStackExecutor implements ResourceExecutor {
     };
   }
 
+  /*
+   * One instance, as an admin sees it. Nova hands one to anyone else only from their
+   * own project, in its own code after policy has passed, so a read credential that
+   * is not an admin's asks its all-projects list instead. That list ignores a filter
+   * such a credential may not use, so the row is looked for in what it answers.
+   */
+  private async readInstanceRow(data: {
+    id: string;
+    call: OpenStackCall;
+    deadlineMs: number;
+  }): Promise<{ row: Row | null; problem: string | null }> {
+    const shown: OpenStackRead = await this.readForChange({
+      words: ["server", "show", data.id],
+      call: data.call,
+      deadlineMs: data.deadlineMs,
+    });
+    const row: unknown =
+      shown.problem === null && isPlainObject(shown.body)
+        ? shown.body["server"]
+        : undefined;
+
+    if (isPlainObject(row)) {
+      return { row, problem: null };
+    }
+
+    const listed: OpenStackRead = await this.readForChange({
+      words: [
+        "server",
+        "list",
+        "--all-projects",
+        "--uuid",
+        data.id,
+        "--limit",
+        String(OPENSTACK_MAX_LIST_LIMIT),
+      ],
+      call: data.call,
+      deadlineMs: data.deadlineMs,
+    });
+    const rows: unknown =
+      listed.problem === null && isPlainObject(listed.body)
+        ? listed.body["servers"]
+        : undefined;
+    const match: unknown = (Array.isArray(rows) ? rows : []).find(
+      (candidate: unknown): boolean => {
+        return isPlainObject(candidate) && candidate["id"] === data.id;
+      },
+    );
+
+    return isPlainObject(match)
+      ? { row: match, problem: null }
+      : { row: null, problem: shown.problem };
+  }
+
   // The instances on one host, which is one read and may stop at its limit.
   private async readInstancesOnHost(data: {
     host: string;
@@ -2514,19 +2568,25 @@ export default class OpenStackExecutor implements ResourceExecutor {
     const rows: unknown = isPlainObject(read.body)
       ? read.body["servers"]
       : undefined;
-    const instances: Array<OpenStackReachInstance> = (
-      Array.isArray(rows) ? rows : []
-    )
+    const answered: Array<unknown> = Array.isArray(rows) ? rows : [];
+    /*
+     * Nova ignores --host from a credential that may not use the filter, and answers
+     * the whole cloud, so only what says it is on this host counts as on it.
+     */
+    const instances: Array<OpenStackReachInstance> = answered
       .filter((row: unknown): row is Row => {
         return isPlainObject(row);
       })
       .map((row: Row): OpenStackReachInstance => {
         return this.toReachInstance(row);
+      })
+      .filter((instance: OpenStackReachInstance): boolean => {
+        return instance.host === data.host;
       });
 
     return {
       instances,
-      isComplete: instances.length < OPENSTACK_MAX_LIST_LIMIT,
+      isComplete: answered.length < OPENSTACK_MAX_LIST_LIMIT,
     };
   }
 
@@ -2603,26 +2663,19 @@ export default class OpenStackExecutor implements ResourceExecutor {
       liveTargets: [],
       hosts: [],
       onHost: [],
+      agent: null,
       isComplete: true,
       problems: [],
     };
 
     for (const id of change.instanceIds) {
-      const read: OpenStackRead = await this.readForChange({
-        words: ["server", "show", id],
-        call,
-        deadlineMs,
-      });
-      const row: unknown =
-        read.problem === null && isPlainObject(read.body)
-          ? read.body["server"]
-          : undefined;
+      const found: { row: Row | null; problem: string | null } =
+        await this.readInstanceRow({ id, call, deadlineMs });
+      const row: Row | null = found.row;
 
-      if (read.problem !== null || !isPlainObject(row)) {
+      if (!row) {
         facts.problems.push(
-          read.problem !== null
-            ? read.problem
-            : `Nova's answer about ${id} holds no instance.`,
+          found.problem || `Nova's answer about ${id} holds no instance.`,
         );
         facts.isComplete = false;
         facts.instances.push({
@@ -2702,6 +2755,12 @@ export default class OpenStackExecutor implements ResourceExecutor {
           ? read.body["agent"]
           : undefined;
       const host: string = isPlainObject(row) ? readString(row["host"]) : "";
+
+      facts.agent = {
+        id: change.agentId,
+        binary: isPlainObject(row) ? readString(row["binary"]) || null : null,
+        host: host || null,
+      };
 
       if (!host) {
         facts.problems.push(
@@ -2831,6 +2890,7 @@ export default class OpenStackExecutor implements ResourceExecutor {
       instances: isAboutInstances ? facts.instances : facts.onHost,
       projectNames: data.projectNames,
       hosts: facts.hosts,
+      agent: facts.agent,
       leftBehind: isAboutInstances ? facts.onHost : [],
       isComplete: facts.isComplete,
       problems: facts.problems,

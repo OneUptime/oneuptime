@@ -4,6 +4,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
   isCloudAiResourceType,
+  doFixesNeedASecondOptIn,
   isReadOnlyAiResourceType,
   isDefaultIdentityPlaceholder,
   isIdentityResolvedByAgent,
@@ -995,9 +996,15 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
       identityDetails: identity ? identity.details : {},
       allowWrites,
       allowWritesSetting,
-      aiSettings: isReadOnly
-        ? { ...ai.settings, fixes: "Disabled" }
-        : ai.settings,
+      /*
+       * The write switch alone does not turn fixes on where they need a second
+       * opt-in: only a choice does, here or on the resource's AI agent page.
+       */
+      aiSettings:
+        isReadOnly ||
+        (doFixesNeedASecondOptIn(resourceType) && !ai.settings.isConfigured)
+          ? { ...ai.settings, fixes: "Disabled" }
+          : ai.settings,
       writesOffByFixes: writeSwitch && !ai.allowWrites,
       writesOffReason:
         writeSwitch && ai.allowWrites && !isReadOnly ? writesOffReason : null,

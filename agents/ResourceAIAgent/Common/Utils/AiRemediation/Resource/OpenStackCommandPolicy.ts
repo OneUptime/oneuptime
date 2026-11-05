@@ -498,6 +498,7 @@ export const OPENSTACK_COMMAND_ROUTES: ReadonlyArray<OpenStackRoute> = [
       host: valueOption(HOST_RULE, "host"),
       status: valueOption(SERVER_STATUS_RULE, "status"),
       name: valueOption(NAME_RULE, "name"),
+      uuid: valueOption(UUID_RULE, "uuid"),
       "availability-zone": valueOption(NAME_RULE, "availability_zone"),
       "changes-since": valueOption(TIME_RULE, "changes-since"),
       long: LONG_OPTION,

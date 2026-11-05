@@ -308,6 +308,10 @@ services:
       # set. Set both or neither.
       - ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID:-}
       - ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET:-}
+      # Only for fixes: a second application credential, used for changes and nothing
+      # else. Without it the agent stays read-only, whatever else is set. README: Fixes.
+      - ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID=${ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID:-}
+      - ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=${ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET:-}
       # The region a command reads when it names none, and which endpoints to use: public,
       # internal or admin. clouds.yaml says both unless these do.
       - ONEUPTIME_AI_OPENSTACK_REGION=${ONEUPTIME_AI_OPENSTACK_REGION:-}

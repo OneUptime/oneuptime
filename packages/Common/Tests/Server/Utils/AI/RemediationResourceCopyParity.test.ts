@@ -327,10 +327,7 @@ describe("the undo every persona recommends is a safe change the policy accepts"
       const programs: ReadonlyArray<string> =
         AI_RESOURCE_TYPE_INFO[resourceType].programs;
 
-      if (
-        resourceType === AiResourceType.DatabaseServer ||
-        resourceType === AiResourceType.OpenStackCloud
-      ) {
+      if (resourceType === AiResourceType.DatabaseServer) {
         expect(examples).toContain("omit it");
         return;
       }

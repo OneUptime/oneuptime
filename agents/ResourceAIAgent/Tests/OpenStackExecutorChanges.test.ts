@@ -716,6 +716,62 @@ describe("it reads before it changes", () => {
     assert.strictEqual(last.method, "POST");
   });
 
+  test("a read credential Nova answers only for its own project: the all-projects list says", async () => {
+    const h: Harness = harness({
+      override: (request: OpenStackHttpRequest, url: URL) => {
+        return request.method === "GET" &&
+          url.pathname === `/compute/v2.1/servers/${STOPPED}`
+          ? fakeReply({ itemNotFound: { code: 404, message: "Not found" } }, 404)
+          : undefined;
+      },
+    });
+    const result: ExecResult = await run(
+      h,
+      `openstack server start ${STOPPED}`,
+    );
+
+    assert.strictEqual(result.success, true, result.errorMessage || "");
+    assert.strictEqual(h.cloud.changes().length, 1);
+    assert.match(result.output, /ou-stopped/);
+  });
+
+  test("a list that ignores --host is not taken as what the host holds", async () => {
+    const h: Harness = harness({
+      override: (request: OpenStackHttpRequest, url: URL) => {
+        return request.method === "GET" &&
+          url.pathname === "/compute/v2.1/servers/detail"
+          ? fakeReply({
+              servers: [
+                {
+                  id: RUNNING,
+                  name: "here",
+                  tenant_id: "aaaa",
+                  "OS-EXT-SRV-ATTR:host": HOST,
+                },
+                {
+                  id: STOPPED,
+                  name: "elsewhere",
+                  tenant_id: "bbbb",
+                  "OS-EXT-SRV-ATTR:host": "compute-02",
+                },
+              ],
+            })
+          : undefined;
+      },
+    });
+    const reach: OpenStackChangeReach = readOpenStackChangeReach(
+      (
+        await run(
+          h,
+          `openstack dry-run compute service set --enable ${HOST} nova-compute`,
+        )
+      ).output,
+    ) as OpenStackChangeReach;
+
+    assert.strictEqual(reach.instanceCount, 1);
+    assert.strictEqual(reach.instances[0]?.name, "here");
+  });
+
   test("an instance that is gone: nothing is sent", async () => {
     const h: Harness = harness();
     const gone: string = "00000000-0000-4000-8000-000000000000";

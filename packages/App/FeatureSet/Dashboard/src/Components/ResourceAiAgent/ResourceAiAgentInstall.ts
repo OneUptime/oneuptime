@@ -564,6 +564,19 @@ const INSTALL_SPECS: Readonly<
         description: "That credential's secret. Set both or neither.",
       },
       {
+        name: "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID",
+        composeValue:
+          "${ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID:-}",
+        description:
+          "Only for fixes: a second application credential, used for changes and nothing else. Without it the agent stays read-only, whatever else is set. It may not be the credential it reads with.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET",
+        composeValue:
+          "${ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET:-}",
+        description: "That credential's secret. Set both or neither.",
+      },
+      {
         name: "ONEUPTIME_AI_OPENSTACK_REGION",
         composeValue: "${ONEUPTIME_AI_OPENSTACK_REGION:-}",
         description:
@@ -584,19 +597,19 @@ const INSTALL_SPECS: Readonly<
     ],
     prerequisites: [
       translationKey(
-        "The credential's roles and access rules are the hard limit. A credential at the access levels the OpenStack agent's README recommends can read and nothing else. One made before this agent existed may not list every read it makes: make a new one from the rules the agent ships, access/application-credential-access-rules.json.",
+        "The credentials' roles and access rules are the hard limit. A read credential at the access levels the OpenStack agent's README recommends can read and nothing else. One made before this agent existed may not list every read the agent makes: make a new one from the rules the agent ships, or the agent says which read was refused. Fixes need a second credential: the same README says how to make it with the least it needs, on each way of deploying a cloud.",
       ),
       translationKey(
         "Installed the agent without Docker? This one still runs in a container: it needs Docker on some machine with a route to Keystone and to each service's endpoint, and clouds.yaml next to its docker-compose.yml.",
       ),
     ],
-    writeTargetNoun: null,
-    writeTargetsExample: null,
+    writeTargetNoun: translationKey("projects, hosts or instances"),
+    writeTargetsExample: "project:9aee824cac87464292adffc328de1662,host:compute-*",
     protectedTargetsDescription: translationKey(
-      "Has no effect yet: OneUptime AI only reads an OpenStack cloud, so there is nothing to protect.",
+      "What OneUptime AI never changes, whatever else is set and whoever approves it: project:ID, host:NAME or instance:ID, separated by commas, each of which may hold a *. Put the instance this agent runs on here, if it runs on this cloud.",
     ),
     writeDisclosure: translationKey(
-      "OneUptime AI only reads an OpenStack cloud: the agent has no command that changes one, whatever is set here.",
+      "With this on, OneUptime AI can start, reboot and migrate instances, evacuate those of a dead hypervisor, and enable or disable compute services and network agents, through the second credential you give the agent. It never deletes anything, and never touches Keystone, quotas or security groups. An evacuation always asks a person.",
     ),
     installScript: null,
     isStandalone: false,
