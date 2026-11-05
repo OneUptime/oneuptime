@@ -1303,6 +1303,32 @@ export interface OpenStackSharedFileSystemsInventory {
   services?: Array<ManilaServiceRecord> | undefined;
 }
 
+/*
+ * What Gnocchi's status says, whatever its storage driver. Its processors are a list of names, and the list is
+ * empty with gnocchi-metricd stopped, recorded.
+ */
+export interface GnocchiStatusRecord {
+  measuresToProcess: number | null;
+  metricsWithMeasures: number | null;
+  processors: number | null;
+}
+
+export function toGnocchiStatus(body: JSONObject): GnocchiStatusRecord {
+  const storage: JSONObject = (body["storage"] as JSONObject) || {};
+  const summary: JSONObject = (storage["summary"] as JSONObject) || {};
+  const metricd: JSONObject = (body["metricd"] as JSONObject) || {};
+  const processors: JSONValue | undefined = metricd["processors"];
+  return {
+    measuresToProcess: numeric(summary["measures"]),
+    metricsWithMeasures: numeric(summary["metrics"]),
+    processors: Array.isArray(processors) ? processors.length : null,
+  };
+}
+
+export interface OpenStackMetricInventory {
+  status?: GnocchiStatusRecord | undefined;
+}
+
 export interface OpenStackDatabaseInventory {
   instances?: Array<TroveInstanceRecord> | undefined;
 }
@@ -1320,4 +1346,5 @@ export interface OpenStackInventoryByService {
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
   database?: OpenStackDatabaseInventory | undefined;
+  metric?: OpenStackMetricInventory | undefined;
 }

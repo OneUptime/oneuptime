@@ -488,6 +488,36 @@ export function isOpenStackShareStuck(data: {
   return minutes !== null && minutes >= OPENSTACK_SHARE_STUCK_MINUTES;
 }
 
+/*
+ * Gnocchi's backlog, read off its API's own row. metricd aggregates what comes in, so with no processors
+ * measures only pile up: nothing is lost, and nothing can read anything newer until it comes back. Recorded:
+ * a stopped metricd reads 0 processors, and the API goes on answering and taking measures.
+ *
+ * A busy cloud's backlog never reads 0 and that's fine, so what's wrong is one that is heading past this
+ * and not falling, which only a line through a window can say. A page has one reading, so it says only
+ * that the backlog is past this now.
+ */
+export const OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES: number = 10000;
+export const OPENSTACK_GNOCCHI_MEASURES_FACT: string = "measuresToProcess";
+export const OPENSTACK_GNOCCHI_METRICS_FACT: string = "metricsWithMeasures";
+export const OPENSTACK_GNOCCHI_PROCESSORS_FACT: string = "metricdProcessors";
+
+export function isOpenStackGnocchiWithoutProcessors(facts: {
+  [key: string]: unknown;
+}): boolean {
+  return facts[OPENSTACK_GNOCCHI_PROCESSORS_FACT] === 0;
+}
+
+export function isOpenStackGnocchiBacklogged(facts: {
+  [key: string]: unknown;
+}): boolean {
+  const measures: unknown = facts[OPENSTACK_GNOCCHI_MEASURES_FACT];
+  return (
+    typeof measures === "number" &&
+    measures > OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES
+  );
+}
+
 export function isOpenStackDatabaseInstanceInError(
   status: string | null | undefined,
 ): boolean {

@@ -118,6 +118,37 @@ const BOTH_DATABASES: Array<string> = ["ou-db-no-host", "ou-db-ok"];
 
 const REPLAYS: ReadonlyArray<OpenStackServiceReplay> = [
   {
+    group: "services-gnocchi",
+    service: OpenStackServiceType.Metric,
+    job: "metric",
+    metricPrefix: "openstack_gnocchi_",
+    scenes: [
+      "baseline",
+      "metricd-stopped",
+      "backlog-growing",
+      "backlog-growing-more",
+      "recovered",
+      "api-down",
+    ],
+    heldMinutes: {
+      "openstack-metric-no-processors": 30,
+      "openstack-metric-backlog-growing": 90,
+      "openstack-metric-api-down": 30,
+    },
+    firesOn: {
+      "openstack-metric-no-processors": {
+        "metricd-stopped": [REGION],
+        "backlog-growing": [REGION],
+        "backlog-growing-more": [REGION],
+      },
+      // A runner's backlog only ever read 5 and then 10: far under the line, flat or not.
+      "openstack-metric-backlog-growing": {},
+      "openstack-metric-api-down": {
+        "api-down": [REGION],
+      },
+    },
+  },
+  {
     group: "services-manila",
     service: OpenStackServiceType.SharedFileSystems,
     job: "sharev2",

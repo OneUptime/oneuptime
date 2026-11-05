@@ -118,6 +118,7 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
   },
   // A project's own: which is why this answers where the exporter's list reads as refused.
   [OpenStackServiceType.Database]: { path: "/instances", query: "limit=1" },
+  [OpenStackServiceType.Metric]: { path: "/v1/metric", query: "limit=1" },
 };
 
 const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
@@ -125,7 +126,6 @@ const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
   "key-manager": { path: "/v1/secrets", query: "limit=1" },
   dns: { path: "/v2/zones", query: "limit=1" },
   "object-store": { path: "", query: "limit=1&format=json" },
-  metric: { path: "/v1/metric", query: "limit=1" },
   alarming: { path: "/v2/alarms", query: "limit=1" },
 };
 

@@ -1574,6 +1574,15 @@ describe("an OpenStack cloud's recommendations", () => {
     ).toContain("openstack-dns-api-down");
   });
 
+  test("Gnocchi's go only to a cloud that runs it", () => {
+    expect(idsOf()).not.toContain("openstack-metric-no-processors");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["metric"] });
+    expect(ids).toContain("openstack-metric-no-processors");
+    expect(ids).toContain("openstack-metric-backlog-growing");
+    expect(ids).toContain("openstack-metric-api-down");
+  });
+
   test("Trove's go only to a cloud that runs it", () => {
     expect(idsOf()).not.toContain("openstack-database-instance-in-error");
 

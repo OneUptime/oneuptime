@@ -10,7 +10,12 @@ import {
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import FilterCondition from "../Filter/FilterCondition";
-import { CriteriaFilter, FilterType, NoDataPolicy } from "./CriteriaFilter";
+import {
+  CriteriaFilter,
+  FilterType,
+  MetricForecastOptions,
+  NoDataPolicy,
+} from "./CriteriaFilter";
 import MonitorStepOpenStackMonitor, {
   OPENSTACK_REGION_ATTRIBUTE,
 } from "./MonitorStepOpenStackMonitor";
@@ -41,6 +46,7 @@ import {
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
@@ -104,6 +110,7 @@ export type OpenStackAlertTemplateCategory =
   | "Orchestration"
   | "Bare Metal"
   | "Databases"
+  | "Metrics"
   | "Projects"
   | "Capacity";
 
@@ -272,6 +279,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.Metric]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Dns]: RollingTime.Past15Minutes,
 };
 
@@ -290,6 +298,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
   [OpenStackServiceType.Database]: "openstack_trove_up",
+  [OpenStackServiceType.Metric]: "openstack_gnocchi_up",
   [OpenStackServiceType.Dns]: "openstack_designate_up",
 };
 
@@ -573,6 +582,7 @@ export function buildOfflineCriteria(data: {
   value: number;
   additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
+  forecast?: MetricForecastOptions | undefined;
 }): MonitorCriteriaInstance {
   const args: OpenStackAlertTemplateArgs = data.notification.args;
 
@@ -586,6 +596,7 @@ export function buildOfflineCriteria(data: {
     value: data.value,
     additionalFilters: data.additionalFilters,
     filterCondition: data.filterCondition,
+    forecast: data.forecast,
     incidentTitle: `${data.notification.incidentTitle} - ${args.monitorName}`,
     incidentDescription: data.notification.incidentDescription,
     criteriaName: data.notification.criteriaName,
@@ -814,6 +825,58 @@ const cloudStoppedReportingTemplate: OpenStackAlertTemplate = {
  * count, because a cloud without Cinder answers that job with nothing for ever:
  * that is a service it does not have, not an outage.
  */
+/*
+ * Where a series is heading rather than where it is: a line through the window, followed past now
+ * (MetricForecast). It recovers when that line no longer gets there, so a series that is past its line and
+ * falling has recovered, which is what catching up looks like. A series that stops reporting is judged on
+ * nothing, and stays as it was: a stopped API says that for itself.
+ */
+const OPENSTACK_FORECAST_RECOVERY_SHARE: number = 0.9;
+
+function buildForecastStep(data: {
+  args: OpenStackAlertTemplateArgs;
+  service: OpenStackServiceType;
+  query: OpenStackQuery;
+  rollingTime: RollingTime;
+  horizonInHours: number;
+  groupByAttributeKeys: Array<string>;
+  value: number;
+  words: IncidentWords;
+}): MonitorStep {
+  const forecast: MetricForecastOptions = {
+    horizonInHours: data.horizonInHours,
+  };
+
+  return buildOpenStackMonitorStep({
+    openstackMonitor: buildOpenStackSeriesConfig({
+      cloudIdentifier: data.args.cloudIdentifier,
+      queries: [data.query],
+      rollingTime: data.rollingTime,
+      groupByAttributeKeys: data.groupByAttributeKeys,
+      anchorService: data.service,
+    }),
+    offlineCriteriaInstance: buildOfflineCriteria({
+      notification: { args: data.args, ...data.words },
+      metricAlias: data.query.alias,
+      filterType: FilterType.ForecastAbove,
+      value: data.value,
+      forecast,
+    }),
+    onlineCriteriaInstance: countGoneSeriesAsRecovered(
+      buildHealthyCriteriaInstance({
+        onlineMonitorStatusId: data.args.onlineMonitorStatusId,
+        metricAlias: data.query.alias,
+        filterType: FilterType.ForecastBelow,
+        value: data.value,
+        // Past a dead band, so it doesn't flap on its line.
+        recoveryValue: data.value * OPENSTACK_FORECAST_RECOVERY_SHARE,
+        filterCondition: FilterCondition.All,
+        forecast,
+      }),
+    ),
+  });
+}
+
 function buildApiDownTemplate(data: {
   id: string;
   name: string;
@@ -2980,6 +3043,89 @@ const dnsApiDownTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Metrics: Gnocchi, on a cloud that runs it ---
+
+const metricApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
+  id: "openstack-metric-api-down",
+  name: "Metrics API Down",
+  summary: "Gnocchi's API does not answer for 15 minutes.",
+  description:
+    "Alert when the exporter's read of Gnocchi fails for 15 minutes (openstack_gnocchi_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. The exporter reads Gnocchi's status, which only an admin may, so a credential it refuses reads the same as a stopped API, recorded. A cloud whose credential has never read Gnocchi isn't offered this. Check the gnocchi-api service and its log, then `openstack metric status` with this credential.",
+  service: OpenStackServiceType.Metric,
+  collectionMetricName: "up",
+  incidentDescription: `The exporter's read of Gnocchi is failing: its API stopped answering, or this credential is no longer allowed its status, which reads the same. Measures can't reach Gnocchi while its API is down, and nothing can read them. Check the gnocchi-api service and its log, then openstack metric status with this credential. The incident resolves on its own once it answers again.`,
+});
+
+const metricNoProcessorsTemplate: OpenStackAlertTemplate = {
+  id: "openstack-metric-no-processors",
+  name: "Gnocchi No Processors",
+  forService: OpenStackServiceType.Metric,
+  summary: "Nothing processes Gnocchi's measures for 15 minutes.",
+  description:
+    "Alert when Gnocchi's status names no metricd processor for 15 minutes (openstack_gnocchi_status_metricd_processors reads 0, recorded with gnocchi-metricd stopped). One incident per region. Gnocchi's API goes on answering and taking measures, so Metrics API Down says nothing of this. Nothing is lost, but nothing newer can be read until metricd is back. Check the gnocchi-metricd service and its log, then `openstack metric status`.",
+  category: "Metrics",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Metric,
+      hasOwnAnchor: true,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "processors",
+          metricName: "openstack_gnocchi_status_metricd_processors",
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Gnocchi No Processors",
+        incidentDescription: `Gnocchi's status names no metricd processor, so measures are piling up and nothing newer can be read. Nothing is lost while this lasts. Check the gnocchi-metricd service and its log, then openstack metric status. The incident resolves on its own once a processor is back.`,
+        criteriaName: "Gnocchi No Processors - none running",
+        criteriaDescription:
+          "Triggers when Gnocchi's status names no metricd processor for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * Where the backlog is heading, read as a line through the last hour. A busy cloud's backlog is never 0 and
+ * may be large, so one that is falling is fine however large it is, and a flat reading under the line is too.
+ * What this says is that nothing has been catching up. Recorded only at 5 and then 10 measures, a minute apart,
+ * so the line itself is proven on what a monitor would read of those, and the size on made-up readings.
+ */
+const metricBacklogGrowingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-metric-backlog-growing",
+  name: "Gnocchi Backlog Growing",
+  forService: OpenStackServiceType.Metric,
+  summary: `Gnocchi's backlog is heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the hour.`,
+  description: `Alert when a line through the last hour of Gnocchi's backlog (openstack_gnocchi_status_measures_to_process) passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour. One incident per region. One already past that and falling doesn't fire, and that's what recovering looks like. Check how much gnocchi-metricd has been given to do, then \`openstack metric status\` for how many processors it has.`,
+  category: "Metrics",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildForecastStep({
+      args,
+      service: OpenStackServiceType.Metric,
+      rollingTime: RollingTime.Past1Hour,
+      horizonInHours: 1,
+      groupByAttributeKeys: REGION_GROUP,
+      query: {
+        alias: "measures_to_process",
+        metricName: "openstack_gnocchi_status_measures_to_process",
+        aggregationType: MetricsAggregationType.Max,
+      },
+      value: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+      words: {
+        incidentTitle: "[OpenStack] Gnocchi Backlog Growing",
+        incidentDescription: `Gnocchi's backlog is heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the hour, so metricd isn't keeping up and what can be read is falling behind. Check how much gnocchi-metricd has been given to do, then openstack metric status for how many processors it has. The incident resolves on its own once the backlog is falling or under the line.`,
+        criteriaName: `Gnocchi Backlog Growing - heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures`,
+        criteriaDescription: `Triggers when a line through the last hour of Gnocchi's backlog passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour.`,
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -3564,6 +3710,9 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     shareInErrorTemplate,
     shareStuckTemplate,
     databaseApiDownTemplate,
+    metricApiDownTemplate,
+    metricNoProcessorsTemplate,
+    metricBacklogGrowingTemplate,
     databaseInstanceInErrorTemplate,
     databaseInstanceStuckTemplate,
     databaseVolumeNearlyFullTemplate,

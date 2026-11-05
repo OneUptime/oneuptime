@@ -14,6 +14,8 @@ import {
   isOpenStackBareMetalNodeInMaintenance,
   isOpenStackBareMetalNodeStuck,
   isOpenStackBareMetalPowerUnexpected,
+  isOpenStackGnocchiBacklogged,
+  isOpenStackGnocchiWithoutProcessors,
   isOpenStackServiceQuiet,
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
@@ -263,6 +265,9 @@ const ATTENTION_QUERIES = [
     where: (row, now) => {
       return (
         row.status === "down" ||
+        (row.name === "metric" &&
+          (isOpenStackGnocchiWithoutProcessors(row.facts || {}) ||
+            isOpenStackGnocchiBacklogged(row.facts || {}))) ||
         isOpenStackServiceQuiet({
           service: row.name,
           lastSeenAt: row.lastSeenAt,

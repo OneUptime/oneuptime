@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 103 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove or Designate to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 106 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove or Designate to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -162,6 +162,9 @@ Every template reads at least three collections of what it watches, and fires on
 | DNS Zone in Error | Network | Warning | A count of `openstack_designate_zone_status` with `status=ERROR`, per zone, **past 15 minutes** | A zone reads `ERROR` for the whole window: its worker gave up writing it to a DNS server | It reads anything else |
 | DNS Zone Stuck Pending | Network | Warning | A count of `openstack_designate_zone_status` with `status=PENDING`, per zone, **past 30 minutes** | A zone reads `PENDING` for the whole window. Its worker gives up in a few minutes, so nothing is working on it | It reads anything else |
 | DNS Recordset in Error | Network | Warning | A count of `openstack_designate_recordsets_status` with `status=ERROR` and each type someone asks for, per zone, **past 15 minutes** | A recordset other than a zone's own SOA and NS reads `ERROR`. Those two read `ERROR` with their zone, so DNS Zone in Error says that | It reads anything else |
+| Metrics API Down | Availability | Critical | `openstack_gnocchi_up` and `up` for `metric`, Min per region, **past 15 minutes** | The exporter's read of Gnocchi failed, or the exporter did not answer. A credential Gnocchi refuses reads the same, so a cloud whose credential has never read Gnocchi isn't offered this | Both read 1 |
+| Gnocchi No Processors | Metrics | Critical | `openstack_gnocchi_status_metricd_processors`, Max per region, **past 15 minutes** | Gnocchi's status names no processor. Its API goes on answering and taking measures, so **Metrics API Down** says nothing of this | It names one |
+| Gnocchi Backlog Growing | Metrics | Warning | `openstack_gnocchi_status_measures_to_process`, a line through the **past hour** | The line passes 10,000 measures within the next hour. A backlog past that and falling doesn't fire | The line no longer gets to 9,000 |
 | Databases API Down | Availability | Critical | `openstack_trove_up` and `up` for `database`, Min per region, **past 15 minutes** | The exporter's read of Trove failed, or the exporter did not answer. It reads Trove's mgmt API, so a credential refused reads the same as a stopped API, and a cloud whose credential has never read Trove isn't offered this | Both read 1 |
 | Database Instance in Error | Databases | Warning | A count of `openstack_trove_instance_status` with each error status, per instance, **past 15 minutes** | An instance holds an error status for the whole window | It is fixed or deleted |
 | Database Instance Stuck | Databases | Warning | A count of `openstack_trove_instance_status` with each passing status, per instance, **past 1 hour** | An instance holds a passing status for the whole window. Trove has no list of its workers, so this is what says `trove-taskmanager` stopped | It reaches its next status, or is deleted |
@@ -543,6 +546,17 @@ Only a cloud that runs Designate sends these, and a cloud without it shows no tr
 | `openstack_designate_recordsets` | `count` | Max | How many recordsets each zone holds. The exporter makes one call per zone to say this, on every scrape. |
 | `openstack_designate_recordsets_status` | | Max | One series per recordset, with `id`, `name`, `type`, `zone_id`, `zone_name` and `status`. Its value is a code, and `PENDING`'s is 0, so read its `status` label. |
 | `openstack_designate_agent_state` | | Min | Whether Designate lists each of its services as up. Only a probe sends this. |
+
+### Metrics
+
+Only a cloud that runs Gnocchi sends these, and a cloud without it shows no trace of them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_gnocchi_up` | | Min | Whether the exporter's read of Gnocchi answered. It reads Gnocchi's status, which only an admin may, so any credential short of that reads 0 just as a stopped API does. |
+| `openstack_gnocchi_status_measures_to_process` | `count` | Max | How many measures `gnocchi-metricd` has yet to process. |
+| `openstack_gnocchi_status_metric_having_measures_to_process` | `count` | Max | How many metrics have measures waiting. |
+| `openstack_gnocchi_status_metricd_processors` | `count` | Max | How many processors Gnocchi's status names. |
 
 ### Databases
 
