@@ -215,12 +215,14 @@ export function rowsFromRecording(name, data) {
   }
   const healthy = `${name.split("/")[0]}/healthy`;
   /*
-   * A credential's answers are all there ever was: it never could read the rest. And another
-   * exporter's answer stands alone: it is the only one that cloud's rows ever came from.
+   * A credential's answers are all there ever was: it never could read the rest. Another
+   * exporter's answer stands alone: it is the only one that cloud's rows ever came from. And a
+   * capacity scene is a run of its own, whose cloud's IDs are in no other recording.
    */
   const isItsOwnWhole =
     name === healthy ||
     name.includes("/access/") ||
+    name.includes("/capacity/") ||
     name.includes("@") ||
     SCENES_OF_A_LATER_RUN.has(name.split("/")[1]);
   return !isItsOwnWhole && hasRecording(healthy)

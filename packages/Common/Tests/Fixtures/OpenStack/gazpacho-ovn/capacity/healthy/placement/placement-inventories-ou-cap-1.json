@@ -1,0 +1,29 @@
+{
+"inventories": {
+"DISK_GB": {
+"allocation_ratio": 1.0,
+"max_unit": 1028,
+"min_unit": 1,
+"reserved": 0,
+"step_size": 1,
+"total": 1028
+},
+"MEMORY_MB": {
+"allocation_ratio": 1.0,
+"max_unit": 8192,
+"min_unit": 1,
+"reserved": 512,
+"step_size": 1,
+"total": 8192
+},
+"VCPU": {
+"allocation_ratio": 4.0,
+"max_unit": 10,
+"min_unit": 1,
+"reserved": 0,
+"step_size": 1,
+"total": 10
+}
+},
+"resource_provider_generation": 7
+}

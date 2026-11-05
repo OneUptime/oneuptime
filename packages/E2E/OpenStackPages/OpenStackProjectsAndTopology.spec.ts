@@ -26,6 +26,22 @@ async function projectRow(page: Page, name: string): Promise<Locator> {
   return row;
 }
 
+interface WrittenRule {
+  kind: string;
+  modelName: string;
+  data: Record<string, unknown>;
+}
+
+async function writesOf(page: Page): Promise<Array<WrittenRule>> {
+  return await page.evaluate((): Array<WrittenRule> => {
+    return (
+      window as unknown as {
+        __openStackPagesFixture: { writeRequests: Array<WrittenRule> };
+      }
+    ).__openStackPagesFixture.writeRequests;
+  });
+}
+
 async function openProject(page: Page, name: string): Promise<void> {
   await openCloudPage(page, "projects", "estate=tenants");
   const row: Locator = await projectRow(page, name);
@@ -232,12 +248,57 @@ test.describe("One project's page", () => {
       page.getByTestId("openstack-scoped-rule-add").first(),
     ).toBeVisible();
 
+    // Its own rules, by the project's ID, and any written earlier as a marker's pair.
     const record: FixtureRecord = await fixtureRecord(page);
-    expect(
-      record.listRequests.some((request: { modelName?: string }) => {
-        return request.modelName === "AlertOwnerRule";
-      }),
-    ).toBe(true);
+    for (const modelName of ["OpenStackCloudOwnerRule", "AlertOwnerRule"]) {
+      expect(
+        record.listRequests.some((request: { modelName?: string }) => {
+          return request.modelName === modelName;
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("adding owners writes one rule on the cloud rules' table, with the project's ID", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openProject(page, "acme-payments");
+    await page.getByTestId("openstack-scoped-rule-add").first().click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await dialog.getByRole("combobox").first().click();
+    await page.getByRole("option", { name: /Platform/ }).click();
+    await dialog.getByRole("button", { name: /^(Save|Submit)/ }).click();
+
+    await expect
+      .poll(async () => {
+        return (await writesOf(page)).length;
+      })
+      .toBe(1);
+    const written: Array<WrittenRule> = await writesOf(page);
+    expect(written[0]).toMatchObject({
+      kind: "create",
+      modelName: "OpenStackCloudOwnerRule",
+      data: {
+        name: "OpenStack project acme-payments: owners of its alerts and incidents",
+        openStackProjectId: expect.any(String),
+        isEnabled: true,
+      },
+    });
+    expect(written[0]!.data).not.toHaveProperty("openStackDomainId");
+    expect(written[0]!.data).not.toHaveProperty("openStackCloudNamePattern");
+
+    // And it is what the card lists from then on.
+    await expect(
+      page.getByTestId("openstack-scoped-rules-owner"),
+    ).toContainText(
+      "OpenStack project acme-payments: owners of its alerts and incidents",
+    );
+    await expect(
+      page.getByTestId("openstack-scoped-rules-owner"),
+    ).not.toContainText("No rule names this yet");
   });
 
   test("a project gone from the inventory says so", async ({
@@ -270,6 +331,49 @@ test.describe("Domains", () => {
     );
 
     await screenshot(page, "domains-1280");
+  });
+
+  test("a rule on one names its cloud too, because every cloud has a domain called default", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "domains", "estate=tenants");
+    await page
+      .getByTestId("openstack-domain-rules")
+      .getByTestId("openstack-scoped-rule-add")
+      .first()
+      .click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await dialog.getByRole("combobox").first().click();
+    await page.getByRole("option", { name: "Acme", exact: true }).click();
+    await dialog.getByRole("combobox").nth(1).click();
+    await page.getByRole("option", { name: /Platform/ }).click();
+    await dialog.getByRole("button", { name: /^(Save|Submit)/ }).click();
+
+    await expect
+      .poll(async () => {
+        return (await writesOf(page)).length;
+      })
+      .toBe(1);
+    const written: WrittenRule = (await writesOf(page))[0]!;
+    expect(written).toMatchObject({
+      kind: "create",
+      modelName: "OpenStackCloudOwnerRule",
+      data: { openStackDomainId: "acme" },
+    });
+    expect(written.data).not.toHaveProperty("openStackProjectId");
+    expect(
+      new RegExp(written.data["openStackCloudNamePattern"] as string).test(
+        "acme-prod",
+      ),
+    ).toBe(true);
+    expect(
+      new RegExp(written.data["openStackCloudNamePattern"] as string).test(
+        "acme-prod-2",
+      ),
+    ).toBe(false);
   });
 
   test("a list offers a domain when there is more than one, and narrows to it", async ({
@@ -358,6 +462,25 @@ test.describe("The Topology", () => {
     await expect(
       page.getByTestId("resource-topology-notice-gap"),
     ).toContainText("what this cloud reports says neither");
+  });
+
+  test("and stops saying what a probe told it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "topology", "estate=parts");
+
+    await expect(
+      page.getByTestId("resource-topology-card-cloud"),
+    ).toBeVisible();
+    // Every instance here names its networks, and not every volume its pool.
+    await expect(
+      page.getByTestId("resource-topology-notice-gap"),
+    ).toContainText("Volumes are not joined to their storage pools");
+    await expect(
+      page.getByTestId("resource-topology-notice-gap"),
+    ).not.toContainText("Instances");
   });
 
   test("a failed read says so, with Try again", async ({

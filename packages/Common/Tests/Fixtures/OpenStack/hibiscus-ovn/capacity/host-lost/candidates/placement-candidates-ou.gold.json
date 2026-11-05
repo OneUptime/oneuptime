@@ -1,0 +1,54 @@
+{
+"allocation_requests": [
+{
+"allocations": {
+"32490cb4-ac2d-4909-b592-cf5728fc19f6": {
+"resources": {
+"DISK_GB": 1,
+"MEMORY_MB": 512,
+"VCPU": 1
+}
+}
+}
+}
+],
+"provider_summaries": {
+"32490cb4-ac2d-4909-b592-cf5728fc19f6": {
+"parent_provider_uuid": null,
+"resources": {
+"DISK_GB": {
+"capacity": 1028,
+"used": 40
+},
+"MEMORY_MB": {
+"capacity": 7680,
+"used": 4096
+},
+"VCPU": {
+"capacity": 40,
+"used": 2
+}
+},
+"root_provider_uuid": "32490cb4-ac2d-4909-b592-cf5728fc19f6",
+"traits": [
+"COMPUTE_IMAGE_TYPE_RAW",
+"OWNER_NOVA",
+"COMPUTE_STORAGE_VIRTIO_FS",
+"COMPUTE_ACCELERATORS",
+"COMPUTE_VOLUME_ATTACH_WITH_TAG",
+"COMPUTE_NET_ATTACH_INTERFACE_WITH_TAG",
+"COMPUTE_NET_ATTACH_INTERFACE",
+"COMPUTE_VOLUME_MULTI_ATTACH",
+"COMPUTE_MEM_BACKING_FILE",
+"COMPUTE_DEVICE_TAGGING",
+"COMPUTE_ADDRESS_SPACE_PASSTHROUGH",
+"COMPUTE_TRUSTED_CERTS",
+"COMPUTE_ADDRESS_SPACE_EMULATED",
+"COMPUTE_NODE",
+"COMPUTE_SECURITY_STATELESS_FIRMWARE",
+"COMPUTE_VOLUME_EXTEND",
+"CUSTOM_OU_GOLD"
+]
+}
+}
+}

@@ -5,6 +5,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import OpenStackDataCollectionCard from "../../../Components/OpenStack/OpenStackDataCollectionCard";
 import OpenStackInstanceMetricsCard from "../../../Components/OpenStack/OpenStackInstanceMetricsCard";
+import OpenStackScopedRulesCard from "../../../Components/OpenStack/OpenStackScopedRulesCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
@@ -37,6 +38,13 @@ const OpenStackCloudSettings: FunctionComponent<
       />
       <OpenStackDataCollectionCard modelId={modelId} />
       <OpenStackInstanceMetricsCard modelId={modelId} />
+      <div
+        className="mt-5 space-y-5"
+        data-testid="openstack-cloud-scoped-rules"
+      >
+        <OpenStackScopedRulesCard mode="owner" />
+        <OpenStackScopedRulesCard mode="label" />
+      </div>
       <TelemetryResourceMoreSettings<OpenStackCloud>
         modelType={OpenStackCloud}
         modelId={modelId}

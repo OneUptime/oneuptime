@@ -1652,6 +1652,8 @@ export class Service extends DatabaseService<Model> {
       externalId?: string | null | undefined;
       facts?: JSONObject | null | undefined;
     };
+    // For what has to find one project among them, past the ones an answer names.
+    includeEveryProject?: boolean | undefined;
   }): Promise<OpenStackBlastRadius> {
     const { part } = data;
     const counts: Array<{
@@ -1741,6 +1743,7 @@ export class Service extends DatabaseService<Model> {
         projectNames,
         projectDomains,
         isKnown,
+        includeEveryProject: data.includeEveryProject,
       });
     };
 
