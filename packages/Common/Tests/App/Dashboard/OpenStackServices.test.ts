@@ -1213,9 +1213,17 @@ describe("what a region narrows, on each signal", () => {
       "RegionTwo",
       true,
     ],
-  ])("what is open: %s", (_name, labels, region, expected) => {
-    expect(isOpenStackIssueInRegion(labels, region)).toBe(expected);
-  });
+  ])(
+    "what is open: %s",
+    (
+      _name: string,
+      labels: JSONObject | null | undefined,
+      region: string | null,
+      expected: boolean,
+    ) => {
+      expect(isOpenStackIssueInRegion(labels, region)).toBe(expected);
+    },
+  );
 });
 
 describe("the pages a region can be chosen on", () => {
@@ -1230,7 +1238,7 @@ describe("the pages a region can be chosen on", () => {
     ["incidents", PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS],
     ["alerts", PageMap.OPENSTACK_CLOUD_VIEW_ALERTS],
     ["maintenance", PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE],
-  ])("%s", (_name, page) => {
+  ])("%s", (_name: string, page: PageMap) => {
     expect(pages).toContain(page);
   });
 
@@ -1239,7 +1247,7 @@ describe("the pages a region can be chosen on", () => {
     ["its owners", PageMap.OPENSTACK_CLOUD_VIEW_OWNERS],
     ["Keystone's projects", PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS],
     ["Keystone's domains", PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS],
-  ])("not %s, where a region means nothing", (_name, page) => {
+  ])("not %s, where a region means nothing", (_name: string, page: PageMap) => {
     expect(pages).not.toContain(page);
   });
 });

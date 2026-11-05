@@ -72,7 +72,11 @@ test.describe("the map", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "topology", "estate=multi-region&region=RegionTwo");
+    await openCloudPage(
+      page,
+      "topology",
+      "estate=multi-region&region=RegionTwo",
+    );
 
     await expect(
       page.getByTestId("resource-topology-card-cloud"),
@@ -103,7 +107,11 @@ test.describe("the map", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "topology", "estate=multi-region&region=RegionTwo");
+    await openCloudPage(
+      page,
+      "topology",
+      "estate=multi-region&region=RegionTwo",
+    );
     await expect(
       page.getByTestId("resource-topology-card-cloud"),
     ).toBeVisible();
@@ -152,7 +160,11 @@ test.describe("the signals", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "metrics", "estate=multi-region&region=RegionTwo");
+    await openCloudPage(
+      page,
+      "metrics",
+      "estate=multi-region&region=RegionTwo",
+    );
 
     await expect(page.getByTestId("openstack-region-bar")).toBeVisible();
 
@@ -211,9 +223,7 @@ test.describe("the signals", () => {
   }) => {
     await openCloudPage(page, "logs", "estate=multi-region");
 
-    await expect(
-      page.getByText(/No logs from this cloud yet/),
-    ).toBeVisible();
+    await expect(page.getByText(/No logs from this cloud yet/)).toBeVisible();
 
     const record: FixtureRecord = await fixtureRecord(page);
     const asked: Array<Record<string, unknown>> = attributesAskedOf(
@@ -255,7 +265,11 @@ test.describe("on a phone", () => {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await openCloudPage(page, "topology", "estate=multi-region&region=RegionTwo");
+    await openCloudPage(
+      page,
+      "topology",
+      "estate=multi-region&region=RegionTwo",
+    );
 
     await expect(page.getByTestId("openstack-region-bar")).toBeVisible();
 
@@ -392,7 +406,11 @@ test.describe("from page to page", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "topology", "estate=multi-region&region=RegionTwo");
+    await openCloudPage(
+      page,
+      "topology",
+      "estate=multi-region&region=RegionTwo",
+    );
     await expect(
       page.getByTestId("resource-topology-card-cloud"),
     ).toBeVisible();

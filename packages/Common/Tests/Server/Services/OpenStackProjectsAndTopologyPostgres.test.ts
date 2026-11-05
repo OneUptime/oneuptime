@@ -925,9 +925,7 @@ describePostgres(
         };
 
         expect(whole.isSummarized).toBe(true);
-        expect(ids(whole)).toEqual(
-          expect.arrayContaining(["i-one", "i-two"]),
-        );
+        expect(ids(whole)).toEqual(expect.arrayContaining(["i-one", "i-two"]));
 
         expect(one.isSummarized).toBe(true);
         expect(ids(one)).toContain("i-one");
