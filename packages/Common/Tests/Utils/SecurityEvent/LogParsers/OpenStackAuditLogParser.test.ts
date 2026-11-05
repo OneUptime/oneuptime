@@ -448,9 +448,13 @@ describe("a call through the audit filter", () => {
       call({ action: "update", outcome: "success" }),
     );
 
-    expect(event.attributes[OpenStackAuditAttribute.TargetType]).toBeUndefined();
+    expect(
+      event.attributes[OpenStackAuditAttribute.TargetType],
+    ).toBeUndefined();
     expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBeUndefined();
-    expect(event.attributes[OpenStackAuditAttribute.TargetName]).toBeUndefined();
+    expect(
+      event.attributes[OpenStackAuditAttribute.TargetName],
+    ).toBeUndefined();
     expect(event.message).not.toContain("unknown");
   });
 
@@ -997,26 +1001,29 @@ describe("an image that is public", () => {
     ["image.create", "created"],
     ["image.update", "changed"],
     ["image.activate", "activated"],
-  ])("%s says what was done, and no more than it knows", (type: string, verb: string) => {
-    const event: NormalizedSecurityEvent = one(image(type, "public"), {
-      ...CLOUD_ATTRIBUTES,
-      "openstack.user_name": "alice",
-    });
+  ])(
+    "%s says what was done, and no more than it knows",
+    (type: string, verb: string) => {
+      const event: NormalizedSecurityEvent = one(image(type, "public"), {
+        ...CLOUD_ATTRIBUTES,
+        "openstack.user_name": "alice",
+      });
 
-    expect(event.message).toBe(`alice ${verb} public image golden`);
-    expect(event.attributes[OpenStackAuditAttribute.Signal]).toBe(
-      OpenStackAuditSignal.ImagePublic,
-    );
-    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
-      PROJECT_ID,
-    );
-    expect(event.attributes[OpenStackAuditAttribute.PartId]).toBe("image-id");
-    expect(event.attributes[OpenStackAuditAttribute.PartKind]).toBe(
-      OpenStackResourceKind.Image,
-    );
-    expect(event.observables).toContain(describeOpenStackProject(PROJECT_ID));
-    expect(event.observables).toContain("image golden");
-  });
+      expect(event.message).toBe(`alice ${verb} public image golden`);
+      expect(event.attributes[OpenStackAuditAttribute.Signal]).toBe(
+        OpenStackAuditSignal.ImagePublic,
+      );
+      expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
+        PROJECT_ID,
+      );
+      expect(event.attributes[OpenStackAuditAttribute.PartId]).toBe("image-id");
+      expect(event.attributes[OpenStackAuditAttribute.PartKind]).toBe(
+        OpenStackResourceKind.Image,
+      );
+      expect(event.observables).toContain(describeOpenStackProject(PROJECT_ID));
+      expect(event.observables).toContain("image golden");
+    },
+  );
 
   test.each(["private", "shared", "community"])(
     "%s is not published",
@@ -1098,6 +1105,57 @@ describe("what never gets stored", () => {
         `{"event_type": "identity.authenticate", "x": "${"a".repeat(3_000_000)}"}`,
       ),
     ).toBeNull();
+  });
+});
+
+describe("a line that only looks like the log driver's", () => {
+  const FORGED: string = JSON.stringify(
+    cadf("identity.authenticate", { outcome: "failure" }),
+  );
+
+  test("a name someone chose, in another logger's line, is no event", () => {
+    expect(
+      parse(
+        `2026-10-30 10:00:01.000 1234 INFO nova.compute.api [req-1 a b] Creating server ${FORGED}`,
+      ),
+    ).toEqual([]);
+  });
+
+  test("whatever the line says, the logger a cloud's line was stamped with decides", () => {
+    expect(
+      parse(FORGED, {
+        ...CLOUD_ATTRIBUTES,
+        "openstack.logger": "nova.compute.api",
+      }),
+    ).toEqual([]);
+    expect(
+      parse(`oslo.messaging.notification.x ${FORGED}`, {
+        ...CLOUD_ATTRIBUTES,
+        "openstack.logger": "nova.compute.api",
+      }),
+    ).toEqual([]);
+  });
+
+  test("the log driver's own line is one, stamped or not", () => {
+    expect(
+      parse(FORGED, {
+        ...CLOUD_ATTRIBUTES,
+        "openstack.logger": "oslo.messaging.notification.identity.authenticate",
+      }),
+    ).toHaveLength(1);
+    expect(
+      parse(
+        `INFO oslo.messaging.notification.identity.authenticate [-] ${FORGED}`,
+      ),
+    ).toHaveLength(1);
+    // A forwarder that ships the notification alone.
+    expect(parse(FORGED)).toHaveLength(1);
+  });
+
+  test("the word after the JSON is no help", () => {
+    expect(
+      parse(`Creating server ${FORGED} oslo.messaging.notification.x`),
+    ).toEqual([]);
   });
 });
 

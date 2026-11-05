@@ -46,6 +46,9 @@ const MAX_IDS_PER_READ: number = 500;
 // The most user names one scan's page reads and remembers.
 const MAX_USERS_PER_BATCH: number = 200;
 
+// A shorter ID could be part of any word in a message, so a message keeps it.
+const MIN_USER_ID_LENGTH_IN_TEXT: number = 16;
+
 const USER_NAMES_CACHE_NAMESPACE: string = "openstack-audit-user-name";
 const USER_NAME_REMEMBERED_FOR_IN_SECONDS: number = 30 * 24 * 60 * 60;
 
@@ -67,11 +70,9 @@ function rewrite(
 ): void {
   event.message = replaced(event.message, from, to);
   event.targetResource = replaced(event.targetResource, from, to);
-  event.observables = (event.observables || []).map(
-    (value: string): string => {
-      return value === from ? to : value;
-    },
-  );
+  event.observables = (event.observables || []).map((value: string): string => {
+    return value === from ? to : value;
+  });
 }
 
 function isAuditEvent(event: NormalizedSecurityEvent): boolean {
@@ -155,7 +156,8 @@ export default class OpenStackAuditJoin {
 
   /*
    * One event's user named: who did it, who it was done to, or both, by the ID it said. A
-   * user's ID is 32 hex digits, so it stands for nothing else in a message.
+   * user's ID is 32 hex digits, or more from LDAP, so it stands for nothing else in a message.
+   * Anything shorter is left in the message as it stands, and only named in its own fields.
    */
   public static nameUser(data: {
     event: NormalizedSecurityEvent;
@@ -172,7 +174,9 @@ export default class OpenStackAuditJoin {
       event.targetUser = name;
     }
 
-    if (readText(event.attributes, OpenStackAuditAttribute.InitiatorId) === id) {
+    if (
+      readText(event.attributes, OpenStackAuditAttribute.InitiatorId) === id
+    ) {
       event.attributes[OpenStackAuditAttribute.InitiatorName] = name;
     }
 
@@ -185,8 +189,11 @@ export default class OpenStackAuditJoin {
         return value === describeOpenStackUser(id) ? name : value;
       },
     );
-    event.message = replaced(event.message, id, name);
-    event.targetResource = replaced(event.targetResource, id, name);
+
+    if (id.length >= MIN_USER_ID_LENGTH_IN_TEXT) {
+      event.message = replaced(event.message, id, name);
+      event.targetResource = replaced(event.targetResource, id, name);
+    }
   }
 
   /*
@@ -237,7 +244,10 @@ export default class OpenStackAuditJoin {
         OpenStackAuditAttribute.InitiatorId,
         OpenStackAuditAttribute.InitiatorName,
       ]) {
-        if (!readText(event.attributes, key) && readText(source.attributes, key)) {
+        if (
+          !readText(event.attributes, key) &&
+          readText(source.attributes, key)
+        ) {
           event.attributes[key] = readText(source.attributes, key);
         }
       }

@@ -89,7 +89,7 @@ function getAuditActionWords(action: string, translator: Translator): string {
   const words: string | undefined = AUDIT_ACTION_WORDS[action];
 
   if (words) {
-    return translator.translateText(words);
+    return translator.translateText(words) || words;
   }
 
   return action.startsWith("update/") ? action.slice("update/".length) : action;

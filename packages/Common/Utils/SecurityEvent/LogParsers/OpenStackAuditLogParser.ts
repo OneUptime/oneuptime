@@ -3,8 +3,14 @@ import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecu
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
-import { isOpenStackKeystoneId, isOpenStackUuid } from "../../OpenStack/OpenStackLogs";
-import { readOpenStackNotificationTime } from "../../OpenStack/OpenStackNotifications";
+import {
+  isOpenStackKeystoneId,
+  isOpenStackUuid,
+} from "../../OpenStack/OpenStackLogs";
+import {
+  OPENSTACK_NOTIFICATION_LOGGER_PREFIX,
+  readOpenStackNotificationTime,
+} from "../../OpenStack/OpenStackNotifications";
 import {
   MAX_JSON_LINE_LENGTH,
   MAX_RECORD_ATTRIBUTE_VALUE_LENGTH,
@@ -155,7 +161,10 @@ const PARTS_BY_PATH_WORD: ReadonlyMap<string, OpenStackPathPart> = new Map<
   ["networks", { noun: "network", kind: OpenStackResourceKind.Network }],
   ["subnets", { noun: "subnet", kind: OpenStackResourceKind.Subnet }],
   ["routers", { noun: "router", kind: OpenStackResourceKind.Router }],
-  ["floatingips", { noun: "floating IP", kind: OpenStackResourceKind.FloatingIp }],
+  [
+    "floatingips",
+    { noun: "floating IP", kind: OpenStackResourceKind.FloatingIp },
+  ],
   ["ports", { noun: "port" }],
   ["security-groups", { noun: "security group" }],
   ["security-group-rules", { noun: "security group rule" }],
@@ -408,7 +417,11 @@ function baseAttributes(data: {
     readKnown(target, "typeURI"),
   );
   set(attributes, OpenStackAuditAttribute.TargetId, readKnown(target, "id"));
-  set(attributes, OpenStackAuditAttribute.TargetName, readKnown(target, "name"));
+  set(
+    attributes,
+    OpenStackAuditAttribute.TargetName,
+    readKnown(target, "name"),
+  );
   set(
     attributes,
     OpenStackAuditAttribute.ReasonCode,
@@ -541,7 +554,8 @@ function parseRoleAssignment(data: {
   );
 
   if (project) {
-    attributes[OpenStackAuditAttribute.PartKind] = OpenStackResourceKind.Project;
+    attributes[OpenStackAuditAttribute.PartKind] =
+      OpenStackResourceKind.Project;
     attributes[OpenStackAuditAttribute.PartId] = project;
   }
 
@@ -619,7 +633,8 @@ function parseIdentityChange(data: {
   if (resource === "project" && id) {
     project = describeOpenStackProject(id);
     set(attributes, OpenStackAuditAttribute.ProjectId, id);
-    attributes[OpenStackAuditAttribute.PartKind] = OpenStackResourceKind.Project;
+    attributes[OpenStackAuditAttribute.PartKind] =
+      OpenStackResourceKind.Project;
     attributes[OpenStackAuditAttribute.PartId] = id;
     targetResource = project;
   }
@@ -1022,8 +1037,34 @@ function parseImage(data: {
   );
 }
 
+/*
+ * Whether a line is the log driver's own. Anyone able to reach an API can have a service log a
+ * name they chose, so a line that only holds something shaped like a notification, in a server's
+ * name say, must not become an event saying someone signed in. The stamp says which logger wrote
+ * a line of a cloud. Without one, the line says so itself before its JSON, or is nothing but
+ * JSON, as a forwarder that ships the notification alone sends it.
+ */
+function isFromTheLogDriver(line: SecurityLogLine): boolean {
+  const logger: string = readAttribute(line.attributes, ["openstack.logger"]);
+
+  if (logger) {
+    return logger.startsWith(OPENSTACK_NOTIFICATION_LOGGER_PREFIX);
+  }
+
+  const json: number = line.body.indexOf("{");
+  const prefix: number = line.body.indexOf(
+    OPENSTACK_NOTIFICATION_LOGGER_PREFIX,
+  );
+
+  return json === 0 || (prefix !== -1 && prefix < json);
+}
+
 export default class OpenStackAuditLogParser {
   public static parse(line: SecurityLogLine): Array<NormalizedSecurityEvent> {
+    if (!isFromTheLogDriver(line)) {
+      return [];
+    }
+
     const notification: JSONObject | null = readOpenStackAuditNotification(
       line.body,
     );

@@ -137,7 +137,10 @@ beforeEach(() => {
     .mockReturnValue({ isAllowed: true } as never);
   jest.spyOn(AnalyticsModelAPI, "getList").mockImplementation((async (options: {
     modelType: new () => SecurityEvent | ChangeEvent;
-    query: { attributes: JSONObject; time: { startValue: Date; endValue: Date } };
+    query: {
+      attributes: JSONObject;
+      time: { startValue: Date; endValue: Date };
+    };
     limit: number;
   }) => {
     const isAudit: boolean = options.modelType === SecurityEvent;

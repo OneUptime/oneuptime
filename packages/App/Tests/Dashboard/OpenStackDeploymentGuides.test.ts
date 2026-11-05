@@ -278,15 +278,18 @@ describe("How do you deploy OpenStack?", () => {
 });
 
 describe("each guide says plainly how far it has been tested", () => {
-  test.each(NAMED_TOOLS)("%s, on screen, and never claims more", (tool: OpenStackDeploymentTool) => {
-    const intro: string = setupGuideOf(tool).intro as string;
+  test.each(NAMED_TOOLS)(
+    "%s, on screen, and never claims more",
+    (tool: OpenStackDeploymentTool) => {
+      const intro: string = setupGuideOf(tool).intro as string;
 
-    expect(intro).toContain("How far this guide has been tested:");
-    expect(intro).toContain("not been followed end to end");
-    expect(intro.toLowerCase()).not.toMatch(
-      /\b(fully|thoroughly|completely) tested\b|\bverified on\b|\bproduction[- ]ready\b/,
-    );
-  });
+      expect(intro).toContain("How far this guide has been tested:");
+      expect(intro).toContain("not been followed end to end");
+      expect(intro.toLowerCase()).not.toMatch(
+        /\b(fully|thoroughly|completely) tested\b|\bverified on\b|\bproduction[- ]ready\b/,
+      );
+    },
+  );
 
   test("the docs say so too, and first, for every tool", () => {
     const heading: number = DOCS_PAGE.indexOf(
@@ -343,18 +346,21 @@ describe("what is already firing, with no agent", () => {
     }
   }
 
-  test.each(WITH_ALERTMANAGER)("%s gets a first step for it", (tool: OpenStackDeploymentTool) => {
-    const first: SetupGuideStep = setupGuideOf(tool).steps[0]!;
+  test.each(WITH_ALERTMANAGER)(
+    "%s gets a first step for it",
+    (tool: OpenStackDeploymentTool) => {
+      const first: SetupGuideStep = setupGuideOf(tool).steps[0]!;
 
-    expect(first.title).toBe("Forward what is already firing");
-    // An Incoming Request monitor's own settings name no cloud: this is what does.
-    expect(first.markdown).toContain("**Overview → Linked Resources**");
-    expect(first.markdown).toContain(`\`${CLOUD}\``);
-    expect(first.markdown).toContain("Incoming Request monitor");
-    expect(first.markdown).toContain(
-      "/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor",
-    );
-  });
+      expect(first.title).toBe("Forward what is already firing");
+      // An Incoming Request monitor's own settings name no cloud: this is what does.
+      expect(first.markdown).toContain("**Overview → Linked Resources**");
+      expect(first.markdown).toContain(`\`${CLOUD}\``);
+      expect(first.markdown).toContain("Incoming Request monitor");
+      expect(first.markdown).toContain(
+        "/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor",
+      );
+    },
+  );
 
   test.each(WITH_ALERTMANAGER)(
     "%s shows a receiver that parses as it reads it, and posts to the monitor's URL",
@@ -697,22 +703,129 @@ describe("Kolla-Ansible's own exporter, and what the pages lose on it", () => {
   );
 });
 
+describe("who did what, on each tool", () => {
+  function auditTopicOf(tool: OpenStackDeploymentTool): SetupGuideTopic {
+    const topic: SetupGuideTopic | undefined = guideOf(tool).topics.find(
+      (candidate: SetupGuideTopic): boolean => {
+        return candidate.title.startsWith("Who did what");
+      },
+    );
+
+    expect(topic).toBeDefined();
+
+    return topic as SetupGuideTopic;
+  }
+
+  test.each(NAMED_TOOLS)("%s has its own", (tool: OpenStackDeploymentTool) => {
+    expect(auditTopicOf(tool).title).toContain(" on ");
+  });
+
+  test("not sure gives the general steps", () => {
+    const topic: SetupGuideTopic = auditTopicOf("not-sure");
+
+    expect(topic.markdown).toContain("keystonemiddleware.audit:filter_factory");
+    expect(topic.markdown).toContain("notification_format = cadf");
+  });
+
+  test.each(
+    NAMED_TOOLS.filter((tool: OpenStackDeploymentTool): boolean => {
+      return tool !== "sunbeam";
+    }),
+  )(
+    "%s gives Keystone's audit trail and the audit filter, and says which detection needs logins",
+    (tool: OpenStackDeploymentTool) => {
+      const text: string = auditTopicOf(tool).markdown;
+
+      expect(text).toContain("identity.authenticate.pending");
+      expect(text).toContain("identity.authenticate.success");
+      expect(text).toMatch(/cadf/);
+      expect(text).toMatch(/audit_middleware_notifications|cadf:/);
+      expect(text).toContain("Find security events in your logs");
+      // Keystone's opt-out never leaves failed logins out.
+      expect(text).not.toContain("identity.authenticate.failure");
+    },
+  );
+
+  test("every YAML block a tool gives parses, as a person would paste it", () => {
+    for (const tool of NAMED_TOOLS) {
+      const fenced: Array<RegExpMatchArray> = Array.from(
+        auditTopicOf(tool).markdown.matchAll(/```yaml\n([\s\S]*?)```/g),
+      );
+
+      for (const block of fenced) {
+        expect(yaml.load(block[1] as string)).toBeTruthy();
+      }
+    }
+  });
+
+  test("the charts' log driver needs a logger of its own, because their root logger is at WARNING", () => {
+    const blocks: Array<string> = blocksIn(
+      auditTopicOf("openstack-helm").markdown,
+    );
+    const logging: unknown = yaml.load(
+      blocks.find((block: string): boolean => {
+        return block.includes("logger_notifications");
+      }) as string,
+    );
+
+    expect(logging).toMatchObject({
+      conf: {
+        logging: {
+          loggers: { keys: expect.arrayContaining(["notifications"]) },
+          logger_notifications: {
+            level: "INFO",
+            qualname: "oslo.messaging.notification",
+          },
+        },
+      },
+    });
+  });
+
+  test("Sunbeam's says plainly it can't be done yet, and gives no settings", () => {
+    const topic: SetupGuideTopic = auditTopicOf("sunbeam");
+
+    expect(topic.summary).toContain("Not yet");
+    expect(blocksIn(topic.markdown)).toEqual([]);
+  });
+
+  test("MOSK's says its own setting leaves Keystone out, and what Mirantis says of the other way", () => {
+    const text: string = auditTopicOf("mosk").markdown;
+
+    expect(text).toContain("does not cover Keystone");
+    expect(text).toContain("does not validate");
+  });
+
+  test("the filter never goes at the end of a pipeline, where Neutron's extensions hide calls from it", () => {
+    const general: string = auditTopicOf("not-sure").markdown;
+
+    expect(general).toContain(
+      "right after `authtoken` and the context filter that follows it",
+    );
+    expect(auditTopicOf("openstack-ansible").markdown).toContain(
+      "right after `authtoken` and the context filter that follows it",
+    );
+  });
+});
+
 describe("the docs page is the guide, written down", () => {
   /*
    * Everything a person can copy from a tool's guide is on the page as it stands, so a
    * command changed in one fails here until the other follows.
    */
-  test.each(NAMED_TOOLS)("every block %s shows", (tool: OpenStackDeploymentTool) => {
-    const page: string = squash(DOCS_PAGE);
-    const blocks: Array<string> = blocksIn(ownMarkdownOf(tool));
+  test.each(NAMED_TOOLS)(
+    "every block %s shows",
+    (tool: OpenStackDeploymentTool) => {
+      const page: string = squash(DOCS_PAGE);
+      const blocks: Array<string> = blocksIn(ownMarkdownOf(tool));
 
-    expect(blocks.length).toBeGreaterThan(0);
+      expect(blocks.length).toBeGreaterThan(0);
 
-    for (const block of blocks) {
-      // A first line naming the file is the block's title on the page.
-      expect(page).toContain(squash(block.replace(/^# [^\n]*\n/, "")));
-    }
-  });
+      for (const block of blocks) {
+        // A first line naming the file is the block's title on the page.
+        expect(page).toContain(squash(block.replace(/^# [^\n]*\n/, "")));
+      }
+    },
+  );
 
   test("it is in the docs' navigation, in English", () => {
     const nav: string = fs.readFileSync(
