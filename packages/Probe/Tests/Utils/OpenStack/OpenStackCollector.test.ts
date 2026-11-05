@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
   afterEach,
   beforeEach,
@@ -162,11 +163,11 @@ describe("a healthy cloud", () => {
     );
     expect(report.summary?.datapointCount).toBeGreaterThan(100);
 
-    // Every service in the recorded cloud's catalog, and it has no Ironic.
     for (const service of Object.values(OpenStackServiceType)) {
-      if (service !== OpenStackServiceType.BareMetal) {
-        expect(summaryOf(report, service)?.outcome).toBe("Succeeded");
-      }
+      // This cloud runs none of those a cloud may not, and its report says nothing of them.
+      expect(summaryOf(report, service)?.outcome).toBe(
+        isOpenStackOptionalService(service) ? undefined : "Succeeded",
+      );
     }
   });
 
@@ -2440,7 +2441,11 @@ describe("what a collection asks of a cloud", () => {
     for (const request of cloud.requests.slice(before)) {
       const pathname: string = new globalThis.URL(request.url).pathname;
 
-      if (!INSTANCE_ACTIONS.test(pathname)) {
+      // What Placement would decide is counted in OpenStackAllocationCandidates.test.ts.
+      if (
+        !INSTANCE_ACTIONS.test(pathname) &&
+        pathname !== "/placement/allocation_candidates"
+      ) {
         const service: string = pathname.split("/")[1] as string;
         calls[service] = (calls[service] || 0) + 1;
       }
@@ -2467,7 +2472,7 @@ describe("what a collection asks of a cloud", () => {
     });
   });
 
-  test("the next: 7 to Nova, 7 to Neutron, 5 to Cinder and 1 to Placement, 2 per hypervisor, and what a flavor would be told", async () => {
+  test("the next: 7 to Nova, 7 to Neutron, 5 to Cinder and 1 to Placement, and 2 per hypervisor", async () => {
     const cloud: RecordedCloud = createRecordedCloud(HEALTHY);
     const harness: CollectorHarness = createCollectorHarness({
       transport: cloud.transport,
@@ -2479,8 +2484,7 @@ describe("what a collection asks of a cloud", () => {
     // Keystone and Glance only come round about every five minutes.
     expect(await callsByService(cloud, harness)).toEqual({
       compute: 7,
-      // The list, 2 for this cloud's one hypervisor, and GET /allocation_candidates.
-      placement: 4,
+      placement: 3,
       networking: 7,
       volume: 5,
     });

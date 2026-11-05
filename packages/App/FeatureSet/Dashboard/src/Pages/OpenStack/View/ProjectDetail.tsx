@@ -85,7 +85,9 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     | "volumeCount"
     | "networkCount"
     | "routerCount"
-    | "floatingIpCount";
+    | "floatingIpCount"
+    | "stackCount"
+    | "containerClusterCount";
   page: PageMap;
   one: string;
   other: string;
@@ -119,6 +121,18 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     page: PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS,
     one: "{{count}} floating IP",
     other: "{{count}} floating IPs",
+  },
+  {
+    key: "stackCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_STACKS,
+    one: "{{count}} stack",
+    other: "{{count}} stacks",
+  },
+  {
+    key: "containerClusterCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+    one: "{{count}} Kubernetes cluster",
+    other: "{{count}} Kubernetes clusters",
   },
 ];
 

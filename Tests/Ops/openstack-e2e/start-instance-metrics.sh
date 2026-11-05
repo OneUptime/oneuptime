@@ -39,8 +39,10 @@ wait_for_series() {
   return 1
 }
 
+# Its folder and not the socket, as Kolla-Ansible mounts it: a restarted libvirt makes a new socket
+# there, and a mount of the old one goes on reading as libvirt being down for ever.
 docker run -d --name ou-libvirt-exporter --network host \
-  -v "$LIBVIRT_SOCKET:$LIBVIRT_SOCKET:ro" \
+  -v "$(dirname "$LIBVIRT_SOCKET"):$(dirname "$LIBVIRT_SOCKET"):ro" \
   "$LIBVIRT_EXPORTER_IMAGE" >/dev/null \
   || echo "The libvirt exporter did not start." >&2
 wait_for_series "The libvirt exporter" "http://127.0.0.1:9177/metrics" "libvirt_up" \

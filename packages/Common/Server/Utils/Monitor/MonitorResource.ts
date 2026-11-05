@@ -74,6 +74,7 @@ import MonitorMaintenanceSuppression, {
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import OpenStackDependencySuppression from "../OpenStack/OpenStackDependencySuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
@@ -1376,8 +1377,12 @@ export default class MonitorResourceUtil {
          * dependencies configured.
          */
         const dependencySuppression: DependencySuppressionResult =
-          await MonitorDependencySuppression.getDependencySuppression({
+          await OpenStackDependencySuppression.forEvaluation({
             monitor: monitor,
+            suppression:
+              await MonitorDependencySuppression.getDependencySuppression({
+                monitor: monitor,
+              }),
           });
 
         /*

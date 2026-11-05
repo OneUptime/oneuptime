@@ -1,10 +1,13 @@
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   OPENSTACK_BACKEND_DOWN_FACT_PREFIX,
+  OPENSTACK_BACKEND_RESPONSES_FACT_PREFIX,
   OPENSTACK_CONTROL_PLANE_FACTS,
   OPENSTACK_DEPENDENCY_LABEL,
   OPENSTACK_EXPORTER_HOST_LABEL,
   OPENSTACK_NETWORK_FACTS,
+  OPENSTACK_RABBITMQ_LINK_DOWN_FACT_PREFIX,
+  OPENSTACK_RABBITMQ_LINK_UP,
   OPENSTACK_RAFT_LEADER_FACT_PREFIX,
   OPENSTACK_RAFT_MEMBER_FACT_PREFIX,
   OPENSTACK_SERVER_DOWN_FACT_PREFIX,
@@ -94,6 +97,8 @@ const NUMBER_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
     OPENSTACK_CONTROL_PLANE_FACTS.CurrentConnections,
   ],
   ["ovs_bridge_port_count", OPENSTACK_CONTROL_PLANE_FACTS.BridgePorts],
+  ["mysql_slow_queries_increase", OPENSTACK_CONTROL_PLANE_FACTS.SlowQueries],
+  ["memcached_items_evicted_increase", OPENSTACK_CONTROL_PLANE_FACTS.Evictions],
 ]);
 
 // A 0 or 1 as what it says: the exporters write these as numbers.
@@ -123,6 +128,8 @@ const BOOLEAN_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
     "mysql_global_variables_wsrep_desync",
     OPENSTACK_CONTROL_PLANE_FACTS.Desynced,
   ],
+  ["mysql_global_variables_wsrep_on", OPENSTACK_CONTROL_PLANE_FACTS.GaleraOn],
+  ["ovn_northd_status", OPENSTACK_NETWORK_FACTS.NorthdActive],
 ]);
 
 /*
@@ -131,18 +138,19 @@ const BOOLEAN_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
  * when each was last there is what says so, which is why it is a time and not a yes.
  */
 const SEEN_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
-  ["ovs_build_info", OPENSTACK_NETWORK_FACTS.OvsSeenAt],
+  ["ovs_memory_rules_total", OPENSTACK_NETWORK_FACTS.OvsSeenAt],
+  ["ovs_build_info", OPENSTACK_NETWORK_FACTS.OvsDatabaseSeenAt],
   ["ovnc_encap_ip", OPENSTACK_NETWORK_FACTS.OvnChassisSeenAt],
-  ["ovnc_txn_error", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
-  ["ovnc_txn_uncommitted", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
-  ["ovnc_rconn_discarded", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
-  ["ovnc_rconn_overflow", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
+  ["ovnc_rconn_queued", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
 ]);
 
 const HAPROXY_BACKEND_STATUS: string = "haproxy_backend_status";
 const HAPROXY_SERVER_STATUS: string = "haproxy_server_status";
 const RABBITMQ_IDENTITY: string = "rabbitmq_identity_info";
 const RAFT_LEADER: string = "ovn_raft_cluster_leader";
+const RABBITMQ_LINK: string = "erlang_vm_dist_node_state";
+const HAPROXY_RESPONSES: string = "haproxy_backend_http_responses_increase";
+const MEMCACHED_COMMANDS: string = "memcached_commands_increase";
 
 export const OPENSTACK_CONTROL_PLANE_METRIC_NAMES: ReadonlySet<string> =
   new Set<string>([
@@ -151,6 +159,9 @@ export const OPENSTACK_CONTROL_PLANE_METRIC_NAMES: ReadonlySet<string> =
     HAPROXY_BACKEND_STATUS,
     HAPROXY_SERVER_STATUS,
     RAFT_LEADER,
+    RABBITMQ_LINK,
+    HAPROXY_RESPONSES,
+    MEMCACHED_COMMANDS,
     ...OWN_UP_SERIES.keys(),
     ...NUMBER_FACTS.keys(),
     ...BOOLEAN_FACTS.keys(),
@@ -322,6 +333,38 @@ export function foldOpenStackControlPlaneDatapoint(data: {
     if (proxy && server && labelOf(data.attributes, "state") === "DOWN") {
       entry.facts[`${OPENSTACK_SERVER_DOWN_FACT_PREFIX}${proxy}/${server}`] =
         value > 0 ? at : null;
+    }
+    return true;
+  }
+
+  if (metricName === RABBITMQ_LINK) {
+    /*
+     * A link that is not up, per peer, with its own key for the reason
+     * OPENSTACK_BACKEND_DOWN_FACT_PREFIX gives. A peer that stopped has no series at all.
+     */
+    const peer: string | null = labelOf(data.attributes, "peer");
+    if (peer) {
+      entry.facts[`${OPENSTACK_RABBITMQ_LINK_DOWN_FACT_PREFIX}${peer}`] =
+        value < OPENSTACK_RABBITMQ_LINK_UP ? at : null;
+    }
+    return true;
+  }
+
+  if (metricName === HAPROXY_RESPONSES) {
+    const proxy: string | null = labelOf(data.attributes, "proxy");
+    const code: string | null = labelOf(data.attributes, "code");
+    if (proxy && code) {
+      entry.facts[
+        `${OPENSTACK_BACKEND_RESPONSES_FACT_PREFIX}${proxy}/${code}`
+      ] = value;
+    }
+    return true;
+  }
+
+  if (metricName === MEMCACHED_COMMANDS) {
+    // Asked anything at all, which any one of its commands says.
+    if (value > 0) {
+      entry.facts[OPENSTACK_CONTROL_PLANE_FACTS.AskedAt] = at;
     }
     return true;
   }

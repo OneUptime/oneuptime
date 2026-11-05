@@ -48,6 +48,7 @@ import {
   getOpenStackWorkerMachine,
   getOpenStackWorkerRank,
   hasOpenStackHostPastAllocationLine,
+  getOpenStackWorkersNotListedWords,
   isOpenStackApiExternalId,
   isOpenStackApiScrapeFailed,
   isOpenStackIssueAboutService,
@@ -531,6 +532,8 @@ describe("how a cloud's services group", () => {
         api("identity"),
         api("baremetal"),
         api("dns"),
+        api("container-infra"),
+        api("orchestration"),
       ]).map((group: OpenStackServiceGroup): string => {
         return group.service;
       }),
@@ -1324,6 +1327,113 @@ describe("the region in the address", () => {
       "/dashboard/p/openstack/c?region=eu%20west%2F2",
     );
     expect(route.toString()).toBe("/dashboard/p/openstack/c");
+  });
+});
+
+describe("a service a cloud may not run", () => {
+  test("is a group of its own, with its workers under it where a probe listed them", () => {
+    const [heat]: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
+      apis: [api("orchestration")],
+      workers: [worker("orchestration", "heat-engine", "compute-01")],
+      now: NOW,
+    });
+    expect(heat!.service).toBe("orchestration");
+    expect(heat!.workers.map(getOpenStackWorkerHost)).toEqual(["compute-01"]);
+  });
+
+  test("its API's row is one, whichever it is", () => {
+    expect(isOpenStackApiExternalId("RegionOne/orchestration")).toBe(true);
+    expect(isOpenStackApiExternalId("RegionOne/container-infra")).toBe(true);
+    expect(
+      isOpenStackApiExternalId(
+        "RegionOne/container-infra/compute-01/magnum-conductor",
+      ),
+    ).toBe(false);
+  });
+
+  test("has what people call it, and its alerts", () => {
+    expect(getOpenStackServiceTitle("orchestration")).toBe(
+      "Orchestration (Heat)",
+    );
+    expect(getOpenStackServiceAlertTemplateIds("orchestration")).toEqual(
+      expect.arrayContaining([
+        "openstack-orchestration-api-down",
+        "openstack-stack-failed",
+      ]),
+    );
+    expect(getOpenStackServiceAlertTemplateIds("container-infra")).toEqual(
+      expect.arrayContaining([
+        "openstack-container-infra-api-down",
+        "openstack-container-cluster-failed",
+      ]),
+    );
+  });
+
+  describe("workers nothing here could list", () => {
+    const group: (
+      service: string,
+      status?: string,
+    ) => Pick<OpenStackServiceGroup, "service" | "workers" | "api"> = (
+      service: string,
+      status: string = "up",
+    ): Pick<OpenStackServiceGroup, "service" | "workers" | "api"> => {
+      return {
+        service,
+        workers: [],
+        api: Object.assign(new OpenStackResource(), { status }),
+      };
+    };
+
+    test("on an agent's cloud, says the exporter doesn't read them", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("container-infra"),
+          isCollectedByProbe: false,
+        }),
+      ).toMatch(/a stopped one isn't shown anywhere here/);
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("orchestration"),
+          isCollectedByProbe: false,
+        }),
+      ).toMatch(/With every engine stopped Heat's API stops answering/);
+    });
+
+    test("on a probe's, says only an admin may", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("orchestration"),
+          isCollectedByProbe: true,
+        }),
+      ).toMatch(/Only the Full view credential/);
+    });
+
+    test("a service that lists its own says nothing, and neither does one whose API is down", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("compute"),
+          isCollectedByProbe: false,
+        }),
+      ).toBeNull();
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("orchestration", "down"),
+          isCollectedByProbe: false,
+        }),
+      ).toBeNull();
+    });
+
+    test("nor does one that has them", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: {
+            ...group("orchestration"),
+            workers: [new OpenStackResource()],
+          },
+          isCollectedByProbe: true,
+        }),
+      ).toBeNull();
+    });
   });
 });
 

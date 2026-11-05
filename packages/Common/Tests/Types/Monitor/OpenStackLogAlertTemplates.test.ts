@@ -13,6 +13,7 @@ import MonitorStepLogMonitor from "../../../Types/Monitor/MonitorStepLogMonitor"
 import {
   OPENSTACK_LOG_CONNECTION_WINDOW_SECONDS,
   OPENSTACK_LOG_FAILURE_WINDOW_SECONDS,
+  OPENSTACK_TOKEN_FAILING_MIN_LINES,
   OPENSTACK_TOO_MANY_ERRORS_MIN_LINES,
   OPENSTACK_TOO_MANY_ERRORS_WINDOW_SECONDS,
   OpenStackLogAlertTemplate,
@@ -300,12 +301,39 @@ describe("what makes each one fire", () => {
   test("Token Validation Failing", () => {
     const built: Built = byId("openstack-token-validation-failing");
 
-    for (const line of [
-      '2026-10-30 10:00:00.123 1234 WARNING keystonemiddleware.auth_token [-] Identity response: {"error": {}} Failed to validate token',
-      "2026-10-30 10:00:00.123 1234 WARNING keystone.server.flask.application [-] Authorization failed. This is not a recognized Fernet token gAAAA",
-    ]) {
-      expect(queryMatches(built.logMonitor, stampOf(line))).toBe(true);
-    }
+    expect(
+      queryMatches(
+        built.logMonitor,
+        stampOf(
+          '2026-10-30 10:00:00.123 1234 WARNING keystonemiddleware.auth_token [-] Identity response: {"error": {}} Failed to validate token',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * Keystone's own refusal goes to Fernet Key Rotation Out of Step alone, so a controller with the
+   * wrong keys is one incident, naming that machine, and not that and Token Validation Failing.
+   */
+  test("Fernet Key Rotation Out of Step reads Keystone's own refusal, per machine", () => {
+    const built: Built = byId("openstack-fernet-key-rotation-out-of-step");
+    const refusal: string =
+      "2026-10-30 10:00:00.123 1234 WARNING keystone.server.flask.application [-] Authorization failed. This is not a recognized Fernet token gAAAA";
+
+    expect(queryMatches(built.logMonitor, stampOf(refusal))).toBe(true);
+    expect(
+      queryMatches(
+        byId("openstack-token-validation-failing").logMonitor,
+        stampOf(refusal),
+      ),
+    ).toBe(false);
+    expect(built.logMonitor.groupByAttributes).toEqual([
+      OpenStackLogAttribute.Host,
+    ]);
+    expect(Number(built.fire.value)).toBe(OPENSTACK_TOKEN_FAILING_MIN_LINES);
+    expect(built.logMonitor.lastXSecondsOfLogs).toBe(
+      OPENSTACK_LOG_CONNECTION_WINDOW_SECONDS,
+    );
   });
 
   test("Too Many Errors from a Service reads errors, per service and machine", () => {

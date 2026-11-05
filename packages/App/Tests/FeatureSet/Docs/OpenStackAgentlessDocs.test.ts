@@ -480,7 +480,7 @@ describe("what it says about how a collection stands", () => {
 
   it("says how many flavors Placement is asked about", () => {
     expect(PAGE).toContain(
-      `Placement takes at most ${OPENSTACK_CANDIDATE_READS_PER_COLLECTION} more`,
+      `up to ${OPENSTACK_CANDIDATE_READS_PER_COLLECTION} more to ask Placement`,
     );
   });
 });

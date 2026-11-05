@@ -155,6 +155,20 @@ export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
     label: "Control Plane",
     icon: IconProp.Settings,
   },
+  { category: "RabbitMQ", label: "RabbitMQ", icon: IconProp.Layers },
+  {
+    category: "MariaDB and Galera",
+    label: "MariaDB and Galera",
+    icon: IconProp.Database,
+  },
+  { category: "Memcached", label: "Memcached", icon: IconProp.Layers },
+  { category: "HAProxy", label: "HAProxy", icon: IconProp.Globe },
+  {
+    category: "OVN and Open vSwitch",
+    label: "OVN and Open vSwitch",
+    icon: IconProp.Layers,
+  },
+  { category: "libvirt", label: "libvirt", icon: IconProp.Layers },
   {
     category: "Compute",
     label: "Compute",
@@ -169,6 +183,11 @@ export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
     category: "Storage",
     label: "Storage",
     icon: IconProp.Database,
+  },
+  {
+    category: "Orchestration",
+    label: "Orchestration",
+    icon: IconProp.Layers,
   },
   {
     category: "Bare Metal",

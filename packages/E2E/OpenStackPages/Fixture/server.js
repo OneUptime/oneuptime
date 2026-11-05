@@ -64,9 +64,15 @@ function readRecordings() {
         }
       }
     }
-    // What the exporter said with each credential: "hibiscus-ovn/access/reader".
-    const levels = path.join(releaseFolder, "access", "exporter");
-    if (fs.existsSync(levels) && fs.statSync(levels).isDirectory()) {
+    /*
+     * What the exporter said with each credential: "hibiscus-ovn/access/reader". A group of
+     * services a cloud may not run keeps its own in a folder that doesn't read as a release's.
+     */
+    for (const access of ["access", "access-check"]) {
+      const levels = path.join(releaseFolder, access, "exporter");
+      if (!fs.existsSync(levels) || !fs.statSync(levels).isDirectory()) {
+        continue;
+      }
       for (const level of fs.readdirSync(levels).sort()) {
         const folder = path.join(levels, level);
         if (!fs.statSync(folder).isDirectory()) {
