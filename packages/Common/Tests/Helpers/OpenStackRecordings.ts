@@ -188,9 +188,10 @@ export class OpenStackRecording {
 export function readOpenStackScene(
   release: string,
   scene: string,
+  asCloud?: string | undefined,
 ): Array<OpenStackRecordedSeries> {
   const folder: string = path.join(FIXTURES, release, scene, "exporter");
-  return getRecordedScrapeFiles(folder).flatMap(
+  return getRecordedScrapeFiles(folder, asCloud).flatMap(
     (file: string): Array<OpenStackRecordedSeries> => {
       return parsePrometheusText(
         fs.readFileSync(path.join(folder, file), "utf8"),

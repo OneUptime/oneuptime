@@ -130,9 +130,10 @@ test.describe("bare metal", () => {
     await expect(
       page.getByTestId("openstack-bare-metal-node-enroll"),
     ).toBeVisible();
+    // Nothing about it needs anyone, so that card isn't drawn at all.
     await expect(
       page.getByTestId("openstack-bare-metal-node-attention"),
-    ).not.toContainText("enroll");
+    ).toHaveCount(0);
   });
 
   test("the Services page says the agent has no conductors to list", async ({
