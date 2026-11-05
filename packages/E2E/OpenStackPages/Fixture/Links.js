@@ -14,6 +14,9 @@ import {
   OPENSTACK_REACH_LIST_LIMIT,
   OPENSTACK_STORAGE_POOL_CEPH_LINK_FACT,
   getOnlyOpenStackMatch,
+  getOpenStackMagnumClusterOfServers,
+  getOpenStackServerNamesOfStack,
+  getOpenStackStackNameOfServer,
   getOpenStackStoragePoolCephLink,
   isOpenStackHostNameMatch,
   isOpenStackStoragePoolCephLinked,
@@ -146,6 +149,133 @@ export function getPlacementOfKubernetesNode(
   });
   const instance = node ? instanceOfNode(rows, others, node) : null;
   return instance ? toPlacement(rows, cloud, instance) : null;
+}
+
+// The fixture's one cloud, in OpenStackAcrossProducts.readMagnumClusters's shape.
+function magnumClustersOf(rows, cloud) {
+  return ofKind(rows, "ContainerCluster").flatMap((row) => {
+    const stack = ofKind(rows, "Stack").find((candidate) => {
+      return (
+        candidate.externalId === row.facts?.stackId &&
+        candidate.regionName === row.regionName
+      );
+    });
+    return stack
+      ? [
+          {
+            openStackCloudId: cloud._id,
+            regionName: row.regionName,
+            externalId: row.externalId,
+            stackName: stack.name,
+            name: row.name,
+            status: row.status,
+            masterCount: row.facts?.masterCount ?? null,
+            nodeCount: row.facts?.nodeCount ?? null,
+          },
+        ]
+      : [];
+  });
+}
+
+function magnumClusterOfNodes(rows, others, cloud, nodes) {
+  const servers = nodes.flatMap((node) => {
+    const instance = instanceOfNode(rows, others, node);
+    return instance
+      ? [
+          {
+            instanceId: instance.externalId,
+            openStackCloudId: cloud._id,
+            regionName: instance.regionName,
+            name: instance.name,
+          },
+        ]
+      : [];
+  });
+  return getOpenStackMagnumClusterOfServers({
+    servers,
+    clusters: magnumClustersOf(rows, cloud),
+  });
+}
+
+function linkOfMagnumCluster(rows, others, cloud, cluster) {
+  const names = getOpenStackServerNamesOfStack({
+    stackName: cluster.stackName,
+    masterCount: cluster.masterCount,
+    nodeCount: cluster.nodeCount,
+  });
+  const servers = ofKind(rows, "Instance")
+    .filter((row) => {
+      return row.regionName === cluster.regionName && names.includes(row.name);
+    })
+    .map((row) => {
+      return row.externalId;
+    });
+  const nodes = others.kubernetesNodes.filter((node) => {
+    return servers.includes(instanceOfNode(rows, others, node)?.externalId);
+  });
+  const kubernetesClusterId = getOnlyOpenStackMatch(
+    Array.from(
+      new Set(
+        nodes.map((node) => {
+          return node.clusterId;
+        }),
+      ),
+    ),
+  );
+  if (!kubernetesClusterId) {
+    return null;
+  }
+  const fromThere = magnumClusterOfNodes(
+    rows,
+    others,
+    cloud,
+    others.kubernetesNodes.filter((node) => {
+      return node.clusterId === kubernetesClusterId;
+    }),
+  );
+  return fromThere?.externalId === cluster.externalId
+    ? {
+        openStackCloudId: cluster.openStackCloudId,
+        cloudName: cloud.name,
+        regionName: cluster.regionName,
+        externalId: cluster.externalId,
+        name: cluster.name,
+        status: cluster.status,
+        kubernetesClusterId,
+        kubernetesClusterName: nodes[0].clusterName,
+        nodeCount: nodes.length,
+      }
+    : null;
+}
+
+export function getKubernetesClusterOfMagnumCluster(
+  rows,
+  others,
+  cloud,
+  externalId,
+) {
+  const cluster = magnumClustersOf(rows, cloud).find((candidate) => {
+    return candidate.externalId === externalId;
+  });
+  return cluster ? linkOfMagnumCluster(rows, others, cloud, cluster) : null;
+}
+
+export function getMagnumClusterOfKubernetesCluster(
+  rows,
+  others,
+  cloud,
+  clusterId,
+) {
+  const cluster = magnumClusterOfNodes(
+    rows,
+    others,
+    cloud,
+    others.kubernetesNodes.filter((node) => {
+      return node.clusterId === clusterId;
+    }),
+  );
+  const link = cluster ? linkOfMagnumCluster(rows, others, cloud, cluster) : null;
+  return link?.kubernetesClusterId === clusterId ? link : null;
 }
 
 export function getPlacementsOfService(rows, others, cloud, serviceId) {

@@ -120,6 +120,165 @@ export function getOnlyOpenStackMatch<T>(matches: ReadonlyArray<T>): T | null {
   return matches.length === 1 ? (matches[0] as T) : null;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * A Magnum cluster and the Kubernetes cluster it is
+ * ---------------------------------------------------------------------------
+ *
+ * Magnum says which Heat stack built a cluster (stack_id, on every series). Magnum's Heat driver names
+ * each server of that stack <stack>-master-<n> or <stack>-node-<n>, and <stack>-minion-<n> on its
+ * older drivers. A Kubernetes node says which instance it is in spec.providerID. So a Kubernetes
+ * cluster's nodes say which Magnum cluster built them, with nothing anyone had to set.
+ *
+ * A server no Magnum cluster built says nothing either way: a node group past the default two has a
+ * stack of its own, and a machine can be joined by hand. A server of a second Magnum cluster means no
+ * link at all, and so does a second Kubernetes cluster on one Magnum cluster's servers: an agent
+ * installed twice under two names is one cluster or the other, and nothing says which.
+ */
+const OPENSTACK_MAGNUM_SERVER_ROLES: ReadonlyArray<string> = [
+  "master",
+  "node",
+  "minion",
+];
+
+/*
+ * A Heat resource group keeps each server's number when another goes, so a cluster scaled down and
+ * back up can hold numbers past what it was asked for. This is how far past that a read looks.
+ */
+const OPENSTACK_MAGNUM_SERVER_NUMBERS_PAST_COUNT: number = 20;
+// Past this a read stops. Kubernetes itself says a cluster shouldn't pass 5,000 nodes.
+const OPENSTACK_MAGNUM_SERVER_NUMBERS_READ: number = 5000;
+
+function isOpenStackDigits(text: string): boolean {
+  if (text.length === 0) {
+    return false;
+  }
+  for (let index: number = 0; index < text.length; index++) {
+    const character: string = text.charAt(index);
+    if (character < "0" || character > "9") {
+      return false;
+    }
+  }
+  return true;
+}
+
+// The Heat stack a server's name says built it, or null for a name Magnum's driver doesn't give.
+export function getOpenStackStackNameOfServer(
+  serverName: string | null | undefined,
+): string | null {
+  const name: string = serverName || "";
+  const beforeNumber: number = name.lastIndexOf("-");
+  if (beforeNumber <= 0 || !isOpenStackDigits(name.substring(beforeNumber + 1))) {
+    return null;
+  }
+  const beforeRole: number = name.lastIndexOf("-", beforeNumber - 1);
+  if (
+    beforeRole <= 0 ||
+    !OPENSTACK_MAGNUM_SERVER_ROLES.includes(
+      name.substring(beforeRole + 1, beforeNumber),
+    )
+  ) {
+    return null;
+  }
+  return name.substring(0, beforeRole);
+}
+
+/*
+ * The names a stack's servers can have, which is what lets a read ask for them by the index on a
+ * name rather than walk every instance of a cloud.
+ */
+export function getOpenStackServerNamesOfStack(data: {
+  stackName: string;
+  masterCount?: number | null | undefined;
+  nodeCount?: number | null | undefined;
+}): Array<string> {
+  const numbersOf: (count: number | null | undefined) => number = (
+    count: number | null | undefined,
+  ): number => {
+    return Math.min(
+      Math.max(0, Math.floor(count || 0)) +
+        OPENSTACK_MAGNUM_SERVER_NUMBERS_PAST_COUNT,
+      OPENSTACK_MAGNUM_SERVER_NUMBERS_READ,
+    );
+  };
+  const names: Array<string> = [];
+  for (const role of OPENSTACK_MAGNUM_SERVER_ROLES) {
+    const numbers: number =
+      role === "master" ? numbersOf(data.masterCount) : numbersOf(data.nodeCount);
+    for (let number: number = 0; number < numbers; number++) {
+      names.push(`${data.stackName}-${role}-${number}`);
+    }
+  }
+  return names;
+}
+
+// One instance a Kubernetes node's spec.providerID names.
+export interface OpenStackServerOfNode {
+  instanceId: string;
+  openStackCloudId: string;
+  regionName: string | null;
+  name: string | null;
+}
+
+// A Magnum cluster and the name of the stack that built it.
+export interface OpenStackMagnumClusterOfStack {
+  openStackCloudId: string;
+  regionName: string | null;
+  externalId: string;
+  stackName: string;
+}
+
+/*
+ * The one Magnum cluster these servers say they are, or nothing. A UUID two clouds hold is a restored
+ * copy of a cloud, which can't be told apart, so that server says nothing.
+ */
+export function getOpenStackMagnumClusterOfServers<
+  T extends OpenStackMagnumClusterOfStack,
+>(data: {
+  servers: ReadonlyArray<OpenStackServerOfNode>;
+  clusters: ReadonlyArray<T>;
+}): T | null {
+  const timesHeld: Map<string, number> = new Map();
+  for (const server of data.servers) {
+    timesHeld.set(
+      server.instanceId,
+      (timesHeld.get(server.instanceId) || 0) + 1,
+    );
+  }
+  const found: Set<T> = new Set();
+  for (const server of data.servers) {
+    const stackName: string | null = getOpenStackStackNameOfServer(server.name);
+    if (!stackName || timesHeld.get(server.instanceId) !== 1) {
+      continue;
+    }
+    for (const cluster of data.clusters) {
+      if (
+        cluster.stackName === stackName &&
+        cluster.openStackCloudId === server.openStackCloudId &&
+        (cluster.regionName || null) === (server.regionName || null)
+      ) {
+        found.add(cluster);
+      }
+    }
+  }
+  return getOnlyOpenStackMatch(Array.from(found));
+}
+
+// What either end of the link says about the other. Asked from both, and both give this.
+export interface OpenStackContainerClusterLink {
+  openStackCloudId: string;
+  cloudName: string | null;
+  regionName: string | null;
+  // Magnum's UUID for the cluster, which is its page's address.
+  externalId: string;
+  name: string | null;
+  status: string | null;
+  kubernetesClusterId: string;
+  kubernetesClusterName: string;
+  // How many of the Kubernetes cluster's nodes are this cluster's servers.
+  nodeCount: number;
+}
+
 // With a loop rather than a pattern: a name comes from whatever an agent chose to report.
 function isOpenStackAddress(name: string): boolean {
   if (name.includes(":")) {

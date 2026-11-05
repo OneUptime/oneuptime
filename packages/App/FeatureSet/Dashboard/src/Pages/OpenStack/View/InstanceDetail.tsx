@@ -3,6 +3,8 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { OpenStackBlastRadiusOwner } from "Common/Types/OpenStack/OpenStackBlastRadius";
+import { getOpenStackStackNameOfServer } from "Common/Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Link from "Common/UI/Components/Link/Link";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -37,6 +39,7 @@ import ResourcePartDetailsCard, {
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
 import {
   fetchOpenStackComputeServiceOf,
+  fetchOpenStackBlastRadius,
   fetchOpenStackRow,
 } from "../Utils/OpenStackPartData";
 import {
@@ -131,6 +134,23 @@ const InstanceOverview: FunctionComponent<{
           : Promise.resolve(null),
       ]);
       return { flavor, computeService, image: imageRow };
+    }, [part.externalId, part.refreshToken]);
+
+  // No read at all for a name Magnum's driver doesn't give, which is most instances.
+  const magnumClusters: OpenStackRead<Array<OpenStackBlastRadiusOwner>> =
+    useOpenStackRead<Array<OpenStackBlastRadiusOwner>>(async () => {
+      if (!getOpenStackStackNameOfServer(row.name)) {
+        return [];
+      }
+      return (
+        (
+          await fetchOpenStackBlastRadius({
+            openStackCloudId: part.openStackCloudId,
+            kind: OpenStackResourceKind.Instance,
+            externalId: part.externalId,
+          })
+        ).belongsTo || []
+      );
     }, [part.externalId, part.refreshToken]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
@@ -299,6 +319,25 @@ const InstanceOverview: FunctionComponent<{
       value: facts["libvirtName"] as string,
       mono: true,
       copyText: facts["libvirtName"] as string,
+    });
+  }
+  for (const cluster of magnumClusters.data || []) {
+    detailRows.push({
+      key: "magnum-cluster",
+      label: "Kubernetes Cluster",
+      value: (
+        <Link
+          to={part.routes.getPartRoute(
+            OpenStackResourceKind.ContainerCluster,
+            cluster.externalId,
+          )}
+          className={LINK_CLASS_NAME}
+        >
+          <bdi>{cluster.name || cluster.externalId}</bdi>
+        </Link>
+      ),
+      description:
+        "Magnum built this server for that cluster, which is what its name says.",
     });
   }
   if (typeof facts["userId"] === "string") {

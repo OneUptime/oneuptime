@@ -622,7 +622,21 @@ Two failures read differently, and both are what a real cloud does:
 - **A stopped `heat-engine`** reads as **Orchestration API Down**, on either collector. Heat's API asks an engine for its lists, so with none left it can't answer them, after a minute's wait for an RPC timeout. A stack an engine left in progress can stay in progress after the engine comes back, and reads **Stack Stuck In Progress** once two hours have passed.
 - **A stopped `magnum-conductor`** isn't shown anywhere on a cloud the agent collects, because Magnum's API carries on answering without one and the exporter doesn't read conductors. Its clusters just stop moving. A probe with a Full view credential reads them, which is the only way to see this, or run `openstack coe service list`.
 
-Which instances and volumes a stack owns isn't collected yet, so a stack's page doesn't list them, and a failed instance doesn't name its stack. Run `openstack stack resource list`.
+Which instances and volumes a stack owns isn't collected yet, so a stack's page doesn't list them, and a failed instance doesn't name a stack you made yourself. Run `openstack stack resource list`.
+
+### A cluster with the Kubernetes agent on it
+
+Install the [Kubernetes agent](/docs/telemetry/kubernetes-agent) on a cluster Magnum built and the two link both ways, with nothing to set: the Magnum cluster's page names the Kubernetes cluster, and the Kubernetes cluster's page names the Magnum cluster and the cloud it is in. Each node's page already says which instance and hypervisor it is.
+
+What makes it a link is that the nodes' `spec.providerID` names instances, and those instances' names are what Magnum's Heat driver gives the servers of that cluster's stack: `<stack>-master-0`, `<stack>-node-0`. So it takes three things, and without any of them there is no link and no error:
+
+- The OpenStack cloud provider on the cluster, which is what sets `spec.providerID`, and which Magnum turns on by default.
+- A credential that can read Heat, because the stack's name comes from there.
+- A cluster built with the Heat driver. A driver that builds no Heat stack has nothing to join on.
+
+A link is never a guess. An agent installed twice under two names, or one cluster holding servers of two Magnum clusters, links to neither. A machine you joined to the cluster by hand, or a node group with a stack of its own, says nothing either way.
+
+A server of a Magnum cluster names its cluster on its own page and in any alert about it, and a hypervisor's **What it takes with it** names each Magnum cluster with a server on it.
 
 If a service leaves Keystone's catalog, its rows go about 15 minutes after the exporter starts answering with nothing about it, provided the rest of the cloud is still answering. A failed collection, or a Keystone nobody can log in to, takes nothing away. An incident a monitor had open on it stays open until someone resolves it, because silence never closes an incident.
 

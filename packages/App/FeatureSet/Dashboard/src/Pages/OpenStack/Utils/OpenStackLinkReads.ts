@@ -4,6 +4,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  OpenStackContainerClusterLink,
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
   OpenStackServicePlacement,
@@ -57,6 +58,28 @@ export async function fetchOpenStackPlacementOfKubernetesNode(data: {
     { nodeName: data.nodeName },
   );
   return (answer["placement"] as unknown as OpenStackPlacement) || null;
+}
+
+export async function fetchOpenStackMagnumClusterOfKubernetesCluster(
+  clusterId: ObjectID,
+): Promise<OpenStackContainerClusterLink | null> {
+  const answer: JSONObject = await post(
+    "magnum-cluster-of-kubernetes-cluster",
+    clusterId,
+  );
+  return (answer["link"] as unknown as OpenStackContainerClusterLink) || null;
+}
+
+export async function fetchOpenStackKubernetesClusterOfMagnumCluster(data: {
+  openStackCloudId: ObjectID;
+  externalId: string;
+}): Promise<OpenStackContainerClusterLink | null> {
+  const answer: JSONObject = await post(
+    "kubernetes-cluster-of-magnum-cluster",
+    data.openStackCloudId,
+    { externalId: data.externalId },
+  );
+  return (answer["link"] as unknown as OpenStackContainerClusterLink) || null;
 }
 
 export async function fetchOpenStackPlacementsOfService(
