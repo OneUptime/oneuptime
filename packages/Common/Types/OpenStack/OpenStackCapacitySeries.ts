@@ -81,7 +81,9 @@ function dataPoint(data: Labels & { value: number; now: Date }): JSONObject {
     attributes.push(attribute("openstack.region.name", data.regionName));
   }
 
-  attributes.push(attribute("openstack_service", OpenStackServiceType.Placement));
+  attributes.push(
+    attribute("openstack_service", OpenStackServiceType.Placement),
+  );
 
   return {
     attributes,

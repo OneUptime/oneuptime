@@ -101,7 +101,8 @@ function isDue(
   }
   const last: number = new Date(lastAt).getTime();
   return (
-    !Number.isFinite(last) || now.getTime() - last >= everyMinutes * MINUTE_IN_MS
+    !Number.isFinite(last) ||
+    now.getTime() - last >= everyMinutes * MINUTE_IN_MS
   );
 }
 
@@ -271,16 +272,25 @@ export default class OpenStackCapacityRefresh {
     const realUsage: {
       usage: Map<string, OpenStackHostRealUsage> | null;
       isDue: boolean;
-    } = await this.readRealUsage({ projectId, cloudName: data.cloudName, previous, now });
+    } = await this.readRealUsage({
+      projectId,
+      cloudName: data.cloudName,
+      previous,
+      now,
+    });
 
-    const previousOvercommit: Map<string, Array<OpenStackOvercommitReading>> =
-      new Map(
-        (previous?.zones || []).map(
-          (zone: OpenStackCapacityZone): [string, Array<OpenStackOvercommitReading>] => {
-            return [`${zone.regionName || ""}/${zone.name}`, zone.overcommit];
-          },
-        ),
-      );
+    const previousOvercommit: Map<
+      string,
+      Array<OpenStackOvercommitReading>
+    > = new Map(
+      (previous?.zones || []).map(
+        (
+          zone: OpenStackCapacityZone,
+        ): [string, Array<OpenStackOvercommitReading>] => {
+          return [`${zone.regionName || ""}/${zone.name}`, zone.overcommit];
+        },
+      ),
+    );
 
     let snapshot: OpenStackCapacitySnapshot = buildOpenStackCapacitySnapshot({
       hosts,
@@ -376,8 +386,10 @@ export default class OpenStackCapacityRefresh {
       };
     }
 
-    const flavorResources: Map<string, Readonly<Record<string, number>>> =
-      new Map();
+    const flavorResources: Map<
+      string,
+      Readonly<Record<string, number>>
+    > = new Map();
 
     for (const flavor of data.flavors) {
       flavorResources.set(

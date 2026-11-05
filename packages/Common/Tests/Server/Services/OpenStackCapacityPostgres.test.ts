@@ -15,7 +15,11 @@ import OpenStackResourceService, {
   OpenStackCapacityRows,
   ParsedOpenStackResource,
 } from "../../../Server/Services/OpenStackResourceService";
+import MetricService from "../../../Server/Services/MetricService";
 import logger from "../../../Server/Utils/Logger";
+import OpenStackCapacityRefresh, {
+  OpenStackCapacityRefreshResult,
+} from "../../../Server/Utils/OpenStack/OpenStackCapacityRefresh";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -198,9 +202,11 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
     });
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
-    await database.query(
-      `CREATE TABLE "${schema}"."${TABLE}" (LIKE public."${TABLE}" INCLUDING ALL)`,
-    );
+    for (const table of [TABLE, "OpenStackCloud"]) {
+      await database.query(
+        `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
+      );
+    }
   });
 
   beforeEach(async () => {
@@ -212,6 +218,7 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
     await database.query(`DELETE FROM "${schema}"."${TABLE}"`);
+    await database.query(`DELETE FROM "${schema}"."OpenStackCloud"`);
   });
 
   afterEach(() => {
@@ -277,10 +284,7 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
         // Never read: an instance is a row of its own count, and there are 200,000 of them.
         instanceOn("i-1", "cmp-1.example.org", "f1"),
       ]);
-      await write(
-        [hypervisor("cmp-elsewhere.example.org")],
-        OTHER_CLOUD_ID,
-      );
+      await write([hypervisor("cmp-elsewhere.example.org")], OTHER_CLOUD_ID);
 
       const rows: OpenStackCapacityRows =
         await OpenStackResourceService.getCapacityRows(SCOPE);
@@ -397,9 +401,7 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
 
       // (16 - 1) * 4, (8192 - 512) * 1.5 MB and 100 GB.
       expect(row["vcpuCapacity"]).toBe(60);
-      expect(Number(row["memoryCapacityBytes"])).toBe(
-        11520 * 1024 * 1024,
-      );
+      expect(Number(row["memoryCapacityBytes"])).toBe(11520 * 1024 * 1024);
       expect(Number(row["diskCapacityBytes"])).toBe(100 * 1024 * 1024 * 1024);
     });
 
@@ -420,11 +422,9 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
 
     test("a capacity already on the row stays until all a class's numbers say otherwise", async () => {
       await write([
-        hypervisor(
-          "cmp-1.example.org",
-          inventory("VCPU", { total: 16 }),
-          { vcpuCapacity: 40 },
-        ),
+        hypervisor("cmp-1.example.org", inventory("VCPU", { total: 16 }), {
+          vcpuCapacity: 40,
+        }),
       ]);
       await OpenStackResourceService.reconcileHypervisorCapacity({
         ...SCOPE,
@@ -505,6 +505,141 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
       });
 
       expect(query).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the worker's whole refresh, with only the metric store stood in for", () => {
+    test("is worked out from the rows, kept on the cloud, and reads nothing it isn't due", async () => {
+      const metricReads: jest.SpiedFunction<typeof MetricService.aggregateBy> =
+        jest.spyOn(MetricService, "aggregateBy").mockResolvedValue({
+          data: [],
+        } as never);
+      const host: (used: {
+        vcpus: number;
+        memoryMb: number;
+        diskGb: number;
+      }) => JSONObject = (used: {
+        vcpus: number;
+        memoryMb: number;
+        diskGb: number;
+      }): JSONObject => {
+        return {
+          ...inventory("VCPU", {
+            total: 16,
+            reserved: 0,
+            ratio: 4,
+            used: used.vcpus,
+          }),
+          ...inventory("MEMORY_MB", {
+            total: 8192,
+            reserved: 512,
+            ratio: 1,
+            used: used.memoryMb,
+          }),
+          ...inventory("DISK_GB", {
+            total: 100,
+            reserved: 0,
+            ratio: 1,
+            used: used.diskGb,
+          }),
+        };
+      };
+
+      await database.query(
+        `INSERT INTO "${schema}"."OpenStackCloud"
+          ("_id", "projectId", "name", "slug", "createdAt", "updatedAt", "version")
+         VALUES ($1, $2, 'acme', 'acme', now(), now(), 1)`,
+        [CLOUD_ID.toString(), PROJECT_ID.toString()],
+      );
+      await write([
+        hypervisor(
+          "cmp-1.example.org",
+          host({ vcpus: 1, memoryMb: 2048, diskGb: 20 }),
+          { availabilityZone: "zone-a", instanceCount: 1 },
+        ),
+        hypervisor(
+          "cmp-2.example.org",
+          host({ vcpus: 0, memoryMb: 0, diskGb: 0 }),
+          { availabilityZone: "zone-a", instanceCount: 0 },
+        ),
+        resource({
+          kind: OpenStackResourceKind.Flavor,
+          externalId: "RegionOne/f1",
+          name: "m1.small",
+          vcpuCapacity: 1,
+          memoryCapacityBytes: 2048 * 1024 * 1024,
+          diskCapacityBytes: 20 * 1024 * 1024 * 1024,
+          facts: { isPublic: true },
+        }),
+        instanceOn("i-1", "cmp-1.example.org", "f1"),
+      ]);
+
+      const first: OpenStackCapacityRefreshResult =
+        await OpenStackCapacityRefresh.refresh({
+          ...SCOPE,
+          cloudName: "acme",
+          previous: null,
+          now: NOW,
+        });
+      const smallFirst: OpenStackCapacitySnapshot["flavors"][number] =
+        first.snapshot.flavors[0]!;
+
+      // (8192 - 512 - 2048) / 2048 on one, and (8192 - 512) / 2048 on the other.
+      expect(smallFirst.fits).toBe(5);
+      expect(smallFirst.instanceCount).toBe(1);
+      expect(first.snapshot.zones[0]!.hostCount).toBe(2);
+
+      // A new cloud: the store has nothing, so each says it can't tell yet.
+      expect(first.snapshot.forecasts.length).toBeGreaterThan(0);
+
+      for (const row of first.snapshot.forecasts) {
+        expect(row.forecast.state).toBe("not-enough-history");
+      }
+
+      expect(first.snapshot.forecastsReadAt).toBe(NOW.toISOString());
+      expect(first.snapshot.mismatchesCheckedAt).toBe(NOW.toISOString());
+      expect(first.snapshot.mismatches).toEqual([]);
+      expect(JSON.stringify(first.resourceMetrics)).toContain(
+        "openstack_capacity_flavor_fits",
+      );
+
+      const readsOfFirst: number = metricReads.mock.calls.length;
+
+      expect(readsOfFirst).toBeGreaterThan(0);
+
+      await OpenStackCapacityRefresh.save({
+        openStackCloudId: CLOUD_ID,
+        snapshot: first.snapshot,
+      });
+
+      const saved: Array<Row> = await database.query(
+        `SELECT "capacitySnapshot" FROM "${schema}"."OpenStackCloud" WHERE "_id" = $1`,
+        [CLOUD_ID.toString()],
+      );
+
+      expect(saved[0]!["capacitySnapshot"]).toEqual(
+        JSON.parse(JSON.stringify(first.snapshot)),
+      );
+
+      // The next run, two minutes on, as the worker makes it: from what it kept on the cloud.
+      const instancesRead: jest.SpiedFunction<
+        typeof OpenStackResourceService.getInstancesOnHosts
+      > = jest.spyOn(OpenStackResourceService, "getInstancesOnHosts");
+      const next: OpenStackCapacityRefreshResult =
+        await OpenStackCapacityRefresh.refresh({
+          ...SCOPE,
+          cloudName: "acme",
+          previous: saved[0]!["capacitySnapshot"] as OpenStackCapacitySnapshot,
+          now: new Date(NOW.getTime() + 2 * 60 * 1000),
+        });
+
+      expect(instancesRead).not.toHaveBeenCalled();
+      expect(metricReads.mock.calls.length).toBe(readsOfFirst);
+      expect(next.snapshot.flavors[0]!.fits).toBe(5);
+      expect(next.snapshot.flavors[0]!.instanceCount).toBe(1);
+      expect(next.snapshot.forecasts).toEqual(first.snapshot.forecasts);
+      expect(next.snapshot.forecastsReadAt).toBe(NOW.toISOString());
+      expect(next.snapshot.mismatchesCheckedAt).toBe(NOW.toISOString());
     });
   });
 

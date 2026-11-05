@@ -30,11 +30,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import OpenStackForecastTile, {
   getOpenStackForecastText,
 } from "../../../Components/OpenStack/Part/OpenStackForecastTile";
@@ -243,9 +239,7 @@ const ShortageRow: FunctionComponent<{
         <span className="font-medium text-gray-900">
           {route ? (
             <Link to={route} className={LINK_CLASS_NAME}>
-              <bdi>
-                {shortage.name || zoneTitle(shortage.name, translator)}
-              </bdi>
+              <bdi>{shortage.name || zoneTitle(shortage.name, translator)}</bdi>
             </Link>
           ) : (
             <bdi>{shortage.name || zoneTitle(shortage.name, translator)}</bdi>
@@ -641,7 +635,10 @@ const OvercommitTable: FunctionComponent<{
   }
 
   return (
-    <div className="overflow-x-auto" data-testid="openstack-capacity-overcommit">
+    <div
+      className="overflow-x-auto"
+      data-testid="openstack-capacity-overcommit"
+    >
       <table className={TABLE_CLASS_NAME}>
         <thead>
           <tr className={HEAD_CLASS_NAME}>
@@ -728,7 +725,10 @@ const AggregatesTable: FunctionComponent<{
   const translator: Translator = useTranslator();
 
   return (
-    <div className="overflow-x-auto" data-testid="openstack-capacity-aggregates">
+    <div
+      className="overflow-x-auto"
+      data-testid="openstack-capacity-aggregates"
+    >
       <table className={TABLE_CLASS_NAME}>
         <thead>
           <tr className={HEAD_CLASS_NAME}>
@@ -1013,7 +1013,9 @@ const OpenStackCloudCapacity: FunctionComponent<
             );
           })}
           <OpenStackForecastTile
-            forecast={soonest ? soonest.forecast : { state: "not-enough-history" }}
+            forecast={
+              soonest ? soonest.forecast : { state: "not-enough-history" }
+            }
             windowWords={translationKey("until full, at this week's growth")}
             description={
               soonest
@@ -1031,7 +1033,7 @@ const OpenStackCloudCapacity: FunctionComponent<
                   )
                 : translator.translateText(
                     "A new cloud has no history to draw a line through.",
-                  )
+                  ) || ""
             }
           />
         </div>
@@ -1273,10 +1275,7 @@ const OpenStackCloudCapacity: FunctionComponent<
                   "A host can be in several aggregates, so these don't add up to the zones above.",
                 )}
               >
-                <AggregatesTable
-                  aggregates={view.aggregates}
-                  routes={routes}
-                />
+                <AggregatesTable aggregates={view.aggregates} routes={routes} />
               </Card>
             </div>
           ) : (

@@ -26,13 +26,20 @@ import {
   getOpenStackCapacityFlavorRow,
   readOpenStackCapacityFlavor,
 } from "Common/Types/OpenStack/OpenStackCapacitySnapshot";
-import { OpenStackCapacityFacts, getOpenStackCapacityFacts } from "../../../Utils/OpenStack/Collectors/AllocationCandidatesCollector";
+import {
+  OpenStackCapacityFacts,
+  getOpenStackCapacityFacts,
+} from "../../../Utils/OpenStack/Collectors/AllocationCandidatesCollector";
 import OpenStackCollector from "../../../Utils/OpenStack/OpenStackCollector";
 import {
   OpenStackHttpRequest,
   OpenStackHttpResponse,
 } from "../../../Utils/OpenStack/OpenStackHttp";
-import { toNovaAggregate, toNovaFlavor, toNovaService } from "../../../Utils/OpenStack/OpenStackInventory";
+import {
+  toNovaAggregate,
+  toNovaFlavor,
+  toNovaService,
+} from "../../../Utils/OpenStack/OpenStackInventory";
 import {
   CollectorHarness,
   FakeClock,
@@ -389,9 +396,7 @@ describe("it adds up to what the docs say", () => {
         toMinute: 60,
       }),
     );
-    expect(asked(scene)).toBe(
-      29 * OPENSTACK_CANDIDATE_READS_PER_COLLECTION,
-    );
+    expect(asked(scene)).toBe(29 * OPENSTACK_CANDIDATE_READS_PER_COLLECTION);
   });
 
   test("a large cloud asks no more than a small one, and a read's answer is capped", async () => {
@@ -440,7 +445,6 @@ describe("it adds up to what the docs say", () => {
     const first: OpenStackCollectionReport = await collect(scene);
     const series: { fast: number; slow: number } = getOpenStackSeriesCounts({
       counts,
-      flavorsAnswered: 0,
     });
 
     expect(first.summary?.datapointCount).toBe(series.fast + series.slow);
@@ -453,8 +457,8 @@ describe("it adds up to what the docs say", () => {
     // One for the region and one for the one zone the one host is in.
     expect(fitsOf(report)).toHaveLength(counts.flavors * 2);
     expect(
-      getOpenStackSeriesCounts({ counts }).fast -
-        getOpenStackSeriesCounts({ counts, flavorsAnswered: 0 }).fast,
+      getOpenStackSeriesCounts({ counts, flavorsAnswered: counts.flavors })
+        .fast - getOpenStackSeriesCounts({ counts }).fast,
     ).toBe(counts.flavors * 2);
   });
 });
@@ -817,12 +821,13 @@ describe("what the server makes of it", () => {
       forbiddenTraits: [],
     });
 
-    const flavorRow: OpenStackCapacityFlavorRow =
-      getOpenStackCapacityFlavorRow({
+    const flavorRow: OpenStackCapacityFlavorRow = getOpenStackCapacityFlavorRow(
+      {
         flavor: row,
         hosts: [],
         now: new Date(scene.clock.now()),
-      });
+      },
+    );
 
     expect(flavorRow.source).toBe("placement");
     expect(flavorRow.fits).toBe(102);

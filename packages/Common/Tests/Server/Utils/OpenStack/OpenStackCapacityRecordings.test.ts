@@ -249,9 +249,7 @@ async function judged(
 ): Promise<{ breached: boolean; healthy: boolean }> {
   const step: MonitorStep = stepOf(id);
   const samples: SamplesByAlias =
-    value === undefined
-      ? {}
-      : { [alias]: new Array<number>(10).fill(value) };
+    value === undefined ? {} : { [alias]: new Array<number>(10).fill(value) };
 
   return await evaluateTemplateCriteria({
     step,
@@ -320,7 +318,8 @@ describe("what the agent's series come to, on what real clouds said", () => {
     });
 
     test("capacity is (total - reserved) x ratio, and what's allocated is what it's promised", () => {
-      const vcpu: JSONObject = snapshot.cloud.resources[0] as unknown as JSONObject;
+      const vcpu: JSONObject = snapshot.cloud
+        .resources[0] as unknown as JSONObject;
 
       expect(vcpu["resourceClass"]).toBe("VCPU");
       expect(vcpu["capacity"]).toBe(16);
@@ -351,8 +350,10 @@ describe("what the agent's series come to, on what real clouds said", () => {
         recorded(release, "healthy", "placement"),
       ]);
       const flavors: Array<OpenStackCapacityFlavor> = flavorsOf(entries);
-      const flavorResources: Map<string, Readonly<Record<string, number>>> =
-        new Map();
+      const flavorResources: Map<
+        string,
+        Readonly<Record<string, number>>
+      > = new Map();
 
       for (const flavor of flavors) {
         flavorResources.set(
@@ -373,17 +374,15 @@ describe("what the agent's series come to, on what real clouds said", () => {
         getOpenStackAllocationMismatches({
           hosts: hostsOf(entries),
           flavorResources,
-          instances: instances.map(
-            (entry: OpenStackResourceBufferEntry) => {
-              return {
-                regionName: entry.regionName,
-                hypervisorName: entry.hypervisorName as string,
-                flavorId: entry.facts["flavorId"] as string,
-                count: 1,
-                movingCount: 0,
-              };
-            },
-          ),
+          instances: instances.map((entry: OpenStackResourceBufferEntry) => {
+            return {
+              regionName: entry.regionName,
+              hypervisorName: entry.hypervisorName as string,
+              flavorId: entry.facts["flavorId"] as string,
+              count: 1,
+              movingCount: 0,
+            };
+          }),
         }),
       ).toEqual([]);
     });

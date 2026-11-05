@@ -705,7 +705,8 @@ export function getOpenStackSeriesCounts(data: {
   isOvs?: boolean | undefined;
   /*
    * How many flavors a probe has had an answer from Placement about: all of them, once it has
-   * been round them. Each says the region's number and its zones', and this counts one zone.
+   * been round them. Each says the region's number and its zones', and this counts one zone. The
+   * agent's exporter never asks, so none unless this says so.
    */
   flavorsAnswered?: number | undefined;
 }): OpenStackSeriesCounts {
@@ -731,7 +732,7 @@ export function getOpenStackSeriesCounts(data: {
     counts.hypervisors * 15 +
     1 +
     SCRAPE_SERIES_PER_READING +
-    (data.flavorsAnswered ?? counts.flavors) * 2;
+    (data.flavorsAnswered ?? 0) * 2;
 
   const network: number =
     counts.networkAgents +
@@ -837,8 +838,11 @@ export function estimateOpenStackVolume(data: {
    */
   collectionIntervalInMinutes?: number | undefined;
 }): OpenStackVolumeEstimate {
-  const series: OpenStackSeriesCounts = getOpenStackSeriesCounts(data);
   const probeInterval: number | undefined = data.collectionIntervalInMinutes;
+  const series: OpenStackSeriesCounts = getOpenStackSeriesCounts({
+    ...data,
+    flavorsAnswered: probeInterval !== undefined ? data.counts.flavors : 0,
+  });
   const fastPerDay: number =
     probeInterval !== undefined
       ? (24 * 60) / probeInterval

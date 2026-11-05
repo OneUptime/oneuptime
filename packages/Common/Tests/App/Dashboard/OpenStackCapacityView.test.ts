@@ -85,7 +85,10 @@ const SNAPSHOT: OpenStackCapacitySnapshot = buildOpenStackCapacitySnapshot({
       },
     },
   ],
-  flavors: [flavorOf("m1.small", "RegionOne"), flavorOf("m1.small", "RegionTwo")],
+  flavors: [
+    flavorOf("m1.small", "RegionOne"),
+    flavorOf("m1.small", "RegionTwo"),
+  ],
   pools: [],
   forecasts: [
     forecastOf("nova", { state: "days", days: 3 }),
@@ -172,9 +175,9 @@ describe("how an amount reads", () => {
     expect(formatOpenStackRatio(16)).toBe("16:1");
     expect(formatOpenStackRatio(1.5)).toBe("1.5:1");
     expect(formatOpenStackRatio(null)).toBe("");
-    expect(
-      formatOpenStackRatioRange({ lowestRatio: 4, highestRatio: 4 }),
-    ).toBe("4:1");
+    expect(formatOpenStackRatioRange({ lowestRatio: 4, highestRatio: 4 })).toBe(
+      "4:1",
+    );
     expect(
       formatOpenStackRatioRange({ lowestRatio: 1, highestRatio: 16 }),
     ).toBe("1:1 to 16:1");
@@ -203,7 +206,9 @@ describe("the CSV", () => {
     expect(csv).toContain("RegionOne,m1.small,nova,7");
     expect(csv).toContain("RegionOne,m1.small,rack,7");
     expect(csv).toContain("RegionOne,zone,nova,1,0,0,VCPU,3,16,18.8,0,4,4");
-    expect(csv).toContain("RegionOne,aggregate,rack,1,0,0,VCPU,3,16,18.8,0,4,4");
+    expect(csv).toContain(
+      "RegionOne,aggregate,rack,1,0,0,VCPU,3,16,18.8,0,4,4",
+    );
     expect(csv).toContain("RegionOne,zone,nova,VCPU,3 days");
   });
 
@@ -259,6 +264,8 @@ describe("the CSV", () => {
       flavors: [{ ...SNAPSHOT.flavors[0]!, fits: -1 }],
     };
 
-    expect(getOpenStackCapacityCsv({ snapshot, region: null })).toContain(",-1,");
+    expect(getOpenStackCapacityCsv({ snapshot, region: null })).toContain(
+      ",-1,",
+    );
   });
 });

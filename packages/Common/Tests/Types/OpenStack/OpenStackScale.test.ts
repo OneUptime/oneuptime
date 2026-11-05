@@ -413,7 +413,8 @@ describe("the load on the control plane", () => {
       first[OpenStackServiceType.Placement] -
         later[OpenStackServiceType.Placement],
     ).toBe(
-      OPENSTACK_SMALL_CLOUD.hypervisors - OPENSTACK_CANDIDATE_READS_PER_COLLECTION,
+      OPENSTACK_SMALL_CLOUD.hypervisors -
+        OPENSTACK_CANDIDATE_READS_PER_COLLECTION,
     );
   });
 
@@ -651,12 +652,16 @@ describe("a probe's volume, past the summary size", () => {
     });
 
     expect(probe.datapointsPerDay).toBeLessThan(agent.datapointsPerDay);
-    expect(probe.series).toBe(agent.series);
+    // All the agent's, and how many of each flavor fit, which only a probe asks.
+    expect(probe.series).toBe(agent.series + OPENSTACK_LARGE_CLOUD.flavors * 2);
   });
 
-  test("below it, a probe sends what the agent does, on its own cadence", () => {
+  test("below it, a probe sends what the agent does and how many of each flavor fit, on its own cadence", () => {
     const series: ReturnType<typeof getOpenStackSeriesCounts> =
-      getOpenStackSeriesCounts({ counts: OPENSTACK_SMALL_CLOUD });
+      getOpenStackSeriesCounts({
+        counts: OPENSTACK_SMALL_CLOUD,
+        flavorsAnswered: OPENSTACK_SMALL_CLOUD.flavors,
+      });
 
     expect(
       estimateOpenStackVolume({

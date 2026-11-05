@@ -214,7 +214,9 @@ function csvCell(value: string | number | boolean | null | undefined): string {
     : String(value);
 }
 
-function csvRow(cells: ReadonlyArray<string | number | boolean | null>): string {
+function csvRow(
+  cells: ReadonlyArray<string | number | boolean | null>,
+): string {
   return cells.map(csvCell).join(",");
 }
 
@@ -335,7 +337,9 @@ export function getOpenStackCapacityCsv(data: {
           resource.resourceClass,
           resource.used,
           resource.capacity,
-          resource.percent === null ? null : Math.round(resource.percent * 10) / 10,
+          resource.percent === null
+            ? null
+            : Math.round(resource.percent * 10) / 10,
           resource.usedOnOtherHosts,
           resource.lowestRatio,
           resource.highestRatio,

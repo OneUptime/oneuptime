@@ -22,7 +22,12 @@ import { OpenStackRegionProvider } from "../../../../App/FeatureSet/Dashboard/sr
 import OpenStackCloudCapacity from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ObjectID from "../../../Types/ObjectID";
-import { CLOUD_ID, renderPage, resetServer, server } from "./OpenStackPartHarness";
+import {
+  CLOUD_ID,
+  renderPage,
+  resetServer,
+  server,
+} from "./OpenStackPartHarness";
 
 jest.mock("react-i18next", () => {
   return {
@@ -106,11 +111,7 @@ const TIGHT_HOSTS: Array<OpenStackCapacityHost> = [
 
 // 3584 MB free on each: one m1.small each, and no m1.medium for all that 10752 MB is free.
 const FLAVORS: Array<OpenStackCapacityFlavor> = [
-  flavor(
-    "m1.small",
-    { VCPU: 1, MEMORY_MB: 2048 },
-    { instanceCount: 6 },
-  ),
+  flavor("m1.small", { VCPU: 1, MEMORY_MB: 2048 }, { instanceCount: 6 }),
   flavor("m1.medium", { VCPU: 2, MEMORY_MB: 4096 }),
   flavor("ou.impossible", { VCPU: 1, MEMORY_MB: 1048576 }),
 ];
@@ -293,9 +294,9 @@ describe("the Capacity page", () => {
       ],
     });
 
-    expect(
-      screen.getByTestId("openstack-capacity-forecast"),
-    ).toHaveTextContent("Not enough history");
+    expect(screen.getByTestId("openstack-capacity-forecast")).toHaveTextContent(
+      "Not enough history",
+    );
   });
 
   test("with no real usage it says what to add, and never puts allocation in its place", async () => {
@@ -378,7 +379,9 @@ describe("the Capacity page", () => {
   test("a cloud no worker has been through yet says so, and nothing else", async () => {
     await renderCapacity(null);
 
-    expect(screen.getByTestId("openstack-capacity-not-yet")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("openstack-capacity-not-yet"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("openstack-capacity")).not.toBeInTheDocument();
   });
 

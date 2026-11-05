@@ -1,4 +1,5 @@
 import { Locator, Page } from "@playwright/test";
+import fsPromises from "fs/promises";
 import {
   CLOUD_PATH,
   FixtureRecord,
@@ -74,7 +75,11 @@ test.describe("on a real cloud's answers", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "capacity", "recording=gazpacho-ovs/compute-down");
+    await openCloudPage(
+      page,
+      "capacity",
+      "recording=gazpacho-ovs/compute-down",
+    );
 
     await expect(
       page.getByTestId("openstack-capacity-not-counted"),
@@ -94,7 +99,11 @@ test.describe("on a real cloud's answers", () => {
   }: {
     page: Page;
   }) => {
-    await openCloudPage(page, "capacity", "recording=gazpacho-ovs/compute-disabled");
+    await openCloudPage(
+      page,
+      "capacity",
+      "recording=gazpacho-ovs/compute-disabled",
+    );
 
     await expect(
       flavorRow(page, "m1.small").getByTestId("openstack-capacity-flavor-fits"),
@@ -136,6 +145,17 @@ test.describe("with something short", () => {
     await expect(page.getByTestId("openstack-capacity-headline")).toContainText(
       "Room for 340 m1.small, and 0 m1.xlarge.",
     );
+
+    await expect(page.getByTestId("openstack-capacity-tiles")).toContainText(
+      "until full, at this week's growth",
+    );
+
+    // Nothing says when an orphaned allocation fills anything: it isn't growing.
+    await expect(
+      page.locator(
+        '[data-testid="openstack-capacity-shortage"][data-kind="allocations-disagree"]',
+      ),
+    ).not.toContainText("days");
 
     await screenshot(page, "capacity-short");
   });
@@ -185,7 +205,9 @@ test.describe("with something short", () => {
     const orphans: Locator = page.getByTestId("openstack-capacity-orphans");
 
     await expect(orphans).toContainText("cmp-a2.acme.example");
-    await expect(orphans).toContainText("nova-manage placement audit --verbose");
+    await expect(orphans).toContainText(
+      "nova-manage placement audit --verbose",
+    );
     await expect(orphans.getByRole("link")).toHaveAttribute(
       "href",
       "https://docs.openstack.org/nova/latest/admin/troubleshooting/orphaned-allocations.html",
@@ -199,9 +221,9 @@ test.describe("with something short", () => {
   }) => {
     await openCloudPage(page, "capacity", "capacity=short");
 
-    await expect(page.getByTestId("openstack-capacity-overcommit")).toContainText(
-      "9:1",
-    );
+    await expect(
+      page.getByTestId("openstack-capacity-overcommit"),
+    ).toContainText("9:1");
 
     await openCloudPage(page, "capacity", "recording=gazpacho-ovs/healthy");
 
@@ -223,9 +245,9 @@ test.describe("with something short", () => {
 
     await page.getByTestId("openstack-capacity-aggregates-toggle").click();
 
-    await expect(page.getByTestId("openstack-capacity-aggregates")).toContainText(
-      "rack-1",
-    );
+    await expect(
+      page.getByTestId("openstack-capacity-aggregates"),
+    ).toContainText("rack-1");
   });
 
   test("the CSV holds the tables, as a spreadsheet can read them", async ({
@@ -241,6 +263,15 @@ test.describe("with something short", () => {
     ]);
 
     expect(download.suggestedFilename()).toBe("openstack-capacity.csv");
+
+    const csv: string = await fsPromises.readFile(
+      await download.path(),
+      "utf8",
+    );
+
+    expect(csv).toContain("\nFlavors\n");
+    expect(csv).toContain("RegionOne,m1.small,");
+    expect(csv).toContain("\nWhen things fill up\n");
   });
 });
 

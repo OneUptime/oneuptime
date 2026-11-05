@@ -613,7 +613,8 @@ function foldServiceState(data: {
    * otherwise read forced down for good. Null is what a page reads as not known.
    */
   if (data.family === OpenStackServiceFamily.Compute) {
-    entry.facts["forcedDown"] = forcedDown === null ? null : forcedDown === "true";
+    entry.facts["forcedDown"] =
+      forcedDown === null ? null : forcedDown === "true";
   }
   entry.adminState =
     getLabel(data.attributes, "adminState") ?? entry.adminState;

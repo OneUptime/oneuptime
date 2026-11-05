@@ -1018,10 +1018,7 @@ export default class MockOpenStackCloud {
           networks: [
             {
               ...this.templates["network"],
-              id: uuidOf(
-                "41000000",
-                agent % Math.max(this.counts.networks, 1),
-              ),
+              id: uuidOf("41000000", agent % Math.max(this.counts.networks, 1)),
             },
           ],
         },

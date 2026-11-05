@@ -304,9 +304,8 @@ describe("what each size asks of its control plane, and sends", () => {
               ),
             ).toHaveLength(0);
           } else {
-            // A first collection has asked Placement nothing yet: see OpenStackAllocationCandidates.
             const series: { fast: number; slow: number } =
-              getOpenStackSeriesCounts({ counts: counts, flavorsAnswered: 0 });
+              getOpenStackSeriesCounts({ counts: counts });
 
             expect(report.summary?.datapointCount).toBe(
               series.fast + series.slow,

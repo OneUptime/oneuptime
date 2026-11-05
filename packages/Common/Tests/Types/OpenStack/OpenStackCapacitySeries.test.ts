@@ -364,7 +364,11 @@ describe("whether a zone can lose a host", () => {
 
   test("a zone with a host someone disabled has none: an open incident recovers", () => {
     expect(
-      pointsFor([host("a", 9), host("b", 9), host("c", 0, { state: "disabled" })]),
+      pointsFor([
+        host("a", 9),
+        host("b", 9),
+        host("c", 0, { state: "disabled" }),
+      ]),
     ).toEqual([]);
   });
 
