@@ -1,0 +1,2566 @@
+{
+ "placeholders": {
+  "online": "11111111-1111-4111-8111-111111111111",
+  "offline": "22222222-2222-4222-8222-222222222222",
+  "incidentSeverity": "33333333-3333-4333-8333-333333333333",
+  "alertSeverity": "44444444-4444-4444-8444-444444444444"
+ },
+ "monitors": {
+  "openstack-rabbitmq-down": {
+   "name": "RabbitMQ Down",
+   "parents": [],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_node_answers",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] RabbitMQ Down - __MONITOR__",
+               "description": "No RabbitMQ node in this region answers. Every OpenStack service talks through RabbitMQ. With it gone nova-compute stops reporting within a minute, and on ML2/OVS Neutron's agents do too, while the APIs go on answering, so whatever they ask a worker to do hangs or fails. Instances that are already running carry on. Check rabbitmqctl cluster_status on each node (openstack compute service list will show the workers going down), and start the node that stopped last first, because nodes stopped together wait for each other. The incident resolves on its own once a node answers again, and the alerts it held back only open if their worker still reads down after that.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] RabbitMQ Down - __MONITOR__",
+               "description": "No RabbitMQ node in this region answers. Every OpenStack service talks through RabbitMQ. With it gone nova-compute stops reporting within a minute, and on ML2/OVS Neutron's agents do too, while the APIs go on answering, so whatever they ask a worker to do hangs or fails. Instances that are already running carry on. Check rabbitmqctl cluster_status on each node (openstack compute service list will show the workers going down), and start the node that stopped last first, because nodes stopped together wait for each other. The incident resolves on its own once a node answers again, and the alerts it held back only open if their worker still reads down after that.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "RabbitMQ Down - no node answers",
+             "description": "Triggers when no RabbitMQ node in a region answers for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_node_answers",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "any_node_answers",
+             "title": "any_node_answers",
+             "description": "any_node_answers",
+             "legend": "any_node_answers"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {
+               "openstack_dependency": "rabbitmq"
+              },
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 5 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-mariadb-cluster-down": {
+   "name": "MariaDB Cluster Down",
+   "parents": [],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_exporter_answers",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_node_answers",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "galera_without_primary",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 0
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] MariaDB Cluster Down - __MONITOR__",
+               "description": "No MariaDB node in this region takes writes. Every API keeps its state in MariaDB. With the cluster gone Keystone cannot issue a token, every API starts failing and the conductors stop, so nothing can be read or changed. Instances that are already running carry on. Check SHOW STATUS LIKE 'wsrep%' on each node that answers, and the service on each that does not (openstack token issue fails while this lasts). A cluster that lost quorum, or that stopped whole, needs the most advanced node told to bootstrap with galera_new_cluster. The incident resolves on its own once a node takes writes again, and the alerts it held back only open if what they watch still reads down after that.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] MariaDB Cluster Down - __MONITOR__",
+               "description": "No MariaDB node in this region takes writes. Every API keeps its state in MariaDB. With the cluster gone Keystone cannot issue a token, every API starts failing and the conductors stop, so nothing can be read or changed. Instances that are already running carry on. Check SHOW STATUS LIKE 'wsrep%' on each node that answers, and the service on each that does not (openstack token issue fails while this lasts). A cluster that lost quorum, or that stopped whole, needs the most advanced node told to bootstrap with galera_new_cluster. The incident resolves on its own once a node takes writes again, and the alerts it held back only open if what they watch still reads down after that.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "MariaDB Cluster Down - no node takes writes",
+             "description": "Triggers when no MariaDB node in a region answers, or Galera has no Primary component, for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_exporter_answers",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_node_answers",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "galera_without_primary",
+                "onNoDataPolicy": "Treat As Zero",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 0
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "any_exporter_answers",
+             "title": "any_exporter_answers",
+             "description": "any_exporter_answers",
+             "legend": "any_exporter_answers"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {
+               "openstack_dependency": "mariadb"
+              },
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "any_node_answers",
+             "title": "any_node_answers",
+             "description": "any_node_answers",
+             "legend": "any_node_answers"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "mysql_up",
+              "attributes": {},
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "any_node_primary",
+             "title": "any_node_primary",
+             "description": "any_node_primary",
+             "legend": "any_node_primary"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "mysql_global_status_wsrep_cluster_status",
+              "attributes": {},
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "galera_on",
+             "title": "galera_on",
+             "description": "galera_on",
+             "legend": "galera_on"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "mysql_global_variables_wsrep_on",
+              "attributes": {},
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "galera_without_primary",
+             "title": "Galera Without a Primary Component",
+             "description": "Galera Without a Primary Component",
+             "legend": "Galera Without a Primary Component"
+            },
+            "metricFormulaData": {
+             "metricFormula": "(1 - any_node_primary) * galera_on"
+            }
+           }
+          ]
+         },
+         "rollingTime": "Past 5 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-ovn-controller-not-running": {
+   "name": "OVN Controller Not Running",
+   "parents": [],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "is_a_chassis",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "controller_answers",
+                "onNoDataPolicy": "Treat As Zero",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] OVN Controller Not Running - __MONITOR__",
+               "description": "ovn-controller is not running on the machine named above. What it programmed stays in place, so its instances keep their traffic, but new ports do not come up there and changes to networks do not reach it, and Neutron reads its ovn-controller and neutron-ovn-agent as down. Check systemctl status ovn-controller on that machine, or its container, and openstack network agent list. The incident resolves on its own once it is running again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] OVN Controller Not Running - __MONITOR__",
+               "description": "ovn-controller is not running on the machine named above. What it programmed stays in place, so its instances keep their traffic, but new ports do not come up there and changes to networks do not reach it, and Neutron reads its ovn-controller and neutron-ovn-agent as down. Check systemctl status ovn-controller on that machine, or its container, and openstack network agent list. The incident resolves on its own once it is running again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "OVN Controller Not Running - a chassis without one",
+             "description": "Triggers when a machine is an OVN chassis and ovn-controller's own series are gone from it for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "controller_answers",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "is_a_chassis",
+             "title": "is_a_chassis",
+             "description": "is_a_chassis",
+             "legend": "is_a_chassis"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "ovnc_encap_ip",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "controller_answers",
+             "title": "controller_answers",
+             "description": "controller_answers",
+             "legend": "controller_answers"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "ovnc_rconn_queued",
+              "attributes": {},
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 5 Minutes",
+         "onlyWhereSeen": "ovnControllerSeenAt"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-rabbitmq-node-down": {
+   "name": "RabbitMQ Node Down",
+   "parents": [
+    "openstack-rabbitmq-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "node_answers",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] RabbitMQ Node Down - __MONITOR__",
+               "description": "A RabbitMQ node has not answered for 10 minutes. The cluster carries on with the others, though with less room, and a queue only that node held is gone until it is back (openstack compute service list says whether anything noticed). Check rabbitmqctl cluster_status on another node, then RabbitMQ's service and log on the machine named above. The incident resolves on its own once it answers again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] RabbitMQ Node Down - __MONITOR__",
+               "description": "A RabbitMQ node has not answered for 10 minutes. The cluster carries on with the others, though with less room, and a queue only that node held is gone until it is back (openstack compute service list says whether anything noticed). Check rabbitmqctl cluster_status on another node, then RabbitMQ's service and log on the machine named above. The incident resolves on its own once it answers again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "RabbitMQ Node Down - not answering",
+             "description": "Triggers when one RabbitMQ node does not answer for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "node_answers",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "node_answers",
+             "title": "node_answers",
+             "description": "node_answers",
+             "legend": "node_answers"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {
+               "openstack_dependency": "rabbitmq"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-galera-node-not-ready": {
+   "name": "Galera Node Not Ready",
+   "parents": [
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "node_ready",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "galera_on",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Galera Node Not Ready - __MONITOR__",
+               "description": "This Galera node answers and refuses every query, usually because it is cut off from the Primary component. The rest of the cluster carries on if it holds a quorum, and anything connected straight to this node sees errors (openstack token issue fails from a service that is). Check SHOW STATUS LIKE 'wsrep_cluster_status' on the machine named above, and the network to the others. The incident resolves on its own once it is ready again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Galera Node Not Ready - __MONITOR__",
+               "description": "This Galera node answers and refuses every query, usually because it is cut off from the Primary component. The rest of the cluster carries on if it holds a quorum, and anything connected straight to this node sees errors (openstack token issue fails from a service that is). Check SHOW STATUS LIKE 'wsrep_cluster_status' on the machine named above, and the network to the others. The incident resolves on its own once it is ready again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Node Not Ready - wsrep_ready is off",
+             "description": "Triggers when a Galera node answers and says it is not ready for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "node_ready",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "galera_on",
+                "onNoDataPolicy": "Treat As Zero",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "node_ready",
+             "title": "node_ready",
+             "description": "node_ready",
+             "legend": "node_ready"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "mysql_global_status_wsrep_ready",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "galera_on",
+             "title": "galera_on",
+             "description": "galera_on",
+             "legend": "galera_on"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "mysql_global_variables_wsrep_on",
+              "attributes": {},
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-ovs-service-down": {
+   "name": "Open vSwitch Service Down",
+   "parents": [],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "vswitchd_answers",
+                "onNoDataPolicy": "Treat As Zero",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "exporter_answers",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Open vSwitch Service Down - __MONITOR__",
+               "description": "Open vSwitch has stopped on the machine named above, which takes its instances off the network, and Neutron reads that machine's Open vSwitch or OVN agents as down. Check systemctl status openvswitch-switch on it, or its containers, and ovs-vsctl show. The incident resolves on its own once it answers again. Restart openstack-network-exporter on that machine afterwards: it does not reconnect to Open vSwitch's database on its own, and until it does ovn-controller and the tunnels there go unread.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Open vSwitch Service Down - __MONITOR__",
+               "description": "Open vSwitch has stopped on the machine named above, which takes its instances off the network, and Neutron reads that machine's Open vSwitch or OVN agents as down. Check systemctl status openvswitch-switch on it, or its containers, and ovs-vsctl show. The incident resolves on its own once it answers again. Restart openstack-network-exporter on that machine afterwards: it does not reconnect to Open vSwitch's database on its own, and until it does ovn-controller and the tunnels there go unread.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Open vSwitch Service Down - gone from where it ran",
+             "description": "Triggers when ovs-vswitchd's own series are gone for the whole window from a machine it ran on, with the exporter answering."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "vswitchd_answers",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "vswitchd_answers",
+             "title": "vswitchd_answers",
+             "description": "vswitchd_answers",
+             "legend": "vswitchd_answers"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "ovs_memory_rules_total",
+              "attributes": {},
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "exporter_answers",
+             "title": "exporter_answers",
+             "description": "exporter_answers",
+             "legend": "exporter_answers"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {
+               "openstack_dependency": "network"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_exporter_host"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 5 Minutes",
+         "onlyWhereSeen": "ovsSeenAt"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-compute-service-down": {
+   "name": "Compute Service Down",
+   "parents": [
+    "openstack-rabbitmq-down",
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "compute_service_up",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Compute Service Down - __MONITOR__",
+               "description": "An enabled nova-compute has stopped reporting to Nova. Instances on that host may still be running, but Nova cannot start, stop or move them, and it schedules nothing new there. Check openstack compute service list --host for the host named above, then nova-compute's service and logs on that host, and its route to RabbitMQ. If you are working on the host, disable the service first (openstack compute service set --disable) and this monitor stays quiet. The incident resolves on its own once it is up again, or disabled.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Compute Service Down - __MONITOR__",
+               "description": "An enabled nova-compute has stopped reporting to Nova. Instances on that host may still be running, but Nova cannot start, stop or move them, and it schedules nothing new there. Check openstack compute service list --host for the host named above, then nova-compute's service and logs on that host, and its route to RabbitMQ. If you are working on the host, disable the service first (openstack compute service set --disable) and this monitor stays quiet. The incident resolves on its own once it is up again, or disabled.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Compute Service Down - enabled nova-compute < 1",
+             "description": "Triggers when an enabled nova-compute reports down for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "compute_service_up",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "compute_service_up",
+             "title": "compute_service_up",
+             "description": "compute_service_up",
+             "legend": "compute_service_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_agent_state",
+              "attributes": {
+               "service": "nova-compute",
+               "adminState": "enabled"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "hostname",
+              "service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "hostname",
+              "service"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-network-agent-down": {
+   "name": "Network Agent Down",
+   "parents": [
+    "openstack-rabbitmq-down",
+    "openstack-mariadb-cluster-down",
+    "openstack-ovn-controller-not-running",
+    "openstack-ovs-service-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "network_agent_alive",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Network Agent Down - __MONITOR__",
+               "description": "A Neutron agent that is set up has stopped reporting. Traffic already flowing often carries on, but ports on that host stop being wired, and on ML2/OVS its routers and DHCP may go with it. Check openstack network agent list --host for the host named above, then that agent's service and logs on the host, and its route to RabbitMQ. If you are working on the host, set the agent down first (openstack network agent set --disable) and this monitor stays quiet. The incident resolves on its own once it is alive again, or set down.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Network Agent Down - __MONITOR__",
+               "description": "A Neutron agent that is set up has stopped reporting. Traffic already flowing often carries on, but ports on that host stop being wired, and on ML2/OVS its routers and DHCP may go with it. Check openstack network agent list --host for the host named above, then that agent's service and logs on the host, and its route to RabbitMQ. If you are working on the host, set the agent down first (openstack network agent set --disable) and this monitor stays quiet. The incident resolves on its own once it is alive again, or set down.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Network Agent Down - agent set up and not alive",
+             "description": "Triggers when a Neutron agent with adminState up reports not alive for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "network_agent_alive",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "network_agent_alive",
+             "title": "network_agent_alive",
+             "description": "network_agent_alive",
+             "legend": "network_agent_alive"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_neutron_agent_state",
+              "attributes": {
+               "adminState": "up"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "hostname",
+              "service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_neutron_up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "hostname",
+              "service"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-scheduler-or-conductor-down": {
+   "name": "Scheduler or Conductor Down",
+   "parents": [
+    "openstack-rabbitmq-down",
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "scheduler_up",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "conductor_up",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Scheduler or Conductor Down - __MONITOR__",
+               "description": "An enabled nova-scheduler or nova-conductor has stopped reporting to Nova. The others carry on while any is left, though with less room. Check openstack compute service list for the host and binary named above, then that service's logs on that host, and its route to RabbitMQ and the database. The incident resolves on its own once it is up again, or disabled.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Scheduler or Conductor Down - __MONITOR__",
+               "description": "An enabled nova-scheduler or nova-conductor has stopped reporting to Nova. The others carry on while any is left, though with less room. Check openstack compute service list for the host and binary named above, then that service's logs on that host, and its route to RabbitMQ and the database. The incident resolves on its own once it is up again, or disabled.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Scheduler or Conductor Down - enabled worker < 1",
+             "description": "Triggers when an enabled nova-scheduler or nova-conductor reports down for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "scheduler_up",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "conductor_up",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "scheduler_up",
+             "title": "scheduler_up",
+             "description": "scheduler_up",
+             "legend": "scheduler_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_agent_state",
+              "attributes": {
+               "service": "nova-scheduler",
+               "adminState": "enabled"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "hostname",
+              "service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "conductor_up",
+             "title": "conductor_up",
+             "description": "conductor_up",
+             "legend": "conductor_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_agent_state",
+              "attributes": {
+               "service": "nova-conductor",
+               "adminState": "enabled"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "hostname",
+              "service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "hostname",
+              "service"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-every-scheduler-or-conductor-down": {
+   "name": "Every Scheduler or Conductor Down",
+   "parents": [
+    "openstack-rabbitmq-down",
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_scheduler_up",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_conductor_up",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Every Scheduler or Conductor Down - __MONITOR__",
+               "description": "Every enabled nova-scheduler, or every enabled nova-conductor, in this region has stopped reporting. Nothing new can boot, move or resize until one is back. They rarely all fail on their own: check openstack compute service list, then RabbitMQ and the database they all depend on, then the workers' logs. The incident resolves on its own once one is up again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Every Scheduler or Conductor Down - __MONITOR__",
+               "description": "Every enabled nova-scheduler, or every enabled nova-conductor, in this region has stopped reporting. Nothing new can boot, move or resize until one is back. They rarely all fail on their own: check openstack compute service list, then RabbitMQ and the database they all depend on, then the workers' logs. The incident resolves on its own once one is up again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Every Scheduler or Conductor Down - none alive",
+             "description": "Triggers when no enabled nova-scheduler, or no enabled nova-conductor, in a region reports up for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_scheduler_up",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "any_conductor_up",
+                "onNoDataPolicy": "Trigger",
+                "cadenceMetricAlias": "service_reporting"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "any_scheduler_up",
+             "title": "any_scheduler_up",
+             "description": "any_scheduler_up",
+             "legend": "any_scheduler_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_agent_state",
+              "attributes": {
+               "service": "nova-scheduler",
+               "adminState": "enabled"
+              },
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "any_conductor_up",
+             "title": "any_conductor_up",
+             "description": "any_conductor_up",
+             "legend": "any_conductor_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_agent_state",
+              "attributes": {
+               "service": "nova-conductor",
+               "adminState": "enabled"
+              },
+              "aggegationType": "Max",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "service_reporting",
+             "title": "service_reporting",
+             "description": "service_reporting",
+             "legend": "service_reporting"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "service"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-identity-api-down": {
+   "name": "Identity API Down",
+   "parents": [
+    "openstack-rabbitmq-down",
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "api_up"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "series_in_collection"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Identity API Down - __MONITOR__",
+               "description": "Keystone is not answering: every call the exporter made failed, or it could not log in at all. Nobody can get a token while this lasts, so every other API refuses new requests too, though running instances carry on. Check keystone's service and logs on the controllers, the load balancer in front of it and the database behind it, then run openstack token issue. The incident resolves on its own once it answers again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Identity API Down - __MONITOR__",
+               "description": "Keystone is not answering: every call the exporter made failed, or it could not log in at all. Nobody can get a token while this lasts, so every other API refuses new requests too, though running instances carry on. Check keystone's service and logs on the controllers, the load balancer in front of it and the database behind it, then run openstack token issue. The incident resolves on its own once it answers again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Identity API Down - not answering",
+             "description": "Triggers when the Identity API does not answer for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "api_up",
+                "onNoDataPolicy": "Trigger"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "series_in_collection",
+                "onNoDataPolicy": "Trigger"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "api_up",
+             "title": "api_up",
+             "description": "api_up",
+             "legend": "api_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_identity_up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "series_in_collection",
+             "title": "series_in_collection",
+             "description": "series_in_collection",
+             "legend": "series_in_collection"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "scrape_samples_scraped",
+              "attributes": {
+               "openstack_service": "identity"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_service"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 15 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-compute-api-down": {
+   "name": "Compute API Down",
+   "parents": [
+    "openstack-rabbitmq-down",
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "api_up"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "series_in_collection"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Compute API Down - __MONITOR__",
+               "description": "Nova's API is not answering: every call the exporter made failed, or it could not reach the API at all. Running instances carry on, but nothing can be created, changed or deleted. Check nova-api's service and logs on the controllers, the load balancer in front of it, RabbitMQ and the database, then run openstack compute service list. The incident resolves on its own once it answers again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Compute API Down - __MONITOR__",
+               "description": "Nova's API is not answering: every call the exporter made failed, or it could not reach the API at all. Running instances carry on, but nothing can be created, changed or deleted. Check nova-api's service and logs on the controllers, the load balancer in front of it, RabbitMQ and the database, then run openstack compute service list. The incident resolves on its own once it answers again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Compute API Down - not answering",
+             "description": "Triggers when the Compute API does not answer for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "api_up",
+                "onNoDataPolicy": "Trigger"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "series_in_collection",
+                "onNoDataPolicy": "Trigger"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "api_up",
+             "title": "api_up",
+             "description": "api_up",
+             "legend": "api_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_nova_up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "series_in_collection",
+             "title": "series_in_collection",
+             "description": "series_in_collection",
+             "legend": "series_in_collection"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "scrape_samples_scraped",
+              "attributes": {
+               "openstack_service": "compute"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_service"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-network-api-down": {
+   "name": "Network API Down",
+   "parents": [
+    "openstack-rabbitmq-down",
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "api_up"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "collection_answered"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Network API Down - __MONITOR__",
+               "description": "Neutron's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. Traffic already flowing carries on, but no port, router or floating IP can be changed, so new instances fail to boot. If every API reads down at once, look at the exporter first. Otherwise check neutron-server's service and logs, RabbitMQ and the database, then run openstack network agent list. The incident resolves on its own once it answers again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Network API Down - __MONITOR__",
+               "description": "Neutron's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. Traffic already flowing carries on, but no port, router or floating IP can be changed, so new instances fail to boot. If every API reads down at once, look at the exporter first. Otherwise check neutron-server's service and logs, RabbitMQ and the database, then run openstack network agent list. The incident resolves on its own once it answers again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Network API Down - not answering",
+             "description": "Triggers when the Network API does not answer for the whole window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "All",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "api_up",
+                "onNoDataPolicy": "Trigger"
+               },
+               "value": 1
+              },
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "collection_answered",
+                "onNoDataPolicy": "Trigger"
+               },
+               "value": 1
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "api_up",
+             "title": "api_up",
+             "description": "api_up",
+             "legend": "api_up"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_neutron_up",
+              "attributes": {},
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_service"
+             ]
+            }
+           },
+           {
+            "metricAliasData": {
+             "metricVariable": "collection_answered",
+             "title": "collection_answered",
+             "description": "collection_answered",
+             "legend": "collection_answered"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "up",
+              "attributes": {
+               "openstack_service": "network"
+              },
+              "aggegationType": "Min",
+              "aggregateBy": {}
+             },
+             "groupByAttributeKeys": [
+              "openstack.region.name",
+              "openstack_service"
+             ]
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 10 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  },
+  "openstack-cloud-stopped-reporting": {
+   "name": "Cloud Stopped Reporting",
+   "parents": [
+    "openstack-mariadb-cluster-down"
+   ],
+   "monitorSteps": {
+    "_type": "MonitorSteps",
+    "value": {
+     "monitorStepsInstanceArray": [
+      {
+       "_type": "MonitorStep",
+       "value": {
+        "id": "__ID_0__",
+        "monitorCriteria": {
+         "_type": "MonitorCriteria",
+         "value": {
+          "monitorCriteriaInstanceArray": [
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_1__",
+             "monitorStatusId": "22222222-2222-4222-8222-222222222222",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Less Than",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "samples_received",
+                "onNoDataPolicy": "Trigger"
+               },
+               "value": 0
+              }
+             ],
+             "incidents": [
+              {
+               "title": "[OpenStack] Cloud Stopped Reporting - __MONITOR__",
+               "description": "OneUptime has received nothing from this OpenStack cloud for 15 minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the machine running the OpenStack Agent is up and its containers are running (docker compose ps, and the collector's and exporter's logs name the error); whether the exporter can still log in to Keystone (openstack token issue, with the agent's credential: when it cannot, every service's collection comes back empty, and Identity API Down fires too); and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.",
+               "incidentSeverityId": {
+                "_type": "ObjectID",
+                "value": "33333333-3333-4333-8333-333333333333"
+               },
+               "autoResolveIncident": true,
+               "id": "__ID_2__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "alerts": [
+              {
+               "title": "[OpenStack] Cloud Stopped Reporting - __MONITOR__",
+               "description": "OneUptime has received nothing from this OpenStack cloud for 15 minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the machine running the OpenStack Agent is up and its containers are running (docker compose ps, and the collector's and exporter's logs name the error); whether the exporter can still log in to Keystone (openstack token issue, with the agent's credential: when it cannot, every service's collection comes back empty, and Identity API Down fires too); and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.",
+               "alertSeverityId": {
+                "_type": "ObjectID",
+                "value": "44444444-4444-4444-8444-444444444444"
+               },
+               "autoResolveAlert": true,
+               "id": "__ID_3__",
+               "onCallPolicyIds": []
+              }
+             ],
+             "createAlerts": true,
+             "changeMonitorStatus": true,
+             "createIncidents": true,
+             "name": "Cloud Stopped Reporting - No data for 15 minutes",
+             "description": "Triggers when the cloud sends no openstack_identity_up data for the whole 15-minute window."
+            }
+           },
+           {
+            "_type": "MonitorCriteriaInstance",
+            "value": {
+             "id": "__ID_4__",
+             "monitorStatusId": "11111111-1111-4111-8111-111111111111",
+             "filterCondition": "Any",
+             "filters": [
+              {
+               "checkOn": "Metric Value",
+               "filterType": "Greater Than Or Equal To",
+               "metricMonitorOptions": {
+                "metricAggregationType": "All Values",
+                "metricAlias": "samples_received"
+               },
+               "value": 0
+              }
+             ],
+             "incidents": [],
+             "alerts": [],
+             "createAlerts": false,
+             "changeMonitorStatus": true,
+             "createIncidents": false,
+             "name": "Healthy",
+             "description": "Criteria for healthy state."
+            }
+           }
+          ]
+         }
+        },
+        "requestType": "GET",
+        "openstackMonitor": {
+         "cloudIdentifier": "__CLOUD__",
+         "resourceFilters": {},
+         "metricViewConfig": {
+          "queryConfigs": [
+           {
+            "metricAliasData": {
+             "metricVariable": "samples_received",
+             "title": "samples_received",
+             "description": "samples_received",
+             "legend": "samples_received"
+            },
+            "metricQueryData": {
+             "filterData": {
+              "metricName": "openstack_identity_up",
+              "attributes": {},
+              "aggegationType": "Count",
+              "aggregateBy": {}
+             }
+            }
+           }
+          ],
+          "formulaConfigs": []
+         },
+         "rollingTime": "Past 15 Minutes"
+        }
+       }
+      }
+     ],
+     "defaultMonitorStatusId": "11111111-1111-4111-8111-111111111111"
+    }
+   }
+  }
+ }
+}
