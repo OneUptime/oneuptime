@@ -1123,6 +1123,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         "Podman",
         "Docker Swarm",
         "Proxmox",
+        "OpenStack",
         "VMware",
         "Ceph",
         "Storage Array",
@@ -1134,7 +1135,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         [...MonitorTypeHelper.getMetricBackedMonitorTypes()].sort(),
       );
       expect(section).toContain(
-        "Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array and IoT Device monitors have one variable of their own:",
+        "Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array and IoT Device monitors have one variable of their own:",
       );
       expect(
         documentedVariables("### Metric and Infrastructure Monitors"),

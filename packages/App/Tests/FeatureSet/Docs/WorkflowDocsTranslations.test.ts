@@ -681,6 +681,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "conditions",
   "switchCase",
   "paging",
+  "openStack",
   "sleep",
   "log",
   "executeWorkflow",
