@@ -29,6 +29,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | Vorfälle, Monitore und andere Datensätze zu lesen oder zu ändern | [OneUptime-Datenkomponenten](#oneuptime-datenkomponenten) |
 | Vorfälle oder Warnungen zu den Problemen eines anderen Tools zu öffnen, zu bestätigen und zu lösen | [Vorfälle und Warnungen aus anderen Tools](#vorfälle-und-warnungen-aus-anderen-tools) |
 | Ein Zabbix-Problem zu bestätigen oder zu schließen | [Zabbix](#zabbix) |
+| Eine Person eine Korrektur an einer OpenStack-Cloud genehmigen zu lassen | [Eine OpenStack-Korrektur vorschlagen](#propose-an-openstack-fix) |
 
 Ein spezieller Baustein schlägt einen allgemeinen: Der Slack-Baustein kennt die Grenzen von Slack, und ein Datensatz-Baustein kennt die Felder des Datensatzes, sodass Sie klarere Fehler und Protokolle bekommen als von einem **API**-Baustein, der dieselbe Aufgabe erledigt.
 
@@ -428,6 +429,28 @@ Zum Bestätigen oder Schließen liest der Baustein zuerst das Problem. Ein Probl
 
 **Updated** löst aus, wenn Zabbix die Aktualisierung angenommen hat, und **Error**, wenn Zabbix nicht erreichbar war oder sie abgelehnt hat, mit dem Grund von Zabbix: Zabbix beantwortet eine abgelehnte Anfrage mit einem Erfolgsstatus, darum liest der Baustein, was Zabbix geantwortet hat, statt des Status. Er gibt **Summary** zurück, was er getan hat, in einem Satz.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Bittet eine Person, eine Änderung an der OpenStack-Cloud zu genehmigen, um die es in einer Warnung oder einem Vorfall geht. Er nimmt die Änderung nie selbst vor. Die Korrektur wartet an der Warnung oder dem Vorfall und in den Kanälen, in die er postet, wie eine, die OneUptime AI vorschlägt, gleich welchen Korrekturmodus die Cloud hat. Ein Workflow kann nicht genehmigen, was er vorschlägt.
+
+Er braucht kein KI-Modell und durchläuft dieselben Regeln wie eine Korrektur, die OneUptime AI vorschlägt: die Befehlsrichtlinie, die Schreibziele und geschützten Ziele des Agenten und das Lesen des Agenten, was die Änderung berührt. Eine Evakuierung eines Hosts, der noch läuft, oder eine, die der Agent nicht vollständig lesen kann, wird nicht vorgeschlagen.
+
+| Einstellung | Was sie bewirkt |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Warnungs-ID** | Die Warnung, für die die Korrektur ist, meist die ID, die Ihr Trigger zurückgab. Füllen Sie diese oder die **Vorfall-ID** aus, und die Cloud ergibt sich daraus, womit der Datensatz verknüpft ist. |
+| **Vorfall-ID** | Der Vorfall, für den die Korrektur ist, meist die ID, die Ihr Trigger zurückgab. Füllen Sie diese oder die **Warnungs-ID** aus. |
+| **Befehl** | Die vorzuschlagende Änderung, in der einen Schreibweise, die OneUptime annimmt. Siehe [die Änderungen, die eine Korrektur vornehmen kann](/docs/telemetry/openstack#fixes). Er kann Werte aus früheren Bausteinen verwenden und wird gelesen, nachdem diese ausgefüllt sind. |
+| **Warum** | Was die Person, die sie genehmigt, zuerst liest. Bleibt es leer, steht dort, welcher Workflow gefragt hat. |
+| **ID der OpenStack-Cloud** | Unter **Weitere Felder**. Nur für einen Datensatz, der mit mehr als einer Cloud oder mit keiner verknüpft ist. |
+
+Er gibt **Suggestion ID** (die Korrektur, die auf Genehmigung wartet), **Tier** (Sicher oder Riskanter, wie OneUptime den Befehl einstuft) und **Already Waiting** (wahr, wenn dieselbe Änderung an dieser Cloud schon wartete, sodass keine zweite hinzugefügt wurde) zurück.
+
+**Erfolg** löst aus, sobald eine Person gefragt wurde, ohne auf ihre Antwort zu warten. **Fehler** löst aus, wenn nichts vorgeschlagen wurde, mit dem Grund in **Fehler**: Der Befehl wird abgelehnt, Korrekturen sind an dieser Cloud noch nicht erlaubt, oder die Workflows eines Projekts haben in der letzten Stunde 20 Korrekturen vorgeschlagen.
+
+Die Vorlage [Vorschlagen, einen ausfallenden OpenStack-Compute-Dienst aus der Planung zu nehmen](/docs/workflows/authoring) ist ein Ausgangspunkt.
+
 ## OneUptime-Datenkomponenten
 
 Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Warnungen, Statusseiten, Bereitschaftsrichtlinien und viele mehr) hat der Bereich **Komponente hinzufügen** diese Komponenten: Klicken Sie unter **OneUptime-Ressourcen** auf den Datensatztyp (**Alle Ressourcen durchsuchen** enthält die nicht gezeigten) oder suchen Sie nach dem Namen des Typs. Jeder Titel wird aus dem Datensatztyp gebildet, für Monitore lautet die Reihe also:
@@ -487,7 +510,7 @@ Eine Abfrage ist immer auf das Projekt beschränkt, in dem der Workflow läuft. 
 
 Ein Schlüssel, der keine Spalte ist, wird ignoriert statt abgelehnt – das Protokoll der Ausführung nennt die verworfenen, schauen Sie also dort nach, wenn ein Feld nicht ankommt. **Fields to pass on** bei den Find-Komponenten und den Triggern wird aus einer Liste gewählt; **Als JSON bearbeiten** zeigt dort dieselben Spaltenschlüssel mit `true`-Werten: `{"_id": true, "name": true}`. Die Felder eines verknüpften Datensatzes stehen unter seinem Schlüssel, wie in `{"monitor": {"name": true}}`: `{"monitor": true}` reicht nur seine ID weiter.
 
-**Custom fields** sind eine Spalte, `customFields`, die den Wert jedes benutzerdefinierten Felds unter dem Namen des Felds enthält. Die Update-Komponenten ändern nur die benutzerdefinierten Felder, die Sie nennen, und jedes andere behält seinen Wert:
+**Benutzerdefinierte Felder** sind eine Spalte, `customFields`, die den Wert jedes benutzerdefinierten Felds unter dem Namen des Felds enthält. Die Update-Komponenten ändern nur die benutzerdefinierten Felder, die Sie nennen, und jedes andere behält seinen Wert:
 
 ```json
 { "customFields": { "Notification Count": 1 } }

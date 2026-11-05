@@ -396,7 +396,7 @@ Em um monitor Database Health, a expressão tem acesso a:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-Para ler uma métrica em uma expressão, indexe o objeto `metrics` inteiro — os nomes das séries contêm pontos, então não podem ficar dentro das chaves:
+Para ler uma métrica em uma expressão, escreva o nome da série, com os pontos, dentro das chaves ou indexe o objeto `metrics` inteiro — as duas formas funcionam:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

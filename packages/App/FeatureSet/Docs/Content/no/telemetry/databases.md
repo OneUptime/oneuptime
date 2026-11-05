@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -378,6 +379,7 @@ Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis 
 | `DATABASE_TLS_INSECURE` | Nei | `true` (standard) kobler til uten TLS; `false` slår på TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | Nei | `true` godtar et sertifikat som collectorimaget ikke stoler på (selvsignert, privat CA). Standard er `false` |
 | `DATABASE_TLS_SSLMODE` | Nei | PostgreSQL: de to innstillingene over som libpqs `sslmode`, for konfigurasjonens egne SQL-sjekker: `disable` så lenge `DATABASE_TLS_INSECURE` er `true`, `require` når `DATABASE_TLS_INSECURE_SKIP_VERIFY` er `true`, ellers `verify-full`. `install.sh` skriver den. Standard er `disable` |
+| `DATABASE_TLS_MYSQL` | Nei | MySQL og MariaDB: de samme to innstillingene som driverens `tls`, for konfigurasjonens lesinger av Galera: `false` så lenge `DATABASE_TLS_INSECURE` er `true`, `skip-verify` når `DATABASE_TLS_INSECURE_SKIP_VERIFY` er `true`, ellers `true`. `install.sh` regner den ut; sett den selv i et manifest. Standard er `false` |
 | `DATABASE_COLLECTION_INTERVAL` | Nei | Hvor ofte motorens statistikk leses. Standard er `30s` |
 | `DATABASE_QUERY_EVENTS` | Nei | `true` sender spørringsprøver og toppspørringer som logger (PostgreSQL, MySQL, MongoDB, SQL Server og Oracle). De inneholder spørringstekst. Standard er `false` |
 | `DATABASE_SERVER_ID` | Nei | Id-en til en database som OneUptime allerede viser (fanen **Dokumentasjon** har den, allerede utfylt). Dataene havner da direkte i den databasen og vises på sidene dens, uansett hvilken adresse de rapporterer (eller ingen); det er veien å gå i Kubernetes og for private IP-er. Det må være en database i prosjektet som inntaksnøkkelen tilhører |
@@ -398,6 +400,8 @@ Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis 
 PostgreSQL-receiverens feature gate `postgresqlreceiver.preciselagmetrics`, som er slått på som standard, registrerer replikeringsforsinkelsen i tid som `postgresql.wal.delay` i stedet for `postgresql.wal.lag`, og den metrikken er slått av upstream; derfor slår agenten den på. Hver konfigurasjon lister flere valgfrie metrikker i en kommentar; slå dem på på samme måte. Seksjonen **Engine metrics** på oversikten til en database viser et utvalgt sett for hver motor i denne tabellen (for Elasticsearch / OpenSearch klyngehelse, noder, ikke-tildelte shards, ventende oppgaver, JVM-heap, ledig disk, søk og indeksering; for Memcached tilkoblinger, minne, elementer, get-treff og -bom, kommandoer og evictions), og fanen **Målinger** har alt. Der viser en metrikk som oversikten viser, oversiktens verdi (seriene kombinert på samme måte, en teller som rate per sekund) med en bildetekst som sier hvordan (_sum av serier_, _per sekund, alle serier_); alle andre rader viser gjennomsnittet av seriene sine, og det gjør også alle rader mens du filtrerer listen etter et attributt. MariaDB rapporterer `mysql.buffer_pool.limit` som antall sider i buffer poolen i stedet for byte, som receiveren oppgir, så på en MariaDB-database leses den raden og grafen i sider. MariaDB har ingen `Innodb_rows_*`-statustellere, så receiveren sender ingen `mysql.row_operations` for den, og en MariaDB-oversikt har ingen graf **Radoperasjoner**; **Handler-operasjoner** viser radlesingene og -skrivingene.
 
 PostgreSQL-konfigurasjonen stiller også selv serveren fire spørsmål med collectorens `sqlquery`-receiver med samme intervall: hvor lenge den har kjørt (`postgresql.uptime`, fra `pg_postmaster_start_time()`), alderen på dens eldste transaksjons-ID (`postgresql.xid.oldest_age`, den største `age(datfrozenxid)` i `pg_database`), hvor lenge dens eldste åpne transaksjon har vært åpen (`postgresql.transaction.longest_duration`), og hvor mange økter som venter på en lås (`postgresql.sessions.waiting_on_lock`), de to siste fra `pg_stat_activity`. `postgresql`-receiveren rapporterer ingen av dem, og det er de som viser en omstart, en transaksjon som er blitt stående åpen, en kø av låseventende og at wraparound av transaksjons-ID-ene nærmer seg: PostgreSQL slutter å ta imot skriving nær en alder på 2,1 milliarder, så tilstanden bør sjekkes fra 1 milliard og er kritisk fra 1,5 milliarder. `pg_monitor` dekker dem. Spørringen kobler til med `DATABASE_TLS_SSLMODE` og kan ikke logge på med et passord som inneholder et mellomrom (den sender det som `+`), noe `install.sh` advarer om. Med en egen collector kopierer du receiveren `sqlquery/oneuptime` fra `configs/postgresql.yaml` inn i dens `metrics`-pipeline.
+
+MySQL-konfigurasjonen leser også hvor en server står i en Galera-klynge, med den samme `sqlquery`-receiveren og samme intervall, fordi `mysql`-receiveren ikke rapporterer noe av det: hvor mange noder klyngen har (`mysql.wsrep.cluster_size`), nodens tilstand (`mysql.wsrep.local_state`, der 4 er Synced), hvor mange ganger den ble bedt om å falle ut av takt med vilje (`mysql.wsrep.desync_count`), hvor mye replikeringen har pauset for den (`mysql.wsrep.flow_control_paused`) og hvor mange writesets som venter på å bli anvendt (`mysql.wsrep.local_recv_queue`). Den trenger ingenting utover påloggingen over, fordi den leser `SHOW GLOBAL STATUS`, og den kobler til slik `DATABASE_TLS_MYSQL` sier. En server i ingen klynge sender ingen av disse, og ingenting sier at den er uvel. **Galera Node Out of Sync** leser disse, og en node noen tok ut for en sikkerhetskopi med `wsrep_desync` utløser den ikke.
 
 **Versjon** for databasen kommer fra receiveren der den rapporterer en: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) og `elasticsearch.node.version` (Elasticsearch / OpenSearch). Receiverne for PostgreSQL, SQL Server og Memcached rapporterer ingen, så med bare agenten viser disse databasene ingen versjon; en som også kjører i Kubernetes, Docker eller Podman, viser versjonen til containerimaget sitt.
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ Tersklene er de [anbefalte monitorenes](#anbefalte-monitorer) egne (metrikkene, 
 | Motor | Ikke feilfri | Redusert |
 | --- | --- | --- |
 | PostgreSQL | Tilkoblinger på 95 % av `max_connections`; transaksjons-ID-er nær wraparound | Tilkoblinger på 80 % av `max_connections`; transaksjons-ID-er som eldes mot wraparound; en replika 30 sekunder bak med replay; en replika 1 GB WAL bak; en omstart; en transaksjon som har vært åpen i en time; en økt som venter på en lås; en database på 500 GB eller mer |
-| MySQL / MariaDB | — | 136 tilkoblinger; 50 kjørende tråder; 75 % av bufferpoolen skitten; en replika 30 sekunder bak; en omstart |
+| MySQL / MariaDB | — | 136 tilkoblinger; 50 kjørende tråder; 75 % av bufferpoolen skitten; en replika 30 sekunder bak; en omstart; en Galera-node ute av takt uten at noen har bedt om det |
 | SQL Server | — | En buffer cache hit ratio under 90 %; en page life expectancy under 300 sekunder; en blokkert økt; en spørring som venter på minne |
 | Oracle | Et tablespace 90 % fullt | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | Minne på 90 % av `maxmemory`; et fragmenteringsforhold på 1,5 med 256 MB brukt; 9 000 klienter; en omstart |

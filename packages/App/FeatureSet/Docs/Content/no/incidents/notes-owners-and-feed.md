@@ -306,7 +306,7 @@ Det er fem veier inn på listen over eiere:
 - **Fra en hendelsesmal** — maler har et felt **Eiere**: personene og teamene som eier hendelsen og får beskjed når den opprettes eller oppdateres, valgt fra den samme listen som **Legg til eier**. Å opprette en hendelse fra malen forhåndsutfyller dem, og de legges til når hendelsens Slack- og Microsoft Teams-kanaler finnes, slik at en varselregel som inviterer hendelsens eiere til en ny kanal, også inviterer dem. Dashbordet, og trinnet **Create One Incident** i en arbeidsflyt med en valgt **Incident Template**, legger dem til uten varselet «du er lagt til»; et [skjema](/docs/forms/on-submit) med en mal gir dem beskjed og holder hendelsens varsel **Hendelse opprettet** tilbake til de er lagt til. Se [Opprette en hendelse](/docs/incidents/declaring-incidents).
 - **Fra Eierregler for hendelse** — samsvarende regler legger til eiere automatisk ved opprettelsen.
 - **Ved opprettelse via API-et** — brukere og team som oppgis som eiere med opprettelseskallet, legges til på samme måte, når kanalene finnes, og uten varselet «du er lagt til».
-- **For hånd** — elementet **Legg til eier** på siden **Eiere**, når som helst under hendelsen, eller **Legg til** under eierne i toppen av **Oversikt** så lenge den er åpen.
+- **By hand** — elementet **Legg til eier** på siden **Eiere**, når som helst under hendelsen, eller **Legg til** under eierne i toppen av **Oversikt** så lenge den er åpen.
 
 Å legge til den samme personen to ganger er trygt; eiere som allerede er tildelt, dupliseres ikke.
 

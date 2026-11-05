@@ -193,6 +193,7 @@ Hver type når OneUptime som vanlige logger:
 | AWS CloudTrail | Et trail levert til CloudWatch Logs, lest av collectorens `awscloudwatch`-receiver, eller, for en konto som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
 | Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et prosjekt som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
 | Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller, for aktivitetsloggen til et abonnement som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| OpenStack-revisjonsspor | Notifikasjonene og revisjonsfilteret til en sky, sendt til loggene med `driver = log` og lest av agentens [loggprofil](/docs/telemetry/openstack#hvem-gjorde-hva) |
 | CEF, LEEF | Produktets syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brannmurens egen syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-revisjonslogger | Revisjonsloggfilen til API-serveren, lest av collectorens `filelog`-receiver |

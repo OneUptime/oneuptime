@@ -1,6 +1,6 @@
 # Tilkoblede signaler
 
-En sikkerhetssak sier hvilke brukere, verter og adresser den handler om. Tilkoblede signaler sier hvilke av dem OneUptime allerede kjenner - vertene, containervertene, Kubernetes-klyngene, nettverksenhetene, skyressursene, de serverløse funksjonene, tjenestene, monitorene som sjekker dem, og medlemmene dine - og hva som skjedde på hver av dem rundt saken: loggene, sporene og målingene, hendelsene og varslene som er åpne på den, monitorene som overvåker den, og hva som endret seg på den. Den søker også i selve loggene og sporene dine etter dem: en angripers adresse i en webservers tilgangslogg, en lekket e-post i en applikasjons feil. Andre veien sier siden til en vert, en klynge, en skyressurs, en tjeneste, en monitor eller et medlem hva Security Events har funnet om den.
+En sikkerhetssak sier hvilke brukere, verter og adresser den handler om. Tilkoblede signaler sier hvilke av dem OneUptime allerede kjenner - vertene, containervertene, Kubernetes-klyngene, OpenStack-skyene, nettverksenhetene, skyressursene, de serverløse funksjonene, tjenestene, monitorene som sjekker dem, og medlemmene dine - og hva som skjedde på hver av dem rundt saken: loggene, sporene og målingene, hendelsene og varslene som er åpne på den, monitorene som overvåker den, og hva som endret seg på den. Den søker også i selve loggene og sporene dine etter dem: en angripers adresse i en webservers tilgangslogg, en lekket e-post i en applikasjons feil. Andre veien sier siden til en vert, en klynge, en skyressurs, en tjeneste, en monitor eller et medlem hva Security Events har funnet om den.
 
 :::cards
 - [Hvor du ser det](#hvor-du-ser-det): Siden til en sak, fanen til en hendelse, siden til en entitet og sidene til det de nevner.
@@ -32,7 +32,7 @@ OneUptime slår opp hver verdi blant prosjektets oppføringer, sier hvor sikkert
 - **Tilkoblede signaler**, en side i hver sikkerhetssak: åpne en sak under **Produkter → Sikkerhetshendelser → Sikkerhetssaker → Åpne saker**, og deretter **Tilkoblede signaler** etter **Entiteter** i menyen.
 - **Tilkoblet**, en fane i hver sikkerhetshendelse: åpne en hendelse under **Produkter → Sikkerhetshendelser → Hendelser**. Den viser hva hendelsen nevner, i timen rundt den.
 - Siden til en entitet under **Produkter → Sikkerhetshendelser → Entitetsrisiko**: hvor OneUptime kjenner brukeren, verten eller adressen, rundt den siste sikkerhetshendelsen.
-- Et **Sikkerhet**-kort på siden til hver vert, Docker-vert, Podman-vert, Kubernetes-klynge, nettverksenhet, skyressurs, serverløs funksjon, tjeneste, monitor, hvert medlem og hvert inventarelement: de åpne sikkerhetssakene som nevner den, hvor mange sikkerhetshendelser og funn som nevnte den de siste 7 dagene, den alvorligste av dem og risikoen. **Åpne i Security Events** åpner den der. Kortet til en monitor handler om vertene og adressene den sjekker.
+- Et **Sikkerhet**-kort på siden til hver vert, Docker-vert, Podman-vert, Kubernetes-klynge, OpenStack-sky, nettverksenhet, skyressurs, serverløs funksjon, tjeneste, monitor, hvert medlem og hvert inventarelement: de åpne sikkerhetssakene som nevner den, hvor mange sikkerhetshendelser og funn som nevnte den de siste 7 dagene, den alvorligste av dem og risikoen. **Åpne i Security Events** åpner den der. Kortet til en monitor handler om vertene og adressene den sjekker.
 - Et **Sikkerhet**-kort på siden til en hendelse, når en sikkerhetssak erklærte hendelsen (**Erklært fra**), eller åpne saker nevner en vert eller klynge den berører (**Åpne saker som nevner det den berører**).
 
 ## Hvordan en verdi kobles
@@ -41,7 +41,7 @@ Hver bruker, vert og adresse en sak eller en hendelse nevner, slås opp blant pr
 
 | Det saken eller hendelsen nevner | Koblet til | Hvor sikkert |
 | --- | --- | --- |
-| Et verts- eller domenenavn som er det samme som navnet en vert, en containervert, en klynge eller en nettverksenhet rapporterer, eller et navn en skyressurs svarer på | Den oppføringen | Nøyaktig |
+| Et verts- eller domenenavn som er det samme som navnet en vert, en containervert, en klynge, en OpenStack-sky eller en nettverksenhet rapporterer, eller et navn en skyressurs svarer på | Den oppføringen | Nøyaktig |
 | Det samme navnet, gitt uten å si at det er en vert | Den oppføringen | Mulig |
 | En kort eller full form av navnet til en oppføring, som `web-1` og `web-1.acme.internal` | Den oppføringen | Mulig |
 | En offentlig IP-adresse som bare én vert eller nettverksenhet har, eller som bare én skyressurs svarer på | Den oppføringen | Nøyaktig |
@@ -50,7 +50,7 @@ Hver bruker, vert og adresse en sak eller en hendelse nevner, slås opp blant pr
 | En vert, en offentlig IP-adresse eller verten til en URL som en monitor sjekker | Den monitoren | Nøyaktig |
 | En privat IP-adresse som en monitor sjekker | Den monitoren | Mulig |
 | E-posten til et medlem | Det medlemmet | Nøyaktig |
-| Oppføringen en logglinje ble sendt under, for hendelsene som leses fra loggene dine | Den verten, klyngen, skyressursen, serverløse funksjonen eller tjenesten | Nøyaktig |
+| Oppføringen en logglinje ble sendt under, for hendelsene som leses fra loggene dine | Den verten, klyngen, OpenStack-skyen, skyressursen, serverløse funksjonen eller tjenesten | Nøyaktig |
 | Et rent brukernavn, en filhash eller en prosess | Ingenting: ingen oppføring er nøklet etter dem | - |
 
 - Et mulig treff viser **Mulig treff** ved siden av navnet og sier hvorfor. Det telles aldri på oppføringens side, og en hendelse saken erklærer, knyttes aldri til det.
@@ -94,7 +94,7 @@ Under oppføringene søker Tilkoblede signaler i loggene og sporene dine, i det 
 
 ## Hendelser en sak erklærer
 
-**Erklær hendelse** på en sak, eller et playbook-trinn som erklærer en, knytter hendelsen til vertene, Docker- og Podman-vertene, Kubernetes-klyngene, nettverksenhetene, skyressursene og tjenestene saken er nøyaktig koblet til. Et playbook-trinn som varsler vakten, knytter varselet det åpner, på samme måte; hvert varsel og hver hendelse som en deteksjonsregel eller et threat intelligence-treff åpner, knyttes til det treffet nøyaktig nevner, og hver som Data Security åpner, til datalageret den gjelder. Hendelsen vises på sidene deres, og eiernes regler gjelder for den, og feeden nevner saken og hva den ble knyttet til. Et mulig treff knyttes aldri, og det gjør heller ikke en monitor: en hendelse på en monitor kan endre statusen dens og vises på statussidene dens.
+**Erklær hendelse** på en sak, eller et playbook-trinn som erklærer en, knytter hendelsen til vertene, Docker- og Podman-vertene, Kubernetes-klyngene, OpenStack-skyene, nettverksenhetene, skyressursene og tjenestene saken er nøyaktig koblet til. Et playbook-trinn som varsler vakten, knytter varselet det åpner, på samme måte; hvert varsel og hver hendelse som en deteksjonsregel eller et threat intelligence-treff åpner, knyttes til det treffet nøyaktig nevner, og hver som Data Security åpner, til datalageret den gjelder. Hendelsen vises på sidene deres, og eiernes regler gjelder for den, og feeden nevner saken og hva den ble knyttet til. Et mulig treff knyttes aldri, og det gjør heller ikke en monitor: en hendelse på en monitor kan endre statusen dens og vises på statussidene dens.
 
 ## OneUptime AI
 

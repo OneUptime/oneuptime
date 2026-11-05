@@ -123,7 +123,7 @@ For a SQL Query monitor whose query returns a count, alert on a high count or a 
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-For a Database Health monitor, read one metric by indexing the whole `metrics` object — the series names contain dots, so they cannot go inside the braces:
+For a Database Health monitor, read one metric by putting its dotted series name inside the braces, or by indexing the whole `metrics` object — either works:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -14,7 +14,7 @@ VMware 监视器监视一个 vCenter——它的数据中心、集群、ESXi 主
 指标来自 vCenter 的 API，使用只读账户通过以下两种方式之一读取：
 
 - **VMware Agent**：一个带有 `vcenter` 接收器的 OpenTelemetry Collector，运行在能够访问 vCenter 的机器上。请参阅 [VMware 代理](/docs/telemetry/vmware)。
-- **探测器**：无需安装任何东西：在 OneUptime 中连接 vCenter，并选择能访问它的探测器。请参阅 [无需代理的 VMware](/docs/telemetry/vmware-agentless)。
+- **A probe**：无需安装任何东西：在 OneUptime 中连接 vCenter，并选择能访问它的探测器。请参阅 [无需代理的 VMware](/docs/telemetry/vmware-agentless)。
 
 两者都会在每个采集间隔(默认 2 分钟)发送相同的序列，并标记上 vCenter 的名称 `vmware.vcenter.name`。一个 vCenter 就是一个 vSphere 端点：一台 vCenter Server 或一台独立的 ESXi 主机。VMware 监视器绑定到一个 vCenter。它每分钟对该 vCenter 的指标运行一次查询，并将结果与其条件进行比较。
 

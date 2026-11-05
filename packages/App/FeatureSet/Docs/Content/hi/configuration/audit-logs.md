@@ -99,6 +99,7 @@ flowchart TB
 | इन्वेंटरी आइटम | `Inventory Item` |
 | कलेक्टर कॉन्फ़िग | `Collector Config` |
 | vCenter सर्वर | `vCenter` |
+| OpenStack क्लाउड, और उन पर चलने वाली जाँचें | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | पैकेट कैप्चर और उनके डाउनलोड | `Packet Capture` |
 | सुरक्षा केस और उनकी प्राथमिकताएँ व स्थितियाँ, प्लेबुक और उनके रन, संरक्षित एंटिटी, एंटिटी महत्व, और रीसेट किया गया एंटिटी जोखिम | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | नियम अपवाद | `Rule Exception` |

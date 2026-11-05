@@ -704,7 +704,7 @@ processors:
       # one is out. The collector image docker-compose.yml pins, its last number
       # raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.3"
+        value: "0.161.4"
         action: upsert
       # The prometheus receiver synthesizes service.name (the scrape job's name)
       # and service.instance.id on every batch. OneUptime routes batches by

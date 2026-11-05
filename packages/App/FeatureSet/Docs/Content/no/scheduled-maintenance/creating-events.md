@@ -75,7 +75,7 @@ To ting fyller ut skjemaet for deg underveis:
 
 ## Start fra en ressurs eller en mal
 
-På fanen **Planlagt vedlikehold** for en vert, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, et lagringssystem, en IoT-flåte, en database, en tjeneste eller en nettverkslokasjon åpner **Opprett planlagt vedlikeholdshendelse** det samme skjemaet med den ressursen allerede valgt under **Andre berørte ressurser**, og fanen viser hendelsene som berører den. Fanen for et inventarelement velger verten, tjenesten eller Kubernetes-klyngen elementet peker på.
+På fanen **Planlagt vedlikehold** for en vert, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, en OpenStack-sky, et lagringssystem, en IoT-flåte, en database, en tjeneste eller en nettverkslokasjon åpner **Opprett planlagt vedlikeholdshendelse** det samme skjemaet med den ressursen allerede valgt under **Andre berørte ressurser**, og fanen viser hendelsene som berører den. Fanen for et inventarelement velger verten, tjenesten eller Kubernetes-klyngen elementet peker på.
 
 **Opprett fra mal**, ved siden av opprettingsknappen, ber deg om å **Velg mal for planlagt vedlikehold** og åpner deretter skjemaet utfylt fra malen. Se [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates).
 

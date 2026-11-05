@@ -396,7 +396,7 @@ For en Database Health-monitor har uttrykket tilgang til:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-For å lese én metrikk i et uttrykk indekserer du hele `metrics`-objektet — serienavnene inneholder punktum og kan derfor ikke stå inne i krøllparentesene:
+For å lese én metrikk i et uttrykk skriver du serienavnet med punktum inne i krøllparentesene eller indekserer hele `metrics`-objektet — begge deler fungerer:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

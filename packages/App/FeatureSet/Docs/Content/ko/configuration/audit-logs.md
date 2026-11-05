@@ -99,6 +99,7 @@ flowchart TB
 | 인벤토리 항목 | `Inventory Item` |
 | 컬렉터 구성 | `Collector Config` |
 | vCenter 서버 | `vCenter` |
+| OpenStack 클라우드와 그에 대해 실행되는 점검 | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | 패킷 캡처와 그 다운로드 | `Packet Capture` |
 | 보안 케이스와 그 우선순위·상태, 플레이북과 그 실행, 보호 대상 엔터티, 엔터티 중요도, 누군가 초기화한 엔터티 위험 | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | 규칙 예외 | `Rule Exception` |

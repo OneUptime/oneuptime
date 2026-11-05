@@ -99,6 +99,7 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Éléments d'inventaire | `Inventory Item` |
 | Configurations du collecteur | `Collector Config` |
 | vCenter | `vCenter` |
+| Clouds OpenStack, et les vérifications exécutées sur eux | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Captures de paquets, et leurs téléchargements | `Packet Capture` |
 | Dossiers de sécurité et leurs priorités et statuts, playbooks et leurs exécutions, entités protégées, criticité des entités, et le risque d'une entité quand quelqu'un le réinitialise | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Exceptions de règle | `Rule Exception` |

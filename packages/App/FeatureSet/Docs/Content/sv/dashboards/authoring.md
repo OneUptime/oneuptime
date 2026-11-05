@@ -39,7 +39,7 @@ Mallarna, efter den kategori som väljaren listar dem under:
 | --- | --- |
 | Övervakning och APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | Incidenthantering | Incident Dashboard, Alert Dashboard |
-| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **Rekommenderade** innehåller Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard och Metrics Dashboard. En mall är en utgångspunkt, inte en koppling: när instrumentpanelen är skapad ändrar du den som du vill. Mallen uppdaterar den inte senare.
 

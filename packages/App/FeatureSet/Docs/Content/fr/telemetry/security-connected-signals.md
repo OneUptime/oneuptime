@@ -1,6 +1,6 @@
 # Signaux connectés
 
-Un dossier de sécurité dit quels utilisateurs, hôtes et adresses il concerne. Signaux connectés dit lesquels OneUptime connaît déjà - vos hôtes, hôtes de conteneurs, clusters Kubernetes, équipements réseau, ressources cloud, fonctions serverless, services, les moniteurs qui les vérifient, et membres - et ce qui se passait sur chacun autour du dossier : ses journaux, traces et métriques, les incidents et alertes ouverts sur lui, les moniteurs qui le surveillent et ce qui a changé sur lui. Il cherche aussi ces valeurs dans vos journaux et traces eux-mêmes : l'adresse d'un attaquant dans le journal d'accès d'un serveur web, un e-mail divulgué dans l'erreur d'une application. Dans l'autre sens, la page d'un hôte, d'un cluster, d'une ressource cloud, d'un service, d'un moniteur ou d'un membre dit ce qu'Événements de sécurité a trouvé à son sujet.
+Un dossier de sécurité dit quels utilisateurs, hôtes et adresses il concerne. Signaux connectés dit lesquels OneUptime connaît déjà - vos hôtes, hôtes de conteneurs, clusters Kubernetes, clouds OpenStack, équipements réseau, ressources cloud, fonctions serverless, services, les moniteurs qui les vérifient, et membres - et ce qui se passait sur chacun autour du dossier : ses journaux, traces et métriques, les incidents et alertes ouverts sur lui, les moniteurs qui le surveillent et ce qui a changé sur lui. Il cherche aussi ces valeurs dans vos journaux et traces eux-mêmes : l'adresse d'un attaquant dans le journal d'accès d'un serveur web, un e-mail divulgué dans l'erreur d'une application. Dans l'autre sens, la page d'un hôte, d'un cluster, d'une ressource cloud, d'un service, d'un moniteur ou d'un membre dit ce qu'Événements de sécurité a trouvé à son sujet.
 
 :::cards
 - [Où le voir](#où-le-voir): La page d'un dossier, l'onglet d'un événement, la page d'une entité, et les pages de ce qu'ils nomment.
@@ -32,7 +32,7 @@ OneUptime recherche chaque valeur parmi les enregistrements du projet, dit à qu
 - **Signaux connectés**, une page de chaque dossier de sécurité : ouvrez un dossier sous **Produits → Événements de sécurité → Dossiers de sécurité → Dossiers ouverts**, puis **Signaux connectés** après **Entités** dans son menu.
 - **Connecté**, un onglet de chaque événement de sécurité : ouvrez un événement sous **Produits → Événements de sécurité → Événements**. Il liste ce que l'événement nomme, dans l'heure qui l'entoure.
 - La page d'une entité, sous **Produits → Événements de sécurité → Risque des entités** : là où OneUptime connaît l'utilisateur, l'hôte ou l'adresse, autour de son dernier événement de sécurité.
-- Une carte **Sécurité** sur la page de chaque hôte, hôte Docker, hôte Podman, cluster Kubernetes, équipement réseau, ressource cloud, fonction serverless, service, moniteur, membre et élément d'inventaire : les dossiers de sécurité ouverts qui le nomment, combien d'événements de sécurité et de détections l'ont nommé au cours des 7 derniers jours, le plus grave d'entre eux, et son risque. **Ouvrir dans Événements de sécurité** l'y ouvre. La carte d'un moniteur porte sur les hôtes et les adresses qu'il vérifie.
+- Une carte **Sécurité** sur la page de chaque hôte, hôte Docker, hôte Podman, cluster Kubernetes, cloud OpenStack, équipement réseau, ressource cloud, fonction serverless, service, moniteur, membre et élément d'inventaire : les dossiers de sécurité ouverts qui le nomment, combien d'événements de sécurité et de détections l'ont nommé au cours des 7 derniers jours, le plus grave d'entre eux, et son risque. **Ouvrir dans Événements de sécurité** l'y ouvre. La carte d'un moniteur porte sur les hôtes et les adresses qu'il vérifie.
 - Une carte **Sécurité** sur la page d'un incident, quand un dossier de sécurité a déclaré l'incident (**Déclaré depuis**) ou que des dossiers ouverts nomment un hôte ou un cluster qu'il touche (**Dossiers ouverts nommant ce qu'il touche**).
 
 ## Comment une valeur est rapprochée
@@ -41,7 +41,7 @@ Chaque utilisateur, hôte et adresse qu'un dossier ou un événement nomme est r
 
 | Ce que le dossier ou l'événement nomme | Rapproché de | Certitude |
 | --- | --- | --- |
-| Un nom d'hôte ou de domaine identique au nom que signale un hôte, un hôte de conteneurs, un cluster ou un équipement réseau, ou un nom sur lequel répond une ressource cloud | Cet enregistrement | Exacte |
+| Un nom d'hôte ou de domaine identique au nom que signale un hôte, un hôte de conteneurs, un cluster, un cloud OpenStack ou un équipement réseau, ou un nom sur lequel répond une ressource cloud | Cet enregistrement | Exacte |
 | Le même nom, donné sans préciser qu'il s'agit d'un hôte | Cet enregistrement | Possible |
 | Une forme courte ou complète du nom d'un enregistrement, comme `web-1` et `web-1.acme.internal` | Cet enregistrement | Possible |
 | Une adresse IP publique qu'un seul hôte ou équipement réseau détient, ou sur laquelle une seule ressource cloud répond | Cet enregistrement | Exacte |
@@ -50,7 +50,7 @@ Chaque utilisateur, hôte et adresse qu'un dossier ou un événement nomme est r
 | Un hôte, une adresse IP publique ou l'hôte d'une URL qu'un moniteur vérifie | Ce moniteur | Exacte |
 | Une adresse IP privée qu'un moniteur vérifie | Ce moniteur | Possible |
 | L'adresse e-mail d'un membre | Ce membre | Exacte |
-| L'enregistrement sous lequel une ligne de journal a été envoyée, pour les événements lus dans vos journaux | Cet hôte, ce cluster, cette ressource cloud, cette fonction serverless ou ce service | Exacte |
+| L'enregistrement sous lequel une ligne de journal a été envoyée, pour les événements lus dans vos journaux | Cet hôte, ce cluster, ce cloud OpenStack, cette ressource cloud, cette fonction serverless ou ce service | Exacte |
 | Un simple nom d'utilisateur, une empreinte de fichier ou un processus | Rien : aucun enregistrement n'est indexé par eux | - |
 
 - Une correspondance possible affiche **Correspondance possible** à côté de son nom, et dit pourquoi. Elle n'est jamais comptée sur la page de l'enregistrement, et un incident que le dossier déclare n'y est jamais lié.
@@ -94,7 +94,7 @@ Sous les enregistrements, Signaux connectés cherche dans vos journaux et traces
 
 ## Incidents qu'un dossier déclare
 
-**Déclarer un incident** sur un dossier, ou l'étape d'un playbook qui en déclare un, lie l'incident aux hôtes, hôtes Docker et Podman, clusters Kubernetes, équipements réseau, ressources cloud et services auxquels le dossier est connecté de façon exacte. L'étape d'un playbook qui alerte l'astreinte lie de la même façon l'alerte qu'elle ouvre ; chaque alerte et chaque incident qu'ouvre une règle de détection ou une correspondance de renseignement sur les menaces est lié à ce que sa correspondance nomme de façon exacte, et chacun de ceux qu'ouvre Data Security au magasin de données qu'il concerne. L'incident apparaît sur leurs pages et les règles de leurs propriétaires s'y appliquent, et son fil nomme le dossier et ce à quoi il a été lié. Une correspondance possible n'est jamais liée, et un moniteur non plus : un incident sur un moniteur peut changer son statut et apparaître sur ses pages de statut.
+**Déclarer un incident** sur un dossier, ou l'étape d'un playbook qui en déclare un, lie l'incident aux hôtes, hôtes Docker et Podman, clusters Kubernetes, clouds OpenStack, équipements réseau, ressources cloud et services auxquels le dossier est connecté de façon exacte. L'étape d'un playbook qui alerte l'astreinte lie de la même façon l'alerte qu'elle ouvre ; chaque alerte et chaque incident qu'ouvre une règle de détection ou une correspondance de renseignement sur les menaces est lié à ce que sa correspondance nomme de façon exacte, et chacun de ceux qu'ouvre Data Security au magasin de données qu'il concerne. L'incident apparaît sur leurs pages et les règles de leurs propriétaires s'y appliquent, et son fil nomme le dossier et ce à quoi il a été lié. Une correspondance possible n'est jamais liée, et un moniteur non plus : un incident sur un moniteur peut changer son statut et apparaître sur ses pages de statut.
 
 ## OneUptime AI
 

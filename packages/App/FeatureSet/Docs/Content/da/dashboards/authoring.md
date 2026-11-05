@@ -39,7 +39,7 @@ Skabelonerne, efter den kategori, vælgeren viser dem under:
 | --- | --- |
 | Overvågning og APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | Hændelseshåndtering | Incident Dashboard, Alert Dashboard |
-| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **Anbefalet** rummer Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard og Metrics Dashboard. En skabelon er et udgangspunkt, ikke et link: når dashboardet er oprettet, ændrer du det, som du vil. Skabelonen opdaterer det ikke senere.
 
