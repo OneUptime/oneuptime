@@ -1,0 +1,30 @@
+{
+ "project": {
+  "domain": {
+   "id": "default",
+   "name": "Default"
+  },
+  "id": "8a5d2d8979d04b4fb3e5dd9a89b731b2",
+  "name": "oneuptime-checks"
+ },
+ "roles": [
+  {
+   "id": "506ec549e4cd4f29958de349e7185ecd",
+   "name": "reader"
+  },
+  {
+   "id": "81fdc22246d74183b9c97d3c551117d6",
+   "name": "member"
+  }
+ ],
+ "application_credential": {
+  "id": "78d39b3f3f8e4adc9d9cae6f130f7c79",
+  "name": "oneuptime-check",
+  "restricted": true
+ },
+ "is_admin_project": null,
+ "is_domain": false,
+ "methods": [
+  "application_credential"
+ ]
+}

@@ -1,0 +1,111 @@
+[
+  {
+    "runId": "20261105063341-711744",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:33:41.554Z",
+    "finishedAt": "2026-11-05T06:34:37.750Z",
+    "status": "Succeeded",
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 19
+      },
+      {
+        "step": "credential_check",
+        "status": "Passed",
+        "durationInMs": 39
+      },
+      {
+        "step": "prepare",
+        "status": "Passed",
+        "durationInMs": 433
+      },
+      {
+        "step": "janitor",
+        "status": "Passed",
+        "durationInMs": 0
+      },
+      {
+        "step": "security_group_create",
+        "status": "Passed",
+        "durationInMs": 330
+      },
+      {
+        "step": "server_create",
+        "status": "Passed",
+        "durationInMs": 364
+      },
+      {
+        "step": "server_active",
+        "status": "Passed",
+        "durationInMs": 16433
+      },
+      {
+        "step": "floating_ip_create",
+        "status": "Passed",
+        "durationInMs": 1236
+      },
+      {
+        "step": "ping",
+        "status": "Passed",
+        "durationInMs": 8044
+      },
+      {
+        "step": "volume_create",
+        "status": "Passed",
+        "durationInMs": 1127
+      },
+      {
+        "step": "volume_attach",
+        "status": "Passed",
+        "durationInMs": 13701
+      },
+      {
+        "step": "volume_detach",
+        "status": "Passed",
+        "durationInMs": 5181
+      },
+      {
+        "step": "volume_delete",
+        "status": "Passed",
+        "durationInMs": 3082
+      },
+      {
+        "step": "floating_ip_delete",
+        "status": "Passed",
+        "durationInMs": 424
+      },
+      {
+        "step": "server_delete",
+        "status": "Passed",
+        "durationInMs": 5555
+      },
+      {
+        "step": "security_group_delete",
+        "status": "Passed",
+        "durationInMs": 52
+      }
+    ],
+    "phases": {
+      "credential": "Passed",
+      "boot": "Passed",
+      "floating_ip": "Passed",
+      "volume": "Passed",
+      "cleanup": "Passed"
+    },
+    "janitor": {
+      "removed": [],
+      "remainingCount": 0,
+      "errors": []
+    },
+    "leftoverCount": 0,
+    "verifiedProjectId": "8a5d2d8979d04b4fb3e5dd9a89b731b2",
+    "verifiedProjectName": "oneuptime-checks",
+    "requestCount": 52,
+    "writeCount": 11,
+    "warnings": [
+      "Project oneuptime-checks also holds 1 server and 2 volumes this check did not make, so it is not a project of its own. They are not touched, but they share its quota."
+    ]
+  }
+]

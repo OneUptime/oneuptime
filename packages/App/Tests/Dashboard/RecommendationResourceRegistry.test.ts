@@ -1408,7 +1408,9 @@ describe("RecommendationResourceRegistry", () => {
       expect(context.openStackServices).toEqual([]);
       expect(
         idsOffered(context).filter((id: string): boolean => {
-          return /openstack-stack-|container|orchestration|heat|magnum/.test(id);
+          return (/openstack-stack-|container|orchestration|heat|magnum/).test(
+            id,
+          );
         }),
       ).toEqual([]);
       expect(
@@ -1436,10 +1438,14 @@ describe("RecommendationResourceRegistry", () => {
       const summary: unknown = { services: ["orchestration"] };
 
       expect(
-        idsOffered(await loadedContext(summary, OpenStackCollectionMethod.Probe)),
+        idsOffered(
+          await loadedContext(summary, OpenStackCollectionMethod.Probe),
+        ),
       ).toContain("openstack-orchestration-engine-down");
       expect(
-        idsOffered(await loadedContext(summary, OpenStackCollectionMethod.Agent)),
+        idsOffered(
+          await loadedContext(summary, OpenStackCollectionMethod.Agent),
+        ),
       ).not.toContain("openstack-orchestration-engine-down");
     });
 

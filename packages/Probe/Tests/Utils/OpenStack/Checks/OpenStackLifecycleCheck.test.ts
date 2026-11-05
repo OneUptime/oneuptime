@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { JSONObject } from "Common/Types/JSON";
 import {
   OpenStackLifecycleCheckJob,
@@ -195,6 +197,86 @@ const FIND_WHAT_TO_BOOT: Array<string> = [
   "GET /networking/v2.0/networks?limit=1000",
 ];
 
+/*
+ * What a real cloud was asked by this same code (Tests/Ops/openstack-e2e/checks-record.sh), so that
+ * these tests' stand-in cannot drift from what they stand in for. How many times a wait polled is up
+ * to the cloud, so a poll counts once, and an ID is only an ID.
+ */
+const FIXTURES_ROOT: string = path.resolve(
+  __dirname,
+  "../../../../../Common/Tests/Fixtures/OpenStack",
+);
+
+const RECORDED_RELEASES: Array<string> = fs
+  .readdirSync(FIXTURES_ROOT)
+  .filter((release: string): boolean => {
+    return fs.existsSync(
+      path.join(FIXTURES_ROOT, release, "checks", "healthy", "requests.jsonl"),
+    );
+  });
+
+const AN_ID: RegExp =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\{[a-z-]+\}/g;
+
+function asTheCloudSawIt(lines: Array<string>): Array<string> {
+  const collapsed: Array<string> = [];
+
+  for (const line of lines) {
+    const normal: string = line.replace(AN_ID, "{id}");
+
+    if (collapsed[collapsed.length - 1] !== normal) {
+      collapsed.push(normal);
+    }
+  }
+
+  return collapsed;
+}
+
+describe("what a real cloud was asked", () => {
+  test("there are recordings to hold these to", () => {
+    expect(RECORDED_RELEASES.length).toBeGreaterThan(0);
+  });
+
+  test.each(RECORDED_RELEASES)(
+    "%s: a whole run asks the same things, in the same order",
+    async (release: string) => {
+      const recorded: Array<string> = fs
+        .readFileSync(
+          path.join(
+            FIXTURES_ROOT,
+            release,
+            "checks",
+            "healthy",
+            "requests.jsonl",
+          ),
+          "utf8",
+        )
+        .split("\n")
+        .filter(Boolean)
+        .map((line: string): string => {
+          const request: { method: string; path: string } = JSON.parse(line);
+
+          return `${request.method} ${request.path}`;
+        });
+
+      const harness: Harness = createHarness();
+
+      oneRun(
+        await OpenStackLifecycleCheck.run(
+          lifecycleJob({
+            options: { isFloatingIpEnabled: true, isVolumeEnabled: true },
+          }),
+          harness.deps,
+        ),
+      );
+
+      expect(asTheCloudSawIt(harness.cloud.log)).toEqual(
+        asTheCloudSawIt(recorded),
+      );
+    },
+  );
+});
+
 describe("a whole run", () => {
   test("a plain boot: exactly these requests, in this order, and nothing left", async () => {
     const harness: Harness = createHarness();
@@ -271,7 +353,9 @@ describe("a whole run", () => {
       await OpenStackLifecycleCheck.run(lifecycleJob(), harness.deps),
     );
 
-    expect(run.warnings.join(" ")).toContain("also holds 1 server and 0 volumes");
+    expect(run.warnings.join(" ")).toContain(
+      "also holds 1 server and 0 volumes",
+    );
   });
 
   test("with a floating IP and a volume: exactly these requests, and nothing left", async () => {

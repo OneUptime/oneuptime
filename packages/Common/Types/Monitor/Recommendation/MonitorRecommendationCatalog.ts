@@ -493,8 +493,7 @@ function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> 
           });
         },
       });
-    },
-  );
+    });
 
   /*
    * What only a cloud's services say - a request no host could take, a lost message bus -

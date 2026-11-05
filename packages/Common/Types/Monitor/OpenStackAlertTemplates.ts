@@ -2247,8 +2247,7 @@ const containerInfraConductorDownTemplate: OpenStackAlertTemplate = {
       words: {
         incidentTitle: "[OpenStack] Magnum Conductor Down",
         incidentDescription: `Magnum lists an enabled magnum-conductor as down. Its API carries on answering, so nothing else says this, but with none left no cluster can be created, resized or deleted, and clusters in progress stop moving. Check openstack coe service list, then magnum-conductor's service and logs on the host named above, and its route to RabbitMQ. The incident resolves on its own once it is up again, or disabled.`,
-        criteriaName:
-          "Magnum Conductor Down - enabled magnum-conductor < 1",
+        criteriaName: "Magnum Conductor Down - enabled magnum-conductor < 1",
         criteriaDescription:
           "Triggers when Magnum lists an enabled magnum-conductor as down for the whole window.",
       },

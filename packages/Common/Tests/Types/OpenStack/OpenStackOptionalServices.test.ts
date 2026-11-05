@@ -38,13 +38,14 @@ function minutesLater(minutes: number): Date {
 }
 
 describe("every service is one a cloud always runs, or one it may not", () => {
-  test.each(Object.values(OpenStackServiceType))("%s is one or the other", (
-    service: OpenStackServiceType,
-  ) => {
-    expect(
-      CORE.includes(service) !== isOpenStackOptionalService(service),
-    ).toBe(true);
-  });
+  test.each(Object.values(OpenStackServiceType))(
+    "%s is one or the other",
+    (service: OpenStackServiceType) => {
+      expect(
+        CORE.includes(service) !== isOpenStackOptionalService(service),
+      ).toBe(true);
+    },
+  );
 
   test("the core six are nothing else", () => {
     expect(CORE.sort()).toEqual(
@@ -277,15 +278,21 @@ describe("when a service has left the cloud", () => {
       coreAnsweredAt: minutesLater(600),
       expected: true,
     },
-  ])("$why: $expected", (row: {
-    emptySince: Date | null;
-    coreAnsweredAt: Date | null;
-    expected: boolean;
-  }) => {
-    expect(
-      left({ emptySince: row.emptySince, coreAnsweredAt: row.coreAnsweredAt }),
-    ).toBe(row.expected);
-  });
+  ])(
+    "$why: $expected",
+    (row: {
+      emptySince: Date | null;
+      coreAnsweredAt: Date | null;
+      expected: boolean;
+    }) => {
+      expect(
+        left({
+          emptySince: row.emptySince,
+          coreAnsweredAt: row.coreAnsweredAt,
+        }),
+      ).toBe(row.expected);
+    },
+  );
 
   test("a stale window set short never takes fewer than three of its collections", () => {
     expect(OPENSTACK_OPTIONAL_SERVICE_LEFT_MINUTES).toBe(15);
