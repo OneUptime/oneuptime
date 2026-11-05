@@ -7,6 +7,7 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | Script | What it does |
 | --- | --- |
 | `estate.sh` | Builds a known estate: two projects with quotas, instances running, shut off and in `ERROR`, volumes available, attached and in `error`, a network, router and floating IPs. Every name starts with `ou-`. |
+| `quota-record.sh` | On the entries that say so: starts the exporter the agent starts for each project's quotas, with its flags, and records what it says of `estate.sh`'s projects, what the agent's collector would send of it, and what the `openstack` CLI says of the same projects. |
 | `start-instance-metrics.sh` | Starts `prometheus-libvirt-exporter`, pinned by digest, against the runner's libvirt, and turns on Ceilometer's own exporter (`[polling] enable_prometheus_exporter`). DevStack's Ceilometer plugin runs only its polling agent here, and stores nothing. |
 | `start-agent.sh` | Starts the OpenStack agent's pinned exporter and collector, with the real `agents/OpenStackAgent/otel-collector-config.yaml`, writing to a file in place of OneUptime. Beside it, the exporter's last non-alpha release, so the two can be compared. |
 | `access-matrix.sh` | Tests least privilege on the cloud's real policies: what an admin, a plain reader, the OneUptime monitoring role and an application credential limited by access rules can each read, that the last two cannot write, and what the agent's own exporter gets with each. Restarts the API services once, because access rules need `service_type` set on each. `merge-policy.py` merges the overrides over what a service's policy file already holds. |
@@ -33,6 +34,9 @@ access/matrix-default-policy.json    what each credential could read and write, 
 access/matrix.json                   the same, with the policy overrides applied
 access/matrix-access-rules.json      the same, for the access-rule credential
 access/exporter/<level>/<service>.prom  what the agent's exporter got with that credential
+quotas/exporter/<service>.prom              what the quota exporter said, one service at a time
+quotas/otlp/metrics.json                    what the collector would have sent of it
+quotas/cli.txt                              what the openstack CLI said of the same projects
 instance-metrics/scrape-01/libvirt.prom     what the libvirt exporter said, scrape by scrape
 instance-metrics/scrape-01/ceilometer.prom  what Ceilometer's exporter said at the same moment
 instance-metrics/scrape-01/at.txt           when, in seconds since the epoch

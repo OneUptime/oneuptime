@@ -51,6 +51,8 @@ AGENT_CONTAINER="oneuptime-openstack-agent"
 EXPORTER_CONTAINER="oneuptime-openstack-exporter"
 AGENT_SERVICE="oneuptime-openstack-agent"
 EXPORTER_SERVICE="oneuptime-openstack-exporter"
+QUOTA_EXPORTER_CONTAINER="oneuptime-openstack-quota-exporter"
+QUOTA_EXPORTER_SERVICE="oneuptime-openstack-quota-exporter"
 EXPORTER_SYSTEM_USER="oneuptime-openstack"
 
 while [ $# -gt 0 ]; do
@@ -518,6 +520,35 @@ else
   fi
 fi
 
+# Each project's quotas, from an exporter of their own, once someone turned them on.
+QUOTA_CLOUDS=$(agent_env OPENSTACK_QUOTA_CLOUDS)
+[ "$QUOTA_CLOUDS" = "[]" ] && QUOTA_CLOUDS=""
+QUOTA_EXPORTER_RUNNING=0
+if [ -z "$QUOTA_CLOUDS" ]; then
+  info "Project quotas are off, so a project's page shows none. OPENSTACK_COLLECT_QUOTAS=true in install.sh turns them on (README.md, \"What it costs\")."
+elif [ "$NATIVE" = 1 ]; then
+  QUOTA_STATE=$(systemctl is-active "$QUOTA_EXPORTER_SERVICE" 2>/dev/null || true)
+  if [ "$QUOTA_STATE" = "active" ]; then
+    pass "Service '$QUOTA_EXPORTER_SERVICE' is active"
+    QUOTA_EXPORTER_RUNNING=1
+  else
+    fail "Service '$QUOTA_EXPORTER_SERVICE' is NOT active: ${QUOTA_STATE:-unknown}"
+    add_finding "The agent asks for each project's quotas and nothing answers. Look at why: journalctl -u $QUOTA_EXPORTER_SERVICE -n 100 --no-pager"
+  fi
+else
+  QUOTA_STATE=$(docker inspect -f '{{.State.Status}}' "$QUOTA_EXPORTER_CONTAINER" 2>/dev/null)
+  if [ "$QUOTA_STATE" = "running" ]; then
+    pass "Quota exporter '$QUOTA_EXPORTER_CONTAINER' is running"
+    QUOTA_EXPORTER_RUNNING=1
+  elif [ -n "$QUOTA_STATE" ]; then
+    fail "Quota exporter '$QUOTA_EXPORTER_CONTAINER' is NOT running (state: $QUOTA_STATE)"
+    add_finding "The agent asks for each project's quotas and nothing answers. Check: docker logs $QUOTA_EXPORTER_CONTAINER"
+  else
+    fail "Quota exporter '$QUOTA_EXPORTER_CONTAINER' does not exist."
+    add_finding "The agent asks for each project's quotas and it never started. Run install.sh again with OPENSTACK_COLLECT_QUOTAS=true, which sets COMPOSE_PROFILES for it."
+  fi
+fi
+
 # clouds.yaml: readable by its owner alone, and that owner must be the user the
 # exporter runs as, or the exporter cannot read the credential and exits.
 CLOUDS_READABLE=0
@@ -647,6 +678,33 @@ for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
     fi
   fi
 done
+
+# What the hourly job asks of the quota exporter, for one region's Nova. It costs a call per
+# project, so only when someone turned them on, and it may take as long as the job allows.
+if [ "$QUOTA_EXPORTER_RUNNING" = 1 ]; then
+  QUOTA_ADDRESS=$(agent_env OPENSTACK_QUOTA_EXPORTER_ADDRESS)
+  if [ -z "$QUOTA_ADDRESS" ]; then
+    if [ "$NATIVE" = 1 ]; then
+      QUOTA_ADDRESS="127.0.0.1:9182"
+    else
+      QUOTA_ADDRESS="openstack-quota-exporter:9180"
+    fi
+  fi
+  QUOTA_REGION=$(printf '%s' "$QUOTA_CLOUDS" | sed 's/^\[//; s/\]$//' | tr ',' '\n' | sed "s/^[[:space:]\"']*//; s/[[:space:]\"']*\$//" | head -1)
+  QUOTA_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 300 "http://${QUOTA_ADDRESS}/probe?cloud=${QUOTA_REGION// /%20}&include_services=compute")
+  QUOTA_EXIT=$?
+  QUOTA_PROJECTS=$(printf '%s\n' "$QUOTA_OUT" | grep -c '^openstack_nova_limits_vcpus_max' 2>/dev/null || true)
+  if [ "$QUOTA_EXIT" != "0" ]; then
+    warn "Region $QUOTA_REGION: the quota exporter did not answer within five minutes."
+    detail "curl: $(printf '%s' "$QUOTA_OUT" | tr '\n' ' ' | head -c 200)"
+    add_finding "The quota exporter at $QUOTA_ADDRESS did not answer in time. Its job allows half an hour, so a cloud of many projects can be fine. Otherwise look at its log."
+  elif [ "$QUOTA_PROJECTS" = "0" ]; then
+    warn "Region $QUOTA_REGION: the quota exporter answers, with no project's limits."
+    add_finding "The quota exporter reads no project's limits in region $QUOTA_REGION. Look at its log: it may be refused, and the access check below says what this credential may read."
+  else
+    pass "Region $QUOTA_REGION: the quota exporter reads the limits of $QUOTA_PROJECTS projects."
+  fi
+fi
 
 # ----------------------------------------------------------------------------
 section "3. Keystone: DNS, TLS and the credential"
@@ -1127,7 +1185,7 @@ network|floating IPs|/v2.0/floatingips?limit=100&fields=project_id|floatingips|p
 network|IP availabilities|/v2.0/network-ip-availabilities|network_ip_availabilities|project_id|-|address pools, and the alerts on running out of addresses.|policy:neutron:"get_network_ip_availability": "role:admin or role:oneuptime_monitoring"
 network|security groups|/v2.0/security-groups?limit=100&fields=project_id&fields=shared|security_groups|project_id|-|security group counts for other projects.|code:Neutron
 network|ports|/v2.0/ports?limit=100&fields=project_id|ports|project_id|-|nothing by default: only the per-port series read every port, and they are off (README.md, "What it costs").|code:Neutron
-network|quotas|/v2.0/quotas|quotas|-|-|network quotas per project. The agent only reads them with --disable-metric=neutron-quota_network taken out (README.md, "What it costs").|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+network|quotas|/v2.0/quotas|quotas|-|-|network quotas per project. The agent only reads them with OPENSTACK_COLLECT_QUOTAS=true (README.md, "What it costs").|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 block-storage|volumes, all projects|/volumes/detail?all_tenants=1&limit=100|volumes|os-vol-tenant-attr:tenant_id|OpenStack-API-Version: volume 3.50|volumes in other projects on the Volumes page, and the alerts on them.|code:Cinder
 block-storage|services|/os-services|services|-|OpenStack-API-Version: volume 3.50|cinder-volume and cinder-scheduler state on the Services page and Needs attention, and the alerts on them.|text:Cinder's own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").
 block-storage|pools|/scheduler-stats/get_pools?detail=true|pools|-|OpenStack-API-Version: volume 3.50|storage pools, and the alerts on a filling pool.|text:Cinder's own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").

@@ -13,6 +13,7 @@ import MonitorStepOpenStackMonitor, {
 } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
+  OPENSTACK_QUOTA_EXPORTER_READS,
   OpenStackMetricDefinition,
   getAllOpenStackMetricCategories,
   getAllOpenStackMetrics,
@@ -462,13 +463,34 @@ describe("OpenStackMetricCatalog", () => {
         return Boolean(metricCase[1].offByDefault);
       }),
     )(
-      "%s, off by default, names the line the agent has and says to delete it",
+      "%s, off by default, says how to turn it on",
       (_name: string, metric: OpenStackMetricDefinition) => {
         expect(DISABLED_METRICS).toContain(metric.offByDefault);
-        expect(metric.description).toContain(
-          `--disable-metric=${metric.offByDefault}`,
-        );
         expect(metric.description).not.toContain("--disable-slow-metrics");
+
+        if (metric.fromQuotaExporter) {
+          // Not by deleting the line, which would read it every two minutes as well.
+          expect(metric.description).toContain("OPENSTACK_COLLECT_QUOTAS=true");
+          expect(metric.description).not.toContain("--disable-metric");
+        } else {
+          expect(metric.description).toContain(
+            `--disable-metric=${metric.offByDefault}`,
+          );
+        }
+      },
+    );
+
+    test.each(OPENSTACK_QUOTA_EXPORTER_READS)(
+      "the quota exporter reads what --disable-metric=%s leaves out of the main one, and turns off the rest",
+      (disabled: string) => {
+        const quotaExporter: string = COMPOSE.substring(
+          COMPOSE.indexOf("  openstack-quota-exporter:\n"),
+          COMPOSE.indexOf("  # The largest clouds' path"),
+        );
+
+        expect(quotaExporter.length).toBeGreaterThan(0);
+        expect(DISABLED_METRICS).toContain(disabled);
+        expect(quotaExporter).not.toContain(`- --disable-metric=${disabled}\n`);
       },
     );
 

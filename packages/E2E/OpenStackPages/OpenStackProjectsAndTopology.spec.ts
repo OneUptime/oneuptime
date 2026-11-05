@@ -46,18 +46,18 @@ test.describe("Projects without quota data", () => {
     const setup: Locator = page.getByTestId("openstack-quota-setup");
     await expect(setup).toBeVisible();
     await expect(setup).toContainText("Quotas are not being read");
-    await expect(setup).toContainText("--disable-metric=nova-limits_vcpus_max");
-    await expect(setup).toContainText("--disable-metric=neutron-quota_network");
+    await expect(setup).toContainText("OPENSTACK_COLLECT_QUOTAS=true");
+    await expect(setup).not.toContainText("--disable-metric");
     await expect(setup).toContainText("Full view credential");
     await expect(page.getByTestId("openstack-quota-setup-probe")).toHaveCount(
       0,
     );
     await expect(page.getByTestId("openstack-quota-cost")).toContainText(
-      "four API calls per project",
+      "four API calls per project and region",
     );
     // Its own cloud's number, not a general one.
     await expect(page.getByTestId("openstack-quota-cost")).toContainText(
-      "calls on this cloud",
+      "calls in each region of this cloud",
     );
 
     await screenshot(page, "projects-no-quota-1280");

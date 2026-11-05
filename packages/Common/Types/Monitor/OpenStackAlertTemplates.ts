@@ -1846,7 +1846,7 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
   id: "openstack-project-quota-nearly-reached",
   name: "Project Quota Nearly Reached",
   summary: `A project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of a quota.`,
-  description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 10 minutes (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they read the API once per project on every collection, so this template stays quiet until you turn them on: delete the --disable-metric=nova-limits_vcpus_max and --disable-metric=cinder-limits_volume_max_gb lines from the exporter's command in docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, and restart the exporter. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
+  description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 3 hours, which is three of the hourly readings these series have (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they cost API calls per project, so this template stays quiet until you turn them on: run the agent's install.sh again with OPENSTACK_COLLECT_QUOTAS=true, or on a cloud a probe reads, turn on Project limits. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
   category: "Projects",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -1883,6 +1883,8 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
     return buildCeilingStep({
       args,
       service: OpenStackServiceType.Compute,
+      // Three of the agent's hourly readings, as every template reads three of its series'.
+      rollingTime: RollingTime.Past3Hours,
       groupByAttributeKeys: PROJECT_GROUP,
       queries: [
         limit("vcpus_used", "openstack_nova_limits_vcpus_used"),

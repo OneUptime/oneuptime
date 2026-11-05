@@ -22,7 +22,7 @@ const PORTS_OFF: string = translationKey(
   "Ports are not counted, by choice: the list behind the count can saturate Neutron, so the agent leaves it off. Delete the --disable-metric=neutron-ports line from the exporter to count them.",
 );
 const GROUPS_BY_PROJECT_OFF: string = translationKey(
-  "Counted per region. Per project, these come from Neutron's quotas, which the agent leaves off: delete the --disable-metric=neutron-quota_network line from the exporter to see them.",
+  "Counted per region. Per project, these come from Neutron's quotas, which the agent leaves off: run its install.sh again with OPENSTACK_COLLECT_QUOTAS=true to see them.",
 );
 
 function sum(readings: Array<OpenStackLatestReading>): number {
