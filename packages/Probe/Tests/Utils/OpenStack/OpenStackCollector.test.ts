@@ -16,7 +16,10 @@ import {
   OpenStackCollectionReport,
   OpenStackServiceSummary,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   BACKOFF_BASE_IN_MS,
   REFUSED_CREDENTIAL_BACKOFF_BASE_IN_MS,
@@ -162,8 +165,10 @@ describe("a healthy cloud", () => {
     );
     expect(report.summary?.datapointCount).toBeGreaterThan(100);
 
-    for (const service of Object.values(OpenStackServiceType)) {
-      expect(summaryOf(report, service)?.outcome).toBe("Succeeded");
+    for (const service of OPENSTACK_SERVICES_EVERY_CLOUD_RUNS) {
+      expect(summaryOf(report, service as OpenStackServiceType)?.outcome).toBe(
+        "Succeeded",
+      );
     }
   });
 

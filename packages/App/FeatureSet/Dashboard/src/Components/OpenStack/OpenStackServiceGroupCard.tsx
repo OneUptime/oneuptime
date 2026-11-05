@@ -182,7 +182,9 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
             adminState={row.adminState}
             disabledReason={row.disabledReason}
             reasons={
-              isForcedDown ? [{ text: OPENSTACK_REASON_FORCED_DOWN }] : undefined
+              isForcedDown
+                ? [{ text: OPENSTACK_REASON_FORCED_DOWN }]
+                : undefined
             }
           />
         </div>

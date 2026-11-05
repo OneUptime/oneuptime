@@ -400,7 +400,9 @@ export const OPENSTACK_BARE_METAL_STATE_PRESETS: Array<OpenStackStatePreset> = [
     value: "failed",
     label: LABEL_FAILED,
     getQuery: (): Query<OpenStackResource> => {
-      return { status: new Includes(Array.from(OPENSTACK_BARE_METAL_ERROR_STATES)) };
+      return {
+        status: new Includes(Array.from(OPENSTACK_BARE_METAL_ERROR_STATES)),
+      };
     },
   },
   {

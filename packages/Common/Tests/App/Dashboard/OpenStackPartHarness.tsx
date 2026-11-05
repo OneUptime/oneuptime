@@ -23,6 +23,7 @@ import {
 } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import { OpenStackCountRow } from "../../../Types/OpenStack/OpenStackCounts";
 import {
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -35,7 +36,12 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
+import {
+  canOpenStackBareMetalNodeTakeAnInstance,
+  getOpenStackShortHostName,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeInMaintenance,
+} from "../../../Types/OpenStack/OpenStackHealthRules";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 /*
@@ -263,6 +269,24 @@ function blastRadiusOf(body: JSONObject): OpenStackBlastRadius {
       projectNames,
     });
   }
+  if (part.kind === OpenStackResourceKind.BareMetalNode) {
+    return buildOpenStackBlastRadius({
+      counts: [
+        {
+          count: "instanceCount",
+          byProject: byProject(
+            server.rows.filter((row: Row): boolean => {
+              return (
+                row.kind === OpenStackResourceKind.Instance &&
+                row.hypervisorName === part.externalId
+              );
+            }),
+          ),
+        },
+      ],
+      projectNames,
+    });
+  }
   if (part.kind === OpenStackResourceKind.Router) {
     return buildOpenStackBlastRadius({
       counts: [
@@ -304,10 +328,96 @@ function attentionRows(): Array<Row> {
         );
       case OpenStackResourceKind.Image:
         return OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status || "");
+      case OpenStackResourceKind.BareMetalNode:
+        return (
+          isOpenStackBareMetalNodeInError(row.status) ||
+          OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(row.status || "") ||
+          isOpenStackBareMetalNodeInMaintenance(row.adminState) ||
+          row.status === "active"
+        );
       default:
         return false;
     }
   });
+}
+
+// What the server's statement counts, by the same rules.
+function bareMetalClasses(body: JSONObject): Array<JSONObject> {
+  const classes: Map<string, JSONObject> = new Map();
+  for (const row of server.rows) {
+    if (
+      row.kind !== OpenStackResourceKind.BareMetalNode ||
+      (body["regionName"] && row.regionName !== body["regionName"])
+    ) {
+      continue;
+    }
+    const facts: JSONObject = (row.facts as JSONObject) || {};
+    const resourceClass: string | null =
+      (facts["resourceClass"] as string) || null;
+    const key: string = resourceClass || "";
+    const one: Record<string, number | string | null> = (classes.get(key) as
+      | Record<string, number | string | null>
+      | undefined) || {
+      resourceClass,
+      nodeCount: 0,
+      availableCount: 0,
+      deployedCount: 0,
+      maintenanceCount: 0,
+      failedCount: 0,
+    };
+    const add: (name: string, is: boolean) => void = (
+      name: string,
+      is: boolean,
+    ): void => {
+      one[name] = ((one[name] as number) || 0) + (is ? 1 : 0);
+    };
+    add("nodeCount", true);
+    add(
+      "availableCount",
+      canOpenStackBareMetalNodeTakeAnInstance({
+        status: row.status,
+        adminState: row.adminState,
+        powerState: (facts["powerState"] as string) || null,
+        isRetired: facts["isRetired"] === true,
+      }),
+    );
+    add("deployedCount", row.status === "active");
+    add(
+      "maintenanceCount",
+      isOpenStackBareMetalNodeInMaintenance(row.adminState),
+    );
+    add("failedCount", isOpenStackBareMetalNodeInError(row.status));
+    classes.set(key, one as unknown as JSONObject);
+  }
+  return Array.from(classes.values());
+}
+
+function inventorySummary(body: JSONObject): JSONObject {
+  const rows: Array<Row> = server.rows.filter((row: Row): boolean => {
+    return !body["regionName"] || row.regionName === body["regionName"];
+  });
+  const countOf: (kind: OpenStackResourceKind) => number = (
+    kind: OpenStackResourceKind,
+  ): number => {
+    return rows.filter((row: Row): boolean => {
+      return row.kind === kind;
+    }).length;
+  };
+  return {
+    regionCount: 1,
+    hypervisorCount: countOf(OpenStackResourceKind.Hypervisor),
+    instanceCount: countOf(OpenStackResourceKind.Instance),
+    serviceCount: countOf(OpenStackResourceKind.Service),
+    bareMetalNodeCount: countOf(OpenStackResourceKind.BareMetalNode),
+    bareMetalProviderCount: countOf(OpenStackResourceKind.PlacementProvider),
+    services: rows
+      .filter((row: Row): boolean => {
+        return row.kind === OpenStackResourceKind.Api;
+      })
+      .map((row: Row): string => {
+        return row.name as string;
+      }),
+  };
 }
 
 function countsOf(body: JSONObject): Array<OpenStackCountRow> {
@@ -478,6 +588,10 @@ export function resetServer(): void {
         };
       case "blast-radius":
         return { data: blastRadiusOf(body) };
+      case "inventory-summary":
+        return { data: inventorySummary(body) };
+      case "bare-metal-classes":
+        return { data: { classes: bareMetalClasses(body) } };
       case "counts":
         return { data: { rows: countsOf(body) } };
       case "domain-projects":

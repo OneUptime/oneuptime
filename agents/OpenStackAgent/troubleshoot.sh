@@ -1216,8 +1216,7 @@ block-storage|volume types|/types|volume_types|-|OpenStack-API-Version: volume 3
 image|images|/v2/images?limit=100|images|owner|-|private images in other projects.|text:Glance shows any credential the public images and its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|load balancers|/v2/lbaas/loadbalancers?limit=100&fields=project_id|loadbalancers|project_id|-|load balancers in other projects.|text:Octavia shows a project reader its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|amphorae|/v2/octavia/amphorae?limit=100|amphorae|-|-|amphorae.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
-baremetal|nodes|/v1/nodes?limit=100&fields=uuid,owner|nodes|owner?|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes other projects own.|text:Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy, or system scope, which the agent can use for Ironic alone (README.md, "Bare metal").
-baremetal|conductors|/v1/conductors|conductors|-|X-OpenStack-Ironic-API-Version: 1.82|Ironic's conductors on the Services page. The exporter has no series for them, so only a probe reads them.|text:Ironic refuses a project this list unless its policy says otherwise (baremetal:conductor:get). Nodes read without it.
+baremetal|nodes|/v1/nodes/detail?limit=100|nodes|owner?|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes other projects own.|text:Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy, or system scope (README.md, "Bare metal").
 READS
     check_project_holdings "$REGION"
   done

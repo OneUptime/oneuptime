@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import Host from "Common/Models/DatabaseModels/Host";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import { readOpenStackInventories } from "Common/Types/OpenStack/OpenStackCapacity";
 import {
@@ -35,11 +37,17 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   getOpenStackAttentionItems,
   getOpenStackBareMetalPowerState,
 } from "../Utils/OpenStackHealth";
-import { fetchOpenStackRow, fetchOpenStackRows } from "../Utils/OpenStackPartData";
+import {
+  fetchOpenStackHostOf,
+  fetchOpenStackRow,
+  fetchOpenStackRows,
+} from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_BARE_METAL_NODE_ALERT_TEMPLATE_IDS,
   getOpenStackPartExplanation,
@@ -67,6 +75,14 @@ const NO_REASON_FROM_THE_EXPORTER: string = translationKey(
   "The agent's exporter doesn't carry why a node failed, and Ironic empties its last_error within about a minute. Run openstack baremetal node show for this node straight away, then look in the conductor's log. A probe reads last_error and keeps the last one it saw.",
 );
 
+const STOPPED_NOTICE: string = translationKey(
+  "This node's power is off because someone stopped the instance on it, which is planned. An alert reads one series and can't tell: Bare Metal Power State Unexpected fires for this too.",
+);
+
+const MAINTENANCE_NOTICE: string = translationKey(
+  "Someone put this node in maintenance, which is planned, so nothing says it needs attention until it has been there a week.",
+);
+
 const REASON_EMPTIED: string = translationKey(
   "Ironic has emptied last_error since, as it does within about a minute, so this is what it last said while this was read.",
 );
@@ -86,11 +102,20 @@ const NOT_ON_PLACEMENT_NOTICE: string = translationKey(
 interface BareMetalReads {
   instance: OpenStackResource | null;
   provider: OpenStackResource | null;
+  // OneUptime's agent on this machine, if a node's name is a host's, and only one's.
+  host: Host | null;
 }
 
 function factText(row: OpenStackResource, name: string): string {
   return getOpenStackFactText(row, name);
 }
+
+const WORDS_YES: string = translationKey("Yes");
+const WORDS_NO: string = translationKey("No");
+const WORDS_NONE: string = translationKey("None");
+const WORDS_POWER_NOT_KNOWN: string = translationKey(
+  "Not known: nothing has set it yet",
+);
 
 function dateText(value: string): string {
   return value
@@ -103,6 +128,9 @@ const NodeOverview: FunctionComponent<{
   row: OpenStackResource;
 }> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
   const translator: Translator = useTranslator();
+  const say: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
   const isFromProbe: boolean = Boolean(factText(row, "driver"));
@@ -113,11 +141,12 @@ const NodeOverview: FunctionComponent<{
    * Ironic's side. What Placement holds of it is its own row, keyed by region. No recording holds
    * an instance on a node yet, so this join is from Nova's driver's source.
    */
-  const reads: OpenStackRead<BareMetalReads> = useOpenStackRead<BareMetalReads>(
-    async () => {
-      const [instances, provider]: [
+  const reads: OpenStackRead<BareMetalReads> =
+    useOpenStackRead<BareMetalReads>(async () => {
+      const [instances, provider, host]: [
         Array<OpenStackResource>,
         OpenStackResource | null,
+        Host | null,
       ] = await Promise.all([
         fetchOpenStackRows({
           openStackCloudId: part.openStackCloudId,
@@ -130,11 +159,18 @@ const NodeOverview: FunctionComponent<{
           kind: OpenStackResourceKind.PlacementProvider,
           externalId: `${row.regionName || "default"}/${nodeId}`,
         }),
+        // Supplementary: the page says the same of the node, with or without its host.
+        row.name
+          ? fetchOpenStackHostOf({
+              openStackCloudId: part.openStackCloudId,
+              machineName: row.name,
+            }).catch((): null => {
+              return null;
+            })
+          : Promise.resolve(null),
       ]);
-      return { instance: instances[0] || null, provider };
-    },
-    [nodeId, part.refreshToken],
-  );
+      return { instance: instances[0] || null, provider, host };
+    }, [nodeId, part.refreshToken]);
 
   const instance: OpenStackResource | null = reads.data?.instance || null;
   const instanceId: string =
@@ -180,24 +216,22 @@ const NodeOverview: FunctionComponent<{
     {
       key: "power-state",
       label: "Power State",
-      value:
-        powerState ||
-        translator.translateText("Not known: nothing has set it yet"),
+      value: powerState || say(WORDS_POWER_NOT_KNOWN),
       description:
         "An empty power state is what Ironic reads until something has set it, and Nova won't schedule on one.",
     },
     {
       key: "can-take-an-instance",
       label: "Can Take an Instance",
-      value: translator.translateText(
+      value: say(
         canOpenStackBareMetalNodeTakeAnInstance({
           status: row.status,
           adminState: row.adminState,
           powerState,
           isRetired: getOpenStackFact(row, "isRetired") === true,
         })
-          ? "Yes"
-          : "No",
+          ? WORDS_YES
+          : WORDS_NO,
       ),
       description:
         "What Nova's Ironic driver asks: in available, out of maintenance, with a power state it can read, and not retired.",
@@ -205,7 +239,7 @@ const NodeOverview: FunctionComponent<{
     {
       key: "maintenance",
       label: "Maintenance",
-      value: translator.translateText(isInMaintenance ? "Yes" : "No"),
+      value: say(isInMaintenance ? WORDS_YES : WORDS_NO),
     },
   ];
 
@@ -221,7 +255,7 @@ const NodeOverview: FunctionComponent<{
   detailRows.push({
     key: "resource-class",
     label: "Resource Class",
-    value: resourceClass || translator.translateText("None"),
+    value: resourceClass || say(WORDS_NONE),
     description: "What a flavor asks for to be put on this node.",
   });
 
@@ -229,7 +263,7 @@ const NodeOverview: FunctionComponent<{
     detailRows.push({
       key: "retired",
       label: "Retired",
-      value: factText(row, "retiredReason") || translator.translateText("Yes"),
+      value: factText(row, "retiredReason") || say(WORDS_YES),
     });
   }
 
@@ -245,7 +279,11 @@ const NodeOverview: FunctionComponent<{
 
   addIfSaid("driver", "Driver", factText(row, "driver"));
   addIfSaid("conductor", "Conductor", factText(row, "conductor"));
-  addIfSaid("conductor-group", "Conductor Group", factText(row, "conductorGroup"));
+  addIfSaid(
+    "conductor-group",
+    "Conductor Group",
+    factText(row, "conductorGroup"),
+  );
   addIfSaid(
     "target-provision-state",
     "Going To (Provision)",
@@ -271,6 +309,26 @@ const NodeOverview: FunctionComponent<{
           className={LINK_CLASS_NAME}
         >
           <bdi>{instance?.name || instanceId}</bdi>
+        </Link>
+      ),
+    });
+  }
+
+  if (reads.data?.host?.id) {
+    detailRows.push({
+      key: "host",
+      label: "Host",
+      description:
+        "OneUptime's agent on this machine, when exactly one host goes by this node's name.",
+      value: (
+        <Link
+          to={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOST_VIEW] as Route,
+            { modelId: reads.data.host.id },
+          )}
+          className={LINK_CLASS_NAME}
+        >
+          <bdi>{reads.data.host.name || reads.data.host.hostIdentifier}</bdi>
         </Link>
       ),
     });
@@ -329,7 +387,7 @@ const NodeOverview: FunctionComponent<{
       placementRows.push({
         key: resourceClassName,
         label: resourceClassName,
-        value: translator.translateText(
+        value: translator.translateTemplate(
           "{{total}} in all, {{reserved}} reserved, {{used}} in use",
           {
             total: `${inventory.total}`,
@@ -360,9 +418,7 @@ const NodeOverview: FunctionComponent<{
 
       {isStopped ? (
         <OpenStackPartNotice testId="openstack-bare-metal-node-stopped">
-          {translator.translateText(
-            "This node's power is off because someone stopped the instance on it, which is planned. An alert reads one series and can't tell: Bare Metal Power State Unexpected fires for this too.",
-          )}
+          {say(STOPPED_NOTICE)}
         </OpenStackPartNotice>
       ) : (
         <></>
@@ -370,9 +426,7 @@ const NodeOverview: FunctionComponent<{
 
       {isInMaintenance && attention.length === 0 ? (
         <OpenStackPartNotice testId="openstack-bare-metal-node-maintenance">
-          {translator.translateText(
-            "Someone put this node in maintenance, which is planned, so nothing says it needs attention until it has been there a week.",
-          )}
+          {say(MAINTENANCE_NOTICE)}
           {row.disabledReason ? (
             <>
               {" "}
@@ -425,15 +479,16 @@ const NodeOverview: FunctionComponent<{
           tone={isFailed ? "warning" : "neutral"}
         >
           <div className="font-medium">
-            {translator.translateText("What Ironic last said, at {{time}}", {
-              time: dateText(lastErrorReadAt),
-            })}
+            {translator.translateTemplate(
+              "What Ironic last said, at {{time}}",
+              {
+                time: dateText(lastErrorReadAt),
+              },
+            )}
           </div>
           <bdi className="break-words">{lastError}</bdi>
           {isFromProbe ? (
-            <div className="mt-1 text-xs">
-              {translator.translateText(REASON_EMPTIED)}
-            </div>
+            <div className="mt-1 text-xs">{say(REASON_EMPTIED)}</div>
           ) : (
             <></>
           )}
@@ -512,13 +567,17 @@ const OpenStackCloudBareMetalNodeDetail: FunctionComponent<
     if (isOpenStackBareMetalNodeInMaintenance(part.row.adminState)) {
       badges.push({
         key: "maintenance",
-        label: translator.translateText("In maintenance"),
+        label: translator.translateText("In maintenance") || "In maintenance",
         tone: "warning",
       });
     }
     const resourceClass: string = factText(part.row, "resourceClass");
     if (resourceClass) {
-      badges.push({ key: "resource-class", label: resourceClass, tone: "neutral" });
+      badges.push({
+        key: "resource-class",
+        label: resourceClass,
+        tone: "neutral",
+      });
     }
   }
 

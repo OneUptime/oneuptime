@@ -8,11 +8,7 @@ import {
 } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { fetchOpenStackRows } from "../../Pages/OpenStack/Utils/OpenStackPartData";
 import {
   OpenStackInventorySummary,
@@ -22,7 +18,10 @@ import { formatOpenStackDuration } from "../../Pages/OpenStack/Utils/OpenStackHe
 import OpenStackPartNotice from "./Part/OpenStackPartNotice";
 import useIsOpenStackProbeCollected from "./Part/UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./Part/UseOpenStackRead";
-import { useOpenStackRegion, OpenStackRegionState } from "./OpenStackRegionContext";
+import {
+  useOpenStackRegion,
+  OpenStackRegionState,
+} from "./OpenStackRegionContext";
 
 /*
  * What this page can and can't see of Ironic, said before its numbers, because they would be

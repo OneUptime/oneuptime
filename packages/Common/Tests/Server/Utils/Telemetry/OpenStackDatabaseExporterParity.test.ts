@@ -242,9 +242,17 @@ describe("the database exporter's series, name by name", () => {
       "openstack_cinder_pool_capacity_free_gb",
       "openstack_cinder_pool_capacity_total_gb",
       "openstack_cinder_snapshot_gb",
+      // Ironic isn't in that exporter: the agent reads it through the API, as it does the pools.
+      "openstack_ironic_conductor_state",
+      "openstack_ironic_node",
+      "openstack_ironic_node_provision_updated_at",
+      "openstack_ironic_node_updated_at",
+      "openstack_ironic_up",
       "openstack_neutron_quota_floatingip",
       "openstack_neutron_quota_network",
       "openstack_neutron_quota_port",
+      // Only a probe asks Placement about a flavor.
+      "openstack_placement_flavor_fits",
     ]);
   });
 });

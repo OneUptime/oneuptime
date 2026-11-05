@@ -27,7 +27,7 @@ function countText(
   label: string,
   count: number,
 ): string {
-  return `${translator.translateText(label)}: ${translator.formatNumber(count)}`;
+  return `${translator.translateText(label) || label}: ${translator.formatNumber(count)}`;
 }
 
 const OpenStackBareMetalClassesCard: FunctionComponent<ComponentProps> = (

@@ -956,7 +956,11 @@ const BARE_METAL_NODE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
       if (!isOpenStackBareMetalNodeInMaintenance(row.adminState)) {
         return "";
       }
-      return row.disabledReason || translateText("In maintenance");
+      return (
+        row.disabledReason ||
+        translateText("In maintenance") ||
+        "In maintenance"
+      );
     },
   }),
   getOpenStackFactColumn({

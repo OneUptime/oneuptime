@@ -1,5 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
-import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   OpenStackCatalogService,
   findOpenStackEndpoint,
@@ -63,12 +66,13 @@ describe("what the catalog says", () => {
 
     expect(getOpenStackCatalogRegions(catalog)).toEqual(["RegionOne"]);
 
-    for (const service of Object.values(OpenStackServiceType)) {
+    // A recording of a cloud runs what every cloud does, and none of what a cloud may not.
+    for (const service of OPENSTACK_SERVICES_EVERY_CLOUD_RUNS) {
       expect({
         service,
         url: findOpenStackEndpoint({
           catalog,
-          service,
+          service: service as OpenStackServiceType,
           regionName: "RegionOne",
           endpointInterface: "public",
         })?.startsWith("https://openstack.example/"),

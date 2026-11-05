@@ -250,7 +250,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
             link={{
               title: "Nodes",
               to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES] as Route,
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES
+                ] as Route,
                 { modelId: props.modelId },
               ),
             }}

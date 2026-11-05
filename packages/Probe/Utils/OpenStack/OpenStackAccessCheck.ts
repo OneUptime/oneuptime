@@ -334,29 +334,21 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       fix: `Glance shows any credential the public images and its own. To read every project's: ${USE_FULL_VIEW}.`,
     },
     /*
-     * Where a cloud has Ironic. A project sees the nodes it owns, and is refused the conductors:
-     * recorded on DevStack. By Ironic's default policy only a system-scoped credential reads them
-     * all, and a probe's cannot be one, because it reads Nova's lists through the same credential.
+     * Where a cloud has Ironic. A project sees the nodes it owns: recorded on DevStack. Only the
+     * count of what comes back is kept of this answer, and not its driver_info. By Ironic's default
+     * policy only a system-scoped credential reads them all, and a probe's cannot be one, because
+     * it reads Nova's lists through the same credential. The Services page says what its refusal
+     * of the conductors means, once a collection has read them.
      */
     {
       service: OpenStackServiceType.BareMetal,
       read: "nodes",
-      path: "/v1/nodes",
-      // Ironic reads this as one list with commas in it, and refuses it repeated.
-      query: { limit: "100", fields: "uuid,owner" },
+      path: "/v1/nodes/detail",
+      query: { limit: "100" },
       key: "nodes",
       projectField: "owner?",
       goesWithout: "bare metal nodes other projects own.",
-      fix: "Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy, or system scope, which only the OpenStack Agent can use for Ironic alone.",
-    },
-    {
-      service: OpenStackServiceType.BareMetal,
-      read: "conductors",
-      path: "/v1/conductors",
-      key: "conductors",
-      projectField: "-",
-      goesWithout: "Ironic's conductors on the Services page.",
-      fix: "Ironic refuses a project this list unless its policy says otherwise (baremetal:conductor:get). Nodes read without it.",
+      fix: "Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy.",
     },
   ];
 

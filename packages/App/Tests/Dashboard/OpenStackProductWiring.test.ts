@@ -137,6 +137,8 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["RouterDetail.tsx", "OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL"],
   ["FloatingIps.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IPS"],
   ["FloatingIpDetail.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL"],
+  ["BareMetalNodes.tsx", "OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES"],
+  ["BareMetalNodeDetail.tsx", "OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL"],
   ["NetworkAgents.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS"],
   ["NetworkAgentDetail.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL"],
   ["Volumes.tsx", "OPENSTACK_CLOUD_VIEW_VOLUMES"],

@@ -315,7 +315,10 @@ function getCountChips(
       key: "bare-metal-nodes",
       icon: IconProp.Server,
       label: translator.translatePlural(
-        { one: "{{count}} bare metal node", other: "{{count}} bare metal nodes" },
+        {
+          one: "{{count}} bare metal node",
+          other: "{{count}} bare metal nodes",
+        },
         summary.bareMetalNodeCount,
       ),
       page: PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,

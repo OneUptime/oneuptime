@@ -171,6 +171,9 @@ const ROW_OF = {
   "image:images": (project, visibility = "private") => {
     return { id: `image-${project}`, owner: project, visibility };
   },
+  "baremetal:nodes": (project) => {
+    return { uuid: `node-${project}`, owner: project };
+  },
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
   },
@@ -971,7 +974,7 @@ describe("the reads it makes", () => {
         const row = rowsIn(read, ["p"])[0];
         expect({ read: read.label, has: true }).toEqual({
           read: read.label,
-          has: Object.keys(row).includes(read.attr),
+          has: Object.keys(row).includes(read.attr.replace(/\?$/, "")),
         });
       }
     }
@@ -1240,7 +1243,6 @@ describe("a plain reader, and the trap", () => {
     ["load-balancer: load balancers"],
     ["load-balancer: amphorae"],
     ["baremetal: nodes"],
-    ["baremetal: conductors"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(
       `• ${read} — not deployed (not in this region's catalog)`,
@@ -1613,20 +1615,6 @@ describe("what a 200 proves", () => {
     await cloud.close();
     expect(lineAbout(accessLines(run), "baremetal: nodes")).toMatch(
       /baremetal: nodes — .*(own project only|every row is in one project)/,
-    );
-  });
-
-  test("a refused list of conductors says it is the credential, and that nodes read without it", async () => {
-    const cloud = await startCloud({
-      scenario: (read) => {
-        return read.label === "conductors" ? { status: 403 } : fullView(read);
-      },
-      roles: ["reader"],
-    });
-    const run = await runDoctor(cloud);
-    await cloud.close();
-    expect(lineAbout(accessLines(run), "baremetal: conductors")).toContain(
-      "refused",
     );
   });
 });

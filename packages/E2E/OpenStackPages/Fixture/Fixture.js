@@ -88,6 +88,8 @@ import CloudSubnetDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenS
 import CloudRouters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Routers";
 import CloudRouterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/RouterDetail";
 import CloudFloatingIps from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIps";
+import CloudBareMetalNodes from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/BareMetalNodes";
+import CloudBareMetalNodeDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/BareMetalNodeDetail";
 import CloudFloatingIpDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIpDetail";
 import CloudNetworkAgents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/NetworkAgents";
 import CloudNetworkAgentDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/NetworkAgentDetail";
@@ -161,6 +163,7 @@ import {
   getAttentionRows,
   getBlastRadius,
   getCounts,
+  getBareMetalClasses,
   getInventorySummary,
   getRegionSummaries,
   getTopConsumers,
@@ -1933,6 +1936,13 @@ async function handleApi(method, options) {
         ? failed()
         : ok(getInventorySummary(estate.inventory, regionOfBody(body)));
     }
+    if (parsed.pathname.includes("/openstack-resource/bare-metal-classes/")) {
+      return FAILS.has("inventory")
+        ? failed()
+        : ok({
+            classes: getBareMetalClasses(estate.inventory, regionOfBody(body)),
+          });
+    }
     if (parsed.pathname.includes("/openstack-resource/needs-attention/")) {
       if (FAILS.has("inventory") || FAILS.has("attention")) {
         return failed();
@@ -2265,6 +2275,11 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS, CloudRouters],
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL, CloudRouterDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS, CloudFloatingIps],
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES, CloudBareMetalNodes],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+    CloudBareMetalNodeDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL, CloudFloatingIpDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS, CloudNetworkAgents],
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL, CloudNetworkAgentDetail],

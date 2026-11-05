@@ -10,7 +10,10 @@ import {
   OpenStackConnectionTestSummary,
   OpenStackCredential,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_ACCESS_READS,
   OpenStackAccessReadDefinition,
@@ -51,6 +54,14 @@ import {
   loadScene,
   recordedTokenBody,
 } from "./Helpers/RecordedCloud";
+
+// A read of a service a cloud may not run is asked only where the catalog has it.
+const READS_OF_EVERY_CLOUD: ReadonlyArray<OpenStackAccessReadDefinition> =
+  OPENSTACK_ACCESS_READS.filter(
+    (definition: OpenStackAccessReadDefinition): boolean => {
+      return OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(definition.service);
+    },
+  );
 
 /*
  * A connection test: log in, see what this credential can really read in each region, log
@@ -169,9 +180,9 @@ describe("a credential that can read everything", () => {
       accessLevel: "FullView",
     });
     expect(summary.servicesByRegion[RECORDED_REGION]?.sort()).toEqual(
-      Object.values(OpenStackServiceType).sort(),
+      Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS).sort(),
     );
-    expect(summary.reads).toHaveLength(OPENSTACK_ACCESS_READS.length);
+    expect(summary.reads).toHaveLength(READS_OF_EVERY_CLOUD.length);
 
     for (const read of summary.reads) {
       expect([read.read, read.access]).toEqual([read.read, "ReadsEverything"]);
@@ -1129,7 +1140,7 @@ describe("what each service can be missing", () => {
     expect(report.status).toBe("Failed");
     expect(report.errorCode).toBe(OpenStackCollectionErrorCode.NoPermission);
     expect(report.errorMessage).toContain("The list below");
-    expect(summary.reads).toHaveLength(OPENSTACK_ACCESS_READS.length);
+    expect(summary.reads).toHaveLength(READS_OF_EVERY_CLOUD.length);
     expect(summary.accessLevel).toBe("Other");
   });
 
@@ -1944,7 +1955,7 @@ describe("the reads themselves", () => {
       "matrix",
     );
 
-    for (const definition of OPENSTACK_ACCESS_READS) {
+    for (const definition of READS_OF_EVERY_CLOUD) {
       expect(
         matrix.some((read: AccessMatrixRead): boolean => {
           return (
