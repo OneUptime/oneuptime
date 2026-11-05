@@ -1,0 +1,21 @@
+{
+"allocations": {
+"04d28152-fd7f-4c66-90d1-a3836120e697": {
+"consumer_generation": 1,
+"resources": {
+"DISK_GB": 20,
+"MEMORY_MB": 2048,
+"VCPU": 1
+}
+},
+"93a38763-6988-4605-8867-308611e12569": {
+"consumer_generation": 1,
+"resources": {
+"DISK_GB": 20,
+"MEMORY_MB": 2048,
+"VCPU": 1
+}
+}
+},
+"resource_provider_generation": 7
+}

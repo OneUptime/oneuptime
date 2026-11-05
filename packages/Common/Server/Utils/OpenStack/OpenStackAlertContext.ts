@@ -37,6 +37,7 @@ import {
   describeOpenStackReachAcrossProducts,
   isOpenStackReachEmpty,
 } from "../../../Types/OpenStack/OpenStackLinks";
+import { OpenStackReachedProject } from "../../../Types/OpenStack/OpenStackScopedRule";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
@@ -60,9 +61,10 @@ import { getOpenStackPartLogAttributes } from "../../../Utils/OpenStack/OpenStac
  * radius (OpenStackResourceService.getBlastRadius, the one answer every page reads), so
  * the alert can say "3 instances in 2 projects" and name them.
  *
- * Naming them is also what reaches their owners. An owner or label rule on one project
- * matches the marker this writes (getOpenStackProjectMarker), so a project's incidents
- * reach the team that runs it through the rules every alert already goes through.
+ * Reaching them is also what reaches their owners. An OpenStack cloud's owner or label rule
+ * on one project or domain adds to what this says reaches it (OpenStackScopedRules). The
+ * markers this writes stay, so an Alert or Incident rule written to match one keeps working
+ * (getOpenStackProjectMarker).
  *
  * Never in the way of the alert: if any of this fails, the alert opens without it.
  */
@@ -296,6 +298,43 @@ export interface OpenStackAlertContextResult {
   busiestInstances?: Array<OpenStackBusyInstance> | undefined;
 }
 
+/*
+ * Every project an alert or incident reaches: the one its series names and each its part
+ * holds something of, past what a description lists.
+ */
+export function getOpenStackProjectsReached(
+  context: OpenStackAlertContextResult,
+): Array<OpenStackReachedProject> {
+  const reached: Map<string, OpenStackReachedProject> = new Map();
+
+  if (context.projectId) {
+    reached.set(context.projectId, {
+      projectId: context.projectId,
+      domainId: context.domainId,
+    });
+  }
+
+  for (const project of context.radius?.everyProject ||
+    context.radius?.projects ||
+    []) {
+    if (!reached.has(project.projectId)) {
+      reached.set(project.projectId, {
+        projectId: project.projectId,
+        domainId: project.domainId,
+      });
+    }
+  }
+
+  return Array.from(reached.values());
+}
+
+// What a series adds to an alert or incident about it, and which projects that reaches.
+export interface OpenStackSeriesDescription {
+  description: string | undefined;
+  reached: Array<OpenStackReachedProject>;
+  openStackCloudId: ObjectID | null;
+}
+
 // One of a hypervisor's instances, by the name people know it by.
 export interface OpenStackBusyInstance extends OpenStackInstanceUsageReading {
   name: string | null;
@@ -384,6 +423,7 @@ export default class OpenStackAlertContext {
           externalId: part.externalId,
           facts: part.facts,
         },
+        includeEveryProject: true,
       });
       const regionWide: OpenStackRegionWide | null = getOpenStackRegionWide({
         kind: candidate.kind,
@@ -720,10 +760,55 @@ export default class OpenStackAlertContext {
   }
 
   /*
-   * A description with what the series affects added, or as it was. Takes the clouds the
-   * alert or incident was just linked to, since only an OpenStack monitor's series has
-   * any of this to say.
+   * A description with what the series affects added, or as it was, and which projects
+   * that reaches. Takes the clouds the alert or incident was just linked to, since only an
+   * OpenStack monitor's series has any of this to say.
    */
+  public static async describeSeries(data: {
+    description: string | undefined;
+    projectId: ObjectID;
+    clouds: Array<OpenStackCloud> | undefined;
+    seriesLabels: JSONObject | undefined;
+    monitorSteps?: unknown;
+  }): Promise<OpenStackSeriesDescription> {
+    const cloudId: ObjectID | null = data.clouds?.[0]?.id || null;
+    const unchanged: OpenStackSeriesDescription = {
+      description: data.description,
+      reached: [],
+      openStackCloudId: cloudId,
+    };
+
+    if (!cloudId || !data.seriesLabels) {
+      return unchanged;
+    }
+
+    try {
+      const context: OpenStackAlertContextResult =
+        await OpenStackAlertContext.read({
+          projectId: data.projectId,
+          openStackCloudId: cloudId,
+          seriesLabels: data.seriesLabels,
+          metricNames: getOpenStackMetricNamesOfMonitor(data.monitorSteps),
+        });
+      const lines: string = OpenStackAlertContext.toMarkdown(context);
+
+      return {
+        description: !lines
+          ? data.description
+          : data.description
+            ? `${data.description}\n\n${lines}`
+            : lines,
+        reached: getOpenStackProjectsReached(context),
+        openStackCloudId: cloudId,
+      };
+    } catch (error) {
+      logger.error(
+        `Could not say what an OpenStack alert affects: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return unchanged;
+    }
+  }
+
   public static async addToDescription(data: {
     description: string | undefined;
     projectId: ObjectID;
@@ -731,32 +816,6 @@ export default class OpenStackAlertContext {
     seriesLabels: JSONObject | undefined;
     monitorSteps?: unknown;
   }): Promise<string | undefined> {
-    const cloudId: ObjectID | null | undefined = data.clouds?.[0]?.id;
-
-    if (!cloudId || !data.seriesLabels) {
-      return data.description;
-    }
-
-    try {
-      const lines: string = OpenStackAlertContext.toMarkdown(
-        await OpenStackAlertContext.read({
-          projectId: data.projectId,
-          openStackCloudId: cloudId,
-          seriesLabels: data.seriesLabels,
-          metricNames: getOpenStackMetricNamesOfMonitor(data.monitorSteps),
-        }),
-      );
-
-      if (!lines) {
-        return data.description;
-      }
-
-      return data.description ? `${data.description}\n\n${lines}` : lines;
-    } catch (error) {
-      logger.error(
-        `Could not say what an OpenStack alert affects: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return data.description;
-    }
+    return (await OpenStackAlertContext.describeSeries(data)).description;
   }
 }

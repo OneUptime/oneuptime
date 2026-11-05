@@ -1,2 +1,2 @@
-A database instance in ERROR, because Nova has nowhere to put it.
-On its own: Nova refused it, and Trove gave up. The instance's fault says Nova's reason: this flavor's disk is too small for Trove's guest image.
+A database instance in ERROR, because Nova refused it.
+On its own: Nova refused it, and Trove gave up. The instance's fault says Nova's reason.

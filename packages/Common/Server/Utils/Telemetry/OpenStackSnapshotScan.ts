@@ -198,6 +198,7 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
   "task_state",
   "fault_message",
   "image_id",
+  "network_names",
   OPENSTACK_SERVICE_LABEL,
   OPENSTACK_REGION_ATTRIBUTE,
   "openstack_region",
@@ -1134,6 +1135,28 @@ function setNativeInstanceFacts(
   // An instance that lost its floating IP or its port has no label left to say so.
   entry.facts["addressIpv4"] = getLabel(attributes, "address_ipv4");
   entry.facts["addressIpv6"] = getLabel(attributes, "address_ipv6");
+  entry.facts["networkNames"] = getNetworkNames(attributes);
+}
+
+// Null when the label is not there or cut short: which is not the same as on no network.
+function getNetworkNames(attributes: JSONArray): Array<string> | null {
+  const label: string | null = getLabel(attributes, "network_names");
+
+  if (!label) {
+    return null;
+  }
+
+  try {
+    const names: unknown = JSON.parse(label);
+    return Array.isArray(names) &&
+      names.every((name: unknown): boolean => {
+        return typeof name === "string";
+      })
+      ? (names as Array<string>)
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /*

@@ -632,6 +632,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "updated_at",
       "fault_message",
       "image_id",
+      "network_names",
     ],
   }),
   metric({

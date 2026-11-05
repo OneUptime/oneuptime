@@ -1,0 +1,29 @@
+{
+"allocations": {
+"325fcdc4-b8fe-41c5-a026-d3d139b7e08a": {
+"consumer_generation": 1,
+"resources": {
+"DISK_GB": 1,
+"MEMORY_MB": 128,
+"VCPU": 1
+}
+},
+"6c6e3831-4c84-42f0-b656-81df6253d4aa": {
+"consumer_generation": 1,
+"resources": {
+"DISK_GB": 1,
+"MEMORY_MB": 128,
+"VCPU": 1
+}
+},
+"8b89d510-7335-4a01-896d-1433820e498c": {
+"consumer_generation": 1,
+"resources": {
+"DISK_GB": 1,
+"MEMORY_MB": 128,
+"VCPU": 1
+}
+}
+},
+"resource_provider_generation": 5
+}

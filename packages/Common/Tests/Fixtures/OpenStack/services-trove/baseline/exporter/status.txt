@@ -1,4 +1,4 @@
-database 200 0.068362s
-compute 200 0.134989s
-identity 200 0.062025s
-all-at-once 200 1.166596s
+database 200 0.085383s
+compute 200 0.157756s
+identity 200 0.075309s
+all-at-once 200 1.367098s

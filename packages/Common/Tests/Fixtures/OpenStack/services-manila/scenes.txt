@@ -1,7 +1,8 @@
 baseline recorded
 share-error recorded
 share-stuck recorded
-share-service-down FAILED: line 90: return 1 
-scheduler-down FAILED: line 105: return 1 
+share-service-stopped recorded
+share-service-killed recorded
+scheduler-stopped recorded
 api-down recorded
 recovered recorded

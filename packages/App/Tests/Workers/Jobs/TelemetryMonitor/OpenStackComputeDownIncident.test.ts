@@ -1,10 +1,30 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudOwnerRule from "Common/Models/DatabaseModels/OpenStackCloudOwnerRule";
+import Team from "Common/Models/DatabaseModels/Team";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
+import AlertFeedService from "Common/Server/Services/AlertFeedService";
+import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
+import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
 import AlertService from "Common/Server/Services/AlertService";
+import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
+import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
+import IncidentOwnerUserService from "Common/Server/Services/IncidentOwnerUserService";
+import OpenStackCloudLabelRuleService from "Common/Server/Services/OpenStackCloudLabelRuleService";
+import OpenStackCloudOwnerRuleService from "Common/Server/Services/OpenStackCloudOwnerRuleService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import TeamService from "Common/Server/Services/TeamService";
 import AlertStateTimelineService from "Common/Server/Services/AlertStateTimelineService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
@@ -60,7 +80,9 @@ import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
  *   - the worker: monitorOpenStack, its grouped reads and its series breakdown;
  *   - the verdict and what follows from it: MonitorResourceUtil.monitorResource, with
  *     MonitorCriteriaEvaluator, the per-series fan-out, the status timeline's decisions,
- *     MonitorIncident's own one-per-series dedupe and its resolve pass.
+ *     MonitorIncident's own one-per-series dedupe and its resolve pass;
+ *   - what a rule on a project on that host adds: the rule's evaluation by the cloud rule
+ *     engine, and OpenStackScopedRules (#5728), with what the host holds stood in for.
  *
  * STOOD IN FOR, so this is not a live stack:
  *   - ClickHouse: the worker's reads are answered from the recording by foldRowsAsSqlRead, which
@@ -280,9 +302,10 @@ function rowsOfQuery(replay: Replay, query: JSONObject): Array<Row> {
 
 function useReplay(replay: Replay): void {
   metricAggregateBy.mockImplementation(async (args: unknown) => {
-    const read: FoldedReadArgs & { query: JSONObject } = args as FoldedReadArgs & {
-      query: JSONObject;
-    };
+    const read: FoldedReadArgs & { query: JSONObject } =
+      args as FoldedReadArgs & {
+        query: JSONObject;
+      };
     return foldRowsAsSqlRead(rowsOfQuery(replay, read.query), read);
   });
   metricFindBy.mockImplementation(async (args: unknown) => {
@@ -313,13 +336,15 @@ function useReplay(replay: Replay): void {
   jest.spyOn(IncidentService, "findBy").mockImplementation(() => {
     return Promise.resolve([...replay.openIncidents]) as never;
   });
-  jest.spyOn(IncidentService, "create").mockImplementation((createBy: unknown) => {
-    const incident: Incident = (createBy as { data: Incident }).data;
-    incident.id = ObjectID.generate();
-    replay.opened.push(incident);
-    replay.openIncidents.push(incident);
-    return Promise.resolve(incident) as never;
-  });
+  jest
+    .spyOn(IncidentService, "create")
+    .mockImplementation((createBy: unknown) => {
+      const incident: Incident = (createBy as { data: Incident }).data;
+      incident.id = ObjectID.generate();
+      replay.opened.push(incident);
+      replay.openIncidents.push(incident);
+      return Promise.resolve(incident) as never;
+    });
   jest.spyOn(AlertService, "findBy").mockImplementation(() => {
     return Promise.resolve([...replay.openAlerts]) as never;
   });
@@ -398,7 +423,17 @@ function hostStoppedIn(release: string): string {
   return stopped[0]!;
 }
 
+const PROJECT_ON_THE_HOST: string = "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d";
+const CLOUD_ID: ObjectID = ObjectID.generate();
+const TEAM_OF_THE_PROJECT: Team = new Team();
+TEAM_OF_THE_PROJECT._id = ObjectID.generate().toString();
+TEAM_OF_THE_PROJECT.id = new ObjectID(TEAM_OF_THE_PROJECT._id);
+TEAM_OF_THE_PROJECT.name = "Payments";
+
 describe("a stopped nova-compute, replayed from what real clouds' exporters said", () => {
+  let addIncidentOwners: ReturnType<typeof jest.spyOn>;
+  let addAlertOwners: ReturnType<typeof jest.spyOn>;
+
   beforeEach(() => {
     // The clock alone, which is what the worker's window reads.
     jest.useFakeTimers({
@@ -464,22 +499,60 @@ describe("a stopped nova-compute, replayed from what real clouds' exporters said
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
       .mockResolvedValue({ ownerUserIds: [], ownerTeamIds: [] } as never);
-    // What the radius says is held by OpenStackProjectsAndTopologyPostgres.
+    /*
+     * What the radius says is held by OpenStackProjectsAndTopologyPostgres, so here the
+     * stopped host simply holds one project's instances, and that project has a rule.
+     */
     jest
-      .spyOn(OpenStackAlertContext, "addToDescription")
+      .spyOn(OpenStackAlertContext, "describeSeries")
       .mockImplementation(async (data: { description: string | undefined }) => {
-        return data.description;
+        return {
+          description: data.description,
+          reached: [{ projectId: PROJECT_ON_THE_HOST, domainId: "default" }],
+          openStackCloudId: CLOUD_ID,
+        };
       });
+    const rule: OpenStackCloudOwnerRule = new OpenStackCloudOwnerRule();
+    rule.name = "ou-payments owners";
+    rule.openStackProjectId = PROJECT_ON_THE_HOST;
+    rule.ownerTeams = [TEAM_OF_THE_PROJECT];
+    rule.ownerUsers = [];
+    jest
+      .spyOn(OpenStackCloudOwnerRuleService, "findBy")
+      .mockResolvedValue([rule]);
+    jest.spyOn(OpenStackCloudLabelRuleService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(OpenStackCloudService, "findOneById")
+      .mockResolvedValue(new OpenStackCloud());
+    jest.spyOn(IncidentOwnerUserService, "findBy").mockResolvedValue([]);
+    jest.spyOn(IncidentOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AlertOwnerUserService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AlertOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(TeamService, "findBy").mockResolvedValue([TEAM_OF_THE_PROJECT]);
+    addIncidentOwners = jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(undefined);
+    addAlertOwners = jest
+      .spyOn(AlertService, "addOwners")
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(AlertFeedService, "createAlertFeedItem")
+      .mockResolvedValue(undefined as never);
     jest
       .spyOn(AlertStateTimelineService, "getResolvedStateIdForProject")
       .mockResolvedValue(RESOLVED_STATE_ID);
     jest
       .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
       .mockResolvedValue(RESOLVED_STATE_ID);
-    jest.spyOn(logger, "error").mockImplementation((...args: Array<unknown>) => {
-      loggedErrors.push(String(args[0]));
-      return undefined as never;
-    });
+    jest
+      .spyOn(logger, "error")
+      .mockImplementation((...args: Array<unknown>) => {
+        loggedErrors.push(String(args[0]));
+        return undefined as never;
+      });
     loggedErrors = [];
   });
 
@@ -533,6 +606,16 @@ describe("a stopped nova-compute, replayed from what real clouds' exporters said
       expect(replay.monitor.currentMonitorStatusId!.toString()).toBe(
         OFFLINE.toString(),
       );
+
+      // The team of a project on that host is on it, by the rule on the project.
+      expect(addIncidentOwners).toHaveBeenCalledTimes(1);
+      const owners: Array<unknown> = addIncidentOwners.mock
+        .calls[0] as Array<unknown>;
+      expect(String(owners[1])).toBe(incident.id!.toString());
+      expect((owners[3] as Array<ObjectID>).map(String)).toEqual([
+        TEAM_OF_THE_PROJECT.id!.toString(),
+      ]);
+      expect(addAlertOwners).toHaveBeenCalledTimes(1);
 
       // Started again: it resolves without anyone doing anything, and stays resolved.
       let resolvedAtMinute: number | null = null;

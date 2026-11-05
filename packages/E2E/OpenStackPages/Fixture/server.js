@@ -89,6 +89,25 @@ function readRecordings() {
         }
       }
     }
+    // Three more hosts on a real Placement: "hibiscus-ovn/capacity/healthy".
+    const capacity = path.join(releaseFolder, "capacity");
+    if (fs.existsSync(capacity) && fs.statSync(capacity).isDirectory()) {
+      for (const scene of fs.readdirSync(capacity).sort()) {
+        const folder = path.join(capacity, scene, "exporter");
+        if (!fs.existsSync(folder) || !fs.statSync(folder).isDirectory()) {
+          continue;
+        }
+        const files = {};
+        for (const file of fs.readdirSync(folder).sort()) {
+          if (file.endsWith(".prom")) {
+            files[file] = fs.readFileSync(path.join(folder, file), "utf8");
+          }
+        }
+        if (Object.keys(files).length > 0) {
+          read[`${release}/capacity/${scene}`] = files;
+        }
+      }
+    }
   }
   return read;
 }
