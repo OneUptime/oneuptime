@@ -593,12 +593,12 @@ ${codeBlock(
 ONEUPTIME_TELEMETRY_INGESTION_KEY=${context.apiKey}
 OPENSTACK_CLOUD_NAME=${shellQuote(context.cloudName)}
 OPENSTACK_EXPORTER_CLOUDS=[${OPENSTACK_EXAMPLE_REGION}]
-COMPOSE_PROFILES=openstack-exporter`,
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`,
 )}
 
 - ${getCloudNameNote(context)}
 - List every region in \`OPENSTACK_EXPORTER_CLOUDS\`, in square brackets, such as \`[RegionOne,RegionTwo]\`.
-- \`COMPOSE_PROFILES=openstack-exporter\` starts the bundled exporter, which reads the cloud with \`clouds.yaml\`.
+- \`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent\` starts the bundled exporter, which reads the cloud with \`clouds.yaml\`, and the OneUptime AI agent, which reads it with the same file while OneUptime AI investigates.
 
 Both files hold secrets, so keep them to their owner. The exporter runs as uid 65532, and must be the one account that can read \`clouds.yaml\`. Then start the agent:
 
@@ -625,7 +625,7 @@ function getVerifyStep(context: GuideContext): SetupGuideStep {
       ]),
     )}
 
-\`docker compose ps\` lists the collector (\`${OPENSTACK_AGENT_CONTAINER}\`) and the bundled exporter (\`${OPENSTACK_EXPORTER_CONTAINER}\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cloud then appears in the **OpenStack** section by itself. Give it about five minutes to fill in: compute, network, volume and Placement are read every 2 minutes, identity and images every 5.`,
+\`docker compose ps\` lists the collector (\`${OPENSTACK_AGENT_CONTAINER}\`), the bundled exporter (\`${OPENSTACK_EXPORTER_CONTAINER}\`) and the OneUptime AI agent (\`oneuptime-openstack-ai-agent\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cloud then appears in the **OpenStack** section by itself. Give it about five minutes to fill in: compute, network, volume and Placement are read every 2 minutes, identity and images every 5.`,
   };
 }
 
@@ -666,7 +666,8 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 
   return {
     title: "Environment variables",
-    summary: "Every setting the collector and the bundled exporter read.",
+    summary:
+      "Every setting the collector, the bundled exporter and the OneUptime AI agent read.",
     markdown: `${where} After changing one, apply it with \`docker compose up -d\` in ${agentFolder(context.method)}.
 
 | Variable | Required | Description |
@@ -678,7 +679,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_EXPORTER_ADDRESS\` | No | \`host:port\` of your own exporter, with no scheme. Leave it out for the bundled one |
 | \`OPENSTACK_EXPORTER_USER\` | No | The \`uid:gid\` the exporter's container runs as, which must own \`clouds.yaml\` (default: \`65532:65532\`) |
 | \`OPENSTACK_CA_FILE\` | No | A PEM file with the certificate authority of a cloud that has its own |
-| \`COMPOSE_PROFILES\` | Bundled exporter | \`openstack-exporter\` starts the bundled exporter |
+| \`COMPOSE_PROFILES\` | Bundled exporter | \`openstack-exporter\` starts the bundled exporter, and \`openstack-ai-agent\` the OneUptime AI agent |
 | \`OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS\` | No | An exporter already running without \`--multi-cloud\`, such as Kolla-Ansible's: \`[10.0.0.254:9198]\`. Set \`OPENSTACK_EXPORTER_CLOUDS=[]\` with it |
 | \`OPENSTACK_RABBITMQ_TARGETS\` | No | RabbitMQ's Prometheus plugin on each node: \`[10.0.0.11:15692,10.0.0.12:15692]\` |
 | \`OPENSTACK_MARIADB_TARGETS\` | No | mysqld_exporter beside each MariaDB node, usually on \`9104\` |
@@ -704,7 +705,21 @@ Only the largest clouds need these, and none is asked for:
 | \`OPENSTACK_WORKER_STATE_CLOUDS\` | The \`clouds.yaml\` entries to read from Nova's and Cinder's APIs what their databases cannot say: whether each worker is alive, and how full each pool is |
 | \`OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
 | \`OPENSTACK_QUOTA_CLOUDS\` | The \`clouds.yaml\` entries to read each project's quotas from, once an hour. Empty reads none, and \`OPENSTACK_COLLECT_QUOTAS=true\` in the install script fills it in |
-| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |`,
+| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
+
+The OneUptime AI agent reads the credential in \`clouds.yaml\` unless these say otherwise, and none is asked for:
+
+| Variable | Description |
+|----------|-------------|
+| \`ONEUPTIME_AI_INVESTIGATION\` | \`false\` stops OneUptime AI investigating this cloud with the agent |
+| \`OPENSTACK_AI_CLOUDS_FILE\` | The \`clouds.yaml\` it mounts. \`/dev/null\` when it has a credential of its own and there is no such file beside it |
+| \`ONEUPTIME_AI_OPENSTACK_CLOUD\` | The entry of \`clouds.yaml\` to use, when it is not the first of \`OPENSTACK_EXPORTER_CLOUDS\` |
+| \`ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID\`, \`ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET\` | A credential of its own, used instead of \`clouds.yaml\`'s. Set both, with \`OPENSTACK_AUTH_URL\` |
+| \`OPENSTACK_AUTH_URL\` | The Keystone a credential of its own logs in to |
+| \`ONEUPTIME_AI_OPENSTACK_REGION\`, \`ONEUPTIME_AI_OPENSTACK_INTERFACE\`, \`ONEUPTIME_AI_OPENSTACK_CA_FILE\` | The region a command reads when it names none, which endpoints it uses (\`public\`, \`internal\` or \`admin\`), and a certificate authority. \`clouds.yaml\` says these unless they do |
+| \`ONEUPTIME_AI_AGENT_RESOURCE_NAME\` | The name it registers under, when it is not \`OPENSTACK_CLOUD_NAME\` |
+| \`LOG_LEVEL\` | How much it logs |
+| \`ONEUPTIME_AI_FIXES\`, \`ONEUPTIME_AI_ALLOW_WRITES\`, \`ONEUPTIME_AI_WRITE_TARGETS\`, \`ONEUPTIME_AI_PROTECTED_TARGETS\` | Change nothing here: OneUptime AI only reads an OpenStack cloud, and the agent says so when it starts |`,
   };
 }
 

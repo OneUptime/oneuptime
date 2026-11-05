@@ -1,5 +1,6 @@
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
+import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
@@ -113,6 +114,11 @@ const WIRING: Array<ServiceWiring> = [
     resourceType: AiResourceType.CephCluster,
     service: asService(CephClusterService),
     resourceInNote: 'the Ceph cluster "web-1"',
+  },
+  {
+    resourceType: AiResourceType.OpenStackCloud,
+    service: asService(OpenStackCloudService),
+    resourceInNote: 'the OpenStack cloud "web-1"',
   },
   {
     resourceType: AiResourceType.DatabaseServer,

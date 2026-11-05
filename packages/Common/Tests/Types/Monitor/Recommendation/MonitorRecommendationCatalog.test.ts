@@ -19,7 +19,11 @@ import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTempl
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllOpenShiftAlertTemplates } from "../../../../Types/Monitor/OpenShiftAlertTemplates";
-import { getAllOpenStackAlertTemplates } from "../../../../Types/Monitor/OpenStackAlertTemplates";
+import {
+  OpenStackAlertTemplate,
+  getAllOpenStackAlertTemplates,
+} from "../../../../Types/Monitor/OpenStackAlertTemplates";
+import { OpenStackServiceType } from "../../../../Types/OpenStack/OpenStackResourceKind";
 import { getAllOpenStackLogAlertTemplates } from "../../../../Types/Monitor/OpenStackLogAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
@@ -181,9 +185,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     templateCount:
       getAllOpenStackAlertTemplates().length +
       getAllOpenStackLogAlertTemplates().length,
+    // With no context, nothing about a service a cloud may not run.
     contextFreeTemplateCount:
-      getAllOpenStackAlertTemplates().length +
-      getAllOpenStackLogAlertTemplates().length,
+      getAllOpenStackAlertTemplates().filter(
+        (template: OpenStackAlertTemplate): boolean => {
+          return !template.forService;
+        },
+      ).length + getAllOpenStackLogAlertTemplates().length,
     identifierFieldName: "cloudIdentifier",
   },
   {
@@ -283,6 +291,76 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
 ];
 
 describe("MonitorRecommendationCatalog", () => {
+  describe("what a cloud is offered", () => {
+    const BARE_METAL_IDS: Array<string> = getAllOpenStackAlertTemplates()
+      .filter((template: OpenStackAlertTemplate): boolean => {
+        return template.forService === OpenStackServiceType.BareMetal;
+      })
+      .map((template: OpenStackAlertTemplate): string => {
+        return template.id;
+      });
+
+    const offered: (
+      context?: { openStackServices?: Array<string> | null } | undefined,
+    ) => Array<string> = (
+      context?: { openStackServices?: Array<string> | null } | undefined,
+    ): Array<string> => {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.OpenStack,
+        context,
+      ).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      });
+    };
+
+    it("there are bare metal templates for this to hold on", () => {
+      expect(BARE_METAL_IDS.length).toBe(5);
+    });
+
+    it.each([
+      ["nothing known", undefined],
+      ["no services said", {}],
+      ["a read that failed", { openStackServices: null }],
+      ["a cloud without Ironic", { openStackServices: ["compute", "identity"] }],
+    ])(
+      "%s: not one bare metal alert",
+      (_name: string, context: { openStackServices?: null | Array<string> } | undefined) => {
+        for (const id of BARE_METAL_IDS) {
+          expect(offered(context)).not.toContain(id);
+        }
+        // And everything every cloud runs, which is the point of having a catalog.
+        expect(offered(context)).toContain("openstack-compute-api-down");
+        expect(offered(context)).toContain("openstack-cloud-stopped-reporting");
+      },
+    );
+
+    it("a cloud reporting Ironic is offered them, with everything else", () => {
+      const list: Array<string> = offered({
+        openStackServices: [OpenStackServiceType.BareMetal],
+      });
+
+      expect(list).toEqual(expect.arrayContaining(BARE_METAL_IDS));
+      expect(list).toContain("openstack-compute-api-down");
+      expect(list.length).toBe(
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          MonitorRecommendationResourceType.OpenStack,
+        ).length,
+      );
+    });
+
+    it("a dismissal of one still resolves, whatever a cloud runs now", () => {
+      for (const id of BARE_METAL_IDS) {
+        expect(
+          MonitorRecommendationCatalog.getAllRecommendations().some(
+            (recommendation: MonitorRecommendation): boolean => {
+              return recommendation.templateId === id;
+            },
+          ),
+        ).toBe(true);
+      }
+    });
+  });
+
   describe("completeness", () => {
     it("has a definition for every resource type in the enum", () => {
       const enumMembers: Array<MonitorRecommendationResourceType> =

@@ -445,7 +445,35 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
   return [...metricRecommendations, ...notificationRecommendations];
 }
 
-function getOpenStackRecommendations(): Array<MonitorRecommendation> {
+/*
+ * What a cloud is offered: everything every cloud runs, and what is about a service it may not run
+ * only if it reports that service.
+ */
+function getOpenStackRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  const reported: ReadonlyArray<string> = context?.openStackServices || [];
+  const isOffered: Set<string> = new Set(
+    getAllOpenStackAlertTemplates()
+      .filter((template: OpenStackAlertTemplate): boolean => {
+        return !template.forService || reported.includes(template.forService);
+      })
+      .map((template: OpenStackAlertTemplate): string => {
+        return template.id;
+      }),
+  );
+
+  return getAllPossibleOpenStackRecommendations().filter(
+    (recommendation: MonitorRecommendation): boolean => {
+      return (
+        recommendation.monitorType !== MonitorType.OpenStack ||
+        isOffered.has(recommendation.templateId)
+      );
+    },
+  );
+}
+
+function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> {
   const metricRecommendations: Array<MonitorRecommendation> =
     getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
       return normalize({
@@ -883,6 +911,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "cloudIdentifier",
       icon: IconProp.Cloud,
       getRecommendations: getOpenStackRecommendations,
+      getAllPossibleRecommendations: getAllPossibleOpenStackRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.VMware,

@@ -1,5 +1,8 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
-import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 import { isOpenStackIssueAbout } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
@@ -56,6 +59,11 @@ export interface AlertsProps {
   description: string;
   templateIds: Array<string>;
   part: OpenStackPart;
+  /*
+   * What the cloud reports, where these alerts are about a service it may not run. A page of one
+   * of its parts knows it does.
+   */
+  context?: MonitorRecommendationContext | undefined;
 }
 
 export const OpenStackPartAlerts: FunctionComponent<AlertsProps> = (
@@ -70,6 +78,7 @@ export const OpenStackPartAlerts: FunctionComponent<AlertsProps> = (
       templateIds={props.templateIds}
       resourceId={props.part.openStackCloudId}
       resourceIdentifier={props.part.cloudName}
+      context={props.context}
       getRecommendationsRoute={props.part.routes.getRecommendationsRoute}
       getMonitorRoute={props.part.routes.getMonitorRoute}
       refreshToken={props.part.refreshToken}

@@ -36,6 +36,8 @@
  *   ?probes=    many: a choice of probes, where a new cloud starts on none
  *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
  *               untrusted | plain-http | refused | not-found | no-probe
+ *   ?aiAgent=   connected | unreachable: the OneUptime AI agent's state (AiAgent.js); none
+ *               has connected by default
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
  *   ?archived=  1: the project also has an archived cloud
  *   ?linked=    1: an incident, an alert and a maintenance event linked to this cloud, and one of
@@ -71,6 +73,15 @@ import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
+import CloudAiInsights from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Insights";
+import CloudAiLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Logs";
+import CloudAiAgent from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Agent";
+import {
+  getAiAccessStatus,
+  getAiInsights,
+  getAiLogs,
+  withAiAccessColumns,
+} from "./AiAgent";
 import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
@@ -891,7 +902,8 @@ function withCapacity(cloud) {
 }
 
 const store = {
-  OpenStackCloud:
+  // Every cloud's row has these, with these defaults, since its migration.
+  OpenStackCloud: withAiAccessColumns(
     params.get("clouds") === "none"
       ? []
       : [
@@ -913,7 +925,9 @@ const store = {
               ]
             : []),
         ],
+  ),
   OpenStackCloudConnectionTest: [],
+  RunnerJob: [],
   OpenStackCloudOwnerUser: [],
   OpenStackCloudOwnerTeam: [],
   OpenStackCloudOwnerRule: [],
@@ -1995,6 +2009,22 @@ async function handleApi(method, options) {
   });
 
   if (method === "POST") {
+    if (parsed.pathname.endsWith("/resource-ai-access/status")) {
+      return ok(
+        getAiAccessStatus({
+          aiAgent: params.get("aiAgent"),
+          cloudId: body.resourceId,
+          cloudName: store.OpenStackCloud[0]?.name || "",
+          now: new Date(LOADED_AT).toISOString(),
+        }),
+      );
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/logs")) {
+      return ok(getAiLogs());
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/insights")) {
+      return ok(getAiInsights());
+    }
     if (parsed.pathname.includes("/openstack-resource/inventory-summary/")) {
       return FAILS.has("inventory")
         ? failed()
@@ -2309,6 +2339,9 @@ function withNavigation(Component, pageKey) {
 
 const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW, CloudOverview],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS, CloudAiInsights],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS, CloudAiLogs],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, CloudAiAgent],
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],

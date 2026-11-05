@@ -1149,6 +1149,7 @@ describe("infrastructure commands guidance (issue #5259)", () => {
       [AiResourceType.AwsAccount]: "AWS accounts",
       [AiResourceType.AzureSubscription]: "Azure subscriptions",
       [AiResourceType.GoogleCloudProject]: "Google Cloud projects",
+      [AiResourceType.OpenStackCloud]: "OpenStack clouds",
     };
 
     for (const type of ALL_AI_RESOURCE_TYPES) {

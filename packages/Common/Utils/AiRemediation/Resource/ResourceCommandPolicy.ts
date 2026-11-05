@@ -48,6 +48,7 @@ import GovcCommandPolicy from "./GovcCommandPolicy";
 import CephCommandPolicy from "./CephCommandPolicy";
 import DatabaseCommandPolicy from "./DatabaseCommandPolicy";
 import HostCommandPolicy from "./HostCommandPolicy";
+import OpenStackCommandPolicy from "./OpenStackCommandPolicy";
 import {
   AwsCloudCommandPolicy,
   AzureCloudCommandPolicy,
@@ -103,6 +104,7 @@ const TOOL_POLICY_BY_TYPE: Readonly<
   [AiResourceType.AwsAccount]: AwsCloudCommandPolicy,
   [AiResourceType.AzureSubscription]: AzureCloudCommandPolicy,
   [AiResourceType.GoogleCloudProject]: GcpCloudCommandPolicy,
+  [AiResourceType.OpenStackCloud]: OpenStackCommandPolicy,
 };
 
 // Refuses everything, for a resource type this build does not know.

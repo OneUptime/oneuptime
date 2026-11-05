@@ -108,6 +108,10 @@ function metricNames(): Array<string> {
  * is 0 or 1, and Placement's resource series change unit with their resourcetype.
  */
 const NO_UNIT_SERIES: ReadonlyArray<string> = [
+  "openstack_ironic_up",
+  // Always 1: what it says is in its labels, as a status series' word is.
+  "openstack_ironic_node",
+  "openstack_ironic_conductor_state",
   "up",
   "openstack_identity_up",
   "openstack_nova_up",
@@ -188,6 +192,7 @@ describe("OpenStackMetricCatalog", () => {
       ).toEqual([
         "openstack_cinder_backup_gb",
         "openstack_cinder_snapshot_gb",
+        "openstack_ironic_conductor_state",
         "openstack_placement_flavor_fits",
       ]);
 
@@ -218,6 +223,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_glance_image_bytes",
         "openstack_glance_up",
         "openstack_identity_up",
+        "openstack_ironic_node",
         "openstack_neutron_agent_state",
         "openstack_neutron_floating_ip",
         "openstack_neutron_network",
