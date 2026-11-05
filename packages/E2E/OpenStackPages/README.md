@@ -53,7 +53,7 @@ The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?probe=checking|collecting|partial|untrusted|plain-http|gone`, `?probes=many`,
 `?tests=ok,untrusted,...` (`connectionTestOutcome` in `Fixture/ProbeCollection.js` has every failure
 a test names), `?clouds=none`, `?archived=1`, `?linked=1`, `?role=read|none`,
-`?alerts=none|some|all|denied`, `?open=0|1|many`,
+`?alerts=none|some|all|denied`, `?open=0|1|many|regions`,
 `?fail=inventory,attention,regions,consumers,blast,metrics,events`, `?lang=de|fa` and
 `?theme=dark`. `?region=` is the product's own. They are read when a page loads, and a
 reload reads what the tab was first given: a link inside the product knows nothing of them.

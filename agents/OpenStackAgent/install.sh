@@ -24,7 +24,8 @@ NOVA_DATABASE_URL NOVA_API_DATABASE_URL PLACEMENT_DATABASE_URL NEUTRON_DATABASE_
 CINDER_DATABASE_URL GLANCE_DATABASE_URL KEYSTONE_DATABASE_URL"
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY OPENSTACK_CLOUD_NAME \
 OPENSTACK_AUTH_URL OPENSTACK_EXPORTER_CLOUDS OPENSTACK_EXPORTER_ADDRESS \
-OPENSTACK_EXPORTER_USER OPENSTACK_CA_FILE COMPOSE_PROFILES \
+OPENSTACK_EXPORTER_USER OPENSTACK_CA_FILE COMPOSE_PROFILES OPENSTACK_COLLECT_QUOTAS \
+OPENSTACK_QUOTA_CLOUDS OPENSTACK_QUOTA_EXPORTER_ADDRESS \
 OPENSTACK_CONTROL_PLANE_REGION OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS $TARGET_LIST_NAMES \
 $VERY_LARGE_CLOUD_NAMES"
 
@@ -354,6 +355,7 @@ EXPORTER_SHA256_ARM64="d41800fc6170a5d44027f8fc6a0037e915b6ea3887076e6b96b78e06e
 UNIT_DIR="${SYSTEMD_UNIT_DIR:-/etc/systemd/system}"
 COLLECTOR_SERVICE="oneuptime-openstack-agent"
 EXPORTER_SERVICE="oneuptime-openstack-exporter"
+QUOTA_EXPORTER_SERVICE="oneuptime-openstack-quota-exporter"
 EXPORTER_SYSTEM_USER="oneuptime-openstack"
 
 # Check prerequisites
@@ -557,6 +559,29 @@ else
     fi
 fi
 
+# Each project's quotas: off until asked for, because of what they cost. They are read by an
+# exporter this agent starts, so an exporter of your own has to read them itself.
+case "$OPENSTACK_COLLECT_QUOTAS" in
+    true) ;;
+    "" | false) OPENSTACK_COLLECT_QUOTAS="false" ;;
+    *)
+        echo "Error: OPENSTACK_COLLECT_QUOTAS must be true or false, not: $OPENSTACK_COLLECT_QUOTAS"
+        exit 1
+        ;;
+esac
+READS_QUOTAS=0
+if [ "$OPENSTACK_COLLECT_QUOTAS" = "true" ] && [ "$BUNDLED_EXPORTER" = 1 ]; then
+    READS_QUOTAS=1
+fi
+if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
+    OPENSTACK_QUOTA_EXPORTER_ADDRESS="127.0.0.1:9182"
+else
+    OPENSTACK_QUOTA_EXPORTER_ADDRESS="openstack-quota-exporter:9180"
+fi
+if [ "$READS_QUOTAS" = 1 ] && [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
+    COMPOSE_PROFILES="$COMPOSE_PROFILES,openstack-quotas"
+fi
+
 # The identity endpoint as this script writes it: no trailing slash, ending in /v3.
 keystone_v3_url() {
     local url="$1"
@@ -632,6 +657,12 @@ if [ "${#REGIONS[@]}" = 0 ]; then
     exit 1
 fi
 OPENSTACK_EXPORTER_CLOUDS="$(IFS=,; printf '[%s]' "${REGIONS[*]}")"
+# Each project's quotas, for the regions the agent reads, once they have been asked for.
+if [ "$READS_QUOTAS" = 1 ]; then
+    OPENSTACK_QUOTA_CLOUDS="$OPENSTACK_EXPORTER_CLOUDS"
+else
+    OPENSTACK_QUOTA_CLOUDS="[]"
+fi
 if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
     if [ "${#REGIONS[@]}" != 1 ]; then
         echo "Error: an exporter in single-cloud mode reads one region, and OPENSTACK_CONTROL_PLANE_REGION names ${#REGIONS[@]}."
@@ -1056,6 +1087,9 @@ if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
     if [ "$BUNDLED_EXPORTER" = 1 ]; then
         install_unit "systemd/oneuptime-openstack-exporter-native.service" "$EXPORTER_SERVICE"
     fi
+    if [ "$READS_QUOTAS" = 1 ]; then
+        install_unit "systemd/oneuptime-openstack-quota-exporter-native.service" "$QUOTA_EXPORTER_SERVICE"
+    fi
 else
     download_agent_file "docker-compose.yml" "$INSTALL_DIR/docker-compose.yml"
     download_agent_file "otel-collector-config.yaml" "$INSTALL_DIR/otel-collector-config.yaml"
@@ -1208,6 +1242,9 @@ OPENSTACK_EXPORTER_ADDRESS=$(env_value "$OPENSTACK_EXPORTER_ADDRESS")
 OPENSTACK_EXPORTER_USER=$OPENSTACK_EXPORTER_USER
 OPENSTACK_CA_FILE=$(env_value "$OPENSTACK_CA_FILE")
 COMPOSE_PROFILES=$(env_value "$COMPOSE_PROFILES")
+OPENSTACK_COLLECT_QUOTAS=$(env_value "$OPENSTACK_COLLECT_QUOTAS")
+OPENSTACK_QUOTA_CLOUDS=$(env_value "$OPENSTACK_QUOTA_CLOUDS")
+OPENSTACK_QUOTA_EXPORTER_ADDRESS=$(env_value "$OPENSTACK_QUOTA_EXPORTER_ADDRESS")
 OPENSTACK_CONTROL_PLANE_REGION=$(env_value "$OPENSTACK_CONTROL_PLANE_REGION")
 OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=$(env_value "$OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS")
 ENVEOF
@@ -1232,6 +1269,12 @@ if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
         systemctl restart "$EXPORTER_SERVICE"
     else
         systemctl disable --now "$EXPORTER_SERVICE" >/dev/null 2>&1 || true
+    fi
+    if [ "$READS_QUOTAS" = 1 ]; then
+        systemctl enable "$QUOTA_EXPORTER_SERVICE"
+        systemctl restart "$QUOTA_EXPORTER_SERVICE"
+    else
+        systemctl disable --now "$QUOTA_EXPORTER_SERVICE" >/dev/null 2>&1 || true
     fi
     systemctl enable "$COLLECTOR_SERVICE"
     systemctl restart "$COLLECTOR_SERVICE"
@@ -1290,6 +1333,16 @@ elif [ "$BUNDLED_EXPORTER" = 0 ]; then
     echo "NOTE: the agent reads your exporter at $OPENSTACK_EXPORTER_ADDRESS. It must run with --multi-cloud, and"
     echo "its clouds.yaml needs an entry named for each region: $OPENSTACK_EXPORTER_CLOUDS."
     echo "Started without --multi-cloud, as Kolla-Ansible starts it? Set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS instead."
+fi
+
+if [ "$READS_QUOTAS" = 1 ]; then
+    echo ""
+    echo "NOTE: each project's quotas are read once an hour, by an exporter of their own: four API"
+    echo "calls per project, per region, on each read. The first read is within the hour."
+elif [ "$OPENSTACK_COLLECT_QUOTAS" = "true" ]; then
+    echo ""
+    echo "NOTE: OPENSTACK_COLLECT_QUOTAS reads quotas with an exporter this agent starts, and this agent"
+    echo "reads yours, so it is left off. Yours reads them on every scrape unless its flags leave them out."
 fi
 
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then

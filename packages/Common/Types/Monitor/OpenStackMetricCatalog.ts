@@ -46,6 +46,12 @@ export interface OpenStackMetricDefinition {
    */
   offByDefault?: string;
   /*
+   * Read once an hour by the agent's quota exporter, when someone turns that on with
+   * OPENSTACK_COLLECT_QUOTAS=true, rather than by deleting its line above. Filled in from
+   * offByDefault: see OPENSTACK_QUOTA_EXPORTER_READS.
+   */
+  fromQuotaExporter?: boolean;
+  /*
    * Labels only the probe's native collector sends on this series, beside the
    * exporter's: what it can read from the APIs that the exporter leaves behind. A query
    * filtering on one finds nothing from a cloud the agent collects.
@@ -155,9 +161,34 @@ function usage(data: {
   });
 }
 
+/*
+ * What the agent's quota exporter reads (openstack-quota-exporter in its docker-compose.yml), by
+ * the line that keeps each off its main exporter. Hourly, because these change slowly and cost
+ * four API calls per project. Nova's own quota lists are not here: no page reads them, so they
+ * stay a line someone deletes.
+ */
+export const OPENSTACK_QUOTA_EXPORTER_READS: ReadonlyArray<string> = [
+  "nova-limits_vcpus_max",
+  "neutron-quota_network",
+  "cinder-limits_volume_max_gb",
+];
+
 function metric(
   data: Omit<OpenStackMetricDefinition, "id">,
 ): OpenStackMetricDefinition {
+  const fromQuotaExporter: boolean = OPENSTACK_QUOTA_EXPORTER_READS.includes(
+    data.offByDefault || "",
+  );
+
+  if (fromQuotaExporter) {
+    return {
+      ...data,
+      id: data.metricName.replace(/_/g, "-"),
+      fromQuotaExporter: true,
+      description: `${data.description} Off by default: run the agent's install.sh with OPENSTACK_COLLECT_QUOTAS=true to read it once an hour.`,
+    };
+  }
+
   return {
     ...data,
     id: data.metricName.replace(/_/g, "-"),
