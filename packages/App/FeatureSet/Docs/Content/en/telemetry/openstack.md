@@ -330,7 +330,7 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | The compute nodes to read [real usage](#real-usage) from through `prometheus-libvirt-exporter`, in square brackets, such as `[compute-01:9177,compute-02:9177]`. Defaults to none. |
 | `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none. |
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | An exporter already running without `--multi-cloud`, such as Kolla-Ansible's: `[10.0.0.254:9198]`. See [Use the exporter you already run](/docs/telemetry/openstack-deployment-tools#use-the-exporter-you-already-run). |
-| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node, for [what the cloud stands on](/docs/monitor/openstack-monitor#what-the-cloud-stands-on): `[10.0.0.11:15692,10.0.0.12:15692]`. Defaults to none. |
+| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node, for [what the cloud stands on](/docs/monitor/openstack-monitor#control-plane): `[10.0.0.11:15692,10.0.0.12:15692]`. Defaults to none. |
 | `OPENSTACK_MARIADB_TARGETS` | No | mysqld_exporter beside each MariaDB node, usually on `9104`. Defaults to none. |
 | `OPENSTACK_MEMCACHED_TARGETS` | No | memcached_exporter beside each Memcached, usually on `9150`. Defaults to none. |
 | `OPENSTACK_HAPROXY_TARGETS` | No | HAProxy's own Prometheus exporter. Defaults to none. |
@@ -522,19 +522,23 @@ The exporter does not say which network an instance is on, or which pool holds a
 
 ## Joined up with the rest of OneUptime
 
-An incident rarely stays in OpenStack. A pod is slow because its node's instance sits on a full hypervisor whose volumes sit on a degraded Ceph pool. Each of those reports to OneUptime on its own, and these are the joins. No link is made on a guess: a name that matches two parts links to neither.
+An incident rarely stays in OpenStack. A pod is slow because its node's instance sits on a full hypervisor whose volumes sit on a degraded Ceph pool. Each of those reports to OneUptime on its own, and these are the joins.
+
+No link is made on a guess. A name that matches two parts links to neither, whichever end you read it from: a host called `compute-01` beside two hypervisors called `compute-01.east.example` and `compute-01.west.example` is on neither, and a hypervisor two hosts could be has no host. The same UUID in two clouds, such as a restored copy, links to neither, unless one of them is archived.
 
 | What | Links to | How |
 | --- | --- | --- |
 | A [host](/docs/telemetry/hosts) running OneUptime's agent on a compute node | Its hypervisor | By name, where exactly one host and one hypervisor match. A short name matches a full one, and two full names in different domains are two machines |
 | A host inside a guest | Its instance | Its `host.id` is the instance's UUID, which the collector's `nova` resource detector reports. Put it first, so it wins over `system`: `detectors: [nova, system, env]`. Leave `host.name` to `system` with `nova: { resource_attributes: { host.name: { enabled: false } } }`, or the host's name changes to the instance's |
 | A Kubernetes node | Its instance | Its `spec.providerID`, `openstack:///<uuid>` or `openstack://<region>/<uuid>`, which `openstack-cloud-controller-manager` sets |
-| A service | The instance or hypervisor it runs on | The host its telemetry names |
+| A service | The instance or hypervisor it runs on | The host its telemetry names, or the Kubernetes node its pods are on |
 | A Cinder storage pool | Its Ceph cluster | See below |
 
-Each page links to the next: a host, a Kubernetes node and a service say where they run, an instance says what it also is, and [Infrastructure](/docs/telemetry/topology) draws a linked host's services under their instance. A link is made once and left alone. It is checked every five minutes until it can be made, and is never written over.
+Each page links to the next: a host, a Kubernetes node and a service say where they run, an instance says what it also is, and [Infrastructure](/docs/telemetry/topology) draws a linked host's services under their instance. A host's link is made once and left alone. It is checked every five minutes until it can be made, and is never written over. When more than one cloud could be it, choose one under **OpenStack Cloud** on the host's Settings page.
 
-When a hypervisor fails, its blast radius goes on past the cloud, and an alert's description and OneUptime AI read the same answer: the machine itself, the hosts and Kubernetes nodes its instances are, the clusters those are in, and the services on those hosts. Services reached through a Kubernetes pod are not in it yet. An investigation that starts at a slow service can walk down to its hypervisor.
+The RabbitMQ and MariaDB pages under **What It Stands On** lead to [Queues](/docs/telemetry/queues) and [Databases](/docs/telemetry/databases), which go deeper once their own agent reads them.
+
+When a hypervisor fails, its blast radius goes on past the cloud, and an alert's description and OneUptime AI read the same answer: its instances, the machine itself, the hosts and Kubernetes nodes its instances are, the clusters those are in, and the services on those hosts and nodes. An investigation that starts at a slow service can walk down to its hypervisor.
 
 ### A storage pool and Ceph
 
@@ -543,9 +547,9 @@ What each source says about a pool decides how it links:
 | Source | What it says | What happens |
 | --- | --- | --- |
 | A [probe](/docs/telemetry/openstack-agentless) at the Full view level | Cinder's RBD driver names the Ceph cluster's fsid and pool in `location_info` | It links on its own, when one [Ceph cluster](/docs/telemetry/ceph) here reports that fsid. A Ceph cluster reports it only with `ceph.cluster.fsid` set in its agent's config |
-| The agent's exporter | The pool's name, its backend's name and its vendor, which reads `Open Source` for LVM and RBD alike | Nothing says it is on Ceph. A Ceph pool of the same name in exactly one cluster is offered, for someone to confirm once on the pool's page. With no such match they can choose a cluster, or say it isn't on Ceph |
+| The agent's exporter | The pool's name, its backend's name and its vendor, which reads `Open Source` for LVM and RBD alike | Nothing says it is on Ceph. A Ceph pool of the same name in exactly one cluster is offered, for someone to confirm once on the pool's page, unless another Cinder pool has that name too. With no such match they can choose a cluster, or say it isn't on Ceph |
 
-Once linked, the pool's page says how its cluster reads, and `HEALTH_WARN` or `HEALTH_ERR` appears in the cloud's **Needs attention**. A suggestion nobody confirmed raises nothing. Only the Full view credential can see pools at all: see [Choose how much the agent sees](#choose-how-much-the-agent-sees).
+Once linked, the pool's page says how its cluster reads, and `HEALTH_WARN` or `HEALTH_ERR` appears in the cloud's **Needs attention**. A suggestion nobody confirmed raises nothing. An answer someone gave can be changed on the pool's page. Only the Full view credential can see pools at all: see [Choose how much the agent sees](#choose-how-much-the-agent-sees).
 
 ## Service logs
 

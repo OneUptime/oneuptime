@@ -42,6 +42,7 @@ import {
   OpenStackLinkedService,
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
+  OpenStackServicePlacement,
   getOpenStackCephStatusFact,
 } from "../../Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
@@ -108,8 +109,9 @@ import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts"
  *   POST /openstack-resource/reach-of-instance/:cloudId   { instanceId }
  *     What an instance is elsewhere in OneUptime: its host, its Kubernetes node, its services.
  *
- *   POST /openstack-resource/host-of-machine/:projectId   { machineName }
- *     The host that is a hypervisor or a control plane machine, when exactly one could be.
+ *   POST /openstack-resource/host-of-machine/:cloudId   { machineName }
+ *     The host that is one of this cloud's hypervisors or control plane machines, when exactly
+ *     one could be.
  *
  *   POST /openstack-resource/placement-of-host/:hostId
  *   POST /openstack-resource/placement-of-service/:serviceId
@@ -119,9 +121,9 @@ import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts"
  *
  *   POST /openstack-resource/storage-pool-ceph/:cloudId   { externalId }
  *   POST /openstack-resource/storage-pool-ceph-confirm/:cloudId
- *     { externalId, cephClusterId | isNotCeph }
- *     What can be said about a Cinder pool and Ceph, and what an operator answered, which
- *     needs permission to change the cloud.
+ *     { externalId, cephClusterId | isNotCeph | forget }
+ *     What can be said about a Cinder pool and Ceph, and what an operator answered or took
+ *     back, which needs permission to change the cloud.
  *
  * The standard CRUD endpoints (list / get) are still registered by BaseAPI, and
  * the UI uses them through ModelAPI, with the filters on the indexed columns.
@@ -262,7 +264,7 @@ export default class OpenStackResourceAPI extends BaseAPI<
         return this.confirmStoragePoolCeph(req, res);
       },
     );
-    this.registerPlacementRead(
+    this.registerCloudRead(
       "host-of-machine",
       (req: ExpressRequest, res: ExpressResponse) => {
         return this.getHostOfMachine(req, res);
@@ -353,17 +355,19 @@ export default class OpenStackResourceAPI extends BaseAPI<
   /*
    * Which host a machine is takes every host and hypervisor in the project to say, so it is
    * worked out on all of them, and only the answer is read as the caller: someone who can't
-   * read that host, or that project, is told nothing, as if no host were there.
+   * read that host is told nothing, as if no host were there.
    */
   private async getHostOfMachine(
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    const { projectId, openStackCloudId } =
+      await this.resolveCloudForRequest(req);
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
-    const projectId: ObjectID = this.readResourceIdParam(req);
     const found: Host | null = await OpenStackAcrossProducts.getHostOfMachine({
       projectId,
+      openStackCloudId,
       machineName: this.readString(req, "machineName"),
     });
     let host: Host | null = null;
@@ -433,17 +437,14 @@ export default class OpenStackResourceAPI extends BaseAPI<
     if (!service?.projectId || !service.name) {
       throw new NotFoundException("Service not found");
     }
-    const placements: Array<{
-      hostName: string;
-      hostId: string | null;
-      placement: OpenStackPlacement;
-    }> = await this.keepPlacementsCallerMayRead({
-      placements: await OpenStackAcrossProducts.getPlacementsOfService({
-        projectId: service.projectId,
-        serviceName: service.name,
-      }),
-      props,
-    });
+    const placements: Array<OpenStackServicePlacement> =
+      await this.keepPlacementsCallerMayRead({
+        placements: await OpenStackAcrossProducts.getPlacementsOfService({
+          projectId: service.projectId,
+          serviceName: service.name,
+        }),
+        props,
+      });
     return Response.sendJsonObjectResponse(req, res, {
       placements,
     } as unknown as JSONObject);
@@ -591,6 +592,10 @@ export default class OpenStackResourceAPI extends BaseAPI<
       });
 
     return {
+      // A part of the cloud rather than of another product, which they can already read.
+      ...(reach.instanceCount === undefined
+        ? {}
+        : { instanceCount: reach.instanceCount, instances: reach.instances }),
       hostCount: reach.hostCount - (reach.hosts.length - keptHosts.length),
       hosts: keptHosts,
       kubernetesNodeCount: keptClusters.reduce(
@@ -709,6 +714,18 @@ export default class OpenStackResourceAPI extends BaseAPI<
     );
 
     const body: JSONObject = (req.body || {}) as JSONObject;
+    if (body["forget"] === true) {
+      const forgotten: boolean =
+        await OpenStackAcrossProducts.forgetStoragePoolCephLink({
+          projectId,
+          openStackCloudId,
+          externalId: this.readString(req, "externalId"),
+        });
+      if (!forgotten) {
+        throw new NotFoundException("That pool is not in this project");
+      }
+      return Response.sendEmptySuccessResponse(req, res);
+    }
     const isNotCeph: boolean = body["isNotCeph"] === true;
     const cephClusterId: unknown = body["cephClusterId"];
     if (

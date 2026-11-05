@@ -120,6 +120,7 @@ describe("REGISTRY_PROMOTED_TYPES", () => {
       EntityType.TelemetrySdk,
       EntityType.DatabaseServer,
       EntityType.MessageQueue,
+      EntityType.OpenStackResource,
     ];
 
     for (const entityType of Object.values(EntityType)) {

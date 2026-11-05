@@ -29,6 +29,8 @@
  *               and findings, the worst of them critical) | quiet (none).
  *               Left out, the project uses no Security Events and the cards
  *               draw nothing.
+ *   ?openstack= instance | several: where the service runs on OpenStack
+ *               (SuiteHelpers/OpenStackPlacement.js)
  *
  * Every read is recorded on window.__resourceOverviewsFixture: listRequests,
  * itemRequests, countRequests, aggregateRequests, apiRequests and unhandled
@@ -81,6 +83,10 @@ import {
   MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
   MESSAGE_QUEUE_RECEIVE_OPERATION,
 } from "../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
+import {
+  getOpenStackPlacementScenario,
+  getOpenStackPlacementsOfService,
+} from "../../SuiteHelpers/OpenStackPlacement";
 
 /*
  * ---------------------------------------------------------------------------
@@ -98,6 +104,7 @@ const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
 const CALLERS = ["busy", "long"].includes(params.get("callers"))
   ? params.get("callers")
   : "none";
+const OPENSTACK = getOpenStackPlacementScenario(params);
 const SECURITY = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
@@ -812,6 +819,14 @@ async function handleApi(method, options) {
       parsed.pathname.endsWith("/telemetry/exceptions/histogram"))
   ) {
     return ok({ buckets: [], bucketSizeInMinutes: 1 });
+  }
+
+  // Where the service runs on OpenStack. Most services are on no cloud, and say nothing.
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/openstack-resource/placement-of-service/")
+  ) {
+    return ok(getOpenStackPlacementsOfService(OPENSTACK));
   }
 
   /*

@@ -558,6 +558,37 @@ describe("an investigation can walk down from a slow service to a hypervisor", (
     expect(text).toContain('- Service "checkout" (serviceId: s1)');
   });
 
+  test("each host it takes is named with what the telemetry tools take to read it", () => {
+    const text: string = section(
+      [],
+      context({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 2,
+          acrossProducts: {
+            hostCount: 2,
+            hosts: [
+              { id: "h1", name: "compute-07", isHypervisor: true },
+              { id: "h2", name: "web-guest", isHypervisor: false },
+            ],
+            kubernetesNodeCount: 0,
+            kubernetesNodes: [],
+            kubernetesClusters: [],
+            serviceCount: 0,
+            services: [],
+          },
+        },
+        partKind: OpenStackResourceKind.Hypervisor,
+      }),
+    );
+    expect(text).toContain(
+      `- Host "compute-07" (resourceType: ${AIResourceType.Host}, resourceId: h1): this hypervisor's own machine`,
+    );
+    expect(text).toContain(
+      `- Host "web-guest" (resourceType: ${AIResourceType.Host}, resourceId: h2)`,
+    );
+  });
+
   test("a hypervisor over a line names the instances responsible, and who is waiting", () => {
     const text: string = section(
       [],

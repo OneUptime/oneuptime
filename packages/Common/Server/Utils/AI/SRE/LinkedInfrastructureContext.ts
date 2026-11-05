@@ -29,7 +29,9 @@ import {
   isOpenStackBlastRadiusEmpty,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
 import { OPENSTACK_SERVICE_TITLES } from "../../../../Types/OpenStack/OpenStackResourceKind";
-import OpenStackAcrossProducts from "../../OpenStack/OpenStackAcrossProducts";
+import OpenStackAcrossProducts, {
+  OpenStackKubernetesNodeRead,
+} from "../../OpenStack/OpenStackAcrossProducts";
 import OpenStackAlertContext, {
   OpenStackAlertContextResult,
   OpenStackBusyInstance,
@@ -555,7 +557,7 @@ export default class LinkedInfrastructureContext {
             )) {
               placements.push({
                 resource,
-                through: `host ${JSON.stringify(found.hostName)}`,
+                through: `${found.kubernetesClusterId ? "Kubernetes node" : "host"} ${JSON.stringify(PromptText.field(found.hostName, { maxLength: 200 }))}`,
                 placement: found.placement,
               });
             }
@@ -582,19 +584,14 @@ export default class LinkedInfrastructureContext {
     projectId: ObjectID;
     resource: LinkedInfrastructureResource;
   }): Promise<Array<OpenStackPlacementOfResource>> {
-    const nodes: Awaited<
-      ReturnType<typeof OpenStackAcrossProducts.readOpenStackKubernetesNodes>
-    > = await OpenStackAcrossProducts.readOpenStackKubernetesNodes(
-      data.projectId,
-    );
+    const nodes: Array<OpenStackKubernetesNodeRead> =
+      await OpenStackAcrossProducts.readOpenStackKubernetesNodes({
+        projectId: data.projectId,
+        kubernetesClusterId: new ObjectID(data.resource.id),
+        limit: MAX_OPENSTACK_PLACEMENTS,
+      });
     const placements: Array<OpenStackPlacementOfResource> = [];
     for (const node of nodes) {
-      if (
-        node.clusterId !== data.resource.id ||
-        placements.length >= MAX_OPENSTACK_PLACEMENTS
-      ) {
-        continue;
-      }
       const placement: OpenStackPlacement | null =
         await OpenStackAcrossProducts.getPlacementOfKubernetesNode({
           projectId: data.projectId,
@@ -604,7 +601,7 @@ export default class LinkedInfrastructureContext {
       if (placement) {
         placements.push({
           resource: data.resource,
-          through: `node ${JSON.stringify(node.nodeName)}`,
+          through: `node ${JSON.stringify(PromptText.field(node.nodeName, { maxLength: 200 }))}`,
           placement,
         });
       }
@@ -882,6 +879,11 @@ export default class LinkedInfrastructureContext {
       lines.push(
         `Beyond the cloud it takes: ${describeOpenStackReachAcrossProducts(reach)}.`,
       );
+      for (const host of reach.hosts) {
+        lines.push(
+          `- Host ${JSON.stringify(PromptText.field(host.name, { maxLength: 200 }))} (resourceType: ${AIResourceType.Host}, resourceId: ${host.id})${host.isHypervisor ? ": this hypervisor's own machine" : ""}`,
+        );
+      }
       for (const cluster of reach.kubernetesClusters) {
         lines.push(
           `- Kubernetes cluster ${JSON.stringify(PromptText.field(cluster.name, { maxLength: 200 }))} (resourceType: ${AIResourceType.KubernetesCluster}, resourceId: ${cluster.id}): ${cluster.nodeCount} ${cluster.nodeCount === 1 ? "node" : "nodes"}`,
