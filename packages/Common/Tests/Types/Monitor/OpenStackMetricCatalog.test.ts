@@ -76,8 +76,13 @@ const DOCS: string = readRepoFile(
   "openstack-monitor.md",
 );
 
+// The main exporter's alone: the others start with nearly every read turned off.
+const MAIN_EXPORTER: string = /^ {2}openstack-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m.exec(
+  COMPOSE,
+)![1]!;
+
 const DISABLED_METRICS: Array<string> = Array.from(
-  COMPOSE.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
+  MAIN_EXPORTER.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
 ).map((match: RegExpMatchArray): string => {
   return match[1]!;
 });
@@ -483,12 +488,12 @@ describe("OpenStackMetricCatalog", () => {
     test.each(OPENSTACK_QUOTA_EXPORTER_READS)(
       "the quota exporter reads what --disable-metric=%s leaves out of the main one, and turns off the rest",
       (disabled: string) => {
-        const quotaExporter: string = COMPOSE.substring(
-          COMPOSE.indexOf("  openstack-quota-exporter:\n"),
-          COMPOSE.indexOf("  # The largest clouds' path"),
-        );
+        const quotaExporter: string =
+          /^ {2}openstack-quota-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m.exec(
+            COMPOSE,
+          )![1]!;
 
-        expect(quotaExporter.length).toBeGreaterThan(0);
+        expect(quotaExporter).toContain("--disable-metric=nova-flavors");
         expect(DISABLED_METRICS).toContain(disabled);
         expect(quotaExporter).not.toContain(`- --disable-metric=${disabled}\n`);
       },

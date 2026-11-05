@@ -2472,7 +2472,11 @@ describe("each project's quotas", () => {
     });
     const run = await runDoctor(cloud, {
       args: ["--skip-access"],
-      env: { OPENSTACK_QUOTA_CLOUDS: "[RegionOne]" },
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
     });
     await cloud.close();
 
@@ -2492,7 +2496,11 @@ describe("each project's quotas", () => {
     });
     const run = await runDoctor(cloud, {
       args: ["--skip-access"],
-      env: { OPENSTACK_QUOTA_CLOUDS: "[RegionOne]" },
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
     });
     await cloud.close();
 
