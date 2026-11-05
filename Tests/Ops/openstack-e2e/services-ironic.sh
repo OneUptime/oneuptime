@@ -25,13 +25,21 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/services-lib.sh"
 
 export RECORD_SERVICES="baremetal compute placement identity"
+# Recorded on the first run of this: a project's admin reads only what its project owns, and is
+# refused the conductors. So the exporter is asked as both, and so is the API.
+export EXPORTER_ALSO="devstack-system-admin=baremetal"
+
+# Ironic with system scope, which reads every node and may change any of them.
+bm() {
+  OS_CLOUD=devstack-system-admin openstack baremetal "$@"
+}
 
 provision_state() {
-  openstack baremetal node show "$1" -f value -c provision_state
+  bm node show "$1" -f value -c provision_state
 }
 
 power_state() {
-  openstack baremetal node show "$1" -f value -c power_state
+  bm node show "$1" -f value -c power_state
 }
 
 # What Nova's Ironic driver wants to see, on a node every part of which is fake.
@@ -46,14 +54,26 @@ fake_node() {
       "$@" >/dev/null
 }
 
+# The same, created with system scope, so a project's admin does not own it.
+system_fake_node() {
+  local name="$1"
+  shift
+  bm node show "$name" >/dev/null 2>&1 \
+    || bm node create --name "$name" --driver fake-hardware \
+      --boot-interface fake --deploy-interface fake --management-interface fake --power-interface fake \
+      --network-interface noop --resource-class baremetal \
+      --property cpus=2 --property memory_mb=4096 --property local_gb=40 --property cpu_arch=x86_64 \
+      "$@" >/dev/null
+}
+
 to_manageable() {
-  openstack baremetal node manage "$1"
+  bm node manage "$1"
   wait_for "$1" manageable 24 5 provision_state "$1"
 }
 
 to_available() {
   to_manageable "$1"
-  openstack baremetal node provide "$1"
+  bm node provide "$1"
   wait_for "$1" available 36 5 provision_state "$1"
 }
 
@@ -61,8 +81,15 @@ hypervisor_count() {
   openstack hypervisor list -f value -c "Hypervisor Hostname" | wc -l | tr -d ' '
 }
 
+# Only with system scope: a project's admin is refused this list.
 conductor_alive() {
-  openstack baremetal conductor list -f value -c Alive | sort -u | head -1
+  bm conductor list -f value -c Alive | sort -u | head -1
+}
+
+# Nova's hypervisor list leaves out a host no cell maps, and DevStack mapped them before there
+# was a node. A real deployment runs this after enrolling its first one.
+discover_hosts() {
+  /opt/stack/data/venv/bin/nova-manage cell_v2 discover_hosts --by-service --verbose
 }
 
 log "The estate"
@@ -72,24 +99,29 @@ PAYMENTS="$(openstack project show ou-payments -f value -c id)"
 drive_baseline() {
   fake_node ou-node-available
   to_available ou-node-available
-  # Owned by a project, because Ironic answers a project's reader with what that project owns.
-  fake_node ou-node-active --owner "$PAYMENTS"
+  # Owned by another project, because Ironic answers a project with what that project owns, and
+  # only system scope can make it so.
+  system_fake_node ou-node-active --owner "$PAYMENTS"
   to_available ou-node-active
-  openstack baremetal node deploy ou-node-active
+  bm node deploy ou-node-active
   wait_for "ou-node-active" active 36 5 provision_state ou-node-active
-  note "On their own, on fake hardware: Ironic's state machine took each node through it."
+  # Owned by nobody, as a node enrolled by an operator is.
+  system_fake_node ou-node-unowned
+  to_available ou-node-unowned
+  note "On their own, on fake hardware: Ironic's state machine took each node through it. ou-node-available was created by a project's admin, so that project owns it. ou-node-active is owned by another project, and ou-node-unowned by nobody, both created with system scope. Which of them each answer holds is what this shows."
+  discover_hosts || note "nova-manage could not map this host, so Nova's hypervisor list may leave it out."
   # Nova finds a node on its next periodic, about a minute. What it then says is what this
   # records, whatever it is, so a different count is worth saying and is no failure.
-  if wait_for "Nova's hypervisors" 2 24 10 hypervisor_count; then
-    note "Nova's Ironic driver lists both as hypervisors."
+  if wait_for "Nova's hypervisors" 3 24 10 hypervisor_count; then
+    note "Nova's Ironic driver lists all three as hypervisors."
   else
-    note "Nova's hypervisor list has $(hypervisor_count) after four minutes, with two nodes enrolled."
+    note "Nova's hypervisor list has $(hypervisor_count) after four minutes, with three nodes enrolled."
   fi
   openstack hypervisor list || true
 }
 
 scene baseline \
-  "Two nodes on fake hardware, one available and one active, with Nova's Ironic driver reading them." \
+  "Nodes on fake hardware, available and active, owned by a project, another project and nobody, with Nova's Ironic driver reading them." \
   drive_baseline
 
 # The state that broke an exporter's hypervisor list once (openstack-exporter issue 428).
@@ -102,7 +134,7 @@ drive_half_enrolled() {
   # not an assertion: this scene is here to find out.
   sleep 150
   openstack hypervisor list || true
-  sudo journalctl -u devstack@n-cpu.service --no-pager -n 400 2>/dev/null | grep -E "ou-node-half|$(openstack baremetal node show ou-node-half -f value -c uuid)" | tail -20 || true
+  sudo journalctl -u devstack@n-cpu.service --no-pager -n 400 2>/dev/null | grep -E "ou-node-half|$(bm node show ou-node-half -f value -c uuid)" | tail -20 || true
 }
 
 scene half-enrolled \
@@ -112,7 +144,7 @@ scene half-enrolled \
 drive_maintenance() {
   fake_node ou-node-maintenance
   to_available ou-node-maintenance
-  openstack baremetal node maintenance set ou-node-maintenance --reason "OneUptime drill: a disk being swapped"
+  bm node maintenance set ou-node-maintenance --reason "OneUptime drill: a disk being swapped"
   note "On its own: an operator put it in maintenance, with a reason."
 }
 
@@ -125,7 +157,7 @@ scene maintenance \
 drive_clean_failed() {
   fake_node ou-node-clean-failed
   to_manageable ou-node-clean-failed
-  openstack baremetal node clean ou-node-clean-failed \
+  bm node clean ou-node-clean-failed \
     --clean-steps '[{"interface": "deploy", "step": "ou_no_such_step"}]'
   if wait_for "ou-node-clean-failed" "clean failed" 36 5 provision_state ou-node-clean-failed; then
     note "On its own: the conductor could not run the step it was given."
@@ -133,7 +165,7 @@ drive_clean_failed() {
     note "Written into its row, because the conductor did not get there: UPDATE nodes SET provision_state='clean failed'."
     db ironic "UPDATE nodes SET provision_state='clean failed', maintenance=1, maintenance_reason='OneUptime drill', last_error='OneUptime drill: written into this row' WHERE name='ou-node-clean-failed'"
   fi
-  openstack baremetal node show ou-node-clean-failed -c provision_state -c maintenance -c maintenance_reason -c last_error || true
+  bm node show ou-node-clean-failed -c provision_state -c maintenance -c maintenance_reason -c last_error || true
 }
 
 scene clean-failed \
@@ -147,10 +179,10 @@ drive_wait_call_back() {
   local image
   image="$(openstack image list --status active -f value -c ID -c Name | grep -i cirros | head -1 | cut -d' ' -f1)"
   fake_node ou-node-deploy-failed
-  openstack baremetal node set ou-node-deploy-failed --deploy-interface direct
+  bm node set ou-node-deploy-failed --deploy-interface direct
   to_available ou-node-deploy-failed
-  openstack baremetal node set ou-node-deploy-failed --instance-info "image_source=$image" --instance-info root_gb=1
-  openstack baremetal node deploy ou-node-deploy-failed
+  bm node set ou-node-deploy-failed --instance-info "image_source=$image" --instance-info root_gb=1
+  bm node deploy ou-node-deploy-failed
   wait_for "ou-node-deploy-failed" "wait call-back" 60 5 provision_state ou-node-deploy-failed
   note "On its own: Ironic is waiting for a deploy agent, which does not exist on fake hardware."
 }
@@ -166,7 +198,7 @@ drive_deploy_failed() {
     note "Written into its row, because Ironic had not given up after ten minutes: UPDATE nodes SET provision_state='deploy failed'."
     db ironic "UPDATE nodes SET provision_state='deploy failed', last_error='OneUptime drill: written into this row' WHERE name='ou-node-deploy-failed'"
   fi
-  openstack baremetal node show ou-node-deploy-failed -c provision_state -c last_error || true
+  bm node show ou-node-deploy-failed -c provision_state -c last_error || true
 }
 
 scene deploy-failed \
@@ -174,13 +206,13 @@ scene deploy-failed \
   drive_deploy_failed
 
 drive_power_off() {
-  openstack baremetal node power off ou-node-active
+  bm node power off ou-node-active
   wait_for "ou-node-active power" "power off" 24 5 power_state ou-node-active
   note "On its own: an active node powered off by someone, which Ironic records and leaves active."
 }
 
 undo_power_off() {
-  openstack baremetal node power on ou-node-active
+  bm node power on ou-node-active
 }
 
 scene power-off-while-active \

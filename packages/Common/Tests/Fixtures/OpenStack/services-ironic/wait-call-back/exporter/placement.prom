@@ -1,0 +1,28 @@
+# HELP openstack_placement_resource_allocation_ratio resource_allocation_ratio
+# TYPE openstack_placement_resource_allocation_ratio gauge
+openstack_placement_resource_allocation_ratio{hostname="1062b540-62b5-44a7-805f-212d8778807c",resourcetype="CUSTOM_BAREMETAL"} 1
+openstack_placement_resource_allocation_ratio{hostname="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",resourcetype="CUSTOM_BAREMETAL"} 1
+openstack_placement_resource_allocation_ratio{hostname="9654dc06-7244-447a-9e3e-b4c2ec239a6c",resourcetype="CUSTOM_BAREMETAL"} 1
+# HELP openstack_placement_resource_generation resource_generation
+# TYPE openstack_placement_resource_generation gauge
+openstack_placement_resource_generation{hostname="1062b540-62b5-44a7-805f-212d8778807c",resourcetype="CUSTOM_BAREMETAL"} 2
+openstack_placement_resource_generation{hostname="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",resourcetype="CUSTOM_BAREMETAL"} 2
+openstack_placement_resource_generation{hostname="9654dc06-7244-447a-9e3e-b4c2ec239a6c",resourcetype="CUSTOM_BAREMETAL"} 2
+# HELP openstack_placement_resource_reserved resource_reserved
+# TYPE openstack_placement_resource_reserved gauge
+openstack_placement_resource_reserved{hostname="1062b540-62b5-44a7-805f-212d8778807c",resourcetype="CUSTOM_BAREMETAL"} 1
+openstack_placement_resource_reserved{hostname="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",resourcetype="CUSTOM_BAREMETAL"} 1
+openstack_placement_resource_reserved{hostname="9654dc06-7244-447a-9e3e-b4c2ec239a6c",resourcetype="CUSTOM_BAREMETAL"} 1
+# HELP openstack_placement_resource_total resource_total
+# TYPE openstack_placement_resource_total gauge
+openstack_placement_resource_total{hostname="1062b540-62b5-44a7-805f-212d8778807c",resourcetype="CUSTOM_BAREMETAL"} 1
+openstack_placement_resource_total{hostname="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",resourcetype="CUSTOM_BAREMETAL"} 1
+openstack_placement_resource_total{hostname="9654dc06-7244-447a-9e3e-b4c2ec239a6c",resourcetype="CUSTOM_BAREMETAL"} 1
+# HELP openstack_placement_resource_usage resource_usage
+# TYPE openstack_placement_resource_usage gauge
+openstack_placement_resource_usage{hostname="1062b540-62b5-44a7-805f-212d8778807c",resourcetype="CUSTOM_BAREMETAL"} 0
+openstack_placement_resource_usage{hostname="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",resourcetype="CUSTOM_BAREMETAL"} 0
+openstack_placement_resource_usage{hostname="9654dc06-7244-447a-9e3e-b4c2ec239a6c",resourcetype="CUSTOM_BAREMETAL"} 0
+# HELP openstack_placement_up up
+# TYPE openstack_placement_up gauge
+openstack_placement_up 1

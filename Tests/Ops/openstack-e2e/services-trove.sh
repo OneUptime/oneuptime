@@ -7,7 +7,7 @@
 #   baseline            Trove's lists, before any instance
 #   instance-building   an instance on its way, in BUILD
 #   instance-active     that instance ACTIVE, if a runner can get it there
-#   instance-error      an instance Nova has nowhere to put, in ERROR
+#   instance-error      an instance Nova refuses, in ERROR
 #   taskmanager-down    trove-taskmanager stopped
 #   api-down            Trove's API stopped
 #
@@ -79,8 +79,11 @@ drive_instance_active() {
   openstack database instance show ou-db-ok || true
   openstack server list --all-projects --name ou-db-ok -c ID -c Name -c Status -c Host || true
   if [ "$status" != ACTIVE ]; then
-    note "It did not reach ACTIVE on this runner: it is $status after forty minutes."
-    sudo journalctl -u devstack@tr-tmgr.service --no-pager -n 40 || true
+    note "It did not reach ACTIVE on this runner: it is $status."
+    # Nova's fault only says it ran out of retries. Why is in nova-compute's own log, which later
+    # steps would push out of what the job keeps.
+    sudo journalctl -u devstack@n-cpu.service --no-pager -n 3000 >"$OUTPUT_DIR/instance-active/n-cpu.log" || true
+    grep -E " ERROR |Failed to|Exception" "$OUTPUT_DIR/instance-active/n-cpu.log" | tail -40 || true
     return 1
   fi
   note "On its own: the guest booted, pulled its database and came up on this runner."
@@ -93,12 +96,12 @@ scene instance-active \
 drive_instance_error() {
   make_instance ou-db-no-host ou.impossible
   wait_for "ou-db-no-host" ERROR 72 5 instance_status ou-db-no-host
-  note "On its own: Nova said No valid host, and Trove gave up."
+  note "On its own: Nova refused it, and Trove gave up. The instance's fault says Nova's reason."
   openstack database instance show ou-db-no-host || true
 }
 
 scene instance-error \
-  "A database instance in ERROR, because Nova has nowhere to put it." \
+  "A database instance in ERROR, because Nova refused it." \
   drive_instance_error
 
 drive_taskmanager_down() {
@@ -115,14 +118,17 @@ scene taskmanager-down \
   "trove-taskmanager stopped." \
   drive_taskmanager_down undo_taskmanager_down
 
+# A site of Apache's on this release, not a unit of its own.
 drive_api_down() {
-  stop_unit devstack@tr-api.service
+  sudo a2dissite trove-api
+  sudo systemctl reload apache2
   sleep 10
-  note "On its own: Trove's API is stopped."
+  note "On its own: Trove's API is stopped, by taking its site off Apache, which is how DevStack runs it."
 }
 
 undo_api_down() {
-  start_unit devstack@tr-api.service
+  sudo a2ensite trove-api
+  sudo systemctl reload apache2
 }
 
 scene api-down \

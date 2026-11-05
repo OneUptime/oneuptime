@@ -1,0 +1,43 @@
+# HELP openstack_heat_stack_status stack_status
+# TYPE openstack_heat_stack_status gauge
+openstack_heat_stack_status{id="051137af-32a3-44ce-ba36-3324093761ab",name="ou-stack-creating",project_id="4d0acfc18c9d4a0b994a7fe34516bf65",status="CREATE_IN_PROGRESS"} 3
+openstack_heat_stack_status{id="0eddabef-a280-4864-bc1a-4064c7705bf1",name="ou-stack-admin-ok",project_id="4d0acfc18c9d4a0b994a7fe34516bf65",status="CREATE_COMPLETE"} 5
+openstack_heat_stack_status{id="2931cfa5-85d1-43be-bd8f-8a3f9a22cfc3",name="ou-stack-failed",project_id="08945d5897854ec2a11d65d907ec6251",status="CREATE_FAILED"} 4
+openstack_heat_stack_status{id="8aa2a6ad-1b16-464c-a05a-2a2d73e5bbdd",name="ou-stack-updating",project_id="4d0acfc18c9d4a0b994a7fe34516bf65",status="UPDATE_IN_PROGRESS"} 9
+openstack_heat_stack_status{id="d41993f5-cbf8-457e-86f7-2a755ff7b6f5",name="ou-stack-ok",project_id="08945d5897854ec2a11d65d907ec6251",status="CREATE_COMPLETE"} 5
+openstack_heat_stack_status{id="fd5c93f8-3899-478a-8e21-ed231da3e7f0",name="ou-stack-admin-failed",project_id="4d0acfc18c9d4a0b994a7fe34516bf65",status="CREATE_FAILED"} 4
+# HELP openstack_heat_stack_status_counter stack_status_counter
+# TYPE openstack_heat_stack_status_counter gauge
+openstack_heat_stack_status_counter{status="ADOPT_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="ADOPT_FAILED"} 0
+openstack_heat_stack_status_counter{status="ADOPT_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="CHECK_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="CHECK_FAILED"} 0
+openstack_heat_stack_status_counter{status="CHECK_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="CREATE_COMPLETE"} 2
+openstack_heat_stack_status_counter{status="CREATE_FAILED"} 2
+openstack_heat_stack_status_counter{status="CREATE_IN_PROGRESS"} 1
+openstack_heat_stack_status_counter{status="DELETE_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="DELETE_FAILED"} 0
+openstack_heat_stack_status_counter{status="DELETE_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="INIT_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="INIT_FAILED"} 0
+openstack_heat_stack_status_counter{status="INIT_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="RESUME_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="RESUME_FAILED"} 0
+openstack_heat_stack_status_counter{status="RESUME_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="ROLLBACK_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="ROLLBACK_FAILED"} 0
+openstack_heat_stack_status_counter{status="ROLLBACK_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="SNAPSHOT_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="SNAPSHOT_FAILED"} 0
+openstack_heat_stack_status_counter{status="SNAPSHOT_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="SUSPEND_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="SUSPEND_FAILED"} 0
+openstack_heat_stack_status_counter{status="SUSPEND_IN_PROGRESS"} 0
+openstack_heat_stack_status_counter{status="UPDATE_COMPLETE"} 0
+openstack_heat_stack_status_counter{status="UPDATE_FAILED"} 0
+openstack_heat_stack_status_counter{status="UPDATE_IN_PROGRESS"} 1
+# HELP openstack_heat_up up
+# TYPE openstack_heat_up gauge
+openstack_heat_up 1

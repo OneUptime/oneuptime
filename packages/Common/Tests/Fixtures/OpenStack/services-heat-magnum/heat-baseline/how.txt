@@ -1,0 +1,2 @@
+Stacks CREATE_COMPLETE and CREATE_FAILED in two projects, one owning an instance and a volume.
+On their own: Nova said No valid host to one, and Heat's test resource was told to fail by the other.

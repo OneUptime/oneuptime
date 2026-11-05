@@ -151,7 +151,10 @@ openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 ou-monitoring
 openstack volume service list >/dev/null 2>&1 || set +e
 openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 ou-monitoring
 set -e
+# A group that runs without Neutron's security groups has no quota for them, and only there may this fail.
+openstack security group list >/dev/null 2>&1 || set +e
 openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 ou-monitoring
+set -e
 openstack role add --project ou-monitoring --user ou-monitor oneuptime_monitoring
 openstack role add --project ou-monitoring --user ou-monitor reader
 openstack role add --project ou-payments --user ou-monitor-on-project oneuptime_monitoring
@@ -345,6 +348,10 @@ restart_units() {
       sudo systemctl restart "$unit"
     fi
   done
+  # Trove's API is a site of Apache's on this release, so that is what reads its config.
+  if [ -f /etc/apache2/sites-enabled/trove-api.conf ]; then
+    sudo systemctl reload apache2
+  fi
 }
 restart_units
 
@@ -363,6 +370,12 @@ done
   echo "admin=$(openstack token issue -f value -c id)"
   echo "monitoring-admin-get=$APPCRED_TOKEN"
 } | matrix "$OUTPUT_DIR/access/matrix-access-rules.json"
+
+# A service that answers 500 to this credential says why only in its own log.
+if unit_is_here=$(systemctl list-unit-files --no-legend devstack@s-proxy.service 2>/dev/null) && [ -n "$unit_is_here" ]; then
+  sudo journalctl -u devstack@s-proxy.service --no-pager -n 200 >"$OUTPUT_DIR/access/s-proxy.log" 2>&1 || true
+  grep -nE "Traceback|Error|error|Exception" "$OUTPUT_DIR/access/s-proxy.log" | tail -20 || true
+fi
 
 exporter_sees monitoring-admin-get "$(clouds_for_application_credential)"
 

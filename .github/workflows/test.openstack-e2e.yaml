@@ -636,6 +636,7 @@ jobs:
         run: |
           mkdir -p "${RUNNER_TEMP}/devstack-logs"
           sudo journalctl -u 'devstack@*' --no-pager -n 20000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo journalctl -u devstack@n-cpu.service --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/n-cpu.txt" || true
           sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
           sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
 

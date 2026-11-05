@@ -325,7 +325,7 @@ elif " -f value" in args:
       path.join(bin, "sudo"),
       `#!/usr/bin/env bash
 case "$1" in
-  systemctl|journalctl) exit 0 ;;
+  systemctl|journalctl|a2dissite|a2ensite) exit 0 ;;
 esac
 exec "$@"
 `,
@@ -500,6 +500,23 @@ finish_scenes
     expect(run.stderr).toContain("Did not reach: one");
   });
 
+  test("says why a scene failed, even from a function with a local of the same name", () => {
+    const { file } = harness(`
+inner() {
+  local name="$1"
+  false
+  echo "$name"
+}
+drive() {
+  inner something-else
+}
+scene one "The first." drive
+finish_scenes || true
+`);
+    expect(file("one/failed.txt")).toContain("false");
+    expect(file("scenes.txt")).toContain("one FAILED: line");
+  });
+
   test("puts the cloud back after recording, whichever way the scene went", () => {
     const { run, file } = harness(`
 drive() {
@@ -583,8 +600,11 @@ describe("record.sh reads each service only where the catalog has it", () => {
     "/v2/lbaas/pools": { pools: [{ id: "po1", name: "ou-lb-pool" }] },
     "/v2/octavia/amphorae": { amphorae: [{ id: "abcdef0123456789" }] },
     "/v1/nodes/detail": { nodes: [{ uuid: "no1", name: "ou-node-half" }] },
-    "/stacks?global_tenant=true": {
-      stacks: [{ id: "st1", stack_name: "ou-stack-ok", project: "pr1" }],
+    "/stacks": {
+      stacks: [
+        { id: "st1", stack_name: "ou-stack-ok", project: "pr1" },
+        { id: "st2", stack_name: "ou-cluster-abc123", project: "pr1" },
+      ],
     },
     "/clusters": { clusters: [{ uuid: "cl1", name: "ou-cluster" }] },
     "/v2/zones": { zones: [{ id: "zo1", name: "ou-active.example.org." }] },
@@ -708,6 +728,8 @@ elif "project show" in args:
     });
     expect(calls).toEqual(
       expect.arrayContaining([
+        "ironic-nodes-as-system",
+        "ironic-conductors-as-system",
         "octavia-loadbalancers",
         "octavia-lb-status-ou-lb",
         "octavia-lb-stats-ou-lb",
@@ -739,10 +761,11 @@ elif "project show" in args:
         "gnocchi-status",
       ]),
     );
-    // A stack is read as its own project, at its own project's address.
+    // A stack is read as its own project, at its own project's address. Only ours.
     expect(urls).toContain(
       "http://10.0.0.1/heat-api/v1/pr1/stacks/ou-stack-ok/st1/resources?nested_depth=2",
     );
+    expect(urls).not.toContain("ou-cluster-abc123");
     // The other project's Swift account, by its own id.
     expect(urls).toContain("http://10.0.0.1:8080/v1/AUTH_pr1");
   });
@@ -770,6 +793,19 @@ elif "project show" in args:
       read(path.join(everything.scene, "exporter", "status.txt")).split("\n")
         .length,
     ).toBe(17);
+  });
+
+  test("another clouds.yaml entry's view of a service is recorded beside it", () => {
+    const { scene } = recordWith(
+      {},
+      {
+        RECORD_SERVICES: "baremetal",
+        EXPORTER_ALSO: "devstack-system-admin=baremetal",
+      },
+    );
+    expect(read(path.join(scene, "exporter", "status.txt"))).toContain(
+      "baremetal-as-devstack-system-admin 200",
+    );
   });
 
   test("Swift's recon is read from each server named, and a read it lacks only says so", () => {

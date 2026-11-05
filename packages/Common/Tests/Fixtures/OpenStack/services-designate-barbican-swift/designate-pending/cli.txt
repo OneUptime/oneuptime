@@ -1,0 +1,31 @@
+$ openstack zone list --all-projects
++--------------------------------------+----------------------------------+--------------------------+---------+------------+---------+--------+
+| id                                   | project_id                       | name                     | type    |     serial | status  | action |
++--------------------------------------+----------------------------------+--------------------------+---------+------------+---------+--------+
+| 2ffcb839-0111-4e4c-818e-9075c1952949 | 3e5d001dee9a477087fc3b0e5278eb81 | ou-active.example.org.   | PRIMARY | 1793842339 | PENDING | UPDATE |
+| 84ca4d67-deee-47e8-965b-4ab748c2b3b9 | 09ff72fc32f846d595498f218636fb45 | ou-payments.example.org. | PRIMARY | 1793842270 | ACTIVE  | NONE   |
+| b2e10c34-3cc4-4ae1-b052-035161a5f4ca | 3e5d001dee9a477087fc3b0e5278eb81 | ou-pending.example.org.  | PRIMARY | 1793842330 | PENDING | CREATE |
++--------------------------------------+----------------------------------+--------------------------+---------+------------+---------+--------+
+$ openstack recordset list all --all-projects
++--------------------------------------+----------------------------------+--------------------------------+--------------------------+------+--------------------------------------------------------------------------+---------+--------+
+| id                                   | project_id                       | name                           | zone_name                | type | records                                                                  | status  | action |
++--------------------------------------+----------------------------------+--------------------------------+--------------------------+------+--------------------------------------------------------------------------+---------+--------+
+| 64964779-fd40-42ff-916e-3126f1ea2ce1 | 3e5d001dee9a477087fc3b0e5278eb81 | ou-active.example.org.         | ou-active.example.org.   | NS   | ns1.devstack.org.                                                        | ACTIVE  | NONE   |
+| 7d4d9064-fbeb-4441-a107-c7991e22a0c3 | 3e5d001dee9a477087fc3b0e5278eb81 | ou-active.example.org.         | ou-active.example.org.   | SOA  | ns1.devstack.org. hostmaster.example.org. 1793842339 3501 600 86400 3600 | PENDING | UPDATE |
+| b12950e7-c3f4-4cdf-8eb9-e8dfbe01ab25 | 3e5d001dee9a477087fc3b0e5278eb81 | www.ou-active.example.org.     | ou-active.example.org.   | A    | 192.0.2.10                                                               | ACTIVE  | NONE   |
+| 61333cf4-6e47-4d0c-b9c0-74f17326ea62 | 09ff72fc32f846d595498f218636fb45 | ou-payments.example.org.       | ou-payments.example.org. | SOA  | ns1.devstack.org. hostmaster.example.org. 1793842270 3534 600 86400 3600 | ACTIVE  | NONE   |
+| d7479fca-8844-47e3-bac0-1adbbb7d39d9 | 09ff72fc32f846d595498f218636fb45 | ou-payments.example.org.       | ou-payments.example.org. | NS   | ns1.devstack.org.                                                        | ACTIVE  | NONE   |
+| 6d6d45f3-2aef-437a-8de7-71a88fed9ed8 | 3e5d001dee9a477087fc3b0e5278eb81 | ou-pending.example.org.        | ou-pending.example.org.  | SOA  | ns1.devstack.org. hostmaster.example.org. 1793842330 3576 600 86400 3600 | PENDING | CREATE |
+| d418cdc8-f7fe-4c25-a970-54934a332b35 | 3e5d001dee9a477087fc3b0e5278eb81 | ou-pending.example.org.        | ou-pending.example.org.  | NS   | ns1.devstack.org.                                                        | PENDING | CREATE |
+| 6a76b95d-20f5-470e-b167-ecff170cd3c8 | 3e5d001dee9a477087fc3b0e5278eb81 | pending.ou-active.example.org. | ou-active.example.org.   | A    | 192.0.2.10                                                               | PENDING | CREATE |
++--------------------------------------+----------------------------------+--------------------------------+--------------------------+------+--------------------------------------------------------------------------+---------+--------+
+$ openstack dns service list
++--------------------------------------+---------------+--------------+--------+-------+--------------+
+| id                                   | hostname      | service_name | status | stats | capabilities |
++--------------------------------------+---------------+--------------+--------+-------+--------------+
+| 22eda70a-c401-462b-a987-1a59c3b4b5e9 | compute-01 | central      | UP     | -     | -            |
+| d60323d7-3308-4b7e-a558-43bd42c4c183 | compute-01 | mdns         | UP     | -     | -            |
+| de747f66-3270-4cc2-991a-b7a7144d5c56 | compute-01 | sink         | UP     | -     | -            |
+| c9a4c39f-ad00-4d26-ad25-be2f0f1a619b | compute-01 | worker       | UP     | -     | -            |
+| 8228745a-eef9-426b-aa99-43c4ba082c79 | compute-01 | producer     | UP     | -     | -            |
++--------------------------------------+---------------+--------------+--------+-------+--------------+

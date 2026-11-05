@@ -7,8 +7,9 @@
 #   baseline            shares available, in two projects
 #   share-error         a share no backend can take, which the scheduler puts in error
 #   share-stuck         a share held in creating by the slow backend
-#   share-service-down  manila-share stopped
-#   scheduler-down      manila-scheduler stopped
+#   share-service-stopped  manila-share stopped cleanly, which Manila calls stopped
+#   share-service-killed   manila-share killed, which Manila calls down
+#   scheduler-stopped      manila-scheduler stopped cleanly
 #   api-down            Manila's API stopped
 #   recovered           everything started again
 #
@@ -85,35 +86,47 @@ scene share-stuck \
   "A share held in creating by a backend that does not finish." \
   drive_share_stuck
 
-drive_share_service_down() {
+# Manila's own word for a service stopped cleanly is stopped: it writes that itself on its way
+# out. Only one that dies goes quiet until its heartbeat is old enough, and then reads down.
+drive_share_service_stopped() {
   stop_unit devstack@m-shr.service
-  wait_for "manila-share" down 36 10 service_state manila-share
-  note "On its own: manila-share is stopped, and Manila says so once its heartbeat is old enough."
+  wait_for "manila-share" stopped 36 10 service_state manila-share
+  note "On its own: manila-share was stopped cleanly, and Manila says stopped, not down."
 }
 
-undo_share_service_down() {
+undo_share_service() {
   start_unit devstack@m-shr.service
   wait_for "manila-share" up 36 10 service_state manila-share
 }
 
-scene share-service-down \
-  "manila-share stopped, with shares still listed." \
-  drive_share_service_down undo_share_service_down
+scene share-service-stopped \
+  "manila-share stopped cleanly, with shares still listed." \
+  drive_share_service_stopped undo_share_service
 
-drive_scheduler_down() {
-  stop_unit devstack@m-sch.service
-  wait_for "manila-scheduler" down 36 10 service_state manila-scheduler
-  note "On its own: manila-scheduler is stopped."
+drive_share_service_killed() {
+  sudo systemctl kill --signal=SIGKILL --kill-who=all devstack@m-shr.service
+  wait_for "manila-share" down 36 10 service_state manila-share
+  note "On its own: manila-share was killed, so nothing wrote stopped, and Manila says down once its heartbeat is old enough."
 }
 
-undo_scheduler_down() {
+scene share-service-killed \
+  "manila-share killed: what a service that died reads as." \
+  drive_share_service_killed undo_share_service
+
+drive_scheduler_stopped() {
+  stop_unit devstack@m-sch.service
+  wait_for "manila-scheduler" stopped 36 10 service_state manila-scheduler
+  note "On its own: manila-scheduler was stopped cleanly."
+}
+
+undo_scheduler_stopped() {
   start_unit devstack@m-sch.service
   wait_for "manila-scheduler" up 36 10 service_state manila-scheduler
 }
 
-scene scheduler-down \
-  "manila-scheduler stopped." \
-  drive_scheduler_down undo_scheduler_down
+scene scheduler-stopped \
+  "manila-scheduler stopped cleanly." \
+  drive_scheduler_stopped undo_scheduler_stopped
 
 drive_api_down() {
   stop_unit devstack@m-api.service

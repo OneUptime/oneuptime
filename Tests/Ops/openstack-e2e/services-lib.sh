@@ -126,7 +126,9 @@ scene() {
   (
     set -eE
     CURRENT_SCENE="$name"
-    trap 'printf "line %s: %s\n" "$LINENO" "$BASH_COMMAND" >>"$OUTPUT_DIR/$name/failed.txt"' ERR
+    # By a name no drive function has: the trap runs in that function's scope, and one with a
+    # `local name` would send the reason nowhere.
+    trap 'printf "line %s: %s\n" "$LINENO" "$BASH_COMMAND" >>"$OUTPUT_DIR/$CURRENT_SCENE/failed.txt"' ERR
     "$drive"
   )
   status=$?

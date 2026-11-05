@@ -197,6 +197,10 @@ def import_exporter(source, target, services, runner):
         path = os.path.join(source, f"{service}.prom")
         if os.path.isfile(path):
             write(os.path.join(target, f"{service}.prom"), scrub(read(path), runner))
+        # What another clouds.yaml entry got of the same service.
+        for name in sorted(os.listdir(source)):
+            if name.startswith(f"{service}-as-") and name.endswith(".prom"):
+                write(os.path.join(target, name), scrub(read(os.path.join(source, name)), runner))
     path = os.path.join(source, "status.txt")
     if os.path.isfile(path):
         # Every service asked about, whether this cloud runs it or not: what a scrape of one it

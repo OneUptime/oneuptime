@@ -35,6 +35,8 @@ SERVICES="identity compute placement network volume image load-balancer baremeta
 RECORD_SERVICES="${RECORD_SERVICES:-$SERVICES}"
 # name=host:port for each of Swift's storage servers, read directly: recon is not in the catalog.
 RECON_TARGETS="${RECON_TARGETS:-}"
+# cloud=service for another clouds.yaml entry's view of a service that answers by who asks.
+EXPORTER_ALSO="${EXPORTER_ALSO:-}"
 
 SCENE_DIR="$OUTPUT_DIR/$SCENE"
 mkdir -p "$SCENE_DIR/api" "$SCENE_DIR/exporter"
@@ -149,9 +151,16 @@ record_octavia() {
 }
 
 record_ironic() {
-  local ironic="$1" version="X-OpenStack-Ironic-API-Version: 1.82" id name
+  local ironic="$1" version="X-OpenStack-Ironic-API-Version: 1.82" id name system
   call ironic-versions "$ironic/"
   call ironic-drivers "$ironic/v1/drivers" "$version"
+  # A project's admin reads only the nodes its project owns, and no conductor. These are what the
+  # same reads say with system scope, where this cloud has an entry for it.
+  system="$(OS_CLOUD=devstack-system-admin openstack token issue -f value -c id 2>/dev/null || true)"
+  if [ -n "$system" ]; then
+    CALL_TOKEN="$system" call ironic-nodes-as-system "$ironic/v1/nodes/detail" "$version"
+    CALL_TOKEN="$system" call ironic-conductors-as-system "$ironic/v1/conductors" "$version"
+  fi
   while read -r id name; do
     [ -n "$id" ] || continue
     call "ironic-node-validate-$name" "$ironic/v1/nodes/$id/validate" "$version"
@@ -160,10 +169,13 @@ record_ironic() {
 
 record_heat() {
   local heat="$1" id name project token base
-  # What the exporter reads: its own project's stacks, where heat-stacks asks for every project's.
+  # What the exporter reads. An admin's plain list already holds every project's stacks, each
+  # saying its project, while heat-stacks asks for them by name and Heat refuses: its policy
+  # stacks:global_index defaults to nobody.
   call heat-stacks-own "$heat/stacks"
   call heat-services "$heat/services"
-  # Heat answers a token about its own project's stacks, so each is read as its own project.
+  # Heat answers a token about its own project's stacks, so each is read as its own project. Only
+  # ours: what a Magnum cluster's stack owns is most of a recording, and says nothing new.
   while read -r id name project; do
     [ -n "$id" ] || continue
     token="$(token_of_project_id "$project")"
@@ -178,8 +190,9 @@ try:
 except (OSError, ValueError, AttributeError):
     rows = []
 for row in rows:
-    print(row.get("id"), row.get("stack_name"), row.get("project") or "")
-' "$SCENE_DIR/api/heat-stacks.json")
+    if (row.get("stack_name") or "").startswith("ou-stack-"):
+        print(row.get("id"), row.get("stack_name"), row.get("project") or "")
+' "$SCENE_DIR/api/heat-stacks-own.json")
 }
 
 record_magnum() {
@@ -450,6 +463,16 @@ record_exporter() {
     printf '%s %s %ss\n' "$service" "$code" "$seconds" | tee -a "$SCENE_DIR/$folder/status.txt"
     # A service that is not in the catalog answers with nothing to say.
     [ -s "$SCENE_DIR/$folder/$service.prom" ] || rm -f "$SCENE_DIR/$folder/$service.prom"
+  done
+  local also cloud
+  for also in $EXPORTER_ALSO; do
+    cloud="${also%%=*}"
+    service="${also#*=}"
+    read -r code seconds < <(curl -sS --max-time 300 -o "$SCENE_DIR/$folder/$service-as-$cloud.prom" \
+      -w '%{http_code} %{time_total}\n' \
+      "$base_url/probe?cloud=$cloud&include_services=$service" || echo "000 0")
+    printf '%s-as-%s %s %ss\n' "$service" "$cloud" "$code" "$seconds" | tee -a "$SCENE_DIR/$folder/status.txt"
+    [ -s "$SCENE_DIR/$folder/$service-as-$cloud.prom" ] || rm -f "$SCENE_DIR/$folder/$service-as-$cloud.prom"
   done
   # And one scrape of everything at once, which is what upstream issue 660 is
   # about: does one failing service empty the rest?
