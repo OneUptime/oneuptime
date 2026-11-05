@@ -11,6 +11,7 @@ import {
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT,
   OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   percentOf,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -30,6 +31,8 @@ export type OpenStackUsageGap =
   | "not-kept-selected"
   // An instance that isn't running has nothing to read, which is the answer.
   | "not-running"
+  // Its hypervisor reports and this cloud keeps it: it just hasn't said anything of it yet.
+  | "no-reading-yet"
   | null;
 
 export const OPENSTACK_USAGE_GAP_TEXT: Record<
@@ -51,7 +54,19 @@ export const OPENSTACK_USAGE_GAP_TEXT: Record<
   "not-running": translationKey(
     "This instance isn't running, so nothing is using anything.",
   ),
+  "no-reading-yet": translationKey(
+    "Its hypervisor reports real usage, but nothing has been said about this instance yet. A first reading takes two collections from libvirt's exporter, and two polling cycles from Ceilometer's, which is ten minutes by default.",
+  ),
 };
+
+/*
+ * Whether charts have anything to draw. An instance that stopped has what it did before it
+ * stopped, and one with no reading yet is about to have some. With no source and with a cloud
+ * that chose not to keep them, they would only be empty frames under a sentence saying why.
+ */
+export function isOpenStackUsageChartable(gap: OpenStackUsageGap): boolean {
+  return gap === null || gap === "not-running" || gap === "no-reading-yet";
+}
 
 export function getOpenStackInstanceUsageGap(data: {
   hasUsage: boolean;
@@ -78,7 +93,13 @@ export function getOpenStackInstanceUsageGap(data: {
   ) {
     return data.options.mode === "off" ? "not-kept-off" : "not-kept-past-size";
   }
-  return data.options.mode === "selected" ? "not-kept-selected" : "no-source";
+  if (
+    data.options.mode === "selected" &&
+    !data.options.projectIds.includes(data.row.openStackProjectId || "")
+  ) {
+    return "not-kept-selected";
+  }
+  return "no-reading-yet";
 }
 
 export const OPENSTACK_AUTOMATIC_LIMIT: number =
@@ -86,13 +107,18 @@ export const OPENSTACK_AUTOMATIC_LIMIT: number =
 
 /*
  * A hypervisor over a line: the same lines as its alert templates, measured against what
- * Placement says it has, before any allocation ratio.
+ * Placement says it has, before any allocation ratio. Where OneUptime's agent runs on it, its
+ * own reading counts too: it has the host's own processes in it, and can be over the line while
+ * its instances aren't. What its instances are then is still what names them.
  */
 export interface OpenStackHypervisorLoad {
   cpuPercent: number | null;
   memoryPercent: number | null;
   isCpuSaturated: boolean;
   isMemoryPressured: boolean;
+  // Over the line by the machine's own reading, with its instances under it.
+  isCpuSaturatedByHost: boolean;
+  isMemoryPressuredByHost: boolean;
 }
 
 export function getOpenStackHypervisorLoad(data: {
@@ -101,6 +127,8 @@ export function getOpenStackHypervisorLoad(data: {
   // The hypervisor's own threads and bytes, before a ratio: what it can really do.
   physicalCores: number | null | undefined;
   physicalMemoryBytes: number | null | undefined;
+  hostCpuPercent?: number | null | undefined;
+  hostMemoryPercent?: number | null | undefined;
 }): OpenStackHypervisorLoad {
   const cpuPercent: number | null = percentOf(
     data.cpuCores,
@@ -110,16 +138,53 @@ export function getOpenStackHypervisorLoad(data: {
     data.memoryResidentBytes,
     data.physicalMemoryBytes,
   );
+  const isOver: (
+    percent: number | null | undefined,
+    line: number,
+  ) => boolean = (
+    percent: number | null | undefined,
+    line: number,
+  ): boolean => {
+    return percent !== null && percent !== undefined && percent > line;
+  };
+  const instancesCpu: boolean = isOver(
+    cpuPercent,
+    OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+  );
+  const instancesMemory: boolean = isOver(
+    memoryPercent,
+    OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+  );
+  const hostCpu: boolean = isOver(
+    data.hostCpuPercent,
+    OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+  );
+  const hostMemory: boolean = isOver(
+    data.hostMemoryPercent,
+    OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+  );
   return {
     cpuPercent,
     memoryPercent,
-    isCpuSaturated:
-      cpuPercent !== null &&
-      cpuPercent > OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
-    isMemoryPressured:
-      memoryPercent !== null &&
-      memoryPercent > OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+    isCpuSaturated: instancesCpu || hostCpu,
+    isMemoryPressured: instancesMemory || hostMemory,
+    isCpuSaturatedByHost: hostCpu && !instancesCpu,
+    isMemoryPressuredByHost: hostMemory && !instancesMemory,
   };
+}
+
+/*
+ * How many vCPUs a busy instance was given: what it uses over what share of them that is. What is
+ * allocated, beside what is used, without asking for every flavor on the hypervisor.
+ */
+export function getOpenStackVcpusOfReading(reading: {
+  cpuCores: number | null;
+  cpuPercent: number | null;
+}): number | null {
+  if (!reading.cpuCores || !reading.cpuPercent) {
+    return null;
+  }
+  return Math.round((reading.cpuCores / reading.cpuPercent) * 100);
 }
 
 export function getOpenStackHypervisorPhysicalCapacity(
@@ -146,6 +211,12 @@ export function isOpenStackInstanceContended(
   return (
     contentionPercent !== null &&
     contentionPercent > OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT
+  );
+}
+
+export function isOpenStackInstanceDiskSlow(latencyMs: number | null): boolean {
+  return (
+    latencyMs !== null && latencyMs > OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS
   );
 }
 

@@ -796,15 +796,13 @@ test.describe("a service's page", () => {
     ).toContainText("ctl-01@lvmdriver-1");
     await expect
       .poll(async (): Promise<Array<unknown>> => {
-        return (await fixtureRecord(page)).listRequests
-          .filter((request: { modelName: string }): boolean => {
-            return request.modelName === "Host";
+        return (await fixtureRecord(page)).apiRequests
+          .filter((request: { url: string }): boolean => {
+            return request.url.includes("/openstack-resource/host-of-machine/");
           })
-          .map(
-            (request: { query: Record<string, unknown> | null }): unknown => {
-              return JSON.stringify(request.query);
-            },
-          );
+          .map((request: { body: unknown }): unknown => {
+            return JSON.stringify(request.body);
+          });
       })
       .toEqual([expect.stringContaining('"ctl-01"')]);
   });
@@ -836,6 +834,100 @@ test.describe("a service's page", () => {
     await expect(details).toContainText("disabled");
 
     await screenshot(page, "service-worker-disabled-1280");
+  });
+
+  test("one an operator forced down reads down in the list, and says it was an operator", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openServices(page, "estate=forced-down");
+
+    const forced: Locator = worker(
+      group(page, "compute"),
+      "nova-compute",
+      "compute-02",
+    );
+    await expect(forced).toHaveAttribute("data-forced-down", "true");
+    await expect(forced).toHaveAttribute("data-status", "down");
+    await expect(forced).toContainText("Forced down by an operator");
+
+    // Nothing says this one was: it stopped, as far as anyone can tell.
+    const stopped: Locator = worker(
+      group(page, "compute"),
+      "nova-compute",
+      "compute-01",
+    );
+    await expect(stopped).not.toHaveAttribute("data-forced-down", "true");
+    await expect(stopped).not.toContainText("Forced down");
+  });
+
+  test("its page says what an operator did, and how to undo it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${partPath("services", "RegionOne/compute/compute-02/nova-compute")}?estate=forced-down`,
+    );
+
+    await expect(page.getByTestId("openstack-service-hero-status")).toHaveText(
+      "down",
+    );
+    await expect(page.getByTestId("openstack-service-forced-down")).toContainText(
+      "openstack compute service set --up compute-02 nova-compute",
+    );
+    await expect(
+      page.getByTestId("openstack-service-attention-reason"),
+    ).toHaveText(["Down, with 11 instances on it", "Forced down by an operator"]);
+
+    const details: Locator = page.getByTestId("openstack-service-details");
+    await expect(details).toContainText("Forced down");
+    await expect(details).toContainText("Yes");
+
+    await screenshot(page, "service-worker-forced-down-1280");
+  });
+
+  test("one the agent's exporter says is down doesn't pretend to know why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${partPath("services", "RegionOne/compute/compute-01/nova-compute")}?estate=forced-down`,
+    );
+
+    await expect(page.getByTestId("openstack-service-hero-status")).toHaveText(
+      "down",
+    );
+    await expect(page.getByTestId("openstack-service-forced-down")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("openstack-service-details")).toContainText(
+      "Not collected: the agent's exporter only says this service is down",
+    );
+  });
+
+  test("one a probe read says it isn't forced down, and one up the exporter read says nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${partPath("services", "RegionOne/compute/compute-03/nova-compute")}?estate=forced-down`,
+    );
+
+    const details: Locator = page.getByTestId("openstack-service-details");
+    await expect(details).toContainText("Forced down");
+    await expect(details).toContainText("No");
+
+    await page.goto(
+      `${partPath("services", "RegionOne/compute/compute-01/nova-compute")}?estate=calm`,
+    );
+    await expect(page.getByTestId("openstack-service-details")).toBeVisible();
+    await expect(page.getByTestId("openstack-service-details")).not.toContainText(
+      "Forced down",
+    );
   });
 
   test("one forgotten for 12 days gets a look, in the words of the Overview", async ({

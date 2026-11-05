@@ -1,0 +1,12 @@
+# HELP openstack_identity_project_info project_info
+# TYPE openstack_identity_project_info gauge
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="d17363862e594fd8993f69803adeb477",is_domain="false",name="ou-payments",parent_id="default",tags=""} 1
+# HELP openstack_identity_projects projects
+# TYPE openstack_identity_projects gauge
+openstack_identity_projects 1
+# HELP openstack_identity_regions regions
+# TYPE openstack_identity_regions gauge
+openstack_identity_regions 1
+# HELP openstack_identity_up up
+# TYPE openstack_identity_up gauge
+openstack_identity_up 1

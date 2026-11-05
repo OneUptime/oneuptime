@@ -72,8 +72,17 @@ docker run -d --name ou-openstack-collector --network host \
   -e OPENSTACK_DATABASE_EXPORTER_TARGETS='[]' \
   -e OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX= \
   -e OPENSTACK_WORKER_STATE_CLOUDS='[]' \
-  -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9180 \
+  -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9182 \
   "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
+
+# A collector that refuses its config exits at once, and the run only finds out at its
+# very end, when stop-agent.sh sees nothing was exported. The scenes are still worth
+# recording without it, so this says so now and carries on.
+sleep 5
+if [ "$(docker inspect -f '{{.State.Running}}' ou-openstack-collector 2>/dev/null)" != "true" ]; then
+  echo "::warning::The agent's collector stopped as it started, so this run records no OTLP."
+  docker logs ou-openstack-collector 2>&1 | tail -20 >&2
+fi
 
 # The exporter answers once it is listening. Keystone's answer is the real test,
 # and a scrape of the identity service exercises it.
