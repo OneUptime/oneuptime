@@ -283,6 +283,12 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "vouchedAt",
     // How long one collection took: its own reading on each path.
     "collectionSeconds",
+    // What an operator told Nova, which the exporter has no label for.
+    "forcedDown",
+    // What Cinder's driver says of a pool, which the exporter has no label for either.
+    "storageProtocol",
+    "cephFsid",
+    "cephPool",
   ]) {
     delete facts[key];
   }
@@ -698,6 +704,88 @@ describe("what only a probe adds, in the rows it fills", () => {
     }
   });
 
+  describe("a compute service an operator forced down", () => {
+    /*
+     * This recording has none forced down, so this is its own answer with one told to be, in
+     * the shape Nova has in every recording's forced_down. The real thing is on the rig's
+     * compute-forced-down scene.
+     */
+    function answerWith(
+      change: (service: JSONObject) => JSONObject,
+    ): (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined {
+      const services: Array<JSONObject> = recordedJson(SCENE, "nova-services")?.[
+        "services"
+      ] as Array<JSONObject>;
+
+      return (request: OpenStackHttpRequest) => {
+        return new globalThis.URL(request.url).pathname ===
+          "/compute/v2.1/os-services"
+          ? jsonAnswer(200, { services: services.map(change) })
+          : undefined;
+      };
+    }
+
+    function computeOf(
+      rows: Map<string, OpenStackResourceBufferEntry>,
+    ): OpenStackResourceBufferEntry {
+      return rowsOf(rows, OpenStackResourceKind.Service).find(
+        (row: OpenStackResourceBufferEntry): boolean => {
+          return row.name === "nova-compute";
+        },
+      )!;
+    }
+
+    test("reads down, and its row says it was an operator", async () => {
+      const row: OpenStackResourceBufferEntry = computeOf(
+        await rowsFrom(
+          answerWith((service: JSONObject): JSONObject => {
+            return service["binary"] === "nova-compute"
+              ? { ...service, forced_down: true, state: "down" }
+              : service;
+          }),
+        ),
+      );
+
+      expect(row.status).toBe("down");
+      expect(row.adminState).toBe("enabled");
+      expect(row.facts["forcedDown"]).toBe(true);
+    });
+
+    test("one that isn't says so, in Nova's own answer", async () => {
+      const row: OpenStackResourceBufferEntry = computeOf(await rowsFrom());
+
+      expect(row.status).toBe("up");
+      expect(row.facts["forcedDown"]).toBe(false);
+    });
+
+    test("a Nova before microversion 2.11 doesn't say, and neither does the row", async () => {
+      const row: OpenStackResourceBufferEntry = computeOf(
+        await rowsFrom(
+          answerWith((service: JSONObject): JSONObject => {
+            const older: JSONObject = { ...service };
+            delete older["forced_down"];
+            return older;
+          }),
+        ),
+      );
+
+      expect(row.status).toBe("up");
+      expect(row.facts["forcedDown"]).toBeNull();
+    });
+
+    test("the exporter has no such label, so a cloud it collects says nothing of it", async () => {
+      const row: OpenStackResourceBufferEntry | undefined = Array.from(
+        scanAsIngest(
+          exporterAsOtlp(SCENE, `${COLLECTED_AT_MS}000000`),
+        ).values(),
+      ).find((candidate: OpenStackResourceBufferEntry): boolean => {
+        return candidate.name === "nova-compute";
+      });
+
+      expect(row?.facts["forcedDown"]).toBeNull();
+    });
+  });
+
   test("each instance has the address it is reached at, which the exporter leaves empty", async () => {
     const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
       "servers"
@@ -1056,11 +1144,13 @@ describe("what the agent's collector really exported", () => {
     const keysOf: (point: JSONObject) => Array<string> = (
       point: JSONObject,
     ): Array<string> => {
-      return (point["attributes"] as Array<JSONObject>).map(
-        (attribute: JSONObject): string => {
+      return (point["attributes"] as Array<JSONObject>)
+        .map((attribute: JSONObject): string => {
           return attribute["key"] as string;
-        },
-      );
+        })
+        .filter((key: string): boolean => {
+          return !probeOnlyLabelsOf("openstack_nova_agent_state").includes(key);
+        });
     };
 
     expect(

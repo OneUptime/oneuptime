@@ -40,7 +40,7 @@ Each service is read on its own and at the same time as the others. A Neutron th
 | Logins to Keystone | One for the life of a token, usually an hour | One per scrape |
 | A plain `reader` on one project | That project's instances, volumes and networks | That project's volumes and networks, and no instances |
 
-Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin.
+Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, whether an operator forced a Nova service down, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin.
 
 Pick the agent for a cloud past a probe's payload cap, for service logs, for the AI agent, for what the cloud stands on and each instance's real usage, or for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default. Pick a probe for everything else: there is nothing to install, and it reads more of what Nova and Cinder say.
 

@@ -162,7 +162,7 @@ service_type = compute
 | --- | --- |
 | `nova.conf` | `compute` |
 | `neutron.conf` | `network` |
-| `cinder.conf` | `block-storage`. The rules also carry `volumev3`, for a Cinder configured that way |
+| `cinder.conf` | `block-storage`. The rules also carry `volume` and `volumev3`, for a Cinder configured that way |
 | `glance-api.conf` | `image` |
 | `placement.conf` | `placement` |
 
@@ -230,7 +230,7 @@ curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
 bash install.sh
 ```
 
-The script asks for your OneUptime URL, the ingestion key, a stable name for the cloud, the Keystone auth URL, the region names, the application credential (a username and password if you say no to it) and a private CA file if the cloud has its own certificate authority. Nothing secret is echoed or goes on a command line. It checks the credential with Keystone before it writes or starts anything, installs to `/opt/oneuptime-openstack-agent`, writes `.env` and `clouds.yaml` with mode `0600`, and starts the agent with Docker Compose. Every answer also works as an environment variable, and running the script again reuses them instead of asking again, which is how you [upgrade the agent](#upgrading-the-agent).
+The script asks for your OneUptime URL, the ingestion key, a stable name for the cloud, the Keystone auth URL, the region names, the application credential (a username and password if you say no to it) and a private CA file if the cloud has its own certificate authority. Nothing secret is echoed or goes on a command line. It checks the credential with Keystone before it writes or starts anything, installs to `/opt/oneuptime-openstack-agent`, or to `oneuptime-openstack-agent` in your home folder if you have no rights on `/opt` (it needs only the `docker` group), writes `.env` and `clouds.yaml` with mode `0600`, and starts the agent with Docker Compose. Every answer also works as an environment variable, and running the script again reuses them instead of asking again, which is how you [upgrade the agent](#upgrading-the-agent).
 @tab Docker Compose
 Download `docker-compose.yml` and `otel-collector-config.yaml` from your OneUptime into a new folder:
 
@@ -292,8 +292,9 @@ Kolla-Ansible's exporter runs without `--multi-cloud`, so it has no `/probe`, an
 ### Check the agent is running
 
 ```bash
+cd /opt/oneuptime-openstack-agent    # or the folder the script said it installed to
 docker compose ps
-docker logs -f oneuptime-openstack-agent
+docker logs oneuptime-openstack-agent
 ```
 
 `docker compose ps` lists the collector (`oneuptime-openstack-agent`) and the bundled exporter (`oneuptime-openstack-exporter`). The collector's logs should show this line once it has started:
@@ -766,6 +767,14 @@ cd /opt/oneuptime-openstack-agent
 docker compose down
 cd /
 sudo rm -r /opt/oneuptime-openstack-agent
+```
+
+If it installed in your home folder, use `~/oneuptime-openstack-agent` in those commands, with no `sudo`. If you [run it as a systemd service](#run-as-a-systemd-service), take the unit away first:
+
+```bash
+sudo systemctl disable --now oneuptime-openstack-agent
+sudo rm -f /etc/systemd/system/oneuptime-openstack-agent.service
+sudo systemctl daemon-reload
 ```
 
 Without Docker:

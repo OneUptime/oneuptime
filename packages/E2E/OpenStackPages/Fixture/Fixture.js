@@ -7,7 +7,7 @@
  *
  * Scenarios are picked with query parameters, parsed once at load, and kept for a reload:
  *
- *   ?estate=    busy (default) | calm | new | multi-region | overflow | ovn-stale | tenants
+ *   ?estate=    busy (default) | calm | forced-down | new | multi-region | overflow | ovn-stale | tenants
  *               | parts (Data.js)
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.

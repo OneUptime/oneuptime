@@ -263,7 +263,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_nova_agent_state",
     friendlyName: translationKey("Compute Service Alive"),
     description:
-      "Whether a Nova worker (nova-compute, nova-scheduler, nova-conductor) is up (1) or down (0), one series per worker. adminState says enabled or disabled, and a disabled one is planned work, with its reason in disabledReason. hostname is Nova's short host name, where hypervisor and Placement series say the full name.",
+      "Whether a Nova worker (nova-compute, nova-scheduler, nova-conductor) is up (1) or down (0), one series per worker. adminState says enabled or disabled, and a disabled one is planned work, with its reason in disabledReason. hostname is Nova's short host name, where hypervisor and Placement series say the full name. forced_down says an operator told Nova it is down: only a probe sends it.",
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Compute,
@@ -275,6 +275,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "zone",
       "disabledReason",
     ],
+    probeOnlyAttributes: ["forced_down"],
   }),
   metric({
     metricName: "openstack_neutron_agent_state",

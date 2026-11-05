@@ -195,7 +195,8 @@ export function rowsFromRecording(name, data) {
     );
   }
   const healthy = `${name.split("/")[0]}/healthy`;
-  return name !== healthy && hasRecording(healthy)
+  // Another exporter's answer stands alone: it is the only one that cloud's rows ever came from.
+  return name !== healthy && !name.includes("@") && hasRecording(healthy)
     ? onTopOf(readScene(healthy, data), readScene(name, data))
     : readScene(name, data);
 }

@@ -24,6 +24,7 @@
  *
  *   busy          (default) one region, ML2/OVS, something wrong of every kind.
  *   calm          the same cloud with nothing wrong, and a host disabled on purpose.
+ *   forced-down   calm, with a host an operator told Nova is down and one that just stopped.
  *   new           a cloud that exists and has reported nothing yet.
  *   multi-region  two regions: RegionOne is calm, RegionTwo has lost its compute API.
  *   overflow      more instances in ERROR than Needs attention reads.
@@ -976,6 +977,36 @@ function calmInventory(context) {
 }
 
 /*
+ * forced-down: a calm cloud where an operator told Nova compute-02 is down, as a probe reports
+ * it, which is the one collector that can say so. compute-01 is a plain stopped service with
+ * nothing saying which it is, as the agent's exporter leaves it. No recording is a probe's rows,
+ * so these are made up in the shape the scan writes.
+ */
+function forcedDownInventory(context) {
+  return calmInventory(context).map((row) => {
+    if (row.kind !== "Service" || row.name !== "nova-compute") {
+      return row;
+    }
+    if (row.externalId.includes("compute-02")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+        facts: { ...row.facts, forcedDown: true },
+      };
+    }
+    if (row.externalId.includes("compute-01")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+      };
+    }
+    return { ...row, facts: { ...row.facts, forcedDown: false } };
+  });
+}
+
+/*
  * ---------------------------------------------------------------------------
  * multi-region: RegionOne is calm. RegionTwo has lost its compute API, and a
  * nova-compute with instances on it. The same host name in both regions is two hosts.
@@ -1245,6 +1276,7 @@ const ESTATES = {
   busy: busyInventory,
   parts: partsInventory,
   calm: calmInventory,
+  "forced-down": forcedDownInventory,
   "ovn-stale": ovnStaleInventory,
   new: () => {
     return [];

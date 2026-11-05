@@ -1070,6 +1070,83 @@ describe("networks", () => {
     });
   });
 
+  describe("a Nova worker an operator forced down", () => {
+    const COMPUTE: string = "RegionOne/compute/compute-01/nova-compute";
+
+    function foldWorker(data: {
+      value: number;
+      forcedDown?: string | undefined;
+    }): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_nova_agent_state", {
+        value: data.value,
+        labels: {
+          hostname: "compute-01",
+          service: "nova-compute",
+          adminState: "enabled",
+          ...(data.forcedDown === undefined
+            ? {}
+            : { forced_down: data.forcedDown }),
+        },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Service, COMPUTE);
+    }
+
+    test.each<[string, number, string | undefined, string, boolean | null]>([
+      // What Nova really sends: forced down is down.
+      ["forced down, and Nova says down", 0, "true", "down", true],
+      // Nova's service_is_up can't say this. If anything ever does, the operator wins.
+      ["forced down, and the series says up", 1, "true", "down", true],
+      ["not forced, and up", 1, "false", "up", false],
+      ["not forced, and stopped", 0, "false", "down", false],
+      // The exporter's series, which has no such label, and a Nova before 2.11.
+      ["not said, and up", 1, undefined, "up", null],
+      ["not said, and down", 0, undefined, "down", null],
+    ])(
+      "%s",
+      (
+        _name: string,
+        value: number,
+        forcedDown: string | undefined,
+        status: string,
+        fact: boolean | null,
+      ) => {
+        const row: OpenStackResourceBufferEntry = foldWorker({
+          value,
+          forcedDown,
+        });
+        expect(row.status).toBe(status);
+        expect(row.facts["forcedDown"]).toBe(fact);
+      },
+    );
+
+    test("a collector that doesn't say leaves nothing of what the last one said", () => {
+      // Facts merge key by key on the way in, so this has to be there to overwrite the old one.
+      expect(Object.keys(foldWorker({ value: 1 }).facts)).toContain(
+        "forcedDown",
+      );
+    });
+
+    test("only Nova has this: a Neutron agent's and a Cinder service's rows never say it", () => {
+      for (const metric of [
+        "openstack_neutron_agent_state",
+        "openstack_cinder_agent_state",
+      ]) {
+        const buffer: Buffer = new Map();
+        fold(buffer, metric, {
+          value: 1,
+          labels: {
+            hostname: "compute-01",
+            service: "some-agent",
+            adminState: "up",
+          },
+        });
+        const [row] = Array.from(buffer.values());
+        expect(Object.keys(row!.facts)).not.toContain("forcedDown");
+      }
+    });
+  });
+
   test("a floating IP is named by its address, and a spare one has no router", () => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_neutron_floating_ip", {
