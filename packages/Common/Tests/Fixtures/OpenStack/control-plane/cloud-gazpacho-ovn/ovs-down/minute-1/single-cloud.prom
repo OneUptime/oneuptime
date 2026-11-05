@@ -1,0 +1,11 @@
+openstack_glance_up 1
+openstack_identity_up 1
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="ip-10-0-129-153",id="1c960732-08f4-484a-836e-c1b6f0909c34",service="ovn-controller"} 1
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="ip-10-0-129-153",id="83ddb27a-6a43-568a-9d4a-41250a069376",service="neutron-ovn-agent"} 1
+openstack_neutron_up 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="ip-10-0-129-153",id="1baf7137-adf9-4a2c-b712-b68f19b7ea50",service="nova-conductor",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="ip-10-0-129-153",id="3a173c7e-ddc9-4c91-8444-baf13a8c137d",service="nova-conductor",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="ip-10-0-129-153",id="a9181b89-1b5f-4f80-a33c-c37e4b98ff97",service="nova-compute",zone="nova"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="ip-10-0-129-153",id="e5d46448-cb1b-42a6-a3ea-755930361882",service="nova-scheduler",zone="internal"} 1
+openstack_nova_up 1
+openstack_placement_up 1

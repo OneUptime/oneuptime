@@ -60,6 +60,7 @@ import {
 import {
   OpenStackAlertTemplate,
   getAllOpenStackAlertTemplates,
+  getOpenStackAlertTemplatesForCloud,
 } from "../OpenStackAlertTemplates";
 import {
   OpenStackLogAlertTemplate,
@@ -446,21 +447,20 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
 }
 
 /*
- * What a cloud is offered: everything every cloud runs, and what is about a service it may not run
- * only if it reports that service.
+ * What a cloud is offered: everything every cloud has, and what needs a service it may not run or a
+ * series only a probe sends only if it has them. Knowing nothing about a cloud offers what every
+ * cloud has.
  */
 function getOpenStackRecommendations(
   context?: MonitorRecommendationContext | undefined,
 ): Array<MonitorRecommendation> {
-  const reported: ReadonlyArray<string> = context?.openStackServices || [];
   const isOffered: Set<string> = new Set(
-    getAllOpenStackAlertTemplates()
-      .filter((template: OpenStackAlertTemplate): boolean => {
-        return !template.forService || reported.includes(template.forService);
-      })
-      .map((template: OpenStackAlertTemplate): string => {
-        return template.id;
-      }),
+    getOpenStackAlertTemplatesForCloud({
+      services: context?.openStackServices,
+      isCollectedByProbe: context?.openStackIsCollectedByProbe,
+    }).map((template: OpenStackAlertTemplate): string => {
+      return template.id;
+    }),
   );
 
   return getAllPossibleOpenStackRecommendations().filter(
@@ -491,7 +491,8 @@ function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> 
           });
         },
       });
-    });
+    },
+  );
 
   /*
    * What only a cloud's services say - a request no host could take, a lost message bus -

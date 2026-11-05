@@ -169,7 +169,12 @@ const CASES: Array<OrderCase> = [
     page: OpenStackRecommendations as unknown as PageComponent,
     modelType: OpenStackCloud,
     path: "openstack",
-    templates: getAllOpenStackAlertTemplates(),
+    // What a cloud may not run is recommended only to a cloud that runs it.
+    templates: getAllOpenStackAlertTemplates().filter(
+      (template: { forService?: unknown }): boolean => {
+        return !template.forService;
+      },
+    ),
     categories: OPENSTACK_TEMPLATE_CATEGORIES,
     // What a cloud's own services write and say: Logs monitors, after Quick Setup's.
     afterQuickSetup: Array.from(

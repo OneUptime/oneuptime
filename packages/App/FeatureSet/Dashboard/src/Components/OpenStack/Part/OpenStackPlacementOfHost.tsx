@@ -1,5 +1,6 @@
 import ObjectID from "Common/Types/ObjectID";
 import {
+  OpenStackContainerClusterLink,
   OpenStackPlacement,
   OpenStackServicePlacement,
 } from "Common/Types/OpenStack/OpenStackLinks";
@@ -8,11 +9,13 @@ import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
+  fetchOpenStackMagnumClusterOfKubernetesCluster,
   fetchOpenStackPlacementOfHost,
   fetchOpenStackPlacementOfKubernetesNode,
   fetchOpenStackPlacementsOfService,
 } from "../../../Pages/OpenStack/Utils/OpenStackLinkReads";
 import OpenStackPlacementCard, {
+  OpenStackMagnumClusterLines,
   OpenStackPlacementLines,
   OpenStackPlacementRow,
 } from "./OpenStackPlacementCard";
@@ -71,6 +74,30 @@ export const OpenStackPlacementOfKubernetesNode: FunctionComponent<{
       )}
       placement={read.data || null}
     />
+  );
+};
+
+export const OpenStackPlacementOfKubernetesCluster: FunctionComponent<{
+  clusterId: ObjectID;
+}> = (props: { clusterId: ObjectID }): ReactElement => {
+  const read: OpenStackRead<OpenStackContainerClusterLink | null> =
+    useOpenStackRead(() => {
+      return fetchOpenStackMagnumClusterOfKubernetesCluster(props.clusterId);
+    }, [props.clusterId.toString()]);
+  if (!read.data) {
+    return <></>;
+  }
+  return (
+    <div className="mb-6" data-testid="kubernetes-cluster-openstack-placement">
+      <Card
+        title={TITLE}
+        description={translationKey(
+          "Magnum built this cluster: its nodes' spec.providerID names servers of its Heat stack. Whose it is and what it was built from are on its page there.",
+        )}
+      >
+        <OpenStackMagnumClusterLines link={read.data} />
+      </Card>
+    </div>
   );
 };
 

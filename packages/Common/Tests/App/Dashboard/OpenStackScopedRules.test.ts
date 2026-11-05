@@ -1,28 +1,35 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { Mock } from "jest-mock";
-import AlertLabelRule from "../../../Models/DatabaseModels/AlertLabelRule";
-import AlertOwnerRule from "../../../Models/DatabaseModels/AlertOwnerRule";
-import IncidentLabelRule from "../../../Models/DatabaseModels/IncidentLabelRule";
-import IncidentOwnerRule from "../../../Models/DatabaseModels/IncidentOwnerRule";
+import OpenStackCloudLabelRule from "../../../Models/DatabaseModels/OpenStackCloudLabelRule";
+import OpenStackCloudOwnerRule from "../../../Models/DatabaseModels/OpenStackCloudOwnerRule";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
+import { isOpenStackRuleScoped } from "../../../Types/OpenStack/OpenStackScopedRule";
 import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
 import {
   OpenStackRuleScope,
   createOpenStackScopeRules,
   describeOpenStackScopePattern,
+  getOpenStackCloudNamePattern,
   getOpenStackScopePattern,
   getOpenStackScopeRuleName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackScopedRulesCard";
+import { getOpenStackRuleScopeFields } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackRuleScope";
+import { getOpenStackProjectMarker } from "../../../Types/OpenStack/OpenStackBlastRadius";
+import type { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import {
-  getOpenStackDomainMarker,
-  getOpenStackProjectMarker,
-} from "../../../Types/OpenStack/OpenStackBlastRadius";
+  MATCH_CRITERIA_STEP_ID,
+  getLegacyRuleCriteriaFields,
+} from "../../../UI/Components/RuleCriteria/RuleCriteriaModelForm";
+import getRuleDetailFields, {
+  RuleDetailFields,
+} from "../../../UI/Components/RuleRun/RuleDetailFields";
 
 /*
- * What adding owners or labels to a project or a domain writes: one Alert rule and one
- * Incident rule, each an ordinary rule of those products, matching the line every alert
- * and incident on its parts carries.
+ * What adding owners or labels to a project or a domain writes: one OpenStack Cloud rule
+ * with the project's or domain's ID on it. Adding one no longer writes a pair of Alert and
+ * Incident rules matching a marker; those rules keep working, and getOpenStackScopePattern
+ * is still how the card finds them (OpenStackAlertContext.test.ts runs them).
  */
 
 const mockCreate: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
@@ -59,7 +66,7 @@ afterEach(() => {
 });
 
 describe("adding owners to a project", () => {
-  test("writes one Alert rule and one Incident rule, matching its ID", async () => {
+  test("writes one cloud rule, with its ID and nothing about the cloud", async () => {
     await createOpenStackScopeRules({
       projectId: PROJECT_ID,
       scope: SCOPE,
@@ -68,59 +75,59 @@ describe("adding owners to a project", () => {
       userIds: [USER],
     });
 
-    const [alertRule, incidentRule] = created() as [
-      AlertOwnerRule,
-      IncidentOwnerRule,
-    ];
+    expect(created()).toHaveLength(1);
+    const rule: OpenStackCloudOwnerRule =
+      created()[0] as OpenStackCloudOwnerRule;
 
-    expect(alertRule).toBeInstanceOf(AlertOwnerRule);
-    expect(incidentRule).toBeInstanceOf(IncidentOwnerRule);
-    expect(alertRule.projectId).toBe(PROJECT_ID);
-    expect(alertRule.isEnabled).toBe(true);
-    expect(alertRule.name).toBe(
-      "OpenStack project ou-payments: owners of its alerts",
+    expect(rule).toBeInstanceOf(OpenStackCloudOwnerRule);
+    expect(rule.projectId).toBe(PROJECT_ID);
+    expect(rule.isEnabled).toBe(true);
+    expect(rule.name).toBe(
+      "OpenStack project ou-payments: owners of its alerts and incidents",
     );
-    expect(incidentRule.name).toBe(
-      "OpenStack project ou-payments: owners of its incidents",
-    );
-    expect(
-      RulePatternMatchUtil.testRegex(
-        alertRule.alertDescriptionPattern!,
-        getOpenStackProjectMarker(SCOPE.id),
-      ),
-    ).toBe(true);
-    expect(incidentRule.incidentDescriptionPattern).toBe(
-      alertRule.alertDescriptionPattern,
-    );
-    expect(alertRule.ownerTeams?.[0]?._id).toBe(TEAM);
-    expect(alertRule.ownerUsers?.[0]?._id).toBe(USER);
-    expect(incidentRule.ownerTeams?.[0]?._id).toBe(TEAM);
+    expect(rule.openStackProjectId).toBe(SCOPE.id);
+    expect(rule.openStackDomainId).toBeUndefined();
+    expect(rule.openStackCloudNamePattern).toBeUndefined();
+    expect(isOpenStackRuleScoped(rule)).toBe(true);
+    expect(rule.ownerTeams?.[0]?._id).toBe(TEAM);
+    expect(rule.ownerUsers?.[0]?._id).toBe(USER);
   });
 });
 
 describe("adding labels to a domain", () => {
-  test("writes the label rules, matching the domain's ID", async () => {
+  test("writes one cloud rule that names the domain and its cloud", async () => {
     await createOpenStackScopeRules({
       projectId: PROJECT_ID,
       scope: { kind: "domain", id: "default", name: "Default" },
       mode: "label",
       labelIds: [LABEL],
+      cloudName: "prod (eu).1",
     });
 
-    const [alertRule, incidentRule] = created() as [
-      AlertLabelRule,
-      IncidentLabelRule,
-    ];
+    expect(created()).toHaveLength(1);
+    const rule: OpenStackCloudLabelRule =
+      created()[0] as OpenStackCloudLabelRule;
 
-    expect(alertRule).toBeInstanceOf(AlertLabelRule);
-    expect(incidentRule).toBeInstanceOf(IncidentLabelRule);
-    expect(alertRule.labelsToAdd?.[0]?._id).toBe(LABEL);
+    expect(rule).toBeInstanceOf(OpenStackCloudLabelRule);
+    expect(rule.openStackDomainId).toBe("default");
+    expect(rule.openStackProjectId).toBeUndefined();
+    expect(rule.labelsToAdd?.[0]?._id).toBe(LABEL);
+    expect(rule.openStackCloudNamePattern).toBe(
+      getOpenStackCloudNamePattern("prod (eu).1"),
+    );
     expect(
       RulePatternMatchUtil.testRegex(
-        alertRule.alertDescriptionPattern!,
-        getOpenStackDomainMarker("default"),
+        rule.openStackCloudNamePattern!,
+        "prod (eu).1",
       ),
     ).toBe(true);
+    // "default" is in every cloud, so a rule from one cloud's page stays on that cloud.
+    expect(
+      RulePatternMatchUtil.testRegex(
+        rule.openStackCloudNamePattern!,
+        "prod (eu).12",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -141,20 +148,57 @@ describe("what a stored pattern says", () => {
     const name: string = getOpenStackScopeRuleName({
       scope: { kind: "project", id: "p", name: "x".repeat(255) },
       mode: "owner",
-      subject: "Incidents",
     });
 
     expect(name.length).toBeLessThanOrEqual(100);
     expect(name).toContain("…");
   });
 
-  test("a name says what kind of rule it is, for the Alerts and Incidents pages", () => {
+  test("a name says what kind of rule it is, for the settings page", () => {
     expect(
       getOpenStackScopeRuleName({
         scope: { kind: "domain", id: "d", name: "Acme" },
         mode: "label",
-        subject: "Incidents",
       }),
-    ).toBe("OpenStack domain Acme: labels on its incidents");
+    ).toBe("OpenStack domain Acme: labels on its alerts and incidents");
+  });
+});
+
+describe("the rule forms", () => {
+  const fields: Array<ModelField<OpenStackCloudOwnerRule>> =
+    getOpenStackRuleScopeFields<OpenStackCloudOwnerRule>("owners");
+
+  test("hold both columns, off the step whose builder takes over what is on it", () => {
+    expect(
+      fields.map((field: ModelField<OpenStackCloudOwnerRule>): string => {
+        return Object.keys(field.field || {})[0]!;
+      }),
+    ).toEqual(["openStackProjectId", "openStackDomainId"]);
+
+    for (const field of fields) {
+      expect(field.stepId).toBe("owners");
+      expect(field.stepId).not.toBe(MATCH_CRITERIA_STEP_ID);
+      expect(field.required).toBe(false);
+    }
+
+    expect(getLegacyRuleCriteriaFields(fields)).toEqual([]);
+  });
+
+  test("and a rule's own page reads them from its form", () => {
+    const detail: RuleDetailFields<OpenStackCloudOwnerRule> =
+      getRuleDetailFields({
+        model: new OpenStackCloudOwnerRule(),
+        formFields: fields,
+      });
+
+    expect(
+      detail.fields.map((field: { title?: string | undefined }) => {
+        return field.title;
+      }),
+    ).toEqual(["OpenStack Project ID", "OpenStack Domain ID"]);
+    expect(detail.selectMoreFields).toMatchObject({
+      openStackProjectId: true,
+      openStackDomainId: true,
+    });
   });
 });

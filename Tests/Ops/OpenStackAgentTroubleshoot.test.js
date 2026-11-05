@@ -174,6 +174,10 @@ const ROW_OF = {
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
   },
+  // Heat's own list says "project", and only to someone who may read every project's.
+  "orchestration:stacks": (project) => {
+    return { id: `stack-${project}`, project };
+  },
 };
 
 function rowsIn(read, projects) {
@@ -227,6 +231,8 @@ function projectView(read) {
     case "block-storage:services":
     case "block-storage:pools":
     case "load-balancer:amphorae":
+    case "orchestration:services":
+    case "container-infra:services":
       return { status: 403 };
     case "network:networks":
       return {
@@ -321,6 +327,8 @@ const SERVICE_PATH = {
   image: "image",
   "load-balancer": "load-balancer",
   baremetal: "baremetal",
+  orchestration: "heat-api/v1/own-project",
+  "container-infra": "container-infra/v1",
 };
 
 /*
@@ -873,6 +881,8 @@ describe("the reads it makes", () => {
     const VERSION_IN_THE_RULES = {
       compute: "/v2.1",
       "block-storage": "/v3",
+      orchestration: "/v1/own-project",
+      "container-infra": "/v1",
     };
     const allows = (service, wanted) => {
       return rules.some((rule) => {
@@ -1240,6 +1250,10 @@ describe("a plain reader, and the trap", () => {
     ["load-balancer: load balancers"],
     ["load-balancer: amphorae"],
     ["baremetal: nodes"],
+    ["orchestration: stacks"],
+    ["orchestration: services"],
+    ["container-infra: clusters"],
+    ["container-infra: services"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(
       `• ${read} — not deployed (not in this region's catalog)`,
@@ -2341,6 +2355,18 @@ describe("what the cloud stands on", () => {
       "OPENSTACK_NETWORK_EXPORTER_TARGETS",
       "openstack-network-exporter",
       'ovs_build_info{version="3.5.0"} 1',
+    ],
+    // A host of only OVN's databases, and its standby: nothing about it is down.
+    [
+      "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+      "openstack-network-exporter",
+      "ovn_northd_status 0",
+    ],
+    // Open vSwitch has restarted, which the exporter does not reconnect to its database after.
+    [
+      "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+      "openstack-network-exporter",
+      "ovs_memory_rules_total 1435",
     ],
     ["OPENSTACK_LIBVIRT_HEALTH_TARGETS", "prometheus-libvirt-exporter", "libvirt_up 1"],
   ])("%s answering as %s passes", async (variable, what, line) => {

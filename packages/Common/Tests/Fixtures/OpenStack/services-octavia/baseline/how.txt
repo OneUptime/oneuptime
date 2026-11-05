@@ -1,0 +1,2 @@
+A load balancer ACTIVE and ONLINE on the amphora provider, with traffic through it.
+On its own: the amphora provider booted a real amphora, its members answer their health monitor, and a client inside the network is sending traffic.

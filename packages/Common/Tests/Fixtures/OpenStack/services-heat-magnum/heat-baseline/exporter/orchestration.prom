@@ -1,9 +1,9 @@
 # HELP openstack_heat_stack_status stack_status
 # TYPE openstack_heat_stack_status gauge
-openstack_heat_stack_status{id="0eddabef-a280-4864-bc1a-4064c7705bf1",name="ou-stack-admin-ok",project_id="4d0acfc18c9d4a0b994a7fe34516bf65",status="CREATE_COMPLETE"} 5
-openstack_heat_stack_status{id="2931cfa5-85d1-43be-bd8f-8a3f9a22cfc3",name="ou-stack-failed",project_id="08945d5897854ec2a11d65d907ec6251",status="CREATE_FAILED"} 4
-openstack_heat_stack_status{id="d41993f5-cbf8-457e-86f7-2a755ff7b6f5",name="ou-stack-ok",project_id="08945d5897854ec2a11d65d907ec6251",status="CREATE_COMPLETE"} 5
-openstack_heat_stack_status{id="fd5c93f8-3899-478a-8e21-ed231da3e7f0",name="ou-stack-admin-failed",project_id="4d0acfc18c9d4a0b994a7fe34516bf65",status="CREATE_FAILED"} 4
+openstack_heat_stack_status{id="44bdbf95-7440-400f-8e8d-242d3144be93",name="ou-stack-admin-ok",project_id="5d1838ef05294dd9a804e284b9f21617",status="CREATE_COMPLETE"} 5
+openstack_heat_stack_status{id="82026a89-730e-4af3-ac3b-b9f8fda8ae0c",name="ou-stack-ok",project_id="daee9bf6f10a4331bfb8fde2838235f6",status="CREATE_COMPLETE"} 5
+openstack_heat_stack_status{id="8befee08-7a83-406a-b1dd-d64e1b863b0d",name="ou-stack-admin-failed",project_id="5d1838ef05294dd9a804e284b9f21617",status="CREATE_FAILED"} 4
+openstack_heat_stack_status{id="b02c0588-9d8f-4ff3-b1a4-0bafc2274602",name="ou-stack-failed",project_id="daee9bf6f10a4331bfb8fde2838235f6",status="CREATE_FAILED"} 4
 # HELP openstack_heat_stack_status_counter stack_status_counter
 # TYPE openstack_heat_stack_status_counter gauge
 openstack_heat_stack_status_counter{status="ADOPT_COMPLETE"} 0

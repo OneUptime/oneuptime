@@ -1,5 +1,7 @@
 import { JSONObject, JSONValue } from "../JSON";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_BARE_METAL_ERROR_STATES,
   OPENSTACK_BARE_METAL_IN_MAINTENANCE,
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
@@ -7,6 +9,8 @@ import {
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
 } from "./OpenStackResourceKind";
@@ -46,6 +50,15 @@ export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
 // An image left in queued is what a failed upload looks like: nothing ever moves it on.
 export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 /*
+ * Twice the hour Heat and Magnum each give a stack or cluster of their own accord. Past their
+ * timeouts they fail it themselves, so what is left in progress has a longer timeout someone
+ * chose, or an engine that stopped and left it (recorded: restarting Heat's engine did not move
+ * either stack it had been working on).
+ */
+export const OPENSTACK_STACK_STUCK_MINUTES: number = 120;
+export const OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES: number = 120;
+
+/*
  * Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node is then
  * in a failed state, which says so itself. Past twice that and as long again, Ironic has not given
  * up and nothing has moved. A long disk erase can honestly take this long: the page sees its
@@ -80,6 +93,20 @@ export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
  * somebody probably forgot it.
  */
 export const OPENSTACK_SERVICE_DISABLED_WARNING_DAYS: number = 7;
+
+/*
+ * How close a public endpoint's certificate may come to its end. A month is when someone can
+ * still renew it in working hours, and a week is when it is about to take every user with it.
+ */
+export const OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 30;
+export const OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS: number = 7;
+
+/*
+ * How long a lifecycle run's server may take to reach ACTIVE before a boot counts as slow. Tempest's
+ * own build_timeout, which is how long OpenStack's own tests give a server, and well under what a
+ * run waits before calling a boot failed.
+ */
+export const OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS: number = 300;
 
 /*
  * The same for a node: in maintenance on purpose, until it has been there so long that somebody
@@ -415,6 +442,49 @@ export function isOpenStackVolumeInError(
   status: string | null | undefined,
 ): boolean {
   return Boolean(status && OPENSTACK_VOLUME_ERROR_STATUSES.has(status));
+}
+
+export function isOpenStackStackFailed(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_STACK_FAILED_STATUSES.has(status));
+}
+
+export function isOpenStackStackStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (!data.status || !OPENSTACK_STACK_IN_PROGRESS_STATUSES.has(data.status)) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return minutes !== null && minutes >= OPENSTACK_STACK_STUCK_MINUTES;
+}
+
+export function isOpenStackContainerClusterFailed(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(
+    status && OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES.has(status),
+  );
+}
+
+export function isOpenStackContainerClusterStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (
+    !data.status ||
+    !OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(data.status)
+  ) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return (
+    minutes !== null && minutes >= OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES
+  );
 }
 
 // A share of a whole, or null when there is no whole to share.

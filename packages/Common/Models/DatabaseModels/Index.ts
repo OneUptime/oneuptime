@@ -44,6 +44,7 @@ import PodmanResource from "./PodmanResource";
 import ProxmoxCluster from "./ProxmoxCluster";
 import OpenStackCloud from "./OpenStackCloud";
 import OpenStackCloudConnectionTest from "./OpenStackCloudConnectionTest";
+import OpenStackCloudCheck from "./OpenStackCloudCheck";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
 import OpenStackCloudOwnerTeam from "./OpenStackCloudOwnerTeam";
@@ -1200,6 +1201,7 @@ const AllModelTypes: Array<{
   ProxmoxCluster,
   OpenStackCloud,
   OpenStackCloudConnectionTest,
+  OpenStackCloudCheck,
   DockerSwarmCluster,
   ProxmoxClusterOwnerTeam,
   OpenStackCloudOwnerTeam,

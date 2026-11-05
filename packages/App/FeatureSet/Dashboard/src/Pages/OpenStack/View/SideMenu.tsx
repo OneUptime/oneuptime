@@ -30,6 +30,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 import { getOpenStackRegionIssueQuery } from "../Utils/OpenStackRegion";
 
@@ -43,6 +44,13 @@ export interface ResourceCounts {
   floatingIps?: number | undefined;
   volumes?: number | undefined;
   projects?: number | undefined;
+  stacks?: number | undefined;
+  containerClusters?: number | undefined;
+  /*
+   * The services a cloud may not run that this one does, in the region being read. What decides
+   * whether their entries are here at all: a cloud without one shows no trace of it.
+   */
+  optionalServices?: ReadonlyArray<OpenStackServiceType> | undefined;
 }
 
 export interface ComponentProps {
@@ -56,6 +64,13 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const counts: ResourceCounts = props.resourceCounts || {};
+  const runs: (service: OpenStackServiceType) => boolean = (
+    service: OpenStackServiceType,
+  ): boolean => {
+    return Boolean(counts.optionalServices?.includes(service));
+  };
+  const runsHeat: boolean = runs(OpenStackServiceType.Orchestration);
+  const runsMagnum: boolean = runs(OpenStackServiceType.ContainerInfra);
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -375,6 +390,45 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {runsHeat || runsMagnum ? (
+        <SideMenuSection title="Orchestration">
+          {runsHeat ? (
+            <SideMenuItem
+              link={{
+                title: "Stacks",
+                to: RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STACKS] as Route,
+                  { modelId: props.modelId },
+                ),
+              }}
+              icon={IconProp.Layers}
+              badge={counts.stacks}
+            />
+          ) : (
+            <></>
+          )}
+          {runsMagnum ? (
+            <SideMenuItem
+              link={{
+                title: "Kubernetes Clusters",
+                to: RouteUtil.populateRouteParams(
+                  RouteMap[
+                    PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS
+                  ] as Route,
+                  { modelId: props.modelId },
+                ),
+              }}
+              icon={IconProp.Kubernetes}
+              badge={counts.containerClusters}
+            />
+          ) : (
+            <></>
+          )}
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
+
       <SideMenuSection title="Tenancy">
         <SideMenuItem
           link={{
@@ -429,6 +483,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Workflow}
+        />
+        <SideMenuItem
+          link={{
+            title: "Checks",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CHECKS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Activity}
         />
         <RecommendationsSideMenuItem
           link={{

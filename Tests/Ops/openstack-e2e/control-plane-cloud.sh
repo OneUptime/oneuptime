@@ -250,6 +250,13 @@ run_drills() {
 
   if unit_exists ovs-vswitchd.service && systemctl is-active -q ovs-vswitchd.service; then
     drill ovs-down 3 ovs-vswitchd.service
+    # openstack-network-exporter connects to Open vSwitch's database once. A minute on, it still
+    # reads none of it, and restarted it does.
+    sleep 60
+    scrape_everything "$RECORDING/ovs-down/still-not-read"
+    sudo systemctl restart ou-network-exporter || problem "Could not restart openstack-network-exporter"
+    sleep 10
+    scrape_everything "$RECORDING/ovs-down/exporter-restarted"
   fi
 
   # Its sockets start it again when anything knocks, and nova-compute knocks.

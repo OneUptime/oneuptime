@@ -33,6 +33,7 @@ import {
   getOpenStackAlertTemplatesByCategory,
   getOpenStackDefaultAlertTemplateId,
 } from "../../../Types/Monitor/OpenStackAlertTemplates";
+import { getAllOpenStackControlPlaneAlertTemplates } from "../../../Types/Monitor/OpenStackControlPlaneAlertTemplates";
 import {
   OPENSTACK_QUOTA_EXPORTER_READS,
   OpenStackMetricDefinition,
@@ -43,6 +44,8 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+  OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
   OPENSTACK_BARE_METAL_STUCK_MINUTES,
   OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
@@ -50,6 +53,7 @@ import {
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
   OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
@@ -60,12 +64,21 @@ import {
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
+import { DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES } from "../../../Types/OpenStack/OpenStackCheck";
 import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
+import {
+  OPENSTACK_CHECK_API_METRICS,
+  OpenStackCheckMetric,
+} from "../../../Utils/OpenStack/OpenStackCheckMetrics";
 import {
   OPENSTACK_BARE_METAL_ERROR_STATES,
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackServiceType,
@@ -74,8 +87,10 @@ import RollingTime from "../../../Types/RollingTime/RollingTime";
 import RollingTimeUtil from "../../../Types/RollingTime/RollingTimeUtil";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 import {
+  OPENSTACK_EXPORTER_CONTAINER_CLUSTER_STATUS_CODES,
   OPENSTACK_EXPORTER_INSTANCE_STATUS_CODES,
   OPENSTACK_EXPORTER_SERIES,
+  OPENSTACK_EXPORTER_STACK_STATUS_CODES,
   OPENSTACK_EXPORTER_VOLUME_STATUSES,
   OPENSTACK_RECEIVER_SERIES,
 } from "./Utils/OpenStackExporterSeries";
@@ -148,7 +163,11 @@ const ARGS: OpenStackAlertTemplateArgs = {
 };
 
 const TEMPLATES: Array<OpenStackAlertTemplate> =
-  getAllOpenStackAlertTemplates();
+  getAllOpenStackAlertTemplates().filter(
+    (template: OpenStackAlertTemplate): boolean => {
+      return !getAllOpenStackControlPlaneAlertTemplates().includes(template);
+    },
+  );
 
 type TemplateCase = [string, OpenStackAlertTemplate];
 
@@ -239,7 +258,7 @@ function windowMinutesOf(step: MonitorStep): number {
 function scrapeIntervalsInSeconds(): Record<string, number> {
   const intervals: Record<string, number> = {};
   const jobs: RegExp =
-    /job_name:\s*oneuptime-openstack-(\w+)\s*\n[\s\S]*?scrape_interval:\s*(\d+)s/g;
+    /job_name:\s*oneuptime-openstack-([\w-]+)\s*\n[\s\S]*?scrape_interval:\s*(\d+)s/g;
 
   for (const match of COLLECTOR_CONFIG.matchAll(jobs)) {
     intervals[match[1]!] = Number(match[2]);
@@ -290,6 +309,11 @@ function intervalSecondsOf(query: MetricQueryConfigData): number {
   const metric: OpenStackMetricDefinition | undefined =
     getOpenStackMetricByMetricName(metricNameOf(query));
 
+  // What a check found goes out with each API check, whichever check found it.
+  if (metric?.fromCheck) {
+    return DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES * 60;
+  }
+
   if (metric?.fromQuotaExporter) {
     return quotaIntervalSeconds();
   }
@@ -334,6 +358,38 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
 const THRESHOLDS: Readonly<
   Record<string, { filterType: FilterType; value: number }>
 > = {
+  "openstack-token-issue-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-service-api-check-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-public-certificate-expiring-30-days": {
+    filterType: FilterType.LessThan,
+    value: OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
+  },
+  "openstack-public-certificate-expiring-7-days": {
+    filterType: FilterType.LessThan,
+    value: OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+  },
+  "openstack-instance-boot-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-instance-boot-slow": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
+  },
+  "openstack-volume-attach-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-floating-ip-unreachable": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-identity-api-down": { filterType: FilterType.LessThan, value: 1 },
   "openstack-compute-api-down": { filterType: FilterType.LessThan, value: 1 },
   "openstack-network-api-down": { filterType: FilterType.LessThan, value: 1 },
@@ -478,6 +534,32 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.GreaterThan,
     value: OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   },
+  "openstack-orchestration-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-container-infra-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-orchestration-engine-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-container-infra-conductor-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-stack-failed": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-stack-stuck": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-container-cluster-failed": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-container-cluster-stuck": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
 };
 
 /*
@@ -533,6 +615,38 @@ function poolScene(usedPercent: number): Scene {
 }
 
 const SCENES: Readonly<Record<string, Scene>> = {
+  "openstack-token-issue-failing": {
+    breached: { token_issued: 0 },
+    healthy: { token_issued: 1 },
+  },
+  "openstack-service-api-check-failing": {
+    breached: { api_answered: 0 },
+    healthy: { api_answered: 1 },
+  },
+  "openstack-public-certificate-expiring-30-days": {
+    breached: { days_left: 12.5 },
+    healthy: { days_left: 80 },
+  },
+  "openstack-public-certificate-expiring-7-days": {
+    breached: { days_left: 2 },
+    healthy: { days_left: 12.5 },
+  },
+  "openstack-instance-boot-failing": {
+    breached: { boot_passed: 0 },
+    healthy: { boot_passed: 1 },
+  },
+  "openstack-instance-boot-slow": {
+    breached: { boot_seconds: 412 },
+    healthy: { boot_seconds: 42 },
+  },
+  "openstack-volume-attach-failing": {
+    breached: { volume_passed: 0 },
+    healthy: { volume_passed: 1 },
+  },
+  "openstack-floating-ip-unreachable": {
+    breached: { floating_ip_passed: 0 },
+    healthy: { floating_ip_passed: 1 },
+  },
   "openstack-identity-api-down": {
     breached: { api_up: 0, series_in_collection: 1 },
     healthy: { api_up: 1, series_in_collection: 8 },
@@ -697,6 +811,39 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { cpu_percent: 99 },
     healthy: { cpu_percent: 40 },
   },
+  "openstack-orchestration-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-container-infra-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-orchestration-engine-down": {
+    breached: { heat_engine_up: 0 },
+    healthy: { heat_engine_up: 1 },
+  },
+  "openstack-container-infra-conductor-down": {
+    breached: { magnum_conductor_up: 0 },
+    healthy: { magnum_conductor_up: 1 },
+  },
+  // Each word's code as it was recorded, which only says the row is there.
+  "openstack-stack-failed": {
+    breached: { in_create_failed: 4, in_update_failed: 10 },
+    healthy: { in_create_failed: 0, in_update_failed: 0 },
+  },
+  "openstack-stack-stuck": {
+    breached: { in_create_in_progress: 3, in_update_in_progress: 9 },
+    healthy: { in_create_in_progress: 0, in_update_in_progress: 0 },
+  },
+  "openstack-container-cluster-failed": {
+    breached: { in_create_failed: 1 },
+    healthy: { in_create_failed: 0 },
+  },
+  "openstack-container-cluster-stuck": {
+    breached: { in_create_in_progress: 2 },
+    healthy: { in_create_in_progress: 0 },
+  },
   "openstack-instance-disk-latency-high": {
     breached: { read_latency_ms: 120, write_latency_ms: 4 },
     healthy: { read_latency_ms: 2, write_latency_ms: 4 },
@@ -816,6 +963,15 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Block Storage API Down",
         "Image API Down",
         "Placement API Down",
+        // The services a cloud may not run: #5743.
+        "Orchestration API Down",
+        "Kubernetes Clusters API Down",
+        "Heat Engine Down",
+        "Magnum Conductor Down",
+        "Stack Failed",
+        "Stack Stuck In Progress",
+        "Kubernetes Cluster Failed",
+        "Kubernetes Cluster Stuck",
         "Compute Service Down",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
@@ -851,6 +1007,15 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Bare Metal Node in Maintenance Too Long",
         "Bare Metal Power State Unexpected",
         "Project Quota Nearly Reached",
+        // What a probe finds from outside the cloud (#5749).
+        "Token Issue Failing",
+        "Service API Check Failing",
+        "Public Certificate Expiring in 30 Days",
+        "Public Certificate Expiring in 7 Days",
+        "Instance Boot Failing",
+        "Instance Boot Slow",
+        "Volume Attach Failing",
+        "Floating IP Unreachable",
         "Flavor Can No Longer Be Placed",
         `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
         "Reserved Headroom Gone",
@@ -878,6 +1043,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Compute",
         "Network",
         "Storage",
+        "Orchestration",
         "Bare Metal",
         "Projects",
         "Capacity",
@@ -1262,10 +1428,42 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           },
         );
 
+        /*
+         * What a check says of Keystone is there on every report, so it is its own. Anything else
+         * from a check stands on the check's own series: they go on whichever way the cloud is
+         * collected, and stop when the probe does.
+         */
+        const isFromCheck: boolean = Boolean(
+          getOpenStackMetricByMetricName(metricNameOf(queries[0]!))?.fromCheck,
+        );
+
+        if (!anchor && isFromCheck) {
+          expect(template.id).toBe("openstack-token-issue-failing");
+          return;
+        }
+
         // An API's own series and its collection's are already that.
         if (!anchor) {
           expect(template.id).toMatch(/-api-down$/);
           expect(metricNameOf(queries[0]!)).toMatch(/^openstack_\w+_up$/);
+          return;
+        }
+
+        if (isFromCheck) {
+          expect(metricNameOf(anchor)).toBe(
+            OPENSTACK_CHECK_API_METRICS.has(metricNameOf(queries[0]!))
+              ? OpenStackCheckMetric.TokenSuccess
+              : OpenStackCheckMetric.LifecycleSuccess,
+          );
+          expect(attributesOf(anchor)).toEqual({});
+          expect(aggregationOf(anchor)).toBe(MetricsAggregationType.Min);
+
+          for (const instance of [firingOf(step), recoveryOf(step)]) {
+            expect(comparedAliases(instance)).not.toContain(
+              OPENSTACK_ANCHOR_METRIC_ALIAS,
+            );
+          }
+
           return;
         }
 
@@ -1378,7 +1576,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
               metricName,
             )
               ? ["openstack_service"]
-              : [...OPENSTACK_EXPORTER_SERIES[metricName]!.labels];
+              : [
+                  ...(OPENSTACK_EXPORTER_SERIES[metricName]?.labels ||
+                    // Only a probe sends it, so the catalogue is all there is to go by.
+                    getOpenStackMetricByMetricName(metricName)!
+                      .identityAttributes),
+                ];
 
             expect({ metricName, key, has: labels.includes(key) }).toEqual({
               metricName,
@@ -1396,6 +1599,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       openstack_nova_agent_state: "enabled",
       openstack_cinder_agent_state: "enabled",
       openstack_neutron_agent_state: "up",
+      openstack_container_infra_agent_state: "enabled",
     };
 
     test.each(TEMPLATE_CASES)(
@@ -1423,7 +1627,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         },
       );
 
-      expect(workerTemplates.length).toBe(5);
+      expect(workerTemplates.length).toBe(6);
     });
 
     test("a worker is never grouped by an id, which Cinder makes up afresh every time", () => {
@@ -1679,11 +1883,116 @@ describe("OpenStack alert templates: the rules every template passes", () => {
             Boolean(OPENSTACK_EXPORTER_SERIES[metricName]) ||
               OPENSTACK_RECEIVER_SERIES.includes(metricName) ||
               getOpenStackMetricByMetricName(metricName)!.fromInstanceSource ||
+              getOpenStackMetricByMetricName(metricName)!.fromCheck ||
+              // A series only a native read sends, on a template that says so.
+              (getOpenStackMetricByMetricName(metricName)!.onlyFromProbe &&
+                template.requiresProbe) ||
               getOpenStackMetricByMetricName(metricName)!.fromCapacity,
           ).toBe(true);
         }
       },
     );
+
+    test("a template over a series only a probe sends says so, and is offered only to such a cloud", () => {
+      const probeOnly: Array<string> = TEMPLATES.filter(
+        (template: OpenStackAlertTemplate): boolean => {
+          return queriesOf(stepOf(template)).some(
+            (query: MetricQueryConfigData): boolean => {
+              return (
+                getOpenStackMetricByMetricName(metricNameOf(query))
+                  ?.onlyFromProbe === true
+              );
+            },
+          );
+        },
+      ).map((template: OpenStackAlertTemplate): string => {
+        return template.id;
+      });
+
+      expect(probeOnly.sort()).toEqual([
+        "openstack-container-infra-conductor-down",
+        "openstack-orchestration-engine-down",
+      ]);
+      for (const id of probeOnly) {
+        const template: OpenStackAlertTemplate =
+          getOpenStackAlertTemplateById(id)!;
+        expect(template.requiresProbe).toBe(true);
+        expect(template.description).toContain("only a probe sends");
+      }
+    });
+
+    test.each([
+      [
+        "openstack-stack-failed",
+        Array.from(OPENSTACK_STACK_FAILED_STATUSES),
+        OPENSTACK_EXPORTER_STACK_STATUS_CODES,
+      ],
+      [
+        "openstack-stack-stuck",
+        Array.from(OPENSTACK_STACK_IN_PROGRESS_STATUSES).filter(
+          (status: string): boolean => {
+            return status !== "INIT_IN_PROGRESS";
+          },
+        ),
+        OPENSTACK_EXPORTER_STACK_STATUS_CODES,
+      ],
+      [
+        "openstack-container-cluster-failed",
+        Array.from(OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES),
+        OPENSTACK_EXPORTER_CONTAINER_CLUSTER_STATUS_CODES,
+      ],
+      [
+        "openstack-container-cluster-stuck",
+        Array.from(OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES),
+        OPENSTACK_EXPORTER_CONTAINER_CLUSTER_STATUS_CODES,
+      ],
+    ])(
+      "%s reads exactly the words the health rules name, none of whose codes is 0",
+      (
+        id: string,
+        words: Array<string>,
+        codes: Readonly<Record<string, number>>,
+      ) => {
+        expect(statusesOf(id).sort()).toEqual([...words].sort());
+        for (const word of words) {
+          expect(codes[word]).toBeGreaterThan(0);
+        }
+      },
+    );
+
+    test("the one word left out of Stack Stuck is the one a code of 0 would hide", () => {
+      expect(OPENSTACK_EXPORTER_STACK_STATUS_CODES["INIT_IN_PROGRESS"]).toBe(0);
+    });
+
+    test.each([
+      ["openstack-stack-failed", ["id", "name"]],
+      ["openstack-stack-stuck", ["id", "name"]],
+      ["openstack-container-cluster-failed", ["uuid", "name"]],
+      ["openstack-container-cluster-stuck", ["uuid", "name"]],
+    ])("%s names what it is about", (id: string, keys: Array<string>) => {
+      const groupBy: Array<string> = MonitorStep.getGroupByAttributeKeys(
+        stepOf(getOpenStackAlertTemplateById(id)!),
+      );
+      for (const key of keys) {
+        expect(groupBy).toContain(key);
+      }
+    });
+
+    test("a service's templates go by its own _up, so they say nothing on a cloud without it", () => {
+      for (const template of TEMPLATES) {
+        if (!template.forService) {
+          continue;
+        }
+        const names: Array<string> = queriesOf(stepOf(template)).map(
+          (query: MetricQueryConfigData): string => {
+            return metricNameOf(query);
+          },
+        );
+        expect(names).toContain(
+          OPENSTACK_API_UP_METRIC_BY_SERVICE[template.forService],
+        );
+      }
+    });
 
     test("the only template on series that are off by default says so", () => {
       for (const template of TEMPLATES) {
@@ -2306,7 +2615,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
     );
 
     test("the docs count the templates", () => {
-      expect(DOCS).toContain(`OneUptime ships ${TEMPLATES.length} templates`);
+      expect(DOCS).toContain(
+        `OneUptime ships ${getAllOpenStackAlertTemplates().length} templates`,
+      );
     });
   });
 });

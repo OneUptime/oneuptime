@@ -8,17 +8,24 @@
  * tests (Common/Tests/Server/Services/OpenStackResourcePostgres.test.ts) hold the SQL.
  */
 import {
+  OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
 } from "../../../Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
 } from "../../../Common/Types/OpenStack/OpenStackResourceKind";
@@ -26,6 +33,7 @@ import {
   buildOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../../Common/Types/OpenStack/OpenStackBlastRadius";
+import { getOpenStackStackNameOfServer } from "../../../Common/Types/OpenStack/OpenStackLinks";
 import { getOpenStackProjectQuotas } from "../../../Common/Types/OpenStack/OpenStackQuota";
 
 const ATTENTION_ROWS_PER_KIND = 100;
@@ -112,6 +120,15 @@ export function getInventorySummary(allRows, regionName) {
     memoryAllocatedBytes: sum(giving, "memoryAllocatedBytes"),
     storageCapacityBytes: sum(pools, "diskCapacityBytes"),
     storageUsedBytes: sum(pools, "diskAllocatedBytes"),
+    stackCount: ofKind(rows, "Stack").length,
+    containerClusterCount: ofKind(rows, "ContainerCluster").length,
+    services: Array.from(
+      new Set(
+        ofKind(rows, "Api").map((row) => {
+          return row.name;
+        }),
+      ),
+    ),
   };
 }
 
@@ -208,6 +225,7 @@ const ATTENTION_QUERIES = [
   },
   { kind: "Service", where: () => true, whole: true },
   { kind: "Hypervisor", where: () => true, whole: true },
+  { kind: "ControlPlane", where: () => true, whole: true },
   {
     kind: "StoragePool",
     where: (row) => {
@@ -245,6 +263,27 @@ const ATTENTION_QUERIES = [
       return (
         OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status) &&
         stuckSince(row, OPENSTACK_IMAGE_STUCK_MINUTES, now)
+      );
+    },
+  },
+  {
+    kind: "Stack",
+    where: (row, now) => {
+      return (
+        OPENSTACK_STACK_FAILED_STATUSES.has(row.status) ||
+        (OPENSTACK_STACK_IN_PROGRESS_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_STACK_STUCK_MINUTES, now))
+      );
+    },
+  },
+  {
+    kind: "ContainerCluster",
+    where: (row, now) => {
+      return (
+        OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES.has(row.status) ||
+        (OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES, now)) ||
+        row.facts?.healthStatus === OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY
       );
     },
   },
@@ -343,13 +382,57 @@ export function getBlastRadius(allRows, part) {
     return buildOpenStackBlastRadius({ counts, projectNames, isKnown });
   };
 
+  const ownerOf = (row) => {
+    return {
+      kind: row.kind,
+      externalId: row.externalId,
+      name: row.name || null,
+      status: row.status || null,
+    };
+  };
+
+  // The Magnum clusters these servers are part of, as readMagnumClustersOfServers reads them.
+  const magnumClustersOf = (serverNames) => {
+    const stackNames = serverNames
+      .map(getOpenStackStackNameOfServer)
+      .filter(Boolean);
+    const stackIds = ofKind(allRows, "Stack")
+      .filter((row) => {
+        return (
+          stackNames.includes(row.name) && row.regionName === part.regionName
+        );
+      })
+      .map((row) => {
+        return row.externalId;
+      });
+    return ofKind(allRows, "ContainerCluster")
+      .filter((row) => {
+        return (
+          stackIds.includes(row.facts?.stackId) &&
+          row.regionName === part.regionName
+        );
+      })
+      .map(ownerOf);
+  };
+
   if (part.kind === "Hypervisor") {
-    return finish([
-      {
-        count: "instanceCount",
-        byProject: countsByProject(instancesOn(part.hypervisorName)),
-      },
-    ]);
+    return {
+      ...finish([
+        {
+          count: "instanceCount",
+          byProject: countsByProject(instancesOn(part.hypervisorName)),
+        },
+      ]),
+      magnumClusters: magnumClustersOf(
+        instancesOn(part.hypervisorName).map((row) => {
+          return row.name;
+        }),
+      ),
+    };
+  }
+
+  if (part.kind === "Instance") {
+    return { ...finish([], false), belongsTo: magnumClustersOf([part.name]) };
   }
 
   if (part.kind === "Service" && part.name === "nova-compute") {
@@ -433,6 +516,28 @@ export function getBlastRadius(allRows, part) {
     );
   }
 
+  // As OpenStackResourceService says it: a stack and its Magnum cluster name each other.
+  if (part.kind === "Stack") {
+    const clusters = ofKind(allRows, "ContainerCluster").filter((row) => {
+      return row.facts?.stackId === part.externalId;
+    });
+    return {
+      ...finish([]),
+      belongsTo: clusters.length === 1 ? clusters.map(ownerOf) : [],
+    };
+  }
+
+  if (part.kind === "ContainerCluster") {
+    return {
+      ...finish([]),
+      belongsTo: ofKind(allRows, "Stack")
+        .filter((row) => {
+          return row.externalId === part.facts?.stackId;
+        })
+        .map(ownerOf),
+    };
+  }
+
   if (part.kind === "Api") {
     const inRegion = (kind) => {
       return ofKind(allRows, kind).filter((row) => {
@@ -440,6 +545,20 @@ export function getBlastRadius(allRows, part) {
       });
     };
     switch (part.name) {
+      case "orchestration":
+        return finish([
+          {
+            count: "stackCount",
+            byProject: countsByProject(inRegion("Stack")),
+          },
+        ]);
+      case "container-infra":
+        return finish([
+          {
+            count: "containerClusterCount",
+            byProject: countsByProject(inRegion("ContainerCluster")),
+          },
+        ]);
       case "compute":
         return finish([
           {
@@ -567,6 +686,8 @@ export function getProjectSummaries(allRows, projectIds) {
       networkCount: count("Network"),
       routerCount: count("Router"),
       floatingIpCount: count("FloatingIp"),
+      stackCount: count("Stack"),
+      containerClusterCount: count("ContainerCluster"),
     };
   });
 }
