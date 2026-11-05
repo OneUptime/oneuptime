@@ -1321,7 +1321,12 @@ describe("RecommendationResourceRegistry", () => {
       if (summary instanceof Error) {
         mockOpenStackSummary.mockRejectedValue(summary);
       } else {
-        mockOpenStackSummary.mockResolvedValue(summary);
+        // The real read always says which services this credential is closed out of.
+        mockOpenStackSummary.mockResolvedValue(
+          summary
+            ? { closedServices: [], ...(summary as Record<string, unknown>) }
+            : summary,
+        );
       }
       return await RecommendationResourceRegistry.loadContext({
         resourceType: MonitorRecommendationResourceType.OpenStack,

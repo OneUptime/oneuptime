@@ -402,6 +402,9 @@ describe.each(DISCOVER_CASES)(
       jest
         .spyOn(baseService, "tryLinkHostToProxmoxGuest")
         .mockResolvedValue(undefined);
+      jest
+        .spyOn(baseService, "tryLinkHostToOpenStack")
+        .mockResolvedValue(undefined);
       jest.spyOn(logger, "info").mockImplementation(() => {
         return undefined as never;
       });
@@ -721,6 +724,9 @@ describe("a gone host is resolved past HostService's own memo", () => {
       );
     jest
       .spyOn(baseService, "tryLinkHostToProxmoxGuest")
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(baseService, "tryLinkHostToOpenStack")
       .mockResolvedValue(undefined);
     jest.spyOn(logger, "info").mockImplementation(() => {
       return undefined as never;

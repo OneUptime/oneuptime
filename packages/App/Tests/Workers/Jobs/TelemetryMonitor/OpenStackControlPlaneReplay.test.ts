@@ -533,13 +533,24 @@ const DRILLS: ReadonlyArray<{
   {
     release: "gazpacho-ovn",
     drill: "libvirt-down",
-    during: { "openstack-libvirt-service-down": ["127.0.0.1"] },
+    /*
+     * Nova disables a nova-compute itself when libvirt goes. Its template fires on that as on any
+     * other, and a libvirt monitor speaks for it, which keeps this one incident
+     * (OpenStackControlPlaneOneIncident.test.ts).
+     */
+    during: {
+      "openstack-compute-service-disabled": ["nova-compute"],
+      "openstack-libvirt-service-down": ["127.0.0.1"],
+    },
     /*
      * The rig then mounted libvirt's socket and not its folder, so the exporter went on reading
      * the one the restart replaced. It mounts the folder now, as Kolla-Ansible does, so the next
      * recording reads this as nothing at all: no recording has yet proved this one recovers.
      */
-    after: { "openstack-libvirt-service-down": ["127.0.0.1"] },
+    after: {
+      "openstack-compute-service-disabled": ["nova-compute"],
+      "openstack-libvirt-service-down": ["127.0.0.1"],
+    },
   },
 ];
 

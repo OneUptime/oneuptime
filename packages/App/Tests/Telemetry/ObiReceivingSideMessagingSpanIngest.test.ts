@@ -1687,7 +1687,7 @@ describe("the stored kind is decided once, before the evaluation row", () => {
   test("normalizeObiReceivingSideMessagingSpanKind wraps the only mapSpanKind call, ahead of buildSpanEvaluationRow", () => {
     const source: string = readTracesService();
     const normalized: string =
-      'const spanKind: SpanKind = normalizeObiReceivingSideMessagingSpanKind({ kind: OtelTracesIngestService.mapSpanKind(span["kind"]), attributes: spanAttributes, });';
+      'const spanKind: SpanKind = openStackSpan ? (openStackSpan.kind as SpanKind) : normalizeObiReceivingSideMessagingSpanKind({ kind: OtelTracesIngestService.mapSpanKind(span["kind"]), attributes: spanAttributes, });';
 
     expect(source.split(normalized)).toHaveLength(2);
     expect(source.split("mapSpanKind(span[")).toHaveLength(2);
