@@ -612,7 +612,7 @@ export const OpenStackHostGroupPage: FunctionComponent<{
           title={words.instancesTitle}
           description="Every instance here, a page at a time."
           emptyTitle="No instances here"
-          emptyDescription="Nova has placed nothing here, or this credential can't see what it placed. Only the Full view credential sees every project's."
+          emptyDescription="Nova has placed nothing here."
         />
       ),
     },

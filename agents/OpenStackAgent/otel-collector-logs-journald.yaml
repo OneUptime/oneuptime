@@ -32,6 +32,11 @@ receivers:
     # security_group.delete.end, and with use_json on, nearly every one of them.
     all: true
     operators:
+      # systemd's own lines about a service come from PID 1, and name the service in UNIT.
+      - type: move
+        if: 'body.UNIT != nil and body._SYSTEMD_UNIT == "init.scope"'
+        from: body.UNIT
+        to: body._SYSTEMD_UNIT
       - type: move
         if: 'body._SYSTEMD_UNIT != nil'
         from: body._SYSTEMD_UNIT
@@ -95,9 +100,12 @@ receivers:
         from: body.MESSAGE
         to: body
         on_error: send_quiet
-      # A stack trace is one record. oslo.log writes it one line at a time, each with
-      # a prefix of its own and no [request] context, and a service's workers share a
-      # unit, so lines are only joined within one process of one unit.
+      # A record is one record, however many lines it took. A record's first line has oslo.log's
+      # prefix and its [request], or a level below an error, or is JSON. Everything else belongs
+      # to the line before: a stack trace, whose lines have a prefix of their own and no
+      # [request], and a message that held a newline, whose next lines have nothing, such as
+      # the libvirt XML a DEBUG line ends with. A service's workers share a unit, so lines are
+      # only joined within one process of one unit.
       - type: add
         if: 'attributes["journald.unit"] != nil and attributes["process.pid"] != nil'
         field: attributes["openstack.log.stream"]
@@ -106,10 +114,10 @@ receivers:
         combine_field: body
         combine_with: "\n"
         source_identifier: attributes["openstack.log.stream"]
-        # oslo.log's own journal handler sends each record whole, so nothing joins it.
-        is_first_entry: 'attributes["journald.logger_name"] != nil or not ((body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:ERROR|TRACE|CRITICAL) [A-Za-z0-9_.-]+ " and not (body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)")) or body matches "^(?:[ \\t]+\\S|Traceback \\(most recent call last\\):|[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|Timeout|Refused|Failure)(?:: |$))")'
+        # oslo.log's own journal handler sends each record whole, and systemd's lines stand alone.
+        is_first_entry: 'attributes["journald.logger_name"] != nil or attributes["process.pid"] == "1" or body matches "^\\{" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:DEBUG|INFO|AUDIT|WARNING) [A-Za-z0-9_.-]+(?: |$)"'
         force_flush_period: 2s
-        max_batch_size: 500
+        max_batch_size: 2000
         max_log_size: 256KiB
       - type: remove
         field: attributes["openstack.log.stream"]

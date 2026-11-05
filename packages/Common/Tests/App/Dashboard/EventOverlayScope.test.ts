@@ -1148,6 +1148,60 @@ describe("a cloud resource's charts", () => {
   });
 });
 
+/*
+ * A part's charts find their own markers by the labels its series carry, and an OpenStack event
+ * names itself by the same ones (OpenStackEventEntries): `id` for most parts, `hostname` for a
+ * machine. Everything else about a cloud's chart stays as it was for the cloud.
+ */
+describe("an OpenStack part's charts", () => {
+  const INSTANCE: string = "1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0";
+  const CLOUD: string = "production";
+
+  function changesOf(result: EventOverlayScope): Array<JSONObject> {
+    return result.changeEventQueries as unknown as Array<JSONObject>;
+  }
+
+  test("a part's chart holds that part's markers, on that cloud", () => {
+    const queries: Array<JSONObject> = changesOf(
+      scope({ "openstack.cloud.name": CLOUD, id: INSTANCE }),
+    );
+
+    expect(queries.length).toBeGreaterThan(0);
+
+    for (const query of queries) {
+      expect(JSON.stringify(query)).toContain(INSTANCE);
+      expect(JSON.stringify(query)).toContain(CLOUD);
+    }
+  });
+
+  test("a hypervisor's chart holds what happened on the machine", () => {
+    const queries: Array<JSONObject> = changesOf(
+      scope({
+        "openstack.cloud.name": CLOUD,
+        hostname: "compute-07.example.internal",
+      }),
+    );
+
+    expect(queries.length).toBeGreaterThan(0);
+
+    for (const query of queries) {
+      expect(JSON.stringify(query)).toContain("compute-07.example.internal");
+    }
+  });
+
+  test("`id` means nothing on a chart that is not a cloud's", () => {
+    for (const query of changesOf(scope({ id: INSTANCE }))) {
+      expect(JSON.stringify(query)).not.toContain(INSTANCE);
+    }
+  });
+
+  test("`hostname` means nothing on a chart that is not a cloud's", () => {
+    for (const query of changesOf(scope({ hostname: "compute-07" }))) {
+      expect(JSON.stringify(query)).not.toContain("compute-07");
+    }
+  });
+});
+
 describe("incidents and alerts on a chart filtered to no resource", () => {
   function metricConfig(
     metricName: unknown,

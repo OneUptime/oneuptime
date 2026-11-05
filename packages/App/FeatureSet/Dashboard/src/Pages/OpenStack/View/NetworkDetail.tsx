@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -7,6 +8,7 @@ import { getOpenStackNetworkIpPercent } from "Common/Types/OpenStack/OpenStackHe
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
+import Link from "Common/UI/Components/Link/Link";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -42,7 +44,10 @@ import ResourcePartDetailsCard, {
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
-import { fetchOpenStackNetworkForecast } from "../Utils/OpenStackPartData";
+import {
+  fetchOpenStackDhcpAgents,
+  fetchOpenStackNetworkForecast,
+} from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_NETWORK_ALERT_TEMPLATE_IDS,
   OpenStackForecast,
@@ -50,6 +55,7 @@ import {
   OpenStackSubnetAddresses,
   getOpenStackAddressesFree,
   getOpenStackAddressesTone,
+  getOpenStackNetworkDhcpAgentIds,
   getOpenStackNetworkSubnets,
   getOpenStackPartExplanation,
   isOpenStackNetworkExternal,
@@ -84,6 +90,19 @@ const NetworkOverview: FunctionComponent<{
         network: row,
       });
     }, [part.externalId, part.refreshToken]);
+
+  // Only where a probe has said which, so an agent's cloud never makes this read.
+  const dhcpAgentIds: Array<string> = getOpenStackNetworkDhcpAgentIds(row);
+  const dhcpAgents: OpenStackRead<Array<OpenStackResource>> = useOpenStackRead<
+    Array<OpenStackResource>
+  >(() => {
+    return dhcpAgentIds.length > 0
+      ? fetchOpenStackDhcpAgents({
+          openStackCloudId: part.openStackCloudId,
+          regionName: row.regionName,
+        })
+      : Promise.resolve([]);
+  }, [dhcpAgentIds.join(","), part.refreshToken]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: [row],
@@ -121,6 +140,44 @@ const NetworkOverview: FunctionComponent<{
   addFact("type", translationKey("Type"), "networkType");
   addFact("physical", translationKey("Physical network"), "physicalNetwork");
   addFact("mtu", translationKey("MTU"), "mtu");
+  if (dhcpAgentIds.length > 0) {
+    detailRows.push({
+      key: "dhcp-agents",
+      label: "DHCP agents",
+      description: "The agents Neutron has serving this network, as it last said.",
+      value: (
+        <span className="flex flex-col gap-1">
+          {dhcpAgentIds.map((agentId: string): ReactElement => {
+            const agent: OpenStackResource | undefined = (
+              dhcpAgents.data || []
+            ).find((candidate: OpenStackResource): boolean => {
+              return getOpenStackFactText(candidate, "agentId") === agentId;
+            });
+            const route: Route | undefined = agent
+              ? part.routes.routeFor(agent)
+              : undefined;
+            const name: string = agent
+              ? getOpenStackFactText(agent, "host") || agentId
+              : agentId;
+            return route ? (
+              <Link
+                key={agentId}
+                to={route}
+                className="text-indigo-600 hover:text-indigo-700 hover:underline"
+                dataTestId="openstack-network-dhcp-agent"
+              >
+                <bdi>{name}</bdi>
+              </Link>
+            ) : (
+              <span key={agentId} data-testid="openstack-network-dhcp-agent">
+                <bdi>{name}</bdi>
+              </span>
+            );
+          })}
+        </span>
+      ),
+    });
+  }
   if (row.regionName) {
     detailRows.push({ key: "region", label: "Region", value: row.regionName });
   }

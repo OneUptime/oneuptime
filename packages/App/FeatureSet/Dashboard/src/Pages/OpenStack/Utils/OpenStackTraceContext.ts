@@ -29,6 +29,8 @@ import {
   OpenStackTraceAttribute,
   OpenStackTraceResource,
   getOpenStackApiOfTracedService,
+  getOpenStackServicesLeftOutOfTraces,
+  hasOpenStackSpanMissingItsParent,
   readOpenStackSpanResources,
 } from "Common/Utils/OpenStack/OpenStackTraces";
 
@@ -64,6 +66,11 @@ export interface OpenStackTraceContext {
   services: Array<OpenStackTraceService>;
   parts: Array<OpenStackTracePart>;
   requests: Array<OpenStackTraceRequest>;
+  /*
+   * What a stock cloud leaves out of a trace, when this one has a span under something that
+   * sent nothing, which the waterfall below reports as a missing parent. Empty otherwise.
+   */
+  leftOut: Array<string>;
 }
 
 function readText(attributes: JSONObject, key: string): string {
@@ -121,6 +128,7 @@ export function readOpenStackTraceSpans(spans: ReadonlyArray<Span>): {
   services: Array<{ service: string; host: string }>;
   resources: Array<OpenStackTraceResource>;
   forLogs: Array<OpenStackTraceSpanForLogs>;
+  leftOut: Array<string>;
 } {
   let cloudName: string = "";
   const services: Map<string, { service: string; host: string }> = new Map();
@@ -171,6 +179,22 @@ export function readOpenStackTraceSpans(spans: ReadonlyArray<Span>): {
     ),
     resources: Array.from(resources.values()),
     forLogs,
+    leftOut: hasOpenStackSpanMissingItsParent(
+      spans.map((span: Span) => {
+        return {
+          spanId: span.spanId?.toString(),
+          parentSpanId: span.parentSpanId?.toString(),
+        };
+      }),
+    )
+      ? getOpenStackServicesLeftOutOfTraces(
+          Array.from(services.values()).map(
+            (service: { service: string }): string => {
+              return service.service;
+            },
+          ),
+        )
+      : [],
   };
 }
 
@@ -242,7 +266,13 @@ export async function fetchOpenStackTraceContext(
           [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSPROFILER_DRIVER_SCOPE_NAME,
         },
       } as unknown as Query<Span>,
-      select: { startTime: true, endTime: true, attributes: true },
+      select: {
+        spanId: true,
+        parentSpanId: true,
+        startTime: true,
+        endTime: true,
+        attributes: true,
+      },
       sort: { startTime: SortOrder.Ascending },
       limit: SPANS_READ,
       skip: 0,
@@ -270,6 +300,7 @@ export async function fetchOpenStackTraceContext(
         },
       ),
       requests: [],
+      leftOut: read.leftOut,
     };
   }
 
@@ -360,5 +391,6 @@ export async function fetchOpenStackTraceContext(
       },
     ),
     requests: requests,
+    leftOut: read.leftOut,
   };
 }

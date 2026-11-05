@@ -1,0 +1,2 @@
+Containers and objects in two projects, with what /recon says.
+On their own. The exporter's credential is on one project, and the account it lists is that project's.

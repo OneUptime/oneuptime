@@ -116,6 +116,11 @@ export enum OpenStackServiceFamily {
 // A worker's status: `openstack compute service list` and friends.
 export const OPENSTACK_SERVICE_STATUS_UP: string = "up";
 export const OPENSTACK_SERVICE_STATUS_DOWN: string = "down";
+/*
+ * An API this credential can't read: a page's word, never stored or reported. Its own status
+ * says down, and getOpenStackRowsAsThisCredentialReadsThem says why that means nothing here.
+ */
+export const OPENSTACK_API_STATUS_CLOSED: string = "closed";
 
 // Instance statuses that are on the way to something else.
 export const OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES: ReadonlySet<string> =

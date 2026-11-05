@@ -1,14 +1,21 @@
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackPlacement } from "Common/Types/OpenStack/OpenStackLinks";
+import {
+  OpenStackPlacement,
+  OpenStackServicePlacement,
+} from "Common/Types/OpenStack/OpenStackLinks";
+import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
-  OpenStackServicePlacement,
   fetchOpenStackPlacementOfHost,
   fetchOpenStackPlacementOfKubernetesNode,
   fetchOpenStackPlacementsOfService,
-} from "../../../Pages/OpenStack/Utils/OpenStackUsageReads";
-import OpenStackPlacementCard from "./OpenStackPlacementCard";
+} from "../../../Pages/OpenStack/Utils/OpenStackLinkReads";
+import OpenStackPlacementCard, {
+  OpenStackPlacementLines,
+  OpenStackPlacementRow,
+} from "./OpenStackPlacementCard";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
 /*
@@ -67,31 +74,46 @@ export const OpenStackPlacementOfKubernetesNode: FunctionComponent<{
   );
 };
 
+/*
+ * One card however many places: one place says everything about it, and several say which
+ * instance and hypervisor each is, because that is what tells a shared cause from a coincidence.
+ */
 export const OpenStackPlacementOfService: FunctionComponent<{
   serviceId: ObjectID;
 }> = (props: { serviceId: ObjectID }): ReactElement => {
+  const listClassName: string = useCardRuledListClassName();
   const read: OpenStackRead<Array<OpenStackServicePlacement>> =
     useOpenStackRead(() => {
       return fetchOpenStackPlacementsOfService(props.serviceId);
     }, [props.serviceId.toString()]);
   const placements: Array<OpenStackServicePlacement> = read.data || [];
+  const first: OpenStackServicePlacement | undefined = placements[0];
+  if (!first) {
+    return <></>;
+  }
   return (
-    <>
-      {placements
-        .slice(0, 3)
-        .map((one: OpenStackServicePlacement): ReactElement => {
-          return (
-            <OpenStackPlacementCard
-              key={one.hostName}
-              testId="service-openstack-placement"
-              title={TITLE}
-              description={translationKey(
-                "Where this service runs, from the host its telemetry names. A slow service on a busy hypervisor is often not the service's fault.",
-              )}
-              placement={one.placement}
-            />
-          );
-        })}
-    </>
+    <div className="mb-6" data-testid="service-openstack-placement">
+      <Card
+        title={TITLE}
+        description={translationKey(
+          "Where this service runs, from the hosts and Kubernetes nodes its telemetry names. A slow service on a busy hypervisor is often not the service's fault.",
+        )}
+      >
+        {placements.length === 1 ? (
+          <OpenStackPlacementLines placement={first.placement} />
+        ) : (
+          <ul className={listClassName}>
+            {placements.map((one: OpenStackServicePlacement): ReactElement => {
+              return (
+                <OpenStackPlacementRow
+                  key={`${one.kubernetesClusterId || "host"}/${one.hostName}`}
+                  placement={one.placement}
+                />
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+    </div>
   );
 };

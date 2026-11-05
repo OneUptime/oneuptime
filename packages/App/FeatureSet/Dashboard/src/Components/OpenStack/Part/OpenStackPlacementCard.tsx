@@ -135,6 +135,56 @@ export const OpenStackPlacementLines: FunctionComponent<{
   return <div>{lines}</div>;
 };
 
+// One of several places a thing runs: which instance, on which hypervisor, in which zone.
+export const OpenStackPlacementRow: FunctionComponent<{
+  placement: OpenStackPlacement;
+}> = (props: { placement: OpenStackPlacement }): ReactElement => {
+  const { placement } = props;
+  const routes: OpenStackPartRoutes = getOpenStackPartRoutes(
+    new ObjectID(placement.openStackCloudId),
+  );
+  return (
+    <li
+      data-testid="openstack-placement-row"
+      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
+    >
+      {placement.kind === "instance" ? (
+        <Link
+          to={routes.getPartRoute(
+            OpenStackResourceKind.Instance,
+            placement.externalId,
+          )}
+          className={LINK_CLASS_NAME}
+        >
+          <bdi>{placement.name || placement.externalId}</bdi>
+        </Link>
+      ) : (
+        <></>
+      )}
+      <span className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
+        {placement.hypervisorName ? (
+          <Link
+            to={routes.getHypervisorRoute(
+              placement.regionName,
+              placement.hypervisorName,
+            )}
+            className={LINK_CLASS_NAME}
+          >
+            <bdi>{placement.hypervisorName}</bdi>
+          </Link>
+        ) : (
+          <></>
+        )}
+        {placement.availabilityZone ? (
+          <bdi>{placement.availabilityZone}</bdi>
+        ) : (
+          <></>
+        )}
+      </span>
+    </li>
+  );
+};
+
 const OpenStackPlacementCard: FunctionComponent<{
   testId: string;
   title: string;

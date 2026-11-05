@@ -1,0 +1,2 @@
+Manila's API stopped.
+On its own: Manila's API is stopped.

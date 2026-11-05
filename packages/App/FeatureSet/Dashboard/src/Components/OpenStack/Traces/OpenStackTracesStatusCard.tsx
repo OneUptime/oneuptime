@@ -1,16 +1,39 @@
 import OneUptimeDate from "Common/Types/Date";
 import Card from "Common/UI/Components/Card/Card";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { OpenStackTracedServices } from "Common/Utils/OpenStack/OpenStackTraces";
+import {
+  OpenStackTraceGap,
+  OpenStackTracedServices,
+  getOpenStackTraceGap,
+} from "Common/Utils/OpenStack/OpenStackTraces";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * Whether tracing works, as far as this cloud's own spans can say: when the last one came,
- * which services have sent one, and which have not. A service that has not is only a fault
- * once a request that uses it was traced, and this says that, because a service goes missing
- * for a reason of its own: its libraries, its config, or an upstream bug.
+ * which services have sent one, and which have not. Some send nothing on a stock cloud, for
+ * reasons of OSProfiler's and their own, and each says so here, because a trace with no
+ * scheduler in it reads as if nothing was scheduled. Any other that has not sent one is only
+ * a fault once a request that uses it was traced, and this says that too.
  */
+
+const GAP_WORDS: Record<OpenStackTraceGap, string> = {
+  [OpenStackTraceGap.DriverCannotStart]: translationKey(
+    "OSProfiler's driver cannot start here as OpenStack ships it, so this sends nothing. Placement, in the guide below, has the one line that should fix it.",
+  ),
+  [OpenStackTraceGap.ForkedWorkers]: translationKey(
+    "These send nothing while they run more than one worker, because nothing a forked worker made arrived. One worker each should bring them into a trace, and costs what it costs: Nova's conductor and scheduler, in the guide below.",
+  ),
+  [OpenStackTraceGap.AlwaysForks]: translationKey(
+    "This always runs in a forked worker, so it sends nothing, and there is no setting for that.",
+  ),
+};
+
+const GAP_ORDER: ReadonlyArray<OpenStackTraceGap> = [
+  OpenStackTraceGap.DriverCannotStart,
+  OpenStackTraceGap.ForkedWorkers,
+  OpenStackTraceGap.AlwaysForks,
+];
 
 const ServiceNames: FunctionComponent<{
   names: Array<string>;
@@ -47,11 +70,14 @@ const OpenStackTracesStatusCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const notYet: Array<string> = props.canBeTraced.filter(
+  const notSeen: Array<string> = props.canBeTraced.filter(
     (name: string): boolean => {
       return !props.traced.services.includes(name);
     },
   );
+  const notYet: Array<string> = notSeen.filter((name: string): boolean => {
+    return !getOpenStackTraceGap(name);
+  });
 
   return (
     <Card
@@ -83,6 +109,28 @@ const OpenStackTracesStatusCard: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {GAP_ORDER.map((gap: OpenStackTraceGap): ReactElement => {
+          const names: Array<string> = notSeen.filter(
+            (name: string): boolean => {
+              return getOpenStackTraceGap(name) === gap;
+            },
+          );
+
+          return names.length > 0 ? (
+            <div key={gap} data-testid={`openstack-traces-gap-${gap}`}>
+              <ServiceNames
+                names={names}
+                className="bg-amber-50 text-amber-800"
+                testId={`openstack-traces-gap-services-${gap}`}
+              />
+              <p className="mt-1 text-gray-500">
+                {translator.translateText(GAP_WORDS[gap])}
+              </p>
+            </div>
+          ) : (
+            <React.Fragment key={gap}></React.Fragment>
+          );
+        })}
         {notYet.length > 0 ? (
           <div>
             <p>{translator.translateText("Not in a trace yet:")}</p>

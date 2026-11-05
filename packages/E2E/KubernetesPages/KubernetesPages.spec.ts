@@ -896,6 +896,74 @@ test.describe("a pod's page", () => {
   });
 });
 
+test.describe("a node on OpenStack", () => {
+  const CLOUD: string = "71000000-0000-4000-8000-000000000009";
+  const HYPERVISOR: string = "RegionOne/compute-01.acme.example";
+
+  test("says which instance it is, from its provider ID, and which hypervisor and zone that is on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPart(page, {
+      kind: "Node",
+      collection: "nodes",
+      name: NODE_A,
+      query: "openstack=instance",
+    });
+
+    const card: Locator = page.getByTestId(
+      "kubernetes-node-openstack-placement",
+    );
+    await expect(card).toContainText("from its spec.providerID");
+    await expect(
+      card.getByTestId("openstack-placement-instance"),
+    ).toContainText("web-1");
+    await expect(card.getByTestId("openstack-placement-zone")).toContainText(
+      "az-1",
+    );
+    const hypervisor: Locator = card.getByTestId(
+      "openstack-placement-hypervisor",
+    );
+    await expect(hypervisor).toContainText("compute-01.acme.example");
+    await expect(hypervisor.getByRole("link")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/openstack/${CLOUD}/hypervisors/${encodeURIComponent(HYPERVISOR)}`,
+    );
+    await screenshot(page, "kubernetes-node-on-openstack");
+  });
+
+  test("a node on no OpenStack says nothing of it at all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPart(page, { kind: "Node", collection: "nodes", name: NODE_A });
+
+    await expect
+      .poll(async (): Promise<boolean> => {
+        const requests: Array<{ url: string }> = await page.evaluate(
+          (): Array<{ url: string }> => {
+            return (
+              window as unknown as {
+                __kubernetesPagesFixture: {
+                  apiRequests: Array<{ url: string }>;
+                };
+              }
+            ).__kubernetesPagesFixture.apiRequests;
+          },
+        );
+        return requests.some((request: { url: string }): boolean => {
+          return request.url.includes("/placement-of-kubernetes-node/");
+        });
+      })
+      .toBe(true);
+    await expect(
+      page.getByTestId("kubernetes-node-openstack-placement"),
+    ).toHaveCount(0);
+  });
+});
+
 test.describe("a node's page", () => {
   test("the node that stopped talking to the API server: Unreachable, its incident, the pod on it not ready", async ({
     page,

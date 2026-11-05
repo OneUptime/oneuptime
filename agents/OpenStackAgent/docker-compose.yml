@@ -104,6 +104,8 @@ services:
       - --disable-metric=neutron-subnets_total
       # Nova no longer has this route, so it only fills the exporter's log:
       - --disable-metric=nova-security_groups
+      # Every metric in Gnocchi, page by page, for one count. A Gnocchi holds millions:
+      - --disable-metric=gnocchi-total_metrics
     volumes:
       # The cloud's credential: an application credential, one entry per region.
       # install.sh writes it readable only by the user the exporter runs as.

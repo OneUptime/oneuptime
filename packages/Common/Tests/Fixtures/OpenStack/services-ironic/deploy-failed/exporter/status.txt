@@ -1,0 +1,5 @@
+baremetal 200 0.050541s
+compute 200 0.114287s
+placement 200 0.106860s
+identity 200 0.064586s
+all-at-once 200 0.482709s
