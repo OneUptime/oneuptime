@@ -168,8 +168,13 @@ describe("a credential that can read everything", () => {
       regionsInCatalog: [RECORDED_REGION],
       accessLevel: "FullView",
     });
+    // Every service in the recorded cloud's catalog, and it has no Ironic.
     expect(summary.servicesByRegion[RECORDED_REGION]?.sort()).toEqual(
-      Object.values(OpenStackServiceType).sort(),
+      Object.values(OpenStackServiceType)
+        .filter((service: OpenStackServiceType): boolean => {
+          return service !== OpenStackServiceType.BareMetal;
+        })
+        .sort(),
     );
     expect(summary.reads).toHaveLength(OPENSTACK_ACCESS_READS.length);
 
@@ -1863,6 +1868,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Network]: "network",
     [OpenStackServiceType.Volume]: "block-storage",
     [OpenStackServiceType.Image]: "image",
+    [OpenStackServiceType.BareMetal]: "baremetal",
   };
 
   test.each(

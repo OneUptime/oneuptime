@@ -162,8 +162,11 @@ describe("a healthy cloud", () => {
     );
     expect(report.summary?.datapointCount).toBeGreaterThan(100);
 
+    // Every service in the recorded cloud's catalog, and it has no Ironic.
     for (const service of Object.values(OpenStackServiceType)) {
-      expect(summaryOf(report, service)?.outcome).toBe("Succeeded");
+      if (service !== OpenStackServiceType.BareMetal) {
+        expect(summaryOf(report, service)?.outcome).toBe("Succeeded");
+      }
     }
   });
 
@@ -2464,7 +2467,7 @@ describe("what a collection asks of a cloud", () => {
     });
   });
 
-  test("the next: 7 to Nova, 7 to Neutron, 5 to Cinder and 1 to Placement, and 2 per hypervisor", async () => {
+  test("the next: 7 to Nova, 7 to Neutron, 5 to Cinder and 1 to Placement, 2 per hypervisor, and what a flavor would be told", async () => {
     const cloud: RecordedCloud = createRecordedCloud(HEALTHY);
     const harness: CollectorHarness = createCollectorHarness({
       transport: cloud.transport,
@@ -2476,7 +2479,8 @@ describe("what a collection asks of a cloud", () => {
     // Keystone and Glance only come round about every five minutes.
     expect(await callsByService(cloud, harness)).toEqual({
       compute: 7,
-      placement: 3,
+      // The list, 2 for this cloud's one hypervisor, and GET /allocation_candidates.
+      placement: 4,
       networking: 7,
       volume: 5,
     });
