@@ -27,6 +27,7 @@ export interface OpenStackBlastRadiusProject {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  databaseInstanceCount: number;
 }
 
 export interface OpenStackBlastRadius {
@@ -38,6 +39,7 @@ export interface OpenStackBlastRadius {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  databaseInstanceCount: number;
   // The real number, which `projects` can be shorter than: see the cap.
   projectCount: number;
   // Most affected first, at most OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT of them.
@@ -88,6 +90,7 @@ export function getEmptyOpenStackBlastRadius(
     stackCount: 0,
     containerClusterCount: 0,
     shareCount: 0,
+    databaseInstanceCount: 0,
     projectCount: 0,
     projects: [],
     isKnown,
@@ -101,7 +104,8 @@ export type OpenStackBlastRadiusCount =
   | "floatingIpCount"
   | "stackCount"
   | "containerClusterCount"
-  | "shareCount";
+  | "shareCount"
+  | "databaseInstanceCount";
 
 /*
  * Every count a radius holds and what it is called, which is all there is to adding one. What a page
@@ -124,6 +128,7 @@ export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
     other: "Kubernetes clusters",
   },
   { count: "shareCount", one: "share", other: "shares" },
+  { count: "databaseInstanceCount", one: "database", other: "databases" },
 ];
 
 /*
@@ -163,6 +168,7 @@ export function buildOpenStackBlastRadius(data: {
         stackCount: 0,
         containerClusterCount: 0,
         shareCount: 0,
+        databaseInstanceCount: 0,
       };
       project[count] += amount;
       projects.set(projectId, project);

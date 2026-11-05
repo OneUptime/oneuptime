@@ -44,8 +44,11 @@ export interface OpenStackInventorySummary {
    * with what that project owns, and Placement answers everyone.
    */
   bareMetalProviderCount: number;
+  bareMetalProvidersNotListedCount: number;
   // The services a read has heard from, by what Keystone's catalog calls them.
   services: Array<string>;
+  // Of those, the ones that have never once let this credential in.
+  closedServices: Array<string>;
   vcpuCapacity: number;
   vcpuAllocated: number;
   memoryCapacityBytes: number;
@@ -55,6 +58,7 @@ export interface OpenStackInventorySummary {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  databaseInstanceCount: number;
   // The services a cloud may not run that this one does, in the region being read.
   optionalServices: Array<OpenStackServiceType>;
 }
@@ -89,7 +93,17 @@ export function toOpenStackInventorySummary(
     downServiceCount: readNumber("downServiceCount"),
     bareMetalNodeCount: readNumber("bareMetalNodeCount"),
     bareMetalProviderCount: readNumber("bareMetalProviderCount"),
+    bareMetalProvidersNotListedCount: readNumber(
+      "bareMetalProvidersNotListedCount",
+    ),
     services: services,
+    closedServices: Array.isArray(summary["closedServices"])
+      ? (summary["closedServices"] as Array<JSONValue>).filter(
+          (service: JSONValue): service is string => {
+            return typeof service === "string";
+          },
+        )
+      : [],
     vcpuCapacity: readNumber("vcpuCapacity"),
     vcpuAllocated: readNumber("vcpuAllocated"),
     memoryCapacityBytes: readNumber("memoryCapacityBytes"),
@@ -99,6 +113,7 @@ export function toOpenStackInventorySummary(
     stackCount: readNumber("stackCount"),
     containerClusterCount: readNumber("containerClusterCount"),
     shareCount: readNumber("shareCount"),
+    databaseInstanceCount: readNumber("databaseInstanceCount"),
     optionalServices: getOpenStackOptionalServicesOf(services),
   };
 }

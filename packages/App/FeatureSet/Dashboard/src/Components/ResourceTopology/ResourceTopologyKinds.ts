@@ -369,6 +369,13 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     color: "#e11d48",
     order: 40,
   },
+  "openstack.database": {
+    label: translationKey("Database"),
+    plural: translationKey("Databases"),
+    icon: IconProp.Database,
+    color: "#0ea5e9",
+    order: 46,
+  },
   "openstack.share": {
     label: translationKey("Share"),
     plural: translationKey("Shares"),

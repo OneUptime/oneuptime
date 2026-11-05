@@ -1082,6 +1082,20 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     app.get(
+      "/product/openstack",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/openstack",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/openstack`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/product/docker-swarm",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(

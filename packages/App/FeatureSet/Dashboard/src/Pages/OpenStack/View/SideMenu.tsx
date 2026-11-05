@@ -48,6 +48,7 @@ export interface ResourceCounts {
   stacks?: number | undefined;
   containerClusters?: number | undefined;
   shares?: number | undefined;
+  databases?: number | undefined;
   /*
    * The services a cloud may not run that this one does, in the region being read. What decides
    * whether their entries are here at all: a cloud without one shows no trace of it.
@@ -74,6 +75,7 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
   const runsHeat: boolean = runs(OpenStackServiceType.Orchestration);
   const runsMagnum: boolean = runs(OpenStackServiceType.ContainerInfra);
   const runsManila: boolean = runs(OpenStackServiceType.SharedFileSystems);
+  const runsTrove: boolean = runs(OpenStackServiceType.Database);
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -301,6 +303,23 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.RectangleStack}
         />
+        {runsTrove ? (
+          <SideMenuItem
+            link={{
+              title: "Databases",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES
+                ] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Database}
+            badge={counts.databases}
+          />
+        ) : (
+          <></>
+        )}
       </SideMenuSection>
 
       {runs(OpenStackServiceType.BareMetal) ? (

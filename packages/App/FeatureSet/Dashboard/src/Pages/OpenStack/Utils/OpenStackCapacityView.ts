@@ -11,6 +11,7 @@ import {
 import {
   OPENSTACK_CAPACITY_RESOURCE_IPV4,
   OPENSTACK_CAPACITY_RESOURCE_STORAGE_BYTES,
+  OpenStackBareMetalCapacityRow,
   OpenStackCapacityFlavorRow,
   OpenStackCapacityForecastRow,
   OpenStackCapacityPool,
@@ -118,6 +119,7 @@ export interface OpenStackCapacityView {
   flavors: Array<OpenStackCapacityFlavorRow>;
   pools: Array<OpenStackCapacityPool>;
   forecasts: Array<OpenStackCapacityForecastRow>;
+  bareMetalClasses: Array<OpenStackBareMetalCapacityRow>;
 }
 
 // What a snapshot says of the region being read, or of the whole cloud.
@@ -143,6 +145,11 @@ export function getOpenStackCapacityView(data: {
     ),
     flavors: snapshot.flavors.filter(
       (row: OpenStackCapacityFlavorRow): boolean => {
+        return isInRegion(row, region);
+      },
+    ),
+    bareMetalClasses: (snapshot.bareMetalClasses || []).filter(
+      (row: OpenStackBareMetalCapacityRow): boolean => {
         return isInRegion(row, region);
       },
     ),

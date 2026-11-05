@@ -121,6 +121,8 @@ import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
 import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
 import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudDatabaseInstances from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstances";
+import CloudDatabaseInstanceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstanceDetail";
 import CloudShares from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Shares";
 import CloudShareDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ShareDetail";
 import CloudContainerClusters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
@@ -2484,6 +2486,11 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES, CloudDatabaseInstances],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+    CloudDatabaseInstanceDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARES, CloudShares],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, CloudShareDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACKS, CloudStacks],

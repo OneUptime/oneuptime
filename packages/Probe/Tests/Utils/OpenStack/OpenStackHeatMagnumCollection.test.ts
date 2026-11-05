@@ -53,6 +53,9 @@ import {
  */
 
 const GROUP: string = "services-heat-magnum";
+const STACK_RESOURCES: RegExp = /\/stacks\/([^/]+)\/[^/]+\/resources$/;
+const ONE_CLUSTER: RegExp = /\/clusters\/(cluster-\d+)$/;
+const EITHER_SERVICE: RegExp = /stacks|clusters|services/;
 const PROJECT: string = "5d1838ef05294dd9a804e284b9f21617";
 const HEAT_URL: string = `${RECORDED_HOST}/heat-api/v1/${PROJECT}`;
 const MAGNUM_URL: string = `${RECORDED_HOST}/container-infra/v1`;
@@ -149,9 +152,7 @@ const CATALOG: Array<JSONObject> = [
 function cloudOf(data: {
   scene?: RecordedScene | undefined;
   catalog?: Array<JSONObject> | undefined;
-  override?:
-    | ((path: string) => Answer | undefined)
-    | undefined;
+  override?: ((path: string) => Answer | undefined) | undefined;
 }): {
   transport: (request: OpenStackHttpRequest) => Promise<OpenStackHttpResponse>;
   requests: Array<string>;
@@ -210,8 +211,7 @@ function cloudOf(data: {
       }
 
       // What one stack owns, recorded under its name.
-      const ownedBy: RegExpExecArray | null =
-        /\/stacks\/([^/]+)\/[^/]+\/resources$/.exec(path);
+      const ownedBy: RegExpExecArray | null = STACK_RESOURCES.exec(path);
       if (ownedBy) {
         return respond(
           recorded(
@@ -390,9 +390,9 @@ describe("Heat, on what a real cloud said", () => {
 
     test("every stack's series is the exporter's, with its value", async () => {
       const { points } = await collect({ scene });
-      expect(
-        comparableOfProbe(points, "openstack_heat_stack_status"),
-      ).toEqual(comparableOfExporter(scene, "openstack_heat_stack_status"));
+      expect(comparableOfProbe(points, "openstack_heat_stack_status")).toEqual(
+        comparableOfExporter(scene, "openstack_heat_stack_status"),
+      );
     });
 
     test("every word's count is the exporter's", async () => {
@@ -431,9 +431,11 @@ describe("Heat, on what a real cloud said", () => {
         ),
       ).size,
     ).toBe(2);
-    expect(seen.filter((path: string): boolean => {
-      return path.endsWith("/stacks");
-    })).toHaveLength(1);
+    expect(
+      seen.filter((path: string): boolean => {
+        return path.endsWith("/stacks");
+      }),
+    ).toHaveLength(1);
     expect(JSON.stringify(report)).not.toContain("global_tenant");
   });
 
@@ -447,11 +449,12 @@ describe("Heat, on what a real cloud said", () => {
     ).find((point: ReportedDatapoint): boolean => {
       return point.labels["name"] === "ou-stack-failed";
     });
-    expect(failed?.labels["status_reason"]).toContain("No valid host was found");
+    expect(failed?.labels["status_reason"]).toContain(
+      "No valid host was found",
+    );
     expect(
-      getOpenStackMetricByMetricName(
-        "openstack_heat_stack_status",
-      )?.probeOnlyAttributes,
+      getOpenStackMetricByMetricName("openstack_heat_stack_status")
+        ?.probeOnlyAttributes,
     ).toContain("status_reason");
   });
 
@@ -515,14 +518,15 @@ describe("Magnum, on what a real cloud said", () => {
       "openstack_container_infra_cluster_status",
       "openstack_container_infra_cluster_masters",
       "openstack_container_infra_cluster_nodes",
-    ])("%s is the exporter's, but for the project only a probe has", async (
-      metric: string,
-    ) => {
-      const { points } = await collect({ scene });
-      expect(comparableOfProbe(points, metric, ["project_id"])).toEqual(
-        comparableOfExporter(scene, metric, ["project_id"]),
-      );
-    });
+    ])(
+      "%s is the exporter's, but for the project only a probe has",
+      async (metric: string) => {
+        const { points } = await collect({ scene });
+        expect(comparableOfProbe(points, metric, ["project_id"])).toEqual(
+          comparableOfExporter(scene, metric, ["project_id"]),
+        );
+      },
+    );
 
     test("its API reads as the exporter says", async () => {
       const { points } = await collect({ scene });
@@ -562,9 +566,9 @@ describe("Magnum, on what a real cloud said", () => {
     const { report, points } = await collect({
       scene: loadScene(GROUP, "magnum-conductor-down"),
     });
-    expect(
-      pointsNamed(points, "openstack_container_infra_up")[0]!.value,
-    ).toBe(1);
+    expect(pointsNamed(points, "openstack_container_infra_up")[0]!.value).toBe(
+      1,
+    );
     const conductor: ReportedDatapoint = pointsNamed(
       points,
       "openstack_container_infra_agent_state",
@@ -588,9 +592,9 @@ describe("Magnum, on what a real cloud said", () => {
     const { points } = await collect({
       scene: loadScene(GROUP, "magnum-api-down"),
     });
-    expect(
-      pointsNamed(points, "openstack_container_infra_up")[0]!.value,
-    ).toBe(0);
+    expect(pointsNamed(points, "openstack_container_infra_up")[0]!.value).toBe(
+      0,
+    );
     expect(
       pointsNamed(points, "openstack_container_infra_cluster_status"),
     ).toEqual([]);
@@ -637,9 +641,7 @@ describe("what one cluster's own read costs", () => {
   }
 
   function ownRead(path: string, status: string): Answer | undefined {
-    const match: RegExpExecArray | null = /\/clusters\/(cluster-\d+)$/.exec(
-      path,
-    );
+    const match: RegExpExecArray | null = ONE_CLUSTER.exec(path);
     return match
       ? {
           status: 200,
@@ -657,7 +659,7 @@ describe("what one cluster's own read costs", () => {
     requests: Array<string>,
   ): number => {
     return requests.filter((path: string): boolean => {
-      return /\/clusters\/cluster-\d+$/.test(path);
+      return ONE_CLUSTER.test(path);
     }).length;
   };
 
@@ -758,7 +760,7 @@ describe("what one cluster's own read costs", () => {
     const { requests, points, report } = await collect({
       catalog: heldToMagnum,
       override: (path: string): Answer | undefined => {
-        if (/\/clusters\/cluster-\d+$/.test(path)) {
+        if (ONE_CLUSTER.test(path)) {
           return { status: 403, body: "{}" };
         }
         return path.endsWith("/clusters")
@@ -822,9 +824,9 @@ describe("what a stack owns", () => {
 
   test("a server Nova couldn't place is still its own, and a stack of none owns none", async () => {
     const { points } = await collect({ scene });
-    expect(seriesOf(points, "ou-stack-failed").labels["owned_instance_count"]).toBe(
-      "1",
-    );
+    expect(
+      seriesOf(points, "ou-stack-failed").labels["owned_instance_count"],
+    ).toBe("1");
     const none: ReportedDatapoint = seriesOf(points, "ou-stack-admin-ok");
     expect(none.labels["resources_read"]).toBe("true");
     expect(none.labels["owned_instance_count"]).toBe("0");
@@ -961,9 +963,9 @@ describe("what a stack owns", () => {
     });
     expect(second.requests.length).toBeGreaterThan(0);
     expect(readsOf(second.requests)).toBe(0);
-    expect(seriesOf(second.points, "stack 1").labels["owned_instance_ids"]).toBe(
-      "an-instance",
-    );
+    expect(
+      seriesOf(second.points, "stack 1").labels["owned_instance_ids"],
+    ).toBe("an-instance");
   });
 
   test("a change of status reads it again, and only those", async () => {
@@ -990,9 +992,9 @@ describe("what a stack owns", () => {
       override: answers(stacks(count)),
     });
     expect(readsOf(first.requests)).toBe(HEAT_STACK_READS_PER_COLLECTION);
-    expect(pointsNamed(first.points, "openstack_heat_stack_status")).toHaveLength(
-      count,
-    );
+    expect(
+      pointsNamed(first.points, "openstack_heat_stack_status"),
+    ).toHaveLength(count);
 
     due(first.harness);
     const second: Awaited<ReturnType<typeof collect>> = await collect({
@@ -1141,7 +1143,7 @@ describe("a cloud that doesn't run either", () => {
     const { requests } = await collect({ catalog: WITHOUT });
     expect(
       requests.filter((path: string): boolean => {
-        return /stacks|clusters|services/.test(path) && !path.includes("/v3");
+        return EITHER_SERVICE.test(path) && !path.includes("/v3");
       }),
     ).toEqual([]);
   });
