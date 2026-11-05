@@ -10,6 +10,7 @@
 
 const childProcess = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
 
@@ -102,6 +103,86 @@ describe("the scripts", () => {
         hasSource: true,
       });
     }
+  });
+});
+
+describe("the importer", () => {
+  const IMPORTER = path.join(RIG, "import-ai-agent-recording.py");
+  const SHORT = "runnervm48cm3";
+  const FULL = `${SHORT}.ud5ijlraqheefht0kqil2otfyc.xx.internal.cloudapp.net`;
+  let folder;
+
+  function record(scene, summary, printed) {
+    const directory = path.join(folder, "ai-agent", scene);
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(
+      path.join(directory, "summary.json"),
+      JSON.stringify(summary),
+    );
+    fs.writeFileSync(path.join(directory, "001-hypervisor-list.txt"), printed);
+  }
+
+  function run() {
+    return childProcess.spawnSync(
+      "python3",
+      ["-I", IMPORTER, folder, path.join(folder, "fixtures"), "hibiscus-ovn"],
+      { encoding: "utf8" },
+    );
+  }
+
+  function imported(scene) {
+    return read(
+      path.join(
+        folder,
+        "fixtures",
+        "ai-agent",
+        "hibiscus-ovn",
+        scene,
+        "001-hypervisor-list.txt",
+      ),
+    );
+  }
+
+  beforeEach(() => {
+    folder = fs.mkdtempSync(path.join(os.tmpdir(), "ou-ai-agent-import-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(folder, { recursive: true, force: true });
+  });
+
+  test("gives the runner the one name every fixture uses, in both its forms", () => {
+    const printed = `$ openstack hypervisor list\n${FULL} ${SHORT} down\n`;
+    for (const scene of ["healthy", "compute-down"]) {
+      record(scene, { host: SHORT, problems: [] }, printed);
+    }
+
+    expect(run().status).toBe(0);
+    expect(imported("compute-down")).toBe(
+      "$ openstack hypervisor list\ncompute-01.example.internal compute-01 down\n",
+    );
+    expect(imported("healthy")).not.toContain(SHORT);
+  });
+
+  test("a run that reported a problem leaves what is there as it was", () => {
+    const printed = `$ openstack hypervisor list\n${SHORT} up\n`;
+    for (const scene of ["healthy", "compute-down"]) {
+      record(scene, { host: SHORT, problems: [] }, printed);
+    }
+    expect(run().status).toBe(0);
+
+    record("compute-down", { host: SHORT, problems: ["no"] }, "broken\n");
+
+    const refused = run();
+    expect(refused.status).not.toBe(0);
+    expect(refused.stderr).toContain("compute-down");
+    expect(imported("compute-down")).toContain("compute-01 up");
+  });
+
+  test("a run that stopped before a scene is refused too", () => {
+    record("healthy", { host: SHORT, problems: [] }, "x\n");
+
+    expect(run().status).not.toBe(0);
   });
 });
 

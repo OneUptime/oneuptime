@@ -171,12 +171,18 @@ const ROW_OF = {
   "image:images": (project, visibility = "private") => {
     return { id: `image-${project}`, owner: project, visibility };
   },
+  "baremetal:nodes": (project) => {
+    return { uuid: `node-${project}`, owner: project };
+  },
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
   },
   // Heat's own list says "project", and only to someone who may read every project's.
   "orchestration:stacks": (project) => {
     return { id: `stack-${project}`, project };
+  },
+  "sharev2:shares, all projects": (project) => {
+    return { id: `share-${project}`, project_id: project };
   },
 };
 
@@ -233,6 +239,8 @@ function projectView(read) {
     case "load-balancer:amphorae":
     case "orchestration:services":
     case "container-infra:services":
+    case "sharev2:services":
+    case "sharev2:pools":
       return { status: 403 };
     case "network:networks":
       return {
@@ -329,6 +337,7 @@ const SERVICE_PATH = {
   baremetal: "baremetal",
   orchestration: "heat-api/v1/own-project",
   "container-infra": "container-infra/v1",
+  sharev2: "share/v2",
 };
 
 /*
@@ -883,6 +892,7 @@ describe("the reads it makes", () => {
       "block-storage": "/v3",
       orchestration: "/v1/own-project",
       "container-infra": "/v1",
+      sharev2: "/v2",
     };
     const allows = (service, wanted) => {
       return rules.some((rule) => {
@@ -981,7 +991,7 @@ describe("the reads it makes", () => {
         const row = rowsIn(read, ["p"])[0];
         expect({ read: read.label, has: true }).toEqual({
           read: read.label,
-          has: Object.keys(row).includes(read.attr),
+          has: Object.keys(row).includes(read.attr.replace(/\?$/, "")),
         });
       }
     }
@@ -1253,6 +1263,9 @@ describe("a plain reader, and the trap", () => {
     ["orchestration: stacks"],
     ["orchestration: services"],
     ["container-infra: clusters"],
+    ["sharev2: shares, all projects"],
+    ["sharev2: services"],
+    ["sharev2: pools"],
     ["container-infra: services"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(
@@ -1609,7 +1622,37 @@ describe("what a 200 proves", () => {
     const run = await runDoctor(cloud);
     await cloud.close();
     expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
-      "✔ baremetal: nodes — reads everything",
+      "✔ baremetal: nodes — reads everything (no row is any project's)",
+    );
+  });
+
+  test("a project's own nodes are its own view, which is what a real project's admin was shown", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes"
+          ? { rows: [{ uuid: "n1", owner: "project-1" }] }
+          : fullView(read);
+      },
+      roles: ["reader"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toMatch(
+      /baremetal: nodes — .*(own project only|every row is in one project)/,
+    );
+  });
+
+  test("none at all proves nothing, even to an admin: Ironic shows one only what its project owns", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes" ? { rows: [] } : fullView(read);
+      },
+      roles: ["admin"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
+      "▲ baremetal: nodes — may be own project only (a 200 with nothing here to tell by)",
     );
   });
 });
@@ -2118,7 +2161,9 @@ describe("an exporter in single-cloud mode", () => {
     expect(run.output).toContain(
       "An exporter started with --multi-cloud only answers on /probe",
     );
-    expect(run.output).toContain("Set OPENSTACK_EXPORTER_ADDRESS to it instead");
+    expect(run.output).toContain(
+      "Set OPENSTACK_EXPORTER_ADDRESS to it instead",
+    );
   });
 
   test("one that cannot read Keystone says where its log is on Kolla-Ansible", async () => {
@@ -2368,7 +2413,11 @@ describe("what the cloud stands on", () => {
       "openstack-network-exporter",
       "ovs_memory_rules_total 1435",
     ],
-    ["OPENSTACK_LIBVIRT_HEALTH_TARGETS", "prometheus-libvirt-exporter", "libvirt_up 1"],
+    [
+      "OPENSTACK_LIBVIRT_HEALTH_TARGETS",
+      "prometheus-libvirt-exporter",
+      "libvirt_up 1",
+    ],
   ])("%s answering as %s passes", async (variable, what, line) => {
     const cloud = await startCloud({
       metrics: () => {
@@ -2381,7 +2430,9 @@ describe("what the cloud stands on", () => {
     });
     await cloud.close();
 
-    expect(section(run)).toContain(`✔ ${what} at openstack-exporter:9180 answers.`);
+    expect(section(run)).toContain(
+      `✔ ${what} at openstack-exporter:9180 answers.`,
+    );
   });
 
   test("an exporter that says what is behind it is down says that", async () => {
@@ -2445,7 +2496,9 @@ describe("what the cloud stands on", () => {
       },
     });
     const run = await runDoctor(cloud, {
-      env: { OPENSTACK_MEMCACHED_TARGETS: "[RegionTwo@openstack-exporter:9180]" },
+      env: {
+        OPENSTACK_MEMCACHED_TARGETS: "[RegionTwo@openstack-exporter:9180]",
+      },
       args: ["--skip-access"],
     });
     await cloud.close();
@@ -3005,7 +3058,8 @@ describe("the script's helpers", () => {
 
 describe("a folder this user cannot look inside", () => {
   // Root looks inside anything, so there is nothing to see as root.
-  const asAnyoneButRoot = process.getuid && process.getuid() === 0 ? test.skip : test;
+  const asAnyoneButRoot =
+    process.getuid && process.getuid() === 0 ? test.skip : test;
 
   asAnyoneButRoot(
     "says to use sudo, rather than that the agent and its credential are not there",

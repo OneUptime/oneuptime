@@ -12,8 +12,14 @@ import {
 } from "../../../packages/Common/Types/Monitor/OpenStackAlertTemplates";
 import ObjectID from "../../../packages/Common/Types/ObjectID";
 
-const [templateId, cloud, online, offline, incidentSeverity, alertSeverity]: Array<string> =
-  process.argv.slice(2) as Array<string>;
+const [
+  templateId,
+  cloud,
+  online,
+  offline,
+  incidentSeverity,
+  alertSeverity,
+]: Array<string> = process.argv.slice(2) as Array<string>;
 
 const template: OpenStackAlertTemplate | undefined =
   getOpenStackAlertTemplateById(templateId as string);

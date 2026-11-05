@@ -1521,6 +1521,25 @@ describe("an OpenStack cloud's recommendations", () => {
     ).toContain("openstack-orchestration-engine-down");
   });
 
+  test("Manila's go only to a cloud that runs it, and the one on its services only to a probe's", () => {
+    expect(idsOf()).not.toContain("openstack-share-in-error");
+    expect(idsOf({ openStackServices: ["orchestration"] })).not.toContain(
+      "openstack-share-in-error",
+    );
+
+    const ids: Array<string> = idsOf({ openStackServices: ["sharev2"] });
+    expect(ids).toContain("openstack-shared-file-systems-api-down");
+    expect(ids).toContain("openstack-share-in-error");
+    expect(ids).toContain("openstack-share-stuck");
+    expect(ids).not.toContain("openstack-share-service-down");
+    expect(
+      idsOf({
+        openStackServices: ["sharev2"],
+        openStackIsCollectedByProbe: true,
+      }),
+    ).toContain("openstack-share-service-down");
+  });
+
   test("a monitor set up from one of them still resolves on a cloud that no longer runs it", () => {
     expect(
       MonitorRecommendationCatalog.getAllPossibleRecommendations(

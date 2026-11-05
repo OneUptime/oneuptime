@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 90 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum or Ironic to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 94 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic or Manila to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -154,6 +154,10 @@ Every template reads at least three collections of what it watches, and fires on
 | Stack Stuck In Progress | Orchestration | Warning | `openstack_heat_stack_status` with each `*_IN_PROGRESS` status, per stack, **past 2 hours** | A stack holds an in-progress status for the whole window, past the hour Heat gives one unless someone chose longer | It reaches its next status, or is deleted |
 | Kubernetes Cluster Failed | Orchestration | Warning | `openstack_container_infra_cluster_status` with each `*_FAILED` status, per cluster, **past 15 minutes** | A cluster holds a failed status for the whole window | It is updated or deleted |
 | Kubernetes Cluster Stuck | Orchestration | Warning | `openstack_container_infra_cluster_status` with each `*_IN_PROGRESS` status, per cluster, **past 2 hours** | A cluster holds an in-progress status for the whole window. Only Magnum's conductor moves one on | It reaches its next status, or is deleted |
+| Shared File Systems API Down | Availability | Critical | `openstack_sharev2_up` and `up` for `sharev2`, Min per region, **past 15 minutes** | Every call failed, or the exporter did not answer. Every credential that can log in reads 1, so this can't be a credential being refused | Both read 1 |
+| Manila Service Down | Control Plane | Warning | `openstack_sharev2_agent_state` with `adminState=enabled`, Min per host and service, **past 15 minutes**. Only a probe sends this | Manila lists an enabled service as stopped or down. Its API carries on answering, so nothing else says this | It reads 1, or someone disables it |
+| Share in Error | Storage | Warning | `openstack_sharev2_share_gb` with each error status, per share, **past 15 minutes** | A share holds an error status for the whole window | It is fixed or deleted |
+| Share Stuck | Storage | Warning | `openstack_sharev2_share_gb` with each passing status, per share, **past 1 hour** | A share holds a passing status for the whole window. Manila has no timeout of its own for a slow backend. One migrating or being backed up isn't watched | It reaches its next status, or is deleted |
 | Bare Metal API Down | Bare Metal | Critical | `openstack_ironic_up`, Min per region, **past 15 minutes** | Below 1. Speaks only where a read of Ironic can say so: a probe, or exporter 1.7.0. A stopped Ironic gives the agent's exporter nothing to read, the same as a cloud without Ironic, so there it stays quiet and the cloud's pages say when Ironic was last heard from | Reads 1, or has gone |
 | Bare Metal Node in Error | Bare Metal | Warning | `openstack_ironic_node` for each failed `provision_state`, Max per node, **past 15 minutes** | In that state at every collection for 15 minutes, in maintenance or not | Left it, or was deleted |
 | Bare Metal Node Stuck Transitioning | Bare Metal | Warning | `openstack_ironic_node` for each passing `provision_state` with `maintenance = false`, Max per node, **past 2 hours** | In that state at every collection for 2 hours. A long disk erase can honestly take this long, which a node's page can tell and this can't | Left it, or was deleted |
@@ -505,6 +509,19 @@ A cloud that runs Heat or Magnum has these. A cloud that doesn't has none of the
 | `openstack_container_infra_cluster_nodes` | `count` | Max | How many worker nodes each cluster was asked for. |
 | `openstack_container_infra_agent_state` | | Min | Whether Magnum lists each `magnum-conductor` as up. Only a probe sends this. |
 
+### Shared File Systems
+
+Only a cloud that runs Manila sends these, and a cloud without it shows no trace of them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_sharev2_up` | | Min | Whether Manila's API answered. A stopped API reads 0, and every credential that can log in reads 1. A stopped `manila-share` leaves this at 1. |
+| `openstack_sharev2_share_gb` | `GiB` | Max | One series per share, with `id`, `name`, `project_id`, `availability_zone`, `share_proto`, `share_type` and `status`. Its value is never 0, so it says a share holds a status for a while. |
+| `openstack_sharev2_share_status` | | Max | One series per share. Its value is a code, and `creating`'s is 0, so read its `status` label. |
+| `openstack_sharev2_share_status_counter` | `count` | Max | How many shares hold each status, per region. |
+| `openstack_sharev2_shares_counter` | `count` | Max | How many shares Manila listed for this credential, per region. |
+| `openstack_sharev2_agent_state` | | Min | Whether Manila lists each service as up, with `state` saying `stopped` for one that shut down cleanly and `down` for one that died. Only a probe sends this. |
+
 ### Bare Metal
 
 Only a cloud that runs Ironic sends these, and a cloud without it shows no trace of them.
@@ -515,7 +532,7 @@ Only a cloud that runs Ironic sends these, and a cloud without it shows no trace
 | `openstack_ironic_node` | | Max | One series per node Ironic shows this credential, always 1: what it says is in its labels, its provision state, power state and whether it is in maintenance. Ironic shows a project only the nodes it owns. |
 | `openstack_ironic_node_provision_updated_at` | `seconds` | Max | When Ironic last saw this node's provision state move, as a Unix time. A deploy agent's heartbeats move it too, so a long erase is not a node stuck. A node that has never moved has no such series. |
 | `openstack_ironic_node_updated_at` | `seconds` | Max | When this node's record last changed, as a Unix time. A node that has never changed has no such series. |
-| `openstack_ironic_conductor_state` | | Min | 1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list. |
+| `openstack_ironic_agent_state` | | Min | 1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list. |
 
 ### Projects
 

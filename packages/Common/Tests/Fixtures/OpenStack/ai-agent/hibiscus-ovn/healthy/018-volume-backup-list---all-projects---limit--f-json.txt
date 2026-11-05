@@ -1,0 +1,6 @@
+$ openstack volume backup list --all-projects --limit 50 -f json
+success: true
+exit code: 0
+
+[stdout]
+[]

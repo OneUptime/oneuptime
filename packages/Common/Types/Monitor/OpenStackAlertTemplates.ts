@@ -40,6 +40,7 @@ import {
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
+  OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
 import {
@@ -72,6 +73,8 @@ import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackServiceType,
@@ -233,6 +236,7 @@ const NETWORK_GROUP: Array<string> = [REGION, "network_id", "network_name"];
 const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
 // A node's id is what it is, and its name what a person calls it, which Ironic does not require.
 const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
+const SHARE_GROUP: Array<string> = [REGION, "id", "name"];
 
 // The smallest window holding three collections of what a service's job collects.
 export const OPENSTACK_WINDOW_BY_SERVICE: Record<
@@ -249,6 +253,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.Orchestration]: RollingTime.Past15Minutes,
   [OpenStackServiceType.ContainerInfra]: RollingTime.Past15Minutes,
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
 };
 
 export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
@@ -264,6 +269,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.Orchestration]: "openstack_heat_up",
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra_up",
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
+  [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
 };
 
 /*
@@ -2468,6 +2474,146 @@ const bareMetalApiDownTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Shared file systems ---
+
+/*
+ * A share holding one of a set of words for the whole window, one query per word, because a monitor's
+ * attribute filter is equality. Per share rather than from the status counter: a count can't say which
+ * share, or tell one stuck from a stream of them passing through. Read from _share_gb and not
+ * _share_status, whose value is a code for the word, and creating's code is 0, recorded, so it would
+ * never read as anything. A share's size is never 0. Its series goes away with the word, so a share
+ * fixed, deleted or finished recovers by that.
+ */
+function shareStateQueries(
+  statuses: ReadonlySet<string>,
+): Array<OpenStackQuery> {
+  return Array.from(statuses).map((status: string): OpenStackQuery => {
+    return {
+      alias: statusAlias(status),
+      metricName: "openstack_sharev2_share_gb",
+      aggregationType: MetricsAggregationType.Max,
+      attributes: { status },
+    };
+  });
+}
+
+const shareInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-share-in-error",
+  name: "Share in Error",
+  forService: OpenStackServiceType.SharedFileSystems,
+  summary: "A Manila share is in an error state.",
+  description: `Alert when a share stays in one of ${Array.from(OPENSTACK_SHARE_ERROR_STATUSES).join(", ")} for 15 minutes (openstack_sharev2_share_gb filtered to that status label, in every collection of the window). One incident per share, in a region. Manila retries none of these by itself, so one stays until someone deals with it, and recovers when it is fixed or deleted. Check \`openstack share show <share>\`, then \`openstack share message list --resource-id <share>\`.`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = shareStateQueries(
+      OPENSTACK_SHARE_ERROR_STATUSES,
+    );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.SharedFileSystems,
+      groupByAttributeKeys: SHARE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Share in Error",
+        incidentDescription: `This share is in the error state named above, and whoever asked for it does not have what they asked for. Manila retries none of these by itself. Check openstack share show and openstack share message list for this share, then manila-share's log on its backend. A share that no backend could take has no zone, recorded, which is what a share type nothing matches looks like. The incident resolves on its own once it is fixed or deleted.`,
+        criteriaName: "Share in Error - an error state for the whole window",
+        criteriaDescription:
+          "Triggers when a share holds an error state for the whole window.",
+      },
+    });
+  },
+};
+
+const shareStuckTemplate: OpenStackAlertTemplate = {
+  id: "openstack-share-stuck",
+  name: "Share Stuck",
+  forService: OpenStackServiceType.SharedFileSystems,
+  summary: `A Manila share stays in a passing state for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes.`,
+  description: `Alert when a share stays in one of ${Array.from(OPENSTACK_SHARE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes (openstack_sharev2_share_gb filtered to that status label, in every collection of the window). One incident per share, in a region. Manila has no timeout of its own for a slow backend, so a backend that hung reads the same as a slow one, and only time tells them apart. A share migrating or being backed up isn't watched: those last as long as its data takes to copy, because someone asked for that. Check \`openstack share service list\`, then manila-share's log on its backend.`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = shareStateQueries(
+      OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+    );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.SharedFileSystems,
+      rollingTime: windowHolding(OPENSTACK_SHARE_STUCK_MINUTES),
+      groupByAttributeKeys: SHARE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Share Stuck",
+        incidentDescription: `This share has held the status named above for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes. Manila has no timeout of its own for this, so either its backend is very slow or nothing is working on it any more. Check openstack share service list, then manila-share's log on the backend that holds it. Only an admin can move it on, with openstack share set --status. The incident resolves on its own once it reaches its next status, or is deleted.`,
+        criteriaName: `Share Stuck - same status for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes`,
+        criteriaDescription: `Triggers when a share holds a passing status for the whole ${OPENSTACK_SHARE_STUCK_MINUTES}-minute window.`,
+      },
+    });
+  },
+};
+
+const sharedFileSystemsApiDownTemplate: OpenStackAlertTemplate =
+  buildApiDownTemplate({
+    id: "openstack-shared-file-systems-api-down",
+    name: "Shared File Systems API Down",
+    summary: "Manila's API does not answer for 15 minutes.",
+    description:
+      "Alert when Manila's API does not answer for 15 minutes: every call the exporter made failed (openstack_sharev2_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. Recorded on a stopped API, and every credential that can log in reads 1, so this can't be a credential being refused. Shares already mounted carry on, because their data doesn't go through this API. Check the manila-api service and its log, then `openstack share list`.",
+    service: OpenStackServiceType.SharedFileSystems,
+    collectionMetricName: "up",
+    incidentDescription: `Manila's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. Shares already mounted carry on, but none can be created, resized or given new access. Check the manila-api service and its log, then openstack share list with a credential that works. The incident resolves on its own once it answers again.`,
+  });
+
+/*
+ * Only a read of Manila's API lists its services: the exporter has no series for them, so this can
+ * only be set up on a cloud a probe collects. Stopped and down both read below 1. Someone who stopped
+ * one on purpose and means it to stay stopped has the cloud's maintenance windows for that.
+ */
+const shareServiceDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-share-service-down",
+  name: "Manila Service Down",
+  forService: OpenStackServiceType.SharedFileSystems,
+  requiresProbe: true,
+  summary: "A Manila service stops, on a cloud a probe collects.",
+  description:
+    "Alert when an enabled Manila service reads stopped or down for 15 minutes (openstack_sharev2_agent_state below 1, filtered to adminState enabled, which only a probe sends, because only a read of Manila's own API says so). One incident per host and service. Recorded: a service shut down cleanly reads stopped at once, and one that died reads down only once its heartbeat has grown old. Its API carries on answering either way, so nothing else says this, and without its scheduler Manila's pools read 500. Check `openstack share service list`, and the service's log on its host.",
+  category: "Control Plane",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.SharedFileSystems,
+      groupByAttributeKeys: WORKER_GROUP,
+      queries: [
+        {
+          alias: "manila_service_up",
+          metricName: "openstack_sharev2_agent_state",
+          aggregationType: MetricsAggregationType.Min,
+          attributes: { adminState: "enabled" },
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Manila Service Down",
+        incidentDescription: `Manila lists this service as stopped or down. Shares already mounted carry on, because their data doesn't go through it, but none on its backend can be created, resized or deleted. Check openstack share service list and the service's log on the host named above. The incident resolves on its own once it reads up, or someone disables it.`,
+        criteriaName: "Manila Service Down - enabled service < 1",
+        criteriaDescription:
+          "Triggers when Manila lists an enabled service as stopped or down for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -3046,6 +3192,10 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     containerClusterFailedTemplate,
     containerClusterStuckTemplate,
     bareMetalApiDownTemplate,
+    sharedFileSystemsApiDownTemplate,
+    shareServiceDownTemplate,
+    shareInErrorTemplate,
+    shareStuckTemplate,
     bareMetalNodeInErrorTemplate,
     bareMetalNodeStuckTemplate,
     bareMetalNodeMaintenanceTooLongTemplate,

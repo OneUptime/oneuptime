@@ -3,6 +3,7 @@ import {
   isOpenStackBareMetalNodeStuck,
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
+  isOpenStackShareStuck,
   isOpenStackStackStuck,
   isOpenStackVolumeStuck,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
@@ -15,7 +16,10 @@ import {
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -89,6 +93,9 @@ export const OPENSTACK_STUCK_LABEL: string = translationKey("Stuck");
 
 export const OPENSTACK_LOST_LABEL: string = translationKey("Lost");
 
+// A service a cloud may not run that has stopped reporting: never Down, which nothing here can say.
+export const OPENSTACK_QUIET_LABEL: string = translationKey("Quiet");
+
 export const OPENSTACK_CLOSED_LABEL: string = translationKey(
   "Closed to this credential",
 );
@@ -108,6 +115,10 @@ function serviceTone(word: string): ResourceStatusTone {
   const lower: string = word.toLowerCase();
   if (lower === OPENSTACK_SERVICE_STATUS_UP) {
     return "positive";
+  }
+  // Manila's word for one that shut down cleanly: as it reads, a warning rather than a failure.
+  if (lower === OPENSTACK_SERVICE_STATUS_STOPPED) {
+    return "warning";
   }
   return lower === OPENSTACK_SERVICE_STATUS_DOWN ? "danger" : "neutral";
 }
@@ -198,6 +209,19 @@ function bareMetalTone(word: string): ResourceStatusTone {
     : "neutral";
 }
 
+function shareTone(word: string): ResourceStatusTone {
+  const lower: string = word.toLowerCase();
+  if (lower === "available") {
+    return "positive";
+  }
+  if (OPENSTACK_SHARE_ERROR_STATUSES.has(lower)) {
+    return "danger";
+  }
+  return OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(lower)
+    ? "warning"
+    : "neutral";
+}
+
 function enabledTone(word: string): ResourceStatusTone {
   return word.toLowerCase() === "enabled" ? "positive" : "neutral";
 }
@@ -264,6 +288,8 @@ function toneOf(
     case OpenStackResourceKind.Stack:
     case OpenStackResourceKind.ContainerCluster:
       return stackOrClusterTone(word);
+    case OpenStackResourceKind.Share:
+      return shareTone(word);
     default:
       return "neutral";
   }
@@ -289,6 +315,8 @@ function isStuck(input: OpenStackStatusInput, word: string): boolean {
       return isOpenStackStackStuck(reading);
     case OpenStackResourceKind.ContainerCluster:
       return isOpenStackContainerClusterStuck(reading);
+    case OpenStackResourceKind.Share:
+      return isOpenStackShareStuck(reading);
     case OpenStackResourceKind.BareMetalNode:
       return isOpenStackBareMetalNodeStuck({
         ...reading,
@@ -313,6 +341,8 @@ function isOnTheWay(kind: string | null | undefined, word: string): boolean {
       return OPENSTACK_STACK_IN_PROGRESS_STATUSES.has(word);
     case OpenStackResourceKind.ContainerCluster:
       return OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(word);
+    case OpenStackResourceKind.Share:
+      return OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(word);
     case OpenStackResourceKind.BareMetalNode:
       return OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(word);
     default:
@@ -450,6 +480,17 @@ export const OPENSTACK_STATUS_WORDS: Partial<
   [OpenStackResourceKind.Router]: ["ACTIVE", "ALLOCATED", "DOWN", "ERROR"],
   [OpenStackResourceKind.FloatingIp]: ["ACTIVE", "DOWN", "ERROR"],
   [OpenStackResourceKind.Project]: ["enabled", "disabled"],
+  [OpenStackResourceKind.Share]: [
+    "available",
+    ...OPENSTACK_SHARE_ERROR_STATUSES,
+    ...OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+    "migrating",
+    "migrating_to",
+    "inactive",
+    "awaiting_transfer",
+    "backup_creating",
+    "backup_restoring",
+  ],
   [OpenStackResourceKind.Stack]: [
     "CREATE_COMPLETE",
     "UPDATE_COMPLETE",

@@ -86,6 +86,8 @@ const SERVICE_OF_FAMILY: Record<string, OpenStackServiceType> = {
   [OpenStackServiceFamily.Orchestration]: OpenStackServiceType.Orchestration,
   [OpenStackServiceFamily.ContainerInfra]: OpenStackServiceType.ContainerInfra,
   [OpenStackServiceFamily.BareMetal]: OpenStackServiceType.BareMetal,
+  [OpenStackServiceFamily.SharedFileSystems]:
+    OpenStackServiceType.SharedFileSystems,
 };
 
 function factsOf(row: OpenStackResource | null | undefined): JSONObject {
@@ -413,15 +415,21 @@ export function getOpenStackServiceGroups(data: {
  * The workers of a service a cloud may not run
  * ---------------------------------------------------------------------------
  *
- * The exporter has no series for Heat's engines or Magnum's conductors, so on an agent's cloud a card
- * for either has an API and no workers, which would read as though it had none. Only a native read of
+ * The exporter has no series for Heat's engines, Magnum's conductors or Ironic's, so on an agent's cloud a card
+ * for any of them has an API and no workers, which would read as though it had none. Only a native read of
  * their APIs lists them, and only for an admin. Each behaves differently when one stops, recorded:
  * with every engine stopped Heat's API can't answer at all, so this page does say so. Magnum's API
  * carries on without its conductor, so nothing else here would.
  */
 const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "The agent's exporter has no series for Ironic's conductors, so none is listed here. Only a probe reads them, where its credential may.",
+  ),
   [OpenStackServiceType.Orchestration]: translationKey(
     "The agent's exporter doesn't read Heat's engines, so they aren't listed here. With every engine stopped Heat's API stops answering, which this page does say. A probe reads them.",
+  ),
+  [OpenStackServiceType.SharedFileSystems]: translationKey(
+    "The agent's exporter doesn't read Manila's services, so a stopped one isn't shown anywhere here: Manila's API carries on answering without it, and its shares just stop changing. Run openstack share service list, or collect this cloud with a probe, which reads them.",
   ),
   [OpenStackServiceType.ContainerInfra]: translationKey(
     "The agent's exporter doesn't read Magnum's conductors, so a stopped one isn't shown anywhere here: Magnum's API carries on answering without it, and its clusters just stop moving. Run openstack coe service list, or collect this cloud with a probe, which reads them.",
@@ -429,8 +437,15 @@ const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
 };
 
 const WORKERS_REFUSED_TO_THIS_CREDENTIAL: Partial<Record<string, string>> = {
+  // Recorded: 403 baremetal:conductor:get, to a project's admin.
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "Ironic answers, and doesn't list its conductors to this credential. It refuses a project the list unless its policy says otherwise (baremetal:conductor:get). Its nodes read without it.",
+  ),
   [OpenStackServiceType.Orchestration]: translationKey(
     "Heat refuses this credential its list of engines, so they aren't listed here. Only the Full view credential reads them.",
+  ),
+  [OpenStackServiceType.SharedFileSystems]: translationKey(
+    "Manila refuses this credential its list of services, so they aren't listed here, and a stopped one isn't shown anywhere: Manila's API carries on answering without it. Only the Full view credential reads them.",
   ),
   [OpenStackServiceType.ContainerInfra]: translationKey(
     "Magnum refuses this credential its list of conductors, so they aren't listed here, and a stopped one isn't shown anywhere: Magnum's API carries on answering without it. Only the Full view credential reads them.",
@@ -800,6 +815,8 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.Orchestration]: "openstack-orchestration-api-down",
   [OpenStackServiceType.ContainerInfra]: "openstack-container-infra-api-down",
   [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
+  [OpenStackServiceType.SharedFileSystems]:
+    "openstack-shared-file-systems-api-down",
 };
 
 const SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS: Array<string> = [
@@ -823,6 +840,8 @@ export function getOpenStackWorkerAlertTemplateIds(
       return ["openstack-orchestration-engine-down"];
     case OpenStackServiceFamily.ContainerInfra:
       return ["openstack-container-infra-conductor-down"];
+    case OpenStackServiceFamily.SharedFileSystems:
+      return ["openstack-share-service-down"];
     default:
       return [];
   }
@@ -858,6 +877,13 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-container-infra-conductor-down",
         "openstack-container-cluster-failed",
         "openstack-container-cluster-stuck",
+      ];
+    case OpenStackServiceType.SharedFileSystems:
+      return [
+        ...own,
+        "openstack-share-service-down",
+        "openstack-share-in-error",
+        "openstack-share-stuck",
       ];
     default:
       return own;

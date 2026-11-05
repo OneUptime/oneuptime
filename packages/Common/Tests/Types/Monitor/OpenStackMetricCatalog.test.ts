@@ -141,7 +141,7 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_ironic_up",
   // Always 1: what it says is in its labels, as a status series' word is.
   "openstack_ironic_node",
-  "openstack_ironic_conductor_state",
+  "openstack_ironic_agent_state",
   "up",
   "openstack_check_token_success",
   "openstack_check_api_success",
@@ -160,6 +160,9 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_container_infra_up",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
+  "openstack_sharev2_up",
+  "openstack_sharev2_share_status",
+  "openstack_sharev2_agent_state",
   "openstack_placement_up",
   "openstack_nova_agent_state",
   "openstack_neutron_agent_state",
@@ -237,8 +240,9 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_snapshot_gb",
         "openstack_container_infra_agent_state",
         "openstack_heat_agent_state",
-        "openstack_ironic_conductor_state",
+        "openstack_ironic_agent_state",
         "openstack_placement_flavor_fits",
+        "openstack_sharev2_agent_state",
       ]);
 
       for (const metric of onlyFromProbe) {
@@ -282,6 +286,8 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_nova_server_status",
         "openstack_nova_up",
         "openstack_placement_up",
+        "openstack_sharev2_share_gb",
+        "openstack_sharev2_share_status",
       ]);
 
       for (const metric of marked) {
