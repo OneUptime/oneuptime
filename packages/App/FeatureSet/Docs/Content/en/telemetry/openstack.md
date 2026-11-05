@@ -31,7 +31,7 @@ The cloud registers itself with its first data, under the name the agent stamps 
 
 ## Before you begin
 
-- Docker Engine 20.10 or later with the Docker Compose v2 plugin, or, to run without Docker, a Linux machine (x86_64 or arm64) with systemd 235 or later and root.
+- Docker Engine 20.10 or later with the Docker Compose v2 plugin, or, to run without Docker, a Linux machine (x86_64 or arm64) with systemd 235 or later, glibc 2.34 or later (RHEL 9, Ubuntu 22.04, Debian 12) and root.
 - A route from that machine to Keystone and to each service's public endpoint.
 - The `openstack` command line, as someone who can create the credential below.
 - An ingestion key. Create one under **Project Settings → Telemetry & APM → Ingestion Keys** and copy its value.
@@ -276,7 +276,7 @@ sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
 @tab Without Docker
-On Linux (x86_64 or arm64) with systemd 235 or later, the install script runs the upstream releases of the same two programs as systemd services:
+On Linux (x86_64 or arm64) with systemd 235 or later and glibc 2.34 or later, the install script runs the upstream releases of the same two programs as systemd services. RHEL 8 and its relatives have an older glibc, which the exporter's release can't run on: the script says so and changes nothing, so use Docker there.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
