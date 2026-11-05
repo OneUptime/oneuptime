@@ -31,7 +31,10 @@ import OpenStackCollector, {
   OpenStackCollectorDependencies,
 } from "../../../Utils/OpenStack/OpenStackCollector";
 import OpenStackCollectorMemory from "../../../Utils/OpenStack/OpenStackCollectorMemory";
-import { FULL_INSTANCE_READ_INTERVAL_IN_MS } from "../../../Utils/OpenStack/OpenStackInstanceReader";
+import {
+  CHANGES_SINCE_OVERLAP_IN_MS,
+  FULL_INSTANCE_READ_INTERVAL_IN_MS,
+} from "../../../Utils/OpenStack/OpenStackInstanceReader";
 import {
   OpenStackHttpRequest,
   OpenStackHttpResponse,
@@ -620,7 +623,13 @@ describeLive("the probe against a real cloud, over real TLS", () => {
     test(
       "a failing Neutron leaves Nova's data intact",
       async () => {
-        // A probe that has been collecting, as one has by the time something goes wrong.
+        /*
+         * A probe that has been collecting, on a cloud where nothing has changed lately, as most
+         * have when something goes wrong. It asks about what changed a little before it last
+         * asked, and estate.sh has only just finished, so this waits that long first.
+         */
+        await sleep(CHANGES_SINCE_OVERLAP_IN_MS + 30_000);
+
         const live: LiveRun = liveRun();
         const before: OpenStackCollectionReport =
           await OpenStackCollector.collect(collectionJob(), live.dependencies);
