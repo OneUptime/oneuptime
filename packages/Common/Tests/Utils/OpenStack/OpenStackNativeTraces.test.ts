@@ -215,6 +215,21 @@ describe("a span of oslo.messaging's", () => {
     expect(span.statusMessage).not.toContain("hunter2");
   });
 
+  test("what it says went wrong is its first line, and not the traceback under it", () => {
+    expect(
+      read({
+        name: "scheduler.select_destinations",
+        kind: "SPAN_KIND_PRODUCER",
+        attributes: { "rpc.method": "select_destinations" },
+        status: {
+          code: 2,
+          message:
+            'NoValidHost_Remote: No valid host was found. \nTraceback (most recent call last):\n\n  File "/opt/stack/nova/nova/conductor/manager.py"',
+        },
+      }).statusMessage,
+    ).toBe("NoValidHost_Remote: No valid host was found.");
+  });
+
   test("a status that is no error is no failure", () => {
     expect(
       read({
@@ -286,6 +301,47 @@ describe("who sent a trace", () => {
         span(OSPROFILER_DRIVER_SCOPE_NAME, "aaaaaaaaaaaaaaaa"),
       ),
     ).toBe(false);
+  });
+});
+
+describe("which traces a map is drawn from", () => {
+  function row(
+    traceId: string,
+    service: string,
+    startTime: string,
+  ): JSONObject {
+    return {
+      traceId,
+      startTime,
+      attributes: { "openstack.service": service },
+    };
+  }
+
+  test("those that cross the most services, the newest first among the same", () => {
+    const read: ReturnType<typeof readOpenStackTracedServices> =
+      readOpenStackTracedServices([
+        // A poller asking one API, again and again, is what is newest on a busy cloud.
+        row("poller-new", "nova-api", "2026-11-05T06:00:00Z"),
+        row("poller-old", "nova-api", "2026-11-05T05:59:00Z"),
+        row("boot", "nova-api", "2026-11-05T05:00:00Z"),
+        row("boot", "nova-conductor", "2026-11-05T05:00:01Z"),
+        row("boot", "nova-compute", "2026-11-05T05:00:02Z"),
+        row("delete", "nova-api", "2026-11-05T05:30:00Z"),
+        row("delete", "nova-compute", "2026-11-05T05:30:01Z"),
+      ]);
+
+    expect(read.traceIds).toEqual([
+      "poller-new",
+      "poller-old",
+      "delete",
+      "boot",
+    ]);
+    expect(read.widestTraceIds).toEqual([
+      "boot",
+      "delete",
+      "poller-new",
+      "poller-old",
+    ]);
   });
 });
 

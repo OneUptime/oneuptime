@@ -28,7 +28,7 @@ const MAP_CAPTION: string = translationKey(
 
 export interface ComponentProps {
   cloudName: string;
-  // The newest first.
+  // Those that cross the most services first.
   traceIds: Array<string>;
 }
 
@@ -63,7 +63,7 @@ const OpenStackControlPlaneMapCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Control plane"
-      description="What your newest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health."
+      description="What your widest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health."
     >
       <div className="p-4" data-testid="openstack-control-plane-map">
         {read.isLoading && !read.data ? (

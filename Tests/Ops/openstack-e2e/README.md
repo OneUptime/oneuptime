@@ -93,7 +93,7 @@ traces/native-summary.json   what OpenStack's own OpenTelemetry tracing made, wh
 traces/journal.jsonl.gz      what the services logged, to hold a trace's requests against
 ```
 
-`-f logs_only=true -f traces_only=true` runs only the traces step, on Hibiscus and Flamingo. `traces-record.sh` says what each scene is for. Its fixtures come from `python3 -I import-trace-recording.py <release> <artifact>/traces`, into `packages/Common/Tests/Fixtures/OpenStack/traces/<release>/`.
+`-f logs_only=true -f traces_only=true` runs only the traces step, on Hibiscus and Flamingo, and `-f traces_release=hibiscus-ovn` on that one alone. `traces-record.sh` says what each scene is for. Its fixtures come from `python3 -I import-trace-recording.py <release> <artifact>/traces`, into `packages/Common/Tests/Fixtures/OpenStack/traces/<release>/`.
 
 Tokens are scrubbed and addresses replaced, although nothing here is a secret: it is a throwaway cloud on a runner that is gone when the job ends.
 

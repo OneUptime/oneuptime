@@ -1313,6 +1313,22 @@ def part_native():
     line = re.search(r"^(sed -i '/headers\\\.update\(osprofiler_web[^\n]*)$", page, re.M)
     if not line:
         raise RuntimeError("telemetry/openstack.md no longer holds the line for keystoneauth")
+    # Beside it, so that this boot's request can be held to its lines in the logs.
+    folder = tempfile.mkdtemp(prefix="logs-", dir=WORK)
+    installed = run(
+        "native-logs-install",
+        f"curl -fsSLO {STATE['url']}/install/openstack-agent/install-logs.sh && sudo -E bash install-logs.sh journald",
+        cwd=folder,
+        env={
+            "ONEUPTIME_URL": STATE["url"],
+            "ONEUPTIME_TELEMETRY_INGESTION_KEY": STATE["ingestion key"],
+            "OPENSTACK_CLOUD_NAME": AGENT_CLOUD,
+            "OPENSTACK_REGION_NAME": REGION,
+        },
+        stdin="",
+        timeout=600,
+    )
+    check("the logs profile installs, as the docs say", installed.status == 0, f"exit {installed.status}: {installed.text[-1200:] if installed.status else ''}")
     for conf in TRACED_CONFS:
         must("native-config", f"! sudo test -f {conf} || sudo python3 -I {configure} ini-set {conf} oslo_messaging_tracing tracing_enabled True")
     for conf, service in (
@@ -1338,6 +1354,8 @@ def part_native():
     # A service that has just come back can still be registering itself.
     time.sleep(30)
 
+    # What part_traces booted is still there, and the project's quota has room for one more.
+    run("native-boot", "timeout 300 openstack server delete --wait ou-trace-vm", env={"OS_PROJECT_NAME": "ou-payments"}, timeout=320)
     names = must("native-boot", "openstack image list --status active -f value -c Name").out.split("\n")
     image = next(name.strip() for name in names if "cirros" in name.lower())
     booted = run(
@@ -1401,6 +1419,31 @@ def part_native():
     named = {str(item.get("openstack.request_id")) for item in attributes if item.get("openstack.request_id")}
     found("the request Nova says made it, and those its spans name", {"nova": sorted(asked), "spans": sorted(named)})
     check("its spans hold the request Nova says made the instance", bool(asked & named), {"nova": sorted(asked), "spans": sorted(named)})
+    request = sorted(asked & named)[0] if asked & named else ""
+
+    def lines_of_request():
+        answer = live.api(
+            "POST",
+            "/logs/get-list?limit=200&skip=0",
+            {
+                "query": {"projectId": live.PROJECT_ID, "attributes": {"openstack.request_root_id": request}},
+                "select": {"time": True, "attributes": True},
+                "sort": {"time": "ASC"},
+            },
+        )
+        return answer.get("data") or []
+
+    lines, waited = wait_for(lines_of_request, 300, gap=15) if request else ([], 0)
+    # A boot's later services log as they get to it.
+    time.sleep(45)
+    lines = (lines_of_request() or lines) if request else lines
+    logged = sorted({str((line.get("attributes") or {}).get("openstack.service")) for line in lines})
+    found("that request's lines in the logs", {"count": len(lines), "services": logged})
+    check(
+        "and that request's lines are in this OneUptime's logs, from the services in its trace",
+        all(wanted in logged for wanted in ("nova-api", "nova-conductor", "nova-compute")),
+        {"lines": len(lines), "services": logged, "after": waited},
+    )
 
     run("native-boot", "timeout 300 openstack server delete --wait ou-native-vm", env={"OS_PROJECT_NAME": "ou-payments"}, timeout=320)
     look_at(
@@ -1416,7 +1459,7 @@ def part_native():
                 "The boot's trace",
                 "OpenStackTraceNative.png",
                 f"/dashboard/{live.PROJECT_ID}/traces/view/{trace_id}",
-                marks=[{"selector": '[data-testid="openstack-trace-source"]'}],
+                marks=[{"selector": '[data-testid="openstack-trace-source"]'}, {"selector": '[data-testid="openstack-trace-requests"]'}],
             ),
         ],
     )

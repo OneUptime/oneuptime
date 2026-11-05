@@ -1166,11 +1166,12 @@ export function readOpenStackNativeSpanInPlace(data: {
     kind: data.kind,
     parentSpanId: data.parentSpanId,
     isFailed: isServerError || raised,
+    // Its first line: what follows is a traceback, which its exception event holds.
     statusMessage: raised
-      ? scrubOpenStackSecrets(String(raisedMessage || "")).slice(
-          0,
-          MAX_STATUS_MESSAGE_LENGTH,
-        )
+      ? scrubOpenStackSecrets(String(raisedMessage || ""))
+          .slice(0, MAX_STATUS_MESSAGE_LENGTH)
+          .split("\n")[0]!
+          .trim()
       : isServerError
         ? `HTTP ${statusCode}`
         : "",
@@ -1388,6 +1389,11 @@ export interface OpenStackTracedServices {
   services: Array<string>;
   // The traces these rows belong to, the newest first.
   traceIds: Array<string>;
+  /*
+   * The same, those that cross the most services first. What a map is drawn from: with nothing
+   * signed, the newest traces are whatever a poller last asked one API for.
+   */
+  widestTraceIds: Array<string>;
   // Who sent them. Both, on a cloud with oslo's on where someone also signed a request.
   sources: Array<OpenStackTraceSource>;
   carriedOverHttp: boolean;
@@ -1399,6 +1405,7 @@ export function readOpenStackTracedServices(
 ): OpenStackTracedServices {
   const services: Set<string> = new Set<string>();
   const newestOfTrace: Map<string, number> = new Map<string, number>();
+  const servicesOfTrace: Map<string, Set<string>> = new Map();
   const sources: Set<OpenStackTraceSource> = new Set<OpenStackTraceSource>();
   let carriedOverHttp: boolean = false;
   let last: number = 0;
@@ -1429,19 +1436,36 @@ export function readOpenStackTracedServices(
         row.traceId,
         Math.max(newestOfTrace.get(row.traceId) || 0, at),
       );
+
+      if (typeof service === "string" && service) {
+        const ofTrace: Set<string> =
+          servicesOfTrace.get(row.traceId) || new Set<string>();
+
+        ofTrace.add(service);
+        servicesOfTrace.set(row.traceId, ofTrace);
+      }
     }
   }
+
+  const traceIds: Array<string> = Array.from(newestOfTrace.entries())
+    .sort((a: [string, number], b: [string, number]): number => {
+      return b[1] - a[1];
+    })
+    .map((entry: [string, number]): string => {
+      return entry[0];
+    });
+  const widthOf: (traceId: string) => number = (traceId: string): number => {
+    return servicesOfTrace.get(traceId)?.size || 0;
+  };
 
   return {
     lastSpanAt: last ? new Date(last) : null,
     services: Array.from(services).sort(),
-    traceIds: Array.from(newestOfTrace.entries())
-      .sort((a: [string, number], b: [string, number]): number => {
-        return b[1] - a[1];
-      })
-      .map((entry: [string, number]): string => {
-        return entry[0];
-      }),
+    traceIds: traceIds,
+    // A sort that keeps its ties in order, so the newest of the same width come first.
+    widestTraceIds: [...traceIds].sort((a: string, b: string): number => {
+      return widthOf(b) - widthOf(a);
+    }),
     sources: Array.from(sources).sort(),
     carriedOverHttp: carriedOverHttp,
   };

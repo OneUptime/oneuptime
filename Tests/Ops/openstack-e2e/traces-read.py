@@ -319,6 +319,8 @@ def native(traces_dir):
     """What each native scene made, read by its moments."""
     path = recording_path(traces_dir, "otlp-driver.json")
     spans = list(spans_in(path))
+    # The agent's traces profile takes out what it is told to, so this is what would be sent on.
+    sent_on = [int(span.get("startTimeUnixNano", 0)) / 1e9 for _, _, span in spans_in(recording_path(traces_dir, "otlp-agent.json"))]
     out = {}
     for scene in read_scenes(traces_dir):
         name = scene.get("scene", "")
@@ -351,6 +353,7 @@ def native(traces_dir):
             "exitCode": scene.get("exitCode"),
             "spans": sum(scopes.values()),
             "spansByScope": dict(sorted(scopes.items())),
+            "spansTheCollectorSends": sum(1 for at in sent_on if since <= at <= until),
             "traces": len(traces),
             "tracesAcrossServices": sum(1 for services in traces.values() if len(services) > 1),
             "servicesInOneTrace": max((len(services) for services in traces.values()), default=0),
@@ -453,6 +456,7 @@ def cost(traces_dir):
             "cpuSecondsWhileQuiet": burned,
             "cpuSecondsWhileQuietInAll": round(sum(burned.values()), 2),
             "spansWhileQuiet": number("spans-after.txt") - number("spans-before.txt"),
+            "spansTheCollectorSendsWhileQuiet": number("agent-spans-after.txt") - number("agent-spans-before.txt"),
             "collectorBytesWhileQuiet": number("bytes-after.txt") - number("bytes-before.txt"),
         }
     with open(os.path.join(traces_dir, "native-cost.json"), "w", encoding="utf-8") as handle:

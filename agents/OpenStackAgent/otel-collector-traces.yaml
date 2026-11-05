@@ -38,6 +38,16 @@ processors:
         action: delete
       - key: db.params
         action: delete
+  # OpenStack's own tracing, where it is on: nova-compute asking its conductor to read or save
+  # an object. They are most of a boot's RPC spans and nearly all of an idle cloud's, and say
+  # only that a call was made, so one that failed is all that is kept. Take this out of the
+  # pipeline below to keep them all.
+  filter/nova-object-calls:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["rpc.method"] == "object_action" and status.code != STATUS_CODE_ERROR'
+        - 'attributes["rpc.method"] == "object_class_action_versions" and status.code != STATUS_CODE_ERROR'
   # Which cloud, region and machine each span is from: the driver says none of them.
   # OneUptime files a span under the cloud by `openstack.cloud.name`, so keep it the name
   # the cloud's agent uses. Keep the driver's service.name: it is the one thing that says
@@ -74,5 +84,5 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, attributes/what-a-call-was-handed, resource, batch]
+      processors: [memory_limiter, filter/nova-object-calls, attributes/what-a-call-was-handed, resource, batch]
       exporters: [otlphttp]

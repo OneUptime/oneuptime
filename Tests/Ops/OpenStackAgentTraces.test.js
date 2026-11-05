@@ -106,6 +106,24 @@ describe("the collector's config", () => {
     expect(processors[processors.length - 1]).toBe("batch");
   });
 
+  test("Nova's object calls go, but for one that failed, and nothing else does", () => {
+    const conditions =
+      CONFIG.processors["filter/nova-object-calls"].traces.span;
+
+    expect(conditions).toHaveLength(2);
+
+    for (const condition of conditions) {
+      expect(condition).toContain('attributes["rpc.method"] ==');
+      expect(condition).toContain("status.code != STATUS_CODE_ERROR");
+    }
+
+    expect(PIPELINE.processors).toContain("filter/nova-object-calls");
+    // Before the batch, so a dropped span costs nothing past this point.
+    expect(
+      PIPELINE.processors.indexOf("filter/nova-object-calls"),
+    ).toBeLessThan(PIPELINE.processors.indexOf("batch"));
+  });
+
   test("it says which cloud, region and machine, which the driver never does", () => {
     const stamped = {};
 

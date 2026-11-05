@@ -362,6 +362,10 @@ spans_so_far() {
   sudo python3 -I "$READ" count "$TRACES_DIR/otlp-driver.json" 2>/dev/null || echo 0
 }
 
+agent_spans_so_far() {
+  sudo python3 -I "$READ" count "$TRACES_DIR/otlp-agent.json" 2>/dev/null || echo 0
+}
+
 # One scene, with a failure written down rather than costing the scenes after it. The
 # subshell keeps set -e working inside it, which an `if` around it would turn off.
 #
@@ -729,12 +733,16 @@ measure_cost() {
   log "What $label costs"
   mkdir -p "$folder"
   (
-    export OS_PROJECT_NAME=ou-payments
-    token="$(timeout "$ONE_READ_WITHIN" openstack token issue -f value -c id)"
+    # An admin's to list the endpoints, and a project's to ask them, for answers that hold something.
+    token="$(OS_PROJECT_NAME=ou-payments timeout "$ONE_READ_WITHIN" openstack token issue -f value -c id)"
     for pair in compute:/servers network:/v2.0/networks image:/v2/images; do
       type="${pair%%:*}"
       path="${pair#*:}"
       url="$(timeout "$ONE_READ_WITHIN" openstack endpoint list --service "$type" --interface public -f value -c URL | head -1)"
+      if [ -z "$url" ]; then
+        echo "No endpoint for $type: what it takes to answer was not measured." >&2
+        continue
+      fi
       for i in $(seq 1 "$COST_REQUESTS"); do
         curl -sS -m 30 -o /dev/null -w '%{time_total}\n' -H "X-Auth-Token: $token" "$url$path" || true
       done >"$folder/$type.txt"
@@ -743,10 +751,12 @@ measure_cost() {
   systemctl show -p Id -p CPUUsageNSec 'devstack@*' >"$folder/cpu-before.txt" 2>&1 || true
   sudo stat -c %s "$TRACES_DIR/otlp-agent.json" >"$folder/bytes-before.txt" 2>/dev/null || echo 0 >"$folder/bytes-before.txt"
   spans_so_far >"$folder/spans-before.txt"
+  agent_spans_so_far >"$folder/agent-spans-before.txt"
   sleep "$COST_QUIET_SECONDS"
   systemctl show -p Id -p CPUUsageNSec 'devstack@*' >"$folder/cpu-after.txt" 2>&1 || true
   sudo stat -c %s "$TRACES_DIR/otlp-agent.json" >"$folder/bytes-after.txt" 2>/dev/null || echo 0 >"$folder/bytes-after.txt"
   spans_so_far >"$folder/spans-after.txt"
+  agent_spans_so_far >"$folder/agent-spans-after.txt"
   echo "$COST_QUIET_SECONDS" >"$folder/seconds.txt"
 }
 
