@@ -340,6 +340,18 @@ Without Docker, ask `systemctl status oneuptime-openstack-agent oneuptime-openst
 Open **Products → Infrastructure → OpenStack**. The cloud appears under its `OPENSTACK_CLOUD_NAME` after its first collection, within a few minutes. Compute, network, volume and Placement are read every 2 minutes, identity and images every 5.
 :::
 
+The cloud's **Overview** says whether its data is reaching OneUptime, what needs attention first, and how each service is doing:
+
+![An OpenStack cloud's Overview: whether its data is connected, the counts of what it reports, the failed instance and volume that need attention, and its APIs, hypervisors, vCPUs, memory and storage](/docs/static/images/OpenStackCloudOverview.png)
+
+**Hypervisors** says what Nova and Placement have promised on each compute host:
+
+![The Hypervisors page listing a compute host with its state, the vCPUs, memory and disk allocated on it, its aggregates and its region](/docs/static/images/OpenStackHypervisors.png)
+
+**Instances** lists every instance with its status in Nova's own words, its project, flavor and hypervisor:
+
+![The Instances page listing five instances with their status, project, flavor, hypervisor and region, one of them in ERROR and one SHUTOFF](/docs/static/images/OpenStackInstances.png)
+
 ## Environment variables
 
 The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Docker Compose install reads them from the `.env` next to `docker-compose.yml`. After changing one, run `docker compose up -d` in that folder. `clouds.yaml` alone holds the credential.
@@ -712,6 +724,10 @@ To see a Nova metadata key as a label, add `--nova.metadata-extra-labels=team` t
 A cloud's **Topology** page draws it region by region: availability zones, hypervisors and the instances on them, storage pools and volumes, networks, routers and floating IPs, and the APIs and services. Each part is coloured by the same rules as **Needs attention**, so a hypervisor whose `nova-compute` has stopped is red, with its instances beneath it.
 
 Past 5,000 parts, the map reads what has failed and what that takes with it rather than everything, opens on the hosts that failed and says what it left out. **Needs attention** narrows it to all of the rest. [Infrastructure](/docs/telemetry/topology) draws the cloud beside your hosts and clusters.
+
+With `nova-compute` stopped on a host, the host turns red with its instances beneath it, and the page counts the open incident and alert:
+
+![The Topology page with nova-compute stopped: the host is red and reads Down, its instances are beneath it needing attention, and one incident and one alert are open](/docs/static/images/OpenStackTopologyComputeDown.png)
 
 A part's blast radius is what it takes with it, by count and by project:
 
@@ -1289,6 +1305,8 @@ workers = 1
 OpenStack-Helm's Nova chart sets both to 1 already and scales by pods.
 
 ### Trace a request
+
+![A cloud's Traces page: when the last span arrived, which services have been in a trace and which have not, and the commands that sign a request on this cloud](/docs/static/images/OpenStackTraces.png)
 
 **Trace a request**, on your cloud's **Traces** page, has the commands for this cloud. They ask for your key without echoing it, which keeps it out of your shell's history and the machine's process list:
 

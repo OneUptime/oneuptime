@@ -212,6 +212,16 @@ Every template reads at least three collections of what it watches, and fires on
 - **When an API is down, its own series go too**, so that service's other templates resolve, and fire again a window after it is back if the fault is still there. If every API reads down at once, look at the exporter first.
 - **A cloud that has no such service stays quiet.** The exporter answers with nothing for a service that is not in the cloud's catalog, and **Network**, **Block Storage**, **Image** and **Placement API Down** do not read that as an outage. **Identity** and **Compute API Down** do, because that is also how the exporter reports Keystone or Nova's API stopped outright, and every cloud has them.
 
+### When one fires
+
+With `nova-compute` stopped, its row on the cloud's **Services** page goes down within minutes:
+
+![The Services page with nova-compute down on its host for 10 minutes, and every other service and API up](/docs/static/images/OpenStackServicesComputeDown.png)
+
+Once that has lasted the template's whole window, **Compute Service Down** opens one incident, which names the host and resolves on its own once the service is back:
+
+![An incident from the Compute Service Down template, naming the host, service and region, saying what happened, with the monitor and the cloud under Affected Resources](/docs/static/images/OpenStackIncidentComputeDown.png)
+
 ### What the services say
 
 Seven more templates read a cloud's logs rather than its metrics, so they are Logs monitors, and they need the agent's [logs profile](/docs/telemetry/openstack#service-logs). Each reads only this cloud's logs, counts what it is looking for, and resolves on its own once the count falls.
