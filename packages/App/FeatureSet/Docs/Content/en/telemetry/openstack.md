@@ -753,6 +753,9 @@ Be clear about what you are turning on:
 - **It can only post plain HTTP**, which is why a collector on each machine takes its spans and forwards them to OneUptime over TLS.
 - **It needs `opentelemetry-sdk` and `opentelemetry-exporter-otlp` in each service**, which no deployment tool's images hold.
 
+> [!WARNING]
+> On OpenStack 2026.2, use a test cloud first. On our test cloud, a restart with these libraries in and OSProfiler on did not come back, twice, and we do not know why yet. On 2025.2 it did.
+
 :::cards
 - [What a trace shows](#what-a-trace-shows): What is traced, and what is not, on a stock cloud.
 - [Turn on traces](#turn-on-traces): The collector, the libraries and the config.
@@ -762,15 +765,15 @@ Be clear about what you are turning on:
 
 ### What a trace shows
 
-Everything here was read from what the driver really sent for a signed boot on DevStack, not from its documentation. One request is one trace, whichever services it crosses, and its Trace ID is the one the client prints. Each service is named as you know it, and joined to its page. A trace is also tied to what its requests named: a boot to the instance it made, its image and its network.
+Everything here was read from what the driver really sent for a signed boot on DevStack, on OpenStack 2025.2, not from its documentation. One request is one trace, whichever services it crosses, and its Trace ID is the one the client prints. Each service is named as you know it, and joined to its page. A trace is also tied to what its requests named: a boot to the instance it made, its image and its network.
 
 | Service | On a stock cloud | What you can do |
 | --- | --- | --- |
 | `nova-api`, `nova-compute`, `neutron-server`, `keystone`, `glance-api`, `cinder-api`, `cinder-scheduler` | In the trace | |
 | Placement | Sends nothing. It keeps a config of its own without `[profiler_otlp]`, so the driver stops as it starts, with `no such option profiler_otlp` in its log | [One line](#placement-one-line) of its code. With `trace_requests` on, `nova-compute` shows its own calls to Placement without it |
-| `nova-conductor`, `nova-scheduler` | Send nothing while they run more than one worker. They make the driver and then fork, and what a forked worker makes never leaves it | [One worker each](#novas-conductor-and-scheduler-one-worker-each) |
+| `nova-conductor`, `nova-scheduler` | Send nothing while they run more than one worker. They make the driver and then fork, and nothing a forked worker made arrived | [One worker each](#novas-conductor-and-scheduler-one-worker-each) |
 | `cinder-volume` | Sends nothing. It always runs each backend in a forked worker | Nothing to set |
-| Neutron's RPC server and agents | Send nothing. They never start OSProfiler, and Neutron's API does | Nothing to set |
+| Neutron's RPC server | Sends nothing. It never says it started OSProfiler, and Neutron's API does | Nothing to set |
 
 So on a stock cloud, a span that one of those called arrives with a parent that never does. `nova-compute`'s `build_and_run_instance` is called by `nova-conductor`, so everything `nova-compute` did for a boot is under a span whose parent is missing. The trace is whole otherwise, it says **Not in this trace** above the waterfall, and those services' lines are still in [the logs of that request](#from-a-trace-to-its-logs).
 
@@ -819,7 +822,7 @@ osprofiler is enabled with connection string: otlp://127.0.0.1:4318
 
 ### Placement, one line
 
-Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades. Run it with the Python in Placement's environment, add the same `[profiler]` section to `placement.conf`, and restart it:
+Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades. It was worked out from Placement's source and the error it logs, and has not been run yet, so try it on a test cloud first. Run it with the Python in Placement's environment, add the same `[profiler]` section to `placement.conf`, and restart it:
 
 ```bash
 sed -i '/profiler\.set_defaults(config)/a\        config.register_opts(profiler._OTLP_OPTS, group="profiler_otlp")' "$(python3 -c 'import placement.wsgi as module; print(module.__file__)')"
@@ -827,7 +830,7 @@ sed -i '/profiler\.set_defaults(config)/a\        config.register_opts(profiler.
 
 ### Nova's conductor and scheduler, one worker each
 
-With one worker each they run in the process that made the driver, and a boot's trace is whole: from `nova-api` through both of them to `nova-compute`, and a failed scheduling shows as a failed span. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or a quiet hour of looking into something, and not for a busy cloud to run on.
+With one worker each they run in the process that made the driver, which should bring them into a trace: the services that sent spans on our test cloud are the ones that do not fork, and these two do. That has not been run yet. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or a quiet hour of looking into something, and not for a busy cloud to run on.
 
 ```ini title="nova.conf"
 [conductor]

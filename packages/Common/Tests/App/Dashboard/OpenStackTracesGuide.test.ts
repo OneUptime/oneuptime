@@ -148,6 +148,10 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
     expect(steps[steps.length - 1]!.title).toBe("Sign a request");
   });
 
+  test("it warns about the newest release, where the rig's cloud did not come back", () => {
+    expect(guideOf(tool).intro).toContain("On OpenStack 2026.2");
+  });
+
   test("it is straight about what OSProfiler is, before anything else", () => {
     const intro: string = guideOf(tool).intro || "";
 
@@ -344,7 +348,7 @@ describe("what is true of each tool", () => {
 });
 
 describe("the one line Placement needs", () => {
-  test("is exactly what the rig applied to a real Placement before a span of its arrived", () => {
+  test("is exactly what the rig applies to a real Placement", () => {
     const script: string = fs.readFileSync(
       path.join(
         __dirname,

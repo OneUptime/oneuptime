@@ -73,6 +73,14 @@ trace_sqlalchemy = False`;
 const WHAT_THIS_IS: string =
   "**What this is.** OSProfiler traces a request only when it is signed with your key, so this is never an always-on feed: with nothing signed, nothing is sent. Its OTLP driver is marked experimental by OpenStack, can only post plain HTTP, and needs two OpenTelemetry libraries in every service, which is why a collector on each machine takes its spans and forwards them over TLS.";
 
+/*
+ * Twice, on a real 2026.2 DevStack, the services did not come back from the restart that follows
+ * the libraries going in with OSProfiler on (traces-record.sh, runs 41897569884 and 41912669813),
+ * and 2025.2 did. Until the rig says why, a reader on that release has to hear it first.
+ */
+const NEWEST_RELEASE_WARNING: string =
+  "**On OpenStack 2026.2, use a test cloud first.** On our test cloud, a restart with these libraries in and OSProfiler on did not come back, twice, and we do not know why yet. On 2025.2 it did.";
+
 const WHAT_A_TRACE_SHOWS: string =
   "**What a trace shows.** One signed request is one trace, across `nova-api`, `nova-compute`, `neutron-server`, `keystone`, `glance-api`, `cinder-api` and `cinder-scheduler`. On a stock cloud Placement, `nova-conductor`, `nova-scheduler` and `cinder-volume` send nothing, for reasons under What a trace cannot show below.";
 
@@ -333,7 +341,7 @@ ${codeBlock("bash", placementPatchCommand("python3"))}`,
 function general(): ToolGuide {
   return {
     howFarTested:
-      "These exact steps were run on DevStack, on OpenStack 2025.2 and 2026.2, with a boot signed and the driver's real output recorded. Nothing else has been.",
+      "These exact steps were run on DevStack, on OpenStack 2025.2, with a boot signed and the driver's real output recorded. Nothing else has been.",
     libraries: `Install them where each service runs, with your release's constraints if you keep them:
 
 ${codeBlock("bash", `pip install ${LIBRARIES}`)}`,
@@ -458,9 +466,9 @@ function cannotShowTopic(): SetupGuideTopic {
 | Service | Why it sends nothing | What you can do |
 | --- | --- | --- |
 | Placement | It keeps a config of its own, without \`[profiler_otlp]\`, so the driver stops as it starts: \`no such option profiler_otlp\` | One line, below. With \`trace_requests\` on, \`nova-compute\` shows its own calls to Placement without it |
-| \`nova-conductor\`, \`nova-scheduler\` | They make the driver and then fork their workers, and what a forked worker makes never leaves it | One worker each, below |
+| \`nova-conductor\`, \`nova-scheduler\` | They make the driver and then fork their workers, and nothing a forked worker made arrived | One worker each, below |
 | \`cinder-volume\` | It always runs each backend in a forked worker | Nothing to set |
-| Neutron's RPC server and agents | They never start OSProfiler. Neutron's API does | Nothing to set |`,
+| Neutron's RPC server | It never says it started OSProfiler. Neutron's API does | Nothing to set |`,
   };
 }
 
@@ -468,7 +476,7 @@ function placementTopic(guide: ToolGuide): SetupGuideTopic {
   return {
     title: "Placement",
     summary: "One line of its code, kept by you.",
-    markdown: `Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. Nothing about OpenStack needs it. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades, until a release does not need it. A boot with it applied crosses Placement in one trace, tied to the instance by its allocation.
+    markdown: `Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. Nothing about OpenStack needs it. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades, until a release does not need it. This line was worked out from Placement's source and the error it logs, and has not been run yet, so try it on a test cloud first.
 
 ${guide.placement}`,
   };
@@ -478,7 +486,7 @@ function oneWorkerTopic(guide: ToolGuide): SetupGuideTopic {
   return {
     title: "Nova's conductor and scheduler",
     summary: "One worker each, which costs what it costs.",
-    markdown: `With one worker each they run in the process that made the driver, and a boot's trace is whole: from \`nova-api\` through both of them to \`nova-compute\`, and a failed scheduling shows as a failed span. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or for a quiet hour of looking into something, and not for a busy cloud to run on.
+    markdown: `With one worker each they run in the process that made the driver, which should bring them into a trace: the services that sent spans on our test cloud are the ones that do not fork, and these two do. That has not been run yet. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or for a quiet hour of looking into something, and not for a busy cloud to run on.
 
 ${guide.oneWorker}`,
   };
@@ -581,7 +589,7 @@ ${codeBlock("text", `osprofiler is enabled with connection string: ${OPENSTACK_T
 
   return {
     wrapLongLines: true,
-    intro: `${guide.blocker ? `**${guide.blocker}**\n\n` : ""}${WHAT_THIS_IS}\n\n${WHAT_A_TRACE_SHOWS}\n\n**How far this guide has been tested:** ${guide.howFarTested}`,
+    intro: `${guide.blocker ? `**${guide.blocker}**\n\n` : ""}${WHAT_THIS_IS}\n\n${NEWEST_RELEASE_WARNING}\n\n${WHAT_A_TRACE_SHOWS}\n\n**How far this guide has been tested:** ${guide.howFarTested}`,
     steps: steps,
     advanced: detailsTopics(guide),
     troubleshooting: troubleshootingTopics(),

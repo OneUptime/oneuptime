@@ -1556,9 +1556,7 @@ AnalyticsModelAPI.getList = async (options) => {
     modelName.startsWith("Log") ||
     modelName.startsWith("ChangeEvent") ||
     modelName.startsWith("Metric") ||
-    modelName.startsWith("Span") ||
     modelName.startsWith("SecurityEvent")
-    modelName.startsWith("Metric")
   ) {
     return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
   }

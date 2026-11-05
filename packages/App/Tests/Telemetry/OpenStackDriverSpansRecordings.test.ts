@@ -72,8 +72,8 @@ function nameOfServiceId(id: string): string {
  * spans are what matter, so they are kept and the whole is moved up to now.
  */
 function movedToNow(otlp: JSONObject): JSONObject {
-  const now: bigint = BigInt(Date.now()) * 1000000n;
-  let newest: bigint = 0n;
+  const now: bigint = BigInt(Date.now()) * BigInt(1000000);
+  let newest: bigint = BigInt(0);
 
   const spansOf: () => Array<JSONObject> = (): Array<JSONObject> => {
     const spans: Array<JSONObject> = [];

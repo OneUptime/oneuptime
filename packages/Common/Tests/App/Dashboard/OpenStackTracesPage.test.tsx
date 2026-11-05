@@ -461,7 +461,7 @@ describe("with traces", () => {
     );
 
     expect(placement).toHaveTextContent("placement-api");
-    expect(placement).toHaveTextContent("One line fixes it");
+    expect(placement).toHaveTextContent("the one line");
 
     const nova: HTMLElement = screen.getByTestId(
       "openstack-traces-gap-forked-workers",

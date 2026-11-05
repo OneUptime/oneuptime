@@ -1218,8 +1218,9 @@ export enum OpenStackTraceGap {
    */
   DriverCannotStart = "driver-cannot-start",
   /*
-   * It makes its driver and then forks its workers, and spans made in a worker never leave it.
-   * One worker runs in the process that made the driver, so nothing has to survive a fork.
+   * It makes its driver and then forks its workers, and nothing made in a worker arrived. One
+   * worker runs in the process that made the driver, so nothing has to survive a fork, which the
+   * rig's signed-boot-whole scene is there to prove.
    */
   ForkedWorkers = "forked-workers",
   // The same, with no setting for it: cinder-volume starts a forked process per backend.
