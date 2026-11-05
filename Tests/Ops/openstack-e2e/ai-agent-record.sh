@@ -135,8 +135,7 @@ openstack role add --project oneuptime-remediation --user oneuptime-remediation 
 for pair in /etc/nova/nova.conf:compute /etc/neutron/neutron.conf:network; do
   conf="${pair%%:*}"
   kind="${pair##*:}"
-  if [ -f "$conf" ]; then
-    sudo sed -i '/^service_type *=/d' "$conf"
+  if [ -f "$conf" ] && ! sudo grep -q "^service_type = $kind" "$conf"; then
     sudo sed -i "/^\[keystone_authtoken\]/a service_type = $kind" "$conf"
   fi
 done
