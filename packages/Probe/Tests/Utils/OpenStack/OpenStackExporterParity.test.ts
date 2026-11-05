@@ -1613,6 +1613,10 @@ describe("the catalogue says who collects what", () => {
       .sort();
 
     expect(onlyFromProbe).toEqual([
+      "openstack_barbican_containers",
+      "openstack_barbican_orders",
+      "openstack_barbican_secrets",
+      "openstack_barbican_up",
       "openstack_cinder_backup_gb",
       "openstack_cinder_snapshot_gb",
       "openstack_cloudkitty_rated",
@@ -1633,6 +1637,15 @@ describe("the catalogue says who collects what", () => {
       "openstack_loadbalancer_stats_bytes_out_per_second",
       "openstack_loadbalancer_stats_connections_per_second",
       "openstack_loadbalancer_stats_request_errors_per_second",
+      "openstack_object_store_recon_oldest_replication_seconds",
+      "openstack_object_store_recon_replication_age_seconds",
+      "openstack_object_store_recon_replication_failures",
+      "openstack_object_store_recon_rings_differ",
+      "openstack_object_store_recon_rings_differing",
+      "openstack_object_store_recon_servers",
+      "openstack_object_store_recon_servers_not_answering",
+      "openstack_object_store_recon_unmounted_drives",
+      "openstack_object_store_recon_up",
       "openstack_placement_flavor_fits",
       "openstack_sharev2_agent_state",
     ]);

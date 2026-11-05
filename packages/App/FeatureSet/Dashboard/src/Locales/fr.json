@@ -45244,5 +45244,7 @@
   "Run this workflow again?": "Exécuter à nouveau ce workflow ?",
   "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "Une nouvelle exécution démarre depuis le déclencheur, avec les mêmes valeurs et le workflow tel qu'il est maintenant. Chaque étape s'exécute pour de vrai : tout ce qu'elle envoie, écrit ou supprime se produit réellement.",
   "Run with the last run's values": "Exécuter avec les valeurs de la dernière exécution",
-  "Starts a new run with what the run of {{date}} started with.": "Démarre une nouvelle exécution avec ce avec quoi l'exécution du {{date}} a commencé."
+  "Starts a new run with what the run of {{date}} started with.": "Démarre une nouvelle exécution avec ce avec quoi l'exécution du {{date}} a commencé.",
+  "Can Run Again": "Can Run Again",
+  "Trigger Values": "Trigger Values"
 }

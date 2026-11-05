@@ -76,9 +76,9 @@ De rijen van elke scrape zijn waarvoor u wordt gefactureerd: de eerste vijf rege
 
 | Cloud | Reeksen | GB per dag, elke reeks | GB per dag, in samenvattingsmodus | Een maand met 15 dagen bewaren, in samenvattingsmodus |
 | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instanties, 20 projecten | 1.075 | 0,7 | Niet in samenvattingsmodus | $2,12 |
-| 500 hypervisors, 20.000 instanties, 1.000 projecten | 123.847 | 84,5 | 16,6 | $49,71 |
-| 5.000 hypervisors, 200.000 instanties, 10.000 projecten | 1.237.183 | 844,5 | 164,9 | $494,73 |
+| 10 hypervisors, 100 instanties, 20 projecten | 1.084 | 0,7 | Niet in samenvattingsmodus | $2,12 |
+| 500 hypervisors, 20.000 instanties, 1.000 projecten | 123.856 | 84,5 | 16,6 | $49,71 |
+| 5.000 hypervisors, 200.000 instanties, 10.000 projecten | 1.237.192 | 844,5 | 164,9 | $494,73 |
 
 Deze gelden via de agent, met één instantie op duizend in een toestand die zijn reeksen bewaart. Een sonde boven de omvang van de samenvatting stuurt wat niet is veranderd eenmaal per cyclus in plaats van bij elke verzameling, wat neerkomt op ongeveer 13,2 GB per dag bij de tweede omvang en 116 GB bij de derde.
 

@@ -45244,5 +45244,7 @@
   "Run this workflow again?": "Köra det här arbetsflödet igen?",
   "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "En ny körning startar från utlösaren, med samma värden och arbetsflödet som det är nu. Varje steg körs på riktigt: allt det skickar, skriver eller tar bort händer faktiskt.",
   "Run with the last run's values": "Kör med värdena från den senaste körningen",
-  "Starts a new run with what the run of {{date}} started with.": "Startar en ny körning med det som körningen från {{date}} startade med."
+  "Starts a new run with what the run of {{date}} started with.": "Startar en ny körning med det som körningen från {{date}} startade med.",
+  "Can Run Again": "Can Run Again",
+  "Trigger Values": "Trigger Values"
 }

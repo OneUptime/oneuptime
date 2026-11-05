@@ -76,9 +76,9 @@ As linhas de cada coleta são o que você paga: as cinco primeiras chegam a cada
 
 | Nuvem | Séries | GB por dia, todas as séries | GB por dia, no modo resumo | Um mês mantido por 15 dias, no modo resumo |
 | --- | --- | --- | --- | --- |
-| 10 hipervisores, 100 instâncias, 20 projetos | 1.075 | 0,7 | Não está no modo resumo | $2,12 |
-| 500 hipervisores, 20.000 instâncias, 1.000 projetos | 123.847 | 84,5 | 16,6 | $49,71 |
-| 5.000 hipervisores, 200.000 instâncias, 10.000 projetos | 1.237.183 | 844,5 | 164,9 | $494,73 |
+| 10 hipervisores, 100 instâncias, 20 projetos | 1.084 | 0,7 | Não está no modo resumo | $2,12 |
+| 500 hipervisores, 20.000 instâncias, 1.000 projetos | 123.856 | 84,5 | 16,6 | $49,71 |
+| 5.000 hipervisores, 200.000 instâncias, 10.000 projetos | 1.237.192 | 844,5 | 164,9 | $494,73 |
 
 Esses valores são pelo agente, com uma instância em mil em um estado que mantém suas séries. Uma sonda acima do tamanho do resumo envia o que não mudou uma vez por ciclo em vez de a cada coleta, o que dá cerca de 13,2 GB por dia no segundo tamanho e 116 GB no terceiro.
 
