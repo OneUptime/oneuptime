@@ -41,6 +41,7 @@ import {
   OPENSTACK_BARE_METAL_STATE_PRESETS,
   OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS,
   OPENSTACK_IMAGE_STATE_PRESETS,
+  OPENSTACK_DATABASE_INSTANCE_STATE_PRESETS,
   OPENSTACK_SHARE_STATE_PRESETS,
   OPENSTACK_STACK_STATE_PRESETS,
   OPENSTACK_INSTANCE_STATE_PRESETS,
@@ -1693,6 +1694,77 @@ export const OpenStackShareList: FunctionComponent<OpenStackListProps> = (
       filters={[]}
       facets={facets}
       statePresets={OPENSTACK_SHARE_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Databases
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Trove. What its volume holds reads as nothing on an instance that isn't
+ * running: it says 0, recorded, whatever is in it. How much of it is used is on the instance's own page.
+ */
+const DATABASE_INSTANCE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> =
+  [
+    OpenStackColumn.Status,
+    getOpenStackFactColumn({
+      id: "datastore",
+      title: "Datastore",
+      getText: (row: OpenStackResource): string => {
+        const datastore: string = getOpenStackFactText(row, "datastoreType");
+        const version: string = getOpenStackFactText(row, "datastoreVersion");
+        return version ? `${datastore} ${version}` : datastore;
+      },
+    }),
+    getOpenStackSizeColumn({
+      title: "Volume",
+      field: "diskCapacityBytes",
+      format: formatOpenStackBytes,
+    }),
+    OpenStackColumn.TimeInState,
+    OpenStackColumn.Project,
+    OpenStackColumn.Region,
+  ];
+
+export const OpenStackDatabaseInstanceList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.DatabaseInstance),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.DatabaseInstance}
+      query={props.query}
+      tableId={props.tableId || "openstack-database-instances-table"}
+      title={props.title || "Databases"}
+      description={
+        props.description ||
+        "Every database Trove runs in this cloud, its status in Trove's own words, and whose it is."
+      }
+      singularName="database"
+      pluralName="databases"
+      emptyTitle={props.emptyTitle || "No databases reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Trove, and it can really have none."
+      }
+      columns={DATABASE_INSTANCE_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_DATABASE_INSTANCE_STATE_PRESETS}
       checkAccess={true}
       getViewRoute={routes.routeFor}
       searchPlaceholder="Search by name or ID"

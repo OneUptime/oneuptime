@@ -19,6 +19,7 @@ import {
 import {
   OPENSTACK_OPTIONAL_SERVICES,
   OpenStackOptionalService,
+  isOpenStackApiClosedToThisCredential,
 } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
   OpenStackProjectQuota,
@@ -544,6 +545,29 @@ const CANNOT_READ_PLACEMENT: string = translationKey(
   "This credential can't read Placement",
 );
 
+/*
+ * What an API's page says while it has never let this credential in: what it could be, because a refusal
+ * and a stopped API read the same, and what opens it. By service, for what each really does.
+ */
+const CLOSED_TO_THIS_CREDENTIAL_WORDS: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Database]: translationKey(
+    "OneUptime has never had an answer from Trove with this credential. The exporter reads Trove's mgmt API, which only an admin may, and a refusal reads just as Trove being down does. So either Trove refuses this credential, or it has been down since OneUptime started reading it. Reading it takes the Full view credential.",
+  ),
+};
+
+export function getOpenStackClosedToThisCredentialWords(
+  service: string | null | undefined,
+): string | null {
+  return CLOSED_TO_THIS_CREDENTIAL_WORDS[service || ""] || null;
+}
+
+// Each is a service whose read asks for what only an admin may, so a refusal reads as a stopped API.
+const CANNOT_READ_OPTIONAL_SERVICE: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Database]: translationKey(
+    "This credential has never read Trove",
+  ),
+};
+
 export interface OpenStackAccessGap {
   key: string;
   // English: "This credential can't list hypervisors".
@@ -602,14 +626,16 @@ export function getOpenStackRowsAsThisCredentialReadsThem(data: {
     apis: data.apis,
     workers: data.workers,
   });
-  if (closed.size === 0) {
-    return data.rows;
-  }
   return data.rows.map((row: OpenStackResource): OpenStackResource => {
     return row.kind === OpenStackResourceKind.Api &&
-      row.name === OpenStackServiceType.Placement &&
-      row.status === "down" &&
-      closed.has(row.regionName || "")
+      ((row.name === OpenStackServiceType.Placement &&
+        row.status === "down" &&
+        closed.has(row.regionName || "")) ||
+        isOpenStackApiClosedToThisCredential({
+          name: row.name,
+          status: row.status,
+          facts: row.facts as JSONObject | undefined,
+        }))
       ? (Object.assign(new OpenStackResource(), row, {
           status: OPENSTACK_API_STATUS_CLOSED,
         }) as OpenStackResource)
@@ -763,6 +789,30 @@ export function getOpenStackAccessGaps(data: {
     });
   }
 
+  for (const api of data.apis) {
+    const title: string | undefined =
+      CANNOT_READ_OPTIONAL_SERVICE[api.name || ""];
+    if (
+      title &&
+      (api.status === OPENSTACK_API_STATUS_CLOSED ||
+        isOpenStackApiClosedToThisCredential({
+          name: api.name,
+          status: api.status,
+          facts: api.facts as JSONObject | undefined,
+        })) &&
+      !gaps.some((gap: OpenStackAccessGap): boolean => {
+        return gap.service === api.name;
+      })
+    ) {
+      gaps.push({
+        key: `closed-${api.name}`,
+        title,
+        service: api.name || "",
+        isFullViewOnly: true,
+      });
+    }
+  }
+
   const closedRegions: Set<string> = getRegionsClosedToInfrastructure({
     apis: data.apis,
     workers: data.workers,
@@ -818,6 +868,7 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",
+  [OpenStackServiceType.Database]: "openstack-database-api-down",
 };
 
 const SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS: Array<string> = [
@@ -885,6 +936,13 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-share-service-down",
         "openstack-share-in-error",
         "openstack-share-stuck",
+      ];
+    case OpenStackServiceType.Database:
+      return [
+        ...own,
+        "openstack-database-instance-in-error",
+        "openstack-database-instance-stuck",
+        "openstack-database-volume-nearly-full",
       ];
     default:
       return own;

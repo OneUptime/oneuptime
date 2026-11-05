@@ -36,6 +36,15 @@ import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
+import {
+  OpenStackCapacityFlavorRow,
+  OpenStackCapacityFlavorSourceRow,
+  OpenStackCapacityHostSourceRow,
+  OpenStackCapacitySnapshot,
+  buildOpenStackCapacitySnapshot,
+  readOpenStackCapacityFlavor,
+  readOpenStackCapacityHost,
+} from "../../../../Types/OpenStack/OpenStackCapacitySnapshot";
 
 /*
  * BARE METAL, ON WHAT A REAL CLOUD SAID.
@@ -73,6 +82,9 @@ function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
     status: entry.status || undefined,
     adminState: entry.adminState || undefined,
     disabledReason: entry.disabledReason || undefined,
+    vcpuCapacity: entry.vcpuCapacity ?? undefined,
+    memoryCapacityBytes: entry.memoryCapacityBytes ?? undefined,
+    diskCapacityBytes: entry.diskCapacityBytes ?? undefined,
     facts: entry.facts,
     lastSeenAt: entry.observedAt,
     stateChangedAt: entry.observedAt,
@@ -589,16 +601,26 @@ describe("clean-failed: the conductor could not run a step", () => {
     );
   });
 
-  test("and the API's own reason doesn't last: it has gone by the next scene but one", () => {
-    const later: JSONObject | undefined = apiAnswer(
-      "power-off-while-active",
-      "ironic-nodes",
-    ).find((one: JSONObject): boolean => {
-      return one["name"] === "ou-node-clean-failed";
-    });
+  test("and the API's own reason need not last: gone from a failed clean, and still on a failed deploy", () => {
+    const later: Array<JSONObject> = apiAnswer("recovered", "ironic-nodes");
+    const ofNode: (name: string) => JSONObject | undefined = (
+      name: string,
+    ): JSONObject | undefined => {
+      return later.find((one: JSONObject): boolean => {
+        return one["name"] === name;
+      });
+    };
 
-    expect(later?.["provision_state"]).toBe("clean failed");
-    expect(later?.["last_error"]).toBe(null);
+    expect(ofNode("ou-node-clean-failed")?.["provision_state"]).toBe(
+      "clean failed",
+    );
+    expect(ofNode("ou-node-clean-failed")?.["last_error"]).toBe(null);
+    expect(ofNode("ou-node-deploy-failed")?.["provision_state"]).toBe(
+      "deploy failed",
+    );
+    expect(ofNode("ou-node-deploy-failed")?.["last_error"]).toContain(
+      "Timeout reached while waiting for callback",
+    );
   });
 });
 
@@ -874,6 +896,85 @@ describe("api-down: Ironic's API stopped", () => {
   test("and Nova its hypervisors, which are still no hosts", () => {
     expect(novaHostsOf(recorded).length).toBe(7);
     expect(recorded.ofKind(OpenStackResourceKind.Hypervisor)).toEqual([]);
+  });
+});
+
+describe("capacity by resource class, on what Placement really said", () => {
+  function capacityOf(recorded: Scene): OpenStackCapacitySnapshot {
+    return buildOpenStackCapacitySnapshot({
+      hosts: recorded
+        .ofKind(OpenStackResourceKind.Hypervisor)
+        .map((row: OpenStackResource) => {
+          return readOpenStackCapacityHost(
+            row as unknown as OpenStackCapacityHostSourceRow,
+          );
+        }),
+      bareMetalProviders: recorded
+        .ofKind(OpenStackResourceKind.PlacementProvider)
+        .map((row: OpenStackResource) => {
+          return readOpenStackCapacityHost(
+            row as unknown as OpenStackCapacityHostSourceRow,
+          );
+        }),
+      flavors: recorded
+        .ofKind(OpenStackResourceKind.Flavor)
+        .map((row: OpenStackResource) => {
+          return readOpenStackCapacityFlavor({
+            row: row as unknown as OpenStackCapacityFlavorSourceRow,
+            instanceCount: 0,
+          });
+        }),
+      pools: [],
+      now: NOW,
+    });
+  }
+
+  test("every node of the class, however few of them Ironic shows a project", () => {
+    expect(capacityOf(new Scene("baseline")).bareMetalClasses).toEqual([
+      {
+        regionName: "RegionOne",
+        resourceClass: "CUSTOM_BAREMETAL",
+        nodeCount: 3,
+        free: 0,
+        used: 0,
+        heldBack: 3,
+      },
+    ]);
+    expect(
+      new Scene("baseline").ofKind(OpenStackResourceKind.BareMetalNode).length,
+    ).toBe(1);
+  });
+
+  test("as many as Placement knows of: a node trails Ironic by Nova's next periodic, and half-enrolled has no class", () => {
+    expect(
+      capacityOf(new Scene("wait-call-back")).bareMetalClasses?.[0]?.nodeCount,
+    ).toBe(4);
+    expect(
+      capacityOf(new Scene("deploy-failed")).bareMetalClasses?.[0]?.nodeCount,
+    ).toBe(6);
+  });
+
+  test("with Ironic stopped, what Placement holds doesn't go with it", () => {
+    expect(
+      capacityOf(new Scene("api-down")).bareMetalClasses?.[0]?.nodeCount,
+    ).toBe(6);
+  });
+
+  test("none of them is a host: no vCPUs, no zones, and no flavor that fits on a node", () => {
+    const snapshot: OpenStackCapacitySnapshot = capacityOf(
+      new Scene("deploy-failed"),
+    );
+
+    expect(snapshot.cloud.hostCount).toBe(0);
+    expect(snapshot.cloud.resources).toEqual([]);
+    expect(snapshot.zones).toEqual([]);
+    expect(snapshot.hostsNotCounted).toEqual([]);
+    expect(snapshot.flavors.length).toBeGreaterThan(0);
+    expect(
+      snapshot.flavors.every((flavor: OpenStackCapacityFlavorRow): boolean => {
+        return flavor.fits === 0;
+      }),
+    ).toBe(true);
   });
 });
 

@@ -38,6 +38,7 @@ export type OpenStackMetricCategory =
   | "Identity"
   | "Orchestration"
   | "Bare Metal"
+  | "Databases"
   | "Projects"
   | "Checks"
   | "Capacity";
@@ -240,6 +241,17 @@ function metric(
         : data.description,
   };
 }
+
+const DATABASE_INSTANCE_LABELS: ReadonlyArray<string> = [
+  "datastore_type",
+  "datastore_version",
+  "health_status",
+  "id",
+  "name",
+  "region",
+  "status",
+  "tenant_id",
+];
 
 /*
  * What the checks from outside report. The region is a label on every one, as on everything
@@ -2716,6 +2728,60 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
     onlyFromProbe: true,
   }),
+  // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_trove_up",
+    friendlyName: translationKey("Databases API Up"),
+    description:
+      "Whether the exporter's read of Trove answered (1) or failed (0). It reads Trove's mgmt API, which only an admin may, so any credential short of that reads 0 just as a stopped API does, recorded. A stopped trove-taskmanager leaves this at 1. Only a cloud whose catalog names Trove has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Database,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_trove_total_instances",
+    friendlyName: translationKey("Database Instances"),
+    description: "How many database instances Trove listed, per region.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.Database,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_trove_instance_status",
+    friendlyName: translationKey("Database Instance Status"),
+    description:
+      "One series per database instance. The value is a code for its status, so read the `status` label for the word (ACTIVE, BUILD, ERROR).",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+    probeOnlyAttributes: ["fault_message", "task_description"],
+  }),
+  metric({
+    metricName: "openstack_trove_instance_volume_size_gb",
+    friendlyName: translationKey("Database Volume Size"),
+    description:
+      "How many GiB each database instance's volume holds, one series per instance.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+  }),
+  metric({
+    metricName: "openstack_trove_instance_volume_used_gb",
+    friendlyName: translationKey("Database Volume Used"),
+    description:
+      "How many GiB of each database instance's volume its database has used, as its guest reports. An instance that isn't running reads 0, recorded in BUILD and ERROR, which says nothing about what it holds.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+  }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_ironic_up",
@@ -2849,6 +2915,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Identity",
     "Orchestration",
     "Bare Metal",
+    "Databases",
     "Projects",
     "Checks",
     "Capacity",

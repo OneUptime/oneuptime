@@ -680,7 +680,8 @@ describe("the access the agent asks for", () => {
         .map((rule) => {
           return rule.path;
         });
-      // Recorded: with /load-balancer/ in its rules, GET /load-balancer/ was still a 401.
+      // Recorded: with /load-balancer/ in its rules, GET /load-balancer/ was still a 401, and
+      // with /load-balancer// too, the exporter read what an admin's credential reads.
       expect(paths).toEqual(
         expect.arrayContaining([
           "/",

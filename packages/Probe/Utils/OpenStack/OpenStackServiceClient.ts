@@ -89,6 +89,8 @@ export type OpenStackPaging =
   | "next"
   // <key>_links holds a rel "next", and it means an offset: a marker means nothing to Manila.
   | "offset"
+  // The answer's own `links`: a list with a rel "next" (Trove), or an object with a `next` (Designate).
+  | "bodyLinks"
   // No paging at all: Keystone and Placement, and a few of Nova's and Neutron's.
   | "none";
 
@@ -497,6 +499,23 @@ export default class OpenStackServiceClient {
   ): boolean {
     if (paging === "next") {
       return typeof body["next"] === "string" && Boolean(body["next"]);
+    }
+
+    if (paging === "bodyLinks") {
+      const links: JSONValue | undefined = body["links"];
+
+      if (Array.isArray(links)) {
+        return (links as Array<JSONObject>).some(
+          (link: JSONObject): boolean => {
+            return link?.["rel"] === "next";
+          },
+        );
+      }
+
+      const next: JSONValue | undefined = (links as JSONObject | undefined)?.[
+        "next"
+      ];
+      return typeof next === "string" && Boolean(next);
     }
 
     if (paging === "links" || paging === "offset") {

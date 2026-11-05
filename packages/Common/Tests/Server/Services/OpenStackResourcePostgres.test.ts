@@ -8,6 +8,7 @@ import OpenStackResourceService, {
 import logger from "../../../Server/Utils/Logger";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { OpenStackBareMetalClass } from "../../../Types/OpenStack/OpenStackBareMetal";
 import { OpenStackBlastRadius } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import {
   OPENSTACK_COUNT_LIMIT,
@@ -20,6 +21,7 @@ import {
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
   OPENSTACK_QUIET_SERVICE_MINUTES,
+  canOpenStackBareMetalNodeTakeAnInstance,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackRegionSummary,
@@ -2071,12 +2073,15 @@ describePostgres("OpenStackResourceService on Postgres", () => {
         }),
       ]);
 
-      const part: { kind: OpenStackResourceKind; name: string; facts: JSONObject } =
-        {
-          kind: OpenStackResourceKind.Service,
-          name: "neutron-l3-agent",
-          facts: { agentId: "agent-1" },
-        };
+      const part: {
+        kind: OpenStackResourceKind;
+        name: string;
+        facts: JSONObject;
+      } = {
+        kind: OpenStackResourceKind.Service,
+        name: "neutron-l3-agent",
+        facts: { agentId: "agent-1" },
+      };
 
       const before: OpenStackBlastRadius =
         await OpenStackResourceService.getBlastRadius({
@@ -2190,12 +2195,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
       // Facts merge key by key, so what the later scrape didn't say is still there.
       expect(
-        (
-          await rowOf(
-            OpenStackResourceKind.Router,
-            named(after, "ou-router"),
-          )
-        )["facts"],
+        (await rowOf(OpenStackResourceKind.Router, named(after, "ou-router")))[
+          "facts"
+        ],
       ).toHaveProperty("l3Agents");
 
       await OpenStackResourceService.forgetAgentsOfRouters({
@@ -2205,12 +2207,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
 
       expect(
-        (
-          await rowOf(
-            OpenStackResourceKind.Router,
-            named(after, "ou-router"),
-          )
-        )["facts"],
+        (await rowOf(OpenStackResourceKind.Router, named(after, "ou-router")))[
+          "facts"
+        ],
       ).not.toHaveProperty("l3Agents");
       expect(
         (await rowOf(OpenStackResourceKind.Router, named(after, "router1")))[
@@ -2351,9 +2350,141 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
       expect(read.bareMetalNodeCount).toBe(2);
       expect(read.bareMetalProviderCount).toBe(1);
+      expect(read.bareMetalProvidersNotListedCount).toBe(0);
       expect(read.services.sort()).toEqual(["baremetal", "placement"]);
       expect(read.hypervisorCount).toBe(0);
       expect(read.vcpuCapacity).toBe(0);
+    });
+
+    test("a provider Ironic didn't list is counted, whatever the two counts say", async () => {
+      const provider: (name: string) => ParsedOpenStackResource = (
+        name: string,
+      ): ParsedOpenStackResource => {
+        return resource({
+          kind: OpenStackResourceKind.PlacementProvider,
+          externalId: `RegionOne/${name}`,
+          name,
+          facts: { "inventory:CUSTOM_GOLD:total": 1 },
+        });
+      };
+
+      // As recorded: more nodes than providers, with one of each that the other hasn't got.
+      await write([
+        node("own-1"),
+        node("own-half-enrolled", { status: "enroll" }),
+        provider("own-1"),
+        provider("someone-elses"),
+      ]);
+
+      const read: OpenStackInventorySummary = await summary();
+
+      expect(read.bareMetalNodeCount).toBe(2);
+      expect(read.bareMetalProviderCount).toBe(2);
+      expect(read.bareMetalProvidersNotListedCount).toBe(1);
+    });
+
+    test("what each class can take is what the rule says, on the same rows", async () => {
+      const nodes: Array<ParsedOpenStackResource> = [
+        node("free", {
+          facts: { resourceClass: "gold", powerState: "power off" },
+        }),
+        node("free-and-on", {
+          facts: { resourceClass: "gold", powerState: "power on" },
+        }),
+        // Recorded: fake hardware's available nodes read no power state, and Placement reserves them.
+        node("no-power-state", { facts: { resourceClass: "gold" } }),
+        node("power-error", {
+          facts: { resourceClass: "gold", powerState: "error" },
+        }),
+        node("in-maintenance", {
+          adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+          facts: { resourceClass: "gold", powerState: "power off" },
+        }),
+        node("retired", {
+          facts: {
+            resourceClass: "gold",
+            powerState: "power off",
+            isRetired: true,
+          },
+        }),
+        node("deployed", {
+          status: "active",
+          facts: { resourceClass: "gold", powerState: "power on" },
+        }),
+        node("failed", {
+          status: "clean failed",
+          facts: { resourceClass: "gold", powerState: "power off" },
+        }),
+        node("half-enrolled", { status: "enroll", facts: {} }),
+      ];
+
+      await write(nodes);
+
+      const classes: Array<OpenStackBareMetalClass> =
+        await OpenStackResourceService.getBareMetalClasses({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+        });
+      const gold: OpenStackBareMetalClass | undefined = classes.find(
+        (row: OpenStackBareMetalClass): boolean => {
+          return row.resourceClass === "gold";
+        },
+      );
+
+      expect(gold?.availableCount).toBe(
+        nodes.filter((row: ParsedOpenStackResource): boolean => {
+          const facts: JSONObject = (row.facts || {}) as JSONObject;
+
+          return (
+            facts["resourceClass"] === "gold" &&
+            canOpenStackBareMetalNodeTakeAnInstance({
+              status: row.status,
+              adminState: row.adminState,
+              powerState: facts["powerState"] as string | undefined,
+              isRetired: facts["isRetired"] as boolean | undefined,
+            })
+          );
+        }).length,
+      );
+      expect(gold).toEqual({
+        resourceClass: "gold",
+        nodeCount: 8,
+        availableCount: 2,
+        deployedCount: 1,
+        maintenanceCount: 1,
+        failedCount: 1,
+      });
+      // A node with no class yet is a row of its own, and comes after the ones with most.
+      expect(classes[classes.length - 1]).toEqual({
+        resourceClass: null,
+        nodeCount: 1,
+        availableCount: 0,
+        deployedCount: 0,
+        maintenanceCount: 0,
+        failedCount: 0,
+      });
+    });
+
+    test("a region's classes are that region's", async () => {
+      await write([
+        node("here", { facts: { resourceClass: "gold" } }),
+        node("there", {
+          regionName: "RegionTwo",
+          facts: { resourceClass: "silver" },
+        }),
+      ]);
+
+      expect(
+        (
+          await OpenStackResourceService.getBareMetalClasses({
+            projectId: PROJECT_ID,
+            openStackCloudId: CLOUD_ID,
+            regionName: "RegionTwo",
+          })
+        ).map((row: OpenStackBareMetalClass): string | null => {
+          return row.resourceClass;
+        }),
+      ).toEqual(["silver"]);
     });
 
     test("what needs someone: failed and stuck, and nothing that is only so", async () => {
@@ -2394,9 +2525,7 @@ describePostgres("OpenStackResourceService on Postgres", () => {
           lastSeenAt: at(-OPENSTACK_BARE_METAL_STUCK_MINUTES * MINUTE_MS),
         }),
       ]);
-      await write([
-        node("stuck", { status: "deploying", lastSeenAt: NOW }),
-      ]);
+      await write([node("stuck", { status: "deploying", lastSeenAt: NOW })]);
 
       expect(await attentionNodes()).toEqual(["stuck"]);
     });
@@ -2573,7 +2702,10 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       await write([
         node("node-1", {
           status: "clean failed",
-          facts: { lastError: "the BMC would not answer", fault: "clean failure" },
+          facts: {
+            lastError: "the BMC would not answer",
+            fault: "clean failure",
+          },
           lastSeenAt: at(-10 * MINUTE_MS),
         }),
       ]);
@@ -2749,9 +2881,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
           await sweep();
 
-          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
-            [],
-          );
+          expect(
+            await externalIds(OpenStackResourceKind.BareMetalNode),
+          ).toEqual([]);
           expect(await externalIds(OpenStackResourceKind.Service)).toEqual([
             "RegionOne/compute/compute-01/nova-compute",
           ]);
@@ -2774,9 +2906,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
           await sweep();
 
-          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
-            ["a-node"],
-          );
+          expect(
+            await externalIds(OpenStackResourceKind.BareMetalNode),
+          ).toEqual(["a-node"]);
         });
 
         test("a whole cloud gone silent forgets nothing, however long", async () => {
@@ -2794,9 +2926,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
           await sweep();
 
-          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
-            ["a-node"],
-          );
+          expect(
+            await externalIds(OpenStackResourceKind.BareMetalNode),
+          ).toEqual(["a-node"]);
         });
 
         test("a service every cloud runs is never forgotten this way", async () => {

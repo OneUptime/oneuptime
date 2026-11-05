@@ -62,6 +62,11 @@ export enum OpenStackResourceKind {
    * so a cloud without Manila has none.
    */
   Share = "Share",
+  /*
+   * A database Trove runs for a project, on an instance Nova runs. "Instance" alone is Nova's. Only
+   * Trove's own series make one.
+   */
+  DatabaseInstance = "DatabaseInstance",
 }
 
 /*
@@ -85,6 +90,7 @@ export enum OpenStackServiceType {
   // A service a cloud may not run: see OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
+  Database = "database",
 }
 
 /*
@@ -122,6 +128,7 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.Rating]: "Rating (CloudKitty)",
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
   [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
+  [OpenStackServiceType.Database]: "Databases (Trove)",
 };
 
 /*
@@ -167,6 +174,7 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
   ],
   [OpenStackServiceType.BareMetal]: [OpenStackResourceKind.BareMetalNode],
   [OpenStackServiceType.SharedFileSystems]: [OpenStackResourceKind.Share],
+  [OpenStackServiceType.Database]: [OpenStackResourceKind.DatabaseInstance],
 };
 
 /*
@@ -414,4 +422,25 @@ export const OPENSTACK_SHARE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
     "updating",
     "replication_change",
     "ensuring",
+  ]);
+
+/*
+ * Trove's instance statuses, as openstack_trove_instance_status's label holds them. It has no worker
+ * list to say trove-taskmanager stopped, recorded, so an instance that stays on its way is all there
+ * is to say that with. BACKUP is left out, because it lasts as long as a database takes to copy, and
+ * RESTART_REQUIRED and BLOCKED wait for someone rather than for Trove.
+ */
+export const OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES: ReadonlySet<string> =
+  new Set(["ERROR", "FAILED"]);
+
+export const OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set([
+    "BUILD",
+    "REBOOT",
+    "HARD_REBOOT",
+    "RESIZE",
+    "UPGRADE",
+    "PROMOTE",
+    "EJECT",
+    "DETACH",
   ]);

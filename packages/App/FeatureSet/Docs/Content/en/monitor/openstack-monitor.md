@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 95 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic or Manila to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 100 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila or Trove to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -159,7 +159,12 @@ Every template reads at least three collections of what it watches, and fires on
 | Manila Service Down | Control Plane | Warning | `openstack_sharev2_agent_state` with `adminState=enabled`, Min per host and service, **past 15 minutes**. Only a probe sends this | Manila lists an enabled service as stopped or down. Its API carries on answering, so nothing else says this | It reads 1, or someone disables it |
 | Share in Error | Storage | Warning | `openstack_sharev2_share_gb` with each error status, per share, **past 15 minutes** | A share holds an error status for the whole window | It is fixed or deleted |
 | Share Stuck | Storage | Warning | `openstack_sharev2_share_gb` with each passing status, per share, **past 1 hour** | A share holds a passing status for the whole window. Manila has no timeout of its own for a slow backend. One migrating or being backed up isn't watched | It reaches its next status, or is deleted |
+| Databases API Down | Availability | Critical | `openstack_trove_up` and `up` for `database`, Min per region, **past 15 minutes** | The exporter's read of Trove failed, or the exporter did not answer. It reads Trove's mgmt API, so a credential refused reads the same as a stopped API, and a cloud whose credential has never read Trove isn't offered this | Both read 1 |
+| Database Instance in Error | Databases | Warning | A count of `openstack_trove_instance_status` with each error status, per instance, **past 15 minutes** | An instance holds an error status for the whole window | It is fixed or deleted |
+| Database Instance Stuck | Databases | Warning | A count of `openstack_trove_instance_status` with each passing status, per instance, **past 1 hour** | An instance holds a passing status for the whole window. Trove has no list of its workers, so this is what says `trove-taskmanager` stopped | It reaches its next status, or is deleted |
+| Database Volume Nearly Full | Databases | Warning | `openstack_trove_instance_volume_used_gb` over `openstack_trove_instance_volume_size_gb`, per instance, **past 15 minutes** | At or past 85%. An instance that isn't running reads 0 used. No recording holds a running one | It is resized, or shrinks |
 | Bare Metal API Down | Bare Metal | Critical | `openstack_ironic_up`, Min per region, **past 15 minutes** | Below 1. Speaks only where a read of Ironic can say so: a probe, or exporter 1.7.0. A stopped Ironic gives the agent's exporter nothing to read, the same as a cloud without Ironic, so there it stays quiet and the cloud's pages say when Ironic was last heard from | Reads 1, or has gone |
+| Bare Metal Conductor Down | Bare Metal | Warning | `openstack_ironic_agent_state`, Min per host, **past 15 minutes**. Only a probe sends this, and only where the cloud's policy lets its credential read Ironic's conductors: by default it refuses a project's | Ironic lists a conductor as not alive. Its API carries on answering, and every node reads as it did, so nothing else says this | It reads 1, or Ironic drops its record |
 | Bare Metal Node in Error | Bare Metal | Warning | `openstack_ironic_node` for each failed `provision_state`, Max per node, **past 15 minutes** | In that state at every collection for 15 minutes, in maintenance or not | Left it, or was deleted |
 | Bare Metal Node Stuck Transitioning | Bare Metal | Warning | `openstack_ironic_node` for each passing `provision_state` with `maintenance = false`, Max per node, **past 2 hours** | In that state at every collection for 2 hours. A long disk erase can honestly take this long, which a node's page can tell and this can't | Left it, or was deleted |
 | Bare Metal Node in Maintenance Too Long | Bare Metal | Warning | `openstack_ironic_node` with `maintenance = true`, Max per node, **past 7 days** | In maintenance at every collection for 7 days. Needs your metrics kept that long | Out of maintenance, or was deleted |
@@ -524,6 +529,18 @@ Only a cloud that runs Manila sends these, and a cloud without it shows no trace
 | `openstack_sharev2_share_status_counter` | `count` | Max | How many shares hold each status, per region. |
 | `openstack_sharev2_shares_counter` | `count` | Max | How many shares Manila listed for this credential, per region. |
 | `openstack_sharev2_agent_state` | | Min | Whether Manila lists each service as up, with `state` saying `stopped` for one that shut down cleanly and `down` for one that died. Only a probe sends this. |
+
+### Databases
+
+Only a cloud that runs Trove sends these, and a cloud without it shows no trace of them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_trove_up` | | Min | Whether the exporter's read of Trove answered. It reads Trove's mgmt API, which only an admin may, so any credential short of that reads 0 just as a stopped API does. A stopped `trove-taskmanager` leaves this at 1. |
+| `openstack_trove_total_instances` | `count` | Max | How many database instances Trove listed, per region. |
+| `openstack_trove_instance_status` | | Max | One series per instance, with `id`, `name`, `tenant_id`, `datastore_type`, `datastore_version` and `status`. Its value is a code, so read its `status` label. |
+| `openstack_trove_instance_volume_size_gb` | `GiB` | Max | How many GiB each instance's volume holds. |
+| `openstack_trove_instance_volume_used_gb` | `GiB` | Max | How many GiB of each instance's volume its database has used. An instance that isn't running reads 0, whatever it holds. |
 
 ### Bare Metal
 

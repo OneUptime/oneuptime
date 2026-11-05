@@ -1880,6 +1880,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Orchestration]: "orchestration",
     [OpenStackServiceType.ContainerInfra]: "container-infra",
     [OpenStackServiceType.SharedFileSystems]: "sharev2",
+    [OpenStackServiceType.Database]: "database",
   };
 
   test.each(
@@ -1961,6 +1962,7 @@ describe("the reads themselves", () => {
       ...loadAccessMatrix("services-heat-magnum", "matrix", "access-check"),
       ...loadAccessMatrix("services-ironic", "matrix", "access-check"),
       ...loadAccessMatrix("services-manila", "matrix", "access-check"),
+      ...loadAccessMatrix("services-trove", "matrix", "access-check"),
     ];
 
     for (const definition of OPENSTACK_ACCESS_READS) {
@@ -1970,7 +1972,13 @@ describe("the reads themselves", () => {
           return (
             read.service === SCRIPT_SERVICE[definition.service] &&
             (read.read === definition.read ||
-              read.read === `${definition.read}, as the exporter asks`)
+              read.read === `${definition.read}, as the exporter asks` ||
+              // Trove's recording named it before the doctor did.
+              read.read ===
+                definition.read.replace(
+                  "instances, all projects",
+                  "instances, as the exporter asks",
+                ))
           );
         }),
       }).toEqual({

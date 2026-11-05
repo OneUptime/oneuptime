@@ -1,4 +1,4 @@
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   OpenStackFlavorRequest,
   OpenStackPlacementAnswer,
@@ -1170,6 +1170,45 @@ export function toManilaService(item: JSONObject): ManilaServiceRecord {
 }
 
 /*
+ * A database as Trove's mgmt API lists it. `used` is there only for a running instance, and the exporter
+ * reads none of what's after `used` here: why one failed and what it was doing, recorded.
+ */
+export interface TroveInstanceRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  regionName: string | null;
+  datastoreType: string | null;
+  datastoreVersion: string | null;
+  healthStatus: string | null;
+  volumeSizeGb: number | null;
+  volumeUsedGb: number | null;
+  faultMessage: string | null;
+  taskDescription: string | null;
+}
+
+export function toTroveInstance(item: JSONObject): TroveInstanceRecord {
+  const datastore: JSONObject = (item["datastore"] as JSONObject) || {};
+  const volume: JSONObject = (item["volume"] as JSONObject) || {};
+  const fault: JSONObject = (item["fault"] as JSONObject) || {};
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["tenant_id"]),
+    status: text(item["status"]),
+    regionName: text(item["region"]),
+    datastoreType: text(datastore["type"]),
+    datastoreVersion: text(datastore["version"]),
+    healthStatus: text(item["operating_status"]),
+    volumeSizeGb: numeric(volume["size"]),
+    volumeUsedGb: numeric(volume["used"]),
+    faultMessage: text(fault["message"]),
+    taskDescription: text(item["task_description"]),
+  };
+}
+
+/*
  * One region's reading of each service. A field left undefined was not read, or could
  * not be, and its series are left out: never reported as zero, because zero is an
  * answer and a failed read is not.
@@ -1264,6 +1303,10 @@ export interface OpenStackSharedFileSystemsInventory {
   services?: Array<ManilaServiceRecord> | undefined;
 }
 
+export interface OpenStackDatabaseInventory {
+  instances?: Array<TroveInstanceRecord> | undefined;
+}
+
 export interface OpenStackRatingInventory {
   // Absent when it wasn't asked this time, which is most times: it's asked once an hour.
   rated?: Array<{ projectId: string; period: string; rate: number }> | undefined;
@@ -1282,4 +1325,5 @@ export interface OpenStackInventoryByService {
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
   rating?: OpenStackRatingInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
+  database?: OpenStackDatabaseInventory | undefined;
 }
