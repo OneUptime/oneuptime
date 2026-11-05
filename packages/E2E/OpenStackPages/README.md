@@ -37,6 +37,12 @@ inventory summary, Needs attention and the blast radius from the rows the way
 `OpenStackResourceService` works them out in SQL, down to answering a bigint as text, so an
 estate has to say nothing beyond its rows.
 
+A cloud's logs and change events can be read on top of either: `?logs=epoxy-ovn` is what that real
+cloud's services wrote (`Common/Tests/Fixtures/OpenStack/service-logs`), through the ingest's own
+stamp and the code that writes a change event (`Fixture/ServiceLogs.js`), with what the default drop
+filters take out left out, and the instances, volume and service it wrote about in the inventory
+under the IDs they really had. Only the clock moves.
+
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
 `?probe=checking|collecting|partial|untrusted|plain-http`, `?probes=many`,
@@ -99,3 +105,8 @@ in zones and aggregates, a stuck image and the rows only the probe sends, which 
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.
+
+`OpenStackLogs.spec.ts`: on what real clouds' services wrote, a failed build from its instance's
+page to the scheduler's line in two clicks, which services a request reached and which it could
+not be followed to, and what happened to an instance, a volume and a compute service on each one's
+Feed.

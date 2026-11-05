@@ -7,7 +7,8 @@
  * on what a real cloud says rather than on what someone remembers it saying:
  *
  *  - every exporter recording in Common/Tests/Fixtures/OpenStack goes in as the
- *    module "openstack-recordings", so a new recording needs no change here;
+ *    module "openstack-recordings", so a new recording needs no change here, and
+ *    every recording of a cloud's service logs as "openstack-service-logs";
  *  - the real snapshot scan runs in the page (Fixture/Recordings.js). It only
  *    logs on a bad timestamp, and the server's logger pulls in OpenTelemetry's
  *    server packages, so it gets a quiet stand-in (Fixture/ScanLogger.js).
@@ -58,6 +59,46 @@ function readRecordings() {
   return read;
 }
 
+function readJsonLines(file) {
+  return fs.existsSync(file)
+    ? fs
+        .readFileSync(file, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          return JSON.parse(line);
+        })
+    : [];
+}
+
+// { "epoxy-ovn": { ids: {...}, journal: [...], notifications: [...] }, ... }
+function readServiceLogs() {
+  const folder = path.join(recordings, "service-logs");
+  const read = {};
+
+  if (!fs.existsSync(folder)) {
+    return read;
+  }
+
+  for (const release of fs.readdirSync(folder)) {
+    const ids = path.join(folder, release, "ids.json");
+
+    if (fs.existsSync(ids)) {
+      read[release] = {
+        ids: JSON.parse(fs.readFileSync(ids, "utf8")),
+        journal: readJsonLines(
+          path.join(folder, release, "journal", "devstack.jsonl"),
+        ),
+        notifications: readJsonLines(
+          path.join(folder, release, "notifications", "devstack.jsonl"),
+        ),
+      };
+    }
+  }
+
+  return read;
+}
+
 const recordingsPlugin = {
   name: "openstack-recordings",
   setup(build) {
@@ -67,6 +108,15 @@ const recordingsPlugin = {
     build.onLoad({ filter: /.*/, namespace: "openstack-recordings" }, () => {
       return {
         contents: JSON.stringify(readRecordings()),
+        loader: "json",
+      };
+    });
+    build.onResolve({ filter: /^openstack-service-logs$/ }, (args) => {
+      return { path: args.path, namespace: "openstack-service-logs" };
+    });
+    build.onLoad({ filter: /.*/, namespace: "openstack-service-logs" }, () => {
+      return {
+        contents: JSON.stringify(readServiceLogs()),
         loader: "json",
       };
     });

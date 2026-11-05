@@ -12,6 +12,9 @@
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
+ *   ?logs=      <release>: what that real cloud's services wrote, as the cloud's logs and
+ *               change events, through the ingest's own stamp (ServiceLogs.js), and the
+ *               instance, volume and service it wrote about, on any estate.
  *   ?collector= disconnected: the agent stopped reporting ?quiet= ago (default 3 days)
  *   ?quiet=     how long ago the agent last reported: minutes, e.g. 4320
  *   ?access=    project: the credential is Project view, so it can list no services,
@@ -91,6 +94,7 @@ import CloudDomains from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/
 import CloudControlPlane from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlane";
 import CloudControlPlaneDependency from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlaneDependency";
 import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Topology";
+import CloudLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Logs";
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
 import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
@@ -149,7 +153,10 @@ import {
   PROJECT_ID,
   REGION_ONE,
   buildEstate,
+  instance,
+  novaCompute,
   uuid,
+  volume,
 } from "./Data";
 import {
   PROBES,
@@ -165,6 +172,7 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { answerRows, hasServiceLogs, readServiceLogs } from "./ServiceLogs";
 
 /*
  * ---------------------------------------------------------------------------
@@ -252,6 +260,56 @@ const estate = buildEstate(
   },
   LOADED_AT,
 );
+
+/*
+ * What a real cloud's services wrote, and the parts they wrote it about, with the IDs they
+ * really had, beside whatever the estate holds.
+ */
+const serviceLogRows = hasServiceLogs(params.get("logs"))
+  ? readServiceLogs(params.get("logs"), {
+      cloudId: new ObjectID(CLOUD_ID),
+      cloudName: estate.cloud.name,
+      loadedAt: LOADED_AT,
+    })
+  : null;
+
+if (serviceLogRows) {
+  const context = {
+    loadedAt: LOADED_AT,
+    lastSeenAt: LOADED_AT - MINUTE,
+    isConnected: true,
+  };
+  const parts = [
+    instance(context, 9001, "ou-log-novalid", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_no_valid_host,
+      status: "ERROR",
+    }),
+    instance(context, 9002, "ou-log-vm", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_ok,
+    }),
+    instance(context, 9004, "ou-log-broken", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_spawn_failed,
+      status: "ERROR",
+    }),
+    volume(context, 9003, "ou-log-vol", REGION_ONE, {
+      externalId: serviceLogRows.ids.volume_attached,
+    }),
+    novaCompute(context, "devstack-host", REGION_ONE, {
+      adminState: "disabled",
+    }),
+  ];
+
+  parts.forEach((part, index) => {
+    if (part.externalId) {
+      estate.inventory.push({
+        ...part,
+        _id: uuid("74000000", index + 1),
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+      });
+    }
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -632,6 +690,10 @@ const store = {
   OpenStackCloudConnectionTest: [],
   OpenStackCloudOwnerUser: [],
   OpenStackCloudOwnerTeam: [],
+  // What a list of logs offers to filter by, on a project with none of them.
+  DockerHost: [],
+  PodmanHost: [],
+  KubernetesCluster: [],
   Probe: params.get("probes") === "many" ? PROBES : PROBES.slice(0, 1),
   OpenStackResource: estate.inventory,
   // A worker's page links to the Hosts product when a host reports under its name.
@@ -1378,6 +1440,13 @@ AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.listRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options);
+  }
+  if (serviceLogRows && modelName.startsWith("ChangeEvent")) {
+    return answerRows(serviceLogRows.changes, options);
+  }
+
   if (
     modelName.startsWith("Log") ||
     modelName.startsWith("ChangeEvent") ||
@@ -1396,6 +1465,9 @@ AnalyticsModelAPI.count = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options).count;
+  }
   if (modelName.startsWith("Log")) {
     return 0;
   }
@@ -1548,6 +1620,16 @@ async function handleApi(method, options) {
         values: [],
       });
     }
+    // The chart and the sidebar over a list of logs, which a walk reads the list of.
+    if (parsed.pathname.endsWith("/telemetry/logs/histogram")) {
+      return ok({ buckets: [], bucketSizeInMinutes: 1 });
+    }
+    if (parsed.pathname.endsWith("/telemetry/logs/facets")) {
+      return ok({ facets: {} });
+    }
+    if (parsed.pathname.endsWith("/telemetry/logs/get-attributes")) {
+      return ok({ attributes: [] });
+    }
     // A part's Metrics: the metric catalog it reads.
     if (parsed.pathname.endsWith("/telemetry/metrics/get-attributes")) {
       return ok({
@@ -1670,6 +1752,7 @@ const PAGES = [
     CloudControlPlaneDependency,
   ],
   [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY, CloudTopology],
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOGS, CloudLogs],
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS, CloudRecommendations],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION, CloudDocumentation],
   [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS, CloudSettings],

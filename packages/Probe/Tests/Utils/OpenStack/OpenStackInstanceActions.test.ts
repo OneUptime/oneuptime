@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
@@ -22,6 +24,7 @@ import {
   FIRST_READ_LOOKBACK_IN_MS,
   MAX_ACTIONS_READ_PER_SERVER,
   MAX_SERVERS_READ_PER_COLLECTION,
+  NovaInstanceActionRecord,
   OpenStackInstanceActionRead,
   buildOpenStackInstanceActionLogs,
   chooseServersToRead,
@@ -30,7 +33,10 @@ import {
   toNovaFailedStep,
   toNovaInstanceAction,
 } from "../../../Utils/OpenStack/OpenStackInstanceActions";
-import { NovaServerRecord } from "../../../Utils/OpenStack/OpenStackInventory";
+import {
+  NovaServerRecord,
+  toNovaServer,
+} from "../../../Utils/OpenStack/OpenStackInventory";
 import {
   OpenStackKeystoneSession,
   OpenStackToken,
@@ -42,13 +48,13 @@ import {
   FakeClock,
   createFakeClock,
 } from "./Helpers/CollectorHarness";
+import { FIXTURES_ROOT } from "./Helpers/RecordedCloud";
 
 /*
  * What Nova says instances went through, for a cloud that cannot turn its notifications on.
  *
- * HAND-WRITTEN FIXTURES of the instance actions API, from Nova's API reference. What a real Nova
- * answered, on each release, is held in the rig's recording, which
- * packages/Common/Tests/Utils/OpenStack/OpenStackRecordedLogs.test.ts reads.
+ * HAND-WRITTEN FIXTURES of the instance actions API, from Nova's API reference, down to the last
+ * describe, which holds these to what Nova really answered on each release.
  */
 
 const INSTANCE: string = "1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0";
@@ -839,3 +845,189 @@ describe("as OTLP logs", () => {
     expect(JSON.stringify(logs)).toContain(`${COLLECTED_AT_MS * 1_000_000}`);
   });
 });
+
+/*
+ * What Nova really answered, on real DevStacks, after a build no host could take, a build that
+ * failed on its compute host, a rebuild that failed and an instance that went through its life
+ * (Tests/Ops/openstack-e2e/logs-record.sh). With notifications off, this is all a cloud says.
+ */
+const SERVICE_LOGS: string = path.join(FIXTURES_ROOT, "service-logs");
+
+function recordedAnswer(release: string, name: string): JSONObject | null {
+  const file: string = path.join(
+    SERVICE_LOGS,
+    release,
+    "api",
+    "devstack",
+    `${name}.json`,
+  );
+
+  return fs.existsSync(file)
+    ? (JSON.parse(fs.readFileSync(file, "utf8")) as JSONObject)
+    : null;
+}
+
+describe.each(fs.readdirSync(SERVICE_LOGS))(
+  "%s: what Nova really answered",
+  (release: string) => {
+    function readInstance(key: string): {
+      server: NovaServerRecord;
+      actions: Array<NovaInstanceActionRecord>;
+    } {
+      const server: NovaServerRecord | null = toNovaServer(
+        recordedAnswer(release, `${key}-server`)?.["server"] as JSONObject,
+      );
+
+      expect(server).not.toBeNull();
+
+      return {
+        server: server as NovaServerRecord,
+        actions: (
+          recordedAnswer(release, `${key}-actions`)?.[
+            "instanceActions"
+          ] as Array<JSONObject>
+        ).map((item: JSONObject): NovaInstanceActionRecord => {
+          return toNovaInstanceAction(item) as NovaInstanceActionRecord;
+        }),
+      };
+    }
+
+    function failureOf(key: string): {
+      event: OpenStackEvent;
+      notification: JSONObject;
+      server: NovaServerRecord;
+    } {
+      const { server, actions } = readInstance(key);
+      const failed: NovaInstanceActionRecord | undefined = actions.find(
+        (action: NovaInstanceActionRecord): boolean => {
+          return Boolean(action.message);
+        },
+      );
+
+      expect(failed).toBeDefined();
+
+      const notification: JSONObject = toInstanceActionNotification({
+        server,
+        action: failed as NovaInstanceActionRecord,
+        failedStep: toNovaFailedStep(
+          recordedAnswer(release, `${key}-action-detail`) as JSONObject,
+        ),
+        faultMessage: server.faultMessage,
+      });
+
+      return {
+        event: readOpenStackNotification({
+          message: notification,
+        }) as OpenStackEvent,
+        notification,
+        server,
+      };
+    }
+
+    test("a build no host could take says so, on its instance", () => {
+      const { event, server } = failureOf("instance_no_valid_host");
+
+      expect(server.status).toBe("ERROR");
+      expect(event.type).toBe("instance.create.error");
+      expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
+      expect(event.part?.id).toBe(server.id);
+      expect(event.reason).toMatch(/valid host/i);
+      expect(event.failure).toBe(OpenStackEventFailure.Scheduling);
+    });
+
+    test("a build that failed on its compute host says why, on its instance", () => {
+      const { event, server } = failureOf("instance_spawn_failed");
+
+      expect(server.status).toBe("ERROR");
+      expect(event.type).toBe("instance.create.error");
+      expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
+      expect(event.failure).toBe(OpenStackEventFailure.Action);
+      expect(event.reason).toBeTruthy();
+    });
+
+    test("a rebuild that failed says so, as itself and not as the create before it", () => {
+      const { event, server } = failureOf("instance_rebuild_failed");
+
+      expect(event.type).toBe("instance.rebuild.error");
+      expect(event.part?.id).toBe(server.id);
+      expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
+      expect(event.reason).toBeTruthy();
+    });
+
+    test("what an admin may read of a step's traceback is never read", () => {
+      for (const key of [
+        "instance_no_valid_host",
+        "instance_spawn_failed",
+        "instance_rebuild_failed",
+      ]) {
+        const admin: JSONObject | null = recordedAnswer(
+          release,
+          `${key}-action-detail-admin`,
+        );
+        const said: string = JSON.stringify(
+          toNovaFailedStep(admin as JSONObject),
+        );
+
+        expect(said).not.toContain("/opt/stack");
+        expect(said).not.toContain("traceback");
+      }
+    });
+
+    test("the ingest reads it as Nova's API saying so", () => {
+      const { notification, server } = failureOf("instance_spawn_failed");
+      const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+        attributes: {},
+        body: JSON.stringify(notification),
+        severityNumber: 17,
+      });
+
+      expect(stamp.event?.outcome).toBe(OpenStackEventOutcome.Failed);
+      expect(stamp.attributes[OpenStackLogAttribute.Service]).toBe("nova-api");
+      expect(stamp.attributes[OpenStackLogAttribute.InstanceId]).toBe(
+        server.id,
+      );
+    });
+
+    test("an instance's whole life reads, its failures none", () => {
+      const { server, actions } = readInstance("instance_ok");
+
+      expect(actions.length).toBeGreaterThan(3);
+
+      for (const action of actions) {
+        const event: OpenStackEvent | null = readOpenStackNotification({
+          message: toInstanceActionNotification({
+            server,
+            action,
+            failedStep: null,
+            faultMessage: null,
+          }),
+        });
+
+        expect(event?.outcome).not.toBe(OpenStackEventOutcome.Failed);
+        expect(event?.part?.id).toBe(server.id);
+        expect(event?.type).toMatch(/^instance\..*\.end$/);
+      }
+    });
+
+    test("every microversion a cloud may offer reads the same actions", () => {
+      for (const key of ["instance_ok", "instance_spawn_failed"]) {
+        const newest: Array<unknown> = (
+          recordedAnswer(release, `${key}-actions`)?.[
+            "instanceActions"
+          ] as Array<JSONObject>
+        ).map((item: JSONObject): unknown => {
+          return toNovaInstanceAction(item)?.requestId;
+        });
+        const oldest: Array<unknown> = (
+          recordedAnswer(release, `${key}-actions-2-1`)?.[
+            "instanceActions"
+          ] as Array<JSONObject>
+        ).map((item: JSONObject): unknown => {
+          return toNovaInstanceAction(item)?.requestId;
+        });
+
+        expect(oldest).toEqual(newest);
+      }
+    });
+  },
+);
