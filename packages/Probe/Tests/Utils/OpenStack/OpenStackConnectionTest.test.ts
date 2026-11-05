@@ -1885,6 +1885,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.ObjectStore]: "object-store",
     [OpenStackServiceType.Metric]: "metric",
     [OpenStackServiceType.Dns]: "dns",
+    [OpenStackServiceType.Rating]: "rating",
   };
 
   test.each(

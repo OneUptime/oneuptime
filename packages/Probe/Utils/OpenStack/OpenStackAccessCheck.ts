@@ -415,7 +415,7 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       service: OpenStackServiceType.KeyManager,
       read: "secrets",
       path: "/v1/secrets",
-      query: { limit: 1 },
+      query: { limit: "1" },
       key: "secrets",
       projectField: "-",
       goesWithout:
@@ -427,7 +427,7 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       service: OpenStackServiceType.KeyManager,
       read: "orders",
       path: "/v1/orders",
-      query: { limit: 1 },
+      query: { limit: "1" },
       key: "orders",
       projectField: "-",
       goesWithout: "how many orders this project holds.",

@@ -965,6 +965,7 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.Image]: "openstack-image-api-down",
   [OpenStackServiceType.Orchestration]: "openstack-orchestration-api-down",
   [OpenStackServiceType.ContainerInfra]: "openstack-container-infra-api-down",
+  [OpenStackServiceType.Rating]: "openstack-rating-api-down",
   [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",

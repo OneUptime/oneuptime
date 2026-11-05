@@ -275,7 +275,6 @@ export function buildSpendOf(rows, options) {
           ? {
               [month]: {
                 total: 321.5,
-                byType: { "instance.usage": 321.5 },
                 readAt: now.toISOString(),
               },
             }
