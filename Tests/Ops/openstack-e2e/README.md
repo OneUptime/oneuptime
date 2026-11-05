@@ -15,6 +15,7 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | `instance-metrics.sh` | After the drills, boots `ou-burner`, which spins on its CPU, writes to its disk and sends packets, and records what both sources say about it, the idle `ou-running` and the shut-off `ou-stopped`, at the same moments, every 30 seconds for six minutes. |
 | `stop-agent.sh` | Stops the agent, keeps its logs, and fails if the collector exported nothing. |
 | `agent-install.sh` | In a job of its own, and only that with `-f agent_install_only=true`: installs the agent the way its docs say, with and without Docker, as a person with no rights and with `sudo`, on this runner and on machines with nothing on them. See below. |
+| `probe-live.sh` | In a job of its own, on a DevStack with `tls-proxy`, because a probe never sends a credential over plain HTTP, and only that with `-f probe_tls_only=true`: runs the probe's real collector and connection test (`packages/Probe/Tests/Utils/OpenStack/OpenStackLiveCloud.test.ts`) against it, over real TLS. Every other test of the probe replays recordings made with curl, so only this shows a real cloud accepts the probe's own requests. It also meets DNS, TCP, TLS, certificate, credential and project failures on a real network, then stops Neutron and Keystone. What it found is uploaded as `openstack-recording-probe-tls`. |
 
 ## Real deployments, and the guides followed on them
 

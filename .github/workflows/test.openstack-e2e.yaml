@@ -49,6 +49,10 @@ on:
         description: Only install the agent the way its docs say, with and without Docker, on one DevStack
         type: boolean
         default: false
+      probe_tls_only:
+        description: Only run the probe's real collector against one DevStack behind tls-proxy, and break it
+        type: boolean
+        default: false
   schedule:
     - cron: "23 3 * * 1"
   pull_request:
@@ -64,10 +68,79 @@ permissions:
 # so neither cancels the other. Nor does a run that only records traces, that only installs the
 # agent, or that follows a deployment tool's guide: each of those does something else entirely.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && format('kolla-{0}', inputs.kolla_neutron) || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.agent_install_only && 'agent-install' || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && format('kolla-{0}', inputs.kolla_neutron) || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.probe_tls_only && 'probe-tls' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.agent_install_only && 'agent-install' || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  # The probe's real collector against a real cloud. A probe only speaks HTTPS and DevStack serves
+  # plain HTTP by default, so this one turns tls-proxy on. Every other test of the probe replays
+  # recordings a curl made: only this shows a real cloud takes the requests the probe makes.
+  probe-tls:
+    name: a probe against a cloud behind TLS
+    if: ${{ inputs.probe_tls_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack with every API behind TLS
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          enabled_services: tls-proxy
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Probe dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Probe
+
+      - name: Run the probe against it, and break it
+        run: bash Tests/Ops/openstack-e2e/probe-live.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Upload what it found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-probe-tls
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-probe-tls
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
   # A live OneUptime, started from its test images as the E2E jobs start it, sent what real
   # deployments sent: the replay tests hold the same things over a database in memory.
   live-oneuptime:
@@ -320,7 +393,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime }}
+    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.probe_tls_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -418,7 +491,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime }}
+    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.probe_tls_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180
