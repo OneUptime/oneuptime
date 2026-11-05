@@ -16,13 +16,6 @@
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. The root package is private repository tooling (lint, install and docs scripts) that no image installs. glob comes in through jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) and typeorm, which walks only for entities and migrations given as path strings; each walks this repository's own paths."
     }
   ],
-  "Scripts": [
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. This project has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so these scripts never run that minimatch."
-    }
-  ],
   "Scripts/TerraformProvider": [
     {
       "advisory": "GHSA-gcqx-w48m-w2h4",
@@ -57,44 +50,11 @@
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. Here every affected copy is only reachable through devDependencies - jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) - so no production install has it, and jest walks this repository's own test and coverage paths."
     }
   ],
-  "agents/KubernetesAIAgent": [
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher, which restarts a development server - so no production install has it, and those tools match patterns from this repository's own configuration."
-    }
-  ],
-  "agents/KubernetesCostAgent": [
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher, which restarts a development server - so no production install has it, and those tools match patterns from this repository's own configuration."
-    }
-  ],
-  "agents/KubernetesLogTailer": [
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher, which restarts a development server - so no production install has it, and those tools match patterns from this repository's own configuration."
-    }
-  ],
-  "agents/ResourceAIAgent": [
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher, which restarts a development server - so no production install has it, and those tools match patterns from this repository's own configuration."
-    }
-  ],
   "ee": [
     {
       "advisory": "GHSA-gcqx-w48m-w2h4",
       "expires": "2026-12-04",
       "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
-    },
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup and coverage (glob, test-exclude) - so no production install has it, and those tools match patterns from this repository's own configuration."
     }
   ],
   "packages/App": [
@@ -152,11 +112,6 @@
       "advisory": "GHSA-gcqx-w48m-w2h4",
       "expires": "2026-12-04",
       "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs. create-jest, jest's project initializer, requires it the same way, as a dev dependency that never runs in production."
-    },
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. Here every copy is only reachable through devDependencies - react-native's babel-jest coverage (test-exclude) - so no production install has it, and those tools match patterns from this repository's own configuration."
     }
   ],
   "packages/App/FeatureSet/PublicDashboard": [
@@ -178,11 +133,6 @@
       "advisory": "GHSA-gcqx-w48m-w2h4",
       "expires": "2026-12-04",
       "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs. create-jest, jest's project initializer, requires it the same way, as a dev dependency that never runs in production."
-    },
-    {
-      "advisory": "GHSA-g3hv-75wg-m249",
-      "expires": "2026-12-04",
-      "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup and coverage (glob, test-exclude) and nodemon's file watcher - so no production install has it, and those tools match patterns from this repository's own configuration."
     }
   ],
   "packages/Common": [
