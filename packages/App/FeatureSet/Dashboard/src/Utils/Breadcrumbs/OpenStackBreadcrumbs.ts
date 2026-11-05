@@ -347,12 +347,6 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL,
       ["Project", "OpenStack", "View Cloud", "Projects", "Project Detail"],
     ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_INSIGHTS, [
-      "Project",
-      "OpenStack",
-      "View Cloud",
-      "Insights",
-    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS,
       ["Project", "OpenStack", "View Cloud", "Recommendations"],
