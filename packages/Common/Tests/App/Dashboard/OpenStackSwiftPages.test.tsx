@@ -31,7 +31,6 @@ import {
   resetServer,
   server,
   settle,
-  tableRow,
   tile,
 } from "./OpenStackPartHarness";
 
@@ -189,7 +188,7 @@ describe("Object Storage", () => {
 describe("Swift's API page", () => {
   const API: string = "RegionOne/object-store";
 
-  function apiRow(facts: object): Row {
+  function apiRow(facts: Record<string, unknown>): Row {
     return {
       _id: id(),
       kind: OpenStackResourceKind.Api,
