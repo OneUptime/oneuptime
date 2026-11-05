@@ -1,6 +1,6 @@
 # Svært store OpenStack-skyer
 
-Hva en sky av enhver størrelse koster før du installerer noe: hvor hardt overvåkingen belaster kontrollplanet, hvor mye data den sender, og hva OneUptime gjør annerledes etter hvert som en sky vokser. Nesten ingen sky bør trenge noe av dette: etter tallene nedenfor holder standardinnstillingene til [OpenStack-agenten](/docs/telemetry/openstack) og en [sonde](/docs/telemetry/openstack-agentless) holder opp til tusenvis av instanser uten at noe må settes.
+Hva en sky av enhver størrelse koster før du installerer noe: hvor hardt overvåkingen belaster kontrollplanet, hvor mye data den sender, og hva OneUptime gjør annerledes etter hvert som en sky vokser. Nesten ingen sky bør trenge noe av dette: etter tallene nedenfor holder standardinnstillingene til [OpenStack-agenten](/docs/telemetry/openstack) og en [sonde](/docs/telemetry/openstack-agentless) opp til tusenvis av instanser uten at noe må settes.
 
 :::cards
 - [Lasten på kontrollplanet ditt](#lasten-på-kontrollplanet-ditt): Forespørsler per minutt per tjeneste, ved hver størrelse.

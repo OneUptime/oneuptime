@@ -22,10 +22,10 @@
 | --- | --- | --- |
 | Kolla-Ansible | سورس آن، در master و `stable/2026.1` | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1` با Open vSwitch: عامل روی اعتبارنامه **Full view**، بدون Docker، روی exporter خود Kolla-Ansible و روی exporter خودتان در نسخه پین‌شده و در 1.7.0، exporter عامل روی اعتبارنامه **Infrastructure only**، هدف‌های خوانده‌شده از `prometheus.yml` واقعی آن، و پروفایل لاگ‌ها. با توقف واقعی Memcached در آنجا، Alertmanager آن یک webhook با وضعیت firing و سپس یک webhook با وضعیت resolved ارسال کرد، و آنچه ارسال کرد، وقتی به یک OneUptime در حال اجرا فرستاده شد، یک حادثه را روی ابر درست و روی هیچ ابر دیگری باز کرد و آن را حل کرد |
 | OpenStack-Ansible | سورس و مستندات آن | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1`، در کانتینرهای LXC: عامل روی اعتبارنامه **Full view**، exporter عامل روی اعتبارنامه **Infrastructure only** با policy overrideهایش، تنظیمات RabbitMQ و HAProxy همراه با خواندن هر کدام توسط عامل، و پروفایل لاگ‌ها روی journal |
-| OpenStack-Helm | مقادیر chart آن | چیزی روی OpenStack-Helm. پراب و عامل Kubernetes هر کدام به‌تنهایی آزمایش شدند |
-| Atmosphere | مستندات و سورس آن | چیزی روی Atmosphere. پراب و عامل Kubernetes هر کدام به‌تنهایی آزمایش شدند |
+| OpenStack-Helm | مقادیر chart آن | هیچ چیز روی OpenStack-Helm. پراب و عامل Kubernetes هر کدام به‌تنهایی آزمایش شدند |
+| Atmosphere | مستندات و سورس آن | هیچ چیز روی Atmosphere. پراب و عامل Kubernetes هر کدام به‌تنهایی آزمایش شدند |
 | Canonical Sunbeam | مستندات Canonical، و سورس charmهای آن | هیچ چیز روی Sunbeam. مستندات خود Sunbeam charm مربوط به exporter را ذکر نمی‌کنند |
-| Red Hat OpenStack on OpenShift | سورس Telemetry Operator | چیزی روی توزیع Red Hat. پریست OpenShift و exporter مربوط به Ceilometer هر کدام به‌تنهایی آزمایش شدند |
+| Red Hat OpenStack on OpenShift | سورس Telemetry Operator | هیچ چیز روی توزیع Red Hat. پریست OpenShift و exporter مربوط به Ceilometer هر کدام به‌تنهایی آزمایش شدند |
 | Mirantis MOSK | مستندات Mirantis، که مثال‌هایش به‌جای webhook گیرنده‌های دیگر را نشان می‌دهند | هیچ چیز روی MOSK |
 
 آنچه **چه کسی چه کرد** در هر راهنما روشن می‌کند روی DevStack ضبط شد، و روی هیچ‌یک از این ابزارها نه. اینکه هر ابزار آن را کجا می‌برد از سورس یا مستندات همان ابزار خوانده شد.

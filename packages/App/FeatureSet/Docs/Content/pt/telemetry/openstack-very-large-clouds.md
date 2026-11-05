@@ -211,7 +211,7 @@ A margem não é larga em uma máquina tão ocupada. Uma hora anterior, com uma 
 
 ## O que as páginas leem
 
-As páginas de uma nuvem grande são lidas com pouco mais do que as de uma pequena, porque nenhuma delas lê a nuvem inteira.
+As páginas de uma nuvem grande leem pouco mais do que as de uma pequena, porque nenhuma delas lê a nuvem inteira.
 
 | Página | O que ela lê |
 | --- | --- |

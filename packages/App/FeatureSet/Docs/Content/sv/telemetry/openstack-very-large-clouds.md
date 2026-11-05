@@ -1,6 +1,6 @@
 # Mycket stora OpenStack-moln
 
-Vad ett moln av vilken storlek som helst kostar innan du installerar något: hur hårt övervakningen belastar dess kontrollplan, hur mycket data den skickar och vad OneUptime gör annorlunda när ett moln växer. Nästan varje moln borde inte behöva något av detta: enligt antalen nedan klarar standardvärdena för [OpenStack Agent](/docs/telemetry/openstack) och en [sond](/docs/telemetry/openstack-agentless) klarar tusentals instanser utan att något ställs in.
+Vad ett moln av vilken storlek som helst kostar innan du installerar något: hur hårt övervakningen belastar dess kontrollplan, hur mycket data den skickar och vad OneUptime gör annorlunda när ett moln växer. Nästan varje moln borde inte behöva något av detta: enligt antalen nedan klarar standardvärdena för [OpenStack Agent](/docs/telemetry/openstack) och en [sond](/docs/telemetry/openstack-agentless) tusentals instanser utan att något ställs in.
 
 :::cards
 - [Belastningen på ditt kontrollplan](#belastningen-på-ditt-kontrollplan): Begäranden per minut och tjänst, vid varje storlek.
@@ -211,7 +211,7 @@ Marginalen är inte stor på en så upptagen maskin. En tidigare timme, vid ett 
 
 ## Vad sidorna läser
 
-Ett stort molns sidor läses nästan lika snabbt som ett litet, eftersom ingen av dem läser hela molnet.
+Ett stort molns sidor läser knappt mer än ett litet molns, eftersom ingen av dem läser hela molnet.
 
 | Sida | Vad den läser |
 | --- | --- |

@@ -32,7 +32,7 @@ Det **Hvem gjorde hva** slår på i hver guide ble tatt opp på DevStack, og på
 
 Ved siden av dem har hele veien kjørt på en levende OneUptime, startet slik Docker Compose starter den, på en ekte DevStack i stedet for noen av disse verktøyene. Agenten, installert med dokumentasjonens kommandoer, registrerte skyen fra de første dataene, og hver instans, hvert volum og hver hypervisor hadde en rad med statusen skyen selv ga den. Med `nova-compute` virkelig stoppet gikk raden ned, en overvåker fra malen Compute Service Down åpnet én hendelse som navnga verten omtrent 12 minutter senere, og den ble løst innen ett minutt etter at tjenesten startet igjen. Et prosjekts sonde koblet til den samme skyen gjennom dashbordets egne ruter og leste radene tilbake, og 114 spenn fra en signert oppstart kom fram på tvers av tjenestene, fra traceprofilen.
 
-Separat ble det en ekte agent sendte på DevStack og det Kolla-Ansibles Alertmanager postet tatt opp, og deretter sendt til en levende OneUptime: webhooken for utløsning én hendelse på riktig sky og på ingen annen, den samme webhooken igjen åpnet ingenting, og webhooken for løsning løste den.
+Separat ble det en ekte agent sendte på DevStack og det Kolla-Ansibles Alertmanager postet tatt opp, og deretter sendt til en levende OneUptime: webhooken for utløsning åpnet én hendelse på riktig sky og på ingen annen, den samme webhooken igjen åpnet ingenting, og webhooken for løsning løste den.
 
 ## Videresend det som allerede utløses
 

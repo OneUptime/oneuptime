@@ -54,7 +54,7 @@ Ces chiffres sont comptés à partir du code source de l'exportateur, et l'expor
 
 ### Quand une API ralentit
 
-Une sonde surveille le temps de réponse habituel de chaque service, et se retient lorsqu'une réponse est lente ou refusée : [What it costs your cloud](/docs/telemetry/openstack-agentless#ce-que-cela-coûte-à-votre-cloud) dit de combien. Plusieurs lectures qui attendent en même temps passent à tour de rôle, de sorte qu'une pause ne se termine pas en rafale. Rien d'autre n'est retenu : chaque service est interrogé séparément.
+Une sonde surveille le temps de réponse habituel de chaque service, et se retient lorsqu'une réponse est lente ou refusée : [Ce que cela coûte à votre cloud](/docs/telemetry/openstack-agentless#ce-que-cela-coûte-à-votre-cloud) dit de combien. Plusieurs lectures qui attendent en même temps passent à tour de rôle, de sorte qu'une pause ne se termine pas en rafale. Rien d'autre n'est retenu : chaque service est interrogé séparément.
 
 La carte **Collecte des données** du cloud l'indique tant que cela dure, service par service : la lenteur de sa réponse la plus lente, et la durée pendant laquelle la sonde s'est retenue. L'exportateur de l'agent ne peut pas faire cela. Un scrape s'exécute en entier, à son intervalle : augmentez `scrape_interval` et `scrape_timeout` pour ce job afin de ménager un service.
 
@@ -211,7 +211,7 @@ La marge n'est pas large sur une machine aussi occupée. Une heure antérieure, 
 
 ## Ce que lisent les pages
 
-Les pages d'un grand cloud se lisent à peine plus lentement que celles d'un petit, car aucune ne lit tout le cloud.
+Les pages d'un grand cloud lisent à peine plus que celles d'un petit, car aucune ne lit tout le cloud.
 
 | Page | Ce qu'elle lit |
 | --- | --- |

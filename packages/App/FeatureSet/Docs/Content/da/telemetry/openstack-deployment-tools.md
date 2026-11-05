@@ -32,7 +32,7 @@ Det, hver guides **Hvem gjorde hvad** bygger på, blev optaget på DevStack og p
 
 Ved siden af er hele stien kørt på en levende OneUptime, startet som Docker Compose starter den, på en rigtig DevStack frem for nogen af disse værktøjer. Agenten, installeret med dens dokumentations kommandoer, registrerede clouden ud fra sine første data, og hver instans, diskenhed og hypervisor havde en række med den status, clouden selv gav den. Med `nova-compute` rent faktisk stoppet gik dens række ned, en monitor fra skabelonen Compute Service Down åbnede én hændelse, der navngav værten, omkring 12 minutter senere, og den blev løst inden for et minut, efter at tjenesten startede igen. Et projekts sonde tilsluttede den samme cloud gennem dashboardets egne ruter og læste dens rækker tilbage, og 114 spans fra en signeret opstart ankom på tværs af dens tjenester, fra trace-profilen.
 
-Særskilt blev det, en rigtig agent sendte på DevStack, og det, Kolla-Ansibles Alertmanager postede, optaget og derefter sendt til en levende OneUptime: den udløsende webhook åbnede den udløsende webhook én hændelse på den rigtige cloud og på ingen anden, den samme webhook igen åbnede intet, og den løste webhook løste den.
+Særskilt blev det, en rigtig agent sendte på DevStack, og det, Kolla-Ansibles Alertmanager postede, optaget og derefter sendt til en levende OneUptime: den udløsende webhook åbnede én hændelse på den rigtige cloud og på ingen anden, den samme webhook igen åbnede intet, og den løste webhook løste den.
 
 ## Videresend det, der allerede udløser
 

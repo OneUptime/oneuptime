@@ -54,7 +54,7 @@ Disse er talt ud fra eksportørens kildekode, og eksportøren er ikke kørt i di
 
 ### Når et API bliver langsomt
 
-En sonde holder øje med, hvad hver tjeneste plejer at svare på, og holder igen, når et svar er langsomt eller afvist: [What it costs your cloud](/docs/telemetry/openstack-agentless#hvad-det-koster-din-cloud) siger med hvor meget. Flere aflæsninger, der venter på én gang, tager tur, så en pause ikke ender i en byge. Intet andet holdes op: hver tjeneste spørges for sig.
+En sonde holder øje med, hvad hver tjeneste plejer at svare på, og holder igen, når et svar er langsomt eller afvist: [Hvad det koster din cloud](/docs/telemetry/openstack-agentless#hvad-det-koster-din-cloud) siger med hvor meget. Flere aflæsninger, der venter på én gang, tager tur, så en pause ikke ender i en byge. Intet andet holdes op: hver tjeneste spørges for sig.
 
 Cloudens kort **Dataindsamling** siger det, mens det varer, tjeneste for tjeneste: hvor langsomt dens langsomste svar var, og hvor længe sonden holdt sig tilbage. Agentens eksportør kan ikke gøre dette. En scrape kører hel, med sit interval: hæv `scrape_interval` og `scrape_timeout` for det job for at skåne en tjeneste.
 
