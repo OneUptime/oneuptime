@@ -366,6 +366,15 @@ agent_spans_so_far() {
   sudo python3 -I "$READ" count "$TRACES_DIR/otlp-agent.json" 2>/dev/null || echo 0
 }
 
+# What every service has burned so far, and when, so that what one of them burned between two
+# moments can be read: traces-read.py cost does. A scene's own, and the cost of a quiet cloud's.
+record_cpu() {
+  local folder="$TRACES_DIR/cost-raw/$1"
+  mkdir -p "$folder"
+  date +%s >"$folder/$2-at.txt"
+  systemctl show -p Id -p CPUUsageNSec 'devstack@*' >"$folder/cpu-$2.txt" 2>&1 || true
+}
+
 # One scene, with a failure written down rather than costing the scenes after it. The
 # subshell keeps set -e working inside it, which an `if` around it would turn off.
 #
@@ -381,6 +390,7 @@ scene() {
   log "Scene $name"
   output="$TRACES_DIR/scene-output/$name.txt"
   before="$(spans_so_far)"
+  record_cpu "scenes/$name" before
   started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   began="$(date +%s.%N)"
   set +e
@@ -390,6 +400,7 @@ scene() {
   finished="$(date +%s.%N)"
   ended="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   sleep 15
+  record_cpu "scenes/$name" after
   after="$(spans_so_far)"
   seconds="$(awk -v a="$began" -v b="$finished" 'BEGIN { printf "%.3f", b - a }')"
   traces="$( (grep -oE 'Trace ID: [0-9a-f-]{36}' "$output" || true) | awk '{ printf "%s\"%s\"", (NR > 1 ? "," : ""), $3 }')"
@@ -724,6 +735,26 @@ apply_keystoneauth_line() {
 COST_REQUESTS=40
 COST_QUIET_SECONDS=120
 
+# Where a service that burned most of a core while nobody asked it anything is: what its threads
+# are in, and which files and sockets it holds, because a hub spins on one that stays ready.
+record_what_is_hot() {
+  local folder="$1" unit pid
+  sudo "$VENV/bin/pip" install py-spy >/dev/null 2>&1 || true
+  for unit in $(python3 -I "$READ" hot "$folder" 2>/dev/null); do
+    {
+      systemctl status --no-pager --lines=0 "$unit" || true
+      for pid in $(sudo cat "/sys/fs/cgroup/system.slice/system-devstack.slice/$unit/cgroup.procs" 2>/dev/null); do
+        echo "--- where $pid is"
+        sudo timeout 20 "$VENV/bin/py-spy" dump --pid "$pid" || true
+        echo "--- what $pid holds"
+        sudo ls -l "/proc/$pid/fd" 2>/dev/null | awk '{ print $9, $10, $11 }' || true
+        sudo ss -tanp 2>/dev/null | grep "pid=$pid," || true
+        sudo timeout 5 strace -c -f -p "$pid" 2>&1 | head -12 || true
+      done
+    } >"$folder/hot-$unit.txt" 2>&1
+  done
+}
+
 measure_cost() {
   local label="$1" folder="$TRACES_DIR/cost-raw/$1" token type path url i
   if [ "$SECONDS" -gt "$SCENES_WITHIN" ]; then
@@ -748,12 +779,15 @@ measure_cost() {
       done >"$folder/$type.txt"
     done
   ) || echo "Timing the APIs failed for $label." >&2
-  systemctl show -p Id -p CPUUsageNSec 'devstack@*' >"$folder/cpu-before.txt" 2>&1 || true
+  # What those requests made is still on its way out in a batch, and it is not the quiet's.
+  sleep 15
+  record_cpu "$label" before
   sudo stat -c %s "$TRACES_DIR/otlp-agent.json" >"$folder/bytes-before.txt" 2>/dev/null || echo 0 >"$folder/bytes-before.txt"
   spans_so_far >"$folder/spans-before.txt"
   agent_spans_so_far >"$folder/agent-spans-before.txt"
   sleep "$COST_QUIET_SECONDS"
-  systemctl show -p Id -p CPUUsageNSec 'devstack@*' >"$folder/cpu-after.txt" 2>&1 || true
+  record_cpu "$label" after
+  record_what_is_hot "$folder"
   sudo stat -c %s "$TRACES_DIR/otlp-agent.json" >"$folder/bytes-after.txt" 2>/dev/null || echo 0 >"$folder/bytes-after.txt"
   spans_so_far >"$folder/spans-after.txt"
   agent_spans_so_far >"$folder/agent-spans-after.txt"

@@ -218,6 +218,15 @@ export function joinOpenStackTraceToRequests(data: {
     byRoot.set(rootId, known);
   }
 
+  // Once a span names a request, a line that only shares its moments is someone else's guess.
+  if (named.size > 0) {
+    for (const [rootId, known] of byRoot) {
+      if (known.match !== OpenStackTraceRequestMatch.NamedBySpan) {
+        byRoot.delete(rootId);
+      }
+    }
+  }
+
   // A request the spans name stands with no line of it read, because no line was needed.
   for (const [requestId, known] of named) {
     if (!heldByLines.has(requestId)) {

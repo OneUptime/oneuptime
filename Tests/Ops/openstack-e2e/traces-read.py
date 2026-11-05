@@ -419,22 +419,55 @@ def read_cost_file(folder, name):
 
 
 def cpu_seconds_of(text):
-    """What `systemctl show -p Id -p CPUUsageNSec` wrote, by unit."""
+    """What `systemctl show -p Id -p CPUUsageNSec` wrote, by unit: a block for each, in its own order."""
     seconds = {}
-    unit = ""
-    for line in text.splitlines():
-        if line.startswith("Id="):
-            unit = line[3:]
-        elif line.startswith("CPUUsageNSec=") and unit and line[13:].isdigit():
-            seconds[unit] = int(line[13:]) / 1e9
+    for block in text.split("\n\n"):
+        fields = dict(line.split("=", 1) for line in block.splitlines() if "=" in line)
+        unit = fields.get("Id", "")
+        usage = fields.get("CPUUsageNSec", "")
+        if unit and usage.isdigit():
+            seconds[unit] = int(usage) / 1e9
     return seconds
+
+
+def burned_between(folder):
+    before = cpu_seconds_of(read_cost_file(folder, "cpu-before.txt"))
+    after = cpu_seconds_of(read_cost_file(folder, "cpu-after.txt"))
+    return {unit: round(after[unit] - before[unit], 2) for unit in after if unit in before}
+
+
+def seconds_between(folder):
+    began = read_cost_file(folder, "before-at.txt").strip()
+    ended = read_cost_file(folder, "after-at.txt").strip()
+    return int(ended) - int(began) if began.isdigit() and ended.isdigit() else 0
+
+
+def hot(folder):
+    """The units that burned over half a core between two moments, one a line."""
+    seconds = seconds_between(folder)
+    for unit, burned in burned_between(folder).items():
+        if seconds and burned > seconds / 2:
+            print(unit)
 
 
 def cost(traces_dir):
     """How long APIs took and what the services burned, with tracing off and on."""
     raw = os.path.join(traces_dir, "cost-raw")
-    out = {}
+    out = {"byScene": {}}
+    # What each service burned over each scene, from the first with nothing on: only those that
+    # burned a fifth of a core, because every scene's whole list is noise.
+    scenes = os.path.join(raw, "scenes")
+    for scene in read_scenes(traces_dir):
+        folder = os.path.join(scenes, scene.get("scene", ""))
+        seconds = seconds_between(folder)
+        if seconds:
+            out["byScene"][scene["scene"]] = {
+                "seconds": seconds,
+                "hot": {unit: burned for unit, burned in burned_between(folder).items() if burned > seconds / 5},
+            }
     for label in sorted(os.listdir(raw)) if os.path.isdir(raw) else []:
+        if label == "scenes":
+            continue
         folder = os.path.join(raw, label)
         answers = {}
         for api in ("compute", "network", "image"):
@@ -445,9 +478,7 @@ def cost(traces_dir):
                     "p50Milliseconds": round(times[len(times) // 2] * 1000, 1),
                     "p95Milliseconds": round(times[min(len(times) - 1, int(len(times) * 0.95))] * 1000, 1),
                 }
-        before = cpu_seconds_of(read_cost_file(folder, "cpu-before.txt"))
-        after = cpu_seconds_of(read_cost_file(folder, "cpu-after.txt"))
-        burned = {unit: round(after[unit] - before[unit], 2) for unit in after if unit in before}
+        burned = burned_between(folder)
         seconds = int(read_cost_file(folder, "seconds.txt").strip() or 0)
         number = lambda name: int(read_cost_file(folder, name).strip() or 0)  # pylint: disable=cell-var-from-loop
         out[label] = {
@@ -462,7 +493,7 @@ def cost(traces_dir):
     with open(os.path.join(traces_dir, "native-cost.json"), "w", encoding="utf-8") as handle:
         json.dump(out, handle, indent=2, sort_keys=True)
         handle.write("\n")
-    print(json.dumps({label: {key: value for key, value in row.items() if key != "cpuSecondsWhileQuiet"} for label, row in out.items()}))
+    print(json.dumps({label: {key: value for key, value in row.items() if key != "cpuSecondsWhileQuiet"} for label, row in out.items() if label != "byScene"}))
 
 
 def main():
@@ -480,6 +511,9 @@ def main():
         return 0
     if command == "cost":
         cost(sys.argv[2])
+        return 0
+    if command == "hot":
+        hot(sys.argv[2])
         return 0
     if command == "remove-key":
         return remove_key(sys.argv[2])

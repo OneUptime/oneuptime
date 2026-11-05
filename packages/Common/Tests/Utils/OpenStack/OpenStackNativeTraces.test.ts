@@ -414,11 +414,8 @@ describe("a trace's requests, when its spans name them", () => {
       match: OpenStackTraceRequestMatch.NamedBySpan,
       services: ["nova-scheduler"],
     });
-    // The other is only the same service at the same moment, and says so.
-    expect(requests[1]).toMatchObject({
-      rootId: "req-other",
-      match: OpenStackTraceRequestMatch.SameMoment,
-    });
+    // The other only shares its moments with the trace, which is no longer worth saying.
+    expect(requests).toHaveLength(1);
   });
 
   test("a request called by another keeps the root its lines give it", () => {

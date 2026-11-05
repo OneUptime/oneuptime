@@ -1297,7 +1297,7 @@ def part_traces():
                 "Traces",
                 "OpenStackTraces.png",
                 cloud_path(STATE["agent cloud"], "traces"),
-                marks=[{"selector": '[data-testid="openstack-traces-on"]'}],
+                marks=[{"selector": '[data-testid="openstack-traces-status"]'}],
             )
         ],
     )
@@ -1455,12 +1455,14 @@ def part_native():
                 cloud_path(STATE["agent cloud"], "traces"),
                 marks=[{"selector": '[data-testid="openstack-traces-native"]'}],
             ),
-            named_page(
-                "The boot's trace",
-                "OpenStackTraceNative.png",
-                f"/dashboard/{live.PROJECT_ID}/traces/view/{trace_id}",
-                marks=[{"selector": '[data-testid="openstack-trace-source"]'}, {"selector": '[data-testid="openstack-trace-requests"]'}],
-            ),
+            # Not held to having no empty state: no log line holds a trace's ID, so the trace page's
+            # own Logs part is empty, and the card above it is what joins the two.
+            {
+                "name": "The boot's trace",
+                "file": "OpenStackTraceNative.png",
+                "path": f"/dashboard/{live.PROJECT_ID}/traces/view/{trace_id}",
+                "marks": [{"selector": '[data-testid="openstack-trace-source"]'}, {"selector": '[data-testid="openstack-trace-requests"]'}],
+            },
         ],
     )
 
