@@ -883,7 +883,9 @@ Swift keeps every project's account from every other project's credentials, reco
 
 A credential Swift refuses reads `openstack_object_store_up` 0, just as a stopped proxy does. So a credential that has never once read Swift is told that, rather than that Swift is down, and isn't offered its alerts. A probe tells the two apart: Swift answered, so its API reads up, and the connection test says it was refused. An application credential with access rules also needs `include_service_catalog = True` in `proxy-server.conf`.
 
-A stopped object server changes nothing here, recorded: Swift's lists come from its account and container servers, and its proxy goes on answering. Only what each storage server says through its own `/recon` would say so, and that isn't in Keystone's catalog.
+A stopped object server changes nothing the exporter says, recorded: Swift's lists come from its account and container servers, and its proxy goes on answering. Only what each storage server says through its own `/recon` says so, and that isn't in Keystone's catalog.
+
+So a probe reads it where you name them: under **What it reads beyond the defaults** in the **Data Collection** card, list each storage server's `/recon` port as `host:port`. It takes 5 calls per server on each collection, and no credential goes to them. You then get **Swift Storage Server Not Answering**, **Swift Rings Differ** and **Swift Replication Stale**, and what they add up to on Swift's own page. A recording only had one server to read, so rings that differ have only been checked on made-up numbers. So has replication gone stale, which on a runner finishes every few minutes.
 
 **Object Container Growth Forecast** reads a line through the last week of each container, and looks a week ahead. Swift says nothing here of how much room a cloud has, so its line of 1 TiB is one to hear about rather than one anything breaks at. Change it to fit your cloud. No runner holds a week of growth, so it has only been checked on made-up numbers.
 

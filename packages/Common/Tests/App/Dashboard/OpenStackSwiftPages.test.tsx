@@ -11,7 +11,11 @@ import { cleanup, configure, screen } from "@testing-library/react";
 import * as React from "react";
 import path from "path";
 import { OpenStackResourceBufferEntry } from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
-import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "../../../Types/OpenStack/OpenStackResourceKind";
+import OpenStackCloudServiceDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
 import OpenStackCloudObjectContainerDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ObjectContainerDetail";
 import OpenStackCloudObjectContainers from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ObjectContainers";
 import {
@@ -179,6 +183,56 @@ describe("Object Storage", () => {
       await screen.findByText("This credential has never read this service"),
     ).toBeInTheDocument();
     expect(screen.queryByText("This service's API isn't answering")).toBeNull();
+  });
+});
+
+describe("Swift's API page", () => {
+  const API: string = "RegionOne/object-store";
+
+  function apiRow(facts: object): Row {
+    return {
+      _id: id(),
+      kind: OpenStackResourceKind.Api,
+      name: OpenStackServiceType.ObjectStore,
+      externalId: API,
+      regionName: "RegionOne",
+      status: "up",
+      facts: { vouchedAt: new Date().toISOString(), ...facts },
+      lastSeenAt: new Date(),
+    };
+  }
+
+  test("says nothing of storage servers nobody named: no trace of them", async () => {
+    server.rows = [apiRow({ reconServers: 0 })];
+
+    await renderPage(OpenStackCloudServiceDetail, partPath("services", API));
+
+    await screen.findByTestId("openstack-service-overview");
+    await settle();
+    expect(screen.queryByTestId("openstack-service-tiles")).toBeNull();
+  });
+
+  test("where someone named them, what they add up to, and what needs someone", async () => {
+    server.rows = [
+      apiRow({
+        reconServers: 3,
+        reconServersNotAnswering: 1,
+        reconRingsDiffering: 0,
+      }),
+    ];
+
+    await renderPage(OpenStackCloudServiceDetail, partPath("services", API));
+
+    expect(
+      await screen.findByTestId("openstack-service-tiles"),
+    ).toBeInTheDocument();
+    expect(
+      tile("openstack-service-tiles", "Storage servers read"),
+    ).toHaveTextContent("3");
+    await settle();
+    expect(attentionRowsOf("openstack-service-attention")).toEqual([
+      "This API: 1 of Swift's storage servers aren't answering",
+    ]);
   });
 });
 

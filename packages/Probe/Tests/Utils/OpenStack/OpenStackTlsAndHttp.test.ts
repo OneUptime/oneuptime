@@ -373,10 +373,11 @@ describe("a socket to a real TLS server", () => {
 
   test("says what it was shown, whatever the verdict, which is how a check reads a certificate's end", async () => {
     const shown: Array<OpenStackPresentedCertificate> = [];
-    const onCertificate: (certificate: OpenStackPresentedCertificate) => void =
-      (certificate: OpenStackPresentedCertificate): void => {
-        shown.push(certificate);
-      };
+    const onCertificate: (
+      certificate: OpenStackPresentedCertificate,
+    ) => void = (certificate: OpenStackPresentedCertificate): void => {
+      shown.push(certificate);
+    };
 
     // Refused, as one no authority signed is, and still seen.
     await failure({ onCertificate: onCertificate });
@@ -876,6 +877,109 @@ describe("the transport", () => {
  * What a person is shown for each of them: the login, the answer and the sentence, on a real
  * connection from end to end. These are the failures the connection test promises to name.
  */
+describe("a storage server's /recon, the one thing plain HTTP reaches", () => {
+  async function withServer(
+    run: (port: number, seen: Array<http.IncomingHttpHeaders>) => Promise<void>,
+  ): Promise<void> {
+    const seen: Array<http.IncomingHttpHeaders> = [];
+    const server: http.Server = http.createServer(
+      (request: http.IncomingMessage, response: http.ServerResponse) => {
+        seen.push(request.headers);
+        response.setHeader("content-type", "application/json");
+        response.end(JSON.stringify([{ device: "sdb1", mounted: false }]));
+      },
+    );
+    const port: number = await listen(server);
+    try {
+      await run(port, seen);
+    } finally {
+      server.closeAllConnections();
+      await close(server);
+    }
+  }
+
+  function transportOf(pinned: string): OpenStackTransportHandle {
+    return createOpenStackTransport({
+      trustedFingerprints: [],
+      resolve: async (): Promise<Array<string>> => {
+        return [pinned];
+      },
+      connectTimeoutInMs: CONNECT_TIMEOUT_IN_MS,
+      maxResponseBytes: 1024 * 1024,
+    });
+  }
+
+  test("is read, from the address that was checked rather than what the name says now", async () => {
+    await withServer(async (port: number) => {
+      const handle: OpenStackTransportHandle = transportOf("127.0.0.1");
+      const answer: OpenStackHttpResponse = await handle.transport({
+        method: "GET",
+        url: `http://swift-01.test:${port}/recon/unmounted`,
+        headers: { Accept: "application/json" },
+        timeoutInMs: 5000,
+      });
+      handle.close();
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toContain("sdb1");
+    });
+  });
+
+  test.each([
+    ["anything else on the same port", "/v1/AUTH_abc", {}],
+    [
+      "anything with a token on it",
+      "/recon/unmounted",
+      { "X-Auth-Token": "t" },
+    ],
+    [
+      "a token by any other spelling",
+      "/recon/unmounted",
+      { "x-auth-token": "t" },
+    ],
+  ])(
+    "%s is refused before anything is written",
+    async (_name: string, urlPath: string, headers: Record<string, string>) => {
+      await withServer(
+        async (port: number, seen: Array<http.IncomingHttpHeaders>) => {
+          const handle: OpenStackTransportHandle = transportOf("127.0.0.1");
+          await expect(
+            handle.transport({
+              method: "GET",
+              url: `http://127.0.0.1:${port}${urlPath}`,
+              headers,
+              timeoutInMs: 5000,
+            }),
+          ).rejects.toThrow(/plain HTTP/);
+          handle.close();
+
+          expect(seen).toEqual([]);
+        },
+      );
+    },
+  );
+
+  test("a request with a body is refused too", async () => {
+    await withServer(
+      async (port: number, seen: Array<http.IncomingHttpHeaders>) => {
+        const handle: OpenStackTransportHandle = transportOf("127.0.0.1");
+        await expect(
+          handle.transport({
+            method: "POST",
+            url: `http://127.0.0.1:${port}/recon/unmounted`,
+            headers: {},
+            body: "{}",
+            timeoutInMs: 5000,
+          }),
+        ).rejects.toThrow(/plain HTTP/);
+        handle.close();
+
+        expect(seen).toEqual([]);
+      },
+    );
+  });
+});
+
 describe("every failure a connection test names", () => {
   let servers: Array<RealServer> = [];
 

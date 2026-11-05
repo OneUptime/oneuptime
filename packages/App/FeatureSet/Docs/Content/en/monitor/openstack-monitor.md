@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 110 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove, Designate, Gnocchi or Swift to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 113 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove, Designate, Gnocchi or Swift to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -169,6 +169,9 @@ Every template reads at least three collections of what it watches, and fires on
 | Object Storage API Down | Availability | Critical | `openstack_object_store_up` and `up` for `object-store`, Min per region, **past 15 minutes** | The exporter's read of Swift failed, or the exporter did not answer. A credential Swift refuses reads the same, so a cloud whose credential has never read Swift isn't offered this | Both read 1 |
 | Object Container Growth Forecast | Storage | Warning | `openstack_object_store_bytes`, a line through the **past 7 days**, per container | The line passes 1 TiB within the next week. Change it to what your cloud should hear about | The line no longer gets to 90% of that |
 | Key Manager API Down | Availability | Critical | `openstack_barbican_up`, Min per region, **past 15 minutes**. Only a probe offers this | Below 1. The exporter has no reader for Barbican at all | Reads 1 |
+| Swift Storage Server Not Answering | Storage | Warning | `openstack_object_store_recon_up`, Min per server, **past 15 minutes**. Only a probe offers this, where the cloud's settings name its storage servers | The server doesn't answer `/recon`. Swift's proxy goes on answering without it | It answers |
+| Swift Rings Differ | Storage | Warning | `openstack_object_store_recon_rings_differ`, Min per ring, **past 15 minutes**. Only a probe offers this | The named servers report different checksums for a ring | They agree |
+| Swift Replication Stale | Storage | Warning | `openstack_object_store_recon_replication_age_seconds`, Min per server and ring, **past 15 minutes**. Only a probe offers this | A server last finished a pass more than 6 hours ago | One finishes |
 | Databases API Down | Availability | Critical | `openstack_trove_up` and `up` for `database`, Min per region, **past 15 minutes** | The exporter's read of Trove failed, or the exporter did not answer. It reads Trove's mgmt API, so a credential refused reads the same as a stopped API, and a cloud whose credential has never read Trove isn't offered this | Both read 1 |
 | Database Instance in Error | Databases | Warning | A count of `openstack_trove_instance_status` with each error status, per instance, **past 15 minutes** | An instance holds an error status for the whole window | It is fixed or deleted |
 | Database Instance Stuck | Databases | Warning | A count of `openstack_trove_instance_status` with each passing status, per instance, **past 1 hour** | An instance holds a passing status for the whole window. Trove has no list of its workers, so this is what says `trove-taskmanager` stopped | It reaches its next status, or is deleted |
@@ -572,6 +575,15 @@ Only a cloud that runs Swift sends these, and a cloud without it shows no trace 
 | --- | --- | --- | --- |
 | `openstack_object_store_up` | | Min | Whether the exporter's read of Swift answered. A credential Swift refuses reads 0 just as a stopped proxy does. |
 | `openstack_object_store_bytes` | `bytes` | Max | How much a container holds, with `container_name`. Only the credential's own project's, with no project label. |
+| `openstack_object_store_recon_servers` | `count` | Max | How many of Swift's storage servers the cloud's settings name for `/recon`. Only a probe sends this. |
+| `openstack_object_store_recon_up` | | Min | Whether a named server answered `/recon`, with `address`. Only a probe sends this. |
+| `openstack_object_store_recon_servers_not_answering` | `count` | Max | How many of the named servers aren't answering. Only a probe sends this. |
+| `openstack_object_store_recon_replication_age_seconds` | `s` | Min | How long ago a server last finished a pass of replication, with `address` and `ring`. Only a probe sends this. |
+| `openstack_object_store_recon_replication_failures` | `count` | Max | How many of that pass's attempts failed, with `address` and `ring`. Only a probe sends this. |
+| `openstack_object_store_recon_oldest_replication_seconds` | `s` | Max | The longest wait of any of those. Only a probe sends this. |
+| `openstack_object_store_recon_unmounted_drives` | `count` | Max | How many drives a server says aren't mounted, with `address`. Only a probe sends this. |
+| `openstack_object_store_recon_rings_differ` | | Min | Whether the named servers report different checksums for a ring, with `ring`. Only a probe sends this. |
+| `openstack_object_store_recon_rings_differing` | `count` | Max | How many rings they do that for. Only a probe sends this. |
 | `openstack_object_store_objects` | `count` | Max | How many objects a container holds, with `container_name`. Only the credential's own project's, with no project label. |
 
 ### Key manager

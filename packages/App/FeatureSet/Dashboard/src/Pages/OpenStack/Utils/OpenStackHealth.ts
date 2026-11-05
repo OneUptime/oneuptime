@@ -47,6 +47,7 @@ import {
   OPENSTACK_GNOCCHI_MEASURES_FACT,
   isOpenStackGnocchiBacklogged,
   isOpenStackGnocchiWithoutProcessors,
+  getOpenStackSwiftReconTroubles,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackProjectQuota,
@@ -129,6 +130,15 @@ const REASON_GNOCCHI_NO_PROCESSORS: string = translationKey(
 );
 const REASON_GNOCCHI_BACKLOG: string = translationKey(
   "{{count}} measures are waiting on gnocchi-metricd",
+);
+const REASON_SWIFT_SERVERS_NOT_ANSWERING: string = translationKey(
+  "{{count}} of Swift's storage servers aren't answering",
+);
+const REASON_SWIFT_RINGS_DIFFER: string = translationKey(
+  "Swift's storage servers don't all have the same ring",
+);
+const REASON_SWIFT_REPLICATION_STALE: string = translationKey(
+  "Swift's replication hasn't finished on a server in hours",
 );
 const REASON_API_QUIET: string = translationKey(
   "Not heard from for {{duration}}. It may be stopped or taken out of this cloud: the exporter answers the same for both",
@@ -353,6 +363,35 @@ function assessOpenStackGnocchi(row: OpenStackResource): OpenStackAssessment {
   return FINE;
 }
 
+// What Swift's storage servers say through /recon, where someone named them.
+function assessOpenStackSwiftRecon(
+  row: OpenStackResource,
+): OpenStackAssessment {
+  const troubles: {
+    serversNotAnswering: number;
+    ringsDiffering: number;
+    isReplicationStale: boolean;
+  } = getOpenStackSwiftReconTroubles(factsOf(row));
+  const reasons: OpenStackAssessment["reasons"] = [];
+
+  if (troubles.serversNotAnswering > 0) {
+    reasons.push({
+      text: REASON_SWIFT_SERVERS_NOT_ANSWERING,
+      values: { count: String(troubles.serversNotAnswering) },
+    });
+  }
+  if (troubles.ringsDiffering > 0) {
+    reasons.push({ text: REASON_SWIFT_RINGS_DIFFER });
+  }
+  if (troubles.isReplicationStale) {
+    reasons.push({ text: REASON_SWIFT_REPLICATION_STALE });
+  }
+
+  return reasons.length > 0
+    ? { severity: ResourceAttentionSeverity.Warning, reasons }
+    : FINE;
+}
+
 export function assessOpenStackApi(
   row: OpenStackResource,
   // Without it, this reads only what the row says, as a page with no clock to hand does.
@@ -383,6 +422,9 @@ export function assessOpenStackApi(
     }
     if (row.name === OpenStackServiceType.Metric) {
       return assessOpenStackGnocchi(row);
+    }
+    if (row.name === OpenStackServiceType.ObjectStore) {
+      return assessOpenStackSwiftRecon(row);
     }
     return FINE;
   }

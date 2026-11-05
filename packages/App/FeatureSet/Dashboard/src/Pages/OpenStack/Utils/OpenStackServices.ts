@@ -11,6 +11,9 @@ import {
   OPENSTACK_GNOCCHI_MEASURES_FACT,
   OPENSTACK_GNOCCHI_METRICS_FACT,
   OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+  OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+  OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+  OPENSTACK_SWIFT_RECON_SERVERS_FACT,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_API_STATUS_CLOSED,
@@ -890,11 +893,43 @@ export interface OpenStackApiTile {
   title: string;
   fact: string;
   description: string;
+  // Left out unless this has been read, rather than saying it hasn't.
+  isOnlyWhenRead?: boolean | undefined;
 }
 
 const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
   Record<string, ReadonlyArray<OpenStackApiTile>>
 > = {
+  // Only where someone named Swift's storage servers, and otherwise no trace of them.
+  [OpenStackServiceType.ObjectStore]: [
+    {
+      key: "recon-servers",
+      title: translationKey("Storage servers read"),
+      fact: OPENSTACK_SWIFT_RECON_SERVERS_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many of Swift's storage servers the cloud's settings name for /recon.",
+      ),
+    },
+    {
+      key: "recon-not-answering",
+      title: translationKey("Not answering"),
+      fact: OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many of those aren't answering. Swift's proxy goes on answering without them.",
+      ),
+    },
+    {
+      key: "recon-rings",
+      title: translationKey("Rings that differ"),
+      fact: OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many rings those servers report different checksums for. Servers on different rings put data in different places.",
+      ),
+    },
+  ],
   [OpenStackServiceType.KeyManager]: [
     {
       key: "secrets",
@@ -950,9 +985,14 @@ const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
 };
 
 export function getOpenStackApiTiles(
-  service: string | null | undefined,
+  row: OpenStackResource,
 ): ReadonlyArray<OpenStackApiTile> {
-  return OPENSTACK_API_TILES_OF_A_SERVICE[service || ""] || [];
+  const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
+  return (OPENSTACK_API_TILES_OF_A_SERVICE[row.name || ""] || []).filter(
+    (tile: OpenStackApiTile): boolean => {
+      return !tile.isOnlyWhenRead || (facts[tile.fact] as number) > 0;
+    },
+  );
 }
 
 // The alert templates that watch each kind of worker, as the Recommendations list has them.
@@ -1056,7 +1096,13 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-metric-backlog-growing",
       ];
     case OpenStackServiceType.ObjectStore:
-      return [...own, "openstack-object-container-growth"];
+      return [
+        ...own,
+        "openstack-object-container-growth",
+        "openstack-swift-storage-server-down",
+        "openstack-swift-rings-differ",
+        "openstack-swift-replication-stale",
+      ];
     case OpenStackServiceType.Database:
       return [
         ...own,

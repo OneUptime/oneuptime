@@ -156,6 +156,8 @@ const FriendlyLabelNames: Record<string, string> = {
   zone_id: "Zone ID",
   zone_name: "Zone",
   container_name: "Container",
+  address: "Address",
+  ring: "Ring",
   network_id: "Network ID",
   network_name: "Network",
   volume_type: "Volume Type",

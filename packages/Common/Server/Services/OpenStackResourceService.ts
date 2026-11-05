@@ -101,6 +101,10 @@ import {
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_GNOCCHI_MEASURES_FACT,
   OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+  OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+  OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT,
+  OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+  OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
 } from "../../Types/OpenStack/OpenStackHealthRules";
 import {
   truncateLongText,
@@ -1300,7 +1304,10 @@ export class Service extends DatabaseService<Model> {
         where: `("status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'
           OR (NOT ("name" = ANY($3::text[])) AND "lastSeenAt" <= $4)
           OR ("name" = $5 AND ("facts"->>'${OPENSTACK_GNOCCHI_PROCESSORS_FACT}' = '0'
-            OR ("facts"->>'${OPENSTACK_GNOCCHI_MEASURES_FACT}')::double precision > $6)))`,
+            OR ("facts"->>'${OPENSTACK_GNOCCHI_MEASURES_FACT}')::double precision > $6))
+          OR ("name" = $7 AND (("facts"->>'${OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT}')::double precision > 0
+            OR ("facts"->>'${OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT}')::double precision > 0
+            OR ("facts"->>'${OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT}')::double precision > $8)))`,
         params: [
           Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS),
           OneUptimeDate.addRemoveMinutes(
@@ -1309,6 +1316,8 @@ export class Service extends DatabaseService<Model> {
           ),
           OpenStackServiceType.Metric,
           OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+          OpenStackServiceType.ObjectStore,
+          OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
         ],
       },
       {

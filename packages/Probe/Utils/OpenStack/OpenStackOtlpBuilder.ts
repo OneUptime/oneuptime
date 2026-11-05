@@ -9,6 +9,7 @@ import {
   OpenStackDatabaseInventory,
   OpenStackKeyManagerInventory,
   OpenStackObjectStoreInventory,
+  SwiftReconServerRecord,
   OpenStackDnsInventory,
   OpenStackMetricInventory,
   OpenStackRatingInventory,
@@ -1730,10 +1731,81 @@ function writeDns(
 }
 
 // The exporter's two series, plus whose they are, which it leaves out.
+/*
+ * What Swift's storage servers said through /recon, where someone named them. Each server's, for an alert to
+ * name it, and what they add up to, which goes on the API's row. Always the count, so that taking them out of
+ * the settings takes back what they last said.
+ */
+function writeSwiftRecon(
+  writer: SeriesWriter,
+  servers: ReadonlyArray<SwiftReconServerRecord>,
+): void {
+  writer.add("recon_servers", {}, servers.length);
+
+  if (servers.length === 0) {
+    return;
+  }
+
+  const answering: ReadonlyArray<SwiftReconServerRecord> = servers.filter(
+    (server: SwiftReconServerRecord): boolean => {
+      return server.isAnswering;
+    },
+  );
+  let oldest: number | null = null;
+
+  for (const server of servers) {
+    const address: string = server.address;
+    writer.add("recon_up", { address }, server.isAnswering ? 1 : 0);
+
+    for (const replication of server.replication) {
+      const labels: Labels = { address, ring: replication.ring };
+      writer.add(
+        "recon_replication_age_seconds",
+        labels,
+        replication.ageSeconds,
+      );
+      writer.add("recon_replication_failures", labels, replication.failures);
+      if (replication.ageSeconds !== null) {
+        oldest = Math.max(oldest ?? 0, replication.ageSeconds);
+      }
+    }
+
+    writer.add("recon_unmounted_drives", { address }, server.unmountedDrives);
+  }
+
+  const checksums: Map<string, Set<string>> = new Map();
+
+  for (const server of answering) {
+    for (const ring of Object.keys(server.ringChecksums)) {
+      const seen: Set<string> = checksums.get(ring) || new Set<string>();
+      seen.add(server.ringChecksums[ring] as string);
+      checksums.set(ring, seen);
+    }
+  }
+
+  let differing: number = 0;
+
+  for (const ring of Array.from(checksums.keys()).sort()) {
+    const differs: boolean = (checksums.get(ring) as Set<string>).size > 1;
+    differing += differs ? 1 : 0;
+    writer.add("recon_rings_differ", { ring }, differs ? 1 : 0);
+  }
+
+  writer.add(
+    "recon_servers_not_answering",
+    {},
+    servers.length - answering.length,
+  );
+  writer.add("recon_rings_differing", {}, differing);
+  writer.add("recon_oldest_replication_seconds", {}, oldest);
+}
+
 function writeObjectStore(
   writer: SeriesWriter,
   inventory: OpenStackObjectStoreInventory,
 ): void {
+  writeSwiftRecon(writer, inventory.reconServers || []);
+
   for (const container of inventory.containers || []) {
     const labels: Labels = {
       container_name: container.name,

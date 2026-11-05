@@ -11,6 +11,10 @@ import {
   OPENSTACK_GNOCCHI_MEASURES_FACT,
   OPENSTACK_GNOCCHI_METRICS_FACT,
   OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+  OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+  OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT,
+  OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+  OPENSTACK_SWIFT_RECON_SERVERS_FACT,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_OPTIONAL_SERVICES,
@@ -236,6 +240,34 @@ const FACTS_ON_AN_API_ROW: ReadonlyMap<string, OpenStackApiRowFact> = new Map<
   string,
   OpenStackApiRowFact
 >([
+  [
+    "openstack_object_store_recon_servers",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_SERVERS_FACT,
+    },
+  ],
+  [
+    "openstack_object_store_recon_servers_not_answering",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+    },
+  ],
+  [
+    "openstack_object_store_recon_rings_differing",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+    },
+  ],
+  [
+    "openstack_object_store_recon_oldest_replication_seconds",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT,
+    },
+  ],
   [
     "openstack_barbican_secrets",
     { service: OpenStackServiceType.KeyManager, fact: "secretCount" },
@@ -2419,6 +2451,12 @@ export function bufferOpenStackSnapshotMetric(data: {
     });
     setIdentity(entry, { name: apiRowFact.service, regionName: region });
     entry.facts[apiRowFact.fact] = value;
+    // Taken out of the settings, what the servers last said is no longer so.
+    if (apiRowFact.fact === OPENSTACK_SWIFT_RECON_SERVERS_FACT && value === 0) {
+      entry.facts[OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT] = null;
+      entry.facts[OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT] = null;
+      entry.facts[OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT] = null;
+    }
     return;
   }
 

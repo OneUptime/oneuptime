@@ -526,6 +526,39 @@ export function isOpenStackGnocchiBacklogged(facts: {
 export const OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES: number =
   1024 * 1024 * 1024 * 1024;
 
+/*
+ * What Swift's storage servers say through /recon, where someone named them. A pass of replication can take a
+ * long time on a large cluster, so this line is for one that has stopped rather than one that's slow.
+ */
+export const OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS: number = 6 * 60 * 60;
+export const OPENSTACK_SWIFT_RECON_SERVERS_FACT: string = "reconServers";
+export const OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT: string =
+  "reconServersNotAnswering";
+export const OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT: string =
+  "reconRingsDiffering";
+export const OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT: string =
+  "reconOldestReplicationSeconds";
+
+export function getOpenStackSwiftReconTroubles(facts: {
+  [key: string]: unknown;
+}): {
+  serversNotAnswering: number;
+  ringsDiffering: number;
+  isReplicationStale: boolean;
+} {
+  const count: (name: string) => number = (name: string): number => {
+    const value: unknown = facts[name];
+    return typeof value === "number" ? value : 0;
+  };
+  return {
+    serversNotAnswering: count(OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT),
+    ringsDiffering: count(OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT),
+    isReplicationStale:
+      count(OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT) >
+      OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
+  };
+}
+
 export function isOpenStackDatabaseInstanceInError(
   status: string | null | undefined,
 ): boolean {
