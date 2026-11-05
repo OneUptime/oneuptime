@@ -702,7 +702,9 @@ Only the largest clouds need these, and none is asked for:
 | \`NOVA_DATABASE_URL\`, \`NOVA_API_DATABASE_URL\`, \`PLACEMENT_DATABASE_URL\`, \`NEUTRON_DATABASE_URL\`, \`CINDER_DATABASE_URL\`, \`GLANCE_DATABASE_URL\`, \`KEYSTONE_DATABASE_URL\` | The database of each service it reads, as \`mysql+pymysql://oneuptime:secret@db.example:3306/nova\`. One left empty is a service it leaves alone. Each holds a password, and \`.env\` is readable by its owner alone |
 | \`OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX\` | What Nova adds to a host's name to make a hypervisor's, such as \`.example.org\`, so an instance finds the hypervisor it runs on |
 | \`OPENSTACK_WORKER_STATE_CLOUDS\` | The \`clouds.yaml\` entries to read from Nova's and Cinder's APIs what their databases cannot say: whether each worker is alive, and how full each pool is |
-| \`OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |`,
+| \`OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
+| \`OPENSTACK_QUOTA_CLOUDS\` | The \`clouds.yaml\` entries to read each project's quotas from, once an hour. Empty reads none, and \`OPENSTACK_COLLECT_QUOTAS=true\` in the install script fills it in |
+| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |`,
   };
 }
 
