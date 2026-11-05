@@ -105,7 +105,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 74 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 82 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum or Ironic to a cloud that runs it, and one over a series only a probe sends to a cloud a probe collects: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -145,6 +145,14 @@ Every template reads at least three collections of what it watches, and fires on
 | Volumes in Error | Storage | Warning | `openstack_cinder_volume_status_counter` for each error word, Max per region and word, **past 10 minutes** | Above 0 | At 0 |
 | Volume Stuck | Storage | Warning | `openstack_cinder_volume_gb` for each passing status word, Max per volume, **past 30 minutes** | In that status at every collection for 30 minutes | Left it |
 | Image Stuck | Storage | Warning | `openstack_glance_image_created_at` for each passing status word, Max per image, **past 1 hour** | In that status at every collection for an hour | Left it, or was deleted |
+| Orchestration API Down | Availability | Critical | `openstack_heat_up` and `up` for `orchestration`, Min per region, **past 15 minutes** | Every call failed, which is what a stopped `heat-engine` reads as too, or the exporter did not answer | Both read 1 |
+| Kubernetes Clusters API Down | Availability | Critical | `openstack_container_infra_up` and `up` for `container-infra`, Min per region, **past 15 minutes** | Every call failed, or the exporter did not answer | Both read 1 |
+| Heat Engine Down | Control Plane | Warning | `openstack_heat_agent_state`, Min per host, **past 15 minutes**. Only a probe sends this | Heat lists a `heat-engine` as down. With every engine stopped Heat can't list them, and Orchestration API Down fires instead | It reads 1, or Heat drops its record |
+| Magnum Conductor Down | Control Plane | Critical | `openstack_container_infra_agent_state` with `adminState=enabled`, Min per host, **past 15 minutes**. Only a probe sends this | Magnum lists an enabled `magnum-conductor` as down. Magnum's API carries on answering, so nothing else says this | It reads 1, or someone disables it |
+| Stack Failed | Orchestration | Warning | `openstack_heat_stack_status` with each `*_FAILED` status, per stack, **past 15 minutes** | A stack holds a failed status for the whole window | It is updated or deleted |
+| Stack Stuck In Progress | Orchestration | Warning | `openstack_heat_stack_status` with each `*_IN_PROGRESS` status, per stack, **past 2 hours** | A stack holds an in-progress status for the whole window, past the hour Heat gives one unless someone chose longer | It reaches its next status, or is deleted |
+| Kubernetes Cluster Failed | Orchestration | Warning | `openstack_container_infra_cluster_status` with each `*_FAILED` status, per cluster, **past 15 minutes** | A cluster holds a failed status for the whole window | It is updated or deleted |
+| Kubernetes Cluster Stuck | Orchestration | Warning | `openstack_container_infra_cluster_status` with each `*_IN_PROGRESS` status, per cluster, **past 2 hours** | A cluster holds an in-progress status for the whole window. Only Magnum's conductor moves one on | It reaches its next status, or is deleted |
 | Bare Metal API Down | Bare Metal | Critical | `openstack_ironic_up`, Min per region, **past 15 minutes** | Below 1. Speaks only where a read of Ironic can say so: a probe, or exporter 1.7.0. A stopped Ironic gives the agent's exporter nothing to read, the same as a cloud without Ironic, so there it stays quiet and the cloud's pages say when Ironic was last heard from | Reads 1, or has gone |
 | Bare Metal Node in Error | Bare Metal | Warning | `openstack_ironic_node` for each failed `provision_state`, Max per node, **past 15 minutes** | In that state at every collection for 15 minutes, in maintenance or not | Left it, or was deleted |
 | Bare Metal Node Stuck Transitioning | Bare Metal | Warning | `openstack_ironic_node` for each passing `provision_state` with `maintenance = false`, Max per node, **past 2 hours** | In that state at every collection for 2 hours. A long disk erase can honestly take this long, which a node's page can tell and this can't | Left it, or was deleted |
@@ -471,6 +479,23 @@ OneUptime writes these itself, from the cloud's inventory, every two minutes whi
 | `openstack_identity_users` | `count` | Max | How many users the cloud has. |
 | `openstack_identity_groups` | `count` | Max | How many groups the cloud has. |
 | `openstack_identity_regions` | `count` | Max | How many regions Keystone knows. |
+
+### Orchestration
+
+A cloud that runs Heat or Magnum has these. A cloud that doesn't has none of them, and none of its pages or recommendations mention them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_heat_up` | | Min | Whether Heat's API answered. A stopped `heat-engine` reads 0 too, because Heat's API asks an engine for its lists. |
+| `openstack_heat_stack_status` | | Max | One series per stack, with `id`, `name`, `project_id` and `status`. Its value is a code, so read its `status` label. `project_id` is empty for anything below an admin. |
+| `openstack_heat_stack_status_counter` | `count` | Max | How many stacks hold each status, per region. |
+| `openstack_heat_agent_state` | | Min | Whether Heat lists each `heat-engine` as up. Only a probe sends this. |
+| `openstack_container_infra_up` | | Min | Whether Magnum's API answered. A stopped `magnum-conductor` leaves it at 1. |
+| `openstack_container_infra_total_clusters` | `count` | Max | How many clusters Magnum listed for this credential. |
+| `openstack_container_infra_cluster_status` | | Max | One series per cluster, with `uuid`, `name`, `stack_id`, `status`, `node_count`, `master_count` and `project_id`. Its value is a code, so read its `status` label. `project_id` is empty from the exporter. |
+| `openstack_container_infra_cluster_masters` | `count` | Max | How many control plane nodes each cluster was asked for. |
+| `openstack_container_infra_cluster_nodes` | `count` | Max | How many worker nodes each cluster was asked for. |
+| `openstack_container_infra_agent_state` | | Min | Whether Magnum lists each `magnum-conductor` as up. Only a probe sends this. |
 
 ### Bare Metal
 

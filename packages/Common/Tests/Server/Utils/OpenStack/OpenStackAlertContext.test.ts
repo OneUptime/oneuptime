@@ -117,6 +117,8 @@ describe("which part a series is about", () => {
       "Service:RegionOne/compute/compute-1/nova-compute",
       "Service:RegionOne/network/compute-1/nova-compute",
       "Service:RegionOne/volume/compute-1/nova-compute",
+      "Service:RegionOne/orchestration/compute-1/nova-compute",
+      "Service:RegionOne/container-infra/compute-1/nova-compute",
       "Hypervisor:RegionOne/compute-1",
     ]);
   });
@@ -132,11 +134,13 @@ describe("which part a series is about", () => {
     ).toEqual(["Hypervisor:RegionTwo/compute-1.example.internal"]);
   });
 
-  test("an ID could be a router, an instance or a volume, and the rows decide", () => {
+  test("an ID could be a router, an instance, a volume, a stack or a cluster, and the rows decide", () => {
     expect(kinds(getOpenStackPartOfSeries({ id: "x" }))).toEqual([
       "Router:x",
       "Instance:x",
       "Volume:x",
+      "Stack:x",
+      "ContainerCluster:x",
     ]);
   });
 

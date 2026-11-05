@@ -107,7 +107,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia and Ironic are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
+Octavia, Ironic, Heat and Magnum are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 
@@ -634,6 +634,35 @@ What each source says about a pool decides how it links:
 | The agent's exporter | The pool's name, its backend's name and its vendor, which reads `Open Source` for LVM and RBD alike | Nothing says it is on Ceph. A Ceph pool of the same name in exactly one cluster is offered, for someone to confirm once on the pool's page, unless another Cinder pool has that name too. With no such match they can choose a cluster, or say it isn't on Ceph |
 
 Once linked, the pool's page says how its cluster reads, and `HEALTH_WARN` or `HEALTH_ERR` appears in the cloud's **Needs attention**. A suggestion nobody confirmed raises nothing. An answer someone gave can be changed on the pool's page. Only the Full view credential can see pools at all: see [Choose how much the agent sees](#choose-how-much-the-agent-sees).
+
+## Heat and Magnum
+
+If your cloud runs Heat or Magnum, they appear on their own: there is nothing to turn on. A cloud that runs neither shows no trace of them, with no menu entry, no card on **Services** and no alert to choose from. What says so is the cloud's own answer, never a setting: the agent asks about each on every collection, and a service Keystone's catalog doesn't name answers with nothing.
+
+A cloud with Heat gets **Stacks** under **Orchestration**, and one with Magnum gets **Kubernetes Clusters**. Each lists every stack or cluster with its status in the service's own word, and each has a page. A stack or cluster in a failed state reaches **Needs attention** by name, and so does one still in progress after two hours, which is twice what either service gives one of its own accord. Magnum builds a cluster with a Heat stack, so a failed cluster and its failed stack read as one line, by the cluster's name, and each page links to the other.
+
+### What each way of collecting sees
+
+The exporter says less about these services than a read of their APIs does, and neither service shows anything but an admin the whole cloud. So each page says what your cloud's collector can't see.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's stacks and their status | Yes | Yes | Its own project's at most, with no project on them, and no error says so |
+| Whose a stack is | Yes | Yes | No |
+| Why a stack failed | No. Run `openstack stack failures list` | Yes | No |
+| Every project's Kubernetes clusters and their status | Yes | Yes | None of another project's, and no error says so |
+| Whose a cluster is | From its Heat stack | From Magnum | No |
+| Why a cluster failed, its template and its Kubernetes version | No. Run `openstack coe cluster show` | Yes | No |
+| Heat's engines and Magnum's conductors on **Services** | No | Yes | No |
+
+Two failures read differently, and both are what a real cloud does:
+
+- **A stopped `heat-engine`** reads as **Orchestration API Down**, on either collector. Heat's API asks an engine for its lists, so with none left it can't answer them, after a minute's wait for an RPC timeout. A stack an engine left in progress can stay in progress after the engine comes back, and reads **Stack Stuck In Progress** once two hours have passed.
+- **A stopped `magnum-conductor`** isn't shown anywhere on a cloud the agent collects, because Magnum's API carries on answering without one and the exporter doesn't read conductors. Its clusters just stop moving. A probe with a Full view credential reads them, which is the only way to see this, or run `openstack coe service list`.
+
+Which instances and volumes a stack owns isn't collected yet, so a stack's page doesn't list them, and a failed instance doesn't name its stack. Run `openstack stack resource list`.
+
+If a service leaves Keystone's catalog, its rows go about 15 minutes after the exporter starts answering with nothing about it, provided the rest of the cloud is still answering. A failed collection, or a Keystone nobody can log in to, takes nothing away. An incident a monitor had open on it stays open until someone resolves it, because silence never closes an incident.
 
 ## Service logs
 

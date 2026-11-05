@@ -17,7 +17,11 @@ import {
 import { JSONObject } from "../../Types/JSON";
 import {
   OpenStackResourceKind,
+  OpenStackServiceFamily,
   OpenStackServiceType,
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_BARE_METAL_ERROR_STATES,
   OPENSTACK_BARE_METAL_IN_MAINTENANCE,
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
@@ -27,9 +31,18 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
+  OPENSTACK_WORKER_FAMILY_BY_SERVICE,
 } from "../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_EMPTY_ANSWER_SINCE_FACT,
+  getOpenStackOptionalService,
+  hasOpenStackOptionalServiceLeft,
+  isOpenStackOptionalService,
+} from "../../Types/OpenStack/OpenStackOptionalServices";
 import {
   OpenStackRegionSummary,
   OpenStackRowState,
@@ -40,6 +53,7 @@ import {
 import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusCount,
+  OpenStackBlastRadiusOwner,
   buildOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../Types/OpenStack/OpenStackBlastRadius";
@@ -49,6 +63,7 @@ import {
   OpenStackCountRow,
 } from "../../Types/OpenStack/OpenStackCounts";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
   OPENSTACK_BARE_METAL_STUCK_MINUTES,
@@ -56,6 +71,7 @@ import {
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
   OPENSTACK_QUIET_SERVICE_MINUTES,
   OPENSTACK_REDUNDANT_WORKERS,
@@ -70,6 +86,10 @@ import {
   truncateShortText,
 } from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
+import {
+  OpenStackOptionalServiceScrape,
+  getOpenStackApiRowExternalId,
+} from "../Utils/Telemetry/OpenStackSnapshotScan";
 
 /*
  * ------------------------------------------------------------------
@@ -136,6 +156,9 @@ export interface OpenStackInventorySummary {
   memoryAllocatedBytes: number;
   storageCapacityBytes: number;
   storageUsedBytes: number;
+  // Of a service a cloud may not run, so 0 on one that doesn't.
+  stackCount: number;
+  containerClusterCount: number;
 }
 
 // What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
@@ -171,6 +194,8 @@ export interface OpenStackProjectSummary {
   networkCount: number;
   routerCount: number;
   floatingIpCount: number;
+  stackCount: number;
+  containerClusterCount: number;
 }
 
 export interface OpenStackProjectLabel {
@@ -887,6 +912,8 @@ export class Service extends DatabaseService<Model> {
       memoryAllocatedBytes: toNumber(hypervisors?.memoryAllocated),
       storageCapacityBytes: toNumber(pools?.diskCapacity),
       storageUsedBytes: toNumber(pools?.diskAllocated),
+      stackCount: countOf(OpenStackResourceKind.Stack),
+      containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
     };
   }
 
@@ -1142,6 +1169,14 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_IMAGE_STUCK_MINUTES,
     );
+    const stackStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_STACK_STUCK_MINUTES,
+    );
+    const clusterStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
+    );
     const bareMetalStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
       data.now,
       -OPENSTACK_BARE_METAL_STUCK_MINUTES,
@@ -1231,6 +1266,28 @@ export class Service extends DatabaseService<Model> {
         params: [
           statuses(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES),
           imageStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.Stack,
+        where: `("status" = ANY($3::text[]) OR ("status" = ANY($4::text[]) AND "stateChangedAt" <= $5))`,
+        params: [
+          statuses(OPENSTACK_STACK_FAILED_STATUSES),
+          statuses(OPENSTACK_STACK_IN_PROGRESS_STATUSES),
+          stackStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.ContainerCluster,
+        where: `("status" = ANY($3::text[])
+          OR ("status" = ANY($4::text[]) AND "stateChangedAt" <= $5)
+          OR "facts"->>'healthStatus' = '${OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY}')`,
+        params: [
+          statuses(OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES),
+          statuses(OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES),
+          clusterStuckBefore,
         ],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
       },
@@ -1639,6 +1696,9 @@ export class Service extends DatabaseService<Model> {
    *    hypervisor.
    *  - A service's API in a region: everything of that service in that region, because
    *    nobody there can manage any of it.
+   *  - A stack and the Magnum cluster built with it: each names the other, because a failure of
+   *    one is the same failure. Only a cluster's stack_id says so, which is on every cluster's
+   *    series. What else a stack owns takes a read of its resources, which nothing makes yet.
    */
   @CaptureSpan()
   public async getBlastRadius(data: {
@@ -1990,6 +2050,16 @@ export class Service extends DatabaseService<Model> {
         [OpenStackServiceType.Image]: [
           [OpenStackResourceKind.Instance, "instanceCount"],
         ],
+        /*
+         * Without Heat or Magnum nothing of theirs can be created, changed or deleted, though what
+         * they already built keeps running.
+         */
+        [OpenStackServiceType.Orchestration]: [
+          [OpenStackResourceKind.Stack, "stackCount"],
+        ],
+        [OpenStackServiceType.ContainerInfra]: [
+          [OpenStackResourceKind.ContainerCluster, "containerClusterCount"],
+        ],
       };
       for (const [kind, count] of kinds[part.name || ""] || []) {
         counts.push({
@@ -2008,8 +2078,72 @@ export class Service extends DatabaseService<Model> {
       return await finish();
     }
 
+    if (part.kind === OpenStackResourceKind.Stack && part.externalId) {
+      return {
+        ...(await finish()),
+        belongsTo: await this.readClustersOfStack({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          stackId: part.externalId,
+        }),
+      };
+    }
+
+    if (part.kind === OpenStackResourceKind.ContainerCluster) {
+      const stackId: unknown = part.facts?.["stackId"];
+      return {
+        ...(await finish()),
+        belongsTo:
+          typeof stackId === "string" && stackId
+            ? await this.readStacksById({
+                projectId: data.projectId,
+                openStackCloudId: data.openStackCloudId,
+                stackIds: [stackId],
+              })
+            : [],
+      };
+    }
+
     // Nothing else has a reach of its own that this can read.
     return getEmptyOpenStackBlastRadius(false);
+  }
+
+  // The Magnum cluster a stack was built for. More than one would be a guess: see OpenStackLinks.
+  private async readClustersOfStack(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    stackId: string;
+  }): Promise<Array<OpenStackBlastRadiusOwner>> {
+    const rows: Array<OpenStackBlastRadiusOwner> =
+      await this.getRepository().manager.query(
+        `SELECT "kind", "externalId", "name", "status" FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.ContainerCluster}'
+           AND "deletedAt" IS NULL
+           AND "facts"->>'stackId' = $3
+         LIMIT 2`,
+        [data.projectId.toString(), data.openStackCloudId.toString(), data.stackId],
+      );
+    return rows.length === 1 ? rows : [];
+  }
+
+  private async readStacksById(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    stackIds: Array<string>;
+  }): Promise<Array<OpenStackBlastRadiusOwner>> {
+    return await this.getRepository().manager.query(
+      `SELECT "kind", "externalId", "name", "status" FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Stack}'
+         AND "deletedAt" IS NULL
+         AND "externalId" = ANY($3::text[])`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.stackIds,
+      ],
+    );
   }
 
   /**
@@ -2053,6 +2187,8 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.Network,
           OpenStackResourceKind.Router,
           OpenStackResourceKind.FloatingIp,
+          OpenStackResourceKind.Stack,
+          OpenStackResourceKind.ContainerCluster,
         ],
         ids,
       ],
@@ -2070,6 +2206,8 @@ export class Service extends DatabaseService<Model> {
             networkCount: 0,
             routerCount: 0,
             floatingIpCount: 0,
+            stackCount: 0,
+            containerClusterCount: 0,
           },
         ];
       }),
@@ -2099,6 +2237,12 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.FloatingIp:
           summary.floatingIpCount = count;
+          break;
+        case OpenStackResourceKind.Stack:
+          summary.stackCount = count;
+          break;
+        case OpenStackResourceKind.ContainerCluster:
+          summary.containerClusterCount = count;
           break;
         default:
           break;
@@ -2972,6 +3116,104 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * Magnum's series have no project in them, recorded on every scene, and its API says one only on
+   * a cluster's own read, which the exporter never makes. Heat's list says whose every stack is,
+   * and each cluster names its stack. So a cluster's project is its stack's: recorded together on a
+   * real cloud, and the same project Magnum's own read gives. A cluster and its stack arrive in
+   * separate batches, so this runs after either, and writes only what is missing: what a probe read
+   * from Magnum itself is left alone. A credential Heat refuses leaves clusters without a project,
+   * and a page says so rather than filing them under none.
+   */
+  @CaptureSpan()
+  public async reconcileContainerClusterProjects(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "OpenStackResource" AS cluster
+       SET "openStackProjectId" = stack."openStackProjectId",
+           "updatedAt" = now()
+       FROM "OpenStackResource" AS stack
+       WHERE cluster."projectId" = $1 AND cluster."openStackCloudId" = $2
+         AND cluster."kind" = '${OpenStackResourceKind.ContainerCluster}'
+         AND cluster."openStackProjectId" IS NULL
+         AND cluster."deletedAt" IS NULL
+         AND stack."projectId" = $1 AND stack."openStackCloudId" = $2
+         AND stack."kind" = '${OpenStackResourceKind.Stack}'
+         AND stack."externalId" = cluster."facts"->>'stackId'
+         AND stack."openStackProjectId" IS NOT NULL
+         AND stack."deletedAt" IS NULL`,
+      [data.projectId.toString(), data.openStackCloudId.toString()],
+    );
+  }
+
+  /**
+   * What a scrape of a service a cloud may not run says, beside the exporter's own series, to the row
+   * that service already has. An UPDATE and never an INSERT, because these read the same on a cloud
+   * that has never run it: a scrape that read nothing cannot put a service on a cloud.
+   *
+   * On a row that is there, it says three things the exporter's series can't, because they are gone
+   * by then:
+   *
+   *  - The scrape failed: nothing answered, and `_up` is not there to say so. Down, as for a core
+   *    service, and the next good scrape's `_up` brings it back.
+   *  - The exporter answered with nothing: the catalog no longer names this service, or Keystone
+   *    could not be logged in to. When that started goes on the row, and only
+   *    forgetOptionalServicesThatLeft decides which of those two it was.
+   *  - How long the collection took.
+   */
+  @CaptureSpan()
+  public async recordOptionalServiceScrapes(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    scrapes: ReadonlyArray<OpenStackOptionalServiceScrape>;
+  }): Promise<void> {
+    for (const scrape of data.scrapes) {
+      const isFailed: boolean = scrape.answered === false;
+      const isEmpty: boolean =
+        scrape.answered === true &&
+        scrape.samples === 0 &&
+        !getOpenStackOptionalService(scrape.service)?.isEmptyWhenStopped;
+      const facts: JSONObject = {
+        ...(scrape.seconds !== null
+          ? { collectionSeconds: scrape.seconds }
+          : {}),
+        ...(scrape.answered !== null ? { scrapeFailed: isFailed } : {}),
+      };
+      // A key set to null is how a fact that went away says so: bulkUpsert reads it that way too.
+      const emptySinceClause: string = isEmpty
+        ? `|| jsonb_build_object('${OPENSTACK_EMPTY_ANSWER_SINCE_FACT}',
+             COALESCE("facts"->>'${OPENSTACK_EMPTY_ANSWER_SINCE_FACT}', $4::text))`
+        : (scrape.samples || 0) > 0
+          ? `|| jsonb_build_object('${OPENSTACK_EMPTY_ANSWER_SINCE_FACT}', NULL::text)`
+          : "";
+
+      await this.getRepository().manager.query(
+        `UPDATE "OpenStackResource"
+         SET "facts" = COALESCE("facts", '{}'::jsonb) || $3::jsonb ${emptySinceClause},
+             "status" = CASE WHEN $5::boolean
+               THEN '${OPENSTACK_SERVICE_STATUS_DOWN}' ELSE "status" END,
+             "stateChangedAt" = CASE
+               WHEN $5::boolean AND "status" IS DISTINCT FROM '${OPENSTACK_SERVICE_STATUS_DOWN}'
+               THEN $4::text::timestamptz ELSE "stateChangedAt" END,
+             "updatedAt" = now()
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.Api}'
+           AND "externalId" = $6
+           AND "deletedAt" IS NULL`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          JSON.stringify(facts),
+          scrape.observedAt.toISOString(),
+          isFailed,
+          getOpenStackApiRowExternalId(scrape.regionName, scrape.service),
+        ],
+      );
+    }
+  }
+
+  /**
    * How long a row may go unseen after its service's last good scrape. Three times
    * the slowest scrape interval (5 minutes) by default; OPENSTACK_INVENTORY_STALE_MINUTES
    * overrides it, for a cloud scraped more slowly.
@@ -3073,19 +3315,11 @@ export class Service extends DatabaseService<Model> {
         OPENSTACK_KINDS_BY_SERVICE[service];
 
       /*
-       * Workers are one kind across three services, so each family's rows answer
+       * Workers are one kind across several services, so each family's rows answer
        * to their own API. Identity's kinds are global, so its deletes take no region.
        */
-      const family: string | null =
-        service === OpenStackServiceType.Compute
-          ? "compute"
-          : service === OpenStackServiceType.Network
-            ? "network"
-            : service === OpenStackServiceType.Volume
-              ? "volume"
-              : service === OpenStackServiceType.BareMetal
-                ? "baremetal"
-                : null;
+      const family: OpenStackServiceFamily | null =
+        OPENSTACK_WORKER_FAMILY_BY_SERVICE[service] || null;
 
       const isGlobal: boolean = service === OpenStackServiceType.Identity;
       const params: Array<unknown> = [
@@ -3136,6 +3370,8 @@ export class Service extends DatabaseService<Model> {
         }
       }
     }
+
+    affected += await this.forgetOptionalServicesThatLeft(data);
 
     /*
      * No OpenStack service vouches for what a cloud stands on, because none reports it. So a
@@ -3189,6 +3425,101 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * A service the cloud no longer runs. Its own rows can't say so: its API's series stopped with
+   * it, so nothing moves the cutoff the stale rule goes by and its last answer would read as the
+   * truth for ever, on Services, in the menu and in Recommendations. So its scrape's empty answer
+   * is what says so (recordOptionalServiceScrapes), once something the cloud always runs has gone on
+   * answering for long enough in that region: an empty answer on its own is also what a Keystone
+   * nobody can log in to gives, and that must never empty a cloud's inventory.
+   *
+   * Removes the API's own row with the rest, which is what takes the service out of the menu. It
+   * comes back with the next `_up`, if the service does.
+   */
+  private async forgetOptionalServicesThatLeft(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<number> {
+    const apis: Array<{
+      regionName: string | null;
+      name: string | null;
+      emptySince: string | null;
+      vouchedAt: string | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT "regionName", "name",
+              "facts"->>'${OPENSTACK_EMPTY_ANSWER_SINCE_FACT}' AS "emptySince",
+              "facts"->>'previousVouchedAt' AS "vouchedAt"
+       FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Api}'
+         AND "deletedAt" IS NULL`,
+      [data.projectId.toString(), data.openStackCloudId.toString()],
+    );
+
+    const coreAnsweredAt: (regionName: string | null) => Date | null = (
+      regionName: string | null,
+    ): Date | null => {
+      let latest: Date | null = null;
+      for (const api of apis) {
+        if (
+          api.regionName === regionName &&
+          OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(api.name || "") &&
+          api.vouchedAt
+        ) {
+          const answeredAt: Date = new Date(api.vouchedAt);
+          if (
+            !isNaN(answeredAt.getTime()) &&
+            (!latest || answeredAt > latest)
+          ) {
+            latest = answeredAt;
+          }
+        }
+      }
+      return latest;
+    };
+
+    let affected: number = 0;
+
+    for (const api of apis) {
+      if (
+        !isOpenStackOptionalService(api.name) ||
+        !api.emptySince ||
+        !hasOpenStackOptionalServiceLeft({
+          emptySince: new Date(api.emptySince),
+          coreAnsweredAt: coreAnsweredAt(api.regionName),
+          windowInMinutes: this.getStaleWindowInMinutes(),
+        })
+      ) {
+        continue;
+      }
+
+      const service: OpenStackServiceType = api.name as OpenStackServiceType;
+      const result: unknown = await this.getRepository().manager.query(
+        `DELETE FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "regionName" IS NOT DISTINCT FROM $3
+           AND (
+             "kind" = ANY($4::text[])
+             OR ("kind" = '${OpenStackResourceKind.Service}' AND "facts"->>'family' = $5)
+             OR ("kind" = '${OpenStackResourceKind.Api}' AND "name" = $6)
+           )`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          api.regionName,
+          [...OPENSTACK_KINDS_BY_SERVICE[service]],
+          OPENSTACK_WORKER_FAMILY_BY_SERVICE[service] || null,
+          service,
+        ],
+      );
+      if (Array.isArray(result) && typeof result[1] === "number") {
+        affected += result[1];
+      }
+    }
+
+    return affected;
+  }
+
+  /*
    * A service a cloud may not run that has said nothing for weeks, while the rest of the cloud went
    * on reporting. Nothing can vouch for its rows now (see deleteStaleForCloud), and a stopped API
    * reads the same as one taken away, so they go only after this long, and come back if it does:
