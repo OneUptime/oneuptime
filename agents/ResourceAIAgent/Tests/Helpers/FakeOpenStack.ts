@@ -401,7 +401,18 @@ export class FakeOpenStack {
 
   public logins(): Array<OpenStackHttpRequest> {
     return this.requests.filter((request: OpenStackHttpRequest): boolean => {
-      return request.method === "POST";
+      return (
+        request.method === "POST" && request.url.endsWith("/auth/tokens")
+      );
+    });
+  }
+
+  // Every call that would change the cloud: anything but a GET or a login.
+  public changes(): Array<OpenStackHttpRequest> {
+    return this.requests.filter((request: OpenStackHttpRequest): boolean => {
+      return (
+        request.method !== "GET" && !request.url.endsWith("/auth/tokens")
+      );
     });
   }
 
@@ -463,8 +474,18 @@ export class FakeOpenStack {
       return overridden;
     }
 
-    if (request.method === "POST") {
+    if (request.method === "POST" && url.pathname.endsWith("/auth/tokens")) {
       return this.answerLogin(url);
+    }
+
+    /*
+     * A change: what the real APIs answer when they take one. Nova's actions say
+     * nothing back, and what it and Neutron say to a PUT is the thing as it now is.
+     */
+    if (request.method !== "GET") {
+      return request.method === "POST"
+        ? reply("", 202)
+        : reply(JSON.stringify({ changed: JSON.parse(request.body || "{}") }));
     }
 
     return this.answer(url);

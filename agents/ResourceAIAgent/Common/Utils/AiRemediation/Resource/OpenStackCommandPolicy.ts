@@ -1,6 +1,6 @@
 /*
  * The openstack command policy: what OneUptime AI may ask the OpenStack AI
- * agent to read on a cloud. It stands between a language model and a
+ * agent to read or change on a cloud. It stands between a language model and a
  * customer's cloud, so everything here is a closed list.
  *
  * There is no openstack binary and no shell in the agent. A command is
@@ -10,12 +10,12 @@
  *   openstack <command words> [ID...] [--flag] [--name value]...
  *             [--os-region-name REGION] [-f table|json]
  *
- * — and the agent turns it into ONE GET to the cloud's API, on the service
- * that answers it, with its own credential. parseOpenStackCommand, exported
- * below, is that translation, and it is the SAME analysis this policy tiers:
- * it only ever returns a request for a command evaluateArgv does not deny, so
- * there is no second parser (and no real client) whose reading of the words
- * could differ from the one that was judged.
+ * — and the agent turns a read into ONE GET to the cloud's API, and a change
+ * into the one call that makes it, on the service that answers it, with its own
+ * credential. parseOpenStackCommand, exported below, is that translation, and it
+ * is the SAME analysis this policy tiers: it only ever returns a request for a
+ * command evaluateArgv does not deny, so there is no second parser (and no real
+ * client) whose reading of the words could differ from the one that was judged.
  *
  * ---- Grammar ---------------------------------------------------------------
  *
@@ -39,12 +39,40 @@
  *
  * ---- Tiers -----------------------------------------------------------------
  *
- * Every command here is Read. There are NO write verbs: OneUptime AI only
- * looks at a cloud (issue #5746), and the agent refuses anything else whatever
- * its settings say. Each route still carries its own tier, because writes with
- * approval (#5747) arrive as routes of their own, with their own tier and
- * targets, and the shared ladder, write switch and write targets already read
- * those from a ResourceCommandPolicyResult.
+ * Every route of OPENSTACK_COMMAND_ROUTES is Read. The changes are the ten of
+ * OPENSTACK_CHANGE_ROUTES, and nothing else changes a cloud:
+ *
+ *   SafeWrite    server start, server reboot --soft,
+ *                compute service set --enable, network agent set --enable.
+ *   RiskyWrite   server reboot --hard, server migrate, server migrate live,
+ *                compute service set --disable --disable-reason,
+ *                network agent set --disable.
+ *   RiskyWrite + requiresHuman
+ *                server evacuate. Nova only takes one once the instance's host
+ *                is down, so every evacuation that can run is of a dead
+ *                hypervisor, and it asks in every mode.
+ *   Denied       everything else, whoever approves it: anything that deletes,
+ *                anything in Keystone, quotas, security groups, force-resetting
+ *                a state, and every command nobody listed.
+ *
+ * A change has ONE spelling, in one order, which OPENSTACK_CHANGE_ROUTES writes
+ * out: no abbreviation, no flag in another place and nothing the real client
+ * would also take. So what a person approves, what an allowlist entry names word
+ * by word and what runs are the same words, and a second action has nowhere to
+ * hide: every value is held to its own closed pattern and travels in a JSON body
+ * the agent builds. `openstack dry-run <change>` is a Read: it reads what the
+ * change would touch and changes nothing.
+ *
+ * ---- Targets -----------------------------------------------------------------
+ *
+ * What ONEUPTIME_AI_PROTECTED_TARGETS and ONEUPTIME_AI_WRITE_TARGETS are compared
+ * with: instance:<id>, host:<name> (for a compute service), agent:<id> (for a
+ * network agent) and destination:<name> (where a move lands). An entry is
+ * project:<id>, host:<name> or instance:<id>, each of which may hold a *. Only
+ * the agent can read which project and host an instance is in, so on a server
+ * that holds an instance to a project or host entry passes here and the agent
+ * decides when it runs the change (getOpenStackLiveScopeRefusal), having read it.
+ * A protected entry wins over every other setting, wherever it is compared.
  *
  * ---- What stays out ----------------------------------------------------------
  *
@@ -77,7 +105,9 @@ import {
   ResourceCommandPolicyResult,
   ResourceToolPolicy,
   deniedResult,
+  globMatchesTarget,
   renderResourceDisplayCommand,
+  tokenizeResourceCommand,
 } from "./ResourceCommandPolicyCore";
 
 export const OPENSTACK_PROGRAM: string = "openstack";
@@ -105,12 +135,35 @@ export const OPENSTACK_OUTPUT_FORMATS: ReadonlyArray<OpenStackOutputFormat> = [
 ];
 
 /*
- * The one call a command becomes. Built only for a command the policy does
- * not deny. Always a GET today: the method is here so a write route has to
- * say what it is.
+ * What a change names, as the agent reads it before it makes the change, and as
+ * the card and the part's feed say it. Built only for a command the policy does
+ * not deny.
+ */
+export interface OpenStackChange {
+  // The route's words: "server reboot --hard".
+  route: string;
+  tier: ResourceCommandTier;
+  // The instances it changes, in the order named. Empty on what is not one.
+  instanceIds: Array<string>;
+  // The host whose nova-compute it changes; null on anything else.
+  serviceHost: string | null;
+  // The network agent it changes; null on anything else.
+  agentId: string | null;
+  // Whether it moves instances to another host.
+  isMove: boolean;
+  // The host a move names. Null: the scheduler chooses, or it moves nothing.
+  destinationHost: string | null;
+  // Whether it always asks a person, in every mode.
+  requiresHuman: boolean;
+}
+
+/*
+ * The one call a command becomes: a read, or a change. Built only for a command
+ * the policy does not deny. Tier and method go together: every Read is a GET and
+ * every change is not, which the agent checks again.
  */
 export interface OpenStackApiRequest {
-  method: "GET";
+  method: "GET" | "POST" | "PUT";
   service: OpenStackApiService;
   /*
    * Under the service's own URL, which holds the version: "/servers/detail".
@@ -130,6 +183,19 @@ export interface OpenStackApiRequest {
   listKey: string | null;
   // The limit this call carries, or null where the API has no paging.
   limit: number | null;
+  // A change's JSON body, built here from validated words. Absent on a read.
+  body?: Readonly<Record<string, unknown>> | undefined;
+  /*
+   * Every path a change calls, in order: one, except that an evacuation sends the
+   * same call once per instance it names. Absent on a read.
+   */
+  paths?: ReadonlyArray<string> | undefined;
+  // The compute microversion this call needs, when it is not the agent's own.
+  microversion?: string | undefined;
+  // What a change names. Absent on a read.
+  change?: OpenStackChange | undefined;
+  // On `openstack dry-run <change>`: the call that change would make.
+  dryRunOf?: OpenStackApiRequest | undefined;
 }
 
 export interface OpenStackCommandParseResult {
@@ -348,7 +414,7 @@ export interface OpenStackPaging {
 export interface OpenStackRoute {
   // "server list": the command words, space-separated.
   command: string;
-  // Today every route is Read. A write route carries its own tier (#5747).
+  // Every route here is a Read: the changes are OPENSTACK_CHANGE_ROUTES.
   tier: ResourceCommandTier;
   service: OpenStackApiService;
   // Under the service's own URL, with {name} for each positional.
@@ -412,8 +478,9 @@ const NO_OPTIONS: Readonly<Record<string, OpenStackOption>> = {};
 const READ: ResourceCommandTier = ResourceCommandTier.Read;
 
 /*
- * Every command OneUptime AI may run on a cloud, with its one call and its
- * closed list of options. Anything else is Denied. The access rules a level 1
+ * Every read OneUptime AI may run on a cloud, with its one call and its closed
+ * list of options. A change is on OPENSTACK_CHANGE_ROUTES, and anything else is
+ * Denied. The access rules a level 1
  * credential ships with list each of these paths, which a test pins, so the
  * cloud's own refusal agrees with this table.
  */
@@ -976,12 +1043,1019 @@ const ROUTE_BY_COMMAND: ReadonlyMap<string, OpenStackRoute> = new Map<
 // The most command words a route has: "resource provider inventory list".
 const MAX_COMMAND_WORDS: number = 4;
 
-// What may run, for refusals (the read guide has the options).
+// What may be read, for refusals (the read guide has the options).
 export const OPENSTACK_READABLE_COMMANDS_SUMMARY: string = `What it may run: ${OPENSTACK_COMMAND_ROUTES.map(
   (route: OpenStackRoute): string => {
     return route.command;
   },
 ).join(", ")}`;
+
+// ---- Changes -------------------------------------------------------------------
+
+/*
+ * The most instances an evacuation may touch and still run without a person: the
+ * number the blast-radius guard states. It is zero. Nova only takes an evacuation
+ * once the instance's host is down, so every evacuation that can run is of a dead
+ * hypervisor, and rebuilding one's instances elsewhere loses what was on their
+ * local disks. So every one asks, in every mode, whatever the allowlist says.
+ */
+export const OPENSTACK_EVACUATION_UNATTENDED_MAX_INSTANCES: number = 0;
+
+// The most instances one evacuation names, which a command's length has room for.
+export const OPENSTACK_MAX_INSTANCES_PER_EVACUATION: number = 50;
+
+// The word that makes a change a read of what it would touch.
+export const OPENSTACK_DRY_RUN_WORD: string = "dry-run";
+
+// The route of `openstack dry-run <change>`.
+export const OPENSTACK_DRY_RUN_ROUTE: string = "dry-run";
+
+// The one service a change may enable or disable.
+export const OPENSTACK_CHANGEABLE_COMPUTE_SERVICE: string = "nova-compute";
+
+/*
+ * Nova names a service by host and binary in /os-services/enable and its sisters,
+ * and those exist up to this microversion: one call and no look-up, on three exact
+ * paths a credential's access rules can list. From 2.53 the same change is a PUT on
+ * a service's UUID, which would have to be looked up first, and an access rule for
+ * that path also lets through forcing a service down.
+ */
+export const OPENSTACK_SERVICE_ACTION_MICROVERSION: string = "2.52";
+
+/*
+ * Written in lower case only, because a list prints them that way: one spelling of
+ * an instance, so a word-for-word allowlist entry and a protected entry both see it.
+ */
+const CHANGE_ID_RULE: OpenStackValueRule = patternRule(
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+  "an ID in lower case, such as 358ee736-ba74-40ba-a354-7ead413c5df6, which a list prints",
+);
+
+/*
+ * Why a person disabled a service, which Nova keeps and prints. Plain words: it
+ * travels in a JSON body, and nothing about it may look like an option or a path.
+ */
+const DISABLE_REASON_RULE: OpenStackValueRule = patternRule(
+  /^[A-Za-z0-9][A-Za-z0-9 .,:_()/#+=@-]{0,254}$/,
+  'a short reason in plain words, quoted, such as "disk failing on compute-01"',
+);
+
+// What a refusal for a protected target adds: it says what it is, and which way out there is.
+const PROTECTED_WINS_NOTE: string =
+  "ONEUPTIME_AI_PROTECTED_TARGETS wins over every other setting: nothing OneUptime AI does touches what is on it, whoever approves it.";
+
+const INSTANCE_TARGET_PREFIX: string = "instance:";
+const HOST_TARGET_PREFIX: string = "host:";
+const PROJECT_TARGET_PREFIX: string = "project:";
+const AGENT_TARGET_PREFIX: string = "agent:";
+const DESTINATION_TARGET_PREFIX: string = "destination:";
+
+/*
+ * A move that names no destination: the scheduler picks the host, so it cannot be
+ * shown to stay off a protected one or inside the write targets.
+ */
+const SCHEDULER_CHOOSES_DESTINATION: string = `${DESTINATION_TARGET_PREFIX}the-scheduler-chooses`;
+
+interface OpenStackChangeValues {
+  servers: Array<string>;
+  host: string | null;
+  agent: string | null;
+  reason: string | null;
+  destination: string | null;
+}
+
+interface OpenStackChangeCall {
+  service: OpenStackApiService;
+  method: "POST" | "PUT";
+  paths: Array<string>;
+  body: Readonly<Record<string, unknown>>;
+  microversion?: string | undefined;
+  // What it does, in the policy's reason.
+  does: string;
+}
+
+export interface OpenStackChangeRoute {
+  /*
+   * Its one spelling after "openstack": exact words, with {server}, {servers},
+   * {host}, {agent} and {reason} where a value goes.
+   */
+  spelling: string;
+  // Its words as a label: "server reboot --hard". The change's route.
+  route: string;
+  tier: ResourceCommandTier;
+  // Whether [--host HOST] may follow, naming where it lands.
+  takesDestination: boolean;
+  // Whether every use always asks a person.
+  alwaysAsks: boolean;
+  build: (values: OpenStackChangeValues) => OpenStackChangeCall;
+}
+
+function serverActionPath(id: string): string {
+  return `/servers/${id}/action`;
+}
+
+function firstServer(values: OpenStackChangeValues): string {
+  return values.servers[0] as string;
+}
+
+/*
+ * Every change OneUptime AI may make on a cloud, with the call each one is. There
+ * is no other: a command that is not one of these is Denied, whoever approves it.
+ */
+export const OPENSTACK_CHANGE_ROUTES: ReadonlyArray<OpenStackChangeRoute> = [
+  {
+    spelling: "server start {server}",
+    route: "server start",
+    tier: ResourceCommandTier.SafeWrite,
+    takesDestination: false,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "POST",
+        paths: [serverActionPath(firstServer(values))],
+        body: { "os-start": null },
+        does: "starts one stopped instance",
+      };
+    },
+  },
+  {
+    spelling: "server reboot --soft {server}",
+    route: "server reboot --soft",
+    tier: ResourceCommandTier.SafeWrite,
+    takesDestination: false,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "POST",
+        paths: [serverActionPath(firstServer(values))],
+        body: { reboot: { type: "SOFT" } },
+        does: "asks one instance's guest to restart",
+      };
+    },
+  },
+  {
+    spelling: "server reboot --hard {server}",
+    route: "server reboot --hard",
+    tier: ResourceCommandTier.RiskyWrite,
+    takesDestination: false,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "POST",
+        paths: [serverActionPath(firstServer(values))],
+        body: { reboot: { type: "HARD" } },
+        does: "power-cycles one instance, whatever its guest is doing",
+      };
+    },
+  },
+  {
+    spelling: "server migrate {server}",
+    route: "server migrate",
+    tier: ResourceCommandTier.RiskyWrite,
+    takesDestination: true,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "POST",
+        paths: [serverActionPath(firstServer(values))],
+        body: {
+          migrate: values.destination ? { host: values.destination } : null,
+        },
+        does: "stops one instance and moves it to another host, where it waits in VERIFY_RESIZE for a person to confirm",
+      };
+    },
+  },
+  {
+    spelling: "server migrate live {server}",
+    route: "server migrate live",
+    tier: ResourceCommandTier.RiskyWrite,
+    takesDestination: true,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "POST",
+        paths: [serverActionPath(firstServer(values))],
+        body: {
+          "os-migrateLive": {
+            host: values.destination,
+            block_migration: "auto",
+          },
+        },
+        does: "moves one running instance to another host",
+      };
+    },
+  },
+  {
+    spelling: "server evacuate {servers}",
+    route: "server evacuate",
+    tier: ResourceCommandTier.RiskyWrite,
+    takesDestination: true,
+    alwaysAsks: true,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "POST",
+        paths: values.servers.map(serverActionPath),
+        body: {
+          evacuate: values.destination ? { host: values.destination } : {},
+        },
+        does: `rebuilds ${values.servers.length} ${
+          values.servers.length === 1 ? "instance" : "instances"
+        } of a dead host on another, which loses what was on their local disks`,
+      };
+    },
+  },
+  {
+    spelling: `compute service set --enable {host} ${OPENSTACK_CHANGEABLE_COMPUTE_SERVICE}`,
+    route: "compute service set --enable",
+    tier: ResourceCommandTier.SafeWrite,
+    takesDestination: false,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "PUT",
+        paths: ["/os-services/enable"],
+        body: {
+          host: values.host,
+          binary: OPENSTACK_CHANGEABLE_COMPUTE_SERVICE,
+        },
+        microversion: OPENSTACK_SERVICE_ACTION_MICROVERSION,
+        does: "lets the scheduler place instances on one host again, and moves nothing",
+      };
+    },
+  },
+  {
+    spelling: `compute service set --disable --disable-reason {reason} {host} ${OPENSTACK_CHANGEABLE_COMPUTE_SERVICE}`,
+    route: "compute service set --disable",
+    tier: ResourceCommandTier.RiskyWrite,
+    takesDestination: false,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "compute",
+        method: "PUT",
+        paths: ["/os-services/disable-log-reason"],
+        body: {
+          host: values.host,
+          binary: OPENSTACK_CHANGEABLE_COMPUTE_SERVICE,
+          disabled_reason: values.reason,
+        },
+        microversion: OPENSTACK_SERVICE_ACTION_MICROVERSION,
+        does: "stops the scheduler placing new instances on one host, and leaves those on it running",
+      };
+    },
+  },
+  {
+    spelling: "network agent set --enable {agent}",
+    route: "network agent set --enable",
+    tier: ResourceCommandTier.SafeWrite,
+    takesDestination: false,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "network",
+        method: "PUT",
+        paths: [`/agents/${values.agent}`],
+        body: { agent: { admin_state_up: true } },
+        does: "turns one Neutron agent back on",
+      };
+    },
+  },
+  {
+    spelling: "network agent set --disable {agent}",
+    route: "network agent set --disable",
+    tier: ResourceCommandTier.RiskyWrite,
+    takesDestination: false,
+    alwaysAsks: false,
+    build: (values: OpenStackChangeValues): OpenStackChangeCall => {
+      return {
+        service: "network",
+        method: "PUT",
+        paths: [`/agents/${values.agent}`],
+        body: { agent: { admin_state_up: false } },
+        does: "turns one Neutron agent off, so what it serves is not scheduled to it",
+      };
+    },
+  },
+];
+
+// The words that open a change: a command that starts with one is judged as one.
+const CHANGE_HEADS: ReadonlyArray<ReadonlyArray<string>> = [
+  ["server", "start"],
+  ["server", "reboot"],
+  ["server", "migrate"],
+  ["server", "evacuate"],
+  ["compute", "service", "set"],
+  ["network", "agent", "set"],
+];
+
+function changeRoutesOf(
+  head: ReadonlyArray<string>,
+): Array<OpenStackChangeRoute> {
+  const opening: string = `${head.join(" ")} `;
+
+  return OPENSTACK_CHANGE_ROUTES.filter(
+    (route: OpenStackChangeRoute): boolean => {
+      return route.spelling.startsWith(opening);
+    },
+  );
+}
+
+// A route's spelling as a person writes it: upper case where a value goes.
+function spellChange(route: OpenStackChangeRoute): string {
+  const spelled: string = route.spelling
+    .split("{servers}")
+    .join("SERVER-ID...")
+    .split("{server}")
+    .join("SERVER-ID")
+    .split("{host}")
+    .join("HOST")
+    .split("{agent}")
+    .join("AGENT-ID")
+    .split("{reason}")
+    .join('"REASON"');
+
+  return `openstack ${spelled}${route.takesDestination ? " [--host HOST]" : ""}`;
+}
+
+// Every change OneUptime AI may make, spelled, for refusals.
+export const OPENSTACK_CHANGES_SUMMARY: string = OPENSTACK_CHANGE_ROUTES.map(
+  spellChange,
+).join("; ");
+
+interface OpenStackChangeSpellingFailure {
+  // How far into the words it read before it stopped.
+  readTo: number;
+  // What was wrong with the word it stopped at, when it was a value.
+  reason: string | null;
+}
+
+interface OpenStackChangeSpellingMatch {
+  values: OpenStackChangeValues;
+  regionName: string | null;
+}
+
+/*
+ * Whether these words (after "openstack") are this route's one spelling. Every
+ * word is compared exactly and in order, and only [--host HOST] and then
+ * [--os-region-name REGION] may follow the spelling.
+ */
+function readChangeSpelling(
+  route: OpenStackChangeRoute,
+  words: ReadonlyArray<string>,
+): OpenStackChangeSpellingMatch | OpenStackChangeSpellingFailure {
+  const values: OpenStackChangeValues = {
+    servers: [],
+    host: null,
+    agent: null,
+    reason: null,
+    destination: null,
+  };
+  const pieces: Array<string> = route.spelling.split(" ");
+  let at: number = 0;
+
+  const refuseValue: (
+    what: string,
+    rule: OpenStackValueRule,
+    word: string | undefined,
+  ) => OpenStackChangeSpellingFailure = (
+    what: string,
+    rule: OpenStackValueRule,
+    word: string | undefined,
+  ): OpenStackChangeSpellingFailure => {
+    return {
+      readTo: at,
+      reason: `${what} must be ${rule.expected}${
+        word === undefined ? "" : ` (got "${shorten(word)}")`
+      }`,
+    };
+  };
+
+  for (const piece of pieces) {
+    const word: string | undefined = words[at];
+
+    if (piece === "{servers}") {
+      while (at < words.length && !(words[at] as string).startsWith("-")) {
+        const id: string = words[at] as string;
+
+        if (!CHANGE_ID_RULE.accepts(id)) {
+          return refuseValue("each instance", CHANGE_ID_RULE, id);
+        }
+
+        if (values.servers.includes(id)) {
+          return {
+            readTo: at,
+            reason: `"${id}" is named twice: name each instance once`,
+          };
+        }
+
+        if (values.servers.length >= OPENSTACK_MAX_INSTANCES_PER_EVACUATION) {
+          return {
+            readTo: at,
+            reason: `one evacuation names at most ${OPENSTACK_MAX_INSTANCES_PER_EVACUATION} instances: propose the rest as another command of the plan`,
+          };
+        }
+
+        values.servers.push(id);
+        at++;
+      }
+
+      if (values.servers.length === 0) {
+        return refuseValue("each instance", CHANGE_ID_RULE, words[at]);
+      }
+
+      continue;
+    }
+
+    if (piece === "{server}") {
+      if (word === undefined || !CHANGE_ID_RULE.accepts(word)) {
+        return refuseValue("the instance", CHANGE_ID_RULE, word);
+      }
+
+      values.servers.push(word);
+      at++;
+      continue;
+    }
+
+    if (piece === "{agent}") {
+      if (word === undefined || !CHANGE_ID_RULE.accepts(word)) {
+        return refuseValue("the agent", CHANGE_ID_RULE, word);
+      }
+
+      values.agent = word;
+      at++;
+      continue;
+    }
+
+    if (piece === "{host}") {
+      if (word === undefined || !HOST_RULE.accepts(word)) {
+        return refuseValue("the host", HOST_RULE, word);
+      }
+
+      values.host = word;
+      at++;
+      continue;
+    }
+
+    if (piece === "{reason}") {
+      if (word === undefined || !DISABLE_REASON_RULE.accepts(word)) {
+        return refuseValue("the reason", DISABLE_REASON_RULE, word);
+      }
+
+      values.reason = word;
+      at++;
+      continue;
+    }
+
+    if (word !== piece) {
+      return { readTo: at, reason: null };
+    }
+
+    at++;
+  }
+
+  let regionName: string | null = null;
+
+  if (route.takesDestination && words[at] === "--host") {
+    at++;
+
+    const destination: string | undefined = words[at];
+
+    if (destination === undefined || !HOST_RULE.accepts(destination)) {
+      return refuseValue("--host", HOST_RULE, destination);
+    }
+
+    values.destination = destination;
+    at++;
+  }
+
+  if (words[at] === `--${REGION_OPTION}`) {
+    at++;
+
+    const region: string | undefined = words[at];
+
+    if (region === undefined || !REGION_RULE.accepts(region)) {
+      return refuseValue(`--${REGION_OPTION}`, REGION_RULE, region);
+    }
+
+    regionName = region;
+    at++;
+  }
+
+  if (at < words.length) {
+    return { readTo: at, reason: null };
+  }
+
+  return { values, regionName };
+}
+
+function isChangeSpellingMatch(
+  read: OpenStackChangeSpellingMatch | OpenStackChangeSpellingFailure,
+): read is OpenStackChangeSpellingMatch {
+  return (read as OpenStackChangeSpellingMatch).values !== undefined;
+}
+
+// What a change names, as the targets the agent's write scope is compared with.
+function getChangeTargets(data: {
+  values: OpenStackChangeValues;
+  isMove: boolean;
+}): Array<string> {
+  const { values } = data;
+
+  return [
+    ...values.servers.map((id: string): string => {
+      return `${INSTANCE_TARGET_PREFIX}${id}`;
+    }),
+    ...(values.host ? [`${HOST_TARGET_PREFIX}${values.host}`] : []),
+    ...(values.agent ? [`${AGENT_TARGET_PREFIX}${values.agent}`] : []),
+    ...(data.isMove
+      ? [
+          values.destination
+            ? `${DESTINATION_TARGET_PREFIX}${values.destination}`
+            : SCHEDULER_CHOOSES_DESTINATION,
+        ]
+      : []),
+  ];
+}
+
+/*
+ * A command that opens with a change's words: exactly one of its spellings, or
+ * refused with them written out. Null when it opens with no change's words.
+ */
+function analyzeChange(words: ReadonlyArray<string>): OpenStackAnalysis | null {
+  const head: ReadonlyArray<string> | undefined = CHANGE_HEADS.find(
+    (candidate: ReadonlyArray<string>): boolean => {
+      return candidate.every((word: string, index: number): boolean => {
+        return words[index] === word;
+      });
+    },
+  );
+
+  if (!head) {
+    return null;
+  }
+
+  if (words.includes("--down") || words.includes("--up")) {
+    return deny(`"openstack ${shorten(words.join(" "))}": ${FORCED_DOWN_REASON}`);
+  }
+
+  const routes: Array<OpenStackChangeRoute> = changeRoutesOf(head);
+  let furthest: OpenStackChangeSpellingFailure = { readTo: -1, reason: null };
+
+  for (const route of routes) {
+    const read: OpenStackChangeSpellingMatch | OpenStackChangeSpellingFailure =
+      readChangeSpelling(route, words);
+
+    if (!isChangeSpellingMatch(read)) {
+      if (
+        read.readTo > furthest.readTo ||
+        (read.readTo === furthest.readTo && !furthest.reason && read.reason)
+      ) {
+        furthest = read;
+      }
+
+      continue;
+    }
+
+    const call: OpenStackChangeCall = route.build(read.values);
+    const isMove: boolean = route.takesDestination;
+    const requiresHuman: boolean =
+      route.alwaysAsks &&
+      read.values.servers.length >
+        OPENSTACK_EVACUATION_UNATTENDED_MAX_INSTANCES;
+    const change: OpenStackChange = {
+      route: route.route,
+      tier: route.tier,
+      instanceIds: read.values.servers.slice(),
+      serviceHost: read.values.host,
+      agentId: read.values.agent,
+      isMove,
+      destinationHost: read.values.destination,
+      requiresHuman,
+    };
+
+    return {
+      allowed: true,
+      tier: route.tier,
+      reason: `${call.does}${
+        requiresHuman
+          ? ", which always asks a person, in every mode"
+          : ""
+      }`,
+      verb: route.route,
+      targets: getChangeTargets({ values: read.values, isMove }),
+      requiresHuman,
+      request: {
+        method: call.method,
+        service: call.service,
+        path: call.paths[0] as string,
+        paths: call.paths,
+        query: {},
+        regionName: read.regionName,
+        outputFormat: null,
+        route: route.route,
+        listKey: null,
+        limit: null,
+        body: call.body,
+        change,
+        ...(call.microversion ? { microversion: call.microversion } : {}),
+      },
+    };
+  }
+
+  const shown: string = shorten(words.join(" "));
+
+  return deny(
+    `"openstack ${shown}" is not a change OneUptime AI may make${
+      furthest.reason ? `: ${furthest.reason}` : ""
+    }. A change has one spelling, in this order, so what a person approves is what runs: ${routes
+      .map(spellChange)
+      .join("; ")}`,
+  );
+}
+
+// `openstack dry-run <change>`: a read of what the change would touch.
+function analyzeDryRun(words: ReadonlyArray<string>): OpenStackAnalysis {
+  const inner: OpenStackAnalysis | null = analyzeChange(words);
+
+  if (inner === null) {
+    return deny(
+      `${OPENSTACK_DRY_RUN_WORD} reads what one change would touch, and "${shorten(
+        words.join(" "),
+      )}" is not one. The changes: ${OPENSTACK_CHANGES_SUMMARY}`,
+    );
+  }
+
+  if (!inner.allowed) {
+    return inner;
+  }
+
+  return {
+    allowed: true,
+    tier: READ,
+    reason: `reads what ${inner.verb} would touch, and changes nothing`,
+    verb: OPENSTACK_DRY_RUN_ROUTE,
+    targets: [],
+    request: {
+      method: "GET",
+      service: inner.request.service,
+      path: "/",
+      query: {},
+      regionName: inner.request.regionName,
+      outputFormat: null,
+      route: OPENSTACK_DRY_RUN_ROUTE,
+      listKey: null,
+      limit: null,
+      dryRunOf: inner.request,
+    },
+  };
+}
+
+/*
+ * The dry run of a change (`openstack dry-run <change>`), or null when the
+ * command is not a change the policy allows.
+ */
+export function getOpenStackDryRunCommand(command: string): string | null {
+  const argv: Array<string> | undefined = tokenizeResourceCommand(command).argv;
+
+  if (!argv || argv[0] !== OPENSTACK_PROGRAM) {
+    return null;
+  }
+
+  const analysis: OpenStackAnalysis | null = analyzeChange(argv.slice(1));
+
+  if (!analysis || !analysis.allowed) {
+    return null;
+  }
+
+  return renderResourceDisplayCommand([
+    OPENSTACK_PROGRAM,
+    OPENSTACK_DRY_RUN_WORD,
+    ...argv.slice(1),
+  ]);
+}
+
+/*
+ * What a change names, read from the words alone, or null when the command is not
+ * a change the policy allows.
+ */
+export function readOpenStackChange(argv: unknown): OpenStackChange | null {
+  let analysis: OpenStackAnalysis;
+
+  try {
+    analysis = analyzeOpenStackArgv(argv);
+  } catch {
+    return null;
+  }
+
+  return analysis.allowed && analysis.request.change
+    ? analysis.request.change
+    : null;
+}
+
+// ---- What a target entry may say -----------------------------------------------
+
+/*
+ * Why an entry of ONEUPTIME_AI_PROTECTED_TARGETS or ONEUPTIME_AI_WRITE_TARGETS
+ * means nothing here, or null when it reads. An entry nothing can ever match is
+ * worse than no entry, because it reads as protecting something, so the agent stays
+ * read-only until it is fixed (Config). A project and an instance go by their IDs:
+ * a name can be reused, and a tenant can rename its instance into or out of a list.
+ */
+export function describeOpenStackTargetEntryProblem(
+  entry: string,
+): string | null {
+  const text: string = entry.trim();
+  const colon: number = text.indexOf(":");
+  const kind: string = colon > 0 ? text.slice(0, colon + 1) : "";
+  const value: string = colon > 0 ? text.slice(colon + 1) : "";
+  const shown: string = shorten(text);
+
+  if (
+    kind !== PROJECT_TARGET_PREFIX &&
+    kind !== HOST_TARGET_PREFIX &&
+    kind !== INSTANCE_TARGET_PREFIX
+  ) {
+    return `"${shown}" does not say what it is: write project:ID, host:NAME or instance:ID.`;
+  }
+
+  if (kind === HOST_TARGET_PREFIX) {
+    return /^[A-Za-z0-9*][A-Za-z0-9._*-]{0,254}$/.test(value)
+      ? null
+      : `"${shown}" is not a host's name: letters, digits, dots, dashes and underscores, with * for any run of them.`;
+  }
+
+  return /^[0-9a-fA-F*][0-9a-fA-F*-]{0,63}$/.test(value)
+    ? null
+    : `"${shown}" is not an ID: write the ID a list prints (with * for any run of it), because a name can be reused. openstack project show NAME -f value -c id prints a project's.`;
+}
+
+// A host's name without its domain, the way Nova's services write it.
+function shortHostName(name: string): string {
+  const dot: number = name.indexOf(".");
+
+  if (dot <= 0 || /^[0-9.]+$/.test(name) || name.includes(":")) {
+    return name;
+  }
+
+  return name.slice(0, dot);
+}
+
+/*
+ * Whether a host entry names this host: compute-01 and
+ * compute-01.example.internal are one machine (Nova's services say one and its
+ * hypervisors the other). A pattern with a * is read as written, because the part
+ * after its dot may be what it is about.
+ */
+function hostEntryNames(entry: string, host: string): boolean {
+  const pattern: string = entry.trim().toLowerCase();
+  const name: string = host.trim().toLowerCase();
+
+  if (!pattern || !name) {
+    return false;
+  }
+
+  if (pattern.includes("*")) {
+    return (
+      globMatchesTarget(pattern, name) ||
+      globMatchesTarget(pattern, shortHostName(name))
+    );
+  }
+
+  return shortHostName(pattern) === shortHostName(name);
+}
+
+function readEntry(
+  entry: unknown,
+  prefix: string,
+): string | null {
+  if (typeof entry !== "string") {
+    return null;
+  }
+
+  const text: string = entry.trim();
+
+  return text.toLowerCase().startsWith(prefix)
+    ? text.slice(prefix.length)
+    : null;
+}
+
+function idEntryNames(pattern: string, id: string): boolean {
+  return globMatchesTarget(pattern.toLowerCase(), id.trim().toLowerCase());
+}
+
+// The dispatcher's question: does this protected entry name this target?
+function isProtectedOpenStackTarget(
+  target: string,
+  protectedTarget: string,
+): boolean {
+  const hostEntry: string | null = readEntry(
+    protectedTarget,
+    HOST_TARGET_PREFIX,
+  );
+
+  if (hostEntry === null) {
+    return false;
+  }
+
+  if (target === SCHEDULER_CHOOSES_DESTINATION) {
+    return true;
+  }
+
+  const prefix: string | undefined = [
+    HOST_TARGET_PREFIX,
+    DESTINATION_TARGET_PREFIX,
+  ].find((candidate: string): boolean => {
+    return target.startsWith(candidate);
+  });
+
+  return prefix
+    ? hostEntryNames(hostEntry, target.slice(prefix.length))
+    : false;
+}
+
+/*
+ * The dispatcher's question: may this target still be inside these write targets?
+ * It answers on what the words say. An instance held to a project or a host entry,
+ * and an agent held to a host entry, pass here: only the agent can read those, and
+ * getOpenStackLiveScopeRefusal decides when it runs the change, having read them.
+ * A move's destination is held to the host entries, when there are any.
+ */
+function isOpenStackTargetInWriteScope(
+  target: string,
+  writeTargets: ReadonlyArray<string>,
+): boolean {
+  const hostEntries: Array<string> = writeTargets
+    .map((entry: string): string | null => {
+      return readEntry(entry, HOST_TARGET_PREFIX);
+    })
+    .filter((entry: string | null): entry is string => {
+      return entry !== null;
+    });
+
+  const hasProjectEntry: boolean = writeTargets.some(
+    (entry: string): boolean => {
+      return readEntry(entry, PROJECT_TARGET_PREFIX) !== null;
+    },
+  );
+
+  if (target.startsWith(INSTANCE_TARGET_PREFIX)) {
+    const id: string = target.slice(INSTANCE_TARGET_PREFIX.length);
+
+    return (
+      hostEntries.length > 0 ||
+      hasProjectEntry ||
+      writeTargets.some((entry: string): boolean => {
+        const pattern: string | null = readEntry(
+          entry,
+          INSTANCE_TARGET_PREFIX,
+        );
+
+        return pattern !== null && idEntryNames(pattern, id);
+      })
+    );
+  }
+
+  if (target.startsWith(AGENT_TARGET_PREFIX)) {
+    return hostEntries.length > 0;
+  }
+
+  if (target.startsWith(HOST_TARGET_PREFIX)) {
+    const host: string = target.slice(HOST_TARGET_PREFIX.length);
+
+    return hostEntries.some((entry: string): boolean => {
+      return hostEntryNames(entry, host);
+    });
+  }
+
+  if (target.startsWith(DESTINATION_TARGET_PREFIX)) {
+    if (hostEntries.length === 0) {
+      return true;
+    }
+
+    if (target === SCHEDULER_CHOOSES_DESTINATION) {
+      return false;
+    }
+
+    const host: string = target.slice(DESTINATION_TARGET_PREFIX.length);
+
+    return hostEntries.some((entry: string): boolean => {
+      return hostEntryNames(entry, host);
+    });
+  }
+
+  return false;
+}
+
+// What the agent read of one thing a change touches, just before it changes it.
+export interface OpenStackLiveTarget {
+  // As the policy names it: instance:<id>, host:<name> or agent:<id>.
+  target: string;
+  // Null when what it read did not say (or it is not an instance).
+  projectId: string | null;
+  // What its host goes by. Empty when what it read did not say.
+  hosts: Array<string>;
+}
+
+/*
+ * The agent's last word on where a change lands, on what it just read. Protected
+ * entries first, because they win over every other setting, including a write
+ * target naming the same thing. What it could not read is never in scope: an
+ * instance whose project or host it could not read is refused the moment a list
+ * could have named them.
+ */
+export function getOpenStackLiveScopeRefusal(data: {
+  displayCommand: string;
+  targets: ReadonlyArray<OpenStackLiveTarget>;
+  protectedTargets: ReadonlyArray<string>;
+  writeTargets: ReadonlyArray<string>;
+}): string | null {
+  const shown: string = data.displayCommand;
+
+  for (const live of data.targets) {
+    const id: string = live.target.startsWith(INSTANCE_TARGET_PREFIX)
+      ? live.target.slice(INSTANCE_TARGET_PREFIX.length)
+      : "";
+
+    for (const entry of data.protectedTargets) {
+      const project: string | null = readEntry(entry, PROJECT_TARGET_PREFIX);
+      const host: string | null = readEntry(entry, HOST_TARGET_PREFIX);
+      const instance: string | null = readEntry(entry, INSTANCE_TARGET_PREFIX);
+
+      if (project !== null && id) {
+        if (live.projectId === null) {
+          return `"${shown}" would change ${live.target}, and the agent could not read which project it is in, so it cannot show that it stays off ${entry}. It did not run.`;
+        }
+
+        if (idEntryNames(project, live.projectId)) {
+          return `"${shown}" would change ${live.target}, in project ${live.projectId}, which the OpenStack AI agent protects (${entry}). ${PROTECTED_WINS_NOTE}`;
+        }
+      }
+
+      if (host !== null) {
+        if (live.hosts.length === 0) {
+          return `"${shown}" would change ${live.target}, and the agent could not read which host it is on, so it cannot show that it stays off ${entry}. It did not run.`;
+        }
+
+        const named: string | undefined = live.hosts.find(
+          (candidate: string): boolean => {
+            return hostEntryNames(host, candidate);
+          },
+        );
+
+        if (named) {
+          return `"${shown}" would change ${live.target}, on host ${named}, which the OpenStack AI agent protects (${entry}). ${PROTECTED_WINS_NOTE}`;
+        }
+      }
+
+      if (instance !== null && id && idEntryNames(instance, id)) {
+        return `"${shown}" would change ${live.target}, which the OpenStack AI agent protects (${entry}). ${PROTECTED_WINS_NOTE}`;
+      }
+    }
+  }
+
+  if (data.writeTargets.length === 0) {
+    return null;
+  }
+
+  for (const live of data.targets) {
+    const id: string = live.target.startsWith(INSTANCE_TARGET_PREFIX)
+      ? live.target.slice(INSTANCE_TARGET_PREFIX.length)
+      : "";
+    const inScope: boolean = data.writeTargets.some((entry: string): boolean => {
+      const project: string | null = readEntry(entry, PROJECT_TARGET_PREFIX);
+      const host: string | null = readEntry(entry, HOST_TARGET_PREFIX);
+      const instance: string | null = readEntry(entry, INSTANCE_TARGET_PREFIX);
+
+      return (
+        (project !== null &&
+          live.projectId !== null &&
+          idEntryNames(project, live.projectId)) ||
+        (host !== null &&
+          live.hosts.some((candidate: string): boolean => {
+            return hostEntryNames(host, candidate);
+          })) ||
+        (instance !== null && id !== "" && idEntryNames(instance, id))
+      );
+    });
+
+    if (!inScope) {
+      return `"${shown}" would change ${live.target}${
+        live.projectId ? `, in project ${live.projectId}` : ""
+      }${
+        live.hosts[0] ? `, on host ${live.hosts[0]}` : ""
+      }, which is outside the targets the OpenStack AI agent may change (ONEUPTIME_AI_WRITE_TARGETS=${data.writeTargets.join(",")}). Add it there and restart the agent, or leave this change to a person.`;
+    }
+  }
+
+  return null;
+}
 
 // ---- Refusals ------------------------------------------------------------------
 
@@ -1038,16 +2112,40 @@ const CONSOLE_REASON: string =
   "a console hands out a guest's screen, and its log holds whatever the guest printed, so OneUptime AI never reads them; server show and server event list say how an instance is";
 
 /*
- * Words that make a command a change. Only for the reason: anything the routes
- * do not list is refused whether or not it is named here.
+ * Why a change nobody listed is refused, in the truest words there are. Only for
+ * the reason: anything the routes do not list is refused whether or not it is
+ * named here.
  */
+const DELETING_WORDS: ReadonlyArray<string> = ["delete", "purge", "cleanup"];
+
+const DELETING_REASON: string =
+  "it deletes, and nothing OneUptime AI runs on a cloud ever deletes. If that is the fix, say so in the report, for a person to do";
+
+const QUOTA_COMMANDS: ReadonlyArray<string> = ["quota", "limits"];
+
+const QUOTA_REASON: string =
+  "a project's quotas are for a person to change, never OneUptime AI";
+
+const SECURITY_GROUP_COMMANDS: ReadonlyArray<string> = [
+  "security group",
+  "security group rule",
+];
+
+const SECURITY_GROUP_REASON: string =
+  "security groups decide who can reach what, so they are for a person to change, never OneUptime AI";
+
+const FORCED_STATE_REASON: string =
+  "forcing a state only changes what the database says, and hides what went wrong, so it is for a person to do, never OneUptime AI";
+
+const FORCED_DOWN_REASON: string =
+  "forcing a service down tells Nova a host is dead without anyone having checked, so it is for a person to do, never OneUptime AI";
+
 const WRITE_WORDS: ReadonlyArray<string> = [
   "abort",
   "add",
   "attach",
   "confirm",
   "create",
-  "delete",
   "detach",
   "evacuate",
   "expand",
@@ -1058,7 +2156,6 @@ const WRITE_WORDS: ReadonlyArray<string> = [
   "lock",
   "migrate",
   "pause",
-  "purge",
   "reboot",
   "rebuild",
   "remove",
@@ -1084,8 +2181,7 @@ const WRITE_WORDS: ReadonlyArray<string> = [
   "update",
 ];
 
-const WRITE_REASON: string =
-  "it would change the cloud, and OneUptime AI only reads an OpenStack cloud: it has no command that changes one. If a change is the fix, say so in the report, for a person to make";
+const WRITE_REASON: string = `it would change the cloud in a way OneUptime AI may not. The changes it may make: ${OPENSTACK_CHANGES_SUMMARY}. If another change is the fix, say so in the report, for a person to make`;
 
 /*
  * Options that would choose another cloud, login, API version or client
@@ -1116,9 +2212,12 @@ function shorten(text: string): string {
 
 /*
  * Why these command words are refused, in the truest words there are. `words`
- * is every word before the first one starting with "-".
+ * is every word before the first one starting with "-", and `rest` all of them.
  */
-function describeRefusedCommand(words: Array<string>): string {
+function describeRefusedCommand(
+  words: Array<string>,
+  rest: ReadonlyArray<string>,
+): string {
   const joined: string = shorten(words.join(" "));
 
   for (const length of [3, 2, 1]) {
@@ -1139,6 +2238,26 @@ function describeRefusedCommand(words: Array<string>): string {
     if (CONSOLE_COMMANDS.includes(prefix)) {
       return CONSOLE_REASON;
     }
+
+    if (QUOTA_COMMANDS.includes(prefix)) {
+      return QUOTA_REASON;
+    }
+
+    if (SECURITY_GROUP_COMMANDS.includes(prefix)) {
+      return SECURITY_GROUP_REASON;
+    }
+  }
+
+  if (
+    words.some((word: string): boolean => {
+      return DELETING_WORDS.includes(word);
+    })
+  ) {
+    return `"openstack ${joined}": ${DELETING_REASON}`;
+  }
+
+  if (rest.includes("--state") || rest.includes("--reset-status")) {
+    return `"openstack ${joined}": ${FORCED_STATE_REASON}`;
   }
 
   if (
@@ -1166,6 +2285,8 @@ interface OpenStackAllowance {
   verb: string;
   targets: Array<string>;
   request: OpenStackApiRequest;
+  // A change that asks a person in every mode.
+  requiresHuman?: boolean | undefined;
 }
 
 type OpenStackAnalysis = OpenStackDenial | OpenStackAllowance;
@@ -1274,6 +2395,16 @@ function analyzeOpenStackArgv(rawArgv: unknown): OpenStackAnalysis {
     );
   }
 
+  if (first === OPENSTACK_DRY_RUN_WORD) {
+    return analyzeDryRun(argv.slice(2));
+  }
+
+  const change: OpenStackAnalysis | null = analyzeChange(argv.slice(1));
+
+  if (change) {
+    return change;
+  }
+
   // The longest run of words that is a route: server event list, not server.
   const leading: Array<string> = [];
 
@@ -1304,7 +2435,7 @@ function analyzeOpenStackArgv(rawArgv: unknown): OpenStackAnalysis {
   }
 
   if (!route) {
-    return deny(describeRefusedCommand(leading));
+    return deny(describeRefusedCommand(leading, argv.slice(1)));
   }
 
   return analyzeRoute(route, argv.slice(1 + commandLength));
@@ -1627,17 +2758,35 @@ const READ_COMMAND_GUIDE: string = [
   "- Storage: `volume service list [--host HOST] [--service cinder-volume]`, `volume backend pool list`, `volume list --all-projects --limit N [--status error]`, `volume show ID`, `volume snapshot list --all-projects --limit N`, `volume backup list --all-projects --limit N`, `image list [--status STATUS]`, `image show ID`.",
   "- The cloud's shape: `endpoint list [--interface public] [--region REGION]`, `service list`, `region list`, `project list [--name NAME]`, `project show ID`, `domain list`.",
   "- Nova names a service by its short host (`compute-01`) and a hypervisor by its full one (`compute-01.example.internal`), and Placement agrees with the hypervisor. A stopped `nova-compute` leaves its instances reading ACTIVE: `host_status` UNKNOWN on them, and `state` down on the service, are what says so.",
-  "- Never: anything that changes the cloud, Keystone's users, credentials, role assignments and tokens, consoles and console logs, Barbican's secrets, `--os-cloud` and every other login or endpoint option.",
+  "- Before a change: `openstack dry-run <change>` reads which instances and projects it would touch, and changes nothing.",
+  "- Never: Keystone's users, credentials, role assignments and tokens, consoles and console logs, Barbican's secrets, `--os-cloud` and every other login or endpoint option.",
 ].join("\n");
 
-const WRITE_COMMAND_GUIDE: string =
-  "- None: OneUptime AI only reads an OpenStack cloud. This policy has no command that changes one, so propose no change as a command; describe it for a person.";
+const WRITE_COMMAND_GUIDE: string = [
+  "- A change has one spelling, in this order: anything else is refused. An ID is an ID, in lower case, which a list prints. It goes through the agent's own write credential, as one call to the cloud's API.",
+  "- Safe (runs unattended in Automatic mode): `openstack server start SERVER-ID`, `openstack server reboot --soft SERVER-ID`, `openstack compute service set --enable HOST nova-compute`, `openstack network agent set --enable AGENT-ID`.",
+  '- Riskier (needs approval unless allowlisted or approvals are bypassed): `openstack server reboot --hard SERVER-ID`, `openstack server migrate SERVER-ID [--host HOST]`, `openstack server migrate live SERVER-ID [--host HOST]`, `openstack compute service set --disable --disable-reason "REASON" HOST nova-compute`, `openstack network agent set --disable AGENT-ID`.',
+  `- Always asks a person, in every mode: \`openstack server evacuate SERVER-ID... [--host HOST]\`. Name every instance to evacuate, up to ${OPENSTACK_MAX_INSTANCES_PER_EVACUATION} in one command (\`openstack server list --all-projects --host HOST --limit 200\` prints them). Nova only takes it once that host's \`nova-compute\` reads down.`,
+  "- A cold `server migrate` leaves the instance in VERIFY_RESIZE until a person confirms it, which OneUptime AI never does, so say that in the plan. When a list of hosts is kept off limits, name the destination with `--host`: a move that leaves it to the scheduler cannot be shown to stay inside it.",
+  "- The undo of a disable is the enable of the same thing, which is safe. A start, a reboot, a move and an evacuation have no undo: omit the rollbackCommand.",
+  "- Never: anything that deletes (`server delete`, `volume delete`, `project delete`, ...), anything in Keystone (users, roles, credentials), quotas, security groups, forcing a state (`server set --state`, `volume set --state`) or forcing a service down (`--down`), and every command not named here. Say so in the report instead, for a person.",
+].join("\n");
 
 const OpenStackCommandPolicy: ResourceToolPolicy = {
   name: "openstack",
   programs: [OPENSTACK_PROGRAM],
   readCommandGuide: READ_COMMAND_GUIDE,
   writeCommandGuide: WRITE_COMMAND_GUIDE,
+  allowlistStandIns: [
+    "358ee736-ba74-40ba-a354-7ead413c5df6",
+    "4d955c70-df91-45ae-be57-044f4bcaefec",
+    OPENSTACK_CHANGEABLE_COMPUTE_SERVICE,
+  ],
+  isProtectedTarget: isProtectedOpenStackTarget,
+  isTargetInWriteScope: isOpenStackTargetInWriteScope,
+  describeTargetEntryProblem: describeOpenStackTargetEntryProblem,
+  protectedTargetNote: PROTECTED_WINS_NOTE,
+  refusesAlwaysAskingAllowlistEntries: true,
   evaluateArgv(argv: Array<string>): ResourceCommandPolicyResult {
     let analysis: OpenStackAnalysis;
 
@@ -1656,7 +2805,7 @@ const OpenStackCommandPolicy: ResourceToolPolicy = {
 
     const words: Array<string> = argv.slice();
 
-    return {
+    const result: ResourceCommandPolicyResult = {
       tier: analysis.tier,
       reason: analysis.reason,
       program: OPENSTACK_PROGRAM,
@@ -1665,6 +2814,12 @@ const OpenStackCommandPolicy: ResourceToolPolicy = {
       displayCommand: renderResourceDisplayCommand(words),
       targets: analysis.targets.slice(),
     };
+
+    if (analysis.requiresHuman === true) {
+      result.requiresHuman = true;
+    }
+
+    return result;
   },
 };
 
