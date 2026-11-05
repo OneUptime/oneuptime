@@ -15,11 +15,14 @@ import ObjectID from "../../../../Types/ObjectID";
 import {
   OPENSTACK_LIFECYCLE_RUNS_KEPT,
   OpenStackApiCheckJob,
+  OpenStackApiCheckResult,
+  OpenStackCertificateResult,
   OpenStackCheckReport,
   OpenStackLifecycleCheckJob,
   OpenStackLifecyclePhase,
   OpenStackLifecycleRecords,
   OpenStackLifecycleRun,
+  OpenStackLifecycleRunBrief,
   OpenStackLifecycleStep,
 } from "../../../../Types/OpenStack/OpenStackCheck";
 import OpenStackCollectionMethod from "../../../../Types/OpenStack/OpenStackCollectionMethod";
@@ -173,8 +176,7 @@ function reportOf(
 function metricNamesOf(outcome: OpenStackCheckReportOutcome): Array<string> {
   const names: Array<string> = [];
 
-  for (const resource of (outcome.resourceMetrics ||
-    []) as Array<JSONObject>) {
+  for (const resource of (outcome.resourceMetrics || []) as Array<JSONObject>) {
     for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
       for (const metric of scope["metrics"] as Array<JSONObject>) {
         names.push(metric["name"] as string);
@@ -496,9 +498,7 @@ describe("what a probe reports", () => {
               ...CLOUD,
               collectionProbe: {
                 isGlobalProbe: false,
-                projectId: new ObjectID(
-                  "66666666-6666-4666-8666-666666666666",
-                ),
+                projectId: new ObjectID("66666666-6666-4666-8666-666666666666"),
               },
             },
           }),
@@ -819,14 +819,19 @@ describe("what a region's record comes to", () => {
   test("keeps so many runs, newest first", () => {
     let records: OpenStackLifecycleRecords | undefined = undefined;
 
-    for (let index: number = 0; index < OPENSTACK_LIFECYCLE_RUNS_KEPT + 5; index++) {
+    for (
+      let index: number = 0;
+      index < OPENSTACK_LIFECYCLE_RUNS_KEPT + 5;
+      index++
+    ) {
       records = mergeOpenStackLifecycleRuns({
         records: records,
         runs: [runOf({ runId: `run-${index}` })],
       });
     }
 
-    const recent = records!["RegionOne"]!.recent;
+    const recent: Array<OpenStackLifecycleRunBrief> =
+      records!["RegionOne"]!.recent;
 
     expect(recent).toHaveLength(OPENSTACK_LIFECYCLE_RUNS_KEPT);
     expect(recent[0]?.runId).toBe(`run-${OPENSTACK_LIFECYCLE_RUNS_KEPT + 4}`);
@@ -890,7 +895,8 @@ describe("what a report may hold, whatever a probe sent", () => {
     expect(sanitizeOpenStackApiCheckResult("nope")).toBeNull();
     expect(sanitizeOpenStackApiCheckResult({ token: {} })).toBeNull();
 
-    const result = sanitizeOpenStackApiCheckResult({
+    const result: OpenStackApiCheckResult | null =
+      sanitizeOpenStackApiCheckResult({
       startedAt: NOW.toISOString(),
       durationInMs: 5,
       regionNames: ["One", 1],
@@ -914,6 +920,10 @@ describe("what a report may hold, whatever a probe sent", () => {
       message: "Hello",
     });
     expect(result?.services).toHaveLength(1);
-    expect(result?.certificates.map((one) => one.host)).toEqual(["a"]);
+    expect(
+      result?.certificates.map((one: OpenStackCertificateResult) => {
+        return one.host;
+      }),
+    ).toEqual(["a"]);
   });
 });

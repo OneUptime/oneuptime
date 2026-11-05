@@ -471,19 +471,23 @@ describe("a check's incident", () => {
     };
   }
 
-  function mockCheck(run: OpenStackLifecycleRun): ReturnType<typeof jest.spyOn> {
-    return jest.spyOn(OpenStackCloudCheckService, "findOneBy").mockResolvedValue(
-      Object.assign(new OpenStackCloudCheck(), {
-        lifecycleRecords: {
-          RegionOne: {
-            regionName: "RegionOne",
-            lastVerdict: run,
-            phaseVerdicts: {},
-            recent: [],
+  function mockCheck(
+    run: OpenStackLifecycleRun,
+  ): ReturnType<typeof jest.spyOn> {
+    return jest
+      .spyOn(OpenStackCloudCheckService, "findOneBy")
+      .mockResolvedValue(
+        Object.assign(new OpenStackCloudCheck(), {
+          lifecycleRecords: {
+            RegionOne: {
+              regionName: "RegionOne",
+              lastVerdict: run,
+              phaseVerdicts: {},
+              recent: [],
+            },
           },
-        },
-      }) as never,
-    );
+        }) as never,
+      );
   }
 
   test("names the step and Nova's fault, and reads no part of the cloud to do it", async () => {

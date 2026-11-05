@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import {
   OpenStackCheckCloudFacts,
+  OpenStackCheckConnection,
   OpenStackCheckSavedRow,
   OpenStackCheckWriteDecision,
   getOpenStackCheckBinding,
@@ -33,7 +34,11 @@ const PROBE_CLOUD: OpenStackCheckCloudFacts = {
   endpointInterface: "public",
   collectionRegions: ["RegionOne"],
   trustedCertificateFingerprints: [],
-  collectionProbeId: { toString: (): string => PROBE },
+  collectionProbeId: {
+    toString: (): string => {
+      return PROBE;
+    },
+  },
   isCredentialSet: true,
 };
 
@@ -118,18 +123,28 @@ describe("turning on the API checks", () => {
         values: {
           isApiCheckEnabled: true,
           authUrl: "https://keystone.example.com/v3",
-          probeId: { toString: (): string => PROBE },
+          probeId: {
+            toString: (): string => {
+              return PROBE;
+            },
+          },
         },
         cloud: AGENT_CLOUD,
       }),
-    ).toEqual({ error: expect.stringContaining("Give these checks a credential") });
+    ).toEqual({
+      error: expect.stringContaining("Give these checks a credential"),
+    });
 
     expect(
       decided({
         values: {
           isApiCheckEnabled: true,
           authUrl: "https://keystone.example.com/v3",
-          probeId: { toString: (): string => PROBE },
+          probeId: {
+            toString: (): string => {
+              return PROBE;
+            },
+          },
           ...NEW_CREDENTIAL,
         },
         cloud: AGENT_CLOUD,
@@ -292,7 +307,13 @@ describe("the secret", () => {
     ],
     [
       "another probe",
-      { probeId: { toString: (): string => OTHER_PROBE } },
+      {
+        probeId: {
+          toString: (): string => {
+            return OTHER_PROBE;
+          },
+        },
+      },
       "the probe it was entered for",
     ],
   ])(
@@ -305,7 +326,7 @@ describe("the secret", () => {
   );
 
   test("nor a certificate someone newly trusts, on a check's own address", () => {
-    const connection = getOpenStackCheckConnection({
+    const connection: OpenStackCheckConnection = getOpenStackCheckConnection({
       check: { authUrl: "https://keystone.example.com" },
       cloud: AGENT_CLOUD,
     });
@@ -318,7 +339,11 @@ describe("the secret", () => {
         saved: {
           ...savedLifecycle({
             authUrl: "https://keystone.example.com",
-            probeId: { toString: (): string => PROBE },
+            probeId: {
+              toString: (): string => {
+                return PROBE;
+              },
+            },
           }),
           credentialBinding: getOpenStackCheckBinding({
             ...connection,
@@ -378,7 +403,9 @@ describe("the secret", () => {
       projectDomainName: "Default",
     });
 
-    expect(readOpenStackCheckCredential({ credentialKind: "password" })).toBeNull();
+    expect(
+      readOpenStackCheckCredential({ credentialKind: "password" }),
+    ).toBeNull();
     expect(
       readOpenStackCheckCredential({
         credentialKind: "applicationCredential",
@@ -502,7 +529,7 @@ describe("what else a write can say", () => {
 
 describe("where a check connects", () => {
   test("its own address when it has one, or else the cloud's", () => {
-    const own = getOpenStackCheckConnection({
+    const own: OpenStackCheckConnection = getOpenStackCheckConnection({
       check: { authUrl: "https://mine.example.com", regions: ["One"] },
       cloud: PROBE_CLOUD,
     });
@@ -557,9 +584,9 @@ describe("what the lifecycle check was told to boot", () => {
     expect(normalizeOpenStackLifecycleOptions(undefined)).toEqual({
       options: {},
     });
-    expect(normalizeOpenStackLifecycleOptions({ isVolumeEnabled: true })).toEqual(
-      { options: { isVolumeEnabled: true, volumeSizeInGiB: 1 } },
-    );
+    expect(
+      normalizeOpenStackLifecycleOptions({ isVolumeEnabled: true }),
+    ).toEqual({ options: { isVolumeEnabled: true, volumeSizeInGiB: 1 } });
   });
 
   test.each<[string, unknown]>([

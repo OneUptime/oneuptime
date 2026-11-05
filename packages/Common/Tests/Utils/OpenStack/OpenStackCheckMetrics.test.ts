@@ -194,7 +194,11 @@ describe("the API checks' series", () => {
     const points: Array<Point> = getOpenStackApiCheckPoints({
       result: apiResult({
         regionNames: ["one", "two"],
-        token: { status: "Failed", durationInMs: 15_000, message: "It is down." },
+        token: {
+          status: "Failed",
+          durationInMs: 15_000,
+          message: "It is down.",
+        },
         services: [],
         certificates: [],
       }),
@@ -202,13 +206,13 @@ describe("the API checks' series", () => {
     });
 
     expect(
-      valuesOf(points, OpenStackCheckMetric.TokenSuccess).map((one) => {
+      valuesOf(points, OpenStackCheckMetric.TokenSuccess).map((one: ReturnType<typeof valuesOf>[number]) => {
         return one.value;
       }),
     ).toEqual([0, 0]);
-    expect(
-      valuesOf(points, OpenStackCheckMetric.TokenDuration)[0]?.value,
-    ).toBe(15);
+    expect(valuesOf(points, OpenStackCheckMetric.TokenDuration)[0]?.value).toBe(
+      15,
+    );
   });
 
   test("a credential being left alone still reads as failing, with no time to measure", () => {
@@ -299,7 +303,7 @@ describe("the API checks' series", () => {
     });
 
     expect(
-      valuesOf(points, OpenStackCheckMetric.CertificateExpiry).map((one) => {
+      valuesOf(points, OpenStackCheckMetric.CertificateExpiry).map((one: ReturnType<typeof valuesOf>[number]) => {
         return [one.labels[OPENSTACK_REGION_ATTRIBUTE], one.value];
       }),
     ).toEqual([
@@ -352,7 +356,7 @@ describe("the lifecycle check's series: what the last run found, said again each
       valuesOf(
         pointsOf(records(lifecycleRun())),
         OpenStackCheckMetric.LifecyclePhaseSuccess,
-      ).map((one) => {
+      ).map((one: ReturnType<typeof valuesOf>[number]) => {
         return [one.labels["phase"], one.value];
       }),
     ).toEqual([
@@ -398,9 +402,9 @@ describe("the lifecycle check's series: what the last run found, said again each
       return pointsOf(records(run), NOW + minutes * MINUTE);
     };
 
-    expect(valuesOf(at(75), OpenStackCheckMetric.LifecycleSuccess)).toHaveLength(
-      1,
-    );
+    expect(
+      valuesOf(at(75), OpenStackCheckMetric.LifecycleSuccess),
+    ).toHaveLength(1);
     expect(valuesOf(at(76), OpenStackCheckMetric.LifecycleSuccess)).toEqual([]);
     expect(
       valuesOf(at(76), OpenStackCheckMetric.LifecyclePhaseSuccess),
@@ -519,7 +523,10 @@ describe("as OTLP", () => {
     const metrics: JSONArray = scope["metrics"] as JSONArray;
 
     const certificate: JSONObject = metrics.find((metric: unknown): boolean => {
-      return (metric as JSONObject)["name"] === OpenStackCheckMetric.CertificateExpiry;
+      return (
+        (metric as JSONObject)["name"] ===
+        OpenStackCheckMetric.CertificateExpiry
+      );
     }) as JSONObject;
 
     const point: JSONObject = (

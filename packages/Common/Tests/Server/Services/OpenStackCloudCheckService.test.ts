@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudCheck from "../../../Models/DatabaseModels/OpenStackCloudCheck";
 import Probe from "../../../Models/DatabaseModels/Probe";
@@ -34,7 +41,9 @@ type ServiceInternals = {
   getRelationsCheckedByService: () => Array<string>;
 };
 
-function createByOf(data: Partial<OpenStackCloudCheck>): CreateBy<OpenStackCloudCheck> {
+function createByOf(
+  data: Partial<OpenStackCloudCheck>,
+): CreateBy<OpenStackCloudCheck> {
   const model: OpenStackCloudCheck = new OpenStackCloudCheck();
 
   Object.assign(model, data);

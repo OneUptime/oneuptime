@@ -130,8 +130,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Project,
     title: "Project",
-    description:
-      "Relation to Project Resource in which this object belongs",
+    description: "Relation to Project Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
@@ -158,8 +157,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Project ID",
-    description:
-      "ID of your OneUptime Project in which this object belongs",
+    description: "ID of your OneUptime Project in which this object belongs",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -270,8 +268,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OpenStackCloud,
     title: "OpenStack Cloud",
-    description:
-      "The cloud these checks are of.",
+    description: "The cloud these checks are of.",
   })
   @ManyToOne(
     () => {
@@ -461,8 +458,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Application Credential ID",
-    description:
-      "The application credential these checks log in with.",
+    description: "The application credential these checks log in with.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -480,8 +476,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Username",
-    description:
-      "The user these checks log in as, for a password.",
+    description: "The user these checks log in as, for a password.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -499,8 +494,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "User Domain Name",
-    description:
-      "The Keystone domain of that user. Default, when left out.",
+    description: "The Keystone domain of that user. Default, when left out.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -537,8 +531,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Credential Project Domain Name",
-    description:
-      "The Keystone domain of that project. Default, when left out.",
+    description: "The Keystone domain of that project. Default, when left out.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -596,8 +589,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     title: "Credentials Updated At",
-    description:
-      "When the credential last changed. Written by the server.",
+    description: "When the credential last changed. Written by the server.",
   })
   @Column({
     type: ColumnType.Date,
@@ -654,8 +646,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: true,
     type: TableColumnType.Number,
     title: "API Check Interval In Minutes",
-    description:
-      "How often the API checks run: every 1, 2 or 5 minutes.",
+    description: "How often the API checks run: every 1, 2 or 5 minutes.",
     defaultValue: DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES,
   })
   @Column({
@@ -674,8 +665,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     title: "Next API Check At",
-    description:
-      "When the API checks are next due. Written by the server.",
+    description: "When the API checks are next due. Written by the server.",
   })
   @Column({
     type: ColumnType.Date,
@@ -827,8 +817,7 @@ export default class OpenStackCloudCheck extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     title: "Next Lifecycle Check At",
-    description:
-      "When the lifecycle check is next due. Written by the server.",
+    description: "When the lifecycle check is next due. Written by the server.",
   })
   @Column({
     type: ColumnType.Date,

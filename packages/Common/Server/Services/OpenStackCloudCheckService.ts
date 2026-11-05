@@ -227,7 +227,9 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (!projectId || !openStackCloudId) {
-      throw new BadDataException("Say which OpenStack cloud these checks are of.");
+      throw new BadDataException(
+        "Say which OpenStack cloud these checks are of.",
+      );
     }
 
     const existing: Model | null = await this.findOneBy({
@@ -237,7 +239,9 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (existing) {
-      throw new BadDataException("This OpenStack cloud has its checks already.");
+      throw new BadDataException(
+        "This OpenStack cloud has its checks already.",
+      );
     }
 
     return {
@@ -327,7 +331,11 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
-    if (carry.changes.length === 0 || !carry.openStackCloudId || !carry.projectId) {
+    if (
+      carry.changes.length === 0 ||
+      !carry.openStackCloudId ||
+      !carry.projectId
+    ) {
       return;
     }
 
@@ -348,10 +356,11 @@ export class Service extends ProjectReferencesService<Model> {
         })
           ? Gray500
           : Blue500,
-        feedInfoInMarkdown: mdText`**Checks from outside changed:** ${FeedMarkdown.join(
-          feedLines,
-          "; ",
-        )}.`.toString(),
+        feedInfoInMarkdown:
+          mdText`**Checks from outside changed:** ${FeedMarkdown.join(
+            feedLines,
+            "; ",
+          )}.`.toString(),
         userId: data.userId,
       });
     } catch (error) {
@@ -372,7 +381,8 @@ export class Service extends ProjectReferencesService<Model> {
     if (createdItem.id) {
       await this.afterWrite({
         id: createdItem.id,
-        carryForward: onCreate.carryForward as OpenStackCheckCarryForward | null,
+        carryForward:
+          onCreate.carryForward as OpenStackCheckCarryForward | null,
         userId: onCreate.createBy.props.userId,
       });
     }
@@ -388,7 +398,8 @@ export class Service extends ProjectReferencesService<Model> {
     for (const id of updatedItemIds) {
       await this.afterWrite({
         id: id,
-        carryForward: onUpdate.carryForward as OpenStackCheckCarryForward | null,
+        carryForward:
+          onUpdate.carryForward as OpenStackCheckCarryForward | null,
         userId: onUpdate.updateBy.props.userId,
       });
     }

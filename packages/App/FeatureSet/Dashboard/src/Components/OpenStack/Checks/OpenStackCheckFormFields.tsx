@@ -72,8 +72,8 @@ function isCredentialTyped(values: CheckValues): boolean {
 
   return Boolean(
     record["credentialSecret"] ||
-    record["applicationCredentialId"] ||
-    record["keystoneUsername"],
+      record["applicationCredentialId"] ||
+      record["keystoneUsername"],
   );
 }
 
@@ -182,7 +182,8 @@ function getCredentialFields(data: {
   ): ((values: CheckValues) => boolean) => {
     return (values: CheckValues): boolean => {
       return (
-        kindMatches(values) && (data.isSecretRequired || isCredentialTyped(values))
+        kindMatches(values) &&
+        (data.isSecretRequired || isCredentialTyped(values))
       );
     };
   };
@@ -194,6 +195,7 @@ function getCredentialFields(data: {
       fieldType: FormFieldSchemaType.RadioButton,
       required: false,
       hideOptionalLabel: true,
+      description: "A credential for these checks alone.",
       defaultValue: "applicationCredential",
       dataTestId: "openstack-check-credential-kind",
       radioButtonOptions: [
@@ -236,7 +238,8 @@ function getCredentialFields(data: {
       fieldType: FormFieldSchemaType.Text,
       required: isRequiredOfKind(isApplicationCredentialKind),
       showIf: isApplicationCredentialKind,
-      description: "What openstack application credential create prints as its id.",
+      description:
+        "What openstack application credential create prints as its id.",
       dataTestId: "openstack-check-application-credential-id",
       autoComplete: "off",
       collapsibleSection: data.section,
@@ -386,7 +389,8 @@ export function getOpenStackApiCheckFormFields(
   return [
     ...getConnectionFields({ options: options, section: connectionSection }),
     ...getCredentialFields({
-      isSecretRequired: options.isConnectionNeeded && !options.isCredentialSaved,
+      isSecretRequired:
+        options.isConnectionNeeded && !options.isCredentialSaved,
       section: connectionSection,
       moreSection: more,
     }),
@@ -605,6 +609,9 @@ export function getOpenStackLifecycleCheckFormFields(
       title: "What Each Run Does",
       fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
+      hideOptionalLabel: true,
+      description:
+        "Booting a server, and what else you turn on here. Leave the flavor, image and network empty and each run picks them.",
       getCustomElement: (
         _values: CheckValues,
         props: CustomElementProps,

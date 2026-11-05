@@ -57,6 +57,7 @@ const OpenStackCloudChecks: FunctionComponent<
           limit: 1,
           skip: 0,
           select: {
+            _id: true,
             authUrl: true,
             isCredentialSet: true,
             isApiCheckEnabled: true,

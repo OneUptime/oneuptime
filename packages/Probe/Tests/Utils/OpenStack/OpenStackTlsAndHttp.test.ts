@@ -370,6 +370,40 @@ describe("a socket to a real TLS server", () => {
     expect(receivedBytes).toBe(before);
   });
 
+  test("says what it was shown, whatever the verdict, which is how a check reads a certificate's end", async () => {
+    const shown: Array<{ fingerprint256: string; host: string; port: number }> =
+      [];
+    const onCertificate: Parameters<
+      typeof openVerifiedSocket
+    >[0]["onCertificate"] = (certificate: {
+      fingerprint256: string;
+      host: string;
+      port: number;
+    }): void => {
+      shown.push(certificate);
+    };
+
+    // Refused, as one no authority signed is, and still seen.
+    await failure({ onCertificate: onCertificate });
+
+    (
+      await open({
+        onCertificate: onCertificate,
+        trustedFingerprints: [keystoneCertificate.fingerprint256],
+      })
+    ).destroy();
+
+    expect(shown).toHaveLength(2);
+
+    for (const certificate of shown) {
+      expect(certificate).toMatchObject({
+        fingerprint256: keystoneCertificate.fingerprint256,
+        host: HOST,
+        port: port,
+      });
+    }
+  });
+
   test("pinned: handed over, encrypted", async () => {
     const socket: TLSSocket = await open({
       trustedFingerprints: [keystoneCertificate.fingerprint256],

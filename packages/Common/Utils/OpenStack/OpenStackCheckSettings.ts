@@ -387,7 +387,9 @@ export function prepareOpenStackCheckWrite(data: {
   if (
     values["endpointInterface"] !== undefined &&
     values["endpointInterface"] !== null &&
-    !OpenStackCollectionSettings.isEndpointInterface(values["endpointInterface"])
+    !OpenStackCollectionSettings.isEndpointInterface(
+      values["endpointInterface"],
+    )
   ) {
     return { error: "Check the public, internal or admin endpoints." };
   }
@@ -469,8 +471,11 @@ export function prepareOpenStackCheckWrite(data: {
   }
 
   if (values["lifecycleCheckOptions"] !== undefined) {
-    const normalized: { options: OpenStackLifecycleCheckOptions } | { error: string } =
-      normalizeOpenStackLifecycleOptions(values["lifecycleCheckOptions"]);
+    const normalized:
+      | { options: OpenStackLifecycleCheckOptions }
+      | { error: string } = normalizeOpenStackLifecycleOptions(
+      values["lifecycleCheckOptions"],
+    );
 
     if ("error" in normalized) {
       return { error: normalized.error };
@@ -500,7 +505,8 @@ export function prepareOpenStackCheckWrite(data: {
    * and never "clear it".
    */
   const secret: unknown = values["credentialSecret"];
-  const isSecretGiven: boolean = typeof secret === "string" && secret.length > 0;
+  const isSecretGiven: boolean =
+    typeof secret === "string" && secret.length > 0;
 
   if (!isSecretGiven) {
     delete values["credentialSecret"];
@@ -514,27 +520,28 @@ export function prepareOpenStackCheckWrite(data: {
   const serverColumns: OpenStackCheckServerColumns = {};
 
   if (isSecretGiven) {
-    const read: ReturnType<typeof OpenStackCollectionSettings.readCredentialColumns> =
-      OpenStackCollectionSettings.readCredentialColumns({
-        written: {
-          applicationCredentialId: values["applicationCredentialId"],
-          keystoneUsername: values["keystoneUsername"],
-          userDomainName: values["userDomainName"],
-          projectName: values["credentialProjectName"],
-          projectDomainName: values["credentialProjectDomainName"],
-        },
-        saved: saved
-          ? {
-              credentialKind: saved.credentialKind,
-              applicationCredentialId: saved.applicationCredentialId,
-              keystoneUsername: saved.keystoneUsername,
-              userDomainName: saved.userDomainName,
-              projectName: saved.credentialProjectName,
-              projectDomainName: saved.credentialProjectDomainName,
-            }
-          : undefined,
-        secret: secret as string,
-      });
+    const read: ReturnType<
+      typeof OpenStackCollectionSettings.readCredentialColumns
+    > = OpenStackCollectionSettings.readCredentialColumns({
+      written: {
+        applicationCredentialId: values["applicationCredentialId"],
+        keystoneUsername: values["keystoneUsername"],
+        userDomainName: values["userDomainName"],
+        projectName: values["credentialProjectName"],
+        projectDomainName: values["credentialProjectDomainName"],
+      },
+      saved: saved
+        ? {
+            credentialKind: saved.credentialKind,
+            applicationCredentialId: saved.applicationCredentialId,
+            keystoneUsername: saved.keystoneUsername,
+            userDomainName: saved.userDomainName,
+            projectName: saved.credentialProjectName,
+            projectDomainName: saved.credentialProjectDomainName,
+          }
+        : undefined,
+      secret: secret as string,
+    });
 
     if (read.error !== undefined) {
       return { error: read.error };

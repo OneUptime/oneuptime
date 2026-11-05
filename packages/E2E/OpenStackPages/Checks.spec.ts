@@ -1,5 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import {
+  CLOUD_ID,
   expect,
   fixtureRecord,
   FixtureRecord,
@@ -15,6 +16,29 @@ import {
  * click where it should be, that the form that writes to a cloud says what it creates before it
  * opens, that nothing the page reads goes unanswered, and how a failed run reads on a phone.
  */
+
+interface WriteRequest {
+  kind: string;
+  modelName: string;
+  id?: string;
+  data: Record<string, unknown>;
+}
+
+async function checkWrites(page: Page): Promise<Array<WriteRequest>> {
+  const all: Array<WriteRequest> = await page.evaluate(
+    (): Array<WriteRequest> => {
+      return (
+        window as unknown as {
+          __openStackPagesFixture: { writeRequests: Array<WriteRequest> };
+        }
+      ).__openStackPagesFixture.writeRequests;
+    },
+  );
+
+  return all.filter((write: WriteRequest): boolean => {
+    return write.modelName === "OpenStackCloudCheck";
+  });
+}
 
 test.describe("with no check on, which is how every cloud starts", () => {
   test("it says what each check does, and the one that writes says what it creates", async ({
@@ -50,7 +74,9 @@ test.describe("with no check on, which is how every cloud starts", () => {
 
     await page.getByRole("button", { name: "Turn On API Checks" }).click();
 
-    await expect(page.getByTestId("openstack-api-checks-waiting")).toBeVisible();
+    await expect(
+      page.getByTestId("openstack-api-checks-waiting"),
+    ).toBeVisible();
     await expect(page.getByTestId("openstack-check-auth-url")).toHaveCount(0);
 
     const record: FixtureRecord = await fixtureRecord(page);
@@ -94,6 +120,89 @@ test.describe("with no check on, which is how every cloud starts", () => {
     ).toBeVisible();
     await screenshot(page, "checks-lifecycle-form");
   });
+
+  test("the lifecycle form saves what it was told, for this cloud, and turns it on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "checks", "collection=Probe");
+
+    await page
+      .getByRole("button", { name: "Turn On the Lifecycle Check" })
+      .click();
+    await page
+      .getByTestId("openstack-lifecycle-project")
+      .fill("oneuptime-checks");
+    await page
+      .getByTestId("openstack-check-application-credential-id")
+      .fill("the-checks-credential");
+    await page
+      .getByTestId("openstack-check-credential-secret")
+      .fill("the-checks-secret");
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Turn On the Lifecycle Check" })
+      .click();
+
+    await expect
+      .poll(async () => {
+        return (await checkWrites(page)).length;
+      })
+      .toBe(1);
+
+    const write: WriteRequest = (await checkWrites(page))[0]!;
+
+    expect(write.kind).toBe("create");
+    expect(write.data).toMatchObject({
+      isLifecycleCheckEnabled: true,
+      lifecycleProjectName: "oneuptime-checks",
+      applicationCredentialId: "the-checks-credential",
+    });
+    expect(String(write.data["openStackCloudId"])).toContain(CLOUD_ID);
+    // Nothing of the other kind of credential travels with it.
+    expect(write.data["keystoneUsername"]).toBeUndefined();
+
+    await expect(page.getByTestId("openstack-lifecycle-waiting")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("a refusal from the server stays on the form, in its words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "checks", "collection=Probe");
+
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __openStackPagesRefuseNextWrite: (message: string) => void;
+        }
+      ).__openStackPagesRefuseNextWrite(
+        "Project admin is the cloud's own. The lifecycle check only runs in a project it has to itself: create one with its own quota.",
+      );
+    });
+
+    await page
+      .getByRole("button", { name: "Turn On the Lifecycle Check" })
+      .click();
+    await page.getByTestId("openstack-lifecycle-project").fill("admin");
+    await page
+      .getByTestId("openstack-check-application-credential-id")
+      .fill("the-checks-credential");
+    await page
+      .getByTestId("openstack-check-credential-secret")
+      .fill("the-checks-secret");
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Turn On the Lifecycle Check" })
+      .click();
+
+    await expect(page.getByRole("dialog")).toContainText(
+      "a project it has to itself",
+    );
+  });
 });
 
 test.describe("with the checks on", () => {
@@ -114,7 +223,10 @@ test.describe("with the checks on", () => {
       "Keystone issued a token",
     );
     await expect(
-      page.getByTestId("openstack-api-checks-certificates").locator("li").first(),
+      page
+        .getByTestId("openstack-api-checks-certificates")
+        .locator("li")
+        .first(),
     ).toContainText("5 days left");
     await screenshot(page, "checks-on");
 
@@ -177,9 +289,9 @@ test.describe("with the checks on", () => {
   }) => {
     await openCloudPage(page, "checks", "checks=sweeping");
 
-    await expect(page.getByTestId("openstack-lifecycle-sweeping")).toContainText(
-      "clearing up",
-    );
+    await expect(
+      page.getByTestId("openstack-lifecycle-sweeping"),
+    ).toContainText("clearing up");
   });
 
   test("Run Now asks for a run, and Turn Off asks first", async ({

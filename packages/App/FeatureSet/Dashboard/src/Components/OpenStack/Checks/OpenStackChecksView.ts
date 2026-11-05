@@ -49,7 +49,7 @@ export const OPENSTACK_CHECK_TONE_CLASS_NAMES: Record<
 
 // What the lifecycle check does, in the words the card, its form and the guide all use.
 export const OPENSTACK_LIFECYCLE_CHECK_STATEMENT: string =
-  "Each run creates one small server in a project you set aside for this, waits for it to become ACTIVE, then deletes it. Turn on the options below and it also creates a floating IP and a security group that lets a ping in, or a volume it attaches and detaches. Everything it creates is named for this check, and it only ever deletes what is. It uses a credential of its own, and refuses to run on one that is scoped to another project or has admin rights.";
+  "Each run creates one small server in a project you set aside for this, waits for it to become ACTIVE, then deletes it. Two options add to that: a floating IP with a security group that lets a ping in, and a volume it attaches and detaches. Everything it creates is named for this check, and it only ever deletes what is. It uses a credential of its own, and refuses to run on one that is scoped to another project or has admin rights.";
 
 export const OPENSTACK_API_CHECK_STATEMENT: string =
   "Every minute, a probe outside the cloud asks Keystone for a token, makes one small read of each service in the catalog, and reads the certificate each public address presents. It only reads, and nothing runs on the cloud.";
@@ -192,7 +192,9 @@ export function getOpenStackApiServiceRows(
 
 export interface OpenStackTokenSummary {
   tone: OpenStackCheckTone;
-  text: string;
+  // When a token was issued. Otherwise, what stopped it is the text.
+  durationText: string | null;
+  text: string | null;
   message: string | null;
 }
 
@@ -208,13 +210,15 @@ export function getOpenStackTokenSummary(
   if (token.status === "Passed") {
     return {
       tone: "good",
-      text: `Keystone issued a token in ${getOpenStackCheckDurationText(token.durationInMs)}`,
+      durationText: getOpenStackCheckDurationText(token.durationInMs),
+      text: null,
       message: null,
     };
   }
 
   return {
     tone: "bad",
+    durationText: null,
     text:
       token.status === "BackingOff"
         ? "Keystone refused this credential, and it is not being asked again for a while, so the account is not locked"
@@ -227,7 +231,6 @@ export interface OpenStackCertificateRow {
   id: string;
   address: string;
   daysLeft: number;
-  daysText: string;
   validTo: string;
   tone: OpenStackCheckTone;
   serves: string;
@@ -250,14 +253,6 @@ export function getOpenStackCertificateRows(data: {
         (Date.parse(certificate.validTo) - data.now.getTime()) / 86_400_000,
       );
 
-      let daysText: string = `${daysLeft} days left`;
-
-      if (daysLeft < 0) {
-        daysText = "Expired";
-      } else if (daysLeft === 1) {
-        daysText = "1 day left";
-      }
-
       let tone: OpenStackCheckTone = "good";
 
       if (daysLeft <= OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS) {
@@ -270,7 +265,6 @@ export function getOpenStackCertificateRows(data: {
         id: `${certificate.host}:${certificate.port}`,
         address: `${certificate.host}:${certificate.port}`,
         daysLeft: daysLeft,
-        daysText: daysText,
         validTo: certificate.validTo.substring(0, 10),
         tone: tone,
         serves: (certificate.serviceTypes || []).join(", "),
@@ -332,7 +326,7 @@ export interface OpenStackLifecycleRegionView {
   regionName: string;
   tone: OpenStackCheckTone;
   headline: string;
-  // A run older than a verdict can be held to: what was last known, and that it is only that.
+  // A run too old to speak for the cloud: what was last known, and that it is only that.
   isStale: boolean;
   finishedAt: string | null;
   durationText: string | null;
@@ -439,13 +433,13 @@ export function getOpenStackLifecycleRegionViews(data: {
         const attempt: OpenStackLifecycleRun | undefined = record.lastAttempt;
         const isStale: boolean = Boolean(
           verdict &&
-          !isOpenStackLifecycleVerdictCurrent({
-            finishedAt: verdict.finishedAt,
-            intervalInMinutes:
-              data.intervalInMinutes ||
-              DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
-            now: data.now.getTime(),
-          }),
+            !isOpenStackLifecycleVerdictCurrent({
+              finishedAt: verdict.finishedAt,
+              intervalInMinutes:
+                data.intervalInMinutes ||
+                DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
+              now: data.now.getTime(),
+            }),
         );
 
         let headline: string = "No run has reached a verdict yet";
@@ -461,7 +455,6 @@ export function getOpenStackLifecycleRegionViews(data: {
 
         if (isStale) {
           tone = "warning";
-          headline = `${headline}, on the last run to finish. None has finished since, so this may no longer be so`;
         }
 
         const boot: OpenStackLifecycleStepResult | undefined =
@@ -495,8 +488,8 @@ export function getOpenStackLifecycleRegionViews(data: {
             : null,
           isBootSlow: Boolean(
             boot &&
-            boot.status === "Passed" &&
-            boot.durationInMs > OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS * 1000,
+              boot.status === "Passed" &&
+              boot.durationInMs > OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS * 1000,
           ),
           steps: getStepRows(verdict),
           leftoverCount: verdict?.leftoverCount || 0,

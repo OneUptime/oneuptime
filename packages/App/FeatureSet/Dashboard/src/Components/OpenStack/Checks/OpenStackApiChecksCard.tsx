@@ -54,12 +54,24 @@ export const OpenStackCheckPill: FunctionComponent<{
 
   return (
     <span
-      className={`inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${props.className}`}
+      className={`inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-xs font-medium ${props.className}`}
     >
       {translator.translateText(props.text)}
     </span>
   );
 };
+
+function getDaysLeftText(daysLeft: number, translator: Translator): string {
+  if (daysLeft < 0) {
+    return translator.translateText("Expired") as string;
+  }
+
+  return daysLeft === 1
+    ? (translator.translateText("1 day left") as string)
+    : (translator.translateTemplate("{{days}} days left", {
+        days: String(daysLeft),
+      }) as string);
+}
 
 const OpenStackApiChecksCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -170,7 +182,10 @@ const OpenStackApiChecksCard: FunctionComponent<ComponentProps> = (
         }
         buttons={buttons}
       >
-        <div className="space-y-4 p-4 text-sm" data-testid="openstack-api-checks">
+        <div
+          className="space-y-4 p-4 text-sm"
+          data-testid="openstack-api-checks"
+        >
           {saveError ? <ErrorMessage message={saveError} /> : <></>}
 
           {!isOn ? (
@@ -238,7 +253,12 @@ const OpenStackApiChecksCard: FunctionComponent<ComponentProps> = (
                 text={token.tone === "good" ? "Passed" : "Failing"}
               />
               <div className="min-w-0 break-words text-gray-700">
-                {translator.translateText(token.text)}
+                {token.durationText
+                  ? translator.translateTemplate(
+                      "Keystone issued a token in {{duration}}",
+                      { duration: token.durationText },
+                    )
+                  : translator.translateText(token.text || "")}
                 {token.message ? (
                   <div className="text-gray-500">{token.message}</div>
                 ) : (
@@ -318,12 +338,11 @@ const OpenStackApiChecksCard: FunctionComponent<ComponentProps> = (
                         key={certificate.id}
                         className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
                       >
-                        <OpenStackCheckPill
-                          className={
-                            OPENSTACK_CHECK_TONE_CLASS_NAMES[certificate.tone]
-                          }
-                          text={certificate.daysText}
-                        />
+                        <span
+                          className={`inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-xs font-medium ${OPENSTACK_CHECK_TONE_CLASS_NAMES[certificate.tone]}`}
+                        >
+                          {getDaysLeftText(certificate.daysLeft, translator)}
+                        </span>
                         <span className="break-all font-medium text-gray-900">
                           {certificate.address}
                         </span>

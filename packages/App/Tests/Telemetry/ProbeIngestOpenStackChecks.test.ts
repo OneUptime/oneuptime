@@ -301,11 +301,13 @@ describe("asking for work", () => {
   test("no probe, no work", async () => {
     const harness: Harness = createHarness();
 
-    await harness.route(WORK_URI).handler(
-      requestOf({ probeId: null }),
-      mockResponse,
-      jest.fn() as unknown as NextFunction,
-    );
+    await harness
+      .route(WORK_URI)
+      .handler(
+        requestOf({ probeId: null }),
+        mockResponse,
+        jest.fn() as unknown as NextFunction,
+      );
 
     expect(responseUtil.sendErrorResponse.mock.calls[0]![2]).toBeInstanceOf(
       BadDataException,
@@ -318,11 +320,13 @@ describe("asking for work", () => {
 
     const harness: Harness = createHarness();
 
-    await harness.route(WORK_URI).handler(
-      requestOf({}),
-      mockResponse,
-      jest.fn() as unknown as NextFunction,
-    );
+    await harness
+      .route(WORK_URI)
+      .handler(
+        requestOf({}),
+        mockResponse,
+        jest.fn() as unknown as NextFunction,
+      );
 
     expect(sentBody()).toEqual({ apiChecks: [], lifecycleChecks: [] });
     expect(harness.store.claimLifecycleChecks).not.toHaveBeenCalled();
@@ -338,11 +342,9 @@ describe("asking for work", () => {
 
     const next: jest.Mock = jest.fn() as unknown as jest.Mock;
 
-    await harness.route(WORK_URI).handler(
-      requestOf({}),
-      mockResponse,
-      next as unknown as NextFunction,
-    );
+    await harness
+      .route(WORK_URI)
+      .handler(requestOf({}), mockResponse, next as unknown as NextFunction);
 
     expect(next).toHaveBeenCalledWith(failure);
   });
@@ -358,11 +360,13 @@ describe("a report", () => {
   test("is recorded for the authenticated probe, and what it found enters the ingest, named for the cloud", async () => {
     const harness: Harness = createHarness();
 
-    await harness.route(REPORT_URI).handler(
-      requestOf({ body: body }),
-      mockResponse,
-      jest.fn() as unknown as NextFunction,
-    );
+    await harness
+      .route(REPORT_URI)
+      .handler(
+        requestOf({ body: body }),
+        mockResponse,
+        jest.fn() as unknown as NextFunction,
+      );
 
     expect(harness.store.recordReport.mock.calls[0]![0]).toMatchObject({
       probeId: PROBE_ID,
@@ -397,11 +401,13 @@ describe("a report", () => {
       projectId: undefined,
     });
 
-    await harness.route(REPORT_URI).handler(
-      requestOf({ body: body }),
-      mockResponse,
-      jest.fn() as unknown as NextFunction,
-    );
+    await harness
+      .route(REPORT_URI)
+      .handler(
+        requestOf({ body: body }),
+        mockResponse,
+        jest.fn() as unknown as NextFunction,
+      );
 
     expect(queue.addMetricIngestJob).not.toHaveBeenCalled();
     expect(sentBody()).toEqual({
@@ -415,11 +421,13 @@ describe("a report", () => {
 
     const harness: Harness = createHarness();
 
-    await harness.route(REPORT_URI).handler(
-      requestOf({ body: body }),
-      mockResponse,
-      jest.fn() as unknown as NextFunction,
-    );
+    await harness
+      .route(REPORT_URI)
+      .handler(
+        requestOf({ body: body }),
+        mockResponse,
+        jest.fn() as unknown as NextFunction,
+      );
 
     expect(harness.store.recordReport).toHaveBeenCalledTimes(1);
     expect(queue.addMetricIngestJob).not.toHaveBeenCalled();
@@ -428,11 +436,13 @@ describe("a report", () => {
   test("no probe, nothing heard", async () => {
     const harness: Harness = createHarness();
 
-    await harness.route(REPORT_URI).handler(
-      requestOf({ probeId: null, body: body }),
-      mockResponse,
-      jest.fn() as unknown as NextFunction,
-    );
+    await harness
+      .route(REPORT_URI)
+      .handler(
+        requestOf({ probeId: null, body: body }),
+        mockResponse,
+        jest.fn() as unknown as NextFunction,
+      );
 
     expect(harness.store.recordReport).not.toHaveBeenCalled();
   });

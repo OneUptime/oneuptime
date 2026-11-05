@@ -28,9 +28,9 @@ describe("a name", () => {
     expect(
       buildOpenStackCheckName({ checkKey: KEY, runId: RUN_ID, part: "server" }),
     ).toBe(NAME);
-    expect(
-      buildOpenStackCheckRunId({ startedAt: AT, random: "abcdef" }),
-    ).toBe(RUN_ID);
+    expect(buildOpenStackCheckRunId({ startedAt: AT, random: "abcdef" })).toBe(
+      RUN_ID,
+    );
     expect(getOpenStackCheckStamp(AT)).toBe("20261104115007");
   });
 
@@ -43,16 +43,18 @@ describe("a name", () => {
     });
   });
 
-  test.each<[OpenStackCheckNamePart]>([["server"], ["volume"], ["sg"], ["fip"]])(
-    "%s reads back",
-    (part: OpenStackCheckNamePart) => {
-      const parsed: ParsedOpenStackCheckName | null = parseOpenStackCheckName(
-        buildOpenStackCheckName({ checkKey: KEY, runId: RUN_ID, part: part }),
-      );
+  test.each<[OpenStackCheckNamePart]>([
+    ["server"],
+    ["volume"],
+    ["sg"],
+    ["fip"],
+  ])("%s reads back", (part: OpenStackCheckNamePart) => {
+    const parsed: ParsedOpenStackCheckName | null = parseOpenStackCheckName(
+      buildOpenStackCheckName({ checkKey: KEY, runId: RUN_ID, part: part }),
+    );
 
-      expect(parsed?.part).toBe(part);
-    },
-  );
+    expect(parsed?.part).toBe(part);
+  });
 
   test("a key or a run it could not read back is refused when it is written", () => {
     expect(() => {

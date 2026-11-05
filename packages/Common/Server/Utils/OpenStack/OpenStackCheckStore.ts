@@ -588,7 +588,10 @@ export function sanitizeOpenStackApiCheckResult(
     });
   }
 
-  const message: string | null = boundText(rawToken["message"], MAX_TEXT_LENGTH);
+  const message: string | null = boundText(
+    rawToken["message"],
+    MAX_TEXT_LENGTH,
+  );
 
   return {
     startedAt: startedAt,
@@ -901,9 +904,7 @@ export default class OpenStackCheckStore {
     check: OpenStackCheckRecord,
     reason: string,
   ): Promise<void> {
-    logger.debug(
-      `OpenStack check ${check._id} was not handed out: ${reason}`,
-    );
+    logger.debug(`OpenStack check ${check._id} was not handed out: ${reason}`);
 
     if (check._id) {
       await service.updateColumnsByIdWithoutHooks({
@@ -1220,8 +1221,9 @@ export default class OpenStackCheckStore {
         isGlobalProbe:
           check.probe?.isGlobalProbe ?? cloud.collectionProbe?.isGlobalProbe,
         projectId:
-          (check.probe?.projectId || cloud.collectionProbe?.projectId)?.toString() ||
-          null,
+          (
+            check.probe?.projectId || cloud.collectionProbe?.projectId
+          )?.toString() || null,
       },
       projectId: check.projectId.toString(),
       isBillingEnabled: IsBillingEnabled,

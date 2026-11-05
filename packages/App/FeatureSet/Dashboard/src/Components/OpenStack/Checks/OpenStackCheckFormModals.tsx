@@ -61,7 +61,8 @@ function useOpenStackCheckProbes(): Array<Probe> | null {
 }
 
 function getFormOptions(data: {
-  props: OpenStackCheckFormModalProps;
+  cloud: OpenStackCheckFormModalProps["cloud"];
+  saved: OpenStackCloudCheck | null;
   probes: Array<Probe>;
   translator: Translator;
 }): OpenStackCheckFormOptions {
@@ -70,10 +71,10 @@ function getFormOptions(data: {
     isBillingEnabled: BILLING_ENABLED,
     translator: data.translator,
     isConnectionNeeded: isOpenStackCheckConnectionNeeded({
-      cloud: data.props.cloud,
-      check: data.props.saved,
+      cloud: data.cloud,
+      check: data.saved,
     }),
-    isCredentialSaved: data.props.saved?.isCredentialSet === true,
+    isCredentialSaved: data.saved?.isCredentialSet === true,
   };
 }
 
@@ -118,7 +119,12 @@ export const OpenStackApiCheckFormModal: FunctionComponent<
 
   const fields: ReturnType<typeof getOpenStackApiCheckFormFields> =
     getOpenStackApiCheckFormFields(
-      getFormOptions({ props: props, probes: probes, translator: translator }),
+      getFormOptions({
+        cloud: props.cloud,
+        saved: props.saved,
+        probes: probes,
+        translator: translator,
+      }),
     );
 
   if (props.saved?.id) {
@@ -207,7 +213,12 @@ export const OpenStackLifecycleCheckFormModal: FunctionComponent<
 
   const fields: ReturnType<typeof getOpenStackLifecycleCheckFormFields> =
     getOpenStackLifecycleCheckFormFields(
-      getFormOptions({ props: props, probes: probes, translator: translator }),
+      getFormOptions({
+        cloud: props.cloud,
+        saved: props.saved,
+        probes: probes,
+        translator: translator,
+      }),
     );
 
   if (props.saved?.id) {

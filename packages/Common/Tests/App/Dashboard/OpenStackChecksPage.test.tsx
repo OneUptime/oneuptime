@@ -27,6 +27,7 @@ import {
   OpenStackLifecycleStep,
 } from "../../../Types/OpenStack/OpenStackCheck";
 import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
+import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -72,16 +73,16 @@ interface FormStandIn {
   title: string;
   onBeforeCreate?: (
     item: OpenStackCloudCheck,
-    misc: object,
+    misc: Record<string, unknown>,
   ) => Promise<OpenStackCloudCheck>;
   onBeforeUpdate?: (
     item: OpenStackCloudCheck,
-    misc: object,
+    misc: Record<string, unknown>,
   ) => Promise<OpenStackCloudCheck>;
   modelIdToEdit?: ObjectID;
   description?: string;
   formProps: {
-    formType: string;
+    formType: FormType;
     fields: Array<{ title: string; required?: unknown }>;
   };
 }
@@ -104,19 +105,16 @@ jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
   };
 });
 
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Utils/Probe",
-  () => {
-    return {
-      __esModule: true,
-      default: {
-        getAllProbes: async (): Promise<Array<unknown>> => {
-          return [];
-        },
+jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllProbes: async (): Promise<Array<unknown>> => {
+        return [];
       },
-    };
-  },
-);
+    },
+  };
+});
 
 const CLOUD_ID: string = "71000000-0000-4000-8000-000000000001";
 const CHECK_ID: string = "77000000-0000-4000-8000-000000000001";
@@ -262,7 +260,7 @@ function agentCloud(): OpenStackCloud {
   });
 }
 
-function checkOn(extra: object): OpenStackCloudCheck {
+function checkOn(extra: Record<string, unknown>): OpenStackCloudCheck {
   const check: OpenStackCloudCheck = Object.assign(
     new OpenStackCloudCheck(),
     {
@@ -402,7 +400,7 @@ describe("with no check on", () => {
 
     const form: FormStandIn = forms[forms.length - 1]!;
 
-    expect(form.formProps.formType).toBe("Create");
+    expect(form.formProps.formType).toBe(FormType.Create);
 
     const titles: Array<string> = form.formProps.fields.map(
       (field: { title: string }) => {
@@ -435,7 +433,7 @@ describe("with no check on", () => {
 
     const form: FormStandIn = forms[forms.length - 1]!;
 
-    expect(form.formProps.formType).toBe("Update");
+    expect(form.formProps.formType).toBe(FormType.Update);
     expect(form.modelIdToEdit?.toString()).toBe(CHECK_ID);
   });
 });
@@ -494,6 +492,45 @@ describe("with the checks on", () => {
     ).toBeNull();
   });
 
+  test("a verdict too old to speak for the cloud says that it is only the last one known", async () => {
+    stand.check = checkOn({
+      lifecycleRecords: recordsOf(
+        failedRun({ finishedAt: "2020-01-01T00:00:00.000Z" }),
+      ),
+    });
+    renderPage();
+
+    expect(
+      await screen.findByTestId("openstack-lifecycle-stale"),
+    ).toHaveTextContent("may no longer be so");
+  });
+
+  test("a certificate's days left read in words, and an expired one says so", async () => {
+    const result: OpenStackApiCheckResult = apiResult();
+
+    result.certificates = [
+      {
+        host: "old.example",
+        port: 443,
+        validTo: "2020-01-01T00:00:00.000Z",
+        regionNames: ["RegionOne"],
+        serviceTypes: ["image"],
+      },
+    ];
+    stand.check = checkOn({
+      lastApiCheckAt: new Date(),
+      apiCheckResult: result,
+    });
+    renderPage();
+
+    expect(
+      await screen.findByTestId("openstack-api-checks-certificates"),
+    ).toHaveTextContent("Expired");
+    expect(screen.getByTestId("openstack-api-checks-token")).toHaveTextContent(
+      "Keystone issued a token in 180 ms",
+    );
+  });
+
   test("a refused run says why, and is not a failed step", async () => {
     const refused: OpenStackLifecycleRun = {
       ...failedRun(),
@@ -525,8 +562,8 @@ describe("with the checks on", () => {
       expect(updateById).toHaveBeenCalledTimes(1);
     });
 
-    const call: { id: ObjectID; data: object } = updateById.mock
-      .calls[0]![0] as { id: ObjectID; data: object };
+    const call: { id: ObjectID; data: Record<string, unknown> } = updateById
+      .mock.calls[0]![0] as { id: ObjectID; data: Record<string, unknown> };
 
     expect(call.id.toString()).toBe(CHECK_ID);
     expect(Object.keys(call.data)).toEqual(["lifecycleRunRequestedAt"]);
@@ -544,13 +581,15 @@ describe("with the checks on", () => {
       expect(updateById).toHaveBeenCalledTimes(1);
     });
 
-    expect((updateById.mock.calls[0]![0] as { data: object }).data).toEqual({
+    expect(
+      (updateById.mock.calls[0]![0] as { data: Record<string, unknown> }).data,
+    ).toEqual({
       osProfilerKey: null,
     });
 
-    const select: object = (
+    const select: Record<string, unknown> = (
       (ModelAPI.getList as unknown as jest.Mock).mock.calls[0]![0] as {
-        select: object;
+        select: Record<string, unknown>;
       }
     ).select;
 
@@ -624,11 +663,9 @@ describe("what the page works out", () => {
 
     refused.services[0]!.outcome = "Refused";
     expect(
-      getOpenStackApiServiceRows(refused).find(
-        (row: { service: string }) => {
-          return row.service === "nova";
-        },
-      )?.tone,
+      getOpenStackApiServiceRows(refused).find((row: { service: string }) => {
+        return row.service === "nova";
+      })?.tone,
     ).toBe("neutral");
   });
 
@@ -653,14 +690,14 @@ describe("what the page works out", () => {
       getOpenStackCertificateRows({ result: apiResult(), now: NOW });
 
     expect(
-      rows.map((row: { address: string; tone: string; daysText: string }) => {
-        return [row.address, row.tone, row.daysText];
+      rows.map((row: { address: string; tone: string; daysLeft: number }) => {
+        return [row.address, row.tone, row.daysLeft];
       }),
     ).toEqual([
-      ["old.example:8443", "bad", "Expired"],
-      ["keystone.example:443", "bad", "4 days left"],
-      ["soon.example:443", "warning", "19 days left"],
-      ["nova.example:443", "good", "207 days left"],
+      ["old.example:8443", "bad", -5],
+      ["keystone.example:443", "bad", 4],
+      ["soon.example:443", "warning", 19],
+      ["nova.example:443", "good", 207],
     ]);
   });
 
@@ -676,16 +713,13 @@ describe("what the page works out", () => {
     expect(current!.failedStepTitle).toBe("Wait for ACTIVE");
 
     const [stale] = getOpenStackLifecycleRegionViews({
-      records: recordsOf(
-        failedRun({ finishedAt: "2026-11-05T08:00:00.000Z" }),
-      ),
+      records: recordsOf(failedRun({ finishedAt: "2026-11-05T08:00:00.000Z" })),
       intervalInMinutes: 30,
       now: NOW,
     });
 
     expect(stale!.isStale).toBe(true);
     expect(stale!.tone).toBe("warning");
-    expect(stale!.headline).toContain("may no longer be so");
   });
 
   test("a boot past the template's line is called slow, and a failed one is not", () => {

@@ -981,7 +981,7 @@ On the **Checks** page, choose **Turn On the Lifecycle Check**, name the project
 
 Everything has a name of exactly this form, in the check's project, and nothing else is ever created:
 
-```
+```text
 oneuptime-check-<key>-<when>-<random>-<part>
 ```
 
@@ -1024,7 +1024,7 @@ Save your [OSProfiler](#trace-requests-through-the-control-plane) key on the **C
 
 #### Turning it off
 
-Turn the check off and no more runs start. Until nothing named for it is left, the probe keeps running the janitor alone, which is why the credential is kept that long. Then OneUptime forgets the credential and the key, and you can delete the project. If the credential is gone first, find what is left by name:
+Turn the check off and no more runs start. Until nothing named for it is left, the probe keeps running the janitor alone, which is why the credential is kept that long. Then OneUptime forgets the credential and the key, and you can delete the project. Deleting the cloud in OneUptime forgets them at once and clears nothing up, so turn the check off first and wait for the page to stop saying it is clearing up. If the credential is gone first, find what is left by name:
 
 ```bash
 openstack server list --name '^oneuptime-check-'

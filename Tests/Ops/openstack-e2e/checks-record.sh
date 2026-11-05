@@ -6,7 +6,7 @@
 # packages/Common/Tests/Utils/OpenStack/OpenStackCheckRecordings.test.ts.
 #
 # The project, the user, the network and the credential are made with the commands the guide tells a
-# person to run (telemetry/openstack.md, "Check the cloud from outside"), and OpenStackChecksGuide
+# person to run (telemetry/openstack.md, "Check the cloud from outside"), and OpenStackChecksRig
 # holds the two to each other.
 #
 #   healthy            every step, on the cloud as it is, and the API checks

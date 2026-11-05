@@ -67,6 +67,19 @@ const OpenStackLifecycleRegion: FunctionComponent<{
         />
       </div>
 
+      {region.isStale ? (
+        <p
+          className="mt-2 text-amber-800"
+          data-testid="openstack-lifecycle-stale"
+        >
+          {translator.translateText(
+            "That is the last run to finish. None has finished since, so this may no longer be so.",
+          )}
+        </p>
+      ) : (
+        <></>
+      )}
+
       {region.attemptSentence && region.attemptTone ? (
         <p
           className="mt-2 break-words text-gray-700"
@@ -130,46 +143,44 @@ const OpenStackLifecycleRegion: FunctionComponent<{
       )}
 
       {region.steps.length > 0 ? (
-        <ul
-          className="mt-3 space-y-2"
-          data-testid="openstack-lifecycle-steps"
-        >
-          {region.steps.map(
-            (step: OpenStackLifecycleStepRow): ReactElement => {
-              return (
-                <li key={step.id} data-testid={`openstack-lifecycle-step-${step.id}`}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <span
-                      className={
-                        step.status === "Failed"
-                          ? "font-medium text-red-800"
-                          : "text-gray-700"
-                      }
-                    >
-                      {translator.translateText(step.title)}
-                    </span>
-                    <span className="text-gray-500">{step.durationText}</span>
-                  </div>
-                  <div className="mt-1 h-1.5 rounded-full bg-gray-100">
-                    <div
-                      className={`h-1.5 rounded-full ${step.status === "Failed" ? "bg-red-400" : "bg-indigo-400"}`}
-                      style={{ width: `${Math.max(step.share, 1)}%` }}
-                    />
-                  </div>
-                  {step.traceId ? (
-                    <Link
-                      to={getOpenStackTraceRoute(step.traceId)}
-                      className="mt-1 inline-block text-xs text-indigo-600 hover:underline"
-                    >
-                      <span>{translator.translateText("Open its trace")}</span>
-                    </Link>
-                  ) : (
-                    <></>
-                  )}
-                </li>
-              );
-            },
-          )}
+        <ul className="mt-3 space-y-2" data-testid="openstack-lifecycle-steps">
+          {region.steps.map((step: OpenStackLifecycleStepRow): ReactElement => {
+            return (
+              <li
+                key={step.id}
+                data-testid={`openstack-lifecycle-step-${step.id}`}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <span
+                    className={
+                      step.status === "Failed"
+                        ? "font-medium text-red-800"
+                        : "text-gray-700"
+                    }
+                  >
+                    {translator.translateText(step.title)}
+                  </span>
+                  <span className="text-gray-500">{step.durationText}</span>
+                </div>
+                <div className="mt-1 h-1.5 rounded-full bg-gray-100">
+                  <div
+                    className={`h-1.5 rounded-full ${step.status === "Failed" ? "bg-red-400" : "bg-indigo-400"}`}
+                    style={{ width: `${Math.max(step.share, 1)}%` }}
+                  />
+                </div>
+                {step.traceId ? (
+                  <Link
+                    to={getOpenStackTraceRoute(step.traceId)}
+                    className="mt-1 inline-block text-xs text-indigo-600 hover:underline"
+                  >
+                    <span>{translator.translateText("Open its trace")}</span>
+                  </Link>
+                ) : (
+                  <></>
+                )}
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <></>
@@ -370,7 +381,10 @@ const OpenStackLifecycleCheckCard: FunctionComponent<ComponentProps> = (
         }
         buttons={buttons}
       >
-        <div className="space-y-4 p-4 text-sm" data-testid="openstack-lifecycle-check">
+        <div
+          className="space-y-4 p-4 text-sm"
+          data-testid="openstack-lifecycle-check"
+        >
           {saveError ? <ErrorMessage message={saveError} /> : <></>}
 
           {!isOn ? (

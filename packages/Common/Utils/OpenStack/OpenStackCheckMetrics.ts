@@ -61,13 +61,15 @@ export enum OpenStackCheckMetric {
   LifecycleRefused = "openstack_check_lifecycle_refused",
 }
 
-export const OPENSTACK_CHECK_API_METRICS: ReadonlySet<string> = new Set<string>([
-  OpenStackCheckMetric.TokenSuccess,
-  OpenStackCheckMetric.TokenDuration,
-  OpenStackCheckMetric.ApiSuccess,
-  OpenStackCheckMetric.ApiDuration,
-  OpenStackCheckMetric.CertificateExpiry,
-]);
+export const OPENSTACK_CHECK_API_METRICS: ReadonlySet<string> = new Set<string>(
+  [
+    OpenStackCheckMetric.TokenSuccess,
+    OpenStackCheckMetric.TokenDuration,
+    OpenStackCheckMetric.ApiSuccess,
+    OpenStackCheckMetric.ApiDuration,
+    OpenStackCheckMetric.CertificateExpiry,
+  ],
+);
 
 export const OPENSTACK_CHECK_LIFECYCLE_METRICS: ReadonlySet<string> =
   new Set<string>([
@@ -179,7 +181,8 @@ const DESCRIPTIONS: Readonly<
     unit: "1",
   },
   [OpenStackCheckMetric.LifecycleJanitorRemoved]: {
-    description: "What the janitor removed at the start of the last lifecycle run",
+    description:
+      "What the janitor removed at the start of the last lifecycle run",
     unit: "1",
   },
   [OpenStackCheckMetric.LifecycleRefused]: {
@@ -348,7 +351,9 @@ export function getOpenStackLifecycleCheckPoints(data: {
       ),
     );
 
-    for (const phase of Object.keys(record.phaseVerdicts) as Array<OpenStackLifecyclePhase>) {
+    for (const phase of Object.keys(
+      record.phaseVerdicts,
+    ) as Array<OpenStackLifecyclePhase>) {
       const verdict: OpenStackLifecyclePhaseVerdict | undefined =
         record.phaseVerdicts[phase];
 

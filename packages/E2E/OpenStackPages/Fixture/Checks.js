@@ -60,7 +60,7 @@ function apiResult(now) {
       {
         host: "keystone.acme-cloud.example",
         port: 443,
-        validTo: new Date(now + 5 * 86_400_000).toISOString(),
+        validTo: new Date(now + 5.5 * 86_400_000).toISOString(),
         subject: "keystone.acme-cloud.example",
         issuer: "Acme Cloud CA",
         regionNames: ["RegionOne"],
