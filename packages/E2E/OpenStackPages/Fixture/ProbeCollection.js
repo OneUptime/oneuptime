@@ -282,7 +282,8 @@ export function connectionTestOutcome(name) {
       return {
         status: "Failed",
         errorCode: "InvalidCredential",
-        errorMessage: "Keystone answered HTTP 401 to the application credential.",
+        errorMessage:
+          "Keystone answered HTTP 401 to the application credential.",
       };
     case "not-found":
       return {

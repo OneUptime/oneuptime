@@ -430,9 +430,9 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
      * so where it isn't known it only comes up when it is what someone is wondering.
      */
     if (family === OpenStackServiceFamily.Compute) {
-      const forcedDown: JSONValue | undefined = (
-        (row.facts as JSONObject | undefined) || {}
-      )["forcedDown"];
+      const forcedDown: JSONValue | undefined = ((row.facts as
+        | JSONObject
+        | undefined) || {})["forcedDown"];
       if (typeof forcedDown === "boolean") {
         details.push({
           key: "forced-down",

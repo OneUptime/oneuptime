@@ -486,7 +486,7 @@ describe("which to pick", () => {
       return text.startsWith("Pick the agent");
     });
 
-    expect(line).toContain("payload cap");
+    expect(line).toContain("read from its databases");
     expect(line).toContain("service logs");
     expect(line).toContain("the AI agent");
     expect(line).toContain("what the cloud stands on");

@@ -33,7 +33,7 @@ Each service is read on its own and at the same time as the others. A Neutron th
 | Where the credential is kept | Encrypted in OneUptime, sent only to the probe | In the agent's `clouds.yaml` file |
 | What it needs to reach | Keystone and each service's API, over HTTPS | Keystone and each service's API |
 | APIs on plain HTTP | Not collected: a token is never sent unencrypted | Collected |
-| Largest cloud | About 48 MiB of metrics per collection | No limit |
+| Largest cloud | Tested at [200,000 instances](/docs/telemetry/openstack-very-large-clouds), in up to ten uploads of 48 MiB | Tested at nothing yet: [its scrape runs out of time](/docs/telemetry/openstack-very-large-clouds#through-the-agent) well before that |
 | Service logs and the AI agent | Not included | Included |
 | What the cloud stands on: RabbitMQ, MariaDB, Memcached, HAProxy, OVN, libvirt | Not included: a probe reads the cloud's APIs | Included, with its targets named |
 | Each instance's real CPU, memory and disk, from libvirt or Ceilometer | Not included | Included, with their exporters named |
@@ -42,7 +42,7 @@ Each service is read on its own and at the same time as the others. A Neutron th
 
 Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, the image it booted from, whether an operator forced a Nova service down, which networks a DHCP agent serves, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin.
 
-Pick the agent for a cloud past a probe's payload cap, for service logs, for the AI agent, for what the cloud stands on and each instance's real usage, or for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default. Pick a probe for everything else: there is nothing to install, and it reads more of what Nova and Cinder say.
+Pick the agent for service logs, for the AI agent, for what the cloud stands on and each instance's real usage, for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default, or for a cloud so large it has to be [read from its databases](/docs/telemetry/openstack-very-large-clouds#the-database-path). Pick a probe for everything else: there is nothing to install, and it reads more of what Nova and Cinder say. [Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds) says what either costs at any size.
 
 You can switch a cloud from one to the other at any time on its **Settings** page.
 
@@ -116,22 +116,25 @@ Monitoring must never be what takes a cloud down, so a collection is gentle by c
 - **One login, kept.** The token is used until five minutes before it expires. A login is what a Keystone in trouble can least afford.
 - **Lists in pages.** Every list is read a thousand rows at a time, with `limit` and `marker`.
 - **Instances by what changed.** Between full reads, every half hour, the probe asks Nova only for what changed since the last read, with `changes-since`.
+- **A hypervisor's inventories once.** Placement moves a provider's generation whenever they change, which one list call says of them all, so they are read again only then.
+- **A stated load.** What is one call per thing goes in turns past 2,000 a collection, and past 250 projects for limits. What was not read this time is sent as last read, so no series has a gap, and the load stops growing with the cloud.
 - **Only the fields it reads.** Neutron's lists name their fields, and security groups are asked for their IDs alone.
 - **Never stacked.** A collection that takes longer than its interval is skipped, not run beside the next.
 - **A time budget.** A collection has nine-tenths of its interval, and at most ten minutes. What was read by then is sent, and the service that ran out of time says so.
-- **Backing off.** Asked to wait with a `429` or `Retry-After`, the probe waits. A service that answers `429`, `503` or nothing at all is left alone for a minute, then two, then four, up to half an hour, and its series keep saying it is down while it waits. A slow answer slows the next request.
+- **Backing off.** Asked to wait with a `429` or `Retry-After`, the probe waits. A service that answers `429`, `503` or nothing at all is left alone for a minute, then two, then four, up to half an hour, and its series keep saying it is down while it waits.
+- **Slowing down.** An answer three times slower than that service usually answers, and at least a second, or five seconds whatever is usual, holds that service's next request back by as long. The **Data Collection** card says when it did.
 - **A refused credential waits longest.** Repeating one is what locks an account, so it waits five minutes, then ten, up to an hour. A credential you corrected is tried at once.
 
 - **Less of a large cloud.** Past 5,000 instances a cloud keeps counts and its parts, and no series per instance or per volume, unless you choose otherwise under **Real usage per instance** on its **Settings** page. What changed, what you chose to keep and what an alert is watching still goes on every collection. The rest goes in turns, and the **Data Collection** card says how long a turn takes.
 
-On each collection, with the defaults, a region costs 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and two more per hypervisor, and, about every five minutes, 5 to Keystone and 1 to Glance. A hypervisor's inventory is read once, and again only when Placement says it changed. A list longer than a thousand rows takes a call per thousand. Each instance that changed takes one more call to Nova, to read what it went through, and at most 25 are read in a collection: a quiet cloud makes none. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it, and every ten minutes a call per DHCP agent, at most 20, to ask which networks it serves. A cloud with more DHCP agents goes round them in turns, a cloud past the summary size leaves this out, and a slow Neutron is not asked at all. A cloud on OVN has none to ask about.
+On each collection, with the defaults, a region costs 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and two more per hypervisor, and, about every five minutes, 5 to Keystone and 1 to Glance. A hypervisor's inventory is read once, and again only when Placement says it changed. A list longer than a thousand rows takes a call per thousand. Each instance that changed takes one more call to Nova, to read what it went through, and at most 25 are read in a collection: a quiet cloud makes none. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it, and every ten minutes a call per DHCP agent, at most 20, to ask which networks it serves. A cloud with more DHCP agents goes round them in turns, a cloud past the summary size leaves this out, and a slow Neutron is not asked at all. A cloud on OVN has none to ask about. [Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds#the-load-on-your-control-plane) has what that comes to in requests a minute, at each size.
 
 Two things are off unless you turn them on, under **What it reads beyond the defaults** in the **Data Collection** card on the cloud's **Settings** page, or under **More fields** as you connect it, because each costs your cloud more:
 
 | Option | What you get | What it costs |
 |---|---|---|
 | Ports | One series per port, and how many have no address or a load balancer that is down | One paged list per network or project you name, or of every port if you name none. An unscoped list of ports can saturate Neutron on a large cloud |
-| Project limits | Quotas and limits per project | Four calls per project, on every collection |
+| Project limits | Quotas and limits per project | Four calls per project, at most 250 projects a collection |
 
 ## Certificates
 
@@ -163,6 +166,8 @@ Open the cloud's **Settings** page. Its **Data Collection** card offers **Collec
 > [!WARNING]
 > Stop the OpenStack Agent once the first probe collection succeeds. While both run, every metric arrives twice.
 
+Past [5,000 instances](/docs/telemetry/openstack-very-large-clouds#summary-mode), a probe's first collection knows the whole cloud and sends a share of it, so a new cloud's lists fill over its first cycle, and the **Data Collection** card says when they will all be there.
+
 ## Reference
 
 | Setting | Default | Notes |
@@ -170,7 +175,7 @@ Open the cloud's **Settings** page. Its **Data Collection** card offers **Collec
 | Collect every | 2 minutes | From 1 to 60 minutes. Collect a large cloud less often to go easier on it. Keystone and Glance are read about every five minutes, however often the rest are. |
 | Endpoint interface | public | Which of the catalog's URLs to use: public, internal or admin. |
 | Collections at once | 4 per probe | A collection slower than its interval is skipped, never stacked. |
-| Largest collection | About 48 MiB | Larger clouds need the OpenStack Agent. |
+| Largest upload | 48 MiB | A collection goes in as many as it takes, up to ten. Past [5,000 instances](/docs/telemetry/openstack-very-large-clouds#summary-mode), what has not changed goes in turns. |
 | Requests to each service | One at a time | Placement's per-provider calls go four at a time. |
 | Waiting for one answer | 60 seconds | Tried three times in all when it is a `429` or a server error. |
 | Connection test | 90 seconds to start | A test no probe picks up in time, or that runs longer than 3 minutes, is answered as failed. Five can wait or run at once in a project. |
@@ -246,7 +251,7 @@ The probe is offline, or runs a OneUptime version older than OpenStack collectio
 :::
 
 :::details This cloud is too large to collect from a probe
-Its metrics are larger than one probe upload may be. Use the [OpenStack Agent](/docs/telemetry/openstack) for this cloud.
+Its metrics are more than a collection may send, and this cloud is set to keep every instance's series. Let it keep counts instead, under **Real usage per instance** on its **Settings** page, or use the [OpenStack Agent](/docs/telemetry/openstack). [Summary mode](/docs/telemetry/openstack-very-large-clouds#summary-mode) says what that gives up.
 :::
 
 ## Next steps

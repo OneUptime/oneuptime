@@ -16,16 +16,20 @@ import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase
 import OpenStackResourceService, {
   OpenStackAttentionRows,
   OpenStackInventorySummary,
+  OpenStackServiceRowsRead,
   OpenStackTopologyRead,
   ParsedOpenStackResource,
 } from "../../../Server/Services/OpenStackResourceService";
 import logger from "../../../Server/Utils/Logger";
+import { getOpenStackListSeekReads } from "../../../Server/Utils/OpenStack/OpenStackListSeekQuery";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
+import { OpenStackRowsLeftOut } from "../../../Types/OpenStack/OpenStackOverview";
 import { OPENSTACK_LARGE_CLOUD } from "../../../Types/OpenStack/OpenStackScale";
 import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 
@@ -496,7 +500,13 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     });
   });
 
-  describe("the skip stays well inside the stale window", () => {
+  describe("a part that is still reported is never deleted", () => {
+    const SECOND_MS: number = 1000;
+
+    function atSeconds(seconds: number): Date {
+      return new Date(NOW.getTime() + seconds * SECOND_MS);
+    }
+
     test.each([
       [5, 100],
       [6, 120],
@@ -514,40 +524,89 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     );
 
     /*
-     * The worst order there is: a scrape's `up` lands, and the sweep runs, before that same
-     * scrape's rows. Every window the setting allows, against scrape intervals shorter than it.
-     * A row that is there on every scrape is never deleted, whatever the skip did to it.
+     * The real boundary, to the second: every window the setting allows, against reads right beside
+     * the touch interval, where the skip leaves a row furthest behind, and right beside the window
+     * itself, in the worst order there is. A read's `up` lands and the sweep runs before that read's
+     * own rows do, then again after they have. The row was reported by every read, so it must be
+     * there every time.
      */
+    const WINDOWS_IN_MINUTES: Array<number> = [5, 6, 9, 10, 15, 30, 60];
+
     test.each(
-      [5, 6, 10, 15, 30].flatMap((window: number) => {
-        return [1, 2, 3, 4, 5, 10, 20]
-          .filter((interval: number) => {
-            return interval < window;
-          })
-          .map((interval: number): [number, number] => {
-            return [window, interval];
-          });
+      WINDOWS_IN_MINUTES.flatMap((window: number) => {
+        const touch: number = Math.min(300, Math.floor((window * 60) / 3));
+
+        return [
+          60,
+          touch - 1,
+          touch,
+          touch + 1,
+          touch * 2,
+          window * 60 - 1,
+          window * 60,
+          window * 60 + 1,
+          window * 120,
+        ].map((interval: number): [number, number] => {
+          return [window, interval];
+        });
       }),
     )(
-      "with a window of %d minutes and a scrape every %d, a live part is never swept away",
+      "with a window of %d minutes and a read every %d seconds, however its parts land",
       async (window: number, interval: number) => {
         process.env["OPENSTACK_INVENTORY_STALE_MINUTES"] = String(window);
 
-        for (let scrape: number = 0; scrape < 40; scrape++) {
-          const when: Date = at(scrape * interval);
+        // Long enough to go past the window several times over, at any of these intervals.
+        const reads: number = Math.min(
+          60,
+          Math.max(12, Math.ceil((window * 60 * 3) / interval)),
+        );
+
+        for (let read: number = 0; read < reads; read++) {
+          const when: Date = atSeconds(read * interval);
 
           await write([computeApi(when)]);
           await sweep();
-          expect(
-            await rowOf(OpenStackResourceKind.Api, `RegionOne/compute`),
-          ).toBeDefined();
 
-          if (scrape > 0) {
-            // Still there after a sweep measured against a read its rows have not caught up with.
+          if (read > 0) {
             expect(await lastSeenOf("i-live")).toBeDefined();
           }
 
           await write([instance("i-live", { lastSeenAt: when })]);
+          await sweep();
+          expect(await lastSeenOf("i-live")).toBeDefined();
+
+          // How far behind the skip left it, which is what all of this rests on.
+          expect(
+            when.getTime() - ((await lastSeenOf("i-live")) as number),
+          ).toBeLessThanOrEqual(
+            OpenStackResourceService.getRowTouchIntervalInSeconds() * SECOND_MS,
+          );
+        }
+      },
+      120000,
+    );
+
+    test.each([
+      [5, 60],
+      [5, 100],
+      [15, 120],
+      [15, 300],
+      [30, 300],
+    ])(
+      "with a window of %d minutes and a read every %d seconds, losing one read's rows altogether takes nothing",
+      async (window: number, interval: number) => {
+        process.env["OPENSTACK_INVENTORY_STALE_MINUTES"] = String(window);
+
+        for (let read: number = 0; read < 12; read++) {
+          const when: Date = atSeconds(read * interval);
+
+          await write([computeApi(when)]);
+
+          // Every fourth read's rows never arrive.
+          if (read % 4 !== 3) {
+            await write([instance("i-live", { lastSeenAt: when })]);
+          }
+
           await sweep();
           expect(await lastSeenOf("i-live")).toBeDefined();
         }
@@ -555,7 +614,54 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       120000,
     );
 
-    test("a part that really went is gone within the window, the interval and one touch", async () => {
+    test("a service back from an outage longer than the window takes nothing while its rows are on their way", async () => {
+      await write([computeApi(at(0))]);
+      await write([computeApi(at(2))]);
+      await write([instance("i-live", { lastSeenAt: at(2) })]);
+
+      // Its reads failed for an hour, and every row is older than the window before this one.
+      await write([computeApi(at(62))]);
+      expect(await sweep()).toBe(0);
+      expect(await lastSeenOf("i-live")).toBeDefined();
+
+      await write([instance("i-live", { lastSeenAt: at(62) })]);
+      expect(await sweep()).toBe(0);
+
+      // The read after, whose own rows are in hand, takes what the one before did not report.
+      await write([instance("i-gone", { lastSeenAt: at(2) })]);
+      await write([computeApi(at(64))]);
+      expect(await sweep()).toBe(1);
+      expect(await lastSeenOf("i-gone")).toBeUndefined();
+      expect(await lastSeenOf("i-live")).toBeDefined();
+    });
+
+    test("a first read ever takes nothing, because nothing has yet been measured from", async () => {
+      await write([instance("i-old", { lastSeenAt: at(-600) })]);
+      await write([computeApi(at(0))]);
+      expect(await sweep()).toBe(0);
+
+      await write([computeApi(at(2))]);
+      expect(await sweep()).toBe(1);
+    });
+
+    test("the read a row is deleted against has to be past it by more than the window, to the millisecond", async () => {
+      await write([computeApi(at(0))]);
+      await write([computeApi(at(2))]);
+
+      // The rule measures from minute 0, with a window of 15.
+      await write([
+        instance("exactly-the-window", { lastSeenAt: at(-15) }),
+        instance("a-moment-more", {
+          lastSeenAt: new Date(at(-15).getTime() - 1),
+        }),
+      ]);
+
+      expect(await sweep()).toBe(1);
+      expect(await lastSeenOf("exactly-the-window")).toBeDefined();
+      expect(await lastSeenOf("a-moment-more")).toBeUndefined();
+    });
+
+    test("a part that really went is gone within the window, two reads and one touch", async () => {
       for (let scrape: number = 0; scrape <= 3; scrape++) {
         await write([
           computeApi(at(scrape * 2)),
@@ -578,26 +684,99 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
 
       // lastSeenAt can be up to five minutes behind minute 6, so a sweep can go from minute 16.
       expect(goneAt).not.toBeNull();
-      expect(goneAt as number).toBeLessThanOrEqual(6 + 15 + 2);
+      expect(goneAt as number).toBeLessThanOrEqual(6 + 15 + 2 + 2);
       expect(goneAt as number).toBeGreaterThanOrEqual(6 + 15 - 5);
     });
 
     test("a service sending rows in turns gives them as long as a turn takes", async () => {
       await write([instance("i-turn", { lastSeenAt: at(0) })]);
 
+      // The rule measures from minute 38, and waits a window and a cycle: minute -7.
+      await write([computeApi(at(38), 30)]);
       await write([computeApi(at(40), 30)]);
       await sweep();
       expect(await lastSeenOf("i-turn")).toBeDefined();
 
+      // From minute 46, to minute 1.
       await write([computeApi(at(46), 30)]);
+      await write([computeApi(at(48), 30)]);
       await sweep();
       expect(await lastSeenOf("i-turn")).toBeUndefined();
 
       // A cloud that left summary mode stops waiting.
       await write([instance("i-next", { lastSeenAt: at(46) })]);
       await write([computeApi(at(62))]);
+      await write([computeApi(at(64))]);
       await sweep();
       expect(await lastSeenOf("i-next")).toBeUndefined();
+    });
+
+    test("a read that cannot speak for the rows it held back moves nothing the rule reads", async () => {
+      const heldBack: (when: Date) => ParsedOpenStackResource = (
+        when: Date,
+      ): ParsedOpenStackResource => {
+        // What foldApiUp writes of an `up` with vouches_for_rows="false".
+        return resource({
+          kind: OpenStackResourceKind.Api,
+          externalId: `RegionOne/${OpenStackServiceType.Compute}`,
+          name: OpenStackServiceType.Compute,
+          status: "up",
+          facts: { refreshCycleMinutes: 30 },
+          lastSeenAt: when,
+        });
+      };
+
+      await write([instance("i-old", { lastSeenAt: at(0) })]);
+      await write([computeApi(at(0), 30)]);
+      await write([computeApi(at(2), 30)]);
+
+      for (let minute: number = 4; minute < 300; minute += 60) {
+        await write([heldBack(at(minute))]);
+        expect(await sweep()).toBe(0);
+      }
+
+      expect(await lastSeenOf("i-old")).toBeDefined();
+    });
+
+    test("what a cloud stands on waits for the read before the latest too", async () => {
+      const dependency: (when: Date) => ParsedOpenStackResource = (
+        when: Date,
+      ): ParsedOpenStackResource => {
+        return resource({
+          kind: OpenStackResourceKind.ControlPlane,
+          externalId: "RegionOne/rabbitmq/mq-1",
+          status: "up",
+          lastSeenAt: when,
+        });
+      };
+      const hasDependency: () => Promise<boolean> =
+        async (): Promise<boolean> => {
+          return Boolean(
+            await rowOf(
+              OpenStackResourceKind.ControlPlane,
+              "RegionOne/rabbitmq/mq-1",
+            ),
+          );
+        };
+
+      await write([computeApi(at(0)), dependency(at(0))]);
+      await write([computeApi(at(2))]);
+
+      // An agent back after an hour answers its API jobs before this one.
+      await write([computeApi(at(62))]);
+      await sweep();
+      expect(await hasDependency()).toBe(true);
+
+      await write([dependency(at(62))]);
+      await write([computeApi(at(64))]);
+      await sweep();
+      expect(await hasDependency()).toBe(true);
+
+      // Someone stopped naming it: the agent goes on reporting without it.
+      await write([computeApi(at(90))]);
+      await write([computeApi(at(92))]);
+      await sweep();
+      expect(await hasDependency()).toBe(false);
     });
   });
 
@@ -614,6 +793,7 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       const query: jest.SpiedFunction<typeof database.manager.query> =
         jest.spyOn(database.manager, "query");
 
+      await write([computeApi(at(118))]);
       await write([computeApi(at(120))]);
 
       expect(await sweep()).toBe(12000);
@@ -765,6 +945,471 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
         )?.["status"],
       ).toBeNull();
     });
+  });
+
+  describe("hosts and workers past what a read brings", () => {
+    const scope: { projectId: ObjectID; openStackCloudId: ObjectID } = {
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+    };
+
+    const worker: (
+      index: number,
+      overrides?: Partial<ParsedOpenStackResource>,
+    ) => ParsedOpenStackResource = (
+      index: number,
+      overrides: Partial<ParsedOpenStackResource> = {},
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Service,
+        externalId: `RegionOne/compute/compute-${index}/nova-compute`,
+        name: "nova-compute",
+        status: "up",
+        adminState: "enabled",
+        facts: { family: "compute", host: `compute-${index}` },
+        ...overrides,
+      });
+    };
+
+    const host: (
+      index: number,
+      overrides?: Partial<ParsedOpenStackResource>,
+    ) => ParsedOpenStackResource = (
+      index: number,
+      overrides: Partial<ParsedOpenStackResource> = {},
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Hypervisor,
+        externalId: `RegionOne/compute-${index}`,
+        name: `compute-${index}`,
+        hypervisorName: `compute-${index}`,
+        status: "up",
+        adminState: "enabled",
+        vcpuCapacity: 100,
+        vcpuAllocated: 50,
+        ...overrides,
+      });
+    };
+
+    test("up to the line it reads them all, as it does on nearly every cloud", async () => {
+      await write(
+        Array.from({ length: 1000 }, (_v: unknown, index: number) => {
+          return worker(index);
+        }),
+      );
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+
+      expect(answer.leftOut).toEqual([]);
+      expect(answer.totalsByKind["Service"]).toBe(1000);
+      expect(
+        answer.rows.filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Service;
+        }),
+      ).toHaveLength(1000);
+    }, 120000);
+
+    test("past it, it reads what could need someone, counts the rest, and the two add up", async () => {
+      const rows: Array<ParsedOpenStackResource> = [];
+
+      for (let index: number = 0; index < 1200; index++) {
+        rows.push(
+          worker(index, {
+            status: index % 100 === 0 ? "down" : "up",
+            adminState: index % 300 === 1 ? "disabled" : "enabled",
+          }),
+        );
+      }
+
+      // Whichever of these is down, the rules need them all to say so of the region.
+      rows.push(
+        worker(9001, {
+          externalId: "RegionOne/compute/controller-1/nova-scheduler",
+          name: "nova-scheduler",
+          facts: { family: "compute", host: "controller-1" },
+        }),
+        worker(9002, {
+          externalId: "RegionOne/compute/controller-2/nova-conductor",
+          name: "nova-conductor",
+          facts: { family: "compute", host: "controller-2" },
+        }),
+        worker(9003, {
+          externalId: "RegionTwo/network/net-1/ovn-controller",
+          name: "ovn-controller",
+          regionName: "RegionTwo",
+          facts: { family: "network", host: "net-1" },
+        }),
+      );
+
+      await write(rows);
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+      const services: Array<JSONObject> = answer.rows.filter(
+        (row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Service;
+        },
+      );
+
+      // Twelve down, four disabled, and two workers the rules read whatever they say.
+      expect(services).toHaveLength(12 + 4 + 2);
+      // Down first.
+      expect(services[0]?.["status"]).toBe("down");
+
+      const total: number =
+        services.length +
+        answer.leftOut.reduce(
+          (sum: number, group: OpenStackRowsLeftOut): number => {
+            return sum + group.count;
+          },
+          0,
+        );
+
+      expect(total).toBe(1203);
+      expect(answer.totalsByKind["Service"]).toBe(1203);
+      expect(answer.leftOut).toEqual(
+        expect.arrayContaining([
+          {
+            kind: OpenStackResourceKind.Service,
+            regionName: "RegionOne",
+            name: "nova-compute",
+            family: "compute",
+            state: "up",
+            count: 1200 - 12 - 4,
+          },
+          {
+            kind: OpenStackResourceKind.Service,
+            regionName: "RegionTwo",
+            name: "ovn-controller",
+            family: "network",
+            state: "up",
+            count: 1,
+          },
+        ]),
+      );
+
+      // One region's own read says only that region's.
+      const regionTwo: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+          regionName: "RegionTwo",
+        });
+
+      expect(regionTwo.leftOut).toEqual([]);
+      expect(regionTwo.totalsByKind["Service"]).toBe(1);
+    }, 120000);
+
+    test("a very bad day is still a stated size: the rest of it is counted, as down", async () => {
+      await write(
+        Array.from({ length: 2500 }, (_v: unknown, index: number) => {
+          return worker(index, { status: "down" });
+        }),
+      );
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+
+      expect(
+        answer.rows.filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Service;
+        }),
+      ).toHaveLength(1000);
+      expect(answer.leftOut).toEqual([
+        {
+          kind: OpenStackResourceKind.Service,
+          regionName: "RegionOne",
+          name: "nova-compute",
+          family: "compute",
+          state: "down",
+          count: 1500,
+        },
+      ]);
+    }, 120000);
+
+    test("a hypervisor past an allocation line is read, and one that is fine is counted", async () => {
+      const rows: Array<ParsedOpenStackResource> = [];
+
+      for (let index: number = 0; index < 1100; index++) {
+        rows.push(host(index));
+      }
+
+      rows.push(
+        host(9001, { vcpuAllocated: 91 }),
+        host(9002, {
+          memoryAllocatedBytes: 95,
+          memoryCapacityBytes: 100,
+        }),
+        host(9003, { diskAllocatedBytes: 91, diskCapacityBytes: 100 }),
+        host(9004, { status: "down" }),
+        host(9005, { adminState: "disabled" }),
+        // Exactly on the line is fine, as the rules have it.
+        host(9006, { vcpuAllocated: 90 }),
+      );
+
+      await write(rows);
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+      const hosts: Array<string> = answer.rows
+        .filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Hypervisor;
+        })
+        .map((row: JSONObject): string => {
+          return row["name"] as string;
+        });
+
+      expect(hosts.sort()).toEqual([
+        "compute-9001",
+        "compute-9002",
+        "compute-9003",
+        "compute-9004",
+        "compute-9005",
+      ]);
+      expect(answer.leftOut).toEqual([
+        {
+          kind: OpenStackResourceKind.Hypervisor,
+          regionName: "RegionOne",
+          name: null,
+          family: null,
+          state: "up",
+          count: 1101,
+        },
+      ]);
+    }, 120000);
+
+    test("the Services page's read does the same, and a search finds what it left out", async () => {
+      await write([
+        ...Array.from({ length: 1100 }, (_v: unknown, index: number) => {
+          return worker(index);
+        }),
+        worker(9001, { status: "down" }),
+      ]);
+
+      const read: OpenStackServiceRowsRead =
+        await OpenStackResourceService.getServiceRows(scope);
+
+      expect(read.workers).toHaveLength(1);
+      expect(read.leftOut).toEqual([
+        expect.objectContaining({ state: "up", count: 1100 }),
+      ]);
+
+      const found: OpenStackServiceRowsRead =
+        await OpenStackResourceService.getServiceRows({
+          ...scope,
+          search: "compute-1099",
+        });
+
+      expect(
+        found.workers.map((row: JSONObject): string => {
+          return (row["facts"] as JSONObject)["host"] as string;
+        }),
+      ).toEqual(expect.arrayContaining(["compute-1099", "compute-9001"]));
+
+      // What someone types is only ever text to look for.
+      const wildcard: OpenStackServiceRowsRead =
+        await OpenStackResourceService.getServiceRows({
+          ...scope,
+          search: "%",
+        });
+
+      expect(wildcard.workers).toHaveLength(1);
+    }, 120000);
+  });
+
+  describe("a list's next page, from the last row of this one", () => {
+    const scope: { projectId: ObjectID; openStackCloudId: ObjectID } = {
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+    };
+
+    type ListRow = Record<string, unknown>;
+
+    const ROW_COUNT: number = 730;
+    const PAGE: number = 100;
+
+    // Names shared by several, a good many with none at all, as a real cloud's volumes have.
+    const rowsOfList: () => Array<ParsedOpenStackResource> =
+      (): Array<ParsedOpenStackResource> => {
+        return Array.from(
+          { length: ROW_COUNT },
+          (_v: unknown, index: number): ParsedOpenStackResource => {
+            return resource({
+              kind: OpenStackResourceKind.Volume,
+              externalId: `v-${index}`,
+              name: index % 5 === 0 ? null : `volume-${index % 40}`,
+              status: index % 2 === 0 ? "in-use" : "available",
+              regionName: index % 3 === 0 ? "RegionTwo" : "RegionOne",
+            });
+          },
+        );
+      };
+
+    const readPage: (data: {
+      column: string;
+      order: SortOrder;
+      seek?: { value: string | number | null; id: string } | undefined;
+      skip?: number | undefined;
+      filter?: Record<string, unknown> | undefined;
+    }) => Promise<Array<ListRow>> = async (data: {
+      column: string;
+      order: SortOrder;
+      seek?: { value: string | number | null; id: string } | undefined;
+      skip?: number | undefined;
+      filter?: Record<string, unknown> | undefined;
+    }): Promise<Array<ListRow>> => {
+      const query: Record<string, unknown> = {
+        ...scope,
+        kind: OpenStackResourceKind.Volume,
+        ...data.filter,
+      };
+      const select: Record<string, boolean> = {
+        _id: true,
+        name: true,
+        status: true,
+      };
+      const props: { isRoot: boolean } = { isRoot: true };
+
+      if (!data.seek) {
+        return (await OpenStackResourceService.findBy({
+          query: query as never,
+          select: select as never,
+          skip: data.skip || 0,
+          limit: PAGE,
+          sort: {
+            [data.column]: data.order,
+            _id: SortOrder.Ascending,
+          } as never,
+          props: props,
+        })) as unknown as Array<ListRow>;
+      }
+
+      const rows: Array<ListRow> = [];
+
+      for (const read of getOpenStackListSeekReads({
+        value: data.seek.value,
+        id: data.seek.id,
+        order: data.order,
+      })) {
+        rows.push(
+          ...((await OpenStackResourceService.findBy({
+            query: { ...query, [data.column]: read.columnQuery } as never,
+            select: select as never,
+            skip: 0,
+            limit: PAGE - rows.length,
+            sort: (read.isByIdOnly
+              ? { _id: SortOrder.Ascending }
+              : {
+                  [data.column]: data.order,
+                  _id: SortOrder.Ascending,
+                }) as never,
+            props: props,
+          })) as unknown as Array<ListRow>),
+        );
+
+        if (rows.length >= PAGE) {
+          break;
+        }
+      }
+
+      return rows;
+    };
+
+    function idOf(row: ListRow | undefined): string {
+      return String(row?.["_id"]);
+    }
+
+    test.each([
+      ["name", SortOrder.Ascending],
+      ["name", SortOrder.Descending],
+      ["status", SortOrder.Ascending],
+      ["status", SortOrder.Descending],
+    ] as Array<[string, SortOrder]>)(
+      "by %s, %s: every row once, in the order offsets read them",
+      async (column: string, order: SortOrder) => {
+        await write(rowsOfList());
+
+        const byOffset: Array<string> = [];
+
+        for (let skip: number = 0; skip < ROW_COUNT; skip += PAGE) {
+          const page: Array<ListRow> = await readPage({ column, order, skip });
+
+          byOffset.push(...page.map(idOf));
+        }
+
+        expect(new Set(byOffset).size).toBe(ROW_COUNT);
+
+        const bySeek: Array<string> = [];
+        let seek: { value: string | number | null; id: string } | undefined;
+
+        for (;;) {
+          const page: Array<ListRow> = await readPage({ column, order, seek });
+
+          bySeek.push(...page.map(idOf));
+
+          if (page.length < PAGE) {
+            break;
+          }
+
+          const last: ListRow = page[page.length - 1] as ListRow;
+
+          seek = {
+            value: (last[column] as string | null) ?? null,
+            id: idOf(last),
+          };
+        }
+
+        /*
+         * The rows with nothing in the column come in one order either way, past those that have
+         * something. Among those that have, the two agree row for row.
+         */
+        expect(bySeek).toEqual(byOffset);
+      },
+      120000,
+    );
+
+    test("whatever else it is filtered by", async () => {
+      await write(rowsOfList());
+
+      const filter: Record<string, unknown> = { regionName: "RegionTwo" };
+      const first: Array<ListRow> = await readPage({
+        column: "name",
+        order: SortOrder.Ascending,
+        filter,
+      });
+      const last: ListRow = first[first.length - 1] as ListRow;
+      const next: Array<ListRow> = await readPage({
+        column: "name",
+        order: SortOrder.Ascending,
+        filter,
+        seek: { value: (last["name"] as string) ?? null, id: idOf(last) },
+      });
+
+      expect(next.length).toBeGreaterThan(0);
+      expect(next.map(idOf)).toEqual(
+        (
+          await readPage({
+            column: "name",
+            order: SortOrder.Ascending,
+            filter,
+            skip: PAGE,
+          })
+        ).map(idOf),
+      );
+    }, 120000);
   });
 
   describe("walking a whole kind", () => {
@@ -1061,6 +1706,16 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       expect(attention.result.totalsByKind["Instance"]).toBe(
         Math.floor(OPENSTACK_LARGE_CLOUD.instances / 1000),
       );
+      // What the Overview brings over the network, however many hosts and workers there are.
+      expect(attention.result.totalsByKind["Service"]).toBe(
+        OPENSTACK_LARGE_CLOUD.hypervisors + OPENSTACK_LARGE_CLOUD.networkAgents,
+      );
+      expect(attention.result.totalsByKind["Hypervisor"]).toBe(
+        OPENSTACK_LARGE_CLOUD.hypervisors,
+      );
+      expect(
+        Buffer.byteLength(JSON.stringify(attention.result.rows)),
+      ).toBeLessThan(1024 * 1024);
 
       const regions: FastestRun<unknown> = await time(() => {
         return OpenStackResourceService.getRegionSummaries(scope);
@@ -1093,6 +1748,50 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       expect(topology.result.isSummarized).toBe(true);
       expect(topology.inMs).toBeLessThan(5000);
 
+      // The last page of a list, by offset and from the last row of the page before.
+      const deepOffset: FastestRun<unknown> = await time(() => {
+        return OpenStackResourceService.findBy({
+          query: {
+            ...scope,
+            kind: OpenStackResourceKind.Instance,
+          } as never,
+          select: { _id: true, name: true } as never,
+          skip: OPENSTACK_LARGE_CLOUD.instances - 100,
+          limit: 100,
+          sort: {
+            name: SortOrder.Ascending,
+            _id: SortOrder.Ascending,
+          } as never,
+          props: { isRoot: true },
+        });
+      }, 60000);
+      const deepSeek: FastestRun<unknown> = await time(() => {
+        const [read] = getOpenStackListSeekReads({
+          value: `Instance-${OPENSTACK_LARGE_CLOUD.instances - 200}`,
+          id: "00000000-0000-4000-8000-000000000000",
+          order: SortOrder.Ascending,
+        });
+
+        return OpenStackResourceService.findBy({
+          query: {
+            ...scope,
+            kind: OpenStackResourceKind.Instance,
+            name: read?.columnQuery,
+          } as never,
+          select: { _id: true, name: true } as never,
+          skip: 0,
+          limit: 100,
+          sort: {
+            name: SortOrder.Ascending,
+            _id: SortOrder.Ascending,
+          } as never,
+          props: { isRoot: true },
+        });
+      }, 1000);
+
+      expect(deepSeek.inMs).toBeLessThan(1000);
+      expect(deepSeek.measuredInMs).toBeLessThan(deepOffset.measuredInMs);
+
       const keyset: FastestRun<unknown> = await time(() => {
         return OpenStackResourceService.getRowsAfter({
           ...scope,
@@ -1118,6 +1817,8 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
         topologyRows: topology.result.rows.length,
         topologyBytes: Buffer.byteLength(JSON.stringify(topology.result.rows)),
         keysetPageMs: keyset.measuredInMs,
+        listDeepOffsetMs: deepOffset.measuredInMs,
+        listDeepSeekMs: deepSeek.measuredInMs,
         slowdowns: {
           summary: summary.slowdown,
           attention: attention.slowdown,

@@ -311,10 +311,9 @@ describe("a healthy cloud", () => {
         createCollectorHarness({ transport: cloud.transport }).dependencies,
       );
 
-      const agents: Array<JSONObject> = recordedJson(
-        scene,
-        "neutron-agents",
-      )?.["agents"] as Array<JSONObject>;
+      const agents: Array<JSONObject> = recordedJson(scene, "neutron-agents")?.[
+        "agents"
+      ] as Array<JSONObject>;
       const dhcp: Array<JSONObject> = agents.filter((agent: JSONObject) => {
         return agent["binary"] === "neutron-dhcp-agent";
       });
@@ -430,10 +429,7 @@ describe("a healthy cloud", () => {
       });
       harness.clock = collector.clock;
 
-      await OpenStackCollector.collect(
-        collectionJob(),
-        collector.dependencies,
-      );
+      await OpenStackCollector.collect(collectionJob(), collector.dependencies);
 
       expect(dhcpPaths(cloud)).toEqual([]);
     });

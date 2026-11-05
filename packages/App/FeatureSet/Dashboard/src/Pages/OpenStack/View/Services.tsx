@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { OpenStackRowsLeftOut } from "Common/Types/OpenStack/OpenStackOverview";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -44,6 +45,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   OpenStackServiceRows,
   fetchOpenStackServiceRows,
+  fetchOpenStackWorkersOfLargeCloud,
 } from "../Utils/OpenStackOverviewReads";
 import {
   OpenStackAccessGap,
@@ -63,9 +65,10 @@ import {
  * first. OpenStackServices decides the order and OpenStackHealth what needs someone, the
  * same as the Overview, so the two can't disagree.
  *
- * Everything is read at once because there are few of these even on a large cloud, and
- * what needs someone can't be put first in a list that holds a page of it. A cloud with
- * more than a read holds says so rather than reading as though that was all of them.
+ * Everything is read at once because what needs someone can't be put first in a list that holds a
+ * page of it, and on most clouds there are few of these. A cloud of thousands of hosts has tens of
+ * thousands of workers: its read brings the ones that may need someone and counts the rest, each
+ * card says how many, and a search asks the server, which has all of them.
  */
 
 // A connected agent's data refreshes every couple of minutes, so a tab left open does too.
@@ -87,6 +90,26 @@ interface ServicesPageData {
   cloud: OpenStackCloud | null;
 }
 
+// What a search found on the server, of a cloud too large to read whole.
+interface WorkersFound {
+  needle: string;
+  workers: Array<OpenStackResource>;
+}
+
+const SEARCH_WAITS_FOR_IN_MS: number = 400;
+
+function uniqueWorkers(
+  workers: Array<OpenStackResource>,
+): Array<OpenStackResource> {
+  const byId: Map<string, OpenStackResource> = new Map();
+
+  for (const worker of workers) {
+    byId.set(worker.externalId || "", worker);
+  }
+
+  return Array.from(byId.values());
+}
+
 const OpenStackCloudServices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -94,6 +117,7 @@ const OpenStackCloudServices: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const { region }: OpenStackRegionState = useOpenStackRegion();
   const [search, setSearch] = useState<string>("");
+  const [found, setFound] = useState<WorkersFound | null>(null);
   const routes: OpenStackPartRoutes = useMemo(() => {
     return getOpenStackPartRoutes(modelId);
   }, [modelId.toString()]);
@@ -115,6 +139,43 @@ const OpenStackCloudServices: FunctionComponent<
         ]);
       return { rows, cloud };
     }, [modelId.toString()]);
+
+  /*
+   * What a very large cloud's read left out, a search can still find. It asks once someone has
+   * stopped typing, and a slower answer to an earlier search is thrown away.
+   */
+  const searchToAsk: string =
+    (read.data?.rows.leftOut.length || 0) > 0
+      ? search.trim().toLowerCase()
+      : "";
+
+  useEffect(() => {
+    if (!searchToAsk) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      fetchOpenStackWorkersOfLargeCloud({
+        openStackCloudId: modelId,
+        search: searchToAsk,
+      })
+        .then((answer: { workers: Array<OpenStackResource> }) => {
+          if (isCurrent) {
+            setFound({ needle: searchToAsk, workers: answer.workers });
+          }
+        })
+        .catch(() => {
+          // The search box goes on narrowing what was read, which is what it does on any cloud.
+        });
+    }, SEARCH_WAITS_FOR_IN_MS);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
+  }, [searchToAsk, modelId.toString()]);
 
   // The tab someone leaves open while a service is down has to keep telling the truth.
   useEffect(() => {
@@ -152,7 +213,20 @@ const OpenStackCloudServices: FunctionComponent<
   ): boolean => {
     return !region || row.regionName === region;
   };
-  const workers: Array<OpenStackResource> = data.rows.workers.filter(inRegion);
+  const needle: string = search.trim().toLowerCase();
+  const isReadCounted: boolean = data.rows.leftOut.length > 0;
+  const hasFound: boolean =
+    isReadCounted && Boolean(needle) && found?.needle === needle;
+  const workers: Array<OpenStackResource> = (
+    hasFound && found
+      ? uniqueWorkers([...data.rows.workers, ...found.workers])
+      : data.rows.workers
+  ).filter(inRegion);
+  const leftOut: Array<OpenStackRowsLeftOut> = data.rows.leftOut.filter(
+    (group: OpenStackRowsLeftOut): boolean => {
+      return !region || !group.regionName || group.regionName === region;
+    },
+  );
   const apis: Array<OpenStackResource> =
     getOpenStackRowsAsThisCredentialReadsThem({
       rows: data.rows.apis,
@@ -168,14 +242,17 @@ const OpenStackCloudServices: FunctionComponent<
 
   // Only a cloud that reports can say a credential can't list something.
   const accessGaps: Array<OpenStackAccessGap> = isConnected
-    ? getOpenStackAccessGaps({ apis: apis, workers: workers })
+    ? getOpenStackAccessGaps({
+        apis: apis,
+        workers: workers,
+        leftOut: leftOut,
+      })
     : [];
-
-  const needle: string = search.trim().toLowerCase();
 
   const groups: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
     apis: apis,
     workers: workers,
+    leftOut: leftOut,
     now: now,
   })
     .map((group: OpenStackServiceGroup): OpenStackServiceGroup => {
@@ -211,7 +288,10 @@ const OpenStackCloudServices: FunctionComponent<
       );
     });
 
-  const backendName: string | null = getOpenStackNetworkBackendName(workers);
+  const backendName: string | null = getOpenStackNetworkBackendName(
+    workers,
+    leftOut,
+  );
 
   const hasRegions: boolean =
     !region &&
@@ -221,7 +301,8 @@ const OpenStackCloudServices: FunctionComponent<
       }),
     ).size > 1;
 
-  const isEmpty: boolean = apis.length === 0 && workers.length === 0;
+  const isEmpty: boolean =
+    apis.length === 0 && workers.length === 0 && leftOut.length === 0;
 
   return (
     <Fragment>
@@ -258,20 +339,6 @@ const OpenStackCloudServices: FunctionComponent<
             : null
         }
       />
-
-      {data.rows.workerCount > data.rows.workers.length ? (
-        <OpenStackPartNotice testId="openstack-services-capped" tone="warning">
-          {translator.translateTemplate(
-            "This cloud has {{total}} workers. The first {{shown}} are listed here.",
-            {
-              total: translator.formatNumber(data.rows.workerCount),
-              shown: translator.formatNumber(data.rows.workers.length),
-            },
-          )}
-        </OpenStackPartNotice>
-      ) : (
-        <></>
-      )}
 
       {isEmpty ? (
         <div
