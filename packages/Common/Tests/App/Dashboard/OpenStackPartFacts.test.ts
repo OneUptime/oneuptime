@@ -36,6 +36,7 @@ import { getOpenStackAttentionItems } from "../../../../App/FeatureSet/Dashboard
 import {
   OPENSTACK_FLOATING_IP_ALERT_TEMPLATE_IDS,
   OPENSTACK_HYPERVISOR_ALERT_TEMPLATE_IDS,
+  OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS,
   OPENSTACK_INSTANCE_ALERT_TEMPLATE_IDS,
   OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS,
   OPENSTACK_NETWORK_ALERT_TEMPLATE_IDS,
@@ -1876,6 +1877,7 @@ describe("the alert templates each kind of part names", () => {
     ["network agent", OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS],
     ["volume", OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS],
     ["storage pool", OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS],
+    ["image", OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS],
   ])("a %s's are real templates", (_kind: string, ids: Array<string>) => {
     expect(ids.length).toBeGreaterThan(0);
     for (const id of ids) {

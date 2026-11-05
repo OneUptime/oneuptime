@@ -706,6 +706,9 @@ test.describe("storage", () => {
     await expect(page.getByTestId("openstack-image-explanation")).toContainText(
       "failed upload",
     );
+    await expect(page.getByTestId("openstack-image-alerts")).toContainText(
+      "Image Stuck",
+    );
     await expect(page.getByTestId("openstack-image-details")).toBeVisible();
   });
 

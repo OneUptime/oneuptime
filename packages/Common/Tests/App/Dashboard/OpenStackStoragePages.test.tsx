@@ -863,6 +863,21 @@ describe("images", () => {
     ).toHaveTextContent("No");
     expect(tile("openstack-image-tiles", "Size")).toHaveTextContent("21 MiB");
   });
+
+  test("its alert is the stuck image template", async () => {
+    server.rows = [imageRow()];
+
+    await renderPage(OpenStackCloudImageDetail, partPath("images", IMAGE_ID));
+
+    expect(
+      within(await screen.findByTestId("openstack-image-alerts"))
+        .getAllByTestId("openstack-image-alerts-item")
+        .map((item: HTMLElement) => {
+          return item.textContent;
+        })
+        .join(" "),
+    ).toContain("Image Stuck");
+  });
 });
 
 describe("on what real clouds said", () => {
