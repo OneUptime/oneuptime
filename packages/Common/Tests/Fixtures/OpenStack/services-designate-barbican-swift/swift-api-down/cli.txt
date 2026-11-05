@@ -1,0 +1,4 @@
+$ openstack container list
+Unable to establish connection to https://openstack.example/v1/AUTH_3e5d001dee9a477087fc3b0e5278eb81: HTTPConnectionPool(host='203.0.113.10', port=8080): Max retries exceeded with url: /v1/AUTH_3e5d001dee9a477087fc3b0e5278eb81?format=json (Caused by NewConnectionError("HTTPConnection(host='203.0.113.10', port=8080): Failed to establish a new connection: [Errno 111] Connection refused"))
+$ openstack object store account show
+Unable to establish connection to https://openstack.example/v1/AUTH_3e5d001dee9a477087fc3b0e5278eb81: HTTPConnectionPool(host='203.0.113.10', port=8080): Max retries exceeded with url: /v1/AUTH_3e5d001dee9a477087fc3b0e5278eb81 (Caused by NewConnectionError("HTTPConnection(host='203.0.113.10', port=8080): Failed to establish a new connection: [Errno 111] Connection refused"))

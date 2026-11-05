@@ -1,0 +1,2 @@
+That node in deploy failed, with its fault.
+On its own: the callback never came, and Ironic gave up.

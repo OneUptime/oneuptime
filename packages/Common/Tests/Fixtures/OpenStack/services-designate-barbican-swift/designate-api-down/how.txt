@@ -1,0 +1,2 @@
+Designate's API stopped.
+On its own: Designate's API is stopped.

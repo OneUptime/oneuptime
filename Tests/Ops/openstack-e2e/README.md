@@ -11,7 +11,7 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | `start-agent.sh` | Starts the OpenStack agent's pinned exporter and collector, with the real `agents/OpenStackAgent/otel-collector-config.yaml`, writing to a file in place of OneUptime. Beside it, the exporter's last non-alpha release, so the two can be compared. |
 | `access-matrix.sh` | Tests least privilege on the cloud's real policies: what an admin, a plain reader, the OneUptime monitoring role and an application credential limited by access rules can each read, that the last two cannot write, and what the agent's own exporter gets with each. Restarts the API services once, because access rules need `service_type` set on each. `merge-policy.py` merges the overrides over what a service's policy file already holds. |
 | `drills.sh` | Breaks the cloud one way at a time (`record.sh` after each) and puts it back: a compute service disabled on purpose, `nova-compute`, a Neutron agent, `cinder-volume` and `nova-scheduler` stopped, and Nova's API down. |
-| `record.sh <scene>` | Records one scene: the exporter's answer per service with how long it took, each read-only API call's answer, and what the `openstack` CLI says, for a person to check a page against. |
+| `record.sh <scene>` | Records one scene: the exporter's answer per service with how long it took, each read-only API call's answer, and what the `openstack` CLI says, for a person to check a page against. A service that is not in the catalog costs one empty scrape, and nothing else. `RECORD_SERVICES` narrows which services it scrapes. |
 | `instance-metrics.sh` | After the drills, boots `ou-burner`, which spins on its CPU, writes to its disk and sends packets, and records what both sources say about it, the idle `ou-running` and the shut-off `ou-stopped`, at the same moments, every 30 seconds for six minutes. |
 | `instance-metrics-drill.sh` | Only with `instance_metrics_only`, in place of everything else above from the access matrix on, because it records for over an hour. A noisy instance, then a noisy neighbour, then quiet, each for long enough that an alert template's window fills and empties, with Ceilometer polling at its real default of five minutes. Then a hard reboot, a shut-off and a delete. What the collector would have sent is what gets replayed. |
 | `stop-agent.sh` | Stops the agent, keeps its logs, and fails if the collector exported nothing. |
@@ -84,6 +84,39 @@ traces/journal.jsonl.gz      what the services logged, to hold a trace's request
 `-f logs_only=true -f traces_only=true` runs only the traces step, on Hibiscus and Flamingo. `traces-record.sh` says what each scene is for. Its fixtures come from `python3 -I import-trace-recording.py <release> <artifact>/traces`, into `packages/Common/Tests/Fixtures/OpenStack/traces/<release>/`.
 
 Tokens are scrubbed and addresses replaced, although nothing here is a secret: it is a throwaway cloud on a runner that is gone when the job ends.
+
+## The services a cloud may not run
+
+Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove and Gnocchi are recorded by a job of their own, `record-services`, only when asked. Each group has a runner to itself, because a runner has 4 vCPUs and 16 GB:
+
+```bash
+gh workflow run test.openstack-e2e.yaml --ref <branch> -f services_only=true
+# One entry, or several: a retry cancels only a run that asked for the same.
+gh workflow run test.openstack-e2e.yaml --ref <branch> -f services_only=true -f services_filter=services-trove
+```
+
+| Entry | What it deploys, on `stable/2026.1` | Script |
+| --- | --- | --- |
+| `services-octavia` | Octavia with its amphora provider, on the runner's KVM, and its OVN provider | `services-octavia.sh` |
+| `services-ironic` | Ironic with fake hardware, and Nova's Ironic driver | `services-ironic.sh` |
+| `services-heat-magnum` | Heat, and Magnum on it | `services-heat-magnum.sh` |
+| `services-manila` | Manila with its dummy driver, on two backends, one held slow | `services-manila.sh` |
+| `services-designate-barbican-swift` | Designate on bind9, Barbican and Swift | `services-designate-barbican-swift.sh` |
+| `services-trove` | Trove, with the guest image its plugin builds | `services-trove.sh` |
+| `services-gnocchi` | Gnocchi, deployed by Ceilometer's plugin, since its own repository no longer has one | `services-gnocchi.sh` |
+
+The configs start from what Gophercloud's own CI runs on this same action and branch. The top of each script says what its scenes are. `services-lib.sh` is what they share, and is why a scene going wrong never costs the scene after it: each scene is recorded whichever way it went, its `how.txt` says how the cloud got there, on its own or written into a row, and a `failed.txt` says why it never did. `scenes.txt` says what became of each.
+
+After the scenes, `access-matrix.sh` runs on the same cloud with the group's `EXPORTER_SERVICES`, on its own, because it restarts APIs. It covers each of these services' reads and writes wherever a catalog has them, and a group can try more credentials with `EXTRA_CREDENTIALS`.
+
+To copy one into the fixtures, which writes only `packages/Common/Tests/Fixtures/OpenStack/services-<group>/`, and leaves out a scene that has a `failed.txt`:
+
+```bash
+gh run download <run id> --pattern 'openstack-recording-services-*' --dir /tmp/services-recordings
+python3 -I Tests/Ops/openstack-e2e/import-services-recording.py /tmp/services-recordings packages/Common/Tests/Fixtures/OpenStack
+```
+
+A scene is never called `healthy`, and a group's access recording goes in `access-check/`: the tests of the releases read a folder holding `healthy/exporter` as a release, and the generated access table reads one holding `access/`. The importer refuses both.
 
 ## The install, as the docs say
 
