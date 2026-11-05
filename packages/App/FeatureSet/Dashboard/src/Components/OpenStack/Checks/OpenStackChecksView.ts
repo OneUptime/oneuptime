@@ -47,9 +47,13 @@ export const OPENSTACK_CHECK_TONE_CLASS_NAMES: Record<
   neutral: "bg-gray-100 text-gray-700",
 };
 
-// What the lifecycle check does, in the words the card, its form and the guide all use.
+// What the lifecycle check does, in the words the card and the guide use.
 export const OPENSTACK_LIFECYCLE_CHECK_STATEMENT: string =
   "Each run creates one small server in a project you set aside for this, waits for it to become ACTIVE, then deletes it. Two options add to that: a floating IP with a security group that lets a ping in, and a volume it attaches and detaches. Everything it creates is named for this check, and it only ever deletes what is. It uses a credential of its own, and refuses to run on one that is scoped to another project or has admin rights.";
+
+// The same, as short as a dialog's description has to be.
+export const OPENSTACK_LIFECYCLE_CHECK_FORM_DESCRIPTION: string =
+  "Each run creates one small server in a project you set aside, waits until it is ACTIVE and deletes it. It refuses a credential with admin rights.";
 
 export const OPENSTACK_API_CHECK_STATEMENT: string =
   "Every minute, a probe outside the cloud asks Keystone for a token, makes one small read of each service in the catalog, and reads the certificate each public address presents. It only reads, and nothing runs on the cloud.";

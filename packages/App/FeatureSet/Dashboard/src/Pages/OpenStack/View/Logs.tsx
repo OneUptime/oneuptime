@@ -165,8 +165,8 @@ const OpenStackCloudLogs: FunctionComponent<
         enableRealtime={true}
         noLogsMessage={
           region
-            ? "No logs say they are from this region. A machine's logs name their region once its logs profile is told it: run install-logs.sh on that machine again with OPENSTACK_REGION_NAME set. All regions shows the rest."
-            : "No logs from this cloud yet. They appear once the agent's logs profile runs on its controllers and compute nodes: the OpenStack guide says how."
+            ? "A machine's logs name their region once its logs profile is told it: run install-logs.sh on that machine again with OPENSTACK_REGION_NAME set. All regions shows the rest."
+            : "A cloud's logs appear once the agent's logs profile runs on its controllers and compute nodes: the OpenStack guide says how."
         }
       />
     </Fragment>

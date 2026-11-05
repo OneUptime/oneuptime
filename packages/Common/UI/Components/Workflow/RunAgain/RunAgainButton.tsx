@@ -24,7 +24,7 @@ export const RunAgainCopy: {
   runAgain: translationKey("Run again"),
   confirmTitle: translationKey("Run this workflow again?"),
   confirmDescription: translationKey(
-    "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.",
+    "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: what it sends or deletes happens.",
   ),
   lastRunTitle: translationKey("Run with the last run's values"),
   lastRunDescription: translationKey(
