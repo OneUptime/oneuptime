@@ -16,6 +16,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
+  OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE,
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
   OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
   OpenStackHypervisorMetric,
@@ -122,12 +123,38 @@ function sourcesOf(
   return Array.from(sources);
 }
 
+// What every disk or interface comes to between them.
+function totalOf(readings: Array<{ value: number }>): number | null {
+  return readings.length === 0
+    ? null
+    : readings.reduce((total: number, reading: { value: number }): number => {
+        return total + reading.value;
+      }, 0);
+}
+
+// The slowest disk: a fast one beside it doesn't make it any less slow.
+function worstOf(readings: Array<{ value: number }>): number | null {
+  return readings.length === 0
+    ? null
+    : Math.max(
+        ...readings.map((reading: { value: number }): number => {
+          return reading.value;
+        }),
+      );
+}
+
 export interface OpenStackInstanceUsage {
   cpuCores: number | null;
   cpuPercent: number | null;
   contentionPercent: number | null;
   memoryUsageBytes: number | null;
   memoryResidentBytes: number | null;
+  diskReadBytesPerSecond: number | null;
+  diskWriteBytesPerSecond: number | null;
+  diskReadLatencyMs: number | null;
+  diskWriteLatencyMs: number | null;
+  networkReceiveBytesPerSecond: number | null;
+  networkTransmitBytesPerSecond: number | null;
   sources: Array<OpenStackInstanceMetricSource>;
 }
 
@@ -149,15 +176,46 @@ export async function fetchOpenStackInstanceUsage(data: {
       },
     });
   };
-  const [cpuCores, cpuPercent, contention, memoryUsage, memoryResident]: Array<
-    Array<{ labels: Record<string, unknown>; value: number }>
-  > = (await Promise.all([
-    read(OpenStackInstanceMetric.CpuUsage),
-    read(OpenStackInstanceMetric.CpuUtilization),
-    read(OpenStackInstanceMetric.CpuContention),
-    read(OpenStackInstanceMetric.MemoryUsage),
-    read(OpenStackInstanceMetric.MemoryResident),
-  ])) as Array<Array<{ labels: Record<string, unknown>; value: number }>>;
+  const readPerDevice: (
+    metricName: OpenStackInstanceMetric,
+  ) => Promise<Array<{ labels: Record<string, unknown>; value: number }>> = (
+    metricName: OpenStackInstanceMetric,
+  ): Promise<Array<{ labels: Record<string, unknown>; value: number }>> => {
+    return readAverageByLabel({
+      metricName,
+      groupByLabels: [OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE],
+      attributes: {
+        [CLOUD_ATTRIBUTE]: data.cloudName,
+        [OPENSTACK_INSTANCE_ID_ATTRIBUTE]: data.instanceId,
+      },
+    });
+  };
+  const [
+    cpuCores,
+    cpuPercent,
+    contention,
+    memoryUsage,
+    memoryResident,
+    diskRead,
+    diskWrite,
+    diskReadLatency,
+    diskWriteLatency,
+    networkReceive,
+    networkTransmit,
+  ]: Array<Array<{ labels: Record<string, unknown>; value: number }>> =
+    (await Promise.all([
+      read(OpenStackInstanceMetric.CpuUsage),
+      read(OpenStackInstanceMetric.CpuUtilization),
+      read(OpenStackInstanceMetric.CpuContention),
+      read(OpenStackInstanceMetric.MemoryUsage),
+      read(OpenStackInstanceMetric.MemoryResident),
+      readPerDevice(OpenStackInstanceMetric.DiskReadRate),
+      readPerDevice(OpenStackInstanceMetric.DiskWriteRate),
+      readPerDevice(OpenStackInstanceMetric.DiskReadLatency),
+      readPerDevice(OpenStackInstanceMetric.DiskWriteLatency),
+      readPerDevice(OpenStackInstanceMetric.NetworkReceiveRate),
+      readPerDevice(OpenStackInstanceMetric.NetworkTransmitRate),
+    ])) as Array<Array<{ labels: Record<string, unknown>; value: number }>>;
 
   return {
     cpuCores: firstOf(cpuCores!),
@@ -165,8 +223,30 @@ export async function fetchOpenStackInstanceUsage(data: {
     contentionPercent: firstOf(contention!),
     memoryUsageBytes: firstOf(memoryUsage!),
     memoryResidentBytes: firstOf(memoryResident!),
+    diskReadBytesPerSecond: totalOf(diskRead!),
+    diskWriteBytesPerSecond: totalOf(diskWrite!),
+    diskReadLatencyMs: worstOf(diskReadLatency!),
+    diskWriteLatencyMs: worstOf(diskWriteLatency!),
+    networkReceiveBytesPerSecond: totalOf(networkReceive!),
+    networkTransmitBytesPerSecond: totalOf(networkTransmit!),
     sources: sourcesOf([...cpuCores!, ...memoryResident!]),
   };
+}
+
+// Whether anything reports on this hypervisor at all, which is one small question.
+export async function fetchOpenStackHypervisorReports(data: {
+  cloudName: string;
+  hypervisorName: string;
+}): Promise<boolean> {
+  const readings: Array<{ value: number }> = await readAverageByLabel({
+    metricName: OpenStackHypervisorMetric.InstancesReporting,
+    groupByLabels: [OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE],
+    attributes: {
+      [CLOUD_ATTRIBUTE]: data.cloudName,
+      [OPENSTACK_HYPERVISOR_ATTRIBUTE]: data.hypervisorName,
+    },
+  });
+  return readings.length > 0;
 }
 
 export interface OpenStackHypervisorUsage {

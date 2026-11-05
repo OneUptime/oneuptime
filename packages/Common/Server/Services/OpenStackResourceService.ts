@@ -2391,6 +2391,54 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * A router whose agents were all taken off it has no series left to say so, and a row's facts
+   * merge key by key, so it would name them for ever: a dead agent it no longer has would still
+   * read as an outage, and a live one as carrying it. So a router heard from long after its agents
+   * were last heard from has none (getOpenStackRoutersWithoutAgents has how long, and why).
+   * Changes only what differs, so most clouds' routers, which have no agents to forget, cost one
+   * indexed read per batch.
+   */
+  @CaptureSpan()
+  public async forgetAgentsOfRouters(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    routers: Array<{ externalId: string; agentsReportedBefore: Date }>;
+  }): Promise<void> {
+    if (data.routers.length === 0) {
+      return;
+    }
+
+    await this.getRepository().manager.query(
+      `UPDATE "OpenStackResource" AS router
+       SET "facts" = router."facts" - 'l3Agents' - 'l3AgentsReportedAt',
+           "updatedAt" = now()
+       FROM unnest($3::text[], $4::timestamptz[]) AS heard("externalId", "agentsReportedBefore")
+       WHERE router."projectId" = $1 AND router."openStackCloudId" = $2
+         AND router."kind" = '${OpenStackResourceKind.Router}'
+         AND router."externalId" = heard."externalId"
+         AND router."facts" ? 'l3Agents'
+         AND COALESCE(
+           (router."facts"->>'l3AgentsReportedAt')::timestamptz,
+           '-infinity'::timestamptz
+         ) < heard."agentsReportedBefore"`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.routers.map(
+          (router: { externalId: string; agentsReportedBefore: Date }) => {
+            return router.externalId;
+          },
+        ),
+        data.routers.map(
+          (router: { externalId: string; agentsReportedBefore: Date }) => {
+            return router.agentsReportedBefore;
+          },
+        ),
+      ],
+    );
+  }
+
+  /**
    * How long a row may go unseen after its service's last good scrape. Three times
    * the slowest scrape interval (5 minutes) by default; OPENSTACK_INVENTORY_STALE_MINUTES
    * overrides it, for a cloud scraped more slowly.

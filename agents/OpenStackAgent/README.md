@@ -132,7 +132,7 @@ Access rules need `service_type` set for keystonemiddleware on each service, and
 service_type = compute
 ```
 
-The rules also carry `volumev3`, for a Cinder configured that way. Keystone needs nothing.
+The rules also carry `volume` and `volumev3`, for a Cinder configured that way. Keystone needs nothing.
 
 Without `service_type`, the service refuses the credential with a `401`. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
 
@@ -178,10 +178,11 @@ Putting the role on a real project to see its volumes and routers also lets the 
 openstack role add --project my-team --user my-monitoring-account reader
 ```
 
-Then, logged in as that account on that project: `openstack application credential create oneuptime-agent --expiration 2027-11-01T00:00:00`. The agent sees that project's rows from Cinder and Neutron and no infrastructure, and `troubleshoot.sh` says so. Two things to know before you choose this:
+Then, logged in as that account on that project: `openstack application credential create oneuptime-agent --expiration 2027-11-01T00:00:00`. The agent sees that project's rows from Cinder and Neutron and no infrastructure, and `troubleshoot.sh` says so. Three things to know before you choose this:
 
 - **Through the agent it shows no instances at all.** The exporter asks Nova for all projects' servers, Nova refuses a plain reader, and that read fails whole. Only a OneUptime probe, collecting without this agent, can list one project's instances.
 - **It may be able to write.** On a cloud where Cinder has `enforce_new_defaults` off, plain `reader` can create volumes in its project too. On Epoxy, Flamingo and Gazpacho it did (`202`), and on Hibiscus it was refused (`403`), because DevStack only turns `enforce_new_defaults` on there. Cinder's own default is off.
+- **Placement reads as not answering.** Every call it makes is refused, and the exporter reports that the way it reports a stopped Placement: `openstack_placement_up 0`, on all five releases we record. The pages can tell, from what else is closed to this credential, and say so. The Placement API Down template can't, so leave that one out at this level.
 
 ### Replacing a credential
 

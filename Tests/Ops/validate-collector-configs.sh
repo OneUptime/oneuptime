@@ -487,6 +487,41 @@ fs.writeFileSync(out, config);
 validate "kubernetes-agent / collector Deployment, ebpf.dropUnlinkedClientCalls=true" \
   "${WORK_DIR}/k8s-deployment-client-calls.yaml"
 
+# OpenStack's services on a cluster that runs them, whose logs are read apart from the rest
+# once a cloud is named: a router, a recombine with a long expr-lang condition and an add,
+# none of which the renders above have. So the DaemonSet's operator graph is built with them.
+echo "==> rendering kubernetes-agent chart with logs.openStack.cloudName"
+helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  --set clusterName=validate-only \
+  --set oneuptime.url=https://oneuptime.example.com \
+  --set oneuptime.apiKey=validate-only \
+  --set logs.enabled=true \
+  --set logs.mode=daemonset \
+  --set logs.openStack.cloudName=validate-only \
+  >"${WORK_DIR}/kubernetes-agent-openstack-logs.rendered.yaml"
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [rendered, out] = process.argv.slice(1);
+const configMap = yaml.loadAll(fs.readFileSync(rendered, "utf8")).find((doc) => {
+  return doc && doc.kind === "ConfigMap" && doc.metadata.name === "validate-kubernetes-agent-daemonset";
+});
+const config = configMap.data["otel-collector-config.yaml"];
+const operators = yaml.load(config).receivers.filelog.operators.map((operator) => {
+  return operator.id;
+});
+for (const id of ["openstack-route", "openstack-recombine", "openstack-cloud-name"]) {
+  if (!operators.includes(id)) {
+    throw new Error(`${rendered}: the filelog receiver has no ${id}`);
+  }
+}
+fs.writeFileSync(out, config);
+' "${WORK_DIR}/kubernetes-agent-openstack-logs.rendered.yaml" \
+  "${WORK_DIR}/k8s-daemonset-openstack-logs.yaml"
+validate "kubernetes-agent / node collector DaemonSet, logs.openStack.cloudName" \
+  "${WORK_DIR}/k8s-daemonset-openstack-logs.yaml"
+
 # The OpenShift presets run the collector's openshift resource detector right
 # after the resource processor in both collectors' pipelines
 # (kubernetes-agent.openshiftDetector), which the renders above leave out. A

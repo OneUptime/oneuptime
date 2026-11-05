@@ -539,6 +539,7 @@ function writeCompute(
           adminState: service.status,
           zone: service.zone,
           disabledReason: service.disabledReason,
+          forced_down: service.forcedDown,
         },
         service.state === "up" ? 1 : 0,
       );
@@ -604,6 +605,7 @@ function writeCompute(
             server.flavorId ??
             (server.flavorName ? flavorIdByName.get(server.flavorName) : null),
           instance_libvirt: server.instanceName,
+          image_id: server.imageId,
           task_state: server.taskState,
           updated_at: server.updatedAt,
           fault_message: server.faultMessage,

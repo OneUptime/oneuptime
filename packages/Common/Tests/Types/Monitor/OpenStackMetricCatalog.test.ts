@@ -76,13 +76,12 @@ const DOCS: string = readRepoFile(
   "openstack-monitor.md",
 );
 
-// The main exporter's alone: the others start with nearly every read turned off.
-const MAIN_EXPORTER: string = /^ {2}openstack-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m.exec(
-  COMPOSE,
-)![1]!;
-
+// The exporter it runs by default: the database path's other one turns off almost everything.
 const DISABLED_METRICS: Array<string> = Array.from(
-  MAIN_EXPORTER.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
+  COMPOSE.slice(
+    COMPOSE.indexOf("\n  openstack-exporter:"),
+    COMPOSE.indexOf("\n  openstack-worker-state-exporter:"),
+  ).matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
 ).map((match: RegExpMatchArray): string => {
   return match[1]!;
 });
@@ -210,6 +209,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_identity_up",
         "openstack_neutron_floating_ip",
         "openstack_neutron_up",
+        "openstack_nova_agent_state",
         "openstack_nova_server_status",
         "openstack_nova_up",
         "openstack_placement_up",

@@ -1,4 +1,7 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import { getOpenStackRowsAsThisCredentialReadsThem } from "../../../Pages/OpenStack/Utils/OpenStackServices";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -84,7 +87,18 @@ export async function loadOpenStackTopology(
       name: name,
       lastSeenAt: cloud?.lastSeenAt || null,
     },
-    rows: answer.rows,
+    // Past the stated size it holds no healthy workers, so they can't say what is closed.
+    rows: answer.isSummarized
+      ? answer.rows
+      : getOpenStackRowsAsThisCredentialReadsThem({
+          rows: answer.rows,
+          apis: answer.rows.filter((row: OpenStackResource): boolean => {
+            return row.kind === OpenStackResourceKind.Api;
+          }),
+          workers: answer.rows.filter((row: OpenStackResource): boolean => {
+            return row.kind === OpenStackResourceKind.Service;
+          }),
+        }),
     instancesByHost: answer.instancesByHost,
     projectNames: answer.projectNames,
     // Another region's are not on this map, and would land on the cloud at the top of it.

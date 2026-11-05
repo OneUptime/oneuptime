@@ -207,10 +207,13 @@ receivers:
             - source_labels: [__name__]
               regex: libvirt_domain_openstack_info|libvirt_domain_info_(cpu_time_seconds_total|virtual_cpus)|libvirt_domain_memory_stats_(available|usable|unused|rss)_bytes|libvirt_domain_block_stats_(read|write)_(bytes|requests|time_seconds)_total|libvirt_domain_interface_stats_(receive|transmit)_bytes_total|libvirt_domain_vcpu_delay_seconds_total|libvirt_up
               action: keep
-        # Its readings change once a polling cycle (five minutes by default) however
-        # often it is scraped, so scraping it faster than that buys nothing.
+        # Its readings change once a polling cycle (five minutes by default, two on Red
+        # Hat's), and a rate is worked out between the moments one changed, so all this
+        # decides is how well those moments are known. Every minute goes into any polling
+        # cycle a whole number of times: every two minutes sees a five-minute cycle take
+        # four minutes, then six, and a busy instance reads 125% and then 83%.
         - job_name: oneuptime-openstack-ceilometer
-          scrape_interval: 120s
+          scrape_interval: 60s
           scrape_timeout: 30s
           static_configs:
             - targets: ${env:OPENSTACK_CEILOMETER_EXPORTER_TARGETS}
