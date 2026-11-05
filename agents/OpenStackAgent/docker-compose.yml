@@ -262,3 +262,88 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The OpenStack AI agent: runs the `openstack` commands OneUptime AI asks for while it
+  # investigates an incident or alert on this cloud. It only ever reads: there is no write
+  # command for it to run, whatever is set here. There is no openstack client in it: each
+  # command becomes one read of the cloud's API, with the credential in clouds.yaml
+  # (OneUptime never sends it any), so that credential's roles and access rules are the hard
+  # limit. It registers as the cloud named OPENSTACK_CLOUD_NAME, exactly like the collector
+  # above, and shows up on that cloud's AI -> AI agent page. COMPOSE_PROFILES in .env starts
+  # it, which is what install.sh writes when it writes clouds.yaml. See README.md
+  # ("OneUptime AI agent").
+  oneuptime-openstack-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-openstack-ai-agent
+    profiles: ["openstack-ai-agent"]
+    # clouds.yaml is readable by its owner alone, so the agent runs as the file's owner, as
+    # the exporter does. It only talks HTTPS to the cloud's APIs and to OneUptime: no root,
+    # no capabilities, a read-only root filesystem and a tmpfs for /tmp.
+    user: "${OPENSTACK_EXPORTER_USER:-65532:65532}"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      # The credential the exporter reads. A credential of the agent's own, below, needs
+      # none of it: set OPENSTACK_AI_CLOUDS_FILE=/dev/null then.
+      - ${OPENSTACK_AI_CLOUDS_FILE:-./clouds.yaml}:/etc/openstack/clouds.yaml:ro
+      - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=openstack
+      # Must match the collector's, so the agent serves the same cloud.
+      - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
+      # Which entry of clouds.yaml to use: the first of these it holds.
+      - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[RegionOne]}
+      # The Keystone a credential of the agent's own logs in to. clouds.yaml says its own.
+      - OPENSTACK_AUTH_URL=${OPENSTACK_AUTH_URL:-}
+      # Another entry of clouds.yaml than the first.
+      - ONEUPTIME_AI_OPENSTACK_CLOUD=${ONEUPTIME_AI_OPENSTACK_CLOUD:-}
+      # An application credential of the agent's own, used instead of clouds.yaml's when
+      # set. Set both or neither.
+      - ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID:-}
+      - ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET:-}
+      # The region a command reads when it names none, and which endpoints to use: public,
+      # internal or admin. clouds.yaml says both unless these do.
+      - ONEUPTIME_AI_OPENSTACK_REGION=${ONEUPTIME_AI_OPENSTACK_REGION:-}
+      - ONEUPTIME_AI_OPENSTACK_INTERFACE=${ONEUPTIME_AI_OPENSTACK_INTERFACE:-}
+      # A cloud with its own certificate authority: clouds.yaml names it (install.sh writes
+      # /etc/openstack/ca.pem) unless this does.
+      - ONEUPTIME_AI_OPENSTACK_CA_FILE=${ONEUPTIME_AI_OPENSTACK_CA_FILE:-}
+      # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION (true or
+      # false). It only reads a cloud, so the three below it change nothing yet: fixes stay
+      # off, and the agent says so at start-up if they are set.
+      - ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides OPENSTACK_CLOUD_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:3877/status/live",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

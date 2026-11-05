@@ -15,6 +15,7 @@ import {
 } from "../Executors/ExecutorFactory";
 import GovcExecutor from "../Executors/GovcExecutor";
 import HostExecutor from "../Executors/HostExecutor";
+import OpenStackExecutor from "../Executors/OpenStackExecutor";
 import ProxmoxExecutor from "../Executors/ProxmoxExecutor";
 import {
   ExecutorOptions,
@@ -92,6 +93,10 @@ const TYPE_ENV: Record<AiResourceType, Record<string, string>> = {
     ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "gcp",
     ONEUPTIME_AI_AGENT_RESOURCE_NAME: "res-1",
   },
+  [AiResourceType.OpenStackCloud]: {
+    ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+    OPENSTACK_CLOUD_NAME: "res-1",
+  },
 };
 
 let tmpDir: string;
@@ -159,6 +164,7 @@ describe("which executor serves which resource", () => {
       [AiResourceType.AwsAccount]: CloudExecutor,
       [AiResourceType.AzureSubscription]: CloudExecutor,
       [AiResourceType.GoogleCloudProject]: CloudExecutor,
+      [AiResourceType.OpenStackCloud]: OpenStackExecutor,
     };
 
     assert.deepStrictEqual(

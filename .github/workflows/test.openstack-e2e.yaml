@@ -65,6 +65,10 @@ on:
         description: Only install the agent the way its docs say, with and without Docker, on one DevStack
         type: boolean
         default: false
+      ai_agent_only:
+        description: Only run the OpenStack AI agent's real code against one DevStack, healthy and with nova-compute stopped, and keep what each command printed
+        type: boolean
+        default: false
       probe_tls_only:
         description: Only run the probe's real collector against one DevStack behind tls-proxy, and break it
         type: boolean
@@ -431,7 +435,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
+    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -526,6 +530,55 @@ jobs:
           path: ${{ runner.temp }}/devstack-logs
           if-no-files-found: ignore
           retention-days: 7
+
+  # The OpenStack AI agent's real policy and executor against a real cloud, healthy and with
+  # nova-compute stopped: every command it may run, and what each printed, which is what an
+  # investigation reads. The model is not called: see ai-agent-record.sh. A job of its own on one
+  # DevStack, by hand when asked for by name and on the weekly run.
+  ai-agent:
+    name: the AI agent, reading a real cloud
+    if: ${{ inputs.ai_agent_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Run the agent's real code against it, healthy and with nova-compute stopped
+        run: bash Tests/Ops/openstack-e2e/ai-agent-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what it read
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-ai-agent
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
 
   # What Placement says of an estate of several hosts, which a DevStack's one host can't show:
   # an allocation ratio that differs by host, a reserved amount, and memory spread too thinly
@@ -849,7 +902,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only }}
+    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180

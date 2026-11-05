@@ -3,6 +3,13 @@ import {
   OpenStackInstanceMetricsOptions,
   normalizeOpenStackInstanceMetricsOptions,
 } from "../../Types/OpenStack/OpenStackInstanceMetrics";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+  ResourceAiAccessWriteCarryForward,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
+import DeleteBy from "../Types/Database/DeleteBy";
 import ProjectReferencesService, {
   ProjectReferenceWrite,
 } from "./ProjectReferencesService";
@@ -12,7 +19,7 @@ import OpenStackCloudOwnerRuleEngineService from "./OpenStackCloudOwnerRuleEngin
 import Model from "../../Models/DatabaseModels/OpenStackCloud";
 import Label from "../../Models/DatabaseModels/Label";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
@@ -100,6 +107,14 @@ const OPENSTACK_CLOUD_SNAPSHOT_COLUMNS: ReadonlyArray<
  */
 interface OpenStackCloudWriteCarryForward {
   openStackConnectionChanges?: Array<OpenStackConnectionChange> | undefined;
+  /*
+   * The AI access settings as they stood, for an operator's write of one. Spread here so
+   * ResourceAiAccessSettings.afterUpdate finds it where it looks.
+   */
+  previousResourceAiAccessSettings?:
+    | ResourceAiAccessWriteCarryForward["previousResourceAiAccessSettings"]
+    | undefined;
+  resourceType?: ResourceAiAccessWriteCarryForward["resourceType"] | undefined;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -192,6 +207,15 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * A create is held to the same AI access rules as an update, judged against the
+     * never-configured defaults a new cloud starts from.
+     */
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.OpenStackCloud,
+      createBy,
+    });
+
     const connectionChange: OpenStackConnectionChange | null =
       await OpenStackCloudConnection.prepareCreate(createBy);
 
@@ -236,12 +260,24 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data as unknown as Record<string, unknown>,
     );
 
+    /*
+     * An operator's write of an AI access setting is validated and checked against who
+     * may make AI do more on this cloud: the rules every resource AI agent's resource
+     * shares (ResourceAiAccessSettings).
+     */
+    const aiAccess: ResourceAiAccessWriteCarryForward | null =
+      await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.OpenStackCloud,
+        service: this,
+        updateBy,
+      });
+
     if (
       !OpenStackCloudConnection.isConnectionWrite(
         updateBy.data as unknown as Record<string, unknown>,
       )
     ) {
-      return { updateBy, carryForward: null };
+      return { updateBy, carryForward: aiAccess };
     }
 
     const saved: Array<Model> = await this.findRowsAndHoldUpdateToThem(
@@ -277,6 +313,7 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
     const carryForward: OpenStackCloudWriteCarryForward = {
+      ...(aiAccess || {}),
       openStackConnectionChanges: changes,
     };
 
@@ -805,7 +842,68 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * An operator's AI access write: recorded on the feed, and the cloud marked
+     * AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        openStackCloudId: ObjectID,
+      ): Promise<MarkdownText> => {
+        return this.getOpenStackCloudMarkdownLink(projectId, openStackCloudId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await OpenStackCloudFeedService.createOpenStackCloudFeedItem({
+          openStackCloudId: item.resourceId,
+          projectId: item.projectId,
+          openStackCloudFeedEventType:
+            OpenStackCloudFeedEventType.OpenStackCloudUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
+
     return onUpdate;
+  }
+
+  /*
+   * Deleting a cloud settles its in-flight AI rounds and removes its resource AI agent:
+   * read before the delete, done after it for the clouds actually deleted
+   * (ResourceAiDeleteCleanup, shared by every resource AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.OpenStackCloud,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.OpenStackCloud,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
   }
 
   private async writeOpenStackCloudUpdatedFeed(

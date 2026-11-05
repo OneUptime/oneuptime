@@ -41,6 +41,7 @@ enum AiResourceType {
   AwsAccount = "AwsAccount",
   AzureSubscription = "AzureSubscription",
   GoogleCloudProject = "GoogleCloudProject",
+  OpenStackCloud = "OpenStackCloud",
 }
 
 export default AiResourceType;
@@ -49,7 +50,8 @@ export default AiResourceType;
  * Every type, in declaration order. This is also the priority order in
  * which a remediation round picks among several resources linked to one
  * incident or alert, so reordering it changes which resource AI fixes first.
- * The cloud accounts come last, appended, so no existing priority changes.
+ * The cloud accounts come after the rest, appended, and an OpenStack cloud
+ * after them, so no existing priority changes.
  */
 export const ALL_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
   AiResourceType.DockerHost,
@@ -63,6 +65,7 @@ export const ALL_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
   AiResourceType.AwsAccount,
   AiResourceType.AzureSubscription,
   AiResourceType.GoogleCloudProject,
+  AiResourceType.OpenStackCloud,
 ];
 
 // The cloud accounts, in ALL_AI_RESOURCE_TYPES order.
@@ -77,6 +80,23 @@ export function isCloudAiResourceType(value: unknown): boolean {
   return (
     typeof value === "string" &&
     (CLOUD_AI_RESOURCE_TYPES as ReadonlyArray<string>).includes(value)
+  );
+}
+
+/*
+ * The types OneUptime AI only ever reads: their tool policy has no command that
+ * changes the resource, so there is nothing for fixes to run. Whatever an
+ * agent's settings or a saved row say, fixes stay off on them. Issue #5747 takes
+ * OpenStack off this list when writes with approval arrive.
+ */
+export const READ_ONLY_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
+  AiResourceType.OpenStackCloud,
+];
+
+export function isReadOnlyAiResourceType(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    (READ_ONLY_AI_RESOURCE_TYPES as ReadonlyArray<string>).includes(value)
   );
 }
 
@@ -294,6 +314,22 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
     identityEnvVars: ["GOOGLE_CLOUD_PROJECT"],
     defaultIdentityPlaceholders: [],
   },
+  /*
+   * There is no openstack client in the agent: "openstack" is parsed by the
+   * policy and executed as one call to the cloud's API with the agent's own
+   * credential. Installed beside the OpenStack agent's collector, reporting
+   * the same cloud name.
+   */
+  [AiResourceType.OpenStackCloud]: {
+    type: AiResourceType.OpenStackCloud,
+    displayName: "OpenStack cloud",
+    agentDisplayName: "OpenStack AI agent",
+    agentAlias: "openstack",
+    programs: ["openstack"],
+    testCommands: ["openstack endpoint list", "openstack compute service list"],
+    identityEnvVars: ["OPENSTACK_CLOUD_NAME"],
+    defaultIdentityPlaceholders: ["openstack"],
+  },
 };
 
 /*
@@ -327,8 +363,8 @@ const EXTRA_AGENT_ALIASES: Readonly<Record<string, AiResourceType>> = {
  * Read a resource type from configuration or a request: an enum value in
  * any case ("DockerHost", "dockerhost"), or an agent alias ("docker",
  * "podman", "docker-swarm"/"swarm", "proxmox", "vmware"/"vcenter", "ceph",
- * "database"/"db", "host", "aws", "azure", "gcp"/"google-cloud"). Anything
- * else is null — never a guess.
+ * "database"/"db", "host", "aws", "azure", "gcp"/"google-cloud", "openstack").
+ * Anything else is null — never a guess.
  */
 export function parseAiResourceType(value: unknown): AiResourceType | null {
   if (typeof value !== "string") {
