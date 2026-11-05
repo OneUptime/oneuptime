@@ -31,6 +31,8 @@ import {
   isOpenStackServiceForcedDown,
   isOpenStackStackFailed,
   isOpenStackStackStuck,
+  isOpenStackShareInError,
+  isOpenStackShareStuck,
   isOpenStackServiceQuiet,
   isOpenStackVolumeInError,
   isOpenStackVolumeStuck,
@@ -44,6 +46,7 @@ import {
 } from "Common/Types/OpenStack/OpenStackQuota";
 import {
   OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
   OpenStackResourceKind,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -118,6 +121,9 @@ const REASON_SCRAPE_FAILED: string = translationKey(
   "Not answering: the last read of it failed",
 );
 const REASON_SERVICE_DOWN: string = translationKey("Down");
+const REASON_SERVICE_STOPPED: string = translationKey(
+  "Stopped cleanly, rather than having died",
+);
 export const OPENSTACK_REASON_FORCED_DOWN: string = translationKey(
   "Forced down by an operator",
 );
@@ -251,6 +257,7 @@ const KIND_IMAGE: string = translationKey("Image");
 const KIND_STACK: string = translationKey("Stack");
 const KIND_CONTAINER_CLUSTER: string = translationKey("Kubernetes cluster");
 const KIND_BARE_METAL_NODE: string = translationKey("Bare metal node");
+const KIND_SHARE: string = translationKey("Share");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
@@ -265,6 +272,7 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_CONTAINER_CLUSTER,
   KIND_STACK,
   KIND_VOLUME,
+  KIND_SHARE,
   KIND_INSTANCE,
   KIND_FLOATING_IP,
   KIND_IMAGE,
@@ -359,6 +367,17 @@ export function assessOpenStackService(data: {
       };
     }
     return FINE;
+  }
+
+  /*
+   * Manila's word for a service that shut down cleanly, recorded: whatever stopped it meant to. What it
+   * already serves carries on, and nothing on its backend can change until it's back.
+   */
+  if (row.status === OPENSTACK_SERVICE_STATUS_STOPPED) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_SERVICE_STOPPED }],
+    };
   }
 
   if (
@@ -587,6 +606,35 @@ export function assessOpenStackVolume(data: {
   }
   if (
     isOpenStackVolumeStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+/*
+ * A share in error stays there until someone deals with it, whoever's it is, so it reads here however
+ * long ago it happened. A warning, as a volume is: what its project already has mounted carries on.
+ */
+export function assessOpenStackShare(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackShareInError(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackShareStuck({
       status: row.status,
       stateChangedAt: row.stateChangedAt,
       now,
@@ -1036,6 +1084,8 @@ export function assessOpenStackResource(data: {
       return assessOpenStackContainerCluster({ row, now });
     case OpenStackResourceKind.BareMetalNode:
       return assessOpenStackBareMetalNode({ row, now });
+    case OpenStackResourceKind.Share:
+      return assessOpenStackShare({ row, now });
     default:
       return FINE;
   }
@@ -1056,6 +1106,7 @@ const KIND_WORDS: Partial<Record<string, string>> = {
   [OpenStackResourceKind.Stack]: KIND_STACK,
   [OpenStackResourceKind.ContainerCluster]: KIND_CONTAINER_CLUSTER,
   [OpenStackResourceKind.BareMetalNode]: KIND_BARE_METAL_NODE,
+  [OpenStackResourceKind.Share]: KIND_SHARE,
 };
 
 function iconOf(kind: string | undefined): IconProp {
@@ -1065,6 +1116,7 @@ function iconOf(kind: string | undefined): IconProp {
       return IconProp.ServerStack;
     case OpenStackResourceKind.Volume:
     case OpenStackResourceKind.StoragePool:
+    case OpenStackResourceKind.Share:
       return IconProp.Database;
     case OpenStackResourceKind.Image:
       return IconProp.Image;

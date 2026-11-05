@@ -637,7 +637,7 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 8,
+          "count": 9,
           "seesAll": true
         },
         "reader": {
@@ -971,12 +971,12 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 3,
+          "count": 4,
           "seesAll": true
         },
         "reader": {
           "status": 200,
-          "count": 3,
+          "count": 4,
           "seesAll": true
         },
         "monitoring-role": {
@@ -986,7 +986,7 @@
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 3,
+          "count": 4,
           "seesAll": true
         },
         "lb-global-observer": {
@@ -1073,12 +1073,12 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 3,
+          "count": 4,
           "seesAll": true
         },
         "reader": {
           "status": 200,
-          "count": 3,
+          "count": 4,
           "seesAll": true
         },
         "monitoring-role": {
@@ -1088,7 +1088,7 @@
         },
         "role-on-a-project": {
           "status": 200,
-          "count": 3,
+          "count": 4,
           "seesAll": true
         },
         "lb-global-observer": {
@@ -1136,6 +1136,7 @@
       }
     }
   ],
+  "partReads": [],
   "writes": [
     {
       "service": "compute",

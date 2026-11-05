@@ -1,4 +1,4 @@
-load-balancer 200 0.064371s
-compute 200 0.170172s
-identity 200 0.056677s
-all-at-once 200 0.913372s
+load-balancer 200 0.082121s
+compute 200 0.246531s
+identity 200 0.076181s
+all-at-once 200 1.134261s

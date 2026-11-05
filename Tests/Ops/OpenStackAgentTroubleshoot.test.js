@@ -178,6 +178,9 @@ const ROW_OF = {
   "orchestration:stacks": (project) => {
     return { id: `stack-${project}`, project };
   },
+  "sharev2:shares, all projects": (project) => {
+    return { id: `share-${project}`, project_id: project };
+  },
 };
 
 function rowsIn(read, projects) {
@@ -233,6 +236,8 @@ function projectView(read) {
     case "load-balancer:amphorae":
     case "orchestration:services":
     case "container-infra:services":
+    case "sharev2:services":
+    case "sharev2:pools":
       return { status: 403 };
     case "network:networks":
       return {
@@ -329,6 +334,7 @@ const SERVICE_PATH = {
   baremetal: "baremetal",
   orchestration: "heat-api/v1/own-project",
   "container-infra": "container-infra/v1",
+  sharev2: "share/v2",
 };
 
 /*
@@ -883,6 +889,7 @@ describe("the reads it makes", () => {
       "block-storage": "/v3",
       orchestration: "/v1/own-project",
       "container-infra": "/v1",
+      sharev2: "/v2",
     };
     const allows = (service, wanted) => {
       return rules.some((rule) => {
@@ -1253,6 +1260,9 @@ describe("a plain reader, and the trap", () => {
     ["orchestration: stacks"],
     ["orchestration: services"],
     ["container-infra: clusters"],
+    ["sharev2: shares, all projects"],
+    ["sharev2: services"],
+    ["sharev2: pools"],
     ["container-infra: services"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(

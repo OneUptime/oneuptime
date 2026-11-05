@@ -2606,6 +2606,97 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["hostname", "service", "adminState", "disabledReason"],
     onlyFromProbe: true,
   }),
+  // Shared file systems: Manila, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_sharev2_up",
+    friendlyName: translationKey("Shared File Systems API Up"),
+    description:
+      "Whether Manila's API answered the exporter's calls (1) or every one of them failed (0). A stopped API does read 0, and every credential that can log in reads 1, so unlike the other services a cloud may not run this says only that. A stopped manila-share leaves this at 1. Only a cloud whose catalog names Manila has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_gb",
+    friendlyName: translationKey("Share Size"),
+    description:
+      "One series per share, its value how many GiB it was asked for. It carries the share's status as a label, and its value is never 0, so it is what says a share holds a status for a while. share_type_name is empty from the exporter, because it asks for no microversion. share_type holds the type's name.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [
+      "availability_zone",
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "status",
+    ],
+    probeOnlyAttributes: ["access_rules_status", "host"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_status",
+    friendlyName: translationKey("Share Status"),
+    description:
+      "One series per share. The value is a code for its status, and creating's code is 0, so read the `status` label for the word (available, error, creating). A plain reader gets its own project's shares here, and no error says so.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "size",
+      "status",
+    ],
+    probeOnlyAttributes: ["access_rules_status", "host"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_status_counter",
+    friendlyName: translationKey("Shares by Status"),
+    description:
+      "How many shares hold each status, per region, the nineteen words the exporter knows reading 0 until a share holds one. A count: it can't say which share, or tell one stuck from a stream passing through.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: ["status"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_shares_counter",
+    friendlyName: translationKey("Shares"),
+    description:
+      "How many shares Manila listed for this credential, per region. A plain reader counts its own project's.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_sharev2_agent_state",
+    friendlyName: translationKey("Manila Service Up"),
+    description:
+      "Whether Manila lists each service as up (1) or not (0). `state` says which of two ways it isn't: stopped when it shut down cleanly, recorded at once, and down only when it died and its heartbeat has grown old. Only a probe sends this, because the exporter never reads Manila's services, and only an admin may.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [
+      "hostname",
+      "service",
+      "state",
+      "zone",
+      "adminState",
+    ],
+    onlyFromProbe: true,
+  }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_ironic_up",

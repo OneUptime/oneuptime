@@ -15,6 +15,6 @@
 200 octavia-lb-stats-ou-lb-ovn
 200 octavia-listener-stats-ou-lb-listener
 200 octavia-members-ou-lb-pool
-200 octavia-amphora-stats-900247c0
-404 octavia-amphora-stats-0fad3f17
-404 octavia-amphora-stats-9747c222
+200 octavia-amphora-stats-6cd767c2
+404 octavia-amphora-stats-46c373fb
+404 octavia-amphora-stats-4857d190

@@ -26,6 +26,7 @@ import {
   OPENSTACK_BARE_METAL_IN_SERVICE,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
@@ -246,6 +247,9 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_heat_agent_state",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
+  "openstack_sharev2_share_gb",
+  "openstack_sharev2_share_status",
+  "openstack_sharev2_agent_state",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
@@ -669,6 +673,7 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
       OpenStackServiceFamily.ContainerInfra,
     ],
     ["openstack_ironic_conductor_state", OpenStackServiceFamily.BareMetal],
+    ["openstack_sharev2_agent_state", OpenStackServiceFamily.SharedFileSystems],
   ]);
 
 function foldServiceState(data: {
@@ -708,9 +713,11 @@ function foldServiceState(data: {
   const forcedDown: string | null = getLabel(data.attributes, "forced_down");
   setStatus(
     entry,
-    data.value > 0 && forcedDown !== "true"
-      ? OPENSTACK_SERVICE_STATUS_UP
-      : OPENSTACK_SERVICE_STATUS_DOWN,
+    getLabel(data.attributes, "state") === OPENSTACK_SERVICE_STATUS_STOPPED
+      ? OPENSTACK_SERVICE_STATUS_STOPPED
+      : data.value > 0 && forcedDown !== "true"
+        ? OPENSTACK_SERVICE_STATUS_UP
+        : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
   /*
@@ -1343,6 +1350,59 @@ function foldVolume(data: {
   }
   setBooleanFact(entry, "isBootable", getLabel(data.attributes, "bootable"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
+}
+
+/*
+ * A share, from either of Manila's two series about it. Both say its status, in Manila's word, and
+ * whose it is. Only _share_gb says its zone, and only its value is its size, so its value is what is
+ * read and _share_status's, a code for the word, is not. share_type holds the type's name, recorded,
+ * and share_type_name is empty, because the exporter asks for no microversion.
+ */
+function foldShare(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Share,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    availabilityZone: getLabel(data.attributes, "availability_zone"),
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  if (data.metricName === "openstack_sharev2_share_gb") {
+    entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
+  }
+  setFact(entry, "shareProtocol", getLabel(data.attributes, "share_proto"));
+  setFact(
+    entry,
+    "shareType",
+    getLabel(data.attributes, "share_type_name") ||
+      getLabel(data.attributes, "share_type"),
+  );
+  /*
+   * What only a probe says, which asks for a microversion. Facts merge key by key, so these are
+   * written whatever the collector knows: a cloud moved to the agent must not go on saying them.
+   * Null reads as not known.
+   */
+  entry.facts["accessRulesStatus"] = getLabel(
+    data.attributes,
+    "access_rules_status",
+  );
+  entry.facts["backendHost"] = getLabel(data.attributes, "host");
 }
 
 function foldSnapshot(data: {
@@ -2196,6 +2256,10 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_container_infra_cluster_status":
       foldContainerCluster({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_sharev2_share_gb":
+    case "openstack_sharev2_share_status":
+      foldShare({ buffer, attributes, region, value, observedAt, metricName });
       return;
     case "openstack_ironic_node":
       foldBareMetalNode({ buffer, attributes, region, observedAt });

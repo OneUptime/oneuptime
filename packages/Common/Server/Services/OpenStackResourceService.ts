@@ -31,6 +31,8 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -73,6 +75,7 @@ import {
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
   OPENSTACK_QUIET_SERVICE_MINUTES,
@@ -161,6 +164,7 @@ export interface OpenStackInventorySummary {
   // Of a service a cloud may not run, so 0 on one that doesn't.
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
 }
 
 // What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
@@ -198,6 +202,7 @@ export interface OpenStackProjectSummary {
   floatingIpCount: number;
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
 }
 
 export interface OpenStackProjectLabel {
@@ -918,6 +923,7 @@ export class Service extends DatabaseService<Model> {
       storageUsedBytes: toNumber(pools?.diskAllocated),
       stackCount: countOf(OpenStackResourceKind.Stack),
       containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
+      shareCount: countOf(OpenStackResourceKind.Share),
     };
   }
 
@@ -1173,6 +1179,10 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_IMAGE_STUCK_MINUTES,
     );
+    const shareStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_SHARE_STUCK_MINUTES,
+    );
     const stackStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
       data.now,
       -OPENSTACK_STACK_STUCK_MINUTES,
@@ -1270,6 +1280,16 @@ export class Service extends DatabaseService<Model> {
         params: [
           statuses(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES),
           imageStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.Share,
+        where: `("status" = ANY($3::text[]) OR ("status" = ANY($4::text[]) AND "stateChangedAt" <= $5))`,
+        params: [
+          statuses(OPENSTACK_SHARE_ERROR_STATUSES),
+          statuses(OPENSTACK_SHARE_TRANSITIONAL_STATUSES),
+          shareStuckBefore,
         ],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
       },
@@ -2124,6 +2144,10 @@ export class Service extends DatabaseService<Model> {
         [OpenStackServiceType.ContainerInfra]: [
           [OpenStackResourceKind.ContainerCluster, "containerClusterCount"],
         ],
+        // Shares already mounted carry on: their data doesn't go through this API.
+        [OpenStackServiceType.SharedFileSystems]: [
+          [OpenStackResourceKind.Share, "shareCount"],
+        ],
       };
       for (const [kind, count] of kinds[part.name || ""] || []) {
         counts.push({
@@ -2336,6 +2360,7 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.FloatingIp,
           OpenStackResourceKind.Stack,
           OpenStackResourceKind.ContainerCluster,
+          OpenStackResourceKind.Share,
         ],
         ids,
       ],
@@ -2355,6 +2380,7 @@ export class Service extends DatabaseService<Model> {
             floatingIpCount: 0,
             stackCount: 0,
             containerClusterCount: 0,
+            shareCount: 0,
           },
         ];
       }),
@@ -2390,6 +2416,9 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.ContainerCluster:
           summary.containerClusterCount = count;
+          break;
+        case OpenStackResourceKind.Share:
+          summary.shareCount = count;
           break;
         default:
           break;
@@ -2631,6 +2660,7 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.Instance,
       OpenStackResourceKind.Volume,
       OpenStackResourceKind.StoragePool,
+      OpenStackResourceKind.Share,
       OpenStackResourceKind.Network,
       OpenStackResourceKind.Subnet,
       OpenStackResourceKind.Router,
