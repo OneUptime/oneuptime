@@ -46,9 +46,9 @@ Agentens eksportør logger ind og læser hver liste hel ved hver scrape, og den 
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisorer, 100 instanser, 20 projekter | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hypervisorer, 20.000 instanser, 1.000 projekter | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5.000 hypervisorer, 200.000 instanser, 10.000 projekter | 3,4 | 106 | 7.501 | 43,5 | 57 | 0,4 |
+| 10 hypervisorer, 100 instanser, 20 projekter | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hypervisorer, 20.000 instanser, 1.000 projekter | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5.000 hypervisorer, 200.000 instanser, 10.000 projekter | 5,2 | 106 | 7.501 | 43,5 | 57 | 0,4 |
 
 Disse er talt ud fra eksportørens kildekode, og eksportøren er ikke kørt i disse størrelser. En scrape har 110 sekunder, så en Placement, der svarer på 20 ms, løber tør for tid ved cirka 1.800 hypervisorer og Nova ved et sekund pr. side ved cirka 110.000 instanser. Ud over det fejler en scrape af dem, uanset hvor skånsomt der blev spurgt. Ud over de størrelser skal du bruge [databasestien](#databasestien) eller en sonde.
 

@@ -46,9 +46,9 @@ L'exportateur de l'agent se connecte et lit chaque liste en entier à chaque scr
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hyperviseurs, 100 instances, 20 projets | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hyperviseurs, 20 000 instances, 1 000 projets | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5 000 hyperviseurs, 200 000 instances, 10 000 projets | 3,4 | 106 | 7 501 | 43,5 | 57 | 0,4 |
+| 10 hyperviseurs, 100 instances, 20 projets | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hyperviseurs, 20 000 instances, 1 000 projets | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5 000 hyperviseurs, 200 000 instances, 10 000 projets | 5,2 | 106 | 7 501 | 43,5 | 57 | 0,4 |
 
 Ces chiffres sont comptés à partir du code source de l'exportateur, et l'exportateur n'a pas été exécuté à ces tailles. Un scrape dispose de 110 secondes : un Placement qui répond en 20 ms manque donc de temps vers 1 800 hyperviseurs, et Nova, à une seconde par page, vers 110 000 instances. Au-delà, un scrape de ces services échoue, même demandé avec douceur. Au-delà de ces tailles, utilisez le [chemin par la base de données](#le-chemin-par-la-base-de-données), ou une sonde.
 

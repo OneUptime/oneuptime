@@ -46,9 +46,9 @@ Der Exporter des Agents meldet sich an und liest bei jedem Scrape jede Liste vol
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 Hypervisoren, 100 Instanzen, 20 Projekte | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 Hypervisoren, 20.000 Instanzen, 1.000 Projekte | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5.000 Hypervisoren, 200.000 Instanzen, 10.000 Projekte | 3,4 | 106 | 7.501 | 43,5 | 57 | 0,4 |
+| 10 Hypervisoren, 100 Instanzen, 20 Projekte | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 Hypervisoren, 20.000 Instanzen, 1.000 Projekte | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5.000 Hypervisoren, 200.000 Instanzen, 10.000 Projekte | 5,2 | 106 | 7.501 | 43,5 | 57 | 0,4 |
 
 Das ist aus dem Quellcode des Exporters gezählt, und der Exporter wurde in diesen Größen nicht ausgeführt. Ein Scrape hat 110 Sekunden, sodass ein Placement, das in 20 ms antwortet, bei etwa 1.800 Hypervisoren in ein Zeitlimit läuft, und Nova bei einer Sekunde pro Seite bei etwa 110.000 Instanzen. Darüber schlägt ein Scrape fehl, wie schonend er auch angefragt wurde. Verwenden Sie über diesen Größen den [Datenbankpfad](#der-datenbankpfad) oder eine Sonde.
 

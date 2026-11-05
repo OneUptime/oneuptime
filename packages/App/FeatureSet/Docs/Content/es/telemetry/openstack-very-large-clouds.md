@@ -46,9 +46,9 @@ El exportador del agente inicia sesión y lee cada lista completa en cada scrape
 
 | Nube | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hipervisores, 100 instancias, 20 proyectos | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hipervisores, 20 000 instancias, 1000 proyectos | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5000 hipervisores, 200 000 instancias, 10 000 proyectos | 3,4 | 106 | 7501 | 43,5 | 57 | 0,4 |
+| 10 hipervisores, 100 instancias, 20 proyectos | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hipervisores, 20 000 instancias, 1000 proyectos | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5000 hipervisores, 200 000 instancias, 10 000 proyectos | 5,2 | 106 | 7501 | 43,5 | 57 | 0,4 |
 
 Estas cifras se cuentan a partir del código fuente del exportador, y el exportador no se ha ejecutado a estos tamaños. Un scrape dispone de 110 segundos, así que un Placement que responde en 20 ms se queda sin tiempo a unos 1800 hipervisores, y Nova, a un segundo por página, a unas 110 000 instancias. Pasado eso, un scrape de ellos falla por suave que se haya pedido. Pasados esos tamaños, usa la [vía de la base de datos](#la-vía-de-la-base-de-datos) o una sonda.
 
