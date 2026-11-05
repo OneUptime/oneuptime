@@ -177,9 +177,6 @@ const ROW_OF = {
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
   },
-  "baremetal:nodes": (project) => {
-    return { uuid: `node-${project}`, owner: project };
-  },
   "sharev2:shares, all projects": (project) => {
     return { id: `share-${project}`, project_id: project };
   },
