@@ -2219,16 +2219,25 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     openStackCloudId: ObjectID;
     now: Date;
+    /*
+     * Only this region's map, which is what a reader of one region asked to see. Past the
+     * stated size a region is summarized on its own numbers, so a small region of a very
+     * large cloud is drawn whole. Nothing named reads the whole cloud.
+     */
+    regionName?: string | null | undefined;
   }): Promise<OpenStackTopologyRead> {
     const base: Array<unknown> = [
       data.projectId.toString(),
       data.openStackCloudId.toString(),
+      data.regionName || null,
     ];
+    const inRegion: string = `($3::text IS NULL OR "regionName" = $3 OR "regionName" IS NULL)`;
 
     const totals: Array<{ kind: string; count: string }> =
       await this.getRepository().manager.query(
         `SELECT "kind", COUNT(*)::text AS "count" FROM "OpenStackResource"
          WHERE "projectId" = $1 AND "openStackCloudId" = $2 AND "deletedAt" IS NULL
+           AND ${inRegion}
          GROUP BY "kind"`,
         base,
       );
@@ -2273,7 +2282,7 @@ export class Service extends DatabaseService<Model> {
       const found: Array<JSONObject> = await this.getRepository().manager.query(
         `SELECT ${ROW_COLUMNS} FROM "OpenStackResource"
          WHERE "projectId" = $1 AND "openStackCloudId" = $2 AND "deletedAt" IS NULL
-           AND "kind" = '${query.kind}'
+           AND "kind" = '${query.kind}' AND ${inRegion}
            ${query.where ? `AND ${query.where}` : ""}
          ORDER BY "externalId" ASC
          LIMIT ${query.limit}`,
@@ -2339,6 +2348,7 @@ export class Service extends DatabaseService<Model> {
         openStackCloudId: data.openStackCloudId,
         now: data.now,
         rowsPerKind: OPENSTACK_TOPOLOGY_FAILED_PER_KIND,
+        regionName: data.regionName,
       });
       const seen: Set<string> = new Set<string>(
         rows.map((row: JSONObject): string => {
@@ -2372,7 +2382,7 @@ export class Service extends DatabaseService<Model> {
       if (namesDown.length > 0) {
         const affected: Array<JSONObject> = await read({
           kind: OpenStackResourceKind.Instance,
-          where: `"hypervisorName" = ANY($3::text[])`,
+          where: `"hypervisorName" = ANY($4::text[])`,
           params: [namesDown],
           limit: OPENSTACK_TOPOLOGY_AFFECTED_INSTANCES,
         });
@@ -2396,7 +2406,7 @@ export class Service extends DatabaseService<Model> {
       if (instanceIds.length > 0) {
         const attached: Array<JSONObject> = await read({
           kind: OpenStackResourceKind.Volume,
-          where: `"facts"->>'attachedToInstance' = ANY($3::text[])`,
+          where: `"facts"->>'attachedToInstance' = ANY($4::text[])`,
           params: [instanceIds],
           limit: OPENSTACK_TOPOLOGY_AFFECTED_INSTANCES,
         });
@@ -2419,7 +2429,7 @@ export class Service extends DatabaseService<Model> {
        FROM "OpenStackResource"
        WHERE "projectId" = $1 AND "openStackCloudId" = $2 AND "deletedAt" IS NULL
          AND "kind" = '${OpenStackResourceKind.Instance}'
-         AND "hypervisorName" IS NOT NULL
+         AND "hypervisorName" IS NOT NULL AND ${inRegion}
        GROUP BY "regionName", "hypervisorName"`,
       base,
     );
@@ -2441,7 +2451,7 @@ export class Service extends DatabaseService<Model> {
            WHERE "projectId" = $1 AND "openStackCloudId" = $2
              AND "kind" = '${OpenStackResourceKind.Project}'
              AND "externalId" = ANY($3::text[]) AND "deletedAt" IS NULL`,
-          [...base, projectIds],
+          [data.projectId.toString(), data.openStackCloudId.toString(), projectIds],
         );
       for (const row of named) {
         if (row.name) {

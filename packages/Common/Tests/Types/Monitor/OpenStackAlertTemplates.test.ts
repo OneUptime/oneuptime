@@ -33,7 +33,11 @@ import {
   getOpenStackAlertTemplatesByCategory,
   getOpenStackDefaultAlertTemplateId,
 } from "../../../Types/Monitor/OpenStackAlertTemplates";
-import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStackMetricCatalog";
+import {
+  OPENSTACK_QUOTA_EXPORTER_READS,
+  OpenStackMetricDefinition,
+  getOpenStackMetricByMetricName,
+} from "../../../Types/Monitor/OpenStackMetricCatalog";
 import { STOPPED_REPORTING_METRIC_ALIAS } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import ObjectID from "../../../Types/ObjectID";
@@ -257,8 +261,33 @@ function serviceOf(query: MetricQueryConfigData): OpenStackServiceType {
  */
 const CEILOMETER_POLLING_SECONDS: number = 300;
 
+/*
+ * A project's limits are read once an hour by an exporter of their own, whichever service
+ * they belong to, and each of the three jobs that asks it says so.
+ */
+function quotaIntervalSeconds(): number {
+  const seconds: Set<number> = new Set<number>();
+  const jobs: RegExp =
+    /job_name:\s*oneuptime-openstack-quotas-\w+\s*\n[\s\S]*?scrape_interval:\s*(\d+)s/g;
+
+  for (const match of COLLECTOR_CONFIG.matchAll(jobs)) {
+    seconds.add(Number(match[1]));
+  }
+
+  expect(Array.from(seconds)).toHaveLength(1);
+
+  return Array.from(seconds)[0]!;
+}
+
 function intervalSecondsOf(query: MetricQueryConfigData): number {
-  return getOpenStackMetricByMetricName(metricNameOf(query))?.fromInstanceSource
+  const metric: OpenStackMetricDefinition | undefined =
+    getOpenStackMetricByMetricName(metricNameOf(query));
+
+  if (metric?.fromQuotaExporter) {
+    return quotaIntervalSeconds();
+  }
+
+  return metric?.fromInstanceSource
     ? CEILOMETER_POLLING_SECONDS
     : INTERVALS[serviceOf(query)]!;
 }
@@ -1562,13 +1591,14 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           return getOpenStackMetricByMetricName(metricNameOf(query))!
             .offByDefault as string;
         })) {
-        // Each line it reads through is named, and is a line the agent has.
-        expect(description).toContain(`--disable-metric=${metric}`);
+        // The agent leaves each out of its main exporter, and its quota exporter reads them.
         expect(COMPOSE).toContain(`- --disable-metric=${metric}`);
+        expect(OPENSTACK_QUOTA_EXPORTER_READS).toContain(metric);
       }
 
-      expect(description).toContain("docker-compose.yml");
-      expect(description).toContain("oneuptime-openstack-exporter.service");
+      expect(description).toContain("OPENSTACK_COLLECT_QUOTAS=true");
+      expect(description).toContain("Project limits");
+      expect(description).toContain("3 hours");
     });
   });
 

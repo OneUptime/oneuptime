@@ -434,6 +434,8 @@ describe("install.sh --without-docker", () => {
       "daemon-reload",
       `enable ${EXPORTER_SERVICE}`,
       `restart ${EXPORTER_SERVICE}`,
+      // Off until asked for, and taken off again if it was on.
+      "disable --now oneuptime-openstack-quota-exporter",
       `enable ${COLLECTOR_SERVICE}`,
       `restart ${COLLECTOR_SERVICE}`,
     ]);
@@ -576,6 +578,9 @@ describe("install.sh --without-docker", () => {
       OPENSTACK_EXPORTER_USER: "",
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "",
+      OPENSTACK_COLLECT_QUOTAS: "false",
+      OPENSTACK_QUOTA_CLOUDS: "[]",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "127.0.0.1:9182",
       // The region of a target that does not say its own, and the lists nobody named yet.
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
@@ -870,6 +875,52 @@ describe("a re-run, the upgrade", () => {
   });
 });
 
+describe("each project's quotas, without Docker", () => {
+  const QUOTA_UNIT = "systemd/oneuptime-openstack-quota-exporter-native.service";
+
+  test("are off until asked for, and no unit for them is installed", () => {
+    const env = setup();
+    const run = env.run({ input: FRESH });
+
+    expect(run.status).toBe(0);
+    expect(env.log("curl").join("\n")).not.toContain(QUOTA_UNIT);
+    expect(env.log("systemctl").join("\n")).toContain(
+      "disable --now oneuptime-openstack-quota-exporter",
+    );
+    expect(systemdRead(run.envFile).OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+  });
+
+  test("one setting installs their unit, starts it before the collector, and points the collector at it", () => {
+    const env = setup();
+    const run = env.run({
+      input: FRESH,
+      env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+    });
+
+    expect(run.status).toBe(0);
+    expect(env.log("curl").join("\n")).toContain(QUOTA_UNIT);
+    const calls = env.log("systemctl");
+    expect(calls).toContain("enable oneuptime-openstack-quota-exporter");
+    expect(calls.indexOf("restart oneuptime-openstack-quota-exporter")).toBeLessThan(
+      calls.indexOf("restart oneuptime-openstack-agent"),
+    );
+    const settings = systemdRead(run.envFile);
+    expect(settings.OPENSTACK_QUOTA_CLOUDS).toBe(
+      settings.OPENSTACK_EXPORTER_CLOUDS,
+    );
+    expect(settings.OPENSTACK_QUOTA_EXPORTER_ADDRESS).toBe("127.0.0.1:9182");
+  });
+
+  test("its unit binds this machine alone, and runs as the user who holds the credential", () => {
+    const unit = agentFile(QUOTA_UNIT);
+
+    expect(unit).toContain("--web.listen-address=127.0.0.1:9182");
+    expect(unit).toContain("User=oneuptime-openstack");
+    expect(unit).toContain("--os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml");
+    expect(unit).not.toContain("--disable-metric=nova-limits_vcpus_max");
+  });
+});
+
 describe("your own exporter, without Docker", () => {
   const OWN = "10.0.0.5:9180";
 
@@ -890,6 +941,7 @@ describe("your own exporter, without Docker", () => {
       expect(env.log("systemctl")).toEqual([
         "daemon-reload",
         `disable --now ${EXPORTER_SERVICE}`,
+        "disable --now oneuptime-openstack-quota-exporter",
         `enable ${COLLECTOR_SERVICE}`,
         `restart ${COLLECTOR_SERVICE}`,
       ]);

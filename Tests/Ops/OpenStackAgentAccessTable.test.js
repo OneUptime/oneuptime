@@ -857,12 +857,11 @@ describe("the docs page", () => {
 
   test("says the same as the README of what the agent turns off", () => {
     const readme = read(README);
-    // The exporter it runs by default: the database path's other one reads almost nothing.
+    // The exporter it runs by default: the others start with nearly every read turned off.
     const compose = read(path.join(AGENT_DIR, "docker-compose.yml"));
-    const exporter = compose.slice(
-      compose.indexOf("\n  openstack-exporter:"),
-      compose.indexOf("\n  openstack-worker-state-exporter:"),
-    );
+    const exporter = compose.match(
+      /^ {2}openstack-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m,
+    )[1];
     const flags = Array.from(exporter.matchAll(/- (--disable-metric=\S+)/g)).map(
       (match) => {
         return match[1];
