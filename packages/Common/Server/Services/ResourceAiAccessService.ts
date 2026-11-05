@@ -16,6 +16,7 @@ import AiResourceType, {
   AiResourceTypeInfo,
   isAiResourceType,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
 import CloudAccount from "../../Models/DatabaseModels/CloudAccount";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
@@ -60,6 +61,7 @@ import KubernetesClusterAiAccessService, {
   KubernetesClusterAiAccessProjectGates,
 } from "./KubernetesClusterAiAccessService";
 import MonitorService from "./MonitorService";
+import OpenStackCloudService from "./OpenStackCloudService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import ResourceAiAgentService from "./ResourceAiAgentService";
@@ -67,8 +69,8 @@ import VMwareVCenterService from "./VMwareVCenterService";
 
 /*
  * OneUptime AI access to an infrastructure resource — a Docker or Podman
- * host, a Docker Swarm, Proxmox, VMware or Ceph cluster, a database server
- * or a host — through that resource's AI agent (a ResourceAiAgent row).
+ * host, a Docker Swarm, Proxmox, VMware or Ceph cluster, an OpenStack cloud,
+ * a database server or a host — through that resource's AI agent (a ResourceAiAgent row).
  *
  * The resource-agnostic sibling of KubernetesClusterAiAccessService, and
  * shaped like it: it answers, from CURRENT configuration, whether AI can
@@ -168,6 +170,7 @@ type SubjectRelation =
   | "proxmoxClusters"
   | "vmwareVCenters"
   | "cephClusters"
+  | "openStackClouds"
   | "databaseServers"
   | "hosts"
   | "cloudResources";
@@ -317,6 +320,16 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
     [AiResourceType.GoogleCloudProject]: cloudAccountSpec(
       AiResourceType.GoogleCloudProject,
     ),
+    [AiResourceType.OpenStackCloud]: {
+      get service(): AnyDatabaseService {
+        return OpenStackCloudService;
+      },
+      identityColumns: {},
+      subjectRelation: "openStackClouds",
+      resolvedIdsKey: "openStackCloudIds",
+      query: {},
+      hasArchive: true,
+    },
   };
 
 /*
@@ -345,6 +358,8 @@ const REACH_HINTS: Readonly<Record<AiResourceType, string>> = {
     "that the agent's managed identity has its role on this subscription and the agent can reach Azure Resource Manager",
   [AiResourceType.GoogleCloudProject]:
     "that the agent's service account has its role on this project and the agent can reach the Google Cloud APIs",
+  [AiResourceType.OpenStackCloud]:
+    "the clouds.yaml mounted into the agent's container and its route to Keystone and the services' endpoints",
 };
 
 // "Docker host", but "host" and "database server" for the generic nouns.
@@ -586,8 +601,14 @@ export class ResourceAiAccessServiceClass {
       ? ResourceAiAgentService.getAgentSummary(agentRow, data.now)
       : null;
     const posture: ResourceAiAgentPosture | null = agent?.posture || null;
-    const remediationMode: ResourceAiRemediationMode =
-      resource.aiRemediationMode;
+    /*
+     * A resource OneUptime AI only reads has no command a fix could run, so fixes
+     * are off whatever a saved row says.
+     */
+    const isReadOnly: boolean = isReadOnlyAiResourceType(type);
+    const remediationMode: ResourceAiRemediationMode = isReadOnly
+      ? ResourceAiRemediationMode.Disabled
+      : resource.aiRemediationMode;
 
     /*
      * Where investigation and fixes are set: by the resource's AI agent
@@ -680,7 +701,15 @@ export class ResourceAiAccessServiceClass {
       });
     }
 
-    if (remediationMode === ResourceAiRemediationMode.Disabled) {
+    if (isReadOnly) {
+      gaps.push({
+        code: "remediation_disabled",
+        title: `OneUptime AI only reads this ${noun}`,
+        nextStep: `It has no command that changes this ${noun}, so fixes stay off. An investigation's report says what a person should change.`,
+        blocksInvestigation: false,
+        blocksRemediation: true,
+      });
+    } else if (remediationMode === ResourceAiRemediationMode.Disabled) {
       gaps.push({
         code: "remediation_disabled",
         title: `AI fixes are turned off for this ${noun}`,
@@ -759,6 +788,7 @@ export class ResourceAiAccessServiceClass {
       isInvestigationReady:
         resource.isAiInvestigationEnabled && !blocksInvestigation,
       isRemediationReady:
+        !isReadOnly &&
         remediationMode !== ResourceAiRemediationMode.Disabled &&
         !blocksRemediation,
       /*

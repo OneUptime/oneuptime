@@ -18,7 +18,6 @@ import {
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
 } from "../../../Common/Types/OpenStack/OpenStackHealthRules";
-import { getOpenStackOptionalServicesOf } from "../../../Common/Types/OpenStack/OpenStackOptionalServices";
 import {
   OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
   OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
@@ -122,10 +121,12 @@ export function getInventorySummary(allRows, regionName) {
     storageUsedBytes: sum(pools, "diskAllocatedBytes"),
     stackCount: ofKind(rows, "Stack").length,
     containerClusterCount: ofKind(rows, "ContainerCluster").length,
-    optionalServices: getOpenStackOptionalServicesOf(
-      ofKind(rows, "Api").map((row) => {
-        return row.name;
-      }),
+    services: Array.from(
+      new Set(
+        ofKind(rows, "Api").map((row) => {
+          return row.name;
+        }),
+      ),
     ),
   };
 }

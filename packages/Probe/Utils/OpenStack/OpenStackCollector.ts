@@ -202,11 +202,13 @@ const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
   OpenStackServiceType.Network,
   OpenStackServiceType.Volume,
   OpenStackServiceType.Image,
-  ...OPENSTACK_OPTIONAL_SERVICES.map(
-    (entry: OpenStackOptionalService): OpenStackServiceType => {
-      return entry.service;
+  ...OPENSTACK_OPTIONAL_SERVICES.filter(
+    (entry: OpenStackOptionalService): boolean => {
+      return Boolean(entry.isReadByProbe);
     },
-  ),
+  ).map((entry: OpenStackOptionalService): OpenStackServiceType => {
+    return entry.service;
+  }),
 ];
 
 const MAX_SUMMARY_WARNINGS: number = 20;

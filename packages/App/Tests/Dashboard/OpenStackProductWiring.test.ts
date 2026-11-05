@@ -112,6 +112,9 @@ const stripComments: SquashFunction = (source: string): string => {
 // Every PageMap key a page of this merge lives at, mounted and linked.
 const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "OPENSTACK_CLOUD_VIEW"],
+  ["AI/Insights.tsx", "OPENSTACK_CLOUD_VIEW_AI_INSIGHTS"],
+  ["AI/Logs.tsx", "OPENSTACK_CLOUD_VIEW_AI_LOGS"],
+  ["AI/Agent.tsx", "OPENSTACK_CLOUD_VIEW_AI_AGENT"],
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
   ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
@@ -188,9 +191,6 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
 // Pages later issues build. Their keys stay; nothing mounts or links them yet.
 const LATER_PAGE_KEYS: ReadonlyArray<string> = [
   "OPENSTACK_CLOUD_VIEW_INSIGHTS",
-  "OPENSTACK_CLOUD_VIEW_AI_INSIGHTS",
-  "OPENSTACK_CLOUD_VIEW_AI_LOGS",
-  "OPENSTACK_CLOUD_VIEW_AI_AGENT",
 ];
 
 const VIEW_PAGE_KEYS: ReadonlyArray<string> = MOUNTED_VIEW_PAGES.map(
@@ -354,7 +354,6 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   test("no page of a later issue, or of Proxmox's, is imported", () => {
     for (const page of [
       "Insights",
-      "AI/",
       "Nodes",
       "NodeDetail",
       "Guests",
@@ -374,16 +373,24 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   });
 
   test("no View page on disk is left unrouted", () => {
-    const onDisk: Array<string> = fs
-      .readdirSync(path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View"))
-      .filter((file: string): boolean => {
-        return (
-          file.endsWith(".tsx") &&
-          file !== "Layout.tsx" &&
-          file !== "SideMenu.tsx"
-        );
-      })
-      .sort();
+    const onDisk: Array<string> = [
+      ...fs
+        .readdirSync(path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View"))
+        .filter((file: string): boolean => {
+          return (
+            file.endsWith(".tsx") &&
+            file !== "Layout.tsx" &&
+            file !== "SideMenu.tsx"
+          );
+        }),
+      ...fs
+        .readdirSync(
+          path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View", "AI"),
+        )
+        .map((file: string): string => {
+          return `AI/${file}`;
+        }),
+    ].sort();
 
     expect(onDisk).toEqual(
       MOUNTED_VIEW_PAGES.map((entry: [string, string]): string => {
@@ -463,6 +470,7 @@ describe("the side menus have no dead links", () => {
 
     expect(titles).toEqual([
       "Basic",
+      "AI",
       "Control Plane",
       "Compute",
       "Network",
@@ -585,8 +593,8 @@ describe("a service a cloud may not run", () => {
       squash(readSource("Pages", "OpenStack", "View", "Layout.tsx")),
     ).toContain("optionalServices: summary.optionalServices");
     expect(squash(fs.readFileSync(path.join(
-      REPO_ROOT, "packages", "Common", "Server", "API", "OpenStackResourceAPI.ts",
-    ), "utf8"))).toContain("this.service.getOptionalServicesOfCloud(");
+      REPO_ROOT, "packages", "App", "FeatureSet", "Dashboard", "src", "Pages", "OpenStack", "Utils", "OpenStackResourceUtils.ts",
+    ), "utf8"))).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
   });
 });
 

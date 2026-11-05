@@ -447,32 +447,35 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
 }
 
 /*
- * What is known about a cloud decides only the templates that need something it may not have: a
- * service a cloud may not run, or a series only a probe sends. Knowing nothing offers what every
+ * What a cloud is offered: everything every cloud has, and what needs a service it may not run or a
+ * series only a probe sends only if it has them. Knowing nothing about a cloud offers what every
  * cloud has.
  */
 function getOpenStackRecommendations(
   context?: MonitorRecommendationContext | undefined,
 ): Array<MonitorRecommendation> {
-  return getOpenStackRecommendationsFromTemplates(
+  const isOffered: Set<string> = new Set(
     getOpenStackAlertTemplatesForCloud({
       services: context?.openStackServices,
       isCollectedByProbe: context?.openStackIsCollectedByProbe,
+    }).map((template: OpenStackAlertTemplate): string => {
+      return template.id;
     }),
   );
-}
 
-function getAllOpenStackRecommendations(): Array<MonitorRecommendation> {
-  return getOpenStackRecommendationsFromTemplates(
-    getAllOpenStackAlertTemplates(),
+  return getAllPossibleOpenStackRecommendations().filter(
+    (recommendation: MonitorRecommendation): boolean => {
+      return (
+        recommendation.monitorType !== MonitorType.OpenStack ||
+        isOffered.has(recommendation.templateId)
+      );
+    },
   );
 }
 
-function getOpenStackRecommendationsFromTemplates(
-  templates: Array<OpenStackAlertTemplate>,
-): Array<MonitorRecommendation> {
-  const metricRecommendations: Array<MonitorRecommendation> = templates.map(
-    (template: OpenStackAlertTemplate) => {
+function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> {
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
       return normalize({
         resourceType: MonitorRecommendationResourceType.OpenStack,
         monitorType: MonitorType.OpenStack,
@@ -909,7 +912,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "cloudIdentifier",
       icon: IconProp.Cloud,
       getRecommendations: getOpenStackRecommendations,
-      getAllPossibleRecommendations: getAllOpenStackRecommendations,
+      getAllPossibleRecommendations: getAllPossibleOpenStackRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.VMware,

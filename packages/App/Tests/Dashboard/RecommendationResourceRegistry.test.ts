@@ -1350,7 +1350,7 @@ describe("RecommendationResourceRegistry", () => {
 
     test("what it runs comes from the server, asked about this cloud", async () => {
       const context: MonitorRecommendationContext = await loadedContext({
-        optionalServices: ["orchestration"],
+        services: ["orchestration"],
       });
 
       expect(mockOpenStackSummary).toHaveBeenCalledTimes(1);
@@ -1366,7 +1366,7 @@ describe("RecommendationResourceRegistry", () => {
 
     test("a cloud that runs neither is offered neither, and told nothing about them", async () => {
       const context: MonitorRecommendationContext = await loadedContext({
-        optionalServices: [],
+        services: [],
       });
 
       expect(context.openStackServices).toEqual([]);
@@ -1388,7 +1388,7 @@ describe("RecommendationResourceRegistry", () => {
         RecommendationResourceRegistry.describeContext({
           resourceType: MonitorRecommendationResourceType.OpenStack,
           context: await loadedContext({
-            optionalServices: ["orchestration", "container-infra"],
+            services: ["orchestration", "container-infra"],
           }),
         });
 
@@ -1397,7 +1397,7 @@ describe("RecommendationResourceRegistry", () => {
     });
 
     test("only a probe's cloud is offered what only a probe sends", async () => {
-      const summary: unknown = { optionalServices: ["orchestration"] };
+      const summary: unknown = { services: ["orchestration"] };
 
       expect(
         idsOffered(await loadedContext(summary, OpenStackCollectionMethod.Probe)),

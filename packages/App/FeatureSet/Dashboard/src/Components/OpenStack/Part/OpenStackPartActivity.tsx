@@ -60,8 +60,8 @@ export interface AlertsProps {
   templateIds: Array<string>;
   part: OpenStackPart;
   /*
-   * What this part says of its cloud, for a template that needs something a cloud may not have: a
-   * stack's page is on a cloud that runs Heat, whatever else has been read.
+   * What this part says of its cloud, where these alerts need something a cloud may not have. A
+   * page of one of a service's parts knows the cloud runs it.
    */
   context?: MonitorRecommendationContext | undefined;
 }

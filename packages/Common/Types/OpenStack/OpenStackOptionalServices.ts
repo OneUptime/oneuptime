@@ -21,7 +21,7 @@ import { OpenStackServiceType } from "./OpenStackResourceKind";
  *
  *   A page and an alert only where it runs. A cloud's menu gets a service's section from what its
  *   rows say, and Recommendations offers a template that names a service only to a cloud running it
- *   (OpenStackAlertTemplate.requiresService).
+ *   (OpenStackAlertTemplate.forService).
  *
  *   An honest word about what can't be seen. The exporter says less about these than about the
  *   core services, and a credential can be refused them whole, so each page says what this cloud's
@@ -32,8 +32,9 @@ import { OpenStackServiceType } from "./OpenStackResourceKind";
  *
  * One thing to check on its recordings first. A stopped Heat or Magnum reads `_up 0`. A stopped Ironic
  * or Designate does not: the exporter reads their versions before anything else, so it answers an
- * empty 200, which is what it says of a service the cloud has never run. Such a service needs an
- * empty answer to read down first, with a longer wait before its rows go.
+ * empty 200, which is what it says of a service the cloud has never run. Such a service says
+ * isEmptyWhenStopped: an empty answer takes nothing, it reads as quiet (isOpenStackServiceQuiet), and
+ * its rows go after much longer (OpenStackResourceService.forgetQuietServices).
  *
  * Pure, so the scan, the server, the pages and the probe all draw the same line.
  */
@@ -41,17 +42,35 @@ export interface OpenStackOptionalService {
   service: OpenStackServiceType;
   // What says whether its API answered, and the only thing that can start its rows.
   upMetricName: string;
+  /*
+   * A stopped API reads as an empty answer rather than as `_up 0`, recorded. So an empty answer can't
+   * say this service left: it goes quiet instead, and its rows go much later
+   * (OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS).
+   */
+  isEmptyWhenStopped?: boolean | undefined;
+  /*
+   * A probe reads it too, which takes a collector of its own (Probe/Utils/OpenStack/Collectors). Until
+   * then a probe's cloud says nothing of this service.
+   */
+  isReadByProbe?: boolean | undefined;
 }
 
 export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService> =
   [
     {
+      service: OpenStackServiceType.BareMetal,
+      upMetricName: "openstack_ironic_up",
+      isEmptyWhenStopped: true,
+    },
+    {
       service: OpenStackServiceType.Orchestration,
       upMetricName: "openstack_heat_up",
+      isReadByProbe: true,
     },
     {
       service: OpenStackServiceType.ContainerInfra,
       upMetricName: "openstack_container_infra_up",
+      isReadByProbe: true,
     },
   ];
 

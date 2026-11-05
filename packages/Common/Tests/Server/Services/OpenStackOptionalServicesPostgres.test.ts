@@ -18,7 +18,10 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
-import { OPENSTACK_EMPTY_ANSWER_SINCE_FACT } from "../../../Types/OpenStack/OpenStackOptionalServices";
+import {
+  OPENSTACK_EMPTY_ANSWER_SINCE_FACT,
+  getOpenStackOptionalServicesOf,
+} from "../../../Types/OpenStack/OpenStackOptionalServices";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
@@ -91,6 +94,22 @@ function resource(
     lastSeenAt: NOW,
     ...overrides,
   };
+}
+
+// What the menu and Recommendations read: the services a summary says, of those a cloud may not run.
+async function optionalServicesOf(
+  openStackCloudId: ObjectID,
+  regionName?: string | undefined,
+): Promise<Array<string>> {
+  return getOpenStackOptionalServicesOf(
+    (
+      await OpenStackResourceService.getInventorySummary({
+        projectId: PROJECT_ID,
+        openStackCloudId,
+        regionName,
+      })
+    ).services,
+  );
 }
 
 function api(
@@ -540,21 +559,33 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
     test("its row in the summary and the menu's list goes with it", async () => {
       await estate();
       expect(
-        await OpenStackResourceService.getOptionalServicesOfCloud({
-          projectId: PROJECT_ID,
-          openStackCloudId: CLOUD_ID,
-        }),
+        await optionalServicesOf(CLOUD_ID),
       ).toEqual(["orchestration"]);
       await record([
         scrape("orchestration", { samples: 0, observedAt: minutesAgo(16) }),
       ]);
       await sweep();
       expect(
-        await OpenStackResourceService.getOptionalServicesOfCloud({
-          projectId: PROJECT_ID,
-          openStackCloudId: CLOUD_ID,
-        }),
+        await optionalServicesOf(CLOUD_ID),
       ).toEqual([]);
+    });
+  });
+
+  describe("a service whose stopped API reads as an empty answer", () => {
+    test("an empty answer writes nothing, however long, so its rows go only with forgetQuietServices", async () => {
+      await write([
+        api("identity"),
+        api("baremetal", { lastSeenAt: minutesAgo(60), vouchedAt: minutesAgo(60) }),
+      ]);
+      await record([
+        scrape("baremetal", { samples: 0, observedAt: minutesAgo(600) }),
+        scrape("baremetal", { samples: 0, observedAt: NOW }),
+      ]);
+      await sweep();
+
+      expect(
+        (await apiRow("baremetal"))["facts"][OPENSTACK_EMPTY_ANSWER_SINCE_FACT],
+      ).toBeUndefined();
     });
   });
 
@@ -845,25 +876,13 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         api("container-infra", { regionName: "RegionTwo" }),
       ]);
       expect(
-        (
-          await OpenStackResourceService.getOptionalServicesOfCloud({
-            projectId: PROJECT_ID,
-            openStackCloudId: CLOUD_ID,
-          })
-        ).sort(),
+        (await optionalServicesOf(CLOUD_ID)).sort(),
       ).toEqual(["container-infra", "orchestration"]);
       expect(
-        await OpenStackResourceService.getOptionalServicesOfCloud({
-          projectId: PROJECT_ID,
-          openStackCloudId: CLOUD_ID,
-          regionName: "RegionTwo",
-        }),
+        await optionalServicesOf(CLOUD_ID, "RegionTwo"),
       ).toEqual(["container-infra"]);
       expect(
-        await OpenStackResourceService.getOptionalServicesOfCloud({
-          projectId: PROJECT_ID,
-          openStackCloudId: OTHER_CLOUD_ID,
-        }),
+        await optionalServicesOf(OTHER_CLOUD_ID),
       ).toEqual([]);
     });
 

@@ -78,7 +78,7 @@ describe.each(
     const templates: Array<OpenStackAlertTemplate> =
       getAllOpenStackAlertTemplates().filter(
         (template: OpenStackAlertTemplate): boolean => {
-          return template.requiresService === entry.service;
+          return template.forService === entry.service;
         },
       );
     expect(templates.length).toBeGreaterThan(0);

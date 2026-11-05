@@ -85,11 +85,15 @@ type MigratedType = Exclude<
   | AiResourceType.AwsAccount
   | AiResourceType.AzureSubscription
   | AiResourceType.GoogleCloudProject
+  | AiResourceType.OpenStackCloud
 >;
 
 const MIGRATED_TYPES: Array<MigratedType> = ALL_AI_RESOURCE_TYPES.filter(
   (type: AiResourceType): type is MigratedType => {
-    return !isCloudAiResourceType(type);
+    // An OpenStack cloud got its AI columns later, in AddOpenStackCloudAiAccess.
+    return (
+      !isCloudAiResourceType(type) && type !== AiResourceType.OpenStackCloud
+    );
   },
 );
 

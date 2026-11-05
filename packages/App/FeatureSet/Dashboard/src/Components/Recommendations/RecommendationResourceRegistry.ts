@@ -36,6 +36,7 @@ import {
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
+import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
   OPENSTACK_SERVICE_TITLES,
   OpenStackServiceType,
@@ -261,9 +262,10 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
   },
   /*
    * Some of an OpenStack cloud's recommendations need a service it may not run, or a series only a
-   * probe sends (OpenStackAlertTemplate.requiresService, requiresProbe). Its row says how it is
-   * collected, and only its inventory says what it runs. A read that fails leaves them withheld, which
-   * is what the page shows anyway on a cloud that has none of them.
+   * probe sends (OpenStackAlertTemplate.forService, requiresProbe). Its row says how it is collected,
+   * and only its inventory says what it runs: asked for whole, not a region at a time, because a
+   * monitor is for the cloud. A read that fails leaves them withheld, which is what the page shows
+   * anyway on a cloud that has none of them.
    */
   {
     resourceType: MonitorRecommendationResourceType.OpenStack,
@@ -283,16 +285,12 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       context: MonitorRecommendationContext;
     }): Promise<MonitorRecommendationContext> => {
       const summary: OpenStackInventorySummary | null =
-        await fetchOpenStackInventorySummary(
-          new ObjectID(
-            (data.model as unknown as Record<string, unknown>)[
-              "_id"
-            ]?.toString() || "",
-          ),
-        );
+        await fetchOpenStackInventorySummary(data.model.id as ObjectID);
       return {
         ...data.context,
-        openStackServices: summary ? summary.optionalServices : null,
+        openStackServices: summary
+          ? getOpenStackOptionalServicesOf(summary.services)
+          : null,
       };
     },
     /*

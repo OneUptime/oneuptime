@@ -176,6 +176,11 @@ export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
     icon: IconProp.Layers,
   },
   {
+    category: "Bare Metal",
+    label: "Bare Metal",
+    icon: IconProp.Server,
+  },
+  {
     category: "Projects",
     label: "Projects",
     icon: IconProp.Folder,

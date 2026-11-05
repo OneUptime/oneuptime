@@ -50,6 +50,7 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import { OPENSTACK_API_UP_METRIC_NAMES } from "../Telemetry/OpenStackSnapshotScan";
 import OpenStackAcrossProducts from "./OpenStackAcrossProducts";
+import { getOpenStackPartLogAttributes } from "../../../Utils/OpenStack/OpenStackPartLogFacts";
 
 /*
  * WHAT AN ALERT OR INCIDENT ON A PART OF AN OPENSTACK CLOUD TAKES WITH IT, AND WHOSE IT IS.
@@ -284,6 +285,11 @@ export interface OpenStackAlertContextResult {
   // Set when the part is a whole region's API, which is what the radius then reads.
   regionWide?: OpenStackRegionWide | undefined;
   /*
+   * What picks this part's lines out of the cloud's logs, for search_logs to read. Absent for a
+   * kind no line can be said to be about.
+   */
+  partLogAttributes?: Record<string, string> | undefined;
+  /*
    * On a hypervisor that has passed a line on what its instances really use, the instances
    * responsible, with how long each is waiting where the source says.
    */
@@ -353,6 +359,20 @@ export default class OpenStackAlertContext {
       result.partKind = candidate.kind;
       result.partExternalId = candidate.externalId;
       result.projectId = result.projectId || part.openStackProjectId || null;
+      const workerHost: unknown = (part.facts as JSONObject | undefined)?.[
+        "host"
+      ];
+      const partLogAttributes: Record<string, string> | null =
+        getOpenStackPartLogAttributes({
+          kind: candidate.kind,
+          externalId: candidate.externalId,
+          name: part.name,
+          hypervisorName: part.hypervisorName,
+          workerHost: typeof workerHost === "string" ? workerHost : null,
+        });
+      if (partLogAttributes) {
+        result.partLogAttributes = partLogAttributes;
+      }
       result.radius = await OpenStackResourceService.getBlastRadius({
         projectId: data.projectId,
         openStackCloudId: data.openStackCloudId,

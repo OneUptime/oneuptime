@@ -11,7 +11,10 @@ import {
   estimateOpenStackInstanceMetricsVolume,
 } from "./OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "./OpenStackResourceKind";
-import { OPENSTACK_OPTIONAL_SERVICES } from "./OpenStackOptionalServices";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+} from "./OpenStackOptionalServices";
 
 /*
  * WHAT A CLOUD OF ANY SIZE COSTS, BEFORE ANYTHING IS INSTALLED.
@@ -351,6 +354,7 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Image]: 0,
     [OpenStackServiceType.Orchestration]: 0,
     [OpenStackServiceType.ContainerInfra]: 0,
+    [OpenStackServiceType.BareMetal]: 0,
   };
 }
 
@@ -779,7 +783,11 @@ export function getOpenStackSeriesCounts(data: {
    * that failed. What it lists on a cloud that runs it isn't here: stacks and clusters are few.
    */
   const optionalServices: number =
-    OPENSTACK_OPTIONAL_SERVICES.length * SCRAPE_SERIES_PER_READING;
+    OPENSTACK_OPTIONAL_SERVICES.filter(
+      (entry: OpenStackOptionalService): boolean => {
+        return Boolean(entry.isReadByProbe);
+      },
+    ).length * SCRAPE_SERIES_PER_READING;
 
   const summaryCounts: number = isSummary
     ? STATUSES_USUALLY_PRESENT + counts.projects
