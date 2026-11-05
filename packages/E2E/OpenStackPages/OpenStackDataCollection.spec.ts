@@ -458,33 +458,68 @@ test.describe("the connection test says exactly what failed", () => {
     await screenshot(page, "connection-test-plain-http");
   });
 
-  test("each failure in its own words, testing again each time with the saved credential", async ({
+  test("each failure the test names in its own words, testing again each time with the saved credential", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openTest(page, "refused,not-found,no-probe");
+    await openTest(
+      page,
+      "not-found,nothing-listening,no-answer,tls,refused,wrong-project,no-probe",
+    );
 
     const result: Locator = page.getByTestId("openstack-test-result");
-    const expected: Array<[string, string]> = [
+    const expected: Array<[string, string, string]> = [
+      // DNS.
+      [
+        "The probe cannot find this host name",
+        "The probe cannot find keystone.acme.invalid in DNS (ENOTFOUND).",
+        "The name has to resolve in DNS on the probe's network.",
+      ],
+      // TCP: nothing listening, and nothing answering.
+      [
+        "Nothing answers on that port",
+        "keystone.acme-cloud.example:5000 refused the connection",
+        "Keystone usually serves on 5000, or on 443 behind a path such as /identity.",
+      ],
+      [
+        "The probe gets no answer from the cloud",
+        "The probe got no answer from keystone.acme-cloud.example:5000 (ETIMEDOUT).",
+        "or pick a probe in the cloud's network.",
+      ],
+      // TLS.
+      [
+        "The secure connection failed",
+        "The secure connection to keystone.acme-cloud.example:5000 failed (EPROTO)",
+        "Check that the address points at an HTTPS port.",
+      ],
+      // A refused credential, and one on the wrong project.
       [
         "Keystone refused the credential",
         "Keystone answered HTTP 401 to the application credential.",
+        "Make a new one and enter it here.",
       ],
       [
-        "The probe cannot find this host name",
-        "The probe's DNS has no address for keystone.acme.invalid.",
+        "The account has no role on that project",
+        "Keystone accepted user monitor, but not on project monitoring in domain Default",
+        "Check the project name and both domains.",
       ],
       [
         "The probe did not pick this up",
         "acme-dc-probe did not pick the test up in time.",
+        "Check that the probe is connected on the Probes page.",
       ],
     ];
 
-    for (const [title, message] of expected) {
+    for (const [title, message, nextStep] of expected) {
       await page.getByTestId("openstack-test-connection-button").click();
       await expect(result).toContainText(title, { timeout: 15000 });
       await expect(result).toContainText(message);
+      await expect(result).toContainText(nextStep);
+      // None of these is fixed by trusting a certificate.
+      await expect(
+        page.getByTestId("openstack-trust-certificate-button"),
+      ).toHaveCount(0);
     }
 
     for (const asked of await testsAsked(page)) {
@@ -495,6 +530,88 @@ test.describe("the connection test says exactly what failed", () => {
       });
       expect(asked.data).not.toHaveProperty("credentialSecret");
     }
+  });
+
+  test("a certificate that changed: shown, with nothing sent until someone trusts it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTest(page, "changed");
+    await page.getByTestId("openstack-test-connection-button").click();
+
+    const result: Locator = page.getByTestId("openstack-test-result");
+    await expect(result).toContainText("The API's certificate changed", {
+      timeout: 15000,
+    });
+    await expect(result).toContainText(
+      "Nothing is sent until you trust the new certificate.",
+    );
+    await expect(
+      page.getByTestId("openstack-presented-fingerprint"),
+    ).toHaveText(NOVA_FINGERPRINT);
+    await expect(
+      page.getByTestId("openstack-trust-certificate-button"),
+    ).toBeVisible();
+  });
+
+  test("a credential missing a permission: per service, what goes without it and what opens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTest(page, "no-permission");
+    await page.getByTestId("openstack-test-connection-button").click();
+
+    const result: Locator = page.getByTestId("openstack-test-result");
+    await expect(result).toContainText(
+      "The credential cannot read what monitoring needs",
+      { timeout: 15000 },
+    );
+
+    const rows: Locator = page.getByTestId("openstack-test-read");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText(
+      "Compute (Nova), RegionOne: hypervisors",
+    );
+    await expect(rows.nth(0)).toContainText(
+      "Goes without it: The Hypervisors page and its alerts",
+    );
+    await expect(rows.nth(0)).toContainText(
+      "What opens it: openstack role add --user oneuptime",
+    );
+    await expect(rows.nth(1)).toContainText(
+      "Block Storage (Cinder), RegionOne: storage pools",
+    );
+    await screenshot(page, "connection-test-no-permission");
+  });
+
+  test("an edit to a plain HTTP address stops at its step, and nothing is tried or saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "settings", "estate=calm&collection=Probe");
+    await page.getByRole("button", { name: "Edit Connection" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Edit Connection",
+    });
+    await page
+      .getByTestId("openstack-auth-url")
+      .fill("http://keystone.acme-cloud.example:5000/v3");
+    await dialog.getByText("Certificates and Regions", { exact: true }).click();
+
+    await expect(dialog).toContainText(
+      "OneUptime never sends a credential or a token unencrypted.",
+    );
+    await expect(dialog).toContainText(
+      "turn on TLS, or use the OpenStack agent",
+    );
+    await expect(
+      page.getByTestId("openstack-test-connection-button"),
+    ).toHaveCount(0);
+    expect(await writes(page)).toEqual([]);
   });
 
   test("a login that worked says what the credential cannot read, and what opens it", async ({
@@ -637,6 +754,57 @@ test.describe("the Overview's Data Collection card", () => {
     await expect(
       page.getByTestId("openstack-trust-certificate-button"),
     ).toHaveCount(0);
+  });
+
+  test("a probe that stopped coming: not collecting, and where to look, whatever it last reported", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "", "estate=calm&collection=Probe&probe=gone");
+
+    const card: Locator = page.getByTestId("openstack-data-collection-status");
+    await expect(card).toContainText("Not collecting");
+    await expect(card).toContainText("The probe did not pick this up");
+    await expect(card).toContainText("and no probe has come for it.");
+    await expect(card).toContainText(
+      "Check that the probe is connected on the Probes page.",
+    );
+    await expect(card).not.toContainText("The probe is collecting this cloud.");
+    await screenshot(page, "data-collection-probe-gone");
+
+    // The probe comes back, and the card follows without a reload.
+    await reportCollection(page, "collecting");
+    await expect(card).toContainText("The probe is collecting this cloud.", {
+      timeout: 20000,
+    });
+  });
+
+  test("on a cloud a probe collects, what only the agent reads doesn't stand on the Overview", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "", "estate=calm&collection=Probe");
+
+    await expect(
+      page.getByTestId("openstack-data-collection-status"),
+    ).toBeVisible();
+    await expect(page.getByTestId("openstack-control-plane-card")).toHaveCount(
+      0,
+    );
+  });
+
+  test("the Control Plane page says a probe doesn't read these, rather than a setting it hasn't got", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "control-plane", "estate=calm&collection=Probe");
+
+    await expect(
+      page.getByTestId("openstack-control-plane-card-line").first(),
+    ).toContainText("A probe reads the cloud's APIs, and not this.");
   });
 
   test("a new cloud the probe has not reported on asks for no agent", async ({
@@ -845,10 +1013,16 @@ test.describe("the Settings page's Data Collection card", () => {
     await expect(setup).toContainText("Project limits");
     await setup.getByRole("link", { name: "Settings" }).click();
 
-    await expect(page).toHaveURL(new RegExp(`${CLOUD_PATH}/settings$`));
+    // The link names the fold's place, so it is open, and in view, on arriving.
+    await expect(page).toHaveURL(
+      new RegExp(`${CLOUD_PATH}/settings#collection-options$`),
+    );
 
     const options: Locator = page.getByTestId("openstack-collection-options");
-    await expect(options).toContainText("Project limits");
+    await expect(options).toBeInViewport();
+    await expect(
+      page.getByTestId("openstack-option-project-limits"),
+    ).toBeVisible();
     await expect(options).toContainText(
       "Costs four API calls per project, on every collection.",
     );
@@ -874,6 +1048,30 @@ test.describe("the Settings page's Data Collection card", () => {
     await expect(
       page.getByTestId("openstack-option-project-limits"),
     ).toHaveAttribute("aria-checked", "true");
+
+    // Folded again, what is on still says so.
+    const fold: Locator = page.getByTestId("openstack-collection-options-fold");
+    await fold.getByTestId("folded-section-header").click();
+    await expect(
+      page.getByTestId("openstack-option-project-limits"),
+    ).toBeHidden();
+    await expect(fold).toContainText("Project limits: On");
+  });
+
+  test("what it reads beyond the defaults starts folded, saying what is inside", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "settings", "estate=calm&collection=Probe");
+
+    const fold: Locator = page.getByTestId("openstack-collection-options-fold");
+    await expect(fold).toHaveAttribute("data-collapsed", "true");
+    await expect(fold).toContainText("Project limits");
+    await expect(fold).toContainText("Ports");
+    await expect(
+      page.getByTestId("openstack-option-project-limits"),
+    ).toBeHidden();
   });
 
   test("Ports can be narrowed to the networks and projects named", async ({
@@ -887,6 +1085,10 @@ test.describe("the Settings page's Data Collection card", () => {
       page.getByTestId("openstack-option-port-networks"),
     ).toHaveCount(0);
 
+    await page
+      .getByTestId("openstack-collection-options-fold")
+      .getByTestId("folded-section-header")
+      .click();
     await page.getByTestId("openstack-option-ports").click();
     await page
       .getByTestId("openstack-option-port-networks")

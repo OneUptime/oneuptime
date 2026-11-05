@@ -110,14 +110,14 @@ describe("a DHCP agent's networks", () => {
     network: ReportedDatapoint | undefined;
     count: number;
   } {
-    const built: OpenStackOtlpBuildResult = build(
+    const points: Array<ReportedDatapoint> = build(
       reading(OpenStackServiceType.Network, inventory),
     );
 
     return {
-      agent: named(built, "openstack_neutron_agent_state")[0],
-      network: named(built, "openstack_neutron_network")[0],
-      count: built.datapointCount,
+      agent: named(points, "openstack_neutron_agent_state")[0],
+      network: named(points, "openstack_neutron_network")[0],
+      count: points.length,
     };
   }
 

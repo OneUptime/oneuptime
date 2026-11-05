@@ -4,11 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
-import { OpenStackCollectionOptions } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -31,20 +27,18 @@ import React, {
 import OpenStackConnectionFormModal, {
   OpenStackConnectionFormMode,
 } from "./OpenStackConnectionFormModal";
+import OpenStackCollectionOptionsFold from "./OpenStackCollectionOptionsFold";
 import OpenStackConnectionTestPanel from "./OpenStackConnectionTestPanel";
-import { OpenStackCollectionOptionsField } from "./OpenStackConnectionFields";
 import {
   isOpenStackProbeCollected,
   readOpenStackNames,
-  readOpenStackOptions,
-  validateOpenStackOptions,
 } from "./OpenStackProbeCollectionView";
 
 /*
  * How this cloud's data reaches OneUptime, on its Settings page: collected by a probe with the
  * read-only credential saved here, or sent by the OpenStack agent, and the one-click switch
- * between the two. A cloud a probe collects also says here what is read beyond the defaults,
- * which is where the Projects page sends someone who wants quotas.
+ * between the two. A cloud a probe collects also keeps here, folded, what is read beyond the
+ * defaults, which is where the Projects page sends someone who wants quotas.
  *
  * Switching to a probe asks for the address, credential, regions and probe, because nothing is
  * saved for an agent cloud. Switching to the agent forgets the saved credential. Stop the agent
@@ -69,9 +63,6 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
-  const [options, setOptions] = useState<OpenStackCollectionOptions>({});
-  const [isSavingOptions, setIsSavingOptions] = useState<boolean>(false);
-  const [optionsError, setOptionsError] = useState<string>("");
 
   const load: () => Promise<void> = async (): Promise<void> => {
     const item: OpenStackCloud | null = await ModelAPI.getItem({
@@ -99,7 +90,6 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
     });
 
     setCloud(item);
-    setOptions(readOpenStackOptions(item?.collectionOptions));
   };
 
   useEffect(() => {
@@ -204,42 +194,6 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
       })
       .finally(() => {
         setIsSaving(false);
-      });
-  };
-
-  const savedOptions: OpenStackCollectionOptions = readOpenStackOptions(
-    cloud.collectionOptions,
-  );
-  const isOptionsChanged: boolean =
-    JSON.stringify(readOpenStackOptions(options)) !==
-    JSON.stringify(savedOptions);
-
-  const saveOptions: () => void = (): void => {
-    // Said here, where the list was typed: the server would refuse it in the same words.
-    const refusal: string | null = validateOpenStackOptions(options);
-
-    if (refusal) {
-      setOptionsError(refusal);
-      return;
-    }
-
-    setIsSavingOptions(true);
-    setOptionsError("");
-    ModelAPI.updateById({
-      modelType: OpenStackCloud,
-      id: props.modelId,
-      data: {
-        collectionOptions: readOpenStackOptions(options) as JSONObject,
-      },
-    })
-      .then(() => {
-        return load();
-      })
-      .catch((err: Error) => {
-        setOptionsError(API.getFriendlyErrorMessage(err));
-      })
-      .finally(() => {
-        setIsSavingOptions(false);
       });
   };
 
@@ -399,43 +353,12 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
               ]}
             />
 
-            <div
-              className="mt-6 border-t border-gray-200 pt-4"
-              data-testid="openstack-collection-options"
-            >
-              <div className="mb-3 text-sm font-medium text-gray-900">
-                {translator.translateText("What it reads beyond the defaults")}
-              </div>
-              <OpenStackCollectionOptionsField
-                value={options}
-                disabled={!canEdit || isSavingOptions}
-                onChange={(value: OpenStackCollectionOptions) => {
-                  setOptionsError("");
-                  setOptions(value);
-                }}
-              />
-              {canEdit && isOptionsChanged ? (
-                <div className="mt-3 flex justify-end">
-                  <Button
-                    title="Save Options"
-                    buttonStyle={ButtonStyleType.NORMAL}
-                    buttonSize={ButtonSize.Small}
-                    isLoading={isSavingOptions}
-                    dataTestId="openstack-save-collection-options"
-                    onClick={saveOptions}
-                  />
-                </div>
-              ) : (
-                <></>
-              )}
-              {optionsError ? (
-                <p className="mt-2 text-sm text-red-700" role="alert">
-                  {optionsError}
-                </p>
-              ) : (
-                <></>
-              )}
-            </div>
+            <OpenStackCollectionOptionsFold
+              modelId={props.modelId}
+              saved={cloud.collectionOptions}
+              canEdit={canEdit}
+              onSaved={load}
+            />
           </div>
         ) : (
           <></>
