@@ -1166,6 +1166,12 @@ const PARTS_HOSTS = {
   "compute-05.acme.example": { zone: "az-b", aggregates: null },
 };
 
+const PARTS_VOLUME_POOLS = {
+  "payments-db-data": "ctl-02@ceph#rbd-fast",
+  "research-archive": "ctl-02@ceph#rbd-fast",
+  "web-assets": "ctl-01@lvmdriver-1#lvmdriver-1",
+};
+
 function partsRow(row) {
   if (row.kind === "Hypervisor") {
     const place = PARTS_HOSTS[row.name];
@@ -1181,6 +1187,7 @@ function partsRow(row) {
   if (row.kind === "StoragePool" && row.name === "ctl-02@ceph#rbd-fast") {
     return { ...row, growsPerDay: 512 };
   }
+  // A probe read Nova's addresses too, and this one never got one.
   if (row.kind === "Instance" && row.name === "ou-failed") {
     return {
       ...row,
@@ -1188,6 +1195,9 @@ function partsRow(row) {
         ...row.facts,
         faultMessage:
           "No valid host was found. There are not enough hosts available.",
+        updatedAt: "2026-11-04T11:00:00Z",
+        addressIpv4: null,
+        addressIpv6: null,
       },
     };
   }
@@ -1195,6 +1205,13 @@ function partsRow(row) {
     return {
       ...row,
       facts: { ...row.facts, addressIpv4: "10.77.0.12" },
+    };
+  }
+  // A probe was told which pool holds each of these. The third pool holds none of them.
+  if (row.kind === "Volume" && PARTS_VOLUME_POOLS[row.name]) {
+    return {
+      ...row,
+      facts: { ...row.facts, pool: PARTS_VOLUME_POOLS[row.name] },
     };
   }
   return row;

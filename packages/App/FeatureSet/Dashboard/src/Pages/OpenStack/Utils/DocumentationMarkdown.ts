@@ -540,7 +540,7 @@ ${asked
   })
   .join("\n")}
 
-It checks the credential with Keystone before it installs anything, installs to \`${OPENSTACK_AGENT_INSTALL_DIR}\`, writes a \`.env\` file and a \`clouds.yaml\` only their owner can read, and starts everything with Docker Compose. Running it again reuses all of that instead of asking again, so it is also how you upgrade.`,
+It checks the credential with Keystone before it installs anything, installs to \`${OPENSTACK_AGENT_INSTALL_DIR}\` (or to \`oneuptime-openstack-agent\` in your home folder if you have no rights on \`/opt\`, and it says which), writes a \`.env\` file and a \`clouds.yaml\` only their owner can read, and starts everything with Docker Compose. Running it again reuses all of that instead of asking again, so it is also how you upgrade.`,
   };
 }
 

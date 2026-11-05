@@ -10,11 +10,14 @@ import OpenStackResourceService from "../../../../Server/Services/OpenStackResou
 import { OwnerRulePlan } from "../../../../Server/Utils/Rules/OwnerRulePlan";
 import OpenStackAlertContext, {
   OpenStackAlertContextResult,
+  OpenStackRegionWide,
   OpenStackSeriesPart,
   getOpenStackMetricNamesOfMonitor,
   getOpenStackPartOfSeries,
   getOpenStackProjectOfSeries,
+  getOpenStackRegionWide,
 } from "../../../../Server/Utils/OpenStack/OpenStackAlertContext";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   OpenStackBlastRadius,
@@ -22,7 +25,10 @@ import {
   getEmptyOpenStackBlastRadius,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
 import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "../../../../Types/Monitor/OpenStackAlertTemplates";
-import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "../../../../Types/OpenStack/OpenStackResourceKind";
 import { getOpenStackScopePattern } from "../../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackScopedRulesCard";
 
 /*
@@ -399,6 +405,295 @@ describe("adding it to a description", () => {
     expect(getBlastRadius).toHaveBeenCalledTimes(1);
     findOneBy.mockRestore();
     getBlastRadius.mockRestore();
+  });
+});
+
+describe("a whole region's API", () => {
+  const cloud: OpenStackCloud = Object.assign(new OpenStackCloud(), {
+    _id: CLOUD_ID.toString(),
+  });
+
+  function apiRow(service: string, region: string): OpenStackResource {
+    return Object.assign(new OpenStackResource(), {
+      kind: OpenStackResourceKind.Api,
+      name: service,
+      regionName: region,
+      externalId: `${region}/${service}`,
+      facts: {},
+    });
+  }
+
+  // Reads the series as the alert opening on it would, against rows that hold this one API.
+  async function read(data: {
+    row: OpenStackResource;
+    labels: JSONObject;
+    metricNames?: Array<string> | undefined;
+    radius?: OpenStackBlastRadius | undefined;
+  }): Promise<{
+    result: OpenStackAlertContextResult;
+    asked: Array<{ kind: string; externalId: string }>;
+  }> {
+    const asked: Array<{ kind: string; externalId: string }> = [];
+    const findOneBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "findOneBy")
+      .mockImplementation((async (args: {
+        query: { kind: OpenStackResourceKind; externalId: string };
+      }): Promise<OpenStackResource | null> => {
+        asked.push({
+          kind: args.query.kind,
+          externalId: args.query.externalId,
+        });
+        return args.query.kind === data.row.kind &&
+          args.query.externalId === data.row.externalId
+          ? data.row
+          : null;
+      }) as never);
+    const getBlastRadius: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "getBlastRadius")
+      .mockResolvedValue(data.radius || radius());
+
+    try {
+      return {
+        result: await OpenStackAlertContext.read({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          seriesLabels: data.labels,
+          metricNames: data.metricNames,
+        }),
+        asked,
+      };
+    } finally {
+      findOneBy.mockRestore();
+      getBlastRadius.mockRestore();
+    }
+  }
+
+  const REGION_LABELS: JSONObject = { "openstack.region.name": "RegionTwo" };
+
+  test("says it is the region's, not one part's", async () => {
+    const { result } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_nova_up"],
+    });
+
+    expect(result.partKind).toBe(OpenStackResourceKind.Api);
+    expect(result.regionWide).toEqual({
+      regionName: "RegionTwo",
+      service: OpenStackServiceType.Compute,
+      isWholeCloud: false,
+    });
+    expect(OpenStackAlertContext.toMarkdown(result)).toContain(
+      "**What this affects across region RegionTwo:** 3 instances in 2 projects.",
+    );
+  });
+
+  test("still names each project it reaches, which is how their owners hear", async () => {
+    const { result } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_nova_up"],
+    });
+    const markdown: string = OpenStackAlertContext.toMarkdown(result);
+
+    expect(markdown).toContain("ou-payments");
+    expect(markdown).toContain(OU_PAYMENTS);
+    expect(markdown).toContain(OU_RESEARCH);
+  });
+
+  test("Keystone's reach is the whole cloud's, whichever region's exporter said so", async () => {
+    const { result } = await read({
+      row: apiRow("identity", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_identity_up"],
+    });
+
+    expect(result.regionWide?.isWholeCloud).toBe(true);
+    expect(OpenStackAlertContext.toMarkdown(result)).toContain(
+      "**What this affects across the whole cloud:** 3 instances in 2 projects.",
+    );
+  });
+
+  test("without the monitor's metrics, a region's series names no part at all", async () => {
+    const { result, asked } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+    });
+
+    expect(asked).toEqual([]);
+    expect(result.radius).toBeNull();
+    expect(result.regionWide).toBeUndefined();
+  });
+
+  test("a part of the region is not the region", async () => {
+    const { result } = await read({
+      row: Object.assign(new OpenStackResource(), {
+        kind: OpenStackResourceKind.Hypervisor,
+        name: "compute-1",
+        regionName: "RegionTwo",
+        hypervisorName: "compute-1",
+        externalId: "RegionTwo/compute-1",
+      }),
+      labels: { hostname: "compute-1", ...REGION_LABELS },
+      metricNames: ["openstack_nova_up"],
+    });
+
+    expect(result.partKind).toBe(OpenStackResourceKind.Hypervisor);
+    expect(result.regionWide).toBeUndefined();
+    expect(OpenStackAlertContext.toMarkdown(result)).toContain(
+      "**What this affects:** 3 instances in 2 projects.",
+    );
+  });
+
+  test("an API whose row is gone says nothing rather than guessing", async () => {
+    const { result } = await read({
+      row: apiRow("volume", "RegionOne"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_cinder_up"],
+    });
+
+    expect(result.radius).toBeNull();
+    expect(result.regionWide).toBeUndefined();
+  });
+
+  test("an empty region says nothing about what it takes", async () => {
+    const { result } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_nova_up"],
+      radius: getEmptyOpenStackBlastRadius(),
+    });
+
+    expect(OpenStackAlertContext.toMarkdown(result)).toBe("");
+  });
+
+  test("a region someone named strangely is written as text", () => {
+    const markdown: string = OpenStackAlertContext.toMarkdown(
+      context({
+        radius: radius(),
+        regionWide: {
+          regionName: "**[click](https://evil.example)**",
+          service: OpenStackServiceType.Compute,
+          isWholeCloud: false,
+        },
+      }),
+    );
+
+    expect(markdown).not.toContain("[click](https://evil.example)");
+  });
+
+  test("the description written when a region's API alert opens says it all", async () => {
+    const findOneBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "findOneBy")
+      .mockImplementation((async (args: {
+        query: { kind: OpenStackResourceKind; externalId: string };
+      }): Promise<OpenStackResource | null> => {
+        return args.query.kind === OpenStackResourceKind.Api
+          ? apiRow("network", "RegionTwo")
+          : null;
+      }) as never);
+    const getBlastRadius: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "getBlastRadius")
+      .mockResolvedValue(radius());
+
+    const description: string | undefined =
+      await OpenStackAlertContext.addToDescription({
+        description: "The Network API is down.",
+        projectId: PROJECT_ID,
+        clouds: [cloud],
+        seriesLabels: REGION_LABELS,
+        monitorSteps: {
+          data: {
+            monitorStepsInstanceArray: [
+              {
+                data: {
+                  openstackMonitor: {
+                    metricViewConfig: {
+                      queryConfigs: [
+                        {
+                          metricQueryData: {
+                            filterData: { metricName: "openstack_neutron_up" },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+
+    expect(description).toContain("The Network API is down.");
+    expect(description).toContain("across region RegionTwo");
+    findOneBy.mockRestore();
+    getBlastRadius.mockRestore();
+  });
+});
+
+describe("which rows count as a whole region's API", () => {
+  test.each<
+    [
+      string,
+      {
+        kind?: OpenStackResourceKind;
+        name?: string;
+        regionName?: string;
+      },
+      OpenStackRegionWide | null,
+    ]
+  >([
+    [
+      "compute in a region",
+      {
+        kind: OpenStackResourceKind.Api,
+        name: "compute",
+        regionName: "RegionOne",
+      },
+      {
+        regionName: "RegionOne",
+        service: OpenStackServiceType.Compute,
+        isWholeCloud: false,
+      },
+    ],
+    [
+      "identity, which is global",
+      {
+        kind: OpenStackResourceKind.Api,
+        name: "identity",
+        regionName: "RegionOne",
+      },
+      {
+        regionName: "RegionOne",
+        service: OpenStackServiceType.Identity,
+        isWholeCloud: true,
+      },
+    ],
+    [
+      "a cloud that names no region",
+      { kind: OpenStackResourceKind.Api, name: "network" },
+      {
+        regionName: null,
+        service: OpenStackServiceType.Network,
+        isWholeCloud: false,
+      },
+    ],
+    [
+      "a service this product does not know",
+      { kind: OpenStackResourceKind.Api, name: "object-store" },
+      null,
+    ],
+    ["no name", { kind: OpenStackResourceKind.Api }, null],
+    [
+      "a worker",
+      { kind: OpenStackResourceKind.Service, name: "compute" },
+      null,
+    ],
+    ["a hypervisor", { kind: OpenStackResourceKind.Hypervisor }, null],
+    ["nothing", {}, null],
+  ])("%s", (_name, part, expected) => {
+    expect(getOpenStackRegionWide(part)).toEqual(expected);
   });
 });
 

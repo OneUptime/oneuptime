@@ -55,10 +55,10 @@ import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
  * been in its state. An instance that failed before it was placed has no hypervisor, which
  * is its story and not a gap.
  *
- * What neither collector says is said to be not collected, with where to look instead: an
- * instance's fixed addresses and its image. A failed instance's fault only comes from a
- * probe. The exporter's address labels are empty on a real cloud, and an empty cell would
- * read as an instance with no address.
+ * What a collector doesn't say is said to be not collected, with where to look instead: an
+ * instance's image. A failed instance's fault and its addresses only come from a probe: the
+ * exporter's address labels are empty on a real cloud, and an empty cell would read as an
+ * instance with no address.
  */
 
 const LINK_CLASS_NAME: string =
@@ -232,7 +232,9 @@ const InstanceOverview: FunctionComponent<{
           .filter((address: string): boolean => {
             return Boolean(address);
           })
-          .join(", ")
+          .join(", ") ||
+        translator.translateText("None") ||
+        "None"
       : notCollected(ADDRESSES_NOT_COLLECTED),
   });
   detailRows.push({

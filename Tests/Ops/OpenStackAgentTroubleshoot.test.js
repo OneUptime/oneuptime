@@ -2667,3 +2667,37 @@ describe("the script's helpers", () => {
     expect(result.status).toBe(0);
   });
 });
+
+describe("a folder this user cannot look inside", () => {
+  // Root looks inside anything, so there is nothing to see as root.
+  const asAnyoneButRoot = process.getuid && process.getuid() === 0 ? test.skip : test;
+
+  asAnyoneButRoot(
+    "says to use sudo, rather than that the agent and its credential are not there",
+    () => {
+      const dir = scratch();
+      const agent = path.join(dir, "agent");
+      fs.mkdirSync(agent);
+      fs.writeFileSync(path.join(agent, "clouds.yaml"), "clouds: {}\n");
+      // What a umask of 077 leaves when root runs install.sh.
+      fs.chmodSync(agent, 0o000);
+      let result;
+      try {
+        result = spawnSync("bash", [SCRIPT, "-d", agent, "--no-color"], {
+          encoding: "utf8",
+          env: { PATH: process.env.PATH, HOME: dir },
+        });
+      } finally {
+        fs.chmodSync(agent, 0o700);
+      }
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain(
+        `This user cannot look inside ${agent}, so nothing below could be read. Run this with sudo.`,
+      );
+      expect(result.stdout).not.toContain("does not exist");
+      // It stops there: no check of the chain follows, each to say the same.
+      expect(result.stdout).not.toContain("1. Runtime");
+    },
+  );
+});

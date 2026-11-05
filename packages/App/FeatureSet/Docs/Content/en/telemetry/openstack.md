@@ -230,7 +230,7 @@ curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
 bash install.sh
 ```
 
-The script asks for your OneUptime URL, the ingestion key, a stable name for the cloud, the Keystone auth URL, the region names, the application credential (a username and password if you say no to it) and a private CA file if the cloud has its own certificate authority. Nothing secret is echoed or goes on a command line. It checks the credential with Keystone before it writes or starts anything, installs to `/opt/oneuptime-openstack-agent`, writes `.env` and `clouds.yaml` with mode `0600`, and starts the agent with Docker Compose. Every answer also works as an environment variable, and running the script again reuses them instead of asking again, which is how you [upgrade the agent](#upgrading-the-agent).
+The script asks for your OneUptime URL, the ingestion key, a stable name for the cloud, the Keystone auth URL, the region names, the application credential (a username and password if you say no to it) and a private CA file if the cloud has its own certificate authority. Nothing secret is echoed or goes on a command line. It checks the credential with Keystone before it writes or starts anything, installs to `/opt/oneuptime-openstack-agent`, or to `oneuptime-openstack-agent` in your home folder if you have no rights on `/opt` (it needs only the `docker` group), writes `.env` and `clouds.yaml` with mode `0600`, and starts the agent with Docker Compose. Every answer also works as an environment variable, and running the script again reuses them instead of asking again, which is how you [upgrade the agent](#upgrading-the-agent).
 @tab Docker Compose
 Download `docker-compose.yml` and `otel-collector-config.yaml` from your OneUptime into a new folder:
 
@@ -292,8 +292,9 @@ Kolla-Ansible's exporter runs without `--multi-cloud`, so it has no `/probe`, an
 ### Check the agent is running
 
 ```bash
+cd /opt/oneuptime-openstack-agent    # or the folder the script said it installed to
 docker compose ps
-docker logs -f oneuptime-openstack-agent
+docker logs oneuptime-openstack-agent
 ```
 
 `docker compose ps` lists the collector (`oneuptime-openstack-agent`) and the bundled exporter (`oneuptime-openstack-exporter`). The collector's logs should show this line once it has started:
@@ -491,7 +492,7 @@ A part's blast radius is what it takes with it, by count and by project:
 
 A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
 
-Two things cannot be drawn, because neither the exporter nor a probe says them: which network an instance is on, and which pool holds a volume. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none.
+The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says which pool holds a volume, when Cinder treats its credential as an admin, and then a pool's blast radius counts its volumes and the instances they are attached to.
 
 ## Joined up with the rest of OneUptime
 
@@ -766,6 +767,14 @@ cd /opt/oneuptime-openstack-agent
 docker compose down
 cd /
 sudo rm -r /opt/oneuptime-openstack-agent
+```
+
+If it installed in your home folder, use `~/oneuptime-openstack-agent` in those commands, with no `sudo`. If you [run it as a systemd service](#run-as-a-systemd-service), take the unit away first:
+
+```bash
+sudo systemctl disable --now oneuptime-openstack-agent
+sudo rm -f /etc/systemd/system/oneuptime-openstack-agent.service
+sudo systemctl daemon-reload
 ```
 
 Without Docker:
