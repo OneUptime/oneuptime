@@ -22,7 +22,6 @@ import {
   resetServer,
   server,
   settle,
-  tableRow,
   tile,
 } from "./OpenStackPartHarness";
 

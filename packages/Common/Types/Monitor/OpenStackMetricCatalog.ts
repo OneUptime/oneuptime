@@ -288,6 +288,48 @@ const IRONIC_NODE_TIME_LABELS: ReadonlyArray<string> = [
   "provision_state",
 ];
 
+/*
+ * What Octavia's stats read gives, as a rate: its counters are cumulative, so a probe keeps the last
+ * reading and writes the difference over the seconds between them. Active connections is the one gauge.
+ */
+const OCTAVIA_TRAFFIC_SERIES: ReadonlyArray<{
+  suffix: string;
+  name: string;
+  unit: string;
+  what: string;
+}> = [
+  {
+    suffix: "active_connections",
+    name: "Active Connections",
+    unit: "{connection}",
+    what: "How many connections are open at the moment of the reading",
+  },
+  {
+    suffix: "connections_per_second",
+    name: "Connections per Second",
+    unit: "{connection}/s",
+    what: "How many connections were opened each second",
+  },
+  {
+    suffix: "bytes_in_per_second",
+    name: "Bytes In per Second",
+    unit: "By/s",
+    what: "How many bytes arrived each second",
+  },
+  {
+    suffix: "bytes_out_per_second",
+    name: "Bytes Out per Second",
+    unit: "By/s",
+    what: "How many bytes were sent each second",
+  },
+  {
+    suffix: "request_errors_per_second",
+    name: "Request Errors per Second",
+    unit: "{request}/s",
+    what: "How many requests failed each second",
+  },
+];
+
 const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   // Availability: the receiver's own two, then each API's.
   metric({
@@ -2812,7 +2854,8 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   metric({
     metricName: "openstack_loadbalancer_total_pools",
     friendlyName: translationKey("Load Balancer Pools"),
-    description: "How many pools Octavia listed for this credential, per region.",
+    description:
+      "How many pools Octavia listed for this credential, per region.",
     category: "Load Balancers",
     defaultAggregation: MetricsAggregationType.Max,
     unit: "count",
@@ -3188,6 +3231,90 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["hostname", "service"],
     onlyFromProbe: true,
   }),
+  metric({
+    metricName: "openstack_loadbalancer_listener_status",
+    friendlyName: translationKey("Load Balancer Listener"),
+    description:
+      "One series per listener, always 1: what it says is in its labels, its provisioning status and its operating status. Only a probe sends this: the exporter has no series for listeners.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [
+      "default_pool_id",
+      "id",
+      "loadbalancer_id",
+      "name",
+      "operating_status",
+      "project_id",
+      "protocol",
+      "protocol_port",
+      "provisioning_status",
+    ],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_loadbalancer_member_status",
+    friendlyName: translationKey("Load Balancer Member"),
+    description:
+      "One series per pool member, always 1: what it says is in its labels, its operating status above all, which is what its health monitor makes of it. Only a probe sends this: the exporter has no series for members, and a probe reads each pool's members in turn, so a pool beyond the per-collection limit says what it said when last read.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [
+      "address",
+      "backup",
+      "id",
+      "name",
+      "operating_status",
+      "pool_id",
+      "project_id",
+      "protocol_port",
+      "provisioning_status",
+      "weight",
+    ],
+    onlyFromProbe: true,
+  }),
+  ...OCTAVIA_TRAFFIC_SERIES.flatMap(
+    (traffic: {
+      suffix: string;
+      name: string;
+      unit: string;
+      what: string;
+    }): Array<OpenStackMetricDefinition> => {
+      return [
+        {
+          prefix: "openstack_loadbalancer_stats_",
+          scope: "load balancer",
+          labels: ["id", "name"],
+        },
+        {
+          prefix: "openstack_loadbalancer_listener_stats_",
+          scope: "listener",
+          labels: ["id", "loadbalancer_id", "name"],
+        },
+      ].map(
+        (where: {
+          prefix: string;
+          scope: string;
+          labels: Array<string>;
+        }): OpenStackMetricDefinition => {
+          return metric({
+            metricName: `${where.prefix}${traffic.suffix}`,
+            friendlyName: translationKey(
+              `${where.scope === "listener" ? "Listener" : "Load Balancer"} ${traffic.name}`,
+            ),
+            description: `${traffic.what} for this ${where.scope}, between two readings of Octavia's counters a collection apart. Only a probe sends this: the exporter has no stats series, so it reads Octavia's API. The OVN provider reports 0 for every counter. A rate is not written for the first reading, or across a counter that went down.`,
+            category: "Load Balancers",
+            defaultAggregation: MetricsAggregationType.Max,
+            unit: traffic.unit,
+            service: OpenStackServiceType.LoadBalancer,
+            identityAttributes: where.labels,
+            onlyFromProbe: true,
+          });
+        },
+      );
+    },
+  ),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_ironic_up",

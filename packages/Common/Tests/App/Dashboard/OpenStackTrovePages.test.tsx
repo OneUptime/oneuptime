@@ -215,7 +215,7 @@ describe("Databases", () => {
       return {
         ...row,
         facts: {
-          ...(row["facts"] as object),
+          ...(row["facts"] as Record<string, unknown>),
           vouchedAt: minutesAgo(30).toISOString(),
         },
       };
@@ -330,7 +330,7 @@ describe("a database's page", () => {
         ? {
             ...row,
             facts: {
-              ...(row["facts"] as object),
+              ...(row["facts"] as Record<string, unknown>),
               faultMessage: "Flavor's disk is too small for requested image.",
               taskDescription: "Build error: Server.",
             },

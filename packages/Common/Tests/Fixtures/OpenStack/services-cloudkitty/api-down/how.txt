@@ -1,0 +1,2 @@
+CloudKitty's API stopped.
+On its own: CloudKitty's API is stopped, with its processor still running.

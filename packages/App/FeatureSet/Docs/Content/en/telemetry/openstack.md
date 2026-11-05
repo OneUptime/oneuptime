@@ -183,6 +183,7 @@ service_type = compute
 | `barbican.conf` | `key-manager` |
 | `trove.conf` | `database` |
 | `gnocchi.conf` | `metric` |
+| `cloudkitty.conf` | `rating` |
 | `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
 
 Only the services your cloud runs need a line.
@@ -338,6 +339,18 @@ Without Docker, ask `systemctl status oneuptime-openstack-agent oneuptime-openst
 
 Open **Products → Infrastructure → OpenStack**. The cloud appears under its `OPENSTACK_CLOUD_NAME` after its first collection, within a few minutes. Compute, network, volume and Placement are read every 2 minutes, identity and images every 5.
 :::
+
+The cloud's **Overview** says whether its data is reaching OneUptime, what needs attention first, and how each service is doing:
+
+![An OpenStack cloud's Overview: whether its data is connected, the counts of what it reports, the failed instance and volume that need attention, and its APIs, hypervisors, vCPUs, memory and storage](/docs/static/images/OpenStackCloudOverview.png)
+
+**Hypervisors** says what Nova and Placement have promised on each compute host:
+
+![The Hypervisors page listing a compute host with its state, the vCPUs, memory and disk allocated on it, its aggregates and its region](/docs/static/images/OpenStackHypervisors.png)
+
+**Instances** lists every instance with its status in Nova's own words, its project, flavor and hypervisor:
+
+![The Instances page listing five instances with their status, project, flavor, hypervisor and region, one of them in ERROR and one SHUTOFF](/docs/static/images/OpenStackInstances.png)
 
 ## Environment variables
 
@@ -577,12 +590,12 @@ A price of zero means no price, not a free cloud. What has no price is said to h
 If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it rated replaces the calculation, project by project, and the page says which it used. A probe asks once an hour, for this month and last, and it's asked of `GET /v2/summary`, or `GET /v1/report/summary` on a CloudKitty too old for it. That's at most two requests per 1,000 projects an hour, plus a request for its version each time it's read.
 
 - **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
-- **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **What it sees is what the credential may see.** CloudKitty's own policy shows an admin's credential every project, with access rules or without, and anything less only its own. The projects it doesn't rate go on being worked out from your prices.
 - **A CloudKitty per region adds up.** Each one is read in its own time, and a project's figure is what they rated between them. One CloudKitty the catalog lists for several regions is asked once.
 - **Its figures are the one part of this that's telemetry.** They reach OneUptime as `openstack_cloudkitty_rated`, one datapoint per project and month, once an hour: 20,000 an hour at 10,000 projects, which is next to nothing beside the rest of a cloud that size.
 - **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
 - **If it stops answering,** what each project was rated stays where it was, and the page says when it was last read. **Rating API Down** alerts on that.
-- **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
+- **A real CloudKitty has answered this,** on `stable/2026.1`, with InfluxDB behind it, rating what Ceilometer wrote to Gnocchi. That's the only setup it has been read on. With no rule enabled it rates each project `0`, and with nothing rated yet it answers with no rows. Either way, those projects go on being worked out from your prices.
 
 ### Budgets
 
@@ -711,6 +724,10 @@ To see a Nova metadata key as a label, add `--nova.metadata-extra-labels=team` t
 A cloud's **Topology** page draws it region by region: availability zones, hypervisors and the instances on them, storage pools and volumes, networks, routers and floating IPs, and the APIs and services. Each part is coloured by the same rules as **Needs attention**, so a hypervisor whose `nova-compute` has stopped is red, with its instances beneath it.
 
 Past 5,000 parts, the map reads what has failed and what that takes with it rather than everything, opens on the hosts that failed and says what it left out. **Needs attention** narrows it to all of the rest. [Infrastructure](/docs/telemetry/topology) draws the cloud beside your hosts and clusters.
+
+With `nova-compute` stopped on a host, the host turns red with its instances beneath it, and the page counts the open incident and alert:
+
+![The Topology page with nova-compute stopped: the host is red and reads Down, its instances are beneath it needing attention, and one incident and one alert are open](/docs/static/images/OpenStackTopologyComputeDown.png)
 
 A part's blast radius is what it takes with it, by count and by project:
 
@@ -881,8 +898,8 @@ A load balancer in `ERROR`, one stuck `PENDING_UPDATE` or `PENDING_CREATE` for a
 | --- | --- | --- |
 | Every project's load balancers and pools, with both statuses | Yes | Its own project's at most, and the monitoring role none |
 | Amphorae, their role, their instance and their certificate | Yes | No: Octavia lets only an admin list them |
-| Listeners and members | No: the exporter has no series for them | No |
-| Traffic: connections, bytes, request errors | No: the exporter has no `stats_*` series, and Octavia's API is the only place that says | No |
+| Listeners and members | No: the exporter has no series for them. A [probe](/docs/telemetry/openstack-agentless) reads them | A probe: its own project's |
+| Traffic: connections, bytes, request errors | No: the exporter has no `stats_*` series, and Octavia's API is the only place that says. A probe reads it and charts the rate between two readings | A probe: its own project's |
 | Octavia's own workers on **Services** | No: nothing the agent reads lists them | No |
 
 A pool whose members all fail their health check is `ERROR` in operating status while it and its load balancer stay `ACTIVE` in provisioning, recorded, so a page that read provisioning alone would show nothing wrong. A load balancer in provisioning `ERROR` reads operating `OFFLINE`. The OVN provider reports 0 for every traffic counter, which is not a fault.
@@ -1288,6 +1305,8 @@ workers = 1
 OpenStack-Helm's Nova chart sets both to 1 already and scales by pods.
 
 ### Trace a request
+
+![A cloud's Traces page: when the last span arrived, which services have been in a trace and which have not, and the commands that sign a request on this cloud](/docs/static/images/OpenStackTraces.png)
 
 **Trace a request**, on your cloud's **Traces** page, has the commands for this cloud. They ask for your key without echoing it, which keeps it out of your shell's history and the machine's process list:
 

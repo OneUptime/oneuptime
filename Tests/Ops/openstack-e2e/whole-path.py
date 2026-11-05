@@ -915,6 +915,8 @@ def while_stopped(cloud_id, monitor_id, stopped_at):
                 "OpenStackIncidentComputeDown.png",
                 f"/dashboard/{live.PROJECT_ID}/incidents/{incident['_id']}",
                 text=["Compute Service Down", "What this affects"],
+                # Nobody has asked OneUptime AI anything or started a call: both are honest about it.
+                allowEmpty=["investigation-conversation-empty", "event-video-calls-empty"],
             ),
         ],
     )
@@ -1157,6 +1159,8 @@ def part_probe():
                 "OpenStackDataCollection.png",
                 cloud_path(cloud_id, "settings"),
                 marks=[{"selector": '[data-testid="openstack-data-collection"]', "hasText": "whole-path-probe", "scrollTo": True}],
+                # The same page's cards for rules on a project or domain, and there are none.
+                allowEmpty=["openstack-scoped-rules-empty"],
             ),
             named_page("The probe's cloud's Overview", "sweep/probe-overview.png", cloud_path(cloud_id), text=[PROBE_CLOUD]),
             named_page("The probe's cloud's Instances", "sweep/probe-instances.png", cloud_path(cloud_id, "instances"), text=["ou-running"]),

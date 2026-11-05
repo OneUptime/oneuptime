@@ -16,8 +16,8 @@ import { OpenStackJsonAnswer } from "../OpenStackServiceClient";
 import { OpenStackCollectorContext } from "./OpenStackCollectorContext";
 
 /*
- * CloudKitty, which most clouds don't run. No real one has answered this: it's written to the API
- * reference, and its tests say so.
+ * CloudKitty, which most clouds don't run. A real one has answered this on stable/2026.1
+ * (Fixtures/OpenStack/services-cloudkitty), and its tests replay what it said.
  *
  * Its version document says whether it's there and answering, every time this service is read. What it
  * rated is asked once an hour, this month and last, a page at a time and no more than

@@ -347,6 +347,9 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_loadbalancer_loadbalancer_status",
   "openstack_loadbalancer_pool_status",
   "openstack_loadbalancer_amphora_status",
+  // Only a probe's: the exporter has no series for a listener or a member.
+  "openstack_loadbalancer_listener_status",
+  "openstack_loadbalancer_member_status",
   "openstack_object_store_bytes",
   "openstack_object_store_objects",
   "openstack_trove_instance_status",
@@ -1630,11 +1633,7 @@ function foldAmphora(data: {
    */
   entry.facts["loadBalancerId"] =
     getLabel(data.attributes, "loadbalancer_id") || null;
-  setFact(
-    entry,
-    "certExpiresAt",
-    getLabel(data.attributes, "cert_expiration"),
-  );
+  setFact(entry, "certExpiresAt", getLabel(data.attributes, "cert_expiration"));
   setFact(entry, "haIp", getLabel(data.attributes, "ha_ip"));
   setFact(entry, "managementIp", getLabel(data.attributes, "lb_network_ip"));
 }
@@ -1818,6 +1817,93 @@ function foldDnsRecordset(data: {
   setFact(entry, "recordType", getLabel(data.attributes, "type"));
   setFact(entry, "zoneId", getLabel(data.attributes, "zone_id"));
   setFact(entry, "zoneName", getLabel(data.attributes, "zone_name"));
+}
+
+function foldListener(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Listener,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(
+    entry,
+    getLabel(data.attributes, "provisioning_status"),
+    data.observedAt,
+  );
+  setFact(
+    entry,
+    "operatingStatus",
+    getLabel(data.attributes, "operating_status"),
+  );
+  setFact(entry, "protocol", getLabel(data.attributes, "protocol"));
+  setFact(
+    entry,
+    "protocolPort",
+    Number(getLabel(data.attributes, "protocol_port")) || null,
+  );
+  setFact(
+    entry,
+    "loadBalancerId",
+    getLabel(data.attributes, "loadbalancer_id"),
+  );
+  setFact(entry, "defaultPoolId", getLabel(data.attributes, "default_pool_id"));
+}
+
+function foldMember(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.LoadBalancerMember,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(
+    entry,
+    getLabel(data.attributes, "provisioning_status"),
+    data.observedAt,
+  );
+  setFact(
+    entry,
+    "operatingStatus",
+    getLabel(data.attributes, "operating_status"),
+  );
+  setFact(entry, "poolId", getLabel(data.attributes, "pool_id"));
+  setFact(entry, "address", getLabel(data.attributes, "address"));
+  setFact(
+    entry,
+    "protocolPort",
+    Number(getLabel(data.attributes, "protocol_port")) || null,
+  );
+  setFact(entry, "weight", Number(getLabel(data.attributes, "weight")));
+  setBooleanFact(entry, "isBackup", getLabel(data.attributes, "backup"));
 }
 
 function foldSnapshot(data: {
@@ -2752,6 +2838,12 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_loadbalancer_amphora_status":
       foldAmphora({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_loadbalancer_listener_status":
+      foldListener({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_loadbalancer_member_status":
+      foldMember({ buffer, attributes, region, observedAt });
       return;
     case "openstack_designate_zone_status":
       foldDnsZone({ buffer, attributes, region, observedAt });

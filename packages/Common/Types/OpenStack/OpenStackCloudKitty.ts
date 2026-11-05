@@ -8,21 +8,24 @@ import { JSONObject, JSONValue } from "../JSON";
  * exporter has no series for it. So a cloud connected through an agent calculates, and its page says
  * so.
  *
- * What's known of its API comes from its documentation (the v2 summary and the v1 report summary), and
- * no real CloudKitty has answered this code. Each shape it accepts is here because the API reference
- * shows it, and tests made to that reference are labelled as such.
+ * A real CloudKitty answered these two on stable/2026.1 (Fixtures/OpenStack/services-cloudkitty), and
+ * the probe's tests replay it. The other shapes read here are because the API reference shows them, and
+ * tests made to that reference are labelled as such.
  *
  *   GET /v2/summary?begin=&end=&groupby=project_id&limit=&offset=
- *     {"total": 2, "columns": ["begin", "end", "qty", "rate", "project_id"],
- *      "results": [["2026-11-01T00:00:00+00:00", "2026-12-01T00:00:00+00:00", 12.5, 3.25, "abc"], ...]}
+ *     {"total": 2, "columns": ["begin", "end", "qty", "rate", "project_id"], "format": "table",
+ *      "results": [["2026-11-01T00:00:00+00:00", "2026-12-01T00:00:00+00:00", 3.0, 0.5, "abc"], ...]}
+ *     With nothing rated: {"total": 0, "columns": [], "results": [], "format": "table"}.
  *
  *   GET /v1/report/summary?begin=&end=&groupby=tenant_id&all_tenants=true
- *     {"summary": [{"tenant_id": "abc", "res_type": "ALL", "rate": "3.25", "begin": "...", "end": "..."}]}
+ *     {"summary": [{"tenant_id": "abc", "res_type": "ALL", "rate": "0.5", "begin": "...", "end": "..."}]}
+ *     With nothing rated: {"summary": []}.
  *
- * It has a policy of its own, which by default shows a credential only its own project unless it's an
- * admin. So what comes back can be part of a cloud, and each project takes CloudKitty's figure only
- * where it has one. It has no idea of a currency either. A rate is a number. The operator's price
- * list says which currency a page shows it in, and without one it's shown as a number alone.
+ * It has a policy of its own. An admin's credential reads every project, and anything less reads only
+ * its own and is refused the v1 report of all of them. So what comes back can be part of a cloud, and
+ * each project takes CloudKitty's figure only where it has one. It has no idea of a currency either. A
+ * rate is a number. The operator's price list says which currency a page shows it in, and without one
+ * it's shown as a number alone.
  *
  * Pure and bounded, because what it reads comes from outside and a project can have any number of rows.
  */

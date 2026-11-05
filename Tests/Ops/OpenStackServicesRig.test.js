@@ -98,6 +98,7 @@ describe("the job that records them", () => {
       "services-designate-barbican-swift",
       "services-trove",
       "services-gnocchi",
+      "services-cloudkitty",
     ]);
     const deployOf = (definition) => {
       return definition.steps.find((step) => {
@@ -290,7 +291,10 @@ echo "$1 RECORD_SERVICES=$RECORD_SERVICES RECON_TARGETS=\${RECON_TARGETS:-}" >>"
 import hashlib, json, os, sys
 args = " ".join(sys.argv[1:])
 if "catalog list" in args:
-    print(json.dumps([{"Type": "metric", "Endpoints": [{"interface": "public", "url": "http://10.0.0.1/metric"}]}]))
+    print(json.dumps([
+        {"Type": "metric", "Endpoints": [{"interface": "public", "url": "http://10.0.0.1/metric"}]},
+        {"Type": "rating", "Endpoints": [{"interface": "public", "url": "http://10.0.0.1/rating"}]},
+    ]))
 elif "provider list" in args:
     print("amphora\\novn")
 elif "-f json" in args and "addresses" in args:
@@ -338,8 +342,8 @@ exec "$@"
     writeExecutable(
       path.join(bin, "curl"),
       `#!/usr/bin/env bash
-# Gnocchi's answers, the only API these scripts read for themselves.
-printf '{"id": "stub-metric", "metricd": {"processors": ["one"]}, "storage": {"summary": {"measures": 0, "metrics": 0}}}'
+# Gnocchi's and CloudKitty's answers, the only APIs these scripts read for themselves.
+printf '{"id": "stub-metric", "metricd": {"processors": ["one"]}, "storage": {"summary": {"measures": 0, "metrics": 0}}, "enabled": true, "service_id": "stub-service", "metrics": []}'
 `,
     );
     const output = path.join(dir, "out");
@@ -704,6 +708,75 @@ elif "project show" in args:
     "key-manager": "http://10.0.0.1/key-manager",
     metric: "http://10.0.0.1/metric",
   };
+
+  test("what a probe reads of CloudKitty is what's recorded, by the routes it asks", () => {
+    const { run, calls, urls } = recordWith({
+      rating: "http://10.0.0.1/rating",
+    });
+    expect({ status: run.status, stderr: run.stderr }).toEqual({
+      status: 0,
+      stderr: "",
+    });
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        "cloudkitty-versions",
+        "cloudkitty-info-metrics",
+        "cloudkitty-summary-this-month",
+        "cloudkitty-report-this-month",
+        "cloudkitty-summary-last-month",
+        "cloudkitty-report-last-month",
+      ]),
+    );
+    const period =
+      "begin=\\d{4}-\\d{2}-01T00%3A00%3A00&end=\\d{4}-\\d{2}-01T00%3A00%3A00";
+    expect(urls).toContain("http://10.0.0.1/rating/\n");
+    expect(urls).toContain("http://10.0.0.1/rating/v1/info/metrics\n");
+    expect(urls).toMatch(
+      new RegExp(
+        `/rating/v2/summary\\?${period}&groupby=project_id&limit=1000&offset=0\n`,
+      ),
+    );
+    expect(urls).toMatch(
+      new RegExp(
+        `/rating/v1/report/summary\\?${period}&groupby=tenant_id&all_tenants=true\n`,
+      ),
+    );
+    // The probe's own words for them, so that these can't drift apart.
+    const collector = read(
+      path.join(
+        ROOT,
+        "packages",
+        "Probe",
+        "Utils",
+        "OpenStack",
+        "Collectors",
+        "RatingCollector.ts",
+      ),
+    );
+    for (const words of [
+      'path: "/"',
+      'path: "/v2/summary"',
+      'groupby: "project_id"',
+      'path: "/v1/report/summary"',
+      'groupby: "tenant_id"',
+      'all_tenants: "true"',
+    ]) {
+      expect(collector).toContain(words);
+    }
+    expect(
+      read(
+        path.join(
+          ROOT,
+          "packages",
+          "Probe",
+          "Utils",
+          "OpenStack",
+          "Checks",
+          "OpenStackApiCheck.ts",
+        ),
+      ),
+    ).toContain('[OpenStackServiceType.Rating]: { path: "/v1/info/metrics" }');
+  });
 
   test("a cloud of only the core services records what it always did, and no more", () => {
     const { run, calls } = recordWith({});

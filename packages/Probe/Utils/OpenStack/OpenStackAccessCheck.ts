@@ -447,6 +447,28 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       tells: "adminOnly",
     },
     {
+      service: OpenStackServiceType.LoadBalancer,
+      read: "load balancers",
+      path: "/v2/lbaas/loadbalancers",
+      key: "loadbalancers",
+      projectField: "project_id",
+      goesWithout:
+        "other projects' load balancers. Octavia shows anything less its own project's, and the monitoring role none, and no error.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.LoadBalancer,
+      read: "amphorae",
+      path: "/v2/octavia/amphorae",
+      key: "amphorae",
+      projectField: "-",
+      goesWithout:
+        "the amphorae behind each load balancer, their role and when their certificates end. Octavia lets only an admin list them, and refuses anything less, global observer included.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
       service: OpenStackServiceType.SharedFileSystems,
       read: "shares, all projects",
       path: "/shares/detail",

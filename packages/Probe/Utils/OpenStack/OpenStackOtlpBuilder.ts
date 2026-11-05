@@ -14,6 +14,7 @@ import {
   OpenStackMetricInventory,
   OpenStackRatingInventory,
   OpenStackPlacementInventory,
+  OpenStackLoadBalancerInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
   NovaFlavorRecord,
@@ -321,6 +322,7 @@ export interface OpenStackServiceReading {
     | OpenStackContainerInfraInventory
     | OpenStackRatingInventory
     | OpenStackSharedFileSystemsInventory
+    | OpenStackLoadBalancerInventory
     | OpenStackDatabaseInventory
     | OpenStackKeyManagerInventory
     | OpenStackObjectStoreInventory
@@ -1583,6 +1585,164 @@ function writeContainerInfra(
 }
 
 /*
+ * The exporter's codes for Octavia's statuses, as a real cloud's answered them (services-octavia): a load
+ * balancer's series is its OPERATING status, ONLINE 0, OFFLINE 2 and ERROR 3, and DEGRADED reads -1, so it is
+ * the words that are read. A pool's is its provisioning status, which every pool recorded had at ACTIVE 0.
+ * An amphora's follow Octavia's own order, ALLOCATED 1 and ERROR 6 recorded.
+ */
+const LOAD_BALANCER_OPERATING_CODES: Readonly<Record<string, number>> = {
+  ONLINE: 0,
+  DRAINING: 1,
+  OFFLINE: 2,
+  ERROR: 3,
+};
+
+const AMPHORA_STATUS_CODES: Readonly<Record<string, number>> = {
+  BOOTING: 0,
+  ALLOCATED: 1,
+  READY: 2,
+  PENDING_CREATE: 3,
+  PENDING_DELETE: 4,
+  DELETED: 5,
+  ERROR: 6,
+};
+
+/*
+ * The exporter's three series about what Octavia holds, label for label, and what only a native read says:
+ * a listener and a member, which are one series each with the value 1 (what they say is in their labels),
+ * and the rates of the counters Octavia keeps for a load balancer and a listener, which the exporter has
+ * no series for. A rate with no earlier reading to compare with is not written, rather than written as 0.
+ */
+function writeLoadBalancer(
+  writer: SeriesWriter,
+  inventory: OpenStackLoadBalancerInventory,
+): void {
+  if (inventory.loadBalancers) {
+    writer.add("total_loadbalancers", {}, inventory.loadBalancers.length);
+
+    for (const balancer of inventory.loadBalancers) {
+      writer.add(
+        "loadbalancer_status",
+        {
+          id: balancer.id,
+          name: balancer.name,
+          operating_status: balancer.operatingStatus,
+          project_id: balancer.projectId,
+          provider: balancer.provider,
+          provisioning_status: balancer.provisioningStatus,
+          vip_address: balancer.vipAddress,
+        },
+        LOAD_BALANCER_OPERATING_CODES[balancer.operatingStatus || ""] ?? -1,
+      );
+    }
+  }
+
+  if (inventory.pools) {
+    writer.add("total_pools", {}, inventory.pools.length);
+
+    for (const pool of inventory.pools) {
+      writer.add(
+        "pool_status",
+        {
+          id: pool.id,
+          lb_algorithm: pool.algorithm,
+          loadbalancers: pool.loadBalancerIds,
+          name: pool.name,
+          operating_status: pool.operatingStatus,
+          project_id: pool.projectId,
+          protocol: pool.protocol,
+          provisioning_status: pool.provisioningStatus,
+        },
+        pool.provisioningStatus === "ACTIVE" ? 0 : -1,
+      );
+    }
+  }
+
+  if (inventory.amphorae) {
+    writer.add("total_amphorae", {}, inventory.amphorae.length);
+
+    for (const amphora of inventory.amphorae) {
+      writer.add(
+        "amphora_status",
+        {
+          cert_expiration: amphora.certExpiration,
+          compute_id: amphora.computeId,
+          ha_ip: amphora.haIp,
+          id: amphora.id,
+          lb_network_ip: amphora.managementIp,
+          loadbalancer_id: amphora.loadBalancerId,
+          role: amphora.role,
+          status: amphora.status,
+        },
+        AMPHORA_STATUS_CODES[amphora.status || ""] ?? -1,
+      );
+    }
+  }
+
+  for (const listener of inventory.listeners || []) {
+    writer.add(
+      "listener_status",
+      {
+        id: listener.id,
+        name: listener.name,
+        project_id: listener.projectId,
+        loadbalancer_id: listener.loadBalancerId,
+        default_pool_id: listener.defaultPoolId,
+        protocol: listener.protocol,
+        protocol_port: listener.protocolPort,
+        provisioning_status: listener.provisioningStatus,
+        operating_status: listener.operatingStatus,
+      },
+      1,
+    );
+  }
+
+  for (const member of inventory.members || []) {
+    writer.add(
+      "member_status",
+      {
+        id: member.id,
+        name: member.name,
+        pool_id: member.poolId,
+        project_id: member.projectId,
+        address: member.address,
+        protocol_port: member.protocolPort,
+        weight: member.weight,
+        backup: member.isBackup,
+        provisioning_status: member.provisioningStatus,
+        operating_status: member.operatingStatus,
+      },
+      1,
+    );
+  }
+
+  for (const rates of inventory.rates || []) {
+    const prefix: string =
+      rates.scope === "listener" ? "listener_stats" : "stats";
+    const labels: Labels =
+      rates.scope === "listener"
+        ? {
+            id: rates.id,
+            name: rates.name,
+            loadbalancer_id: rates.loadBalancerId,
+          }
+        : { id: rates.id, name: rates.name };
+    const series: Array<[string, number | null]> = [
+      ["active_connections", rates.activeConnections],
+      ["connections_per_second", rates.connectionsPerSecond],
+      ["bytes_in_per_second", rates.bytesInPerSecond],
+      ["bytes_out_per_second", rates.bytesOutPerSecond],
+      ["request_errors_per_second", rates.requestErrorsPerSecond],
+    ];
+    for (const [name, value] of series) {
+      if (value !== null) {
+        writer.add(`${prefix}_${name}`, labels, value);
+      }
+    }
+  }
+}
+
+/*
  * A share's type goes by its name in the label the exporter fills with that, and its own read's
  * share_type_name stays out, because the exporter's is empty and an empty label is no label.
  */
@@ -1953,6 +2113,12 @@ function writeInventory(
       return;
     case OpenStackServiceType.Rating:
       writeRating(writer, reading.inventory as OpenStackRatingInventory);
+      return;
+    case OpenStackServiceType.LoadBalancer:
+      writeLoadBalancer(
+        writer,
+        reading.inventory as OpenStackLoadBalancerInventory,
+      );
       return;
     case OpenStackServiceType.SharedFileSystems:
       writeSharedFileSystems(

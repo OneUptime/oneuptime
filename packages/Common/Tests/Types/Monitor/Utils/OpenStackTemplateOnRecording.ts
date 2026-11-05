@@ -1,7 +1,6 @@
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import { RecordedSeries } from "../../../Helpers/OpenStackRecordedRows";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
-import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import {
   OpenStackAlertTemplate,
@@ -124,9 +123,9 @@ export async function readOpenStackTemplateOnRecording(data: {
        * recording holds one collection.
        */
       const isCount: boolean =
-        (query.metricQueryData.filterData as unknown as Record<string, unknown>)[
-          "aggegationType"
-        ] === MetricsAggregationType.Count;
+        (
+          query.metricQueryData.filterData as unknown as Record<string, unknown>
+        )["aggegationType"] === MetricsAggregationType.Count;
       held.samples[alias] = new Array<number>(windowMinutes).fill(
         isCount ? (held.samples[alias]?.[0] || 0) + 1 : series.value,
       );

@@ -30,7 +30,6 @@ import {
   resetServer,
   server,
   settle,
-  tableRow,
   tile,
 } from "./OpenStackPartHarness";
 
@@ -194,7 +193,7 @@ describe("Gnocchi's API page", () => {
         ? {
             ...row,
             facts: {
-              ...(row["facts"] as object),
+              ...(row["facts"] as Record<string, unknown>),
               measuresToProcess: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES + 1,
             },
           }

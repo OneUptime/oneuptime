@@ -49,6 +49,7 @@ import {
   OpenStackMetricInventory,
   OpenStackPlacementInventory,
   OpenStackRatingInventory,
+  OpenStackLoadBalancerInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
 } from "./OpenStackInventory";
@@ -107,6 +108,7 @@ import collectRating from "./Collectors/RatingCollector";
 import collectBareMetal, {
   IRONIC_MICROVERSION,
 } from "./Collectors/BareMetalCollector";
+import collectLoadBalancer from "./Collectors/LoadBalancerCollector";
 import collectSharedFileSystems, {
   SHARED_FILE_SYSTEMS_MICROVERSION_HEADERS,
 } from "./Collectors/SharedFileSystemsCollector";
@@ -218,6 +220,7 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Orchestration,
   OpenStackServiceType.ContainerInfra,
   OpenStackServiceType.SharedFileSystems,
+  OpenStackServiceType.LoadBalancer,
   OpenStackServiceType.Database,
   OpenStackServiceType.Metric,
   OpenStackServiceType.Dns,
@@ -475,6 +478,8 @@ function countRollingDatapoints(
       (inventory.orchestration?.stacks?.length || 0) +
       (inventory["container-infra"]?.clusters?.length || 0) * 3 +
       (inventory.sharev2?.shares?.length || 0) * 2 +
+      (inventory["load-balancer"]?.loadBalancers?.length || 0) * 3 +
+      (inventory["load-balancer"]?.members?.length || 0) +
       (inventory.database?.instances?.length || 0) * 3 +
       (inventory.dns?.zones?.length || 0) +
       (inventory.dns?.recordsets?.length || 0);
@@ -1425,6 +1430,12 @@ export default class OpenStackCollector {
             const inventory: OpenStackRatingInventory = {};
             byService.rating = inventory;
             work = collectRating(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.LoadBalancer: {
+            const inventory: OpenStackLoadBalancerInventory = {};
+            byService["load-balancer"] = inventory;
+            work = collectLoadBalancer(context(inventory));
             break;
           }
           case OpenStackServiceType.SharedFileSystems: {

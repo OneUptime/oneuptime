@@ -18,6 +18,7 @@ export const OPENSTACK_COUNTABLE: Partial<
   [OpenStackResourceKind.Snapshot]: ["project"],
   [OpenStackResourceKind.Backup]: ["project"],
   [OpenStackResourceKind.Network]: ["project"],
+  [OpenStackResourceKind.Subnet]: ["project"],
   [OpenStackResourceKind.Router]: ["project"],
   [OpenStackResourceKind.FloatingIp]: ["project"],
   [OpenStackResourceKind.Share]: ["project"],
@@ -25,6 +26,8 @@ export const OPENSTACK_COUNTABLE: Partial<
   [OpenStackResourceKind.DatabaseInstance]: ["project"],
   [OpenStackResourceKind.ObjectContainer]: ["project"],
   [OpenStackResourceKind.DnsZone]: ["project"],
+  [OpenStackResourceKind.Stack]: ["project"],
+  [OpenStackResourceKind.ContainerCluster]: ["project"],
 };
 
 export const OPENSTACK_COUNT_LIMIT: number = 500;

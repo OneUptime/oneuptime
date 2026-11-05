@@ -9,9 +9,9 @@ import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
- * HAND-CHECKED AGAINST CLOUDKITTY'S API REFERENCE. No real CloudKitty has answered any of this: no
- * recording holds one, and these rows are written to what the docs say its v2 summary and v1 report
- * answer. When one is read for real, its answer belongs here beside these.
+ * HAND-CHECKED AGAINST CLOUDKITTY'S API REFERENCE. These rows are written to what the docs say its v2
+ * summary and v1 report answer. What a real one answered is replayed through the probe's collector, in
+ * Probe/Tests/Utils/OpenStack/OpenStackRatingCollection.test.ts.
  */
 
 describe("CloudKitty's v2 summary, in its documented shapes", () => {
