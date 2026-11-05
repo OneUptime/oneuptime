@@ -1,0 +1,136 @@
+{
+"resource_providers": [
+{
+"generation": 5,
+"links": [
+{
+"href": "/placement/resource_providers/a8c3445b-9d75-40ab-8154-71eb5bfde0b1",
+"rel": "self"
+},
+{
+"href": "/placement/resource_providers/a8c3445b-9d75-40ab-8154-71eb5bfde0b1/inventories",
+"rel": "inventories"
+},
+{
+"href": "/placement/resource_providers/a8c3445b-9d75-40ab-8154-71eb5bfde0b1/usages",
+"rel": "usages"
+},
+{
+"href": "/placement/resource_providers/a8c3445b-9d75-40ab-8154-71eb5bfde0b1/aggregates",
+"rel": "aggregates"
+},
+{
+"href": "/placement/resource_providers/a8c3445b-9d75-40ab-8154-71eb5bfde0b1/traits",
+"rel": "traits"
+},
+{
+"href": "/placement/resource_providers/a8c3445b-9d75-40ab-8154-71eb5bfde0b1/allocations",
+"rel": "allocations"
+}
+],
+"name": "compute-01.example.internal",
+"parent_provider_uuid": null,
+"root_provider_uuid": "a8c3445b-9d75-40ab-8154-71eb5bfde0b1",
+"uuid": "a8c3445b-9d75-40ab-8154-71eb5bfde0b1"
+},
+{
+"generation": 6,
+"links": [
+{
+"href": "/placement/resource_providers/136cfc50-7e6c-4953-b171-08c72bf7698c",
+"rel": "self"
+},
+{
+"href": "/placement/resource_providers/136cfc50-7e6c-4953-b171-08c72bf7698c/inventories",
+"rel": "inventories"
+},
+{
+"href": "/placement/resource_providers/136cfc50-7e6c-4953-b171-08c72bf7698c/usages",
+"rel": "usages"
+},
+{
+"href": "/placement/resource_providers/136cfc50-7e6c-4953-b171-08c72bf7698c/aggregates",
+"rel": "aggregates"
+},
+{
+"href": "/placement/resource_providers/136cfc50-7e6c-4953-b171-08c72bf7698c/traits",
+"rel": "traits"
+},
+{
+"href": "/placement/resource_providers/136cfc50-7e6c-4953-b171-08c72bf7698c/allocations",
+"rel": "allocations"
+}
+],
+"name": "ou-cap-2",
+"parent_provider_uuid": null,
+"root_provider_uuid": "136cfc50-7e6c-4953-b171-08c72bf7698c",
+"uuid": "136cfc50-7e6c-4953-b171-08c72bf7698c"
+},
+{
+"generation": 7,
+"links": [
+{
+"href": "/placement/resource_providers/06814c4f-f45b-4f15-becc-a4e867f451a8",
+"rel": "self"
+},
+{
+"href": "/placement/resource_providers/06814c4f-f45b-4f15-becc-a4e867f451a8/inventories",
+"rel": "inventories"
+},
+{
+"href": "/placement/resource_providers/06814c4f-f45b-4f15-becc-a4e867f451a8/usages",
+"rel": "usages"
+},
+{
+"href": "/placement/resource_providers/06814c4f-f45b-4f15-becc-a4e867f451a8/aggregates",
+"rel": "aggregates"
+},
+{
+"href": "/placement/resource_providers/06814c4f-f45b-4f15-becc-a4e867f451a8/traits",
+"rel": "traits"
+},
+{
+"href": "/placement/resource_providers/06814c4f-f45b-4f15-becc-a4e867f451a8/allocations",
+"rel": "allocations"
+}
+],
+"name": "ou-cap-1",
+"parent_provider_uuid": null,
+"root_provider_uuid": "06814c4f-f45b-4f15-becc-a4e867f451a8",
+"uuid": "06814c4f-f45b-4f15-becc-a4e867f451a8"
+},
+{
+"generation": 5,
+"links": [
+{
+"href": "/placement/resource_providers/3aa7b7f0-8ced-47b7-9011-a5e239545dd0",
+"rel": "self"
+},
+{
+"href": "/placement/resource_providers/3aa7b7f0-8ced-47b7-9011-a5e239545dd0/inventories",
+"rel": "inventories"
+},
+{
+"href": "/placement/resource_providers/3aa7b7f0-8ced-47b7-9011-a5e239545dd0/usages",
+"rel": "usages"
+},
+{
+"href": "/placement/resource_providers/3aa7b7f0-8ced-47b7-9011-a5e239545dd0/aggregates",
+"rel": "aggregates"
+},
+{
+"href": "/placement/resource_providers/3aa7b7f0-8ced-47b7-9011-a5e239545dd0/traits",
+"rel": "traits"
+},
+{
+"href": "/placement/resource_providers/3aa7b7f0-8ced-47b7-9011-a5e239545dd0/allocations",
+"rel": "allocations"
+}
+],
+"name": "ou-cap-3",
+"parent_provider_uuid": null,
+"root_provider_uuid": "3aa7b7f0-8ced-47b7-9011-a5e239545dd0",
+"uuid": "3aa7b7f0-8ced-47b7-9011-a5e239545dd0"
+}
+]
+}
