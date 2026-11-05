@@ -44,6 +44,7 @@ export interface OpenStackInventorySummary {
    * with what that project owns, and Placement answers everyone.
    */
   bareMetalProviderCount: number;
+  bareMetalProvidersNotListedCount: number;
   // The services a read has heard from, by what Keystone's catalog calls them.
   services: Array<string>;
   // Of those, the ones that have never once let this credential in.
@@ -92,6 +93,9 @@ export function toOpenStackInventorySummary(
     downServiceCount: readNumber("downServiceCount"),
     bareMetalNodeCount: readNumber("bareMetalNodeCount"),
     bareMetalProviderCount: readNumber("bareMetalProviderCount"),
+    bareMetalProvidersNotListedCount: readNumber(
+      "bareMetalProvidersNotListedCount",
+    ),
     services: services,
     closedServices: Array.isArray(summary["closedServices"])
       ? (summary["closedServices"] as Array<JSONValue>).filter(

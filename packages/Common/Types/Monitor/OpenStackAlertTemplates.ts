@@ -2299,7 +2299,7 @@ const bareMetalNodeInErrorTemplate: OpenStackAlertTemplate = {
   name: "Bare Metal Node in Error",
   forService: OpenStackServiceType.BareMetal,
   summary: "A bare metal node stays in a failed provision state.",
-  description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_ERROR_STATES).join(", ")} for 15 minutes (openstack_ironic_node filtered to that provision_state label, in every collection of the window). One incident per node, in maintenance or not, because Ironic does not always put a failed node in maintenance, and it stays failed until someone acts. Check the conductor's log as well as \`openstack baremetal node show <node> -c last_error\`: the exporter does not carry why, and Ironic empties last_error within about a minute of a failure. A probe reads last_error, and keeps the last one it saw.`,
+  description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_ERROR_STATES).join(", ")} for 15 minutes (openstack_ironic_node filtered to that provision_state label, in every collection of the window). One incident per node, in maintenance or not, because Ironic does not always put a failed node in maintenance, and it stays failed until someone acts. Check the conductor's log as well as \`openstack baremetal node show <node> -c last_error\`: the exporter does not carry why, and Ironic can empty last_error within about a minute of a failure. A probe reads last_error, and keeps the last one it saw.`,
   category: "Bare Metal",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2318,7 +2318,7 @@ const bareMetalNodeInErrorTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] Bare Metal Node in Error",
-        incidentDescription: `This node is in a failed provision state, so the machine is out of what the cloud can give until someone acts: Ironic retries none of these by itself. Check openstack baremetal node show for the node named above, and the conductor's log: Ironic empties last_error within about a minute of a failure. Once it is fixed, move the node on with openstack baremetal node manage or provide. The incident resolves on its own once it has left the failed state.`,
+        incidentDescription: `This node is in a failed provision state, so the machine is out of what the cloud can give until someone acts: Ironic retries none of these by itself. Check openstack baremetal node show for the node named above, and the conductor's log: Ironic can empty last_error within about a minute of a failure. Once it is fixed, move the node on with openstack baremetal node manage or provide. The incident resolves on its own once it has left the failed state.`,
         criteriaName: "Bare Metal Node in Error - failed provision state",
         criteriaDescription:
           "Triggers when a node holds a failed provision state for the whole window.",
@@ -2755,6 +2755,46 @@ const databaseVolumeNearlyFullTemplate: OpenStackAlertTemplate = {
         incidentDescription: `This database has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% or more of its volume, and it stops taking writes when that fills. Check openstack database instance show, then resize it with openstack database instance resize volume, or have whoever owns it clear out what it holds. The incident resolves on its own once it has room again.`,
         criteriaName: `Database Volume Nearly Full - used >= ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}%`,
         criteriaDescription: `Triggers when a database has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% of its volume for the whole window.`,
+      },
+    });
+  },
+};
+
+/*
+ * A stopped conductor leaves Ironic's API answering and its nodes listed as they were, recorded on
+ * DevStack, so only its own list says so. The exporter has no series for that, and Ironic refuses a
+ * project's credential the list, so this speaks only for a probe on a cloud whose policy lets it read
+ * them. Warning, as several conductors share the nodes between them.
+ */
+const bareMetalConductorDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-bare-metal-conductor-down",
+  name: "Bare Metal Conductor Down",
+  summary: "An ironic-conductor is down, on a cloud a probe collects.",
+  description:
+    "Alert when Ironic lists a conductor as not alive for 15 minutes (openstack_ironic_agent_state below 1, which only a probe sends, and only where the cloud's policy lets its credential read Ironic's conductors: by default it refuses a project's). One incident per host. Ironic's API carries on answering with a conductor stopped, and every node reads as it did, recorded, so nothing else says this. Check `openstack baremetal conductor list`.",
+  category: "Bare Metal",
+  severity: "Warning",
+  forService: OpenStackServiceType.BareMetal,
+  requiresProbe: true,
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.BareMetal,
+      groupByAttributeKeys: WORKER_GROUP,
+      queries: [
+        {
+          alias: "ironic_conductor_up",
+          metricName: "openstack_ironic_agent_state",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Bare Metal Conductor Down",
+        incidentDescription:
+          "Ironic lists this conductor as not alive. Another takes its nodes where there is one. With none left, nodes read as they did and nothing can be deployed, cleaned or powered through Ironic. Check openstack baremetal conductor list, then ironic-conductor's service and logs on the host named above. The incident resolves on its own once Ironic lists it as alive again, or has dropped its record.",
+        criteriaName: "Bare Metal Conductor Down - ironic-conductor < 1",
+        criteriaDescription:
+          "Triggers when Ironic lists a conductor as not alive for the whole window.",
       },
     });
   },
@@ -3349,6 +3389,7 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     containerClusterFailedTemplate,
     containerClusterStuckTemplate,
     bareMetalApiDownTemplate,
+    bareMetalConductorDownTemplate,
     sharedFileSystemsApiDownTemplate,
     shareServiceDownTemplate,
     shareInErrorTemplate,
