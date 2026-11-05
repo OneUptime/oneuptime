@@ -38,13 +38,14 @@ function minutesLater(minutes: number): Date {
 }
 
 describe("every service is one a cloud always runs, or one it may not", () => {
-  test.each(Object.values(OpenStackServiceType))("%s is one or the other", (
-    service: OpenStackServiceType,
-  ) => {
-    expect(
-      CORE.includes(service) !== isOpenStackOptionalService(service),
-    ).toBe(true);
-  });
+  test.each(Object.values(OpenStackServiceType))(
+    "%s is one or the other",
+    (service: OpenStackServiceType) => {
+      expect(
+        CORE.includes(service) !== isOpenStackOptionalService(service),
+      ).toBe(true);
+    },
+  );
 
   test("the core six are nothing else", () => {
     expect(CORE.sort()).toEqual(
@@ -95,13 +96,48 @@ describe.each(
   });
 });
 
+describe("what a check from outside reports", () => {
+  function offered(cloud: {
+    isApiCheckOn?: boolean;
+    isLifecycleCheckOn?: boolean;
+  }): Array<string> {
+    return getOpenStackAlertTemplatesForCloud(cloud)
+      .filter((template: OpenStackAlertTemplate): boolean => {
+        return Boolean(template.requiresCheck);
+      })
+      .map((template: OpenStackAlertTemplate): string => {
+        return template.id;
+      });
+  }
+
+  test("is offered only where that check is on, because nothing else sends its series", () => {
+    expect(offered({})).toEqual([]);
+    expect(offered({ isApiCheckOn: true })).toEqual([
+      "openstack-token-issue-failing",
+      "openstack-service-api-check-failing",
+      "openstack-public-certificate-expiring-30-days",
+      "openstack-public-certificate-expiring-7-days",
+    ]);
+    expect(offered({ isLifecycleCheckOn: true })).toEqual([
+      "openstack-instance-boot-failing",
+      "openstack-instance-boot-slow",
+      "openstack-volume-attach-failing",
+      "openstack-floating-ip-unreachable",
+    ]);
+  });
+});
+
 describe("what a cloud is offered", () => {
   const idsFor: (cloud: {
     services?: ReadonlyArray<string> | null | undefined;
     isCollectedByProbe?: boolean | null | undefined;
+    isApiCheckOn?: boolean | undefined;
+    isLifecycleCheckOn?: boolean | undefined;
   }) => Array<string> = (cloud: {
     services?: ReadonlyArray<string> | null | undefined;
     isCollectedByProbe?: boolean | null | undefined;
+    isApiCheckOn?: boolean | undefined;
+    isLifecycleCheckOn?: boolean | undefined;
   }): Array<string> => {
     return getOpenStackAlertTemplatesForCloud(cloud).map(
       (template: OpenStackAlertTemplate): string => {
@@ -162,6 +198,8 @@ describe("what a cloud is offered", () => {
       idsFor({
         services: Object.values(OpenStackServiceType),
         isCollectedByProbe: true,
+        isApiCheckOn: true,
+        isLifecycleCheckOn: true,
       }).length,
     ).toBe(getAllOpenStackAlertTemplates().length);
   });
@@ -240,15 +278,21 @@ describe("when a service has left the cloud", () => {
       coreAnsweredAt: minutesLater(600),
       expected: true,
     },
-  ])("$why: $expected", (row: {
-    emptySince: Date | null;
-    coreAnsweredAt: Date | null;
-    expected: boolean;
-  }) => {
-    expect(
-      left({ emptySince: row.emptySince, coreAnsweredAt: row.coreAnsweredAt }),
-    ).toBe(row.expected);
-  });
+  ])(
+    "$why: $expected",
+    (row: {
+      emptySince: Date | null;
+      coreAnsweredAt: Date | null;
+      expected: boolean;
+    }) => {
+      expect(
+        left({
+          emptySince: row.emptySince,
+          coreAnsweredAt: row.coreAnsweredAt,
+        }),
+      ).toBe(row.expected);
+    },
+  );
 
   test("a stale window set short never takes fewer than three of its collections", () => {
     expect(OPENSTACK_OPTIONAL_SERVICE_LEFT_MINUTES).toBe(15);
