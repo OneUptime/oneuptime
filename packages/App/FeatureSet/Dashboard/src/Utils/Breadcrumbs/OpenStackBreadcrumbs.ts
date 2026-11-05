@@ -250,6 +250,24 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
         "Kubernetes Cluster Detail",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "DNS Zones",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL,
+      ["Project", "OpenStack", "View Cloud", "DNS Zones", "DNS Zone Detail"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+      ["Project", "OpenStack", "View Cloud", "Databases"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+      ["Project", "OpenStack", "View Cloud", "Databases", "Database Detail"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SHARES, [
       "Project",
       "OpenStack",

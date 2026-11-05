@@ -36,6 +36,12 @@ import { OpenStackServiceType } from "./OpenStackResourceKind";
  * isEmptyWhenStopped: an empty answer takes nothing, it reads as quiet (isOpenStackServiceQuiet), and
  * its rows go after much longer (OpenStackResourceService.forgetQuietServices).
  *
+ * And one more. A credential Trove, Designate, Swift or Gnocchi refuses reads `_up 0` too, recorded,
+ * the same as a stopped API: the exporter's read of each asks for what only an admin may. So for those
+ * an API that has never once read up has never been read at all, and `down` says nothing about it
+ * (readsDownWhenRefused, isOpenStackApiClosedToThisCredential). A page says this credential can't read
+ * it, and its alerts aren't offered, because they could only ever say the same thing.
+ *
  * Pure, so the scan, the server, the pages and the probe all draw the same line.
  */
 export interface OpenStackOptionalService {
@@ -53,6 +59,11 @@ export interface OpenStackOptionalService {
    * then a probe's cloud says nothing of this service.
    */
   isReadByProbe?: boolean | undefined;
+  /*
+   * A credential it refuses reads `_up 0`, recorded, the same as its API stopped. So until it has read
+   * up once, down means nothing: see isOpenStackApiClosedToThisCredential.
+   */
+  readsDownWhenRefused?: boolean | undefined;
 }
 
 export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService> =
@@ -78,6 +89,18 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       upMetricName: "openstack_sharev2_up",
       isReadByProbe: true,
     },
+    {
+      service: OpenStackServiceType.Dns,
+      upMetricName: "openstack_designate_up",
+      isEmptyWhenStopped: true,
+      readsDownWhenRefused: true,
+    },
+    {
+      service: OpenStackServiceType.Database,
+      upMetricName: "openstack_trove_up",
+      isReadByProbe: true,
+      readsDownWhenRefused: true,
+    },
   ];
 
 export function getOpenStackOptionalService(
@@ -96,6 +119,26 @@ export function isOpenStackOptionalService(
   service: string | null | undefined,
 ): boolean {
   return getOpenStackOptionalService(service) !== null;
+}
+
+/*
+ * Whether an API reads down only because this credential has never been let in. `vouchedAt` is the time
+ * of its last good read, so with none there has never been one. A probe tells a refusal from a stopped
+ * API, and says so, so its rows never read this way: a probe's read that was refused still answered.
+ *
+ * A service down since before anyone connected this cloud reads this way too, until it answers. That's
+ * why the words for this say what it could be, rather than which it is.
+ */
+export function isOpenStackApiClosedToThisCredential(row: {
+  name?: string | null | undefined;
+  status?: string | null | undefined;
+  facts?: JSONObject | null | undefined;
+}): boolean {
+  return (
+    row.status === "down" &&
+    Boolean(getOpenStackOptionalService(row.name)?.readsDownWhenRefused) &&
+    !row.facts?.["vouchedAt"]
+  );
 }
 
 /*

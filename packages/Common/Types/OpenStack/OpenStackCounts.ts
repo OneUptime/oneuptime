@@ -21,6 +21,8 @@ export const OPENSTACK_COUNTABLE: Partial<
   [OpenStackResourceKind.Router]: ["project"],
   [OpenStackResourceKind.FloatingIp]: ["project"],
   [OpenStackResourceKind.Share]: ["project"],
+  [OpenStackResourceKind.DatabaseInstance]: ["project"],
+  [OpenStackResourceKind.DnsZone]: ["project"],
 };
 
 export const OPENSTACK_COUNT_LIMIT: number = 500;

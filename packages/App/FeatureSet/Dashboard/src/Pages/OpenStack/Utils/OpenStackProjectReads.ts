@@ -28,6 +28,8 @@ export interface OpenStackProjectSummary {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  databaseInstanceCount: number;
+  dnsZoneCount: number;
 }
 
 export interface OpenStackProjectSummaries {

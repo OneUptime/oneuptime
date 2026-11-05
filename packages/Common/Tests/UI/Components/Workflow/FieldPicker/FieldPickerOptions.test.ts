@@ -564,7 +564,7 @@ describe("reading a stored Fields to pass on", () => {
 
   test("what the list cannot show is kept as JSON, and says why", () => {
     expect(read({ currentIncidentState: true }).problems).toEqual([
-      "“currentIncidentState” passes on the whole related record. Pick the fields of it the next steps need.",
+      "“currentIncidentState” passes on only the ID of the related record. Pick the fields of it the next steps need.",
     ]);
     expect(read({ title: "yes" }).problems).toEqual([
       "“title” has an unexpected value.",

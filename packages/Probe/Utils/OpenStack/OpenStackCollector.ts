@@ -42,6 +42,7 @@ import {
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
+  OpenStackDatabaseInventory,
   OpenStackPlacementInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
@@ -85,6 +86,7 @@ import collectCompute, {
 import collectContainerInfra, {
   CONTAINER_INFRA_MICROVERSION_HEADERS,
 } from "./Collectors/ContainerInfraCollector";
+import collectDatabase from "./Collectors/DatabaseCollector";
 import collectIdentity from "./Collectors/IdentityCollector";
 import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
@@ -204,6 +206,7 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Orchestration,
   OpenStackServiceType.ContainerInfra,
   OpenStackServiceType.SharedFileSystems,
+  OpenStackServiceType.Database,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -454,7 +457,8 @@ function countRollingDatapoints(
       (inventory.identity?.projects?.length || 0) +
       (inventory.orchestration?.stacks?.length || 0) +
       (inventory["container-infra"]?.clusters?.length || 0) * 3 +
-      (inventory.sharev2?.shares?.length || 0) * 2;
+      (inventory.sharev2?.shares?.length || 0) * 2 +
+      (inventory.database?.instances?.length || 0) * 3;
   }
 
   return count;
@@ -1366,6 +1370,12 @@ export default class OpenStackCollector {
             const inventory: OpenStackContainerInfraInventory = {};
             byService["container-infra"] = inventory;
             work = collectContainerInfra(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.Database: {
+            const inventory: OpenStackDatabaseInventory = {};
+            byService.database = inventory;
+            work = collectDatabase(context(inventory));
             break;
           }
           case OpenStackServiceType.SharedFileSystems: {

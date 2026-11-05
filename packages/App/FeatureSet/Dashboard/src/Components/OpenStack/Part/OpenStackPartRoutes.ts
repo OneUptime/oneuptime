@@ -1,3 +1,4 @@
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -77,6 +78,9 @@ const PART_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.ContainerCluster]:
     PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
   [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+  [OpenStackResourceKind.DatabaseInstance]:
+    PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+  [OpenStackResourceKind.DnsZone]: PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL,
 };
 
 const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
@@ -100,6 +104,9 @@ const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.ContainerCluster]:
     PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
   [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
+  [OpenStackResourceKind.DatabaseInstance]:
+    PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+  [OpenStackResourceKind.DnsZone]: PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES,
 };
 
 export function routeParamFromOpenStackId(externalId: string): string {
@@ -226,6 +233,15 @@ export function getOpenStackPartRoutes(
           PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL,
           row.externalId,
         );
+      }
+      // A recordset has no page: it is read on its zone's, with the others that aren't ACTIVE.
+      if (row.kind === OpenStackResourceKind.DnsRecordset) {
+        const zoneId: JSONValue | undefined = ((row.facts as
+          | JSONObject
+          | undefined) || {})["zoneId"];
+        return typeof zoneId === "string"
+          ? ofPart(PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL, zoneId)
+          : ofCloud(PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES);
       }
       return getPartRoute(row.kind as OpenStackResourceKind, row.externalId);
     },

@@ -31,6 +31,12 @@ import {
   isOpenStackServiceForcedDown,
   isOpenStackStackFailed,
   isOpenStackStackStuck,
+  isOpenStackDnsInError,
+  isOpenStackDnsZoneStuckPending,
+  isOpenStackDatabaseInstanceInError,
+  isOpenStackDatabaseInstanceStuck,
+  isOpenStackDatabaseVolumeNearlyFull,
+  getOpenStackDatabaseVolumePercent,
   isOpenStackShareInError,
   isOpenStackShareStuck,
   isOpenStackServiceQuiet,
@@ -258,6 +264,9 @@ const KIND_STACK: string = translationKey("Stack");
 const KIND_CONTAINER_CLUSTER: string = translationKey("Kubernetes cluster");
 const KIND_BARE_METAL_NODE: string = translationKey("Bare metal node");
 const KIND_SHARE: string = translationKey("Share");
+const KIND_DATABASE_INSTANCE: string = translationKey("Database");
+const KIND_DNS_ZONE: string = translationKey("DNS zone");
+const KIND_DNS_RECORDSET: string = translationKey("DNS recordset");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
@@ -273,6 +282,9 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_STACK,
   KIND_VOLUME,
   KIND_SHARE,
+  KIND_DATABASE_INSTANCE,
+  KIND_DNS_ZONE,
+  KIND_DNS_RECORDSET,
   KIND_INSTANCE,
   KIND_FLOATING_IP,
   KIND_IMAGE,
@@ -641,6 +653,108 @@ export function assessOpenStackShare(data: {
     })
   ) {
     return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+/*
+ * A database in error, as a share in error. Its volume nearly full is what stops it taking writes, and
+ * resizing that is a change someone has to plan. An instance that isn't running reads 0 used, recorded,
+ * so one can't read full.
+ */
+/*
+ * A zone in ERROR means its worker gave up writing it to a DNS server, and PENDING past the line that nothing
+ * is working on it: its worker has stopped. Warnings, because names already served go on answering.
+ */
+export function assessOpenStackDnsZone(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackDnsInError(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackDnsZoneStuckPending({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+/*
+ * One recordset in ERROR, where its zone isn't saying so already. Its zone reads PENDING while one is, and a
+ * recordset PENDING has that to say so for it.
+ */
+export function assessOpenStackDnsRecordset(data: {
+  row: OpenStackResource;
+}): OpenStackAssessment {
+  return isOpenStackDnsInError(data.row.status)
+    ? {
+        severity: ResourceAttentionSeverity.Warning,
+        reasons: [
+          {
+            text: REASON_VOLUME_ERROR,
+            values: { status: data.row.status || "" },
+          },
+        ],
+      }
+    : FINE;
+}
+
+export function assessOpenStackDatabaseInstance(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackDatabaseInstanceInError(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackDatabaseInstanceStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  if (
+    isOpenStackDatabaseVolumeNearlyFull({
+      usedBytes: row.diskAllocatedBytes,
+      sizeBytes: row.diskCapacityBytes,
+    })
+  ) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        {
+          text: REASON_PERCENT_FULL,
+          values: {
+            percent: formatPercent(
+              getOpenStackDatabaseVolumePercent({
+                usedBytes: row.diskAllocatedBytes,
+                sizeBytes: row.diskCapacityBytes,
+              }) || 0,
+            ),
+          },
+        },
+      ],
+    };
   }
   return FINE;
 }
@@ -1092,6 +1206,12 @@ export function assessOpenStackResource(data: {
       });
     case OpenStackResourceKind.Share:
       return assessOpenStackShare({ row, now });
+    case OpenStackResourceKind.DatabaseInstance:
+      return assessOpenStackDatabaseInstance({ row, now });
+    case OpenStackResourceKind.DnsZone:
+      return assessOpenStackDnsZone({ row, now });
+    case OpenStackResourceKind.DnsRecordset:
+      return assessOpenStackDnsRecordset({ row });
     default:
       return FINE;
   }
@@ -1113,6 +1233,9 @@ const KIND_WORDS: Partial<Record<string, string>> = {
   [OpenStackResourceKind.ContainerCluster]: KIND_CONTAINER_CLUSTER,
   [OpenStackResourceKind.BareMetalNode]: KIND_BARE_METAL_NODE,
   [OpenStackResourceKind.Share]: KIND_SHARE,
+  [OpenStackResourceKind.DatabaseInstance]: KIND_DATABASE_INSTANCE,
+  [OpenStackResourceKind.DnsZone]: KIND_DNS_ZONE,
+  [OpenStackResourceKind.DnsRecordset]: KIND_DNS_RECORDSET,
 };
 
 function iconOf(kind: string | undefined): IconProp {
@@ -1123,12 +1246,15 @@ function iconOf(kind: string | undefined): IconProp {
     case OpenStackResourceKind.Volume:
     case OpenStackResourceKind.StoragePool:
     case OpenStackResourceKind.Share:
+    case OpenStackResourceKind.DatabaseInstance:
       return IconProp.Database;
     case OpenStackResourceKind.Image:
       return IconProp.Image;
     case OpenStackResourceKind.Network:
     case OpenStackResourceKind.Router:
     case OpenStackResourceKind.FloatingIp:
+    case OpenStackResourceKind.DnsZone:
+    case OpenStackResourceKind.DnsRecordset:
       return IconProp.Globe;
     case OpenStackResourceKind.Api:
     case OpenStackResourceKind.Service:
@@ -1165,6 +1291,32 @@ function getStacksSaidByTheirClusters(data: {
     }
   }
   return stackIds;
+}
+
+/*
+ * The recordsets of zones that are themselves in ERROR. A zone's own SOA and NS read ERROR with it, recorded,
+ * so one failure of a zone's writes is said once, by the zone.
+ */
+function getRecordsetsSaidByTheirZones(
+  rows: Array<OpenStackResource>,
+): (row: OpenStackResource) => boolean {
+  const zonesInError: Set<string> = new Set();
+  for (const row of rows) {
+    if (
+      row.kind === OpenStackResourceKind.DnsZone &&
+      isOpenStackDnsInError(row.status)
+    ) {
+      zonesInError.add(row.externalId || "");
+    }
+  }
+  return (row: OpenStackResource): boolean => {
+    const zoneId: unknown = factsOf(row)["zoneId"];
+    return (
+      row.kind === OpenStackResourceKind.DnsRecordset &&
+      typeof zoneId === "string" &&
+      zonesInError.has(zoneId)
+    );
+  };
 }
 
 /*
@@ -1297,9 +1449,15 @@ export function getOpenStackAttentionItems(data: {
     now: data.now,
   });
 
+  const isSaidByItsZone: (row: OpenStackResource) => boolean =
+    getRecordsetsSaidByTheirZones(data.rows);
+
   const items: Array<ResourceAttentionItem> = [...everyWorkerDown];
 
   for (const row of data.rows) {
+    if (isSaidByItsZone(row)) {
+      continue;
+    }
     if (
       row.kind === OpenStackResourceKind.Service &&
       coveredByEveryWorkerDown.has(`${row.regionName}/${row.name}`)

@@ -7,6 +7,10 @@ import {
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
@@ -67,6 +71,24 @@ export const OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES: number = 120;
  * backend that hung reads just the same. Longer than a volume's, because a share's backend does more.
  */
 export const OPENSTACK_SHARE_STUCK_MINUTES: number = 60;
+/*
+ * Trove gives up on a guest that does not report by itself (usage_timeout, a quarter of an hour by
+ * default, and it reached ERROR in two minutes when Nova refused, recorded). So what stays on its way
+ * for an hour has nothing working on it, and with no list of Trove's own workers to read, this is the
+ * only thing that says trove-taskmanager stopped.
+ */
+export const OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES: number = 60;
+/*
+ * Designate's worker gives up on a change by itself in a few minutes, and the zone reads ERROR
+ * (recorded, with the DNS server it writes to stopped). So a zone still PENDING after this has nothing
+ * working on it: its worker has stopped, recorded, and the API takes changes it never carries out.
+ */
+export const OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES: number = 30;
+/*
+ * A database's volume, of the part of it the database has used. Past this, it stops taking writes
+ * without much warning. The same line as a storage pool's.
+ */
+export const OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT: number = 85;
 /*
  * Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node is then
  * in a failed state, which says so itself. Past twice that and as long again, Ironic has not given
@@ -464,6 +486,76 @@ export function isOpenStackShareStuck(data: {
   }
   const minutes: number | null = minutesInState(data);
   return minutes !== null && minutes >= OPENSTACK_SHARE_STUCK_MINUTES;
+}
+
+export function isOpenStackDatabaseInstanceInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(
+    status && OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES.has(status),
+  );
+}
+
+export function isOpenStackDatabaseInstanceStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (
+    !data.status ||
+    !OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(data.status)
+  ) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return (
+    minutes !== null && minutes >= OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES
+  );
+}
+
+/*
+ * How full a database's volume is. An instance that isn't running reads 0 of its volume used,
+ * recorded in BUILD and ERROR, and that is no reading: only a real read of a guest says anything, so
+ * only a used amount above 0 does. Null when nothing says.
+ */
+export function getOpenStackDatabaseVolumePercent(data: {
+  usedBytes?: number | null | undefined;
+  sizeBytes?: number | null | undefined;
+}): number | null {
+  if (!data.usedBytes || data.usedBytes <= 0) {
+    return null;
+  }
+  return percentOf(data.usedBytes, data.sizeBytes);
+}
+
+export function isOpenStackDatabaseVolumeNearlyFull(data: {
+  usedBytes?: number | null | undefined;
+  sizeBytes?: number | null | undefined;
+}): boolean {
+  const percent: number | null = getOpenStackDatabaseVolumePercent(data);
+  return (
+    percent !== null && percent >= OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT
+  );
+}
+
+export function isOpenStackDnsInError(
+  status: string | null | undefined,
+): boolean {
+  return status === OPENSTACK_DNS_STATUS_ERROR;
+}
+
+export function isOpenStackDnsZoneStuckPending(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (data.status !== OPENSTACK_DNS_STATUS_PENDING) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return (
+    minutes !== null && minutes >= OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES
+  );
 }
 
 export function isOpenStackVolumeInError(

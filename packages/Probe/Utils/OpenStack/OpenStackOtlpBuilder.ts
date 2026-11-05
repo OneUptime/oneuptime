@@ -6,6 +6,7 @@ import {
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
+  OpenStackDatabaseInventory,
   OpenStackPlacementInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
@@ -73,6 +74,8 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
+  [OpenStackServiceType.Database]: "openstack_trove",
+  [OpenStackServiceType.Dns]: "openstack_designate",
 };
 
 // knownServerStatuses, the exporter's nova.go.
@@ -205,6 +208,15 @@ const CLUSTER_STATUS_CODES: Readonly<Record<string, number>> = {
 };
 
 /*
+ * What the exporter's instance_status series reads for the words a real cloud has been recorded in.
+ * Nothing reads this value: every rule and template reads the status label.
+ */
+const DATABASE_INSTANCE_STATUS_CODES: Readonly<Record<string, number>> = {
+  BUILD: 1,
+  ERROR: 12,
+};
+
+/*
  * What the exporter's share_status series reads for the words a real cloud has been recorded in. Nothing
  * reads this value: every rule and template reads the status label, because creating's code is 0.
  */
@@ -290,6 +302,7 @@ export interface OpenStackServiceReading {
     | OpenStackOrchestrationInventory
     | OpenStackContainerInfraInventory
     | OpenStackSharedFileSystemsInventory
+    | OpenStackDatabaseInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
   apiUp: boolean | null;
@@ -1594,6 +1607,46 @@ function writeSharedFileSystems(
   }
 }
 
+/*
+ * The labels the exporter sends, on each of its three series, and what only Trove's own read says on
+ * the first. An instance with no `used` to report reads 0, as the exporter's does, recorded: a page
+ * reads that as nothing.
+ */
+function writeDatabase(
+  writer: SeriesWriter,
+  inventory: OpenStackDatabaseInventory,
+): void {
+  if (!inventory.instances) {
+    return;
+  }
+
+  writer.add("total_instances", {}, inventory.instances.length);
+
+  for (const instance of inventory.instances) {
+    const shared: Labels = {
+      id: instance.id,
+      name: instance.name,
+      tenant_id: instance.projectId,
+      status: instance.status,
+      region: instance.regionName,
+      datastore_type: instance.datastoreType,
+      datastore_version: instance.datastoreVersion,
+      health_status: instance.healthStatus,
+    };
+    writer.add(
+      "instance_status",
+      {
+        ...shared,
+        fault_message: toBound(instance.faultMessage || ""),
+        task_description: toBound(instance.taskDescription || ""),
+      },
+      DATABASE_INSTANCE_STATUS_CODES[instance.status || ""] ?? -1,
+    );
+    writer.add("instance_volume_size_gb", shared, instance.volumeSizeGb);
+    writer.add("instance_volume_used_gb", shared, instance.volumeUsedGb ?? 0);
+  }
+}
+
 function writeInventory(
   writer: SeriesWriter,
   reading: OpenStackServiceReading,
@@ -1635,6 +1688,9 @@ function writeInventory(
         writer,
         reading.inventory as OpenStackContainerInfraInventory,
       );
+      return;
+    case OpenStackServiceType.Database:
+      writeDatabase(writer, reading.inventory as OpenStackDatabaseInventory);
       return;
     case OpenStackServiceType.SharedFileSystems:
       writeSharedFileSystems(

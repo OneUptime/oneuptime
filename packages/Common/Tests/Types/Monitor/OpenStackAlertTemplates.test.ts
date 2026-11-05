@@ -44,6 +44,7 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
@@ -333,6 +334,30 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
    * per collection, and these jobs collect no more than once a minute.
    */
   "openstack-instances-in-error|instances_in_error": "Count",
+  "openstack-dns-zone-in-error|in_error": "Count",
+  "openstack-dns-zone-stuck-pending|in_pending": "Count",
+  "openstack-dns-recordset-in-error|recordset_a": "Count",
+  "openstack-dns-recordset-in-error|recordset_aaaa": "Count",
+  "openstack-dns-recordset-in-error|recordset_cname": "Count",
+  "openstack-dns-recordset-in-error|recordset_mx": "Count",
+  "openstack-dns-recordset-in-error|recordset_txt": "Count",
+  "openstack-dns-recordset-in-error|recordset_srv": "Count",
+  "openstack-dns-recordset-in-error|recordset_ptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_spf": "Count",
+  "openstack-dns-recordset-in-error|recordset_sshfp": "Count",
+  "openstack-dns-recordset-in-error|recordset_caa": "Count",
+  "openstack-dns-recordset-in-error|recordset_naptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_cert": "Count",
+  "openstack-database-instance-in-error|in_error": "Count",
+  "openstack-database-instance-in-error|in_failed": "Count",
+  "openstack-database-instance-stuck|in_build": "Count",
+  "openstack-database-instance-stuck|in_reboot": "Count",
+  "openstack-database-instance-stuck|in_hard_reboot": "Count",
+  "openstack-database-instance-stuck|in_resize": "Count",
+  "openstack-database-instance-stuck|in_upgrade": "Count",
+  "openstack-database-instance-stuck|in_promote": "Count",
+  "openstack-database-instance-stuck|in_eject": "Count",
+  "openstack-database-instance-stuck|in_detach": "Count",
   "openstack-router-with-two-active-agents|active_agents": "Count",
   /*
    * The network's value is a code, 0 for ACTIVE: a Count says the row is there.
@@ -546,6 +571,10 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-bare-metal-conductor-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-container-infra-conductor-down": {
     filterType: FilterType.LessThan,
     value: 1,
@@ -557,6 +586,38 @@ const THRESHOLDS: Readonly<
   "openstack-share-service-down": {
     filterType: FilterType.LessThan,
     value: 1,
+  },
+  "openstack-dns-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-dns-zone-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-zone-stuck-pending": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-recordset-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-database-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-database-instance-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-database-instance-stuck": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-database-volume-nearly-full": {
+    filterType: FilterType.GreaterThanOrEqualTo,
+    value: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   },
   "openstack-share-in-error": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-share-stuck": { filterType: FilterType.GreaterThan, value: 0 },
@@ -833,6 +894,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { heat_engine_up: 0 },
     healthy: { heat_engine_up: 1 },
   },
+  "openstack-bare-metal-conductor-down": {
+    breached: { ironic_conductor_up: 0 },
+    healthy: { ironic_conductor_up: 1 },
+  },
   "openstack-container-infra-conductor-down": {
     breached: { magnum_conductor_up: 0 },
     healthy: { magnum_conductor_up: 1 },
@@ -844,6 +909,40 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-share-service-down": {
     breached: { manila_service_up: 0 },
     healthy: { manila_service_up: 1 },
+  },
+  "openstack-dns-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  // How many datapoints a window holds of that word, because PENDING's code is 0.
+  "openstack-dns-zone-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-dns-zone-stuck-pending": {
+    breached: { in_pending: 1 },
+    healthy: { in_pending: 0 },
+  },
+  "openstack-dns-recordset-in-error": {
+    breached: { recordset_a: 1 },
+    healthy: { recordset_a: 0 },
+  },
+  "openstack-database-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  // How many datapoints a window holds of that word, because its code says nothing.
+  "openstack-database-instance-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-database-instance-stuck": {
+    breached: { in_build: 1 },
+    healthy: { in_build: 0 },
+  },
+  "openstack-database-volume-nearly-full": {
+    breached: { used_gb: 9, size_gb: 10 },
+    healthy: { used_gb: 1, size_gb: 10 },
   },
   // A share's size, which is what its _share_gb series reads, whatever its status.
   "openstack-share-in-error": {
@@ -1003,6 +1102,14 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Manila Service Down",
         "Share in Error",
         "Share Stuck",
+        "DNS API Down",
+        "DNS Zone in Error",
+        "DNS Zone Stuck Pending",
+        "DNS Recordset in Error",
+        "Databases API Down",
+        "Database Instance in Error",
+        "Database Instance Stuck",
+        "Database Volume Nearly Full",
         "Compute Service Down",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
@@ -1033,6 +1140,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Image Stuck",
         // #5742. The issue's four, and what its API says of itself where anything can say so.
         "Bare Metal API Down",
+        "Bare Metal Conductor Down",
         "Bare Metal Node in Error",
         "Bare Metal Node Stuck Transitioning",
         "Bare Metal Node in Maintenance Too Long",
@@ -1076,6 +1184,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Storage",
         "Orchestration",
         "Bare Metal",
+        "Databases",
         "Projects",
         "Capacity",
       ] as const
@@ -1941,6 +2050,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       });
 
       expect(probeOnly.sort()).toEqual([
+        "openstack-bare-metal-conductor-down",
         "openstack-container-infra-conductor-down",
         "openstack-orchestration-engine-down",
         "openstack-share-service-down",
@@ -2003,6 +2113,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
       ["openstack-share-in-error", ["id", "name"]],
       ["openstack-share-stuck", ["id", "name"]],
+      ["openstack-dns-zone-in-error", ["id", "name"]],
+      ["openstack-dns-zone-stuck-pending", ["id", "name"]],
+      ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],
+      ["openstack-database-instance-in-error", ["id", "name"]],
+      ["openstack-database-instance-stuck", ["id", "name"]],
+      ["openstack-database-volume-nearly-full", ["id", "name"]],
     ])("%s names what it is about", (id: string, keys: Array<string>) => {
       const groupBy: Array<string> = MonitorStep.getGroupByAttributeKeys(
         stepOf(getOpenStackAlertTemplateById(id)!),

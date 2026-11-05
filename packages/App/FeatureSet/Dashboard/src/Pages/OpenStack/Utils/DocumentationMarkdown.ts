@@ -175,7 +175,7 @@ export const OPENSTACK_AGENT_IDENTITY_CONFIG: string = `processors:
         value: \${env:OPENSTACK_CLOUD_NAME}
         action: upsert
       - key: oneuptime.agent.version
-        value: "0.161.2"
+        value: "0.161.3"
         action: upsert
       - key: service.name
         action: delete
@@ -1005,7 +1005,7 @@ It needs \`sudo\` to read \`clouds.yaml\`, or it skips the credential checks. It
     },
     {
       title: "One service's pages are empty and the rest are fine",
-      markdown: `The agent reads each service on its own, so a failing service costs only its own numbers. Look at why the exporter can't read it${inFolder}: \`docker compose logs ${OPENSTACK_EXPORTER_CONTAINER}\`. The **Services** page shows that API as \`down\`.`,
+      markdown: `The agent reads each service on its own, so a failing service costs only its own numbers. Look at why the exporter can't read it${inFolder}: \`docker compose logs ${OPENSTACK_EXPORTER_CONTAINER}\`. The **Services** page shows that API as \`down\`. An access-rule credential made from an older copy of the rules also does this on Swift, and on Octavia behind a path: make a new one, as **Full view** does.`,
     },
     {
       title: "Every read answers 401 with an access-rule credential",

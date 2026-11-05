@@ -156,6 +156,13 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
   ["Shares.tsx", "OPENSTACK_CLOUD_VIEW_SHARES"],
   ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
+  ["DnsZones.tsx", "OPENSTACK_CLOUD_VIEW_DNS_ZONES"],
+  ["DnsZoneDetail.tsx", "OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL"],
+  ["DatabaseInstances.tsx", "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES"],
+  [
+    "DatabaseInstanceDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL",
+  ],
   ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
   [
     "ContainerClusterDetail.tsx",
@@ -552,6 +559,8 @@ describe("the side menus have no dead links", () => {
       ["stackCount", "stacks"],
       ["containerClusterCount", "containerClusters"],
       ["shareCount", "shares"],
+      ["databaseInstanceCount", "databases"],
+      ["dnsZoneCount", "dnsZones"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
       expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
@@ -579,6 +588,8 @@ describe("a service a cloud may not run", () => {
   test.each([
     ["Stacks", "runsHeat"],
     ["Shares", "runsManila"],
+    ["Databases", "runsTrove"],
+    ["DNS Zones", "runsDesignate"],
     ["Kubernetes Clusters", "runsMagnum"],
   ])(
     "%s is in the menu only for a cloud that runs it",

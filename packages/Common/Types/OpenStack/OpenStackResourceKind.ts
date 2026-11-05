@@ -62,6 +62,19 @@ export enum OpenStackResourceKind {
    * so a cloud without Manila has none.
    */
   Share = "Share",
+  /*
+   * A database Trove runs for a project, on an instance Nova runs. "Instance" alone is Nova's. Only
+   * Trove's own series make one.
+   */
+  DatabaseInstance = "DatabaseInstance",
+  // A DNS zone Designate serves. Only Designate's own series make one.
+  DnsZone = "DnsZone",
+  /*
+   * A recordset of a zone that is not ACTIVE. Only those have rows: a zone can hold any number of
+   * recordsets, and the question is which of them went wrong. One goes when it's ACTIVE again, at the
+   * stale rule's next pass, because its series no longer asks for a row.
+   */
+  DnsRecordset = "DnsRecordset",
 }
 
 /*
@@ -84,6 +97,8 @@ export enum OpenStackServiceType {
   // A service a cloud may not run: see OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
+  Database = "database",
+  Dns = "dns",
 }
 
 /*
@@ -120,6 +135,8 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.ContainerInfra]: "Kubernetes Clusters (Magnum)",
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
   [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
+  [OpenStackServiceType.Database]: "Databases (Trove)",
+  [OpenStackServiceType.Dns]: "DNS (Designate)",
 };
 
 /*
@@ -163,6 +180,11 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
   ],
   [OpenStackServiceType.BareMetal]: [OpenStackResourceKind.BareMetalNode],
   [OpenStackServiceType.SharedFileSystems]: [OpenStackResourceKind.Share],
+  [OpenStackServiceType.Database]: [OpenStackResourceKind.DatabaseInstance],
+  [OpenStackServiceType.Dns]: [
+    OpenStackResourceKind.DnsZone,
+    OpenStackResourceKind.DnsRecordset,
+  ],
 };
 
 /*
@@ -184,6 +206,8 @@ export enum OpenStackServiceFamily {
   BareMetal = "baremetal",
   // Nor for Manila's services: its API lists them, and only for an admin.
   SharedFileSystems = "sharev2",
+  // Nor for Designate's, which it calls service statuses.
+  Dns = "dns",
 }
 
 /*
@@ -201,6 +225,7 @@ export const OPENSTACK_WORKER_FAMILY_BY_SERVICE: Partial<
   [OpenStackServiceType.ContainerInfra]: OpenStackServiceFamily.ContainerInfra,
   [OpenStackServiceType.SharedFileSystems]:
     OpenStackServiceFamily.SharedFileSystems,
+  [OpenStackServiceType.Dns]: OpenStackServiceFamily.Dns,
 };
 
 /*
@@ -411,3 +436,57 @@ export const OPENSTACK_SHARE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
     "replication_change",
     "ensuring",
   ]);
+
+/*
+ * Trove's instance statuses, as openstack_trove_instance_status's label holds them. It has no worker
+ * list to say trove-taskmanager stopped, recorded, so an instance that stays on its way is all there
+ * is to say that with. BACKUP is left out, because it lasts as long as a database takes to copy, and
+ * RESTART_REQUIRED and BLOCKED wait for someone rather than for Trove.
+ */
+export const OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES: ReadonlySet<string> =
+  new Set(["ERROR", "FAILED"]);
+
+export const OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set([
+    "BUILD",
+    "REBOOT",
+    "HARD_REBOOT",
+    "RESIZE",
+    "UPGRADE",
+    "PROMOTE",
+    "EJECT",
+    "DETACH",
+  ]);
+
+/*
+ * Designate says three things of a zone and of a recordset, recorded on real ones: ACTIVE, PENDING
+ * while its worker hasn't finished a change, and ERROR once it gave up.
+ */
+export const OPENSTACK_DNS_STATUS_ACTIVE: string = "ACTIVE";
+export const OPENSTACK_DNS_STATUS_PENDING: string = "PENDING";
+export const OPENSTACK_DNS_STATUS_ERROR: string = "ERROR";
+
+/*
+ * Every zone has an SOA and an NS of its own, which Designate writes, and they read ERROR with it,
+ * recorded. So these two say nothing a zone in ERROR doesn't say already, and a recordset someone
+ * asked for is every other type (designate.objects.rrdata_*, as its API lists them).
+ */
+export const OPENSTACK_DNS_ZONE_OWN_RECORD_TYPES: ReadonlySet<string> = new Set(
+  ["SOA", "NS"],
+);
+
+export const OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR: ReadonlyArray<string> =
+  [
+    "A",
+    "AAAA",
+    "CNAME",
+    "MX",
+    "TXT",
+    "SRV",
+    "PTR",
+    "SPF",
+    "SSHFP",
+    "CAA",
+    "NAPTR",
+    "CERT",
+  ];

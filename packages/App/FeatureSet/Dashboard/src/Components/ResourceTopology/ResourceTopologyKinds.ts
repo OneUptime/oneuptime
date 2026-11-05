@@ -369,6 +369,13 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     color: "#e11d48",
     order: 40,
   },
+  "openstack.database": {
+    label: translationKey("Database"),
+    plural: translationKey("Databases"),
+    icon: IconProp.Database,
+    color: "#0ea5e9",
+    order: 46,
+  },
   "openstack.share": {
     label: translationKey("Share"),
     plural: translationKey("Shares"),
@@ -382,6 +389,20 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     icon: IconProp.Database,
     color: "#be123c",
     order: 45,
+  },
+  "openstack.dns-zone": {
+    label: translationKey("DNS Zone"),
+    plural: translationKey("DNS Zones"),
+    icon: IconProp.Globe,
+    color: "#f97316",
+    order: 75,
+  },
+  "openstack.dns-recordset": {
+    label: translationKey("DNS Recordset"),
+    plural: translationKey("DNS Recordsets"),
+    icon: IconProp.Globe,
+    color: "#fb923c",
+    order: 76,
   },
   "openstack.network": {
     label: translationKey("Network"),

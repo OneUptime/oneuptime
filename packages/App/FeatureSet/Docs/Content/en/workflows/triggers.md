@@ -185,7 +185,7 @@ flowchart TB
     field -->|"No"| nothing
 ```
 
-**On Create**, **On Update** and **On Create or Update** pass the record to the next block, with the fields you pick in the trigger's **Fields to pass on**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`. A field you didn't select comes through empty.
+**On Create**, **On Update** and **On Create or Update** pass the record to the next block, with the fields you pick in the trigger's **Fields to pass on**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`. A field you didn't select comes through empty. So does a field the record has nothing in, such as the monitor of an alert no monitor raised.
 
 **On Create or Update** also passes **What Happened**: `created` when a new record started the run, and `updated` when a change did, as in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. To handle the two differently, compare it in an **If / Else** block, or take a path for each with **Switch / Case**.
 

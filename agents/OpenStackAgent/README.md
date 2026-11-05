@@ -124,6 +124,8 @@ It prints the `id` and `secret`; the secret is shown only once. Give it an expir
 
 An access rule is matched against the path the service sees. A service behind a path prefix, like `https://cloud.example/compute/v2.1`, sees `/compute/v2.1/servers`, and refuses the shipped rule for `/v2.1/servers` with a `401`. `access-rules-for-cloud.py` adds each rule again under its service's prefix, read from your catalog, and keeps the original, so on a cloud that gives each service its own port it changes nothing that matters.
 
+Two of the exporter's reads take rules that are easy to miss by hand. It reads Octavia's root before anything else, and behind Apache a service sees that as `/load-balancer//`, with two slashes. Refused, the exporter answers an empty `200`, so the cloud looks as if it doesn't run Octavia. And it lists Swift's account with a trailing slash, which `/v1/*` doesn't match. Refused, `openstack_object_store_up` reads `0`. The fitted rules carry both. A credential's rules can't be changed, so if yours was made from an older copy of them, make a new one.
+
 Access rules need `service_type` set for keystonemiddleware on each service, and a restart of that service:
 
 ```ini
@@ -156,7 +158,7 @@ On the services a cloud may not run, what each level got on real clouds differs 
 
 The rules also carry `volume` and `volumev3`, for a Cinder configured that way. Keystone needs nothing.
 
-Without `service_type`, the service refuses the credential with a `401`. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
+Without `service_type`, the service refuses the credential with a `401`. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose. That holds on the services a cloud may not run too: recorded on DevStack, level 1 got the same series as an admin's credential from each one the exporter reads, and every write answered `401`.
 
 If you will not make that change, make the same credential without `--access-rules`: a plain admin application credential. It works, and it can write, so `troubleshoot.sh` labels it as one.
 
@@ -709,7 +711,7 @@ The exporter's image trusts public certificate authorities, not your machine's. 
 
 ### One service's data is missing
 
-That is the design working: the others keep reporting. `troubleshoot.sh` says whether the service answers. Then look at the exporter's log: `docker logs oneuptime-openstack-exporter`, or `journalctl -u oneuptime-openstack-exporter` without Docker.
+That is the design working: the others keep reporting. `troubleshoot.sh` says whether the service answers. Then look at the exporter's log: `docker logs oneuptime-openstack-exporter`, or `journalctl -u oneuptime-openstack-exporter` without Docker. An access-rule credential made from an older copy of the rules does this on Swift, and on Octavia behind a path, even though the script's own reads pass: make a new one.
 
 ### Common Commands
 

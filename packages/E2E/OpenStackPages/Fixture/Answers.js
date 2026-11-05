@@ -19,6 +19,9 @@ import {
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
+  OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  isOpenStackDatabaseVolumeNearlyFull,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
@@ -32,6 +35,10 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
@@ -44,6 +51,7 @@ import {
   getEmptyOpenStackBlastRadius,
 } from "../../../Common/Types/OpenStack/OpenStackBlastRadius";
 import { getOpenStackStackNameOfServer } from "../../../Common/Types/OpenStack/OpenStackLinks";
+import { isOpenStackApiClosedToThisCredential } from "../../../Common/Types/OpenStack/OpenStackOptionalServices";
 import { getOpenStackProjectQuotas } from "../../../Common/Types/OpenStack/OpenStackQuota";
 
 const ATTENTION_ROWS_PER_KIND = 100;
@@ -126,6 +134,13 @@ export function getInventorySummary(allRows, regionName) {
     }).length,
     bareMetalNodeCount: ofKind(rows, "BareMetalNode").length,
     bareMetalProviderCount: ofKind(rows, "PlacementProvider").length,
+    bareMetalProvidersNotListedCount: ofKind(rows, "PlacementProvider").filter(
+      (provider) => {
+        return !ofKind(rows, "BareMetalNode").some((node) => {
+          return node.externalId === provider.name;
+        });
+      },
+    ).length,
     vcpuCapacity: sum(giving, "vcpuCapacity"),
     vcpuAllocated: sum(giving, "vcpuAllocated"),
     memoryCapacityBytes: sum(giving, "memoryCapacityBytes"),
@@ -135,6 +150,19 @@ export function getInventorySummary(allRows, regionName) {
     stackCount: ofKind(rows, "Stack").length,
     containerClusterCount: ofKind(rows, "ContainerCluster").length,
     shareCount: ofKind(rows, "Share").length,
+    databaseInstanceCount: ofKind(rows, "DatabaseInstance").length,
+    dnsZoneCount: ofKind(rows, "DnsZone").length,
+    closedServices: Array.from(
+      new Set(
+        ofKind(rows, "Api")
+          .filter((row) => {
+            return isOpenStackApiClosedToThisCredential(row);
+          })
+          .map((row) => {
+            return row.name;
+          }),
+      ),
+    ),
     services: Array.from(
       new Set(
         ofKind(rows, "Api").map((row) => {
@@ -308,6 +336,36 @@ const ATTENTION_QUERIES = [
       return (
         OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status) &&
         stuckSince(row, OPENSTACK_IMAGE_STUCK_MINUTES, now)
+      );
+    },
+  },
+  {
+    kind: "DnsZone",
+    where: (row, now) => {
+      return (
+        row.status === OPENSTACK_DNS_STATUS_ERROR ||
+        (row.status === OPENSTACK_DNS_STATUS_PENDING &&
+          stuckSince(row, OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES, now))
+      );
+    },
+  },
+  {
+    kind: "DnsRecordset",
+    where: (row) => {
+      return row.status === OPENSTACK_DNS_STATUS_ERROR;
+    },
+  },
+  {
+    kind: "DatabaseInstance",
+    where: (row, now) => {
+      return (
+        OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES.has(row.status) ||
+        (OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES, now)) ||
+        isOpenStackDatabaseVolumeNearlyFull({
+          usedBytes: row.diskAllocatedBytes,
+          sizeBytes: row.diskCapacityBytes,
+        })
       );
     },
   },
@@ -661,6 +719,20 @@ export function getBlastRadius(allRows, part) {
       });
     };
     switch (part.name) {
+      case "dns":
+        return finish([
+          {
+            count: "dnsZoneCount",
+            byProject: countsByProject(inRegion("DnsZone")),
+          },
+        ]);
+      case "database":
+        return finish([
+          {
+            count: "databaseInstanceCount",
+            byProject: countsByProject(inRegion("DatabaseInstance")),
+          },
+        ]);
       case "sharev2":
         return finish([
           {
@@ -812,6 +884,8 @@ export function getProjectSummaries(allRows, projectIds) {
       stackCount: count("Stack"),
       containerClusterCount: count("ContainerCluster"),
       shareCount: count("Share"),
+      databaseInstanceCount: count("DatabaseInstance"),
+      dnsZoneCount: count("DnsZone"),
     };
   });
 }

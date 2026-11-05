@@ -126,7 +126,7 @@ A block that doesn't run is usually a wiring problem. Open the **Builder** and c
 Open the run and look at the step. A reference that didn't resolve is called out on the step itself as a warning, and its setting in the **Received** block is marked **Did not resolve**.
 
 - If you see the literal `{{local.components.…}}` text, the reference didn't resolve. Usually that's a typo in the component ID or the return-value ID — remember it's the block's **Identifier**, not the name displayed on it. Check the spelling of `local.components` itself too: `{{local.componets.api-get-1.returnValues.response-body}}` is sent as literal text and the run still reports **Executed**. If the run was a **Run just this step** test, the earlier block didn't run at all — run the whole workflow instead.
-- If you see **Empty text**, the earlier block ran but didn't produce that field.
+- If you see **Empty text**, or a gap in a message, the earlier block ran but has nothing in that field. Either the record holds no value there, which the **Full Log** tab notes on a line of its own, or the block doesn't pass the field on, which the step warns about.
 
 The same warning is in the **Full Log** tab as a line starting with `Warning:`.
 :::

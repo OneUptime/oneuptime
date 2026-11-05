@@ -485,7 +485,7 @@ Create One의 **JSON Object**, Create Many의 **JSON Array**, Update 구성 요�
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-열이 아닌 키는 거부되지 않고 무시됩니다. 실행의 로그에 버려진 키가 나오므로, 필드가 반영되지 않으면 거기를 확인하세요. Find 구성 요소와 트리거의 **Fields to pass on**은 목록에서 고릅니다. 그 **JSON으로 편집**에는 같은 열 키가 값 `true` 와 함께 표시됩니다: `{"_id": true, "name": true}`.
+열이 아닌 키는 거부되지 않고 무시됩니다. 실행의 로그에 버려진 키가 나오므로, 필드가 반영되지 않으면 거기를 확인하세요. Find 구성 요소와 트리거의 **Fields to pass on**은 목록에서 고릅니다. 그 **JSON으로 편집**에는 같은 열 키가 값 `true` 와 함께 표시됩니다: `{"_id": true, "name": true}`. 관련 레코드의 필드는 `{"monitor": {"name": true}}` 처럼 그 키 아래에 둡니다. `{"monitor": true}` 는 ID만 넘깁니다.
 
 **사용자 지정 필드**는 하나의 열 `customFields` 로, 각 사용자 지정 필드의 값을 그 필드 이름 아래에 담습니다. Update 구성 요소는 지정한 사용자 지정 필드만 바꾸고, 나머지는 값을 유지합니다.
 

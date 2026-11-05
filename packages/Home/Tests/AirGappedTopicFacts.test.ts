@@ -88,6 +88,8 @@ const ASK_AI: string = docs("ai/ask-ai");
 const BRANDING: string = docs("status-pages/branding-and-domains");
 const CALENDAR_FEEDS: string = docs("on-call/calendar-feeds");
 const CEPH: string = docs("telemetry/ceph");
+const OPENSTACK: string = docs("telemetry/openstack");
+const OPENSTACK_AGENTLESS: string = docs("telemetry/openstack-agentless");
 const COMPOSE: string = docs("installation/docker-compose");
 const CUSTOM_CHANNELS: string = docs(
   "self-hosted/custom-notification-channels",
@@ -2288,6 +2290,18 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
       "its health, monitor quorum, OSDs, pools and placement groups",
     ),
   ],
+  "infrastructure/capability/openstack": [
+    fact(
+      "reach Keystone and each service's endpoint",
+      OPENSTACK,
+      "A route from that machine to Keystone and to each service's public endpoint.",
+    ),
+    fact(
+      "a probe with nothing to install",
+      OPENSTACK_AGENTLESS,
+      "# OpenStack Without an Agent",
+    ),
+  ],
   "infrastructure/capability/storage": [
     fact(
       "reach the array's management interface over HTTPS",
@@ -2326,14 +2340,24 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
   ],
   "infrastructure/change/agent-images": [
     fact(
-      "Docker Hub and quay.io",
+      "Docker Hub, ghcr.io and quay.io",
       "agents/ProxmoxAgent/docker-compose.yml",
       "image: prompve/prometheus-pve-exporter:latest",
     ),
     fact(
-      "Docker Hub and quay.io",
+      "Docker Hub, ghcr.io and quay.io",
       "agents/StorageArrayAgent/docker-compose.yml",
       "image: quay.io/purestorage/pure-fa-om-exporter",
+    ),
+    fact(
+      "OpenStack and storage array agents run stock images",
+      "agents/OpenStackAgent/docker-compose.yml",
+      "image: otel/opentelemetry-collector-contrib",
+    ),
+    fact(
+      "ghcr.io",
+      "agents/OpenStackAgent/docker-compose.yml",
+      "image: ghcr.io/openstack-exporter/openstack-exporter",
     ),
     fact(
       "stock images named in their docker-compose.yml",
@@ -2422,6 +2446,11 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
       "those are not on your install",
       "agents/ProxmoxAgent/docker-compose.yml",
       "image: prompve/prometheus-pve-exporter:latest",
+    ),
+    fact(
+      "The OpenStack agent's installer has no option to download from a mirror",
+      OPENSTACK,
+      "with no option to download from a mirror instead",
     ),
   ],
 

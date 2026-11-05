@@ -185,7 +185,7 @@ flowchart TB
     field -->|"아니요"| nothing
 ```
 
-**On Create**, **On Update**, **On Create or Update**는 트리거의 **Fields to pass on**에서 고른 필드와 함께 레코드를 다음 블록으로 넘깁니다. 예를 들어 **Incident → On Create** 트리거는 새 인시던트를 넘기므로, 다음 블록은 `{{local.components.incident-on-create-1.returnValues.model.title}}` 처럼 그 제목, 설명, 심각도 또는 선택한 다른 어떤 필드든 읽을 수 있습니다. 선택하지 않은 필드는 비어 있는 상태로 도착합니다.
+**On Create**, **On Update**, **On Create or Update**는 트리거의 **Fields to pass on**에서 고른 필드와 함께 레코드를 다음 블록으로 넘깁니다. 예를 들어 **Incident → On Create** 트리거는 새 인시던트를 넘기므로, 다음 블록은 `{{local.components.incident-on-create-1.returnValues.model.title}}` 처럼 그 제목, 설명, 심각도 또는 선택한 다른 어떤 필드든 읽을 수 있습니다. 선택하지 않은 필드는 비어 있는 상태로 도착합니다. 레코드에 아무것도 없는 필드도 마찬가지입니다. 모니터가 발생시키지 않은 경고의 모니터가 그 예입니다.
 
 **On Create or Update**는 **What Happened**도 넘깁니다. 새 레코드가 실행을 시작했으면 `created`, 변경이 시작했으면 `updated`이며, `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}` 처럼 읽습니다. 두 경우를 다르게 처리하려면 **If / Else** 블록에서 비교하거나, **Switch / Case**로 각각의 경로를 만드세요.
 

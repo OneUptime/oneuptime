@@ -1,3 +1,4 @@
+import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import { RecordedSeries } from "../../../Helpers/OpenStackRecordedRows";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -58,8 +59,11 @@ function matches(
 
 function groupKeysOf(query: MetricQueryConfigData): Array<string> {
   const keys: Array<string> =
-    (query.metricQueryData as unknown as { groupByAttributeKeys?: Array<string> })
-      .groupByAttributeKeys || [];
+    (
+      query.metricQueryData as unknown as {
+        groupByAttributeKeys?: Array<string>;
+      }
+    ).groupByAttributeKeys || [];
   return keys.filter((key: string): boolean => {
     return key !== REGION_LABEL;
   });
@@ -82,8 +86,9 @@ export async function readOpenStackTemplateOnRecording(data: {
     defaultAlertSeverityId: ObjectID.generate(),
     monitorName: "Recorded",
   });
-  const monitor: NonNullable<NonNullable<MonitorStep["data"]>["openstackMonitor"]> =
-    step.data!.openstackMonitor!;
+  const monitor: NonNullable<
+    NonNullable<MonitorStep["data"]>["openstackMonitor"]
+  > = step.data!.openstackMonitor!;
   const window: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
     monitor.rollingTime,
     new Date(WINDOW_END_MS),
@@ -112,7 +117,17 @@ export async function readOpenStackTemplateOnRecording(data: {
       const groupKey: string = JSON.stringify(group);
       const held: { group: Record<string, string>; samples: SamplesByAlias } =
         samplesByGroup.get(groupKey) || { group, samples: {} };
-      held.samples[alias] = new Array<number>(windowMinutes).fill(series.value);
+      /*
+       * A count is of its datapoints, whatever they read, as a monitor's read counts them. A status
+       * whose code is 0 is what that's for, so it mustn't read as its value here.
+       */
+      held.samples[alias] = new Array<number>(windowMinutes).fill(
+        (
+          query.metricQueryData.filterData as unknown as Record<string, unknown>
+        )["aggegationType"] === MetricsAggregationType.Count
+          ? 1
+          : series.value,
+      );
       samplesByGroup.set(groupKey, held);
     }
   }
