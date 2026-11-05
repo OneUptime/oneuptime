@@ -13,7 +13,7 @@ import {
   OpenStackTracedServices,
 } from "Common/Utils/OpenStack/OpenStackTraces";
 import { keyForOpenStackCloud } from "Common/Utils/Telemetry/EntityKey";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
@@ -119,7 +119,7 @@ const OpenStackCloudTraces: FunctionComponent<
   }
 
   return (
-    <div data-testid="openstack-traces-on">
+    <Fragment>
       <OpenStackTracesStatusCard
         traced={traced.data}
         canBeTraced={canBeTraced.data || []}
@@ -162,7 +162,7 @@ const OpenStackCloudTraces: FunctionComponent<
       >
         <OpenStackTracesSetupCard cloudName={cloudName} />
       </CollapsibleSection>
-    </div>
+    </Fragment>
   );
 };
 
