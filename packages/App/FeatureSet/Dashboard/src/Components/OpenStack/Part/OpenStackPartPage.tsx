@@ -76,6 +76,9 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.ContainerCluster]: translationKey(
     "This Kubernetes cluster is not in this cloud's inventory. It may have been deleted, or Magnum may not have reported it yet.",
   ),
+  [OpenStackResourceKind.DatabaseInstance]: translationKey(
+    "This database is not in this cloud's inventory. It may have been deleted, or Trove may not have reported it yet.",
+  ),
   [OpenStackResourceKind.Share]: translationKey(
     "This share is not in this cloud's inventory. It may have been deleted, or Manila may not have reported it yet.",
   ),

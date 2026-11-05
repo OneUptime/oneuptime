@@ -160,6 +160,8 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_container_infra_up",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
+  "openstack_trove_up",
+  "openstack_trove_instance_status",
   "openstack_sharev2_up",
   "openstack_sharev2_share_status",
   "openstack_sharev2_agent_state",
@@ -289,6 +291,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_placement_up",
         "openstack_sharev2_share_gb",
         "openstack_sharev2_share_status",
+        "openstack_trove_instance_status",
       ]);
 
       for (const metric of marked) {

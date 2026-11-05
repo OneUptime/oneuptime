@@ -40,6 +40,8 @@ import {
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
+  OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
@@ -73,6 +75,8 @@ import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -95,6 +99,7 @@ export type OpenStackAlertTemplateCategory =
   | "Storage"
   | "Orchestration"
   | "Bare Metal"
+  | "Databases"
   | "Projects"
   | "Capacity";
 
@@ -237,6 +242,7 @@ const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
 // A node's id is what it is, and its name what a person calls it, which Ironic does not require.
 const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
 const SHARE_GROUP: Array<string> = [REGION, "id", "name"];
+const DATABASE_INSTANCE_GROUP: Array<string> = [REGION, "id", "name"];
 
 // The smallest window holding three collections of what a service's job collects.
 export const OPENSTACK_WINDOW_BY_SERVICE: Record<
@@ -254,6 +260,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.ContainerInfra]: RollingTime.Past15Minutes,
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
 };
 
 export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
@@ -270,6 +277,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra_up",
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
+  [OpenStackServiceType.Database]: "openstack_trove_up",
 };
 
 /*
@@ -2614,6 +2622,144 @@ const shareServiceDownTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Databases ---
+
+/*
+ * An instance holding one of a set of words for the whole window, one query per word. By a count of
+ * its datapoints, because the series' value is a code for the word, and a code can be 0. Its series
+ * goes away with the word, so an instance fixed, deleted or finished recovers by that.
+ */
+function databaseInstanceStateQueries(
+  statuses: ReadonlySet<string>,
+): Array<OpenStackQuery> {
+  return Array.from(statuses).map((status: string): OpenStackQuery => {
+    return {
+      alias: statusAlias(status),
+      metricName: "openstack_trove_instance_status",
+      aggregationType: MetricsAggregationType.Count,
+      attributes: { status },
+    };
+  });
+}
+
+const databaseInstanceInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-database-instance-in-error",
+  name: "Database Instance in Error",
+  forService: OpenStackServiceType.Database,
+  summary: "A Trove database instance is in an error state.",
+  description: `Alert when a database instance reads one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES).join(", ")} for 15 minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove retries none of these by itself, so one stays until someone deals with it, and recovers when it is fixed or deleted. Check \`openstack database instance show <instance>\`, whose fault says why.`,
+  category: "Databases",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = databaseInstanceStateQueries(
+      OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+    );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Database,
+      groupByAttributeKeys: DATABASE_INSTANCE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Database Instance in Error",
+        incidentDescription: `This database instance is in the error state named above, and whoever asked for it does not have it. Check openstack database instance show for its fault, which says why Trove gave up: usually Nova refused its guest, or the guest never reported. The incident resolves on its own once it is fixed or deleted.`,
+        criteriaName:
+          "Database Instance in Error - an error state for the whole window",
+        criteriaDescription:
+          "Triggers when an instance holds an error state for the whole window.",
+      },
+    });
+  },
+};
+
+const databaseInstanceStuckTemplate: OpenStackAlertTemplate = {
+  id: "openstack-database-instance-stuck",
+  name: "Database Instance Stuck",
+  forService: OpenStackServiceType.Database,
+  summary: `A Trove database instance stays on its way for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes.`,
+  description: `Alert when a database instance stays in one of ${Array.from(OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes (openstack_trove_instance_status filtered to that status label, in every collection of the window). One incident per instance, in a region. Trove has no list of its own workers, so a stopped trove-taskmanager shows up nowhere else: its lists keep answering without it, recorded, and what it was working on just stops moving. Check that trove-taskmanager is running, then \`openstack database instance show <instance>\`.`,
+  category: "Databases",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = databaseInstanceStateQueries(
+      OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
+    );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Database,
+      rollingTime: windowHolding(OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES),
+      groupByAttributeKeys: DATABASE_INSTANCE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Database Instance Stuck",
+        incidentDescription: `This database instance has held the status named above for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes. Trove gives up on a guest by itself well before that, so nothing is working on it any more. Check that trove-taskmanager is running, then openstack database instance show. The incident resolves on its own once it reaches its next status, or is deleted.`,
+        criteriaName: `Database Instance Stuck - same status for ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES} minutes`,
+        criteriaDescription: `Triggers when an instance holds a passing status for the whole ${OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES}-minute window.`,
+      },
+    });
+  },
+};
+
+/*
+ * What its database has used of its volume, per instance. An instance that isn't running reads 0 used,
+ * recorded, so a stopped one can't fire this. No recording has a running one: a runner can't get a
+ * guest to ACTIVE, so the used side of this has only met made-up rows.
+ */
+const databaseVolumeNearlyFullTemplate: OpenStackAlertTemplate = {
+  id: "openstack-database-volume-nearly-full",
+  name: "Database Volume Nearly Full",
+  forService: OpenStackServiceType.Database,
+  summary: `A Trove database's volume is past ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% used.`,
+  description: `Alert when a database instance has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% of its volume for 15 minutes (openstack_trove_instance_volume_used_gb over openstack_trove_instance_volume_size_gb). One incident per instance, in a region. A database that fills its volume stops taking writes, and resizing it is a change someone has to plan. It recovers when the volume is resized or the database shrinks. Check \`openstack database instance show <instance>\`, then \`openstack database instance resize volume\`.`,
+  category: "Databases",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Database,
+      groupByAttributeKeys: DATABASE_INSTANCE_GROUP,
+      queries: [
+        {
+          alias: "used_gb",
+          metricName: "openstack_trove_instance_volume_used_gb",
+          aggregationType: MetricsAggregationType.Max,
+        },
+        {
+          alias: "size_gb",
+          metricName: "openstack_trove_instance_volume_size_gb",
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      formulas: [
+        {
+          alias: "volume_used_percent",
+          legend: "Volume used (%)",
+          legendUnit: "%",
+          formula: "(used_gb / size_gb) * 100",
+        },
+      ],
+      aliases: ["volume_used_percent"],
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+      words: {
+        incidentTitle: "[OpenStack] Database Volume Nearly Full",
+        incidentDescription: `This database has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% or more of its volume, and it stops taking writes when that fills. Check openstack database instance show, then resize it with openstack database instance resize volume, or have whoever owns it clear out what it holds. The incident resolves on its own once it has room again.`,
+        criteriaName: `Database Volume Nearly Full - used >= ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}%`,
+        criteriaDescription: `Triggers when a database has used ${OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT}% of its volume for the whole window.`,
+      },
+    });
+  },
+};
+
 /*
  * A stopped conductor leaves Ironic's API answering and its nodes listed as they were, recorded on
  * DevStack, so only its own list says so. The exporter has no series for that, and Ironic refuses a
@@ -2653,6 +2799,17 @@ const bareMetalConductorDownTemplate: OpenStackAlertTemplate = {
     });
   },
 };
+
+const databaseApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
+  id: "openstack-database-api-down",
+  name: "Databases API Down",
+  summary: "Trove's API does not answer for 15 minutes.",
+  description:
+    "Alert when the exporter's read of Trove fails for 15 minutes (openstack_trove_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. The exporter reads Trove's mgmt API, which only an admin may, so a credential it refuses reads the same as a stopped API, recorded. A cloud whose credential has never read Trove isn't offered this. A stopped trove-taskmanager leaves this at 1: Database Instance Stuck is what says that. Check the trove-api service and its log, then `openstack database instance list --all-projects`.",
+  service: OpenStackServiceType.Database,
+  collectionMetricName: "up",
+  incidentDescription: `The exporter's read of Trove is failing: its API stopped answering, or this credential is no longer allowed its mgmt API, which reads the same. Databases already running carry on, but none can be created, resized or backed up. Check the trove-api service and its log, then openstack database instance list --all-projects with this credential. The incident resolves on its own once it answers again.`,
+});
 
 // --- Projects ---
 
@@ -3237,6 +3394,10 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     shareServiceDownTemplate,
     shareInErrorTemplate,
     shareStuckTemplate,
+    databaseApiDownTemplate,
+    databaseInstanceInErrorTemplate,
+    databaseInstanceStuckTemplate,
+    databaseVolumeNearlyFullTemplate,
     bareMetalNodeInErrorTemplate,
     bareMetalNodeStuckTemplate,
     bareMetalNodeMaintenanceTooLongTemplate,

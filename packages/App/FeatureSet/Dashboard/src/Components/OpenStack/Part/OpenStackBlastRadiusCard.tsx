@@ -92,6 +92,11 @@ const COUNT_WORDS: ReadonlyArray<CountWords> = [
     key: "shares",
     words: { one: "{{count}} share", other: "{{count}} shares" },
   },
+  {
+    count: "databaseInstanceCount",
+    key: "databases",
+    words: { one: "{{count}} database", other: "{{count}} databases" },
+  },
 ];
 
 const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (

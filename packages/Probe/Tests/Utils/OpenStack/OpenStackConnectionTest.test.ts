@@ -1880,6 +1880,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Orchestration]: "orchestration",
     [OpenStackServiceType.ContainerInfra]: "container-infra",
     [OpenStackServiceType.SharedFileSystems]: "sharev2",
+    [OpenStackServiceType.Database]: "database",
   };
 
   test.each(

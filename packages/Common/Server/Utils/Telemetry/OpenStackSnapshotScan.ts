@@ -257,6 +257,9 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_sharev2_share_gb",
   "openstack_sharev2_share_status",
   "openstack_sharev2_agent_state",
+  "openstack_trove_instance_status",
+  "openstack_trove_instance_volume_size_gb",
+  "openstack_trove_instance_volume_used_gb",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
@@ -1415,6 +1418,56 @@ function foldShare(data: {
   entry.facts["backendHost"] = getLabel(data.attributes, "host");
 }
 
+/*
+ * A database, from any of Trove's three series about it. Each carries the instance's labels, and the
+ * two sizes are in their values. An instance that isn't running reads 0 used, recorded in BUILD and
+ * ERROR. Why one failed is only said by a probe, which an admin's read of Trove's mgmt API tells.
+ */
+function foldDatabaseInstance(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DatabaseInstance,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  if (data.metricName === "openstack_trove_instance_volume_size_gb") {
+    entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
+  }
+  if (data.metricName === "openstack_trove_instance_volume_used_gb") {
+    entry.diskAllocatedBytes = data.value * BYTES_PER_GIB;
+  }
+  setFact(entry, "datastoreType", getLabel(data.attributes, "datastore_type"));
+  setFact(
+    entry,
+    "datastoreVersion",
+    getLabel(data.attributes, "datastore_version"),
+  );
+  // Each is written whatever the collector knows: see foldShare. Null reads as not known.
+  entry.facts["healthStatus"] = getLabel(data.attributes, "health_status");
+  entry.facts["faultMessage"] = getLabel(data.attributes, "fault_message");
+  entry.facts["taskDescription"] = getLabel(
+    data.attributes,
+    "task_description",
+  );
+}
+
 function foldSnapshot(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   attributes: JSONArray;
@@ -2277,6 +2330,18 @@ export function bufferOpenStackSnapshotMetric(data: {
     case "openstack_sharev2_share_gb":
     case "openstack_sharev2_share_status":
       foldShare({ buffer, attributes, region, value, observedAt, metricName });
+      return;
+    case "openstack_trove_instance_status":
+    case "openstack_trove_instance_volume_size_gb":
+    case "openstack_trove_instance_volume_used_gb":
+      foldDatabaseInstance({
+        buffer,
+        attributes,
+        region,
+        value,
+        observedAt,
+        metricName,
+      });
       return;
     case "openstack_ironic_node":
       foldBareMetalNode({ buffer, attributes, region, observedAt });

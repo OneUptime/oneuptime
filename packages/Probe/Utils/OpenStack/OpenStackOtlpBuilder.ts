@@ -73,6 +73,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
+  [OpenStackServiceType.Database]: "openstack_trove",
 };
 
 // knownServerStatuses, the exporter's nova.go.

@@ -1561,6 +1561,16 @@ describe("an OpenStack cloud's recommendations", () => {
     ).toContain("openstack-share-service-down");
   });
 
+  test("Trove's go only to a cloud that runs it", () => {
+    expect(idsOf()).not.toContain("openstack-database-instance-in-error");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["database"] });
+    expect(ids).toContain("openstack-database-api-down");
+    expect(ids).toContain("openstack-database-instance-in-error");
+    expect(ids).toContain("openstack-database-instance-stuck");
+    expect(ids).toContain("openstack-database-volume-nearly-full");
+  });
+
   test("a monitor set up from one of them still resolves on a cloud that no longer runs it", () => {
     expect(
       MonitorRecommendationCatalog.getAllPossibleRecommendations(
