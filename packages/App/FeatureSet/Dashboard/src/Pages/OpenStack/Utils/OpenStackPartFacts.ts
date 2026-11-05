@@ -17,6 +17,7 @@ import {
   isOpenStackContainerClusterFailed,
   isOpenStackFloatingIpAssociated,
   isOpenStackServiceDown,
+  isOpenStackDnsInError,
   isOpenStackDatabaseInstanceInError,
   isOpenStackDatabaseInstanceStuck,
   isOpenStackShareInError,
@@ -158,6 +159,12 @@ export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
 export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-storage-pool-warning",
   "openstack-storage-pool-critical",
+];
+
+export const OPENSTACK_DNS_ZONE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-dns-zone-in-error",
+  "openstack-dns-zone-stuck-pending",
+  "openstack-dns-recordset-in-error",
 ];
 
 export const OPENSTACK_DATABASE_INSTANCE_ALERT_TEMPLATE_IDS: Array<string> = [
@@ -1083,6 +1090,12 @@ const EXPLAIN_POOL_FULL: string = translationKey(
 const EXPLAIN_POOL_FILLING: string = translationKey(
   "This pool is filling up. Add capacity or free space before Cinder's scheduler runs out of room for new volumes.",
 );
+const EXPLAIN_DNS_ZONE_ERROR: string = translationKey(
+  "Designate's worker gave up writing this zone to a DNS server, so what it answers there may be out of date. Names already served go on answering. Check that the DNS servers in its pool are answering, then designate-worker's log.",
+);
+const EXPLAIN_DNS_ZONE_PENDING: string = translationKey(
+  "This zone has stayed PENDING for longer than Designate's worker takes to give up, so nothing is working on it, and changes to it are being accepted and not carried out. Check that designate-worker is running, then openstack dns service list.",
+);
 const EXPLAIN_DATABASE_ERROR: string = translationKey(
   "Trove gave up on this database, and it stays like this until someone deals with it. Whoever asked for it doesn't have it. Usually Nova refused its guest, or the guest never reported. openstack database instance show says which, in its fault.",
 );
@@ -1173,6 +1186,10 @@ export function getOpenStackPartExplanation(
         : EXPLAIN_POOL_FILLING;
     case OpenStackResourceKind.Image:
       return EXPLAIN_IMAGE_STUCK;
+    case OpenStackResourceKind.DnsZone:
+      return isOpenStackDnsInError(row.status)
+        ? EXPLAIN_DNS_ZONE_ERROR
+        : EXPLAIN_DNS_ZONE_PENDING;
     case OpenStackResourceKind.DatabaseInstance:
       if (isOpenStackDatabaseInstanceInError(row.status)) {
         return EXPLAIN_DATABASE_ERROR;
@@ -1337,6 +1354,13 @@ export function isOpenStackIssueAbout(
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
       );
+    // A recordset's incident is its zone's: one failure of a zone's writes is one incident.
+    case OpenStackResourceKind.DnsZone:
+      return (
+        Boolean(row.externalId) &&
+        (readSeriesLabel(labels, "id") === row.externalId ||
+          readSeriesLabel(labels, "zone_id") === row.externalId)
+      );
     case OpenStackResourceKind.ContainerCluster:
       return (
         Boolean(row.externalId) &&
@@ -1438,6 +1462,8 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
   [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,
   [OpenStackResourceKind.DatabaseInstance]: OpenStackServiceType.Database,
+  [OpenStackResourceKind.DnsZone]: OpenStackServiceType.Dns,
+  [OpenStackResourceKind.DnsRecordset]: OpenStackServiceType.Dns,
 };
 
 const NOT_ANSWERING: OpenStackEmptyWords = {

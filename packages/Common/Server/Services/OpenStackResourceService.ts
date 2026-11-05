@@ -31,6 +31,8 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
   OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
@@ -83,6 +85,7 @@ import {
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_SHARE_STUCK_MINUTES,
@@ -181,6 +184,7 @@ export interface OpenStackInventorySummary {
   containerClusterCount: number;
   shareCount: number;
   databaseInstanceCount: number;
+  dnsZoneCount: number;
 }
 
 // What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
@@ -221,6 +225,7 @@ export interface OpenStackProjectSummary {
   containerClusterCount: number;
   shareCount: number;
   databaseInstanceCount: number;
+  dnsZoneCount: number;
 }
 
 export interface OpenStackProjectLabel {
@@ -985,6 +990,7 @@ export class Service extends DatabaseService<Model> {
       containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
       shareCount: countOf(OpenStackResourceKind.Share),
       databaseInstanceCount: countOf(OpenStackResourceKind.DatabaseInstance),
+      dnsZoneCount: countOf(OpenStackResourceKind.DnsZone),
     };
   }
 
@@ -1240,6 +1246,10 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_IMAGE_STUCK_MINUTES,
     );
+    const dnsZoneStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
+    );
     const databaseStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
       data.now,
       -OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
@@ -1346,6 +1356,26 @@ export class Service extends DatabaseService<Model> {
           statuses(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES),
           imageStuckBefore,
         ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.DnsZone,
+        where: `("status" = $3 OR ("status" = $4 AND "stateChangedAt" <= $5))`,
+        params: [
+          OPENSTACK_DNS_STATUS_ERROR,
+          OPENSTACK_DNS_STATUS_PENDING,
+          dnsZoneStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      /*
+       * Only a recordset in ERROR. One PENDING has a zone PENDING above it, recorded, and that is what
+       * says so. Only recordsets that aren't ACTIVE have rows at all, so this reads few.
+       */
+      {
+        kind: OpenStackResourceKind.DnsRecordset,
+        where: `"status" = $3`,
+        params: [OPENSTACK_DNS_STATUS_ERROR],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
       },
       {
@@ -2231,6 +2261,10 @@ export class Service extends DatabaseService<Model> {
         [OpenStackServiceType.Database]: [
           [OpenStackResourceKind.DatabaseInstance, "databaseInstanceCount"],
         ],
+        // Names already served go on answering from their DNS servers: only changing them stops.
+        [OpenStackServiceType.Dns]: [
+          [OpenStackResourceKind.DnsZone, "dnsZoneCount"],
+        ],
       };
       for (const [kind, count] of kinds[part.name || ""] || []) {
         counts.push({
@@ -2504,6 +2538,7 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.ContainerCluster,
           OpenStackResourceKind.Share,
           OpenStackResourceKind.DatabaseInstance,
+          OpenStackResourceKind.DnsZone,
         ],
         ids,
       ],
@@ -2525,6 +2560,7 @@ export class Service extends DatabaseService<Model> {
             containerClusterCount: 0,
             shareCount: 0,
             databaseInstanceCount: 0,
+            dnsZoneCount: 0,
           },
         ];
       }),
@@ -2566,6 +2602,9 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.DatabaseInstance:
           summary.databaseInstanceCount = count;
+          break;
+        case OpenStackResourceKind.DnsZone:
+          summary.dnsZoneCount = count;
           break;
         default:
           break;
@@ -2809,6 +2848,8 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.StoragePool,
       OpenStackResourceKind.Share,
       OpenStackResourceKind.DatabaseInstance,
+      OpenStackResourceKind.DnsZone,
+      OpenStackResourceKind.DnsRecordset,
       OpenStackResourceKind.Network,
       OpenStackResourceKind.Subnet,
       OpenStackResourceKind.Router,

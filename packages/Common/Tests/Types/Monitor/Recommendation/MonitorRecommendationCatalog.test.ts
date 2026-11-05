@@ -1561,6 +1561,19 @@ describe("an OpenStack cloud's recommendations", () => {
     ).toContain("openstack-share-service-down");
   });
 
+  test("Designate's go only to a cloud that runs it, and its API's only to a probe's", () => {
+    expect(idsOf()).not.toContain("openstack-dns-zone-in-error");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["dns"] });
+    expect(ids).toContain("openstack-dns-zone-in-error");
+    expect(ids).toContain("openstack-dns-zone-stuck-pending");
+    expect(ids).toContain("openstack-dns-recordset-in-error");
+    expect(ids).not.toContain("openstack-dns-api-down");
+    expect(
+      idsOf({ openStackServices: ["dns"], openStackIsCollectedByProbe: true }),
+    ).toContain("openstack-dns-api-down");
+  });
+
   test("Trove's go only to a cloud that runs it", () => {
     expect(idsOf()).not.toContain("openstack-database-instance-in-error");
 

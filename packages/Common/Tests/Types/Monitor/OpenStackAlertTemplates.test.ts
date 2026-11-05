@@ -334,6 +334,20 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
    * per collection, and these jobs collect no more than once a minute.
    */
   "openstack-instances-in-error|instances_in_error": "Count",
+  "openstack-dns-zone-in-error|in_error": "Count",
+  "openstack-dns-zone-stuck-pending|in_pending": "Count",
+  "openstack-dns-recordset-in-error|recordset_a": "Count",
+  "openstack-dns-recordset-in-error|recordset_aaaa": "Count",
+  "openstack-dns-recordset-in-error|recordset_cname": "Count",
+  "openstack-dns-recordset-in-error|recordset_mx": "Count",
+  "openstack-dns-recordset-in-error|recordset_txt": "Count",
+  "openstack-dns-recordset-in-error|recordset_srv": "Count",
+  "openstack-dns-recordset-in-error|recordset_ptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_spf": "Count",
+  "openstack-dns-recordset-in-error|recordset_sshfp": "Count",
+  "openstack-dns-recordset-in-error|recordset_caa": "Count",
+  "openstack-dns-recordset-in-error|recordset_naptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_cert": "Count",
   "openstack-database-instance-in-error|in_error": "Count",
   "openstack-database-instance-in-error|in_failed": "Count",
   "openstack-database-instance-stuck|in_build": "Count",
@@ -572,6 +586,22 @@ const THRESHOLDS: Readonly<
   "openstack-share-service-down": {
     filterType: FilterType.LessThan,
     value: 1,
+  },
+  "openstack-dns-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-dns-zone-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-zone-stuck-pending": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-recordset-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
   },
   "openstack-database-api-down": {
     filterType: FilterType.LessThan,
@@ -880,6 +910,23 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { manila_service_up: 0 },
     healthy: { manila_service_up: 1 },
   },
+  "openstack-dns-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  // How many datapoints a window holds of that word, because PENDING's code is 0.
+  "openstack-dns-zone-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-dns-zone-stuck-pending": {
+    breached: { in_pending: 1 },
+    healthy: { in_pending: 0 },
+  },
+  "openstack-dns-recordset-in-error": {
+    breached: { recordset_a: 1 },
+    healthy: { recordset_a: 0 },
+  },
   "openstack-database-api-down": {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
@@ -1055,6 +1102,10 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Manila Service Down",
         "Share in Error",
         "Share Stuck",
+        "DNS API Down",
+        "DNS Zone in Error",
+        "DNS Zone Stuck Pending",
+        "DNS Recordset in Error",
         "Databases API Down",
         "Database Instance in Error",
         "Database Instance Stuck",
@@ -2062,6 +2113,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
       ["openstack-share-in-error", ["id", "name"]],
       ["openstack-share-stuck", ["id", "name"]],
+      ["openstack-dns-zone-in-error", ["id", "name"]],
+      ["openstack-dns-zone-stuck-pending", ["id", "name"]],
+      ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],
       ["openstack-database-instance-in-error", ["id", "name"]],
       ["openstack-database-instance-stuck", ["id", "name"]],
       ["openstack-database-volume-nearly-full", ["id", "name"]],

@@ -7,6 +7,8 @@ import {
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
   OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
@@ -76,6 +78,12 @@ export const OPENSTACK_SHARE_STUCK_MINUTES: number = 60;
  * only thing that says trove-taskmanager stopped.
  */
 export const OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES: number = 60;
+/*
+ * Designate's worker gives up on a change by itself in a few minutes, and the zone reads ERROR
+ * (recorded, with the DNS server it writes to stopped). So a zone still PENDING after this has nothing
+ * working on it: its worker has stopped, recorded, and the API takes changes it never carries out.
+ */
+export const OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES: number = 30;
 /*
  * A database's volume, of the part of it the database has used. Past this, it stops taking writes
  * without much warning. The same line as a storage pool's.
@@ -527,6 +535,26 @@ export function isOpenStackDatabaseVolumeNearlyFull(data: {
   const percent: number | null = getOpenStackDatabaseVolumePercent(data);
   return (
     percent !== null && percent >= OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT
+  );
+}
+
+export function isOpenStackDnsInError(
+  status: string | null | undefined,
+): boolean {
+  return status === OPENSTACK_DNS_STATUS_ERROR;
+}
+
+export function isOpenStackDnsZoneStuckPending(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (data.status !== OPENSTACK_DNS_STATUS_PENDING) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return (
+    minutes !== null && minutes >= OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES
   );
 }
 

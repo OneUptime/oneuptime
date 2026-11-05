@@ -109,6 +109,7 @@ const AGENT_STATE_METRICS: Record<string, string> = {
   [OpenStackServiceFamily.ContainerInfra]:
     "openstack_container_infra_agent_state",
   [OpenStackServiceFamily.SharedFileSystems]: "openstack_sharev2_agent_state",
+  [OpenStackServiceFamily.Dns]: "openstack_designate_agent_state",
 };
 
 const SERVICE_OF_FAMILY: Record<string, string> = {
@@ -119,6 +120,7 @@ const SERVICE_OF_FAMILY: Record<string, string> = {
   [OpenStackServiceFamily.ContainerInfra]: OpenStackServiceType.ContainerInfra,
   [OpenStackServiceFamily.SharedFileSystems]:
     OpenStackServiceType.SharedFileSystems,
+  [OpenStackServiceFamily.Dns]: OpenStackServiceType.Dns,
 };
 
 export interface ComponentProps {

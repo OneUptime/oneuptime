@@ -1881,6 +1881,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.ContainerInfra]: "container-infra",
     [OpenStackServiceType.SharedFileSystems]: "sharev2",
     [OpenStackServiceType.Database]: "database",
+    [OpenStackServiceType.Dns]: "dns",
   };
 
   test.each(
