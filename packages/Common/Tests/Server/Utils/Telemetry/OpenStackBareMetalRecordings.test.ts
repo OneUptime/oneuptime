@@ -601,16 +601,26 @@ describe("clean-failed: the conductor could not run a step", () => {
     );
   });
 
-  test("and the API's own reason doesn't last: it has gone by the next scene but one", () => {
-    const later: JSONObject | undefined = apiAnswer(
-      "power-off-while-active",
-      "ironic-nodes",
-    ).find((one: JSONObject): boolean => {
-      return one["name"] === "ou-node-clean-failed";
-    });
+  test("and the API's own reason need not last: gone from a failed clean, and still on a failed deploy", () => {
+    const later: Array<JSONObject> = apiAnswer("recovered", "ironic-nodes");
+    const ofNode: (name: string) => JSONObject | undefined = (
+      name: string,
+    ): JSONObject | undefined => {
+      return later.find((one: JSONObject): boolean => {
+        return one["name"] === name;
+      });
+    };
 
-    expect(later?.["provision_state"]).toBe("clean failed");
-    expect(later?.["last_error"]).toBe(null);
+    expect(ofNode("ou-node-clean-failed")?.["provision_state"]).toBe(
+      "clean failed",
+    );
+    expect(ofNode("ou-node-clean-failed")?.["last_error"]).toBe(null);
+    expect(ofNode("ou-node-deploy-failed")?.["provision_state"]).toBe(
+      "deploy failed",
+    );
+    expect(ofNode("ou-node-deploy-failed")?.["last_error"]).toContain(
+      "Timeout reached while waiting for callback",
+    );
   });
 });
 

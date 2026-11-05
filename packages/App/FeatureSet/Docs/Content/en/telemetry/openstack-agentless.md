@@ -174,7 +174,7 @@ Past [5,000 instances](/docs/telemetry/openstack-very-large-clouds#summary-mode)
 
 ## Bare metal
 
-On a cloud whose catalog has Ironic, a probe reads its nodes, and asks for each field by name, so a node's `driver_info` is never read in a collection. It adds what the agent's exporter doesn't have: a node's driver, its conductor, its fault and why it failed. Ironic empties `last_error` within about a minute, so a page keeps the last one a collection saw, and says when.
+On a cloud whose catalog has Ironic, a probe reads its nodes, and asks for each field by name, so a node's `driver_info` is never read in a collection. It adds what the agent's exporter doesn't have: a node's driver, its conductor, its fault and why it failed. Ironic can empty `last_error` within about a minute, so a page keeps the last one a collection saw, and says when.
 
 A probe reads the catalog first, so it can say Ironic's API is down, which the agent's exporter can't. A cloud without Ironic is asked nothing about it.
 

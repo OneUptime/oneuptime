@@ -1041,6 +1041,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Image Stuck",
         // #5742. The issue's four, and what its API says of itself where anything can say so.
         "Bare Metal API Down",
+        "Bare Metal Conductor Down",
         "Bare Metal Node in Error",
         "Bare Metal Node Stuck Transitioning",
         "Bare Metal Node in Maintenance Too Long",

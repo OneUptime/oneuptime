@@ -1032,9 +1032,10 @@ function bareMetalNodeEntry(data: {
  * last_error. Every node has a driver, so that is what tells a probe's series from the exporter's,
  * whose silence says nothing about any of these.
  *
- * Why a node failed does not last. Ironic empties last_error about a minute later, with the node
- * still failed (recorded: services-ironic, clean-failed against deploy-failed). So a reason is kept
- * until the node has left a failed state, with when it was read. An empty one never replaces it.
+ * Why a node failed may not last. Ironic emptied a failed clean's last_error 72 seconds later, with
+ * the node still failed, and left a failed deploy's alone (recorded: services-ironic, clean-failed
+ * against deploy-failed). So a reason is kept until the node has left a failed state, with when it
+ * was read. An empty one never replaces it.
  */
 function setNativeBareMetalNodeFacts(
   entry: OpenStackResourceBufferEntry,
