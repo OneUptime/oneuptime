@@ -1,0 +1,4186 @@
+{
+  "scenes": [
+    {
+      "endedAt": "2026-11-05T02:53:32Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "off-signed-list",
+      "seconds": 1.981,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:53:30Z",
+      "traceIds": [
+        "ee408cdc-0f1e-4608-9e17-c21336e3c34d"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "ee408cdc0f1e46089e17c21336e3c34d"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:54:49Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "no-libraries-signed-list",
+      "seconds": 1.903,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:54:47Z",
+      "traceIds": [
+        "41bd061c-22c6-4ad9-b33f-8236debdfad7"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "41bd061c22c64ad9b33f8236debdfad7"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:06:10Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "unsigned-list",
+      "seconds": 2.078,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:06:08Z",
+      "traceIds": [],
+      "traces": []
+    },
+    {
+      "endedAt": "2026-11-05T03:06:27Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "wrong-key-list",
+      "seconds": 2.039,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:06:25Z",
+      "traceIds": [
+        "2f2e73dd-3484-4069-9561-e346b2f4c1ba"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "2f2e73dd348440699561e346b2f4c1ba"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:06:44Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "signed-list",
+      "seconds": 1.847,
+      "spansMade": 11,
+      "startedAt": "2026-11-05T03:06:43Z",
+      "traceIds": [
+        "51dc8e09-625c-4ec0-a81f-226427a8ad58"
+      ],
+      "traces": [
+        {
+          "agentBytes": 4949,
+          "driver": {
+            "bytes": 16625,
+            "seconds": 0.531,
+            "services": {
+              "glance-api": 1,
+              "keystone-public": 3,
+              "nova-osapi_compute": 7
+            },
+            "spans": 11,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 5
+          },
+          "traceId": "51dc8e09625c4ec0a81f226427a8ad58"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:07:07Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "signed-boot",
+      "seconds": 7.662,
+      "spansMade": 79,
+      "startedAt": "2026-11-05T03:06:59Z",
+      "traceIds": [
+        "fb497d0b-c3c9-4cb7-8049-fbf8ec6d24de"
+      ],
+      "traces": [
+        {
+          "agentBytes": 42544,
+          "driver": {
+            "bytes": 152472,
+            "seconds": 622.157,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 8,
+              "nova-nova-compute": 22,
+              "nova-nova-conductor": 49,
+              "nova-nova-scheduler": 1,
+              "nova-osapi_compute": 21
+            },
+            "spans": 106,
+            "spansWhoseParentIsNotInTheTrace": 1,
+            "spansWithNoParent": 11
+          },
+          "traceId": "fb497d0bc3c94cb78049fbf8ec6d24de"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:07:31Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-show",
+      "seconds": 1.699,
+      "spansMade": 10,
+      "startedAt": "2026-11-05T03:07:29Z",
+      "traceIds": [
+        "8f795858-daf2-4b51-bb8c-3c4bea06818d"
+      ],
+      "traces": [
+        {
+          "agentBytes": 4874,
+          "driver": {
+            "bytes": 6307,
+            "seconds": 0.496,
+            "services": {
+              "glance-api": 1,
+              "keystone-public": 3,
+              "nova-osapi_compute": 6
+            },
+            "spans": 10,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 5
+          },
+          "traceId": "8f795858daf24b51bb8c3c4bea06818d"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:07:49Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-failed",
+      "seconds": 3.563,
+      "spansMade": 26,
+      "startedAt": "2026-11-05T03:07:46Z",
+      "traceIds": [
+        "a43cfec2-c17f-452a-affa-ffb00512513c"
+      ],
+      "traces": [
+        {
+          "agentBytes": 12459,
+          "driver": {
+            "bytes": 20251,
+            "seconds": 1.215,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 5,
+              "nova-nova-conductor": 2,
+              "nova-nova-scheduler": 1,
+              "nova-osapi_compute": 12
+            },
+            "spans": 25,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 9
+          },
+          "traceId": "a43cfec2c17f452aaffaffb00512513c"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:14:45Z",
+      "exitCode": 1,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-volume",
+      "seconds": 393.532,
+      "spansMade": 13,
+      "startedAt": "2026-11-05T03:08:11Z",
+      "traceIds": [
+        "6999cb5e-0867-4528-bdca-4ed2091abb1c"
+      ],
+      "traces": [
+        {
+          "agentBytes": 3361,
+          "driver": {
+            "bytes": 5248,
+            "seconds": 0.611,
+            "services": {
+              "cinder-cinder-api": 3,
+              "cinder-cinder-scheduler": 1,
+              "keystone-public": 3
+            },
+            "spans": 7,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 5
+          },
+          "traceId": "6999cb5e08674528bdca4ed2091abb1c"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:15:14Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-network",
+      "seconds": 14.675,
+      "spansMade": 16,
+      "startedAt": "2026-11-05T03:15:00Z",
+      "traceIds": [
+        "b869f952-86ff-4dbc-ba0a-f5658b7549ac",
+        "d62ab179-5749-4b01-90c5-0a155315f247",
+        "0d20a136-0d7b-480f-bc58-10ea66d45f0b",
+        "c24e3282-9891-4091-a4d5-36c4d1a35015",
+        "afb5b733-e672-4085-8722-972f54c5fc2d",
+        "5bc21c0c-8f08-4280-8afd-e2778ea4fed9",
+        "273fa91e-175d-48c2-814c-84b621aff8d2",
+        "aa7f6e72-12f4-4693-b964-d434834012f3"
+      ],
+      "traces": [
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.02,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "b869f95286ff4dbcba0af5658b7549ac"
+        },
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.023,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "d62ab17957494b0190c50a155315f247"
+        },
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.022,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "0d20a1360d7b480fbc5810ea66d45f0b"
+        },
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.021,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "c24e328298914091a4d536c4d1a35015"
+        },
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.023,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "afb5b733e67240858722972f54c5fc2d"
+        },
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.022,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "5bc21c0c8f0842808afde2778ea4fed9"
+        },
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.021,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "273fa91e175d48c2814c84b621aff8d2"
+        },
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.02,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "aa7f6e7212f44693b964d434834012f3"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:15:31Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-image",
+      "seconds": 1.562,
+      "spansMade": 5,
+      "startedAt": "2026-11-05T03:15:30Z",
+      "traceIds": [
+        "442e1af7-d741-4564-92fc-f7fed4382b42"
+      ],
+      "traces": [
+        {
+          "agentBytes": 2568,
+          "driver": {
+            "bytes": 2568,
+            "seconds": 0.413,
+            "services": {
+              "glance-api": 2,
+              "keystone-public": 3
+            },
+            "spans": 5,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 4
+          },
+          "traceId": "442e1af7d741456492fcf7fed4382b42"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:15:48Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-token",
+      "seconds": 1.504,
+      "spansMade": 3,
+      "startedAt": "2026-11-05T03:15:46Z",
+      "traceIds": [
+        "1e07d68c-fdcf-4505-ab98-f02df7be81a7"
+      ],
+      "traces": [
+        {
+          "agentBytes": 988,
+          "driver": {
+            "bytes": 988,
+            "seconds": 0.022,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 2
+          },
+          "traceId": "1e07d68cfdcf4505ab98f02df7be81a7"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:16:09Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-delete",
+      "seconds": 5.899,
+      "spansMade": 53,
+      "startedAt": "2026-11-05T03:16:03Z",
+      "traceIds": [
+        "92456d3f-74ff-408d-aecf-d8959b8fb242",
+        "c585f5d6-ba7c-4859-962c-353d03faa114"
+      ],
+      "traces": [
+        {
+          "agentBytes": 9534,
+          "driver": {
+            "bytes": 13661,
+            "seconds": 0.814,
+            "services": {
+              "keystone-public": 8,
+              "nova-osapi_compute": 11
+            },
+            "spans": 19,
+            "spansWhoseParentIsNotInTheTrace": 3,
+            "spansWithNoParent": 6
+          },
+          "traceId": "92456d3f74ff408daecfd8959b8fb242"
+        },
+        {
+          "agentBytes": 8871,
+          "driver": {
+            "bytes": 16640,
+            "seconds": 2.666,
+            "services": {
+              "keystone-public": 3,
+              "nova-osapi_compute": 16
+            },
+            "spans": 19,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 7
+          },
+          "traceId": "c585f5d6ba7c4859962c353d03faa114"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:16:27Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-by-header",
+      "seconds": 2.966,
+      "spansMade": 4,
+      "startedAt": "2026-11-05T03:16:24Z",
+      "traceIds": [
+        "4bb2ac25-85a6-404f-89dd-d91e8f49b5ed"
+      ],
+      "traces": [
+        {
+          "agentBytes": 1396,
+          "driver": {
+            "bytes": 1837,
+            "seconds": 0.056,
+            "services": {
+              "keystone-public": 1,
+              "nova-osapi_compute": 2
+            },
+            "spans": 3,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 1
+          },
+          "traceId": "4bb2ac2585a6404f89ddd91e8f49b5ed"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:16:44Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "collector-down-signed-list",
+      "seconds": 1.716,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:16:42Z",
+      "traceIds": [
+        "bec59bd1-2037-4193-99df-7a1dd4118613"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "bec59bd12037419399df7a1dd4118613"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:17:10Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "collector-down-signed-boot",
+      "seconds": 10.957,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:16:59Z",
+      "traceIds": [
+        "1f997fb1-16a9-426b-8ce6-7e6ba14d1ad8"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "1f997fb116a9426b8ce67e6ba14d1ad8"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:18:36Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-sql",
+      "seconds": 11.512,
+      "spansMade": 298,
+      "startedAt": "2026-11-05T03:18:25Z",
+      "traceIds": [
+        "873bff76-65c2-4d99-94c5-23f7a07a7f2c"
+      ],
+      "traces": [
+        {
+          "agentBytes": 339556,
+          "driver": {
+            "bytes": 479623,
+            "seconds": 23.528,
+            "services": {
+              "glance-api": 11,
+              "keystone-public": 26,
+              "nova-nova-compute": 20,
+              "nova-nova-conductor": 190,
+              "nova-nova-scheduler": 2,
+              "nova-osapi_compute": 49
+            },
+            "spans": 298,
+            "spansWhoseParentIsNotInTheTrace": 1,
+            "spansWithNoParent": 11
+          },
+          "traceId": "873bff7665c24d9994c523f7a07a7f2c"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:20:01Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-requests",
+      "seconds": 11.576,
+      "spansMade": 139,
+      "startedAt": "2026-11-05T03:19:49Z",
+      "traceIds": [
+        "cbdf0f09-d706-44fe-931b-8a03c77c168e"
+      ],
+      "traces": [
+        {
+          "agentBytes": 114494,
+          "driver": {
+            "bytes": 272802,
+            "seconds": 66.135,
+            "services": {
+              "glance-api": 6,
+              "keystone-public": 8,
+              "nova-nova-compute": 84,
+              "nova-nova-conductor": 76,
+              "nova-nova-scheduler": 4,
+              "nova-osapi_compute": 36,
+              "placement-placement": 12
+            },
+            "spans": 226,
+            "spansWhoseParentIsNotInTheTrace": 1,
+            "spansWithNoParent": 11
+          },
+          "traceId": "cbdf0f09d70644fe931b8a03c77c168e"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:20:43Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-placement",
+      "seconds": 11.089,
+      "spansMade": 145,
+      "startedAt": "2026-11-05T03:20:32Z",
+      "traceIds": [
+        "b2fa877b-0ba6-49f1-8b3b-91dfa2b1b090"
+      ],
+      "traces": [
+        {
+          "agentBytes": 34269,
+          "driver": {
+            "bytes": 52764,
+            "seconds": 6.125,
+            "services": {
+              "glance-api": 8,
+              "keystone-public": 6,
+              "nova-nova-compute": 1,
+              "nova-nova-conductor": 4,
+              "nova-nova-scheduler": 4,
+              "nova-osapi_compute": 36,
+              "placement-placement": 3
+            },
+            "spans": 62,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 11
+          },
+          "traceId": "b2fa877b0ba649f18b3b91dfa2b1b090"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:22:07Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-whole",
+      "seconds": 11.557,
+      "spansMade": 111,
+      "startedAt": "2026-11-05T03:21:56Z",
+      "traceIds": [
+        "0e3f708e-7513-41fe-9c98-cdaa09e3a6db"
+      ],
+      "traces": [
+        {
+          "agentBytes": 53563,
+          "driver": {
+            "bytes": 152505,
+            "seconds": 40.126,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 8,
+              "nova-nova-compute": 20,
+              "nova-nova-conductor": 50,
+              "nova-nova-scheduler": 2,
+              "nova-osapi_compute": 21,
+              "placement-placement": 16
+            },
+            "spans": 122,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 11
+          },
+          "traceId": "0e3f708e751341fe9c98cdaa09e3a6db"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:22:28Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-failed-whole",
+      "seconds": 5.63,
+      "spansMade": 33,
+      "startedAt": "2026-11-05T03:22:23Z",
+      "traceIds": [
+        "8b8f8c6c-054b-432c-8e3b-0117b17b854a"
+      ],
+      "traces": [
+        {
+          "agentBytes": 10318,
+          "driver": {
+            "bytes": 13922,
+            "seconds": 0.81,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 5,
+              "nova-osapi_compute": 12
+            },
+            "spans": 22,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 9
+          },
+          "traceId": "8b8f8c6c054b432c8e3b0117b17b854a"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:23:54Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-osprofiler-fix",
+      "seconds": 11.533,
+      "spansMade": 108,
+      "startedAt": "2026-11-05T03:23:43Z",
+      "traceIds": [
+        "02ca16e0-bd98-4b98-9df3-494c4a8233de"
+      ],
+      "traces": [
+        {
+          "agentBytes": 47747,
+          "driver": {
+            "bytes": 135382,
+            "seconds": 24.095,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 8,
+              "nova-nova-compute": 20,
+              "nova-nova-conductor": 40,
+              "nova-nova-scheduler": 1,
+              "nova-osapi_compute": 21,
+              "placement-placement": 15
+            },
+            "spans": 110,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 11
+          },
+          "traceId": "02ca16e0bd984b989df3494c4a8233de"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:25:28Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "native-messaging-boot",
+      "seconds": 18.54,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:25:09Z",
+      "traceIds": [],
+      "traces": []
+    },
+    {
+      "endedAt": "2026-11-05T03:26:43Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "native-messaging-idle",
+      "seconds": 60.004,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:25:43Z",
+      "traceIds": [],
+      "traces": []
+    },
+    {
+      "endedAt": "2026-11-05T03:28:16Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "native-both-boot",
+      "seconds": 18.299,
+      "spansMade": 97,
+      "startedAt": "2026-11-05T03:27:57Z",
+      "traceIds": [],
+      "traces": []
+    },
+    {
+      "endedAt": "2026-11-05T03:29:31Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "native-both-idle",
+      "seconds": 60.003,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:28:31Z",
+      "traceIds": [],
+      "traces": []
+    },
+    {
+      "endedAt": "2026-11-05T03:30:56Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "native-with-osprofiler-boot",
+      "seconds": 11.422,
+      "spansMade": 288,
+      "startedAt": "2026-11-05T03:30:44Z",
+      "traceIds": [
+        "4bf0564b-82cd-47fa-9f3f-b19550984f32"
+      ],
+      "traces": [
+        {
+          "agentBytes": 41391,
+          "driver": {
+            "bytes": 137977,
+            "seconds": 24.805,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 8,
+              "nova-nova-compute": 20,
+              "nova-nova-conductor": 47,
+              "nova-nova-scheduler": 1,
+              "nova-osapi_compute": 21
+            },
+            "spans": 102,
+            "spansWhoseParentIsNotInTheTrace": 10,
+            "spansWithNoParent": 2
+          },
+          "traceId": "4bf0564b82cd47fa9f3fb19550984f32"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:32:22Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "off-again-signed-boot",
+      "seconds": 11.576,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:32:10Z",
+      "traceIds": [
+        "c39a29d4-0548-444f-95e9-745c9251e241"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "c39a29d40548444f95e9745c9251e241"
+        }
+      ]
+    }
+  ],
+  "tracesNoSceneNamed": [
+    {
+      "driver": {
+        "bytes": 680,
+        "seconds": 0.604,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "80c6be1ec214103e9fd9a4be0ab4ceff"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 1.456,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8dfbf5381549a77d543ae22b055b9a72"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.105,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2fe6ae3414db1e4fa237c4233d51aa03"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.104,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "83b5bdb0865ea7e80992056beab0d7fb"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.089,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "26e28c246539899ffb9c432186209aae"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.057,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b998a10e2fdca3bf7b257de30490c5af"
+    },
+    {
+      "driver": {
+        "bytes": 654,
+        "seconds": 1.646,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e6274522611efc57c008dffaa362667d"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.137,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "eeecf8364c412bff64dd568a929d499c"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.147,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5b57bbc99c437b0dbf45a8e0d332fe41"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.126,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fa347b6550cbb223b0668838bb42b99d"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.053,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4a06f1c8b4c3ffd5195bb678f5ede4cb"
+    },
+    {
+      "driver": {
+        "bytes": 698,
+        "seconds": 0.507,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e76eb5c853d8adc59d01850bee850a95"
+    },
+    {
+      "driver": {
+        "bytes": 698,
+        "seconds": 7.927,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "261b919c8f6faecfd105472bb71f3333"
+    },
+    {
+      "driver": {
+        "bytes": 698,
+        "seconds": 0.339,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "9aba6f1f180bc8b16cbc4c4e8f1d6115"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.061,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "3f32ecfa89a289229993b44c92611802"
+    },
+    {
+      "driver": {
+        "bytes": 647,
+        "seconds": 0.128,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6bfcb317e27215f2de74b0f18350889f"
+    },
+    {
+      "driver": {
+        "bytes": 624,
+        "seconds": 0.003,
+        "services": {
+          "cinder-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1f11480418c0772b1ce5a61756de1933"
+    },
+    {
+      "driver": {
+        "bytes": 657,
+        "seconds": 0.282,
+        "services": {
+          "cinder-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8f48ef88fc7426b87d8840abd5564616"
+    },
+    {
+      "driver": {
+        "bytes": 624,
+        "seconds": 0.276,
+        "services": {
+          "cinder-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fdc2fb95606986f3a387178030cbec81"
+    },
+    {
+      "driver": {
+        "bytes": 675,
+        "seconds": 0.019,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "86e9abc76ebaac02c23221911efde822"
+    },
+    {
+      "driver": {
+        "bytes": 636,
+        "seconds": 0.042,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e98bfd34a7eadacd84a3daad4fc20fb9"
+    },
+    {
+      "driver": {
+        "bytes": 640,
+        "seconds": 0.081,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "88f1eb4a4de8bb32df11c3426b0b64d5"
+    },
+    {
+      "driver": {
+        "bytes": 723,
+        "seconds": 0.024,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "656b1cc3736dd8b481e92df3eb4a5a32"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.034,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ea46b825f55100a0d549d0ebbf39f177"
+    },
+    {
+      "driver": {
+        "bytes": 1262,
+        "seconds": 0.626,
+        "services": {
+          "neutron-server": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "0726d9e5a748caa7065480591a8ed948"
+    },
+    {
+      "driver": {
+        "bytes": 684,
+        "seconds": 0.024,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b4553204f30cca1e4473750b96bfb2d6"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.09,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6c3debbda145ff148213fe1d79a50c9f"
+    },
+    {
+      "driver": {
+        "bytes": 672,
+        "seconds": 0.018,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "0f6cd1b55eeecd421e920b0fc96cb789"
+    },
+    {
+      "driver": {
+        "bytes": 1415,
+        "seconds": 0.387,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b771b1775ea109cc5b47bee9af6bfe03"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.019,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8e834f98741acf8c63723b0abdda8140"
+    },
+    {
+      "driver": {
+        "bytes": 677,
+        "seconds": 0.044,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "bf42c098696a10eeeb00d8af70e7da89"
+    },
+    {
+      "driver": {
+        "bytes": 699,
+        "seconds": 0.012,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "df31a385899d95aaba528ac2bb6ef44c"
+    },
+    {
+      "driver": {
+        "bytes": 722,
+        "seconds": 0.028,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5203d26e0db102c61845b8a09275b6c2"
+    },
+    {
+      "driver": {
+        "bytes": 609,
+        "seconds": 0.002,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "303178b706687212b321e1cdbee81dcd"
+    },
+    {
+      "driver": {
+        "bytes": 666,
+        "seconds": 0.083,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1cde083722920063797d87e460474a8f"
+    },
+    {
+      "driver": {
+        "bytes": 689,
+        "seconds": 0.009,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1a901cce5e7010443bf42b467f768f0f"
+    },
+    {
+      "driver": {
+        "bytes": 602,
+        "seconds": 0.021,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8a743389e7e7dd121f8a2920f4d606c0"
+    },
+    {
+      "driver": {
+        "bytes": 773,
+        "seconds": 0.039,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5bd49aee62697635208e652a7d910824"
+    },
+    {
+      "driver": {
+        "bytes": 636,
+        "seconds": 0.063,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "d206239e2162f7e7d3b4cd335ce7d297"
+    },
+    {
+      "driver": {
+        "bytes": 602,
+        "seconds": 0.003,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "428d735fa2cbda958484cb7280292c71"
+    },
+    {
+      "driver": {
+        "bytes": 677,
+        "seconds": 0.04,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "c1624aa05e087e9253fbd53ed703edc7"
+    },
+    {
+      "driver": {
+        "bytes": 633,
+        "seconds": 0.029,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "05d3400a47afe143c1b7c2b4bea8cd66"
+    },
+    {
+      "driver": {
+        "bytes": 723,
+        "seconds": 0.023,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a0ffab9c58989c3bd86cf5e1b33b22ca"
+    },
+    {
+      "driver": {
+        "bytes": 677,
+        "seconds": 0.029,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "dc4dfda20b14adf881bf3894c4c1b088"
+    },
+    {
+      "driver": {
+        "bytes": 678,
+        "seconds": 0.073,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fdd8781faa7df995b49613ffc248ef7d"
+    },
+    {
+      "driver": {
+        "bytes": 663,
+        "seconds": 0.039,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "959897d437b3c614d66557bc6b769e9a"
+    },
+    {
+      "driver": {
+        "bytes": 773,
+        "seconds": 0.032,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "480f1301c48afd3f30fd6c3e9b1a9bc0"
+    },
+    {
+      "driver": {
+        "bytes": 2747,
+        "seconds": 0.664,
+        "services": {
+          "neutron-server": 4
+        },
+        "spans": 4,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8456930791614a30a5ec2bd7c5430d6b"
+    },
+    {
+      "driver": {
+        "bytes": 678,
+        "seconds": 0.033,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e47ab82ce9ec9d08792f952657043443"
+    },
+    {
+      "driver": {
+        "bytes": 663,
+        "seconds": 0.024,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b4fca05f59472d3d6d6f4a1a8048c19b"
+    },
+    {
+      "driver": {
+        "bytes": 773,
+        "seconds": 0.027,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "0f25fbb85919131886a8c0d351ece331"
+    },
+    {
+      "driver": {
+        "bytes": 636,
+        "seconds": 0.097,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "7c78079fa4adb74e638d0d3f328eca03"
+    },
+    {
+      "driver": {
+        "bytes": 633,
+        "seconds": 0.056,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "3ac26268a6a1cbe944ce330299c5a078"
+    },
+    {
+      "driver": {
+        "bytes": 723,
+        "seconds": 0.052,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a13026e58828f50465a86de881ffc087"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.056,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b211e70658ebb8219808d8b25c8eda93"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.022,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "98140b52ff6c167ad77dcc382584d48c"
+    },
+    {
+      "driver": {
+        "bytes": 637,
+        "seconds": 0.001,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "7e342c7df35a2f1cb5ce2b5bcb4ca85b"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.021,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4e89d4f3e58dcb9cf4452b273a096275"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.164,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "3912e3b46c289184ec856973e8450a60"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.025,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "125f347d6ece4d54814eb4e512567f89"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.118,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b841a840c8808d8f7099c7a6e0be977c"
+    },
+    {
+      "driver": {
+        "bytes": 711,
+        "seconds": 0.019,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6aef23c9d38e09a8eb122117ed93eaaf"
+    },
+    {
+      "driver": {
+        "bytes": 758,
+        "seconds": 0.009,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "f1b530478e9549e0786be1fb9f661d9b"
+    },
+    {
+      "driver": {
+        "bytes": 758,
+        "seconds": 0.007,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1ebbcec69ba1f098c3ad298951a4d0ec"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.032,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "d5561cb73f7cf2de072d4a2ea75b4a1a"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.022,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "91cfabcc636224a260415f6c838a6968"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.018,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8e17403fbe825badb529241272c46b3e"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.017,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1066a82ae476dec9148fd6b8f1b12b72"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.019,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e1c0b2acde6459f279a4e8c93870c54d"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.019,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1d6e7e55e13c52cb5e547d477a0c049a"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.064,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "dd52ed89849efac941c3ccd615700049"
+    },
+    {
+      "driver": {
+        "bytes": 695,
+        "seconds": 0.158,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "bbc74e302c0caf3e159a476b0e9c5831"
+    },
+    {
+      "driver": {
+        "bytes": 711,
+        "seconds": 0.018,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "180444241499128797e0abcb165f04a8"
+    },
+    {
+      "driver": {
+        "bytes": 819,
+        "seconds": 0.036,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "977eedfacf3cc45cef6bb1a18b7d7d43"
+    },
+    {
+      "driver": {
+        "bytes": 695,
+        "seconds": 0.16,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5946359760fcb9870abc3376326d86e8"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.14,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "148a403af631d7ca7336366740df5c0c"
+    },
+    {
+      "driver": {
+        "bytes": 758,
+        "seconds": 0.007,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5b81d94523f9c639202abac8ec9dce66"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.017,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6ab3f3eb87cd062aa911229341a46714"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.016,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "19a55818aa583c056de4901dc03da5a7"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.048,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "3addae2e28fedff488b4124ccd9293e0"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.063,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a9729bf1639f6f704a29d52dee902427"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.021,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fb93c4c36888b35666405981381162b0"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.018,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "34102dd92eecbbcaafb7d5b91c91fd9a"
+    },
+    {
+      "driver": {
+        "bytes": 764,
+        "seconds": 0.017,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5ebfe775081932e14c27fe72817779bd"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.023,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "71dd5e8247d5c6a0e485bca98a9f8326"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.024,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2615bc920726f1ece3e7ee960d6129b1"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.017,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4a98756d241223b1fa2e8d84f78f2ac7"
+    },
+    {
+      "driver": {
+        "bytes": 634,
+        "seconds": 0.046,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "379211edb12d2c6dc919960ca0d85edb"
+    },
+    {
+      "driver": {
+        "bytes": 2080,
+        "seconds": 0.367,
+        "services": {
+          "neutron-server": 3
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "697d743cbe5213e1307b2075295b9a53"
+    },
+    {
+      "driver": {
+        "bytes": 637,
+        "seconds": 0.002,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4d47dabc7271c4d995ac5bfef61fed12"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.092,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b1c09e5d45feabb93229ab25746dc04d"
+    },
+    {
+      "driver": {
+        "bytes": 711,
+        "seconds": 0.018,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "487a87057328bf72c3ae451e480e137d"
+    },
+    {
+      "driver": {
+        "bytes": 1440,
+        "seconds": 0.111,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ea2ae5573f85d86f8b2cc7f8ed58b37f"
+    },
+    {
+      "driver": {
+        "bytes": 698,
+        "seconds": 0.121,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "085f54ac1bcbe89f213bd2d20302be8e"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.025,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "19298418df8d7bc49dcb87f919eafeff"
+    },
+    {
+      "driver": {
+        "bytes": 695,
+        "seconds": 0.156,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b6736feed5c1895d5973ed8e87ca7142"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.088,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6878063e0c612027c09eacc7e78c238e"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.028,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8ca292941210d959f44f0b261f909d6e"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.015,
+        "services": {
+          "nova-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "05213268c6443c8b9681bbb186beb303"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.039,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a2a296f3f29e2678c11edb410884f13e"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.022,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4cba6046467c51ef32f2a8854407debe"
+    },
+    {
+      "driver": {
+        "bytes": 1336,
+        "seconds": 0.017,
+        "services": {
+          "nova-api": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4c7de4366a8a64b41e1294dcb1e5d12f"
+    },
+    {
+      "driver": {
+        "bytes": 671,
+        "seconds": 0.023,
+        "services": {
+          "cinder-cinder-scheduler": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "bd66ddddf32958a76a3d793e64bdc8b4"
+    },
+    {
+      "driver": {
+        "bytes": 671,
+        "seconds": 0.003,
+        "services": {
+          "cinder-cinder-scheduler": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b54cf400d1f1782e678e1a501aeeaf0d"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.051,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "783661bb9635641451dbe0e4e98a240d"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.045,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "f32dc518ddd67cb6cb8f9dfa4ef51638"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.034,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "46a4b04f991f2a6dd9dbeedda441c212"
+    },
+    {
+      "driver": {
+        "bytes": 633,
+        "seconds": 0.06,
+        "services": {
+          "nova-nova-conductor": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fb8b6b4addba6177a0be6accb1eb151a"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.014,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2966b7182ba36fbca29c7fd3b7c2c423"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.044,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "f421b8d763151e8743bc717645b50326"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.178,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "0d2440176a8173bbd58080df7d504e71"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.018,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "08e28d2a12639fbe9a9472d408aef95e"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.05,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a23676b2cde487f4fefa8c0e5928dcb7"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.018,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "c3c7ed8a617bcfdc5a66b6dff8cbfde5"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.031,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "01d62c258d2757fce4fdc224ce112a1e"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.012,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ea58b3300c8e3a1eb1827650be9c4573"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.036,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4875076b4f16c6868714d7d388f31402"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.045,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2f3dfa0aba2ecb96c49486298729f3e3"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.028,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "922fe0d69e74865d5ce6bb28a02ff5d8"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.016,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "28d740e232b0468e5fbd1ff7e765c32b"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.02,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "28827e206fead7230dab65574bbb9300"
+    },
+    {
+      "driver": {
+        "bytes": 680,
+        "seconds": 0.759,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1cf7ab9f93dcb2ac3cbc80034797473c"
+    },
+    {
+      "driver": {
+        "bytes": 2047,
+        "seconds": 0.81,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-osapi_compute": 2
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "16a23c740576119622d7ebbd5455fabe"
+    },
+    {
+      "driver": {
+        "bytes": 698,
+        "seconds": 5.347,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "3cdd85420531ccd5a28173527c35ce22"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.029,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "71db60de419cb8153231bbbf544104c1"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.022,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4563ae41e56bc388fb2d410ee855604e"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 1.344,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "932807515868f156a3155b21543bd3b6"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.06,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fa5053a23578903db9b6d4a3433f5d8c"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.027,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "99335286d6d659bc41ae53287b4dd5f7"
+    },
+    {
+      "driver": {
+        "bytes": 654,
+        "seconds": 1.055,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ad8d4ff4fb0a73f3352340c733acb84e"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.133,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8383766a9f1e7caec11f3acccf4c4dcd"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.243,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5492e67f4d620f71288c1849abdaf242"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.026,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4b73ec8a77636f603fb944ab6c643adb"
+    },
+    {
+      "driver": {
+        "bytes": 624,
+        "seconds": 0.003,
+        "services": {
+          "cinder-cinder-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "9b43ce1ea451a5b3118078c8de06796d"
+    },
+    {
+      "driver": {
+        "bytes": 657,
+        "seconds": 0.262,
+        "services": {
+          "cinder-cinder-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "3517a459be355fc6afde7babeb9142e2"
+    },
+    {
+      "driver": {
+        "bytes": 2047,
+        "seconds": 0.034,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-osapi_compute": 2
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "533406da3c017d7fb966c5623f532981"
+    },
+    {
+      "driver": {
+        "bytes": 624,
+        "seconds": 0.326,
+        "services": {
+          "cinder-cinder-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b0cefb33877b93f8b5cd3b1e7dc5d38e"
+    },
+    {
+      "driver": {
+        "bytes": 698,
+        "seconds": 0.475,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e88fd8435d9577316c1e74812ee4b5bb"
+    },
+    {
+      "driver": {
+        "bytes": 698,
+        "seconds": 0.106,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "0be88fbc615ee3d87bfc734f425714df"
+    },
+    {
+      "driver": {
+        "bytes": 647,
+        "seconds": 0.092,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "f2b527d7f678e906ca173cae5c4fd285"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.009,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2da344cc58e13465e853256e944484a0"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.008,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ab967dff59dc72ed3565e1bb959360ee"
+    },
+    {
+      "driver": {
+        "bytes": 722,
+        "seconds": 0.025,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "78bd79a3acab0eb3b5d4bea356dd67aa"
+    },
+    {
+      "driver": {
+        "bytes": 609,
+        "seconds": 0.002,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fb24a43bfba3755570ac46ec9fcaeea2"
+    },
+    {
+      "driver": {
+        "bytes": 677,
+        "seconds": 0.042,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a3c161db47e1e622c5865b7fee5ed15c"
+    },
+    {
+      "driver": {
+        "bytes": 699,
+        "seconds": 0.012,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "20d8cad13b22a5ab6cb9e57bf4981e23"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.013,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b9fbf9572a75f88bc34368ccbdebb580"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.189,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "7abe89310f303d2956e543608f1cf93a"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.007,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "157a6d982b1c46068c69b1e67689f9d2"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.025,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fd6ff5dda64fd60e3d84fe3b5a0cb070"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.01,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "973a29f83b7baafdbc2d076dcdd32498"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.168,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "85c49b6d6542c0b2f9f3efafab21262b"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.007,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6e5994f1a1d45cf9c643b5902accb328"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.016,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "18b77ab300f48a94b36e6cb9146e2b71"
+    },
+    {
+      "driver": {
+        "bytes": 4908,
+        "seconds": 0.996,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 3,
+          "nova-nova-scheduler": 1,
+          "nova-osapi_compute": 2
+        },
+        "spans": 7,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4e0838041b3bae2d19db12c97669c9b5"
+    },
+    {
+      "driver": {
+        "bytes": 666,
+        "seconds": 0.036,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "39f3c8723ce30181f5237f27bd6cfb78"
+    },
+    {
+      "driver": {
+        "bytes": 689,
+        "seconds": 0.006,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "581166537d5553caaacca0599a0bda69"
+    },
+    {
+      "driver": {
+        "bytes": 602,
+        "seconds": 0.016,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "530cc5776c4829815030456649543aee"
+    },
+    {
+      "driver": {
+        "bytes": 773,
+        "seconds": 0.029,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8f0ed631e91303d3fd48b03ad64ccf9c"
+    },
+    {
+      "driver": {
+        "bytes": 636,
+        "seconds": 0.063,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "768f6cd3bca074f67135b12343597421"
+    },
+    {
+      "driver": {
+        "bytes": 602,
+        "seconds": 0.004,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "882f000f13e22bf28af89a39687a81ca"
+    },
+    {
+      "driver": {
+        "bytes": 675,
+        "seconds": 0.018,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "c71ebffec878a44ab8bd52cebaf49152"
+    },
+    {
+      "driver": {
+        "bytes": 636,
+        "seconds": 0.068,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "86c7962aa4fd2673a7cdafd68c07dc7d"
+    },
+    {
+      "driver": {
+        "bytes": 640,
+        "seconds": 0.071,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "d609ff9306419cc983c77423f8253539"
+    },
+    {
+      "driver": {
+        "bytes": 723,
+        "seconds": 0.029,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8b2c9c3332ef2cc94411f27a55fa6dd7"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.027,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2ef4ddaecd89406bcd40ff28db9be745"
+    },
+    {
+      "driver": {
+        "bytes": 1262,
+        "seconds": 0.543,
+        "services": {
+          "neutron-server": 2
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "93f6749a47131a65c3fe3266f7985f4c"
+    },
+    {
+      "driver": {
+        "bytes": 2747,
+        "seconds": 0.683,
+        "services": {
+          "neutron-server": 4
+        },
+        "spans": 4,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4f3846ae57fa505e61c7bef1ea250f35"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.025,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "aed3a841e95dd3796cd2a4466c29bd99"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.012,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "eec44c187ddcc31778b834178d2c46ee"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.032,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2c422ff96e73e8f94b53f9a80c11e87f"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.028,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e2bd30339e1301aff26aa5d091bd8cbc"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.011,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "cb765f805194ccc6ae7084b42428ea14"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.011,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "89eabe3a25fed3f17a637e960deaa4b6"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.011,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e0682aa486ddde0718295b41c175c29b"
+    },
+    {
+      "driver": {
+        "bytes": 4759,
+        "seconds": 0.65,
+        "services": {
+          "nova-nova-compute": 3,
+          "nova-nova-conductor": 2,
+          "nova-osapi_compute": 2
+        },
+        "spans": 7,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "7701b7dfdd785d3ef0db621e109c18ae"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.007,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "321197154174aa8b55dbed6c12f3c93d"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.02,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "074f79ad77e32135d6ef1ae64dfe2e0b"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.014,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "feee2e5545b1c47dc2ef766e53eec4c8"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.011,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "34cb48f418d4cbaa9c4c161a49902c82"
+    },
+    {
+      "driver": {
+        "bytes": 2047,
+        "seconds": 0.075,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-osapi_compute": 2
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "91194f1fec69b28720ffe0216acbd332"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.007,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "afeba01ea760609ca0e9a5776457f408"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.031,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "0d9020305e4a7499b592bf63fc38af5d"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.018,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "cc93cf5711a965684b4d20f6003fa949"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.008,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "0bf355dac6b437cc9ce9899a376225f6"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.013,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "fe0d64aa9e6e1ac3675e50bcf7ea9962"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.022,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "d0d5528a8aba720506c3b5eb5cb61fe5"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.092,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ab872c1ce8638328c5dd6792d5099407"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.037,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "587aea1a03dba7f63e9562e70279f9a3"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.013,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "cabd06eb2af1abad41b9ad36b8a89fb3"
+    },
+    {
+      "driver": {
+        "bytes": 672,
+        "seconds": 0.016,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8006d10edc701d0996d2d3230d000259"
+    },
+    {
+      "driver": {
+        "bytes": 684,
+        "seconds": 0.024,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "f7e367300e2e5bfddaf46e8ef554f886"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.083,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6ebadd31435c57a78465e0142e242898"
+    },
+    {
+      "driver": {
+        "bytes": 758,
+        "seconds": 0.008,
+        "services": {
+          "glance-api": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e421a4d242c2862d56925140a12893d0"
+    },
+    {
+      "driver": {
+        "bytes": 677,
+        "seconds": 0.044,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "9e53d4ae507a8d5000c67b1cead90938"
+    },
+    {
+      "driver": {
+        "bytes": 633,
+        "seconds": 0.028,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "235ac7af85b7583364fa67341a87f5f1"
+    },
+    {
+      "driver": {
+        "bytes": 723,
+        "seconds": 0.026,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "20790891261dc901c5040247e0e4d05c"
+    },
+    {
+      "driver": {
+        "bytes": 677,
+        "seconds": 0.027,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "68eac290fc0caca2cca364163e78bdfe"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.052,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a490f7f7a90f3d90df16ecf45f16d837"
+    },
+    {
+      "driver": {
+        "bytes": 663,
+        "seconds": 0.046,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ee0a5ba1eebecd49de17964a98d826d2"
+    },
+    {
+      "driver": {
+        "bytes": 773,
+        "seconds": 0.079,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "00b0de8381b17b1667df9e9e5db44aa7"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.034,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b2ddcc46f7fea6818a2ea5b01c33f017"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.028,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "f8e785b7b581f68632bb7befdd6f4e8d"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.017,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "d46a553093ec7b3d86a8a5400ce66994"
+    },
+    {
+      "driver": {
+        "bytes": 637,
+        "seconds": 0.011,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "c0d28986d67020b3d1b2a09f95987445"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.033,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2d41d2d1fe5330f7f6a85762b4d05a78"
+    },
+    {
+      "driver": {
+        "bytes": 663,
+        "seconds": 0.027,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "d4ebf843afcfb937e358710d6c78bbbd"
+    },
+    {
+      "driver": {
+        "bytes": 773,
+        "seconds": 0.023,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "643cfa8aa3f6298968470900200a9f68"
+    },
+    {
+      "driver": {
+        "bytes": 636,
+        "seconds": 0.072,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "e07655bcd396aefa18ab71cb82266802"
+    },
+    {
+      "driver": {
+        "bytes": 633,
+        "seconds": 0.041,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2f9a0d27ae2607cbb17b554ab7a1ff41"
+    },
+    {
+      "driver": {
+        "bytes": 723,
+        "seconds": 0.035,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "befe08292c04f6cb4026d410c412976b"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.055,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "18822f63c3be78235dab63f277b6bcbd"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.021,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "12fe11f00fc24d96641d919a972473e9"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.019,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "991e7b169feaf137683cca711cb21e77"
+    },
+    {
+      "driver": {
+        "bytes": 2047,
+        "seconds": 0.03,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-osapi_compute": 2
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "853ed5093fa6d5dbe8e0e5d6e7ee3320"
+    },
+    {
+      "driver": {
+        "bytes": 16061,
+        "seconds": 1.168,
+        "services": {
+          "nova-nova-compute": 11,
+          "nova-nova-conductor": 10,
+          "nova-osapi_compute": 2
+        },
+        "spans": 23,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "67716ffc650be34a1ed309b2f379a164"
+    },
+    {
+      "driver": {
+        "bytes": 2047,
+        "seconds": 0.036,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-osapi_compute": 2
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "7d1e0578447a1da51eac536ff8685da1"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.007,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "2cf423e32eb88f559f83634e6e9efc2a"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.008,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ae0fb3d9eb81eaadda2bf9062fe00175"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.161,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "08c5da01ad749af7bbbbd493f9c42045"
+    },
+    {
+      "driver": {
+        "bytes": 701,
+        "seconds": 0.156,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "9fbe61e0130a55bb83f0910c64659145"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.086,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1d117d486e71bdd1853d3d94603751e5"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.137,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "b30334f22d49ed4cdd530676dd50b73b"
+    },
+    {
+      "driver": {
+        "bytes": 729,
+        "seconds": 0.019,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "c63cb83350349b99281adff55c67f048"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.008,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "24da23c15595bbc26f00e3d4226ae9a1"
+    },
+    {
+      "driver": {
+        "bytes": 679,
+        "seconds": 0.017,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "feaf7c61ff7434e1ace120c014250869"
+    },
+    {
+      "driver": {
+        "bytes": 2080,
+        "seconds": 0.39,
+        "services": {
+          "neutron-server": 3
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "1e6be798699a7a5bcbdcb85a9b109627"
+    },
+    {
+      "driver": {
+        "bytes": 637,
+        "seconds": 0.003,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ef649987f3c029774751c170124454e9"
+    },
+    {
+      "driver": {
+        "bytes": 674,
+        "seconds": 0.021,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "5677d3d34242d3c46f69c1aabf26a2f4"
+    },
+    {
+      "driver": {
+        "bytes": 634,
+        "seconds": 0.039,
+        "services": {
+          "neutron-server": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "6c1ad5aebc2443a4d771fb0aaa190b50"
+    },
+    {
+      "driver": {
+        "bytes": 2047,
+        "seconds": 0.021,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-osapi_compute": 2
+        },
+        "spans": 3,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "600632728ade3991ac257d78c02b42ee"
+    },
+    {
+      "driver": {
+        "bytes": 759,
+        "seconds": 0.016,
+        "services": {
+          "nova-osapi_compute": 1
+        },
+        "spans": 1,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "d2857c49ca8f98aa2296a36cb60d60c4"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.013,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "9e36e1baf311785675769a71bfaf732a"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.025,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "531b8afafa09cf185d102c0154b836b8"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.017,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "cfcdf647dde215b27b751b4841e2085b"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.027,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4346b625fc829c723b842a55b71c2626"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.05,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "4025349059dcbc8ea137c24e955e63c9"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.009,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8cb209beefafaa1a9ebe43ba706e3f8d"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.009,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "a07a740fee180550a5bf306178bf89d4"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.008,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "8238636b86232d4164b5e882858b19d4"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.01,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "9ccac15888bba4220613f39da021aa3b"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.017,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "db586d93ec0b20c60f3e172890c4f997"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.008,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "209fa327ec60e68c6d68dea0cf996afe"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.016,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "7cfa2f651676dc41b292d03b40046b17"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.012,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "bd670f56a723c44947901abe6731470f"
+    },
+    {
+      "driver": {
+        "bytes": 1380,
+        "seconds": 0.005,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "ab06351df013dc157ddf020c777faf30"
+    },
+    {
+      "driver": {
+        "bytes": 1320,
+        "seconds": 0.011,
+        "services": {
+          "nova-nova-compute": 1,
+          "nova-nova-conductor": 1
+        },
+        "spans": 2,
+        "spansWhoseParentIsNotInTheTrace": 0,
+        "spansWithNoParent": 1
+      },
+      "traceId": "50dce96ae6950efece8ea825cb581a41"
+    }
+  ]
+}

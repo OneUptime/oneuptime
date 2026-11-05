@@ -28,7 +28,9 @@ interface TracedService {
   host: string;
 }
 
-function servicesOfBoot(recording: OpenStackTraceRecording): Array<TracedService> {
+function servicesOfBoot(
+  recording: OpenStackTraceRecording,
+): Array<TracedService> {
   const found: Map<string, TracedService> = new Map();
   const otlp: JSONObject = recording.otlp("signed-boot", "agent");
 
@@ -66,6 +68,10 @@ describe.each(getRecordedTraceReleases())(
       ["neutron-server", "network"],
       ["glance-api", "image"],
     ])("%s goes to the row of the %s API", (service: string, type: string) => {
+      if (service === "neutron-server" && recording.neutronWasLeftOut()) {
+        return;
+      }
+
       const traced: TracedService | undefined = servicesOfBoot(recording).find(
         (candidate: TracedService): boolean => {
           return candidate.service === service;
@@ -165,9 +171,11 @@ describe.each(getRecordedTraceReleases())(
     });
 
     test("the inventory has the services a stock trace leaves out, so a page can name them", () => {
-      const names: Array<string> = rows.map((row: OpenStackResource): string => {
-        return row.name || "";
-      });
+      const names: Array<string> = rows.map(
+        (row: OpenStackResource): string => {
+          return row.name || "";
+        },
+      );
 
       expect(names).toEqual(
         expect.arrayContaining([

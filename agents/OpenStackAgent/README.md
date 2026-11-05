@@ -343,7 +343,7 @@ sudo -E bash install-traces.sh
 
 It uses Docker Compose where the machine has it, and otherwise a systemd service (`bash install-traces.sh native` asks for that). It listens on `127.0.0.1:4318`, because [OSProfiler's OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) can only post plain HTTP, removes what a traced call was handed (`args`, `kwargs`, `result`, `db.params`), stamps the cloud, region and machine, which the driver never says, and forwards the rest to OneUptime over TLS.
 
-It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, and this, with a key of your own that is the same on every service:
+It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, below version 1.44, which [hangs a service as it starts a subprocess](https://github.com/open-telemetry/opentelemetry-python/issues/5789), and this, with a key of your own that is the same on every service:
 
 ```ini
 [profiler]
@@ -353,7 +353,7 @@ connection_string = otlp://127.0.0.1:4318
 trace_sqlalchemy = False
 ```
 
-Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement, `nova-conductor`, `nova-scheduler` and `cinder-volume` send nothing, each for its own reason: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
+Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement sends nothing, and on 2025.2 `nova-conductor`, `nova-scheduler` and `cinder-volume` do not either: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
 
 | Setting | Default | What it is for |
 | --- | --- | --- |

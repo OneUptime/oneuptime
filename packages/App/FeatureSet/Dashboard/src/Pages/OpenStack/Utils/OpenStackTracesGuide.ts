@@ -37,7 +37,14 @@ export const OPENSTACK_TRACES_INSTALL_FILE: string = "install-traces.sh";
 export const OPENSTACK_TRACES_CONNECTION_STRING: string =
   "otlp://127.0.0.1:4318";
 
-const LIBRARIES: string = "opentelemetry-sdk opentelemetry-exporter-otlp";
+/*
+ * Below 1.44 on purpose. That version's TracerProvider added a fork handler that never comes back
+ * from a fork made with a preexec_fn, which is how oslo.concurrency runs every command
+ * (open-telemetry/opentelemetry-python#5789). traces-record.sh recorded Neutron's API stuck in it
+ * on 2026.2, whose pins name 1.44.0: Common/Tests/Fixtures/OpenStack/traces/hibiscus-ovn/fork-hang.txt.
+ */
+const LIBRARIES: string =
+  "'opentelemetry-sdk<1.44' 'opentelemetry-exporter-otlp<1.44'";
 
 /*
  * The one line that lets OSProfiler's driver start in Placement. traces-record.sh's
@@ -73,16 +80,11 @@ trace_sqlalchemy = False`;
 const WHAT_THIS_IS: string =
   "**What this is.** OSProfiler traces a request only when it is signed with your key, so this is never an always-on feed: with nothing signed, nothing is sent. Its OTLP driver is marked experimental by OpenStack, can only post plain HTTP, and needs two OpenTelemetry libraries in every service, which is why a collector on each machine takes its spans and forwards them over TLS.";
 
-/*
- * Twice, on a real 2026.2 DevStack, the services did not come back from the restart that follows
- * the libraries going in with OSProfiler on (traces-record.sh, runs 41897569884 and 41912669813),
- * and 2025.2 did. Until the rig says why, a reader on that release has to hear it first.
- */
 const NEWEST_RELEASE_WARNING: string =
-  "**On OpenStack 2026.2, use a test cloud first.** On our test cloud, a restart with these libraries in and OSProfiler on did not come back, twice, and we do not know why yet. On 2025.2 it did.";
+  "**Stay below version 1.44 of OpenTelemetry's SDK.** That version hangs a service when it starts a subprocess ([its bug](https://github.com/open-telemetry/opentelemetry-python/issues/5789)). On our 2026.2 test cloud, whose pins name 1.44.0, it left Neutron's API never answering, and cinder-volume stopped working. The commands here ask for less than 1.44. On 2026.2 that has not been run yet, so use a test cloud first.";
 
 const WHAT_A_TRACE_SHOWS: string =
-  "**What a trace shows.** One signed request is one trace, across `nova-api`, `nova-compute`, `neutron-server`, `keystone`, `glance-api`, `cinder-api` and `cinder-scheduler`. On a stock cloud Placement, `nova-conductor`, `nova-scheduler` and `cinder-volume` send nothing, for reasons under What a trace cannot show below.";
+  "**What a trace shows.** One signed request is one trace, across `nova-api`, `nova-compute`, `neutron-server`, `keystone`, `glance-api`, `cinder-api` and `cinder-scheduler`. On a stock cloud Placement sends nothing, and on 2025.2 `nova-conductor`, `nova-scheduler` and `cinder-volume` do not either, for reasons under What a trace cannot show below.";
 
 // The first thing any tool's guide says to do: one key, the same on every service.
 const KEY_LINE: string =
@@ -178,10 +180,10 @@ function openStackAnsible(): ToolGuide {
 
 ${codeBlock(
   "yaml",
-  `nova_user_pip_packages: [opentelemetry-sdk, opentelemetry-exporter-otlp]
-cinder_user_pip_packages: [opentelemetry-sdk, opentelemetry-exporter-otlp]
-glance_user_pip_packages: [opentelemetry-sdk, opentelemetry-exporter-otlp]
-keystone_user_pip_packages: [opentelemetry-sdk, opentelemetry-exporter-otlp]`,
+  `nova_user_pip_packages: ["opentelemetry-sdk<1.44", "opentelemetry-exporter-otlp<1.44"]
+cinder_user_pip_packages: ["opentelemetry-sdk<1.44", "opentelemetry-exporter-otlp<1.44"]
+glance_user_pip_packages: ["opentelemetry-sdk<1.44", "opentelemetry-exporter-otlp<1.44"]
+keystone_user_pip_packages: ["opentelemetry-sdk<1.44", "opentelemetry-exporter-otlp<1.44"]`,
 )}`,
     config: `Set it through each service's overrides, in \`user_variables.yml\`, and run each service's playbook. In LXC containers, \`connection_string\` names the host's address on \`br-mgmt\` instead of \`127.0.0.1\`, because a container's \`127.0.0.1\` is its own.
 
@@ -341,7 +343,7 @@ ${codeBlock("bash", placementPatchCommand("python3"))}`,
 function general(): ToolGuide {
   return {
     howFarTested:
-      "These exact steps were run on DevStack, on OpenStack 2025.2, with a boot signed and the driver's real output recorded. Nothing else has been.",
+      "These steps were run on DevStack, on OpenStack 2025.2, with a boot signed and the driver's real output recorded, and on 2026.2, where Neutron had to be left out until this guide's lower version of OpenTelemetry's SDK is proven. Nothing else has been.",
     libraries: `Install them where each service runs, with your release's constraints if you keep them:
 
 ${codeBlock("bash", `pip install ${LIBRARIES}`)}`,
@@ -465,10 +467,12 @@ function cannotShowTopic(): SetupGuideTopic {
 
 | Service | Why it sends nothing | What you can do |
 | --- | --- | --- |
-| Placement | It keeps a config of its own, without \`[profiler_otlp]\`, so the driver stops as it starts: \`no such option profiler_otlp\` | One line, below. With \`trace_requests\` on, \`nova-compute\` shows its own calls to Placement without it |
-| \`nova-conductor\`, \`nova-scheduler\` | They make the driver and then fork their workers, and nothing a forked worker made arrived | One worker each, below |
-| \`cinder-volume\` | It always runs each backend in a forked worker | Nothing to set |
-| Neutron's RPC server | It never says it started OSProfiler. Neutron's API does | Nothing to set |`,
+| Placement, every release | It keeps a config of its own, without \`[profiler_otlp]\`, so the driver stops as it starts: \`no such option profiler_otlp\` | One line, below. With \`trace_requests\` on, \`nova-compute\` shows its own calls to Placement without it |
+| \`nova-conductor\`, \`nova-scheduler\`, on 2025.2 | They make the driver and then fork their workers on eventlet, and nothing a forked worker made arrived. On 2026.2 they run on threads and send spans | One worker each, below |
+| \`cinder-volume\`, on 2025.2 | It always runs each backend in a forked worker | Nothing to set |
+| Neutron's RPC server | It never says it started OSProfiler. Neutron's API does | Nothing to set |
+
+On 2026.2 a trace can also hold more than its request. Nova's workers there keep a signed request's context on their threads, so a boot's trace held that instance's delete ten minutes later, and a failed boot's conductor spans arrived under the boot before it. Read a trace's times as well as its services.`,
   };
 }
 
@@ -476,7 +480,7 @@ function placementTopic(guide: ToolGuide): SetupGuideTopic {
   return {
     title: "Placement",
     summary: "One line of its code, kept by you.",
-    markdown: `Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. Nothing about OpenStack needs it. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades, until a release does not need it. This line was worked out from Placement's source and the error it logs, and has not been run yet, so try it on a test cloud first.
+    markdown: `Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. With it, a boot crosses Placement, \`allocation_candidates\` and the instance's allocations included: this was run on 2025.2 and on 2026.2. Nothing about OpenStack needs it. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades, until a release does not need it.
 
 ${guide.placement}`,
   };
@@ -486,7 +490,7 @@ function oneWorkerTopic(guide: ToolGuide): SetupGuideTopic {
   return {
     title: "Nova's conductor and scheduler",
     summary: "One worker each, which costs what it costs.",
-    markdown: `With one worker each they run in the process that made the driver, which should bring them into a trace: the services that sent spans on our test cloud are the ones that do not fork, and these two do. That has not been run yet. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or for a quiet hour of looking into something, and not for a busy cloud to run on.
+    markdown: `On 2026.2 these run on threads, and send spans as they are, so this is for 2025.2. With one worker each they run in the process that made the driver. That was run on 2025.2: with Placement's line too, a boot's trace had no span missing its parent, from \`nova-api\` through both of them to \`nova-compute\`, and a failed scheduling showed as a failed span, \`No valid host was found\`. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or for a quiet hour of looking into something, and not for a busy cloud to run on.
 
 ${guide.oneWorker}`,
   };
@@ -540,12 +544,22 @@ function troubleshootingTopics(): Array<SetupGuideTopic> {
     {
       title: "One service is missing from a trace",
       summary: "Some send nothing as shipped, and a request only reaches some.",
-      markdown: `Each service sends its own spans, so one that is not set up leaves a hole in the trace rather than breaking it. Placement, \`nova-conductor\`, \`nova-scheduler\` and \`cinder-volume\` are holes on every stock cloud: What a trace cannot show, above, says why. A request also only reaches some services: listing instances never touches \`nova-compute\`, and a boot does. For any other, check that service's log as above, once a request that uses it has been traced.`,
+      markdown: `Each service sends its own spans, so one that is not set up leaves a hole in the trace rather than breaking it. Placement is a hole on every stock cloud, and \`nova-conductor\`, \`nova-scheduler\` and \`cinder-volume\` on 2025.2: What a trace cannot show, above, says why. A request also only reaches some services: listing instances never touches \`nova-compute\`, and a boot does. For any other, check that service's log as above, once a request that uses it has been traced.`,
     },
     {
       title: "A span is missing its parent",
       summary: "It was called by something that sent nothing.",
-      markdown: `That is expected on a stock cloud. \`nova-compute\`'s \`build_and_run_instance\` is called by \`nova-conductor\`, which sends nothing, so it names a parent that never arrives, and everything \`nova-compute\` did for that boot is under it. Nothing is lost but the conductor's own part.`,
+      markdown: `That is expected on a stock 2025.2 cloud. \`nova-compute\`'s \`build_and_run_instance\` is called by \`nova-conductor\`, which sends nothing there, so it names a parent that never arrives, and everything \`nova-compute\` did for that boot is under it. Nothing is lost but the conductor's own part.`,
+    },
+    {
+      title: "An API's spans are late",
+      summary: "On 2025.2 they can wait for its next request.",
+      markdown: `On 2025.2 an API's workers run on eventlet, and a batch of spans can wait until that worker's next request. On our test cloud, 15 seconds after a signed \`server list\`, \`nova-api\`'s 7 spans had not arrived, and the other 6 had. They came with the next request, so run another command if you want them sooner. On 2026.2 they all came within 15 seconds.`,
+    },
+    {
+      title: "A service hangs, or will not answer, after a restart",
+      summary: "Check which version of OpenTelemetry's SDK it has.",
+      markdown: `\`pip list | grep opentelemetry-sdk\` where the service runs. Version 1.44 of it never comes back from a fork made with a \`preexec_fn\`, which is how oslo.concurrency runs every command ([its bug](https://github.com/open-telemetry/opentelemetry-python/issues/5789)), so a service hangs as soon as it runs one. Install below it, as this guide does, or take \`[profiler]\` off that service. \`py-spy dump --pid <worker>\` shows it stuck in \`TracerProvider._handle_fork\`.`,
     },
   ];
 }
@@ -583,7 +597,7 @@ ${codeBlock("text", `osprofiler is enabled with connection string: ${OPENSTACK_T
       title: "Sign a request",
       description:
         "Trace a request, on this page, has the commands for this cloud. A trace appears here once one arrives, and this page says which services have sent one.",
-      markdown: `Give it a few seconds, because spans are sent in batches. A signed \`server list\` crosses \`nova-api\`, \`keystone\`, \`neutron-server\` and \`glance-api\`, and a signed boot adds \`nova-compute\`, tied to the instance it made. If those are there, it works.`,
+      markdown: `Give it a few seconds, because spans are sent in batches, and on 2025.2 an API's can wait for its next request. A signed \`server list\` crosses \`nova-api\`, \`keystone\`, \`neutron-server\` and \`glance-api\`, and a signed boot adds \`nova-compute\`, tied to the instance it made. If those are there, it works.`,
     },
   ];
 

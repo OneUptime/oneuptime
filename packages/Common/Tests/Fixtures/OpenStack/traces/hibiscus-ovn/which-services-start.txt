@@ -1,0 +1,9 @@
+With the libraries in and OSProfiler off, the cloud answers.
+/etc/keystone/keystone.conf (devstack@keystone): yes
+/etc/glance/glance-api.conf (devstack@g-api): yes
+/etc/placement/placement.conf (devstack@placement-api): yes
+/etc/neutron/neutron.conf (devstack@neutron-api devstack@neutron-rpc-server): no
+/etc/cinder/cinder.conf (devstack@c-api devstack@c-sch devstack@c-vol): yes
+/etc/nova/nova-cpu.conf (devstack@n-cpu): yes
+/etc/nova/nova_cell1.conf (devstack@n-cond-cell1): yes
+/etc/nova/nova.conf (devstack@n-api devstack@n-api-meta devstack@n-sch devstack@n-super-cond): yes
