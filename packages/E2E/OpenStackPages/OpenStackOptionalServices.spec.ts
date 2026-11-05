@@ -93,11 +93,17 @@ test.describe("a cloud that runs Heat", () => {
   test("a failed stack reaches Needs attention by name, and lands on its page", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", HEAT);
     const card: Locator = needsAttention(page);
-    await expect(card.getByText("ou-stack-failed")).toBeVisible();
+    await expect(
+      card.getByText("ou-stack-failed", { exact: true }),
+    ).toBeVisible();
     await expect(card.getByText("ou-stack-admin-failed")).toBeVisible();
     await expect(card.getByText("ou-stack-ok")).toHaveCount(0);
+    // The server Nova couldn't place for it reads on its own.
+    await expect(
+      card.getByText("ou-stack-failed-server-avtiunql57mh"),
+    ).toBeVisible();
 
-    await card.getByRole("link", { name: /ou-stack-failed/ }).click();
+    await card.getByRole("link", { name: /ou-stack-failed(?!-server)/ }).click();
     await expect(page.getByTestId("openstack-stack-overview")).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/stacks/${FAILED_STACK}`));
     await expect(page.getByTestId("openstack-stack-explanation")).toContainText(

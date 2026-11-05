@@ -1431,10 +1431,14 @@ export default class OpenStackAcrossProducts {
     projectId: ObjectID;
     nodes: Array<OpenStackKubernetesNodeRead>;
   }): Promise<MagnumClusterRead | null> {
+    // Most Kubernetes clusters are on no cloud, and this is on each of their pages.
+    if (data.nodes.length === 0) {
+      return null;
+    }
     const cloudIds: Array<ObjectID> = await this.readCloudIdsToSearch({
       projectId: data.projectId,
     });
-    if (data.nodes.length === 0 || cloudIds.length === 0) {
+    if (cloudIds.length === 0) {
       return null;
     }
     const servers: Array<OpenStackServerOfNode> =
