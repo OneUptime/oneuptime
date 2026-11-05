@@ -75,7 +75,10 @@ function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
   });
 }
 
-function seriesOf(scene: string, exporter: string = "exporter"): Array<RecordedSeries> {
+function seriesOf(
+  scene: string,
+  exporter: string = "exporter",
+): Array<RecordedSeries> {
   return readRecordedSeries(path.join(FOLDER, scene, exporter));
 }
 
@@ -288,8 +291,9 @@ describe("Heat", () => {
       path.join(FOLDER, "heat-engine-down", "exporter", "status.txt"),
       "utf8",
     );
+    const scrape: RegExp = /orchestration 200 ([0-9.]+)s/;
     const seconds: number = Number.parseFloat(
-      /orchestration 200 ([0-9.]+)s/.exec(status)![1] as string,
+      scrape.exec(status)![1] as string,
     );
     expect(seconds).toBeGreaterThan(55);
     // The job's scrape_timeout, read in OpenStackAgentConfig: so this reads _up 0, and not up 0.
@@ -630,11 +634,8 @@ describe("a Magnum cluster's server, on what a real cloud named it", () => {
       getOpenStackServerNamesOfStack({
         stackName: stack?.name || "",
         masterCount: Number(
-          named(
-            rows,
-            OpenStackResourceKind.ContainerCluster,
-            "ou-cluster-real",
-          ).facts?.["masterCount"],
+          named(rows, OpenStackResourceKind.ContainerCluster, "ou-cluster-real")
+            .facts?.["masterCount"],
         ),
         nodeCount: 1,
       }),
@@ -806,11 +807,17 @@ describe("the agent's real collector, on a cloud with some of these and not othe
     expect(apis).not.toContain("sharev2");
   });
 
-  test("the empty scrape of a service this product knows nothing of yet isn't even kept", () => {
+  test("the empty scrape of a service this cloud doesn't run is only something to update a row with, and it has none", () => {
     expect(Array.from(scrapes.keys()).sort()).toEqual([
       "RegionOne/container-infra",
       "RegionOne/orchestration",
+      "RegionOne/sharev2",
     ]);
+    expect(scrapes.get("RegionOne/sharev2")).toMatchObject({
+      answered: true,
+      samples: 0,
+    });
+    expect(apis).not.toContain("sharev2");
   });
 
   test("what each scrape said, to go on a row that is already there", () => {
@@ -820,9 +827,9 @@ describe("the agent's real collector, on a cloud with some of these and not othe
       answered: true,
       samples: 35,
     });
-    expect(
-      scrapes.get("RegionOne/container-infra")?.seconds,
-    ).toBeGreaterThan(0);
+    expect(scrapes.get("RegionOne/container-infra")?.seconds).toBeGreaterThan(
+      0,
+    );
   });
 
   test("a real cluster's series have no project label at all: empty is no label", () => {

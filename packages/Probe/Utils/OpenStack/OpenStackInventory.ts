@@ -1,4 +1,4 @@
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   OpenStackFlavorRequest,
   OpenStackPlacementAnswer,

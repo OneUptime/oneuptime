@@ -1199,7 +1199,10 @@ describe("what an alert on a hypervisor says beyond the cloud", () => {
     };
     expect(
       OpenStackAlertContext.toMarkdown(
-        contextWith({ partKind: OpenStackResourceKind.Instance, radius: stack }),
+        contextWith({
+          partKind: OpenStackResourceKind.Instance,
+          radius: stack,
+        }),
       ),
     ).toContain("**Part of Heat stack:** ou-stack.");
     expect(
