@@ -760,6 +760,9 @@ function setNativeInstanceFacts(
   entry.facts["updatedAt"] = updatedAt;
   entry.facts["taskState"] = getLabel(attributes, "task_state");
   entry.facts["faultMessage"] = getLabel(attributes, "fault_message");
+  // An instance that lost its floating IP or its port has no label left to say so.
+  entry.facts["addressIpv4"] = getLabel(attributes, "address_ipv4");
+  entry.facts["addressIpv6"] = getLabel(attributes, "address_ipv6");
 }
 
 /*
@@ -856,9 +859,15 @@ function foldVolume(data: {
   entry.facts["attachedToInstance"] = getLabel(data.attributes, "server_id");
   /*
    * Which pool holds it, which is all a pool's blast radius has to go on. The exporter's
-   * series has no such label, so this is written only by a source that names one.
+   * series has no such label, so this is written only by a source that names one: a probe,
+   * whose updated_at tells it apart, and then it says too when a volume names none, such as
+   * under a credential that stopped being told.
    */
-  setFact(entry, "pool", getLabel(data.attributes, "pool"));
+  if (getLabel(data.attributes, "updated_at")) {
+    entry.facts["pool"] = getLabel(data.attributes, "pool");
+  } else {
+    setFact(entry, "pool", getLabel(data.attributes, "pool"));
+  }
   setBooleanFact(entry, "isBootable", getLabel(data.attributes, "bootable"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
 }

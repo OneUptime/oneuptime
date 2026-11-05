@@ -1290,8 +1290,19 @@ function seriesOf(metricName, attributes) {
       ];
     case "system.memory.utilization":
       return [seriesFromRow({ state: attributes["state"] }, 0.62)];
+    // What its disks and network move: no walk reads a number from these.
+    case "system.disk.io":
+    case "system.network.io":
+      return [];
     default:
-      return null;
+      /*
+       * What libvirt's or Ceilometer's exporter says about an instance. These estates name
+       * neither, as most clouds don't, so a page asks and hears there are none.
+       */
+      return metricName?.startsWith("openstack.instance.") ||
+        metricName?.startsWith("openstack.hypervisor.instances.")
+        ? []
+        : null;
   }
 }
 
@@ -1371,7 +1382,8 @@ AnalyticsModelAPI.getList = async (options) => {
     modelName.startsWith("Log") ||
     modelName.startsWith("ChangeEvent") ||
     modelName.startsWith("Metric") ||
-    modelName.startsWith("Span")
+    modelName.startsWith("Span") ||
+    modelName.startsWith("SecurityEvent")
   ) {
     return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
   }
@@ -1497,13 +1509,32 @@ async function handleApi(method, options) {
             {},
           );
     }
-    // A worker's page links to the Hosts product when a host reports under its name.
+    // The Hosts product's row for a machine, under its short name as the agent reports it.
     if (parsed.pathname.includes("/openstack-resource/host-of-machine/")) {
+      const shortName = String(body.machineName || "").split(".")[0];
       return ok({
         host:
           store.Host.find((host) => {
-            return host.hostIdentifier === body.machineName;
+            return host.hostIdentifier === shortName;
           }) || null,
+      });
+    }
+    // Nothing of another product's is on these estates' instances.
+    if (parsed.pathname.includes("/openstack-resource/reach-of-instance/")) {
+      return ok({});
+    }
+    // A project with no Ceph cluster, so there is nothing to link a pool to.
+    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph/")) {
+      return ok({
+        link: {
+          state: "no-clusters",
+          clusterId: null,
+          clusterName: null,
+          cephPoolName: null,
+        },
+        clusters: [],
+        health: null,
+        capacityUsedPercent: null,
       });
     }
     // A project that does not use Security Events: the card draws nothing.

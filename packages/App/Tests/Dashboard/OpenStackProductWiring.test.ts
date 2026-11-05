@@ -472,9 +472,13 @@ describe("the side menus have no dead links", () => {
     );
 
     for (const key of VIEW_PAGE_KEYS) {
-      // The guide is linked from the Overview, and a part's page from its row.
+      /*
+       * The guide is linked from the Overview, a part's page from its row, and one thing
+       * the cloud stands on from its line on the Control Plane card.
+       */
       if (
         key === "OPENSTACK_CLOUD_VIEW_DOCUMENTATION" ||
+        key === "OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY" ||
         key.endsWith("_DETAIL")
       ) {
         continue;
@@ -484,6 +488,16 @@ describe("the side menus have no dead links", () => {
     expect(
       dense(readSource("Pages", "OpenStack", "View", "Index.tsx")),
     ).toContain("RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION]asRoute");
+    expect(
+      dense(
+        readSource("Components", "OpenStack", "OpenStackControlPlaneCard.tsx"),
+      ),
+    ).toContain("routes.getDependencyRoute(dependency)");
+    expect(
+      dense(
+        readSource("Components", "OpenStack", "Part", "OpenStackPartRoutes.ts"),
+      ),
+    ).toContain("PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY");
   });
 
   test("the badges come from the inventory summary, under the same names", () => {
@@ -1040,7 +1054,9 @@ describe("the setup guide is true for agents/OpenStackAgent", () => {
       "utf8",
     );
 
-    expect(script).toContain(`INSTALL_DIR:-${OPENSTACK_AGENT_INSTALL_DIR}`);
+    expect(script).toContain(
+      `DEFAULT_INSTALL_DIR="${OPENSTACK_AGENT_INSTALL_DIR}"`,
+    );
   });
 
   test("every file it downloads is served at /install/openstack-agent", () => {

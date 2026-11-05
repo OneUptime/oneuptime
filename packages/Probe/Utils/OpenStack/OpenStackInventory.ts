@@ -242,8 +242,9 @@ export interface NovaServerRecord {
   status: string | null;
   tenantId: string | null;
   userId: string | null;
-  accessIpv4: string | null;
-  accessIpv6: string | null;
+  // The address a person reaches it at: see readServerAddress.
+  addressIpv4: string | null;
+  addressIpv6: string | null;
   hostId: string | null;
   hypervisorHostname: string | null;
   availabilityZone: string | null;
@@ -255,6 +256,56 @@ export interface NovaServerRecord {
   taskState: string | null;
   updatedAt: string | null;
   faultMessage: string | null;
+}
+
+/*
+ * The address a person reaches a server at. accessIPv4 and accessIPv6 are for someone to say
+ * exactly that, and nobody does: every recording has them empty, which is all the exporter
+ * reads. What it really has is in `addresses`, network by network, so that is read when they
+ * are empty.
+ *
+ * A floating address before a fixed one, because it is the one reachable from outside. And in
+ * the order of the networks' names, because this goes on a series as a label: the same server
+ * has to say the same address from one collection to the next, however Nova listed them.
+ */
+function readServerAddress(
+  item: JSONObject,
+  accessField: string,
+  version: number,
+): string | null {
+  const access: string | null = text(item[accessField]);
+
+  if (access) {
+    return access;
+  }
+
+  const networks: JSONObject = object(item["addresses"]);
+  let fixed: string | null = null;
+
+  for (const network of Object.keys(networks).sort()) {
+    const entries: JSONValue = networks[network] as JSONValue;
+
+    if (!Array.isArray(entries)) {
+      continue;
+    }
+
+    for (const entry of entries as Array<JSONValue>) {
+      const address: JSONObject = object(entry);
+      const value: string | null = text(address["addr"]);
+
+      if (!value || numeric(address["version"]) !== version) {
+        continue;
+      }
+
+      if (address["OS-EXT-IPS:type"] === "floating") {
+        return value;
+      }
+
+      fixed = fixed || value;
+    }
+  }
+
+  return fixed;
 }
 
 export function toNovaServer(item: JSONObject): NovaServerRecord | null {
@@ -272,8 +323,8 @@ export function toNovaServer(item: JSONObject): NovaServerRecord | null {
     status: text(item["status"]),
     tenantId: text(item["tenant_id"]),
     userId: text(item["user_id"]),
-    accessIpv4: text(item["accessIPv4"]),
-    accessIpv6: text(item["accessIPv6"]),
+    addressIpv4: readServerAddress(item, "accessIPv4", 4),
+    addressIpv6: readServerAddress(item, "accessIPv6", 6),
     hostId: text(item["hostId"]),
     hypervisorHostname: text(item["OS-EXT-SRV-ATTR:hypervisor_hostname"]),
     availabilityZone: text(item["OS-EXT-AZ:availability_zone"]),
@@ -684,6 +735,12 @@ export interface CinderVolumeRecord {
   userId: string | null;
   volumeType: string | null;
   serverId: string | null;
+  /*
+   * The pool that holds it, in the name Cinder's pool list gives that pool: "host@backend#pool".
+   * Only a credential Cinder treats as an admin is told this, and a volume not scheduled yet
+   * has none.
+   */
+  poolName: string | null;
   sizeGb: number | null;
   updatedAt: string | null;
 }
@@ -703,6 +760,7 @@ export function toCinderVolume(item: JSONObject): CinderVolumeRecord {
     userId: text(item["user_id"]),
     volumeType: text(item["volume_type"]),
     serverId: attachments[0] ? text(object(attachments[0])["server_id"]) : null,
+    poolName: text(item["os-vol-host-attr:host"]),
     sizeGb: numeric(item["size"]),
     updatedAt: text(item["updated_at"]),
   };

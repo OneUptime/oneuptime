@@ -689,12 +689,28 @@ describe("instances", () => {
       expect(row.facts["faultMessage"]).toBeNull();
     });
 
+    test("an address a probe says is kept, and one that went is written down as gone", () => {
+      expect(
+        instanceRow({
+          updated_at: "2026-11-04T11:00:00Z",
+          address_ipv4: "172.24.4.33",
+          address_ipv6: "fd00::5",
+        }).facts,
+      ).toMatchObject({ addressIpv4: "172.24.4.33", addressIpv6: "fd00::5" });
+
+      expect(
+        instanceRow({ updated_at: "2026-11-04T11:00:00Z" }).facts,
+      ).toMatchObject({ addressIpv4: null, addressIpv6: null });
+    });
+
     test("the exporter saying nothing of them is not the same as there being none", () => {
       const row: OpenStackResourceBufferEntry = instanceRow({});
 
       expect(Object.keys(row.facts)).not.toContain("updatedAt");
       expect(Object.keys(row.facts)).not.toContain("taskState");
       expect(Object.keys(row.facts)).not.toContain("faultMessage");
+      expect(Object.keys(row.facts)).not.toContain("addressIpv4");
+      expect(Object.keys(row.facts)).not.toContain("addressIpv6");
     });
 
     test("none of it is mistaken for metadata an operator chose to see", () => {
@@ -711,6 +727,41 @@ describe("instances", () => {
 });
 
 describe("storage", () => {
+  describe("which pool holds a volume", () => {
+    function volumeRow(labels: LabelMap): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+
+      fold(buffer, "openstack_cinder_volume_gb", {
+        value: 10,
+        labels: { id: "vol-1", status: "available", ...labels },
+      });
+
+      return rowOf(buffer, OpenStackResourceKind.Volume, "vol-1");
+    }
+
+    test("a probe that was told says it", () => {
+      expect(
+        volumeRow({
+          updated_at: "2026-11-04T10:00:00.000000",
+          pool: "host@lvm#lvm",
+        }).facts["pool"],
+      ).toBe("host@lvm#lvm");
+    });
+
+    test("a probe no longer told writes it down as gone, or it would stay for ever", () => {
+      const row: OpenStackResourceBufferEntry = volumeRow({
+        updated_at: "2026-11-04T10:00:00.000000",
+      });
+
+      expect(Object.keys(row.facts)).toContain("pool");
+      expect(row.facts["pool"]).toBeNull();
+    });
+
+    test("the exporter, which never knows, leaves what is there alone", () => {
+      expect(Object.keys(volumeRow({}).facts)).not.toContain("pool");
+    });
+  });
+
   test("a volume keeps Cinder's word, its size, and what it is attached to", () => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_cinder_volume_gb", {

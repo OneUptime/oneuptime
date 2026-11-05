@@ -124,6 +124,7 @@ describe("LOGS_EXPLORER_FACET_KEYS", () => {
       "kubernetesClusterId",
       "dockerSwarmClusterId",
       "proxmoxClusterId",
+      "openStackCloudId",
       "vmwareVCenterId",
       "cephClusterId",
       "storageArrayId",
