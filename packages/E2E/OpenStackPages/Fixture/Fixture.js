@@ -115,9 +115,6 @@ import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack
 import CloudOwners from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Owners";
 import CloudDelete from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Delete";
 import CloudFeed from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Feed";
-import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
-import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
-import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
 import {
   OpenStackPlacementOfHost,
@@ -905,20 +902,6 @@ const store = {
   ],
   Incident: incidents,
   Alert: alerts,
-  // What the incidents' and alerts' tables read beside their rows, and the logs viewer's resources.
-  IncidentCustomField: [],
-  IncidentNoteTemplate: [],
-  IncidentOwnerTeam: [],
-  IncidentOwnerUser: [],
-  AlertCustomField: [],
-  AlertNoteTemplate: [],
-  AlertOwnerTeam: [],
-  AlertOwnerUser: [],
-  ScheduledMaintenanceCustomField: [],
-  ScheduledMaintenanceNoteTemplate: [],
-  DockerHost: [],
-  KubernetesCluster: [],
-  PodmanHost: [],
   // What a project's and a domain's owner and label rules are stored as.
   AlertOwnerRule: [],
   IncidentOwnerRule: [],
@@ -2295,9 +2278,6 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_OWNERS, CloudOwners],
   [PageMap.OPENSTACK_CLOUD_VIEW_DELETE, CloudDelete],
   [PageMap.OPENSTACK_CLOUD_VIEW_FEED, CloudFeed],
-  [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, CloudIncidents],
-  [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS, CloudAlerts],
-  [PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE, CloudScheduledMaintenance],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),
