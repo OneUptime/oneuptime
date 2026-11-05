@@ -20,7 +20,7 @@
 
 | 도구 | 읽은 것 | 실제로 실행한 것 |
 | --- | --- | --- |
-| Kolla-Ansible | master와 `stable/2026.1`의 소스 | `stable/2026.1`에서 Open vSwitch를 사용하는 실제 올인원 환경에서 이 가이드의 명령을 실행했습니다. Docker 없이 각 자격 증명으로 에이전트를, Kolla-Ansible 자체 익스포터와 고정 버전 및 1.7.0의 사용자 익스포터에서, 실제 `prometheus.yml`에서 읽은 대상을, 그리고 로그 프로필을 실행했습니다. 한 부분은 성립하지 않았습니다. Memcached와 nova-compute를 중지했는데도 Alertmanager가 아무것도 전송하지 않았으므로, Kolla-Ansible 스택에서 OneUptime으로 알림이 간 적은 없습니다. Alertmanager가 고정된 버전에서 전송하는 내용을 테스트 클러스터에서 기록해 실행 중인 OneUptime에 보냈을 때는 올바른 클라우드에서 인시던트가 열리고 해결되었습니다 |
+| Kolla-Ansible | master와 `stable/2026.1`의 소스 | `stable/2026.1`에서 Open vSwitch를 사용하는 실제 올인원 환경에서 이 가이드의 명령을 실행했습니다. Docker 없이 첫 번째 자격 증명으로 에이전트를, Kolla-Ansible 자체 익스포터와 고정 버전 및 1.7.0의 사용자 익스포터에서, 두 번째 자격 증명으로 익스포터를, 실제 `prometheus.yml`에서 읽은 대상을, 그리고 로그 프로필을 실행했습니다. 그곳에서 Memcached를 실제로 중지하자 Alertmanager는 firing 웹훅을 전송한 뒤 resolved 웹훅을 전송했고, 전송된 내용을 실행 중인 OneUptime에 보내자 올바른 클라우드에서만 인시던트가 하나 열렸고 다른 클라우드에서는 열리지 않았으며, 그 인시던트는 해결되었습니다 |
 | OpenStack-Ansible | 소스와 문서 | `stable/2026.1`의 실제 올인원 환경에서 LXC 컨테이너로 이 가이드의 명령을 실행했습니다. 첫 번째 자격 증명으로 에이전트를, 두 번째 자격 증명으로 정책 재정의를 적용한 익스포터를, 에이전트가 각각을 읽는 RabbitMQ 및 HAProxy 설정을, 저널의 로그 프로필을 실행했습니다 |
 | OpenStack-Helm | 차트 값 | 프로브와 Kubernetes 에이전트를 각각 따로 |
 | Atmosphere | 문서와 소스 | 프로브와 Kubernetes 에이전트를 각각 따로 |

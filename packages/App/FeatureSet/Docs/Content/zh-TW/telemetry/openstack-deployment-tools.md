@@ -20,7 +20,7 @@
 
 | 工具 | 讀取來源 | 實際執行 |
 | --- | --- | --- |
-| Kolla-Ansible | 其原始碼，位於 master 與 `stable/2026.1` | 本指南的指令，在 `stable/2026.1` 且使用 Open vSwitch 的真實 all-in-one 上執行：每種憑證的代理程式（不使用 Docker）、位於 Kolla-Ansible 自己的匯出器上以及您自己的匯出器上（固定版本與 1.7.0），從其真實 `prometheus.yml` 讀取的目標，以及日誌設定檔。有一部分沒有成功：在那裡停止 Memcached 與 nova-compute 後，它的 Alertmanager 什麼都沒有送出，因此還沒有任何警示從 Kolla-Ansible 堆疊送到 OneUptime。不過，在測試叢集中錄製的、其固定版本 Alertmanager 所送出的內容，確實在運行中的 OneUptime 上對正確的雲端開啟並解決了事件 |
+| Kolla-Ansible | 其原始碼，位於 master 與 `stable/2026.1` | 本指南的指令，在 `stable/2026.1` 且使用 Open vSwitch 的真實 all-in-one 上執行：每種憑證的代理程式（不使用 Docker）、位於 Kolla-Ansible 自己的匯出器上以及您自己的匯出器上（固定版本與 1.7.0），從其真實 `prometheus.yml` 讀取的目標，以及日誌設定檔。在那裡真正停止 Memcached 後，它的 Alertmanager 先送出一個 firing webhook，接著又送出一個 resolved webhook，而它送出的內容被送到運行中的 OneUptime 後，在正確的雲端上開啟了一個事件，且沒有在其他任何雲端上開啟，並將其解決 |
 | OpenStack-Ansible | 其原始碼與文件 | 本指南的指令，在 `stable/2026.1` 的真實 all-in-one 上，於 LXC 容器中執行：第一個憑證的代理程式、套用其政策覆寫的第二個憑證的匯出器、由代理程式讀取各項的 RabbitMQ 與 HAProxy 設定，以及讀取 journal 的日誌設定檔 |
 | OpenStack-Helm | 其 chart 的值 | 探測器與 Kubernetes 代理程式，各自單獨執行 |
 | Atmosphere | 其文件與原始碼 | 探測器與 Kubernetes 代理程式，各自單獨執行 |

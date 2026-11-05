@@ -20,7 +20,7 @@
 
 | ツール | 読み取り元 | 実際に実行したもの |
 | --- | --- | --- |
-| Kolla-Ansible | master と `stable/2026.1` のソース | `stable/2026.1` の Open vSwitch 構成の実際の all-in-one で、このガイドのコマンドを実行: 各クレデンシャルでのエージェント(Docker なし)、Kolla-Ansible 自身のエクスポーターと、固定バージョンおよび 1.7.0 での自前のエクスポーター、実際の `prometheus.yml` から読み取ったターゲット、ログプロファイル。一点だけうまくいかなかった点がある: Memcached と nova-compute を停止しても Alertmanager は何も送信しなかったため、Kolla-Ansible のスタックから OneUptime へアラートが届いたことはない。固定されているバージョンの Alertmanager が送信する内容をテストクラスターで記録したものは、稼働中の OneUptime で正しいクラウドのインシデントを作成し、解決した |
+| Kolla-Ansible | master と `stable/2026.1` のソース | `stable/2026.1` の Open vSwitch 構成の実際の all-in-one で、このガイドのコマンドを実行: 最初のクレデンシャルでのエージェント(Docker なし)、Kolla-Ansible 自身のエクスポーターと、固定バージョンおよび 1.7.0 での自前のエクスポーター、二つ目のクレデンシャルでのエクスポーター、実際の `prometheus.yml` から読み取ったターゲット、ログプロファイル。そこで Memcached を実際に停止すると、その Alertmanager は firing の webhook を送信し、続いて resolved の webhook を送信した。送信された内容を稼働中の OneUptime に送ると、正しいクラウドにだけインシデントがひとつ作成され、他のクラウドには作成されず、そのインシデントは解決された |
 | OpenStack-Ansible | ソースとドキュメント | `stable/2026.1` の実際の all-in-one(LXC コンテナ)で、このガイドのコマンドを実行: 最初のクレデンシャルでのエージェント、二つ目のクレデンシャルでのエクスポーター(ポリシーのオーバーライド付き)、RabbitMQ と HAProxy の設定(エージェントがそれぞれを読み取る)、ジャーナルに対するログプロファイル |
 | OpenStack-Helm | チャートの values | プローブと Kubernetes エージェントを、それぞれ単独で |
 | Atmosphere | ドキュメントとソース | プローブと Kubernetes エージェントを、それぞれ単独で |

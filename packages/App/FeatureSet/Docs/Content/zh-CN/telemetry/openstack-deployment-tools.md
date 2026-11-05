@@ -20,7 +20,7 @@
 
 | 工具 | 读自 | 实际运行 |
 | --- | --- | --- |
-| Kolla-Ansible | 其源码，位于 master 和 `stable/2026.1` | 本指南的命令，在使用 Open vSwitch 的 `stable/2026.1` 真实 all-in-one 上运行：每种凭据下的代理、不使用 Docker、使用 Kolla-Ansible 自己的导出器以及在固定版本和 1.7.0 上使用您自己的导出器、从其真实 `prometheus.yml` 读取的目标，以及日志配置。有一部分未能成立：在那里停掉 Memcached 和 nova-compute 后，其 Alertmanager 没有发送任何内容，因此还没有任何告警从 Kolla-Ansible 栈到达过 OneUptime。在测试集群中记录的、它所固定版本的 Alertmanager 发送的内容，确实在运行中的 OneUptime 上针对正确的云打开并解决了一个事件 |
+| Kolla-Ansible | 其源码，位于 master 和 `stable/2026.1` | 本指南的命令，在使用 Open vSwitch 的 `stable/2026.1` 真实 all-in-one 上运行：每种凭据下的代理、不使用 Docker、使用 Kolla-Ansible 自己的导出器以及在固定版本和 1.7.0 上使用您自己的导出器、从其真实 `prometheus.yml` 读取的目标，以及日志配置。在那里真正停掉 Memcached 后，其 Alertmanager 先发出了一个 firing webhook，随后又发出了一个 resolved webhook，而它发出的内容被发送到运行中的 OneUptime 后，在正确的云上打开了一个事件，且没有在其他任何云上打开，并将其解决 |
 | OpenStack-Ansible | 其源码和文档 | 本指南的命令，在 LXC 容器中运行的 `stable/2026.1` 真实 all-in-one 上：第一个凭据上的代理、第二个凭据上带其策略覆盖的导出器、代理读取各项的 RabbitMQ 和 HAProxy 设置，以及读取 journal 的日志配置 |
 | OpenStack-Helm | 其 chart 的 values | 探测器和 Kubernetes 代理，各自独立运行 |
 | Atmosphere | 其文档和源码 | 探测器和 Kubernetes 代理，各自独立运行 |
