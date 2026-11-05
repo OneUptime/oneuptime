@@ -1,0 +1,2 @@
+Ironic's conductor stopped, with nodes still listed.
+On its own: the conductor is stopped, and Ironic's API says so once its heartbeat is old enough.

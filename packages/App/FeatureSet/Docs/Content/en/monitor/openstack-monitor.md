@@ -4,7 +4,7 @@ An OpenStack monitor watches one cloud - its APIs, the workers behind them, hype
 
 :::cards
 - [Create the monitor](#create-an-openstack-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Fifty-one ready-made alerts, one incident per worker, instance, network or region.
+- [Templates](#pre-built-alert-templates): Ready-made alerts, one incident per worker, instance, network or region.
 - [Checks from outside](#checks-from-outside): Whether anyone can actually boot an instance, from a probe outside the cloud.
 - [Identity attributes](#identity-attributes): How to target one region, host or project.
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 51 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 90 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum or Ironic to a cloud that runs it, and one over a series only a probe sends to a cloud a probe collects: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -146,6 +146,14 @@ Every template reads at least three collections of what it watches, and fires on
 | Volumes in Error | Storage | Warning | `openstack_cinder_volume_status_counter` for each error word, Max per region and word, **past 10 minutes** | Above 0 | At 0 |
 | Volume Stuck | Storage | Warning | `openstack_cinder_volume_gb` for each passing status word, Max per volume, **past 30 minutes** | In that status at every collection for 30 minutes | Left it |
 | Image Stuck | Storage | Warning | `openstack_glance_image_created_at` for each passing status word, Max per image, **past 1 hour** | In that status at every collection for an hour | Left it, or was deleted |
+| Orchestration API Down | Availability | Critical | `openstack_heat_up` and `up` for `orchestration`, Min per region, **past 15 minutes** | Every call failed, which is what a stopped `heat-engine` reads as too, or the exporter did not answer | Both read 1 |
+| Kubernetes Clusters API Down | Availability | Critical | `openstack_container_infra_up` and `up` for `container-infra`, Min per region, **past 15 minutes** | Every call failed, or the exporter did not answer | Both read 1 |
+| Heat Engine Down | Control Plane | Warning | `openstack_heat_agent_state`, Min per host, **past 15 minutes**. Only a probe sends this | Heat lists a `heat-engine` as down. With every engine stopped Heat can't list them, and Orchestration API Down fires instead | It reads 1, or Heat drops its record |
+| Magnum Conductor Down | Control Plane | Critical | `openstack_container_infra_agent_state` with `adminState=enabled`, Min per host, **past 15 minutes**. Only a probe sends this | Magnum lists an enabled `magnum-conductor` as down. Magnum's API carries on answering, so nothing else says this | It reads 1, or someone disables it |
+| Stack Failed | Orchestration | Warning | `openstack_heat_stack_status` with each `*_FAILED` status, per stack, **past 15 minutes** | A stack holds a failed status for the whole window | It is updated or deleted |
+| Stack Stuck In Progress | Orchestration | Warning | `openstack_heat_stack_status` with each `*_IN_PROGRESS` status, per stack, **past 2 hours** | A stack holds an in-progress status for the whole window, past the hour Heat gives one unless someone chose longer | It reaches its next status, or is deleted |
+| Kubernetes Cluster Failed | Orchestration | Warning | `openstack_container_infra_cluster_status` with each `*_FAILED` status, per cluster, **past 15 minutes** | A cluster holds a failed status for the whole window | It is updated or deleted |
+| Kubernetes Cluster Stuck | Orchestration | Warning | `openstack_container_infra_cluster_status` with each `*_IN_PROGRESS` status, per cluster, **past 2 hours** | A cluster holds an in-progress status for the whole window. Only Magnum's conductor moves one on | It reaches its next status, or is deleted |
 | Bare Metal API Down | Bare Metal | Critical | `openstack_ironic_up`, Min per region, **past 15 minutes** | Below 1. Speaks only where a read of Ironic can say so: a probe, or exporter 1.7.0. A stopped Ironic gives the agent's exporter nothing to read, the same as a cloud without Ironic, so there it stays quiet and the cloud's pages say when Ironic was last heard from | Reads 1, or has gone |
 | Bare Metal Node in Error | Bare Metal | Warning | `openstack_ironic_node` for each failed `provision_state`, Max per node, **past 15 minutes** | In that state at every collection for 15 minutes, in maintenance or not | Left it, or was deleted |
 | Bare Metal Node Stuck Transitioning | Bare Metal | Warning | `openstack_ironic_node` for each passing `provision_state` with `maintenance = false`, Max per node, **past 2 hours** | In that state at every collection for 2 hours. A long disk erase can honestly take this long, which a node's page can tell and this can't | Left it, or was deleted |
@@ -184,9 +192,61 @@ Seven more templates read a cloud's logs rather than its metrics, so they are Lo
 | RabbitMQ Connection Lost | Service Logs | Critical | `AMQP server on <host> is unreachable`, `Unable to connect to AMQP server`, oslo.messaging's `Connection failed` or `MessagingTimeout`, **past 5 minutes** | 5 or more | Fewer than 5 |
 | Database Connection Lost | Service Logs | Critical | `DBConnectionError`, `SQL connection failed`, or MySQL's `Lost connection` and `Can't connect`, **past 5 minutes** | 5 or more | Fewer than 5 |
 | Too Many Errors from a Service | Service Logs | Warning | `ERROR` and `CRITICAL` lines, per service and machine, **past 5 minutes** | 50 or more | Fewer than 50 |
-| Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token` and Keystone's `not a recognized Fernet token`, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
+| Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token`, **past 5 minutes** | 10 or more. One is someone's stale session. A controller whose Fernet keys differ from the others reads as this and no line says more, so compare `/etc/keystone/fernet-keys` on each | Fewer than 10 |
 | Instance Action Failed | Events | Warning | `compute.exception` and any `instance.*.error`, per instance, event and reason, **past 15 minutes**. Needs [notifications](/docs/telemetry/openstack#turn-on-notifications) or a probe | One or more | None left in the window |
 | Scheduling Failed | Events | Warning | A compute task's error naming `NoValidHost`, such as `compute_task.build_instances.error`, which is what Nova sends. Cinder's `scheduler.create_volume` too, and `scheduler.select_destinations.error`, which Nova's documentation names and our test clouds never sent. Per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
+
+### What the cloud stands on
+
+These read what [the agent reads under the cloud](/docs/telemetry/openstack#what-the-cloud-stands-on), once you have named it. A window reads at least three collections. Nothing uses Sum, and a series that goes away counts as recovered. Each was written from what real clusters said when broken on purpose.
+
+| Template | Severity | Watches | Fires when | One incident per |
+| --- | --- | --- | --- | --- |
+| RabbitMQ Down | Critical | `up`, **past 5 minutes** | No node answers | Region |
+| RabbitMQ Node Down | Warning | `up`, **past 10 minutes** | A node does not answer | Machine |
+| RabbitMQ Partition Detected | Critical | `erlang_vm_dist_node_state`, **past 5 minutes** | Every node answers, and a link between two is not up | Region |
+| RabbitMQ Memory Alarm | Critical | `rabbitmq_alarms_memory_used_watermark`, **past 5 minutes** | Above 0: it has stopped taking messages | Machine |
+| RabbitMQ Disk Alarm | Critical | `rabbitmq_alarms_free_disk_space_watermark`, **past 5 minutes** | Above 0: it has stopped taking messages | Machine |
+| RabbitMQ File Descriptors High | Warning | Open against allowed, **past 5 minutes** | Over 90% | Machine |
+| RabbitMQ Messages Unacknowledged | Warning | `rabbitmq_queue_messages_unacked`, **past 10 minutes** | Over 1000 | Machine |
+| RabbitMQ Queue Without Consumers | Warning | Each queue from `/metrics/detailed`, **past 10 minutes** | Messages ready and nobody reading. A reply or fanout queue is left out | Queue |
+| MariaDB Cluster Down | Critical | `up`, `mysql_up` and `wsrep_cluster_status`, **past 5 minutes** | No node answers, or no node is in the Primary component | Region |
+| Galera Cluster Size Dropped | Warning | Nodes read against `wsrep_cluster_size`, **past 10 minutes** | Galera counts fewer nodes than you named | Region |
+| Galera Node Not Ready | Warning | `wsrep_ready`, **past 10 minutes** | Below 1 with Galera on | Machine |
+| Galera Node Out of Sync | Warning | `wsrep_local_state`, **past 10 minutes** | Not Synced, unless `wsrep_desync` says someone asked for that, as a backup does | Machine |
+| MariaDB Too Many Connections | Warning | Connected against allowed, **past 5 minutes** | Over 80% | Machine |
+| MariaDB Slow Queries | Warning | `mysql_slow_queries_increase`, **past 10 minutes** | Over 10 a minute | Machine |
+| Memcached Cluster Down | Warning | `memcached_up`, **past 5 minutes** | None answers. Nothing stops, and the APIs slow down | Region |
+| Memcached No Connections | Warning | `memcached_current_connections` and commands, **past 15 minutes** | Under 10 connections and nobody asking. It never reads 0: its own listeners and the exporter hold a few | Region |
+| Memcached Evictions High | Warning | `memcached_items_evicted_increase`, **past 10 minutes** | Over 100 a minute | Machine |
+| HAProxy Down | Critical | `up`, **past 5 minutes** | None answers | Region |
+| HAProxy Backend Down | Critical | `haproxy_backend_status` for `DOWN`, **past 5 minutes** | Down on every load balancer that answers | Backend |
+| HAProxy Server Down | Warning | `haproxy_server_status` for `DOWN`, **past 10 minutes** | A server is down and its backend has others | Backend |
+| API 5xx Rate High | Critical | `haproxy_backend_http_responses_increase`, **past 5 minutes** | Over 5%, with servers left to answer | Backend |
+| API 4xx Rate High | Warning | The same, **past 5 minutes** | Over 25%. HAProxy counts by class, so this is where a burst of 401s shows | Backend |
+| OVN Controller Not Running | Critical | `ovnc_encap_ip` and `ovnc_rconn_queued`, **past 5 minutes** | A chassis that had one has none | Machine |
+| Northbound or Southbound Database Without a Leader | Critical | `ovn_raft_cluster_leader`, **past 5 minutes** | No member says it leads | Database |
+| OVN Northd Not Active | Critical | `ovn_northd_status`, **past 10 minutes** | None is active, which is also what OVN's databases all stopping reads as | Region |
+| Geneve Transmit Errors | Warning | `ovs_interface_tx_errors_increase` for `type = geneve`, **past 10 minutes** | Errors in every minute | Machine |
+| Open vSwitch Service Down | Critical | `ovs_memory_rules_total`, **past 5 minutes** | Gone from a machine that had it, with the exporter answering | Machine |
+| Exporter Lost Open vSwitch's Database | Warning | `ovs_build_info`, **past 10 minutes** | Gone from a machine that had it, with Open vSwitch answering. Restart the exporter | Machine |
+| Network Exporter Target Down | Warning | `up`, **past 10 minutes** | openstack-network-exporter does not answer | Machine |
+| libvirt Service Down | Critical | `libvirt_up`, **past 5 minutes** | Below 1. nova-compute disables itself, so Compute Service Down stays quiet | Machine |
+| libvirt Exporter Target Down | Warning | `up`, **past 10 minutes** | prometheus-libvirt-exporter does not answer | Machine |
+
+**One failure opens one incident.** A stopped RabbitMQ takes `nova-compute` and, on ML2/OVS, Neutron's agents with it, each with a template of its own. So whatever goes with something waits longer than it does, and its monitor is linked to the one it waits for: a monitor dependency, which is made for you when both come from these templates, whichever you create first. While RabbitMQ Down is open in a region, what depends on it opens nothing there, and reads as down on its own page. It goes on waiting for 10 minutes after RabbitMQ Down resolves, because the agent reads those workers every 2 to 5 minutes, and a worker still down after that has something else wrong.
+
+| What goes | What waits for it |
+| --- | --- |
+| RabbitMQ Down | RabbitMQ Node Down, every worker and API template, and the logs' RabbitMQ Connection Lost and Too Many Errors from a Service |
+| MariaDB Cluster Down | Galera's node and size templates, every worker and API template, Cloud Stopped Reporting, and the logs' Database Connection Lost, Token Validation Failing and Too Many Errors from a Service |
+| HAProxy Down | HAProxy's other templates, every API template and Cloud Stopped Reporting |
+| OVN Controller Not Running, Open vSwitch Service Down | Network Agent Down, for `ovn-controller`, `neutron-ovn-agent` and `neutron-openvswitch-agent` and no others, in that region |
+| Northbound or Southbound Database Without a Leader | OVN Northd Not Active |
+
+An exporter names a machine by the address it reaches it at and Neutron by its host name, so those two cannot be matched by machine. While one machine's ovn-controller is down, an `ovn-controller` agent down on another machine in the region waits with it.
+
+The incident says what it takes down, and an alert on a worker while its dependency is down says what it is probably caused by.
 
 ### Turn on the limits series
 
@@ -235,6 +295,72 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_neutron_agent_state` | - | Min | Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work. dhcp_network_count says how many networks a DHCP agent serves: only a probe sends it. |
 | `openstack_cinder_agent_state` | - | Min | Whether a Cinder service (cinder-volume, cinder-scheduler, cinder-backup) is up (1) or down (0), one series per host and binary. adminState says enabled or disabled, and a disabled one is planned work. The uuid label is made up afresh on every collection, so never group by it. |
 
+### RabbitMQ
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `erlang_vm_dist_node_state` | - | Min | The state of this node's link to another: 3 is up, 1 is pending, which is what a peer cut off by a partition reads. A peer that stopped has no series at all. |
+| `rabbitmq_alarms_memory_used_watermark` | - | Max | 1 while this node has passed its memory watermark. RabbitMQ stops every publisher in the cluster while it lasts. |
+| `rabbitmq_alarms_free_disk_space_watermark` | - | Max | 1 while this node has less free disk than its limit. RabbitMQ stops every publisher in the cluster while it lasts. |
+| `rabbitmq_process_open_fds` | `count` | Max | File descriptors this node has open. Each connection holds one. |
+| `rabbitmq_process_max_fds` | `count` | Max | How many file descriptors this node may open. |
+| `rabbitmq_queue_messages_unacked` | `count` | Max | Messages this node's queues have delivered and not had acknowledged. A count that only climbs is a consumer that has stopped working without letting go. |
+| `rabbitmq_queue_messages` | `count` | Max | Messages in this node's queues, ready or unacknowledged. |
+| `rabbitmq_connections` | `count` | Max | Connections this node holds. |
+| `rabbitmq_detailed_queue_messages_ready` | `count` | Max | Messages waiting in one queue, from RabbitMQ's detailed endpoint. Reply and fanout queues are left out. |
+| `rabbitmq_detailed_queue_consumers` | `count` | Max | Consumers on one queue, from RabbitMQ's detailed endpoint. Reply and fanout queues are left out. |
+
+### MariaDB and Galera
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `mysql_up` | - | Min | Whether MariaDB answered its exporter (1) or not (0). The exporter sits beside it, so a stopped MariaDB leaves this reading 0 rather than going away. |
+| `mysql_global_status_wsrep_cluster_status` | - | Max | 1 while this node is in the Primary component, 0 otherwise. A MariaDB nobody clustered reads 0 too, so read it beside Galera On. |
+| `mysql_global_variables_wsrep_on` | - | Max | 1 where Galera is on. MariaDB's packages build Galera in, so a server nobody clustered also reports the rest of these series, with this at 0. |
+| `mysql_global_status_wsrep_cluster_size` | `count` | Min | How many nodes this node says the cluster has. |
+| `mysql_global_status_wsrep_ready` | - | Min | 1 while this node takes queries, 0 while it refuses them. |
+| `mysql_global_status_wsrep_local_state` | - | Min | Where this node stands, as a code rather than an amount: 4 is Synced, 3 Joined, 2 Donor or Desynced, 1 Joining, and 0 outside the Primary component. |
+| `mysql_global_variables_wsrep_desync` | - | Max | 1 while someone has told this node to fall out of step, usually for a backup. That is planned work, and no alert fires on it. |
+| `mysql_global_status_threads_connected` | `count` | Max | Connections this node holds. |
+| `mysql_global_variables_max_connections` | `count` | Max | How many connections this node takes. |
+| `mysql_slow_queries_increase` | `count` | Max | How many queries over long_query_time this node counted since the last collection: how much mysql_global_status_slow_queries grew. |
+
+### Memcached
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `memcached_up` | - | Min | Whether Memcached answered its exporter (1) or not (0). The exporter sits beside it, so a stopped Memcached leaves this reading 0 rather than going away. |
+| `memcached_current_connections` | `count` | Max | Connections this Memcached holds. It never reads 0, because its own listeners and the exporter hold a few. |
+| `memcached_commands_increase` | `count` | Max | How many times this Memcached was asked each thing since the last collection: how much memcached_commands_total grew. |
+| `memcached_items_evicted_increase` | `count` | Max | How many items this Memcached threw out early to make room since the last collection: how much memcached_items_evicted_total grew. |
+
+### HAProxy
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `haproxy_backend_status` | - | Max | One series per state a backend could be in, with 1 on the state it is in. The state label is the word. |
+| `haproxy_server_status` | - | Max | One series per state a backend's server could be in, with 1 on the state it is in. The state label is the word. Maintenance reads as neither up nor down. |
+| `haproxy_backend_active_servers` | `count` | Min | How many servers each backend has up. A section with no servers reads 0 for ever, so this alone never says a backend is down. |
+| `haproxy_backend_http_responses_increase` | `count` | Max | How many responses each backend gave since the last collection, by class: 2xx, 3xx, 4xx and 5xx. HAProxy counts them no finer, so a 401 is a 4xx. |
+
+### OVN and Open vSwitch
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `ovnc_encap_ip` | - | Min | 1 on a machine set up as an OVN chassis, labelled with its tunnel address. It is read from Open vSwitch, so it stays while ovn-controller is stopped and goes with Open vSwitch. |
+| `ovnc_rconn_queued` | `count` | Max | How many OpenFlow messages ovn-controller has queued since it started. Only a running ovn-controller has this series, which is what it is read for here. |
+| `ovn_raft_cluster_leader` | - | Max | 1 on the member of an OVN database that leads it, and 0 on the others. openstack-network-exporter reads Southbound on a machine with both databases' sockets, so Northbound shows only where a machine has no Southbound to read. |
+| `ovn_northd_status` | - | Max | 1 on the ovn-northd that is active, and 0 on a standby. It reads 0 everywhere with OVN's databases stopped. |
+| `ovs_memory_rules_total` | `count` | Max | How many OpenFlow rules ovs-vswitchd holds. It is asked over ovs-vswitchd's own socket, so this goes when it stops and comes straight back when it starts. |
+| `ovs_build_info` | - | Max | 1 while openstack-network-exporter can read Open vSwitch's database, labelled with its version. Version 0.3.0 connects to that database once, so after Open vSwitch restarts this stays gone until the exporter restarts too. |
+| `ovs_interface_tx_errors_increase` | `count` | Max | How many transmit errors a machine's Geneve tunnels reported since the last collection. The agent keeps Geneve's interfaces and none of the others, because a machine has one interface per port. |
+
+### libvirt
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `libvirt_up` | - | Min | Whether libvirt answered its exporter (1) or not (0). The exporter sits beside it, so a stopped libvirt leaves it answering with this at 0. |
+
 ### Compute
 
 | Metric | Unit | Reads | Description |
@@ -255,7 +381,7 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_nova_free_disk_bytes` | `bytes` | Min | The local disk Nova counts as free on a hypervisor. It can go negative when a hypervisor has promised more than it has. |
 | `openstack_nova_current_workload` | `count` | Max | How many build, resize, snapshot, migrate and rescue operations are running on a hypervisor. It is not CPU load. |
 | `openstack_nova_running_vms` | `count` | Max | How many ACTIVE instances a hypervisor has. hostname is the hypervisor's full name. |
-| `openstack_nova_server_status` | - | Max | One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves address_ipv4 and address_ipv6 empty on a real cloud, and a probe fills them in from the addresses Nova lists. hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled. image_id names the image it booted from: only a probe sends it, and not for an instance booted from a volume. |
+| `openstack_nova_server_status` | - | Max | One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves address_ipv4 and address_ipv6 empty on a real cloud, and a probe fills them in from the addresses Nova lists. hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled. image_id names the image it booted from: only a probe sends it, and not for an instance booted from a volume. network_names lists the networks it has an address on, as a JSON array of their names: only a probe sends it. |
 | `openstack_nova_server_local_gb` | `GiB` | Max | The local disk one instance holds. _Off by default:_ delete `--disable-metric=nova-server_local_gb` from the exporter. |
 | `openstack_nova_total_vms` | `count` | Max | How many instances the region has, in any status. |
 | `openstack_nova_instances_by_status` | `count` | Max | How many instances are in each status, one series per status in each region. A cloud past the summary size keeps this in place of a series per instance. Other clouds do not send it. |
@@ -361,6 +487,23 @@ OneUptime writes these itself, from the cloud's inventory, every two minutes whi
 | `openstack_identity_users` | `count` | Max | How many users the cloud has. |
 | `openstack_identity_groups` | `count` | Max | How many groups the cloud has. |
 | `openstack_identity_regions` | `count` | Max | How many regions Keystone knows. |
+
+### Orchestration
+
+A cloud that runs Heat or Magnum has these. A cloud that doesn't has none of them, and none of its pages or recommendations mention them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_heat_up` | | Min | Whether Heat's API answered. A stopped `heat-engine` reads 0 too, because Heat's API asks an engine for its lists. |
+| `openstack_heat_stack_status` | | Max | One series per stack, with `id`, `name`, `project_id` and `status`. Its value is a code, so read its `status` label. `project_id` is empty for anything below an admin. |
+| `openstack_heat_stack_status_counter` | `count` | Max | How many stacks hold each status, per region. |
+| `openstack_heat_agent_state` | | Min | Whether Heat lists each `heat-engine` as up. Only a probe sends this. |
+| `openstack_container_infra_up` | | Min | Whether Magnum's API answered. A stopped `magnum-conductor` leaves it at 1. |
+| `openstack_container_infra_total_clusters` | `count` | Max | How many clusters Magnum listed for this credential. |
+| `openstack_container_infra_cluster_status` | | Max | One series per cluster, with `uuid`, `name`, `stack_id`, `status`, `node_count`, `master_count` and `project_id`. Its value is a code, so read its `status` label. `project_id` is empty from the exporter. |
+| `openstack_container_infra_cluster_masters` | `count` | Max | How many control plane nodes each cluster was asked for. |
+| `openstack_container_infra_cluster_nodes` | `count` | Max | How many worker nodes each cluster was asked for. |
+| `openstack_container_infra_agent_state` | | Min | Whether Magnum lists each `magnum-conductor` as up. Only a probe sends this. |
 
 ### Bare Metal
 

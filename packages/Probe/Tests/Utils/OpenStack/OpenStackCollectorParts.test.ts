@@ -314,6 +314,23 @@ describe("what a record keeps of an answer", () => {
     },
   );
 
+  test("its networks, by name, in one order from one collection to the next", () => {
+    expect(
+      toNovaServer({
+        id: "s1",
+        addresses: {
+          storage: [{ addr: "10.0.1.5", version: 4 }],
+          private: [{ addr: "10.0.0.5", version: 4 }],
+        },
+      })?.networkNames,
+    ).toEqual(["private", "storage"]);
+  });
+
+  test("none, on a server with no address yet", () => {
+    expect(toNovaServer({ id: "s1", addresses: {} })?.networkNames).toEqual([]);
+    expect(toNovaServer({ id: "s1" })?.networkNames).toEqual([]);
+  });
+
   test("a fault's traceback stays with Nova", () => {
     expect(
       JSON.stringify(

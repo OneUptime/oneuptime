@@ -34,13 +34,19 @@ import DataToProcess from "./DataToProcess";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import SeriesContextEnricher from "./SeriesContextEnricher";
-import OpenStackAlertContext from "../OpenStack/OpenStackAlertContext";
+import OpenStackAlertContext, {
+  OpenStackSeriesDescription,
+} from "../OpenStack/OpenStackAlertContext";
+import OpenStackScopedRules, {
+  OpenStackScopedRulesMatch,
+} from "../OpenStack/OpenStackScopedRules";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import MonitorDependencyRule from "../../../Utils/Monitor/MonitorDependencyRule";
 import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import DataAlertCause, {
   DataAlertSubject,
@@ -456,10 +462,14 @@ export default class MonitorAlert {
      * purpose — an alert raised before the parent went down must still
      * resolve normally; only new creation is silenced.
      */
-    if (input.dependencySuppression?.isSuppressed) {
+    if (
+      MonitorDependencyRule.isWholeMonitorSuppressed(
+        input.dependencySuppression,
+      )
+    ) {
       const suppressionReason: string =
         MonitorDependencySuppression.buildSuppressionReason(
-          input.dependencySuppression.suppressingParents,
+          input.dependencySuppression!.suppressingParents,
         );
 
       logger.debug(
@@ -563,6 +573,28 @@ export default class MonitorAlert {
               title: "Alert suppressed by scheduled maintenance",
               message:
                 "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              at: OneUptimeDate.getCurrentDate(),
+            });
+            continue;
+          }
+
+          /*
+           * The same, for a parent that speaks for only some of this
+           * monitor's series.
+           */
+          if (
+            MonitorDependencyRule.isSeriesSuppressed({
+              suppression: input.dependencySuppression,
+              labels: seriesMatch?.labels,
+            })
+          ) {
+            input.evaluationSummary?.events.push({
+              type: "alert-skipped",
+              title: "Alert suppressed by monitor dependency",
+              message: `Skipped creating an alert for this series because ${MonitorDependencySuppression.buildSuppressionReason(
+                input.dependencySuppression!.suppressingParents,
+              )}. This monitor's status still updates normally; open alerts still auto-resolve.`,
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });
@@ -830,8 +862,8 @@ export default class MonitorAlert {
           });
 
           // What a part of an OpenStack cloud takes with it, and whose that is.
-          const description: string | undefined =
-            await OpenStackAlertContext.addToDescription({
+          const openStackSeries: OpenStackSeriesDescription =
+            await OpenStackAlertContext.describeSeries({
               description: alert.description,
               projectId: input.monitor.projectId!,
               clouds: alert.openStackClouds,
@@ -839,9 +871,16 @@ export default class MonitorAlert {
               monitorSteps: input.monitor.monitorSteps,
             });
 
-          if (description !== undefined) {
-            alert.description = description;
+          if (openStackSeries.description !== undefined) {
+            alert.description = openStackSeries.description;
           }
+
+          const openStackRules: OpenStackScopedRulesMatch =
+            await OpenStackScopedRules.read({
+              projectId: input.monitor.projectId!,
+              openStackCloudId: openStackSeries.openStackCloudId,
+              reached: openStackSeries.reached,
+            });
 
           /*
            * On-call policies and labels from the criteria. AlertService
@@ -882,6 +921,8 @@ export default class MonitorAlert {
             label._id = id.toString();
             return label;
           });
+
+          OpenStackScopedRules.addLabels(alert, openStackRules);
 
           alert.isCreatedAutomatically = true;
 
@@ -955,6 +996,12 @@ export default class MonitorAlert {
             props: {
               isRoot: true,
             },
+          });
+
+          await OpenStackScopedRules.finishAlert({
+            projectId: input.monitor.projectId!,
+            alertId: createdAlert.id!,
+            match: openStackRules,
           });
 
           if (dataSubject) {

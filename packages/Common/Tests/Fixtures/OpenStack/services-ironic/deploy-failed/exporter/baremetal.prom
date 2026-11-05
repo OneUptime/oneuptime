@@ -1,22 +1,22 @@
 # HELP openstack_ironic_node node
 # TYPE openstack_ironic_node gauge
-openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="1062b540-62b5-44a7-805f-212d8778807c",maintenance="true",maintenance_reason="OneUptime drill: a disk being swapped",name="ou-node-maintenance",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
-openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="37b27be2-8431-4f40-9f03-17c91e413050",maintenance="false",maintenance_reason="",name="ou-node-deploy-failed",power_state="power on",provision_state="deploy failed",resource_class="baremetal",retired="false",retired_reason=""} 1
-openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",maintenance="false",maintenance_reason="",name="ou-node-available",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
-openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="9654dc06-7244-447a-9e3e-b4c2ec239a6c",maintenance="false",maintenance_reason="",name="ou-node-clean-failed",power_state="",provision_state="clean failed",resource_class="baremetal",retired="false",retired_reason=""} 1
-openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="b261259e-f7c0-40cf-ac0d-77e575c96445",maintenance="false",maintenance_reason="",name="ou-node-half",power_state="",provision_state="enroll",resource_class="",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",maintenance="false",maintenance_reason="",name="ou-node-available",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="3cca2e8c-fd41-4eea-a4db-43aa5e780090",maintenance="true",maintenance_reason="OneUptime drill: a disk being swapped",name="ou-node-maintenance",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="59d335d5-0fe7-452d-9f67-34e82ee6706a",maintenance="false",maintenance_reason="",name="ou-node-half",power_state="",provision_state="enroll",resource_class="",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="73a89c31-be10-40db-9f7f-c08fad8e6112",maintenance="false",maintenance_reason="",name="ou-node-clean-failed",power_state="",provision_state="clean failed",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="c86fce69-edca-492e-b2a5-07d4bec1e18f",maintenance="false",maintenance_reason="",name="ou-node-deploy-failed",power_state="power on",provision_state="deploy failed",resource_class="baremetal",retired="false",retired_reason=""} 1
 # HELP openstack_ironic_node_provision_updated_at node_provision_updated_at
 # TYPE openstack_ironic_node_provision_updated_at gauge
-openstack_ironic_node_provision_updated_at{id="1062b540-62b5-44a7-805f-212d8778807c",name="ou-node-maintenance",provision_state="available"} 1.793840951e+09
-openstack_ironic_node_provision_updated_at{id="37b27be2-8431-4f40-9f03-17c91e413050",name="ou-node-deploy-failed",provision_state="deploy failed"} 1.793841156e+09
-openstack_ironic_node_provision_updated_at{id="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",name="ou-node-available",provision_state="available"} 1.793840735e+09
-openstack_ironic_node_provision_updated_at{id="9654dc06-7244-447a-9e3e-b4c2ec239a6c",name="ou-node-clean-failed",provision_state="clean failed"} 1.793840982e+09
+openstack_ironic_node_provision_updated_at{id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",name="ou-node-available",provision_state="available"} 1.793853384e+09
+openstack_ironic_node_provision_updated_at{id="3cca2e8c-fd41-4eea-a4db-43aa5e780090",name="ou-node-maintenance",provision_state="available"} 1.793853692e+09
+openstack_ironic_node_provision_updated_at{id="73a89c31-be10-40db-9f7f-c08fad8e6112",name="ou-node-clean-failed",provision_state="clean failed"} 1.793853724e+09
+openstack_ironic_node_provision_updated_at{id="c86fce69-edca-492e-b2a5-07d4bec1e18f",name="ou-node-deploy-failed",provision_state="deploy failed"} 1.793853916e+09
 # HELP openstack_ironic_node_updated_at node_updated_at
 # TYPE openstack_ironic_node_updated_at gauge
-openstack_ironic_node_updated_at{id="1062b540-62b5-44a7-805f-212d8778807c",name="ou-node-maintenance",provision_state="available"} 1.793840954e+09
-openstack_ironic_node_updated_at{id="37b27be2-8431-4f40-9f03-17c91e413050",name="ou-node-deploy-failed",provision_state="deploy failed"} 1.793841157e+09
-openstack_ironic_node_updated_at{id="4e5bf6a3-cf68-4269-8c7d-bfeb8f29ac46",name="ou-node-available",provision_state="available"} 1.793840735e+09
-openstack_ironic_node_updated_at{id="9654dc06-7244-447a-9e3e-b4c2ec239a6c",name="ou-node-clean-failed",provision_state="clean failed"} 1.793841036e+09
+openstack_ironic_node_updated_at{id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",name="ou-node-available",provision_state="available"} 1.793853384e+09
+openstack_ironic_node_updated_at{id="3cca2e8c-fd41-4eea-a4db-43aa5e780090",name="ou-node-maintenance",provision_state="available"} 1.793853694e+09
+openstack_ironic_node_updated_at{id="73a89c31-be10-40db-9f7f-c08fad8e6112",name="ou-node-clean-failed",provision_state="clean failed"} 1.793853796e+09
+openstack_ironic_node_updated_at{id="c86fce69-edca-492e-b2a5-07d4bec1e18f",name="ou-node-deploy-failed",provision_state="deploy failed"} 1.793853916e+09
 # HELP openstack_ironic_up up
 # TYPE openstack_ironic_up gauge
 openstack_ironic_up 1

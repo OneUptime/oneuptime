@@ -64,9 +64,15 @@ function readRecordings() {
         }
       }
     }
-    // What the exporter said with each credential: "hibiscus-ovn/access/reader".
-    const levels = path.join(releaseFolder, "access", "exporter");
-    if (fs.existsSync(levels) && fs.statSync(levels).isDirectory()) {
+    /*
+     * What the exporter said with each credential: "hibiscus-ovn/access/reader". A group of
+     * services a cloud may not run keeps its own in a folder that doesn't read as a release's.
+     */
+    for (const access of ["access", "access-check"]) {
+      const levels = path.join(releaseFolder, access, "exporter");
+      if (!fs.existsSync(levels) || !fs.statSync(levels).isDirectory()) {
+        continue;
+      }
       for (const level of fs.readdirSync(levels).sort()) {
         const folder = path.join(levels, level);
         if (!fs.statSync(folder).isDirectory()) {
@@ -80,6 +86,25 @@ function readRecordings() {
         }
         if (Object.keys(files).length > 0) {
           read[`${release}/access/${level}`] = files;
+        }
+      }
+    }
+    // Three more hosts on a real Placement: "hibiscus-ovn/capacity/healthy".
+    const capacity = path.join(releaseFolder, "capacity");
+    if (fs.existsSync(capacity) && fs.statSync(capacity).isDirectory()) {
+      for (const scene of fs.readdirSync(capacity).sort()) {
+        const folder = path.join(capacity, scene, "exporter");
+        if (!fs.existsSync(folder) || !fs.statSync(folder).isDirectory()) {
+          continue;
+        }
+        const files = {};
+        for (const file of fs.readdirSync(folder).sort()) {
+          if (file.endsWith(".prom")) {
+            files[file] = fs.readFileSync(path.join(folder, file), "utf8");
+          }
+        }
+        if (Object.keys(files).length > 0) {
+          read[`${release}/capacity/${scene}`] = files;
         }
       }
     }

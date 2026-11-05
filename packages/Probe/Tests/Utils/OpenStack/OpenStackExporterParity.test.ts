@@ -310,6 +310,8 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "dhcpNetworkCount",
     // What an instance booted from, nor for this.
     "imageId",
+    // Nor which networks it has an address on.
+    "networkNames",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
     "storageProtocol",
     "cephFsid",
@@ -1142,6 +1144,67 @@ describe("what only a probe adds, in the rows it fills", () => {
     }
   });
 
+  test("each instance says its networks, as Nova does, and the same collection reports them", async () => {
+    const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
+      "servers"
+    ] as Array<JSONObject>;
+    const rows: Map<string, OpenStackResourceBufferEntry> = await rowsFrom();
+    const instances: Array<OpenStackResourceBufferEntry> = rowsOf(
+      rows,
+      OpenStackResourceKind.Instance,
+    );
+    const networkNames: Array<string | null> = rowsOf(
+      rows,
+      OpenStackResourceKind.Network,
+    ).map((row: OpenStackResourceBufferEntry): string | null => {
+      return row.name;
+    });
+
+    expect(instances).toHaveLength(servers.length);
+
+    let joined: number = 0;
+
+    for (const server of servers) {
+      const names: Array<string> = Object.keys(
+        (server["addresses"] as JSONObject) || {},
+      ).sort();
+
+      expect(
+        instances.find((row: OpenStackResourceBufferEntry): boolean => {
+          return row.externalId === server["id"];
+        })?.facts["networkNames"],
+      ).toEqual(names);
+
+      for (const name of names) {
+        expect(networkNames).toContain(name);
+        joined++;
+      }
+    }
+
+    // ou-failed never got one, and the rest did: this is not passing on nothing.
+    expect(joined).toBeGreaterThan(0);
+  });
+
+  test("each volume names a pool the same collection reports", async () => {
+    const rows: Map<string, OpenStackResourceBufferEntry> = await rowsFrom();
+    const poolNames: Array<string | null> = rowsOf(
+      rows,
+      OpenStackResourceKind.StoragePool,
+    ).map((row: OpenStackResourceBufferEntry): string | null => {
+      return row.name;
+    });
+    const volumes: Array<OpenStackResourceBufferEntry> = rowsOf(
+      rows,
+      OpenStackResourceKind.Volume,
+    );
+
+    expect(volumes.length).toBeGreaterThan(0);
+
+    for (const volume of volumes) {
+      expect(poolNames).toContain(volume.facts["pool"]);
+    }
+  });
+
   test("each instance says what it booted from, in Nova's own answer", async () => {
     const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
       "servers"
@@ -1549,6 +1612,9 @@ describe("the catalogue says who collects what", () => {
     expect(onlyFromProbe).toEqual([
       "openstack_cinder_backup_gb",
       "openstack_cinder_snapshot_gb",
+      "openstack_container_infra_agent_state",
+      "openstack_heat_agent_state",
+      "openstack_ironic_conductor_state",
       "openstack_placement_flavor_fits",
     ]);
   });

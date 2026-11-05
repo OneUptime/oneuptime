@@ -1,0 +1,2 @@
+baremetal 200 4 series
+compute 200 16 series

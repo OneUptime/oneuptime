@@ -18,6 +18,7 @@ import Search from "../../../Types/BaseDatabase/Search";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   OpenStackBlastRadius,
+  OpenStackBlastRadiusOwner,
   buildOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../../Types/OpenStack/OpenStackBlastRadius";
@@ -244,6 +245,45 @@ function blastRadiusOf(body: JSONObject): OpenStackBlastRadius {
     ) {
       projectNames[row.externalId] = row.name;
     }
+  }
+  // As OpenStackResourceService says it: a stack and its Magnum cluster name each other.
+  const ownerOf: (row: Row) => OpenStackBlastRadiusOwner = (
+    row: Row,
+  ): OpenStackBlastRadiusOwner => {
+    return {
+      kind: row.kind as OpenStackResourceKind,
+      externalId: row.externalId as string,
+      name: (row.name as string) || null,
+      status: (row.status as string) || null,
+    };
+  };
+  if (part.kind === OpenStackResourceKind.Stack) {
+    return {
+      ...getEmptyOpenStackBlastRadius(),
+      belongsTo: server.rows
+        .filter((row: Row): boolean => {
+          return (
+            row.kind === OpenStackResourceKind.ContainerCluster &&
+            (row.facts as JSONObject | undefined)?.["stackId"] ===
+              part.externalId
+          );
+        })
+        .map(ownerOf),
+    };
+  }
+  if (part.kind === OpenStackResourceKind.ContainerCluster) {
+    return {
+      ...getEmptyOpenStackBlastRadius(),
+      belongsTo: server.rows
+        .filter((row: Row): boolean => {
+          return (
+            row.kind === OpenStackResourceKind.Stack &&
+            row.externalId ===
+              (part.facts as JSONObject | undefined)?.["stackId"]
+          );
+        })
+        .map(ownerOf),
+    };
   }
   if (part.kind === OpenStackResourceKind.Hypervisor) {
     return buildOpenStackBlastRadius({

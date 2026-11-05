@@ -11,6 +11,10 @@ import {
   estimateOpenStackInstanceMetricsVolume,
 } from "./OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "./OpenStackResourceKind";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+} from "./OpenStackOptionalServices";
 
 /*
  * WHAT A CLOUD OF ANY SIZE COSTS, BEFORE ANYTHING IS INSTALLED.
@@ -348,6 +352,8 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Network]: 0,
     [OpenStackServiceType.Volume]: 0,
     [OpenStackServiceType.Image]: 0,
+    [OpenStackServiceType.Orchestration]: 0,
+    [OpenStackServiceType.ContainerInfra]: 0,
     [OpenStackServiceType.BareMetal]: 0,
   };
 }
@@ -681,7 +687,7 @@ const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
 export interface OpenStackSeriesCounts {
   // Read every collection: Nova, Placement, Neutron and Cinder.
   fast: number;
-  // Read about every five minutes: Keystone and Glance.
+  // Read about every five minutes: Keystone, Glance and the services a cloud may not run.
   slow: number;
   // What goes away in summary mode: an instance's status and three allocations, a volume's two.
   perInstance: number;
@@ -771,6 +777,18 @@ export function getOpenStackSeriesCounts(data: {
 
   const image: number = counts.images * 2 + 1 + 1 + SCRAPE_SERIES_PER_READING;
 
+  /*
+   * A service a cloud may not run still says its collection answered, with nothing, as the agent's
+   * scrape job for it does for ever: that is how a service that left the catalog is told from one
+   * that failed. What it lists on a cloud that runs it isn't here: stacks and clusters are few.
+   */
+  const optionalServices: number =
+    OPENSTACK_OPTIONAL_SERVICES.filter(
+      (entry: OpenStackOptionalService): boolean => {
+        return Boolean(entry.isReadByProbe);
+      },
+    ).length * SCRAPE_SERIES_PER_READING;
+
   const summaryCounts: number = isSummary
     ? STATUSES_USUALLY_PRESENT + counts.projects
     : 0;
@@ -780,7 +798,7 @@ export function getOpenStackSeriesCounts(data: {
       (compute + placement + network + volume) * counts.regions +
       perInstance +
       summaryCounts * counts.regions,
-    slow: identity * counts.regions + image * counts.regions,
+    slow: (identity + image + optionalServices) * counts.regions,
     perInstance: perInstance,
     inTurnsFast:
       (counts.networks +

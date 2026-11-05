@@ -10,6 +10,8 @@ keeps what is read, and gives the runner one stable name:
 
 With --only-instance-metrics it refreshes only each release's instance-metrics and
 instance-metrics-drill folders, which a run that recorded only one of them leaves the other of.
+With --only-quotas it refreshes only each release's quotas folder, which is all a run with
+quotas_only records.
 
 Standard library only, and it reads a recording as data: nothing in one is run.
 """
@@ -140,6 +142,43 @@ def copy_text(source, target, short, full):
     os.makedirs(os.path.dirname(target), exist_ok=True)
     with open(target, "w") as handle:
         handle.write(rename(text, short, full))
+
+
+def import_quotas(folder, release_target, short, full):
+    """What each project's quotas said, from the exporter the agent starts for them."""
+    source = os.path.join(folder, "quotas")
+    if not os.path.isdir(source):
+        return
+    for service in ("compute", "network", "volume"):
+        path = os.path.join(source, "exporter", f"{service}.prom")
+        if os.path.isfile(path):
+            copy_text(path, os.path.join(release_target, "quotas", "exporter", f"{service}.prom"), short, full)
+    for name in (os.path.join("exporter", "status.txt"), "cli.txt"):
+        path = os.path.join(source, name)
+        if os.path.isfile(path):
+            copy_text(path, os.path.join(release_target, "quotas", name), short, full)
+    import_quotas_otlp(source, release_target, short, full)
+
+
+def import_quotas_otlp(source, release_target, short, full):
+    """What the agent's hourly jobs exported: one read from each job, which are all alike."""
+    path = os.path.join(source, "otlp", "metrics.json")
+    if not os.path.isfile(path):
+        return
+    kept = []
+    services = set()
+    with open(path, errors="replace") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            found = set(re.findall(r'"openstack_service","value":\{"stringValue":"([a-z-]+)"', line))
+            if found - services:
+                services |= found
+                kept.append(line)
+    target = os.path.join(release_target, "quotas", "otlp", "metrics.json")
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target, "w") as handle:
+        handle.write(rename("".join(kept), short, full))
 
 
 def import_exporter(folder, scene, release_target, name, short, full):
@@ -373,6 +412,7 @@ def import_otlp(folder, release_target, short, full):
 def main():
     # Only real VM metrics, leaving everything else a release holds as it is.
     only_instance_metrics = "--only-instance-metrics" in sys.argv
+    only_quotas = "--only-quotas" in sys.argv
     arguments = [argument for argument in sys.argv[1:] if not argument.startswith("--")]
     recordings, fixtures = arguments[0], arguments[1]
     for entry in sorted(os.listdir(recordings)):
@@ -380,6 +420,12 @@ def main():
             continue
         release = entry[len("openstack-recording-"):]
         folder = os.path.join(recordings, entry)
+        if only_quotas:
+            # A quota's series names no host, so nothing here has a runner's name to replace.
+            target = os.path.join(fixtures, release)
+            shutil.rmtree(os.path.join(target, "quotas"), ignore_errors=True)
+            import_quotas(folder, target, None, None)
+            continue
         if only_instance_metrics:
             short, full = runner_names_of_instance_metrics(folder)
             import_instance_metrics(folder, release, os.path.join(fixtures, release), short, full)
@@ -402,6 +448,7 @@ def main():
             import_otlp(folder, target, short, full)
         import_instance_metrics(folder, release, target, short, full)
         import_instance_metrics_drill(folder, target, short, full)
+        import_quotas(folder, target, short, full)
         access = os.path.join(folder, "access")
         for name in ("matrix-default-policy.json", "matrix.json", "matrix-access-rules.json"):
             path = os.path.join(access, name)

@@ -1,0 +1,9 @@
+# HELP openstack_loadbalancer_total_loadbalancers total_loadbalancers
+# TYPE openstack_loadbalancer_total_loadbalancers gauge
+openstack_loadbalancer_total_loadbalancers 0
+# HELP openstack_loadbalancer_total_pools total_pools
+# TYPE openstack_loadbalancer_total_pools gauge
+openstack_loadbalancer_total_pools 0
+# HELP openstack_loadbalancer_up up
+# TYPE openstack_loadbalancer_up gauge
+openstack_loadbalancer_up 1
