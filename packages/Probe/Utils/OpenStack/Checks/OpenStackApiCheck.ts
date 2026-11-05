@@ -118,6 +118,8 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
   },
   // A project's own: which is why this answers where the exporter's list reads as refused.
   [OpenStackServiceType.Database]: { path: "/instances", query: "limit=1" },
+  // What it can rate, which comes from its own config: a summary would go through rated data.
+  [OpenStackServiceType.Rating]: { path: "/v1/info/metrics" },
 };
 
 const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {

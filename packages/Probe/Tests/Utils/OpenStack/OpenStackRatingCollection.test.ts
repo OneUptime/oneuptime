@@ -291,7 +291,11 @@ describe("a cloud that runs it", () => {
     expect(
       named(points, "openstack_cloudkitty_rated")
         .map((point: ReportedDatapoint) => {
-          return [point.labels["project_id"], point.labels["period"], point.value];
+          return [
+            point.labels["project_id"],
+            point.labels["period"],
+            point.value,
+          ];
         })
         .sort(),
     ).toEqual([

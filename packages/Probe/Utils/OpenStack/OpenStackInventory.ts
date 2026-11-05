@@ -1309,7 +1309,9 @@ export interface OpenStackDatabaseInventory {
 
 export interface OpenStackRatingInventory {
   // Absent when it wasn't asked this time, which is most times: it's asked once an hour.
-  rated?: Array<{ projectId: string; period: string; rate: number }> | undefined;
+  rated?:
+    | Array<{ projectId: string; period: string; rate: number }>
+    | undefined;
 }
 
 export interface OpenStackInventoryByService {

@@ -161,12 +161,15 @@ describe("CloudKitty's v1 report, in its documented shape", () => {
     ).toEqual([]);
   });
 
-  test.each([[null], ["x"], [{}], [{ summary: "x" }], [{ summary: [null, 1] }]])(
-    "%j reads as nothing",
-    (answer: unknown) => {
-      expect(readOpenStackCloudKittyReport(answer).rows).toEqual([]);
-    },
-  );
+  test.each([
+    [null],
+    ["x"],
+    [{}],
+    [{ summary: "x" }],
+    [{ summary: [null, 1] }],
+  ])("%j reads as nothing", (answer: unknown) => {
+    expect(readOpenStackCloudKittyReport(answer).rows).toEqual([]);
+  });
 });
 
 describe("a project split across rows", () => {
@@ -234,7 +237,11 @@ describe("what comes from outside can't hurt", () => {
       const page: ReturnType<typeof readOpenStackCloudKittySummary> =
         readOpenStackCloudKittySummary({
           columns: ["rate", "project_id"],
-          results: [[value, text], [text, value], { rate: value, project_id: text }],
+          results: [
+            [value, text],
+            [text, value],
+            { rate: value, project_id: text },
+          ],
         });
 
       for (const row of page.rows) {

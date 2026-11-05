@@ -925,12 +925,13 @@ describe("storage", () => {
     });
 
     expect(
-      rowOf(buffer, OpenStackResourceKind.Volume, "from-image").facts["imageId"],
+      rowOf(buffer, OpenStackResourceKind.Volume, "from-image").facts[
+        "imageId"
+      ],
     ).toBe("image-1");
-    expect(rowOf(buffer, OpenStackResourceKind.Volume, "blank").facts).toHaveProperty(
-      "imageId",
-      null,
-    );
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Volume, "blank").facts,
+    ).toHaveProperty("imageId", null);
     expect(
       rowOf(buffer, OpenStackResourceKind.Volume, "exporters").facts,
     ).not.toHaveProperty("imageId");
