@@ -1791,7 +1791,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         // Once gone, a window on it's healthy, and it doesn't fire again.
         const after: Array<TemplateWalkStep> = steps.filter(
           (one: TemplateWalkStep): boolean => {
-            return one.atMs > startMs + (goesAtMinute + windowMinutes + 1) * 60000;
+            return (
+              one.atMs > startMs + (goesAtMinute + windowMinutes + 1) * 60000
+            );
           },
         );
 
