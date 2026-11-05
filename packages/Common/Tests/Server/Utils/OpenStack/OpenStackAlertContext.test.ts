@@ -943,7 +943,10 @@ describe("which rows count as a whole region's API", () => {
     ],
     [
       "a service this product does not know",
-      { kind: OpenStackResourceKind.Api, name: "object-store" },
+      {
+        kind: OpenStackResourceKind.Api,
+        name: "a-service-nobody-has-heard-of",
+      },
       null,
     ],
     ["no name", { kind: OpenStackResourceKind.Api }, null],
@@ -1183,6 +1186,36 @@ describe("what an alert on a hypervisor says beyond the cloud", () => {
       }),
     );
     expect(text).toContain("**Part of Kubernetes cluster:** ou-cluster.");
+  });
+
+  test("an instance a stack owns names that stack, and a cluster names the stack it was built with", () => {
+    const stack: OpenStackBlastRadius = {
+      ...getEmptyOpenStackBlastRadius(false),
+      belongsTo: [
+        {
+          kind: OpenStackResourceKind.Stack,
+          externalId: "s1",
+          name: "ou-stack",
+          status: "CREATE_FAILED",
+        },
+      ],
+    };
+    expect(
+      OpenStackAlertContext.toMarkdown(
+        contextWith({
+          partKind: OpenStackResourceKind.Instance,
+          radius: stack,
+        }),
+      ),
+    ).toContain("**Part of Heat stack:** ou-stack.");
+    expect(
+      OpenStackAlertContext.toMarkdown(
+        contextWith({
+          partKind: OpenStackResourceKind.ContainerCluster,
+          radius: stack,
+        }),
+      ),
+    ).toContain("**Built with Heat stack:** ou-stack.");
   });
 
   test("it lists the hosts, Kubernetes clusters and services it takes with it", () => {

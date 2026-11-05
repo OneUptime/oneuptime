@@ -459,7 +459,11 @@ export function getOpenStackAmountColumn(data: {
 // A number on the row that is a size, not a share of anything.
 export function getOpenStackSizeColumn(data: {
   title: string;
-  field: "vcpuCapacity" | "memoryCapacityBytes" | "diskCapacityBytes";
+  field:
+    | "vcpuCapacity"
+    | "memoryCapacityBytes"
+    | "diskCapacityBytes"
+    | "diskAllocatedBytes";
   format: (value: number) => string;
   hideOnMobile?: boolean | undefined;
 }): OpenStackListColumn {

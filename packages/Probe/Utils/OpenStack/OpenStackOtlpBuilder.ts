@@ -6,6 +6,12 @@ import {
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
+  OpenStackDatabaseInventory,
+  OpenStackKeyManagerInventory,
+  OpenStackObjectStoreInventory,
+  OpenStackDnsInventory,
+  OpenStackMetricInventory,
+  OpenStackRatingInventory,
   OpenStackPlacementInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
@@ -71,8 +77,14 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.Image]: "openstack_glance",
   [OpenStackServiceType.Orchestration]: "openstack_heat",
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
+  [OpenStackServiceType.Rating]: "openstack_cloudkitty",
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
+  [OpenStackServiceType.Database]: "openstack_trove",
+  [OpenStackServiceType.KeyManager]: "openstack_barbican",
+  [OpenStackServiceType.ObjectStore]: "openstack_object_store",
+  [OpenStackServiceType.Metric]: "openstack_gnocchi",
+  [OpenStackServiceType.Dns]: "openstack_designate",
 };
 
 // knownServerStatuses, the exporter's nova.go.
@@ -204,6 +216,22 @@ const CLUSTER_STATUS_CODES: Readonly<Record<string, number>> = {
   ADOPT_COMPLETE: 17,
 };
 
+// What the exporter's status series read for the words a real cloud has been recorded in. PENDING is 0.
+const DNS_STATUS_CODES: Readonly<Record<string, number>> = {
+  PENDING: 0,
+  ACTIVE: 1,
+  ERROR: 3,
+};
+
+/*
+ * What the exporter's instance_status series reads for the words a real cloud has been recorded in.
+ * Nothing reads this value: every rule and template reads the status label.
+ */
+const DATABASE_INSTANCE_STATUS_CODES: Readonly<Record<string, number>> = {
+  BUILD: 1,
+  ERROR: 12,
+};
+
 /*
  * What the exporter's share_status series reads for the words a real cloud has been recorded in. Nothing
  * reads this value: every rule and template reads the status label, because creating's code is 0.
@@ -289,7 +317,13 @@ export interface OpenStackServiceReading {
     | OpenStackBareMetalInventory
     | OpenStackOrchestrationInventory
     | OpenStackContainerInfraInventory
+    | OpenStackRatingInventory
     | OpenStackSharedFileSystemsInventory
+    | OpenStackDatabaseInventory
+    | OpenStackKeyManagerInventory
+    | OpenStackObjectStoreInventory
+    | OpenStackDnsInventory
+    | OpenStackMetricInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
   apiUp: boolean | null;
@@ -1416,6 +1450,20 @@ function writeBareMetal(
  * label, so anything less sends none: the exporter's series read the same. What it never asks for,
  * its status reason and parent, are marked in the catalogue.
  */
+// What CloudKitty rated, only when it was read: the figures stay on each project's row between reads.
+function writeRating(
+  writer: SeriesWriter,
+  inventory: OpenStackRatingInventory,
+): void {
+  for (const rated of inventory.rated || []) {
+    writer.add(
+      "rated",
+      { project_id: rated.projectId, period: rated.period },
+      rated.rate,
+    );
+  }
+}
+
 function writeOrchestration(
   writer: SeriesWriter,
   inventory: OpenStackOrchestrationInventory,
@@ -1438,6 +1486,15 @@ function writeOrchestration(
           status: stack.status,
           status_reason: toBound(stack.statusReason || ""),
           parent_id: stack.parentId,
+          ...(stack.resources
+            ? {
+                resources_read: "true",
+                owned_instance_ids: stack.resources.instanceIds.join(","),
+                owned_instance_count: stack.resources.instanceIds.length,
+                owned_volume_ids: stack.resources.volumeIds.join(","),
+                owned_volume_count: stack.resources.volumeIds.length,
+              }
+            : {}),
         },
         STACK_STATUS_CODES[status] ?? -1,
       );
@@ -1585,6 +1642,179 @@ function writeSharedFileSystems(
   }
 }
 
+/*
+ * The labels the exporter sends. Where it says how many recordsets each zone holds and each one's status, on
+ * every zone, this says them only of a zone that isn't ACTIVE: see DnsCollector.
+ */
+function writeDns(
+  writer: SeriesWriter,
+  inventory: OpenStackDnsInventory,
+): void {
+  if (inventory.zones) {
+    writer.add("zones", {}, inventory.zones.length);
+
+    for (const zone of inventory.zones) {
+      writer.add(
+        "zone_status",
+        {
+          id: zone.id,
+          name: zone.name,
+          status: zone.status,
+          tenant_id: zone.projectId,
+          type: zone.type,
+          action: zone.action,
+        },
+        DNS_STATUS_CODES[zone.status || ""] ?? -1,
+      );
+    }
+  }
+
+  const heldBy: Map<
+    string,
+    { zoneName: string | null; projectId: string | null; count: number }
+  > = new Map();
+
+  for (const recordset of inventory.recordsets || []) {
+    const zoneId: string = recordset.zoneId || "";
+    const held: {
+      zoneName: string | null;
+      projectId: string | null;
+      count: number;
+    } = heldBy.get(zoneId) || {
+      zoneName: recordset.zoneName,
+      projectId: recordset.projectId,
+      count: 0,
+    };
+    held.count++;
+    heldBy.set(zoneId, held);
+
+    writer.add(
+      "recordsets_status",
+      {
+        id: recordset.id,
+        name: recordset.name,
+        status: recordset.status,
+        type: recordset.type,
+        zone_id: recordset.zoneId,
+        zone_name: recordset.zoneName,
+      },
+      DNS_STATUS_CODES[recordset.status || ""] ?? -1,
+    );
+  }
+
+  for (const [zoneId, held] of heldBy) {
+    writer.add(
+      "recordsets",
+      {
+        tenant_id: held.projectId,
+        zone_id: zoneId,
+        zone_name: held.zoneName,
+      },
+      held.count,
+    );
+  }
+
+  // The exporter has no series for these, so these are a native read's own.
+  for (const service of inventory.services || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: service.host,
+        service: service.name,
+        state: service.status,
+        adminState: "enabled",
+      },
+      service.status === "UP" ? 1 : 0,
+    );
+  }
+}
+
+// The exporter's two series, plus whose they are, which it leaves out.
+function writeObjectStore(
+  writer: SeriesWriter,
+  inventory: OpenStackObjectStoreInventory,
+): void {
+  for (const container of inventory.containers || []) {
+    const labels: Labels = {
+      container_name: container.name,
+      tenant_id: container.projectId,
+    };
+    writer.add("bytes", labels, container.bytes);
+    writer.add("objects", labels, container.objects);
+  }
+}
+
+/*
+ * The labels the exporter sends, on each of its three series, and what only Trove's own read says on
+ * the first. An instance with no `used` to report reads 0, as the exporter's does, recorded: a page
+ * reads that as nothing.
+ */
+function writeMetric(
+  writer: SeriesWriter,
+  inventory: OpenStackMetricInventory,
+): void {
+  if (!inventory.status) {
+    return;
+  }
+
+  writer.add(
+    "status_measures_to_process",
+    {},
+    inventory.status.measuresToProcess,
+  );
+  writer.add(
+    "status_metric_having_measures_to_process",
+    {},
+    inventory.status.metricsWithMeasures,
+  );
+  writer.add("status_metricd_processors", {}, inventory.status.processors);
+}
+
+// Barbican's own counts. A count it refused to say is left out, rather than read as none.
+function writeKeyManager(
+  writer: SeriesWriter,
+  inventory: OpenStackKeyManagerInventory,
+): void {
+  writer.add("secrets", {}, inventory.secretCount ?? null);
+  writer.add("orders", {}, inventory.orderCount ?? null);
+  writer.add("containers", {}, inventory.containerCount ?? null);
+}
+
+function writeDatabase(
+  writer: SeriesWriter,
+  inventory: OpenStackDatabaseInventory,
+): void {
+  if (!inventory.instances) {
+    return;
+  }
+
+  writer.add("total_instances", {}, inventory.instances.length);
+
+  for (const instance of inventory.instances) {
+    const shared: Labels = {
+      id: instance.id,
+      name: instance.name,
+      tenant_id: instance.projectId,
+      status: instance.status,
+      region: instance.regionName,
+      datastore_type: instance.datastoreType,
+      datastore_version: instance.datastoreVersion,
+      health_status: instance.healthStatus,
+    };
+    writer.add(
+      "instance_status",
+      {
+        ...shared,
+        fault_message: toBound(instance.faultMessage || ""),
+        task_description: toBound(instance.taskDescription || ""),
+      },
+      DATABASE_INSTANCE_STATUS_CODES[instance.status || ""] ?? -1,
+    );
+    writer.add("instance_volume_size_gb", shared, instance.volumeSizeGb);
+    writer.add("instance_volume_used_gb", shared, instance.volumeUsedGb ?? 0);
+  }
+}
+
 function writeInventory(
   writer: SeriesWriter,
   reading: OpenStackServiceReading,
@@ -1626,6 +1856,30 @@ function writeInventory(
         writer,
         reading.inventory as OpenStackContainerInfraInventory,
       );
+      return;
+    case OpenStackServiceType.Database:
+      writeDatabase(writer, reading.inventory as OpenStackDatabaseInventory);
+      return;
+    case OpenStackServiceType.KeyManager:
+      writeKeyManager(
+        writer,
+        reading.inventory as OpenStackKeyManagerInventory,
+      );
+      return;
+    case OpenStackServiceType.ObjectStore:
+      writeObjectStore(
+        writer,
+        reading.inventory as OpenStackObjectStoreInventory,
+      );
+      return;
+    case OpenStackServiceType.Dns:
+      writeDns(writer, reading.inventory as OpenStackDnsInventory);
+      return;
+    case OpenStackServiceType.Metric:
+      writeMetric(writer, reading.inventory as OpenStackMetricInventory);
+      return;
+    case OpenStackServiceType.Rating:
+      writeRating(writer, reading.inventory as OpenStackRatingInventory);
       return;
     case OpenStackServiceType.SharedFileSystems:
       writeSharedFileSystems(

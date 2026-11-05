@@ -1,3 +1,4 @@
+import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import { RecordedSeries } from "../../../Helpers/OpenStackRecordedRows";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
@@ -59,8 +60,11 @@ function matches(
 
 function groupKeysOf(query: MetricQueryConfigData): Array<string> {
   const keys: Array<string> =
-    (query.metricQueryData as unknown as { groupByAttributeKeys?: Array<string> })
-      .groupByAttributeKeys || [];
+    (
+      query.metricQueryData as unknown as {
+        groupByAttributeKeys?: Array<string>;
+      }
+    ).groupByAttributeKeys || [];
   return keys.filter((key: string): boolean => {
     return key !== REGION_LABEL;
   });
@@ -83,8 +87,9 @@ export async function readOpenStackTemplateOnRecording(data: {
     defaultAlertSeverityId: ObjectID.generate(),
     monitorName: "Recorded",
   });
-  const monitor: NonNullable<NonNullable<MonitorStep["data"]>["openstackMonitor"]> =
-    step.data!.openstackMonitor!;
+  const monitor: NonNullable<
+    NonNullable<MonitorStep["data"]>["openstackMonitor"]
+  > = step.data!.openstackMonitor!;
   const window: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
     monitor.rollingTime,
     new Date(WINDOW_END_MS),

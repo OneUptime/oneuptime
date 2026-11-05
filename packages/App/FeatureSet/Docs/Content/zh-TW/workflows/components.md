@@ -485,7 +485,7 @@ Create One 上的 **JSON Object**、Create Many 上的 **JSON Array** 以及 Upd
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-不是欄的鍵會被忽略而不是被拒絕——執行的日誌會列出被捨棄的鍵，所以當某個欄位沒有寫進去時，請到那裡查看。Find 元件和觸發器上的 **Fields to pass on** 從清單中選擇；它的 **以 JSON 編輯** 顯示同樣的欄鍵，值為 `true`：`{"_id": true, "name": true}`。
+不是欄的鍵會被忽略而不是被拒絕——執行的日誌會列出被捨棄的鍵，所以當某個欄位沒有寫進去時，請到那裡查看。Find 元件和觸發器上的 **Fields to pass on** 從清單中選擇；它的 **以 JSON 編輯** 顯示同樣的欄鍵，值為 `true`：`{"_id": true, "name": true}`。相關記錄的欄位放在它的鍵底下，例如 `{"monitor": {"name": true}}`：`{"monitor": true}` 只傳遞它的 ID。
 
 **自訂欄位** 是一欄 `customFields`，在每個自訂欄位的名稱底下保存它的值。Update 元件只會變更你提到的自訂欄位，其他欄位保持原值：
 

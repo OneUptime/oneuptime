@@ -200,8 +200,7 @@ const OpenStackControlPlaneCard: FunctionComponent<ComponentProps> = (
             className={VIEW_ALL_CLASS_NAME}
             dataTestId="openstack-control-plane-card-all"
           >
-            {translator.translateText("View control plane") ||
-              "View control plane"}
+            {translator.translateText("View control plane")}
           </Link>,
         ]}
       >

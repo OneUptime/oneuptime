@@ -126,7 +126,7 @@ Un bloc qui ne s'exécute pas révèle en général un problème de liaison. Ouv
 Ouvrez l'exécution et regardez l'étape. Une référence qui ne s'est pas résolue est signalée sur l'étape elle-même par un avertissement, et son paramètre dans le bloc **Reçu** est marqué **Non résolu**.
 
 - Si vous voyez le texte littéral `{{local.components.…}}`, la référence ne s'est pas résolue. C'est en général une faute de frappe dans l'ID du composant ou dans l'ID de la valeur de retour — rappelez-vous qu'il s'agit de l'**Identifiant** du bloc, pas du nom affiché dessus. Vérifiez aussi l'orthographe de `local.components` lui-même : `{{local.componets.api-get-1.returnValues.response-body}}` est envoyé comme texte littéral et l'exécution indique quand même **Exécuté**. Si l'exécution était un test **Run just this step**, le bloc précédent ne s'est pas exécuté du tout — exécutez plutôt tout le workflow.
-- Si vous voyez **Texte vide**, le bloc précédent s'est exécuté mais n'a pas produit ce champ.
+- Si vous voyez **Texte vide**, ou un trou dans un message, le bloc précédent s'est exécuté mais n'a rien dans ce champ. Soit l'enregistrement n'y contient aucune valeur, ce que l'onglet **Full Log** note sur une ligne à part, soit le bloc ne transmet pas le champ, ce dont l'étape avertit.
 
 Le même avertissement figure dans l'onglet **Full Log**, sur une ligne qui commence par `Warning:`.
 :::

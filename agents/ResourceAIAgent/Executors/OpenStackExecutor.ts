@@ -44,6 +44,7 @@ import {
 } from "../Common/Utils/AiRemediation/Resource/OpenStackCommandPolicy";
 import {
   OpenStackChangeReach,
+  OpenStackReachAgent,
   OpenStackReachHost,
   OpenStackReachInstance,
   OPENSTACK_REACH_MAX_LISTED_PROJECTS,
@@ -174,6 +175,7 @@ export const POSTURE_REQUEST_TIMEOUT_MS: number = 5_000;
 export const WANTED_COMPUTE_MICROVERSION: string = "2.90";
 export const VOLUME_MICROVERSION: string = "3.50";
 export const PLACEMENT_MICROVERSION: string = "1.14";
+export const MANILA_MICROVERSION: string = "2.65";
 
 const MAX_API_MESSAGE_CHARS: number = 500;
 
@@ -192,6 +194,11 @@ export const OPENSTACK_CATALOG_TYPES: Readonly<
   volume: ["block-storage", "volumev3"],
   image: ["image"],
   identity: ["identity"],
+  sharev2: ["sharev2", "shared-file-system"],
+  dns: ["dns"],
+  "object-store": ["object-store"],
+  database: ["database"],
+  metric: ["metric"],
 };
 
 const SERVICE_NAMES: Readonly<Record<OpenStackApiService, string>> = {
@@ -201,6 +208,11 @@ const SERVICE_NAMES: Readonly<Record<OpenStackApiService, string>> = {
   volume: "Cinder",
   image: "Glance",
   identity: "Keystone",
+  sharev2: "Manila",
+  dns: "Designate",
+  "object-store": "Swift",
+  database: "Trove",
+  metric: "Gnocchi",
 };
 
 export type OpenStackCredential =
@@ -2060,14 +2072,13 @@ interface OpenStackChangeFacts {
   hosts: Array<OpenStackReachHost>;
   // What their host holds: everything, or only what the change does not name.
   onHost: Array<OpenStackReachInstance>;
-  // The host a change that moves nothing is about, when there is one.
+  agent: OpenStackReachAgent | null;
   isComplete: boolean;
   problems: Array<string>;
 }
 
 // How long one change may spend reading before it is made: the rest is the call's.
 const CHANGE_READ_BUDGET_SHARE: number = 0.5;
-
 
 class OpenStackLoginError extends Error {}
 
@@ -2422,7 +2433,8 @@ export default class OpenStackExecutor implements ResourceExecutor {
     if (!parsed.request || parsed.request.method !== "GET") {
       return {
         problem:
-          parsed.errorMessage || `"${argv.join(" ")}" is not a read it can make.`,
+          parsed.errorMessage ||
+          `"${argv.join(" ")}" is not a read it can make.`,
       };
     }
 
@@ -2485,13 +2497,69 @@ export default class OpenStackExecutor implements ResourceExecutor {
     };
   }
 
+  /*
+   * One instance, as an admin sees it. Nova hands one to anyone else only from their
+   * own project, in its own code after policy has passed, so a read credential that
+   * is not an admin's asks its all-projects list instead. That list ignores a filter
+   * such a credential may not use, so the row is looked for in what it answers.
+   */
+  private async readInstanceRow(data: {
+    id: string;
+    call: OpenStackCall;
+    deadlineMs: number;
+  }): Promise<{ row: Row | null; problem: string | null }> {
+    const shown: OpenStackRead = await this.readForChange({
+      words: ["server", "show", data.id],
+      call: data.call,
+      deadlineMs: data.deadlineMs,
+    });
+    const row: unknown =
+      shown.problem === null && isPlainObject(shown.body)
+        ? shown.body["server"]
+        : undefined;
+
+    if (isPlainObject(row)) {
+      return { row, problem: null };
+    }
+
+    const listed: OpenStackRead = await this.readForChange({
+      words: [
+        "server",
+        "list",
+        "--all-projects",
+        "--uuid",
+        data.id,
+        "--limit",
+        String(OPENSTACK_MAX_LIST_LIMIT),
+      ],
+      call: data.call,
+      deadlineMs: data.deadlineMs,
+    });
+    const rows: unknown =
+      listed.problem === null && isPlainObject(listed.body)
+        ? listed.body["servers"]
+        : undefined;
+    const match: unknown = (Array.isArray(rows) ? rows : []).find(
+      (candidate: unknown): boolean => {
+        return isPlainObject(candidate) && candidate["id"] === data.id;
+      },
+    );
+
+    return isPlainObject(match)
+      ? { row: match, problem: null }
+      : { row: null, problem: shown.problem };
+  }
+
   // The instances on one host, which is one read and may stop at its limit.
   private async readInstancesOnHost(data: {
     host: string;
     call: OpenStackCall;
     deadlineMs: number;
     problems: Array<string>;
-  }): Promise<{ instances: Array<OpenStackReachInstance>; isComplete: boolean }> {
+  }): Promise<{
+    instances: Array<OpenStackReachInstance>;
+    isComplete: boolean;
+  }> {
     const read: OpenStackRead = await this.readForChange({
       words: [
         "server",
@@ -2514,19 +2582,25 @@ export default class OpenStackExecutor implements ResourceExecutor {
     const rows: unknown = isPlainObject(read.body)
       ? read.body["servers"]
       : undefined;
-    const instances: Array<OpenStackReachInstance> = (
-      Array.isArray(rows) ? rows : []
-    )
+    const answered: Array<unknown> = Array.isArray(rows) ? rows : [];
+    /*
+     * Nova ignores --host from a credential that may not use the filter, and answers
+     * the whole cloud, so only what says it is on this host counts as on it.
+     */
+    const instances: Array<OpenStackReachInstance> = answered
       .filter((row: unknown): row is Row => {
         return isPlainObject(row);
       })
       .map((row: Row): OpenStackReachInstance => {
         return this.toReachInstance(row);
+      })
+      .filter((instance: OpenStackReachInstance): boolean => {
+        return instance.host === data.host;
       });
 
     return {
       instances,
-      isComplete: instances.length < OPENSTACK_MAX_LIST_LIMIT,
+      isComplete: answered.length < OPENSTACK_MAX_LIST_LIMIT,
     };
   }
 
@@ -2603,26 +2677,19 @@ export default class OpenStackExecutor implements ResourceExecutor {
       liveTargets: [],
       hosts: [],
       onHost: [],
+      agent: null,
       isComplete: true,
       problems: [],
     };
 
     for (const id of change.instanceIds) {
-      const read: OpenStackRead = await this.readForChange({
-        words: ["server", "show", id],
-        call,
-        deadlineMs,
-      });
-      const row: unknown =
-        read.problem === null && isPlainObject(read.body)
-          ? read.body["server"]
-          : undefined;
+      const found: { row: Row | null; problem: string | null } =
+        await this.readInstanceRow({ id, call, deadlineMs });
+      const row: Row | null = found.row;
 
-      if (read.problem !== null || !isPlainObject(row)) {
+      if (!row) {
         facts.problems.push(
-          read.problem !== null
-            ? read.problem
-            : `Nova's answer about ${id} holds no instance.`,
+          found.problem || `Nova's answer about ${id} holds no instance.`,
         );
         facts.isComplete = false;
         facts.instances.push({
@@ -2702,6 +2769,12 @@ export default class OpenStackExecutor implements ResourceExecutor {
           ? read.body["agent"]
           : undefined;
       const host: string = isPlainObject(row) ? readString(row["host"]) : "";
+
+      facts.agent = {
+        id: change.agentId,
+        binary: isPlainObject(row) ? readString(row["binary"]) || null : null,
+        host: host || null,
+      };
 
       if (!host) {
         facts.problems.push(
@@ -2831,6 +2904,7 @@ export default class OpenStackExecutor implements ResourceExecutor {
       instances: isAboutInstances ? facts.instances : facts.onHost,
       projectNames: data.projectNames,
       hosts: facts.hosts,
+      agent: facts.agent,
       leftBehind: isAboutInstances ? facts.onHost : [],
       isComplete: facts.isComplete,
       problems: facts.problems,
@@ -3037,8 +3111,7 @@ ${renderOpenStackChangeReach(reach)}`,
          * No answer: it may be the cloud in trouble, so the rest are not sent. Whether
          * this one happened is what its failure says: output means it may have.
          */
-        mayHaveHappened =
-          mayHaveHappened || Boolean(exchanged.failure.output);
+        mayHaveHappened = mayHaveHappened || Boolean(exchanged.failure.output);
         failure =
           exchanged.failure.errorMessage || `No answer to ${one.request.path}.`;
         lines.push(`${path}: no answer: ${failure}`);
@@ -3092,7 +3165,13 @@ ${renderOpenStackChangeReach(reach)}`,
       wouldBeRefused: null,
     });
     const stdout: string = [
-      describeOpenStackChangeReachCounts(reach),
+      /*
+       * A change reads what it names and no more. What its host holds was read when it was
+       * proposed, so here that goes unsaid rather than reading as nothing.
+       */
+      reach.kind === "changes"
+        ? describeOpenStackChangeReachCounts(reach)
+        : "This changes no instance.",
       ...lines,
       failure
         ? ""
@@ -3381,7 +3460,9 @@ ${renderOpenStackChangeReach(reach)}`,
       "X-Auth-Token": data.token.id,
     };
     const body: string | null =
-      call.request.body === undefined ? null : JSON.stringify(call.request.body);
+      call.request.body === undefined
+        ? null
+        : JSON.stringify(call.request.body);
 
     if (body !== null) {
       headers["Content-Type"] = "application/json";
@@ -3407,7 +3488,13 @@ ${renderOpenStackChangeReach(reach)}`,
       headers["OpenStack-API-Version"] = `volume ${VOLUME_MICROVERSION}`;
     } else if (call.request.service === "placement") {
       headers["OpenStack-API-Version"] = `placement ${PLACEMENT_MICROVERSION}`;
+    } else if (call.request.service === "sharev2") {
+      // What the rig read it at: a list at none says neither a type's name nor its access rules.
+      headers["X-OpenStack-Manila-API-Version"] = MANILA_MICROVERSION;
     }
+
+    // Closed: only what a route's own options name, which the policy has already held it to.
+    Object.assign(headers, call.request.headers || {});
 
     const url: string = buildOpenStackUrl({
       baseUrl: data.baseUrl,
@@ -3590,9 +3677,12 @@ ${renderOpenStackChangeReach(reach)}`,
       ).text;
     }
 
-    const rows: unknown = isPlainObject(masked)
-      ? masked[request.listKey]
-      : undefined;
+    // Swift's lists are a list: there is no key to look under.
+    const rows: unknown = Array.isArray(masked)
+      ? masked
+      : isPlainObject(masked)
+        ? masked[request.listKey]
+        : undefined;
 
     if (!Array.isArray(rows)) {
       return `[The answer has no list of ${request.listKey}.]\n${

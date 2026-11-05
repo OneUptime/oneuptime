@@ -377,6 +377,33 @@ function getCountChips(
       ),
       page: PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
     },
+    {
+      key: "databases",
+      icon: IconProp.Database,
+      label: translator.translatePlural(
+        { one: "{{count}} database", other: "{{count}} databases" },
+        summary.databaseInstanceCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+    },
+    {
+      key: "object-containers",
+      icon: IconProp.Cube,
+      label: translator.translatePlural(
+        { one: "{{count}} container", other: "{{count}} containers" },
+        summary.objectContainerCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS,
+    },
+    {
+      key: "dns-zones",
+      icon: IconProp.Globe,
+      label: translator.translatePlural(
+        { one: "{{count}} DNS zone", other: "{{count}} DNS zones" },
+        summary.dnsZoneCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES,
+    },
   ];
 
   const counts: Record<string, number> = {
@@ -395,6 +422,9 @@ function getCountChips(
     "container-clusters": summary.containerClusterCount,
     shares: summary.shareCount,
     "load-balancers": summary.loadBalancerCount,
+    databases: summary.databaseInstanceCount,
+    "object-containers": summary.objectContainerCount,
+    "dns-zones": summary.dnsZoneCount,
   };
 
   const reported: Array<CountChip> = chips.filter(

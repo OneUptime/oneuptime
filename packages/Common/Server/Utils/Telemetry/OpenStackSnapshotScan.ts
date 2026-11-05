@@ -8,6 +8,9 @@ import {
   getOpenStackShortHostName,
   isOpenStackBareMetalNodeId,
   isOpenStackBareMetalNodeInError,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_METRICS_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_OPTIONAL_SERVICES,
@@ -25,6 +28,7 @@ import {
   OPENSTACK_BARE_METAL_IN_MAINTENANCE,
   OPENSTACK_BARE_METAL_IN_SERVICE,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
+  OPENSTACK_DNS_STATUS_ACTIVE,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
@@ -33,6 +37,7 @@ import {
   OPENSTACK_SUMMARY_MODE_SERIES,
   isOpenStackSeriesKeptInSummaryMode,
 } from "../../../Types/OpenStack/OpenStackScale";
+import { getOpenStackRatedFactKey } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
 import logger from "../Logger";
 import {
   foldOpenStackControlPlaneDatapoint,
@@ -218,8 +223,57 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
 const OPENSTACK_FLAVOR_FITS_METRIC_NAME: string =
   "openstack_placement_flavor_fits";
 
+/*
+ * What a service with no parts of its own says of itself, which all goes on its API's row: a few numbers for
+ * a region. They stay where they were while its API isn't answering, and a page says so.
+ */
+interface OpenStackApiRowFact {
+  service: OpenStackServiceType;
+  fact: string;
+}
+
+const FACTS_ON_AN_API_ROW: ReadonlyMap<string, OpenStackApiRowFact> = new Map<
+  string,
+  OpenStackApiRowFact
+>([
+  [
+    "openstack_barbican_secrets",
+    { service: OpenStackServiceType.KeyManager, fact: "secretCount" },
+  ],
+  [
+    "openstack_barbican_orders",
+    { service: OpenStackServiceType.KeyManager, fact: "orderCount" },
+  ],
+  [
+    "openstack_barbican_containers",
+    { service: OpenStackServiceType.KeyManager, fact: "containerCount" },
+  ],
+  [
+    "openstack_gnocchi_status_measures_to_process",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_MEASURES_FACT,
+    },
+  ],
+  [
+    "openstack_gnocchi_status_metric_having_measures_to_process",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_METRICS_FACT,
+    },
+  ],
+  [
+    "openstack_gnocchi_status_metricd_processors",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+    },
+  ],
+]);
+
 export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   ...OPENSTACK_API_UP_METRIC_NAMES.keys(),
+  ...FACTS_ON_AN_API_ROW.keys(),
   ...PLACEMENT_RESOURCE_METRIC_NAMES,
   ...NAMED_QUOTA_METRICS.keys(),
   ...TYPED_QUOTA_METRICS.keys(),
@@ -251,6 +305,7 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_identity_project_info",
   "openstack_identity_domain_info",
   "openstack_heat_stack_status",
+  "openstack_cloudkitty_rated",
   "openstack_heat_agent_state",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
@@ -260,6 +315,15 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_loadbalancer_loadbalancer_status",
   "openstack_loadbalancer_pool_status",
   "openstack_loadbalancer_amphora_status",
+  "openstack_object_store_bytes",
+  "openstack_object_store_objects",
+  "openstack_trove_instance_status",
+  "openstack_trove_instance_volume_size_gb",
+  "openstack_trove_instance_volume_used_gb",
+  "openstack_designate_zone_status",
+  "openstack_designate_recordsets",
+  "openstack_designate_recordsets_status",
+  "openstack_designate_agent_state",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
@@ -684,6 +748,7 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
     ],
     ["openstack_ironic_agent_state", OpenStackServiceFamily.BareMetal],
     ["openstack_sharev2_agent_state", OpenStackServiceFamily.SharedFileSystems],
+    ["openstack_designate_agent_state", OpenStackServiceFamily.Dns],
   ]);
 
 function foldServiceState(data: {
@@ -1035,9 +1100,10 @@ function bareMetalNodeEntry(data: {
  * last_error. Every node has a driver, so that is what tells a probe's series from the exporter's,
  * whose silence says nothing about any of these.
  *
- * Why a node failed does not last. Ironic empties last_error about a minute later, with the node
- * still failed (recorded: services-ironic, clean-failed against deploy-failed). So a reason is kept
- * until the node has left a failed state, with when it was read. An empty one never replaces it.
+ * Why a node failed may not last. Ironic emptied a failed clean's last_error 72 seconds later, with
+ * the node still failed, and left a failed deploy's alone (recorded: services-ironic, clean-failed
+ * against deploy-failed). So a reason is kept until the node has left a failed state, with when it
+ * was read. An empty one never replaces it.
  */
 function setNativeBareMetalNodeFacts(
   entry: OpenStackResourceBufferEntry,
@@ -1541,6 +1607,187 @@ function foldAmphora(data: {
   setFact(entry, "managementIp", getLabel(data.attributes, "lb_network_ip"));
 }
 
+/*
+ * A Swift container, from either of its two series. The exporter says only its name and no project: its
+ * series are the credential's own project's, recorded. A name is unique only within an account and a region,
+ * so both are in the row's id, as far as a collector says them. A probe says whose it is.
+ */
+function foldObjectContainer(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const name: string | null = getLabel(data.attributes, "container_name");
+  if (!name) {
+    return;
+  }
+  const project: string | null = getLabel(data.attributes, "tenant_id");
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.ObjectContainer,
+    externalId: regional(data.region, project ? `${project}/${name}` : name),
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name,
+    regionName: data.region,
+    openStackProjectId: project,
+  });
+  if (data.metricName === "openstack_object_store_bytes") {
+    entry.diskAllocatedBytes = data.value;
+  } else {
+    entry.facts["objectCount"] = data.value;
+  }
+}
+
+/*
+ * A database, from any of Trove's three series about it. Each carries the instance's labels, and the
+ * two sizes are in their values. An instance that isn't running reads 0 used, recorded in BUILD and
+ * ERROR. Why one failed is only said by a probe, which an admin's read of Trove's mgmt API tells.
+ */
+function foldDatabaseInstance(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DatabaseInstance,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  if (data.metricName === "openstack_trove_instance_volume_size_gb") {
+    entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
+  }
+  if (data.metricName === "openstack_trove_instance_volume_used_gb") {
+    entry.diskAllocatedBytes = data.value * BYTES_PER_GIB;
+  }
+  setFact(entry, "datastoreType", getLabel(data.attributes, "datastore_type"));
+  setFact(
+    entry,
+    "datastoreVersion",
+    getLabel(data.attributes, "datastore_version"),
+  );
+  // Each is written whatever the collector knows: see foldShare. Null reads as not known.
+  entry.facts["healthStatus"] = getLabel(data.attributes, "health_status");
+  /*
+   * Only a probe says these, and only on the status series: the two sizes carry neither label, and reading
+   * them here would take back what it just said.
+   */
+  if (data.metricName === "openstack_trove_instance_status") {
+    entry.facts["faultMessage"] = getLabel(data.attributes, "fault_message");
+    entry.facts["taskDescription"] = getLabel(
+      data.attributes,
+      "task_description",
+    );
+  }
+}
+
+/*
+ * A DNS zone, from Designate's list. The value is the word's code, and PENDING's code is 0, recorded,
+ * so nothing reads it. How many recordsets it holds is a series of its own, which is one call per zone
+ * to the exporter and so only there when that call worked.
+ */
+function foldDnsZone(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DnsZone,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  setFact(entry, "zoneType", getLabel(data.attributes, "type"));
+  // What only a probe says: see foldShare. Null reads as not known.
+  entry.facts["action"] = getLabel(data.attributes, "action");
+}
+
+function foldDnsZoneRecordsets(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "zone_id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DnsZone,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "zone_name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  entry.facts["recordsetCount"] = data.value;
+}
+
+/*
+ * A recordset that isn't ACTIVE. An ACTIVE one has no row: a zone can hold any number of them, and
+ * nothing is asked of them. So a batch that holds only some of a zone's recordsets costs nothing, and
+ * one that went back to ACTIVE goes at the stale rule's next pass.
+ */
+function foldDnsRecordset(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  const status: string | null = getLabel(data.attributes, "status");
+  if (!id || !status || status === OPENSTACK_DNS_STATUS_ACTIVE) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DnsRecordset,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+  });
+  setStatus(entry, status, data.observedAt);
+  setFact(entry, "recordType", getLabel(data.attributes, "type"));
+  setFact(entry, "zoneId", getLabel(data.attributes, "zone_id"));
+  setFact(entry, "zoneName", getLabel(data.attributes, "zone_name"));
+}
+
 function foldSnapshot(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   attributes: JSONArray;
@@ -1672,7 +1919,11 @@ function foldImage(data: {
     setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
     setFact(entry, "visibility", getLabel(data.attributes, "visibility"));
     setBooleanFact(entry, "isHidden", getLabel(data.attributes, "hidden"));
-    setBooleanFact(entry, "isProtected", getLabel(data.attributes, "protected"));
+    setBooleanFact(
+      entry,
+      "isProtected",
+      getLabel(data.attributes, "protected"),
+    );
     setFact(entry, "createdAtSeconds", data.value);
   } else {
     entry.diskCapacityBytes = data.value;
@@ -1725,10 +1976,17 @@ function foldNetwork(data: {
     "dhcp_agent_ids",
   );
   entry.facts["dhcpAgentIds"] = dhcpAgentIds
-    ? dhcpAgentIds.split(",").filter((id: string): boolean => {
-        return Boolean(id) && !id.endsWith("…");
-      })
+    ? getIdListLabel(data.attributes, "dhcp_agent_ids")
     : null;
+}
+
+// A label holding IDs, which is cut at a length and then its last one is no ID.
+function getIdListLabel(attributes: JSONArray, name: string): Array<string> {
+  return (getLabel(attributes, name) || "")
+    .split(",")
+    .filter((id: string): boolean => {
+      return Boolean(id) && !id.endsWith("…");
+    });
 }
 
 /*
@@ -1975,6 +2233,25 @@ function foldStack(data: {
    */
   entry.facts["statusReason"] = getLabel(data.attributes, "status_reason");
   entry.facts["parentStackId"] = getLabel(data.attributes, "parent_id");
+  /*
+   * What it owns, which only a probe reads, and only once it has read this stack. An empty list here
+   * says it owns none, and null says nothing has read it. The IDs a label has room for, and how many
+   * there are, because a stack can own more than that.
+   */
+  const wasRead: boolean =
+    getLabel(data.attributes, "resources_read") === "true";
+  entry.facts["ownedInstanceIds"] = wasRead
+    ? getIdListLabel(data.attributes, "owned_instance_ids")
+    : null;
+  entry.facts["ownedInstanceCount"] = wasRead
+    ? toNumberOrNull(getLabel(data.attributes, "owned_instance_count"))
+    : null;
+  entry.facts["ownedVolumeIds"] = wasRead
+    ? getIdListLabel(data.attributes, "owned_volume_ids")
+    : null;
+  entry.facts["ownedVolumeCount"] = wasRead
+    ? toNumberOrNull(getLabel(data.attributes, "owned_volume_count"))
+    : null;
 }
 
 /*
@@ -2092,6 +2369,44 @@ function foldProjectQuota(data: {
   const key: string = getOpenStackQuotaFactKey(data.resource, data.region);
   quota[key] = { ...quota[key], [data.reading]: data.value };
   entry.quota = quota;
+}
+
+/*
+ * What CloudKitty rated a project for a month. One series per project, month and region. A region's
+ * figures are one metric, which stays whole in an upload (OpenStackReportParts), so they replace the
+ * last of that region's whole, and another region's stay as they are: see getOpenStackRatedFactKey.
+ */
+function foldRated(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "project_id");
+  const period: string | null = getLabel(data.attributes, "period");
+
+  if (!id || !period || data.value <= 0) {
+    return;
+  }
+
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Project,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+
+  setIdentity(entry, { openStackProjectId: id });
+
+  const fact: string = getOpenStackRatedFactKey(data.region);
+  const rated: JSONObject = (entry.facts[fact] as JSONObject) || {};
+
+  rated[period] = {
+    total: data.value,
+    readAt: data.observedAt.toISOString(),
+  };
+  entry.facts[fact] = rated;
 }
 
 function foldDomain(data: {
@@ -2217,6 +2532,20 @@ export function bufferOpenStackSnapshotMetric(data: {
       ),
       vouchesForRows: getLabel(attributes, "vouches_for_rows") !== "false",
     });
+    return;
+  }
+
+  const apiRowFact: OpenStackApiRowFact | undefined =
+    FACTS_ON_AN_API_ROW.get(metricName);
+  if (apiRowFact) {
+    const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+      buffer,
+      kind: OpenStackResourceKind.Api,
+      externalId: regional(region, apiRowFact.service),
+      observedAt,
+    });
+    setIdentity(entry, { name: apiRowFact.service, regionName: region });
+    entry.facts[apiRowFact.fact] = value;
     return;
   }
 
@@ -2364,6 +2693,9 @@ export function bufferOpenStackSnapshotMetric(data: {
     case "openstack_identity_domain_info":
       foldDomain({ buffer, attributes, observedAt });
       return;
+    case "openstack_cloudkitty_rated":
+      foldRated({ buffer, attributes, region, value, observedAt });
+      return;
     case "openstack_heat_stack_status":
       foldStack({ buffer, attributes, region, observedAt });
       return;
@@ -2382,6 +2714,38 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_loadbalancer_amphora_status":
       foldAmphora({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_designate_zone_status":
+      foldDnsZone({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_designate_recordsets":
+      foldDnsZoneRecordsets({ buffer, attributes, region, value, observedAt });
+      return;
+    case "openstack_designate_recordsets_status":
+      foldDnsRecordset({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_object_store_bytes":
+    case "openstack_object_store_objects":
+      foldObjectContainer({
+        buffer,
+        attributes,
+        region,
+        value,
+        observedAt,
+        metricName,
+      });
+      return;
+    case "openstack_trove_instance_status":
+    case "openstack_trove_instance_volume_size_gb":
+    case "openstack_trove_instance_volume_used_gb":
+      foldDatabaseInstance({
+        buffer,
+        attributes,
+        region,
+        value,
+        observedAt,
+        metricName,
+      });
       return;
     case "openstack_ironic_node":
       foldBareMetalNode({ buffer, attributes, region, observedAt });

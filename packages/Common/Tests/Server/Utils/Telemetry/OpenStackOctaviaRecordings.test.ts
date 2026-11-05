@@ -849,7 +849,7 @@ describe("amphora-near-expiry: a certificate three weeks from its end, written i
     });
 
     expect(found?.severity).toBe(ResourceAttentionSeverity.Warning);
-    expect(found?.reasons[0]?.values).toEqual({ days: 13 });
+    expect(found?.reasons[0]?.values).toEqual({ days: "13" });
   });
 
   test("and critical once it has ended, saying for how long", () => {
@@ -861,7 +861,7 @@ describe("amphora-near-expiry: a certificate three weeks from its end, written i
     });
 
     expect(found?.severity).toBe(ResourceAttentionSeverity.Critical);
-    expect(found?.reasons[0]?.values).toEqual({ days: 3 });
+    expect(found?.reasons[0]?.values).toEqual({ days: "3" });
   });
 
   test("the other certificates, 30 days from when they were built, are fine until their own last two weeks", () => {

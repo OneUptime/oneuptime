@@ -45,6 +45,7 @@ export function toOpenStackRow(
     adminState: entry.adminState || undefined,
     disabledReason: entry.disabledReason || undefined,
     diskCapacityBytes: entry.diskCapacityBytes ?? undefined,
+    diskAllocatedBytes: entry.diskAllocatedBytes ?? undefined,
     facts: entry.facts,
     lastSeenAt: entry.observedAt,
     stateChangedAt: entry.observedAt,
@@ -104,6 +105,17 @@ export class RecordedServiceScene {
     return JSON.parse(
       fs.readFileSync(path.join(this.folder, "api", `${call}.json`), "utf8"),
     ) as JSONObject;
+  }
+
+  // What the rig's own call was answered with, from its api-status.txt.
+  public readApiStatus(call: string): number {
+    const line: string | undefined = fs
+      .readFileSync(path.join(this.folder, "api-status.txt"), "utf8")
+      .split("\n")
+      .find((one: string): boolean => {
+        return one.endsWith(` ${call}`);
+      });
+    return Number(line?.split(" ")[0]);
   }
 
   public seriesNamed(name: string): Array<RecordedSeries> {

@@ -122,8 +122,41 @@ describe("a field its step passes on", () => {
     );
   });
 
-  test("a related record passed on whole is not judged field by field", () => {
+  // A read returns a related record's ID with it, whichever fields are named.
+  test("so is a related record's ID, named or not", () => {
+    expect(describeIn(`{{${FIND_MODEL}.currentIncidentState._id}}`).tone).toBe(
+      ReferenceTone.Normal,
+    );
+  });
+
+  /*
+   * {"incidentSeverity": true} reads the ID and nothing else, but a chip has no
+   * model to tell it from a JSON field, whose keys are all there. The step's
+   * field list says so, and a run warns about it (Types/Workflow/EmptyValues).
+   */
+  test("a related record asked for without naming any field is not judged field by field", () => {
     expect(describeIn(`{{${FIND_MODEL}.incidentSeverity.name}}`).tone).toBe(
+      ReferenceTone.Normal,
+    );
+  });
+
+  test("so is a field of an item of the records a Find Many returns", () => {
+    const many: NodeDataProp = step("incident-find-many", "many-1", {
+      select: { title: true },
+    });
+    const models: string = "local.components.many-1.returnValues.models";
+
+    expect(describeIn(`{{${models}[0].title}}`, [many, slack]).tone).toBe(
+      ReferenceTone.Normal,
+    );
+    expect(describeIn(`{{${models}[last]._id}}`, [many, slack]).tone).toBe(
+      ReferenceTone.Normal,
+    );
+    // Not a field of a record: a whole item, and what the list says of itself.
+    expect(describeIn(`{{${models}[0]}}`, [many, slack]).tone).toBe(
+      ReferenceTone.Normal,
+    );
+    expect(describeIn(`{{${models}.length}}`, [many, slack]).tone).toBe(
       ReferenceTone.Normal,
     );
   });
@@ -165,6 +198,21 @@ describe("a field its step does not pass on", () => {
   test("a related record it does not pass on at all", () => {
     expect(describeIn(`{{${FIND_MODEL}.monitors[0].name}}`).problem).toBe(
       NOT_PASSED_ON,
+    );
+  });
+
+  test("a field of an item of the records a Find Many returns", () => {
+    const many: NodeDataProp = step("incident-find-many", "many-1", {
+      select: { title: true },
+    });
+
+    expect(
+      describeIn(
+        "{{local.components.many-1.returnValues.models[0].description}}",
+        [many, slack],
+      ).problem,
+    ).toBe(
+      `"Find Many Incidents" doesn't pass this field on, so it is empty here. Add it to its ${SELECT_FIELDS_NAME}.`,
     );
   });
 

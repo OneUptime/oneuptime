@@ -18,6 +18,8 @@ import OpenStackExecutor, {
   AI_OPENSTACK_CREDENTIAL_SECRET_ENV,
   AI_OPENSTACK_INTERFACE_ENV,
   AI_OPENSTACK_REGION_ENV,
+  AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   CloudsYamlResult,
   MAX_OPENSTACK_RESPONSE_BYTES,
   OPENSTACK_AUTH_URL_ENV,
@@ -796,12 +798,222 @@ const MAPPED: ReadonlyArray<MappedCommand> = [
   },
 ];
 
+/*
+ * What a cloud may not run, each against the scene a real DevStack recorded it in. Neither of the releases the
+ * rest of this table reads runs these, so the catalog here is the one thing written by hand.
+ */
+interface MappedWhereACloudRunsIt {
+  route: string;
+  command: string;
+  catalogType: string;
+  catalogPath: string;
+  url: string;
+  group: string;
+  scene: string;
+  file: string;
+  headers?: Readonly<Record<string, string>> | undefined;
+  prints: Array<string>;
+}
+
+const MAPPED_WHERE_A_CLOUD_RUNS_IT: ReadonlyArray<MappedWhereACloudRunsIt> = [
+  {
+    route: "share list",
+    command: "openstack share list --all-projects --limit 50",
+    catalogType: "sharev2",
+    catalogPath: "/share/v2",
+    url: "/share/v2/shares/detail?all_tenants=1&limit=50",
+    group: "services-manila",
+    scene: "share-error",
+    file: "manila-shares",
+    headers: { "X-OpenStack-Manila-API-Version": "2.65" },
+    prints: ["ou-share-error", "error"],
+  },
+  {
+    route: "share service list",
+    command: "openstack share service list",
+    catalogType: "sharev2",
+    catalogPath: "/share/v2",
+    url: "/share/v2/services",
+    group: "services-manila",
+    scene: "share-service-stopped",
+    file: "manila-services",
+    prints: ["manila-share", "stopped"],
+  },
+  {
+    route: "share pool list",
+    command: "openstack share pool list",
+    catalogType: "sharev2",
+    catalogPath: "/share/v2",
+    url: "/share/v2/scheduler-stats/pools/detail",
+    group: "services-manila",
+    scene: "baseline",
+    file: "manila-pools",
+    prints: ["compute-01@alpha#fake_pool_for_ALPHA"],
+  },
+  {
+    route: "zone list",
+    command: "openstack zone list --all-projects --limit 50",
+    catalogType: "dns",
+    catalogPath: "/dns",
+    url: "/dns/v2/zones?limit=50",
+    group: "services-designate-barbican-swift",
+    scene: "designate-error",
+    file: "designate-zones",
+    headers: { "X-Auth-All-Projects": "true" },
+    prints: ["ou-error.example.org.", "ERROR"],
+  },
+  {
+    route: "recordset list",
+    command:
+      "openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects",
+    catalogType: "dns",
+    catalogPath: "/dns",
+    url: `/dns/v2/zones/f5201d9a-2f25-4b1c-a253-405f7f357742/recordsets?limit=${OPENSTACK_DEFAULT_LIST_LIMIT}`,
+    group: "services-designate-barbican-swift",
+    scene: "designate-error",
+    file: "designate-recordsets-ou-error.example.org.",
+    headers: { "X-Auth-All-Projects": "true" },
+    prints: ["SOA", "ERROR"],
+  },
+  {
+    route: "container list",
+    command: "openstack container list",
+    catalogType: "object-store",
+    catalogPath: "/swift/v1/AUTH_abc",
+    url: `/swift/v1/AUTH_abc/?format=json&limit=${OPENSTACK_DEFAULT_LIST_LIMIT}`,
+    group: "services-designate-barbican-swift",
+    scene: "swift-baseline",
+    file: "swift-account",
+    prints: ["ou-container-admin"],
+  },
+  {
+    route: "database instance list",
+    command: "openstack database instance list",
+    catalogType: "database",
+    catalogPath: "/database/v1.0/abc",
+    url: `/database/v1.0/abc/mgmt/instances?include_clustered=False&deleted=False&limit=${OPENSTACK_DEFAULT_LIST_LIMIT}`,
+    group: "services-trove",
+    scene: "instance-error",
+    file: "trove-mgmt-instances",
+    prints: ["ou-db-no-host", "ERROR"],
+  },
+  {
+    route: "metric status",
+    command: "openstack metric status",
+    catalogType: "metric",
+    catalogPath: "/metric",
+    url: "/metric/v1/status?details=true",
+    group: "services-gnocchi",
+    scene: "backlog-growing-more",
+    file: "gnocchi-status",
+    prints: ["measures", "10"],
+  },
+];
+
+function recordedAnswerOf(row: MappedWhereACloudRunsIt): string {
+  return fs.readFileSync(
+    path.join(
+      findOpenStackFixtures(),
+      row.group,
+      row.scene,
+      "api",
+      `${row.file}.json`,
+    ),
+    "utf8",
+  );
+}
+
+describe("the services a cloud may not run, against recorded answers", () => {
+  for (const row of MAPPED_WHERE_A_CLOUD_RUNS_IT) {
+    test(`${row.route} is one GET, and prints what the cloud said`, async () => {
+      const h: Harness = harness({
+        cloud: {
+          override: (
+            _request: OpenStackHttpRequest,
+            url: URL,
+          ): OpenStackHttpResponse | undefined => {
+            if (url.pathname.endsWith("/auth/tokens")) {
+              return fakeReply(
+                {
+                  token: {
+                    expires_at: "2099-01-01T00:00:00.000000Z",
+                    project: { id: "abc", name: "ou-monitoring" },
+                    roles: [{ id: "r", name: "admin" }],
+                    catalog: [
+                      {
+                        id: "s",
+                        name: row.catalogType,
+                        type: row.catalogType,
+                        endpoints: [
+                          {
+                            id: "e",
+                            interface: "public",
+                            region_id: "RegionOne",
+                            region: "RegionOne",
+                            url: `https://openstack.example${row.catalogPath}`,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+                201,
+                { "x-subject-token": FAKE_TOKEN },
+              );
+            }
+            return {
+              statusCode: 200,
+              statusMessage: "OK",
+              headers: { "content-type": "application/json" },
+              body: recordedAnswerOf(row),
+              truncated: false,
+            };
+          },
+        },
+      });
+      const result: ExecResult = await run(h, row.command);
+
+      assert.strictEqual(
+        result.success,
+        true,
+        `${row.route}: ${result.errorMessage}`,
+      );
+
+      const calls: Array<OpenStackHttpRequest> = h.cloud.commandCalls();
+
+      assert.strictEqual(calls.length, 1);
+
+      const call: OpenStackHttpRequest = calls[0] as OpenStackHttpRequest;
+
+      assert.strictEqual(call.method, "GET");
+      assert.strictEqual(call.url, `https://openstack.example${row.url}`);
+      for (const [name, value] of Object.entries(row.headers || {})) {
+        assert.strictEqual(call.headers[name], value);
+      }
+      for (const fact of row.prints) {
+        assert.ok(result.output.includes(fact), `${fact} in ${result.output}`);
+      }
+    });
+  }
+
+  test("a cloud that doesn't run one is told so, and nothing is asked", async () => {
+    const h: Harness = harness();
+    const result: ExecResult = await run(h, "openstack metric status");
+
+    assert.strictEqual(result.success, false);
+    assert.match(result.errorMessage || "", /Gnocchi/);
+    assert.strictEqual(h.cloud.commandCalls().length, 0);
+  });
+});
+
 describe("every command of the allowlist, against recorded answers", () => {
   test("each route has a row, and each row is a route", () => {
     assert.deepStrictEqual(
-      MAPPED.map((row: MappedCommand): string => {
-        return row.route;
-      }).sort(),
+      [...MAPPED, ...MAPPED_WHERE_A_CLOUD_RUNS_IT]
+        .map((row: { route: string }): string => {
+          return row.route;
+        })
+        .sort(),
       OPENSTACK_COMMAND_ROUTES.map((route: OpenStackRoute): string => {
         return route.command;
       }).sort(),
@@ -1215,7 +1427,7 @@ describe("refused before anything is sent", () => {
   });
 });
 
-describe("nothing the agent can run changes the cloud", () => {
+describe("no read the agent can run changes the cloud", () => {
   test("every allowlisted command, every recorded scene: only GETs but the login, and only reads of what it named", async () => {
     for (const scene of ["healthy", "compute-down", "compute-api-down"]) {
       const h: Harness = harness({ cloud: { scene } });
@@ -1247,7 +1459,7 @@ describe("nothing the agent can run changes the cloud", () => {
     }
   });
 
-  test("with every write setting on, the agent stays read-only, and says so", () => {
+  test("the write switch and a named mode, without a credential for changes: it stays read-only, and says so", () => {
     const parsed: ReturnType<typeof parseConfig> = parseConfig({
       ONEUPTIME_URL: URL_OF_ONEUPTIME,
       ONEUPTIME_API_KEY: "ingestion-key",
@@ -1258,12 +1470,148 @@ describe("nothing the agent can run changes the cloud", () => {
     });
 
     assert.strictEqual(parsed.config.allowWrites, false);
-    assert.strictEqual(parsed.config.aiSettings.fixes, "Disabled");
+    assert.match(
+      parsed.config.writesOffReason as string,
+      /credential of their own/,
+    );
     assert.ok(
       parsed.warnings.some((warning: string): boolean => {
-        return warning.includes("only reads this kind of resource");
+        return warning.includes("stays read-only");
       }),
     );
+  });
+
+  test("the write switch with its credential: it may write, and fixes stay off until someone says", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.writesOffReason, null);
+    // The second opt-in has not happened: nothing here says what fixes may do.
+    assert.strictEqual(parsed.config.aiSettings.fixes, "Disabled");
+    assert.strictEqual(parsed.config.aiSettings.isConfigured, false);
+  });
+
+  test("with a mode named too, that mode is what it reports", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_FIXES: "ask-for-approval",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.aiSettings.fixes, "RequireApproval");
+  });
+
+  test("settings in its .env that name no fix mode are not that choice: it stays read-only, and says so", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_INVESTIGATION: "true",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.aiSettings.isConfigured, true);
+    assert.strictEqual(parsed.config.aiSettings.fixes, "Disabled");
+    assert.strictEqual(parsed.config.allowWrites, false);
+    assert.strictEqual(parsed.config.writesOffByFixes, true);
+    assert.ok(
+      parsed.warnings.some((warning: string): boolean => {
+        return warning.includes("names no mode");
+      }),
+    );
+  });
+
+  test("fixes off in its own configuration keep it read-only, credential or not", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_FIXES: "off",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, false);
+    assert.strictEqual(parsed.config.writesOffByFixes, true);
+  });
+
+  test("a target entry that means nothing keeps it read-only, and says which", () => {
+    for (const [name, entry, said] of [
+      ["ONEUPTIME_AI_PROTECTED_TARGETS", "prod", /does not say what it is/],
+      ["ONEUPTIME_AI_PROTECTED_TARGETS", "project:payments", /is not an ID/],
+      ["ONEUPTIME_AI_WRITE_TARGETS", "instance:web-1", /is not an ID/],
+      ["ONEUPTIME_AI_WRITE_TARGETS", "host:a b", /is not a host's name/],
+    ] as Array<[string, string, RegExp]>) {
+      const parsed: ReturnType<typeof parseConfig> = parseConfig({
+        ONEUPTIME_URL: URL_OF_ONEUPTIME,
+        ONEUPTIME_API_KEY: "ingestion-key",
+        ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+        OPENSTACK_CLOUD_NAME: CLOUD,
+        ONEUPTIME_AI_ALLOW_WRITES: "true",
+        [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+        [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+        [name]: entry,
+      });
+
+      assert.strictEqual(parsed.config.allowWrites, false, entry);
+      assert.match(parsed.config.writesOffReason as string, said);
+      assert.ok(
+        (parsed.config.writesOffReason as string).includes(name),
+        entry,
+      );
+    }
+  });
+
+  test("entries that read keep it writable", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+      ONEUPTIME_AI_PROTECTED_TARGETS:
+        "project:9aee824cac87464292adffc328de1662,host:compute-*,instance:358ee736-ba74-40ba-a354-7ead413c5df6",
+      ONEUPTIME_AI_WRITE_TARGETS: "host:compute-*",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.writesOffReason, null);
+  });
+
+  test("another kind of agent is held to none of this", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "proxmox",
+      PROXMOX_CLUSTER_NAME: "pve",
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_PROTECTED_TARGETS: "101",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.writesOffReason, null);
+    assert.strictEqual(parsed.config.aiSettings.fixes, "RequireApproval");
   });
 
   test("a plain install reads, with no warning about fixes", () => {
@@ -2822,7 +3170,15 @@ describe("what the agent's real code printed on a real cloud", () => {
       }
 
       for (const route of OPENSTACK_COMMAND_ROUTES) {
-        if (route.tier !== ResourceCommandTier.Read) {
+        // That cloud runs none of what a cloud may not: those have recordings of their own, above.
+        if (
+          route.tier !== ResourceCommandTier.Read ||
+          MAPPED_WHERE_A_CLOUD_RUNS_IT.some(
+            (row: MappedWhereACloudRunsIt): boolean => {
+              return row.route === route.command;
+            },
+          )
+        ) {
           continue;
         }
 

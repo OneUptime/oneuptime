@@ -189,6 +189,20 @@ OU_WRITE_IMAGE_ID="$(openstack image list --status active -f value -c ID | head 
 OU_READ_ROUTER_ID="$( (openstack router list --name ou-router -f value -c ID || true) | head -1)"
 OU_READ_DHCP_AGENT_ID="$( (openstack network agent list --agent-type dhcp -f value -c ID || true) | head -1)"
 export OU_READ_ROUTER_ID OU_READ_DHCP_AGENT_ID
+# A stack of a project that isn't this one, as name/id. Nothing where the cloud runs no Heat.
+OU_READ_OTHER_PROJECTS_STACK="$( (openstack stack list -f json 2>/dev/null || true) | python3 -I -c '
+import json, sys
+try:
+    rows = json.load(sys.stdin)
+except ValueError:
+    rows = []
+own = sys.argv[1]
+for row in rows:
+    if row.get("Project") and row.get("Project") != own:
+        print(row.get("Stack Name") + "/" + row.get("ID"))
+        break
+' "$(openstack token issue -f value -c project_id)")"
+export OU_READ_OTHER_PROJECTS_STACK
 OU_WRITE_EXTERNAL_NETWORK_ID="$(openstack network show public -f value -c id)"
 
 # A credential that could write fails the job, but only at the end: the rest of what

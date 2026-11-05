@@ -30,7 +30,7 @@ import {
  *  - The exporter answers the same for a stopped Ironic and one taken away, so all this says is
  *    that it has gone quiet, and that these rows are as they last read. It never says down.
  *  - Ironic answers a project with the nodes that project owns. Placement answers everyone, so
- *    when it holds more nodes than Ironic listed, this list is not the whole cloud's.
+ *    when it holds a node Ironic didn't list, this list is not the whole cloud's.
  *  - The exporter has no conductors. A probe reads them where the credential may, and a project's
  *    is refused.
  */
@@ -48,9 +48,9 @@ const DOWN_NOTICE: string = translationKey(
 );
 
 const PARTIAL_NOTICE: { one: string; other: string } = {
-  one: "Placement holds {{count}} bare metal node, and Ironic shows this credential {{nodes}}. Ironic answers a project with only the nodes that project owns, so this list isn't the whole cloud's. To read them all, use a credential Ironic shows them to.",
+  one: "Placement holds {{count}} bare metal node Ironic doesn't show this credential. Ironic answers a project with only the nodes that project owns, so this list isn't the whole cloud's. To read them all, use a credential Ironic shows them to.",
   other:
-    "Placement holds {{count}} bare metal nodes, and Ironic shows this credential {{nodes}}. Ironic answers a project with only the nodes that project owns, so this list isn't the whole cloud's. To read them all, use a credential Ironic shows them to.",
+    "Placement holds {{count}} bare metal nodes Ironic doesn't show this credential. Ironic answers a project with only the nodes that project owns, so this list isn't the whole cloud's. To read them all, use a credential Ironic shows them to.",
 };
 
 const NOTHING_SHOWN_NOTICE: string = translationKey(
@@ -129,6 +129,7 @@ const OpenStackBareMetalNotices: FunctionComponent<ComponentProps> = (
   });
   const nodes: number = summary?.bareMetalNodeCount || 0;
   const providers: number = summary?.bareMetalProviderCount || 0;
+  const notListed: number = summary?.bareMetalProvidersNotListedCount || 0;
 
   const quietMinutes: number = quiet?.lastSeenAt
     ? (now.getTime() - new Date(quiet.lastSeenAt).getTime()) / 60000
@@ -155,14 +156,12 @@ const OpenStackBareMetalNotices: FunctionComponent<ComponentProps> = (
 
       {props.onlyWhatChangesThisRow ? (
         <></>
-      ) : providers > nodes && nodes > 0 ? (
+      ) : notListed > 0 && nodes > 0 ? (
         <OpenStackPartNotice
           testId="openstack-bare-metal-partial"
           tone="warning"
         >
-          {translator.translatePlural(PARTIAL_NOTICE, providers, {
-            nodes: translator.formatNumber(nodes),
-          })}
+          {translator.translatePlural(PARTIAL_NOTICE, notListed)}
         </OpenStackPartNotice>
       ) : nodes === 0 && !quiet && !isDown ? (
         <OpenStackPartNotice

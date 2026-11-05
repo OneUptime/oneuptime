@@ -26,6 +26,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import OpenStackProjectUsageCard from "../../../Components/OpenStack/OpenStackProjectUsageCard";
 import OpenStackQuotaCard from "../../../Components/OpenStack/OpenStackQuotaCard";
 import OpenStackScopedRulesCard, {
   OpenStackRuleScope,
@@ -89,7 +90,10 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     | "stackCount"
     | "containerClusterCount"
     | "shareCount"
-    | "loadBalancerCount";
+    | "loadBalancerCount"
+    | "databaseInstanceCount"
+    | "dnsZoneCount"
+    | "objectContainerCount";
   page: PageMap;
   one: string;
   other: string;
@@ -147,6 +151,24 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     page: PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
     one: "{{count}} load balancer",
     other: "{{count}} load balancers",
+  },
+  {
+    key: "databaseInstanceCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+    one: "{{count}} database",
+    other: "{{count}} databases",
+  },
+  {
+    key: "objectContainerCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS,
+    one: "{{count}} container",
+    other: "{{count}} containers",
+  },
+  {
+    key: "dnsZoneCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES,
+    one: "{{count}} DNS zone",
+    other: "{{count}} DNS zones",
   },
 ];
 
@@ -418,6 +440,11 @@ const OpenStackCloudProjectDetail: FunctionComponent<
       </Card>
 
       <OpenStackQuotaCard openStackCloudId={modelId} quotas={quotas} />
+
+      <OpenStackProjectUsageCard
+        openStackCloudId={modelId}
+        openStackProjectId={projectId}
+      />
 
       <ResourcePartOpenEventsCard
         testId="openstack-project-open"

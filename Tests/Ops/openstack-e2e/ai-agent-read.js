@@ -53,7 +53,11 @@ const logger = {
   debug() {},
 };
 
-const { config, warnings, problems: settingsProblems } = parseConfig(process.env);
+const {
+  config,
+  warnings,
+  problems: settingsProblems,
+} = parseConfig(process.env);
 
 for (const problem of settingsProblems) {
   console.error(`settings: ${problem}`);
@@ -81,7 +85,9 @@ async function run(words) {
   });
 
   if (policy.tier !== "Read") {
-    problems.push(`${display}: the policy said ${policy.tier}: ${policy.reason}`);
+    problems.push(
+      `${display}: the policy said ${policy.tier}: ${policy.reason}`,
+    );
     return { success: false, output: "" };
   }
 
@@ -182,7 +188,12 @@ const EXTRA_WORDS = {
 };
 
 async function main() {
-  const commands = OPENSTACK_COMMAND_ROUTES.map((route) => {
+  // What a cloud may not run has recordings of its own: this cloud runs the ones every cloud does.
+  const commands = OPENSTACK_COMMAND_ROUTES.filter((route) => {
+    return !["sharev2", "dns", "object-store", "database", "metric"].includes(
+      route.service,
+    );
+  }).map((route) => {
     return route.command;
   });
   const lists = new Map();
@@ -268,9 +279,7 @@ async function main() {
       "json",
     ]);
     if (!result.success) {
-      problems.push(
-        `server event show: ${result.errorMessage || "failed"}`,
-      );
+      problems.push(`server event show: ${result.errorMessage || "failed"}`);
     }
   } else {
     problems.push("no server printed a request ID for server event show");
@@ -349,7 +358,9 @@ async function main() {
     .split(",")
     .filter(Boolean)) {
     if (allOutput.includes(secret)) {
-      problems.push(`the output holds a planted secret, ${secret.length} characters long`);
+      problems.push(
+        `the output holds a planted secret, ${secret.length} characters long`,
+      );
     }
   }
 

@@ -107,6 +107,10 @@ test.describe("bare metal", () => {
     await expect(
       page.getByTestId("openstack-bare-metal-classes"),
     ).toBeVisible();
+    // Two of Placement's six are another project's, and nobody's: Ironic shows this project neither.
+    await expect(
+      page.getByTestId("openstack-bare-metal-partial"),
+    ).toContainText("Placement holds 2 bare metal nodes");
 
     await row.getByRole("button", { name: /view/i }).first().click();
 
@@ -133,6 +137,36 @@ test.describe("bare metal", () => {
     // Nothing about it needs anyone, so that card isn't drawn at all.
     await expect(
       page.getByTestId("openstack-bare-metal-node-attention"),
+    ).toHaveCount(0);
+  });
+
+  test("Capacity adds up what Placement holds of each class, and a cloud without Ironic has no such table", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLOUD_PATH}/capacity?${FAILED}`);
+
+    const row: Locator = page.getByTestId(
+      "openstack-capacity-bare-metal-class",
+    );
+
+    await expect(row).toContainText("CUSTOM_BAREMETAL");
+    await expect(row.getByRole("cell")).toHaveText([
+      "CUSTOM_BAREMETAL",
+      "6",
+      "0",
+      "0",
+      "6",
+    ]);
+    await expect(
+      page.getByTestId("openstack-capacity-no-placement"),
+    ).toHaveCount(0);
+
+    await page.goto(`${CLOUD_PATH}/capacity?${NO_IRONIC}`);
+    await expect(page.getByTestId("openstack-capacity")).toBeVisible();
+    await expect(
+      page.getByTestId("openstack-capacity-bare-metal-classes"),
     ).toHaveCount(0);
   });
 

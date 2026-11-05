@@ -4,6 +4,8 @@ import {
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
   isOpenStackLoadBalancerStuck,
+  isOpenStackDatabaseInstanceStuck,
+  isOpenStackDnsZoneStuckPending,
   isOpenStackShareStuck,
   isOpenStackStackStuck,
   isOpenStackVolumeStuck,
@@ -21,6 +23,11 @@ import {
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_DNS_STATUS_ACTIVE,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
@@ -240,6 +247,30 @@ function loadBalancerTone(word: string): ResourceStatusTone {
     : "neutral";
 }
 
+function dnsTone(word: string): ResourceStatusTone {
+  const upper: string = word.toUpperCase();
+  if (upper === OPENSTACK_DNS_STATUS_ACTIVE) {
+    return "positive";
+  }
+  if (upper === OPENSTACK_DNS_STATUS_ERROR) {
+    return "danger";
+  }
+  return upper === OPENSTACK_DNS_STATUS_PENDING ? "warning" : "neutral";
+}
+
+function databaseInstanceTone(word: string): ResourceStatusTone {
+  const upper: string = word.toUpperCase();
+  if (upper === "ACTIVE" || upper === "HEALTHY") {
+    return "positive";
+  }
+  if (OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES.has(upper)) {
+    return "danger";
+  }
+  return OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(upper)
+    ? "warning"
+    : "neutral";
+}
+
 function enabledTone(word: string): ResourceStatusTone {
   return word.toLowerCase() === "enabled" ? "positive" : "neutral";
 }
@@ -312,6 +343,11 @@ function toneOf(
     case OpenStackResourceKind.LoadBalancerPool:
     case OpenStackResourceKind.Amphora:
       return loadBalancerTone(word);
+    case OpenStackResourceKind.DatabaseInstance:
+      return databaseInstanceTone(word);
+    case OpenStackResourceKind.DnsZone:
+    case OpenStackResourceKind.DnsRecordset:
+      return dnsTone(word);
     default:
       return "neutral";
   }
@@ -342,6 +378,10 @@ function isStuck(input: OpenStackStatusInput, word: string): boolean {
     case OpenStackResourceKind.LoadBalancer:
     case OpenStackResourceKind.LoadBalancerPool:
       return isOpenStackLoadBalancerStuck(reading);
+    case OpenStackResourceKind.DatabaseInstance:
+      return isOpenStackDatabaseInstanceStuck(reading);
+    case OpenStackResourceKind.DnsZone:
+      return isOpenStackDnsZoneStuckPending(reading);
     case OpenStackResourceKind.BareMetalNode:
       return isOpenStackBareMetalNodeStuck({
         ...reading,
@@ -371,6 +411,11 @@ function isOnTheWay(kind: string | null | undefined, word: string): boolean {
     case OpenStackResourceKind.LoadBalancer:
     case OpenStackResourceKind.LoadBalancerPool:
       return OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.DatabaseInstance:
+      return OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.DnsZone:
+    case OpenStackResourceKind.DnsRecordset:
+      return word === OPENSTACK_DNS_STATUS_PENDING;
     case OpenStackResourceKind.BareMetalNode:
       return OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(word);
     default:
@@ -508,6 +553,20 @@ export const OPENSTACK_STATUS_WORDS: Partial<
   [OpenStackResourceKind.Router]: ["ACTIVE", "ALLOCATED", "DOWN", "ERROR"],
   [OpenStackResourceKind.FloatingIp]: ["ACTIVE", "DOWN", "ERROR"],
   [OpenStackResourceKind.Project]: ["enabled", "disabled"],
+  [OpenStackResourceKind.DnsZone]: [
+    OPENSTACK_DNS_STATUS_ACTIVE,
+    OPENSTACK_DNS_STATUS_PENDING,
+    OPENSTACK_DNS_STATUS_ERROR,
+  ],
+  [OpenStackResourceKind.DatabaseInstance]: [
+    "ACTIVE",
+    ...OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+    ...OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
+    "BACKUP",
+    "BLOCKED",
+    "RESTART_REQUIRED",
+    "SHUTDOWN",
+  ],
   [OpenStackResourceKind.Share]: [
     "available",
     ...OPENSTACK_SHARE_ERROR_STATUSES,

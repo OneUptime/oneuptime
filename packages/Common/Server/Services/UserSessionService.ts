@@ -2,7 +2,7 @@ import DatabaseService from "./DatabaseService";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import { SelectQueryBuilder } from "typeorm";
+import { IsNull, SelectQueryBuilder, UpdateResult } from "typeorm";
 import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../Utils/Realtime/RealtimeAccessChanges";
@@ -17,7 +17,6 @@ import OneUptimeDate from "../../Types/Date";
 import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
 import Exception from "../../Types/Exception/Exception";
-import BadDataException from "../../Types/Exception/BadDataException";
 import {
   DEFAULT_SESSION_IDLE_DAYS,
   getActivityAtRenewal,
@@ -678,9 +677,26 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * Gives a session a new refresh token, or answers null when it was ended
+   * while this request was on its way.
+   *
+   * POST /refresh-token reads the session, decides, and only then writes, several
+   * statements later. A new password, a block or a sign-out elsewhere can land in
+   * between, and a renewal that wrote over it would hand whoever is refreshing a
+   * working session the owner has just ended - and somebody refreshing in a loop
+   * is inside that window most of the time. So the write's own predicate asks that
+   * the session is still live, as exchanging a status page's login code does, and
+   * it never writes isRevoked. A write that finds nothing leaves the row exactly as
+   * whatever ended it left it: its reason, and the token that says why
+   * (getSessionLengthEndReason).
+   *
+   * Hook-free, as a single conditional write has to be: this writes no column any
+   * hook reacts to, and so hashes the token itself.
+   */
   public async renewSessionWithNewRefreshToken(
     options: RenewSessionOptions,
-  ): Promise<SessionMetadata> {
+  ): Promise<SessionMetadata | null> {
     const refreshToken: string = Service.generateRefreshToken();
     const refreshTokenExpiresAt: Date =
       options.refreshTokenExpiresAt || Service.getRefreshTokenExpiry();
@@ -692,10 +708,12 @@ export class Service extends DatabaseService<Model> {
         : options.lengths;
 
     const updatePayload: Partial<Model> = {
-      refreshToken: HashedString.fromString(refreshToken),
+      refreshToken: new HashedString(
+        await HashedString.hashValue(refreshToken, EncryptionSecret),
+        true,
+      ),
       refreshTokenExpiresAt: refreshTokenExpiresAt,
       lastActiveAt: lastActiveAt,
-      isRevoked: false,
     };
 
     const ipAddress: string | undefined = Text.truncate(
@@ -750,20 +768,23 @@ export class Service extends DatabaseService<Model> {
       } as JSONObject;
     }
 
-    const updatedSession: Model | null = await this.updateOneByIdAndFetch({
-      id: options.session.id!,
-      data: updatePayload as any,
-      props: {
-        isRoot: true,
-      },
-    });
+    const updateResult: UpdateResult = await this.getRepository().update(
+      {
+        _id: options.session.id!.toString(),
+        isRevoked: false,
+        deletedAt: IsNull(),
+      } as any,
+      updatePayload as any,
+    );
 
-    if (!updatedSession) {
-      throw new BadDataException("Unable to renew user session");
+    if (updateResult.affected !== 1) {
+      return null;
     }
 
+    Object.assign(options.session, updatePayload);
+
     return Service.buildSessionMetadata({
-      session: updatedSession,
+      session: options.session,
       refreshToken: refreshToken,
       refreshTokenExpiresAt: refreshTokenExpiresAt,
       lengths: lengths,

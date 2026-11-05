@@ -37,17 +37,21 @@ import {
   getOpenStackHealth,
 } from "../../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackHealth";
 import {
+  getOpenStackServerNamesOfStack,
+  getOpenStackStackNameOfServer,
+} from "../../../../Types/OpenStack/OpenStackLinks";
+import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 
 /*
- * Heat and Magnum, on what a real stable/2026.1 DevStack said (run 41932253263), through the real
+ * Heat and Magnum, on what a real stable/2026.1 DevStack said (run 41988907585), through the real
  * scan and the real health rules. Tests/Ops/openstack-e2e/services-heat-magnum.sh drives each scene,
  * and its how.txt says how the state was reached: every scene here was reached on its own.
  *
  * What these can't say, because it was never recorded: a cluster that reached CREATE_COMPLETE, on any
- * runner, and which instances and volumes a stack owns.
+ * runner.
  */
 
 const FOLDER: string = path.join(
@@ -71,7 +75,10 @@ function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
   });
 }
 
-function seriesOf(scene: string, exporter: string = "exporter"): Array<RecordedSeries> {
+function seriesOf(
+  scene: string,
+  exporter: string = "exporter",
+): Array<RecordedSeries> {
   return readRecordedSeries(path.join(FOLDER, scene, exporter));
 }
 
@@ -134,8 +141,10 @@ function readJson(...segments: Array<string>): JSONObject {
   ) as JSONObject;
 }
 
-const PROJECT_ADMIN: string = "4d0acfc18c9d4a0b994a7fe34516bf65";
-const PROJECT_PAYMENTS: string = "08945d5897854ec2a11d65d907ec6251";
+const OTLP_SERVICE: RegExp =
+  /"key":"openstack_service","value":\{"stringValue":"([^"]+)"\}/g;
+const PROJECT_ADMIN: string = "ae798f87fdb743ddb30bc5a46ac15507";
+const PROJECT_PAYMENTS: string = "a01a07259d8441afa457d94ba7e4425f";
 
 describe("Heat", () => {
   describe("heat-baseline: stacks that finished and stacks that failed, in two projects", () => {
@@ -164,14 +173,16 @@ describe("Heat", () => {
         OpenStackResourceKind.Stack,
         "ou-stack-failed",
       );
-      expect(row.externalId).toBe("2931cfa5-85d1-43be-bd8f-8a3f9a22cfc3");
+      expect(row.externalId).toBe("8fb1dcc5-0685-434b-8e1a-bf0618776952");
       expect(row.regionName).toBe("RegionOne");
     });
 
     test("each failed stack reaches Needs attention by name, and neither of the others does", () => {
+      // And the server Nova couldn't place for it, which reads on its own.
       expect(namesNeedingAttention(rows)).toEqual([
         "ou-stack-admin-failed",
         "ou-stack-failed",
+        "ou-stack-failed-server-b2chjl4j7q3r",
       ]);
       const item: ResourceAttentionItem = attentionOf(rows).find(
         (candidate: ResourceAttentionItem): boolean => {
@@ -282,8 +293,9 @@ describe("Heat", () => {
       path.join(FOLDER, "heat-engine-down", "exporter", "status.txt"),
       "utf8",
     );
+    const scrape: RegExp = /orchestration 200 ([0-9.]+)s/;
     const seconds: number = Number.parseFloat(
-      /orchestration 200 ([0-9.]+)s/.exec(status)![1] as string,
+      scrape.exec(status)![1] as string,
     );
     expect(seconds).toBeGreaterThan(55);
     // The job's scrape_timeout, read in OpenStackAgentConfig: so this reads _up 0, and not up 0.
@@ -356,10 +368,10 @@ describe("Magnum", () => {
     );
 
     test("its row is keyed by Magnum's own ID, and holds what its series say", () => {
-      expect(cluster.externalId).toBe("3862096f-d07e-4167-938e-82ccd6934f90");
+      expect(cluster.externalId).toBe("1836d7d8-990a-42aa-a318-4de151184de9");
       expect(cluster.status).toBe("CREATE_IN_PROGRESS");
       expect(cluster.facts).toMatchObject({
-        stackId: "9afbe4dd-7813-4d0f-bb88-d0736ee108df",
+        stackId: "8ff88764-ef47-484e-8804-2b4c3d22d558",
         nodeCount: 1,
         masterCount: 1,
       });
@@ -429,9 +441,12 @@ describe("Magnum", () => {
   });
 
   test("magnum-real-image: the real image failed on a runner, and reads the same", () => {
-    expect(namesNeedingAttention(rowsOf("magnum-real-image"))).toEqual([
-      "ou-cluster-real",
-    ]);
+    const names: Array<string> = namesNeedingAttention(
+      rowsOf("magnum-real-image"),
+    );
+    expect(names).toContain("ou-cluster-real");
+    // Its stack failed with it, and that is one line, by the cluster's name.
+    expect(names).not.toContain("ou-cluster-real-b4a265chwfks");
   });
 
   test("magnum-conductor-down: the exporter's series say nothing of it, which a page has to say", () => {
@@ -498,7 +513,7 @@ describe("Heat and Magnum together: a credential that reads both", () => {
     ).find((row: OpenStackResource): boolean => {
       return row.externalId === cluster.facts?.["stackId"];
     });
-    expect(stack?.name).toBe("ou-cluster-real-rfhmez6mgxk3");
+    expect(stack?.name).toBe("ou-cluster-real-b4a265chwfks");
     expect(stack?.openStackProjectId).toBe(
       readJson(
         "magnum-real-image",
@@ -511,7 +526,7 @@ describe("Heat and Magnum together: a credential that reads both", () => {
   test("a failed cluster and its failed stack are one line, by the cluster's name", () => {
     const names: Array<string> = namesNeedingAttention(rows);
     expect(names).toContain("ou-cluster-real");
-    expect(names).not.toContain("ou-cluster-real-rfhmez6mgxk3");
+    expect(names).not.toContain("ou-cluster-real-b4a265chwfks");
     // Stacks that are nobody's cluster still read on their own.
     expect(names).toContain("ou-stack-failed");
   });
@@ -520,11 +535,159 @@ describe("Heat and Magnum together: a credential that reads both", () => {
     const stack: OpenStackResource = named(
       rows,
       OpenStackResourceKind.Stack,
-      "ou-cluster-real-rfhmez6mgxk3",
+      "ou-cluster-real-b4a265chwfks",
     );
     expect(namesNeedingAttention([stack])).toEqual([
-      "ou-cluster-real-rfhmez6mgxk3",
+      "ou-cluster-real-b4a265chwfks",
     ]);
+  });
+});
+
+describe("what a stack owns, as its own project was told", () => {
+  const owned: (name: string, type: string) => Array<string> = (
+    name: string,
+    type: string,
+  ): Array<string> => {
+    return (
+      readJson("heat-baseline", "api", `heat-stack-resources-${name}.json`)[
+        "resources"
+      ] as Array<JSONObject>
+    )
+      .filter((resource: JSONObject): boolean => {
+        return resource["resource_type"] === type;
+      })
+      .map((resource: JSONObject): string => {
+        return resource["physical_resource_id"] as string;
+      });
+  };
+  const rows: Array<OpenStackResource> = rowsOf("heat-baseline");
+
+  test("Heat's IDs are the ones Nova and Cinder have rows for", () => {
+    const [instance]: Array<string> = owned("ou-stack-ok", "OS::Nova::Server");
+    const [volume]: Array<string> = owned("ou-stack-ok", "OS::Cinder::Volume");
+
+    expect(
+      ofKind(rows, OpenStackResourceKind.Instance).find(
+        (row: OpenStackResource): boolean => {
+          return row.externalId === instance;
+        },
+      )?.name,
+    ).toContain("ou-stack-ok-server");
+    expect(
+      ofKind(rows, OpenStackResourceKind.Volume).some(
+        (row: OpenStackResource): boolean => {
+          return row.externalId === volume;
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("a server Nova couldn't place still has an ID, and a row in ERROR", () => {
+    const [instance]: Array<string> = owned(
+      "ou-stack-failed",
+      "OS::Nova::Server",
+    );
+    expect(
+      ofKind(rows, OpenStackResourceKind.Instance).find(
+        (row: OpenStackResource): boolean => {
+          return row.externalId === instance;
+        },
+      )?.status,
+    ).toBe("ERROR");
+  });
+
+  test("a resource that failed before it was made has no ID at all", () => {
+    expect(owned("ou-stack-admin-failed", "OS::Heat::TestResource")).toEqual([
+      "",
+    ]);
+  });
+});
+
+describe("what a stack owns, as a credential of another project was told", () => {
+  const read: (matrix: string) => Record<string, JSONObject> = (
+    matrix: string,
+  ): Record<string, JSONObject> => {
+    const row: JSONObject | undefined = (
+      readJson("access-check", `${matrix}.json`)[
+        "partReads"
+      ] as Array<JSONObject>
+    ).find((candidate: JSONObject): boolean => {
+      return candidate["read"] === "another project's stack's resources";
+    });
+    return row?.["results"] as unknown as Record<string, JSONObject>;
+  };
+
+  test("the Full view credential is told, through the access rules a customer fits", () => {
+    expect(read("matrix-access-rules")["monitoring-admin-get"]).toMatchObject({
+      status: 200,
+      count: 1,
+    });
+  });
+
+  test("anything less is refused, which is why a stack's page can say nothing has read it", () => {
+    const results: Record<string, JSONObject> = read("matrix");
+    expect(results["admin"]?.["status"]).toBe(200);
+    for (const credential of [
+      "reader",
+      "monitoring-role",
+      "role-on-a-project",
+    ]) {
+      expect(results[credential]?.["status"]).toBe(403);
+    }
+  });
+});
+
+describe("a Magnum cluster's server, on what a real cloud named it", () => {
+  const rows: Array<OpenStackResource> = rowsOf("magnum-real-image");
+  const stackId: unknown = named(
+    rows,
+    OpenStackResourceKind.ContainerCluster,
+    "ou-cluster-real",
+  ).facts?.["stackId"];
+  const stack: OpenStackResource | undefined = ofKind(
+    rows,
+    OpenStackResourceKind.Stack,
+  ).find((row: OpenStackResource): boolean => {
+    return row.externalId === stackId;
+  });
+
+  test("its name says the stack the cluster names, which is what links it to Kubernetes", () => {
+    const servers: Array<OpenStackResource> = ofKind(
+      rows,
+      OpenStackResourceKind.Instance,
+    ).filter((row: OpenStackResource): boolean => {
+      return getOpenStackStackNameOfServer(row.name) === stack?.name;
+    });
+    expect(
+      servers.map((row: OpenStackResource): string => {
+        return row.name || "";
+      }),
+    ).toEqual([`${stack?.name}-master-0`]);
+  });
+
+  test("and it is among the names a read of that stack's servers asks for", () => {
+    expect(
+      getOpenStackServerNamesOfStack({
+        stackName: stack?.name || "",
+        masterCount: Number(
+          named(rows, OpenStackResourceKind.ContainerCluster, "ou-cluster-real")
+            .facts?.["masterCount"],
+        ),
+        nodeCount: 1,
+      }),
+    ).toContain(`${stack?.name}-master-0`);
+  });
+
+  test("nothing else on this cloud reads as one, whatever it is called", () => {
+    expect(
+      ofKind(rows, OpenStackResourceKind.Instance)
+        .filter((row: OpenStackResource): boolean => {
+          return Boolean(getOpenStackStackNameOfServer(row.name));
+        })
+        .map((row: OpenStackResource): string => {
+          return row.name || "";
+        }),
+    ).toEqual([`${stack?.name}-master-0`]);
   });
 });
 
@@ -660,7 +823,7 @@ describe("the agent's real collector, on a cloud with some of these and not othe
       finished.filter((entry: OpenStackResourceBufferEntry): boolean => {
         return entry.kind === OpenStackResourceKind.Stack;
       }),
-    ).toHaveLength(7);
+    ).toHaveLength(4);
     expect(
       finished.filter((entry: OpenStackResourceBufferEntry): boolean => {
         return entry.kind === OpenStackResourceKind.ContainerCluster;
@@ -668,23 +831,42 @@ describe("the agent's real collector, on a cloud with some of these and not othe
     ).toHaveLength(2);
   });
 
+  // Which service a run's one export caught differs by run, so this asks rather than names it.
+  const notHere: (name: string) => boolean = (name: string): boolean => {
+    return name !== "container-infra" && name !== "orchestration";
+  };
+
   test("the one it said nothing about, which the cloud does not run, has none", () => {
-    expect(
-      points.some((point: Point): boolean => {
-        return (
-          point.name === "up" &&
-          JSON.stringify(point.datapoint).includes('"dns"')
+    const other: Array<string> = points
+      .filter((point: Point): boolean => {
+        return point.name === "up";
+      })
+      .flatMap((point: Point): Array<string> => {
+        return Array.from(
+          JSON.stringify(point.datapoint).matchAll(OTLP_SERVICE),
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
         );
-      }),
-    ).toBe(true);
-    expect(apis).not.toContain("dns");
+      })
+      .filter(notHere);
+    expect(other.length).toBeGreaterThan(0);
+    expect(apis.filter(notHere)).toEqual([]);
   });
 
-  test("the empty scrape of a service this product knows nothing of yet isn't even kept", () => {
-    expect(Array.from(scrapes.keys()).sort()).toEqual([
-      "RegionOne/container-infra",
-      "RegionOne/orchestration",
-    ]);
+  test("an empty scrape of one this cloud doesn't run is at most something to update a row with, and it has none", () => {
+    expect(Array.from(scrapes.keys())).toEqual(
+      expect.arrayContaining([
+        "RegionOne/container-infra",
+        "RegionOne/orchestration",
+      ]),
+    );
+    for (const [key, scrape] of scrapes) {
+      if (notHere(key.substring(key.indexOf("/") + 1))) {
+        expect(scrape).toMatchObject({ answered: true, samples: 0 });
+      }
+    }
+    expect(apis.filter(notHere)).toEqual([]);
   });
 
   test("what each scrape said, to go on a row that is already there", () => {
@@ -692,11 +874,11 @@ describe("the agent's real collector, on a cloud with some of these and not othe
       service: "orchestration",
       regionName: "RegionOne",
       answered: true,
-      samples: 38,
+      samples: 35,
     });
-    expect(
-      scrapes.get("RegionOne/container-infra")?.seconds,
-    ).toBeGreaterThan(0);
+    expect(scrapes.get("RegionOne/container-infra")?.seconds).toBeGreaterThan(
+      0,
+    );
   });
 
   test("a real cluster's series have no project label at all: empty is no label", () => {

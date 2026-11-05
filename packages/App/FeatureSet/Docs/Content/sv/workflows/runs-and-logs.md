@@ -126,7 +126,7 @@ Ett block som inte körs är oftast ett kopplingsproblem. Öppna **Byggare** och
 Öppna körningen och titta på steget. En referens som inte löstes upp lyfts fram på själva steget som en varning, och dess inställning i blocket **Mottaget** är markerad **Did not resolve**.
 
 - Ser du den bokstavliga texten `{{local.components.…}}` löstes referensen inte upp. Oftast är det ett stavfel i komponent-ID:t eller returvärdets ID — kom ihåg att det är blockets **Identifier**, inte namnet som visas på det. Kontrollera också stavningen av själva `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` skickas som bokstavlig text och körningen rapporterar ändå **Utförd**. Var körningen ett test med **Run just this step** kördes det tidigare blocket inte alls — kör hela arbetsflödet i stället.
-- Ser du **Empty text** kördes det tidigare blocket men producerade inte det fältet.
+- Ser du **Empty text**, eller ett hål i ett meddelande, kördes det tidigare blocket men har inget i det fältet. Antingen har posten inget värde där, vilket fliken **Full Log** noterar på en egen rad, eller så skickar blocket inte vidare fältet, vilket steget varnar för.
 
 Samma varning finns på fliken **Full Log** som en rad som börjar med `Warning:`.
 :::

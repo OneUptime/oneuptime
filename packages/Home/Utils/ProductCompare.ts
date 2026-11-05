@@ -1731,6 +1731,13 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
+            title: "OpenStack monitoring",
+            description:
+              "Datadog's OpenStack Controller integration (OpenStack 13 and later) reads Keystone, Nova, Neutron, Cinder, Glance, Heat, Ironic, Octavia and Swift from one Agent, with API-up checks. OneUptime reads Keystone, Nova, Neutron, Cinder, Glance and Placement, plus Heat, Magnum, Manila, Ironic, Octavia, Designate, Swift and Trove where a cloud runs them, with an agent or a probe, and adds capacity, spend, service logs and a boot check from outside. Sources: Datadog's OpenStack Controller integration documentation.",
+            productColumn: "Controller integration",
+            oneuptimeColumn: "tick",
+          },
+          {
             title: "APM / Tracing",
             description: "Application performance monitoring",
             productColumn: "+$35/host/mo",
@@ -13670,6 +13677,13 @@ const products: Dictionary<Product> = {
             title: "Container and Kubernetes monitoring",
             description: "Monitor Docker containers and Kubernetes clusters.",
             productColumn: "tick",
+            oneuptimeColumn: "tick",
+          },
+          {
+            title: "OpenStack monitoring",
+            description:
+              "Zabbix ships OpenStack by HTTP and OpenStack Nova by HTTP templates for Nova: project limits, servers, compute services, hypervisors, availability zones and tenant usage. We did not confirm templates for other OpenStack services. OneUptime reads Keystone, Nova, Neutron, Cinder, Glance and Placement, plus Heat, Magnum, Manila, Ironic, Octavia, Designate, Swift and Trove where a cloud runs them, and adds capacity, spend and incidents with on-call. Sources: Zabbix's OpenStack integration page.",
+            productColumn: "Nova templates",
             oneuptimeColumn: "tick",
           },
           {

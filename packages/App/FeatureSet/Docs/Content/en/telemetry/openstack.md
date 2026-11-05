@@ -8,11 +8,13 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Install the agent](#install-the-agent): A credential, then the install script, Docker Compose or no Docker at all.
 - [What it costs your cloud](#what-it-costs-your-cloud): What each setting reads, and how to change it.
 - [Capacity](#capacity): How many more of each flavor fit, and how many days until each thing is full.
+- [Spend](#spend): Who's using what, what that comes to at your prices or as CloudKitty rated it, and what could be reclaimed.
 - [Service logs](#service-logs): Parsed, with a request followed across services.
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
 - [Trace a request](#trace-requests-through-the-control-plane): One signed request, followed across the control plane.
 - [Check it from outside](#check-the-cloud-from-outside): Whether anyone can actually boot an instance, from a probe outside the cloud.
+- [With no internet](#with-no-internet): The agent's four images, and how to copy them to a registry of your own.
 - [By deployment tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat and Mirantis.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -155,6 +157,8 @@ openstack application credential create oneuptime-agent \
 
 An access rule is matched against the path the service sees. A service behind a path prefix, like `https://cloud.example/compute/v2.1`, sees `/compute/v2.1/servers`, and refuses the shipped rule for `/v2.1/servers` with a `401`. `access-rules-for-cloud.py` adds each rule again under its service's prefix, read from your catalog.
 
+Two of the exporter's reads take rules that are easy to miss by hand. It reads Octavia's root before anything else, and behind Apache a service sees that as `/load-balancer//`, with two slashes. Refused, the exporter answers an empty `200`, so the cloud looks as if it doesn't run Octavia. And it lists Swift's account with a trailing slash, which `/v1/*` doesn't match. Refused, `openstack_object_store_up` reads `0`. The fitted rules carry both. A credential's rules can't be changed, so if yours was made from an older copy of them, make a new one.
+
 Access rules also need `service_type` set for keystonemiddleware on each service, and a restart of that service. Without it, the service refuses the credential with a `401`:
 
 ```ini title="nova.conf"
@@ -189,7 +193,7 @@ On the services a cloud may not run, what each level got on real clouds differs 
 - **Barbican** answers a credential about its own project alone, and refuses a plain reader. OneUptime reads no secret.
 - **Gnocchi** lets any role on a project create a metric, so on a cloud that runs it, level 2 and level 3 can write there.
 
-Keystone needs nothing. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
+Keystone needs nothing. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose. That holds on the services a cloud may not run too: recorded on DevStack, level 1 got the same series as an admin's credential from each one the exporter reads, and every write answered `401`.
 
 If you will not make that change, make the same credential without `--access-rules`: a plain admin application credential. It works, and it can write, so the diagnostic script labels it as one.
 @tab Level 2: Infrastructure only
@@ -483,7 +487,7 @@ Three open upstream issues shape all this, and the project has also [asked for m
 
 If your cloud runs Ironic, it gets a **Bare Metal** section with every node Ironic shows the credential: where it is in Ironic's state machine, its power, whether someone put it in maintenance and why, its resource class, and when Ironic last saw it move. A cloud without Ironic has no such section, no alert about it and no line on any page.
 
-A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page.
+A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page, for the nodes Ironic shows this credential, and on the [Capacity](#capacity) page, for every node Placement holds.
 
 What needs someone, at the same lines as the [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates):
 
@@ -498,8 +502,8 @@ What needs someone, at the same lines as the [alert templates](/docs/monitor/ope
 
 Each of these was recorded on a real DevStack, and each page says so where it matters:
 
-- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds more nodes than Ironic listed, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
-- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic empties `last_error` within about a minute anyway, with the node still failed. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
+- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds a node Ironic didn't list, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
+- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic can empty `last_error` within about a minute anyway, with the node still failed: it did for a failed clean, and left a failed deploy's. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
 - **The exporter has no conductors.** Only a probe reads them, and Ironic refuses a project's credential the list unless its policy says otherwise (`baremetal:conductor:get`).
 - **A stopped Ironic reads the same as no Ironic.** Asked about one that is stopped, the exporter answers an empty 200, as it does for a cloud that never had it. So a page says only that it hasn't heard from Ironic, and that the nodes are as they last read. It never says down. Two weeks after the rest of the cloud last reported without it, those rows go, and they come back if it does.
 
@@ -510,6 +514,8 @@ Each of these was recorded on a real DevStack, and each page says so where it ma
 Everything on it is allocation: what has been promised, not what is busy. An idle instance holds all of it.
 
 **What capacity is.** For each resource provider and resource class, capacity is `(total - reserved) x allocation_ratio`, and allocated is what Placement has promised. That adds up by zone, aggregate, region and cloud. A host whose `nova-compute` is down keeps reporting its last numbers, and a disabled one takes nothing on, so neither counts as room. What they hold is still there, and a forecast counts it.
+
+**Bare metal.** A node takes one instance whole, so a cloud with Ironic gets a table of its own, by resource class: how many nodes, how many could take an instance, how many are in use, and how many are held back, because Nova's Ironic driver can't use them right now. These are Placement's own numbers, so they are the whole cloud's even where Ironic shows a project only what it owns, and they are not in the vCPUs and memory above. A probe reads which class a flavor asks for and counts it against these. The agent's exporter doesn't say, so on the agent a bare metal flavor counts as its vCPUs, memory and disk, on hosts.
 
 **How many more fit.** Each flavor is counted host by host, because an instance needs all of what it asks for on one host. Beside the count is what it would be if everything free were on one host, which is how a full cloud is told from a fragmented one. A flavor no host could hold even empty says **Too large for every host**, and nothing ever alerts on it. Counts are for an instance booted from an image: one booted from a volume asks for no root disk.
 
@@ -539,6 +545,76 @@ nova-manage placement audit --verbose --delete
 **Alerts.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** and **Reserved Headroom Gone** read series OneUptime writes from the same summary. They are in the [monitor's templates](/docs/monitor/openstack-monitor#pre-built-alert-templates) and on the cloud's **Recommendations** page.
 
 **What it costs.** Nothing on the agent. A probe adds the calls above. OneUptime writes about 2 series for each zone's resource class, external network and storage pool, and one for each flavor people can ask for, every two minutes, billed as any other metric.
+
+## Spend
+
+Private clouds still cost money, and whoever runs one is asked who's using what and what could be reclaimed. A cloud's **Spend** page answers both, on any cloud at any size, and works with no setup at all. It shows usage and estimates to plan with. OneUptime doesn't invoice anyone, and nothing here is an amount a tenant owes.
+
+**This month against last** is at the top, then who's growing, then each project, largest first, with **Export CSV**. The domains, and what was used on which flavor and volume type, sit beneath. A project's own page has its month line by line and the months before it.
+
+### How usage is worked out
+
+Every 15 minutes, a worker reads what each project holds in the cloud's inventory, and adds that for the time since the last reading: vCPU-hours and memory-hours by flavor, volume GB-hours by type, floating IP-hours, and image and snapshot storage. No per-instance series is read or written, so it costs the metric store and the telemetry bill nothing, and it works the same on a cloud in [summary mode](/docs/telemetry/openstack-very-large-clouds#summary-mode).
+
+What that means for the numbers:
+
+- **A resize moves hours from one flavor to the other**, and a deletion stops them. A change is counted from the first reading that shows it, so each one can be out by up to 15 minutes. An instance that lived less than that may never be seen.
+- **A part counts until the inventory lets go of it,** which is up to [the stale window](#environment-variables) after it went. On a large cloud read in turns, a change takes as long as its turn to arrive.
+- **An instance holds its flavor from when it's placed until it's deleted.** One shut off still counts, on its own line, because Nova keeps its vCPUs and memory set aside on its host. One that never reached a host doesn't count, and neither does one shelved off its host.
+- **A volume or snapshot in error, or still being made, doesn't count,** because it has no space behind it on the whole.
+- **Hours OneUptime wasn't reading aren't guessed at.** A gap longer than an hour counts its last hour, and the page says how many hours weren't counted.
+- **The agent's exporter reports how many snapshots there are, not which,** so snapshot storage is only counted on a cloud [connected without an agent](/docs/telemetry/openstack-agentless).
+
+### Prices
+
+Prices are yours and they're optional. Without them the page shows usage. Under **Prices**, set a currency and a price per hour for a vCPU, a GB of memory, a GB of volume, a floating IP, a GB of image and a GB of snapshot. **Advanced** has a price per instance-hour by flavor, which is then the whole of that flavor's price, a price by volume type, and a switch to leave out shut-off instances. A month is about 730 hours.
+
+A price of zero means no price, not a free cloud. What has no price is said to have none, and a project that used something unpriced is counted on the page, so a total of what is priced is never passed off as all of it. Today's prices apply to the whole of every period shown, last month's too, so changing a price doesn't read as a project's usage moving. A price changed now shows within 15 minutes.
+
+### CloudKitty
+
+If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it rated replaces the calculation, project by project, and the page says which it used. A probe asks once an hour, for this month and last, and it's asked of `GET /v2/summary`, or `GET /v1/report/summary` on a CloudKitty too old for it. That's at most two requests per 1,000 projects an hour, plus a request for its version each time it's read.
+
+- **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
+- **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **A CloudKitty per region adds up.** Each one is read in its own time, and a project's figure is what they rated between them. One CloudKitty the catalog lists for several regions is asked once.
+- **Its figures are the one part of this that's telemetry.** They reach OneUptime as `openstack_cloudkitty_rated`, one datapoint per project and month, once an hour: 20,000 an hour at 10,000 projects, which is next to nothing beside the rest of a cloud that size.
+- **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
+- **If it stops answering,** what each project was rated stays where it was, and the page says when it was last read. **Rating API Down** alerts on that.
+- **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
+
+### Budgets
+
+A budget says what a project, or a whole cloud, may come to in a month, in the currency of your prices. As with [a connected cloud's budgets](/docs/telemetry/cloud-costs), it raises an alert the first time in a month the estimate passes each share of it (80% and 100% unless you say otherwise), and one when holding what's held now would pass it before the month ends. A new month starts from nothing, and last month's alerts are resolved. A budget only ever alerts: it stops nothing. Without prices or CloudKitty there's nothing to compare, so it stays quiet and its row says it hasn't been checked.
+
+### What could be reclaimed
+
+The cloud's **Recommendations** page lists what's been left unused, what each would free, and the command that lists it, once an hour. OneUptime never removes anything, and every one of these is a question for whoever owns it.
+
+| What | When it's named | What it frees | The command that lists them |
+|---|---|---|---|
+| Hypervisors that could be emptied | 20% or less of its vCPUs and memory are allocated, everything on it fits on the other hosts in its zone and aggregates, and the zone could still lose a host afterwards | The whole host | `openstack hypervisor list --long` |
+| Instances shut off for a long time | Shut off for 30 days | Their vCPUs, memory and local disk | `openstack server list --all-projects --status SHUTOFF --long` |
+| Volumes attached to nothing | Available for 30 days, attached to nothing, and not one of Cinder's own `image-<id>` volumes, which the command also lists | Their storage | `openstack volume list --all-projects --status available --long` |
+| Old volume snapshots | Made 90 days ago. Probe only | Their storage | `openstack volume snapshot list --all-projects --long` |
+| Images nothing was booted from | Private or shared, 30 days old, not protected, and no instance or volume came from it. Probe only | Their storage | `openstack image list --long` |
+| Floating IPs nothing is using | Unassociated for 7 days | An address | `openstack floating ip list --status DOWN --long` |
+
+Nothing in use is ever named. How long something has been so comes from the cloud's own clock where a probe reports one. Through an agent it's how long OneUptime has seen it so, so on the day you connect a cloud nothing's old yet. A rule that can't be sure says so instead of guessing: the agent can't say which image an instance booted from, so an image in use would look unused, and it can't list snapshots, so those two rules wait for a probe. A host is named by what's allocated rather than how busy it is, it's never named in a zone with a host lost or disabled, and hosts are taken emptiest first so what's named can all be done. It can't see traits or anything else an instance needs of a host.
+
+### At each size
+
+A reading costs the same however often instances change, and what it costs grows with what's named here. These are tested on Postgres, with the statements counted exactly and the largest size's time held to a budget.
+
+| Hypervisors | Instances | Projects | Statements a reading | Rows kept | What the page reads |
+|---|---|---|---|---|---|
+| 10 | 100 | 10 | 13 | 750 | One row of the cloud, one page of projects |
+| 500 | 20,000 | 1,000 | 14 | 75,000 | One row of the cloud, one page of projects |
+| 5,000 | 200,000 | 10,000 | 37 | 750,000 | One row of the cloud, one page of projects |
+
+Once a cloud has a last month, a reading reads that too, one statement per 2,000 projects. The hourly rules read five lists of at most 5,000 rows, and go through every instance's row once to see what's in use.
+
+At the largest size, what each project holds is read in under 5 seconds, a whole reading takes under 30, and the row the page reads stays under 2 MB. Rows kept are one per project for each of 13 months, and one per project for each of the last 62 days. They don't depend on how many instances there are, and none of it counts as telemetry.
 
 ## Real usage
 
@@ -698,13 +774,14 @@ The exporter says less about these services than a read of their APIs does, and 
 | Whose a cluster is | From its Heat stack | From Magnum | No |
 | Why a cluster failed, its template and its Kubernetes version | No. Run `openstack coe cluster show` | Yes | No |
 | Heat's engines and Magnum's conductors on **Services** | No | Yes | No |
+| Which instances and volumes a stack owns | No | Yes | Its own project's at most |
 
 Two failures read differently, and both are what a real cloud does:
 
 - **A stopped `heat-engine`** reads as **Orchestration API Down**, on either collector. Heat's API asks an engine for its lists, so with none left it can't answer them, after a minute's wait for an RPC timeout. A stack an engine left in progress can stay in progress after the engine comes back, and reads **Stack Stuck In Progress** once two hours have passed.
 - **A stopped `magnum-conductor`** isn't shown anywhere on a cloud the agent collects, because Magnum's API carries on answering without one and the exporter doesn't read conductors. Its clusters just stop moving. A probe with a Full view credential reads them, which is the only way to see this, or run `openstack coe service list`.
 
-Which instances and volumes a stack owns isn't collected yet, so a stack's page doesn't list them, and a failed instance doesn't name a stack you made yourself. Run `openstack stack resource list`.
+Which instances and volumes a stack owns is on one more read of that stack, which the agent's exporter doesn't make. On a cloud a probe collects, a stack's page lists them, and an instance's or a volume's page and alerts name the stack. A Full view credential is answered about every project's stacks. Anything less is refused another project's, and a stack's page says when nothing has read it. On a cloud the agent collects, run `openstack stack resource list`.
 
 ### A cluster with the Kubernetes agent on it
 
@@ -755,6 +832,86 @@ A load balancer in `ERROR`, one stuck `PENDING_UPDATE` or `PENDING_CREATE` for a
 A pool whose members all fail their health check is `ERROR` in operating status while it and its load balancer stay `ACTIVE` in provisioning, recorded, so a page that read provisioning alone would show nothing wrong. A load balancer in provisioning `ERROR` reads operating `OFFLINE`. The OVN provider reports 0 for every traffic counter, which is not a fault.
 
 A stopped Octavia API gives the exporter an empty answer rather than `openstack_loadbalancer_up 0`, the same as a cloud without Octavia. So on a cloud the agent collects, the Load Balancers API Down template stays quiet and the pages say when Octavia was last heard from. If Octavia leaves Keystone's catalog, its rows go after much longer than Heat's, because an empty answer can't tell a service that left from one that stopped.
+
+## Designate
+
+A cloud that runs Designate gets **DNS Zones** under **Network** on its own, and one that doesn't shows no trace of it. Each zone has its status in Designate's own word, how many recordsets it holds and whose it is, and a page of its own, which lists any of its recordsets that aren't `ACTIVE`. Only those have rows: a zone can hold any number of recordsets, and the question is which of them went wrong. One goes from the list once it reads `ACTIVE` again, at the inventory's next sweep.
+
+A zone in `ERROR` reaches **Needs attention** by name, and so does one `PENDING` after half an hour. Designate's worker gives up by itself well before that, so what stays `PENDING` has nothing working on it. A zone's own `SOA` and `NS` read `ERROR` with it, so that is said once, by the zone.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's zones and their status | Yes | Yes | Nothing: see below |
+| Recordsets that aren't `ACTIVE` | Yes | Yes, of up to 50 zones a collection | No |
+| How many recordsets each zone holds | Yes | Only of a zone that isn't `ACTIVE` | No |
+| Why a zone failed | No: check `designate-worker`'s log | No | No |
+| Designate's services | No. Run `openstack dns service list` | Yes | No |
+
+Two things read differently from every other service here, both recorded:
+
+- **A stopped Designate API says nothing at all.** The exporter reads its versions first, gets no answer, and answers an empty `200`, exactly as for a cloud without Designate. So nothing from the exporter can tell the two apart, and OneUptime doesn't claim to. A cloud that had Designate reads as having gone quiet after 20 minutes, on **Services** and in **Needs attention**. Its rows go after two weeks of that, and come back if it does. No alert can say this on a cloud the agent collects. A probe reads Keystone's catalog itself, so **DNS API Down** can.
+- **`openstack_designate_up` reading 0 means a refusal.** The exporter asks for every project's zones, which only an admin may. So a credential that has never read them is told that, rather than that Designate is down, and isn't offered Designate's alerts.
+
+A stopped `designate-worker` leaves Designate's API answering and its own list reading `UP` for a while, because it goes by a heartbeat. Changes are accepted and not carried out, and **DNS Zone Stuck Pending** is what says so.
+
+## Trove
+
+A cloud that runs Trove gets **Databases** on its own, and one that doesn't shows no trace of it. Each database has its status in Trove's own word, what it runs, its volume and whose it is, and a page of its own. One in an error state reaches **Needs attention** by name, and so does one still on its way after an hour, or one past 85% of its volume.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's databases and their status | Yes | Yes | Nothing at all: see below |
+| How full a running database's volume is | Yes | Yes | No |
+| Why a database failed, and what it was doing | No. Run `openstack database instance show` | Yes | No |
+| `trove-taskmanager` and `trove-conductor` | No: Trove has no list of them | No | No |
+
+The exporter reads Trove's mgmt API, which only an admin may. Trove refuses anything less, and the exporter reads a refusal just as it reads Trove stopped: `openstack_trove_up` reads 0 and nothing else is said. So a credential that has never once read Trove is told that, rather than that Trove is down, and isn't offered Trove's alerts. A probe reads the same list and tells the two apart: Trove answered, so its API reads as up, and the connection test says it was refused. Once it has read Trove, a 0 reads as down, which is also what a credential that has since lost its access reads as.
+
+A stopped `trove-taskmanager` isn't shown anywhere, because Trove's lists answer without it and it has no list of workers: what it was working on just stops moving, and **Database Instance Stuck** is what says so. Trove gives up on a guest by itself well before that hour.
+
+Nothing has been recorded of a database reaching `ACTIVE`, because Nova refused the guest on every test run, so how full a volume reads has only been checked on made-up numbers. An instance that isn't running reads 0 used, and that reads as nothing rather than as empty.
+
+## Gnocchi
+
+A cloud that runs Gnocchi gets its API on **Services** on its own, and one that doesn't shows no trace of it. Gnocchi has no parts anyone opens one by one, so what it says goes on that API's own page: how many measures and metrics are waiting, and how many processors it has.
+
+No processors reaches **Needs attention**, and so does a backlog past 10,000 measures. Gnocchi's API goes on answering and taking measures with `gnocchi-metricd` stopped, recorded, so its processors are the only place that shows. Nothing is lost while that lasts, but nothing newer can be read.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Whether its API answers | Yes | Yes | Nothing: see below |
+| How many measures and metrics are waiting, and how many processors it has | Yes | Yes | No |
+
+The exporter reads Gnocchi's status, which only an admin may. Gnocchi refuses anything less, and the exporter reads a refusal just as it reads Gnocchi stopped: `openstack_gnocchi_up` reads 0. So a credential that has never once read Gnocchi is told that, rather than that Gnocchi is down, and isn't offered its alerts. A probe tells the two apart: Gnocchi answered, so its API reads up, and the connection test says it was refused.
+
+**Gnocchi Backlog Growing** reads a line through the last two hours. A busy cloud's backlog never reads 0, so a large one that is falling is fine, and one that isn't falling is what it says. The runners only ever got to a backlog of 10 measures, so its line has only been checked on made-up numbers.
+
+## Swift
+
+A cloud that runs Swift gets **Object Storage** under **Storage** on its own, and one that doesn't shows no trace of it. It lists the containers of the credential's own project, how much each holds and how many objects, and each has a page of its own.
+
+| What | Agent, Full view | Probe, Full view | Probe, with `ResellerAdmin` | Anything less |
+| --- | --- | --- | --- | --- |
+| This credential's own project's containers, and how much each holds | Yes, with no project | Yes | Yes | Nothing: see below |
+| Whether its proxy answers | Yes | Yes | Yes | No |
+| Another project's containers | No | No | Yes, up to 200 projects a collection | No |
+| A stopped object, container or account server | No | No | No | No |
+
+Swift keeps every project's account from every other project's credentials, recorded, so without `ResellerAdmin` this list is never the whole cloud's. The exporter asks only for its own account either way. A probe whose credential has that role reads each project's in turn, one read per account, and says whose each container is.
+
+A credential Swift refuses reads `openstack_object_store_up` 0, just as a stopped proxy does. So a credential that has never once read Swift is told that, rather than that Swift is down, and isn't offered its alerts. A probe tells the two apart: Swift answered, so its API reads up, and the connection test says it was refused. An application credential with access rules also needs `include_service_catalog = True` in `proxy-server.conf`.
+
+A stopped object server changes nothing here, recorded: Swift's lists come from its account and container servers, and its proxy goes on answering. Only what each storage server says through its own `/recon` would say so, and that isn't in Keystone's catalog.
+
+**Object Container Growth Forecast** reads a line through the last week of each container, and looks a week ahead. Swift says nothing here of how much room a cloud has, so its line of 1 TiB is one to hear about rather than one anything breaks at. Change it to fit your cloud. No runner holds a week of growth, so it has only been checked on made-up numbers.
+
+## Barbican
+
+The exporter has no reader for Barbican: asking it for `key-manager` is a `400`, recorded. So a cloud the agent collects shows no trace of it, whether it runs it or not, and only a [probe](/docs/telemetry/openstack-agentless) says anything.
+
+A probe reads Barbican where Keystone's catalog names it, and puts it on **Services**: whether its API answers, and how many secrets, orders and containers this credential's own project holds. Barbican answers about one project at a time, an admin too, so those are never the cloud's. OneUptime reads no secret: a list says only that one exists, and it asks for the one row it takes to get the total.
+
+Barbican refuses a plain reader, and that reads as what it is: its API answered, so it reads as up, and the counts say nothing.
 
 ## Service logs
 
@@ -1258,13 +1415,113 @@ If you turn them on, their spans still reach this cloud's **Traces** page throug
 The agent's `docker-compose.yml` also runs the **OpenStack AI agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cloud it runs read-only `openstack` commands through it — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — and cites what it ran. There is no `openstack` binary in the agent and no shell: each command becomes one `GET` to the service that answers it, with the agent's own credential. The agent registers with the same `OPENSTACK_CLOUD_NAME` the collector reports, so it serves this cloud.
 
 - **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cloud with it, and the cloud's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs. **AI > Agent** has the agent's status, **Test connection**, **Reset agent** and the install instructions, **AI > Insights** what it has done, and **AI > Logs** the commands it ran.
-- **It only reads.** Its policy has no command that changes a cloud, whatever a setting says: `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES=true` change nothing here, and the agent says so when it starts. Keystone's users, credentials and role assignments are off-limits too, and so are consoles and Barbican's secrets.
+- **It reads, until you say otherwise.** Fixes are off until you opt in twice, and use a credential of their own: see [Fixes](#fixes). Keystone's users, credentials and role assignments, consoles, what a guest printed and Barbican's secrets are off-limits to it, to read or to change.
 - **The credential is the hard limit.** It uses the credential in `clouds.yaml` that the exporter reads, so it sees what the level you chose in [Choose how much the agent sees](#choose-how-much-the-agent-sees) lets it see. If you made that credential with access rules, make a new one from the current [rules](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json): they gained a few `GET` paths for the agent (an instance's actions, one network, subnet, router, floating IP, port or image), and the old ones still work for everything else. To use a credential of its own, set `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` and `OPENSTACK_AUTH_URL`, and `OPENSTACK_AI_CLOUDS_FILE=/dev/null` if there is no `clouds.yaml` beside the agent, as with your own exporter.
 - **Secrets stay out.** An instance's `user_data`, its admin password, an image's `direct_url` and a volume's `provider_auth`, and the generic secrets every AI agent masks, are removed from the output before it reaches the model or a log.
 - `install.sh` starts it with the exporter it bundles (the `openstack-ai-agent` Compose profile). With your own exporter there is no `clouds.yaml` beside it, so it needs a credential of its own and starts when you add that profile to `COMPOSE_PROFILES` in `.env`. `install.sh --without-docker` does not run it: use the Docker install if you want OneUptime AI to read this cloud.
-- It runs as the owner of `clouds.yaml` with no capabilities and a read-only root filesystem. Delete the `oneuptime-openstack-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI: a re-run of `install.sh` keeps your edit.
+- It runs as the owner of `clouds.yaml` with no capabilities and a read-only root filesystem. Delete the `oneuptime-openstack-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI. A re-run of `install.sh` puts it back and keeps your edited file as `docker-compose.yml.bak.<timestamp>`, so delete it again after an [upgrade](#upgrading-the-agent).
 
 What it may run and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#openstack-clouds). OneUptime AI's investigations read this cloud's Needs attention, blast radius, service logs and lifecycle events as well, where you have turned them on.
+
+### Fixes
+
+OneUptime AI can make ten changes on a cloud, and only ten. It never deletes anything, and never touches Keystone, quotas or security groups.
+
+| Tier | The change |
+| --- | --- |
+| Safe | `openstack server start SERVER-ID`, `openstack server reboot --soft SERVER-ID`, `openstack compute service set --enable HOST nova-compute`, `openstack network agent set --enable AGENT-ID` |
+| Riskier | `openstack server reboot --hard SERVER-ID`, `openstack server migrate SERVER-ID [--host HOST]`, `openstack server migrate live SERVER-ID [--host HOST]`, `openstack compute service set --disable --disable-reason "REASON" HOST nova-compute`, `openstack network agent set --disable AGENT-ID` |
+| Always asks a person | `openstack server evacuate SERVER-ID... [--host HOST]`, in every mode, whatever the allowlist says. The number of instances an evacuation may touch without asking is zero: Nova only takes one once the host is down, so every evacuation that can run is of a dead hypervisor |
+| Denied, whoever approves it | Anything that deletes (`server delete`, `volume delete`, `project delete`...), anything in Keystone, quotas, security groups, `--state` and `--down`, and every command not in this table |
+
+Each change has one spelling, in that order: another flag order, an abbreviation or a flag the real client also takes is refused. So what a person approves, what an allowlist entry names and what runs are the same words. A cold `server migrate` leaves the instance in `VERIFY_RESIZE` until a person confirms it, which OneUptime AI never does.
+
+**Fixes are off until you opt in twice.** On the agent, `ONEUPTIME_AI_ALLOW_WRITES=true` and a credential for changes. On the cloud, **What AI may do** other than Off, or `ONEUPTIME_AI_FIXES` on the agent. A first connection leaves them off, unlike the other kinds of resource.
+
+**Before a person approves a change,** the agent reads what it touches, and the card says how many instances and projects, and which. An evacuation's card also says what state the host is in, and what else it holds that the plan does not name. An evacuation the agent cannot read in full is not proposed. Every fix is a change event on the feed of each part it touched, and on the cloud's, with who approved it.
+
+**Where a change may land.** Both settings take `project:ID`, `host:NAME` and `instance:ID`, separated by commas, each of which may hold a `*`. A project and an instance go by their IDs, because a name can be reused: an entry that names one any other way keeps the agent read-only until it is fixed.
+
+- `ONEUPTIME_AI_PROTECTED_TARGETS` is what is never touched. It wins over every other setting, a write target naming the same thing and a person's approval included. Put the instance this agent runs on here, if it runs on this cloud.
+- `ONEUPTIME_AI_WRITE_TARGETS` limits where changes can land. A move that names no `--host` is refused when a host is listed in either: the scheduler could place it anywhere.
+
+The agent reads which project and host an instance is in just before it changes it, with its read credential. What it cannot read, it does not change.
+
+#### The credential for changes
+
+Changes use a credential of their own, and never the one the agent reads with: the agent refuses to run with the same one in both places.
+
+Nova only hands another project's instance to an admin context, in its own code after policy has passed, so no narrower role can restart an instance in someone else's project. So this credential's role is `admin`, and what limits it is everything around that role:
+
+1. **Its own account, on an empty project with no quota.** There is nothing to touch there, and no quota to make anything with.
+
+   ```bash
+   openstack role create oneuptime_remediation
+   openstack project create --domain default --description "OneUptime fixes: holds nothing" oneuptime-remediation
+   openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 oneuptime-remediation
+   openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 oneuptime-remediation
+   openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 oneuptime-remediation
+   openstack user create --domain default --password-prompt oneuptime-remediation
+   openstack role add --project oneuptime-remediation --user oneuptime-remediation admin
+   openstack role add --project oneuptime-remediation --user oneuptime-remediation oneuptime_remediation
+   ```
+
+2. **Access rules: four paths, and nothing else.** Logged in as that account on that project, fitted to your cloud:
+
+   ```bash
+   curl -fsSLO https://oneuptime.com/install/openstack-agent/access/write-application-credential-access-rules.json
+   curl -fsSLO https://oneuptime.com/install/openstack-agent/access/access-rules-for-cloud.py
+   openstack catalog list -f json | python3 access-rules-for-cloud.py \
+     write-application-credential-access-rules.json > write-access-rules-for-this-cloud.json
+   openstack application credential create oneuptime-agent-fixes \
+     --role admin --role oneuptime_remediation \
+     --access-rules "$(cat write-access-rules-for-this-cloud.json)" \
+     --expiration 2027-11-01T00:00:00
+   ```
+
+   Access rules need `service_type` set for keystonemiddleware on Nova (`compute`) and Neutron (`network`), and a restart of each.
+
+3. **A policy file, for what access rules cannot see.** `POST /servers/{id}/action` is one path for a start and a forced delete. `access/policy/write-nova.yaml` takes away from the `oneuptime_remediation` role every action on that path the agent never makes, and leaves everyone else's defaults as they are. A stolen credential then starts, reboots, moves and evacuates, and nothing else.
+
+Then give the agent its ID and secret, and restart it:
+
+```bash
+ONEUPTIME_AI_ALLOW_WRITES=true
+ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID=...
+ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
+```
+
+Where each way of deploying a cloud keeps those two settings. The first row is the one OneUptime's test rig follows on a real DevStack; the rest say what each tool's own documentation says, and have not been followed on a real deployment:
+
+| Deployment | `service_type` | The policy file |
+| --- | --- | --- |
+| By hand, packages, or DevStack | `[keystone_authtoken] service_type` in `/etc/nova/nova.conf` and `/etc/neutron/neutron.conf`, then restart their APIs | Merge into `/etc/nova/policy.yaml` |
+| Kolla-Ansible | The same section in `/etc/kolla/config/nova.conf` and `/etc/kolla/config/neutron.conf`, then `kolla-ansible reconfigure -t nova,neutron` | `/etc/kolla/config/nova/policy.yaml`, with the same `reconfigure` |
+| OpenStack-Ansible | `nova_nova_conf_overrides` and `neutron_neutron_conf_overrides` in `user_variables.yml`, then run each service's playbook | `nova_policy_overrides` in `user_variables.yml` |
+| OpenStack-Helm | `conf.nova.keystone_authtoken.service_type` and `conf.neutron.keystone_authtoken.service_type` in each chart's values, then `helm upgrade` | `conf.policy` in Nova's values |
+| Atmosphere | The same values, through `openstack_helm_nova_values` and `openstack_helm_neutron_values` | `conf.policy`, through `openstack_helm_nova_values` |
+| Canonical Sunbeam | Not offered by the charms, so access rules are not either: this is the plain credential below | Not offered by the charms |
+| Red Hat OpenStack on OpenShift | `customServiceConfig` of Nova's and Neutron's API templates in the `OpenStackControlPlane` | `defaultConfigOverwrite` of Nova's API template, as `policy.yaml` |
+| Mirantis MOSK | `services` values for Nova and Neutron in the `OpenStackDeployment` | `features.policies` in the `OpenStackDeployment` |
+
+A cloud where you make none of these changes can still use an application credential on that account without `--access-rules`. It works, and it can do everything an admin can, with nothing but the agent's own policy between it and that. Keep that in mind when you decide who may read the agent's `.env`.
+
+### Runbooks for the common failures
+
+The cloud's **AI agent** page offers a runbook for each of these, to add and make your team's own: what to check, with the read to check it by, and which fix it may come to and what tier that fix is. Each is a run of manual steps, for a person to tick off. Nothing in one runs on its own, because a change to the cloud goes through a fix and its policy.
+
+| Failure | The fix it may come to |
+| --- | --- |
+| Compute service down | Safe: enable it. Riskier: disable it. Always asks a person: evacuate what it held |
+| Instance stuck | Safe: start it, or reboot it softly. Riskier: reboot it hard, or move it |
+| Volume stuck | By hand: nothing here changes a volume, and resetting its state is for a person who has read the logs |
+| Router without an agent | Safe: enable the agent. Riskier: disable it |
+| RabbitMQ partition | By hand, on the machines: RabbitMQ is below OpenStack, and no command OneUptime AI has reaches it |
+| Galera lost quorum | By hand, on the machines, from the node with the highest `wsrep_last_committed` |
+
+### Fixes from a workflow
+
+A workflow can start from an OpenStack alert and propose a fix: the **Propose an OpenStack fix** step takes the alert or incident, and the command. It goes through the same policy, the same write scope and the same read of what a change touches as a fix OneUptime AI proposes, it needs no AI model, and a person approves it on the alert. A workflow can't make the change itself or approve what it proposes, whatever the cloud's fix mode is. The **Propose taking a failing OpenStack compute service out of scheduling** template is a place to start.
 
 ## Run as a systemd service
 
@@ -1327,6 +1584,33 @@ sudo userdel oneuptime-openstack
 
 Then delete the credential: `openstack application credential delete oneuptime-agent`. If you used the policy overrides, take them out of each service's file, or empty the file (`{}`). Never delete the file.
 
+## With no internet
+
+An agent behind an air gap needs three things from outside it: the install script and its files, which your own OneUptime serves; the images its `docker-compose.yml` runs, which you copy to a registry on your side; and nothing else. The agent only ever sends to your OneUptime URL and reads your cloud.
+
+The images are pinned in `docker-compose.yml`, so what you mirror is exactly what the agent runs:
+
+| Image | Where it comes from | What for |
+| --- | --- | --- |
+| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | The collector. Always, and the [logs](#service-logs) and [traces](#trace-requests-through-the-control-plane) profiles run the same one |
+| `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | The bundled exporter, and the one that reads project quotas. Not needed if you [run your own exporter](#install-and-start-the-agent) |
+| `oneuptime/resource-ai-agent:release` | Docker Hub | The [AI agent](#ai-agent). Not needed if you take its service out of `docker-compose.yml`. The `release` tag moves with each OneUptime release, so copy it again when you upgrade |
+| `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | Only the [database path](/docs/telemetry/openstack-very-large-clouds#the-database-path) |
+
+The two that name a digest are copied by digest, so a mirror that keeps the digest holds the same bytes. On a machine that reaches the internet and your registry, `crane copy` keeps it (`skopeo copy --all --preserve-digests` does too). Or save them to a file with `docker save`, carry it across, and `docker load` it on the agent's machine.
+
+```bash
+crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
+crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
+```
+
+Then, on the agent's machine, run [the install script](#install-and-start-the-agent) as usual, from your own OneUptime. It tries to pull the images, says so when it cannot, and starts with the ones the machine has. With a registry, change each `image:` in `docker-compose.yml` to your copy and run `docker compose up -d`. `install.sh` replaces `docker-compose.yml` each time it runs and keeps your edited one as `docker-compose.yml.bak.<timestamp>`, so make the edit again after an [upgrade](#upgrading-the-agent).
+
+Do not use `--without-docker` behind a gap. It downloads the collector's and the exporter's release archives from GitHub, with no option to download from a mirror instead.
+
+OneUptime's own images cross the gap another way: [Air-Gapped Installation](/docs/installation/air-gapped) covers the platform's, and not the agent's. The agent's images are not in that bundle.
+
 ## Troubleshooting
 
 :::details Run the diagnostic script first
@@ -1379,7 +1663,7 @@ The exporter asks Nova for all projects' servers, Nova refuses a plain reader, a
 :::
 
 :::details One service's data is missing
-That is the design working: the others keep reporting. The diagnostic script says whether the service answers. Then read the exporter's log: `docker logs oneuptime-openstack-exporter`, or `journalctl -u oneuptime-openstack-exporter` without Docker.
+That is the design working: the others keep reporting. The diagnostic script says whether the service answers. Then read the exporter's log: `docker logs oneuptime-openstack-exporter`, or `journalctl -u oneuptime-openstack-exporter` without Docker. An access-rule credential made from an older copy of the rules does this on Swift, and on Octavia behind a path, even though the script's own reads pass: make a new one.
 :::
 
 :::details Every OpenStack service fails after taking a policy file away

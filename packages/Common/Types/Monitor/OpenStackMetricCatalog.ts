@@ -39,6 +39,9 @@ export type OpenStackMetricCategory =
   | "Orchestration"
   | "Bare Metal"
   | "Load Balancers"
+  | "Databases"
+  | "Metrics"
+  | "Key Manager"
   | "Projects"
   | "Checks"
   | "Capacity";
@@ -241,6 +244,17 @@ function metric(
         : data.description,
   };
 }
+
+const DATABASE_INSTANCE_LABELS: ReadonlyArray<string> = [
+  "datastore_type",
+  "datastore_version",
+  "health_status",
+  "id",
+  "name",
+  "region",
+  "status",
+  "tenant_id",
+];
 
 /*
  * What the checks from outside report. The region is a label on every one, as on everything
@@ -2474,6 +2488,29 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
   metric({
+    metricName: "openstack_cloudkitty_up",
+    friendlyName: translationKey("Rating API Up"),
+    description:
+      "Whether CloudKitty's API answered a probe (1) or not (0), on a cloud that runs it. Only a probe sends this: the agent's exporter has no series for CloudKitty.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Rating,
+    identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_cloudkitty_rated",
+    friendlyName: translationKey("Rated By CloudKitty"),
+    description:
+      "One series per project and month, whose value is what CloudKitty rated it, sent once an hour. A number, in whatever CloudKitty's rates are in. Only a probe sends this.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Rating,
+    identityAttributes: ["project_id", "period"],
+    onlyFromProbe: true,
+  }),
+  metric({
     metricName: "openstack_container_infra_up",
     friendlyName: translationKey("Kubernetes Clusters API Up"),
     description:
@@ -2493,7 +2530,15 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Orchestration,
     identityAttributes: ["id", "name", "project_id", "status"],
-    probeOnlyAttributes: ["status_reason", "parent_id"],
+    probeOnlyAttributes: [
+      "status_reason",
+      "parent_id",
+      "resources_read",
+      "owned_instance_ids",
+      "owned_instance_count",
+      "owned_volume_ids",
+      "owned_volume_count",
+    ],
   }),
   metric({
     metricName: "openstack_heat_stack_status_counter",
@@ -2785,6 +2830,258 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     service: OpenStackServiceType.LoadBalancer,
     identityAttributes: [],
   }),
+  // Metrics: Gnocchi, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_gnocchi_up",
+    friendlyName: translationKey("Metrics API Up"),
+    description:
+      "Whether the exporter's read of Gnocchi answered (1) or failed (0). It reads Gnocchi's status, which only an admin may, so any credential short of that reads 0 just as a stopped API does, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_measures_to_process",
+    friendlyName: translationKey("Gnocchi Measures Waiting"),
+    description:
+      "How many measures gnocchi-metricd has yet to process, per region. A busy cloud's never reads 0. One that keeps rising means it isn't keeping up.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_metric_having_measures_to_process",
+    friendlyName: translationKey("Gnocchi Metrics Waiting"),
+    description:
+      "How many metrics have measures waiting for gnocchi-metricd, per region.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_metricd_processors",
+    friendlyName: translationKey("Gnocchi Processors"),
+    description:
+      "How many metricd processors Gnocchi's status names, per region. 0 means nothing is processing what comes in, and Gnocchi's API goes on answering.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  // Object storage: Swift, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_object_store_up",
+    friendlyName: translationKey("Object Storage API Up"),
+    description:
+      "Whether the exporter's read of Swift answered (1) or failed (0). A credential Swift refuses reads 0 just as a stopped proxy does, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_object_store_bytes",
+    friendlyName: translationKey("Object Container Size"),
+    description:
+      "How much a container holds. Only the containers of the credential's own project, with no project label, recorded: Swift keeps every other project's account from anything without ResellerAdmin.",
+    category: "Storage",
+    unit: "bytes",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["container_name"],
+    probeOnlyAttributes: ["tenant_id"],
+  }),
+  metric({
+    metricName: "openstack_object_store_objects",
+    friendlyName: translationKey("Objects in a Container"),
+    description:
+      "How many objects a container holds. Only the containers of the credential's own project, with no project label, recorded.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["container_name"],
+    probeOnlyAttributes: ["tenant_id"],
+  }),
+  // Key manager: Barbican. Only a probe sends these: the exporter has no reader for it, recorded.
+  metric({
+    metricName: "openstack_barbican_up",
+    friendlyName: translationKey("Key Manager API Up"),
+    description:
+      "Whether Barbican's API answered (1) or failed (0). Only a probe sends this. A credential it refuses reads 1, because it answered.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_secrets",
+    friendlyName: translationKey("Secrets"),
+    description:
+      "How many secrets this credential's own project holds. Only a probe sends this. Barbican answers about one project at a time, an admin too, and OneUptime reads no secret itself.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_orders",
+    friendlyName: translationKey("Secret Orders"),
+    description:
+      "How many orders this credential's own project holds. Only a probe sends this.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_containers",
+    friendlyName: translationKey("Secret Containers"),
+    description:
+      "How many secret containers this credential's own project holds. Only a probe sends this.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_trove_up",
+    friendlyName: translationKey("Databases API Up"),
+    description:
+      "Whether the exporter's read of Trove answered (1) or failed (0). It reads Trove's mgmt API, which only an admin may, so any credential short of that reads 0 just as a stopped API does, recorded. A stopped trove-taskmanager leaves this at 1. Only a cloud whose catalog names Trove has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Database,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_trove_total_instances",
+    friendlyName: translationKey("Database Instances"),
+    description: "How many database instances Trove listed, per region.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.Database,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_trove_instance_status",
+    friendlyName: translationKey("Database Instance Status"),
+    description:
+      "One series per database instance. The value is a code for its status, so read the `status` label for the word (ACTIVE, BUILD, ERROR).",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+    probeOnlyAttributes: ["fault_message", "task_description"],
+  }),
+  metric({
+    metricName: "openstack_trove_instance_volume_size_gb",
+    friendlyName: translationKey("Database Volume Size"),
+    description:
+      "How many GiB each database instance's volume holds, one series per instance.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+  }),
+  metric({
+    metricName: "openstack_trove_instance_volume_used_gb",
+    friendlyName: translationKey("Database Volume Used"),
+    description:
+      "How many GiB of each database instance's volume its database has used, as its guest reports. An instance that isn't running reads 0, recorded in BUILD and ERROR, which says nothing about what it holds.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+  }),
+  // DNS: Designate, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_designate_up",
+    friendlyName: translationKey("DNS API Up"),
+    description:
+      "1 when the exporter read Designate's zones. A stopped API says nothing at all: the exporter reads its versions first and answers an empty 200, as for a cloud without Designate, recorded, so this goes quiet rather than reading 0. So 0 means Designate answered and refused the zones, which is what any credential short of an admin's gets, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_designate_zones",
+    friendlyName: translationKey("DNS Zones"),
+    description: "How many zones Designate listed, per region.",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.Dns,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_designate_zone_status",
+    friendlyName: translationKey("DNS Zone Status"),
+    description:
+      "One series per zone. The value is a code for its status, and PENDING's code is 0, recorded, so read the `status` label for the word (ACTIVE, PENDING, ERROR).",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: ["id", "name", "status", "tenant_id", "type"],
+    probeOnlyAttributes: ["action"],
+  }),
+  metric({
+    metricName: "openstack_designate_recordsets",
+    friendlyName: translationKey("DNS Recordsets per Zone"),
+    description:
+      "How many recordsets each zone holds, one series per zone. The exporter makes one call per zone to say this, on every scrape.",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.Dns,
+    identityAttributes: ["tenant_id", "zone_id", "zone_name"],
+  }),
+  metric({
+    metricName: "openstack_designate_recordsets_status",
+    friendlyName: translationKey("DNS Recordset Status"),
+    description:
+      "One series per recordset. The value is a code for its status, and PENDING's code is 0, recorded, so read the `status` label for the word (ACTIVE, PENDING, ERROR). A zone's own SOA and NS read ERROR with the zone.",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: [
+      "id",
+      "name",
+      "status",
+      "type",
+      "zone_id",
+      "zone_name",
+    ],
+  }),
+  metric({
+    metricName: "openstack_designate_agent_state",
+    friendlyName: translationKey("Designate Service Up"),
+    description:
+      "Whether Designate lists each of its services as UP (1) or not (0). Only a probe sends this, because the exporter never reads Designate's service statuses. A stopped worker leaves this at 1 for a while, recorded, because Designate only notices when its heartbeat grows old.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: ["hostname", "service"],
+    onlyFromProbe: true,
+  }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_ironic_up",
@@ -2919,6 +3216,9 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Orchestration",
     "Bare Metal",
     "Load Balancers",
+    "Databases",
+    "Metrics",
+    "Key Manager",
     "Projects",
     "Checks",
     "Capacity",

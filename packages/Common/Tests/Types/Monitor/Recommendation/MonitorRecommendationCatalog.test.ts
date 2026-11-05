@@ -292,7 +292,10 @@ describe("MonitorRecommendationCatalog", () => {
   describe("what a cloud is offered", () => {
     const BARE_METAL_IDS: Array<string> = getAllOpenStackAlertTemplates()
       .filter((template: OpenStackAlertTemplate): boolean => {
-        return template.forService === OpenStackServiceType.BareMetal;
+        return (
+          template.forService === OpenStackServiceType.BareMetal &&
+          !template.requiresProbe
+        );
       })
       .map((template: OpenStackAlertTemplate): string => {
         return template.id;
@@ -348,6 +351,24 @@ describe("MonitorRecommendationCatalog", () => {
       expect(list.length).toBe(
         offered(undefined).length + BARE_METAL_IDS.length,
       );
+    });
+
+    it("a stopped conductor is offered only where a probe could say so", () => {
+      const context: { openStackServices: Array<string> } = {
+        openStackServices: [OpenStackServiceType.BareMetal],
+      };
+
+      expect(offered(context)).not.toContain(
+        "openstack-bare-metal-conductor-down",
+      );
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.OpenStack,
+          { ...context, openStackIsCollectedByProbe: true },
+        ).map((recommendation: MonitorRecommendation): string => {
+          return recommendation.templateId;
+        }),
+      ).toContain("openstack-bare-metal-conductor-down");
     });
 
     it("a cloud a probe collects, reporting every one of them, is offered everything", () => {
@@ -1538,6 +1559,46 @@ describe("an OpenStack cloud's recommendations", () => {
         openStackIsCollectedByProbe: true,
       }),
     ).toContain("openstack-share-service-down");
+  });
+
+  test("Designate's go only to a cloud that runs it, and its API's only to a probe's", () => {
+    expect(idsOf()).not.toContain("openstack-dns-zone-in-error");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["dns"] });
+    expect(ids).toContain("openstack-dns-zone-in-error");
+    expect(ids).toContain("openstack-dns-zone-stuck-pending");
+    expect(ids).toContain("openstack-dns-recordset-in-error");
+    expect(ids).not.toContain("openstack-dns-api-down");
+    expect(
+      idsOf({ openStackServices: ["dns"], openStackIsCollectedByProbe: true }),
+    ).toContain("openstack-dns-api-down");
+  });
+
+  test("Gnocchi's go only to a cloud that runs it", () => {
+    expect(idsOf()).not.toContain("openstack-metric-no-processors");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["gnocchi"] });
+    expect(ids).toContain("openstack-metric-no-processors");
+    expect(ids).toContain("openstack-metric-backlog-growing");
+    expect(ids).toContain("openstack-metric-api-down");
+  });
+
+  test("Swift's go only to a cloud that runs it", () => {
+    expect(idsOf()).not.toContain("openstack-object-container-growth");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["object-store"] });
+    expect(ids).toContain("openstack-object-container-growth");
+    expect(ids).toContain("openstack-object-store-api-down");
+  });
+
+  test("Trove's go only to a cloud that runs it", () => {
+    expect(idsOf()).not.toContain("openstack-database-instance-in-error");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["database"] });
+    expect(ids).toContain("openstack-database-api-down");
+    expect(ids).toContain("openstack-database-instance-in-error");
+    expect(ids).toContain("openstack-database-instance-stuck");
+    expect(ids).toContain("openstack-database-volume-nearly-full");
   });
 
   test("a monitor set up from one of them still resolves on a cloud that no longer runs it", () => {

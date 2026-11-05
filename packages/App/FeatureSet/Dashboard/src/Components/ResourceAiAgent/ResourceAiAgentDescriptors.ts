@@ -405,7 +405,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     insightsPage: PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS,
     logsPage: PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
-      "The small container next to your OpenStack agent that turns each openstack command OneUptime AI asks for into one read of the cloud's API, with its own credential. It only ever reads.",
+      "The small container next to your OpenStack agent that turns each openstack command OneUptime AI asks for into one call to the cloud's API. It reads with one credential, and changes something only with a second one you give it.",
     ),
     investigateTitle: translationKey("Investigate with openstack"),
     readExamples:
@@ -414,13 +414,17 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     commandsCardTitle: translationKey("openstack commands"),
     toolVersionLabel: "Nova API",
     identityColumn: "name",
-    writeExamples: translationKey("nothing: it only reads an OpenStack cloud"),
-    alwaysHumanExamples: null,
+    writeExamples: translationKey(
+      "start or soft-reboot an instance, enable a compute service or a network agent",
+    ),
+    alwaysHumanExamples: translationKey(
+      "evacuating the instances of a dead hypervisor",
+    ),
     riskierExamples: translationKey(
-      "no changes: it only reads an OpenStack cloud",
+      "riskier changes such as hard-rebooting or migrating an instance, or disabling a compute service or a network agent",
     ),
     riskierChanges: translationKey(
-      "no changes: it only reads an OpenStack cloud",
+      "hard-rebooting or migrating an instance, or disabling a compute service or a network agent",
     ),
     commandsTableId: "openstack-cloud-ai-commands",
     isCloudAccount: false,

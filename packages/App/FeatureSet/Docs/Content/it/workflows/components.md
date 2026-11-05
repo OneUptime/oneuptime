@@ -485,7 +485,7 @@ Una query è sempre limitata al progetto in cui viene eseguito il workflow. Non 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Fields to pass on**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`.
+Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Fields to pass on**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`. I campi di un record collegato vanno sotto la sua chiave, come in `{"monitor": {"name": true}}`: `{"monitor": true}` trasmette solo il suo ID.
 
 I **campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
 

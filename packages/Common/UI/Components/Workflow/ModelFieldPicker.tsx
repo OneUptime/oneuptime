@@ -15,8 +15,9 @@ import FieldError from "../Forms/Fields/FieldError";
  *
  * The stored value is the same JSON as before - {"title": true} - and a
  * value the list cannot show (a field set to something other than true, a
- * whole related record) is kept as JSON, with the reasons, so a workflow
- * keeps running unchanged. Anyone can edit it as JSON from here too.
+ * related record with none of its fields named) is kept as JSON, with the
+ * reasons, so a workflow keeps running unchanged. Anyone can edit it as JSON
+ * from here too.
  */
 
 import CodeEditor from "../CodeEditor/CodeEditor";

@@ -76,9 +76,9 @@ Each scrape's rows are what you are billed for: the first five lines arrive ever
 
 | Cloud | Series | GB a day, every series | GB a day, in summary mode | A month kept 15 days, in summary mode |
 | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instances, 20 projects | 1,057 | 0.7 | Not in summary mode | $2.10 |
-| 500 hypervisors, 20,000 instances, 1,000 projects | 123,829 | 84.5 | 16.6 | $49.69 |
-| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,165 | 844.5 | 164.9 | $494.71 |
+| 10 hypervisors, 100 instances, 20 projects | 1,075 | 0.7 | Not in summary mode | $2.12 |
+| 500 hypervisors, 20,000 instances, 1,000 projects | 123,847 | 84.5 | 16.6 | $49.71 |
+| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,183 | 844.5 | 164.9 | $494.73 |
 
 Those are through the agent, with one instance in a thousand in a state that keeps its series. A probe past the summary size sends what has not changed once a cycle rather than every collection, which comes to about 13.2 GB a day at the second size and 116 GB at the third.
 
@@ -220,6 +220,10 @@ A large cloud's pages read as fast as a small one's, because none of them reads 
 | Lists | A page at a time, each from the last row of the page before. A jump to a far page goes by offset, which on the last page of 200,000 rows takes seconds rather than a millisecond |
 | **Topology** | Past 5,000 parts, the structure, what has failed and what that takes with it. It says what it left out |
 | **Inventory writes** | At most 500 rows to a statement, and 5,000 to a delete, each its own transaction, so no writer waits long on another. A row nothing has changed on is not rewritten for up to 5 minutes, which cuts the write-ahead log more than twentyfold |
+
+## Usage and spend
+
+A cloud's [Spend page](/docs/telemetry/openstack#spend) reads the inventory's rows rather than any instance's series, so it works the same in summary mode, and its cost grows with projects rather than instances. It reads one row of the cloud and one page of projects. [Its own section](/docs/telemetry/openstack#at-each-size) has the numbers at each size.
 
 ## Next steps
 

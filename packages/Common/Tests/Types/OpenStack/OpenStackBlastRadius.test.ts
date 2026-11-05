@@ -48,6 +48,9 @@ describe("buildOpenStackBlastRadius", () => {
         stackCount: 0,
         shareCount: 0,
         loadBalancerCount: 0,
+        databaseInstanceCount: 0,
+        objectContainerCount: 0,
+        dnsZoneCount: 0,
         containerClusterCount: 0,
       },
       {
@@ -60,6 +63,9 @@ describe("buildOpenStackBlastRadius", () => {
         stackCount: 0,
         shareCount: 0,
         loadBalancerCount: 0,
+        databaseInstanceCount: 0,
+        objectContainerCount: 0,
+        dnsZoneCount: 0,
         containerClusterCount: 0,
       },
     ]);
@@ -85,9 +91,12 @@ describe("buildOpenStackBlastRadius", () => {
       counts: [
         {
           count: "instanceCount",
-          byProject: Array.from({ length: projects }, (_: unknown, i: number) => {
-            return { projectId: `project-${i}`, count: i + 1 };
-          }),
+          byProject: Array.from(
+            { length: projects },
+            (_: unknown, i: number) => {
+              return { projectId: `project-${i}`, count: i + 1 };
+            },
+          ),
         },
       ],
     });

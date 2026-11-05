@@ -44,8 +44,11 @@ export interface OpenStackInventorySummary {
    * with what that project owns, and Placement answers everyone.
    */
   bareMetalProviderCount: number;
+  bareMetalProvidersNotListedCount: number;
   // The services a read has heard from, by what Keystone's catalog calls them.
   services: Array<string>;
+  // Of those, the ones that have never once let this credential in.
+  closedServices: Array<string>;
   vcpuCapacity: number;
   vcpuAllocated: number;
   memoryCapacityBytes: number;
@@ -56,6 +59,9 @@ export interface OpenStackInventorySummary {
   containerClusterCount: number;
   shareCount: number;
   loadBalancerCount: number;
+  databaseInstanceCount: number;
+  objectContainerCount: number;
+  dnsZoneCount: number;
   // The services a cloud may not run that this one does, in the region being read.
   optionalServices: Array<OpenStackServiceType>;
 }
@@ -90,7 +96,17 @@ export function toOpenStackInventorySummary(
     downServiceCount: readNumber("downServiceCount"),
     bareMetalNodeCount: readNumber("bareMetalNodeCount"),
     bareMetalProviderCount: readNumber("bareMetalProviderCount"),
+    bareMetalProvidersNotListedCount: readNumber(
+      "bareMetalProvidersNotListedCount",
+    ),
     services: services,
+    closedServices: Array.isArray(summary["closedServices"])
+      ? (summary["closedServices"] as Array<JSONValue>).filter(
+          (service: JSONValue): service is string => {
+            return typeof service === "string";
+          },
+        )
+      : [],
     vcpuCapacity: readNumber("vcpuCapacity"),
     vcpuAllocated: readNumber("vcpuAllocated"),
     memoryCapacityBytes: readNumber("memoryCapacityBytes"),
@@ -101,6 +117,9 @@ export function toOpenStackInventorySummary(
     containerClusterCount: readNumber("containerClusterCount"),
     shareCount: readNumber("shareCount"),
     loadBalancerCount: readNumber("loadBalancerCount"),
+    databaseInstanceCount: readNumber("databaseInstanceCount"),
+    objectContainerCount: readNumber("objectContainerCount"),
+    dnsZoneCount: readNumber("dnsZoneCount"),
     optionalServices: getOpenStackOptionalServicesOf(services),
   };
 }

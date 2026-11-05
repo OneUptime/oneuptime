@@ -126,7 +126,7 @@ stateDiagram-v2
 打开运行并查看该步骤。没有解析的引用会作为警告在步骤本身上指出，它在 **已接收** 块中的设置会标记为 **Did not resolve**。
 
 - 如果你看到字面的 `{{local.components.…}}` 文本，说明引用没有解析。通常是组件 ID 或返回值 ID 拼错了——记住它是块的 **Identifier**，而不是块上显示的名称。也检查一下 `local.components` 本身的拼写：`{{local.componets.api-get-1.returnValues.response-body}}` 会作为字面文本发送，而运行仍然报告 **已执行**。如果这次运行是 **Run just this step** 测试，前面的块根本没有运行——请改为运行整个工作流。
-- 如果你看到 **Empty text**，说明前面的块运行了，但没有产生那个字段。
+- 如果你看到 **Empty text**，或者消息中有空缺，说明前面的块运行了，但那个字段里什么也没有。要么记录在那里没有值，**Full Log** 选项卡会用单独一行说明；要么块没有把该字段传下去，步骤会对此发出警告。
 
 同样的警告也会出现在 **Full Log** 选项卡中，是一行以 `Warning:` 开头的内容。
 :::

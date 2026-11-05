@@ -57,7 +57,9 @@ import {
  *
  *   cloud > region > availability zone > hypervisor > instance > volume
  *   region > Network > external network > router > floating IP
+ *   region > Network > DNS zone > recordset that isn't ACTIVE
  *   region > Storage > storage pool, share
+ *   region > Databases > database
  *   region > Control plane > APIs and workers
  *
  * What the agent's exporter says, and so what is drawn. A volume names the instance it
@@ -101,6 +103,7 @@ export interface OpenStackTopologyInput {
 
 const SECTION_NETWORK: string = translationKey("Network");
 const SECTION_STORAGE: string = translationKey("Storage");
+const SECTION_DATABASES: string = translationKey("Databases");
 const SECTION_CONTROL_PLANE: string = translationKey("Control plane");
 const SECTION_NO_REGION: string = translationKey("No region reported");
 const SECTION_NO_ZONE: string = translationKey("No availability zone reported");
@@ -700,6 +703,125 @@ export function buildOpenStackTopology(
       link: linkTo(
         cloudId,
         PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
+
+  /*
+   * A database runs on an instance Nova runs, in a project Trove keeps out of the way, and nothing the
+   * exporter says names it. So it stands in a section of its own.
+   */
+  const dnsZoneIds: Set<string> = new Set();
+  for (const row of rowsOf(OpenStackResourceKind.DnsZone)) {
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+    dnsZoneIds.add(row.externalId!);
+
+    nodes.push({
+      id: `dns-zone:${row.externalId}`,
+      parentId: sectionId(row.regionName, "network", SECTION_NETWORK),
+      kind: "openstack.dns-zone",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      facts: projectFacts(row),
+      context: projectName(row),
+      keywords: projectKeywords(row),
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
+
+  // Only what isn't ACTIVE has a row, so this draws what went wrong and none of what didn't.
+  for (const row of rowsOf(OpenStackResourceKind.DnsRecordset)) {
+    const zoneId: unknown = factsOf(row)["zoneId"];
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+
+    nodes.push({
+      id: `dns-recordset:${row.externalId}`,
+      parentId:
+        typeof zoneId === "string" && dnsZoneIds.has(zoneId)
+          ? `dns-zone:${zoneId}`
+          : sectionId(row.regionName, "network", SECTION_NETWORK),
+      kind: "openstack.dns-recordset",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      ...(typeof zoneId === "string"
+        ? {
+            link: linkTo(
+              cloudId,
+              PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL,
+              zoneId,
+            ),
+          }
+        : {}),
+    });
+  }
+
+  for (const row of rowsOf(OpenStackResourceKind.ObjectContainer)) {
+    nodes.push({
+      id: `object-container:${row.externalId}`,
+      parentId: sectionId(row.regionName, "storage", SECTION_STORAGE),
+      kind: "openstack.object-container",
+      name: getOpenStackDisplayName(row),
+      health: "healthy",
+      status: asWritten(row),
+      reasons: [],
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
+
+  for (const row of rowsOf(OpenStackResourceKind.DatabaseInstance)) {
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+
+    nodes.push({
+      id: `database:${row.externalId}`,
+      parentId: sectionId(row.regionName, "databases", SECTION_DATABASES),
+      kind: "openstack.database",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      facts: projectFacts(row),
+      context: projectName(row),
+      keywords: projectKeywords(row),
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
         row.externalId!,
       ),
     });

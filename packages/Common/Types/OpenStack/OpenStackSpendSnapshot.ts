@@ -51,6 +51,7 @@ export type OpenStackSpendSource =
   | "usage-only";
 
 export const OPENSTACK_SPEND_GROWERS_KEPT: number = 10;
+export const OPENSTACK_SPEND_SMALLEST_GROWTH: number = 0.01;
 export const OPENSTACK_SPEND_DOMAINS_KEPT: number = 200;
 export const OPENSTACK_SPEND_FLAVORS_KEPT: number = 50;
 export const OPENSTACK_SPEND_VOLUME_TYPES_KEPT: number = 50;
@@ -58,58 +59,69 @@ export const OPENSTACK_SPEND_DAYS_KEPT: number = 62;
 export const OPENSTACK_SPEND_MONTHS_KEPT: number = 13;
 
 /*
- * CloudKitty's rated figure for one project and one period, as the scan keeps it on the project's
- * row. Nothing below zero and no zero: a rate of nothing is a project CloudKitty has no rule for,
- * which isn't the same as one that cost nothing.
+ * CloudKitty's rated figure for one project and one period. Nothing below zero and no zero: a rate of
+ * nothing is a project CloudKitty has no rule for, which isn't the same as one that cost nothing.
  */
 export interface OpenStackRatedPeriod {
   total: number;
-  byType: Record<string, number>;
   readAt: string | null;
 }
 
 export type OpenStackRatedByPeriod = Record<string, OpenStackRatedPeriod>;
 
+/*
+ * The scan keeps each region's figures as a fact of their own on the project's row. A CloudKitty per
+ * region rates its own region's use, is read in its own time and can arrive in an upload of its own,
+ * and a fact is replaced whole, so one fact with every region in it would lose the others each time
+ * one of them arrived.
+ */
+const OPENSTACK_RATED_FACT_PREFIX: string = "rated:";
+
+export function getOpenStackRatedFactKey(regionName: string | null): string {
+  return `${OPENSTACK_RATED_FACT_PREFIX}${regionName || ""}`;
+}
+
+// What to ask Postgres for, to read every region's fact of a row at once.
+export const OPENSTACK_RATED_FACTS_SQL: string = `(SELECT jsonb_object_agg("key", "value") FROM jsonb_each("facts") WHERE "key" LIKE '${OPENSTACK_RATED_FACT_PREFIX}%')`;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/*
+ * A project's regions added up, by period, from what OPENSTACK_RATED_FACTS_SQL read. Read as the oldest
+ * of them, because that's how fresh the sum is.
+ */
 export function readOpenStackRatedByPeriod(
   value: unknown,
 ): OpenStackRatedByPeriod {
   const rated: OpenStackRatedByPeriod = {};
 
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return rated;
-  }
+  for (const region of Object.values(asRecord(value) || {})) {
+    const periods: Record<string, unknown> = asRecord(region) || {};
 
-  for (const period of Object.keys(value)) {
-    const entry: unknown = (value as Record<string, unknown>)[period];
+    for (const period of Object.keys(periods)) {
+      const record: Record<string, unknown> | null = asRecord(periods[period]);
+      const total: number = Number(record?.["total"]);
 
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      continue;
-    }
-
-    const record: Record<string, unknown> = entry as Record<string, unknown>;
-    const total: number = Number(record["total"]);
-
-    if (!Number.isFinite(total) || total <= 0) {
-      continue;
-    }
-
-    const byType: Record<string, number> = {};
-    const types: unknown = record["byType"];
-
-    if (types && typeof types === "object" && !Array.isArray(types)) {
-      for (const type of Object.keys(types)) {
-        const amount: number = Number((types as Record<string, unknown>)[type]);
-        if (Number.isFinite(amount) && amount > 0) {
-          byType[type] = amount;
-        }
+      if (!Number.isFinite(total) || total <= 0) {
+        continue;
       }
-    }
 
-    rated[period] = {
-      total,
-      byType,
-      readAt: typeof record["readAt"] === "string" ? record["readAt"] : null,
-    };
+      const readAt: string | null =
+        typeof record?.["readAt"] === "string" ? record["readAt"] : null;
+      const known: OpenStackRatedPeriod | undefined = rated[period];
+
+      rated[period] = {
+        total: (known?.total || 0) + total,
+        readAt:
+          known?.readAt && (!readAt || known.readAt < readAt)
+            ? known.readAt
+            : readAt,
+      };
+    }
   }
 
   return rated;
@@ -411,7 +423,11 @@ export function getOpenStackSpendGrowers(
 ): Array<OpenStackSpendProject> {
   return projects
     .filter((project: OpenStackSpendProject): boolean => {
-      return project.growth !== null && project.growth > 0;
+      // Less than a cent or a hundredth of an hour would read as growing by nothing.
+      return (
+        project.growth !== null &&
+        project.growth >= OPENSTACK_SPEND_SMALLEST_GROWTH
+      );
     })
     .sort((first: OpenStackSpendProject, second: OpenStackSpendProject) => {
       return (

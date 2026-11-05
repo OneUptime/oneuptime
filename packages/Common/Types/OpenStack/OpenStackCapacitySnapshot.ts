@@ -14,6 +14,7 @@ import {
   OpenStackCapacityRollup,
   OpenStackFlavorFit,
   OpenStackFlavorRequest,
+  OpenStackInventory,
   OpenStackHostAllocationMismatch,
   OpenStackHostFailureHeadroom,
   OpenStackOvercommitReading,
@@ -24,6 +25,7 @@ import {
   getOpenStackFlavorFit,
   getOpenStackFlavorRequest,
   getOpenStackHostFailureHeadroom,
+  getOpenStackInventoryFree,
   parseOpenStackResourcesQuery,
   readOpenStackInventories,
 } from "./OpenStackCapacity";
@@ -46,6 +48,7 @@ export const OPENSTACK_CAPACITY_FLAVOR_LIMIT: number = 200;
 export const OPENSTACK_CAPACITY_AGGREGATE_LIMIT: number = 100;
 export const OPENSTACK_CAPACITY_HOST_LIST_LIMIT: number = 50;
 export const OPENSTACK_CAPACITY_MISMATCH_LIMIT: number = 100;
+export const OPENSTACK_CAPACITY_BARE_METAL_CLASS_LIMIT: number = 100;
 
 /*
  * What Placement last said of a flavor is what the page says, for as long as this. A probe asks
@@ -154,6 +157,25 @@ export interface OpenStackCapacityHostNotCounted {
   instanceCount: number;
 }
 
+/*
+ * What Placement holds of a resource class of bare metal nodes, in one region. A node takes one
+ * instance whole, so each of these counts nodes, and each node is in exactly one of the last three.
+ * None of it is in a host's vCPUs or memory above: a node isn't a place to run virtual machines.
+ *
+ * Placement's own numbers, because it answers everyone, where Ironic shows a project only what it
+ * owns. So this is the whole cloud's, whatever the list of nodes can see.
+ */
+export interface OpenStackBareMetalCapacityRow {
+  regionName: string | null;
+  // As Placement names it, CUSTOM_BAREMETAL, which is what a flavor asks for.
+  resourceClass: string;
+  nodeCount: number;
+  free: number;
+  used: number;
+  // Not free and with nothing on it. Nova's Ironic driver reserves a node it can't use right now.
+  heldBack: number;
+}
+
 export interface OpenStackCapacitySnapshot {
   generatedAt: string;
   cloud: OpenStackCapacityRollup;
@@ -170,6 +192,8 @@ export interface OpenStackCapacitySnapshot {
   mismatchesCheckedAt: string | null;
   hostsNotCounted: Array<OpenStackCapacityHostNotCounted>;
   hostsNotCountedLeftOut: number;
+  // A snapshot kept before this existed has none, until the next time it is worked out.
+  bareMetalClasses?: Array<OpenStackBareMetalCapacityRow> | undefined;
 }
 
 /*
@@ -352,12 +376,26 @@ export function getOpenStackCapacityFlavorRow(data: {
   flavor: OpenStackCapacityFlavor;
   // This flavor's region's hosts: a flavor's ID only means something in its own.
   hosts: ReadonlyArray<OpenStackCapacityHost>;
+  // And its bare metal nodes, which take only a flavor that asks for their class.
+  bareMetalProviders?: ReadonlyArray<OpenStackCapacityHost> | undefined;
   now: Date;
 }): OpenStackCapacityFlavorRow {
   const { flavor } = data;
+  const nodesItCanAskFor: Array<OpenStackCapacityHost> = (
+    data.bareMetalProviders || []
+  ).filter((provider: OpenStackCapacityHost): boolean => {
+    return Object.keys(flavor.request.resources).some(
+      (resourceClass: string): boolean => {
+        return (
+          (flavor.request.resources[resourceClass] as number) > 0 &&
+          provider.inventories[resourceClass] !== undefined
+        );
+      },
+    );
+  });
   const fit: OpenStackFlavorFit = getOpenStackFlavorFit({
     resources: flavor.request.resources,
-    hosts: data.hosts,
+    hosts: [...data.hosts, ...nodesItCanAskFor],
   });
   const answer: (OpenStackPlacementAnswer & { askedAt: string }) | null =
     isAnswerTrusted(flavor.placementAnswer, data.now)
@@ -382,8 +420,13 @@ export function getOpenStackCapacityFlavorRow(data: {
     askedAt: answer?.askedAt || null,
     hostsWithRoom: answer ? answer.hostsWithRoom : fit.hostsWithRoom,
     fitsIfOnePool: fit.fitsIfOnePool,
-    // An answer that found room outranks a sum that found none: it knows more.
-    isTooLargeForEveryHost: !fit.fitsOnAnEmptyHost && fits === 0,
+    /*
+     * An answer that found room outranks a sum that found none: it knows more. And what asks for a
+     * class of nodes isn't too large for anything. Each is one or none, and all of them held back
+     * says only that none can take it now.
+     */
+    isTooLargeForEveryHost:
+      nodesItCanAskFor.length === 0 && !fit.fitsOnAnEmptyHost && fits === 0,
     isOnlyOnDisabledHosts: fits === 0 && fit.fitsOnDisabledHosts > 0,
     limitedBy: fits > 0 ? null : fit.limitedBy,
     byZone: answer ? answer.byZone : fit.byZone,
@@ -424,8 +467,59 @@ function compareRollups(
   );
 }
 
+/*
+ * What each region holds of each resource class of bare metal, from its providers. A class is a
+ * custom one by definition: a node holds nothing else, and what it does hold it holds one of.
+ */
+export function getOpenStackBareMetalCapacityRows(
+  providers: ReadonlyArray<OpenStackCapacityHost>,
+): Array<OpenStackBareMetalCapacityRow> {
+  const rows: Map<string, OpenStackBareMetalCapacityRow> = new Map();
+
+  for (const provider of providers) {
+    for (const resourceClass of Object.keys(provider.inventories)) {
+      const inventory: OpenStackInventory = provider.inventories[
+        resourceClass
+      ] as OpenStackInventory;
+      const key: string = `${regionKey(provider.regionName)}/${resourceClass}`;
+      const row: OpenStackBareMetalCapacityRow = rows.get(key) || {
+        regionName: provider.regionName,
+        resourceClass,
+        nodeCount: 0,
+        free: 0,
+        used: 0,
+        heldBack: 0,
+      };
+      const free: number = getOpenStackInventoryFree(inventory);
+
+      row.nodeCount += inventory.total;
+      row.free += free;
+      row.used += inventory.used;
+      row.heldBack += Math.max(0, inventory.total - free - inventory.used);
+      rows.set(key, row);
+    }
+  }
+
+  return Array.from(rows.values())
+    .sort(
+      (
+        first: OpenStackBareMetalCapacityRow,
+        second: OpenStackBareMetalCapacityRow,
+      ): number => {
+        return (
+          (first.regionName || "").localeCompare(second.regionName || "") ||
+          second.nodeCount - first.nodeCount ||
+          first.resourceClass.localeCompare(second.resourceClass)
+        );
+      },
+    )
+    .slice(0, OPENSTACK_CAPACITY_BARE_METAL_CLASS_LIMIT);
+}
+
 export function buildOpenStackCapacitySnapshot(data: {
   hosts: ReadonlyArray<OpenStackCapacityHost>;
+  // Placement's bare metal nodes, which are no part of any host, zone or aggregate's sums.
+  bareMetalProviders?: ReadonlyArray<OpenStackCapacityHost> | undefined;
   flavors: ReadonlyArray<OpenStackCapacityFlavor>;
   pools: ReadonlyArray<OpenStackCapacityPool>;
   // Worked out on their own, less often than this runs. See the two *_EVERY_MINUTES.
@@ -494,6 +588,8 @@ export function buildOpenStackCapacitySnapshot(data: {
   };
 
   const hostsNotCounted: Array<OpenStackCapacityHostNotCounted> = [];
+  const bareMetalProviders: ReadonlyArray<OpenStackCapacityHost> =
+    data.bareMetalProviders || [];
 
   for (const host of data.hosts) {
     const key: string = regionKey(host.regionName);
@@ -603,6 +699,13 @@ export function buildOpenStackCapacitySnapshot(data: {
         return getOpenStackCapacityFlavorRow({
           flavor,
           hosts: hostsByRegion.get(regionKey(flavor.regionName)) || [],
+          bareMetalProviders: bareMetalProviders.filter(
+            (provider: OpenStackCapacityHost): boolean => {
+              return (
+                regionKey(provider.regionName) === regionKey(flavor.regionName)
+              );
+            },
+          ),
           now: data.now,
         });
       },
@@ -621,6 +724,7 @@ export function buildOpenStackCapacitySnapshot(data: {
       0,
       hostsNotCounted.length - OPENSTACK_CAPACITY_HOST_LIST_LIMIT,
     ),
+    bareMetalClasses: getOpenStackBareMetalCapacityRows(bareMetalProviders),
   };
 }
 

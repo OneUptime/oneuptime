@@ -2,14 +2,18 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUserSession from "../../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
-import StatusPagePrivateUserSessionService from "../../../Server/Services/StatusPagePrivateUserSessionService";
+import StatusPagePrivateUserSessionService, {
+  SessionMetadata,
+} from "../../../Server/Services/StatusPagePrivateUserSessionService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Email from "../../../Types/Email";
 import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
+import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
+import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import { DataSource } from "typeorm";
 
 /*
@@ -32,8 +36,9 @@ import { DataSource } from "typeorm";
  *     sign-in, by the database's clock, whichever way it signed in;
  *   - changing the limit applies to the sessions there are, at once;
  *   - a stored value no write could hold is no limit;
- *   - and a renewal sets the refresh token to expire at the end of the
- *     limit, as stored.
+ *   - a renewal sets the refresh token to expire at the end of the limit, as
+ *     stored;
+ *   - and a refresh on its way when a session is ended does not bring it back.
  */
 const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_STATUS_PAGE_SESSION_LENGTH_TESTS"] === "true"
@@ -332,5 +337,155 @@ describePostgres("status page Sign Readers Out After against Postgres", () => {
 
     // Renewed, it still counts until then.
     expect(await stillCounts()).toBe(true);
+  });
+
+  /*
+   * POST /status-page-api/refresh-token reads the session, decides, and then
+   * writes its new refresh token: several statements apart. A reader's new
+   * password can land between them, and a renewal that wrote over it would hand
+   * whoever is refreshing a working session the reader has just ended. Somebody
+   * refreshing in a loop would be inside that window most of the time.
+   */
+  describe("a session ended while a refresh of it is on its way", () => {
+    interface EndedRow {
+      isRevoked: boolean;
+      revokedReason: string | null;
+      refreshToken: string;
+    }
+
+    const rowOf: (id: ObjectID) => Promise<EndedRow> = async (
+      id: ObjectID,
+    ): Promise<EndedRow> => {
+      const rows: Array<EndedRow> = await query(
+        `SELECT "isRevoked", "revokedReason", "refreshToken" FROM "${schema}"."StatusPagePrivateUserSession" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      return rows[0]!;
+    };
+
+    const addSession: (token: string) => Promise<ObjectID> = async (
+      token: string,
+    ): Promise<ObjectID> => {
+      const id: ObjectID = ObjectID.generate();
+
+      await query(
+        `INSERT INTO "${schema}"."StatusPagePrivateUserSession"
+         ("_id", "projectId", "statusPageId", "statusPagePrivateUserId", "refreshToken", "refreshTokenExpiresAt", "createdAt", "isRevoked", "additionalInfo", "version")
+         VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '1 day', NOW() - INTERVAL '1 hour', false, '{}'::jsonb, 1)`,
+        [
+          id.toString(),
+          projectId.toString(),
+          statusPageId.toString(),
+          userId.toString(),
+          await HashedString.hashValue(token, EncryptionSecret),
+        ],
+      );
+
+      return id;
+    };
+
+    test("a live session renews: the new token works, the old one does not, and the token is stored hashed", async () => {
+      const token: string = ObjectID.generate().toString();
+      const id: ObjectID = await addSession(token);
+
+      const session: StatusPagePrivateUserSession | null =
+        await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+          token,
+        );
+      const renewed: SessionMetadata | null =
+        await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken(
+          { session: session! },
+        );
+
+      expect(renewed?.session.id?.toString()).toBe(id.toString());
+      expect(renewed?.refreshToken).not.toBe(token);
+      expect((await rowOf(id)).isRevoked).toBe(false);
+      expect((await rowOf(id)).refreshToken).toBe(
+        await HashedString.hashValue(renewed!.refreshToken, EncryptionSecret),
+      );
+      expect(
+        (
+          await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+            renewed!.refreshToken,
+          )
+        )?.id?.toString(),
+      ).toBe(id.toString());
+      expect(
+        await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+          token,
+        ),
+      ).toBeNull();
+    });
+
+    test("the renewal does not bring it back, and leaves the row as the revocation left it", async () => {
+      const token: string = ObjectID.generate().toString();
+      const id: ObjectID = await addSession(token);
+
+      // What the refresh read before it renewed.
+      const session: StatusPagePrivateUserSession | null =
+        await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+          token,
+        );
+
+      expect(session?.id?.toString()).toBe(id.toString());
+
+      // A new password lands while the request is on its way.
+      await StatusPagePrivateUserSessionService.revokeAllSessionsByPrivateUserId(
+        userId,
+        { reason: "Password changed" },
+      );
+
+      const ended: EndedRow = await rowOf(id);
+
+      expect(
+        await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken(
+          { session: session! },
+        ),
+      ).toBeNull();
+
+      expect(await rowOf(id)).toEqual(ended);
+      expect(ended.isRevoked).toBe(true);
+      expect(ended.revokedReason).toBe("Password changed");
+      expect(
+        await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+          token,
+        ),
+      ).toBeNull();
+    });
+
+    test("racing for real, many times over: the session is ended every time, and what the renewal handed out does not work", async () => {
+      for (let round: number = 0; round < 40; round++) {
+        const token: string = ObjectID.generate().toString();
+        const id: ObjectID = await addSession(token);
+        const session: StatusPagePrivateUserSession | null =
+          await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+            token,
+          );
+
+        const [renewed]: [SessionMetadata | null, void] = await Promise.all([
+          StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken({
+            session: session!,
+          }),
+          StatusPagePrivateUserSessionService.revokeAllSessionsByPrivateUserId(
+            userId,
+            { reason: "Password changed" },
+          ),
+        ]);
+
+        expect({
+          round: round,
+          isRevoked: (await rowOf(id)).isRevoked,
+        }).toEqual({ round: round, isRevoked: true });
+
+        if (renewed) {
+          expect(
+            await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+              renewed.refreshToken,
+            ),
+          ).toBeNull();
+        }
+      }
+    });
   });
 });

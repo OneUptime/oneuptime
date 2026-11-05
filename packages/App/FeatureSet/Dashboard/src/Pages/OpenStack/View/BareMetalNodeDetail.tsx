@@ -72,7 +72,7 @@ const REPORTS_IRONIC: { openStackServices: Array<string> } = {
 };
 
 const NO_REASON_FROM_THE_EXPORTER: string = translationKey(
-  "The agent's exporter doesn't carry why a node failed, and Ironic empties its last_error within about a minute. Run openstack baremetal node show for this node straight away, then look in the conductor's log. A probe reads last_error and keeps the last one it saw.",
+  "The agent's exporter doesn't carry why a node failed, and Ironic can empty its last_error within about a minute. Run openstack baremetal node show for this node straight away, then look in the conductor's log. A probe reads last_error and keeps the last one it saw.",
 );
 
 const STOPPED_NOTICE: string = translationKey(
@@ -84,7 +84,7 @@ const MAINTENANCE_NOTICE: string = translationKey(
 );
 
 const REASON_EMPTIED: string = translationKey(
-  "Ironic has emptied last_error since, as it does within about a minute, so this is what it last said while this was read.",
+  "Ironic has emptied last_error since, which it can do within about a minute, so this is what it last said while this was read.",
 );
 
 const HALF_ENROLLED_NOTICE: string = translationKey(

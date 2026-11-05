@@ -36,6 +36,10 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
@@ -46,6 +50,8 @@ import {
 } from "../../Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_EMPTY_ANSWER_SINCE_FACT,
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
   getOpenStackOptionalService,
   hasOpenStackOptionalServiceLeft,
   isOpenStackOptionalService,
@@ -86,6 +92,9 @@ import {
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
   OPENSTACK_AMPHORA_CERTIFICATE_WARNING_DAYS,
   OPENSTACK_LOAD_BALANCER_STUCK_MINUTES,
+  OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
+  OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
@@ -96,6 +105,9 @@ import {
   OpenStackL3AgentFact,
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
 } from "../../Types/OpenStack/OpenStackHealthRules";
 import {
   truncateLongText,
@@ -161,11 +173,16 @@ export interface OpenStackInventorySummary {
   bareMetalNodeCount: number;
   /*
    * How many nodes Placement holds, whatever Ironic shows this credential: it answers a project
-   * with what that project owns, and Placement answers everyone.
+   * with what that project owns, and Placement answers everyone. And how many of those Ironic
+   * didn't list. A count beside a count can't say that: a project's half-enrolled node is in
+   * Ironic's list and not Placement's, recorded, which hides one it can't see.
    */
   bareMetalProviderCount: number;
+  bareMetalProvidersNotListedCount: number;
   // The services a read has heard from, with what each is called in Keystone's catalog.
   services: Array<string>;
+  // Of those, the ones that have never once let this credential in: isOpenStackApiClosedToThisCredential.
+  closedServices: Array<string>;
   vcpuCapacity: number;
   vcpuAllocated: number;
   memoryCapacityBytes: number;
@@ -177,11 +194,15 @@ export interface OpenStackInventorySummary {
   containerClusterCount: number;
   shareCount: number;
   loadBalancerCount: number;
+  databaseInstanceCount: number;
+  objectContainerCount: number;
+  dnsZoneCount: number;
 }
 
 // What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
 export interface OpenStackCapacityRows {
   hypervisors: Array<JSONObject>;
+  bareMetalProviders: Array<JSONObject>;
   flavors: Array<JSONObject>;
   storagePools: Array<JSONObject>;
   externalNetworks: Array<JSONObject>;
@@ -216,6 +237,9 @@ export interface OpenStackProjectSummary {
   containerClusterCount: number;
   shareCount: number;
   loadBalancerCount: number;
+  databaseInstanceCount: number;
+  objectContainerCount: number;
+  dnsZoneCount: number;
 }
 
 export interface OpenStackProjectLabel {
@@ -239,6 +263,18 @@ export interface OpenStackProjectOverview {
   hostsDown: Array<OpenStackProjectHostDown>;
   labels: Array<OpenStackProjectLabel>;
 }
+
+// A closed list of OpenStack's own names, so nothing a request says reaches the SQL.
+const OPENSTACK_SERVICES_READ_DOWN_WHEN_REFUSED_SQL: string =
+  OPENSTACK_OPTIONAL_SERVICES.filter(
+    (entry: OpenStackOptionalService): boolean => {
+      return Boolean(entry.readsDownWhenRefused);
+    },
+  )
+    .map((entry: OpenStackOptionalService): string => {
+      return `'${entry.service}'`;
+    })
+    .join(", ");
 
 export interface OpenStackDomainSummary {
   domainId: string;
@@ -851,11 +887,18 @@ export class Service extends DatabaseService<Model> {
       regionCount: string;
       availabilityZoneCount: string;
       services: Array<string> | null;
+      closedServices: Array<string> | null;
     }> = await this.getRepository().manager.query(
       `SELECT COUNT(DISTINCT "regionName")::text AS "regionCount",
               ARRAY_AGG(DISTINCT "name") FILTER (
                 WHERE "kind" = '${OpenStackResourceKind.Api}'
               ) AS "services",
+              ARRAY_AGG(DISTINCT "name") FILTER (
+                WHERE "kind" = '${OpenStackResourceKind.Api}'
+                  AND "status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'
+                  AND "facts"->>'vouchedAt' IS NULL
+                  AND "name" IN (${OPENSTACK_SERVICES_READ_DOWN_WHEN_REFUSED_SQL})
+              ) AS "closedServices",
               COUNT(DISTINCT "availabilityZone") FILTER (
                 WHERE "availabilityZone" <> 'internal' AND (
                   "kind" = '${OpenStackResourceKind.Hypervisor}'
@@ -904,6 +947,27 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.StoragePool,
     );
 
+    // A read of its own, which a cloud without bare metal never pays for.
+    const providersNotListed: Array<{ count: string }> =
+      countOf(OpenStackResourceKind.PlacementProvider) > 0
+        ? await this.getRepository().manager.query(
+            `SELECT COUNT(*)::text AS "count"
+             FROM "OpenStackResource" AS provider
+             WHERE provider."projectId" = $1 AND provider."openStackCloudId" = $2
+               AND provider."kind" = '${OpenStackResourceKind.PlacementProvider}'
+               AND provider."deletedAt" IS NULL
+               AND ($3::text IS NULL OR provider."regionName" = $3 OR provider."regionName" IS NULL)
+               AND NOT EXISTS (
+                 SELECT 1 FROM "OpenStackResource" AS node
+                 WHERE node."projectId" = $1 AND node."openStackCloudId" = $2
+                   AND node."kind" = '${OpenStackResourceKind.BareMetalNode}'
+                   AND node."externalId" = provider."name"
+                   AND node."deletedAt" IS NULL
+               )`,
+            scope,
+          )
+        : [];
+
     return {
       regionCount: toNumber(places[0]?.regionCount),
       availabilityZoneCount: toNumber(places[0]?.availabilityZoneCount),
@@ -923,11 +987,13 @@ export class Service extends DatabaseService<Model> {
       ),
       bareMetalNodeCount: countOf(OpenStackResourceKind.BareMetalNode),
       bareMetalProviderCount: countOf(OpenStackResourceKind.PlacementProvider),
+      bareMetalProvidersNotListedCount: toNumber(providersNotListed[0]?.count),
       services: (places[0]?.services || []).filter(
         (service: string | null): service is string => {
           return Boolean(service);
         },
       ),
+      closedServices: places[0]?.closedServices || [],
       vcpuCapacity: toNumber(hypervisors?.vcpuCapacity),
       vcpuAllocated: toNumber(hypervisors?.vcpuAllocated),
       memoryCapacityBytes: toNumber(hypervisors?.memoryCapacity),
@@ -938,6 +1004,9 @@ export class Service extends DatabaseService<Model> {
       containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
       shareCount: countOf(OpenStackResourceKind.Share),
       loadBalancerCount: countOf(OpenStackResourceKind.LoadBalancer),
+      databaseInstanceCount: countOf(OpenStackResourceKind.DatabaseInstance),
+      objectContainerCount: countOf(OpenStackResourceKind.ObjectContainer),
+      dnsZoneCount: countOf(OpenStackResourceKind.DnsZone),
     };
   }
 
@@ -1193,6 +1262,14 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_IMAGE_STUCK_MINUTES,
     );
+    const dnsZoneStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
+    );
+    const databaseStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+    );
     const shareStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
       data.now,
       -OPENSTACK_SHARE_STUCK_MINUTES,
@@ -1239,13 +1316,17 @@ export class Service extends DatabaseService<Model> {
       {
         kind: OpenStackResourceKind.Api,
         where: `("status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'
-          OR (NOT ("name" = ANY($3::text[])) AND "lastSeenAt" <= $4))`,
+          OR (NOT ("name" = ANY($3::text[])) AND "lastSeenAt" <= $4)
+          OR ("name" = $5 AND ("facts"->>'${OPENSTACK_GNOCCHI_PROCESSORS_FACT}' = '0'
+            OR ("facts"->>'${OPENSTACK_GNOCCHI_MEASURES_FACT}')::double precision > $6)))`,
         params: [
           Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS),
           OneUptimeDate.addRemoveMinutes(
             data.now,
             -OPENSTACK_QUIET_SERVICE_MINUTES,
           ),
+          OpenStackServiceType.Metric,
+          OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
         ],
       },
       {
@@ -1302,6 +1383,40 @@ export class Service extends DatabaseService<Model> {
         params: [
           statuses(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES),
           imageStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.DnsZone,
+        where: `("status" = $3 OR ("status" = $4 AND "stateChangedAt" <= $5))`,
+        params: [
+          OPENSTACK_DNS_STATUS_ERROR,
+          OPENSTACK_DNS_STATUS_PENDING,
+          dnsZoneStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      /*
+       * Only a recordset in ERROR. One PENDING has a zone PENDING above it, recorded, and that is what
+       * says so. Only recordsets that aren't ACTIVE have rows at all, so this reads few.
+       */
+      {
+        kind: OpenStackResourceKind.DnsRecordset,
+        where: `"status" = $3`,
+        params: [OPENSTACK_DNS_STATUS_ERROR],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.DatabaseInstance,
+        where: `("status" = ANY($3::text[])
+          OR ("status" = ANY($4::text[]) AND "stateChangedAt" <= $5)
+          OR ("diskCapacityBytes" > 0
+            AND "diskAllocatedBytes" * 100 >= "diskCapacityBytes" * $6::numeric))`,
+        params: [
+          statuses(OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES),
+          statuses(OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES),
+          databaseStuckBefore,
+          OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
         ],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
       },
@@ -1837,9 +1952,10 @@ export class Service extends DatabaseService<Model> {
    *    nobody there can manage any of it.
    *  - A stack and the Magnum cluster built with it: each names the other, because a failure of
    *    one is the same failure. Only a cluster's stack_id says so, which is on every cluster's
-   *    series. What else a stack owns takes a read of its resources, which nothing makes yet.
+   *    series.
    *  - An instance that is a server of a Magnum cluster names that cluster, and a hypervisor names
    *    the clusters with a server on it, by what Magnum's driver names a server.
+   *  - An instance or a volume a stack's own read names, which only a probe makes, names that stack.
    */
   @CaptureSpan()
   public async getBlastRadius(data: {
@@ -2083,11 +2199,31 @@ export class Service extends DatabaseService<Model> {
     if (part.kind === OpenStackResourceKind.Instance) {
       return {
         ...getEmptyOpenStackBlastRadius(false),
-        belongsTo: await this.readMagnumClustersOfServers({
+        belongsTo: [
+          ...(await this.readMagnumClustersOfServers({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            regionName: part.regionName,
+            serverNames: [part.name],
+          })),
+          ...(await this.readStacksOwning({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            fact: "ownedInstanceIds",
+            externalId: part.externalId,
+          })),
+        ],
+      };
+    }
+
+    if (part.kind === OpenStackResourceKind.Volume) {
+      return {
+        ...getEmptyOpenStackBlastRadius(false),
+        belongsTo: await this.readStacksOwning({
           projectId: data.projectId,
           openStackCloudId: data.openStackCloudId,
-          regionName: part.regionName,
-          serverNames: [part.name],
+          fact: "ownedVolumeIds",
+          externalId: part.externalId,
         }),
       };
     }
@@ -2318,6 +2454,18 @@ export class Service extends DatabaseService<Model> {
         [OpenStackServiceType.LoadBalancer]: [
           [OpenStackResourceKind.LoadBalancer, "loadBalancerCount"],
         ],
+        // Databases already running carry on: only creating, resizing and backing up stop.
+        [OpenStackServiceType.Database]: [
+          [OpenStackResourceKind.DatabaseInstance, "databaseInstanceCount"],
+        ],
+        // A stopped proxy stops every read and write of an object, in everything it reads of.
+        [OpenStackServiceType.ObjectStore]: [
+          [OpenStackResourceKind.ObjectContainer, "objectContainerCount"],
+        ],
+        // Names already served go on answering from their DNS servers: only changing them stops.
+        [OpenStackServiceType.Dns]: [
+          [OpenStackResourceKind.DnsZone, "dnsZoneCount"],
+        ],
       };
       for (const [kind, count] of kinds[part.name || ""] || []) {
         counts.push({
@@ -2413,6 +2561,34 @@ export class Service extends DatabaseService<Model> {
         data.openStackCloudId.toString(),
         data.regionName ?? null,
         stackNames,
+      ],
+    );
+  }
+
+  /*
+   * The stacks whose own read of their resources names this part, which only a probe makes. A stack is
+   * a few rows in any cloud, so this is no walk of anything however large the cloud.
+   */
+  private async readStacksOwning(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    fact: "ownedInstanceIds" | "ownedVolumeIds";
+    externalId?: string | null | undefined;
+  }): Promise<Array<OpenStackBlastRadiusOwner>> {
+    if (!data.externalId) {
+      return [];
+    }
+    return await this.getRepository().manager.query(
+      `SELECT "kind", "externalId", "name", "status" FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Stack}' AND "deletedAt" IS NULL
+         AND "facts"->'${data.fact}' ? $3
+       ORDER BY "name", "externalId"
+       LIMIT ${OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT}`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.externalId,
       ],
     );
   }
@@ -2563,6 +2739,9 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.ContainerCluster,
           OpenStackResourceKind.Share,
           OpenStackResourceKind.LoadBalancer,
+          OpenStackResourceKind.DatabaseInstance,
+          OpenStackResourceKind.ObjectContainer,
+          OpenStackResourceKind.DnsZone,
         ],
         ids,
       ],
@@ -2584,6 +2763,9 @@ export class Service extends DatabaseService<Model> {
             containerClusterCount: 0,
             shareCount: 0,
             loadBalancerCount: 0,
+            databaseInstanceCount: 0,
+            objectContainerCount: 0,
+            dnsZoneCount: 0,
           },
         ];
       }),
@@ -2625,6 +2807,15 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.LoadBalancer:
           summary.loadBalancerCount = count;
+          break;
+        case OpenStackResourceKind.DatabaseInstance:
+          summary.databaseInstanceCount = count;
+          break;
+        case OpenStackResourceKind.ObjectContainer:
+          summary.objectContainerCount = count;
+          break;
+        case OpenStackResourceKind.DnsZone:
+          summary.dnsZoneCount = count;
           break;
         default:
           break;
@@ -2868,6 +3059,10 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.StoragePool,
       OpenStackResourceKind.Share,
       OpenStackResourceKind.LoadBalancer,
+      OpenStackResourceKind.DatabaseInstance,
+      OpenStackResourceKind.ObjectContainer,
+      OpenStackResourceKind.DnsZone,
+      OpenStackResourceKind.DnsRecordset,
       OpenStackResourceKind.Network,
       OpenStackResourceKind.Subnet,
       OpenStackResourceKind.Router,
@@ -3328,6 +3523,10 @@ export class Service extends DatabaseService<Model> {
     return {
       hypervisors: await read(
         OpenStackResourceKind.Hypervisor,
+        OPENSTACK_TOPOLOGY_STRUCTURE_LIMIT,
+      ),
+      bareMetalProviders: await read(
+        OpenStackResourceKind.PlacementProvider,
         OPENSTACK_TOPOLOGY_STRUCTURE_LIMIT,
       ),
       flavors: await read(

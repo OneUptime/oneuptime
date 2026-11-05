@@ -14,6 +14,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
 /*
+ * The first write as a teammate loads this on its way (OwnedScopePermission),
+ * and with it every owner table's service: half a minute on a busy machine,
+ * which would otherwise count against whichever test writes as a teammate first.
+ */
+import "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
+
+/*
  * ---------------------------------------------------------------------------
  * A PRIVATE USER'S NEW PASSWORD ENDS WHAT WAS SENT AND SIGNED IN BEFORE IT,
  * HOWEVER IT IS SET.

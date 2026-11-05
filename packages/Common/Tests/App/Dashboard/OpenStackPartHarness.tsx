@@ -453,6 +453,17 @@ function inventorySummary(body: JSONObject): JSONObject {
     serviceCount: countOf(OpenStackResourceKind.Service),
     bareMetalNodeCount: countOf(OpenStackResourceKind.BareMetalNode),
     bareMetalProviderCount: countOf(OpenStackResourceKind.PlacementProvider),
+    bareMetalProvidersNotListedCount: rows.filter((row: Row): boolean => {
+      return (
+        row.kind === OpenStackResourceKind.PlacementProvider &&
+        !rows.some((node: Row): boolean => {
+          return (
+            node.kind === OpenStackResourceKind.BareMetalNode &&
+            node.externalId === row.name
+          );
+        })
+      );
+    }).length,
     services: rows
       .filter((row: Row): boolean => {
         return row.kind === OpenStackResourceKind.Api;

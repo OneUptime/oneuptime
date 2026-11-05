@@ -29,6 +29,9 @@ export interface OpenStackBlastRadiusProject {
   containerClusterCount: number;
   shareCount: number;
   loadBalancerCount: number;
+  databaseInstanceCount: number;
+  dnsZoneCount: number;
+  objectContainerCount: number;
 }
 
 export interface OpenStackBlastRadius {
@@ -41,6 +44,9 @@ export interface OpenStackBlastRadius {
   containerClusterCount: number;
   shareCount: number;
   loadBalancerCount: number;
+  databaseInstanceCount: number;
+  dnsZoneCount: number;
+  objectContainerCount: number;
   // The real number, which `projects` can be shorter than: see the cap.
   projectCount: number;
   // Most affected first, at most OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT of them.
@@ -97,6 +103,9 @@ export function getEmptyOpenStackBlastRadius(
     containerClusterCount: 0,
     shareCount: 0,
     loadBalancerCount: 0,
+    databaseInstanceCount: 0,
+    dnsZoneCount: 0,
+    objectContainerCount: 0,
     projectCount: 0,
     projects: [],
     isKnown,
@@ -111,7 +120,10 @@ export type OpenStackBlastRadiusCount =
   | "stackCount"
   | "containerClusterCount"
   | "shareCount"
-  | "loadBalancerCount";
+  | "loadBalancerCount"
+  | "databaseInstanceCount"
+  | "dnsZoneCount"
+  | "objectContainerCount";
 
 /*
  * Every count a radius holds and what it is called, which is all there is to adding one. What a page
@@ -139,6 +151,13 @@ export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
     one: "load balancer",
     other: "load balancers",
   },
+  { count: "databaseInstanceCount", one: "database", other: "databases" },
+  {
+    count: "objectContainerCount",
+    one: "object container",
+    other: "object containers",
+  },
+  { count: "dnsZoneCount", one: "DNS zone", other: "DNS zones" },
 ];
 
 /*
@@ -179,6 +198,9 @@ export function buildOpenStackBlastRadius(data: {
         containerClusterCount: 0,
         shareCount: 0,
         loadBalancerCount: 0,
+        databaseInstanceCount: 0,
+        dnsZoneCount: 0,
+        objectContainerCount: 0,
       };
       project[count] += amount;
       projects.set(projectId, project);

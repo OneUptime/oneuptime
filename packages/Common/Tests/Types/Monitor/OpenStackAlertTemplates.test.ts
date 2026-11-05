@@ -10,6 +10,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import {
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -44,6 +45,9 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+  OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
@@ -264,10 +268,20 @@ function scrapeIntervalsInSeconds(): Record<string, number> {
     intervals[match[1]!] = Number(match[2]);
   }
 
+  /*
+   * The exporter has no series for CloudKitty, so the agent has no job for it. A probe reads it every
+   * five minutes, like the rest of what a cloud may not run: OpenStackRatingCollection.test.ts holds that.
+   */
+  intervals[OpenStackServiceType.Rating] = 300;
+
   return intervals;
 }
 
-const INTERVALS: Record<string, number> = scrapeIntervalsInSeconds();
+const INTERVALS: Record<string, number> = {
+  ...scrapeIntervalsInSeconds(),
+  // The exporter has no reader for it, so no job: a probe reads it as it reads any service a cloud may not run.
+  [OpenStackServiceType.KeyManager]: 300,
+};
 
 // Which job's collections a query reads.
 function serviceOf(query: MetricQueryConfigData): OpenStackServiceType {
@@ -333,6 +347,30 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
    * per collection, and these jobs collect no more than once a minute.
    */
   "openstack-instances-in-error|instances_in_error": "Count",
+  "openstack-dns-zone-in-error|in_error": "Count",
+  "openstack-dns-zone-stuck-pending|in_pending": "Count",
+  "openstack-dns-recordset-in-error|recordset_a": "Count",
+  "openstack-dns-recordset-in-error|recordset_aaaa": "Count",
+  "openstack-dns-recordset-in-error|recordset_cname": "Count",
+  "openstack-dns-recordset-in-error|recordset_mx": "Count",
+  "openstack-dns-recordset-in-error|recordset_txt": "Count",
+  "openstack-dns-recordset-in-error|recordset_srv": "Count",
+  "openstack-dns-recordset-in-error|recordset_ptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_spf": "Count",
+  "openstack-dns-recordset-in-error|recordset_sshfp": "Count",
+  "openstack-dns-recordset-in-error|recordset_caa": "Count",
+  "openstack-dns-recordset-in-error|recordset_naptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_cert": "Count",
+  "openstack-database-instance-in-error|in_error": "Count",
+  "openstack-database-instance-in-error|in_failed": "Count",
+  "openstack-database-instance-stuck|in_build": "Count",
+  "openstack-database-instance-stuck|in_reboot": "Count",
+  "openstack-database-instance-stuck|in_hard_reboot": "Count",
+  "openstack-database-instance-stuck|in_resize": "Count",
+  "openstack-database-instance-stuck|in_upgrade": "Count",
+  "openstack-database-instance-stuck|in_promote": "Count",
+  "openstack-database-instance-stuck|in_eject": "Count",
+  "openstack-database-instance-stuck|in_detach": "Count",
   "openstack-router-with-two-active-agents|active_agents": "Count",
   /*
    * Octavia's series carry their status in a label and a code in the value, and a healthy one's code
@@ -554,7 +592,15 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-rating-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-orchestration-engine-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-bare-metal-conductor-down": {
     filterType: FilterType.LessThan,
     value: 1,
   },
@@ -569,6 +615,62 @@ const THRESHOLDS: Readonly<
   "openstack-share-service-down": {
     filterType: FilterType.LessThan,
     value: 1,
+  },
+  "openstack-dns-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-dns-zone-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-zone-stuck-pending": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-recordset-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-metric-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-no-processors": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-backlog-growing": {
+    filterType: FilterType.ForecastAbove,
+    value: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+  },
+  "openstack-object-store-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-object-container-growth": {
+    filterType: FilterType.ForecastAbove,
+    value: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
+  },
+  "openstack-key-manager-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-database-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-database-instance-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-database-instance-stuck": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-database-volume-nearly-full": {
+    filterType: FilterType.GreaterThanOrEqualTo,
+    value: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   },
   "openstack-share-in-error": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-share-stuck": { filterType: FilterType.GreaterThan, value: 0 },
@@ -865,9 +967,17 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
   },
+  "openstack-rating-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
   "openstack-orchestration-engine-down": {
     breached: { heat_engine_up: 0 },
     healthy: { heat_engine_up: 1 },
+  },
+  "openstack-bare-metal-conductor-down": {
+    breached: { ironic_conductor_up: 0 },
+    healthy: { ironic_conductor_up: 1 },
   },
   "openstack-container-infra-conductor-down": {
     breached: { magnum_conductor_up: 0 },
@@ -880,6 +990,68 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-share-service-down": {
     breached: { manila_service_up: 0 },
     healthy: { manila_service_up: 1 },
+  },
+  "openstack-dns-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  // How many datapoints a window holds of that word, because PENDING's code is 0.
+  "openstack-dns-zone-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-dns-zone-stuck-pending": {
+    breached: { in_pending: 1 },
+    healthy: { in_pending: 0 },
+  },
+  "openstack-dns-recordset-in-error": {
+    breached: { recordset_a: 1 },
+    healthy: { recordset_a: 0 },
+  },
+  "openstack-metric-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-metric-no-processors": {
+    breached: { processors: 0 },
+    healthy: { processors: 4 },
+  },
+  // Made up: a real runner's backlog read 5 and then 10, far under this.
+  "openstack-metric-backlog-growing": {
+    breached: {
+      measures_to_process: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES * 2,
+    },
+    healthy: { measures_to_process: 0 },
+  },
+  "openstack-object-store-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  // Made up: no runner holds a week of growth.
+  "openstack-object-container-growth": {
+    breached: { bytes: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES * 2 },
+    healthy: { bytes: 0 },
+  },
+  "openstack-key-manager-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  "openstack-database-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  // How many datapoints a window holds of that word, because its code says nothing.
+  "openstack-database-instance-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-database-instance-stuck": {
+    breached: { in_build: 1 },
+    healthy: { in_build: 0 },
+  },
+  "openstack-database-volume-nearly-full": {
+    breached: { used_gb: 9, size_gb: 10 },
+    healthy: { used_gb: 1, size_gb: 10 },
   },
   // A share's size, which is what its _share_gb series reads, whatever its status.
   "openstack-share-in-error": {
@@ -1054,6 +1226,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         // The services a cloud may not run: #5743.
         "Orchestration API Down",
         "Kubernetes Clusters API Down",
+        "Rating API Down",
         "Heat Engine Down",
         "Magnum Conductor Down",
         "Stack Failed",
@@ -1070,6 +1243,20 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Load Balancer With Two Masters",
         "Amphora in Error",
         "Pool Has No Healthy Members",
+        "DNS API Down",
+        "DNS Zone in Error",
+        "DNS Zone Stuck Pending",
+        "DNS Recordset in Error",
+        "Metrics API Down",
+        "Gnocchi No Processors",
+        "Gnocchi Backlog Growing",
+        "Object Storage API Down",
+        "Object Container Growth Forecast",
+        "Key Manager API Down",
+        "Databases API Down",
+        "Database Instance in Error",
+        "Database Instance Stuck",
+        "Database Volume Nearly Full",
         "Compute Service Down",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
@@ -1100,6 +1287,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Image Stuck",
         // #5742. The issue's four, and what its API says of itself where anything can say so.
         "Bare Metal API Down",
+        "Bare Metal Conductor Down",
         "Bare Metal Node in Error",
         "Bare Metal Node Stuck Transitioning",
         "Bare Metal Node in Maintenance Too Long",
@@ -1144,6 +1332,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Orchestration",
         "Bare Metal",
         "Load Balancers",
+        "Databases",
+        "Metrics",
         "Projects",
         "Capacity",
       ] as const
@@ -1462,7 +1652,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
               windowMinutes: windowMinutesOf(step),
             })
           ).breached,
-        ).toBe(false);
+          // A line through the window is what a forecast reads, so one reading doesn't turn it.
+        ).toBe(
+          CriteriaFilterUtil.isForecastFilterType(
+            firingOf(step).data!.filters[0]!.filterType,
+          ),
+        );
       },
     );
 
@@ -1497,7 +1692,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
             filter.metricMonitorOptions?.onNoDataPolicy;
 
           expect(
-            filter.filterType === FilterType.GreaterThanOrEqualTo
+            filter.filterType === FilterType.GreaterThanOrEqualTo ||
+              // An empty window has no trend, so it can't read as zero.
+              CriteriaFilterUtil.isForecastFilterType(filter.filterType)
               ? policy === NoDataPolicy.Trigger
               : policy === NoDataPolicy.TreatAsZero,
           ).toBe(true);
@@ -1649,6 +1846,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           const labels: Array<string> = [
             ...(OPENSTACK_EXPORTER_SERIES[metricName]?.labels ||
               getOpenStackMetricByMetricName(metricName)!.identityAttributes),
+            // A series the agent sends with fewer than a probe does reads those as "", by design.
+            ...(getOpenStackMetricByMetricName(metricName)
+              ?.probeOnlyAttributes || []),
             OPENSTACK_REGION_ATTRIBUTE,
             "openstack_service",
           ];
@@ -2009,8 +2209,11 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       });
 
       expect(probeOnly.sort()).toEqual([
+        "openstack-bare-metal-conductor-down",
         "openstack-container-infra-conductor-down",
+        "openstack-key-manager-api-down",
         "openstack-orchestration-engine-down",
+        "openstack-rating-api-down",
         "openstack-share-service-down",
       ]);
       for (const id of probeOnly) {
@@ -2076,6 +2279,13 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-pool-without-healthy-members", ["id", "name"]],
       ["openstack-amphora-in-error", ["id", "loadbalancer_id"]],
       ["openstack-load-balancer-with-two-masters", ["loadbalancer_id"]],
+      ["openstack-dns-zone-in-error", ["id", "name"]],
+      ["openstack-dns-zone-stuck-pending", ["id", "name"]],
+      ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],
+      ["openstack-object-container-growth", ["container_name"]],
+      ["openstack-database-instance-in-error", ["id", "name"]],
+      ["openstack-database-instance-stuck", ["id", "name"]],
+      ["openstack-database-volume-nearly-full", ["id", "name"]],
     ])("%s names what it is about", (id: string, keys: Array<string>) => {
       const groupBy: Array<string> = MonitorStep.getGroupByAttributeKeys(
         stepOf(getOpenStackAlertTemplateById(id)!),
@@ -2296,9 +2506,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         for (const word of ["clean failed", "deploy failed"]) {
           expect(OPENSTACK_BARE_METAL_ERROR_STATES.has(word)).toBe(true);
         }
-        expect(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back")).toBe(
-          true,
-        );
+        expect(
+          OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back"),
+        ).toBe(true);
       });
 
       test("API Down never reads the scrape's own up, which reads 0 for this job on every cloud when the exporter is down", () => {

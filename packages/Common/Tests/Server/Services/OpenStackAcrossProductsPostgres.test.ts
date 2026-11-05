@@ -792,10 +792,12 @@ describePostgres("the joins across products, on Postgres", () => {
         ): Promise<string | null> => {
           return (
             (
-              await OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster({
-                projectId,
-                kubernetesClusterId: cluster,
-              })
+              await OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster(
+                {
+                  projectId,
+                  kubernetesClusterId: cluster,
+                },
+              )
             )?.externalId || null
           );
         },
@@ -804,11 +806,13 @@ describePostgres("the joins across products, on Postgres", () => {
         ): Promise<string | null> => {
           return (
             (
-              await OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster({
-                projectId,
-                openStackCloudId: cloudId,
-                externalId,
-              })
+              await OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster(
+                {
+                  projectId,
+                  openStackCloudId: cloudId,
+                  externalId,
+                },
+              )
             )?.kubernetesClusterId || null
           );
         },
@@ -816,8 +820,14 @@ describePostgres("the joins across products, on Postgres", () => {
     };
 
     test("links both ways, and says the same from each", async () => {
-      const { projectId, cloudId, clusterId, addNode, linkFromHere, linkFromThere } =
-        await setUp();
+      const {
+        projectId,
+        cloudId,
+        clusterId,
+        addNode,
+        linkFromHere,
+        linkFromThere,
+      } = await setUp();
       await addNode("master-0", 1);
       await addNode("node-0", 2);
       await addNode("node-1", 3);
@@ -895,8 +905,14 @@ describePostgres("the joins across products, on Postgres", () => {
     });
 
     test("servers of two Magnum clusters in one Kubernetes cluster is neither, from either end", async () => {
-      const { projectId, cloudId, addNode, addServer, linkFromHere, linkFromThere } =
-        await setUp();
+      const {
+        projectId,
+        cloudId,
+        addNode,
+        addServer,
+        linkFromHere,
+        linkFromThere,
+      } = await setUp();
       await OpenStackResourceService.bulkUpsert({
         projectId,
         openStackCloudId: cloudId,
@@ -973,7 +989,7 @@ describePostgres("the joins across products, on Postgres", () => {
       expect(await linkFromHere("no-such-cluster")).toBeNull();
     });
 
-    test("joins on what a real cloud said of a cluster and its stack", async () => {
+    test("joins on what a real cloud said of a cluster, its stack and its server", async () => {
       const projectId: ObjectID = ObjectID.generate();
       const cloudId: ObjectID = await addCloud(projectId, "devstack");
       const recorded: Array<ParsedOpenStackResource> = scanRecordedSeries(
@@ -981,32 +997,26 @@ describePostgres("the joins across products, on Postgres", () => {
           path.join(
             OPENSTACK_FIXTURES_FOLDER,
             "services-heat-magnum",
-            "access-check",
+            "magnum-real-image",
             "exporter",
-            "admin",
           ),
         ),
         OBSERVED_AT_MS,
       ).map(toParsedOpenStackResource);
-      const stack: ParsedOpenStackResource | undefined = recorded.find(
+      const serverName: RegExp = /^ou-cluster-real-.+-master-0$/;
+      const server: ParsedOpenStackResource | undefined = recorded.find(
         (row: ParsedOpenStackResource): boolean => {
-          return row.name === "ou-cluster-real-rfhmez6mgxk3";
+          return (
+            row.kind === OpenStackResourceKind.Instance &&
+            serverName.test(row.name || "")
+          );
         },
       );
-      expect(stack?.kind).toBe(OpenStackResourceKind.Stack);
+      expect(server).toBeDefined();
       await OpenStackResourceService.bulkUpsert({
         projectId,
         openStackCloudId: cloudId,
-        resources: [
-          ...recorded,
-          // Its servers aren't recorded. What Magnum's driver names them is from its templates.
-          resource({
-            kind: OpenStackResourceKind.Instance,
-            externalId: uuidOf(1),
-            name: "ou-cluster-real-rfhmez6mgxk3-master-0",
-            regionName: stack?.regionName,
-          }),
-        ],
+        resources: recorded,
       });
       const clusterId: ObjectID = await insert("KubernetesCluster", {
         projectId: projectId.toString(),
@@ -1022,7 +1032,7 @@ describePostgres("the joins across products, on Postgres", () => {
             resourceType: "nodes",
             logBody: nodeLogBody({
               name: "master-0",
-              providerID: `openstack:///${uuidOf(1)}`,
+              providerID: `openstack:///${server!.externalId}`,
             }),
             lastSeenAt: new Date(),
           })!.resource,
@@ -1068,12 +1078,8 @@ describePostgres("the joins across products, on Postgres", () => {
         expect(radius.isKnown).toBe(false);
       });
 
-      test("an instance of another name names nothing, and asks nothing", async () => {
+      test("an instance of another name names nothing", async () => {
         const { projectId, cloudId } = await setUp();
-        const asked: jest.SpyInstance = jest.spyOn(
-          OpenStackResourceService.getRepository().manager,
-          "query",
-        );
         const radius: OpenStackBlastRadius =
           await OpenStackResourceService.getBlastRadius({
             projectId,
@@ -1081,12 +1087,144 @@ describePostgres("the joins across products, on Postgres", () => {
             part: {
               kind: OpenStackResourceKind.Instance,
               name: "web-1",
+              externalId: uuidOf(99),
               regionName: "RegionOne",
             },
           });
         expect(radius.belongsTo).toEqual([]);
-        expect(asked).not.toHaveBeenCalled();
-        asked.mockRestore();
+      });
+
+      describe("a stack's own read of what it owns", () => {
+        const ownerOf: (data: {
+          projectId: ObjectID;
+          cloudId: ObjectID;
+          kind: OpenStackResourceKind;
+          externalId: string;
+        }) => Promise<Array<string | null>> = async (data: {
+          projectId: ObjectID;
+          cloudId: ObjectID;
+          kind: OpenStackResourceKind;
+          externalId: string;
+        }): Promise<Array<string | null>> => {
+          const radius: OpenStackBlastRadius =
+            await OpenStackResourceService.getBlastRadius({
+              projectId: data.projectId,
+              openStackCloudId: data.cloudId,
+              part: {
+                kind: data.kind,
+                name: "web-1",
+                externalId: data.externalId,
+                regionName: "RegionOne",
+              },
+            });
+          expect(radius.isKnown).toBe(false);
+          return (radius.belongsTo || []).map(
+            (owner: OpenStackBlastRadiusOwner): string | null => {
+              return owner.name;
+            },
+          );
+        };
+
+        const withOwner: () => Promise<{
+          projectId: ObjectID;
+          cloudId: ObjectID;
+        }> = async () => {
+          const { projectId, cloudId } = await setUp();
+          await OpenStackResourceService.bulkUpsert({
+            projectId,
+            openStackCloudId: cloudId,
+            resources: [
+              resource({
+                kind: OpenStackResourceKind.Stack,
+                externalId: "stack-owner",
+                name: "owner",
+                regionName: "RegionOne",
+                status: "CREATE_FAILED",
+                facts: {
+                  ownedInstanceIds: [uuidOf(50)],
+                  ownedVolumeIds: ["a-volume"],
+                },
+              }),
+              // Nothing has read this one, which says nothing about anything.
+              resource({
+                kind: OpenStackResourceKind.Stack,
+                externalId: "stack-not-read",
+                name: "not-read",
+                regionName: "RegionOne",
+                facts: { ownedInstanceIds: null, ownedVolumeIds: null },
+              }),
+            ],
+          });
+          return { projectId, cloudId };
+        };
+
+        test("an instance it names names it", async () => {
+          expect(
+            await ownerOf({
+              ...(await withOwner()),
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(50),
+            }),
+          ).toEqual(["owner"]);
+        });
+
+        test("a volume it names names it, by what Cinder calls it", async () => {
+          expect(
+            await ownerOf({
+              ...(await withOwner()),
+              kind: OpenStackResourceKind.Volume,
+              externalId: "a-volume",
+            }),
+          ).toEqual(["owner"]);
+        });
+
+        test("what it doesn't name names nothing, and a volume's ID is no instance's", async () => {
+          const estate: { projectId: ObjectID; cloudId: ObjectID } =
+            await withOwner();
+          expect(
+            await ownerOf({
+              ...estate,
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(51),
+            }),
+          ).toEqual([]);
+          expect(
+            await ownerOf({
+              ...estate,
+              kind: OpenStackResourceKind.Instance,
+              externalId: "a-volume",
+            }),
+          ).toEqual([]);
+        });
+
+        test("another cloud's stack is nothing to do with it", async () => {
+          const { projectId } = await withOwner();
+          expect(
+            await ownerOf({
+              projectId,
+              cloudId: await addCloud(projectId, "another"),
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(50),
+            }),
+          ).toEqual([]);
+        });
+
+        test("a stack that has gone says nothing of what it owned", async () => {
+          const { projectId, cloudId } = await withOwner();
+          await database.query(
+            `UPDATE "OpenStackResource" SET "deletedAt" = now()
+             WHERE "projectId" = $1 AND "externalId" = 'stack-owner'`,
+            [projectId.toString()],
+          );
+          expect(
+            await ownerOf({
+              projectId,
+              cloudId,
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(50),
+            }),
+          ).toEqual([]);
+        });
       });
 
       test("an instance in another region of the same name is not its server", async () => {

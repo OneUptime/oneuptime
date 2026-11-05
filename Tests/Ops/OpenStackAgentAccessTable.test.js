@@ -525,6 +525,99 @@ describe("what a probe's reads of a router's agents and a DHCP agent's networks 
 });
 
 describe("what the recordings show, as the pages say it", () => {
+  const OPTIONAL_GROUPS = fs.readdirSync(FIXTURES).filter((name) => {
+    return name.startsWith("services-");
+  });
+
+  const seriesIn = (file) => {
+    return fs
+      .readFileSync(file, "utf8")
+      .split("\n")
+      .filter((line) => {
+        return line !== "" && !line.startsWith("#");
+      })
+      .map((line) => {
+        return line.slice(0, line.lastIndexOf(" "));
+      })
+      .sort();
+  };
+
+  test.each(OPTIONAL_GROUPS)(
+    "%s: through the exporter, level 1 read the series an admin's credential read, and could write nothing",
+    (group) => {
+      const check = path.join(FIXTURES, group, "access-check");
+      const admin = path.join(check, "exporter", "admin");
+      const proms = fs.readdirSync(admin).filter((file) => {
+        return file.endsWith(".prom");
+      });
+      expect(proms.length).toBeGreaterThan(0);
+      for (const prom of proms) {
+        const series = seriesIn(path.join(admin, prom));
+        expect(series.length).toBeGreaterThan(1);
+        expect({
+          prom,
+          series: seriesIn(
+            path.join(check, "exporter", "monitoring-admin-get", prom),
+          ),
+        }).toEqual({ prom, series });
+      }
+      const { writes } = JSON.parse(
+        fs.readFileSync(path.join(check, "matrix-access-rules.json"), "utf8"),
+      );
+      expect(writes.length).toBeGreaterThan(5);
+      for (const row of writes) {
+        // Ironic's recording is older than include_service_catalog = True, so Swift said 500.
+        if (group === "services-ironic" && row.service === "object-store") {
+          continue;
+        }
+        expect({
+          write: row.write,
+          status: row.results["monitoring-admin-get"].status,
+        }).toEqual({ write: row.write, status: 401 });
+      }
+    },
+  );
+
+  test("Octavia's root and Swift's account take rules of their own, and the pages say so", () => {
+    expect(
+      seriesIn(
+        path.join(
+          FIXTURES,
+          "services-octavia",
+          "access-check",
+          "exporter",
+          "monitoring-admin-get",
+          "load-balancer.prom",
+        ),
+      ),
+    ).toContain("openstack_loadbalancer_up");
+    expect(
+      seriesIn(
+        path.join(
+          FIXTURES,
+          "services-designate-barbican-swift",
+          "access-check",
+          "exporter",
+          "monitoring-admin-get",
+          "object-store.prom",
+        ),
+      ),
+    ).toContain("openstack_object_store_up");
+    for (const file of [README, DOCS_PAGE]) {
+      const text = read(file);
+      expect(text).toContain("`/load-balancer//`, with two slashes");
+      expect(text).toContain(
+        "it lists Swift's account with a trailing slash, which `/v1/*` doesn't match",
+      );
+      expect(text).toContain(
+        "level 1 got the same series as an admin's credential from each one the exporter reads, and every write answered `401`.",
+      );
+      expect(text).toContain(
+        "An access-rule credential made from an older copy of the rules does this on Swift, and on Octavia behind a path",
+      );
+    }
+  });
+
   test.each(RELEASES)(
     "%s: level 1 read everything with a 200, and every write answered 401",
     (release) => {
@@ -723,7 +816,14 @@ describe("there is no policy file for Cinder", () => {
   test("in the folder, or in what OneUptime serves", () => {
     expect(
       fs.readdirSync(path.join(AGENT_DIR, "access", "policy")).sort(),
-    ).toEqual(["keystone.yaml", "neutron.yaml", "nova.yaml", "placement.yaml"]);
+    ).toEqual([
+      "keystone.yaml",
+      "neutron.yaml",
+      "nova.yaml",
+      "placement.yaml",
+      // Takes actions away from the credential that makes changes: it reads nothing for anyone.
+      "write-nova.yaml",
+    ]);
     expect(
       read(
         path.join(

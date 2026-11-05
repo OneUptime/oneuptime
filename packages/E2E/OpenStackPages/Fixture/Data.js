@@ -1523,11 +1523,11 @@ const BUSY_OTHER_PRODUCTS = {
  * what a real cloud recorded (services-heat-magnum/access-check), and the links are the real rule.
  * ---------------------------------------------------------------------------
  */
-export const MAGNUM_CLUSTER = "3b143fea-d790-4490-995b-033a2263c60c";
-export const MAGNUM_CLUSTER_WITHOUT_AGENT = "9f6c221b-9ba3-4d20-ad26-e906bc1b3803";
+export const MAGNUM_CLUSTER = "a574ec05-efe3-45ca-a348-6b00a967b446";
+export const MAGNUM_CLUSTER_WITHOUT_AGENT = "df9f1548-93b9-444f-9001-605d49feda4e";
 export const MAGNUM_KUBERNETES_CLUSTER = uuid("76000000", 2);
 export const MAGNUM_MACHINE = "compute-01.acme.example";
-const MAGNUM_STACK = "ou-cluster-real-rfhmez6mgxk3";
+const MAGNUM_STACK = "ou-cluster-real-b4a265chwfks";
 
 export function magnumServerIdOf(number) {
   return instanceIdOf(number);
@@ -1558,9 +1558,15 @@ function magnumInventory(context) {
     instance(context, 3, "web-1", region, onMachine),
     part({
       kind: "Stack",
-      externalId: "4a7750cc-ca1c-4c4b-a10e-4ce526d83b7f",
+      externalId: "733396c7-a790-4b41-9bfe-59a3342a517d",
       name: MAGNUM_STACK,
       status: "CREATE_COMPLETE",
+      facts: {
+        ownedInstanceIds: [instanceIdOf(1), instanceIdOf(2)],
+        ownedInstanceCount: 2,
+        ownedVolumeIds: [],
+        ownedVolumeCount: 0,
+      },
     }),
     part({
       kind: "ContainerCluster",
@@ -1568,14 +1574,14 @@ function magnumInventory(context) {
       name: "ou-cluster-real",
       status: "CREATE_COMPLETE",
       facts: {
-        stackId: "4a7750cc-ca1c-4c4b-a10e-4ce526d83b7f",
+        stackId: "733396c7-a790-4b41-9bfe-59a3342a517d",
         masterCount: 1,
         nodeCount: 1,
       },
     }),
     part({
       kind: "Stack",
-      externalId: "66b02f15-9492-45b2-84aa-a82a4edf21f7",
+      externalId: "417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",
       name: "ou-cluster-times-out-abc123",
       status: "CREATE_COMPLETE",
     }),
@@ -1585,7 +1591,7 @@ function magnumInventory(context) {
       name: "ou-cluster-times-out",
       status: "CREATE_COMPLETE",
       facts: {
-        stackId: "66b02f15-9492-45b2-84aa-a82a4edf21f7",
+        stackId: "417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",
         masterCount: 1,
         nodeCount: 1,
       },

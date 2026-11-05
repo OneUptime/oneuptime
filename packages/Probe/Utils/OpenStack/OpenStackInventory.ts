@@ -1,4 +1,4 @@
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   OpenStackFlavorRequest,
   OpenStackPlacementAnswer,
@@ -977,6 +977,44 @@ export interface HeatStackRecord {
   status: string | null;
   statusReason: string | null;
   parentId: string | null;
+  // What it owns, from its own read of its resources. Left out until that read is made.
+  resources?: HeatStackResources | undefined;
+}
+
+// What a stack's resources say it owns, by what Nova and Cinder know each by.
+export interface HeatStackResources {
+  // The status it was read at: it is read again when that moves.
+  status: string | null;
+  instanceIds: Array<string>;
+  volumeIds: Array<string>;
+}
+
+/*
+ * Only a resource that exists says anything: one that failed before Nova made it has an empty
+ * physical_resource_id (recorded). A volume attachment's physical id is its volume's, so it isn't one
+ * of its own.
+ */
+export function toHeatStackResources(data: {
+  status: string | null;
+  resources: JSONArray;
+}): HeatStackResources {
+  const idsOf: (resourceType: string) => Array<string> = (
+    resourceType: string,
+  ): Array<string> => {
+    const ids: Set<string> = new Set();
+    for (const resource of data.resources as Array<JSONObject>) {
+      const id: string | null = text(resource["physical_resource_id"]);
+      if (resource["resource_type"] === resourceType && id) {
+        ids.add(id);
+      }
+    }
+    return Array.from(ids).sort();
+  };
+  return {
+    status: data.status,
+    instanceIds: idsOf("OS::Nova::Server"),
+    volumeIds: idsOf("OS::Cinder::Volume"),
+  };
 }
 
 export function toHeatStack(item: JSONObject): HeatStackRecord {
@@ -1132,6 +1170,45 @@ export function toManilaService(item: JSONObject): ManilaServiceRecord {
 }
 
 /*
+ * A database as Trove's mgmt API lists it. `used` is there only for a running instance, and the exporter
+ * reads none of what's after `used` here: why one failed and what it was doing, recorded.
+ */
+export interface TroveInstanceRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  regionName: string | null;
+  datastoreType: string | null;
+  datastoreVersion: string | null;
+  healthStatus: string | null;
+  volumeSizeGb: number | null;
+  volumeUsedGb: number | null;
+  faultMessage: string | null;
+  taskDescription: string | null;
+}
+
+export function toTroveInstance(item: JSONObject): TroveInstanceRecord {
+  const datastore: JSONObject = (item["datastore"] as JSONObject) || {};
+  const volume: JSONObject = (item["volume"] as JSONObject) || {};
+  const fault: JSONObject = (item["fault"] as JSONObject) || {};
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["tenant_id"]),
+    status: text(item["status"]),
+    regionName: text(item["region"]),
+    datastoreType: text(datastore["type"]),
+    datastoreVersion: text(datastore["version"]),
+    healthStatus: text(item["operating_status"]),
+    volumeSizeGb: numeric(volume["size"]),
+    volumeUsedGb: numeric(volume["used"]),
+    faultMessage: text(fault["message"]),
+    taskDescription: text(item["task_description"]),
+  };
+}
+
+/*
  * One region's reading of each service. A field left undefined was not read, or could
  * not be, and its series are left out: never reported as zero, because zero is an
  * answer and a failed read is not.
@@ -1226,6 +1303,148 @@ export interface OpenStackSharedFileSystemsInventory {
   services?: Array<ManilaServiceRecord> | undefined;
 }
 
+/*
+ * What Gnocchi's status says, whatever its storage driver. Its processors are a list of names, and the list is
+ * empty with gnocchi-metricd stopped, recorded.
+ */
+export interface GnocchiStatusRecord {
+  measuresToProcess: number | null;
+  metricsWithMeasures: number | null;
+  processors: number | null;
+}
+
+export function toGnocchiStatus(body: JSONObject): GnocchiStatusRecord {
+  const storage: JSONObject = (body["storage"] as JSONObject) || {};
+  const summary: JSONObject = (storage["summary"] as JSONObject) || {};
+  const metricd: JSONObject = (body["metricd"] as JSONObject) || {};
+  const processors: JSONValue | undefined = metricd["processors"];
+  return {
+    measuresToProcess: numeric(summary["measures"]),
+    metricsWithMeasures: numeric(summary["metrics"]),
+    processors: Array.isArray(processors) ? processors.length : null,
+  };
+}
+
+export interface OpenStackMetricInventory {
+  status?: GnocchiStatusRecord | undefined;
+}
+
+/*
+ * A Designate zone as its own list says, and a recordset of one. The exporter says as much of each. A zone's
+ * recordset count is there only for a zone this read asked about: the exporter makes a call per zone per scrape
+ * to say that, and this doesn't.
+ */
+export interface DesignateZoneRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  type: string | null;
+  action: string | null;
+}
+
+export function toDesignateZone(item: JSONObject): DesignateZoneRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["project_id"]),
+    status: text(item["status"]),
+    type: text(item["type"]),
+    action: text(item["action"]),
+  };
+}
+
+export interface DesignateRecordsetRecord {
+  id: string | null;
+  name: string | null;
+  status: string | null;
+  type: string | null;
+  zoneId: string | null;
+  zoneName: string | null;
+  projectId: string | null;
+}
+
+export function toDesignateRecordset(
+  item: JSONObject,
+): DesignateRecordsetRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    status: text(item["status"]),
+    type: text(item["type"]),
+    zoneId: text(item["zone_id"]),
+    zoneName: text(item["zone_name"]),
+    projectId: text(item["project_id"]),
+  };
+}
+
+// One of Designate's workers. It goes by a heartbeat, so a stopped one reads UP for a while yet, recorded.
+export interface DesignateServiceRecord {
+  host: string | null;
+  name: string | null;
+  status: string | null;
+}
+
+export function toDesignateServiceStatus(
+  item: JSONObject,
+): DesignateServiceRecord {
+  return {
+    host: text(item["hostname"]),
+    name: text(item["service_name"]),
+    status: text(item["status"]),
+  };
+}
+
+export interface OpenStackDnsInventory {
+  zones?: Array<DesignateZoneRecord> | undefined;
+  // Only those of a zone that isn't ACTIVE: see DnsCollector.
+  recordsets?: Array<DesignateRecordsetRecord> | undefined;
+  services?: Array<DesignateServiceRecord> | undefined;
+}
+
+// A Swift container, as its account's own list says: its name, how much it holds, and how many objects.
+export interface SwiftContainerRecord {
+  name: string | null;
+  bytes: number | null;
+  objects: number | null;
+  // Whose account it's in: the exporter leaves that out.
+  projectId: string | null;
+}
+
+export function toSwiftContainer(
+  item: JSONObject,
+  projectId: string | null,
+): SwiftContainerRecord {
+  return {
+    name: text(item["name"]),
+    bytes: numeric(item["bytes"]),
+    objects: numeric(item["count"]),
+    projectId,
+  };
+}
+
+export interface OpenStackObjectStoreInventory {
+  containers?: Array<SwiftContainerRecord> | undefined;
+}
+
+// Only how many: OneUptime reads no secret, and a list says only that one exists.
+export interface OpenStackKeyManagerInventory {
+  secretCount?: number | undefined;
+  orderCount?: number | undefined;
+  containerCount?: number | undefined;
+}
+
+export interface OpenStackDatabaseInventory {
+  instances?: Array<TroveInstanceRecord> | undefined;
+}
+
+export interface OpenStackRatingInventory {
+  // Absent when it wasn't asked this time, which is most times: it's asked once an hour.
+  rated?:
+    | Array<{ projectId: string; period: string; rate: number }>
+    | undefined;
+}
+
 export interface OpenStackInventoryByService {
   identity?: OpenStackIdentityInventory | undefined;
   compute?: OpenStackComputeInventory | undefined;
@@ -1237,5 +1456,11 @@ export interface OpenStackInventoryByService {
   // Keyed by what each service is called, so a reading finds its own by that.
   orchestration?: OpenStackOrchestrationInventory | undefined;
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
+  rating?: OpenStackRatingInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
+  database?: OpenStackDatabaseInventory | undefined;
+  "key-manager"?: OpenStackKeyManagerInventory | undefined;
+  "object-store"?: OpenStackObjectStoreInventory | undefined;
+  dns?: OpenStackDnsInventory | undefined;
+  gnocchi?: OpenStackMetricInventory | undefined;
 }

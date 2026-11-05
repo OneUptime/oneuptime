@@ -86,17 +86,35 @@ export function isCloudAiResourceType(value: unknown): boolean {
 /*
  * The types OneUptime AI only ever reads: their tool policy has no command that
  * changes the resource, so there is nothing for fixes to run. Whatever an
- * agent's settings or a saved row say, fixes stay off on them. Issue #5747 takes
- * OpenStack off this list when writes with approval arrive.
+ * agent's settings or a saved row say, fixes stay off on them. There are none
+ * today. A kind of resource starts here, and comes off the list when writes with
+ * approval arrive, as OpenStack did.
  */
-export const READ_ONLY_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
-  AiResourceType.OpenStackCloud,
-];
+export const READ_ONLY_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [];
 
 export function isReadOnlyAiResourceType(value: unknown): boolean {
   return (
     typeof value === "string" &&
     (READ_ONLY_AI_RESOURCE_TYPES as ReadonlyArray<string>).includes(value)
+  );
+}
+
+/*
+ * The types whose fixes only come on when someone says so, twice: the agent's write
+ * switch (and its credential for changes), and a mode that is not Off, chosen on the
+ * resource's AI agent page or named in the agent's ONEUPTIME_AI_FIXES. Elsewhere the
+ * write switch alone starts a resource nobody configured on "ask for approval". A
+ * production cloud's control plane does not start anywhere but Off.
+ */
+export const FIXES_NEED_A_SECOND_OPT_IN_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> =
+  [AiResourceType.OpenStackCloud];
+
+export function doFixesNeedASecondOptIn(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    (
+      FIXES_NEED_A_SECOND_OPT_IN_AI_RESOURCE_TYPES as ReadonlyArray<string>
+    ).includes(value)
   );
 }
 

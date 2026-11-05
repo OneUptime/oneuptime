@@ -87,6 +87,7 @@ import {
   withAiAccessColumns,
 } from "./AiAgent";
 import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
+import CloudSpend from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Spend";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
 import CloudHypervisors from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Hypervisors";
@@ -120,6 +121,12 @@ import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
 import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
 import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudDnsZones from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DnsZones";
+import CloudDnsZoneDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DnsZoneDetail";
+import CloudObjectContainers from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ObjectContainers";
+import CloudObjectContainerDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ObjectContainerDetail";
+import CloudDatabaseInstances from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstances";
+import CloudDatabaseInstanceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstanceDetail";
 import CloudShares from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Shares";
 import CloudShareDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ShareDetail";
 import CloudLoadBalancers from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/LoadBalancers";
@@ -249,6 +256,7 @@ import {
 } from "./Recordings";
 import { answerRows, hasServiceLogs, readServiceLogs } from "./ServiceLogs";
 import { buildCapacitySnapshotOf } from "./Capacity";
+import { buildSpendOf } from "./Spend";
 import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
 /*
@@ -932,26 +940,53 @@ function withCapacity(cloud) {
       };
 }
 
+/*
+ * What the worker would keep about the cloud's usage, by the same code (OpenStackSpendSnapshot).
+ * ?spend=none is a cloud no worker has been through yet.
+ */
+const SPEND =
+  params.get("spend") === "none"
+    ? { priceList: null, snapshot: null, usage: [] }
+    : buildSpendOf(estate.inventory, {
+        scenario: params.get("spend"),
+        waste: params.get("waste"),
+        openStackCloudId: estate.cloud._id,
+        loadedAt: LOADED_AT,
+        observedAt: LOADED_AT,
+      });
+
+function withSpend(cloud) {
+  return {
+    ...cloud,
+    spendSnapshot: SPEND.snapshot,
+    priceList: SPEND.priceList,
+  };
+}
+
 const store = {
+  OpenStackProjectUsage: SPEND.usage,
+  OpenStackBudget: [],
   OpenStackCloudCheck: checkRow ? [checkRow] : [],
   // Every cloud's row has these, with these defaults, since its migration.
   OpenStackCloud: withAiAccessColumns(
     params.get("clouds") === "none"
       ? []
       : [
-          withCapacity(
-            params.get("collection") === "Probe"
-              ? probeCollectedCloud(
-                  estate.cloud,
-                  params.get("probe"),
-                  LOADED_AT,
-                )
-              : params.get("collection")
-                ? {
-                    ...estate.cloud,
-                    collectionMethod: params.get("collection"),
-                  }
-                : estate.cloud,
+          withSpend(
+            withCapacity(
+              params.get("collection") === "Probe"
+                ? probeCollectedCloud(
+                    estate.cloud,
+                    params.get("probe"),
+                    LOADED_AT,
+                  )
+                : params.get("collection")
+                  ? {
+                      ...estate.cloud,
+                      collectionMethod: params.get("collection"),
+                    }
+                  : estate.cloud,
+            ),
           ),
           ...(params.get("archived") === "1"
             ? [
@@ -1401,6 +1436,7 @@ function writeRow(modelName, id, data) {
 }
 
 const WRITABLE_TABLES = new Set([
+  "OpenStackBudget",
   "OpenStackCloudCheck",
   "OpenStackCloudOwnerUser",
   "OpenStackCloudOwnerTeam",
@@ -2420,6 +2456,7 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS, CloudAiLogs],
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, CloudAiAgent],
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SPEND, CloudSpend],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS, CloudHypervisors],
@@ -2457,6 +2494,18 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES, CloudDnsZones],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL, CloudDnsZoneDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS, CloudObjectContainers],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL,
+    CloudObjectContainerDetail,
+  ],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES, CloudDatabaseInstances],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+    CloudDatabaseInstanceDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARES, CloudShares],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, CloudShareDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS, CloudLoadBalancers],

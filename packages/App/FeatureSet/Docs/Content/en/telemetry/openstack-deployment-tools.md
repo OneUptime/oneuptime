@@ -3,7 +3,7 @@
 Nobody runs "OpenStack". They run a tool that deploys it, and each tool has its own paths, its own logs and its own idea of what is already running. This page is what the setup guide in OneUptime says for each one: open **OpenStack → All Clouds**, connect a cloud, and answer **How do you deploy OpenStack?**
 
 :::cards
-- [How far each guide has been tested](#how-far-each-guide-has-been-tested): Read this first. Kolla-Ansible's has been run on a real deployment, short of an alert. The others have not.
+- [How far each guide has been tested](#how-far-each-guide-has-been-tested): Read this first. Kolla-Ansible's has been run on a real deployment, short of an alert. OpenStack-Ansible's has been run in part. The others have not.
 - [Forward what is already firing](#forward-what-is-already-firing): Incidents from the first hour, with no agent.
 - [Kolla-Ansible](#kolla-ansible): Read the exporters it already runs.
 - [OpenStack-Ansible](#openstack-ansible): Journald logs, and overrides in `user_variables.yml`.
@@ -30,7 +30,9 @@ Every path, port and variable below was read from the tool's own source or docs.
 
 What each guide's **Who did what** turns on was recorded on DevStack, on every release the rig runs, and on none of these tools. Where each tool takes it was read from that tool's source or docs.
 
-One part of this has run on a live OneUptime, started as Docker Compose starts it, with its app built from this code. It was sent what a real agent and a real Alertmanager had sent: each cloud registered from its first data and filled 60 rows of inventory across 14 kinds, the firing webhook opened one incident on the right cloud and on no other, the same webhook again opened nothing, and the resolved webhook resolved it. What it was sent was recorded on DevStack and in a test cluster, not on a cloud any of these tools deployed, and no guide's commands ran against it.
+Beside those, the whole path has run on a live OneUptime, started as Docker Compose starts it, with its app and probe built from this code, and on a real DevStack rather than any of these tools. The agent, installed with its docs' commands, registered the cloud from its first data, and every instance, volume and hypervisor had a row with the status the cloud itself gave it. With `nova-compute` really stopped, its row went down, a monitor from the Compute Service Down template opened one incident naming the host 746 seconds later, and it resolved 48 seconds after the service started again. A project's probe connected the same cloud through the dashboard's own routes and read back its rows, and a signed boot's 114 spans arrived across its services, from the traces profile.
+
+Separately, what a real agent and a real Alertmanager had sent were recorded on DevStack and in a test cluster, not on a cloud any of these tools deployed. Sent to a live OneUptime, the firing webhook opened one incident on the right cloud and on no other, the same webhook again opened nothing, and the resolved webhook resolved it.
 
 ## Forward what is already firing
 

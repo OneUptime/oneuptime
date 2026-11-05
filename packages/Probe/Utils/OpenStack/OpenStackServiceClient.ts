@@ -89,6 +89,10 @@ export type OpenStackPaging =
   | "next"
   // <key>_links holds a rel "next", and it means an offset: a marker means nothing to Manila.
   | "offset"
+  // The answer's own `links`: a list with a rel "next" (Trove), or an object with a `next` (Designate).
+  | "bodyLinks"
+  // The answer is a list rather than an object (Swift), and a full page means there may be more.
+  | "bareList"
   // No paging at all: Keystone and Placement, and a few of Nova's and Neutron's.
   | "none";
 
@@ -247,6 +251,8 @@ export default class OpenStackServiceClient {
     withoutToken?: boolean | undefined;
     // A version document can come with 300 Multiple Choices, and is still the answer.
     acceptsMultipleChoices?: boolean | undefined;
+    // Swift's lists are a list and not an object: they come back under this key.
+    bareListKey?: string | undefined;
   }): Promise<OpenStackJsonAnswer> {
     const url: string = `${data.url || `${this.baseUrl}${data.path || ""}`}${buildOpenStackQueryString(
       data.query,
@@ -302,7 +308,7 @@ export default class OpenStackServiceClient {
         (response.status === 300 && data.acceptsMultipleChoices)
       ) {
         return {
-          body: this.parseBody(response, data.read, url),
+          body: this.parseBody(response, data.read, url, data.bareListKey),
           date: this.readDate(response),
         };
       }
@@ -397,6 +403,8 @@ export default class OpenStackServiceClient {
     paging: OpenStackPaging;
     query?: OpenStackQuery | undefined;
     idField?: string | undefined;
+    // Instead of the base URL, for an account that isn't this credential's own.
+    url?: string | undefined;
   }): Promise<OpenStackListAnswer> {
     const items: Array<JSONObject> = [];
     const idField: string = data.idField || "id";
@@ -409,6 +417,8 @@ export default class OpenStackServiceClient {
       const answer: OpenStackJsonAnswer = await this.get({
         read: data.read,
         path: data.path,
+        url: data.url,
+        bareListKey: data.paging === "bareList" ? data.key : undefined,
         query: {
           ...data.query,
           ...(data.paging === "none" ? {} : { limit: this.pageSize }),
@@ -447,7 +457,9 @@ export default class OpenStackServiceClient {
 
       if (
         page.length === 0 ||
-        !this.hasNextPage(answer.body, data.key, data.paging)
+        (data.paging === "bareList"
+          ? page.length < this.pageSize
+          : !this.hasNextPage(answer.body, data.key, data.paging))
       ) {
         return {
           items: items,
@@ -499,6 +511,23 @@ export default class OpenStackServiceClient {
       return typeof body["next"] === "string" && Boolean(body["next"]);
     }
 
+    if (paging === "bodyLinks") {
+      const links: JSONValue | undefined = body["links"];
+
+      if (Array.isArray(links)) {
+        return (links as Array<JSONObject>).some(
+          (link: JSONObject): boolean => {
+            return link?.["rel"] === "next";
+          },
+        );
+      }
+
+      const next: JSONValue | undefined = (links as JSONObject | undefined)?.[
+        "next"
+      ];
+      return typeof next === "string" && Boolean(next);
+    }
+
     if (paging === "links" || paging === "offset") {
       const links: JSONValue | undefined = body[`${key}_links`];
 
@@ -522,6 +551,7 @@ export default class OpenStackServiceClient {
     response: OpenStackHttpResponse,
     read: string,
     url: string,
+    bareListKey?: string | undefined,
   ): JSONObject {
     let parsed: unknown;
 
@@ -529,6 +559,11 @@ export default class OpenStackServiceClient {
       parsed = JSON.parse(response.body);
     } catch {
       parsed = null;
+    }
+
+    // Swift's lists are a list, and one with nothing in it may answer with nothing at all.
+    if (bareListKey && (Array.isArray(parsed) || !response.body.trim())) {
+      return { [bareListKey]: (parsed || []) as Array<JSONObject> };
     }
 
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

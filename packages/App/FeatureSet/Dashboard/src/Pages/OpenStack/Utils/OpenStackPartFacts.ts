@@ -20,6 +20,9 @@ import {
   isOpenStackAmphoraInError,
   isOpenStackLoadBalancerInError,
   isOpenStackLoadBalancerStuck,
+  isOpenStackDnsInError,
+  isOpenStackDatabaseInstanceInError,
+  isOpenStackDatabaseInstanceStuck,
   isOpenStackShareInError,
   isOpenStackStackFailed,
   isSameOpenStackHost,
@@ -173,6 +176,23 @@ export const OPENSTACK_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
 
 export const OPENSTACK_AMPHORA_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-amphora-in-error",
+];
+
+export const OPENSTACK_DNS_ZONE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-dns-zone-in-error",
+  "openstack-dns-zone-stuck-pending",
+  "openstack-dns-recordset-in-error",
+];
+
+// What watches every container this credential can read.
+export const OPENSTACK_OBJECT_CONTAINER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-object-container-growth",
+];
+
+export const OPENSTACK_DATABASE_INSTANCE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-database-instance-in-error",
+  "openstack-database-instance-stuck",
+  "openstack-database-volume-nearly-full",
 ];
 
 export const OPENSTACK_SHARE_ALERT_TEMPLATE_IDS: Array<string> = [
@@ -1092,6 +1112,21 @@ const EXPLAIN_POOL_FULL: string = translationKey(
 const EXPLAIN_POOL_FILLING: string = translationKey(
   "This pool is filling up. Add capacity or free space before Cinder's scheduler runs out of room for new volumes.",
 );
+const EXPLAIN_DNS_ZONE_ERROR: string = translationKey(
+  "Designate's worker gave up writing this zone to a DNS server, so what it answers there may be out of date. Names already served go on answering. Check that the DNS servers in its pool are answering, then designate-worker's log.",
+);
+const EXPLAIN_DNS_ZONE_PENDING: string = translationKey(
+  "This zone has stayed PENDING for longer than Designate's worker takes to give up, so nothing is working on it, and changes to it are being accepted and not carried out. Check that designate-worker is running, then openstack dns service list.",
+);
+const EXPLAIN_DATABASE_ERROR: string = translationKey(
+  "Trove gave up on this database, and it stays like this until someone deals with it. Whoever asked for it doesn't have it. Usually Nova refused its guest, or the guest never reported. openstack database instance show says which, in its fault.",
+);
+const EXPLAIN_DATABASE_STUCK: string = translationKey(
+  "This database has been on its way to something else for longer than Trove gives a guest of its own accord, so nothing is working on it any more. Trove has no list of its workers to say so: check that trove-taskmanager is running on its controller.",
+);
+const EXPLAIN_DATABASE_FULL: string = translationKey(
+  "This database's volume is nearly full, and it stops taking writes when that fills. Resize it with openstack database instance resize volume, or have whoever owns it clear out what it holds.",
+);
 const EXPLAIN_NODE_FAILED: string = translationKey(
   "This node failed at what it was doing, and it stays failed until someone acts: Ironic retries none of these by itself. The machine is out of what the cloud can give until then.",
 );
@@ -1191,6 +1226,21 @@ export function getOpenStackPartExplanation(
         : EXPLAIN_POOL_FILLING;
     case OpenStackResourceKind.Image:
       return EXPLAIN_IMAGE_STUCK;
+    case OpenStackResourceKind.DnsZone:
+      return isOpenStackDnsInError(row.status)
+        ? EXPLAIN_DNS_ZONE_ERROR
+        : EXPLAIN_DNS_ZONE_PENDING;
+    case OpenStackResourceKind.DatabaseInstance:
+      if (isOpenStackDatabaseInstanceInError(row.status)) {
+        return EXPLAIN_DATABASE_ERROR;
+      }
+      return isOpenStackDatabaseInstanceStuck({
+        status: row.status,
+        stateChangedAt: row.stateChangedAt,
+        now,
+      })
+        ? EXPLAIN_DATABASE_STUCK
+        : EXPLAIN_DATABASE_FULL;
     case OpenStackResourceKind.BareMetalNode:
       return getOpenStackBareMetalExplanation(row, now);
     case OpenStackResourceKind.LoadBalancer:
@@ -1360,6 +1410,7 @@ export function isOpenStackIssueAbout(
     case OpenStackResourceKind.Share:
     case OpenStackResourceKind.LoadBalancerPool:
     case OpenStackResourceKind.Amphora:
+    case OpenStackResourceKind.DatabaseInstance:
       return (
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
@@ -1370,6 +1421,13 @@ export function isOpenStackIssueAbout(
         Boolean(row.externalId) &&
         (readSeriesLabel(labels, "id") === row.externalId ||
           readSeriesLabel(labels, "loadbalancer_id") === row.externalId)
+      );
+    // A recordset's incident is its zone's: one failure of a zone's writes is one incident.
+    case OpenStackResourceKind.DnsZone:
+      return (
+        Boolean(row.externalId) &&
+        (readSeriesLabel(labels, "id") === row.externalId ||
+          readSeriesLabel(labels, "zone_id") === row.externalId)
       );
     case OpenStackResourceKind.ContainerCluster:
       return (
@@ -1436,7 +1494,13 @@ export { getOpenStackForecast } from "Common/Types/OpenStack/OpenStackForecast";
  * What an empty list means
  * ---------------------------------------------------------------------------
  */
-export type OpenStackApiState = "up" | "down" | "not-reported" | "not-read";
+export type OpenStackApiState =
+  | "up"
+  | "down"
+  // Down, and it has never once let this credential in: isOpenStackApiClosedToThisCredential.
+  | "closed"
+  | "not-reported"
+  | "not-read";
 
 export interface OpenStackEmptyWords {
   title: string;
@@ -1468,12 +1532,27 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.LoadBalancer]: OpenStackServiceType.LoadBalancer,
   [OpenStackResourceKind.LoadBalancerPool]: OpenStackServiceType.LoadBalancer,
   [OpenStackResourceKind.Amphora]: OpenStackServiceType.LoadBalancer,
+  [OpenStackResourceKind.DatabaseInstance]: OpenStackServiceType.Database,
+  [OpenStackResourceKind.ObjectContainer]: OpenStackServiceType.ObjectStore,
+  [OpenStackResourceKind.DnsZone]: OpenStackServiceType.Dns,
+  [OpenStackResourceKind.DnsRecordset]: OpenStackServiceType.Dns,
 };
 
 const NOT_ANSWERING: OpenStackEmptyWords = {
   title: translationKey("This service's API isn't answering"),
   description: translationKey(
     "Nothing could be read from it, so this list may fill up again once it answers. Check the service's API on the Services page.",
+  ),
+};
+
+/*
+ * What a credential a service refuses is told, on an empty list of it. The exporter's read of each of
+ * these asks for what only an admin may, and refused, it reads just as a stopped API does, recorded.
+ */
+const CLOSED_TO_THIS_CREDENTIAL: OpenStackEmptyWords = {
+  title: translationKey("This credential has never read this service"),
+  description: translationKey(
+    "OneUptime has never had an answer from it with this credential. Either it refuses this credential, which reads just as its API being down does, or it has been down since OneUptime started reading it. Seeing it takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
   ),
 };
 
@@ -1576,6 +1655,9 @@ export function getOpenStackEmptyWords(data: {
 }): OpenStackEmptyWords | null {
   if (data.api === "down") {
     return NOT_ANSWERING;
+  }
+  if (data.api === "closed") {
+    return CLOSED_TO_THIS_CREDENTIAL;
   }
   /*
    * Nothing said anything about this service, so far as OneUptime knows this cloud doesn't run it.

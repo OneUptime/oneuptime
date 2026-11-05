@@ -599,6 +599,44 @@ describe("a refresh token whose session is no longer there", () => {
   });
 });
 
+/*
+ * The session was live when this refresh read it, and ended before its write
+ * landed: a new password, a block, a sign-out elsewhere. The renewal answers null
+ * (UserSessionService.renewSessionWithNewRefreshToken), and no new token goes out.
+ */
+describe("a session ended while its refresh was on its way", () => {
+  beforeEach(() => {
+    findActiveSessionByRefreshToken.mockResolvedValue(
+      sessionRow({ signedInAgoMs: 10 * MINUTE_IN_MS, lastActiveAgoMs: 0 }),
+    );
+    renewSessionWithNewRefreshToken.mockResolvedValue(null);
+  });
+
+  it("is refused as a session that had ended already, with no token, and the cookies go", async () => {
+    const outcome: Outcome = await renew();
+
+    expect(outcome.refused).toBeInstanceOf(NotAuthenticatedException);
+    expect(outcome.refused!.message).toBe(
+      "Session expired. Please login again.",
+    );
+    expect(outcome.nextError).toBeNull();
+    expect(outcome.bodyAccessToken).toBeNull();
+    expect(outcome.cleared).toContain(CookieUtil.getRefreshTokenKey());
+  });
+
+  it("ended by the session lengths, it says why", async () => {
+    getSessionLengthEndReason.mockResolvedValue(SessionEndReason.LengthReached);
+
+    const outcome: Outcome = await renew();
+
+    expect(getSessionLengthEndReason).toHaveBeenCalledWith("refresh-token");
+    expect(outcome.refused).toBeInstanceOf(SessionEndedException);
+    expect(outcome.refused!.message).toBe(
+      SESSION_ENDED_MESSAGES[SessionEndReason.LengthReached],
+    );
+  });
+});
+
 describe("when the lengths cannot be decided", () => {
   it("lengths that cannot be read refuse the renewal: never a pass", async () => {
     fake.userSessionLengthsError = new Error("not read yet");

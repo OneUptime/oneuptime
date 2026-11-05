@@ -21,6 +21,9 @@ import LogComponents from "./Components/Log";
 import ManualComponents from "./Components/Manual";
 import MattermostComponents from "./Components/Mattermost";
 import MicrosoftTeamsComponents from "./Components/MicrosoftTeams";
+import OpenStackComponents, {
+  OPENSTACK_COMPONENT_CATEGORY,
+} from "./Components/OpenStack";
 import OnCallComponents, {
   ON_CALL_COMPONENT_CATEGORY,
 } from "./Components/OnCall";
@@ -39,6 +42,7 @@ const components: Array<ComponentMetadata> = [
   ...OnCallComponents,
   ...FromAnotherToolComponents,
   ...AIComponents,
+  ...OpenStackComponents,
   ...LogComponents,
   ...APIComponents,
   ...ScheduleComponents,
@@ -92,6 +96,12 @@ export const Categories: Array<ComponentCategory> = [
     description:
       "Generate content with the LLM provider configured for this project.",
     icon: IconProp.Sparkles,
+  },
+  {
+    name: OPENSTACK_COMPONENT_CATEGORY,
+    description:
+      "Ask a person to approve a fix to an OpenStack cloud. A workflow can't make the change itself.",
+    icon: IconProp.WrenchScrewdriver,
   },
   {
     name: "Webhook",

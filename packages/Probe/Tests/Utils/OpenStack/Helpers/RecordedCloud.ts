@@ -145,6 +145,10 @@ const EXPORTER_SERVICES: ReadonlyArray<string> = [
   "orchestration",
   "container-infra",
   "sharev2",
+  "database",
+  "dns",
+  "gnocchi",
+  "object-store",
 ];
 
 export function loadScene(release: string, scene: string): RecordedScene {

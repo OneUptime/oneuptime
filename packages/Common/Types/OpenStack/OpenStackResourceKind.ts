@@ -76,6 +76,20 @@ export enum OpenStackResourceKind {
    * (ALLOCATED, ERROR), its role says MASTER or BACKUP, and its compute instance is a fact.
    */
   Amphora = "Amphora",
+  /*
+   * A database Trove runs for a project, on an instance Nova runs. "Instance" alone is Nova's. Only
+   * Trove's own series make one.
+   */
+  DatabaseInstance = "DatabaseInstance",
+  ObjectContainer = "ObjectContainer",
+  // A DNS zone Designate serves. Only Designate's own series make one.
+  DnsZone = "DnsZone",
+  /*
+   * A recordset of a zone that is not ACTIVE. Only those have rows: a zone can hold any number of
+   * recordsets, and the question is which of them went wrong. One goes when it's ACTIVE again, at the
+   * stale rule's next pass, because its series no longer asks for a row.
+   */
+  DnsRecordset = "DnsRecordset",
 }
 
 /*
@@ -95,11 +109,18 @@ export enum OpenStackServiceType {
    */
   Orchestration = "orchestration",
   ContainerInfra = "container-infra",
+  Rating = "rating",
   // A service a cloud may not run: see OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
   // Octavia's name in the catalog, and the exporter's.
   LoadBalancer = "load-balancer",
+  Database = "database",
+  KeyManager = "key-manager",
+  ObjectStore = "object-store",
+  // What the agent's job calls it, and the exporter: Keystone's catalog says `metric`.
+  Metric = "gnocchi",
+  Dns = "dns",
 }
 
 /*
@@ -134,9 +155,15 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.Image]: "Images (Glance)",
   [OpenStackServiceType.Orchestration]: "Orchestration (Heat)",
   [OpenStackServiceType.ContainerInfra]: "Kubernetes Clusters (Magnum)",
+  [OpenStackServiceType.Rating]: "Rating (CloudKitty)",
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
   [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
   [OpenStackServiceType.LoadBalancer]: "Load Balancers (Octavia)",
+  [OpenStackServiceType.Database]: "Databases (Trove)",
+  [OpenStackServiceType.KeyManager]: "Key Manager (Barbican)",
+  [OpenStackServiceType.ObjectStore]: "Object Storage (Swift)",
+  [OpenStackServiceType.Metric]: "Metrics (Gnocchi)",
+  [OpenStackServiceType.Dns]: "DNS (Designate)",
 };
 
 /*
@@ -175,6 +202,8 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
   ],
   [OpenStackServiceType.Image]: [OpenStackResourceKind.Image],
   [OpenStackServiceType.Orchestration]: [OpenStackResourceKind.Stack],
+  // What it rates goes on each project's row, which Keystone answers for.
+  [OpenStackServiceType.Rating]: [],
   [OpenStackServiceType.ContainerInfra]: [
     OpenStackResourceKind.ContainerCluster,
   ],
@@ -184,6 +213,16 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
     OpenStackResourceKind.LoadBalancer,
     OpenStackResourceKind.LoadBalancerPool,
     OpenStackResourceKind.Amphora,
+  ],
+  [OpenStackServiceType.Database]: [OpenStackResourceKind.DatabaseInstance],
+  // What it says goes on its API's row: OneUptime reads no secret, only how many there are.
+  [OpenStackServiceType.KeyManager]: [],
+  [OpenStackServiceType.ObjectStore]: [OpenStackResourceKind.ObjectContainer],
+  // What it says goes on its API's row: it has no parts a person would open one by one.
+  [OpenStackServiceType.Metric]: [],
+  [OpenStackServiceType.Dns]: [
+    OpenStackResourceKind.DnsZone,
+    OpenStackResourceKind.DnsRecordset,
   ],
 };
 
@@ -206,6 +245,8 @@ export enum OpenStackServiceFamily {
   BareMetal = "baremetal",
   // Nor for Manila's services: its API lists them, and only for an admin.
   SharedFileSystems = "sharev2",
+  // Nor for Designate's, which it calls service statuses.
+  Dns = "dns",
 }
 
 /*
@@ -223,6 +264,7 @@ export const OPENSTACK_WORKER_FAMILY_BY_SERVICE: Partial<
   [OpenStackServiceType.ContainerInfra]: OpenStackServiceFamily.ContainerInfra,
   [OpenStackServiceType.SharedFileSystems]:
     OpenStackServiceFamily.SharedFileSystems,
+  [OpenStackServiceType.Dns]: OpenStackServiceFamily.Dns,
 };
 
 /*
@@ -459,3 +501,57 @@ export const OPENSTACK_AMPHORA_ROLE_MASTER: string = "MASTER";
 export const OPENSTACK_AMPHORA_ROLE_BACKUP: string = "BACKUP";
 // A load balancer on one amphora has this role, and no pair to split.
 export const OPENSTACK_AMPHORA_ROLE_STANDALONE: string = "STANDALONE";
+
+/*
+ * Trove's instance statuses, as openstack_trove_instance_status's label holds them. It has no worker
+ * list to say trove-taskmanager stopped, recorded, so an instance that stays on its way is all there
+ * is to say that with. BACKUP is left out, because it lasts as long as a database takes to copy, and
+ * RESTART_REQUIRED and BLOCKED wait for someone rather than for Trove.
+ */
+export const OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES: ReadonlySet<string> =
+  new Set(["ERROR", "FAILED"]);
+
+export const OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set([
+    "BUILD",
+    "REBOOT",
+    "HARD_REBOOT",
+    "RESIZE",
+    "UPGRADE",
+    "PROMOTE",
+    "EJECT",
+    "DETACH",
+  ]);
+
+/*
+ * Designate says three things of a zone and of a recordset, recorded on real ones: ACTIVE, PENDING
+ * while its worker hasn't finished a change, and ERROR once it gave up.
+ */
+export const OPENSTACK_DNS_STATUS_ACTIVE: string = "ACTIVE";
+export const OPENSTACK_DNS_STATUS_PENDING: string = "PENDING";
+export const OPENSTACK_DNS_STATUS_ERROR: string = "ERROR";
+
+/*
+ * Every zone has an SOA and an NS of its own, which Designate writes, and they read ERROR with it,
+ * recorded. So these two say nothing a zone in ERROR doesn't say already, and a recordset someone
+ * asked for is every other type (designate.objects.rrdata_*, as its API lists them).
+ */
+export const OPENSTACK_DNS_ZONE_OWN_RECORD_TYPES: ReadonlySet<string> = new Set(
+  ["SOA", "NS"],
+);
+
+export const OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR: ReadonlyArray<string> =
+  [
+    "A",
+    "AAAA",
+    "CNAME",
+    "MX",
+    "TXT",
+    "SRV",
+    "PTR",
+    "SPF",
+    "SSHFP",
+    "CAA",
+    "NAPTR",
+    "CERT",
+  ];

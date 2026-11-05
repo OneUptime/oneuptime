@@ -100,6 +100,24 @@ const COUNT_WORDS: ReadonlyArray<CountWords> = [
       other: "{{count}} load balancers",
     },
   },
+  {
+    count: "databaseInstanceCount",
+    key: "databases",
+    words: { one: "{{count}} database", other: "{{count}} databases" },
+  },
+  {
+    count: "objectContainerCount",
+    key: "object-containers",
+    words: {
+      one: "{{count}} object container",
+      other: "{{count}} object containers",
+    },
+  },
+  {
+    count: "dnsZoneCount",
+    key: "dns-zones",
+    words: { one: "{{count}} DNS zone", other: "{{count}} DNS zones" },
+  },
 ];
 
 const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (

@@ -85,6 +85,15 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.Amphora]: translationKey(
     "This amphora is not in this cloud's inventory. It may have been replaced or deleted, or Octavia may not have reported it yet.",
   ),
+  [OpenStackResourceKind.DnsZone]: translationKey(
+    "This zone is not in this cloud's inventory. It may have been deleted, or Designate may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.ObjectContainer]: translationKey(
+    "This container is not in this cloud's inventory. It may have been deleted, or Swift may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.DatabaseInstance]: translationKey(
+    "This database is not in this cloud's inventory. It may have been deleted, or Trove may not have reported it yet.",
+  ),
   [OpenStackResourceKind.Share]: translationKey(
     "This share is not in this cloud's inventory. It may have been deleted, or Manila may not have reported it yet.",
   ),
