@@ -492,6 +492,12 @@ describe("what the guides say ran is what the recordings say ran", () => {
     expect(DOCS_PAGE).toContain(
       "its Alertmanager posted a firing webhook and then a resolved one",
     );
+    // Run 42040952251 sent what it posted to a live OneUptime: live-oneuptime.py reads this folder.
+    for (const said of [setupGuideOf("kolla-ansible").intro, DOCS_PAGE]) {
+      expect(said).toContain(
+        "sent to a running OneUptime, opened one incident on the right cloud and on no other, and resolved it",
+      );
+    }
 
     for (const status of ["firing", "resolved"]) {
       const posted: { status: string; commonLabels: { alertname: string } } =
