@@ -523,7 +523,7 @@ describe("what is already firing, with no agent", () => {
     );
 
     expect(page).toContain("https://oneuptime.com/heartbeat/<secret key>");
-    expect(page).toContain("## On an OpenStack cloud");
+    expect(page).toContain("On an OpenStack cloud, link the monitor to the cloud");
     expect(page).toContain("**Overview → Linked Resources**");
     expect(page).toContain("/docs/telemetry/openstack-deployment-tools");
   });
@@ -826,6 +826,110 @@ describe("Kolla-Ansible's own exporter, and what the pages lose on it", () => {
       expect(squash(text)).toContain(squash(OPENSTACK_EXPORTER_170_LOSSES));
     },
   );
+});
+
+describe("who did what, on each tool", () => {
+  function auditTopicOf(tool: OpenStackDeploymentTool): SetupGuideTopic {
+    const topic: SetupGuideTopic | undefined = guideOf(tool).topics.find(
+      (candidate: SetupGuideTopic): boolean => {
+        return candidate.title.startsWith("Who did what");
+      },
+    );
+
+    expect(topic).toBeDefined();
+
+    return topic as SetupGuideTopic;
+  }
+
+  test.each(NAMED_TOOLS)("%s has its own", (tool: OpenStackDeploymentTool) => {
+    expect(auditTopicOf(tool).title).toContain(" on ");
+  });
+
+  test("not sure gives the general steps", () => {
+    const topic: SetupGuideTopic = auditTopicOf("not-sure");
+
+    expect(topic.markdown).toContain("keystonemiddleware.audit:filter_factory");
+    expect(topic.markdown).toContain("notification_format = cadf");
+  });
+
+  test.each(
+    NAMED_TOOLS.filter((tool: OpenStackDeploymentTool): boolean => {
+      return tool !== "sunbeam";
+    }),
+  )(
+    "%s gives Keystone's audit trail and the audit filter, and says which detection needs logins",
+    (tool: OpenStackDeploymentTool) => {
+      const text: string = auditTopicOf(tool).markdown;
+
+      expect(text).toContain("identity.authenticate.pending");
+      expect(text).toContain("identity.authenticate.success");
+      expect(text).toMatch(/cadf/);
+      expect(text).toMatch(/audit_middleware_notifications|cadf:/);
+      expect(text).toContain("Find security events in your logs");
+      // Keystone's opt-out never leaves failed logins out.
+      expect(text).not.toContain("identity.authenticate.failure");
+    },
+  );
+
+  test("every YAML block a tool gives parses, as a person would paste it", () => {
+    for (const tool of NAMED_TOOLS) {
+      const fenced: Array<RegExpMatchArray> = Array.from(
+        auditTopicOf(tool).markdown.matchAll(/```yaml\n([\s\S]*?)```/g),
+      );
+
+      for (const block of fenced) {
+        expect(yaml.load(block[1] as string)).toBeTruthy();
+      }
+    }
+  });
+
+  test("the charts' log driver needs a logger of its own, because their root logger is at WARNING", () => {
+    const blocks: Array<string> = blocksIn(
+      auditTopicOf("openstack-helm").markdown,
+    );
+    const logging: unknown = yaml.load(
+      blocks.find((block: string): boolean => {
+        return block.includes("logger_notifications");
+      }) as string,
+    );
+
+    expect(logging).toMatchObject({
+      conf: {
+        logging: {
+          loggers: { keys: expect.arrayContaining(["notifications"]) },
+          logger_notifications: {
+            level: "INFO",
+            qualname: "oslo.messaging.notification",
+          },
+        },
+      },
+    });
+  });
+
+  test("Sunbeam's says plainly it can't be done yet, and gives no settings", () => {
+    const topic: SetupGuideTopic = auditTopicOf("sunbeam");
+
+    expect(topic.summary).toContain("Not yet");
+    expect(blocksIn(topic.markdown)).toEqual([]);
+  });
+
+  test("MOSK's says its own setting leaves Keystone out, and what Mirantis says of the other way", () => {
+    const text: string = auditTopicOf("mosk").markdown;
+
+    expect(text).toContain("does not cover Keystone");
+    expect(text).toContain("does not validate");
+  });
+
+  test("the filter never goes at the end of a pipeline, where Neutron's extensions hide calls from it", () => {
+    const general: string = auditTopicOf("not-sure").markdown;
+
+    expect(general).toContain(
+      "right after `authtoken` and the context filter that follows it",
+    );
+    expect(auditTopicOf("openstack-ansible").markdown).toContain(
+      "right after `authtoken` and the context filter that follows it",
+    );
+  });
 });
 
 describe("the docs page is the guide, written down", () => {

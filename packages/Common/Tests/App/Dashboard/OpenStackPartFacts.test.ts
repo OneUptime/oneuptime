@@ -36,6 +36,7 @@ import { getOpenStackAttentionItems } from "../../../../App/FeatureSet/Dashboard
 import {
   OPENSTACK_FLOATING_IP_ALERT_TEMPLATE_IDS,
   OPENSTACK_HYPERVISOR_ALERT_TEMPLATE_IDS,
+  OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS,
   OPENSTACK_INSTANCE_ALERT_TEMPLATE_IDS,
   OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS,
   OPENSTACK_NETWORK_ALERT_TEMPLATE_IDS,
@@ -43,6 +44,7 @@ import {
   OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS,
   OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS,
   OpenStackAllocationLine,
+  OpenStackEmptyWords,
   OpenStackForecast,
   OpenStackGrowthSample,
   OpenStackHostGroup,
@@ -62,11 +64,13 @@ import {
   getOpenStackHostGroupId,
   getOpenStackInstanceImage,
   getOpenStackCountTotals,
+  getOpenStackDhcpNetworkCount,
   getOpenStackHostGroups,
   getOpenStackHypervisorExternalId,
   getOpenStackInstanceAddresses,
   getOpenStackL3AgentExternalId,
   getOpenStackNetworkBackend,
+  getOpenStackNetworkDhcpAgentIds,
   getOpenStackNetworkSubnets,
   getOpenStackPartExplanation,
   getOpenStackPartName,
@@ -83,6 +87,7 @@ import {
   isOpenStackListPossiblyOneProject,
   isOpenStackNetworkAgent,
   isOpenStackNetworkExternal,
+  isOpenStackDhcpAgent,
   isOpenStackNetworkShared,
   parseOpenStackAggregates,
   parseOpenStackHostGroupId,
@@ -158,9 +163,12 @@ describe("what an instance booted from", () => {
       { updatedAt: "2026-11-04T11:00:00Z" },
       { state: "booted-from-volume" },
     ],
-  ])("%s", (_name: string, facts: JSONObject, wanted: OpenStackInstanceImage) => {
-    expect(getOpenStackInstanceImage(rowWith(facts))).toEqual(wanted);
-  });
+  ])(
+    "%s",
+    (_name: string, facts: JSONObject, wanted: OpenStackInstanceImage) => {
+      expect(getOpenStackInstanceImage(rowWith(facts))).toEqual(wanted);
+    },
+  );
 
   test("no row at all is not known either", () => {
     expect(getOpenStackInstanceImage(null)).toEqual({ state: "not-collected" });
@@ -1767,6 +1775,48 @@ describe("what an empty list means", () => {
     ).toMatch(/Full view or Infrastructure only[\s\S]*troubleshoot\.sh/);
   });
 
+  test.each([
+    OpenStackResourceKind.Hypervisor,
+    OpenStackResourceKind.StoragePool,
+    OpenStackResourceKind.Service,
+    OpenStackResourceKind.Domain,
+  ])(
+    "on a cloud a probe collects, %s says the same closed list, and the credential is changed from the dashboard",
+    (kind: OpenStackResourceKind) => {
+      const words: OpenStackEmptyWords | null = getOpenStackEmptyWords({
+        kind,
+        api: "up",
+        isProbeCollected: true,
+      });
+
+      expect(words?.title).toBe(
+        getOpenStackEmptyWords({ kind, api: "up" })?.title,
+      );
+      expect(words?.description).toContain(
+        "with Edit Connection, and Test Connection says what it can read",
+      );
+      expect(words?.description).not.toMatch(/the agent|troubleshoot\.sh/);
+    },
+  );
+
+  test("a probe lists its own project's instances, so an empty list there can really be empty", () => {
+    expect(
+      getOpenStackEmptyWords({
+        kind: OpenStackResourceKind.Instance,
+        api: "up",
+        hypervisorsAreListed: false,
+        isProbeCollected: true,
+      }),
+    ).toBeNull();
+    expect(
+      getOpenStackEmptyWords({
+        kind: OpenStackResourceKind.Instance,
+        api: "up",
+        hypervisorsAreListed: false,
+      })?.title,
+    ).toBe("This credential can't list instances");
+  });
+
   test("an API that doesn't answer says that, for any kind", () => {
     expect(
       getOpenStackEmptyWords({
@@ -1819,6 +1869,41 @@ describe("what an empty list means", () => {
   });
 });
 
+describe("DHCP agents", () => {
+  function rowWith(name: string, facts: JSONObject): OpenStackResource {
+    return Object.assign(new OpenStackResource(), { name, facts });
+  }
+
+  test.each<[string, boolean]>([
+    ["neutron-dhcp-agent", true],
+    ["DHCP agent", true],
+    ["neutron-l3-agent", false],
+    ["ovn-controller", false],
+    ["", false],
+  ])("%s is one: %s", (name: string, isOne: boolean) => {
+    expect(isOpenStackDhcpAgent(rowWith(name, {}))).toBe(isOne);
+  });
+
+  test.each<[JSONObject, number | null]>([
+    [{ dhcpNetworkCount: 3 }, 3],
+    [{ dhcpNetworkCount: 0 }, 0],
+    [{ dhcpNetworkCount: null }, null],
+    [{}, null],
+  ])("%j serves %s", (facts: JSONObject, count: number | null) => {
+    expect(getOpenStackDhcpNetworkCount(rowWith("x", facts))).toBe(count);
+  });
+
+  test.each<[JSONObject, Array<string>]>([
+    [{ dhcpAgentIds: ["a", "b"] }, ["a", "b"]],
+    [{ dhcpAgentIds: null }, []],
+    [{}, []],
+    [{ dhcpAgentIds: "a" }, []],
+    [{ dhcpAgentIds: ["a", 1, null] }, ["a"]],
+  ])("%j reads %j", (facts: JSONObject, ids: Array<string>) => {
+    expect(getOpenStackNetworkDhcpAgentIds(rowWith("x", facts))).toEqual(ids);
+  });
+});
+
 describe("the alert templates each kind of part names", () => {
   const TEMPLATE_IDS: Set<string> = new Set(
     getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
@@ -1835,6 +1920,7 @@ describe("the alert templates each kind of part names", () => {
     ["network agent", OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS],
     ["volume", OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS],
     ["storage pool", OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS],
+    ["image", OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS],
   ])("a %s's are real templates", (_kind: string, ids: Array<string>) => {
     expect(ids.length).toBeGreaterThan(0);
     for (const id of ids) {

@@ -150,7 +150,10 @@ const HypervisorOverview: FunctionComponent<{
     host: Host;
     usage: OpenStackHostUsage;
   } | null> = useOpenStackRead(async () => {
-    const found: Host | null = await fetchOpenStackHostOf(hypervisorName);
+    const found: Host | null = await fetchOpenStackHostOf({
+      openStackCloudId: part.openStackCloudId,
+      machineName: hypervisorName,
+    });
     if (!found?.hostIdentifier) {
       return null;
     }
@@ -158,7 +161,7 @@ const HypervisorOverview: FunctionComponent<{
       host: found,
       usage: await fetchOpenStackHostUsage(found.hostIdentifier),
     };
-  }, [hypervisorName]);
+  }, [part.openStackCloudId.toString(), hypervisorName]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: [row, ...(around.data || [])],

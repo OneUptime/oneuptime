@@ -1,4 +1,9 @@
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  OpenStackFlavorRequest,
+  OpenStackPlacementAnswer,
+  getOpenStackFlavorRequest,
+} from "Common/Types/OpenStack/OpenStackCapacity";
 
 /*
  * What the collectors read, reduced to what the series need. Each API's answer is far
@@ -223,6 +228,9 @@ export interface NovaFlavorRecord {
   ram: number | null;
   disk: number | null;
   isPublic: boolean;
+  isDisabled: boolean;
+  // What Nova would ask Placement for one of these, with what only its extra specs say.
+  request: OpenStackFlavorRequest;
 }
 
 export function toNovaFlavor(item: JSONObject): NovaFlavorRecord {
@@ -233,6 +241,16 @@ export function toNovaFlavor(item: JSONObject): NovaFlavorRecord {
     ram: numeric(item["ram"]),
     disk: numeric(item["disk"]),
     isPublic: item["os-flavor-access:is_public"] === true,
+    isDisabled: item["OS-FLV-DISABLED:disabled"] === true,
+    request: getOpenStackFlavorRequest({
+      vcpus: numeric(item["vcpus"]),
+      ramMib: numeric(item["ram"]),
+      diskGib: numeric(item["disk"]),
+      ephemeralGib: numeric(item["OS-FLV-EXT-DATA:ephemeral"]),
+      // An older Nova says an empty string for none.
+      swapMib: numeric(item["swap"]),
+      extraSpecs: object(item["extra_specs"]),
+    }),
   };
 }
 
@@ -497,6 +515,12 @@ export interface NeutronL3AgentRecord {
   haState: string | null;
   isAlive: boolean;
   isAdminUp: boolean;
+}
+
+// The networks one DHCP agent serves, which is all that is kept of Neutron's answer.
+export interface NeutronDhcpAgentNetworksRecord {
+  agentId: string;
+  networkIds: Array<string>;
 }
 
 export interface NeutronFloatingIpRecord {
@@ -889,8 +913,16 @@ export interface OpenStackComputeInventory {
   instanceActionNotifications?: Array<JSONObject> | undefined;
 }
 
+// What Placement last said of a flavor, kept and sent until it is asked again.
+export interface PlacementFlavorAnswer extends OpenStackPlacementAnswer {
+  flavorId: string;
+  flavorName: string | null;
+  askedAt: string;
+}
+
 export interface OpenStackPlacementInventory {
   providers?: Array<PlacementProviderRecord> | undefined;
+  flavorAnswers?: Array<PlacementFlavorAnswer> | undefined;
 }
 
 export interface OpenStackNetworkInventory {
@@ -899,6 +931,7 @@ export interface OpenStackNetworkInventory {
   subnets?: Array<NeutronSubnetRecord> | undefined;
   routers?: Array<NeutronRouterRecord> | undefined;
   l3Agents?: Array<NeutronL3AgentRecord> | undefined;
+  dhcpAgentNetworks?: Array<NeutronDhcpAgentNetworksRecord> | undefined;
   floatingIps?: Array<NeutronFloatingIpRecord> | undefined;
   ipAvailabilities?: Array<NeutronSubnetAvailabilityRecord> | undefined;
   securityGroupCount?: number | undefined;

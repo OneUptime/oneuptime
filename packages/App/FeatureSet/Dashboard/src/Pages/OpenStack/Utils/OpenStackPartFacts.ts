@@ -133,6 +133,10 @@ export const OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-volume-stuck",
 ];
 
+export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-image-stuck",
+];
+
 export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-storage-pool-warning",
   "openstack-storage-pool-critical",
@@ -1142,6 +1146,11 @@ export function isOpenStackIssueAbout(
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
       );
+    case OpenStackResourceKind.Image:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
     case OpenStackResourceKind.StoragePool:
       return (
         isSameRegion(record, row) &&
@@ -1206,94 +1215,12 @@ export function getOpenStackCountTotals(
   );
 }
 
-/*
- * ---------------------------------------------------------------------------
- * When something fills up, at its recent growth
- * ---------------------------------------------------------------------------
- */
-export interface OpenStackGrowthSample {
-  time: number;
-  used: number;
-}
-
-export type OpenStackForecast =
-  // At capacity already.
-  | { state: "full" }
-  | { state: "days"; days: number }
-  // Flat or shrinking: nothing to project.
-  | { state: "not-growing" }
-  // Too little of it to tell, which is what a new cloud says.
-  | { state: "not-enough-history" };
-
-const FORECAST_MINIMUM_SAMPLES: number = 3;
-const FORECAST_MINIMUM_HOURS: number = 6;
-const FORECAST_MAXIMUM_DAYS: number = 365;
-
-/*
- * A straight line through what was used, against what there is: the same least-squares
- * fit as the Proxmox and Ceph forecasts. Past a year out it says it is not growing,
- * because nobody plans around a line that far off.
- */
-export function getOpenStackForecast(data: {
-  samples: Array<OpenStackGrowthSample>;
-  capacity: number | null | undefined;
-}): OpenStackForecast {
-  const capacity: number | null | undefined = data.capacity;
-  if (capacity === null || capacity === undefined || capacity <= 0) {
-    return { state: "not-enough-history" };
-  }
-
-  const samples: Array<OpenStackGrowthSample> = data.samples
-    .filter((sample: OpenStackGrowthSample): boolean => {
-      return Number.isFinite(sample.time) && Number.isFinite(sample.used);
-    })
-    .sort((first: OpenStackGrowthSample, second: OpenStackGrowthSample) => {
-      return first.time - second.time;
-    });
-
-  const newest: OpenStackGrowthSample | undefined = samples[samples.length - 1];
-
-  if (newest && newest.used >= capacity) {
-    return { state: "full" };
-  }
-
-  if (
-    !newest ||
-    samples.length < FORECAST_MINIMUM_SAMPLES ||
-    newest.time - samples[0]!.time < FORECAST_MINIMUM_HOURS * 60 * 60 * 1000
-  ) {
-    return { state: "not-enough-history" };
-  }
-
-  const count: number = samples.length;
-  let timeSum: number = 0;
-  let usedSum: number = 0;
-  for (const sample of samples) {
-    timeSum += sample.time;
-    usedSum += sample.used;
-  }
-  const meanTime: number = timeSum / count;
-  const meanUsed: number = usedSum / count;
-
-  let covariance: number = 0;
-  let variance: number = 0;
-  for (const sample of samples) {
-    covariance += (sample.time - meanTime) * (sample.used - meanUsed);
-    variance += (sample.time - meanTime) * (sample.time - meanTime);
-  }
-
-  const growthPerMs: number = variance > 0 ? covariance / variance : 0;
-  if (growthPerMs <= 0) {
-    return { state: "not-growing" };
-  }
-
-  const days: number =
-    (capacity - newest.used) / (growthPerMs * 24 * 60 * 60 * 1000);
-
-  return days > FORECAST_MAXIMUM_DAYS
-    ? { state: "not-growing" }
-    : { state: "days", days };
-}
+// When something fills up, at its recent growth: one answer for pages, alerts and the server.
+export type {
+  OpenStackForecast,
+  OpenStackGrowthSample,
+} from "Common/Types/OpenStack/OpenStackForecast";
+export { getOpenStackForecast } from "Common/Types/OpenStack/OpenStackForecast";
 
 /*
  * ---------------------------------------------------------------------------
@@ -1369,6 +1296,36 @@ const CANNOT_LIST: Partial<Record<OpenStackResourceKind, OpenStackEmptyWords>> =
     },
   };
 
+// The same lists on a cloud a probe collects: its credential is changed from the dashboard.
+const CANNOT_LIST_ON_A_PROBE: Partial<
+  Record<OpenStackResourceKind, OpenStackEmptyWords>
+> = {
+  [OpenStackResourceKind.Hypervisor]: {
+    title: translationKey("This credential can't list hypervisors"),
+    description: translationKey(
+      "Nova answers, and shows it no hypervisors. They take the Full view or Infrastructure only credential, because hypervisors and Placement are closed to a project's reader. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.StoragePool]: {
+    title: translationKey("This credential can't list storage pools"),
+    description: translationKey(
+      "Cinder answers, and shows it no pools. Only the Full view credential reads them: Cinder's own code asks for an admin, whatever the policy says. Give the probe that credential with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.Service]: {
+    title: translationKey("This credential can't list network agents"),
+    description: translationKey(
+      "Neutron answers, and shows it no agents. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.Domain]: {
+    title: translationKey("This credential can't list domains"),
+    description: translationKey(
+      "Keystone answers, and shows it no domains. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+};
+
 /*
  * A cloud can really have no instances, so an empty list alone says nothing. A credential
  * that can't list hypervisors either is another matter: the agent's exporter asks Nova for
@@ -1391,15 +1348,24 @@ export function getOpenStackEmptyWords(data: {
   api: OpenStackApiState;
   // Whether this credential lists any hypervisor, when a list of instances has asked.
   hypervisorsAreListed?: boolean | undefined;
+  // A probe collects this cloud, so there is no agent to give a credential to.
+  isProbeCollected?: boolean | undefined;
 }): OpenStackEmptyWords | null {
   if (data.api === "down") {
     return NOT_ANSWERING;
   }
   if (data.api === "up") {
     if (data.kind === OpenStackResourceKind.Instance) {
-      return data.hypervisorsAreListed === false ? CANNOT_LIST_INSTANCES : null;
+      // A probe lists its own project's instances, and that project can really have none.
+      return data.hypervisorsAreListed === false && !data.isProbeCollected
+        ? CANNOT_LIST_INSTANCES
+        : null;
     }
-    return CANNOT_LIST[data.kind] || null;
+    return (
+      (data.isProbeCollected ? CANNOT_LIST_ON_A_PROBE : CANNOT_LIST)[
+        data.kind
+      ] || null
+    );
   }
   return null;
 }
@@ -1485,11 +1451,37 @@ export function getOpenStackL3AgentExternalId(
 
 /*
  * Only an L3 agent holds routers, and only the exporter's l3_agent_of_router series says
- * which. A DHCP agent serves networks, and nothing the agent collects says which ones.
+ * which. A DHCP agent serves networks, and only a probe says which ones.
  */
 export function isOpenStackL3Agent(
   row: Pick<OpenStackResource, "name">,
 ): boolean {
   const name: string = (row.name || "").toLowerCase();
   return name.includes("l3-agent") || name.includes("l3 agent");
+}
+
+export function isOpenStackDhcpAgent(
+  row: Pick<OpenStackResource, "name">,
+): boolean {
+  const name: string = (row.name || "").toLowerCase();
+  return name.includes("dhcp-agent") || name.includes("dhcp agent");
+}
+
+// How many networks a DHCP agent serves, or null when nothing collected says.
+export function getOpenStackDhcpNetworkCount(
+  row: OpenStackResource | null | undefined,
+): number | null {
+  return numberFact(row, "dhcpNetworkCount");
+}
+
+// Which DHCP agents serve a network, by the ids of their records, where a probe has said.
+export function getOpenStackNetworkDhcpAgentIds(
+  row: OpenStackResource | null | undefined,
+): Array<string> {
+  const ids: JSONValue | undefined = factsOf(row)["dhcpAgentIds"];
+  return Array.isArray(ids)
+    ? (ids as Array<JSONValue>).filter((id: JSONValue): id is string => {
+        return typeof id === "string";
+      })
+    : [];
 }

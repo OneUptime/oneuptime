@@ -24,8 +24,15 @@ import {
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotFoundException from "../../Types/Exception/NotFoundException";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OpenStackBlastRadius } from "../../Types/OpenStack/OpenStackBlastRadius";
+import {
+  getOpenStackListSeekSort,
+  isOpenStackListSeek,
+} from "../../Types/OpenStack/OpenStackListSeek";
 import {
   OpenStackRegionSummary,
   OpenStackTopConsumers,
@@ -42,6 +49,7 @@ import {
   OpenStackLinkedService,
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
+  OpenStackServicePlacement,
   getOpenStackCephStatusFact,
 } from "../../Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
@@ -55,9 +63,13 @@ import HostService from "../Services/HostService";
 import KubernetesClusterService from "../Services/KubernetesClusterService";
 import ServiceService from "../Services/ServiceService";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import Sort from "../Types/Database/Sort";
 import logger from "../Utils/Logger";
 import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts";
+import { getOpenStackListSeekReads } from "../Utils/OpenStack/OpenStackListSeekQuery";
 
 /*
  * ------------------------------------------------------------------
@@ -88,6 +100,10 @@ import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts"
  *     How many of a kind there are by what they hold, on the server, from a closed list
  *     of what can be counted (OpenStackCounts). Needs read access to the cloud.
  *
+ *   POST /openstack-resource/services/:cloudId   { search? }
+ *     The workers of a cloud past the line for its Services page: those that may need someone,
+ *     how many others there are, and whatever a search finds.
+ *
  *   POST /openstack-resource/rows/:cloudId   { kind, afterExternalId?, regionName?, status?, limit? }
  *     A kind's rows in order of their IDs, from after the last one read, at most a thousand at
  *     a time, for what walks a whole kind: the last page costs what the first does.
@@ -102,14 +118,15 @@ import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts"
  *   POST /openstack-resource/domain-projects/:cloudId   { domainId }
  *     How many projects each domain holds, and the IDs a filter by domain narrows to.
  *
- *   POST /openstack-resource/topology/:cloudId
- *     What the cloud's map is drawn from, bounded however large the cloud is.
+ *   POST /openstack-resource/topology/:cloudId   { regionName? }
+ *     What the cloud's or a region's map is drawn from, bounded however large it is.
  *
  *   POST /openstack-resource/reach-of-instance/:cloudId   { instanceId }
  *     What an instance is elsewhere in OneUptime: its host, its Kubernetes node, its services.
  *
- *   POST /openstack-resource/host-of-machine/:projectId   { machineName }
- *     The host that is a hypervisor or a control plane machine, when exactly one could be.
+ *   POST /openstack-resource/host-of-machine/:cloudId   { machineName }
+ *     The host that is one of this cloud's hypervisors or control plane machines, when exactly
+ *     one could be.
  *
  *   POST /openstack-resource/placement-of-host/:hostId
  *   POST /openstack-resource/placement-of-service/:serviceId
@@ -119,9 +136,9 @@ import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts"
  *
  *   POST /openstack-resource/storage-pool-ceph/:cloudId   { externalId }
  *   POST /openstack-resource/storage-pool-ceph-confirm/:cloudId
- *     { externalId, cephClusterId | isNotCeph }
- *     What can be said about a Cinder pool and Ceph, and what an operator answered, which
- *     needs permission to change the cloud.
+ *     { externalId, cephClusterId | isNotCeph | forget }
+ *     What can be said about a Cinder pool and Ceph, and what an operator answered or took
+ *     back, which needs permission to change the cloud.
  *
  * The standard CRUD endpoints (list / get) are still registered by BaseAPI, and
  * the UI uses them through ModelAPI, with the filters on the indexed columns.
@@ -129,10 +146,102 @@ import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts"
  * writes go through OpenStackResourceService as root.
  * ------------------------------------------------------------------
  */
+// A host's name or a binary's, and nothing anyone would type is longer.
+const MAX_SERVICE_SEARCH_LENGTH: number = 255;
+
 export default class OpenStackResourceAPI extends BaseAPI<
   OpenStackResource,
   OpenStackResourceServiceType
 > {
+  /*
+   * The next page of a list from the last row of this one, when the page asking knows it
+   * (OpenStackListSeek). Anything else is the ordinary read.
+   */
+  public override async getList(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const body: JSONObject = (req.body || {}) as JSONObject;
+    const seek: unknown = body["seek"];
+
+    if (!isOpenStackListSeek(seek) || !ObjectID.isValidUUID(seek.id)) {
+      return await super.getList(req, res);
+    }
+
+    const sort: Sort<OpenStackResource> = JSONFunctions.deserialize(
+      body["sort"] as JSONObject,
+    ) as Sort<OpenStackResource>;
+    const order: { column: string; order: SortOrder } | null =
+      getOpenStackListSeekSort(sort as Record<string, unknown>);
+    const query: Query<OpenStackResource> = JSONFunctions.deserialize(
+      body["query"] as JSONObject,
+    ) as Query<OpenStackResource>;
+
+    /*
+     * A filter on the sorted column is where the seek would have to go too, and a column that does
+     * not exist is nothing to seek by. Each is the ordinary read's to answer.
+     */
+    if (
+      !order ||
+      order.column !== seek.column ||
+      !new OpenStackResource().hasColumn(order.column) ||
+      (query as Record<string, unknown>)[order.column] !== undefined ||
+      Object.keys((body["groupBy"] as JSONObject) || {}).length > 0
+    ) {
+      return await super.getList(req, res);
+    }
+
+    await this.onBeforeList(req, res);
+
+    const limit: number = Math.min(
+      Math.max(
+        Number.parseInt(String(req.query["limit"] ?? body["limit"]), 10) || 10,
+        1,
+      ),
+      LIMIT_PER_PROJECT,
+    );
+    const select: Select<OpenStackResource> = JSONFunctions.deserialize(
+      body["select"] as JSONObject,
+    ) as Select<OpenStackResource>;
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+    const rows: Array<OpenStackResource> = [];
+
+    for (const read of getOpenStackListSeekReads({
+      value: seek.value,
+      id: seek.id,
+      order: order.order,
+    })) {
+      rows.push(
+        ...(await this.service.findBy({
+          query: { ...query, [order.column]: read.columnQuery },
+          select: select,
+          skip: 0,
+          limit: limit - rows.length,
+          sort: (read.isByIdOnly
+            ? { _id: SortOrder.Ascending }
+            : {
+                [order.column]: order.order,
+                _id: SortOrder.Ascending,
+              }) as Sort<OpenStackResource>,
+          props: props,
+        })),
+      );
+
+      if (rows.length >= limit) {
+        break;
+      }
+    }
+
+    return Response.sendEntityArrayResponse(
+      req,
+      res,
+      rows,
+      seek.count,
+      OpenStackResource,
+    );
+  }
+
   public constructor() {
     super(OpenStackResource, OpenStackResourceService);
 
@@ -172,6 +281,18 @@ export default class OpenStackResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getBlastRadius(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/services/:cloudId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getServiceRows(req, res);
         } catch (err) {
           next(err);
         }
@@ -262,7 +383,7 @@ export default class OpenStackResourceAPI extends BaseAPI<
         return this.confirmStoragePoolCeph(req, res);
       },
     );
-    this.registerPlacementRead(
+    this.registerCloudRead(
       "host-of-machine",
       (req: ExpressRequest, res: ExpressResponse) => {
         return this.getHostOfMachine(req, res);
@@ -353,17 +474,19 @@ export default class OpenStackResourceAPI extends BaseAPI<
   /*
    * Which host a machine is takes every host and hypervisor in the project to say, so it is
    * worked out on all of them, and only the answer is read as the caller: someone who can't
-   * read that host, or that project, is told nothing, as if no host were there.
+   * read that host is told nothing, as if no host were there.
    */
   private async getHostOfMachine(
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
+    const { projectId, openStackCloudId } =
+      await this.resolveCloudForRequest(req);
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
-    const projectId: ObjectID = this.readResourceIdParam(req);
     const found: Host | null = await OpenStackAcrossProducts.getHostOfMachine({
       projectId,
+      openStackCloudId,
       machineName: this.readString(req, "machineName"),
     });
     let host: Host | null = null;
@@ -433,17 +556,14 @@ export default class OpenStackResourceAPI extends BaseAPI<
     if (!service?.projectId || !service.name) {
       throw new NotFoundException("Service not found");
     }
-    const placements: Array<{
-      hostName: string;
-      hostId: string | null;
-      placement: OpenStackPlacement;
-    }> = await this.keepPlacementsCallerMayRead({
-      placements: await OpenStackAcrossProducts.getPlacementsOfService({
-        projectId: service.projectId,
-        serviceName: service.name,
-      }),
-      props,
-    });
+    const placements: Array<OpenStackServicePlacement> =
+      await this.keepPlacementsCallerMayRead({
+        placements: await OpenStackAcrossProducts.getPlacementsOfService({
+          projectId: service.projectId,
+          serviceName: service.name,
+        }),
+        props,
+      });
     return Response.sendJsonObjectResponse(req, res, {
       placements,
     } as unknown as JSONObject);
@@ -591,6 +711,10 @@ export default class OpenStackResourceAPI extends BaseAPI<
       });
 
     return {
+      // A part of the cloud rather than of another product, which they can already read.
+      ...(reach.instanceCount === undefined
+        ? {}
+        : { instanceCount: reach.instanceCount, instances: reach.instances }),
       hostCount: reach.hostCount - (reach.hosts.length - keptHosts.length),
       hosts: keptHosts,
       kubernetesNodeCount: keptClusters.reduce(
@@ -709,6 +833,18 @@ export default class OpenStackResourceAPI extends BaseAPI<
     );
 
     const body: JSONObject = (req.body || {}) as JSONObject;
+    if (body["forget"] === true) {
+      const forgotten: boolean =
+        await OpenStackAcrossProducts.forgetStoragePoolCephLink({
+          projectId,
+          openStackCloudId,
+          externalId: this.readString(req, "externalId"),
+        });
+      if (!forgotten) {
+        throw new NotFoundException("That pool is not in this project");
+      }
+      return Response.sendEmptySuccessResponse(req, res);
+    }
     const isNotCeph: boolean = body["isNotCeph"] === true;
     const cephClusterId: unknown = body["cephClusterId"];
     if (
@@ -925,12 +1061,36 @@ export default class OpenStackResourceAPI extends BaseAPI<
       projectId,
       openStackCloudId,
       now: OneUptimeDate.getCurrentDate(),
+      regionName: this.readRegionName(req),
     });
 
     return Response.sendJsonObjectResponse(
       req,
       res,
       topology as unknown as JSONObject,
+    );
+  }
+
+  private async getServiceRows(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } =
+      await this.resolveCloudForRequest(req);
+
+    const search: unknown = ((req.body || {}) as JSONObject)["search"];
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      (await this.service.getServiceRows({
+        projectId,
+        openStackCloudId,
+        search:
+          typeof search === "string" && search.trim()
+            ? search.trim().substring(0, MAX_SERVICE_SEARCH_LENGTH)
+            : undefined,
+      })) as unknown as JSONObject,
     );
   }
 

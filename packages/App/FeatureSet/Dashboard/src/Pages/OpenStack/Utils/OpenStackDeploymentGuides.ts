@@ -247,6 +247,88 @@ export interface OpenStackDeploymentGuideContext {
 const TESTED_BY_RIG: string =
   "It has not been followed end to end on a real deployment of this tool.";
 
+/*
+ * WHO DID WHAT: Keystone's audit trail, and keystonemiddleware's audit filter on each API, each
+ * written to the service's own log, with no consumer on the bus, and read from there as a
+ * source of Security Events (OpenStackAuditLogParser).
+ *
+ * notification_opt_out is named because Keystone's documentation and its code disagree. What
+ * the settings do was recorded on real DevStacks, on every release the rig runs. Where each
+ * tool takes them was read from that tool's source, and the comment above each tool's guide
+ * says where. None has been followed on a real deployment of its tool.
+ */
+const WHO_DID_WHAT_SUMMARY: string =
+  "Keystone's audit trail and the audit filter on each API, into Security Events.";
+
+const WHAT_THE_AUDIT_TRAIL_NEEDS: string =
+  "Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**.";
+
+const ADMIN_NEEDS_SIGN_INS: string =
+  "This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw.";
+
+const AUDIT_FILTER_CONF: string = `[audit_middleware_notifications]
+driver = log`;
+
+const KEYSTONE_AUDIT_CONF: string = `[DEFAULT]
+notification_format = cadf
+notification_opt_out = identity.authenticate.pending
+
+[oslo_messaging_notifications]
+driver = log`;
+
+const KEYSTONE_AUDIT_VALUES: string = `conf:
+  keystone:
+    DEFAULT:
+      notification_format: cadf
+      notification_opt_out: identity.authenticate.pending
+    oslo_messaging_notifications:
+      driver: log`;
+
+/*
+ * A chart's logging.conf has only the service's own logger at INFO and the root at WARNING, and
+ * oslo.messaging's log driver writes under a logger of its own, so a chart's notifications go
+ * nowhere without this.
+ */
+const NOTIFICATIONS_LOGGER_VALUES: string = `conf:
+  logging:
+    loggers:
+      keys:
+        - root
+        - keystone
+        - notifications
+    logger_notifications:
+      level: INFO
+      handlers:
+        - stdout
+      qualname: oslo.messaging.notification
+      propagate: 0`;
+
+function getGeneralWhoDidWhatTopic(): SetupGuideTopic {
+  return {
+    title: "Who did what",
+    summary: WHO_DID_WHAT_SUMMARY,
+    markdown: `Keystone's audit trail says who signed in and who changed what in Keystone, and the audit filter says who did what through Nova, Neutron, Cinder and Glance. ${WHAT_THE_AUDIT_TRAIL_NEEDS}
+
+${codeBlock("ini", `# keystone.conf\n${KEYSTONE_AUDIT_CONF}`)}
+
+${ADMIN_NEEDS_SIGN_INS}
+
+The audit filter goes in each API's paste file, right after \`authtoken\` and the context filter that follows it in each pipeline, with the map file pyCADF ships for that service, in \`etc/pycadf\` under the Python environment the service runs in. Not at the end of a pipeline: Neutron's \`extensions\` filter answers its routers and security groups, and the filter would never see them.
+
+${codeBlock(
+  "ini",
+  `# api-paste.ini
+[filter:audit]
+paste.filter_factory = keystonemiddleware.audit:filter_factory
+audit_map_file = /path/to/venv/etc/pycadf/nova_api_audit_map.conf`,
+)}
+
+${codeBlock("ini", `# nova.conf\n${AUDIT_FILTER_CONF}`)}
+
+[Who did what](/docs/telemetry/openstack#who-did-what) says what reaches Security Events, and [each tool's guide](/docs/telemetry/openstack-deployment-tools) says where these go on it.`,
+  };
+}
+
 function withoutTool(): OpenStackDeploymentGuide {
   return {
     alreadyRuns: "",
@@ -255,7 +337,7 @@ function withoutTool(): OpenStackDeploymentGuide {
     credentialNotes: [],
     credentialVariants: [],
     lastSteps: [],
-    topics: [],
+    topics: [getGeneralWhoDidWhatTopic()],
   };
 }
 
@@ -270,6 +352,11 @@ function withoutTool(): OpenStackDeploymentGuide {
  *                                                     service_type is already set
  *   ansible/inventory/multinode                       which hosts run the network exporter
  *   doc/source/reference/logging-and-monitoring/      Prometheus and Fluentd overrides
+ *   ansible/roles/keystone/tasks/config.yml           keystone.conf and keystone-paste.ini overrides
+ *   ansible/roles/{nova,neutron,cinder,glance}/tasks/config.yml
+ *                                                     no paste file is copied for these
+ *   ansible/roles/{nova,neutron,cinder,glance}/defaults/main.yml
+ *                                                     their *_extra_volumes
  * and kolla/common/sources.yaml in openstack/kolla: exporter 1.7.0.
  */
 function kollaAnsible(
@@ -371,6 +458,28 @@ sudo bash ${OPENSTACK_LOGS_INSTALLER} files`,
 
 Kolla's own Fluentd can forward too, with an output in \`/etc/kolla/config/fluentd/output/*.conf\` as [Fluentd](/docs/telemetry/fluentd) describes, but those records reach **Logs** under a service's name, and not the cloud's pages.`,
       },
+      {
+        title: "Who did what on Kolla-Ansible",
+        summary: WHO_DID_WHAT_SUMMARY,
+        markdown: `${WHAT_THE_AUDIT_TRAIL_NEEDS} The agent's logs profile reads both from \`/var/log/kolla\`.
+
+${codeBlock("ini", `# /etc/kolla/config/keystone.conf\n${KEYSTONE_AUDIT_CONF}`)}
+
+${codeBlock("bash", "kolla-ansible reconfigure -i <inventory> -t keystone")}
+
+${ADMIN_NEEDS_SIGN_INS}
+
+For who did what through Nova, Neutron, Cinder and Glance, the audit filter needs a setting, which goes in every service's config at once:
+
+${codeBlock("ini", `# /etc/kolla/config/global.conf\n${AUDIT_FILTER_CONF}`)}
+
+${codeBlock(
+  "bash",
+  "kolla-ansible reconfigure -i <inventory> -t nova,neutron,cinder,glance",
+)}
+
+It also needs a paste file, and Kolla-Ansible's config tasks copy no paste file for these services. Put yours on each API host, and mount it over the one in the image with \`nova_api_extra_volumes\`, \`neutron_server_extra_volumes\`, \`cinder_api_extra_volumes\` and \`glance_api_extra_volumes\` in \`globals.yml\`. pyCADF's map files are in \`/var/lib/kolla/venv/etc/pycadf\` in the image. [Who did what](/docs/telemetry/openstack#who-did-what) has the filter's lines.`,
+      },
     ],
   };
 }
@@ -386,6 +495,9 @@ Kolla's own Fluentd can forward too, with an output in \`/etc/kolla/config/fluen
  *   doc/source/admin/maintenance-tasks/rabbitmq-maintain.rst the openstack.osa.* playbook names
  *   openstack-ansible-rabbitmq_server defaults/main.yml      rabbitmq_plugins, as its comment writes it
  *   openstack-ansible-haproxy_server defaults/main.yml       haproxy_stats_*, off and on localhost
+ *   openstack-ansible-os_keystone defaults/main.yml          keystone_keystone_conf_overrides
+ *   openstack-ansible-os_{nova,neutron,cinder,glance} defaults/main.yml
+ *                                                            *_api_paste_ini_overrides
  */
 function openStackAnsible(
   context: OpenStackDeploymentGuideContext,
@@ -446,7 +558,44 @@ sudo bash ${OPENSTACK_LOGS_INSTALLER} journald`,
 This runs the agent's logs profile as a systemd service, and reads \`/var/log/journal/\`, where OpenStack-Ansible's containers' journals arrive.`,
       },
     ],
-    topics: [],
+    topics: [
+      {
+        title: "Who did what on OpenStack-Ansible",
+        summary: WHO_DID_WHAT_SUMMARY,
+        markdown: `${WHAT_THE_AUDIT_TRAIL_NEEDS} The agent's logs profile reads both from the journal.
+
+${codeBlock(
+  "yaml",
+  `# /etc/openstack_deploy/user_variables.yml
+keystone_keystone_conf_overrides:
+  DEFAULT:
+    notification_format: cadf
+    notification_opt_out: identity.authenticate.pending
+  oslo_messaging_notifications:
+    driver: log`,
+)}
+
+${codeBlock("bash", "openstack-ansible openstack.osa.keystone")}
+
+${ADMIN_NEEDS_SIGN_INS} A second value of \`notification_opt_out\` goes in as a YAML set, as [its config_template](https://docs.openstack.org/ansible-config_template/latest/) writes a repeated key.
+
+For who did what through Nova, Neutron, Cinder and Glance, each API takes the filter's setting in its conf overrides, and the filter in its paste overrides, with \`audit\` right after \`authtoken\` and the context filter that follows it in each pipeline. Nova's, and the same in \`neutron_neutron_conf_overrides\` and \`neutron_api_paste_ini_overrides\`, \`cinder_cinder_conf_overrides\` and \`cinder_api_paste_ini_overrides\`, and \`glance_glance_api_conf_overrides\` and \`glance_glance_api_paste_ini_overrides\`:
+
+${codeBlock(
+  "yaml",
+  `# /etc/openstack_deploy/user_variables.yml
+nova_nova_conf_overrides:
+  audit_middleware_notifications:
+    driver: log
+nova_api_paste_ini_overrides:
+  "filter:audit":
+    paste.filter_factory: keystonemiddleware.audit:filter_factory
+    audit_map_file: "/openstack/venvs/nova-{{ nova_venv_tag }}/etc/pycadf/nova_api_audit_map.conf"`,
+)}
+
+${codeBlock("bash", "openstack-ansible openstack.osa.nova")}`,
+      },
+    ],
   };
 }
 
@@ -491,7 +640,10 @@ function probeStep(): SetupGuideStep {
 
 /*
  * OpenStack-Helm. Read from openstack/openstack-helm: prometheus-alertmanager/values.yaml
- * (conf.alertmanager) and prometheus-openstack-exporter/values.yaml (exporter 1.7.0).
+ * (conf.alertmanager), prometheus-openstack-exporter/values.yaml (exporter 1.7.0), and
+ * {keystone,nova,neutron,cinder,glance}/values.yaml: conf.<service>, conf.logging, whose root
+ * logger is at WARNING, and conf.paste, whose pipelines hold the audit filter on Nova, Neutron
+ * and Cinder, and not on Glance.
  */
 function openStackHelm(
   context: OpenStackDeploymentGuideContext,
@@ -533,14 +685,41 @@ ${alertmanagerReceiver(context.oneuptimeUrl, "      ")}`,
         cloudName: context.cloudName,
       }),
     ],
-    topics: [],
+    topics: [
+      {
+        title: "Who did what on OpenStack-Helm",
+        summary: WHO_DID_WHAT_SUMMARY,
+        markdown: `${WHAT_THE_AUDIT_TRAIL_NEEDS} The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.
+
+${codeBlock("yaml", `# keystone's values.yaml\n${KEYSTONE_AUDIT_VALUES}`)}
+
+${ADMIN_NEEDS_SIGN_INS}
+
+A chart's \`logging.conf\` keeps the root logger at \`WARNING\`, and the log driver writes under a logger of its own, so without one for it nothing is written. A list in values replaces the chart's, so \`keys\` holds what the chart's has, plus this:
+
+${codeBlock("yaml", `# keystone's values.yaml\n${NOTIFICATIONS_LOGGER_VALUES}`)}
+
+For who did what through Nova, Neutron and Cinder, their charts' \`conf.paste\` already has the audit filter in each pipeline, and it needs telling where to write. Each needs the same logger, in \`conf.logging\`. Glance's chart has the map, and neither the filter nor a place for it in its pipelines: add both to its \`conf.paste\`.
+
+${codeBlock(
+  "yaml",
+  `# nova's values.yaml
+conf:
+  nova:
+    audit_middleware_notifications:
+      driver: log`,
+)}`,
+      },
+    ],
   };
 }
 
 /*
  * Atmosphere. Read from vexxhost/atmosphere: doc/source/admin/monitoring.rst
- * (kube_prometheus_stack_helm_values.alertmanager.config.receivers) and
- * roles/kube_prometheus_stack, whose rules are the ones it ships.
+ * (kube_prometheus_stack_helm_values.alertmanager.config.receivers),
+ * roles/kube_prometheus_stack, whose rules are the ones it ships, and
+ * roles/{keystone,nova,neutron,cinder,glance}: *_helm_values over OpenStack-Helm's charts,
+ * with log_config_append null, so no logger of its own is needed.
  */
 function atmosphere(
   context: OpenStackDeploymentGuideContext,
@@ -581,7 +760,34 @@ ${alertmanagerReceiver(context.oneuptimeUrl, "        ")}`,
         cloudName: context.cloudName,
       }),
     ],
-    topics: [],
+    topics: [
+      {
+        title: "Who did what on Atmosphere",
+        summary: WHO_DID_WHAT_SUMMARY,
+        markdown: `${WHAT_THE_AUDIT_TRAIL_NEEDS} The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.
+
+${codeBlock(
+  "yaml",
+  `# your inventory's variables
+keystone_helm_values:
+  ${KEYSTONE_AUDIT_VALUES.split("\n").join("\n  ")}`,
+)}
+
+${ADMIN_NEEDS_SIGN_INS}
+
+For who did what through Nova, Neutron and Cinder, the charts Atmosphere deploys already have the audit filter in each pipeline, and it needs telling where to write, in \`nova_helm_values\`, \`neutron_helm_values\` and \`cinder_helm_values\`. Glance's chart has neither the filter nor a place for it in its pipelines: add both to its \`conf.paste\`, in \`glance_helm_values\`.
+
+${codeBlock(
+  "yaml",
+  `# your inventory's variables
+nova_helm_values:
+  conf:
+    nova:
+      audit_middleware_notifications:
+        driver: log`,
+)}`,
+      },
+    ],
   };
 }
 
@@ -590,7 +796,9 @@ ${alertmanagerReceiver(context.oneuptimeUrl, "        ")}`,
  * (sunbeam enable observability), canonical/openstack-exporter-operator (src/charm.py and
  * charmcraft.yaml: /metrics on 9180, one cloud) and canonical/alertmanager-k8s-operator
  * (charmcraft.yaml: config_file). Sunbeam's own docs do not mention the exporter charm, and
- * a search of its source found no deployment of it, so the guide says "if you run it".
+ * a search of its source found no deployment of it, so the guide says "if you run it". Its
+ * Keystone charm is canonical/sunbeam-charms charms/keystone-k8s: charmcraft.yaml has no such
+ * setting, and src/templates/keystone.conf.j2 takes its notifications from a template of its own.
  */
 function sunbeam(
   context: OpenStackDeploymentGuideContext,
@@ -645,6 +853,12 @@ Which series it says depends on the exporter release in its snap, which was not 
         markdown:
           "With observability on, the stack's Loki holds the services' logs. OneUptime has no way to read Loki, and the agent's logs profile has not been tried on Sunbeam's charms, so nothing here collects them yet.",
       },
+      {
+        title: "Who did what on Sunbeam",
+        summary: "Not yet: its charms give no way to turn it on.",
+        markdown:
+          "Sunbeam's charms write each service's configuration from their own templates, and its Keystone charm has no setting for where notifications go. So neither Keystone's audit trail nor the audit filter can be turned on from outside the charm, and nothing here reaches Security Events.",
+      },
     ],
   };
 }
@@ -655,6 +869,9 @@ Which series it says depends on the exporter release in its snap, which was not 
  * docs/sample-alerts/alertmanager-config-email.yaml (monitoring.rhobs/v1alpha1
  * AlertmanagerConfig, labelled service: metricStorage). webhookConfigs is what that CRD calls a
  * webhook receiver. The Kubernetes agent's preset is HelmChart/Public/kubernetes-agent's.
+ * customServiceConfig and defaultConfigOverwrite are in openstack-k8s-operators/keystone-operator,
+ * nova-operator and neutron-operator. cinder-operator's and glance-operator's APIs have the first
+ * and not the second.
  */
 function rhoso(
   context: OpenStackDeploymentGuideContext,
@@ -712,14 +929,47 @@ spec:
           "A probe says what is allocated, not what is busy. To read real usage, run the agent on a machine that can reach the compute nodes, with `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` naming each node on Ceilometer's port, `9101`.",
       },
     ],
-    topics: [],
+    topics: [
+      {
+        title: "Who did what on Red Hat OpenStack on OpenShift",
+        summary: WHO_DID_WHAT_SUMMARY,
+        markdown: `${WHAT_THE_AUDIT_TRAIL_NEEDS} The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.
+
+${codeBlock(
+  "yaml",
+  `# your OpenStackControlPlane
+spec:
+  keystone:
+    template:
+      customServiceConfig: |
+        ${KEYSTONE_AUDIT_CONF.split("\n").join("\n        ")}`,
+)}
+
+${ADMIN_NEEDS_SIGN_INS}
+
+For who did what through Nova and Neutron, each takes the filter's setting in its \`customServiceConfig\`, and its paste file in \`defaultConfigOverwrite\`. Cinder's and Glance's operators take no paste file, so nothing here reaches them.
+
+${codeBlock(
+  "yaml",
+  `# your OpenStackControlPlane
+spec:
+  nova:
+    template:
+      apiServiceTemplate:
+        customServiceConfig: |
+          ${AUDIT_FILTER_CONF.split("\n").join("\n          ")}`,
+)}`,
+      },
+    ],
   };
 }
 
 /*
  * Mirantis MOSK. Read from docs.mirantis.com/mosk/latest/ops/stacklight-operations/config
  * /sl-config-params.html: alertmanagerSimpleConfig.genericReceivers takes any Alertmanager
- * receiver. Its examples show OpsGenie and Microsoft Teams, not a webhook.
+ * receiver. Its examples show OpsGenie and Microsoft Teams, not a webhook. features:logging:cadf
+ * is docs.mirantis.com/mosk/26.1/security/cadf-audit.html, which does not list Keystone, and
+ * spec:services is .../ref-arch/openstack/openstack-config/osdpl-cr-spec-services.html.
  */
 function mosk(
   context: OpenStackDeploymentGuideContext,
@@ -758,7 +1008,39 @@ ${codeBlock(
     credentialNotes: [],
     credentialVariants: [],
     lastSteps: [probeStep()],
-    topics: [],
+    topics: [
+      {
+        title: "Who did what on Mirantis MOSK",
+        summary: WHO_DID_WHAT_SUMMARY,
+        markdown: `For who did what through Nova, Neutron, Cinder and Glance, MOSK has a setting of its own, with the audit filter already in place. With the log driver, each service writes to its standard output, and the Kubernetes agent reads that from the pods' logs, with the cloud named in its values. ${WHAT_THE_AUDIT_TRAIL_NEEDS}
+
+${codeBlock(
+  "yaml",
+  `# your OpenStackDeployment
+spec:
+  features:
+    logging:
+      cadf:
+        enabled: true
+        driver: log`,
+)}
+
+That setting does not cover Keystone. Its own audit trail takes \`spec:services\`, which Mirantis does not validate and takes no responsibility for, so weigh this with your support contract:
+
+${codeBlock(
+  "yaml",
+  `# your OpenStackDeployment
+spec:
+  services:
+    identity:
+      keystone:
+        values:
+          ${KEYSTONE_AUDIT_VALUES.split("\n").join("\n          ")}`,
+)}
+
+${ADMIN_NEEDS_SIGN_INS}`,
+      },
+    ],
   };
 }
 

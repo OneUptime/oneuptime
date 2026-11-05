@@ -209,6 +209,11 @@ export default class OpenStackServiceClient {
     this.usualAnswerInMs = options.usualAnswerInMs ?? null;
   }
 
+  // Whether an answer this collection was slow enough to earn the service a pause.
+  public hasBeenSlow(): boolean {
+    return this.lastPaceInMs > 0;
+  }
+
   // What its answers took on average, for the next collection to measure against.
   public getAverageAnswerInMs(): number | null {
     return this.answerCount > 0 ? this.answerTimeInMs / this.answerCount : null;

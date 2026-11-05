@@ -24,6 +24,7 @@ import {
   describeOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
+import { getEmptyOpenStackReachAcrossProducts } from "../../../../Types/OpenStack/OpenStackLinks";
 import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "../../../../Types/Monitor/OpenStackAlertTemplates";
 import {
   OpenStackResourceKind,
@@ -996,6 +997,97 @@ describe("what an alert on a hypervisor says beyond the cloud", () => {
     );
     expect(text).toContain("Kubernetes cluster prod: 2 nodes");
     expect(text).toContain("Service checkout");
+  });
+
+  test("it names the hosts and Kubernetes nodes themselves, and which host is the machine", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 2,
+          acrossProducts: {
+            hostCount: 2,
+            hosts: [
+              { id: "h1", name: "compute-07", isHypervisor: true },
+              { id: "h2", name: "web-guest", isHypervisor: false },
+            ],
+            kubernetesNodeCount: 1,
+            kubernetesNodes: [
+              {
+                clusterId: "c",
+                clusterName: "prod",
+                nodeName: "node-1",
+                instanceId: "i",
+              },
+            ],
+            kubernetesClusters: [{ id: "c", name: "prod", nodeCount: 1 }],
+            serviceCount: 0,
+            services: [],
+          },
+        },
+      }),
+    );
+    expect(text).toContain("Host compute-07: this machine");
+    expect(text).toContain("Host web-guest");
+    expect(text).not.toContain("Host web-guest: this machine");
+    expect(text).toContain("Kubernetes node node-1 in prod");
+  });
+
+  test("it names the instances, up to a limit, and says how many more", () => {
+    const instances: Array<{ id: string; name: string | null }> = [];
+    for (let index: number = 0; index < 50; index++) {
+      instances.push({ id: `id-${index}`, name: `web${index}` });
+    }
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 50,
+          acrossProducts: {
+            ...getEmptyOpenStackReachAcrossProducts(),
+            instanceCount: 53,
+            instances,
+          },
+        },
+      }),
+    );
+    expect(text).toContain("**Instances:** web0, web1,");
+    expect(text).toContain("web19, and 33 more.");
+    expect(text).not.toContain("web20");
+  });
+
+  test("an instance with no name goes by its ID", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 1,
+          acrossProducts: {
+            ...getEmptyOpenStackReachAcrossProducts(),
+            instanceCount: 1,
+            instances: [{ id: "abc", name: null }],
+          },
+        },
+      }),
+    );
+    expect(text).toContain("**Instances:** abc.");
+  });
+
+  test("an instance's name can't write markdown into the description", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 1,
+          acrossProducts: {
+            ...getEmptyOpenStackReachAcrossProducts(),
+            instanceCount: 1,
+            instances: [{ id: "abc", name: "**bold**" }],
+          },
+        },
+      }),
+    );
+    expect(text).not.toContain("**bold**");
   });
 
   test("a hypervisor with nothing beyond the cloud says nothing about it", () => {

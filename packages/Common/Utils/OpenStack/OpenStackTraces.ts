@@ -18,22 +18,28 @@ import {
  *   - service.name is "<project>-<service>", so nova-compute arrives as nova-nova-compute,
  *     and nova-api as nova-osapi_compute. The resource says nothing else: no cloud, no host.
  *   - A span's name is WSGI_POST_/v2.1/servers/<uuid>, SQL_SELECT or a word such as rpc,
- *     cut by Python's rstrip("-start"), which takes characters and not a suffix: scheduler
- *     arrives as "schedule".
- *   - A span's status is never set. A failure is an `error` attribute and a "log" event.
+ *     cut by Python's rstrip("-start"), which takes characters and not a suffix: vif_driver
+ *     arrives as "vif_drive".
+ *   - A span's status is never set. A failure is an `error` attribute and a "log" event, and
+ *     most of those on a real cloud are the client looking a name up as an id first.
  *   - Its kind is guessed from words in the name, so every RPC call is INTERNAL, which leaves
- *     Nova's own hops off any service map.
+ *     Nova's own hops off any service map, and a call inside nova-api that has "api" in its
+ *     name is CLIENT.
  *   - Before OSProfiler 4.4.0, a request's first span has a parent that is never sent: the
  *     low 64 bits of the trace ID (OSProfiler bug 2132957). Nothing would read it as a root.
+ *   - A service that forks its workers after making its driver sends nothing from them, so a
+ *     span whose parent was in one names a parent that never arrives: nova-compute's
+ *     build_and_run_instance does, under nova-conductor. That one is really missing, so it
+ *     stays as it came, and the trace's page says why.
  *   - `args`, `kwargs`, `result` and `db.params` hold what a traced call was handed, written
  *     out as Python would print it: an instance's admin password and user data, a volume's
  *     connection info. They never reach storage, whatever a project's rules say.
  *
  * So every span in the driver's scope goes through this as it arrives, before drop filters,
  * scrub rules and pipelines, so they and the pages see it as it is read here. Everything
- * here is checked against what the driver really sent on a real cloud: see
- * Tests/Ops/openstack-e2e/traces-record.sh and the recordings in
- * Common/Tests/Fixtures/OpenStack/<release>/traces.
+ * here is held to what the driver really sent on a real cloud: see
+ * Tests/Ops/openstack-e2e/traces-record.sh, the recordings in
+ * Common/Tests/Fixtures/OpenStack/traces/<release>, and OpenStackTracesRecordings.test.ts.
  *
  * Spans are text anyone holding the key can write into, so a value is read with indexOf and
  * loops, never a regular expression with a quantifier (AGENTS.md).
@@ -128,6 +134,7 @@ const MAX_TRACE_ID_INPUT_LENGTH: number = 4096;
 export type OpenStackStoredSpanKind = `${SpanKind}`;
 
 const SPAN_KIND_CONSUMER: OpenStackStoredSpanKind = "SPAN_KIND_CONSUMER";
+const SPAN_KIND_INTERNAL: OpenStackStoredSpanKind = "SPAN_KIND_INTERNAL";
 const SPAN_KIND_PRODUCER: OpenStackStoredSpanKind = "SPAN_KIND_PRODUCER";
 const SPAN_KIND_SERVER: OpenStackStoredSpanKind = "SPAN_KIND_SERVER";
 
@@ -464,7 +471,9 @@ const PATH_COLLECTIONS: ReadonlyMap<string, OpenStackResourceKind> = new Map<
 /*
  * The query parameters that name a part, as services ask each other: Nova finds an
  * instance's ports with device_id. A device_id can be a router's too, and then nothing of
- * that id is an instance, so nothing joins.
+ * that id is an instance, so nothing joins. The same parameter given several times is a
+ * list, as `server list` asks for every instance's ports at once: that is about none of
+ * them, so it names none.
  */
 const QUERY_PARAMETERS: ReadonlyMap<string, OpenStackResourceKind> = new Map<
   string,
@@ -541,18 +550,33 @@ export function readOpenStackRequestResources(data: {
     }
   }
 
+  const valuesOfParameter: Map<string, Set<string>> = new Map<
+    string,
+    Set<string>
+  >();
+
   for (const pair of (data.query || "").split("&")) {
     const equals: number = pair.indexOf("=");
 
     if (equals > 0) {
-      const kind: OpenStackResourceKind | undefined = QUERY_PARAMETERS.get(
-        pair.slice(0, equals),
-      );
-      const value: string = pair.slice(equals + 1);
+      const parameter: string = pair.slice(0, equals);
 
-      if (kind && isResourceId(value)) {
-        add(kind, value);
+      if (QUERY_PARAMETERS.has(parameter)) {
+        const values: Set<string> =
+          valuesOfParameter.get(parameter) || new Set<string>();
+
+        values.add(pair.slice(equals + 1));
+        valuesOfParameter.set(parameter, values);
       }
+    }
+  }
+
+  for (const [parameter, values] of valuesOfParameter) {
+    const value: string | undefined =
+      values.size === 1 ? Array.from(values)[0] : undefined;
+
+    if (value && isResourceId(value)) {
+      add(QUERY_PARAMETERS.get(parameter)!, value);
     }
   }
 
@@ -588,12 +612,20 @@ export function readOpenStackSpanResources(
 
 /*
  * The words the driver's rstrip("-start") eats the end of, put back. It takes any of the
- * characters - s t a r from the end, so what ends in one of those loses it.
+ * characters - s t a r from the end, so what ends in one of those loses it. These are the
+ * names OpenStack's own trace_cls calls give that do; the rest (rpc, compute_api, neutron_api,
+ * volume_api, nova_image) come through whole.
  */
 const DRIVER_NAME_REPAIRS: ReadonlyMap<string, string> = new Map<
   string,
   string
->([["schedule", "scheduler"]]);
+>([
+  ["drive", "driver"],
+  ["vif_drive", "vif_driver"],
+  ["schedule", "scheduler"],
+  ["l3-agen", "l3-agent"],
+  ["ovs_dvr_agen", "ovs_dvr_agent"],
+]);
 
 // A path with what makes it unique taken out, so the same call has the same name each time.
 export function getOpenStackPathInSpanName(path: string): string {
@@ -612,7 +644,11 @@ export function getOpenStackPathInSpanName(path: string): string {
  * build_and_run_instance reads ComputeManager.build_and_run_instance. The whole of it stays
  * in the `name` attribute.
  */
-function getShortFunctionName(functionName: string): string {
+function getShortFunctionName(wholeName: string): string {
+  // A closure: oslo_messaging.rpc.server.expected_exceptions.<locals>.outer.<locals>.inner
+  const closure: number = wholeName.indexOf(".<locals>");
+  const functionName: string =
+    closure === -1 ? wholeName : wholeName.slice(0, closure);
   const last: number = functionName.lastIndexOf(".");
 
   if (last <= 0) {
@@ -664,11 +700,15 @@ export function readOpenStackDriverSpanName(data: {
 
 /*
  * The kind a span should be stored with. A service's own function is INTERNAL to the driver,
- * so a call from nova-api to nova-conductor crosses services with no span saying so. An RPC
+ * so a call from nova-api to nova-compute crosses services with no span saying so. An RPC
  * call has two spans: Nova's rpcapi modules on the caller's side, and its manager modules on
  * the side that answers, whose parent is the caller's. Stored as PRODUCER and CONSUMER, they
- * are what they are, and the service map's own rule (a SERVER or CONSUMER span whose parent
- * is another service's) draws the edge.
+ * are what they are.
+ *
+ * The driver calls anything with "api" in its name a CLIENT, which is every span named
+ * compute_api or neutron_api: functions inside the service, the second of them a tenth of a
+ * millisecond spent finding a method. A CLIENT is a call that leaves a service, so a traced
+ * function other than RPC is INTERNAL, and SQL and an HTTP call stay what they came as.
  */
 export function readOpenStackDriverSpanKind(data: {
   kind: OpenStackStoredSpanKind;
@@ -682,17 +722,25 @@ export function readOpenStackDriverSpanKind(data: {
   const functionName: unknown =
     data.attributes[OpenStackTraceAttribute.FunctionName];
 
-  if (data.name === "rpc" && typeof functionName === "string") {
+  if (typeof functionName !== "string" || !functionName) {
+    return data.kind;
+  }
+
+  if (data.name === "rpc") {
     if (functionName.includes(".rpcapi.")) {
       return SPAN_KIND_PRODUCER;
     }
 
-    if (functionName.includes(".manager.")) {
+    // nova-scheduler's is the wrapper oslo.messaging puts around the method, and is all it sends.
+    if (
+      functionName.includes(".manager.") ||
+      functionName.startsWith("oslo_messaging.rpc.server.")
+    ) {
       return SPAN_KIND_CONSUMER;
     }
   }
 
-  return data.kind;
+  return SPAN_KIND_INTERNAL;
 }
 
 /*
@@ -753,6 +801,32 @@ function scrubDriverEventsInPlace(events: unknown): void {
   }
 }
 
+/*
+ * Whether what went wrong in this span is only something not being there. `openstack server
+ * show <name>` asks for the name as an id first, which is how every OpenStack client finds
+ * a thing by name, so Nova raises InstanceNotFound on a request that is about to succeed. On
+ * a real cloud those were most of the failures the driver wrote. The event stays on the
+ * span, and the status stays for what really failed.
+ */
+function isOnlyNotFound(events: unknown): boolean {
+  if (!Array.isArray(events)) {
+    return false;
+  }
+
+  for (const event of events) {
+    const kind: string = readEventAttributeText(
+      event as JSONObject,
+      "error.kind",
+    );
+
+    if (kind) {
+      return kind.endsWith("NotFound");
+    }
+  }
+
+  return false;
+}
+
 function readFailureMessage(events: unknown): string {
   if (!Array.isArray(events)) {
     return "";
@@ -799,12 +873,25 @@ function scrubPath(path: string): string {
   return `${path.slice(0, start)}${OPENSTACK_SCRUBBED_VALUE}${end === -1 ? "" : path.slice(end)}`;
 }
 
+/*
+ * Traced functions that only hand back another. Nova's ClientWrapper.proxy finds the Neutron
+ * client's method: a tenth of a millisecond, with nothing under it, and the call it leads to is
+ * a span of its own beside it. That is a quarter of a real boot's spans, one line in a waterfall
+ * for every call to Neutron, and enough of them under one parent to read as an N+1. So they
+ * are not kept.
+ */
+const FUNCTIONS_THAT_SAY_NOTHING: ReadonlySet<string> = new Set<string>([
+  "nova.network.neutron.ClientWrapper.proxy",
+]);
+
 export interface OpenStackDriverSpan {
   name: string;
   kind: OpenStackStoredSpanKind;
   parentSpanId: string;
   isFailed: boolean;
   statusMessage: string;
+  // Not worth a row: see FUNCTIONS_THAT_SAY_NOTHING.
+  saysNothing: boolean;
 }
 
 /*
@@ -881,7 +968,7 @@ export function readOSProfilerSpanInPlace(data: {
 
   const statusCode: number = Number(attributes[STATUS_CODE_ATTRIBUTE]);
   const isFailed: boolean =
-    isTrue(attributes[ERROR_ATTRIBUTE]) ||
+    (isTrue(attributes[ERROR_ATTRIBUTE]) && !isOnlyNotFound(data.events)) ||
     (Number.isFinite(statusCode) && statusCode >= 500);
 
   return {
@@ -900,6 +987,11 @@ export function readOSProfilerSpanInPlace(data: {
     }),
     isFailed: isFailed,
     statusMessage: isFailed ? readFailureMessage(data.events) : "",
+    saysNothing:
+      !isFailed &&
+      FUNCTIONS_THAT_SAY_NOTHING.has(
+        String(attributes[OpenStackTraceAttribute.FunctionName] || ""),
+      ),
   };
 }
 
@@ -1113,6 +1205,85 @@ export function readOpenStackTracedServices(
         return entry[0];
       }),
   };
+}
+
+/*
+ * ------------------------------------------------------------------
+ * What a trace cannot show
+ * ------------------------------------------------------------------
+ */
+
+/*
+ * The services a signed request crosses that send no span on a stock cloud, each for its own
+ * reason, as Tests/Ops/openstack-e2e/traces-record.sh recorded them. A page says these out loud,
+ * because a boot's trace that has no scheduler in it reads as if nothing was scheduled.
+ */
+export enum OpenStackTraceGap {
+  /*
+   * Placement keeps a config of its own, and OSProfiler registers [profiler_otlp] on the global
+   * one only, so the driver's first read of it ends the driver: "no such option profiler_otlp".
+   * One line in Placement's code fixes it, and the guide gives it.
+   */
+  DriverCannotStart = "driver-cannot-start",
+  /*
+   * On eventlet it makes its driver and then forks its workers, and nothing made in a worker
+   * arrived. One worker runs in the process that made the driver, so nothing has to survive a
+   * fork, which the rig's signed-boot-whole scene proved on 2025.2. On 2026.2 they run on threads
+   * and send spans as they are, and a page then simply lists them as sent.
+   */
+  ForkedWorkers = "forked-workers",
+  // The same, with no setting for it: on 2025.2 cinder-volume forks a process per backend.
+  AlwaysForks = "always-forks",
+}
+
+const OPENSTACK_TRACE_GAPS: ReadonlyMap<string, OpenStackTraceGap> = new Map<
+  string,
+  OpenStackTraceGap
+>([
+  ["placement-api", OpenStackTraceGap.DriverCannotStart],
+  ["nova-conductor", OpenStackTraceGap.ForkedWorkers],
+  ["nova-scheduler", OpenStackTraceGap.ForkedWorkers],
+  ["cinder-volume", OpenStackTraceGap.AlwaysForks],
+]);
+
+export function getOpenStackTraceGap(
+  service: string,
+): OpenStackTraceGap | null {
+  return OPENSTACK_TRACE_GAPS.get(service) || null;
+}
+
+// The services a stock cloud leaves out of a trace, but for any this one has shown it can send.
+export function getOpenStackServicesLeftOutOfTraces(
+  servicesSeen: ReadonlyArray<string>,
+): Array<string> {
+  return Array.from(OPENSTACK_TRACE_GAPS.keys())
+    .filter((service: string): boolean => {
+      return !servicesSeen.includes(service);
+    })
+    .sort();
+}
+
+/*
+ * Whether any span names a parent that never arrived. Ingest reads a request's first span as a
+ * root, so what is left of these is a span under something that sent nothing.
+ */
+export function hasOpenStackSpanMissingItsParent(
+  spans: ReadonlyArray<{
+    spanId?: string | null | undefined;
+    parentSpanId?: string | null | undefined;
+  }>,
+): boolean {
+  const ids: Set<string> = new Set<string>();
+
+  for (const span of spans) {
+    if (span.spanId) {
+      ids.add(span.spanId);
+    }
+  }
+
+  return spans.some((span: { parentSpanId?: string | null | undefined }) => {
+    return Boolean(span.parentSpanId) && !ids.has(span.parentSpanId!);
+  });
 }
 
 /*

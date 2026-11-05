@@ -8,7 +8,7 @@ One agent watches one cloud: one Keystone, with one region or several. It only e
 
 ## Prerequisites
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later and root
+- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later, glibc 2.34 or later (RHEL 9, Ubuntu 22.04, Debian 12) and root
 - A route from that machine to Keystone and to each service's public endpoint
 - A credential for the cloud: see [Access](#access)
 - A **OneUptime Telemetry Ingestion Key**: create one from *Project Settings → Telemetry Ingestion Keys*
@@ -343,7 +343,7 @@ sudo -E bash install-traces.sh
 
 It uses Docker Compose where the machine has it, and otherwise a systemd service (`bash install-traces.sh native` asks for that). It listens on `127.0.0.1:4318`, because [OSProfiler's OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) can only post plain HTTP, removes what a traced call was handed (`args`, `kwargs`, `result`, `db.params`), stamps the cloud, region and machine, which the driver never says, and forwards the rest to OneUptime over TLS.
 
-It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, and this, with a key of your own that is the same on every service:
+It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, below version 1.44, which [hangs a service as it starts a subprocess](https://github.com/open-telemetry/opentelemetry-python/issues/5789), and this, with a key of your own that is the same on every service:
 
 ```ini
 [profiler]
@@ -353,7 +353,7 @@ connection_string = otlp://127.0.0.1:4318
 trace_sqlalchemy = False
 ```
 
-Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and [the guide](https://oneuptime.com/docs/telemetry/openstack#trace-requests-through-the-control-plane) says how for each deployment tool.
+Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement sends nothing, and on 2025.2 `nova-conductor`, `nova-scheduler` and `cinder-volume` do not either: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
 
 | Setting | Default | What it is for |
 | --- | --- | --- |
@@ -405,6 +405,17 @@ One scrape job per OpenStack service, through the exporter's `/probe?cloud=<regi
 | `oneuptime-openstack-placement` | 2 minutes | 110 s | `openstack_placement_resource_total`, `openstack_placement_resource_usage`, `openstack_placement_resource_allocation_ratio`, `openstack_placement_resource_reserved` |
 | `oneuptime-openstack-identity` | 5 minutes | 120 s | `openstack_identity_projects`, `openstack_identity_project_info`, `openstack_identity_domains`, `openstack_identity_regions` |
 | `oneuptime-openstack-image` | 5 minutes | 120 s | `openstack_glance_images`, `openstack_glance_image_bytes`, `openstack_glance_image_created_at` |
+| `oneuptime-openstack-load-balancer` | 5 minutes | 120 s | `openstack_loadbalancer_total_loadbalancers`, `openstack_loadbalancer_loadbalancer_status`, `openstack_loadbalancer_total_amphorae`, `openstack_loadbalancer_amphora_status`, `openstack_loadbalancer_total_pools`, `openstack_loadbalancer_pool_status` |
+| `oneuptime-openstack-baremetal` | 5 minutes | 120 s | `openstack_ironic_node`, `openstack_ironic_node_updated_at`, `openstack_ironic_node_provision_updated_at` |
+| `oneuptime-openstack-orchestration` | 5 minutes | 120 s | `openstack_heat_stack_status`, `openstack_heat_stack_status_counter` |
+| `oneuptime-openstack-container-infra` | 5 minutes | 120 s | `openstack_container_infra_total_clusters`, `openstack_container_infra_cluster_masters`, `openstack_container_infra_cluster_nodes`, `openstack_container_infra_cluster_status` |
+| `oneuptime-openstack-sharev2` | 5 minutes | 120 s | `openstack_sharev2_shares_counter`, `openstack_sharev2_share_gb`, `openstack_sharev2_share_status`, `openstack_sharev2_share_status_counter` |
+| `oneuptime-openstack-dns` | 5 minutes | 120 s | `openstack_designate_zones`, `openstack_designate_zone_status`, `openstack_designate_recordsets`, `openstack_designate_recordsets_status` |
+| `oneuptime-openstack-object-store` | 5 minutes | 120 s | `openstack_object_store_objects`, `openstack_object_store_bytes` |
+| `oneuptime-openstack-database` | 5 minutes | 120 s | `openstack_trove_total_instances`, `openstack_trove_instance_status`, `openstack_trove_instance_volume_size_gb`, `openstack_trove_instance_volume_used_gb` |
+| `oneuptime-openstack-gnocchi` | 5 minutes | 120 s | `openstack_gnocchi_status_metricd_processors`, `openstack_gnocchi_status_metric_having_measures_to_process`, `openstack_gnocchi_status_measures_to_process` |
+
+The last nine are services a cloud may not run. Asked about one that is not in its catalog, the exporter logs in to Keystone, logs one line (`No suitable endpoint could be found in the service catalog`) and answers with nothing, and that cloud shows no trace of the service. It is one login each 5 minutes per service and region, which is why these are all 5 minutes. To ask only for the services you run, set `OPENSTACK_AGENT_SERVICES`, such as `identity|compute|placement|network|volume|image`.
 
 Each service also reports `openstack_<service>_up` (`openstack_nova_up`, `openstack_neutron_up`, ...). Every series carries:
 
@@ -420,19 +431,21 @@ Monitoring must never be what takes a cloud down, so the defaults are gentle. Ea
 
 | Setting | Default | Turning it on or changing it gives you | What it costs |
 |---------|---------|---------------------------------|---------------|
-| Slow metrics | Off | Quotas and limits per project, and usage per server: the list is below | One call per project per scrape, so it grows with the number of projects |
+| Project quotas | Off | How much of each quota a project has used, on its page and under Needs attention, and the Project Quota Nearly Reached alert | Four API calls per project, per region, once an hour (Nova one, Cinder two, Neutron one), from an exporter of their own |
+| Slow metrics | Off | Nova's own quota lists and usage per server: the list is below | One call per project per scrape, so it grows with the number of projects |
 | Per-port series | Off | `openstack_neutron_port`, `openstack_neutron_ports`, `openstack_neutron_ports_no_ips`, `openstack_neutron_ports_lb_not_active` | An unscoped list of every port. On a large cloud that [can saturate Neutron and cause cascading failures](https://github.com/openstack-exporter/openstack-exporter/issues/540), so leave it off unless you know your port count is small |
+| Services a cloud may not run | On | Load balancers, bare metal, stacks, clusters, shares, DNS, object storage, databases and Gnocchi, where the cloud has them | A cloud without one pays one login each 5 minutes. Designate costs one call per zone per scrape, so it grows with the number of zones |
 | Scrape intervals | 2 and 5 minutes | Fresher data, or less load | Twice as often is twice the API calls. Keep each `scrape_timeout` under its `scrape_interval`, so a slow scrape never stacks on the one before |
 
+- **Project quotas:** run `install.sh` again with `OPENSTACK_COLLECT_QUOTAS=true`. It starts a second exporter, `openstack-quota-exporter`, that reads nothing else, and the collector asks it once an hour for `openstack_nova_limits_*`, `openstack_neutron_quota_*`, `openstack_cinder_limits_*` and `openstack_cinder_volume_type_quota_gigabytes`. They change slowly, and an exporter reads the same things whichever job asks, so reading them less often takes an exporter of their own. Your own exporter has no such thing: the agent reads what it says, on every scrape.
 - **Slow metrics:** delete the `--disable-metric` line for what you want, from the exporter's `command` in `docker-compose.yml`, or from `ExecStart` in `oneuptime-openstack-exporter.service` without Docker. The cost is one call per project per scrape:
 
   | Delete | To collect |
   |--------|------------|
   | `--disable-metric=nova-quota_cores` | `openstack_nova_quota_*` |
-  | `--disable-metric=nova-limits_vcpus_max` | `openstack_nova_limits_*` |
-  | `--disable-metric=neutron-quota_network` | `openstack_neutron_quota_*` |
-  | `--disable-metric=cinder-limits_volume_max_gb` | `openstack_cinder_limits_*`, `openstack_cinder_volume_type_quota_gigabytes` |
   | `--disable-metric=nova-server_local_gb` | `openstack_nova_server_local_gb`, usage per server. This one is a single usage report that walks every server rather than a call per project, and it is slow on a large cloud all the same |
+
+  The three lines that leave project quotas out of this exporter (`--disable-metric=nova-limits_vcpus_max`, `--disable-metric=neutron-quota_network`, `--disable-metric=cinder-limits_volume_max_gb`) stay in. Deleting them reads them every two minutes as well.
 
   Each flag names the series that reads the rest of its row, which is why one line turns them all off. Do not use the exporter's own `--disable-slow-metrics` instead: it also takes `openstack_glance_image_*`, the image list the Images page reads with one call. Neutron's list of quotas is an admin's alone at every level but level 1, so `openstack_neutron_quota_*` needs that level.
 - **Per-port series:** delete the four `--disable-metric=neutron-port*` lines, in the same place.
@@ -440,7 +453,7 @@ Monitoring must never be what takes a cloud down, so the defaults are gentle. Ea
 
 Then `docker compose up -d --force-recreate`, or `sudo systemctl daemon-reload` and restart both services without Docker. An upgrade replaces these files and keeps your copy as `<file>.bak.<timestamp>`, naming it at the end, so re-apply your edit afterwards.
 
-Two more lines stay in, because you will not miss them. `--disable-metric=neutron-subnets_total` leaves out many series saying what the address pools already say (`openstack_neutron_subnets_total`, `openstack_neutron_subnets_used`, `openstack_neutron_subnets_free`). `--disable-metric=nova-security_groups` leaves out a read of a route Nova no longer has, which would only fill the exporter's log.
+Three more lines stay in, because you will not miss them. `--disable-metric=neutron-subnets_total` leaves out many series saying what the address pools already say (`openstack_neutron_subnets_total`, `openstack_neutron_subnets_used`, `openstack_neutron_subnets_free`). `--disable-metric=nova-security_groups` leaves out a read of a route Nova no longer has, which would only fill the exporter's log. `--disable-metric=gnocchi-total_metrics` leaves out a read of every metric in Gnocchi, page by page, for one count (`openstack_gnocchi_total_metrics`): a Gnocchi can hold millions.
 
 To read internal endpoints rather than public ones, add `--endpoint-type=internal` in the same place.
 
@@ -451,6 +464,25 @@ openstack-exporter is the collector operators know, and three of its open issues
 - [Issue 660](https://github.com/openstack-exporter/openstack-exporter/issues/660): one failing service empties a whole scrape. So there is one scrape job per service. Do not merge them.
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and `troubleshoot.sh` asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
+
+## Very large clouds
+
+[Very Large OpenStack Clouds](https://oneuptime.com/docs/telemetry/openstack-very-large-clouds) has what each size costs in requests a minute and gigabytes a day, and says what each of these gives up.
+
+**Past 5,000 instances** OneUptime keeps a row for every part and counts per hypervisor, project and status, and drops the series per instance and per volume of everything settled as they arrive. Nothing here changes. Choose projects to keep under **Real usage per instance** on the cloud's **Settings** page.
+
+**To share a cloud between agents**, give each the same `OPENSTACK_CLOUD_NAME` and its own share. `OPENSTACK_EXPORTER_CLOUDS` names its regions, and `OPENSTACK_AGENT_SERVICES` its services, such as `compute|placement`. A region and a service belong to one agent, and Keystone to one agent for the whole cloud, or their series arrive twice. Set `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` on an agent with a large share: it holds a scrape in memory on its way out, and the default is `512`.
+
+**Past 1,500 hypervisors or 100,000 instances** a scrape of the APIs runs out of time, because the exporter asks Placement three things per hypervisor one call at a time, and reads every instance on every scrape. Those clouds can be read from their databases with [`openstack_database_exporter`](https://github.com/vexxhost/openstack_database_exporter), which `COMPOSE_PROFILES=openstack-database-exporter` starts:
+
+| Setting | What it is |
+| --- | --- |
+| `OPENSTACK_DATABASE_EXPORTER_TARGETS` | `[openstack-database-exporter:9180]`, with `OPENSTACK_EXPORTER_CLOUDS=[]`, or every series arrives twice |
+| `NOVA_DATABASE_URL`, `NOVA_API_DATABASE_URL`, `PLACEMENT_DATABASE_URL`, `NEUTRON_DATABASE_URL`, `CINDER_DATABASE_URL`, `GLANCE_DATABASE_URL`, `KEYSTONE_DATABASE_URL` | oslo.db's form, with a read-only account: `mysql+pymysql://oneuptime:secret@db.example:3306/nova`. A database left out is a service it leaves alone |
+| `OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX` | What a hypervisor's full name adds to Nova's host name, such as `.example.org`, so an instance finds the hypervisor it runs on |
+| `OPENSTACK_WORKER_STATE_CLOUDS` | The `clouds.yaml` entries to read two small lists from, such as `[RegionOne]`: whether each Nova worker is alive, and how full each storage pool is. A database says neither |
+
+It needs a route from this machine to those databases, and one exporter per region and Nova cell. It cannot say whether an API answers, only whether its database does, so watch the APIs themselves. It has been read from its source and its own tests, and has not been run here against a real database.
 
 ## Upgrading
 

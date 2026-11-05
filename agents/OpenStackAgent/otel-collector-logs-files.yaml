@@ -38,6 +38,8 @@ receivers:
     exclude:
       - /var/log/kolla/*/*access*.log
       - /var/log/kolla/*/*apache*.log
+      # And dnsmasq's, which Kolla-Ansible's DHCP agent keeps among Neutron's.
+      - /var/log/kolla/neutron/dnsmasq*.log
     start_at: end
     storage: file_storage
     include_file_path: true
@@ -60,36 +62,32 @@ receivers:
         if: 'attributes.oslo_pid != nil'
         from: attributes.oslo_pid
         to: attributes["process.pid"]
-      # A stack trace is one record. oslo.log writes it one line at a time, each with
-      # a prefix of its own and no [request] context, and a service's workers share a
-      # file, so lines are only joined within one process of one file.
-      - type: add
-        if: 'attributes["process.pid"] != nil'
-        field: attributes["openstack.log.stream"]
-        value: 'EXPR(attributes["log.file.path"] + "/" + attributes["process.pid"])'
-      - type: add
-        if: 'attributes["process.pid"] == nil'
-        field: attributes["openstack.log.stream"]
-        value: 'EXPR(attributes["log.file.path"])'
+      # A record is one record, however many lines it took. A record's first line has oslo.log's
+      # prefix and its [request], or a level below an error, or is JSON. Everything else belongs
+      # to the line before: a stack trace, whose lines have a prefix of their own and no
+      # [request], and a message that held a newline, whose next lines have nothing, such as
+      # the libvirt XML a DEBUG line ends with. A service's workers share a file, and oslo.log
+      # writes a whole record in one go, so its lines stand together there.
       - type: recombine
         combine_field: body
         combine_with: "\n"
-        source_identifier: attributes["openstack.log.stream"]
-        is_first_entry: 'not ((body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:ERROR|TRACE|CRITICAL) [A-Za-z0-9_.-]+ " and not (body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)")) or body matches "^(?:[ \\t]+\\S|Traceback \\(most recent call last\\):|[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|Timeout|Refused|Failure)(?:: |$))")'
+        source_identifier: attributes["log.file.path"]
+        is_first_entry: 'body matches "^\\{" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.:-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:DEBUG|INFO|AUDIT|WARNING) [A-Za-z0-9_.-]+(?: |$)"'
         force_flush_period: 2s
-        max_batch_size: 500
+        max_batch_size: 2000
         max_log_size: 256KiB
-      - type: remove
-        field: attributes["openstack.log.stream"]
-        on_error: send_quiet
 
 processors:
-  # Which cloud and machine each record is from. OneUptime files a record under the
-  # cloud by `openstack.cloud.name`, so keep it the name the cloud's agent uses.
+  # Which cloud, region and machine each record is from: a log line says none of them.
+  # OneUptime files a record under the cloud by `openstack.cloud.name`, so keep it the
+  # name the cloud's agent uses.
   resource:
     attributes:
       - key: openstack.cloud.name
         value: ${env:OPENSTACK_CLOUD_NAME}
+        action: upsert
+      - key: openstack.region.name
+        value: ${env:OPENSTACK_REGION_NAME}
         action: upsert
       - key: openstack.node.name
         value: ${env:OPENSTACK_NODE_NAME}

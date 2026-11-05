@@ -67,8 +67,13 @@ import OpenStackRollingSend, {
   OpenStackRollingState,
   OpenStackSendGate,
   createOpenStackRollingState,
+  getsToVouchForRows,
+  startOpenStackRollingCycle,
+  stopOpenStackRollingCycle,
 } from "./OpenStackRollingSend";
+import { getOpenStackMetricsSizeInBytes } from "./OpenStackReportParts";
 import OpenStackServiceRun from "./OpenStackServiceRun";
+import { rememberOpenStackCapacityFacts } from "./Collectors/AllocationCandidatesCollector";
 import collectCompute, {
   chooseComputeMicroversion,
   computeMicroversionHeaders,
@@ -204,6 +209,9 @@ export interface OpenStackCollectorDependencies {
   testTimeoutInMs?: number | undefined;
   requestTimeoutInMs?: number | undefined;
   pageSize?: number | undefined;
+  // So a scene of a few hundred instances can stand for a cloud past these lines.
+  summaryModeInstanceLimit?: number | undefined;
+  rollingBytesPerCollection?: number | undefined;
 }
 
 export async function resolveOpenStackAddress(
@@ -436,6 +444,17 @@ function hasFailed(outcome: OpenStackServiceOutcome): boolean {
   );
 }
 
+// What this collection sends of its parts, and what that lets it say of the rest.
+interface OpenStackRollingPlan {
+  gate: OpenStackSendGate | undefined;
+  refreshCycleInMinutes: number | undefined;
+  isSummaryMode: boolean;
+  estimatedBytes: number;
+  vouchesForRows: boolean;
+  // While a new cloud's rows are still arriving for the first time.
+  firstCycleEndsAt: string | undefined;
+}
+
 interface PlannedRun {
   run: OpenStackServiceRun;
   work: Promise<unknown>;
@@ -665,6 +684,17 @@ export default class OpenStackCollector {
         throw session.getRenewalFailure();
       }
 
+      // What the next collection asks Placement about: see AllocationCandidatesCollector.
+      regions.forEach((regionName: string, index: number): void => {
+        rememberOpenStackCapacityFacts({
+          memory,
+          memoryKey: credentialKey,
+          regionName,
+          compute: result.inventories[index]?.compute,
+          now: clock.now(),
+        });
+      });
+
       const warnings: Array<string> = [...result.warnings];
 
       if (missing.length > 0) {
@@ -682,22 +712,16 @@ export default class OpenStackCollector {
        * of a size no upload can hold is never built at all: that is gigabytes held in memory by a
        * process that is also running this probe's monitors, to find out it does not fit.
        */
-      const rolling: {
-        gate: OpenStackSendGate | undefined;
-        refreshCycleInMinutes: number | undefined;
-        isSummaryMode: boolean;
-        estimatedBytes: number;
-      } = OpenStackCollector.getRollingSend({
+      const rolling: OpenStackRollingPlan = OpenStackCollector.getRollingSend({
         state: state,
         regions: regions,
         inventories: result.inventories,
         maxPayloadBytes: maxPayloadBytes,
       });
 
-      if (rolling.refreshCycleInMinutes !== undefined) {
-        for (const reading of result.readings) {
-          reading.refreshCycleInMinutes = rolling.refreshCycleInMinutes;
-        }
+      for (const reading of result.readings) {
+        reading.refreshCycleInMinutes = rolling.refreshCycleInMinutes;
+        reading.doesNotVouchForRows = !rolling.vouchesForRows;
       }
 
       const built: OpenStackOtlpBuildResult = OpenStackOtlpBuilder.build(
@@ -731,7 +755,7 @@ export default class OpenStackCollector {
       }
 
       const payloadBytes: number = Math.max(
-        Buffer.byteLength(JSON.stringify(built.resourceMetrics)),
+        getOpenStackMetricsSizeInBytes(built.resourceMetrics),
         rolling.gate === NO_PER_PART_SERIES ? rolling.estimatedBytes : 0,
       );
 
@@ -746,8 +770,7 @@ export default class OpenStackCollector {
         warnings: warnings,
         computeMicroversions: result.computeMicroversions,
         instanceReadModes: result.instanceReadModes,
-        isSummaryMode: rolling.isSummaryMode,
-        refreshCycleInMinutes: rolling.refreshCycleInMinutes,
+        rolling: rolling,
       });
 
       // A token renewed along the way is the one to keep.
@@ -759,6 +782,10 @@ export default class OpenStackCollector {
       });
 
       if (payloadBytes > maxPayloadBytes) {
+        /*
+         * Whether each API answered still goes, and vouches for nothing: every row went unsent, and
+         * none of them has gone.
+         */
         report.resourceMetrics = OpenStackOtlpBuilder.toAvailabilityOnly(
           built.resourceMetrics,
         );
@@ -866,6 +893,7 @@ export default class OpenStackCollector {
           OpenStackInstanceMetricsMode.Automatic,
       },
       instanceCount: instanceCount,
+      instanceLimit: state.dependencies.summaryModeInstanceLimit,
     });
   }
 
@@ -874,62 +902,83 @@ export default class OpenStackCollector {
     regions: ReadonlyArray<string>;
     inventories: ReadonlyArray<OpenStackInventoryByService>;
     maxPayloadBytes: number;
-  }): {
-    gate: OpenStackSendGate | undefined;
-    refreshCycleInMinutes: number | undefined;
-    isSummaryMode: boolean;
-    estimatedBytes: number;
-  } {
+  }): OpenStackRollingPlan {
     const { state } = data;
     const { clock, memory } = state.dependencies;
+    const now: number = clock.now();
     const datapoints: number = countRollingDatapoints(data.inventories);
     const estimatedBytes: number =
       datapoints * OPENSTACK_ROLLING_BYTES_PER_DATAPOINT;
-    const isSummaryMode: boolean = OpenStackCollector.isSummaryMode(
-      state,
-      data.regions,
-    );
-
-    if (!isSummaryMode) {
-      return {
-        gate:
-          estimatedBytes > data.maxPayloadBytes
-            ? NO_PER_PART_SERIES
-            : undefined,
-        refreshCycleInMinutes: undefined,
-        isSummaryMode: false,
-        estimatedBytes: estimatedBytes,
-      };
-    }
-
+    const collectionIntervalInMs: number =
+      state.job.collectionIntervalInMinutes * 60_000;
     const key: string = `${state.credentialKey}/rolling-send`;
-    const rollingState: OpenStackRollingState =
+    const remembered: OpenStackRollingState | undefined =
       memory.recall<OpenStackRollingState>(
         key,
         KNOWN_REGIONS_REMEMBERED_FOR_IN_MS,
-        clock.now(),
-      ) || createOpenStackRollingState();
+        now,
+      );
 
-    memory.remember(key, rollingState, clock.now());
+    if (!OpenStackCollector.isSummaryMode(state, data.regions)) {
+      const gate: OpenStackSendGate | undefined =
+        estimatedBytes > data.maxPayloadBytes ? NO_PER_PART_SERIES : undefined;
 
-    const wanted: number = getOpenStackRollingTurns(datapoints);
-    const turnsBefore: number = rollingState.turns || 0;
+      if (remembered) {
+        stopOpenStackRollingCycle({
+          state: remembered,
+          now: now,
+          collectionIntervalInMs: collectionIntervalInMs,
+        });
+        memory.remember(key, remembered, now);
+      }
+
+      return {
+        gate: gate,
+        refreshCycleInMinutes: undefined,
+        isSummaryMode: false,
+        estimatedBytes: estimatedBytes,
+        vouchesForRows:
+          gate !== NO_PER_PART_SERIES && getsToVouchForRows(remembered, now),
+        firstCycleEndsAt: undefined,
+      };
+    }
+
+    const rollingState: OpenStackRollingState =
+      remembered || createOpenStackRollingState();
+
+    memory.remember(key, rollingState, now);
+
+    const wanted: number = getOpenStackRollingTurns(
+      datapoints,
+      state.dependencies.rollingBytesPerCollection,
+    );
+    const turnsBefore: number = rollingState.turns;
 
     // Only less often than before once the cloud has really shrunk: see countRollingDatapoints.
     const turns: number =
       wanted >= turnsBefore || wanted * 2 < turnsBefore ? wanted : turnsBefore;
 
-    rollingState.turns = turns;
+    startOpenStackRollingCycle({
+      state: rollingState,
+      now: now,
+      turns: turns,
+      collectionIntervalInMs: collectionIntervalInMs,
+    });
 
     return {
       gate: new OpenStackRollingSend({
         state: rollingState,
-        turns: turns,
+        now: now,
         keptProjectIds: state.options.keptProjectIds || [],
       }),
       refreshCycleInMinutes: turns * state.job.collectionIntervalInMinutes,
       isSummaryMode: true,
       estimatedBytes: estimatedBytes,
+      vouchesForRows: getsToVouchForRows(rollingState, now),
+      firstCycleEndsAt:
+        now < rollingState.firstCycleEndsAt
+          ? new Date(rollingState.firstCycleEndsAt).toISOString()
+          : undefined,
     };
   }
 
@@ -1385,12 +1434,13 @@ export default class OpenStackCollector {
         !run.mustBackOff() &&
         run.isApiUp()
       ) {
+        // From when it was read, not when it finished: how long a collection took moves nothing.
         memory.remember(
           run.service === OpenStackServiceType.Identity
             ? `${credentialKey}/identity/cadence`
             : `${credentialKey}/${run.regionName}/${run.service}/cadence`,
           true,
-          clock.now(),
+          now,
         );
       }
 
@@ -1535,8 +1585,7 @@ export default class OpenStackCollector {
     warnings: Array<string>;
     computeMicroversions: Record<string, string>;
     instanceReadModes: Record<string, OpenStackInstanceReadMode>;
-    isSummaryMode: boolean;
-    refreshCycleInMinutes: number | undefined;
+    rolling: OpenStackRollingPlan;
   }): OpenStackCollectionSummary {
     let hypervisorCount: number = 0;
     let instanceCount: number = 0;
@@ -1571,10 +1620,11 @@ export default class OpenStackCollector {
       resourceCount: data.built.resourceCount,
       datapointCount: data.built.datapointCount,
       requestCount: data.requestCount,
-      ...(data.isSummaryMode
+      ...(data.rolling.isSummaryMode
         ? {
             isSummaryMode: true,
-            refreshCycleInMinutes: data.refreshCycleInMinutes,
+            refreshCycleInMinutes: data.rolling.refreshCycleInMinutes,
+            firstCycleEndsAt: data.rolling.firstCycleEndsAt,
           }
         : {}),
       warnings: data.warnings.slice(0, MAX_SUMMARY_WARNINGS),

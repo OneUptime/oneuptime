@@ -55,6 +55,7 @@ log() {
 SERVICE_USER="$(stat -c %U /etc/nova/nova.conf)"
 HOST="$(openstack compute service list --service nova-compute -f value -c Host | head -1)"
 IMAGE="$(openstack image list --status active -f value -c Name | grep -i cirros | head -1)"
+# Read here, as the cloud's admin: a member of a project may not list the catalog.
 AUTH_URL="$(openstack endpoint list --service identity --interface public -f value -c URL | head -1)"
 # The catalog says http://host/identity, and every call below is under /v3.
 KEYSTONE_V3="${AUTH_URL%/}"
@@ -109,7 +110,8 @@ delete_on_all() {
 wait_until_answers() {
   local attempt
   for attempt in $(seq 1 60); do
-    if openstack compute service list -f value -c State 2>/dev/null | grep -q '^up$'; then
+    # With its own limit: a service that hangs rather than refuses would otherwise hold this for good.
+    if timeout 60 openstack compute service list -f value -c State 2>/dev/null | grep -q '^up$'; then
       return 0
     fi
     sleep 5
@@ -125,6 +127,10 @@ restart_services() {
   log "Restarting the services"
   sudo systemctl restart 'devstack@*' || true
   wait_until_answers || sudo systemctl --no-pager --failed 'devstack@*' || true
+  # The service list reads up from before the restart, while nova-compute is still starting,
+  # and an instance scheduled to it now fails on its own account.
+  sleep 45
+  check_the_cloud_answers
 }
 
 # ----------------------------------------------------------------------------
@@ -144,10 +150,11 @@ start_phase() {
   log "Phase $PHASE"
 }
 
-# What each unit wrote since the phase began, keeping the fields a recording reads.
+# What each unit wrote since the phase began, keeping the fields a recording reads. --all,
+# because without it journalctl writes every field over 4096 bytes as null: a stack trace, and
+# most of Nova's notifications.
 end_phase() {
   local journal="$PHASE_DIR/journal.jsonl.gz"
-  # --all, or journalctl writes a line over 4096 bytes as null and the recording never has it.
   sudo journalctl --no-pager --all -o json --since "$PHASE_STARTED UTC" -u 'devstack@*' \
     | python3 -I "$CONFIGURE" journal-lines \
     | gzip -9 >"$journal"
@@ -214,23 +221,28 @@ wait_for_volume() {
 # What Nova says happened to an instance, with and without changes-since, as a probe
 # reads it on a cloud with notifications off.
 record_instance_actions() {
-  local key="$1" id="$2" token nova="$NOVA_URL" request
+  local key="$1" id="$2" token admin_token request
   token="$(openstack token issue -f value -c id)"
+  admin_token="$(env -u OS_PROJECT_NAME openstack token issue -f value -c id)"
   curl -sS --max-time 60 -H "X-Auth-Token: $token" -H "OpenStack-API-Version: compute 2.90" \
-    "$nova/servers/$id" >"$PHASE_DIR/api/$key-server.json" || true
+    "$NOVA_URL/servers/$id" >"$PHASE_DIR/api/$key-server.json" || true
   curl -sS --max-time 60 -H "X-Auth-Token: $token" -H "OpenStack-API-Version: compute 2.90" \
-    "$nova/servers/$id/os-instance-actions" >"$PHASE_DIR/api/$key-actions.json" || true
+    "$NOVA_URL/servers/$id/os-instance-actions" >"$PHASE_DIR/api/$key-actions.json" || true
   curl -sS --max-time 60 -H "X-Auth-Token: $token" -H "OpenStack-API-Version: compute 2.90" \
-    "$nova/servers/$id/os-instance-actions?changes-since=2000-01-01T00:00:00Z" \
+    "$NOVA_URL/servers/$id/os-instance-actions?changes-since=2000-01-01T00:00:00Z" \
     >"$PHASE_DIR/api/$key-actions-changes-since.json" || true
   curl -sS --max-time 60 -H "X-Auth-Token: $token" -H "OpenStack-API-Version: compute 2.1" \
-    "$nova/servers/$id/os-instance-actions" >"$PHASE_DIR/api/$key-actions-2-1.json" || true
+    "$NOVA_URL/servers/$id/os-instance-actions" >"$PHASE_DIR/api/$key-actions-2-1.json" || true
+  # The newest action, as the project's member and as the cloud's admin: only one may read a
+  # step's traceback, and that is why a probe never reads it.
   request="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["instanceActions"][0]["request_id"])' \
     "$PHASE_DIR/api/$key-actions.json" 2>/dev/null || true)"
   if [ -n "$request" ]; then
     remember "${key}_request_id" "$request"
     curl -sS --max-time 60 -H "X-Auth-Token: $token" -H "OpenStack-API-Version: compute 2.90" \
-      "$nova/servers/$id/os-instance-actions/$request" >"$PHASE_DIR/api/$key-action-detail.json" || true
+      "$NOVA_URL/servers/$id/os-instance-actions/$request" >"$PHASE_DIR/api/$key-action-detail.json" || true
+    curl -sS --max-time 60 -H "X-Auth-Token: $admin_token" -H "OpenStack-API-Version: compute 2.90" \
+      "$NOVA_URL/servers/$id/os-instance-actions/$request" >"$PHASE_DIR/api/$key-action-detail-admin.json" || true
   fi
 }
 
@@ -252,7 +264,15 @@ scene_failed_logins() {
     done
     : "$attempt"
   done
+  # DevStack turns Keystone's lockout on: two wrong passwords shut admin out for ten seconds, and
+  # the good login below and every scene after it would be refused with them.
+  sleep 15
   openstack token issue -f value -c expires
+  # A good login from an address nothing else here logs in from: the loopback, and not the
+  # host's own address the catalog sends everything else to.
+  body='{"auth":{"identity":{"methods":["password"],"password":{"user":{"name":"admin","domain":{"name":"Default"},"password":"'"$(openstack configuration show --unmask -f value -c auth.password)"'"}}}}}'
+  curl -sS --max-time 30 -o /dev/null -w 'loopback %{http_code}\n' -H 'Content-Type: application/json' \
+    -d "$body" "http://127.0.0.1/identity/v3/auth/tokens" || true
   # Anything but a refusal is no failed login, and this scene says nothing about them.
   [ "$refused" = 24 ]
 }
@@ -298,15 +318,35 @@ scene_failed_build_compute() {
   openstack image delete "ou-log-broken-$PHASE"
 }
 
-# One hypervisor has nowhere to migrate to, which is a real failure a real migration can
-# have, and resizing onto the same host goes through most of a migration's steps.
-scene_migrate() {
+# A rebuild onto the same kind of image fails on the compute host too, but inside an action Nova
+# wraps as a whole, so it says compute.exception beside instance.rebuild.error.
+scene_failed_rebuild() {
   export OS_PROJECT_NAME=ou-payments
-  openstack server migrate ou-log-vm || true
+  qemu-img create -f qcow2 "$PHASE_DIR/too-big.qcow2" 20G
+  openstack image create --disk-format qcow2 --container-format bare \
+    --file "$PHASE_DIR/too-big.qcow2" "ou-log-broken-rebuild-$PHASE" >/dev/null
+  rm -f "$PHASE_DIR/too-big.qcow2"
+  openstack server create --wait --flavor ou.tiny --image "$IMAGE" --network ou-net ou-log-rebuildfail
+  remember instance_rebuild_failed "$(id_of_server ou-log-rebuildfail)"
+  openstack server rebuild --image "ou-log-broken-rebuild-$PHASE" ou-log-rebuildfail || true
+  wait_for_status ou-log-rebuildfail ERROR || true
+  record_instance_actions instance_rebuild_failed "$(id_of_server ou-log-rebuildfail)"
+  openstack server delete --wait ou-log-rebuildfail
+  openstack image delete "ou-log-broken-rebuild-$PHASE"
+}
+
+# One hypervisor has nowhere to migrate to, which is a real failure a real migration can
+# have, and resizing onto the same host goes through most of a migration's steps. Only the
+# cloud's admin may migrate, and by its ID, because an admin's own project does not hold it.
+scene_migrate() {
+  local id
+  export OS_PROJECT_NAME=ou-payments
+  id="$(id_of_server ou-log-vm)"
+  env -u OS_PROJECT_NAME openstack server migrate "$id" || true
   sleep 20
-  openstack server migrate --live-migration ou-log-vm || true
+  env -u OS_PROJECT_NAME openstack server migrate --live-migration "$id" || true
   sleep 20
-  openstack server set --state active ou-log-vm || true
+  env -u OS_PROJECT_NAME openstack server set --state active "$id" || true
   wait_for_status ou-log-vm ACTIVE
   openstack server resize --flavor ou.tiny2 ou-log-vm
   wait_for_status ou-log-vm VERIFY_RESIZE
@@ -319,6 +359,15 @@ scene_service_disabled() {
   openstack compute service set --disable --disable-reason "OneUptime recording: planned maintenance" "$HOST" nova-compute
   sleep 15
   openstack compute service set --enable "$HOST" nova-compute
+}
+
+# Bigger than any backend, so the volume scheduler has nowhere to put it: Cinder's own failure.
+scene_failed_volume() {
+  export OS_PROJECT_NAME=ou-payments
+  openstack volume create --size 100000 ou-log-volfail
+  wait_for_volume ou-log-volfail error
+  remember volume_failed "$(openstack volume show ou-log-volfail -f value -c id)"
+  openstack volume delete ou-log-volfail
 }
 
 scene_volume_attach() {
@@ -478,30 +527,48 @@ scene_database_down() {
 }
 
 # Keystone given keys that cannot read the tokens it gave out: what a controller whose
-# Fernet keys differ from the others' does on a real cloud.
+# Fernet keys differ from the others' does on a real cloud. Keystone keeps what it issues in
+# memcached (cache_on_issue), and answers from there without reading the token, so that goes too.
+# Tokens nobody has asked about yet, because keystonemiddleware remembers an answer.
 scene_token_validation() {
-  local token nova="$NOVA_URL" manage keys=/etc/keystone/fernet-keys
+  local tokens=() token attempt manage keys=/etc/keystone/fernet-keys
   manage="$(command -v keystone-manage || echo "$VENV/bin/keystone-manage")"
-  token="$(openstack token issue -f value -c id)"
+  for attempt in $(seq 1 15); do
+    tokens+=("$(openstack token issue -f value -c id)")
+    : "$attempt"
+  done
   sudo cp -a "$keys" "$keys.ou-backup"
   sudo rm -rf "$keys"
   sudo "$manage" fernet_setup --keystone-user "$SERVICE_USER" --keystone-group "$(id -gn "$SERVICE_USER")"
+  sudo systemctl restart memcached
   sudo systemctl restart devstack@keystone.service
-  # The APIs and Keystone remember a token they validated in Memcached, so without this the
-  # old keys go on being believed and nothing is refused.
-  sudo systemctl restart memcached.service || true
   sleep 5
-  for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
-    curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H "X-Auth-Token: $token" "$nova/servers" || true
-    curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H "X-Auth-Token: $token" "$KEYSTONE_V3/projects" || true
-    : "$attempt"
+  for token in "${tokens[@]}"; do
+    curl -sS --max-time 30 -o /dev/null -w 'nova %{http_code}\n' -H "X-Auth-Token: $token" "$NOVA_URL/servers" || true
+    curl -sS --max-time 30 -o /dev/null -w 'keystone %{http_code}\n' -H "X-Auth-Token: $token" "$KEYSTONE_V3/projects" || true
+    curl -sS --max-time 30 -o /dev/null -w 'validate %{http_code}\n' -H "X-Auth-Token: $token" -H "X-Subject-Token: $token" "$KEYSTONE_V3/auth/tokens" || true
   done
   sleep 30
   sudo rm -rf "$keys"
   sudo mv "$keys.ou-backup" "$keys"
+  sudo systemctl restart memcached
   sudo systemctl restart devstack@keystone.service
   sleep 5
   restart_services
+}
+
+# What a load balancer's check looks like in each API's own log, as far as this cloud can: every
+# API sits behind a path here, and on a cloud with a balancer at its root.
+scene_health_checks() {
+  local path attempt
+  for path in identity compute volume image placement; do
+    for attempt in 1 2 3; do
+      curl -sS --max-time 10 -o /dev/null -w "GET /$path/ %{http_code}\n" "http://$HOST_ADDRESS/$path/" || true
+      curl -sS --max-time 10 -o /dev/null -w "OPTIONS /$path/ %{http_code}\n" -X OPTIONS "http://$HOST_ADDRESS/$path/" || true
+      curl -sS --max-time 10 -o /dev/null -w "GET /$path/healthcheck %{http_code}\n" "http://$HOST_ADDRESS/$path/healthcheck" || true
+      : "$attempt"
+    done
+  done
 }
 
 scene_cleanup() {
@@ -514,6 +581,13 @@ scene_cleanup() {
 # The agent's logs profiles, recording instead of sending
 # ----------------------------------------------------------------------------
 COLLECTOR_PID_FILE="$LOGS_DIR/collector.pid"
+HOST_ADDRESS="$(printf '%s' "$AUTH_URL" | sed -E 's|^https?://([^/:]+).*|\1|')"
+
+# The collector is a download of 400 MB, and no recording: nothing keeps it.
+remove_collector() {
+  rm -rf "$LOGS_DIR/collector" "$COLLECTOR_PID_FILE"
+}
+trap remove_collector EXIT
 
 # The collector release install-logs.sh pins, held to its checksum, as an install is.
 collector_binary() {
@@ -546,6 +620,7 @@ start_journald_profile() {
     ONEUPTIME_URL=http://127.0.0.1:9 \
     ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
     OPENSTACK_CLOUD_NAME=devstack \
+    OPENSTACK_REGION_NAME=RegionOne \
     OPENSTACK_NODE_NAME="$HOST" \
     "OPENSTACK_LOGS_UNITS=[devstack@*]" \
     OPENSTACK_LOGS_STATE_DIRECTORY="$state" \
@@ -583,6 +658,7 @@ start_files_profile() {
     -e ONEUPTIME_URL=http://127.0.0.1:9 \
     -e ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
     -e OPENSTACK_CLOUD_NAME=devstack \
+    -e OPENSTACK_REGION_NAME=RegionOne \
     -e OPENSTACK_NODE_NAME="$HOST" \
     -e OPENSTACK_LOGS_TIMEZONE=UTC \
     -e OPENSTACK_LOGS_RECORDING_FILE=/recording/otlp-logs.json \
@@ -601,12 +677,75 @@ stop_files_profile() {
 }
 
 # ----------------------------------------------------------------------------
+# The cloud this starts from
+# ----------------------------------------------------------------------------
+# A step that runs out of time is killed with no time to put anything back. The traces step that
+# ran out of it on Hibiscus left OSProfiler on, with a driver Neutron hung on and nothing listening
+# for it, and every scene after it waited five minutes for a 500 from Neutron, until the job's own
+# limit took the upload too. So this takes that off, whoever left it, and looks at what a scene
+# needs before it starts a scene.
+take_off_what_a_step_left() {
+  local key found=""
+  # Only hmac_keys says so: "enabled" is also a key of [vnc], and would restart everything every run.
+  if sudo grep -qs "^hmac_keys[[:space:]]*=" /etc/nova/nova.conf /etc/neutron/neutron.conf; then
+    found=yes
+  fi
+  for key in enabled hmac_keys connection_string trace_sqlalchemy trace_requests; do
+    delete_on_all profiler "$key"
+  done
+  if [ -n "$found" ]; then
+    log "OSProfiler was left on by a step that did not finish"
+    restart_services
+  fi
+}
+
+# Whether the scenes that make instances, volumes and networks can run. What cannot is said once,
+# with what the service said for itself, and costs a few seconds rather than five minutes a scene.
+CAN_BUILD=yes
+check_the_cloud_answers() {
+  local attempt
+  CAN_BUILD=yes
+  for attempt in $(seq 1 12); do
+    if timeout 30 openstack network show ou-net -f value -c id >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 10
+    : "$attempt"
+  done
+  CAN_BUILD=""
+  echo "Neutron does not answer, so the scenes that need it are left out until a restart brings it back." >&2
+  {
+    date -u
+    sudo systemctl --no-pager --failed 'devstack@*' || true
+    sudo journalctl --no-pager --all -n 200 -u 'devstack@neutron-api*' -u 'devstack@q-svc*' || true
+  } >>"$LOGS_DIR/neutron-did-not-answer.txt" 2>&1
+  tail -20 "$LOGS_DIR/neutron-did-not-answer.txt" >&2 || true
+}
+
+needs_the_cloud() {
+  if [ -z "$CAN_BUILD" ]; then
+    printf '{"scene":"%s","startedAt":"","endedAt":"","exitCode":"left out"}\n' "$1" >>"$PHASE_DIR/scenes.jsonl"
+    return 1
+  fi
+}
+
+# A scene that makes instances, volumes or networks.
+building_scene() {
+  if needs_the_cloud "$1"; then
+    scene "$@"
+  fi
+}
+
+# ----------------------------------------------------------------------------
 # The phases
 # ----------------------------------------------------------------------------
+take_off_what_a_step_left
+
 openstack flavor show ou.tiny2 >/dev/null 2>&1 \
   || openstack flavor create --vcpus 1 --ram 192 --disk 1 ou.tiny2 >/dev/null
-# The estate leaves this project at its quota on purpose, and these scenes add to it.
-openstack quota set --instances 20 --cores 40 --ram 102400 ou-payments
+# The estate leaves this project at its quota on purpose, and these scenes add to it. Memory and
+# volumes without a limit, so that it is the scheduler that refuses what cannot fit, not a quota.
+openstack quota set --instances 20 --cores 40 --ram -1 --gigabytes -1 ou-payments
 
 # Keystone with its own defaults, apart from where its notifications go.
 start_phase keystone-defaults
@@ -659,15 +798,18 @@ scene failed-logins scene_failed_logins
 scene identity scene_identity
 scene identity-records scene_identity_records
 scene refused scene_refused
-scene instance-lifecycle scene_instance_lifecycle
-scene failed-build-scheduler scene_failed_build_scheduler
-scene failed-build-compute scene_failed_build_compute
-scene migrate scene_migrate
+building_scene instance-lifecycle scene_instance_lifecycle
+building_scene failed-build-scheduler scene_failed_build_scheduler
+building_scene failed-build-compute scene_failed_build_compute
+building_scene failed-rebuild scene_failed_rebuild
+building_scene migrate scene_migrate
 scene service-disabled scene_service_disabled
-scene volume-attach scene_volume_attach
-scene network scene_network
-scene security-group scene_security_group
+building_scene failed-volume scene_failed_volume
+building_scene volume-attach scene_volume_attach
+building_scene network scene_network
+building_scene security-group scene_security_group
 scene public-image scene_public_image
+scene health-checks scene_health_checks
 scene conductor-down scene_conductor_down
 scene rabbit-down scene_rabbit_down
 scene database-down scene_database_down
@@ -708,11 +850,11 @@ scene failed-logins scene_failed_logins
 # Who did it, in the format that names a user by ID and not by name.
 scene identity scene_identity
 scene refused scene_refused
-scene security-group scene_security_group
+building_scene security-group scene_security_group
 scene public-image scene_public_image
-scene instance-lifecycle scene_instance_lifecycle
-scene failed-build-scheduler scene_failed_build_scheduler
-scene failed-build-compute scene_failed_build_compute
+building_scene instance-lifecycle scene_instance_lifecycle
+building_scene failed-build-scheduler scene_failed_build_scheduler
+building_scene failed-build-compute scene_failed_build_compute
 scene cleanup scene_cleanup
 stop_files_profile || true
 end_phase
@@ -727,11 +869,15 @@ delete_on_all DEFAULT log_dir
 start_phase json
 set_on_all DEFAULT use_json True
 restart_services
+start_journald_profile || echo "The journald profile did not start" >&2
 scene failed-logins scene_failed_logins
-scene instance-lifecycle scene_instance_lifecycle
-scene failed-build-scheduler scene_failed_build_scheduler
-scene failed-build-compute scene_failed_build_compute
+scene identity scene_identity
+building_scene security-group scene_security_group
+building_scene instance-lifecycle scene_instance_lifecycle
+building_scene failed-build-scheduler scene_failed_build_scheduler
+building_scene failed-build-compute scene_failed_build_compute
 scene cleanup scene_cleanup
+stop_journald_profile || true
 end_phase
 delete_on_all DEFAULT use_json
 
@@ -744,9 +890,11 @@ if sudo apt-get install -y libsystemd-dev pkg-config >/dev/null 2>&1 \
   restart_services
   start_journald_profile || echo "The journald profile did not start" >&2
   scene failed-logins scene_failed_logins
-  scene instance-lifecycle scene_instance_lifecycle
-  scene failed-build-scheduler scene_failed_build_scheduler
-  scene failed-build-compute scene_failed_build_compute
+  scene identity scene_identity
+  building_scene security-group scene_security_group
+  building_scene instance-lifecycle scene_instance_lifecycle
+  building_scene failed-build-scheduler scene_failed_build_scheduler
+  building_scene failed-build-compute scene_failed_build_compute
   scene cleanup scene_cleanup
   stop_journald_profile || true
   delete_on_all DEFAULT use_journal

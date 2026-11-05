@@ -193,6 +193,7 @@ const PICKER_CASES: Array<PickerCase> = [
       "Network",
       "Storage",
       "Projects",
+      "Capacity",
     ],
   },
   {

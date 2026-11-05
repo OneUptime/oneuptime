@@ -537,6 +537,18 @@ const OpenStackConnectionTestPanel: FunctionComponent<ComponentProps> = (
         />
       </div>
 
+      {/* Said in words too: a tooltip on a disabled button never shows on a phone. */}
+      {blocker ? (
+        <p
+          className="mt-2 break-words text-xs text-gray-600"
+          data-testid="openstack-test-blocked"
+        >
+          {translator.translateText(blocker)}
+        </p>
+      ) : (
+        <></>
+      )}
+
       {error ? (
         <div
           className="mt-3 flex items-start gap-2 text-sm text-red-700"

@@ -1,0 +1,2 @@
+Heat's API stopped.
+On its own: Heat's API is stopped.

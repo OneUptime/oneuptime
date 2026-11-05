@@ -12,6 +12,7 @@ import {
   getAllOpenStackMetrics,
   getOpenStackMetricByMetricName,
 } from "Common/Types/Monitor/OpenStackMetricCatalog";
+import { getOpenStackRouterAgents } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackCollectionReport } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import OpenStackCollector from "../../../Utils/OpenStack/OpenStackCollector";
@@ -65,8 +66,12 @@ const SCENES: ReadonlyArray<{ release: string; scene: string }> = [
   { release: "hibiscus-ovn", scene: "healthy" },
   { release: "hibiscus-ovn", scene: "compute-disabled" },
   { release: "hibiscus-ovn", scene: "compute-down" },
+  { release: "hibiscus-ovn", scene: "compute-forced-down" },
   { release: "gazpacho-ovs", scene: "healthy" },
   { release: "gazpacho-ovs", scene: "compute-disabled" },
+  { release: "gazpacho-ovs", scene: "compute-forced-down" },
+  { release: "gazpacho-ovs", scene: "router-agents-removed" },
+  { release: "gazpacho-ovs", scene: "l3-agent-down" },
   { release: "gazpacho-ovn", scene: "healthy" },
   { release: "flamingo-ovn", scene: "healthy" },
   { release: "epoxy-ovn", scene: "healthy" },
@@ -291,10 +296,18 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "vouchedAt",
     // How long one collection took: its own reading on each path.
     "collectionSeconds",
+    // What a flavor's extra specs say, which the exporter leaves behind.
+    "placementResources",
+    "placementRequired",
+    "placementForbidden",
+    "isDisabled",
     // When a router's agents were last heard, which is each path's own time too.
     "l3AgentsReportedAt",
     // What an operator told Nova, which the exporter has no label for.
     "forcedDown",
+    // Which networks a DHCP agent serves, which it never asks.
+    "dhcpAgentIds",
+    "dhcpNetworkCount",
     // What an instance booted from, nor for this.
     "imageId",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
@@ -644,7 +657,8 @@ describe.each(SCENES)(
 describe("what only a probe adds, in the rows it fills", () => {
   const SCENE: RecordedScene = loadScene("hibiscus-ovn", "healthy");
 
-  async function rowsFrom(
+  async function rowsOfScene(
+    scene: RecordedScene,
     answer?: (
       request: OpenStackHttpRequest,
     ) => OpenStackHttpResponse | undefined,
@@ -652,7 +666,7 @@ describe("what only a probe adds, in the rows it fills", () => {
     const report: OpenStackCollectionReport = await OpenStackCollector.collect(
       collectionJob(),
       createCollectorHarness({
-        transport: createRecordedCloud(SCENE, { answer: answer }).transport,
+        transport: createRecordedCloud(scene, { answer: answer }).transport,
       }).dependencies,
     );
 
@@ -662,6 +676,32 @@ describe("what only a probe adds, in the rows it fills", () => {
         cloudName: "devstack",
       }).resourceMetrics,
     );
+  }
+
+  async function rowsFrom(
+    answer?: (
+      request: OpenStackHttpRequest,
+    ) => OpenStackHttpResponse | undefined,
+  ): Promise<Map<string, OpenStackResourceBufferEntry>> {
+    return await rowsOfScene(SCENE, answer);
+  }
+
+  function exporterRowsOf(
+    scene: RecordedScene,
+  ): Map<string, OpenStackResourceBufferEntry> {
+    return scanAsIngest(exporterAsOtlp(scene, `${COLLECTED_AT_MS}000000`));
+  }
+
+  function namedIn(
+    rows: Map<string, OpenStackResourceBufferEntry>,
+    kind: OpenStackResourceKind,
+    name: string,
+  ): OpenStackResourceBufferEntry {
+    return Array.from(rows.values()).find(
+      (row: OpenStackResourceBufferEntry): boolean => {
+        return row.kind === kind && row.name === name;
+      },
+    )!;
   }
 
   function rowsOf(
@@ -717,17 +757,16 @@ describe("what only a probe adds, in the rows it fills", () => {
   });
 
   describe("a compute service an operator forced down", () => {
-    /*
-     * This recording has none forced down, so this is its own answer with one told to be, in
-     * the shape Nova has in every recording's forced_down. The real thing is on the rig's
-     * compute-forced-down scene.
-     */
+    const RELEASES: ReadonlyArray<string> = ["hibiscus-ovn", "gazpacho-ovs"];
+
+    // Every release here answers with the field, so a Nova without it is that answer without it.
     function answerWith(
       change: (service: JSONObject) => JSONObject,
     ): (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined {
-      const services: Array<JSONObject> = recordedJson(SCENE, "nova-services")?.[
-        "services"
-      ] as Array<JSONObject>;
+      const services: Array<JSONObject> = recordedJson(
+        SCENE,
+        "nova-services",
+      )?.["services"] as Array<JSONObject>;
 
       return (request: OpenStackHttpRequest) => {
         return new globalThis.URL(request.url).pathname ===
@@ -747,21 +786,32 @@ describe("what only a probe adds, in the rows it fills", () => {
       )!;
     }
 
-    test("reads down, and its row says it was an operator", async () => {
-      const row: OpenStackResourceBufferEntry = computeOf(
-        await rowsFrom(
-          answerWith((service: JSONObject): JSONObject => {
-            return service["binary"] === "nova-compute"
-              ? { ...service, forced_down: true, state: "down" }
-              : service;
-          }),
-        ),
-      );
+    test.each(RELEASES)(
+      "really forced down on %s, it reads down and its row says it was an operator",
+      async (release: string) => {
+        const rows: Map<string, OpenStackResourceBufferEntry> =
+          await rowsOfScene(loadScene(release, "compute-forced-down"));
+        const row: OpenStackResourceBufferEntry = computeOf(rows);
 
-      expect(row.status).toBe("down");
-      expect(row.adminState).toBe("enabled");
-      expect(row.facts["forcedDown"]).toBe(true);
-    });
+        expect(row.status).toBe("down");
+        expect(row.adminState).toBe("enabled");
+        expect(row.facts["forcedDown"]).toBe(true);
+
+        // Nova's other workers on that host weren't told anything.
+        const others: Array<OpenStackResourceBufferEntry> = rowsOf(
+          rows,
+          OpenStackResourceKind.Service,
+        ).filter((other: OpenStackResourceBufferEntry): boolean => {
+          return other.name === "nova-scheduler";
+        });
+
+        expect(others.length).toBeGreaterThan(0);
+        for (const other of others) {
+          expect(other.status).toBe("up");
+          expect(other.facts["forcedDown"]).toBe(false);
+        }
+      },
+    );
 
     test("one that isn't says so, in Nova's own answer", async () => {
       const row: OpenStackResourceBufferEntry = computeOf(await rowsFrom());
@@ -785,16 +835,114 @@ describe("what only a probe adds, in the rows it fills", () => {
       expect(row.facts["forcedDown"]).toBeNull();
     });
 
-    test("the exporter has no such label, so a cloud it collects says nothing of it", async () => {
-      const row: OpenStackResourceBufferEntry | undefined = Array.from(
-        scanAsIngest(
-          exporterAsOtlp(SCENE, `${COLLECTED_AT_MS}000000`),
-        ).values(),
-      ).find((candidate: OpenStackResourceBufferEntry): boolean => {
-        return candidate.name === "nova-compute";
+    test.each(RELEASES)(
+      "the exporter has no such label, so on %s it reads the same worker down and can't say why",
+      (release: string) => {
+        const row: OpenStackResourceBufferEntry = computeOf(
+          exporterRowsOf(loadScene(release, "compute-forced-down")),
+        );
+
+        expect(row.status).toBe("down");
+        expect(row.adminState).toBe("enabled");
+        expect(row.facts["forcedDown"]).toBeNull();
+      },
+    );
+  });
+
+  describe("what the rig's estate holds beyond the healthy recording", () => {
+    const OVS: RecordedScene = loadScene("gazpacho-ovs", "compute-forced-down");
+
+    test("an instance really booted from a volume names no image, and one from an image does", async () => {
+      const servers: Array<JSONObject> = recordedJson(OVS, "nova-servers")?.[
+        "servers"
+      ] as Array<JSONObject>;
+
+      // Nova's own word for it, and what has the page say it booted from a volume.
+      expect(
+        servers.find((server: JSONObject): boolean => {
+          return server["name"] === "ou-from-volume";
+        })?.["image"],
+      ).toBe("");
+
+      const rows: Map<string, OpenStackResourceBufferEntry> =
+        await rowsOfScene(OVS);
+      const fromVolume: OpenStackResourceBufferEntry = namedIn(
+        rows,
+        OpenStackResourceKind.Instance,
+        "ou-from-volume",
+      );
+
+      expect(fromVolume.facts["imageId"]).toBeNull();
+      expect(fromVolume.facts["updatedAt"]).toEqual(expect.any(String));
+      expect(
+        namedIn(rows, OpenStackResourceKind.Instance, "ou-running").facts[
+          "imageId"
+        ],
+      ).toEqual(expect.stringMatching(/^[0-9a-f-]{36}$/));
+    });
+
+    test.each(["hibiscus-ovn", "gazpacho-ovs"])(
+      "a host in two aggregates on %s says both, from a probe as from the exporter",
+      async (release: string) => {
+        const scene: RecordedScene = loadScene(release, "compute-forced-down");
+
+        for (const rows of [
+          await rowsOfScene(scene),
+          exporterRowsOf(scene),
+        ]) {
+          const hypervisors: Array<OpenStackResourceBufferEntry> = rowsOf(
+            rows,
+            OpenStackResourceKind.Hypervisor,
+          );
+
+          expect(hypervisors).toHaveLength(1);
+          expect(hypervisors[0]!.facts["aggregates"]).toBe("ou-fast,ou-gpu");
+        }
+      },
+    );
+
+    test("a router taken off its only agent names none, in Neutron's real answer, and the other still does", async () => {
+      const scene: RecordedScene = loadScene(
+        "gazpacho-ovs",
+        "router-agents-removed",
+      );
+
+      expect(recordedJson(scene, "neutron-router-l3-agents")).toEqual({
+        agents: [],
       });
 
-      expect(row?.facts["forcedDown"]).toBeNull();
+      const rows: Map<string, OpenStackResourceBufferEntry> =
+        await rowsOfScene(scene);
+
+      expect(
+        namedIn(rows, OpenStackResourceKind.Router, "ou-router").facts[
+          "l3Agents"
+        ],
+      ).toBeUndefined();
+      expect(
+        namedIn(rows, OpenStackResourceKind.Router, "router1").facts["l3Agents"],
+      ).toBeDefined();
+    });
+
+    test("a stopped L3 agent reads as not alive, in Neutron's real answer", async () => {
+      const scene: RecordedScene = loadScene("gazpacho-ovs", "l3-agent-down");
+      const answer: Array<JSONObject> = recordedJson(
+        scene,
+        "neutron-router-l3-agents",
+      )?.["agents"] as Array<JSONObject>;
+
+      expect(answer).toHaveLength(1);
+      expect(answer[0]?.["alive"]).toBe(false);
+
+      const router: OpenStackResourceBufferEntry = namedIn(
+        await rowsOfScene(scene),
+        OpenStackResourceKind.Router,
+        "ou-router",
+      );
+
+      expect(getOpenStackRouterAgents(router.facts)).toEqual([
+        expect.objectContaining({ isAlive: false, isAdminUp: true }),
+      ]);
     });
   });
 
@@ -845,29 +993,30 @@ describe("what only a probe adds, in the rows it fills", () => {
   test("an instance that lost its floating address falls back to its fixed one, and one with none says none", async () => {
     const answerWithAddresses: (
       addresses: JSONObject,
-    ) => (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined =
-      (addresses: JSONObject) => {
-        return (
-          request: OpenStackHttpRequest,
-        ): OpenStackHttpResponse | undefined => {
-          const url: URL = new URL(request.url);
+    ) => (
+      request: OpenStackHttpRequest,
+    ) => OpenStackHttpResponse | undefined = (addresses: JSONObject) => {
+      return (
+        request: OpenStackHttpRequest,
+      ): OpenStackHttpResponse | undefined => {
+        const url: URL = new URL(request.url);
 
-          if (!url.pathname.endsWith("/servers/detail")) {
-            return undefined;
-          }
+        if (!url.pathname.endsWith("/servers/detail")) {
+          return undefined;
+        }
 
-          const servers: Array<JSONObject> = recordedJson(
-            SCENE,
-            "nova-servers",
-          )?.["servers"] as Array<JSONObject>;
+        const servers: Array<JSONObject> = recordedJson(
+          SCENE,
+          "nova-servers",
+        )?.["servers"] as Array<JSONObject>;
 
-          return jsonAnswer(200, {
-            servers: servers.map((server: JSONObject): JSONObject => {
-              return { ...server, addresses: addresses };
-            }),
-          });
-        };
+        return jsonAnswer(200, {
+          servers: servers.map((server: JSONObject): JSONObject => {
+            return { ...server, addresses: addresses };
+          }),
+        });
       };
+    };
 
     const fixedOnly: Array<OpenStackResourceBufferEntry> = rowsOf(
       await rowsFrom(
@@ -910,9 +1059,10 @@ describe("what only a probe adds, in the rows it fills", () => {
     "on %s, every volume names a pool Cinder's own list holds, so a pool knows what is on it",
     async (release: string) => {
       const scene: RecordedScene = loadScene(release, "healthy");
-      const volumes: Array<JSONObject> = recordedJson(scene, "cinder-volumes")?.[
-        "volumes"
-      ] as Array<JSONObject>;
+      const volumes: Array<JSONObject> = recordedJson(
+        scene,
+        "cinder-volumes",
+      )?.["volumes"] as Array<JSONObject>;
       const pools: Array<string> = (
         recordedJson(scene, "cinder-pools")?.["pools"] as Array<JSONObject>
       ).map((pool: JSONObject): string => {
@@ -1046,6 +1196,103 @@ describe("what only a probe adds, in the rows it fills", () => {
 
     expect(instance).toBeDefined();
     expect(Object.keys(instance?.facts || {})).not.toContain("imageId");
+  });
+
+  describe("a DHCP agent's networks, on ML2/OVS", () => {
+    // A scene with Neutron's real answer. Most only have what the helper builds from the ports.
+    const OVS: RecordedScene = loadScene("gazpacho-ovs", "compute-forced-down");
+
+    async function rowsOfOvs(): Promise<
+      Map<string, OpenStackResourceBufferEntry>
+    > {
+      const report: OpenStackCollectionReport =
+        await OpenStackCollector.collect(
+          collectionJob(),
+          createCollectorHarness({
+            transport: createRecordedCloud(OVS).transport,
+          }).dependencies,
+        );
+
+      return scanAsIngest(
+        OpenStackProbeMetrics.prepare({
+          resourceMetrics: report.resourceMetrics,
+          cloudName: "devstack",
+        }).resourceMetrics,
+      );
+    }
+
+    test("the agent says how many, and the networks say which agent", async () => {
+      const rows: Map<string, OpenStackResourceBufferEntry> = await rowsOfOvs();
+
+      const agent: OpenStackResourceBufferEntry = rowsOf(
+        rows,
+        OpenStackResourceKind.Service,
+      ).find((row: OpenStackResourceBufferEntry): boolean => {
+        return row.name === "neutron-dhcp-agent";
+      })!;
+      const agentId: string = agent.facts["agentId"] as string;
+
+      const served: Array<OpenStackResourceBufferEntry> = rowsOf(
+        rows,
+        OpenStackResourceKind.Network,
+      ).filter((row: OpenStackResourceBufferEntry): boolean => {
+        return ((row.facts["dhcpAgentIds"] as Array<string>) || []).includes(
+          agentId,
+        );
+      });
+
+      const answered: Array<JSONObject> = recordedJson(
+        OVS,
+        "neutron-agent-dhcp-networks",
+      )?.["networks"] as Array<JSONObject>;
+
+      expect(answered.length).toBeGreaterThan(0);
+      expect(
+        served
+          .map((row: OpenStackResourceBufferEntry): string => {
+            return row.externalId;
+          })
+          .sort(),
+      ).toEqual(
+        answered
+          .map((network: JSONObject): string => {
+            return network["id"] as string;
+          })
+          .sort(),
+      );
+      expect(agent.facts["dhcpNetworkCount"]).toBe(answered.length);
+    });
+
+    test("on OVN, which has none of these agents, nothing is asked and no network names one", async () => {
+      const scene: RecordedScene = loadScene(
+        "hibiscus-ovn",
+        "compute-forced-down",
+      );
+      const cloud: RecordedCloud = createRecordedCloud(scene);
+
+      await OpenStackCollector.collect(
+        collectionJob(),
+        createCollectorHarness({ transport: cloud.transport }).dependencies,
+      );
+
+      expect(
+        cloud.requests.filter((request: OpenStackHttpRequest): boolean => {
+          return request.url.includes("dhcp-networks");
+        }),
+      ).toEqual([]);
+      expect(recordedJson(scene, "neutron-agent-dhcp-networks")).toBeUndefined();
+    });
+
+    test("nothing but DHCP agents say so", async () => {
+      for (const row of rowsOf(
+        await rowsOfOvs(),
+        OpenStackResourceKind.Service,
+      )) {
+        if (row.name !== "neutron-dhcp-agent") {
+          expect(Object.keys(row.facts)).not.toContain("dhcpNetworkCount");
+        }
+      }
+    });
   });
 
   test("each snapshot is a row of its own, which the exporter only counts", async () => {
@@ -1302,6 +1549,7 @@ describe("the catalogue says who collects what", () => {
     expect(onlyFromProbe).toEqual([
       "openstack_cinder_backup_gb",
       "openstack_cinder_snapshot_gb",
+      "openstack_placement_flavor_fits",
     ]);
   });
 });

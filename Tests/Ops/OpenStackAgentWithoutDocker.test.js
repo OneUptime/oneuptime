@@ -107,11 +107,11 @@ const EXPORTER_PIN = COMPOSE.services["openstack-exporter"].image
  * README beside it, as `gh release download | tar -t` shows), the binary saying which
  * build it is.
  */
-function writeRelease(releaseDir, archive, binary, build) {
+function writeRelease(releaseDir, archive, binary, build, script) {
   const work = fs.mkdtempSync(path.join(releaseDir, "build-"));
   writeExecutable(
     path.join(work, binary),
-    `#!/bin/sh\necho "fake ${binary} ${build}"\n`,
+    script || `#!/bin/sh\necho "fake ${binary} ${build}"\n`,
   );
   fs.writeFileSync(path.join(work, "LICENSE"), "license\n");
   fs.writeFileSync(path.join(work, "README.md"), "# readme\n");
@@ -434,6 +434,8 @@ describe("install.sh --without-docker", () => {
       "daemon-reload",
       `enable ${EXPORTER_SERVICE}`,
       `restart ${EXPORTER_SERVICE}`,
+      // Off until asked for, and taken off again if it was on.
+      "disable --now oneuptime-openstack-quota-exporter",
       `enable ${COLLECTOR_SERVICE}`,
       `restart ${COLLECTOR_SERVICE}`,
     ]);
@@ -576,17 +578,10 @@ describe("install.sh --without-docker", () => {
       OPENSTACK_EXPORTER_USER: "",
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "",
+      OPENSTACK_COLLECT_QUOTAS: "false",
+      OPENSTACK_QUOTA_CLOUDS: "[]",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "127.0.0.1:9182",
       // The region of a target that does not say its own, and the lists nobody named yet.
-      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
-      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
-      OPENSTACK_RABBITMQ_TARGETS: "[]",
-      OPENSTACK_MARIADB_TARGETS: "[]",
-      OPENSTACK_MEMCACHED_TARGETS: "[]",
-      OPENSTACK_HAPROXY_TARGETS: "[]",
-      OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]",
-      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]",
-      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]",
-      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]",
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
       OPENSTACK_RABBITMQ_TARGETS: "[]",
@@ -624,6 +619,81 @@ printf '{"error":{"code":401}}\\n401'
     expect(env.log("curl")).toHaveLength(1);
     expect(fs.existsSync(env.installDir)).toBe(false);
     expect(env.log("systemctl")).toEqual([]);
+  });
+});
+
+describe("a release that passes its digest and can't run here", () => {
+  // Word for word what the exporter's release says on Rocky 8 (run 41953871058).
+  const OLD_GLIBC = `#!/bin/sh
+echo "/opt/oneuptime-openstack-agent/openstack-exporter: /lib64/libc.so.6: version \\\`GLIBC_2.34' not found (required by /opt/oneuptime-openstack-agent/openstack-exporter)" >&2
+exit 1
+`;
+
+  function onOldGlibc(env) {
+    writeRelease(
+      env.releases,
+      exporterArchive("amd64"),
+      "openstack-exporter",
+      "old-glibc",
+      OLD_GLIBC,
+    );
+  }
+
+  test("says so, and what to do, and installs nothing", () => {
+    const env = setup();
+    onOldGlibc(env);
+    const run = env.run({ input: FRESH });
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "Error: the openstack-exporter release does not run on this machine, so nothing was installed or changed:",
+    );
+    expect(run.output).toContain("GLIBC_2.34");
+    expect(run.output).toContain("It needs glibc 2.34 or later");
+    expect(run.output).toContain("install with Docker instead");
+    expect(fs.existsSync(env.installed("otelcol-contrib"))).toBe(false);
+    expect(fs.existsSync(env.installed("openstack-exporter"))).toBe(false);
+    expect(run.envFile).toBe("");
+    expect(run.cloudsText).toBe("");
+    expect(env.log("systemctl")).toEqual([]);
+    expect(env.log("useradd")).toEqual([]);
+  });
+
+  test("on an upgrade, the agent that runs is left as it is", () => {
+    const env = setup();
+    expect(env.run({ input: FRESH }).status).toBe(0);
+    const before = fs.readFileSync(env.installed("openstack-exporter"), "utf8");
+    fs.rmSync(path.join(env.dir, "systemctl.log"));
+    onOldGlibc(env);
+
+    const again = env.run();
+
+    expect(again.status).toBe(1);
+    expect(fs.readFileSync(env.installed("openstack-exporter"), "utf8")).toBe(
+      before,
+    );
+    expect(env.log("systemctl")).toEqual([]);
+  });
+
+  test("your own exporter leaves only the collector to run, which it can", () => {
+    const env = setup();
+    onOldGlibc(env);
+    const run = env.run({
+      env: { OPENSTACK_EXPORTER_ADDRESS: "10.0.0.5:9180" },
+      input: answers(URL, KEY, "prod", "RegionOne"),
+    });
+
+    expect(run.status).toBe(0);
+    expect(fs.existsSync(env.installed("openstack-exporter"))).toBe(false);
+  });
+
+  test("a binary that runs says nothing, and stays out of what is written", () => {
+    const env = setup();
+    const run = env.run({ input: FRESH });
+
+    expect(run.status).toBe(0);
+    expect(run.output).not.toContain("fake otelcol-contrib");
+    expect(run.output).not.toContain("does not run on this machine");
   });
 });
 
@@ -880,6 +950,52 @@ describe("a re-run, the upgrade", () => {
   });
 });
 
+describe("each project's quotas, without Docker", () => {
+  const QUOTA_UNIT = "systemd/oneuptime-openstack-quota-exporter-native.service";
+
+  test("are off until asked for, and no unit for them is installed", () => {
+    const env = setup();
+    const run = env.run({ input: FRESH });
+
+    expect(run.status).toBe(0);
+    expect(env.log("curl").join("\n")).not.toContain(QUOTA_UNIT);
+    expect(env.log("systemctl").join("\n")).toContain(
+      "disable --now oneuptime-openstack-quota-exporter",
+    );
+    expect(systemdRead(run.envFile).OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+  });
+
+  test("one setting installs their unit, starts it before the collector, and points the collector at it", () => {
+    const env = setup();
+    const run = env.run({
+      input: FRESH,
+      env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+    });
+
+    expect(run.status).toBe(0);
+    expect(env.log("curl").join("\n")).toContain(QUOTA_UNIT);
+    const calls = env.log("systemctl");
+    expect(calls).toContain("enable oneuptime-openstack-quota-exporter");
+    expect(calls.indexOf("restart oneuptime-openstack-quota-exporter")).toBeLessThan(
+      calls.indexOf("restart oneuptime-openstack-agent"),
+    );
+    const settings = systemdRead(run.envFile);
+    expect(settings.OPENSTACK_QUOTA_CLOUDS).toBe(
+      settings.OPENSTACK_EXPORTER_CLOUDS,
+    );
+    expect(settings.OPENSTACK_QUOTA_EXPORTER_ADDRESS).toBe("127.0.0.1:9182");
+  });
+
+  test("its unit binds this machine alone, and runs as the user who holds the credential", () => {
+    const unit = agentFile(QUOTA_UNIT);
+
+    expect(unit).toContain("--web.listen-address=127.0.0.1:9182");
+    expect(unit).toContain("User=oneuptime-openstack");
+    expect(unit).toContain("--os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml");
+    expect(unit).not.toContain("--disable-metric=nova-limits_vcpus_max");
+  });
+});
+
 describe("your own exporter, without Docker", () => {
   const OWN = "10.0.0.5:9180";
 
@@ -900,6 +1016,7 @@ describe("your own exporter, without Docker", () => {
       expect(env.log("systemctl")).toEqual([
         "daemon-reload",
         `disable --now ${EXPORTER_SERVICE}`,
+        "disable --now oneuptime-openstack-quota-exporter",
         `enable ${COLLECTOR_SERVICE}`,
         `restart ${COLLECTOR_SERVICE}`,
       ]);

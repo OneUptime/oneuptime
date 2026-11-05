@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { OpenStackCollectionReport } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import OpenStackCollectorMemory from "../../../Utils/OpenStack/OpenStackCollectorMemory";
@@ -12,6 +13,9 @@ import {
 import OpenStackRollingSend, {
   OpenStackRollingState,
   createOpenStackRollingState,
+  getsToVouchForRows,
+  startOpenStackRollingCycle,
+  stopOpenStackRollingCycle,
 } from "../../../Utils/OpenStack/OpenStackRollingSend";
 import OpenStackOtlpBuilder from "../../../Utils/OpenStack/OpenStackOtlpBuilder";
 import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -113,18 +117,72 @@ describe("reads in turns", () => {
 });
 
 describe("what goes in an upload, past the summary size", () => {
-  const OTHER_LABELS: Record<string, string> = { name: "a" };
+  const INTERVAL_IN_MS: number = 2 * 60_000;
+  const STARTED_AT: number = Date.parse("2026-11-04T00:00:00.000Z");
 
-  function gate(
-    state: OpenStackRollingState,
-    turns: number = 4,
+  // A collection every two minutes, on a state of its own.
+  interface Collections {
+    state: OpenStackRollingState;
+    now: () => number;
+    // The next collection's gate, a whole cycle's worth of turns of them.
+    next: (turns?: number) => OpenStackRollingSend;
+    // The time moved on with nothing read: a collection that failed or was never made.
+    miss: (collections?: number) => void;
+  }
+
+  function collections(
+    defaultTurns: number = 4,
     keptProjectIds: Array<string> = [],
-  ): OpenStackRollingSend {
-    return new OpenStackRollingSend({ state, turns, keptProjectIds });
+  ): Collections {
+    const state: OpenStackRollingState = createOpenStackRollingState();
+    let at: number = STARTED_AT - INTERVAL_IN_MS;
+
+    return {
+      state: state,
+      now: (): number => {
+        return at;
+      },
+      next: (turns: number = defaultTurns): OpenStackRollingSend => {
+        at += INTERVAL_IN_MS;
+        startOpenStackRollingCycle({
+          state: state,
+          now: at,
+          turns: turns,
+          collectionIntervalInMs: INTERVAL_IN_MS,
+        });
+
+        return new OpenStackRollingSend({
+          state: state,
+          now: at,
+          keptProjectIds: keptProjectIds,
+        });
+      },
+      miss: (missed: number = 1): void => {
+        at += missed * INTERVAL_IN_MS;
+      },
+    };
+  }
+
+  const IDS: Array<string> = Array.from(
+    { length: 2000 },
+    (_v: unknown, i: number) => {
+      return `s-${i}`;
+    },
+  );
+  const SUBNET: string = "openstack_neutron_subnet";
+
+  function sentBy(
+    send: OpenStackRollingSend,
+    ids: ReadonlyArray<string> = IDS,
+    metric: string = SUBNET,
+  ): Array<string> {
+    return ids.filter((id: string): boolean => {
+      return send.shouldSend(metric, { id }, 1);
+    });
   }
 
   test("a series that is no part's goes every time", () => {
-    const send: OpenStackRollingSend = gate(createOpenStackRollingState());
+    const send: OpenStackRollingSend = collections().next();
 
     expect(send.shouldSend("openstack_nova_agent_state", {}, 1)).toBe(true);
     expect(send.shouldSend("openstack_nova_up", {}, 1)).toBe(true);
@@ -140,53 +198,85 @@ describe("what goes in an upload, past the summary size", () => {
     ).toBe(true);
   });
 
-  test("the first time a part is seen it goes, and then only on its turn", () => {
-    const state: OpenStackRollingState = createOpenStackRollingState();
-    const labels: Record<string, string> = {
-      id: "v-1",
-      status: "in-use",
-      ...OTHER_LABELS,
-    };
-    const metric: string = "openstack_cinder_snapshot_gb";
+  test("what only a series per instance is for never goes, whatever a first collection has read", () => {
+    const send: OpenStackRollingSend = collections().next();
 
-    // A snapshot in a settled state, whose turn this may or may not be.
     expect(
-      gate(state).shouldSend(metric, { ...labels, status: "available" }, 10),
-    ).toBe(true);
+      send.shouldSend(
+        "openstack_placement_resource_provider_allocations",
+        { consumer_id: "c-1", resource_class: "VCPU" },
+        2,
+      ),
+    ).toBe(false);
+  });
 
-    let sentAgain: number = 0;
+  test("the first cycle sends each part once, at its own moment, a share each time", () => {
+    const cloud: Collections = collections(7);
+    const seen: Map<string, number> = new Map();
+    let largest: number = 0;
 
-    for (let turn: number = 0; turn < 4; turn++) {
-      if (
-        gate(state).shouldSend(metric, { ...labels, status: "available" }, 10)
-      ) {
-        sentAgain++;
+    for (let collection: number = 0; collection < 7; collection++) {
+      const sent: Array<string> = sentBy(cloud.next());
+
+      largest = Math.max(largest, sent.length);
+
+      for (const id of sent) {
+        seen.set(id, (seen.get(id) || 0) + 1);
       }
     }
 
-    expect(sentAgain).toBe(1);
+    expect(seen.size).toBe(IDS.length);
+    expect(
+      Array.from(seen.values()).every((times: number) => {
+        return times === 1;
+      }),
+    ).toBe(true);
+    // About a seventh each, the first collection included.
+    expect(largest).toBeLessThan((IDS.length / 7) * 1.5);
+  });
+
+  test("a part that only appears after the first cycle goes at once, and then in its turn", () => {
+    const cloud: Collections = collections(4);
+
+    for (let collection: number = 0; collection < 4; collection++) {
+      sentBy(cloud.next(), ["s-1"]);
+    }
+
+    expect(sentBy(cloud.next(), ["brand-new"])).toEqual(["brand-new"]);
+
+    let again: number = 0;
+
+    for (let collection: number = 0; collection < 4; collection++) {
+      again += sentBy(cloud.next(), ["brand-new"]).length;
+    }
+
+    expect(again).toBe(1);
   });
 
   test("a part that changes goes at once, whoever's turn it is", () => {
-    const state: OpenStackRollingState = createOpenStackRollingState();
+    const cloud: Collections = collections(30);
     const metric: string = "openstack_cinder_snapshot_gb";
     const snapshot: (size: number) => boolean = (size: number): boolean => {
-      return gate(state).shouldSend(
-        metric,
-        { id: "s-1", status: "available" },
-        size,
-      );
+      return cloud
+        .next()
+        .shouldSend(metric, { id: "s-1", status: "available" }, size);
     };
 
-    expect(snapshot(10)).toBe(true);
+    // Past its moment in the first cycle, whichever that is, and settled.
+    for (let collection: number = 0; collection < 31; collection++) {
+      snapshot(10);
+    }
+
+    expect(snapshot(10)).toBe(false);
     expect(snapshot(20)).toBe(true);
+    expect(snapshot(20)).toBe(false);
   });
 
   test("a part in a state something watches goes every time", () => {
-    const state: OpenStackRollingState = createOpenStackRollingState();
+    const cloud: Collections = collections(4);
 
-    for (let turn: number = 0; turn < 4; turn++) {
-      const send: OpenStackRollingSend = gate(state);
+    for (let turn: number = 0; turn < 8; turn++) {
+      const send: OpenStackRollingSend = cloud.next();
 
       expect(
         send.shouldSend(
@@ -221,12 +311,11 @@ describe("what goes in an upload, past the summary size", () => {
   });
 
   test("an instance in a project someone chose goes every time, and others in turns", () => {
-    const state: OpenStackRollingState = createOpenStackRollingState();
-    const kept: Array<string> = ["p-kept"];
+    const cloud: Collections = collections(4, ["p-kept"]);
     let others: number = 0;
 
     for (let turn: number = 0; turn < 8; turn++) {
-      const send: OpenStackRollingSend = gate(state, 4, kept);
+      const send: OpenStackRollingSend = cloud.next();
 
       expect(
         send.shouldSend(
@@ -247,52 +336,283 @@ describe("what goes in an upload, past the summary size", () => {
       }
     }
 
-    // The first time, and on its turn twice round.
-    expect(others).toBeGreaterThanOrEqual(2);
-    expect(others).toBeLessThanOrEqual(3);
+    // Twice round in eight, whichever moment is its own.
+    expect(others).toBe(2);
   });
 
-  test("every part comes round within the turns, whatever its id", () => {
-    const state: OpenStackRollingState = createOpenStackRollingState();
-    const ids: Array<string> = Array.from(
-      { length: 2000 },
-      (_v: unknown, i: number) => {
-        return `s-${i}`;
-      },
-    );
-    const metric: string = "openstack_neutron_subnet";
+  test("every part comes round within the cycle, and nothing piles up on one collection", () => {
+    const cloud: Collections = collections(7);
 
-    // The first collection sends them all.
-    const first: OpenStackRollingSend = gate(state, 7);
-
-    for (const id of ids) {
-      expect(first.shouldSend(metric, { id }, 1)).toBe(true);
+    // The first cycle.
+    for (let collection: number = 0; collection < 7; collection++) {
+      sentBy(cloud.next());
     }
 
-    const seen: Set<string> = new Set();
-    let largest: number = 0;
+    for (let round: number = 0; round < 3; round++) {
+      const seen: Set<string> = new Set();
+      let largest: number = 0;
 
-    for (let turn: number = 0; turn < 7; turn++) {
-      const send: OpenStackRollingSend = gate(state, 7);
-      let sent: number = 0;
+      for (let collection: number = 0; collection < 7; collection++) {
+        const sent: Array<string> = sentBy(cloud.next());
 
-      for (const id of ids) {
-        if (send.shouldSend(metric, { id }, 1)) {
+        largest = Math.max(largest, sent.length);
+
+        for (const id of sent) {
+          expect(seen.has(id)).toBe(false);
           seen.add(id);
-          sent++;
         }
       }
 
-      largest = Math.max(largest, sent);
+      expect(seen.size).toBe(IDS.length);
+      expect(largest).toBeLessThan((IDS.length / 7) * 1.5);
+    }
+  });
+
+  /*
+   * What the turns it replaced got wrong. Identity and images are read every second collection, so
+   * with an even number of turns half of their parts would never have come round again.
+   */
+  test.each([2, 3, 4, 7, 8, 22, 30])(
+    "what is read every second collection comes round too, in %d turns",
+    (turns: number) => {
+      const cloud: Collections = collections(turns);
+      const lastSentAt: Map<string, number> = new Map();
+
+      for (let collection: number = 0; collection < turns * 4; collection++) {
+        const send: OpenStackRollingSend = cloud.next();
+
+        if (collection % 2 !== 0) {
+          continue;
+        }
+
+        for (const id of sentBy(send)) {
+          const before: number | undefined = lastSentAt.get(id);
+
+          if (before !== undefined) {
+            // A cycle, and one read's wait.
+            expect(collection - before).toBeLessThanOrEqual(turns + 2);
+          }
+
+          lastSentAt.set(id, collection);
+        }
+      }
+
+      expect(lastSentAt.size).toBe(IDS.length);
+
+      for (const id of IDS) {
+        expect(lastSentAt.get(id) as number).toBeGreaterThanOrEqual(
+          turns * 4 - turns - 2,
+        );
+      }
+    },
+  );
+
+  test("a read that fails at a part's moment leaves it due at the next read, not a cycle later", () => {
+    const cloud: Collections = collections(10);
+
+    // The first cycle, and nearly all of the second.
+    for (let collection: number = 0; collection < 10; collection++) {
+      sentBy(cloud.next());
     }
 
-    expect(seen.size).toBe(ids.length);
-    // About a seventh each: nothing piles up on one turn.
-    expect(largest).toBeLessThan((ids.length / 7) * 1.5);
+    const held: Array<string> = [];
+
+    for (let collection: number = 0; collection < 3; collection++) {
+      held.push(...sentBy(cloud.next()));
+    }
+
+    // Three collections go by with nothing read, and what fell due in them all goes on the next.
+    cloud.miss(3);
+
+    const overdue: Array<string> = sentBy(cloud.next());
+
+    expect(overdue.length).toBeGreaterThan((IDS.length / 10) * 3);
+    expect(overdue.length).toBeLessThan((IDS.length / 10) * 6);
+
+    for (const id of overdue) {
+      expect(held).not.toContain(id);
+    }
+
+    // Each keeps its own moment, so what was overdue is spread out again afterwards.
+    const seen: Set<string> = new Set(overdue);
+
+    for (let collection: number = 0; collection < 6; collection++) {
+      for (const id of sentBy(cloud.next())) {
+        seen.add(id);
+      }
+    }
+
+    expect(seen.size).toBeGreaterThan(IDS.length * 0.9);
+  });
+
+  test("a part nothing has read for a long time is forgotten, and memory does not grow for ever", () => {
+    const cloud: Collections = collections(4);
+
+    for (let collection: number = 0; collection < 4; collection++) {
+      sentBy(cloud.next(), ["stays", "goes"]);
+    }
+
+    expect(cloud.state.entries.size).toBe(2);
+
+    // Two hours and more of reads that no longer say anything about it.
+    for (let collection: number = 0; collection < 130; collection++) {
+      sentBy(cloud.next(), ["stays"]);
+    }
+
+    expect(Array.from(cloud.state.entries.keys())).toEqual([`${SUBNET}/stays`]);
+  });
+
+  describe("what the stale-row rule can be told", () => {
+    test("nothing until every row has come round, then every read", () => {
+      const cloud: Collections = collections(5);
+
+      for (let collection: number = 0; collection < 5; collection++) {
+        cloud.next();
+        expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(false);
+      }
+
+      cloud.next();
+      expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(true);
+      cloud.next();
+      expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(true);
+    });
+
+    test("a cycle that grows goes on vouching, and one that shrinks waits for the old one to come round", () => {
+      const cloud: Collections = collections(5);
+
+      for (let collection: number = 0; collection < 5; collection++) {
+        cloud.next(5);
+      }
+
+      cloud.next(6);
+      expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(true);
+
+      cloud.next(2);
+      expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(false);
+
+      for (let collection: number = 1; collection < 6; collection++) {
+        cloud.next(2);
+        expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(false);
+      }
+
+      cloud.next(2);
+      expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(true);
+    });
+
+    test("a cloud that left summary mode sends everything once, and vouches from the next read", () => {
+      const cloud: Collections = collections(4);
+
+      for (let collection: number = 0; collection < 5; collection++) {
+        cloud.next();
+      }
+
+      expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(true);
+
+      cloud.miss();
+      stopOpenStackRollingCycle({
+        state: cloud.state,
+        now: cloud.now(),
+        collectionIntervalInMs: INTERVAL_IN_MS,
+      });
+      expect(getsToVouchForRows(cloud.state, cloud.now())).toBe(false);
+      expect(
+        getsToVouchForRows(cloud.state, cloud.now() + INTERVAL_IN_MS),
+      ).toBe(true);
+    });
+
+    test("a probe that never sent in turns has nothing to wait for", () => {
+      expect(getsToVouchForRows(undefined, STARTED_AT)).toBe(true);
+    });
+
+    /*
+     * The rule itself, over everything that can happen to a cloud at random: reads that fail, turns
+     * that change, a probe that restarts and forgets everything, each at any moment, at the smallest
+     * window the setting allows. The rule measures from the read before the latest, gives a row the
+     * window and the last cycle the read named, and every part here is alive throughout.
+     */
+    const WINDOW_IN_MS: number = 5 * 60_000;
+
+    test.each([1, 2, 3, 4, 5, 6, 7, 8])(
+      "a live part is never older than the rule allows, whatever happens: seed %d",
+      (seed: number) => {
+        const random: ReturnType<typeof seededRandom> = seededRandom(seed);
+        const ids: Array<string> = IDS.slice(0, 200);
+        const lastSeenAt: Map<string, number> = new Map();
+
+        // What the server holds about the service, each read's time and the cycle it named.
+        let latest: { at: number; cycleInMs: number } | null = null;
+        let previous: { at: number; cycleInMs: number } | null = null;
+
+        let state: OpenStackRollingState = createOpenStackRollingState();
+        let turns: number = 2 + random(10);
+        let now: number = STARTED_AT;
+
+        // Everything was seen once by whoever collected it before.
+        for (const id of ids) {
+          lastSeenAt.set(id, now - random(60) * 60_000);
+        }
+
+        for (let step: number = 0; step < 600; step++) {
+          now += INTERVAL_IN_MS;
+
+          const roll: number = random(100);
+
+          if (roll < 2) {
+            state = createOpenStackRollingState();
+          }
+
+          if (roll >= 2 && roll < 6) {
+            turns = 1 + random(30);
+          }
+
+          startOpenStackRollingCycle({
+            state: state,
+            now: now,
+            turns: turns,
+            collectionIntervalInMs: INTERVAL_IN_MS,
+          });
+
+          const send: OpenStackRollingSend = new OpenStackRollingSend({
+            state: state,
+            now: now,
+            keptProjectIds: [],
+          });
+
+          // A read that failed sends nothing and says down, as isApiUp has it.
+          if (random(100) < 15) {
+            continue;
+          }
+
+          /*
+           * The worst order: the read's `up` lands and the sweep runs before its rows do. Only a
+           * read that can speak for what it held back moves what the rule measures from.
+           */
+          if (getsToVouchForRows(state, now)) {
+            previous = latest;
+            latest = { at: now, cycleInMs: state.cycleInMs };
+          }
+
+          if (previous) {
+            const cutoff: number =
+              previous.at - WINDOW_IN_MS - previous.cycleInMs;
+
+            for (const id of ids) {
+              expect(lastSeenAt.get(id) as number).toBeGreaterThanOrEqual(
+                cutoff,
+              );
+            }
+          }
+
+          for (const id of sentBy(send, ids)) {
+            lastSeenAt.set(id, now);
+          }
+        }
+      },
+    );
   });
 
   test("what is held back still counts as a sample of the scrape, and is not in the upload", () => {
-    const state: OpenStackRollingState = createOpenStackRollingState();
+    const cloud: Collections = collections(4);
     const reading: Parameters<typeof OpenStackOtlpBuilder.build>[0][number] = {
       service: OpenStackServiceType.Image,
       regionName: "RegionOne",
@@ -317,15 +637,14 @@ describe("what goes in an upload, past the summary size", () => {
       observedAt: 1000,
       durationInMs: 1,
       refreshCycleInMinutes: 8,
+      doesNotVouchForRows: true,
     };
 
-    OpenStackOtlpBuilder.build([reading], "test", gate(state));
-
-    const second: ReturnType<typeof OpenStackOtlpBuilder.build> =
-      OpenStackOtlpBuilder.build([reading], "test", gate(state));
+    const first: ReturnType<typeof OpenStackOtlpBuilder.build> =
+      OpenStackOtlpBuilder.build([reading], "test", cloud.next());
 
     const metrics: Array<JSONObject> = (
-      (second.resourceMetrics[0] as JSONObject)[
+      (first.resourceMetrics[0] as JSONObject)[
         "scopeMetrics"
       ] as Array<JSONObject>
     )[0]!["metrics"] as Array<JSONObject>;
@@ -350,7 +669,7 @@ describe("what goes in an upload, past the summary size", () => {
       )[0]?.["asDouble"],
     ).toBe(100 + 1 + 1);
 
-    // The stale-row rule is told how long a row can go.
+    // The stale-row rule is told how long a row can go, and that this read cannot speak for them.
     const up: JSONObject = (
       (named("openstack_glance_up")?.["gauge"] as JSONObject)[
         "dataPoints"
@@ -360,6 +679,7 @@ describe("what goes in an upload, past the summary size", () => {
     expect(up["attributes"]).toEqual(
       expect.arrayContaining([
         { key: "refresh_cycle_minutes", value: { stringValue: "8" } },
+        { key: "vouches_for_rows", value: { stringValue: "false" } },
       ]),
     );
   });

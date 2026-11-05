@@ -337,6 +337,7 @@ function startCloud({
   tokenExtra = {},
   roles = ["admin"],
   loginStatus = 201,
+  loginMessage,
   serviceStatus = {},
   catalogNames = {},
   holds = [],
@@ -402,7 +403,9 @@ function startCloud({
           return send(401, { error: { code: 401, title: "Unauthorized" } });
         }
         if (loginStatus !== 201) {
-          return send(loginStatus, { error: { code: loginStatus } });
+          return send(loginStatus, {
+            error: { code: loginStatus, message: loginMessage },
+          });
         }
         const base = `http://${request.headers.host}`;
         return send(
@@ -1801,6 +1804,34 @@ describe("Keystone, DNS and TLS", () => {
     }
   });
 
+  // What a deleted credential's login answered on a real cloud (run 41953871058).
+  test("an application credential Keystone no longer has is called that, and never a wrong address", async () => {
+    const cloud = await startCloud({
+      loginStatus: 404,
+      loginMessage: "Could not find Application Credential: 4c2f.",
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "✗ Keystone has no such application credential (HTTP 404): it was deleted, or the ID in clouds.yaml is wrong.",
+    );
+    expect(run.output).toContain(
+      "ROOT CAUSE: the credential in clouds.yaml gets no token from Keystone.",
+    );
+    expect(run.output).not.toContain("does not answer as Keystone");
+  });
+
+  test("a 404 from anything else is still a wrong address", async () => {
+    const cloud = await startCloud({ loginStatus: 404 });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+
+    expect(run.output).toContain("does not answer as Keystone (HTTP 404)");
+    expect(run.output).not.toContain("no such application credential");
+  });
+
   test("an answer that is no token says so", async () => {
     const cloud = await startCloud({ loginStatus: 300 });
     const run = await runDoctor(cloud);
@@ -2449,6 +2480,47 @@ describe("the exporter", () => {
     expect(run.status).toBe(1);
   });
 
+  test("a failed login is explained from the exporter's log, past the services this cloud does not run", async () => {
+    // A line for each of them on every scrape, which would otherwise crowd out the reason.
+    const noEndpoint = (service) => {
+      return `level=ERROR msg="Enabling exporter for service failed" service=${service} error="No suitable endpoint could be found in the service catalog."`;
+    };
+    const cloud = await startCloud({
+      probe: () => {
+        return "";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      files: {
+        "collector.log": `${[
+          `level=ERROR msg="Enabling exporter for service failed" service=identity error="Authentication failed: 401 Unauthorized"`,
+          ...[
+            "load-balancer",
+            "baremetal",
+            "orchestration",
+            "container-infra",
+            "sharev2",
+            "dns",
+            "object-store",
+            "database",
+            "gnocchi",
+          ].map(noEndpoint),
+        ].join("\n")}\n`,
+      },
+    });
+    await cloud.close();
+
+    // The stub answers every container's log with this file, so only section 2 is the exporter's.
+    const section = run.output.slice(
+      run.output.indexOf("── 2."),
+      run.output.indexOf("── 3."),
+    );
+    expect(section).toContain("The exporter's log shows:");
+    expect(section).toContain("Authentication failed: 401 Unauthorized");
+    expect(section).not.toContain("No suitable endpoint");
+  });
+
   test("an exporter that cannot be reached says so", async () => {
     const cloud = await startCloud();
     const run = await runDoctor(cloud, {
@@ -2600,6 +2672,97 @@ describe("the exporter", () => {
 });
 
 /* ------------------------------------------------------------------- the rest */
+
+describe("each project's quotas", () => {
+  test("off says so, and asks the exporter nothing about them", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Project quotas are off, so a project's page shows none.",
+    );
+    expect(
+      cloud.requests.filter((request) => {
+        return (
+          request.path === "/probe" &&
+          request.query.get("include_services") === "compute"
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("on, says how many projects' limits its exporter reads", async () => {
+    const cloud = await startCloud({
+      probe: (url) => {
+        return url.searchParams.get("include_services") === "compute"
+          ? 'openstack_nova_limits_vcpus_max{tenant="a",tenant_id="1"} 8\nopenstack_nova_limits_vcpus_max{tenant="b",tenant_id="2"} 20\n'
+          : "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Quota exporter 'oneuptime-openstack-quota-exporter' is running",
+    );
+    expect(run.output).toContain(
+      "Region RegionOne: the quota exporter reads the limits of 2 projects.",
+    );
+  });
+
+  test("on, with an exporter that reads none, says where to look", async () => {
+    const cloud = await startCloud({
+      probe: () => {
+        return "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Region RegionOne: the quota exporter answers, with no project's limits.",
+    );
+  });
+
+  test("on, without Docker, it looks at its service", async () => {
+    const cloud = await startCloud({
+      probe: (url) => {
+        return url.searchParams.get("include_services") === "compute"
+          ? 'openstack_nova_limits_vcpus_max{tenant="a",tenant_id="1"} 8\n'
+          : "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      native: true,
+      args: ["--skip-access"],
+      env: { OPENSTACK_QUOTA_CLOUDS: "[RegionOne]" },
+      files: { "oneuptime-openstack-quota-exporter.inactive": "" },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Service 'oneuptime-openstack-quota-exporter' is NOT active",
+    );
+    expect(run.output).toContain(
+      "journalctl -u oneuptime-openstack-quota-exporter",
+    );
+  });
+});
 
 describe("the rest of the chain", () => {
   test("--skip-access asks nothing of the services, and --help prints the usage", async () => {

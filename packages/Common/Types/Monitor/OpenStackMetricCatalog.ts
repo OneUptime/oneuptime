@@ -10,6 +10,14 @@ import {
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
 import { OpenStackDependency } from "../OpenStack/OpenStackControlPlane";
+import {
+  OPENSTACK_CAPACITY_ALLOCATED_SERIES,
+  OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+  OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+  OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+  OPENSTACK_CAPACITY_SERIES_LABELS,
+  OPENSTACK_CAPACITY_TOTAL_SERIES,
+} from "../OpenStack/OpenStackCapacitySeries";
 import { OpenStackServiceType } from "../OpenStack/OpenStackResourceKind";
 import { translationKey } from "../Translator";
 
@@ -27,7 +35,8 @@ export type OpenStackMetricCategory =
   | "Storage"
   | "Images"
   | "Identity"
-  | "Projects";
+  | "Projects"
+  | "Capacity";
 
 export interface OpenStackMetricDefinition {
   id: string;
@@ -61,6 +70,12 @@ export interface OpenStackMetricDefinition {
    */
   offByDefault?: string;
   /*
+   * Read once an hour by the agent's quota exporter, when someone turns that on with
+   * OPENSTACK_COLLECT_QUOTAS=true, rather than by deleting its line above. Filled in from
+   * offByDefault: see OPENSTACK_QUOTA_EXPORTER_READS.
+   */
+  fromQuotaExporter?: boolean;
+  /*
    * Labels only the probe's native collector sends on this series, beside the
    * exporter's: what it can read from the APIs that the exporter leaves behind. A query
    * filtering on one finds nothing from a cloud the agent collects.
@@ -78,6 +93,11 @@ export interface OpenStackMetricDefinition {
    * (OpenStackScale), in place of a series per instance. Nothing collects these.
    */
   fromSummaryMode?: boolean;
+  /*
+   * Written by OneUptime itself, from a cloud's rows, for every cloud that reports (see
+   * OpenStackCapacitySeries). Nothing collects these either.
+   */
+  fromCapacity?: boolean;
   unit?: string;
 }
 
@@ -173,9 +193,34 @@ function usage(data: {
   });
 }
 
+/*
+ * What the agent's quota exporter reads (openstack-quota-exporter in its docker-compose.yml), by
+ * the line that keeps each off its main exporter. Hourly, because these change slowly and cost
+ * four API calls per project. Nova's own quota lists are not here: no page reads them, so they
+ * stay a line someone deletes.
+ */
+export const OPENSTACK_QUOTA_EXPORTER_READS: ReadonlyArray<string> = [
+  "nova-limits_vcpus_max",
+  "neutron-quota_network",
+  "cinder-limits_volume_max_gb",
+];
+
 function metric(
   data: Omit<OpenStackMetricDefinition, "id">,
 ): OpenStackMetricDefinition {
+  const fromQuotaExporter: boolean = OPENSTACK_QUOTA_EXPORTER_READS.includes(
+    data.offByDefault || "",
+  );
+
+  if (fromQuotaExporter) {
+    return {
+      ...data,
+      id: data.metricName.replace(/_/g, "-"),
+      fromQuotaExporter: true,
+      description: `${data.description} Off by default: run the agent's install.sh with OPENSTACK_COLLECT_QUOTAS=true to read it once an hour.`,
+    };
+  }
+
   return {
     ...data,
     id: data.metricName.replace(/_/g, "-"),
@@ -299,10 +344,11 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_neutron_agent_state",
     friendlyName: translationKey("Network Agent Alive"),
     description:
-      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work.",
+      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work. dhcp_network_count says how many networks a DHCP agent serves: only a probe sends it.",
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Network,
+    probeOnlyAttributes: ["dhcp_network_count"],
     identityAttributes: [
       "id",
       "hostname",
@@ -380,6 +426,83 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Placement,
     identityAttributes: PLACEMENT_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_ALLOCATED_SERIES,
+    friendlyName: translationKey("Capacity Allocated"),
+    description:
+      "What is allocated of something that fills up: a zone's resource class, an external network's IPv4 addresses or a storage pool's bytes (capacity_scope and capacity_name say which, and resourcetype what). Counts what lost and disabled hosts hold, because those instances exist. This is allocation, not load. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_TOTAL_SERIES,
+    friendlyName: translationKey("Capacity Total"),
+    description:
+      "What can be allocated of it, from the hosts that can give: (total - reserved) x allocation ratio, for a zone. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+    friendlyName: translationKey("Capacity Days Until Full"),
+    description:
+      "How many days until it is full, at its growth over the last week, and 0 when it is. No series with too little history to tell, or when it isn't growing. OneUptime works this out from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+    unit: "d",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+    friendlyName: translationKey("Flavor Room"),
+    description:
+      "How many more of a flavor fit, counted host by host, in each region. source says whether Placement answered or inventories were added up. Only flavors someone can ask for, and none too large for every host. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: ["flavor_id", "flavor", "source"],
+    fromCapacity: true,
+    unit: "count",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+    friendlyName: translationKey("Zone Can Lose a Host"),
+    description:
+      "1 when a zone could lose its largest host and still fit what runs on it, and 0 when it couldn't, per resource class. No series for a zone of one host, or with a host someone disabled. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: ["availability_zone", "resourcetype"],
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: "openstack_placement_flavor_fits",
+    friendlyName: translationKey("Placement Flavor Fits"),
+    description:
+      "How many more of a flavor Placement says would fit, counted host by host, from GET /allocation_candidates: one series for the region and one for each zone and aggregate (scope and scope_name). Read in turns, a few flavors a collection, and sent as last read in between. Only a probe sends this: the agent's exporter never asks Placement.",
+    category: "Compute",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: [
+      "flavor_id",
+      "flavor",
+      "scope",
+      "scope_name",
+      "asked_at",
+      "hosts_with_room",
+      "is_capped",
+    ],
+    onlyFromProbe: true,
     unit: "count",
   }),
   metric({
@@ -585,6 +708,12 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
     identityAttributes: ["id", "name", "vcpus", "ram", "disk", "is_public"],
+    probeOnlyAttributes: [
+      "placement_resources",
+      "placement_required",
+      "placement_forbidden",
+      "is_disabled",
+    ],
     unit: "count",
   }),
   metric({
@@ -675,6 +804,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   metric({
     metricName: "openstack_neutron_network",
     friendlyName: translationKey("Network Info"),
+    probeOnlyAttributes: ["dhcp_agent_ids"],
     description:
       "One series per network, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, DOWN is 2, ERROR is 3. Whether it is external is in the is_external label.",
     category: "Network",
@@ -2199,5 +2329,6 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Images",
     "Identity",
     "Projects",
+    "Capacity",
   ];
 }

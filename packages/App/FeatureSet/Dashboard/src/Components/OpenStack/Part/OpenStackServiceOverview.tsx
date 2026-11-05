@@ -291,8 +291,13 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
   // A host the Hosts product hears from under the same name.
   const machine: string = isApi ? "" : getOpenStackWorkerMachine(row);
   const host: OpenStackRead<Host | null> = useOpenStackRead<Host | null>(() => {
-    return machine ? fetchOpenStackHostOf(machine) : Promise.resolve(null);
-  }, [machine]);
+    return machine
+      ? fetchOpenStackHostOf({
+          openStackCloudId: part.openStackCloudId,
+          machineName: machine,
+        })
+      : Promise.resolve(null);
+  }, [part.openStackCloudId.toString(), machine]);
 
   const rows: Array<OpenStackResource> = attention.data?.rows || [];
   const workers: Array<OpenStackResource> = rows.filter(
@@ -425,9 +430,9 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
      * so where it isn't known it only comes up when it is what someone is wondering.
      */
     if (family === OpenStackServiceFamily.Compute) {
-      const forcedDown: JSONValue | undefined = (
-        (row.facts as JSONObject | undefined) || {}
-      )["forcedDown"];
+      const forcedDown: JSONValue | undefined = ((row.facts as
+        | JSONObject
+        | undefined) || {})["forcedDown"];
       if (typeof forcedDown === "boolean") {
         details.push({
           key: "forced-down",
@@ -665,7 +670,7 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
         testId="openstack-service-details"
         description={
           isApi
-            ? "What Keystone's catalog and the agent's collection say about this API."
+            ? "What Keystone's catalog and the last collection say about this API."
             : "What OpenStack's own service list says about this worker."
         }
         rows={details}

@@ -24,6 +24,7 @@ import urllib.request
 COMPUTE_VERSION = {"OpenStack-API-Version": "compute 2.90"}
 VOLUME_VERSION = {"OpenStack-API-Version": "volume 3.50"}
 PLACEMENT_VERSION = {"OpenStack-API-Version": "placement 1.39"}
+MANILA_VERSION = {"X-OpenStack-Manila-API-Version": "2.65"}
 
 # service type, what it reads, path, the list in its answer, extra headers.
 READS = [
@@ -61,6 +62,20 @@ READS = [
     ("baremetal", "nodes", "/v1/nodes/detail", "nodes", {"X-OpenStack-Ironic-API-Version": "1.82"}),
 ]
 
+# One call per thing, which a table of lists has no row for: whichever things this cloud has
+# one of, named by the environment, because OVN has neither of these. Recorded apart, as
+# partReads, with what each credential got.
+def part_reads():
+    router = os.environ.get("OU_READ_ROUTER_ID", "")
+    dhcp_agent = os.environ.get("OU_READ_DHCP_AGENT_ID", "")
+    reads = []
+    if router:
+        reads.append(("network", "a router's L3 agents", f"/v2.0/routers/{router}/l3-agents", "agents", {}))
+    if dhcp_agent:
+        reads.append(("network", "a DHCP agent's networks", f"/v2.0/agents/{dhcp_agent}/dhcp-networks", "networks", {}))
+    return reads
+
+
 # Writes a monitoring credential must be refused. Each creates something small
 # if it wrongly succeeds, on a throwaway cloud, and the run fails if one does.
 #
@@ -93,7 +108,55 @@ def writes():
          {"name": "ou-write-check", "disk_format": "raw", "container_format": "bare"}, {}),
         ("identity", "create a project", "POST", "/v3/projects",
          {"project": {"name": "ou-write-check"}}, {}),
+        # The rest of the services a cloud may not run. Each names something that does not
+        # exist where it can, so even a call wrongly let through makes nothing of size.
+        ("load-balancer", "create a load balancer", "POST", "/v2/lbaas/loadbalancers",
+         {"loadbalancer": {"name": "ou-write-check", "vip_subnet_id": "00000000-0000-0000-0000-000000000000"}}, {}),
+        ("baremetal", "enroll a node", "POST", "/v1/nodes",
+         {"name": "ou-write-check", "driver": "fake-hardware"}, {"X-OpenStack-Ironic-API-Version": "1.82"}),
+        ("orchestration", "create a stack", "POST", "/stacks",
+         {"stack_name": "ou-write-check", "template": {"heat_template_version": "rocky"}}, {}),
+        ("container-infra", "create a cluster template", "POST", "/clustertemplates",
+         {"name": "ou-write-check", "coe": "kubernetes", "image_id": "ou-no-such-image", "external_network_id": "public"},
+         {"OpenStack-API-Version": "container-infra latest"}),
+        ("sharev2", "create a share", "POST", "/shares",
+         {"share": {"name": "ou-write-check", "share_proto": "NFS", "size": 1}}, MANILA_VERSION),
+        ("dns", "create a zone", "POST", "/v2/zones",
+         {"name": "ou-write-check.example.org.", "email": "hostmaster@example.org"}, {}),
+        ("key-manager", "store a secret", "POST", "/v1/secrets",
+         {"name": "ou-write-check", "payload": "x", "payload_content_type": "text/plain"}, {}),
+        ("object-store", "create a container", "PUT", "/ou-write-check", None, {}),
+        ("database", "create an instance", "POST", "/instances",
+         {"instance": {"name": "ou-write-check", "flavorRef": "ou-no-such-flavor", "volume": {"size": 1}}}, {}),
+        ("metric", "create a metric", "POST", "/v1/metric", {"name": "ou-write-check"}, {}),
     ]
+
+# The rest of the services a cloud may not run, in the exporter's words where it has them,
+# because what the exporter gets is what the product shows. Apart from READS because only the
+# services-<group> recordings ask them for now: troubleshoot.sh asks exactly READS, and says
+# what goes without each, which has to come from what these find.
+OTHER_SERVICES_READS = [
+    ("load-balancer", "pools", "/v2.0/lbaas/pools", "pools", {}),
+    ("load-balancer", "load balancers, as the exporter asks", "/v2.0/lbaas/loadbalancers", "loadbalancers", {}),
+    ("load-balancer", "amphorae, as the exporter asks", "/v2.0/octavia/amphorae", "amphorae", {}),
+    ("baremetal", "conductors", "/v1/conductors", "conductors", {"X-OpenStack-Ironic-API-Version": "1.82"}),
+    ("orchestration", "stacks, as the exporter asks", "/stacks", "stacks", {}),
+    ("orchestration", "stacks, all projects", "/stacks?global_tenant=true", "stacks", {}),
+    ("orchestration", "services", "/services", "services", {}),
+    ("container-infra", "clusters", "/clusters", "clusters", {"OpenStack-API-Version": "container-infra latest"}),
+    ("container-infra", "services", "/mservices", "mservices", {"OpenStack-API-Version": "container-infra latest"}),
+    ("sharev2", "shares, all projects", "/shares/detail?all_tenants=1", "shares", {}),
+    ("sharev2", "services", "/services", "services", MANILA_VERSION),
+    ("sharev2", "pools", "/scheduler-stats/pools/detail", "pools", MANILA_VERSION),
+    ("dns", "zones, all projects", "/v2/zones", "zones", {"X-Auth-All-Projects": "true"}),
+    ("dns", "zones, own project", "/v2/zones", "zones", {}),
+    ("key-manager", "secrets", "/v1/secrets", "secrets", {}),
+    ("key-manager", "orders", "/v1/orders", "orders", {}),
+    ("object-store", "own account", "", None, {}),
+    ("database", "instances, as the exporter asks", "/mgmt/instances?include_clustered=False&deleted=False", "instances", {}),
+    ("database", "instances, own project", "/instances", "instances", {}),
+    ("metric", "status", "/v1/status?details=true", "storage", {}),
+]
 
 
 def request(url, token, method="GET", body=None, headers=None):
@@ -160,8 +223,20 @@ def main():
     admin_name = tokens[0][0]
     endpoints = endpoints_from_env()
 
-    matrix = {"reads": [], "writes": [], "credentials": [name for name, _ in tokens]}
-    for service, label, path, key, headers in READS:
+    matrix = {"reads": [], "partReads": [], "writes": [], "credentials": [name for name, _ in tokens]}
+    for service, label, path, key, headers in part_reads():
+        base = endpoints.get(service)
+        if not base:
+            continue
+        row = {"service": service, "read": label, "results": {}}
+        for name, token in tokens:
+            status, text = request(base + path, token, headers=headers)
+            row["results"][name] = {"status": status, "count": count_of(text, key) if status == 200 else None}
+            if status != 200:
+                row["results"][name]["reason"] = reason_of(text)
+        matrix["partReads"].append(row)
+
+    for service, label, path, key, headers in READS + OTHER_SERVICES_READS:
         base = endpoints.get(service)
         if not base:
             continue
@@ -217,6 +292,9 @@ def main():
             count = "" if result["count"] is None else f" ({result['count']})"
             cells += f"{(mark + count):<24}"
         print(f"{row['service'] + ': ' + row['read']:<40}" + cells)
+    for row in matrix["partReads"]:
+        print(f"{row['service'] + ': ' + row['read']:<40}" + "".join(
+            f"{str(row['results'][n]['status']) + ' (' + str(row['results'][n]['count']) + ')':<24}" for n in names))
     for row in matrix["writes"]:
         print(f"write {row['service']}: {row['write']:<30}" + " ".join(
             f"{n}={row['results'][n]['status']}" for n in row["results"]))

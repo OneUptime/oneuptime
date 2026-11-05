@@ -3,12 +3,15 @@
 The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agents, hypervisors, instances, networks, routers, volumes, storage pools, images and projects, in every region. It reads the cloud's APIs with a credential you choose and sends what it finds to OneUptime, where the cloud appears with its regions, hypervisors and projects. [OpenStack monitors](/docs/monitor/openstack-monitor) alert on what arrives, and a [probe](/docs/telemetry/openstack-agentless) can collect a cloud with nothing to install.
 
 :::cards
+- [Probe or agent?](/docs/telemetry/openstack-agentless#probe-or-agent): Which to pick, for a cloud that could use either.
 - [Choose how much it sees](#choose-how-much-the-agent-sees): OpenStack has no global read-only role, so there are three levels.
 - [Install the agent](#install-the-agent): A credential, then the install script, Docker Compose or no Docker at all.
 - [What it costs your cloud](#what-it-costs-your-cloud): What each setting reads, and how to change it.
+- [Capacity](#capacity): How many more of each flavor fit, and how many days until each thing is full.
 - [Service logs](#service-logs): Parsed, with a request followed across services.
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
+- [Trace a request](#trace-requests-through-the-control-plane): One signed request, followed across the control plane.
 - [By deployment tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat and Mirantis.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -29,7 +32,7 @@ The cloud registers itself with its first data, under the name the agent stamps 
 
 ## Before you begin
 
-- Docker Engine 20.10 or later with the Docker Compose v2 plugin, or, to run without Docker, a Linux machine (x86_64 or arm64) with systemd 235 or later and root.
+- Docker Engine 20.10 or later with the Docker Compose v2 plugin, or, to run without Docker, a Linux machine (x86_64 or arm64) with systemd 235 or later, glibc 2.34 or later (RHEL 9, Ubuntu 22.04, Debian 12) and root.
 - A route from that machine to Keystone and to each service's public endpoint.
 - The `openstack` command line, as someone who can create the credential below.
 - An ingestion key. Create one under **Project Settings → Telemetry & APM → Ingestion Keys** and copy its value.
@@ -274,7 +277,7 @@ sudo chmod 600 clouds.yaml
 docker compose up -d
 ```
 @tab Without Docker
-On Linux (x86_64 or arm64) with systemd 235 or later, the install script runs the upstream releases of the same two programs as systemd services:
+On Linux (x86_64 or arm64) with systemd 235 or later and glibc 2.34 or later, the install script runs the upstream releases of the same two programs as systemd services. RHEL 8 and its relatives have an older glibc, which the exporter's release can't run on: the script says so and changes nothing, so use Docker there.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
@@ -336,6 +339,9 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_NETWORK_EXPORTER_TARGETS` | No | openstack-network-exporter on each node, for OVN and Open vSwitch, usually on `1981`. Defaults to none. |
 | `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | prometheus-libvirt-exporter on each compute node, usually on `9177`, for whether libvirt answers and nothing per instance. Defaults to none. |
 | `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target above that does not say its own. A target can: `RegionTwo@10.1.0.11:15692`. Defaults to the first region. |
+| `OPENSTACK_AGENT_SERVICES` | No | Which services this agent reads, for [sharing a cloud between agents](/docs/telemetry/openstack-very-large-clouds#sharing-a-cloud-between-collectors), such as `compute\|placement`. Defaults to all of them. |
+| `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | No | What the collector may hold in memory. A very large cloud's scrape takes more than the default of `512`. |
+| `OPENSTACK_DATABASE_EXPORTER_TARGETS` | No | `openstack_database_exporter`, for [the database path](/docs/telemetry/openstack-very-large-clouds#the-database-path): `[openstack-database-exporter:9180]`. Defaults to none. The other settings of that path are listed there. |
 
 The install script also reads the credential from the environment, to skip its questions: `OPENSTACK_APPLICATION_CREDENTIAL_ID` and `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, or `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` and `OPENSTACK_PROJECT_DOMAIN_NAME`. They have names of their own rather than the `OS_*` ones an openrc file sets, so an admin's sourced openrc never becomes the agent's credential without anyone being asked. An application credential is better than a username and password: it can be limited to reading and can expire.
 
@@ -389,6 +395,17 @@ The collector makes one scrape job per OpenStack service, through the exporter's
 | `oneuptime-openstack-placement` | 2 minutes | 110 s | `openstack_placement_resource_total`, `openstack_placement_resource_usage`, `openstack_placement_resource_allocation_ratio`, `openstack_placement_resource_reserved` |
 | `oneuptime-openstack-identity` | 5 minutes | 120 s | `openstack_identity_projects`, `openstack_identity_project_info`, `openstack_identity_domains`, `openstack_identity_regions` |
 | `oneuptime-openstack-image` | 5 minutes | 120 s | `openstack_glance_images`, `openstack_glance_image_bytes`, `openstack_glance_image_created_at` |
+| `oneuptime-openstack-load-balancer` | 5 minutes | 120 s | `openstack_loadbalancer_total_loadbalancers`, `openstack_loadbalancer_loadbalancer_status`, `openstack_loadbalancer_total_amphorae`, `openstack_loadbalancer_amphora_status`, `openstack_loadbalancer_total_pools`, `openstack_loadbalancer_pool_status` |
+| `oneuptime-openstack-baremetal` | 5 minutes | 120 s | `openstack_ironic_node`, `openstack_ironic_node_updated_at`, `openstack_ironic_node_provision_updated_at` |
+| `oneuptime-openstack-orchestration` | 5 minutes | 120 s | `openstack_heat_stack_status`, `openstack_heat_stack_status_counter` |
+| `oneuptime-openstack-container-infra` | 5 minutes | 120 s | `openstack_container_infra_total_clusters`, `openstack_container_infra_cluster_masters`, `openstack_container_infra_cluster_nodes`, `openstack_container_infra_cluster_status` |
+| `oneuptime-openstack-sharev2` | 5 minutes | 120 s | `openstack_sharev2_shares_counter`, `openstack_sharev2_share_gb`, `openstack_sharev2_share_status`, `openstack_sharev2_share_status_counter` |
+| `oneuptime-openstack-dns` | 5 minutes | 120 s | `openstack_designate_zones`, `openstack_designate_zone_status`, `openstack_designate_recordsets`, `openstack_designate_recordsets_status` |
+| `oneuptime-openstack-object-store` | 5 minutes | 120 s | `openstack_object_store_objects`, `openstack_object_store_bytes` |
+| `oneuptime-openstack-database` | 5 minutes | 120 s | `openstack_trove_total_instances`, `openstack_trove_instance_status`, `openstack_trove_instance_volume_size_gb`, `openstack_trove_instance_volume_used_gb` |
+| `oneuptime-openstack-gnocchi` | 5 minutes | 120 s | `openstack_gnocchi_status_metricd_processors`, `openstack_gnocchi_status_metric_having_measures_to_process`, `openstack_gnocchi_status_measures_to_process` |
+
+The last nine are services a cloud may not run. Asked about one that is not in its catalog, the exporter logs in to Keystone, logs one line (`No suitable endpoint could be found in the service catalog`) and answers with nothing, and that cloud shows no trace of the service. It is one login each 5 minutes per service and region, which is why these are all 5 minutes. To ask only for the services you run, set `OPENSTACK_AGENT_SERVICES`, such as `identity|compute|placement|network|volume|image`.
 
 Each service also reports `openstack_<service>_up`, such as `openstack_nova_up`. The [OpenStack monitor](/docs/monitor/openstack-monitor#collected-metrics) lists every series with what it means. Every series carries:
 
@@ -403,23 +420,26 @@ Monitor filters match on equality, so keep the `transform/openstack-identity` pr
 
 ## What it costs your cloud
 
-Monitoring must never be what takes a cloud down, so the defaults are gentle. Each scrape logs in to Keystone again and makes real API calls.
+Monitoring must never be what takes a cloud down, so the defaults are gentle. Each scrape logs in to Keystone again and makes real API calls. [Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds) has what that comes to, in requests a minute and gigabytes a day, at each size.
 
 | Setting | Default | Turning it on or changing it gives you | What it costs |
 | --- | --- | --- | --- |
-| Slow metrics | Off | Quotas and limits per project, and usage per server | One call per project per scrape, so it grows with the number of projects |
+| Project quotas | Off | How much of each quota a project has used, on its page and under **Needs attention**, and the Project Quota Nearly Reached alert | Four API calls per project, per region, once an hour (Nova one, Cinder two, Neutron one), from an exporter of their own |
+| Slow metrics | Off | Nova's own quota lists and usage per server | One call per project per scrape, so it grows with the number of projects |
 | Per-port series | Off | `openstack_neutron_port`, `openstack_neutron_ports`, `openstack_neutron_ports_no_ips`, `openstack_neutron_ports_lb_not_active` | An unscoped list of every port. On a large cloud that [can saturate Neutron and cause cascading failures](https://github.com/openstack-exporter/openstack-exporter/issues/540), so leave it off unless you know your port count is small |
+| Services a cloud may not run | On | Load balancers, bare metal, stacks, clusters, shares, DNS, object storage, databases and Gnocchi, where the cloud has them | A cloud without one pays one login each 5 minutes. Designate costs one call per zone per scrape, so it grows with the number of zones |
 | Scrape intervals | 2 and 5 minutes | Fresher data, or less load | Twice as often is twice the API calls. Keep each `scrape_timeout` under its `scrape_interval`, so a slow scrape never stacks on the one before |
+
+**Project quotas:** run `install.sh` again with `OPENSTACK_COLLECT_QUOTAS=true`. It starts a second exporter, `openstack-quota-exporter`, that reads nothing else, and the collector asks it once an hour for `openstack_nova_limits_*`, `openstack_neutron_quota_*`, `openstack_cinder_limits_*` and `openstack_cinder_volume_type_quota_gigabytes`. They change slowly, and an exporter reads the same things whichever job asks, so reading them less often takes an exporter of their own. Your own exporter has no such thing: the agent reads what it says, on every scrape.
 
 **Slow metrics:** delete the `--disable-metric` line for what you want, from the exporter's `command` in `docker-compose.yml`, or from `ExecStart` in `oneuptime-openstack-exporter.service` without Docker. The cost is one call per project per scrape.
 
 | Delete | To collect |
 | --- | --- |
 | `--disable-metric=nova-quota_cores` | `openstack_nova_quota_*` |
-| `--disable-metric=nova-limits_vcpus_max` | `openstack_nova_limits_*` |
-| `--disable-metric=neutron-quota_network` | `openstack_neutron_quota_*` |
-| `--disable-metric=cinder-limits_volume_max_gb` | `openstack_cinder_limits_*`, `openstack_cinder_volume_type_quota_gigabytes` |
 | `--disable-metric=nova-server_local_gb` | `openstack_nova_server_local_gb`, usage per server. This one is a single usage report that walks every server rather than a call per project, and it is slow on a large cloud all the same |
+
+The three lines that leave project quotas out of this exporter (`--disable-metric=nova-limits_vcpus_max`, `--disable-metric=neutron-quota_network`, `--disable-metric=cinder-limits_volume_max_gb`) stay in. Deleting them reads them every two minutes as well.
 
 Each flag names the series that reads the rest of its row, which is why one line turns them all off. Do not use the exporter's own `--disable-slow-metrics` instead: it also takes `openstack_glance_image_*`, the image list the Images page reads with one call. Neutron's list of quotas is an admin's alone at every level but level 1, so `openstack_neutron_quota_*` needs that level.
 
@@ -429,7 +449,7 @@ Each flag names the series that reads the rest of its row, which is why one line
 
 Then run `docker compose up -d --force-recreate`, or `sudo systemctl daemon-reload` and restart both services without Docker. An upgrade replaces these files and keeps your copy as `<file>.bak.<timestamp>`, so make your edit again afterwards.
 
-Two more lines stay in, because you will not miss them. `--disable-metric=neutron-subnets_total` leaves out many series saying what the address pools already say (`openstack_neutron_subnets_total`, `openstack_neutron_subnets_used`, `openstack_neutron_subnets_free`). `--disable-metric=nova-security_groups` leaves out a read of a route Nova no longer has, which would only fill the exporter's log.
+Three more lines stay in, because you will not miss them. `--disable-metric=neutron-subnets_total` leaves out many series saying what the address pools already say (`openstack_neutron_subnets_total`, `openstack_neutron_subnets_used`, `openstack_neutron_subnets_free`). `--disable-metric=nova-security_groups` leaves out a read of a route Nova no longer has, which would only fill the exporter's log. `--disable-metric=gnocchi-total_metrics` leaves out a read of every metric in Gnocchi, page by page, for one count (`openstack_gnocchi_total_metrics`): a Gnocchi can hold millions.
 
 To read internal endpoints rather than public ones, add `--endpoint-type=internal` in the same place.
 
@@ -438,6 +458,43 @@ Three open upstream issues shape all this, and the project has also [asked for m
 - [Issue 660](https://github.com/openstack-exporter/openstack-exporter/issues/660): one failing service empties a whole scrape. So there is one scrape job per service. Do not merge them.
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and the diagnostic script asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
+
+## Capacity
+
+"Can we fit this?" is the question an OpenStack operator gets asked most, and Nova's free counts don't answer it: allocation ratios, reservations and fragmentation all matter, so a cloud can have thousands of vCPUs free and no room for one large instance. A cloud's **Capacity** page says how many more of each flavor fit, and what is short, soonest first. It reads one summary, worked out every two minutes, so a cloud of 5,000 hosts loads as fast as a cloud of one. **Export CSV** on its flavor table downloads everything on the page.
+
+Everything on it is allocation: what has been promised, not what is busy. An idle instance holds all of it.
+
+**What capacity is.** For each resource provider and resource class, capacity is `(total - reserved) x allocation_ratio`, and allocated is what Placement has promised. That adds up by zone, aggregate, region and cloud. A host whose `nova-compute` is down keeps reporting its last numbers, and a disabled one takes nothing on, so neither counts as room. What they hold is still there, and a forecast counts it.
+
+**How many more fit.** Each flavor is counted host by host, because an instance needs all of what it asks for on one host. Beside the count is what it would be if everything free were on one host, which is how a full cloud is told from a fragmented one. A flavor no host could hold even empty says **Too large for every host**, and nothing ever alerts on it. Counts are for an instance booted from an image: one booted from a volume asks for no root disk.
+
+The page says where each count came from:
+
+| | Through a probe | Through the agent |
+| --- | --- | --- |
+| **Counted from** | `GET /allocation_candidates`, which is what Nova's scheduler asks, as [StackHPC's os-capacity](https://github.com/stackhpc/os-capacity) does. Inventories fill in until a flavor's turn comes round | The Placement series the exporter already sends: `openstack_placement_resource_{total,reserved,allocation_ratio,usage}` |
+| **Sees traits and nested providers** | Yes. A flavor's extra specs are asked for too, so `trait:` and `resources:` count | No: the exporter's flavor series has no extra specs, so a flavor that needs a trait counts every host, and the page says so |
+| **A host's `max_unit`** | Placement's own | Taken to be the host's total, which is what Nova sets |
+
+A probe asks gently, because this is the one read that makes Placement work. It asks about one shape of flavor at a time, so flavors that ask for the same thing are one question, and at most 4 a collection, in turns, however many flavors there are. So a cloud of 40 flavors collected every 2 minutes costs 2 calls a minute and goes round in 20 minutes. Each answer is limited to 1,000 hosts, which is Nova's own `max_placement_results`: one boot's worth of work. A count from an answer that long is a floor, and the page says **At least**. It asks nothing on its first collection, nothing when Placement has been slow that collection, and for an hour nothing once a credential has been refused, because the count from inventories is there anyway. An application credential or the `oneuptime_monitoring` role needs `/allocation_candidates` to be allowed: it is in `access/application-credential-access-rules.json` and `access/policy/placement.yaml`.
+
+**Beside what hosts really use.** Where [real usage](#real-usage) reaches OneUptime, the page puts the ratio you set beside what the hosts really use at their peak over a day, and the ratio at which they would reach the 90% line that **Hypervisor CPU Saturated** and **Hypervisor Memory Pressure** draw. It is a straight line from one day of one workload, so it says how far a ratio could move, not that you should move it. It says nothing until over half of a zone's hosts report.
+
+**When things fill up.** Each zone's resource classes, each external network's IPv4 addresses and each storage pool have a forecast: a straight line through what was allocated over the last week, against what there is today. A new cloud says **Not enough history** until it has a day of it.
+
+**Whether a zone can lose a host.** What is allocated in the zone, on a lost host too, against what its other hosts could promise with the largest gone, as VMware's Host failure asks of a cluster. It compares amounts rather than where each instance would land, so a zone that passes has room for an evacuation, not a promise that every instance finds a host: the flavor table shows what is fragmented. A zone of one host has nothing to say, and neither does one with a host someone disabled, because that is planned work.
+
+**Allocations no instance explains.** When Placement holds more on a host than its instances' flavors add up to, for over half an hour, the page names the host. That is usually an [orphaned allocation](https://docs.openstack.org/nova/latest/admin/troubleshooting/orphaned-allocations.html), left by a delete or a move that failed part way, and it silently eats capacity. It compares vCPUs and memory, because an instance booted from a volume holds none of its flavor's disk. It says nothing of a host with anything on it moving, or an instance of a flavor the cloud no longer lists. To see what they are, and to remove them once you've checked each is really no instance's or migration's:
+
+```bash
+nova-manage placement audit --verbose
+nova-manage placement audit --verbose --delete
+```
+
+**Alerts.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** and **Reserved Headroom Gone** read series OneUptime writes from the same summary. They are in the [monitor's templates](/docs/monitor/openstack-monitor#pre-built-alert-templates) and on the cloud's **Recommendations** page.
+
+**What it costs.** Nothing on the agent. A probe adds the calls above. OneUptime writes about 2 series for each zone's resource class, external network and storage pool, and one for each flavor people can ask for, every two minutes, billed as any other metric.
 
 ## Real usage
 
@@ -489,7 +546,7 @@ Per-instance series multiply fast, so keeping them is a choice, under the cloud'
 | Only the projects and aggregates I choose | The instances of those projects, and those on the hypervisors of those aggregates |
 | None | No instance's series |
 
-An instance not kept loses its original series too, so the choice stops the whole cost, and it still counts towards its hypervisor's totals, which are five series per hypervisor whatever you choose. The agent's scrape jobs keep only what OneUptime reads of each exporter.
+An instance not kept loses its original series too, so the choice stops the whole cost, and it still counts towards its hypervisor's totals, which are five series per hypervisor whatever you choose. The agent's scrape jobs keep only what OneUptime reads of each exporter. Past 5,000 instances the same choice also decides who keeps a [series of their status](/docs/telemetry/openstack-very-large-clouds#summary-mode).
 
 What one instance costs, with two vCPUs, one disk and one network interface:
 
@@ -518,7 +575,7 @@ Only what a monitor opens carries those words, and it names at most 50 of the pr
 
 ### Quotas
 
-With quotas on, a project's page shows how much of each it has used: instances, cores, RAM, gigabytes of volumes, networks, ports and floating IPs. A project at 90% of one, or past it, appears under **Needs attention**. A limit of -1 means no limit, so it is never at anything. A reading more than three hours old is shown but no longer judged, because quotas may have been turned off.
+With quotas on, a project's page shows how much of each it has used: instances, cores, RAM, gigabytes of volumes, networks, ports and floating IPs. A project at 90% of one, or past it, appears under **Needs attention**. A limit of -1 means no limit, so it is never at anything. They are read once an hour. A reading more than three hours old is shown but no longer judged, because quotas may have been turned off.
 
 They are off by default because of what they cost: see [What it costs your cloud](#what-it-costs-your-cloud). OpenStack's quota on how many volumes a project may hold is not shown, because the exporter reads only its gigabytes.
 
@@ -547,19 +604,23 @@ The exporter does not say which network an instance is on, or which pool holds a
 
 ## Joined up with the rest of OneUptime
 
-An incident rarely stays in OpenStack. A pod is slow because its node's instance sits on a full hypervisor whose volumes sit on a degraded Ceph pool. Each of those reports to OneUptime on its own, and these are the joins. No link is made on a guess: a name that matches two parts links to neither.
+An incident rarely stays in OpenStack. A pod is slow because its node's instance sits on a full hypervisor whose volumes sit on a degraded Ceph pool. Each of those reports to OneUptime on its own, and these are the joins.
+
+No link is made on a guess. A name that matches two parts links to neither, whichever end you read it from: a host called `compute-01` beside two hypervisors called `compute-01.east.example` and `compute-01.west.example` is on neither, and a hypervisor two hosts could be has no host. The same UUID in two clouds, such as a restored copy, links to neither, unless one of them is archived.
 
 | What | Links to | How |
 | --- | --- | --- |
 | A [host](/docs/telemetry/hosts) running OneUptime's agent on a compute node | Its hypervisor | By name, where exactly one host and one hypervisor match. A short name matches a full one, and two full names in different domains are two machines |
 | A host inside a guest | Its instance | Its `host.id` is the instance's UUID, which the collector's `nova` resource detector reports. Put it first, so it wins over `system`: `detectors: [nova, system, env]`. Leave `host.name` to `system` with `nova: { resource_attributes: { host.name: { enabled: false } } }`, or the host's name changes to the instance's |
 | A Kubernetes node | Its instance | Its `spec.providerID`, `openstack:///<uuid>` or `openstack://<region>/<uuid>`, which `openstack-cloud-controller-manager` sets |
-| A service | The instance or hypervisor it runs on | The host its telemetry names |
+| A service | The instance or hypervisor it runs on | The host its telemetry names, or the Kubernetes node its pods are on |
 | A Cinder storage pool | Its Ceph cluster | See below |
 
-Each page links to the next: a host, a Kubernetes node and a service say where they run, an instance says what it also is, and [Infrastructure](/docs/telemetry/topology) draws a linked host's services under their instance. A link is made once and left alone. It is checked every five minutes until it can be made, and is never written over.
+Each page links to the next: a host, a Kubernetes node and a service say where they run, an instance says what it also is, and [Infrastructure](/docs/telemetry/topology) draws a linked host's services under their instance. A host's link is made once and left alone. It is checked every five minutes until it can be made, and is never written over. When more than one cloud could be it, choose one under **OpenStack Cloud** on the host's Settings page.
 
-When a hypervisor fails, its blast radius goes on past the cloud, and an alert's description and OneUptime AI read the same answer: the machine itself, the hosts and Kubernetes nodes its instances are, the clusters those are in, and the services on those hosts. Services reached through a Kubernetes pod are not in it yet. An investigation that starts at a slow service can walk down to its hypervisor.
+The RabbitMQ and MariaDB pages under **What It Stands On** lead to [Queues](/docs/telemetry/queues) and [Databases](/docs/telemetry/databases), which go deeper once their own agent reads them.
+
+When a hypervisor fails, its blast radius goes on past the cloud, and an alert's description and OneUptime AI read the same answer: its instances, the machine itself, the hosts and Kubernetes nodes its instances are, the clusters those are in, and the services on those hosts and nodes. An investigation that starts at a slow service can walk down to its hypervisor.
 
 ### A storage pool and Ceph
 
@@ -568,9 +629,9 @@ What each source says about a pool decides how it links:
 | Source | What it says | What happens |
 | --- | --- | --- |
 | A [probe](/docs/telemetry/openstack-agentless) at the Full view level | Cinder's RBD driver names the Ceph cluster's fsid and pool in `location_info` | It links on its own, when one [Ceph cluster](/docs/telemetry/ceph) here reports that fsid. A Ceph cluster reports it only with `ceph.cluster.fsid` set in its agent's config |
-| The agent's exporter | The pool's name, its backend's name and its vendor, which reads `Open Source` for LVM and RBD alike | Nothing says it is on Ceph. A Ceph pool of the same name in exactly one cluster is offered, for someone to confirm once on the pool's page. With no such match they can choose a cluster, or say it isn't on Ceph |
+| The agent's exporter | The pool's name, its backend's name and its vendor, which reads `Open Source` for LVM and RBD alike | Nothing says it is on Ceph. A Ceph pool of the same name in exactly one cluster is offered, for someone to confirm once on the pool's page, unless another Cinder pool has that name too. With no such match they can choose a cluster, or say it isn't on Ceph |
 
-Once linked, the pool's page says how its cluster reads, and `HEALTH_WARN` or `HEALTH_ERR` appears in the cloud's **Needs attention**. A suggestion nobody confirmed raises nothing. Only the Full view credential can see pools at all: see [Choose how much the agent sees](#choose-how-much-the-agent-sees).
+Once linked, the pool's page says how its cluster reads, and `HEALTH_WARN` or `HEALTH_ERR` appears in the cloud's **Needs attention**. A suggestion nobody confirmed raises nothing. An answer someone gave can be changed on the pool's page. Only the Full view credential can see pools at all: see [Choose how much the agent sees](#choose-how-much-the-agent-sees).
 
 ## Service logs
 
@@ -600,10 +661,11 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh
 ```
 
-With no argument the script looks at the machine, and asks if it cannot tell. It asks for your OneUptime URL, the ingestion key and the cloud's name, which must be the name the cloud has in OneUptime. Every answer also works as an environment variable, so a run across a fleet asks nothing: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_NODE_NAME` and `OPENSTACK_LOGS_PROFILE`. Running it again is the upgrade, and keeps every answer.
+With no argument the script looks at the machine, and asks if it cannot tell. It asks for your OneUptime URL, the ingestion key, the cloud's name, which must be the name the cloud has in OneUptime, and the region this machine serves. Every answer also works as an environment variable, so a run across a fleet asks nothing: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` and `OPENSTACK_LOGS_PROFILE`. Running it again is the upgrade, and keeps every answer.
 
 | Variable | What it is for |
 | --- | --- |
+| `OPENSTACK_REGION_NAME` | The region this machine serves, which the cloud's Logs page narrows by. Defaults to `RegionOne`. A machine set up before this says no region, so its logs only show under **All regions** until you run the script again |
 | `OPENSTACK_NODE_NAME` | This machine's name, which a hypervisor's and a service's pages read logs by. Defaults to the machine's own |
 | `OPENSTACK_LOGS_DIRECTORY` | Where Kolla-Ansible's logs are, if not in its usual Docker volume |
 | `OPENSTACK_LOGS_TIMEZONE` | The zone oslo.log writes its times in. Defaults to `UTC` |
@@ -640,11 +702,11 @@ The cloud's **Recommendations** page offers these beside the other [alert templa
 | **RabbitMQ Connection Lost** | `AMQP server on <host> is unreachable`, or `MessagingTimeout` |
 | **Database Connection Lost** | `DBConnectionError`, or MySQL's `Lost connection` and `Can't connect` |
 | **Too Many Errors from a Service** | One service on one machine writing many `ERROR` lines |
-| **Token Validation Failing** | Tokens Keystone gave out being refused: what a controller whose Fernet keys differ from the others looks like |
+| **Token Validation Failing** | A service saying `Authorization failed for token`, or Keystone `not a recognized Fernet token`: what a controller whose Fernet keys differ from the others looks like |
 
 ### What it keeps and costs
 
-A cloud writes a great deal nobody reads. The first time a project's OpenStack logs arrive, it gets these as [drop filters](/docs/telemetry/drop-filters-and-scrub-rules), where they can be counted, changed or turned off. Turned off, they stay off.
+A cloud writes a great deal nobody reads. The first time a project's OpenStack logs arrive, it gets these as [drop filters](/docs/telemetry/drop-filters-and-scrub-rules), where they can be counted, changed or turned off. Turned off, they stay off, and so does one you delete while either of the others is left. Delete all three and the next logs bring all three back, so turn off what you don't want.
 
 | Filter | What it drops | What it costs you |
 | --- | --- | --- |
@@ -656,7 +718,9 @@ These filters match only what OneUptime read from a cloud's logs, so nothing els
 
 ### Secrets in logs
 
-OpenStack's debug logs have leaked tokens and passwords, and a Fernet token in a log is a login. Before a cloud's line is stored, whatever rules a project has set, OneUptime takes out Fernet, JWS and PKI tokens by their shape, the value of anything named as a secret (`password`, `token`, `X-Auth-Token`, `adminPass`, and the like), the password in a URL such as a `transport_url`, and private keys. Nothing turns this off. Four [scrub rules](/docs/telemetry/drop-filters-and-scrub-rules) cover the same shapes on a project's other logs, such as a pod's with no cloud named. Those are yours to change.
+OpenStack's debug logs have leaked tokens and passwords, and a Fernet token in a log is a login. Before a cloud's line is stored, whatever rules a project has set, OneUptime takes out Fernet, JWS and PKI tokens by their shape, the value of anything named as a secret (`password`, `token`, `X-Auth-Token`, `adminPass`, and the like), the password in a URL such as a `transport_url`, and private keys. A line too long to keep whole is cut first, and a secret the cut fell inside goes as well. Nothing turns this off. Four [scrub rules](/docs/telemetry/drop-filters-and-scrub-rules) cover the same shapes on a project's other logs, such as a pod's with no cloud named. Those are yours to change.
+
+oslo.log masks a good deal itself, and not everything: our test clouds' Cinder wrote `connection_info` in the clear, CHAP password included. OneUptime takes that out too, though anyone who can read the service's own log can still read it there.
 
 ## Lifecycle events
 
@@ -686,11 +750,14 @@ Set `driver = log` in `neutron.conf`, `cinder.conf` and `glance-api.conf` too. E
 | Deployed with | Where it goes | What restarts it |
 | --- | --- | --- |
 | Kolla-Ansible | `/etc/kolla/config/global.conf` for every service, and `/etc/kolla/config/nova.conf` for Nova's own | `kolla-ansible reconfigure -i <inventory> -t nova,neutron,cinder,glance` |
-| OpenStack-Ansible | `nova_nova_conf_overrides`, `neutron_neutron_conf_overrides`, `cinder_cinder_conf_overrides` and `glance_glance_api_conf_overrides` in `user_variables.yml` | `openstack-ansible openstack.osa.nova`, and the same for each service |
+| OpenStack-Ansible | `nova_nova_conf_overrides`, `neutron_neutron_conf_overrides`, `cinder_cinder_conf_overrides` and `glance_glance_api_conf_overrides` in `user_variables.yml` | `openstack-ansible openstack.osa.nova`, and the same for each service. An older release names its playbooks `os-nova-install.yml` |
 | OpenStack-Helm | `conf.nova.oslo_messaging_notifications.driver` and `conf.nova.notifications.notification_format` in the chart's values, and the same for each service's chart | `helm upgrade`, which restarts the pods whose configuration changed |
+| Red Hat's distribution | `customServiceConfig` for each service in the `OpenStackControlPlane` resource. This is from Red Hat's documentation: we have not run it | Its operators, when the resource changes |
 | DevStack | Each service's file in `/etc`. `iniset` does it | `sudo systemctl restart "devstack@n-*" "devstack@q-*" "devstack@c-*" "devstack@g-*"` |
 
-A cloud that sends these to Ceilometer too can name two: `driver` can be set more than once.
+A cloud that sends these to Ceilometer too can name two: `driver` can be set more than once. If that Ceilometer reads Nova's older form, use `notification_format = both`. OneUptime reads the versioned one of each pair, so nothing appears twice.
+
+Leave `notify_on_state_change` as it is. It only adds `instance.update` lines, which are [steps on the way](#what-is-kept), and Nova's other events already say when a part's state changed.
 
 ### Without notifications
 
@@ -708,32 +775,35 @@ Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them
 | Trail | Steps on the way: `*.start`, a port updated while an instance boots, `instance.update` | Logs, to follow a request by |
 | Change | Something happened | Logs, the feed, chart markers and OneUptime AI |
 
+Cinder's `volume.attach.start` counts as a change, because Cinder says nothing more about a volume Nova attaches. Nova's `instance.volume_attach.end` says when it finished, on the instance.
+
 ## Who did what
 
 Security teams need to know who changed what in a cloud: role grants, failed logins and admin actions. OpenStack can write all of it, and it goes the same way as everything above: to the logs, with no bus. OneUptime reads it as a source of [Security Events](/docs/telemetry/security-events).
+
+Whichever you turn on, OneUptime reads it once **Find security events in your logs** is on, under **Security Events → Connections**. [Each tool's guide](/docs/telemetry/openstack-deployment-tools) says where these settings go on it.
 
 ### Turn on Keystone's audit trail
 
 ```ini title="keystone.conf"
 [DEFAULT]
 notification_format = cadf
-notification_opt_out = identity.authenticate.success
 notification_opt_out = identity.authenticate.pending
 
 [oslo_messaging_notifications]
 driver = log
 ```
 
-Name `notification_opt_out` yourself. Keystone's documentation says failed logins are left out by default, and its code's default leaves them in. Naming the two above sends failed logins, and not one line per token, whichever a release does.
+Name `notification_opt_out` yourself. Keystone's documentation says every login is left out by default. On Epoxy, Flamingo and Hibiscus its own default sends failed logins and leaves out those that worked: 24 wrong logins sent 24 notifications, whether or not the user existed, and good logins sent none. Naming `pending` alone sends a line for each login, failed or not. **OpenStack admin credential used from a new address** reads the ones that worked. To send failed logins only, add `identity.authenticate.success`, and that detection then reads what the audit filter saw.
 
 ### Turn on the audit filter
 
-Keystone's notifications cover identity. For who did what through Nova, Neutron, Cinder and Glance, keystonemiddleware's audit filter records each call. It goes in the service's paste file, after `authtoken` and its context in each pipeline, with a map file from pyCADF's `etc/pycadf`:
+Keystone's notifications cover identity. For who did what through Nova, Neutron, Cinder and Glance, keystonemiddleware's audit filter records each call. It goes in the service's paste file, with a map file from pyCADF, in `etc/pycadf` under the Python environment the service runs in:
 
 ```ini title="api-paste.ini"
 [filter:audit]
 paste.filter_factory = keystonemiddleware.audit:filter_factory
-audit_map_file = /etc/nova/nova_api_audit_map.conf
+audit_map_file = /path/to/venv/etc/pycadf/nova_api_audit_map.conf
 ```
 
 ```ini title="nova.conf"
@@ -741,13 +811,9 @@ audit_map_file = /etc/nova/nova_api_audit_map.conf
 driver = log
 ```
 
-| Deployed with | Where it goes |
-| --- | --- |
-| Kolla-Ansible | Its config tasks copy `keystone-paste.ini` from `/etc/kolla/config/keystone/`, and no other service's paste file. For the others, mount your file over the one in the image with `nova_api_extra_volumes` and its like. Keystone's own [notifications](#turn-on-keystones-audit-trail) need none of this |
-| OpenStack-Ansible | `nova_api_paste_ini_overrides`, `neutron_api_paste_ini_overrides`, `cinder_api_paste_ini_overrides` and `glance_glance_api_paste_ini_overrides` in `user_variables.yml`, with the `audit_middleware_notifications` section in each service's conf overrides |
-| OpenStack-Helm | `conf.paste` in each chart's values, with `conf.<service>.audit_middleware_notifications.driver` |
+In each pipeline, `audit` goes right after `authtoken` and the context filter that follows it. Not at the end: Neutron's `extensions` filter answers its routers and security groups, and a filter after it never sees them.
 
-An audit log is mostly reads, and a read says nothing unless it was refused. So OneUptime keeps what changed something, and what was refused, which is what someone probing a cloud looks like.
+The filter writes two lines for each call, and most calls are reads. A read says nothing unless it was refused, so OneUptime keeps what changed something, and what was refused, which is what someone probing a cloud looks like. `ignore_req_list = GET, HEAD` in the filter's section leaves reads out of the logs too, and refused reads with them.
 
 ### What reaches Security Events
 
@@ -756,11 +822,13 @@ An audit log is mostly reads, and a read says nothing unless it was refused. So 
 | A login, failed or not | Who, from which address, against Keystone |
 | A role granted or taken | Who, which role, to whom, on which project or domain |
 | A change to Keystone's records | Who, which change, and which project, user or application credential |
-| A call through the audit filter | Who, which action, on what, and whether it was refused |
+| A call through the audit filter | Who, which action, on which part, and whether it was refused |
 | A security group opened to the world | Who, which group, which project, and the sensitive port it opened |
 | An image made public | Who, which image, and whose it was |
 
-A project is named from the cloud's inventory where OneUptime knows it, so a case reads `project payments` and not an ID. Keystone's users aren't in the inventory, because the access the agent asks for leaves them out on purpose. A user is named when the event itself names them, and by ID otherwise.
+Keystone sends nothing for a role given on the system, so nothing here sees one. When a user joins a group it says only that the group changed, and not who joined. A login for a user who doesn't exist names what was typed, which someone can mistype a password into. To keep that out, add a [scrub rule](/docs/telemetry/drop-filters-and-scrub-rules) for the `user_name` in those lines.
+
+A project and a part are named from the cloud's inventory where OneUptime knows them, so a case reads `project payments` and `instance web-1` and not their IDs. A part's project is the one its row says, whichever project the token that touched it was for. Keystone's users aren't in the inventory, because the access the agent asks for leaves them out on purpose. A user is named once one of the cloud's events has said their name, and by ID until then. A role is named by ID, because no event says its name.
 
 The cloud's page says what Security Events found about it, a case names the cloud, and each part's page has **Who changed this**: who did what around the moment its state last changed. It reads the audit trail, and a notification's own actor without one, and it isn't there when neither says anything.
 
@@ -770,14 +838,191 @@ These six [detections](/docs/telemetry/security-events) come from the rule libra
 | --- | --- |
 | **OpenStack failed logins burst** | Ten or more failed sign-ins from one address in five minutes |
 | **OpenStack role granted on a protected project** | A role given on `admin` or `service`. Add your own projects to the rule's list. It reads a project's name, so it needs the cloud's inventory |
-| **OpenStack admin credential used from a new address** | The `admin` account signing in from an address it has not used in thirty days |
-| **OpenStack application credential created** | One was made. Keystone's notification holds only its ID, so whether it is unrestricted can't be told from here, and this fires on every one and says so. `openstack application credential show` says |
+| **OpenStack admin credential used from a new address** | The `admin` account used from an address it has not used in thirty days: a sign-in, a change or a call through the audit filter. Behind a load balancer that doesn't pass on the client's address, every address is the load balancer's |
+| **OpenStack application credential created** | One was made. Keystone's notification reads the same for one that is unrestricted, so this fires on every one and says so. `openstack application credential show` says which it was |
 | **OpenStack security group opened to the world** | `0.0.0.0/0`, `::/0` or no address at all, inbound, on a sensitive port or every port |
-| **OpenStack public image published** | An image made public |
+| **OpenStack public image published** | An image seen public for the first time in thirty days. An edit to one already known stays quiet, because Glance says what an image is and not what it was. So one made private and public again within those thirty days isn't said twice |
 
 ### What is never stored
 
 A CADF event can hold what should not be kept: its initiator's credential holds part of a token, an invalid password's attachment holds part of its hash, and an API request can hold anything. OneUptime keeps a list of named fields, and nothing else of an event, so what a new release adds stays out until someone reads it and adds it. A request path keeps no query string. Request and response bodies stay off: the audit filter does not write them, and they would not be kept if it did. Audit records keep [Security Events'](/docs/telemetry/security-events) own retention, and a line goes through a project's log scrub rules before it is read.
+
+## Trace requests through the control plane
+
+"Why does booting an instance take four minutes?" crosses Nova, Neutron, Keystone and Glance, and logs only show the pieces. A trace shows where the time went. OpenStack's way of making one is [OSProfiler](https://docs.openstack.org/osprofiler/latest/), and OneUptime shows what it sends in [Traces](/docs/telemetry/traces-explorer), joined to the cloud's parts and to its logs.
+
+Be clear about what you are turning on:
+
+- **It is off until you ask for it, and it is per request.** A span exists only for a request [signed with an HMAC key](https://docs.openstack.org/osprofiler/latest/user/integration.html) your services hold. With nothing signed nothing is sent, so this is never an always-on feed.
+- **Its [OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) is marked experimental** by OpenStack, so try it on a cloud that can take it first.
+- **It can only post plain HTTP**, which is why a collector on each machine takes its spans and forwards them to OneUptime over TLS.
+- **It needs `opentelemetry-sdk` and `opentelemetry-exporter-otlp` in each service**, which no deployment tool's images hold.
+
+> [!WARNING]
+> Stay below version 1.44 of OpenTelemetry's SDK. That version hangs a service when it starts a subprocess ([its bug](https://github.com/open-telemetry/opentelemetry-python/issues/5789)). On our 2026.2 test cloud, whose pins name 1.44.0, it left Neutron's API never answering, and cinder-volume stopped working. The commands here ask for less than 1.44. On 2026.2 that has not been run yet, so use a test cloud first.
+
+:::cards
+- [What a trace shows](#what-a-trace-shows): What is traced, and what is not, on a stock cloud.
+- [Turn on traces](#turn-on-traces): The collector, the libraries and the config.
+- [Trace a request](#trace-a-request): The command for your cloud, and where its trace is.
+- [What tracing costs](#what-tracing-costs): What was counted, and what nobody has measured.
+:::
+
+### What a trace shows
+
+Everything here was read from what the driver really sent for a signed boot on DevStack, on OpenStack 2025.2 and 2026.2, not from its documentation. One request is one trace, whichever services it crosses, and its Trace ID is the one the client prints. Each service is named as you know it, and joined to its page. A trace is also tied to what its requests named: a boot to the instance it made, its image and its network.
+
+| Service | On a stock cloud | What you can do |
+| --- | --- | --- |
+| `nova-api`, `nova-compute`, `neutron-server`, `keystone`, `glance-api`, `cinder-api`, `cinder-scheduler` | In the trace | |
+| Placement | Sends nothing. It keeps a config of its own without `[profiler_otlp]`, so the driver stops as it starts, with `no such option profiler_otlp` in its log | [One line](#placement-one-line) of its code. With `trace_requests` on, `nova-compute` shows its own calls to Placement without it |
+| `nova-conductor`, `nova-scheduler` | On 2025.2 they send nothing while they run more than one worker: they make the driver and then fork on eventlet, and nothing a forked worker made arrived. On 2026.2 they run on threads and are in the trace | On 2025.2, [one worker each](#novas-conductor-and-scheduler-one-worker-each) |
+| `cinder-volume` | On 2025.2 it sends nothing: it always runs each backend in a forked worker | Nothing to set |
+| Neutron's RPC server | Sends nothing. It never says it started OSProfiler, and Neutron's API does | Nothing to set |
+
+So on a stock 2025.2 cloud, a span that one of those called arrives with a parent that never does. `nova-compute`'s `build_and_run_instance` is called by `nova-conductor`, so everything `nova-compute` did for a boot is under a span whose parent is missing. The trace is whole otherwise, it says **Not in this trace** above the waterfall, and those services' lines are still in [the logs of that request](#from-a-trace-to-its-logs).
+
+On 2026.2 a trace can also hold more than its request. Nova's workers there keep a signed request's context on their threads, so a boot's trace held that instance's delete ten minutes later, and a failed boot's conductor spans arrived under the boot before it. Read a trace's times as well as its services.
+
+### Turn on traces
+
+Open your cloud's **Traces** page. It has these steps for whichever tool deployed your cloud, with its paths and variables. None of those tools' guides has been followed on a real deployment of that tool: what has been run is the same config on DevStack, and each guide says so.
+
+:::steps
+#### Run the collector on each machine
+
+On every controller and compute node whose services you want traced. It listens on this machine alone, removes what a call was handed, says which cloud and machine a span is from, and forwards the rest over TLS.
+
+```bash
+curl -fsSLO https://oneuptime.com/install/openstack-agent/install-traces.sh
+sudo -E bash install-traces.sh
+```
+
+#### Give each service the libraries
+
+In the environment each service runs from. Without them a service says so in its log and carries on, untraced.
+
+```bash
+pip install 'opentelemetry-sdk<1.44' 'opentelemetry-exporter-otlp<1.44'
+```
+
+#### Turn OSProfiler on
+
+Make one key with `openssl rand -hex 32`, and give every service that same key. Anyone holding it can make any request traced, so keep it as you keep a password. Leave `hmac_keys` unset and OSProfiler uses the literal value `SECRET_KEY`. Add this to `nova.conf`, `neutron.conf`, `cinder.conf`, `glance-api.conf` and `keystone.conf`, and restart them.
+
+```ini
+[profiler]
+enabled = True
+hmac_keys = <your key>
+connection_string = otlp://127.0.0.1:4318
+trace_sqlalchemy = False
+```
+
+#### Check each service started it
+
+Each service's own log should hold this line as it starts, and no `Could not initialize driver`:
+
+```text
+osprofiler is enabled with connection string: otlp://127.0.0.1:4318
+```
+:::
+
+### Placement, one line
+
+Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. With it, a boot crosses Placement, `allocation_candidates` and the instance's allocations included: this was run on 2025.2 and on 2026.2. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades. Run it with the Python in Placement's environment, add the same `[profiler]` section to `placement.conf`, and restart it:
+
+```bash
+sed -i '/profiler\.set_defaults(config)/a\        config.register_opts(profiler._OTLP_OPTS, group="profiler_otlp")' "$(python3 -c 'import placement.wsgi as module; print(module.__file__)')"
+```
+
+### Nova's conductor and scheduler, one worker each
+
+On 2026.2 these run on threads, and send spans as they are, so this is for 2025.2. With one worker each they run in the process that made the driver. That was run on 2025.2: with Placement's line too, a boot's trace had no span missing its parent, from `nova-api` through both of them to `nova-compute`, and a failed scheduling showed as a failed span, `No valid host was found`. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or a quiet hour of looking into something, and not for a busy cloud to run on.
+
+```ini title="nova.conf"
+[conductor]
+workers = 1
+
+[scheduler]
+workers = 1
+```
+
+OpenStack-Helm's Nova chart sets both to 1 already and scales by pods.
+
+### Trace a request
+
+**Trace a request**, on your cloud's **Traces** page, has the commands for this cloud. They ask for your key without echoing it, which keeps it out of your shell's history and the machine's process list:
+
+```bash
+read -rs OS_PROFILE && export OS_PROFILE
+openstack server list
+openstack server create --wait --flavor <flavor> --image <image> --network <network> oneuptime-trace-test
+openstack server delete --wait oneuptime-trace-test
+unset OS_PROFILE
+```
+
+`openstack --os-profile <key> server create ...` does the same, with the key in your history. Each command prints `Trace ID: ...`, whether or not anything was traced, so paste it into the page to open that trace. Give it a few seconds, because spans are sent in batches. On 2025.2 an API's spans can wait for that worker's next request: 15 seconds after a signed `server list`, `nova-api`'s had not arrived on our test cloud, and they came with the next request.
+
+A signed `server list` crosses `nova-api`, `keystone`, `neutron-server` and `glance-api`. A signed boot adds `nova-compute`, tied to the instance it made. If those are there, it works.
+
+| What you see | What it means |
+| --- | --- |
+| No `Trace ID` line | The client has no OSProfiler, and ignores your key without it. `pip install osprofiler` where you run `openstack` |
+| A `Trace ID`, and no trace | A wrong key is not an error: the request just goes untraced. Check the key, that the service was restarted, its log, and that the collector answers `curl -i -X POST http://127.0.0.1:4318/v1/traces` |
+| A span missing its parent | It was called by a service that sends nothing. See [What a trace shows](#what-a-trace-shows) |
+| A service hangs or will not answer after a restart | `pip list \| grep opentelemetry-sdk` where it runs. Version 1.44 hangs it as soon as it runs a command. Install below it, or take `[profiler]` off that service. `py-spy dump --pid <worker>` shows it stuck in `TracerProvider._handle_fork` |
+
+Your traces are on the cloud's **Traces** page, an instance's, a volume's and a network's are on its **Traces** tab, and a service's and an API's on theirs. An instance a request made is found by the requests that named it: a boot's own `POST` cannot name it, and what follows does.
+
+### The control plane
+
+The cloud's **Traces** page draws the control plane from your newest traces: which service called which, how often and how long it took. It is what those requests crossed and no more, so a service no traced request reached is not on it, and a call from a service that sends nothing is not drawn.
+
+### From a trace to its logs
+
+No span holds a request ID, and no log line holds a trace's, because OSProfiler and oslo.log do not know each other. With the [logs profile](#service-logs) on, the card above a trace finds its requests by what the two have in common, and says how sure each is:
+
+| It says | Which means |
+| --- | --- |
+| Its lines name an instance this trace touched | As good as an ID: on a real boot, this gives the request ID Nova's own instance actions give |
+| An API logged the same call at the same moment | Sure, unless someone else made the same call at that moment |
+| Only the same services at the same moment | On a quiet cloud that is the request, and on a busy one it may not be |
+
+Each opens [that request](#follow-a-request), across every service, which includes the ones that send no spans.
+
+### What tracing costs
+
+Nothing until a request is signed. With OSProfiler on and nothing signed, a request costs one failed check of a header. OpenStack [gives no figure](https://docs.openstack.org/osprofiler/latest/user/integration.html) for what a signed one costs, and neither do we, because nobody has measured it. A signed request does more work in every service it crosses, sends every span over HTTP from each of them, and carries your key across the message bus in its context. Sign what you are looking into, not traffic.
+
+What has been counted is what a signed boot sends, on one machine's DevStack:
+
+| Settings | Spans | What the collector sends on |
+| --- | --- | --- |
+| The defaults above | About 100 | About 50 KB |
+| `trace_requests = True` | About 150 | About 90 KB |
+| `trace_sqlalchemy = True` | About 900 | About 1 MB |
+
+With the collector stopped, a signed boot still worked and its spans were lost, so tracing did not get in the request's way.
+
+### What a span holds
+
+OSProfiler's driver copies what a traced call was handed into its span, written out as Python would print it: an instance's admin password and user data, and a volume's connection info. The collector removes `args`, `kwargs`, `result` and `db.params` before they leave the machine, and OneUptime removes them on arrival for a span that came some other way. Nothing turns that off. A statement from `trace_sqlalchemy` is kept with its placeholders, and its values are not.
+
+Your key is in neither. It does travel between a service's own parts, in the context of each message on your message bus, for as long as a signed request lasts.
+
+### Traces on a schedule
+
+A trace only exists when a request is signed, so nothing here traces a cloud on its own. The planned lifecycle check signs its own requests when it is given the key, so a slow boot it sees has a trace: it is not built yet.
+
+### OpenStack's own tracing
+
+oslo.middleware 8.2.0 and oslo.messaging 18.3.1, on 2026.2, can trace with nothing signed, so they could one day be an always-on feed. We ran them, and OneUptime does not read them yet, because as shipped they do not follow a request across services:
+
+- oslo.messaging on its own sends nothing, and logs `has no attribute 'trace_exporter'` for every call.
+- With oslo.middleware's filter added to each API's pipeline, an API call is a trace of its own. A boot made 83 traces, and none crossed two services, because nothing passes the trace along on an outgoing HTTP call. Keystone and Placement have no pipeline to add it to.
+- Those spans hold no request ID, and the RPC spans do.
+
+If you turn them on, their spans still reach this cloud's **Traces** page through the collector, under their own names.
 
 ## Run as a systemd service
 
@@ -897,6 +1142,18 @@ That is the design working: the others keep reporting. The diagnostic script say
 
 :::details Every OpenStack service fails after taking a policy file away
 On Flamingo and Epoxy, oslo.policy raises on every check once a policy file it has read is gone, and when the service is Keystone the whole cloud answers `503`. Restart the service. To take overrides off, empty the file (`{}`) and never delete it.
+:::
+
+:::details A cloud's service logs don't arrive
+Read the collector's log: `docker logs oneuptime-openstack-logs` for the files profile, or `journalctl -u oneuptime-openstack-logs` for the journal's. A `401` means a bad ingestion key. If lines arrive under no cloud, `OPENSTACK_CLOUD_NAME` isn't the name the cloud has in OneUptime: run `install-logs.sh` again with the right one.
+:::
+
+:::details Lines arrive with no level, request or service
+OneUptime reads oslo.log's own formats. A cloud that changed `logging_context_format_string` or `logging_default_format_string` writes something else, and those lines are kept as they are, with nothing read from them. Put the format back, or turn on `use_json`, which reads the same whatever the format says.
+:::
+
+:::details The Feed stays empty
+Each service needs `driver = log` and a restart, and Nova `notification_format = versioned` as well: see [Turn on notifications](#turn-on-notifications). To check a service, grep its log for `oslo.messaging.notification`. If there's nothing, look at `default_log_levels`: a level above `INFO` for `oslo.messaging` silences most of them. A cloud whose configuration isn't yours to change can use a [probe](#without-notifications).
 :::
 
 ## Next steps

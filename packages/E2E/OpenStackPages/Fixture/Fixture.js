@@ -8,19 +8,22 @@
  * Scenarios are picked with query parameters, parsed once at load, and kept for a reload:
  *
  *   ?estate=    busy (default) | calm | forced-down | new | multi-region | overflow | ovn-stale | tenants
- *               | parts | usage (Data.js)
+ *               | parts | links | usage (Data.js)
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
  *               "<release>/access/<level>" is what its exporter answered each credential:
  *               reader, monitoring-role or monitoring-admin-get.
  *   ?without=   compute, network, volume...: with a recording, a service this cloud doesn't run
+ *   ?traces=    <release>/signed-boot: what OSProfiler's driver really sent for a signed
+ *               boot, through the real reader (TraceRecordings.js). With none, a cloud has
+ *               no traces, which is how every cloud starts.
  *   ?collector= disconnected: the agent stopped reporting ?quiet= ago (default 3 days)
  *   ?quiet=     how long ago the agent last reported: minutes, e.g. 4320
  *   ?access=    project: the credential is Project view, so it can list no services,
  *               hypervisors or pools, and the APIs still answer up
  *   ?alerts=    none (default) | some | all | denied (the role may not read monitors)
- *   ?open=      0 | 1 (default) | many: unresolved incidents and alerts on the cloud
+ *   ?open=      0 | 1 (default) | many | regions: unresolved incidents and alerts on the cloud
  *   ?fail=      a comma list of reads that fail, as a server that answers 500 does:
  *               inventory (the summaries and the rows), attention, regions, consumers,
  *               blast, counts, metrics, events
@@ -31,6 +34,12 @@
  *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
  *               untrusted | plain-http | refused | not-found | no-probe
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
+ *   ?archived=  1: the project also has an archived cloud
+ *   ?linked=    1: an incident, an alert and a maintenance event linked to this cloud, and one of
+ *               each that is not, and a feed that says what happened to the cloud
+ *   ?role=      read: a custom role holding only the OpenStack read permissions; none: one
+ *               holding none of them. Every read and write is then held to the model's own lists
+ *               of who may, which are what the server's permission checks read
  *   ?lang=      de or fa reads the German or Persian locale file (Persian lays the page
  *               out right to left)
  *   ?theme=     dark adds html.dark (server.js)
@@ -59,6 +68,7 @@ import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
+import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
 import CloudHypervisors from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Hypervisors";
@@ -94,10 +104,27 @@ import CloudDomains from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/
 import CloudControlPlane from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlane";
 import CloudControlPlaneDependency from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlaneDependency";
 import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Topology";
+import CloudMetrics from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Metrics";
+import CloudLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Logs";
+import CloudTraces from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Traces";
+import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
+import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
+import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
 import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
+import CloudOwners from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Owners";
+import CloudDelete from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Delete";
+import CloudFeed from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Feed";
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
+import {
+  OpenStackPlacementOfHost,
+  OpenStackPlacementOfKubernetesNode,
+  OpenStackPlacementOfService,
+} from "../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementOfHost";
+import CloudsArchived from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Archived";
+import OwnerRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Settings/OwnerRules";
+import LabelRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Settings/LabelRules";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -106,6 +133,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
@@ -155,6 +183,18 @@ import {
   uuid,
 } from "./Data";
 import {
+  addCephStatusToPools,
+  answerStoragePoolCeph,
+  getHostOfMachine,
+  getPlacementOfHost,
+  getPlacementOfKubernetesNode,
+  getPlacementsOfService,
+  getReachOfInstance,
+  getReachOfPart,
+  getStoragePoolCeph,
+  otherProductsOf,
+} from "./Links";
+import {
   PROBES,
   SHARED_PROBES,
   collectionOf,
@@ -168,6 +208,8 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { buildCapacitySnapshotOf } from "./Capacity";
+import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
 /*
  * ---------------------------------------------------------------------------
@@ -211,10 +253,13 @@ const ACCESS = params.get("access") === "project" ? "project" : "";
 const ALERTS = ["some", "all", "denied"].includes(params.get("alerts"))
   ? params.get("alerts")
   : "none";
-const OPEN = ["0", "many"].includes(params.get("open"))
+const OPEN = ["0", "many", "regions"].includes(params.get("open"))
   ? params.get("open")
   : "1";
 const FAILS = new Set((params.get("fail") || "").split(",").filter(Boolean));
+const TRACES = hasTraceRecording(params.get("traces"))
+  ? params.get("traces")
+  : "";
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -224,7 +269,56 @@ const GLOBAL_PERMISSIONS = [
   Permission.User,
   Permission.CurrentUser,
 ];
-const rolePermissions = [...GLOBAL_PERMISSIONS, Permission.ProjectOwner];
+/*
+ * What the OpenStack read role holds: every read permission of the product's own tables, as
+ * Common/Types/Permission.ts lists them, and nothing that writes.
+ */
+const OPENSTACK_READ_PERMISSIONS = [
+  Permission.ReadOpenStackCloud,
+  Permission.ReadOpenStackCloudFeed,
+  Permission.ReadOpenStackCloudOwnerUser,
+  Permission.ReadOpenStackCloudOwnerTeam,
+  Permission.ReadOpenStackCloudOwnerRule,
+  Permission.ReadOpenStackCloudLabelRule,
+];
+const ROLE = ["read", "none"].includes(params.get("role"))
+  ? params.get("role")
+  : "";
+const rolePermissions = [
+  ...GLOBAL_PERMISSIONS,
+  ...(ROLE === "read"
+    ? OPENSTACK_READ_PERMISSIONS
+    : ROLE === "none"
+      ? []
+      : [Permission.ProjectOwner]),
+];
+
+/*
+ * A custom role, as the server holds it to a model's own lists: nothing this role may not read
+ * comes back, and nothing it may not write is written. What the real checks make of these same
+ * lists has a test of its own (OpenStackCustomRoleGrants.test.ts).
+ */
+function refuseUnlessRoleMay(modelType, action) {
+  if (!ROLE) {
+    return;
+  }
+  const model = new modelType();
+  const allowed = {
+    read: model.getReadPermissions(),
+    create: model.getCreatePermissions(),
+    update: model.getUpdatePermissions(),
+    delete: model.getDeletePermissions(),
+  }[action];
+  if (
+    !allowed.some((permission) => {
+      return rolePermissions.includes(permission);
+    })
+  ) {
+    throw new Error(
+      `You do not have permissions to ${action} ${model.singularName || "this"}.`,
+    );
+  }
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -327,6 +421,43 @@ function openAlert(number, title, labels, minutesAgo) {
 
 const incidents = [];
 const alerts = [];
+const scheduledMaintenances = [];
+const LINKED = params.get("linked") === "1";
+if (LINKED) {
+  incidents.push(
+    openIncident(61, "Nova API errors in RegionOne", [], 45),
+    {
+      ...openIncident(62, "A payment provider is slow", [], 30),
+      openStackCloudIds: [],
+    },
+  );
+  alerts.push(openAlert(61, "Volume stuck in creating", [], 20), {
+    ...openAlert(62, "A certificate expires soon", [], 10),
+    openStackCloudIds: [],
+  });
+  scheduledMaintenances.push(
+    {
+      _id: uuid("58000000", 1),
+      title: "Patch the control plane",
+      scheduledMaintenanceNumber: 7,
+      scheduledMaintenanceNumberWithPrefix: "SCH-7",
+      startsAt: new Date(LOADED_AT + 60 * MINUTE),
+      endsAt: new Date(LOADED_AT + 120 * MINUTE),
+      createdAt: new Date(LOADED_AT - 60 * MINUTE),
+      openStackCloudIds: [CLOUD_ID],
+    },
+    {
+      _id: uuid("58000000", 2),
+      title: "Move the office network",
+      scheduledMaintenanceNumber: 8,
+      scheduledMaintenanceNumberWithPrefix: "SCH-8",
+      startsAt: new Date(LOADED_AT + 60 * MINUTE),
+      endsAt: new Date(LOADED_AT + 120 * MINUTE),
+      createdAt: new Date(LOADED_AT - 60 * MINUTE),
+      openStackCloudIds: [],
+    },
+  );
+}
 if (OPEN !== "0" && ESTATE === "busy" && !RECORDING) {
   incidents.push(
     openIncident(
@@ -366,6 +497,43 @@ if (OPEN !== "0" && ESTATE === "busy" && !RECORDING) {
       ),
     );
   }
+}
+
+// What is open on a cloud of several regions: one in each, and one that names none.
+if (OPEN === "regions") {
+  incidents.push(
+    openIncident(
+      1,
+      "[OpenStack] Compute API Down in RegionTwo",
+      { "openstack.region.name": "RegionTwo" },
+      33,
+    ),
+    openIncident(
+      2,
+      "[OpenStack] Network Agent Down in RegionOne",
+      {
+        hostname: "ctl-01",
+        service: "neutron-l3-agent",
+        "openstack.region.name": "RegionOne",
+      },
+      30,
+    ),
+    openIncident(3, "Declared by hand about the whole cloud", null, 20),
+  );
+  alerts.push(
+    openAlert(
+      1,
+      "[OpenStack] Instances in Error in RegionTwo",
+      { "openstack.region.name": "RegionTwo" },
+      24,
+    ),
+    openAlert(
+      2,
+      "[OpenStack] Volumes in Error in RegionOne",
+      { "openstack.region.name": "RegionOne" },
+      14,
+    ),
+  );
 }
 
 /*
@@ -520,6 +688,20 @@ function matches(modelName, record, query) {
     if (field === "projectId") {
       continue;
     }
+    // A JSON column is asked key by key, as JSONColumnQuery asks it.
+    if (field === "seriesLabels") {
+      for (const [key, value] of Object.entries(wanted)) {
+        const held = record.seriesLabels?.[key];
+        if (
+          value instanceof EqualToOrNull
+            ? held !== undefined && held !== null && held !== value.value
+            : held !== value
+        ) {
+          return false;
+        }
+      }
+      continue;
+    }
     if (wanted instanceof MultiSearch) {
       const value = wanted.value.toLowerCase();
       if (
@@ -622,33 +804,109 @@ function matches(modelName, record, query) {
   return true;
 }
 
+const SAM = {
+  _id: uuid("80000000", 1),
+  name: "Sam Patel",
+  email: "sam@acme-cloud.example",
+};
+const PLATFORM_TEAM = { _id: uuid("81000000", 1), name: "Platform" };
+const PRODUCTION_LABEL = {
+  _id: uuid("82000000", 1),
+  name: "production",
+  color: new Color("#2563eb"),
+  projectId: PROJECT_ID,
+};
+
+/*
+ * What the worker would keep on the cloud, worked out from this estate's rows by the same code
+ * (OpenStackCapacitySnapshot). ?capacity=none is a cloud no worker has been through yet.
+ */
+function withCapacity(cloud) {
+  return params.get("capacity") === "none"
+    ? cloud
+    : {
+        ...cloud,
+        capacitySnapshot: buildCapacitySnapshotOf(estate.inventory, {
+          scenario: params.get("capacity"),
+          loadedAt: LOADED_AT,
+        }),
+      };
+}
+
 const store = {
   OpenStackCloud:
     params.get("clouds") === "none"
       ? []
       : [
-          params.get("collection") === "Probe"
-            ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
-            : params.get("collection")
-              ? { ...estate.cloud, collectionMethod: params.get("collection") }
-              : estate.cloud,
+          withCapacity(
+            params.get("collection") === "Probe"
+              ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
+              : params.get("collection")
+                ? { ...estate.cloud, collectionMethod: params.get("collection") }
+                : estate.cloud,
+          ),
+          ...(params.get("archived") === "1"
+            ? [
+                {
+                  ...estate.cloud,
+                  _id: uuid("71000000", 50),
+                  name: "old-lab-cloud",
+                  isArchived: true,
+                },
+              ]
+            : []),
         ],
   OpenStackCloudConnectionTest: [],
   OpenStackCloudOwnerUser: [],
   OpenStackCloudOwnerTeam: [],
+  OpenStackCloudOwnerRule: [],
+  OpenStackCloudLabelRule: [],
+  OpenStackCloudFeed: LINKED
+    ? [
+        {
+          _id: uuid("83000000", 1),
+          openStackCloudId: CLOUD_ID,
+          projectId: PROJECT_ID,
+          feedInfoInMarkdown:
+            "**OpenStack cloud registered** when its first data arrived.",
+          openStackCloudFeedEventType: "OpenStackCloudCreated",
+          displayColor: new Color("#16a34a"),
+          postedAt: new Date(LOADED_AT - 3 * DAY),
+          createdAt: new Date(LOADED_AT - 3 * DAY),
+        },
+      ]
+    : [],
+  User: [SAM],
+  Team: [PLATFORM_TEAM],
+  TeamMember: [
+    {
+      _id: uuid("85000000", 1),
+      projectId: PROJECT_ID,
+      userId: SAM._id,
+      user: SAM,
+      teamId: PLATFORM_TEAM._id,
+      team: PLATFORM_TEAM,
+      hasAcceptedInvitation: true,
+    },
+  ],
+  // What the tables of incidents, alerts and maintenance events read beside their rows.
+  TableView: [],
+  IncidentCustomField: [],
+  IncidentNoteTemplate: [],
+  IncidentOwnerUser: [],
+  IncidentOwnerTeam: [],
+  AlertCustomField: [],
+  AlertNoteTemplate: [],
+  AlertOwnerUser: [],
+  AlertOwnerTeam: [],
+  ScheduledMaintenanceCustomField: [],
+  ScheduledMaintenanceNoteTemplate: [],
+  ScheduledMaintenanceOwnerUser: [],
+  ScheduledMaintenanceOwnerTeam: [],
   Probe: params.get("probes") === "many" ? PROBES : PROBES.slice(0, 1),
   OpenStackResource: estate.inventory,
-  // A worker's page links to the Hosts product when a host reports under its name.
-  Host:
-    (ESTATE === "busy" || ESTATE === "parts") && !RECORDING
-      ? [
-          {
-            _id: uuid("74000000", 1),
-            name: "compute-03",
-            hostIdentifier: "compute-03",
-          },
-        ]
-      : [],
+  // The hosts this estate holds: what "host-of-machine" reads, and each host's own page.
+  Host: otherProductsOf(estate).hosts,
   IncidentState: incidentStates,
   AlertState: alertStates,
   ScheduledMaintenanceState: [
@@ -669,7 +927,7 @@ const store = {
   IncidentOwnerRule: [],
   AlertLabelRule: [],
   IncidentLabelRule: [],
-  ScheduledMaintenance: [],
+  ScheduledMaintenance: scheduledMaintenances,
   Monitor: monitors,
   RecommendationDismissal: [],
   MonitorStatus: [
@@ -691,7 +949,7 @@ const store = {
   IncidentSeverity: [criticalIncident],
   AlertSeverity: [warningAlert],
   OnCallDutyPolicy: [],
-  Label: [],
+  Label: [PRODUCTION_LABEL],
   TelemetryIngestionKey: [
     {
       _id: uuid("59000000", 1),
@@ -705,7 +963,57 @@ const store = {
   Service: [],
   MetricType: [],
   LogSavedView: [],
+  // What the traces viewer offers to narrow by, none of which a walk here reads.
+  DockerHost: [],
+  PodmanHost: [],
+  KubernetesCluster: [],
+  TraceSavedView: [],
 };
+
+/*
+ * What the driver sent for a signed boot, as this cloud's. A Service row per name, as the ingest
+ * makes them, for the control plane map to name its nodes by.
+ */
+const serviceIdOfName = new Map();
+const spanStore = TRACES
+  ? spanRowsFromRecording(TRACES, {
+      cloudName: estate.cloud.name,
+      loadedAt: LOADED_AT,
+      serviceIdOf: (name) => {
+        if (!serviceIdOfName.has(name)) {
+          const id = uuid("77000000", serviceIdOfName.size + 1);
+          serviceIdOfName.set(name, id);
+          store.Service.push({ _id: id, name: name, serviceColor: "#6366f1" });
+        }
+        return serviceIdOfName.get(name);
+      },
+    })
+  : [];
+
+function spansFor(query) {
+  const trace = query?.traceId;
+  const traces =
+    trace && trace.values
+      ? trace.values.map(String)
+      : trace
+        ? [String(trace)]
+        : null;
+
+  return spanStore.filter((span) => {
+    if (traces && !traces.includes(span.traceId)) {
+      return false;
+    }
+    if (query?.isEntrySpan === true && !span.isEntrySpan) {
+      return false;
+    }
+    for (const [key, wanted] of Object.entries(query?.attributes || {})) {
+      if (span.attributes[key] !== wanted) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
 
 for (const name of ARCHIVABLE_VALUE_TABLE_NAMES) {
   for (const record of store[name] || []) {
@@ -844,6 +1152,7 @@ ModelAPI.getList = async (options) => {
   if (failsInventory(modelName) || failsEvents(modelName)) {
     throw new Error(SERVER_ERROR);
   }
+  refuseUnlessRoleMay(options.modelType, "read");
 
   const data = rows(options.modelType, options.query, options.sort);
   if (!data) {
@@ -867,6 +1176,7 @@ ModelAPI.count = async (options) => {
   if (failsEvents(modelName) || failsInventory(modelName)) {
     throw new Error(SERVER_ERROR);
   }
+  refuseUnlessRoleMay(options.modelType, "read");
 
   const data = rows(options.modelType, options.query);
   if (!data) {
@@ -884,6 +1194,7 @@ ModelAPI.getItem = async (options) => {
     id,
     select: serialize(options.select),
   });
+  refuseUnlessRoleMay(options.modelType, "read");
 
   // A test is picked up on the first read, and has its answer on the next.
   if (modelName === "OpenStackCloudConnectionTest") {
@@ -949,9 +1260,29 @@ function refuseWrite() {
   }
 }
 
+let writtenRows = 0;
+
 function writeRow(modelName, id, data) {
   if (modelName === "OpenStackCloud") {
     return writeCloud(store.OpenStackCloud, id, data, store.Probe);
+  }
+
+  // A row of a table the walks read back: only what a page reads comes back.
+  if (WRITABLE_TABLES.has(modelName)) {
+    const existing = store[modelName].find((candidate) => {
+      return candidate._id === id;
+    });
+    if (existing) {
+      Object.assign(existing, serialize(data));
+      return existing;
+    }
+    writtenRows += 1;
+    const created = {
+      ...serialize(data),
+      _id: id || uuid("84000000", writtenRows),
+    };
+    store[modelName].push(created);
+    return created;
   }
 
   // A row of another table is a read the walks do not model, and they say so.
@@ -959,10 +1290,35 @@ function writeRow(modelName, id, data) {
   return { _id: id };
 }
 
+const WRITABLE_TABLES = new Set([
+  "OpenStackCloudOwnerUser",
+  "OpenStackCloudOwnerTeam",
+  "OpenStackCloudOwnerRule",
+  "OpenStackCloudLabelRule",
+]);
+
+// What the server does on a delete: the row goes, and a cloud takes its owners with it.
+ModelAPI.deleteItem = async (options) => {
+  const modelName = tableName(options.modelType);
+  const id = plain(options.id);
+  fixture.writeRequests.push({ kind: "delete", modelName, id });
+  refuseUnlessRoleMay(options.modelType, "delete");
+  refuseWrite();
+
+  if (!store[modelName]) {
+    fixture.unhandled.push({ kind: "delete", modelName });
+    return;
+  }
+  store[modelName] = store[modelName].filter((candidate) => {
+    return candidate._id !== id;
+  });
+};
+
 ModelAPI.create = async (options) => {
   const modelName = tableName(options.modelType);
   const data = getWrittenValues(options.model, options.modelType);
   fixture.writeRequests.push({ kind: "create", modelName, data });
+  refuseUnlessRoleMay(options.modelType, "create");
   refuseWrite();
 
   if (modelName === "OpenStackCloudConnectionTest") {
@@ -988,6 +1344,7 @@ ModelAPI.createOrUpdate = async (options) => {
     id,
     data,
   });
+  refuseUnlessRoleMay(options.modelType, id ? "update" : "create");
   refuseWrite();
 
   return { data: writeRow(modelName, id, data), miscData: {} };
@@ -1002,6 +1359,7 @@ ModelAPI.updateById = async (options) => {
     id,
     data: serialize(options.data),
   });
+  refuseUnlessRoleMay(options.modelType, "update");
   refuseWrite();
 
   writeRow(modelName, id, options.data);
@@ -1394,17 +1752,43 @@ function seriesOf(metricName, attributes) {
       ];
     case "system.memory.utilization":
       return [seriesFromRow({ state: attributes["state"] }, 0.62)];
-    // What its disks and network move: no walk reads a number from these.
+    // The same agent's byte counters, which only ever climb.
     case "system.disk.io":
+      return [
+        seriesFromRow(
+          { device: "sda", direction: "read" },
+          5e12,
+          5 * 1024 * 1024 * 86400,
+        ),
+        seriesFromRow(
+          { device: "sda", direction: "write" },
+          5e12,
+          12 * 1024 * 1024 * 86400,
+        ),
+      ];
     case "system.network.io":
-      return [];
+      return [
+        seriesFromRow(
+          { device: "eth0", direction: "receive" },
+          5e12,
+          30 * 1024 * 1024 * 86400,
+        ),
+        seriesFromRow(
+          { device: "eth0", direction: "transmit" },
+          5e12,
+          20 * 1024 * 1024 * 86400,
+        ),
+      ];
     default:
       /*
        * What libvirt's or Ceilometer's exporter says about an instance. These estates name
-       * neither, as most clouds don't, so a page asks and hears there are none.
+       * neither, as most clouds don't, so a page asks and hears there are none. What a cloud
+       * stands on is drawn from its rows, so those charts have nothing to add yet either.
        */
       return metricName?.startsWith("openstack.instance.") ||
-        metricName?.startsWith("openstack.hypervisor.instances.")
+        metricName?.startsWith("openstack.hypervisor.instances.") ||
+        metricName?.startsWith("rabbitmq_") ||
+        metricName?.startsWith("mysql_")
         ? []
         : null;
   }
@@ -1482,11 +1866,22 @@ AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.listRequests.push({ modelName, query: serialize(options.query) });
 
+  if (modelName.startsWith("Span")) {
+    const data = spansFor(options.query).map((record) => {
+      return Object.assign(new options.modelType(), record);
+    });
+    return {
+      data: data.slice(0, options.limit || 10),
+      count: data.length,
+      skip: 0,
+      limit: options.limit || 10,
+    };
+  }
+
   if (
     modelName.startsWith("Log") ||
     modelName.startsWith("ChangeEvent") ||
     modelName.startsWith("Metric") ||
-    modelName.startsWith("Span") ||
     modelName.startsWith("SecurityEvent")
   ) {
     return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
@@ -1539,15 +1934,16 @@ async function handleApi(method, options) {
         : ok(getInventorySummary(estate.inventory, regionOfBody(body)));
     }
     if (parsed.pathname.includes("/openstack-resource/needs-attention/")) {
-      return FAILS.has("inventory") || FAILS.has("attention")
-        ? failed()
-        : ok(
-            getAttentionRows(
-              estate.inventory,
-              regionOfBody(body),
-              new Date(LOADED_AT),
-            ),
-          );
+      if (FAILS.has("inventory") || FAILS.has("attention")) {
+        return failed();
+      }
+      const attention = getAttentionRows(
+        estate.inventory,
+        regionOfBody(body),
+        new Date(LOADED_AT),
+      );
+      addCephStatusToPools(attention.rows, otherProductsOf(estate));
+      return ok(attention);
     }
     if (parsed.pathname.includes("/openstack-resource/region-summaries/")) {
       return FAILS.has("inventory") || FAILS.has("regions")
@@ -1591,7 +1987,7 @@ async function handleApi(method, options) {
     if (parsed.pathname.includes("/openstack-resource/topology/")) {
       return FAILS.has("inventory") || FAILS.has("topology")
         ? failed()
-        : ok(getTopologyRead(estate.inventory));
+        : ok(getTopologyRead(estate.inventory, body.regionName));
     }
     if (parsed.pathname.includes("/openstack-resource/counts/")) {
       return FAILS.has("inventory") || FAILS.has("counts")
@@ -1605,11 +2001,104 @@ async function handleApi(method, options) {
       const part = estate.inventory.find((row) => {
         return row.kind === body.kind && row.externalId === body.externalId;
       });
-      return part
-        ? ok(getBlastRadius(estate.inventory, part))
+      if (!part) {
+        return new HTTPErrorResponse(
+          404,
+          { message: "That part is not in this cloud's inventory" },
+          {},
+        );
+      }
+      const radius = getBlastRadius(estate.inventory, part);
+      const reach = getReachOfPart(
+        estate.inventory,
+        otherProductsOf(estate),
+        part,
+      );
+      return ok(reach ? { ...radius, acrossProducts: reach } : radius);
+    }
+    // What the rest of OneUptime is, and where it runs: the real rules, over this estate.
+    if (parsed.pathname.includes("/openstack-resource/host-of-machine/")) {
+      return ok({
+        host: getHostOfMachine(
+          estate.inventory,
+          otherProductsOf(estate),
+          body.machineName,
+        ),
+      });
+    }
+    if (parsed.pathname.includes("/openstack-resource/reach-of-instance/")) {
+      return ok(
+        getReachOfInstance(
+          estate.inventory,
+          otherProductsOf(estate),
+          body.instanceId,
+        ),
+      );
+    }
+    if (parsed.pathname.includes("/openstack-resource/placement-of-host/")) {
+      return ok({
+        placement: getPlacementOfHost(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+        ),
+      });
+    }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/placement-of-kubernetes-node/",
+      )
+    ) {
+      return ok({
+        placement: getPlacementOfKubernetesNode(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+          body.nodeName,
+        ),
+      });
+    }
+    if (parsed.pathname.includes("/openstack-resource/placement-of-service/")) {
+      return ok({
+        placements: getPlacementsOfService(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+        ),
+      });
+    }
+    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")) {
+      fixture.writeRequests.push({
+        kind: "storage-pool-ceph-confirm",
+        data: serialize(body),
+      });
+      return answerStoragePoolCeph(
+        estate.inventory,
+        body.externalId,
+        body,
+        LOADED_AT,
+      )
+        ? ok({})
         : new HTTPErrorResponse(
             404,
-            { message: "That part is not in this cloud's inventory" },
+            { message: "That pool or that Ceph cluster is not in this project" },
+            {},
+          );
+    }
+    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph/")) {
+      const answer = getStoragePoolCeph(
+        estate.inventory,
+        otherProductsOf(estate),
+        body.externalId,
+      );
+      return answer
+        ? ok(answer)
+        : new HTTPErrorResponse(
+            404,
+            { message: "That pool is not in this cloud's inventory" },
             {},
           );
     }
@@ -1652,7 +2141,27 @@ async function handleApi(method, options) {
         values: [],
       });
     }
+    // A cloud's Traces: what the viewer offers, none of which a walk here narrows by.
+    if (parsed.pathname.endsWith("/telemetry/traces/get-attributes")) {
+      return ok({ attributes: ["resource.openstack.cloud.name"] });
+    }
+    if (parsed.pathname.endsWith("/telemetry/traces/histogram")) {
+      return ok({ buckets: [] });
+    }
+    if (parsed.pathname.endsWith("/telemetry/traces/facets")) {
+      return ok({ facets: {} });
+    }
     // A part's Metrics: the metric catalog it reads.
+    // The fixture holds no logs, and what it is asked for is what a walk reads.
+    if (parsed.pathname.endsWith("/telemetry/logs/histogram")) {
+      return ok({ buckets: [] });
+    }
+    if (parsed.pathname.endsWith("/telemetry/logs/facets")) {
+      return ok({ facets: {} });
+    }
+    if (parsed.pathname.endsWith("/telemetry/logs/get-attributes")) {
+      return ok({ attributes: [] });
+    }
     if (parsed.pathname.endsWith("/telemetry/metrics/get-attributes")) {
       return ok({
         attributes: [
@@ -1733,6 +2242,7 @@ function withNavigation(Component, pageKey) {
 
 const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW, CloudOverview],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS, CloudHypervisors],
@@ -1774,9 +2284,21 @@ const PAGES = [
     CloudControlPlaneDependency,
   ],
   [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY, CloudTopology],
+  [PageMap.OPENSTACK_CLOUD_VIEW_METRICS, CloudMetrics],
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOGS, CloudLogs],
+  [PageMap.OPENSTACK_CLOUD_VIEW_TRACES, CloudTraces],
+  [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, CloudIncidents],
+  [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS, CloudAlerts],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE,
+    CloudScheduledMaintenance,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS, CloudRecommendations],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION, CloudDocumentation],
   [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS, CloudSettings],
+  [PageMap.OPENSTACK_CLOUD_VIEW_OWNERS, CloudOwners],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DELETE, CloudDelete],
+  [PageMap.OPENSTACK_CLOUD_VIEW_FEED, CloudFeed],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),
@@ -1786,6 +2308,72 @@ const PAGES = [
 
 const FixtureLayout = withNavigation(CloudLayout, PageMap.OPENSTACK_CLOUD_VIEW);
 const FixtureCloudsList = withNavigation(CloudsList, PageMap.OPENSTACK_CLOUDS);
+const FixtureArchived = withNavigation(CloudsArchived, PageMap.OPENSTACK_ARCHIVED);
+const FixtureOwnerRules = withNavigation(
+  OwnerRules,
+  PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
+);
+const FixtureLabelRules = withNavigation(
+  LabelRules,
+  PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
+);
+
+/*
+ * The places another product's page draws a cloud's card: the real card, on a page that is
+ * otherwise not modelled here. Those pages' own fixtures hold that each really mounts it
+ * (HostPages, KubernetesPages, ResourceOverviews).
+ */
+function otherProductPage(testId, drawCard) {
+  return function OtherProductPage() {
+    useNavigationHooks();
+    const location = useLocation();
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-8" data-testid={testId}>
+        <p
+          data-testid="stub-page"
+          className="mb-6 break-all font-mono text-sm text-gray-600"
+        >
+          {location.pathname}
+        </p>
+        {drawCard(location.pathname.split("/"))}
+      </main>
+    );
+  };
+}
+
+const OTHER_PRODUCT_PAGES = [
+  [
+    PageMap.HOST_VIEW,
+    otherProductPage("other-product-host", (path) => {
+      return (
+        <OpenStackPlacementOfHost hostId={new ObjectID(path[path.length - 1])} />
+      );
+    }),
+  ],
+  [
+    PageMap.SERVICE_VIEW,
+    otherProductPage("other-product-service", (path) => {
+      return (
+        <OpenStackPlacementOfService
+          serviceId={new ObjectID(path[path.length - 1])}
+        />
+      );
+    }),
+  ],
+  [
+    PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
+    otherProductPage("other-product-kubernetes-node", (path) => {
+      return (
+        <OpenStackPlacementOfKubernetesNode
+          clusterId={new ObjectID(path[path.length - 3])}
+          nodeName={path[path.length - 1]}
+        />
+      );
+    }),
+  ],
+].map(([pageKey, Page]) => {
+  return { path: RouteMap[pageKey].toString(), Page };
+});
 
 // A page the views link to that is not modelled: says where it is.
 function StubPage() {
@@ -1827,6 +2415,18 @@ function FixtureApp() {
           path={RouteMap[PageMap.OPENSTACK_CLOUDS].toString()}
           element={<FixtureCloudsList />}
         />
+        <Route
+          path={RouteMap[PageMap.OPENSTACK_ARCHIVED].toString()}
+          element={<FixtureArchived />}
+        />
+        <Route
+          path={RouteMap[PageMap.OPENSTACK_SETTINGS_OWNER_RULES].toString()}
+          element={<FixtureOwnerRules />}
+        />
+        <Route
+          path={RouteMap[PageMap.OPENSTACK_SETTINGS_LABEL_RULES].toString()}
+          element={<FixtureLabelRules />}
+        />
         <Route element={<FixtureLayout />}>
           {PAGES.map((page) => {
             return (
@@ -1834,6 +2434,11 @@ function FixtureApp() {
             );
           })}
         </Route>
+        {OTHER_PRODUCT_PAGES.map((page) => {
+          return (
+            <Route key={page.path} path={page.path} element={<page.Page />} />
+          );
+        })}
         <Route path="*" element={<StubPage />} />
       </Routes>
     </>
