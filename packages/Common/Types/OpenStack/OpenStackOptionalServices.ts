@@ -103,6 +103,8 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
        */
       upMetricName: "openstack_loadbalancer_up",
       isEmptyWhenStopped: true,
+      // A probe reads the catalog first, so it can say 0 for an API that is stopped.
+      isReadByProbe: true,
     },
     {
       service: OpenStackServiceType.Dns,

@@ -706,6 +706,11 @@ describe("the access the agent asks for", () => {
       ["object-store", "/v1/*/"],
       ["database", "/v1.0/*/mgmt/instances"],
       ["metric", "/v1/status"],
+      // A probe's reads of CloudKitty, the last for its API check. No exporter reads it.
+      ["rating", "/"],
+      ["rating", "/v2/summary"],
+      ["rating", "/v1/report/summary"],
+      ["rating", "/v1/info/metrics"],
     ])("%s %s", (service, rulePath) => {
       expect(pathsOf(service)).toContain(rulePath);
     });

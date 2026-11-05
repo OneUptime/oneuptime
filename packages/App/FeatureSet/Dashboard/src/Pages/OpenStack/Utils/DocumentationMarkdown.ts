@@ -1018,7 +1018,7 @@ ${codeBlock(
 # placement.conf: placement. Keystone needs nothing.
 # Where your cloud runs them: octavia.conf: load-balancer. ironic.conf: baremetal. heat.conf: orchestration.
 # magnum.conf: container-infra. manila.conf: sharev2. designate.conf: dns. barbican.conf: key-manager.
-# trove.conf: database. gnocchi.conf: metric. Swift's proxy-server.conf: object-store, under
+# trove.conf: database. gnocchi.conf: metric. cloudkitty.conf: rating. Swift's proxy-server.conf: object-store, under
 # [filter:authtoken], with include_service_catalog = True beside it, or Swift answers 500.
 [keystone_authtoken]
 service_type = compute`,

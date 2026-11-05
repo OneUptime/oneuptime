@@ -1586,7 +1586,7 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         });
       expect(radius.loadBalancerCount).toBe(1);
       expect(
-        radius.loadBalancers?.map((owner) => {
+        radius.loadBalancers?.map((owner: { name: string | null }) => {
           return owner.name;
         }),
       ).toEqual(["on-host"]);

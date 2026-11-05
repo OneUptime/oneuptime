@@ -147,6 +147,7 @@ The same for the services a cloud may not run, where yours runs them:
 | `barbican.conf` | `key-manager` |
 | `trove.conf` | `database` |
 | `gnocchi.conf` | `metric` |
+| `cloudkitty.conf` | `rating`, for a probe, since the exporter doesn't read CloudKitty |
 | `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
 
 On the services a cloud may not run, what each level got on real clouds differs from the tables above in four ways:
@@ -483,7 +484,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID=...
 ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 ```
 
-Where each way of deploying a cloud keeps those two settings. The first row is the one OneUptime's test rig follows on a real DevStack; the rest say what each tool's own documentation says, and have not been followed on a real deployment:
+Where each way of deploying a cloud keeps those two settings. Only the first row has been run, on a real DevStack, where this credential re-enabled a real `nova-compute` and Nova took the evacuation of a dead host's instances, and everything else it tried was refused: reads and other services with a 401, and other actions on a server with a 403. The rest say what each tool's own documentation says, and have not been followed on a real deployment:
 
 | Deployment | `service_type` | The policy file |
 | --- | --- | --- |

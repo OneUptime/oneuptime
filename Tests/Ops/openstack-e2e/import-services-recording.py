@@ -113,6 +113,16 @@ GROUPS = {
             "cli": ("gnocchi ",),
         },),
     },
+    "services-cloudkitty": {
+        "parts": ({
+            # The exporter has no CloudKitty. What it does read here is the Gnocchi behind it.
+            "exporter": ("gnocchi",),
+            "calls": ("cloudkitty-",),
+            "cli": ("openstack rating",),
+            # Which instances a project's rate is for.
+            "first_scene": {"scene": "rated", "exporter": (), "calls": ("nova-servers",)},
+        },),
+    },
 }
 
 # Names other things in the repository read a fixture folder by.

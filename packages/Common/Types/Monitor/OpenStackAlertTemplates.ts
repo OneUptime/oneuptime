@@ -1139,7 +1139,7 @@ const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] Compute Service Disabled",
-        incidentDescription: `A nova-compute was disabled with no maintenance event in progress covering its host, so nothing new can be scheduled there. The reason it gives is named above, if it gives one, and a reason starting AUTO: means Nova disabled it itself, so check libvirt on that host. If this is planned work, put a maintenance event on the host, and this stays quiet for as long as it is on. If it is not, openstack compute service set --enable puts the host back. The incident resolves on its own once it is enabled again, or an event covers it.`,
+        incidentDescription: `A nova-compute was disabled with no maintenance event in progress covering its host, so nothing new can be scheduled there. The reason it gives, if it gives one, is under Affected resource, and a reason starting AUTO: means Nova disabled it itself, so check libvirt on that host. If this is planned work, put a maintenance event on the host, and this stays quiet for as long as it is on. If it is not, openstack compute service set --enable puts the host back. The incident resolves on its own once it is enabled again, or an event covers it.`,
         criteriaName: "Compute Service Disabled - no maintenance event",
         criteriaDescription:
           "Triggers when a nova-compute stays disabled for the whole window.",
@@ -2791,7 +2791,8 @@ const shareServiceDownTemplate: OpenStackAlertTemplate = {
 
 // --- Load balancers ---
 
-const OCTAVIA_LOAD_BALANCER: string = "openstack_loadbalancer_loadbalancer_status";
+const OCTAVIA_LOAD_BALANCER: string =
+  "openstack_loadbalancer_loadbalancer_status";
 const OCTAVIA_POOL: string = "openstack_loadbalancer_pool_status";
 const OCTAVIA_AMPHORA: string = "openstack_loadbalancer_amphora_status";
 
@@ -2978,7 +2979,8 @@ const poolWithoutHealthyMembersTemplate: OpenStackAlertTemplate =
     statuses: new Set(["ERROR"]),
     groupByAttributeKeys: LOAD_BALANCER_GROUP,
     incidentDescription: `Every member of this pool fails its health check, so the load balancer has nowhere to send what it gets. The pool and the load balancer still read ACTIVE, because provisioning is a different thing from health. Check openstack loadbalancer member list for the pool named above, then whether the members are running, listen on their port and answer the health monitor's path, and whether their security group lets the amphora's checks in. The incident resolves on its own once a member is healthy again.`,
-    criteriaName: "Pool Has No Healthy Members - operating ERROR for the whole window",
+    criteriaName:
+      "Pool Has No Healthy Members - operating ERROR for the whole window",
     criteriaDescription:
       "Triggers when a pool's operating status is ERROR for the whole window.",
   });

@@ -9,9 +9,12 @@ import {
 import "@testing-library/jest-dom";
 import { cleanup, configure, screen } from "@testing-library/react";
 import * as React from "react";
+import fs from "fs";
 import path from "path";
 import { OpenStackResourceBufferEntry } from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { OPENSTACK_LOAD_BALANCER_STUCK_MINUTES } from "../../../Types/OpenStack/OpenStackHealthRules";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OpenStackCloudAmphoraDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AmphoraDetail";
 import OpenStackCloudLoadBalancerDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/LoadBalancerDetail";
@@ -23,6 +26,7 @@ import {
   scanRecordedSeries,
 } from "../../Helpers/OpenStackRecordedRows";
 import {
+  CLOUD_NAME,
   Row,
   attentionRowsOf,
   partPath,
@@ -101,8 +105,33 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: () => {
-        return <div data-testid="resource-metrics-tab" />;
+      default: (props: {
+        queryConfigs: Array<{
+          metricQueryData: {
+            filterData: {
+              metricName: string;
+              attributes: Record<string, string>;
+            };
+          };
+        }>;
+      }) => {
+        return (
+          <div
+            data-testid="resource-metrics-tab"
+            data-metrics={props.queryConfigs
+              .map(
+                (query: {
+                  metricQueryData: { filterData: { metricName: string } };
+                }) => {
+                  return query.metricQueryData.filterData.metricName;
+                },
+              )
+              .join(",")}
+            data-attributes={JSON.stringify(
+              props.queryConfigs[0]?.metricQueryData.filterData.attributes,
+            )}
+          />
+        );
       },
     };
   },
@@ -537,7 +566,7 @@ describe("an amphora's page", () => {
         ? {
             ...row,
             facts: {
-              ...(row["facts"] as object),
+              ...(row["facts"] as Record<string, unknown>),
               certExpiresAt: new Date(
                 Date.now() + 10.5 * 24 * 60 * 60 * 1000,
               ).toISOString(),
@@ -568,7 +597,7 @@ describe("an amphora's page", () => {
         ? {
             ...row,
             facts: {
-              ...(row["facts"] as object),
+              ...(row["facts"] as Record<string, unknown>),
               certExpiresAt: new Date(
                 Date.now() - 2.5 * 24 * 60 * 60 * 1000,
               ).toISOString(),
@@ -598,5 +627,220 @@ describe("an amphora's page", () => {
     expect(
       await screen.findByTestId("openstack-amphora-not-reported"),
     ).toHaveTextContent(/not in this cloud's inventory/);
+  });
+});
+
+/*
+ * What only a probe reads. No recording of a probe's own rows exists for the pages to be read on, so these
+ * rows are made from the recorded API answers the probe reads (octavia-listeners, octavia-members-*), the
+ * way the probe's collector makes them, and are hand-checked against it: the collection test
+ * (Probe/Tests/Utils/OpenStack/OpenStackOctaviaCollection.test.ts) holds what the collector makes.
+ */
+function fromApi(
+  scene: string,
+  call: string,
+  key: string,
+  make: (item: Record<string, unknown>) => Row,
+): Array<Row> {
+  const answer: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(path.join(FOLDER, scene, "api", `${call}.json`), "utf8"),
+  ) as Record<string, unknown>;
+  return (answer[key] as Array<Record<string, unknown>>).map(make);
+}
+
+function probeRows(scene: string, poolCall: string): Array<Row> {
+  return [
+    ...fromApi(
+      scene,
+      "octavia-listeners",
+      "listeners",
+      (item: Record<string, unknown>): Row => {
+        return {
+          _id: id(),
+          kind: OpenStackResourceKind.Listener,
+          name: item["name"],
+          externalId: item["id"],
+          regionName: "RegionOne",
+          status: item["provisioning_status"],
+          stateChangedAt: minutesAgo(5),
+          facts: {
+            operatingStatus: item["operating_status"],
+            protocol: item["protocol"],
+            protocolPort: item["protocol_port"],
+            loadBalancerId: (item["loadbalancers"] as Array<{ id: string }>)[0]
+              ?.id,
+          },
+          lastSeenAt: new Date(),
+        };
+      },
+    ),
+    ...fromApi(
+      scene,
+      poolCall,
+      "members",
+      (item: Record<string, unknown>): Row => {
+        return {
+          _id: id(),
+          kind: OpenStackResourceKind.LoadBalancerMember,
+          name: item["name"],
+          externalId: item["id"],
+          regionName: "RegionOne",
+          status: item["provisioning_status"],
+          stateChangedAt: minutesAgo(5),
+          facts: {
+            operatingStatus: item["operating_status"],
+            poolId: "191471d8-1ec1-4158-a922-b009bfdaac33",
+            address: item["address"],
+            protocolPort: item["protocol_port"],
+          },
+          lastSeenAt: new Date(),
+        };
+      },
+    ),
+  ];
+}
+
+describe("what a probe adds", () => {
+  test("a pool lists its members and each one's health, from the recorded answer", async () => {
+    server.rows = [
+      ...recorded("pool-members-down"),
+      ...probeRows("pool-members-down", "octavia-members-ou-lb-pool"),
+    ];
+    const pool: string = idOf(
+      server.rows,
+      OpenStackResourceKind.LoadBalancerPool,
+      "ou-lb-pool",
+    );
+
+    await renderPage(
+      OpenStackCloudLoadBalancerPoolDetail,
+      partPath("load-balancer-pools", pool),
+    );
+
+    const members: HTMLElement = await screen.findByTestId(
+      "openstack-load-balancer-pool-members",
+    );
+    expect(
+      screen.getAllByTestId("openstack-load-balancer-pool-member"),
+    ).toHaveLength(2);
+    expect(members).toHaveTextContent("ou-lb-pool-member-1");
+    expect(members).toHaveTextContent("ERROR");
+    expect(
+      screen.queryByTestId("openstack-load-balancer-pool-members-note"),
+    ).toBeNull();
+  });
+
+  test("a load balancer lists its listeners with their ports", async () => {
+    server.rows = [
+      ...recorded("baseline"),
+      ...probeRows("baseline", "octavia-members-ou-lb-pool"),
+    ];
+    const balancer: string = idOf(
+      server.rows,
+      OpenStackResourceKind.LoadBalancer,
+      "ou-lb",
+    );
+
+    await renderPage(
+      OpenStackCloudLoadBalancerDetail,
+      partPath("load-balancers", balancer),
+    );
+
+    expect(
+      await screen.findByTestId("openstack-load-balancer-details-listeners"),
+    ).toHaveTextContent(/ou-lb-listener\s*HTTP:80\s*\(ONLINE\)/);
+  });
+
+  test("on a probe's cloud its traffic is charted, the five series of a load balancer and of its listeners", async () => {
+    server.cloud = Object.assign(new OpenStackCloud(), {
+      name: CLOUD_NAME,
+      collectionMethod: OpenStackCollectionMethod.Probe,
+    });
+    server.rows = recorded("baseline");
+    const balancer: string = idOf(
+      server.rows,
+      OpenStackResourceKind.LoadBalancer,
+      "ou-lb",
+    );
+
+    await renderPage(
+      OpenStackCloudLoadBalancerDetail,
+      partPath("load-balancers", balancer),
+    );
+
+    const charts: Array<HTMLElement> = await screen.findAllByTestId(
+      "resource-metrics-tab",
+    );
+    expect(charts).toHaveLength(2);
+    expect(charts[0]?.getAttribute("data-metrics")).toBe(
+      [
+        "connections_per_second",
+        "active_connections",
+        "bytes_in_per_second",
+        "bytes_out_per_second",
+        "request_errors_per_second",
+      ]
+        .map((suffix: string): string => {
+          return `openstack_loadbalancer_stats_${suffix}`;
+        })
+        .join(","),
+    );
+    expect(charts[0]?.getAttribute("data-attributes")).toContain(
+      `"id":"${balancer}"`,
+    );
+    expect(charts[1]?.getAttribute("data-metrics")).toContain(
+      "openstack_loadbalancer_listener_stats_bytes_out_per_second",
+    );
+    expect(charts[1]?.getAttribute("data-attributes")).toContain(
+      `"loadbalancer_id":"${balancer}"`,
+    );
+    expect(
+      screen.queryByTestId(
+        "openstack-load-balancer-traffic-not-from-the-agent",
+      ),
+    ).toBeNull();
+  });
+
+  test("on the agent's cloud it draws no charts, and says why", async () => {
+    server.rows = recorded("baseline");
+    const balancer: string = idOf(
+      server.rows,
+      OpenStackResourceKind.LoadBalancer,
+      "ou-lb",
+    );
+
+    await renderPage(
+      OpenStackCloudLoadBalancerDetail,
+      partPath("load-balancers", balancer),
+    );
+
+    expect(
+      await screen.findByTestId(
+        "openstack-load-balancer-traffic-not-from-the-agent",
+      ),
+    ).toHaveTextContent(/only a probe reads/);
+    expect(screen.queryByTestId("resource-metrics-tab")).toBeNull();
+  });
+
+  test("the OVN provider's flat charts are explained", async () => {
+    server.cloud = Object.assign(new OpenStackCloud(), {
+      name: CLOUD_NAME,
+      collectionMethod: OpenStackCollectionMethod.Probe,
+    });
+    server.rows = recorded("ovn-provider");
+    const ovn: string = idOf(
+      server.rows,
+      OpenStackResourceKind.LoadBalancer,
+      "ou-lb-ovn",
+    );
+
+    await renderPage(
+      OpenStackCloudLoadBalancerDetail,
+      partPath("load-balancers", ovn),
+    );
+
+    expect(
+      await screen.findByTestId("openstack-load-balancer-traffic-ovn"),
+    ).toHaveTextContent(/reports 0 for every counter/);
   });
 });

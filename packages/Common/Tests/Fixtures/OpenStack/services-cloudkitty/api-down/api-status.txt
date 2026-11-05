@@ -1,0 +1,8 @@
+503 cloudkitty-versions
+503 cloudkitty-info-metrics
+503 cloudkitty-summary-this-month
+503 cloudkitty-report-this-month
+503 cloudkitty-summary-last-month
+503 cloudkitty-report-last-month
+503 cloudkitty-summary-this-month-ou-payments
+503 cloudkitty-report-this-month-ou-payments

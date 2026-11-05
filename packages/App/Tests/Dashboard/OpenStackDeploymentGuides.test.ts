@@ -490,19 +490,42 @@ describe("what the guides say ran is what the recordings say ran", () => {
       "Alertmanager posted no firing webhook",
     );
     expect(setupGuideOf("kolla-ansible").intro).toContain(
-      "its Alertmanager posted nothing",
+      "its Alertmanager had nothing to post",
     );
-    expect(DOCS_PAGE).toContain("its Alertmanager posted nothing");
+    expect(DOCS_PAGE).toContain("its Alertmanager had nothing to post");
   });
 
-  test("OpenStack-Ansible's claims no more than its recording: the agent never ran there", () => {
-    expect(recorded("osa-aio", "problems.txt")).toContain(
-      "full-view: the credential's id and secret are not in what it printed",
+  test("OpenStack-Ansible's guide's commands all worked, but for following a log until stopped", () => {
+    const commands: Array<{ text: string; exit: number }> = commandsOf(
+      recorded("osa-aio", "commands.log"),
     );
-    expect(setupGuideOf("openstack-ansible").intro).toContain(
-      "not been followed end to end",
-    );
-    expect(DOCS_PAGE).toContain("Its agent steps have not run on it");
+
+    expect(commands.length).toBeGreaterThan(5);
+
+    for (const command of commands) {
+      expect({
+        command: command.text,
+        exit: command.text.includes("logs -f") ? 0 : command.exit,
+      }).toEqual({ command: command.text, exit: 0 });
+    }
+
+    const everything: string = commands
+      .map((command: { text: string }): string => {
+        return command.text;
+      })
+      .join("\n");
+
+    for (const ran of [
+      "apt-get install -y curl",
+      "application credential create oneuptime-agent",
+      "install.sh",
+      "openstack-ansible openstack.osa.rabbitmq_server --tags rabbitmq-config",
+      "openstack-ansible openstack.osa.haproxy",
+      "install-logs.sh journald",
+      "openstack-ansible openstack.osa.nova --tags nova-policy-override",
+    ]) {
+      expect(everything).toContain(ran);
+    }
 
     const answered: Array<string> = recorded(
       "osa-aio",
@@ -515,6 +538,26 @@ describe("what the guides say ran is what the recordings say ran", () => {
     for (const line of answered) {
       expect(line).toMatch(/^200 /);
     }
+  });
+
+  test("the guide's line about curl is what its utility container really has", () => {
+    expect(recorded("osa-aio", "utility-has.txt")).not.toContain("curl");
+    expect(guideOf("openstack-ansible").credentialNotes.join("\n")).toContain(
+      "apt-get install -y curl",
+    );
+  });
+
+  test("each tool's Cinder is told the type its catalog names, because keystonemiddleware refuses any other", () => {
+    expect(guideOf("kolla-ansible").credentialNotes.join("\n")).toContain(
+      "kolla-ansible reconfigure -i <inventory> --tags cinder",
+    );
+    expect(guideOf("openstack-ansible").credentialNotes.join("\n")).toContain(
+      "openstack-ansible openstack.osa.cinder --tags cinder-config",
+    );
+    for (const tool of ["kolla-ansible", "openstack-ansible"] as const) {
+      expect(setupGuideOf(tool).intro).toContain("Cinder refused every read");
+    }
+    expect(DOCS_PAGE).toContain("Cinder refused every read");
   });
 });
 
@@ -529,7 +572,9 @@ describe("each guide says plainly how far it has been tested", () => {
       expect(intro).toContain(
         tool === "kolla-ansible"
           ? "no alert has gone from a Kolla-Ansible stack to OneUptime"
-          : "not been followed end to end",
+          : tool === "openstack-ansible"
+            ? "Its commands were then run on a real all-in-one"
+            : "not been followed end to end",
       );
       expect(intro.toLowerCase()).not.toMatch(
         /\b(fully|thoroughly|completely) tested\b|\bverified on\b|\bproduction[- ]ready\b/,

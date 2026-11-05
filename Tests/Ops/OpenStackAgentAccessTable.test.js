@@ -578,6 +578,42 @@ describe("what the recordings show, as the pages say it", () => {
     },
   );
 
+  test("with the rules, what a probe reads of CloudKitty answers as it does an admin, and a write doesn't", () => {
+    const recorded = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          FIXTURES,
+          "services-cloudkitty",
+          "access-check",
+          "matrix-access-rules.json",
+        ),
+        "utf8",
+      ),
+    );
+    const reads = recorded.reads.filter((row) => {
+      return row.service === "rating";
+    });
+    expect(
+      reads.map((row) => {
+        return row.path.split("?")[0];
+      }),
+    ).toEqual(["/", "/v1/info/metrics", "/v2/summary", "/v1/report/summary"]);
+    for (const row of reads) {
+      expect({
+        read: row.read,
+        level1: row.results["monitoring-admin-get"].status,
+        rows: row.results["monitoring-admin-get"].count,
+      }).toEqual({
+        read: row.read,
+        level1: 200,
+        rows: row.results.admin.count,
+      });
+    }
+    for (const file of [README, DOCS_PAGE]) {
+      expect(read(file)).toContain("`cloudkitty.conf` | `rating`");
+    }
+  });
+
   test("Octavia's root and Swift's account take rules of their own, and the pages say so", () => {
     expect(
       seriesIn(
@@ -750,6 +786,7 @@ describe("what the recordings show, as the pages say it", () => {
     ).toEqual([
       "load-balancer: load balancers",
       "load-balancer: amphorae",
+      "load-balancer: listeners",
       "baremetal: nodes",
       "orchestration: stacks",
       "orchestration: services",

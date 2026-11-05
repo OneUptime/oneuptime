@@ -17,6 +17,7 @@ jest.mock("../../../../Models/DatabaseModels/Index", () => {
 
 import { AddFieldsPanelCopy } from "../../../../UI/Components/Workflow/FieldPicker/AddFieldsPanel";
 import { FieldPickerOptionsCopy } from "../../../../UI/Components/Workflow/FieldPicker/FieldPickerOptions";
+import { LinkedRecordCopy } from "../../../../UI/Components/Workflow/LinkedRecord/LinkedRecordInput";
 import { ModelFieldPickerCopy } from "../../../../UI/Components/Workflow/ModelFieldPicker";
 import {
   RUN_WORKFLOW_SUBMIT_TITLE,
@@ -189,6 +190,10 @@ const SCREENS: Array<{ name: string; keys: Array<string> }> = [
   {
     name: "If / Else",
     keys: [...CONDITION_CATALOG_WORDS],
+  },
+  {
+    name: "a setting that lists the project's records",
+    keys: keysOf(LinkedRecordCopy),
   },
 ];
 

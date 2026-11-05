@@ -212,6 +212,16 @@ Every template reads at least three collections of what it watches, and fires on
 - **When an API is down, its own series go too**, so that service's other templates resolve, and fire again a window after it is back if the fault is still there. If every API reads down at once, look at the exporter first.
 - **A cloud that has no such service stays quiet.** The exporter answers with nothing for a service that is not in the cloud's catalog, and **Network**, **Block Storage**, **Image** and **Placement API Down** do not read that as an outage. **Identity** and **Compute API Down** do, because that is also how the exporter reports Keystone or Nova's API stopped outright, and every cloud has them.
 
+### When one fires
+
+With `nova-compute` stopped, its row on the cloud's **Services** page goes down within minutes:
+
+![The Services page with nova-compute down on its host for 10 minutes, and every other service and API up](/docs/static/images/OpenStackServicesComputeDown.png)
+
+Once that has lasted the template's whole window, **Compute Service Down** opens one incident, which names the host and resolves on its own once the service is back:
+
+![An incident from the Compute Service Down template, naming the host, service and region, saying what happened, with the monitor and the cloud under Affected Resources](/docs/static/images/OpenStackIncidentComputeDown.png)
+
 ### What the services say
 
 Seven more templates read a cloud's logs rather than its metrics, so they are Logs monitors, and they need the agent's [logs profile](/docs/telemetry/openstack#service-logs). Each reads only this cloud's logs, counts what it is looking for, and resolves on its own once the count falls.
@@ -560,6 +570,18 @@ Only a cloud that runs Octavia sends these, and a cloud without it shows no trac
 | `openstack_loadbalancer_loadbalancer_status` | | Max | One series per load balancer, with `provisioning_status`, `operating_status`, `provider`, `vip_address` and `project_id`. Its value is a code for the operating status: read the words. |
 | `openstack_loadbalancer_pool_status` | | Max | One series per pool, with `provisioning_status`, `operating_status`, `protocol` and `lb_algorithm`. A pool whose members are all down still reads 0: read `operating_status`. |
 | `openstack_loadbalancer_amphora_status` | | Max | One series per amphora, with `status`, `role`, `compute_id`, `loadbalancer_id` and `cert_expiration`, a text and not a number. Only an admin may list amphorae. |
+| `openstack_loadbalancer_listener_status` | | Max | One series per listener, always 1, with `provisioning_status`, `operating_status`, `protocol`, `protocol_port` and `loadbalancer_id`. Only a probe sends this. |
+| `openstack_loadbalancer_member_status` | | Max | One series per pool member, always 1, with `operating_status` above all, `pool_id`, `address`, `protocol_port` and `weight`. Only a probe sends this. |
+| `openstack_loadbalancer_stats_active_connections` | `{connection}` | Max | Connections open at the moment of the reading, per load balancer. Only a probe sends this: it reads Octavia's API. |
+| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | Max | Connections opened each second, per load balancer, between two readings. Only a probe sends this. |
+| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | Max | Bytes that arrived each second, per load balancer. Only a probe sends this. |
+| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | Max | Bytes sent each second, per load balancer. Only a probe sends this. |
+| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | Max | Requests that failed each second, per load balancer. Only a probe sends this. |
+| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | Max | The same, per listener. Only a probe sends this. |
+| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | Max | The same, per listener. Only a probe sends this. |
+| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | Max | The same, per listener. Only a probe sends this. |
+| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | Max | The same, per listener. Only a probe sends this. |
+| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | Max | The same, per listener. Only a probe sends this. |
 | `openstack_loadbalancer_total_loadbalancers` | `count` | Max | How many load balancers Octavia listed for this credential, per region. |
 | `openstack_loadbalancer_total_pools` | `count` | Max | How many pools Octavia listed for this credential, per region. |
 | `openstack_loadbalancer_total_amphorae` | `count` | Max | How many amphorae Octavia listed for this credential, per region. |

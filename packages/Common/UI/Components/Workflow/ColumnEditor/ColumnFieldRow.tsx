@@ -11,7 +11,11 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import AutocompleteTextInput from "../../AutocompleteTextInput/AutocompleteTextInput";
 import Button, { ButtonStyleType } from "../../Button/Button";
 import { ModelSchemaColumn } from "../ModelSchema";
-import { columnTypeLabel, controlForColumn } from "./ColumnControl";
+import {
+  columnPickLabel,
+  controlForColumn,
+  getColumnTitle,
+} from "./ColumnControl";
 import {
   ColumnValueMode,
   ModelColumnControl,
@@ -66,10 +70,13 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
   const control: ModelColumnControl = controlForColumn(props.column);
   const issue: string | null = rowIssue(props.row, props.column);
   const isUnknownColumn: boolean = !props.column;
-  const typeLabel: string = columnTypeLabel(props.column);
-  // The model's own name for the field, in the reader's language.
+  const typeLabel: string = columnPickLabel(props.column);
+  /*
+   * The field's name, in the reader's language: the model's own, or what it
+   * points at for a field picked from a list (Incident Severity).
+   */
   const columnTitle: string =
-    translator.translateText(props.column?.title) || "";
+    translator.translateText(getColumnTitle(props.column)) || "";
 
   /*
    * An empty required field is worth pointing at, but only quietly: the step
@@ -161,6 +168,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
           valueMode={props.row.valueMode}
           text={props.row.text}
           values={props.row.values}
+          linkedTableName={props.column?.linkedTableName}
           placeholder={props.column?.example || props.column?.placeholder}
           ariaLabelledby={isUnknownColumn ? undefined : labelId}
           autoFocus={props.autoFocus}

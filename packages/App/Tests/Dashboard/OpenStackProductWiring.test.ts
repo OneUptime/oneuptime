@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import { isOpenStackCountable } from "Common/Types/OpenStack/OpenStackCounts";
+import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import fs from "fs";
 import path from "path";
 import {
@@ -211,11 +213,6 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
   [["Settings", "LabelRules.tsx"], "OPENSTACK_SETTINGS_LABEL_RULES"],
 ];
 
-// Pages later issues build. Their keys stay; nothing mounts or links them yet.
-const LATER_PAGE_KEYS: ReadonlyArray<string> = [
-  "OPENSTACK_CLOUD_VIEW_INSIGHTS",
-];
-
 const VIEW_PAGE_KEYS: ReadonlyArray<string> = MOUNTED_VIEW_PAGES.map(
   (entry: [string, string]): string => {
     return entry[1];
@@ -234,7 +231,6 @@ const EVERY_PAGE_KEY: ReadonlyArray<string> = [
   ...PRODUCT_PAGE_KEYS,
   "OPENSTACK_SETTINGS_OWNER_RULE_VIEW",
   "OPENSTACK_SETTINGS_LABEL_RULE_VIEW",
-  ...LATER_PAGE_KEYS,
 ];
 
 function linkedPageKeysOf(source: string): Array<string> {
@@ -367,13 +363,6 @@ describe("every page of this merge is mounted, and nothing else is", () => {
     },
   );
 
-  test.each(LATER_PAGE_KEYS)(
-    "%s is left to a later issue: no route, no lazy import",
-    (key: string) => {
-      expect(routeCode).not.toContain(key);
-    },
-  );
-
   test("no page of a later issue, or of Proxmox's, is imported", () => {
     for (const page of [
       "Insights",
@@ -443,6 +432,39 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   });
 });
 
+/*
+ * A route below a cloud's layout has to match all that is left of the address, so one that takes fewer
+ * segments than its address has never matches and its page is blank. Only in the real app: the E2E
+ * fixture mounts each page at its whole address, and a live run is what found this.
+ */
+describe("a page's route is as deep as its address", () => {
+  const routeMap: string = readSource("Utils", "RouteMap.ts");
+  const mounted: Array<[string, number]> = Array.from(
+    stripComments(readSource("Routes", "OpenStackRoutes.tsx")).matchAll(
+      /getLastPathForKey\(\s*PageMap\.([A-Z_]+)(?:,\s*(\d+))?,?\s*\)/g,
+    ),
+  ).map((match: RegExpMatchArray): [string, number] => {
+    return [match[1]!, Number(match[2] || 1)];
+  });
+
+  test("the routes are found, so the checks below check something", () => {
+    expect(mounted.length).toBeGreaterThan(70);
+    expect(mounted).toContainEqual([
+      "OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL",
+      2,
+    ]);
+  });
+
+  test.each(mounted)("%s takes %d", (key: string, count: number) => {
+    const below: string | undefined = new RegExp(
+      `\\[PageMap\\.${key}\\]:\\s*\`\\$\\{RouteParams\\.ModelID\\}/([^\`]+)\``,
+    ).exec(routeMap)?.[1];
+
+    // Only the product's own Documentation isn't below a cloud, and it is one segment.
+    expect(count).toBe(below ? below.split("/").length : 1);
+  });
+});
+
 describe("the side menus have no dead links", () => {
   const routes: string = stripComments(
     readSource("Routes", "OpenStackRoutes.tsx"),
@@ -461,15 +483,6 @@ describe("the side menus have no dead links", () => {
       expect(dense(routes)).toContain(`RouteMap[PageMap.${key}]`);
     }
   });
-
-  test.each(LATER_PAGE_KEYS)(
-    "the cloud menu does not link to %s",
-    (key: string) => {
-      expect(
-        stripComments(readSource("Pages", "OpenStack", "View", "SideMenu.tsx")),
-      ).not.toContain(`PageMap.${key}`);
-    },
-  );
 
   test("the product menu links to the list, archive, docs and rules", () => {
     const sideMenu: string = dense(
@@ -646,6 +659,49 @@ describe("a service a cloud may not run", () => {
         ),
       ),
     ).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
+  });
+});
+
+describe("a page's limited view notice", () => {
+  /*
+   * The notice counts the page's rows by project, so a kind that can't be counted fails its
+   * whole read: the request is refused and the notice never shows. Only a live stack showed it.
+   */
+  test("is only given a kind that can be counted by project", () => {
+    const viewFolder: string = path.join(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Pages/OpenStack/View",
+    );
+    const kinds: Set<string> = new Set<string>();
+
+    for (const file of fs.readdirSync(viewFolder)) {
+      if (!file.endsWith(".tsx")) {
+        continue;
+      }
+
+      const source: string = fs.readFileSync(
+        path.join(viewFolder, file),
+        "utf8",
+      );
+
+      for (const match of source.matchAll(
+        /<OpenStackLimitedViewNotice\b[^>]*?kind=\{OpenStackResourceKind\.([A-Za-z]+)\}/gs,
+      )) {
+        kinds.add(match[1] as string);
+      }
+    }
+
+    expect(kinds.size).toBeGreaterThan(5);
+
+    for (const kind of kinds) {
+      expect({
+        kind,
+        isCountable: isOpenStackCountable(
+          OpenStackResourceKind[kind as keyof typeof OpenStackResourceKind],
+          "project",
+        ),
+      }).toEqual({ kind, isCountable: true });
+    }
   });
 });
 
