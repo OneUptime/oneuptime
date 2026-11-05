@@ -187,9 +187,6 @@ const ROW_OF = {
   "orchestration:stacks": (project) => {
     return { id: `stack-${project}`, project };
   },
-  "sharev2:shares, all projects": (project) => {
-    return { id: `share-${project}`, project_id: project };
-  },
 };
 
 function rowsIn(read, projects) {
@@ -1290,9 +1287,6 @@ describe("a plain reader, and the trap", () => {
     ["sharev2: pools"],
     ["container-infra: services"],
     ["baremetal: conductors"],
-    ["sharev2: shares, all projects"],
-    ["sharev2: services"],
-    ["sharev2: pools"],
     ["dns: zones, all projects"],
     ["key-manager: secrets"],
     ["key-manager: orders"],
