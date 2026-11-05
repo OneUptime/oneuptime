@@ -588,7 +588,9 @@ describe("what it says", () => {
     expect(rows).toHaveLength(3);
     // What is failing is told apart from what is refused, and comes first.
     expect(rows[0]).toHaveAttribute("data-access", "Failing");
-    expect(rows[0]).toHaveTextContent("Networking (Neutron), RegionOne: networks");
+    expect(rows[0]).toHaveTextContent(
+      "Networking (Neutron), RegionOne: networks",
+    );
     expect(rows[1]).toHaveAttribute("data-access", "Refused");
     expect(rows[1]).toHaveTextContent("Compute (Nova), RegionOne: hypervisors");
     expect(rows[1]).toHaveTextContent(

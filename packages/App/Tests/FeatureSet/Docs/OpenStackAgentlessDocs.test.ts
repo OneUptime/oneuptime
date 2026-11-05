@@ -356,8 +356,7 @@ describe("from the API and Terraform", () => {
     );
   }
 
-  const EXAMPLE: string =
-    PAGE.split("```hcl")[1]?.split("```")[0] || "";
+  const EXAMPLE: string = PAGE.split("```hcl")[1]?.split("```")[0] || "";
 
   it("names the resource as the provider does, and links its page in the API reference", () => {
     expect(EXAMPLE).toContain(
@@ -396,7 +395,9 @@ describe("from the API and Terraform", () => {
         "\n## ",
       )[0] || "";
     const words: Array<string> = Array.from(
-      section.split("```hcl")[0]!.concat(section.split("```")[2] || "")
+      section
+        .split("```hcl")[0]!
+        .concat(section.split("```")[2] || "")
         .matchAll(/`([a-z]+(?:_[a-z0-9]+)+)`/g),
     )
       .map((match: RegExpMatchArray): string => {

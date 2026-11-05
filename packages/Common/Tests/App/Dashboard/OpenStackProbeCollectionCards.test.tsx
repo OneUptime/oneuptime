@@ -537,10 +537,12 @@ describe("the Overview's Data Collection card", () => {
       expect(
         screen.getByText("The probe did not pick this up"),
       ).toBeInTheDocument();
-      expect(screen.getByTestId("openstack-collection-status")).toHaveTextContent(
-        /and no probe has come for it\./,
-      );
-      expect(screen.getByTestId("openstack-collection-status")).toHaveTextContent(
+      expect(
+        screen.getByTestId("openstack-collection-status"),
+      ).toHaveTextContent(/and no probe has come for it\./);
+      expect(
+        screen.getByTestId("openstack-collection-status"),
+      ).toHaveTextContent(
         "Check that the probe is connected on the Probes page.",
       );
     });
