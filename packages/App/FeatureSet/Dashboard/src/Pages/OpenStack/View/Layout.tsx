@@ -60,6 +60,7 @@ const OpenStackCloudViewBody: FunctionComponent<{
           containerClusters: summary.containerClusterCount,
           shares: summary.shareCount,
           databases: summary.databaseInstanceCount,
+          dnsZones: summary.dnsZoneCount,
           optionalServices: summary.optionalServices,
           bareMetalNodes: summary.bareMetalNodeCount,
         });

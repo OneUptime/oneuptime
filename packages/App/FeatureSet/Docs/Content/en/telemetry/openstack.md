@@ -809,6 +809,26 @@ Manila's API carries on answering without its other services, so on a cloud the 
 
 A cloud without Manila costs nothing for it: the exporter answers with nothing, and that makes no row. If Manila leaves Keystone's catalog, its rows go about 15 minutes after that starts, as [Heat's and Magnum's do](#heat-and-magnum).
 
+## Designate
+
+A cloud that runs Designate gets **DNS Zones** under **Network** on its own, and one that doesn't shows no trace of it. Each zone has its status in Designate's own word, how many recordsets it holds and whose it is, and a page of its own, which lists any of its recordsets that aren't `ACTIVE`. Only those have rows: a zone can hold any number of recordsets, and the question is which of them went wrong. One goes from the list once it reads `ACTIVE` again, at the inventory's next sweep.
+
+A zone in `ERROR` reaches **Needs attention** by name, and so does one `PENDING` after half an hour. Designate's worker gives up by itself well before that, so what stays `PENDING` has nothing working on it. A zone's own `SOA` and `NS` read `ERROR` with it, so that is said once, by the zone.
+
+| What | Agent, Full view | Anything less |
+| --- | --- | --- |
+| Every project's zones and their status | Yes | Nothing: see below |
+| Recordsets that aren't `ACTIVE`, and how many each zone holds | Yes | No |
+| Why a zone failed | No: check `designate-worker`'s log | No |
+| Designate's services | No. Run `openstack dns service list` | No |
+
+Two things read differently from every other service here, both recorded:
+
+- **A stopped Designate API says nothing at all.** The exporter reads its versions first, gets no answer, and answers an empty `200`, exactly as for a cloud without Designate. So nothing from the exporter can tell the two apart, and OneUptime doesn't claim to. A cloud that had Designate reads as having gone quiet after 20 minutes, on **Services** and in **Needs attention**. Its rows go after two weeks of that, and come back if it does. No alert can say this on a cloud the agent collects. A probe reads Keystone's catalog itself, so **DNS API Down** can.
+- **`openstack_designate_up` reading 0 means a refusal.** The exporter asks for every project's zones, which only an admin may. So a credential that has never read them is told that, rather than that Designate is down, and isn't offered Designate's alerts.
+
+A stopped `designate-worker` leaves Designate's API answering and its own list reading `UP` for a while, because it goes by a heartbeat. Changes are accepted and not carried out, and **DNS Zone Stuck Pending** is what says so.
+
 ## Trove
 
 A cloud that runs Trove gets **Databases** on its own, and one that doesn't shows no trace of it. Each database has its status in Trove's own word, what it runs, its volume and whose it is, and a page of its own. One in an error state reaches **Needs attention** by name, and so does one still on its way after an hour, or one past 85% of its volume.

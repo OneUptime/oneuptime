@@ -225,6 +225,7 @@ export const OPENSTACK_WORKER_FAMILY_BY_SERVICE: Partial<
   [OpenStackServiceType.ContainerInfra]: OpenStackServiceFamily.ContainerInfra,
   [OpenStackServiceType.SharedFileSystems]:
     OpenStackServiceFamily.SharedFileSystems,
+  [OpenStackServiceType.Dns]: OpenStackServiceFamily.Dns,
 };
 
 /*

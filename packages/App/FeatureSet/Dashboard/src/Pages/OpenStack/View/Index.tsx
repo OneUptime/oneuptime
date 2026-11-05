@@ -374,6 +374,15 @@ function getCountChips(
       ),
       page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
     },
+    {
+      key: "dns-zones",
+      icon: IconProp.Globe,
+      label: translator.translatePlural(
+        { one: "{{count}} DNS zone", other: "{{count}} DNS zones" },
+        summary.dnsZoneCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES,
+    },
   ];
 
   const counts: Record<string, number> = {
@@ -392,6 +401,7 @@ function getCountChips(
     "container-clusters": summary.containerClusterCount,
     shares: summary.shareCount,
     databases: summary.databaseInstanceCount,
+    "dns-zones": summary.dnsZoneCount,
   };
 
   const reported: Array<CountChip> = chips.filter(

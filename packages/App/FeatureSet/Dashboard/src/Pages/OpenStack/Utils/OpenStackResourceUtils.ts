@@ -59,6 +59,7 @@ export interface OpenStackInventorySummary {
   containerClusterCount: number;
   shareCount: number;
   databaseInstanceCount: number;
+  dnsZoneCount: number;
   // The services a cloud may not run that this one does, in the region being read.
   optionalServices: Array<OpenStackServiceType>;
 }
@@ -114,6 +115,7 @@ export function toOpenStackInventorySummary(
     containerClusterCount: readNumber("containerClusterCount"),
     shareCount: readNumber("shareCount"),
     databaseInstanceCount: readNumber("databaseInstanceCount"),
+    dnsZoneCount: readNumber("dnsZoneCount"),
     optionalServices: getOpenStackOptionalServicesOf(services),
   };
 }

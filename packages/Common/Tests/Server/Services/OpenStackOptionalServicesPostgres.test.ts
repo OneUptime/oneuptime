@@ -17,6 +17,7 @@ import { OpenStackBlastRadius } from "../../../Types/OpenStack/OpenStackBlastRad
 import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
@@ -181,6 +182,32 @@ function troveInstance(
     externalId: id,
     name: id,
     status: "ACTIVE",
+    ...overrides,
+  });
+}
+
+function dnsZone(
+  id: string,
+  overrides: Partial<ParsedOpenStackResource> = {},
+): ParsedOpenStackResource {
+  return resource({
+    kind: OpenStackResourceKind.DnsZone,
+    externalId: id,
+    name: id,
+    status: "ACTIVE",
+    ...overrides,
+  });
+}
+
+function dnsRecordset(
+  id: string,
+  overrides: Partial<ParsedOpenStackResource> = {},
+): ParsedOpenStackResource {
+  return resource({
+    kind: OpenStackResourceKind.DnsRecordset,
+    externalId: id,
+    name: id,
+    status: "ERROR",
     ...overrides,
   });
 }
@@ -942,6 +969,28 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       ).toEqual(["failed", "in-error", "nearly-full", "stuck"]);
     });
 
+    test("a zone in error, one pending past the line, and no other; and a recordset in error", async () => {
+      const longAgo: Date = minutesAgo(
+        OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
+      );
+      await write([
+        dnsZone("ok"),
+        dnsZone("in-error", { status: "ERROR" }),
+        dnsZone("just-changed", { status: "PENDING" }),
+        dnsZone("stuck", { status: "PENDING", lastSeenAt: longAgo }),
+        dnsRecordset("broken"),
+        dnsRecordset("on-its-way", { status: "PENDING" }),
+      ]);
+      const read: OpenStackAttentionRows = await attention();
+      expect(namesOf(read, OpenStackResourceKind.DnsZone)).toEqual([
+        "in-error",
+        "stuck",
+      ]);
+      expect(namesOf(read, OpenStackResourceKind.DnsRecordset)).toEqual([
+        "broken",
+      ]);
+    });
+
     test("a project's own page reads its stacks and clusters too", async () => {
       await write([
         stack("mine", { status: "CREATE_FAILED", openStackProjectId: "p1" }),
@@ -1036,6 +1085,21 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       expect(summary.databaseInstanceCount).toBe(1);
       // Manila reads 1 for every credential that can log in, so down is down there.
       expect(summary.closedServices).toEqual([OpenStackServiceType.Database]);
+    });
+
+    test("the summary counts Designate's zones, and a refusal never read up is closed, as Trove's is", async () => {
+      await write([
+        api(OpenStackServiceType.Dns, { status: "down", facts: {} }),
+        dnsZone("one"),
+        dnsRecordset("not-counted"),
+      ]);
+      const summary: OpenStackInventorySummary =
+        await OpenStackResourceService.getInventorySummary({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+        });
+      expect(summary.dnsZoneCount).toBe(1);
+      expect(summary.closedServices).toEqual([OpenStackServiceType.Dns]);
     });
 
     test("one that has read up once is down, and not closed", async () => {
@@ -1190,6 +1254,20 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         projectId: "p1",
         shareCount: 2,
       });
+    });
+
+    test("Designate's API reaches its zones, by project", async () => {
+      await write([
+        dnsZone("a", { openStackProjectId: "p1" }),
+        dnsZone("b", { openStackProjectId: "p2" }),
+        dnsZone("elsewhere", { regionName: "RegionTwo" }),
+      ]);
+      const radius: OpenStackBlastRadius = await radiusOf({
+        kind: OpenStackResourceKind.Api,
+        name: OpenStackServiceType.Dns,
+      });
+      expect(radius.dnsZoneCount).toBe(2);
+      expect(radius.projectCount).toBe(2);
     });
 
     test("Trove's API reaches its databases, by project", async () => {

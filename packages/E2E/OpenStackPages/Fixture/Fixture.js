@@ -121,6 +121,8 @@ import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
 import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
 import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudDnsZones from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DnsZones";
+import CloudDnsZoneDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DnsZoneDetail";
 import CloudDatabaseInstances from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstances";
 import CloudDatabaseInstanceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstanceDetail";
 import CloudShares from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Shares";
@@ -2486,6 +2488,8 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES, CloudDnsZones],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL, CloudDnsZoneDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES, CloudDatabaseInstances],
   [
     PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,

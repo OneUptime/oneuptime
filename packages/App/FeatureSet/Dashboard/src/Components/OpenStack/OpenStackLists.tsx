@@ -41,6 +41,7 @@ import {
   OPENSTACK_BARE_METAL_STATE_PRESETS,
   OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS,
   OPENSTACK_IMAGE_STATE_PRESETS,
+  OPENSTACK_DNS_ZONE_STATE_PRESETS,
   OPENSTACK_DATABASE_INSTANCE_STATE_PRESETS,
   OPENSTACK_SHARE_STATE_PRESETS,
   OPENSTACK_STACK_STATE_PRESETS,
@@ -1767,6 +1768,122 @@ export const OpenStackDatabaseInstanceList: FunctionComponent<
       statePresets={OPENSTACK_DATABASE_INSTANCE_STATE_PRESETS}
       checkAccess={true}
       getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * DNS
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Designate. A zone can hold any number of recordsets, and the question is which
+ * went wrong, so only those that aren't ACTIVE have rows, and they are read on their zone's page.
+ */
+const DNS_ZONE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackFactColumn({
+    id: "recordsets",
+    title: "Recordsets",
+    getText: (row: OpenStackResource): string => {
+      const count: JSONValue | undefined = ((row.facts as
+        | JSONObject
+        | undefined) || {})["recordsetCount"];
+      return typeof count === "number" ? formatOpenStackCount(count) : "";
+    },
+  }),
+  OpenStackColumn.TimeInState,
+  OpenStackColumn.Project,
+  getOpenStackFactColumn({
+    id: "zone-type",
+    title: "Type",
+    hideOnMobile: true,
+    isHiddenByDefault: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "zoneType");
+    },
+  }),
+  OpenStackColumn.Region,
+];
+
+export const OpenStackDnsZoneList: FunctionComponent<OpenStackListProps> = (
+  props: OpenStackListProps,
+): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.DnsZone),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.DnsZone}
+      query={props.query}
+      tableId={props.tableId || "openstack-dns-zones-table"}
+      title={props.title || "DNS Zones"}
+      description={
+        props.description ||
+        "Every zone Designate serves in this cloud, its status in Designate's own words, and whose it is."
+      }
+      singularName="DNS zone"
+      pluralName="DNS zones"
+      emptyTitle={props.emptyTitle || "No DNS zones reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Designate. Only the Full view credential sees every project's: anything less is refused them, or sees its own."
+      }
+      columns={DNS_ZONE_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_DNS_ZONE_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+const DNS_RECORDSET_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackFactColumn({
+    id: "record-type",
+    title: "Type",
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "recordType");
+    },
+  }),
+  OpenStackColumn.TimeInState,
+];
+
+// What of a zone isn't ACTIVE. It goes from here once it is, at the inventory's next sweep.
+export const OpenStackDnsRecordsetList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.DnsRecordset}
+      query={props.query}
+      tableId={props.tableId || "openstack-dns-recordsets-table"}
+      title={props.title || "Recordsets That Aren't Active"}
+      description={
+        props.description ||
+        "A zone's recordsets that are PENDING or in ERROR. The rest of what it holds is ACTIVE."
+      }
+      singularName="recordset"
+      pluralName="recordsets"
+      emptyTitle={props.emptyTitle || "Every recordset is active"}
+      emptyDescription={
+        props.emptyDescription ||
+        "Designate reads every recordset of this zone as ACTIVE, as far as this credential can see."
+      }
+      columns={DNS_RECORDSET_COLUMNS}
+      filters={[]}
       searchPlaceholder="Search by name or ID"
     />
   );

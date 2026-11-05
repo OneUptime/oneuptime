@@ -390,6 +390,20 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     color: "#be123c",
     order: 45,
   },
+  "openstack.dns-zone": {
+    label: translationKey("DNS Zone"),
+    plural: translationKey("DNS Zones"),
+    icon: IconProp.Globe,
+    color: "#f97316",
+    order: 75,
+  },
+  "openstack.dns-recordset": {
+    label: translationKey("DNS Recordset"),
+    plural: translationKey("DNS Recordsets"),
+    icon: IconProp.Globe,
+    color: "#fb923c",
+    order: 76,
+  },
   "openstack.network": {
     label: translationKey("Network"),
     plural: translationKey("Networks"),

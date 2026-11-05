@@ -2831,7 +2831,7 @@ const dnsZoneInErrorTemplate: OpenStackAlertTemplate = {
   name: "DNS Zone in Error",
   forService: OpenStackServiceType.Dns,
   summary: "A Designate zone is in ERROR.",
-  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_zone_status filtered to that status label, in every collection of the window). One incident per zone, in a region. Its worker gave up on writing it to a DNS server, recorded with the server stopped, so what the zone says may be out of date there. It recovers when the zone reads anything else.`,
+  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_zone_status filtered to that status label, in every collection of the window). One incident per zone, in a region. Its worker gave up on writing it to a DNS server, recorded with the server stopped, so what the zone says may be out of date there. Check that the DNS servers in its pool are answering, then \`openstack zone show\`. It recovers when the zone reads anything else.`,
   category: "Network",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2851,7 +2851,7 @@ const dnsZoneInErrorTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] DNS Zone in Error",
-        incidentDescription: `Designate's worker gave up writing this zone to a DNS server, so what it answers there may be out of date. Check that the DNS servers in its pool are answering, then openstack zone show and the designate-worker log.`,
+        incidentDescription: `Designate's worker gave up writing this zone to a DNS server, so what it answers there may be out of date. Check that the DNS servers in its pool are answering, then openstack zone show and the designate-worker log. The incident resolves on its own once it reads anything else.`,
         criteriaName: "DNS Zone in Error - ERROR for the whole window",
         criteriaDescription:
           "Triggers when a zone reads ERROR for the whole window.",
@@ -2865,7 +2865,7 @@ const dnsZoneStuckPendingTemplate: OpenStackAlertTemplate = {
   name: "DNS Zone Stuck Pending",
   forService: OpenStackServiceType.Dns,
   summary: `A Designate zone stays PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes.`,
-  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_PENDING} for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes (a count of openstack_designate_zone_status filtered to that status label, in every collection of the window, because PENDING's code is 0). One incident per zone, in a region. Its worker gives up by itself in a few minutes, so what stays PENDING has nothing working on it: a stopped worker reads this way, recorded, and the API goes on taking changes it never carries out.`,
+  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_PENDING} for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes (a count of openstack_designate_zone_status filtered to that status label, in every collection of the window, because PENDING's code is 0). One incident per zone, in a region. Its worker gives up by itself in a few minutes, so what stays PENDING has nothing working on it: a stopped worker reads this way, recorded, and the API goes on taking changes it never carries out. Check that designate-worker is running, then \`openstack dns service list\`.`,
   category: "Network",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2886,7 +2886,7 @@ const dnsZoneStuckPendingTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] DNS Zone Stuck Pending",
-        incidentDescription: `This zone has read PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes, and its worker gives up long before that, so nothing is working on it. Changes to it are being accepted and not carried out. Check that designate-worker is running, then openstack dns service list.`,
+        incidentDescription: `This zone has read PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes, and its worker gives up long before that, so nothing is working on it. Changes to it are being accepted and not carried out. Check that designate-worker is running, then openstack dns service list. The incident resolves on its own once it reads anything else.`,
         criteriaName: `DNS Zone Stuck Pending - PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes`,
         criteriaDescription: `Triggers when a zone reads PENDING for the whole ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES}-minute window.`,
       },
@@ -2904,7 +2904,7 @@ const dnsRecordsetInErrorTemplate: OpenStackAlertTemplate = {
   name: "DNS Recordset in Error",
   forService: OpenStackServiceType.Dns,
   summary: "A Designate recordset someone asked for is in ERROR.",
-  description: `Alert when a recordset of type ${OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR.join(", ")} reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_recordsets_status filtered to that status and type). One incident per zone, however many of its recordsets went wrong together. A zone's own SOA and NS read ERROR when the zone does, recorded, so they are left to DNS Zone in Error.`,
+  description: `Alert when a recordset of type ${OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR.join(", ")} reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_recordsets_status filtered to that status and type). One incident per zone, however many of its recordsets went wrong together. A zone's own SOA and NS read ERROR when the zone does, recorded, so they are left to DNS Zone in Error. Check \`openstack recordset list\` for the zone, and that the DNS servers in its pool are answering.`,
   category: "Network",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2931,7 +2931,7 @@ const dnsRecordsetInErrorTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] DNS Recordset in Error",
-        incidentDescription: `A recordset in this zone reads ERROR: Designate's worker could not write it to a DNS server, so it may not answer as asked. Check openstack recordset list for the zone named above, and that the DNS servers in its pool are answering.`,
+        incidentDescription: `A recordset in this zone reads ERROR: Designate's worker could not write it to a DNS server, so it may not answer as asked. Check openstack recordset list for the zone named above, and that the DNS servers in its pool are answering. The incident resolves on its own once it reads anything else.`,
         criteriaName: "DNS Recordset in Error - ERROR for the whole window",
         criteriaDescription:
           "Triggers when a recordset someone asked for reads ERROR for the whole window.",
@@ -2951,7 +2951,7 @@ const dnsApiDownTemplate: OpenStackAlertTemplate = {
   requiresProbe: true,
   summary: "Designate's API does not answer, on a cloud a probe collects.",
   description:
-    "Alert when Designate's API does not answer for 15 minutes (openstack_designate_up reads 0, which is what a probe says when its catalog names Designate and the API doesn't answer). One incident per region. Only a probe offers this: a stopped Designate gives the agent's exporter an empty answer, the same as a cloud without Designate, recorded, so a cloud the agent collects can only say it went quiet. On Services it does.",
+    "Alert when Designate's API does not answer for 15 minutes (openstack_designate_up reads 0, which is what a probe says when its catalog names Designate and the API doesn't answer). One incident per region. Only a probe sends this: a stopped Designate gives the agent's exporter an empty answer, the same as a cloud without Designate, recorded, so a cloud the agent collects can only say it went quiet. On Services it does. Check the designate-api service and its log, then `openstack zone list` with a credential that works.",
   category: "Availability",
   severity: "Critical",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2963,14 +2963,15 @@ const dnsApiDownTemplate: OpenStackAlertTemplate = {
       queries: [
         {
           alias: "api_up",
-          metricName: OPENSTACK_API_UP_METRIC_BY_SERVICE[OpenStackServiceType.Dns],
+          metricName:
+            OPENSTACK_API_UP_METRIC_BY_SERVICE[OpenStackServiceType.Dns],
           aggregationType: MetricsAggregationType.Min,
         },
       ],
       words: {
         incidentTitle: "[OpenStack] DNS API Down",
         incidentDescription:
-          "Designate's API is not answering. Names already served go on answering from their DNS servers, but none can be created or changed. Check the designate-api service and its log, then openstack zone list with a credential that works.",
+          "Designate's API is not answering. Names already served go on answering from their DNS servers, but none can be created or changed. Check the designate-api service and its log, then openstack zone list with a credential that works. The incident resolves on its own once it answers again.",
         criteriaName: "DNS API Down - not answering",
         criteriaDescription:
           "Triggers when Designate's API does not answer for the whole window.",
