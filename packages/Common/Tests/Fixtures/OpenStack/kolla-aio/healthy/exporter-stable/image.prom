@@ -1,0 +1,10 @@
+# HELP openstack_glance_image_bytes image_bytes
+# TYPE openstack_glance_image_bytes gauge
+openstack_glance_image_bytes{id="9ca64d61-a38b-452f-9325-01be3b967088",name="ou-image-stuck",tenant_id="74a06221e357434581545ef59bd219c3"} 0
+openstack_glance_image_bytes{id="d75b05c0-6d31-43ff-a856-fe51910c3d06",name="cirros",tenant_id="74a06221e357434581545ef59bd219c3"} 2.1692416e+07
+# HELP openstack_glance_images images
+# TYPE openstack_glance_images gauge
+openstack_glance_images 2
+# HELP openstack_glance_up up
+# TYPE openstack_glance_up gauge
+openstack_glance_up 1

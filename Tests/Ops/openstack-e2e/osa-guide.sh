@@ -110,6 +110,11 @@ openstack project create --domain default oneuptime-monitoring
 openstack user create --domain default --password-prompt oneuptime-monitoring
 openstack role add --project oneuptime-monitoring --user oneuptime-monitoring admin
 GUIDE
+  # What that container has, which is why the guide gives the next line.
+  in_utility 'command -v curl python3 openstack || true' | tee "$GUIDE_RECORDING/utility-has.txt"
+  FOLLOW_AS="$(utility_runs)" GUIDE_DIR=/tmp follow <<'GUIDE' || status=$?
+apt-get install -y curl
+GUIDE
   FOLLOW_AS="$(utility_runs)" FOLLOW_LOGIN="$LOGGED_IN_AS_ACCOUNT" FOLLOW_OUTPUT="$output" GUIDE_DIR=/tmp follow <<'GUIDE' || status=$?
 curl -fsSLO https://oneuptime.example/install/openstack-agent/access/application-credential-access-rules.json
 curl -fsSLO https://oneuptime.example/install/openstack-agent/access/access-rules-for-cloud.py

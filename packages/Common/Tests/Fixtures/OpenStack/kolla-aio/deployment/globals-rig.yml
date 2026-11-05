@@ -1,0 +1,23 @@
+kolla_base_distro: "ubuntu"
+# Its "Virtual Environments" page, which its quick start points to: with Kolla-Ansible in a
+# virtual environment and none for what it runs, its check for the Docker SDK fails on Ubuntu.
+virtualenv: "/opt/ou-kolla/runtime"
+virtualenv_site_packages: true
+network_interface: "ou-api"
+neutron_external_interface: "ou-ext"
+kolla_internal_vip_address: "192.168.100.250"
+# Open vSwitch is Kolla-Ansible's default, and OVN what the guide's network exporter is for.
+neutron_plugin_agent: "openvswitch"
+# What the guide starts from. Kolla-Ansible leaves it off.
+enable_prometheus: true
+# So the guide's table of what exporter 1.7.0 goes without is tested on a cloud with a Cinder.
+enable_cinder: true
+enable_cinder_backend_lvm: true
+# A runner has 4 vCPUs and 16 GB, and nothing here needs more than a worker of each.
+openstack_service_workers: 1
+openstack_service_rpc_workers: 1
+# Software virtualization, so a runner without /dev/kvm can run this too.
+nova_compute_virt_type: "qemu"
+# Nothing here reads these, and they take memory the rest needs.
+enable_heat: false
+enable_horizon: false
