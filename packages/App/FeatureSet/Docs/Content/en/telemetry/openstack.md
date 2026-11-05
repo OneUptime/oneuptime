@@ -715,7 +715,7 @@ notification_opt_out = identity.authenticate.pending
 driver = log
 ```
 
-Name `notification_opt_out` yourself. Keystone's documentation says logins are left out by default, and its own default names only those that worked and those still pending. Naming `pending` alone sends a line for each login, failed or not, whichever a release does. **OpenStack admin credential used from a new address** reads the ones that worked. To send failed logins only, add `identity.authenticate.success`, and that detection then reads what the audit filter saw.
+Name `notification_opt_out` yourself. Keystone's documentation says every login is left out by default. On Epoxy, Flamingo and Hibiscus its own default sends failed logins and leaves out those that worked: 24 wrong logins sent 24 notifications, whether or not the user existed, and good logins sent none. Naming `pending` alone sends a line for each login, failed or not. **OpenStack admin credential used from a new address** reads the ones that worked. To send failed logins only, add `identity.authenticate.success`, and that detection then reads what the audit filter saw.
 
 ### Turn on the audit filter
 
@@ -746,6 +746,8 @@ The filter writes two lines for each call, and most calls are reads. A read says
 | A call through the audit filter | Who, which action, on which part, and whether it was refused |
 | A security group opened to the world | Who, which group, which project, and the sensitive port it opened |
 | An image made public | Who, which image, and whose it was |
+
+Keystone sends nothing for a role given on the system, so nothing here sees one. When a user joins a group it says only that the group changed, and not who joined. A login for a user who doesn't exist names what was typed, which someone can mistype a password into. To keep that out, add a [scrub rule](/docs/telemetry/drop-filters-and-scrub-rules) for the `user_name` in those lines.
 
 A project and a part are named from the cloud's inventory where OneUptime knows them, so a case reads `project payments` and `instance web-1` and not their IDs. A part's project is the one its row says, whichever project the token that touched it was for. Keystone's users aren't in the inventory, because the access the agent asks for leaves them out on purpose. A user is named once one of the cloud's events has said their name, and by ID until then. A role is named by ID, because no event says its name.
 

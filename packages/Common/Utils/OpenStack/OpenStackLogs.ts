@@ -439,10 +439,17 @@ export function readOpenStackLogLine(text: string): OpenStackLogLine | null {
 
   const loggerStart: number = position;
 
+  /*
+   * A colon only inside a name: Keystone's extensions log their notifications under
+   * oslo.messaging.notification.identity.OS-TRUST:trust.created, and "ERROR something: went
+   * wrong" has no logger at all.
+   */
   while (
     position < header.length &&
     position - loggerStart <= MAX_LOGGER_LENGTH &&
-    isLoggerCharacter(header.charCodeAt(position))
+    (isLoggerCharacter(header.charCodeAt(position)) ||
+      (header.charCodeAt(position) === 58 &&
+        isLoggerCharacter(header.charCodeAt(position + 1))))
   ) {
     position++;
   }
@@ -1119,7 +1126,7 @@ function holdsOsloJournalFields(attributes: Record<string, unknown>): boolean {
  * Where the JSON object starting at a place ends, by its braces outside its strings: -1 if it
  * never does. What follows it can hold braces of its own.
  */
-function findJsonObjectEnd(text: string, start: number): number {
+export function findJsonObjectEnd(text: string, start: number): number {
   let depth: number = 0;
   let isInString: boolean = false;
 
