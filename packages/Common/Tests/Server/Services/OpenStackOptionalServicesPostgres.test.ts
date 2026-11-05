@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { OpenStackBlastRadius } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
+  OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
@@ -167,6 +168,19 @@ function share(
     externalId: id,
     name: id,
     status: "available",
+    ...overrides,
+  });
+}
+
+function troveInstance(
+  id: string,
+  overrides: Partial<ParsedOpenStackResource> = {},
+): ParsedOpenStackResource {
+  return resource({
+    kind: OpenStackResourceKind.DatabaseInstance,
+    externalId: id,
+    name: id,
+    status: "ACTIVE",
     ...overrides,
   });
 }
@@ -898,6 +912,36 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       ]);
     });
 
+    test("a database in error, one stuck past the line, one nearly full, and no other", async () => {
+      const longAgo: Date = minutesAgo(
+        OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+      );
+      const size: number = 10 * 1024 * 1024 * 1024;
+      await write([
+        troveInstance("ok", {
+          diskCapacityBytes: size,
+          diskAllocatedBytes: size / 2,
+        }),
+        troveInstance("in-error", { status: "ERROR" }),
+        troveInstance("failed", { status: "FAILED" }),
+        troveInstance("just-started", { status: "BUILD" }),
+        troveInstance("stuck", { status: "BUILD", lastSeenAt: longAgo }),
+        troveInstance("backing-up", { status: "BACKUP", lastSeenAt: longAgo }),
+        troveInstance("nearly-full", {
+          diskCapacityBytes: size,
+          diskAllocatedBytes: size * 0.9,
+        }),
+        troveInstance("not-running", {
+          status: "SHUTDOWN",
+          diskCapacityBytes: size,
+          diskAllocatedBytes: 0,
+        }),
+      ]);
+      expect(
+        namesOf(await attention(), OpenStackResourceKind.DatabaseInstance),
+      ).toEqual(["failed", "in-error", "nearly-full", "stuck"]);
+    });
+
     test("a project's own page reads its stacks and clusters too", async () => {
       await write([
         stack("mine", { status: "CREATE_FAILED", openStackProjectId: "p1" }),
@@ -969,6 +1013,59 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         "container-infra",
       ]);
       expect(await optionalServicesOf(OTHER_CLOUD_ID)).toEqual([]);
+    });
+
+    test("the summary counts Trove's databases, and says which services have never let this credential in", async () => {
+      await write([
+        api(OpenStackServiceType.Database, {
+          status: "down",
+          facts: {},
+        }),
+        api(OpenStackServiceType.SharedFileSystems, {
+          status: "down",
+          facts: {},
+        }),
+        api(OpenStackServiceType.Orchestration),
+        troveInstance("one"),
+      ]);
+      const summary: OpenStackInventorySummary =
+        await OpenStackResourceService.getInventorySummary({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+        });
+      expect(summary.databaseInstanceCount).toBe(1);
+      // Manila reads 1 for every credential that can log in, so down is down there.
+      expect(summary.closedServices).toEqual([OpenStackServiceType.Database]);
+    });
+
+    test("one that has read up once is down, and not closed", async () => {
+      await write([
+        api(OpenStackServiceType.Database, {
+          status: "down",
+          vouchedAt: minutesAgo(30),
+        }),
+      ]);
+      expect(
+        (
+          await OpenStackResourceService.getInventorySummary({
+            projectId: PROJECT_ID,
+            openStackCloudId: CLOUD_ID,
+          })
+        ).closedServices,
+      ).toEqual([]);
+    });
+
+    test("a project's summary counts its databases", async () => {
+      await write([
+        troveInstance("one", { openStackProjectId: "p1" }),
+        troveInstance("theirs", { openStackProjectId: "p2" }),
+      ]);
+      const [summary] = await OpenStackResourceService.getProjectSummaries({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        openStackProjectIds: ["p1"],
+      });
+      expect(summary).toMatchObject({ databaseInstanceCount: 1 });
     });
 
     test("the summary counts Manila's shares, and a cloud without Manila reads 0", async () => {
@@ -1093,6 +1190,19 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         projectId: "p1",
         shareCount: 2,
       });
+    });
+
+    test("Trove's API reaches its databases, by project", async () => {
+      await write([
+        troveInstance("a", { openStackProjectId: "p1" }),
+        troveInstance("b", { openStackProjectId: "p2" }),
+      ]);
+      const radius: OpenStackBlastRadius = await radiusOf({
+        kind: OpenStackResourceKind.Api,
+        name: OpenStackServiceType.Database,
+      });
+      expect(radius.databaseInstanceCount).toBe(2);
+      expect(radius.projectCount).toBe(2);
     });
 
     test("Magnum's API reaches its clusters", async () => {

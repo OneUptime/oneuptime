@@ -257,6 +257,9 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_sharev2_share_gb",
   "openstack_sharev2_share_status",
   "openstack_sharev2_agent_state",
+  "openstack_trove_instance_status",
+  "openstack_trove_instance_volume_size_gb",
+  "openstack_trove_instance_volume_used_gb",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
@@ -1032,9 +1035,10 @@ function bareMetalNodeEntry(data: {
  * last_error. Every node has a driver, so that is what tells a probe's series from the exporter's,
  * whose silence says nothing about any of these.
  *
- * Why a node failed does not last. Ironic empties last_error about a minute later, with the node
- * still failed (recorded: services-ironic, clean-failed against deploy-failed). So a reason is kept
- * until the node has left a failed state, with when it was read. An empty one never replaces it.
+ * Why a node failed may not last. Ironic emptied a failed clean's last_error 72 seconds later, with
+ * the node still failed, and left a failed deploy's alone (recorded: services-ironic, clean-failed
+ * against deploy-failed). So a reason is kept until the node has left a failed state, with when it
+ * was read. An empty one never replaces it.
  */
 function setNativeBareMetalNodeFacts(
   entry: OpenStackResourceBufferEntry,
@@ -1412,6 +1416,56 @@ function foldShare(data: {
     "access_rules_status",
   );
   entry.facts["backendHost"] = getLabel(data.attributes, "host");
+}
+
+/*
+ * A database, from any of Trove's three series about it. Each carries the instance's labels, and the
+ * two sizes are in their values. An instance that isn't running reads 0 used, recorded in BUILD and
+ * ERROR. Why one failed is only said by a probe, which an admin's read of Trove's mgmt API tells.
+ */
+function foldDatabaseInstance(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DatabaseInstance,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  if (data.metricName === "openstack_trove_instance_volume_size_gb") {
+    entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
+  }
+  if (data.metricName === "openstack_trove_instance_volume_used_gb") {
+    entry.diskAllocatedBytes = data.value * BYTES_PER_GIB;
+  }
+  setFact(entry, "datastoreType", getLabel(data.attributes, "datastore_type"));
+  setFact(
+    entry,
+    "datastoreVersion",
+    getLabel(data.attributes, "datastore_version"),
+  );
+  // Each is written whatever the collector knows: see foldShare. Null reads as not known.
+  entry.facts["healthStatus"] = getLabel(data.attributes, "health_status");
+  entry.facts["faultMessage"] = getLabel(data.attributes, "fault_message");
+  entry.facts["taskDescription"] = getLabel(
+    data.attributes,
+    "task_description",
+  );
 }
 
 function foldSnapshot(data: {
@@ -2276,6 +2330,18 @@ export function bufferOpenStackSnapshotMetric(data: {
     case "openstack_sharev2_share_gb":
     case "openstack_sharev2_share_status":
       foldShare({ buffer, attributes, region, value, observedAt, metricName });
+      return;
+    case "openstack_trove_instance_status":
+    case "openstack_trove_instance_volume_size_gb":
+    case "openstack_trove_instance_volume_used_gb":
+      foldDatabaseInstance({
+        buffer,
+        attributes,
+        region,
+        value,
+        observedAt,
+        metricName,
+      });
       return;
     case "openstack_ironic_node":
       foldBareMetalNode({ buffer, attributes, region, observedAt });

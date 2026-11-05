@@ -195,6 +195,11 @@ export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
     icon: IconProp.Server,
   },
   {
+    category: "Databases",
+    label: "Databases",
+    icon: IconProp.Database,
+  },
+  {
     category: "Projects",
     label: "Projects",
     icon: IconProp.Folder,

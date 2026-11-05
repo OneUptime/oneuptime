@@ -117,6 +117,7 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["AI/Agent.tsx", "OPENSTACK_CLOUD_VIEW_AI_AGENT"],
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
   ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
+  ["Spend.tsx", "OPENSTACK_CLOUD_VIEW_SPEND"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
   ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],
@@ -155,6 +156,11 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
   ["Shares.tsx", "OPENSTACK_CLOUD_VIEW_SHARES"],
   ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
+  ["DatabaseInstances.tsx", "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES"],
+  [
+    "DatabaseInstanceDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL",
+  ],
   ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
   [
     "ContainerClusterDetail.tsx",
@@ -551,6 +557,7 @@ describe("the side menus have no dead links", () => {
       ["stackCount", "stacks"],
       ["containerClusterCount", "containerClusters"],
       ["shareCount", "shares"],
+      ["databaseInstanceCount", "databases"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
       expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
@@ -578,6 +585,7 @@ describe("a service a cloud may not run", () => {
   test.each([
     ["Stacks", "runsHeat"],
     ["Shares", "runsManila"],
+    ["Databases", "runsTrove"],
     ["Kubernetes Clusters", "runsMagnum"],
   ])(
     "%s is in the menu only for a cloud that runs it",

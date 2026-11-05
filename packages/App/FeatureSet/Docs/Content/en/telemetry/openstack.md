@@ -8,6 +8,7 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Install the agent](#install-the-agent): A credential, then the install script, Docker Compose or no Docker at all.
 - [What it costs your cloud](#what-it-costs-your-cloud): What each setting reads, and how to change it.
 - [Capacity](#capacity): How many more of each flavor fit, and how many days until each thing is full.
+- [Spend](#spend): Who's using what, what that comes to at your prices or as CloudKitty rated it, and what could be reclaimed.
 - [Service logs](#service-logs): Parsed, with a request followed across services.
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
@@ -483,7 +484,7 @@ Three open upstream issues shape all this, and the project has also [asked for m
 
 If your cloud runs Ironic, it gets a **Bare Metal** section with every node Ironic shows the credential: where it is in Ironic's state machine, its power, whether someone put it in maintenance and why, its resource class, and when Ironic last saw it move. A cloud without Ironic has no such section, no alert about it and no line on any page.
 
-A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page.
+A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page, for the nodes Ironic shows this credential, and on the [Capacity](#capacity) page, for every node Placement holds.
 
 What needs someone, at the same lines as the [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates):
 
@@ -498,8 +499,8 @@ What needs someone, at the same lines as the [alert templates](/docs/monitor/ope
 
 Each of these was recorded on a real DevStack, and each page says so where it matters:
 
-- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds more nodes than Ironic listed, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
-- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic empties `last_error` within about a minute anyway, with the node still failed. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
+- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds a node Ironic didn't list, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
+- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic can empty `last_error` within about a minute anyway, with the node still failed: it did for a failed clean, and left a failed deploy's. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
 - **The exporter has no conductors.** Only a probe reads them, and Ironic refuses a project's credential the list unless its policy says otherwise (`baremetal:conductor:get`).
 - **A stopped Ironic reads the same as no Ironic.** Asked about one that is stopped, the exporter answers an empty 200, as it does for a cloud that never had it. So a page says only that it hasn't heard from Ironic, and that the nodes are as they last read. It never says down. Two weeks after the rest of the cloud last reported without it, those rows go, and they come back if it does.
 
@@ -510,6 +511,8 @@ Each of these was recorded on a real DevStack, and each page says so where it ma
 Everything on it is allocation: what has been promised, not what is busy. An idle instance holds all of it.
 
 **What capacity is.** For each resource provider and resource class, capacity is `(total - reserved) x allocation_ratio`, and allocated is what Placement has promised. That adds up by zone, aggregate, region and cloud. A host whose `nova-compute` is down keeps reporting its last numbers, and a disabled one takes nothing on, so neither counts as room. What they hold is still there, and a forecast counts it.
+
+**Bare metal.** A node takes one instance whole, so a cloud with Ironic gets a table of its own, by resource class: how many nodes, how many could take an instance, how many are in use, and how many are held back, because Nova's Ironic driver can't use them right now. These are Placement's own numbers, so they are the whole cloud's even where Ironic shows a project only what it owns, and they are not in the vCPUs and memory above. A probe reads which class a flavor asks for and counts it against these. The agent's exporter doesn't say, so on the agent a bare metal flavor counts as its vCPUs, memory and disk, on hosts.
 
 **How many more fit.** Each flavor is counted host by host, because an instance needs all of what it asks for on one host. Beside the count is what it would be if everything free were on one host, which is how a full cloud is told from a fragmented one. A flavor no host could hold even empty says **Too large for every host**, and nothing ever alerts on it. Counts are for an instance booted from an image: one booted from a volume asks for no root disk.
 
@@ -539,6 +542,73 @@ nova-manage placement audit --verbose --delete
 **Alerts.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** and **Reserved Headroom Gone** read series OneUptime writes from the same summary. They are in the [monitor's templates](/docs/monitor/openstack-monitor#pre-built-alert-templates) and on the cloud's **Recommendations** page.
 
 **What it costs.** Nothing on the agent. A probe adds the calls above. OneUptime writes about 2 series for each zone's resource class, external network and storage pool, and one for each flavor people can ask for, every two minutes, billed as any other metric.
+
+## Spend
+
+Private clouds still cost money, and whoever runs one is asked who's using what and what could be reclaimed. A cloud's **Spend** page answers both, on any cloud at any size, and works with no setup at all. It shows usage and estimates to plan with. OneUptime doesn't invoice anyone, and nothing here is an amount a tenant owes.
+
+**This month against last** is at the top, then who's growing, then each project, largest first, with **Export CSV**. The domains, and what was used on which flavor and volume type, sit beneath. A project's own page has its month line by line and the months before it.
+
+### How usage is worked out
+
+Every 15 minutes, a worker reads what each project holds in the cloud's inventory, and adds that for the time since the last reading: vCPU-hours and memory-hours by flavor, volume GB-hours by type, floating IP-hours, and image and snapshot storage. No per-instance series is read or written, so it costs the metric store and the telemetry bill nothing, and it works the same on a cloud in [summary mode](/docs/telemetry/openstack-very-large-clouds#summary-mode).
+
+What that means for the numbers:
+
+- **A resize moves hours from one flavor to the other**, and a deletion stops them. A change is counted from the first reading that shows it, so each one can be out by up to 15 minutes. An instance that lived less than that may never be seen.
+- **A part counts until the inventory lets go of it,** which is up to [the stale window](#environment-variables) after it went. On a large cloud read in turns, a change takes as long as its turn to arrive.
+- **An instance holds its flavor from when it's placed until it's deleted.** One shut off still counts, on its own line, because Nova keeps its vCPUs and memory set aside on its host. One that never reached a host doesn't count, and neither does one shelved off its host.
+- **A volume or snapshot in error, or still being made, doesn't count,** because it has no space behind it on the whole.
+- **Hours OneUptime wasn't reading aren't guessed at.** A gap longer than an hour counts its last hour, and the page says how many hours weren't counted.
+- **The agent's exporter reports how many snapshots there are, not which,** so snapshot storage is only counted on a cloud [connected without an agent](/docs/telemetry/openstack-agentless).
+
+### Prices
+
+Prices are yours and they're optional. Without them the page shows usage. Under **Prices**, set a currency and a price per hour for a vCPU, a GB of memory, a GB of volume, a floating IP, a GB of image and a GB of snapshot. **Advanced** has a price per instance-hour by flavor, which is then the whole of that flavor's price, a price by volume type, and a switch to leave out shut-off instances. A month is about 730 hours.
+
+A price of zero means no price, not a free cloud. What has no price is said to have none, and a project that used something unpriced is counted on the page, so a total of what is priced is never passed off as all of it. Today's prices apply to the whole of every period shown, last month's too, so changing a price doesn't read as a project's usage moving. A price changed now shows within 15 minutes.
+
+### CloudKitty
+
+If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it rated replaces the calculation, project by project, and the page says which it used. A probe asks once an hour, for this month and last, and it's asked of `GET /v2/summary`, or `GET /v1/report/summary` on a CloudKitty too old for it. That's at most two requests per 1,000 projects an hour, plus a request for its version each time it's read.
+
+- **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
+- **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
+- **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
+
+### Budgets
+
+A budget says what a project, or a whole cloud, may come to in a month, in the currency of your prices. As with [a connected cloud's budgets](/docs/telemetry/cloud-costs), it raises an alert the first time in a month the estimate passes each share of it (80% and 100% unless you say otherwise), and one when holding what's held now would pass it before the month ends. A new month starts from nothing, and last month's alerts are resolved. A budget only ever alerts: it stops nothing. Without prices or CloudKitty there's nothing to compare, so it stays quiet and its row says it hasn't been checked.
+
+### What could be reclaimed
+
+The cloud's **Recommendations** page lists what's been left unused, what each would free, and the command that lists it, once an hour. OneUptime never removes anything, and every one of these is a question for whoever owns it.
+
+| What | When it's named | What it frees | The command that lists them |
+|---|---|---|---|
+| Hypervisors that could be emptied | 20% or less of its vCPUs and memory are allocated, everything on it fits on the other hosts in its zone and aggregates, and the zone could still lose a host afterwards | The whole host | `openstack hypervisor list --long` |
+| Instances shut off for a long time | Shut off for 30 days | Their vCPUs, memory and local disk | `openstack server list --all-projects --status SHUTOFF --long` |
+| Volumes attached to nothing | Available for 30 days, attached to nothing | Their storage | `openstack volume list --all-projects --status available --long` |
+| Old volume snapshots | Made 90 days ago. Probe only | Their storage | `openstack volume snapshot list --all-projects --long` |
+| Images nothing was booted from | Private or shared, 30 days old, not protected, and no instance or volume came from it. Probe only | Their storage | `openstack image list --long` |
+| Floating IPs nothing is using | Unassociated for 7 days | An address | `openstack floating ip list --status DOWN --long` |
+
+Nothing in use is ever named. How long something has been so comes from the cloud's own clock where a probe reports one. Through an agent it's how long OneUptime has seen it so, so on the day you connect a cloud nothing's old yet. A rule that can't be sure says so instead of guessing: the agent can't say which image an instance booted from, so an image in use would look unused, and it can't list snapshots, so those two rules wait for a probe. A host is named by what's allocated rather than how busy it is, it's never named in a zone with a host lost or disabled, and hosts are taken emptiest first so what's named can all be done. It can't see traits or anything else an instance needs of a host.
+
+### At each size
+
+A reading costs the same however often instances change, and what it costs grows with what's named here. These are tested on Postgres, with the statements counted exactly and the largest size's time held to a budget.
+
+| Hypervisors | Instances | Projects | Statements a reading | Rows kept | What the page reads |
+|---|---|---|---|---|---|
+| 10 | 100 | 10 | 13 | 750 | One row of the cloud, one page of projects |
+| 500 | 20,000 | 1,000 | 14 | 75,000 | One row of the cloud, one page of projects |
+| 5,000 | 200,000 | 10,000 | 37 | 750,000 | One row of the cloud, one page of projects |
+
+Once a cloud has a last month, a reading reads that too, one statement per 2,000 projects. The hourly rules read five lists of at most 5,000 rows, and go through every instance's row once to see what's in use.
+
+At the largest size, what each project holds is read in under 5 seconds, a whole reading takes under 30, and the row the page reads stays under 2 MB. Rows kept are one per project for each of 13 months, and one per project for each of the last 62 days. They don't depend on how many instances there are, and none of it counts as telemetry.
 
 ## Real usage
 
@@ -738,6 +808,23 @@ If your cloud runs Manila, a cloud gets **Shares** under **Storage** on its own,
 Manila's API carries on answering without its other services, so on a cloud the agent collects a stopped `manila-share` isn't shown anywhere: its shares just stop changing, and **Share Stuck** is what eventually says so. A probe with a Full view credential reads them, and **Manila Service Down** then says so. Manila says `stopped` for a service that shut down cleanly, and `down` only for one that died, once its heartbeat has grown old.
 
 A cloud without Manila costs nothing for it: the exporter answers with nothing, and that makes no row. If Manila leaves Keystone's catalog, its rows go about 15 minutes after that starts, as [Heat's and Magnum's do](#heat-and-magnum).
+
+## Trove
+
+A cloud that runs Trove gets **Databases** on its own, and one that doesn't shows no trace of it. Each database has its status in Trove's own word, what it runs, its volume and whose it is, and a page of its own. One in an error state reaches **Needs attention** by name, and so does one still on its way after an hour, or one past 85% of its volume.
+
+| What | Agent, Full view | Anything less |
+| --- | --- | --- |
+| Every project's databases and their status | Yes | Nothing at all: see below |
+| How full a running database's volume is | Yes | No |
+| Why a database failed | No. Run `openstack database instance show` | No |
+| `trove-taskmanager` and `trove-conductor` | No: Trove has no list of them | No |
+
+The exporter reads Trove's mgmt API, which only an admin may. Trove refuses anything less, and the exporter reads a refusal just as it reads Trove stopped: `openstack_trove_up` reads 0 and nothing else is said. So a credential that has never once read Trove is told that, rather than that Trove is down, and isn't offered Trove's alerts. Once it has read Trove, a 0 reads as down, which is also what a credential that has since lost its access reads as.
+
+A stopped `trove-taskmanager` isn't shown anywhere, because Trove's lists answer without it and it has no list of workers: what it was working on just stops moving, and **Database Instance Stuck** is what says so. Trove gives up on a guest by itself well before that hour.
+
+Nothing has been recorded of a database reaching `ACTIVE`, because Nova refused the guest on every test run, so how full a volume reads has only been checked on made-up numbers. An instance that isn't running reads 0 used, and that reads as nothing rather than as empty.
 
 ## Service logs
 

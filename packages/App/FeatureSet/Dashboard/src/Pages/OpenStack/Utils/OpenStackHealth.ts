@@ -31,6 +31,10 @@ import {
   isOpenStackServiceForcedDown,
   isOpenStackStackFailed,
   isOpenStackStackStuck,
+  isOpenStackDatabaseInstanceInError,
+  isOpenStackDatabaseInstanceStuck,
+  isOpenStackDatabaseVolumeNearlyFull,
+  getOpenStackDatabaseVolumePercent,
   isOpenStackShareInError,
   isOpenStackShareStuck,
   isOpenStackServiceQuiet,
@@ -258,6 +262,7 @@ const KIND_STACK: string = translationKey("Stack");
 const KIND_CONTAINER_CLUSTER: string = translationKey("Kubernetes cluster");
 const KIND_BARE_METAL_NODE: string = translationKey("Bare metal node");
 const KIND_SHARE: string = translationKey("Share");
+const KIND_DATABASE_INSTANCE: string = translationKey("Database");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
@@ -273,6 +278,7 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_STACK,
   KIND_VOLUME,
   KIND_SHARE,
+  KIND_DATABASE_INSTANCE,
   KIND_INSTANCE,
   KIND_FLOATING_IP,
   KIND_IMAGE,
@@ -641,6 +647,59 @@ export function assessOpenStackShare(data: {
     })
   ) {
     return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+/*
+ * A database in error, as a share in error. Its volume nearly full is what stops it taking writes, and
+ * resizing that is a change someone has to plan. An instance that isn't running reads 0 used, recorded,
+ * so one can't read full.
+ */
+export function assessOpenStackDatabaseInstance(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackDatabaseInstanceInError(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackDatabaseInstanceStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  if (
+    isOpenStackDatabaseVolumeNearlyFull({
+      usedBytes: row.diskAllocatedBytes,
+      sizeBytes: row.diskCapacityBytes,
+    })
+  ) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        {
+          text: REASON_PERCENT_FULL,
+          values: {
+            percent: formatPercent(
+              getOpenStackDatabaseVolumePercent({
+                usedBytes: row.diskAllocatedBytes,
+                sizeBytes: row.diskCapacityBytes,
+              }) || 0,
+            ),
+          },
+        },
+      ],
+    };
   }
   return FINE;
 }
@@ -1092,6 +1151,8 @@ export function assessOpenStackResource(data: {
       });
     case OpenStackResourceKind.Share:
       return assessOpenStackShare({ row, now });
+    case OpenStackResourceKind.DatabaseInstance:
+      return assessOpenStackDatabaseInstance({ row, now });
     default:
       return FINE;
   }
@@ -1113,6 +1174,7 @@ const KIND_WORDS: Partial<Record<string, string>> = {
   [OpenStackResourceKind.ContainerCluster]: KIND_CONTAINER_CLUSTER,
   [OpenStackResourceKind.BareMetalNode]: KIND_BARE_METAL_NODE,
   [OpenStackResourceKind.Share]: KIND_SHARE,
+  [OpenStackResourceKind.DatabaseInstance]: KIND_DATABASE_INSTANCE,
 };
 
 function iconOf(kind: string | undefined): IconProp {
@@ -1123,6 +1185,7 @@ function iconOf(kind: string | undefined): IconProp {
     case OpenStackResourceKind.Volume:
     case OpenStackResourceKind.StoragePool:
     case OpenStackResourceKind.Share:
+    case OpenStackResourceKind.DatabaseInstance:
       return IconProp.Database;
     case OpenStackResourceKind.Image:
       return IconProp.Image;

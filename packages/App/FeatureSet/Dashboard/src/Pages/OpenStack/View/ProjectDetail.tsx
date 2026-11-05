@@ -26,6 +26,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import OpenStackProjectUsageCard from "../../../Components/OpenStack/OpenStackProjectUsageCard";
 import OpenStackQuotaCard from "../../../Components/OpenStack/OpenStackQuotaCard";
 import OpenStackScopedRulesCard, {
   OpenStackRuleScope,
@@ -88,7 +89,8 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     | "floatingIpCount"
     | "stackCount"
     | "containerClusterCount"
-    | "shareCount";
+    | "shareCount"
+    | "databaseInstanceCount";
   page: PageMap;
   one: string;
   other: string;
@@ -140,6 +142,12 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     page: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
     one: "{{count}} share",
     other: "{{count}} shares",
+  },
+  {
+    key: "databaseInstanceCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+    one: "{{count}} database",
+    other: "{{count}} databases",
   },
 ];
 
@@ -411,6 +419,11 @@ const OpenStackCloudProjectDetail: FunctionComponent<
       </Card>
 
       <OpenStackQuotaCard openStackCloudId={modelId} quotas={quotas} />
+
+      <OpenStackProjectUsageCard
+        openStackCloudId={modelId}
+        openStackProjectId={projectId}
+      />
 
       <ResourcePartOpenEventsCard
         testId="openstack-project-open"

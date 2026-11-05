@@ -381,6 +381,8 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: `${RouteParams.ModelID}/kubernetes-clusters/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARES]: `${RouteParams.ModelID}/shares`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]: `${RouteParams.ModelID}/shares/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]: `${RouteParams.ModelID}/databases`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL]: `${RouteParams.ModelID}/databases/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]: `${RouteParams.ModelID}/projects`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
@@ -389,6 +391,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]: `${RouteParams.ModelID}/capacity`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SPEND]: `${RouteParams.ModelID}/spend`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
@@ -4870,6 +4873,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL]
+    }`,
+  ),
+
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]
@@ -4914,6 +4929,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]
+    }`,
+  ),
+  [PageMap.OPENSTACK_CLOUD_VIEW_SPEND]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SPEND]
     }`,
   ),
 
