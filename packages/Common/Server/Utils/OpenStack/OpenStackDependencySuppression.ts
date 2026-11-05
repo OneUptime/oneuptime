@@ -12,6 +12,7 @@ import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "../../../Utils/OpenStack/OpenStac
 import {
   OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH,
   OPENSTACK_EXPORTER_HOST_LABEL,
+  isOpenStackComputeServiceDisabledByItself,
 } from "../../../Types/OpenStack/OpenStackControlPlane";
 import {
   DependencySuppressionResult,
@@ -36,6 +37,8 @@ import logger from "../Logger";
  *    names a machine, so it speaks only for the agents that live on what it is about. It cannot
  *    say which machine's, because an exporter names a machine by address and Neutron by host
  *    name, so one such agent elsewhere in the region waits with it for as long as it lasts.
+ *  - A libvirt gone from one machine speaks the same way, and only for a nova-compute that says
+ *    it disabled itself. One an operator disabled, on any machine, still pages.
  *  - A parent back up has not finished speaking. nova-compute reports again within seconds of
  *    RabbitMQ coming back, but the agent reads that state every 2 minutes and Keystone's every
  *    5, so a worker's series still reads down for a few minutes more. Those minutes are the
@@ -102,9 +105,10 @@ export function coversRegions(
 
     return (
       regionsOfOneMachine.has(region) &&
-      OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH.includes(
+      (OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH.includes(
         String(labels["service"] || ""),
-      )
+      ) ||
+        isOpenStackComputeServiceDisabledByItself(labels))
     );
   };
 }

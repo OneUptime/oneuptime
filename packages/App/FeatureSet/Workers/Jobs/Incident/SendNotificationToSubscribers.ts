@@ -1,5 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { removeOpenStackReachFromDescription } from "Common/Types/OpenStack/OpenStackBlastRadius";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -195,6 +196,11 @@ RunCron(
       );
 
       for (const incident of incidents) {
+        // What a cloud's failure reaches is for the team: see OPENSTACK_REACH_HEADING.
+        incident.description = removeOpenStackReachFromDescription(
+          incident.description,
+        );
+
         if (!runClock.canClaimAnotherNotification()) {
           /*
            * Whatever this run claims now might not finish before its timeout.

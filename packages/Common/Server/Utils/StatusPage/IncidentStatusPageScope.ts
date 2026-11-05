@@ -11,6 +11,7 @@ import { JSONObject } from "../../../Types/JSON";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import { removeOpenStackReachFromDescription } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 import IncidentEpisodeMemberService from "../../Services/IncidentEpisodeMemberService";
 import IncidentService from "../../Services/IncidentService";
@@ -618,6 +619,16 @@ export default class IncidentStatusPageScope {
         if (key !== "_id") {
           delete (incident as unknown as Dictionary<unknown>)[key];
         }
+      }
+
+      /*
+       * What a cloud's failure reaches names one customer's projects to another: it is for the team
+       * and never leaves through a status page (OPENSTACK_REACH_HEADING).
+       */
+      if (incident.description) {
+        incident.description = removeOpenStackReachFromDescription(
+          incident.description,
+        );
       }
     }
 
