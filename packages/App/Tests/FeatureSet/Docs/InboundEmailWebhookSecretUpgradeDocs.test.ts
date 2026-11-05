@@ -265,10 +265,17 @@ describe("the note and the setup guide are true to the code", () => {
     expect(source("HelmChart/Public/oneuptime/templates/NOTES.txt")).toContain(
       "ACTION REQUIRED -- incoming email is refused until inboundEmail.webhookSecret is set.",
     );
-    expect(
-      source("HelmChart/Public/oneuptime/templates/_helpers.tpl"),
-    ).toContain(
-      '- name: INBOUND_EMAIL_WEBHOOK_SECRET\n  value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}',
+    const helpers: string = source(
+      "HelmChart/Public/oneuptime/templates/_helpers.tpl",
+    );
+
+    // From inboundEmail.existingSecret when a Secret is named, otherwise
+    // inboundEmail.webhookSecret as a plain value, as before.
+    expect(helpers).toContain(
+      '- name: INBOUND_EMAIL_WEBHOOK_SECRET\n  {{- if $inboundEmailWebhookSecret }}\n  valueFrom:\n    secretKeyRef:\n      name: {{ $inboundEmailWebhookSecret | quote }}\n      key: {{ include "oneuptime.inboundEmail.webhookSecretKey" $ | quote }}\n',
+    );
+    expect(helpers).toContain(
+      '  {{- else }}\n  value: {{ default "" $.Values.inboundEmail.webhookSecret | quote }}\n  {{- end }}',
     );
     expect(source("docker-compose.base.yml")).toContain(
       "INBOUND_EMAIL_WEBHOOK_SECRET: ${INBOUND_EMAIL_WEBHOOK_SECRET}",

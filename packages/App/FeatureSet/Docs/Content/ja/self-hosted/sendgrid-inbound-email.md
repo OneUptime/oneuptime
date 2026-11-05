@@ -112,6 +112,26 @@ inboundEmail:
   domain: "inbound.yourdomain.com"
   webhookSecret: "replace-with-a-strong-random-secret"
 ```
+
+:::details Webhook のシークレットを Secret に保管する
+`inboundEmail.webhookSecret` では、Webhook のシークレットがリリースの値に保持され、Helm はその値をリビジョンごとに保存します。シークレットを値に含めないようにするには、OneUptime の namespace にある Kubernetes の Secret に `webhookSecret` としてシークレットを格納し、代わりにその Secret の名前を指定します:
+
+```bash
+kubectl create secret generic oneuptime-inbound-email \
+  --namespace oneuptime \
+  --from-literal=webhookSecret=replace-with-a-strong-random-secret
+```
+
+```yaml title="values.yaml"
+inboundEmail:
+  provider: "SendGrid"
+  domain: "inbound.yourdomain.com"
+  existingSecret:
+    name: oneuptime-inbound-email
+```
+
+`inboundEmail.webhookSecret` と `inboundEmail.existingSecret.name` は、どちらか一方だけを設定してください。チャートは両方の同時指定を拒否します。Secret でシークレットを別のキー名で格納している場合は、そのキー名を `inboundEmail.existingSecret.webhookSecretKey` に指定します。
+:::
 :::
 
 `INBOUND_EMAIL_WEBHOOK_SECRET` は必須です。空のままか、このページのプレースホルダーのままである間、OneUptime はすべてのメールを拒否します。`openssl rand -hex 32` で長いランダム値を作れます。

@@ -112,6 +112,26 @@ inboundEmail:
   domain: "inbound.yourdomain.com"
   webhookSecret: "replace-with-a-strong-random-secret"
 ```
+
+:::details 將 Webhook 密鑰保存在 Secret 中
+`inboundEmail.webhookSecret` 會將 Webhook 密鑰保存在發行版本的值中，而 Helm 會隨每個修訂版本儲存這些值。若不想讓 Webhook 密鑰出現在這些值中，請將它以 `webhookSecret` 為鍵存入 OneUptime 所在命名空間中的一個 Kubernetes Secret，並改為指定該 Secret 的名稱：
+
+```bash
+kubectl create secret generic oneuptime-inbound-email \
+  --namespace oneuptime \
+  --from-literal=webhookSecret=replace-with-a-strong-random-secret
+```
+
+```yaml title="values.yaml"
+inboundEmail:
+  provider: "SendGrid"
+  domain: "inbound.yourdomain.com"
+  existingSecret:
+    name: oneuptime-inbound-email
+```
+
+請設定 `inboundEmail.webhookSecret` 或 `inboundEmail.existingSecret.name`，而不要同時設定兩者：chart 會拒絕同時設定這兩項。如果你的 Secret 以其他鍵保存 Webhook 密鑰，請在 `inboundEmail.existingSecret.webhookSecretKey` 中指定該鍵。
+:::
 :::
 
 `INBOUND_EMAIL_WEBHOOK_SECRET` 是必要的：只要它為空或仍是本頁中的預留位置，OneUptime 就會拒絕每一封郵件。`openssl rand -hex 32` 可以產生一個長隨機值。
