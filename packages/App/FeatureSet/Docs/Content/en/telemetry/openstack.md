@@ -818,12 +818,13 @@ A cloud that runs Designate gets **DNS Zones** under **Network** on its own, and
 
 A zone in `ERROR` reaches **Needs attention** by name, and so does one `PENDING` after half an hour. Designate's worker gives up by itself well before that, so what stays `PENDING` has nothing working on it. A zone's own `SOA` and `NS` read `ERROR` with it, so that is said once, by the zone.
 
-| What | Agent, Full view | Anything less |
-| --- | --- | --- |
-| Every project's zones and their status | Yes | Nothing: see below |
-| Recordsets that aren't `ACTIVE`, and how many each zone holds | Yes | No |
-| Why a zone failed | No: check `designate-worker`'s log | No |
-| Designate's services | No. Run `openstack dns service list` | No |
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's zones and their status | Yes | Yes | Nothing: see below |
+| Recordsets that aren't `ACTIVE` | Yes | Yes, of up to 50 zones a collection | No |
+| How many recordsets each zone holds | Yes | Only of a zone that isn't `ACTIVE` | No |
+| Why a zone failed | No: check `designate-worker`'s log | No | No |
+| Designate's services | No. Run `openstack dns service list` | Yes | No |
 
 Two things read differently from every other service here, both recorded:
 

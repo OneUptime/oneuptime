@@ -93,6 +93,7 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       service: OpenStackServiceType.Dns,
       upMetricName: "openstack_designate_up",
       isEmptyWhenStopped: true,
+      isReadByProbe: true,
       readsDownWhenRefused: true,
     },
     {
