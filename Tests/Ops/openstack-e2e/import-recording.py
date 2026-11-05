@@ -157,6 +157,28 @@ def import_quotas(folder, release_target, short, full):
         path = os.path.join(source, name)
         if os.path.isfile(path):
             copy_text(path, os.path.join(release_target, "quotas", name), short, full)
+    import_quotas_otlp(source, release_target, short, full)
+
+
+def import_quotas_otlp(source, release_target, short, full):
+    """What the agent's hourly jobs exported: one read from each job, which are all alike."""
+    path = os.path.join(source, "otlp", "metrics.json")
+    if not os.path.isfile(path):
+        return
+    kept = []
+    services = set()
+    with open(path, errors="replace") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            found = set(re.findall(r'"openstack_service","value":\{"stringValue":"([a-z-]+)"', line))
+            if found - services:
+                services |= found
+                kept.append(line)
+    target = os.path.join(release_target, "quotas", "otlp", "metrics.json")
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target, "w") as handle:
+        handle.write(rename("".join(kept), short, full))
 
 
 def import_exporter(folder, scene, release_target, name, short, full):
