@@ -1,0 +1,4 @@
+/etc/nova/api-paste.ini: audit in 2 pipeline(s), with /opt/stack/data/venv/etc/pycadf/nova_api_audit_map.conf
+/etc/neutron/api-paste.ini: audit in 1 pipeline(s), with /opt/stack/data/venv/etc/pycadf/neutron_api_audit_map.conf
+/etc/cinder/api-paste.ini: audit in 2 pipeline(s), with /opt/stack/data/venv/etc/pycadf/cinder_api_audit_map.conf
+/etc/glance/glance-api-paste.ini: audit in 3 pipeline(s), with /opt/stack/data/venv/etc/pycadf/glance_api_audit_map.conf
