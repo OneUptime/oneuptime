@@ -2353,9 +2353,37 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
       expect(read.bareMetalNodeCount).toBe(2);
       expect(read.bareMetalProviderCount).toBe(1);
+      expect(read.bareMetalProvidersNotListedCount).toBe(0);
       expect(read.services.sort()).toEqual(["baremetal", "placement"]);
       expect(read.hypervisorCount).toBe(0);
       expect(read.vcpuCapacity).toBe(0);
+    });
+
+    test("a provider Ironic didn't list is counted, whatever the two counts say", async () => {
+      const provider: (name: string) => ParsedOpenStackResource = (
+        name: string,
+      ): ParsedOpenStackResource => {
+        return resource({
+          kind: OpenStackResourceKind.PlacementProvider,
+          externalId: `RegionOne/${name}`,
+          name,
+          facts: { "inventory:CUSTOM_GOLD:total": 1 },
+        });
+      };
+
+      // As recorded: more nodes than providers, with one of each that the other hasn't got.
+      await write([
+        node("own-1"),
+        node("own-half-enrolled", { status: "enroll" }),
+        provider("own-1"),
+        provider("someone-elses"),
+      ]);
+
+      const read: OpenStackInventorySummary = await summary();
+
+      expect(read.bareMetalNodeCount).toBe(2);
+      expect(read.bareMetalProviderCount).toBe(2);
+      expect(read.bareMetalProvidersNotListedCount).toBe(1);
     });
 
     test("what each class can take is what the rule says, on the same rows", async () => {

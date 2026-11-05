@@ -154,9 +154,12 @@ export interface OpenStackInventorySummary {
   bareMetalNodeCount: number;
   /*
    * How many nodes Placement holds, whatever Ironic shows this credential: it answers a project
-   * with what that project owns, and Placement answers everyone.
+   * with what that project owns, and Placement answers everyone. And how many of those Ironic
+   * didn't list. A count beside a count can't say that: a project's half-enrolled node is in
+   * Ironic's list and not Placement's, recorded, which hides one it can't see.
    */
   bareMetalProviderCount: number;
+  bareMetalProvidersNotListedCount: number;
   // The services a read has heard from, with what each is called in Keystone's catalog.
   services: Array<string>;
   vcpuCapacity: number;
@@ -896,6 +899,27 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.StoragePool,
     );
 
+    // A read of its own, which a cloud without bare metal never pays for.
+    const providersNotListed: Array<{ count: string }> =
+      countOf(OpenStackResourceKind.PlacementProvider) > 0
+        ? await this.getRepository().manager.query(
+            `SELECT COUNT(*)::text AS "count"
+             FROM "OpenStackResource" AS provider
+             WHERE provider."projectId" = $1 AND provider."openStackCloudId" = $2
+               AND provider."kind" = '${OpenStackResourceKind.PlacementProvider}'
+               AND provider."deletedAt" IS NULL
+               AND ($3::text IS NULL OR provider."regionName" = $3 OR provider."regionName" IS NULL)
+               AND NOT EXISTS (
+                 SELECT 1 FROM "OpenStackResource" AS node
+                 WHERE node."projectId" = $1 AND node."openStackCloudId" = $2
+                   AND node."kind" = '${OpenStackResourceKind.BareMetalNode}'
+                   AND node."externalId" = provider."name"
+                   AND node."deletedAt" IS NULL
+               )`,
+            scope,
+          )
+        : [];
+
     return {
       regionCount: toNumber(places[0]?.regionCount),
       availabilityZoneCount: toNumber(places[0]?.availabilityZoneCount),
@@ -915,6 +939,7 @@ export class Service extends DatabaseService<Model> {
       ),
       bareMetalNodeCount: countOf(OpenStackResourceKind.BareMetalNode),
       bareMetalProviderCount: countOf(OpenStackResourceKind.PlacementProvider),
+      bareMetalProvidersNotListedCount: toNumber(providersNotListed[0]?.count),
       services: (places[0]?.services || []).filter(
         (service: string | null): service is string => {
           return Boolean(service);

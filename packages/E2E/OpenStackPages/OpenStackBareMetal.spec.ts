@@ -107,6 +107,10 @@ test.describe("bare metal", () => {
     await expect(
       page.getByTestId("openstack-bare-metal-classes"),
     ).toBeVisible();
+    // Two of Placement's six are another project's, and nobody's: Ironic shows this project neither.
+    await expect(
+      page.getByTestId("openstack-bare-metal-partial"),
+    ).toContainText("Placement holds 2 bare metal nodes");
 
     await row.getByRole("button", { name: /view/i }).first().click();
 

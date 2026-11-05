@@ -357,9 +357,22 @@ describe("what it can and can't see", () => {
     expect(
       await screen.findByTestId("openstack-bare-metal-partial"),
     ).toHaveTextContent(
-      /Placement holds 3 bare metal nodes, and Ironic shows this credential 1/,
+      /Placement holds 2 bare metal nodes Ironic doesn't show this credential/,
     );
     expect(screen.queryByText("ou-node-active")).toBeNull();
+  });
+
+  test("a half-enrolled node in Ironic's list can't hide one it left out, as a count beside a count would", async () => {
+    // Five of the project's own against Placement's four, two of which it doesn't own.
+    server.rows = recorded("wait-call-back");
+
+    await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
+
+    expect(
+      await screen.findByTestId("openstack-bare-metal-partial"),
+    ).toHaveTextContent(
+      /Placement holds 2 bare metal nodes Ironic doesn't show this credential/,
+    );
   });
 
   test("the same moment with system scope lists all three, and has nothing to say", async () => {
