@@ -8,6 +8,8 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
@@ -58,6 +60,12 @@ export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 export const OPENSTACK_STACK_STUCK_MINUTES: number = 120;
 export const OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES: number = 120;
 
+/*
+ * Manila has no timeout of its own for a share a backend is slow with, so one can stay `creating` for
+ * as long as the backend takes, recorded for 50 minutes on a backend told to take that long, and a
+ * backend that hung reads just the same. Longer than a volume's, because a share's backend does more.
+ */
+export const OPENSTACK_SHARE_STUCK_MINUTES: number = 60;
 /*
  * Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node is then
  * in a failed state, which says so itself. Past twice that and as long again, Ironic has not given
@@ -422,6 +430,24 @@ export function isOpenStackBareMetalNodeId(
     }
   }
   return true;
+}
+
+export function isOpenStackShareInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_SHARE_ERROR_STATUSES.has(status));
+}
+
+export function isOpenStackShareStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (!data.status || !OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(data.status)) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return minutes !== null && minutes >= OPENSTACK_SHARE_STUCK_MINUTES;
 }
 
 export function isOpenStackVolumeInError(

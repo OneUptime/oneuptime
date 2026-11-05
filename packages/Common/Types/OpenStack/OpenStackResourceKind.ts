@@ -57,6 +57,11 @@ export enum OpenStackResourceKind {
    * credential: it answers a project with only what that project owns.
    */
   PlacementProvider = "PlacementProvider",
+  /*
+   * A shared file system Manila serves. Only Manila's own series make one (OpenStackSnapshotScan),
+   * so a cloud without Manila has none.
+   */
+  Share = "Share",
 }
 
 /*
@@ -78,6 +83,7 @@ export enum OpenStackServiceType {
   ContainerInfra = "container-infra",
   // A service a cloud may not run: see OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.
   BareMetal = "baremetal",
+  SharedFileSystems = "sharev2",
 }
 
 /*
@@ -113,6 +119,7 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.Orchestration]: "Orchestration (Heat)",
   [OpenStackServiceType.ContainerInfra]: "Kubernetes Clusters (Magnum)",
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
+  [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
 };
 
 /*
@@ -155,6 +162,7 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
     OpenStackResourceKind.ContainerCluster,
   ],
   [OpenStackServiceType.BareMetal]: [OpenStackResourceKind.BareMetalNode],
+  [OpenStackServiceType.SharedFileSystems]: [OpenStackResourceKind.Share],
 };
 
 /*
@@ -174,6 +182,8 @@ export enum OpenStackServiceFamily {
   ContainerInfra = "container-infra",
   // Only a probe says these: the exporter has no series for Ironic's conductors.
   BareMetal = "baremetal",
+  // Nor for Manila's services: its API lists them, and only for an admin.
+  SharedFileSystems = "sharev2",
 }
 
 /*
@@ -199,6 +209,12 @@ export const OPENSTACK_WORKER_FAMILY_BY_SERVICE: Partial<
 // A worker's status: `openstack compute service list` and friends.
 export const OPENSTACK_SERVICE_STATUS_UP: string = "up";
 export const OPENSTACK_SERVICE_STATUS_DOWN: string = "down";
+/*
+ * Manila's word for a service that was shut down cleanly, recorded: manila-share reads `stopped` at
+ * once, and `down` only when one died and its heartbeat has grown old (services-manila). Whatever
+ * stopped it meant to, so it reads apart from one that died.
+ */
+export const OPENSTACK_SERVICE_STATUS_STOPPED: string = "stopped";
 /*
  * An API this credential can't read: a page's word, never stored or reported. Its own status
  * says down, and getOpenStackRowsAsThisCredentialReadsThem says why that means nothing here.
@@ -351,3 +367,45 @@ export const OPENSTACK_BARE_METAL_TRANSITIONAL_STATES: ReadonlySet<string> =
 // What a node's adminState says: Ironic's `maintenance`, as this column holds such things.
 export const OPENSTACK_BARE_METAL_IN_MAINTENANCE: string = "maintenance";
 export const OPENSTACK_BARE_METAL_IN_SERVICE: string = "in service";
+
+/*
+ * Manila's share statuses (manila.common.constants). The exporter's status counter knows nineteen of
+ * these, recorded, and its series carry whatever word Manila says.
+ */
+export const OPENSTACK_SHARE_ERROR_STATUSES: ReadonlySet<string> = new Set([
+  "error",
+  "error_deleting",
+  "extending_error",
+  "shrinking_error",
+  "shrinking_possible_data_loss_error",
+  "manage_error",
+  "unmanage_error",
+  "migration_error",
+  "reverting_error",
+  "backup_restoring_error",
+]);
+
+/*
+ * On the way to something else. Left out on purpose: `migrating`, `migrating_to` and a backup's two
+ * words, which last as long as a share's data takes to copy, because someone asked for that.
+ */
+export const OPENSTACK_SHARE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set([
+    "creating",
+    "creating_from_snapshot",
+    "deleting",
+    "deferred_deleting",
+    "soft_deleting",
+    "extending",
+    "shrinking",
+    "managing",
+    "manage_starting",
+    "unmanaging",
+    "unmanage_starting",
+    "reverting",
+    "reverting_to_snapshot",
+    "restoring",
+    "updating",
+    "replication_change",
+    "ensuring",
+  ]);
