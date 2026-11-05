@@ -43839,7 +43839,7 @@
   "By availability zone": "アベイラビリティーゾーン別",
   "By bare metal class": "ベアメタルクラス別",
   "By flavor": "フレーバー別",
-  "By hand": "手動",
+  "By hand": "By hand",
   "By the same rules as the cloud's Overview, and the same lines as its alerts.": "クラウドの概要と同じルール、アラートと同じ基準線で評価します。",
   "By zone": "ゾーン別",
   "Bytes per second leaving this instance, per interface.": "このインスタンスから出ていく 1 秒あたりのバイト数（インターフェースごと）。",
