@@ -223,6 +223,10 @@ test.describe("compute", () => {
     page: Page;
   }) => {
     await openCloudPage(page, "instances", PARTS);
+    // The image it booted from, where a probe says, by its name.
+    await expect(rowOf(page, "batch-worker-7")).toContainText(
+      "windows-2022-import",
+    );
     await expect(rowOf(page, "batch-worker-7")).toContainText("10.77.0.12");
   });
 

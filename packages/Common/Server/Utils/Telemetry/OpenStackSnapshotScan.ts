@@ -172,6 +172,7 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
   "updated_at",
   "task_state",
   "fault_message",
+  "image_id",
   OPENSTACK_SERVICE_LABEL,
   OPENSTACK_REGION_ATTRIBUTE,
   "openstack_region",
@@ -760,6 +761,8 @@ function setNativeInstanceFacts(
   entry.facts["updatedAt"] = updatedAt;
   entry.facts["taskState"] = getLabel(attributes, "task_state");
   entry.facts["faultMessage"] = getLabel(attributes, "fault_message");
+  // None, from a probe, is an instance booted from a volume: see getOpenStackInstanceImage.
+  entry.facts["imageId"] = getLabel(attributes, "image_id");
   // An instance that lost its floating IP or its port has no label left to say so.
   entry.facts["addressIpv4"] = getLabel(attributes, "address_ipv4");
   entry.facts["addressIpv6"] = getLabel(attributes, "address_ipv6");

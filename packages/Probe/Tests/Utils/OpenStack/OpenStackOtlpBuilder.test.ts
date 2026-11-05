@@ -74,6 +74,7 @@ const SERVER: NonNullable<OpenStackComputeInventory["servers"]>[number] = {
   flavorId: null,
   flavorName: "m1.tiny",
   instanceName: "instance-00000001",
+  imageId: null,
   taskState: null,
   updatedAt: "2026-11-04T11:00:00Z",
   faultMessage: null,
@@ -509,6 +510,7 @@ describe("an instance", () => {
               status: "ERROR",
               taskState: "spawning",
               faultMessage: "No valid host was found.",
+              imageId: "image-1",
             },
           ],
         }),
@@ -517,6 +519,7 @@ describe("an instance", () => {
     )[0]!;
 
     expect(point.labels).toMatchObject({
+      image_id: "image-1",
       task_state: "spawning",
       updated_at: "2026-11-04T11:00:00Z",
       fault_message: "No valid host was found.",
@@ -525,7 +528,7 @@ describe("an instance", () => {
     expect(
       getOpenStackMetricByMetricName("openstack_nova_server_status")
         ?.probeOnlyAttributes,
-    ).toEqual(["task_state", "updated_at", "fault_message"]);
+    ).toEqual(["task_state", "updated_at", "fault_message", "image_id"]);
   });
 
   test("a hypervisor has its capacity only while Nova says it", () => {

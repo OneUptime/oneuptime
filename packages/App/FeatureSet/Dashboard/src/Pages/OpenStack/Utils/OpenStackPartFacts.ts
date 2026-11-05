@@ -690,6 +690,29 @@ export function getOpenStackInstanceAddresses(
   };
 }
 
+/*
+ * What an instance booted from. Only a native read of Nova says: the exporter has no such label,
+ * on any series. What says a row came from one is when it last changed, which the exporter has no
+ * label for either, and then an instance with no image is one booted from a volume, which is what
+ * Nova answers for those. Anything else is not known, and a page says so.
+ */
+export type OpenStackInstanceImage =
+  | { state: "image"; imageId: string }
+  | { state: "booted-from-volume" }
+  | { state: "not-collected" };
+
+export function getOpenStackInstanceImage(
+  row: OpenStackResource | null | undefined,
+): OpenStackInstanceImage {
+  const imageId: string = textFact(row, "imageId");
+  if (imageId) {
+    return { state: "image", imageId };
+  }
+  return textFact(row, "updatedAt")
+    ? { state: "booted-from-volume" }
+    : { state: "not-collected" };
+}
+
 // An instance that failed before it was placed has no hypervisor. That is its story.
 export function isOpenStackInstanceUnplaced(
   row: Pick<OpenStackResource, "kind" | "hypervisorName">,

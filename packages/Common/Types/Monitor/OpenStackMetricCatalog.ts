@@ -477,7 +477,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_nova_server_status",
     friendlyName: translationKey("Instance Status"),
     description:
-      "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves address_ipv4 and address_ipv6 empty on a real cloud, and a probe fills them in from the addresses Nova lists. hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled.",
+      "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves address_ipv4 and address_ipv6 empty on a real cloud, and a probe fills them in from the addresses Nova lists. hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled. image_id names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
     category: "Compute",
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
@@ -496,7 +496,12 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "flavor_id",
       "instance_libvirt",
     ],
-    probeOnlyAttributes: ["task_state", "updated_at", "fault_message"],
+    probeOnlyAttributes: [
+      "task_state",
+      "updated_at",
+      "fault_message",
+      "image_id",
+    ],
   }),
   metric({
     metricName: "openstack_nova_server_local_gb",
