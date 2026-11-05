@@ -34,6 +34,12 @@
  *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
  *               untrusted | plain-http | refused | not-found | no-probe
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
+ *   ?archived=  1: the project also has an archived cloud
+ *   ?linked=    1: an incident, an alert and a maintenance event linked to this cloud, and one of
+ *               each that is not, and a feed that says what happened to the cloud
+ *   ?role=      read: a custom role holding only the OpenStack read permissions; none: one
+ *               holding none of them. Every read and write is then held to the model's own lists
+ *               of who may, which are what the server's permission checks read
  *   ?lang=      de or fa reads the German or Persian locale file (Persian lays the page
  *               out right to left)
  *   ?theme=     dark adds html.dark (server.js)
@@ -101,7 +107,16 @@ import CloudTraces from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
 import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
+import CloudOwners from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Owners";
+import CloudDelete from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Delete";
+import CloudFeed from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Feed";
+import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
+import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
+import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
+import CloudsArchived from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Archived";
+import OwnerRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Settings/OwnerRules";
+import LabelRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Settings/LabelRules";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -232,7 +247,56 @@ const GLOBAL_PERMISSIONS = [
   Permission.User,
   Permission.CurrentUser,
 ];
-const rolePermissions = [...GLOBAL_PERMISSIONS, Permission.ProjectOwner];
+/*
+ * What the OpenStack read role holds: every read permission of the product's own tables, as
+ * Common/Types/Permission.ts lists them, and nothing that writes.
+ */
+const OPENSTACK_READ_PERMISSIONS = [
+  Permission.ReadOpenStackCloud,
+  Permission.ReadOpenStackCloudFeed,
+  Permission.ReadOpenStackCloudOwnerUser,
+  Permission.ReadOpenStackCloudOwnerTeam,
+  Permission.ReadOpenStackCloudOwnerRule,
+  Permission.ReadOpenStackCloudLabelRule,
+];
+const ROLE = ["read", "none"].includes(params.get("role"))
+  ? params.get("role")
+  : "";
+const rolePermissions = [
+  ...GLOBAL_PERMISSIONS,
+  ...(ROLE === "read"
+    ? OPENSTACK_READ_PERMISSIONS
+    : ROLE === "none"
+      ? []
+      : [Permission.ProjectOwner]),
+];
+
+/*
+ * A custom role, as the server holds it to a model's own lists: nothing this role may not read
+ * comes back, and nothing it may not write is written. What the real checks make of these same
+ * lists has a test of its own (OpenStackCustomRoleGrants.test.ts).
+ */
+function refuseUnlessRoleMay(modelType, action) {
+  if (!ROLE) {
+    return;
+  }
+  const model = new modelType();
+  const allowed = {
+    read: model.getReadPermissions(),
+    create: model.getCreatePermissions(),
+    update: model.getUpdatePermissions(),
+    delete: model.getDeletePermissions(),
+  }[action];
+  if (
+    !allowed.some((permission) => {
+      return rolePermissions.includes(permission);
+    })
+  ) {
+    throw new Error(
+      `You do not have permissions to ${action} ${model.singularName || "this"}.`,
+    );
+  }
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -335,6 +399,43 @@ function openAlert(number, title, labels, minutesAgo) {
 
 const incidents = [];
 const alerts = [];
+const scheduledMaintenances = [];
+const LINKED = params.get("linked") === "1";
+if (LINKED) {
+  incidents.push(
+    openIncident(61, "Nova API errors in RegionOne", [], 45),
+    {
+      ...openIncident(62, "A payment provider is slow", [], 30),
+      openStackCloudIds: [],
+    },
+  );
+  alerts.push(openAlert(61, "Volume stuck in creating", [], 20), {
+    ...openAlert(62, "A certificate expires soon", [], 10),
+    openStackCloudIds: [],
+  });
+  scheduledMaintenances.push(
+    {
+      _id: uuid("58000000", 1),
+      title: "Patch the control plane",
+      scheduledMaintenanceNumber: 7,
+      scheduledMaintenanceNumberWithPrefix: "SCH-7",
+      startsAt: new Date(LOADED_AT + 60 * MINUTE),
+      endsAt: new Date(LOADED_AT + 120 * MINUTE),
+      createdAt: new Date(LOADED_AT - 60 * MINUTE),
+      openStackCloudIds: [CLOUD_ID],
+    },
+    {
+      _id: uuid("58000000", 2),
+      title: "Move the office network",
+      scheduledMaintenanceNumber: 8,
+      scheduledMaintenanceNumberWithPrefix: "SCH-8",
+      startsAt: new Date(LOADED_AT + 60 * MINUTE),
+      endsAt: new Date(LOADED_AT + 120 * MINUTE),
+      createdAt: new Date(LOADED_AT - 60 * MINUTE),
+      openStackCloudIds: [],
+    },
+  );
+}
 if (OPEN !== "0" && ESTATE === "busy" && !RECORDING) {
   incidents.push(
     openIncident(
@@ -630,6 +731,19 @@ function matches(modelName, record, query) {
   return true;
 }
 
+const SAM = {
+  _id: uuid("80000000", 1),
+  name: "Sam Patel",
+  email: "sam@acme-cloud.example",
+};
+const PLATFORM_TEAM = { _id: uuid("81000000", 1), name: "Platform" };
+const PRODUCTION_LABEL = {
+  _id: uuid("82000000", 1),
+  name: "production",
+  color: new Color("#2563eb"),
+  projectId: PROJECT_ID,
+};
+
 const store = {
   OpenStackCloud:
     params.get("clouds") === "none"
@@ -640,10 +754,64 @@ const store = {
             : params.get("collection")
               ? { ...estate.cloud, collectionMethod: params.get("collection") }
               : estate.cloud,
+          ...(params.get("archived") === "1"
+            ? [
+                {
+                  ...estate.cloud,
+                  _id: uuid("71000000", 50),
+                  name: "old-lab-cloud",
+                  isArchived: true,
+                },
+              ]
+            : []),
         ],
   OpenStackCloudConnectionTest: [],
   OpenStackCloudOwnerUser: [],
   OpenStackCloudOwnerTeam: [],
+  OpenStackCloudOwnerRule: [],
+  OpenStackCloudLabelRule: [],
+  OpenStackCloudFeed: LINKED
+    ? [
+        {
+          _id: uuid("83000000", 1),
+          openStackCloudId: CLOUD_ID,
+          projectId: PROJECT_ID,
+          feedInfoInMarkdown:
+            "**OpenStack cloud registered** when its first data arrived.",
+          openStackCloudFeedEventType: "OpenStackCloudCreated",
+          displayColor: new Color("#16a34a"),
+          postedAt: new Date(LOADED_AT - 3 * DAY),
+          createdAt: new Date(LOADED_AT - 3 * DAY),
+        },
+      ]
+    : [],
+  User: [SAM],
+  Team: [PLATFORM_TEAM],
+  TeamMember: [
+    {
+      _id: uuid("85000000", 1),
+      projectId: PROJECT_ID,
+      userId: SAM._id,
+      user: SAM,
+      teamId: PLATFORM_TEAM._id,
+      team: PLATFORM_TEAM,
+      hasAcceptedInvitation: true,
+    },
+  ],
+  // What the tables of incidents, alerts and maintenance events read beside their rows.
+  TableView: [],
+  IncidentCustomField: [],
+  IncidentNoteTemplate: [],
+  IncidentOwnerUser: [],
+  IncidentOwnerTeam: [],
+  AlertCustomField: [],
+  AlertNoteTemplate: [],
+  AlertOwnerUser: [],
+  AlertOwnerTeam: [],
+  ScheduledMaintenanceCustomField: [],
+  ScheduledMaintenanceNoteTemplate: [],
+  ScheduledMaintenanceOwnerUser: [],
+  ScheduledMaintenanceOwnerTeam: [],
   Probe: params.get("probes") === "many" ? PROBES : PROBES.slice(0, 1),
   OpenStackResource: estate.inventory,
   // A worker's page links to the Hosts product when a host reports under its name.
@@ -677,7 +845,7 @@ const store = {
   IncidentOwnerRule: [],
   AlertLabelRule: [],
   IncidentLabelRule: [],
-  ScheduledMaintenance: [],
+  ScheduledMaintenance: scheduledMaintenances,
   Monitor: monitors,
   RecommendationDismissal: [],
   MonitorStatus: [
@@ -699,7 +867,7 @@ const store = {
   IncidentSeverity: [criticalIncident],
   AlertSeverity: [warningAlert],
   OnCallDutyPolicy: [],
-  Label: [],
+  Label: [PRODUCTION_LABEL],
   TelemetryIngestionKey: [
     {
       _id: uuid("59000000", 1),
@@ -902,6 +1070,7 @@ ModelAPI.getList = async (options) => {
   if (failsInventory(modelName) || failsEvents(modelName)) {
     throw new Error(SERVER_ERROR);
   }
+  refuseUnlessRoleMay(options.modelType, "read");
 
   const data = rows(options.modelType, options.query, options.sort);
   if (!data) {
@@ -925,6 +1094,7 @@ ModelAPI.count = async (options) => {
   if (failsEvents(modelName) || failsInventory(modelName)) {
     throw new Error(SERVER_ERROR);
   }
+  refuseUnlessRoleMay(options.modelType, "read");
 
   const data = rows(options.modelType, options.query);
   if (!data) {
@@ -942,6 +1112,7 @@ ModelAPI.getItem = async (options) => {
     id,
     select: serialize(options.select),
   });
+  refuseUnlessRoleMay(options.modelType, "read");
 
   // A test is picked up on the first read, and has its answer on the next.
   if (modelName === "OpenStackCloudConnectionTest") {
@@ -1007,9 +1178,29 @@ function refuseWrite() {
   }
 }
 
+let writtenRows = 0;
+
 function writeRow(modelName, id, data) {
   if (modelName === "OpenStackCloud") {
     return writeCloud(store.OpenStackCloud, id, data, store.Probe);
+  }
+
+  // A row of a table the walks read back: only what a page reads comes back.
+  if (WRITABLE_TABLES.has(modelName)) {
+    const existing = store[modelName].find((candidate) => {
+      return candidate._id === id;
+    });
+    if (existing) {
+      Object.assign(existing, serialize(data));
+      return existing;
+    }
+    writtenRows += 1;
+    const created = {
+      ...serialize(data),
+      _id: id || uuid("84000000", writtenRows),
+    };
+    store[modelName].push(created);
+    return created;
   }
 
   // A row of another table is a read the walks do not model, and they say so.
@@ -1017,10 +1208,35 @@ function writeRow(modelName, id, data) {
   return { _id: id };
 }
 
+const WRITABLE_TABLES = new Set([
+  "OpenStackCloudOwnerUser",
+  "OpenStackCloudOwnerTeam",
+  "OpenStackCloudOwnerRule",
+  "OpenStackCloudLabelRule",
+]);
+
+// What the server does on a delete: the row goes, and a cloud takes its owners with it.
+ModelAPI.deleteItem = async (options) => {
+  const modelName = tableName(options.modelType);
+  const id = plain(options.id);
+  fixture.writeRequests.push({ kind: "delete", modelName, id });
+  refuseUnlessRoleMay(options.modelType, "delete");
+  refuseWrite();
+
+  if (!store[modelName]) {
+    fixture.unhandled.push({ kind: "delete", modelName });
+    return;
+  }
+  store[modelName] = store[modelName].filter((candidate) => {
+    return candidate._id !== id;
+  });
+};
+
 ModelAPI.create = async (options) => {
   const modelName = tableName(options.modelType);
   const data = getWrittenValues(options.model, options.modelType);
   fixture.writeRequests.push({ kind: "create", modelName, data });
+  refuseUnlessRoleMay(options.modelType, "create");
   refuseWrite();
 
   if (modelName === "OpenStackCloudConnectionTest") {
@@ -1046,6 +1262,7 @@ ModelAPI.createOrUpdate = async (options) => {
     id,
     data,
   });
+  refuseUnlessRoleMay(options.modelType, id ? "update" : "create");
   refuseWrite();
 
   return { data: writeRow(modelName, id, data), miscData: {} };
@@ -1060,6 +1277,7 @@ ModelAPI.updateById = async (options) => {
     id,
     data: serialize(options.data),
   });
+  refuseUnlessRoleMay(options.modelType, "update");
   refuseWrite();
 
   writeRow(modelName, id, options.data);
@@ -1857,6 +2075,12 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS, CloudRecommendations],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION, CloudDocumentation],
   [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS, CloudSettings],
+  [PageMap.OPENSTACK_CLOUD_VIEW_OWNERS, CloudOwners],
+  [PageMap.OPENSTACK_CLOUD_VIEW_DELETE, CloudDelete],
+  [PageMap.OPENSTACK_CLOUD_VIEW_FEED, CloudFeed],
+  [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, CloudIncidents],
+  [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS, CloudAlerts],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE, CloudScheduledMaintenance],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),
@@ -1866,6 +2090,15 @@ const PAGES = [
 
 const FixtureLayout = withNavigation(CloudLayout, PageMap.OPENSTACK_CLOUD_VIEW);
 const FixtureCloudsList = withNavigation(CloudsList, PageMap.OPENSTACK_CLOUDS);
+const FixtureArchived = withNavigation(CloudsArchived, PageMap.OPENSTACK_ARCHIVED);
+const FixtureOwnerRules = withNavigation(
+  OwnerRules,
+  PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
+);
+const FixtureLabelRules = withNavigation(
+  LabelRules,
+  PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
+);
 
 // A page the views link to that is not modelled: says where it is.
 function StubPage() {
@@ -1906,6 +2139,18 @@ function FixtureApp() {
         <Route
           path={RouteMap[PageMap.OPENSTACK_CLOUDS].toString()}
           element={<FixtureCloudsList />}
+        />
+        <Route
+          path={RouteMap[PageMap.OPENSTACK_ARCHIVED].toString()}
+          element={<FixtureArchived />}
+        />
+        <Route
+          path={RouteMap[PageMap.OPENSTACK_SETTINGS_OWNER_RULES].toString()}
+          element={<FixtureOwnerRules />}
+        />
+        <Route
+          path={RouteMap[PageMap.OPENSTACK_SETTINGS_LABEL_RULES].toString()}
+          element={<FixtureLabelRules />}
         />
         <Route element={<FixtureLayout />}>
           {PAGES.map((page) => {

@@ -49,7 +49,8 @@ is what OSProfiler's driver really sent for a signed boot, through the real read
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
 `?probe=checking|collecting|partial|untrusted|plain-http`, `?probes=many`,
-`?tests=ok,untrusted,...`, `?clouds=none`, `?alerts=none|some|all|denied`, `?open=0|1|many`,
+`?tests=ok,untrusted,...`, `?clouds=none`, `?archived=1`, `?linked=1`, `?role=read|none`,
+`?alerts=none|some|all|denied`, `?open=0|1|many`,
 `?fail=inventory,attention,regions,consumers,blast,metrics,events`, `?lang=de|fa` and
 `?theme=dark`. `?region=` is the product's own. They are read when a page loads, and a
 reload reads what the tab was first given: a link inside the product knows nothing of them.
@@ -119,6 +120,15 @@ each page says what is missing and how to add it. And what it costs on a cloud's
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.
+
+`OpenStackProductArea.spec.ts`: the clouds list and Archived, archive from a row and from Settings,
+delete, an owner added from the cloud's page, labels added from the list, the rule pages and their
+forms, and what a cloud's Incidents, Alerts and Scheduled Maintenance pages list when one of each is
+linked to it and one is not (`?linked=1`). `?role=read` is a custom role holding only the OpenStack
+read permissions, and `?role=none` one holding none: every read and write is then held to the
+model's own lists of who may, the lists the server's checks read, whose real gates have a test
+of their own (`OpenStackCustomRoleGrants.test.ts`). A write is recorded, and what a page reads back
+of the product's own tables is kept.
 
 `OpenStackAccessLevels.spec.ts`: every page, on what the exporter really answered each level of
 access: which say "This credential can't list...", which say a list is its own project's, and that
