@@ -6,6 +6,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import { OpenStackMaintenancePartKind } from "Common/Types/OpenStack/OpenStackMaintenancePart";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { percentOf } from "Common/Types/OpenStack/OpenStackHealthRules";
 import Link from "Common/UI/Components/Link/Link";
@@ -18,6 +19,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import OpenStackPlannedWorkCard from "./OpenStackPlannedWorkCard";
 import {
   OpenStackRegionState,
   useOpenStackRegion,
@@ -570,6 +572,19 @@ export const OpenStackHostGroupPage: FunctionComponent<{
             getRecommendationsRoute={routes.getRecommendationsRoute}
             getMonitorRoute={routes.getMonitorRoute}
           />
+          {props.kind === "zone" ? (
+            <div className="mb-6">
+              <OpenStackPlannedWorkCard
+                testId="openstack-zone-planned-work"
+                openStackCloudId={openStackCloudId}
+                kind={OpenStackMaintenancePartKind.AvailabilityZone}
+                name={group.name}
+                regionName={group.regionName || null}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
           <ResourcePartDetailsCard
             testId={`openstack-${props.kind}-details`}
             description={words.detailsDescription}

@@ -1,3 +1,4 @@
+import { OpenStackMaintenancePart } from "Common/Types/OpenStack/OpenStackMaintenancePart";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
@@ -1292,6 +1293,39 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <DataStoresUnderMaintenance
                         ids={item.dataStoreIds || []}
                       />
+                    );
+                  },
+                },
+                /*
+                 * What it is on when that isn't the whole of an OpenStack cloud: only these stay
+                 * quiet. An event on none of them says nothing here.
+                 */
+                {
+                  field: { openStackParts: true },
+                  title: "OpenStack Hosts and Zones",
+                  fieldType: FieldType.Element,
+                  showIf: (item: ScheduledMaintenance): boolean => {
+                    return (item.openStackParts || []).length > 0;
+                  },
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <ul data-testid="scheduled-maintenance-openstack-parts">
+                        {(item.openStackParts || []).map(
+                          (part: OpenStackMaintenancePart) => {
+                            return (
+                              <li
+                                key={`${part.kind}-${part.regionName}-${part.name}`}
+                              >
+                                <bdi>
+                                  {part.regionName
+                                    ? `${part.name} (${part.regionName})`
+                                    : part.name}
+                                </bdi>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
                     );
                   },
                 },
