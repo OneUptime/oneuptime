@@ -1237,6 +1237,14 @@ function matchesSpanQuery(span, query) {
     if (key === "spanId" && span.spanId !== String(condition)) {
       return false;
     }
+    if (
+      key === "attributes" &&
+      Object.entries(condition).some(([name, value]) => {
+        return (span.attributes || {})[name] !== value;
+      })
+    ) {
+      return false;
+    }
   }
   return true;
 }
@@ -1256,9 +1264,16 @@ AnalyticsModelAPI.getList = async (options) => {
 
   let items = [];
   if (options.modelType === Span) {
-    // The span panel's detail read names a traceId too; a trace read has no spanId.
+    /*
+     * The span panel's detail read names a traceId too; a trace read has no spanId. The look for
+     * OSProfiler's spans, whether this trace is from an OpenStack cloud, names an attribute.
+     */
+    const isOpenStackLook = Boolean(options.query && options.query.attributes);
     const isTraceRead = Boolean(
-      options.query && options.query.traceId && !options.query.spanId,
+      options.query &&
+      options.query.traceId &&
+      !options.query.spanId &&
+      !isOpenStackLook,
     );
     if (isTraceRead && firstSpanRead) {
       firstSpanRead = false;
@@ -1271,7 +1286,7 @@ AnalyticsModelAPI.getList = async (options) => {
         {},
       );
     }
-    if (!isTraceRead && failures.has("span-detail")) {
+    if (!isTraceRead && !isOpenStackLook && failures.has("span-detail")) {
       throw new HTTPErrorResponse(
         500,
         { message: "Could not load this span." },
