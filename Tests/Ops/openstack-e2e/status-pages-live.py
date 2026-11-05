@@ -16,7 +16,9 @@ server here that keeps what it is sent:
              is on, nova-compute stopped opens nothing and moves no status, and a disable reads as
              expected. Ended, the same disable pages, and tells no project.
 
-Every check says what it found, in $OUTPUT_DIR/whole-path.json, beside what whole-path.py would write.
+The pages this issue added are read in a real browser along the way, with what the cloud really says on
+them, as whole-path.py reads the rest. Every check says what it found, in $OUTPUT_DIR/whole-path.json, beside
+what whole-path.py would write, and each page's screenshot is beside that.
 Exits 1 when a check failed, having named each one last.
 
     ONEUPTIME_URL=http://localhost:8880 OUTPUT_DIR=out python3 -I status-pages-live.py
@@ -33,6 +35,7 @@ import socketserver
 import sys
 import threading
 import time
+import urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -103,10 +106,23 @@ def project_row(cloud_id, name):
     return next((row for row in whole.rows_of(cloud_id, "Project") if row.get("name") == name), None)
 
 
+def page_of(name, file, path, *words):
+    """A page read in a real browser, which has to say these words and draw no error."""
+    return {"name": name, "file": f"status-pages/{file}", "path": path, "text": list(words)}
+
+
+def part_of_cloud(cloud_id, kind, external_id):
+    return whole.cloud_path(cloud_id, f"{kind}/{urllib.parse.quote(external_id, safe='')}")
+
+
 def part_page():
     cloud_id = STATE["agent cloud"]
     STATE["cloud"] = cloud_id
     before = monitor_count()
+    whole.look_at(
+        "the-page-before-making",
+        [page_of("The cloud's Status Pages page", "before-making.png", whole.cloud_path(cloud_id, "status-pages"), "Create Status Page")],
+    )
     answer = post(f"{NOTICE_API}/status-page-plan/{cloud_id}")
     plan, key = answer["plan"], answer["planKey"]
     found("the plan", plan)
@@ -227,6 +243,14 @@ def part_notices():
     )
     found("who the host would tell", told)
     check("the preview of the host tells only the one turned on", [row.get("name") for row in told.get("told", [])] == [PAID], told.get("told"))
+
+    whole.look_at(
+        "the-notices",
+        [
+            page_of("The cloud's Status Pages page, with its notices", "with-notices.png", whole.cloud_path(cloud_id, "status-pages"), f"{url}/paid", f"{url}/other"),
+            page_of("A project's page, with its notice", "project.png", part_of_cloud(cloud_id, "projects", paid["externalId"]), f"{url}/paid", "Create Private Page"),
+        ],
+    )
 
 
 def incidents_about(words):
@@ -441,6 +465,8 @@ def part_planned():
         )
         status = whole.monitor_status(monitor_id)
         check("and its monitor stays as it was", bool(status.get("isOperationalState")), status)
+        host_page = part_of_cloud(cloud_id, "hypervisors", hypervisor["externalId"])
+        whole.look_at("disabled-in-its-event", [page_of("The host's page, disabled during its event", "disabled-in-event.png", host_page, "which is expected")])
 
         move_event(event_id, ended)
 
@@ -460,11 +486,14 @@ def part_planned():
             time.sleep(120)
             last = bodies("/paid")[-1].get("event")
             check("and it tells no project", last == "Maintenance Ended", last)
+        whole.look_at("disabled-with-no-event", [page_of("The host's page, disabled with no event", "disabled-no-event.png", host_page, "no maintenance event covering this host")])
     finally:
         whole.must("break", f"openstack compute service set --enable {host} nova-compute")
 
 
 def main():
+    # The whole path's own job reads every page of a cloud. This one reads only what this issue added.
+    whole.sweep_of = lambda _cloud_id, _label: []
     os.makedirs(whole.LOGS, exist_ok=True)
     RESULTS["started"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     server = ThreadingServer(("0.0.0.0", SINK_PORT), Sink)
