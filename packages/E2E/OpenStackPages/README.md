@@ -29,6 +29,9 @@ tell them apart:
   stopped API's scrape says nothing of its workers, whose rows stay as they last were.
   `?recording=gazpacho-ovs/healthy@1.7.0` is what exporter 1.7.0, which Kolla-Ansible pins,
   said of that same cloud at the same moment, on its own.
+  `?recording=hibiscus-ovn/access/reader` is what the exporter answered one credential on a healthy
+  cloud, for each level of access the docs describe: `reader`, `monitoring-role` and
+  `monitoring-admin-get`. `&without=volume` makes a recording's cloud one with no such service.
 - **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
@@ -105,3 +108,8 @@ in zones and aggregates, a stuck image and the rows only the probe sends, which 
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.
+
+`OpenStackAccessLevels.spec.ts`: every page, on what the exporter really answered each level of
+access: which say "This credential can't list...", which say a list is its own project's, and that
+Full view says neither. A 403, an own-project 200 and a service that isn't deployed, on all five
+releases where it matters.
