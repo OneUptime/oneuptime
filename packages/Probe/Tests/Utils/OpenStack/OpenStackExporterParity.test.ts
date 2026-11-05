@@ -1617,6 +1617,7 @@ describe("the catalogue says who collects what", () => {
       "openstack_heat_agent_state",
       "openstack_ironic_agent_state",
       "openstack_placement_flavor_fits",
+      "openstack_sharev2_agent_state",
     ]);
   });
 });

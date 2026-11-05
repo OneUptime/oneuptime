@@ -3,7 +3,12 @@ import http from "http";
 import https from "https";
 import net from "net";
 import { USER_AGENT_PREFIX } from "../IngestClient";
-import PrepareGuard, { GuardResult, refusalPrefix } from "./PrepareGuard";
+import PrepareGuard, {
+  DEFAULT_GUARD_POLICY,
+  GuardResult,
+  mergeTargets,
+  refusalPrefix,
+} from "./PrepareGuard";
 import { RenderedData, renderProxmoxData } from "./ProxmoxExecutor";
 import {
   ExecResult,
@@ -21,16 +26,32 @@ import {
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
 import {
   MAX_RESOURCE_AGENT_OUTPUT_BYTES,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   ResourceCommandTier,
 } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
+  OPENSTACK_MAX_LIST_LIMIT,
   OPENSTACK_PROGRAM,
   OpenStackApiRequest,
   OpenStackApiService,
+  OpenStackChange,
   OpenStackCommandParseResult,
+  OpenStackLiveTarget,
   OpenStackOutputFormat,
+  getOpenStackLiveScopeRefusal,
   parseOpenStackCommand,
 } from "../Common/Utils/AiRemediation/Resource/OpenStackCommandPolicy";
+import {
+  OpenStackChangeReach,
+  OpenStackReachHost,
+  OpenStackReachInstance,
+  OPENSTACK_REACH_MAX_LISTED_PROJECTS,
+  buildOpenStackChangeReach,
+  describeOpenStackChangeReachCounts,
+  renderOpenStackChangeReach,
+} from "../Common/Utils/AiRemediation/Resource/OpenStackChangeReach";
+import { ResourceCommandPolicyResult } from "../Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { RESOURCE_REDACTED_MARKER } from "../Common/Utils/AiRemediation/Resource/ResourceOutputRedactor";
 
 /*
@@ -39,24 +60,33 @@ import { RESOURCE_REDACTED_MARKER } from "../Common/Utils/AiRemediation/Resource
  *
  *   openstack server list --all-projects --host compute-01 --limit 100
  *   openstack compute service list --service nova-compute
+ *   openstack compute service set --enable compute-01 nova-compute
  *
  * — is turned by the policy copy's parseOpenStackCommand (the SAME analysis
- * that tiered it, so there is no second reading of the words) into ONE GET to
- * the service that answers it, found in the catalog of the agent's own Keystone
- * token. See ResourceExecutor for the contract every executor keeps; what this
- * one adds:
+ * that tiered it, so there is no second reading of the words) into the call it
+ * is, on the service that answers it, found in the catalog of the agent's own
+ * Keystone token. See ResourceExecutor for the contract every executor keeps; what
+ * this one adds:
  *
  *   - prepare() runs PrepareGuard first, then asks parseOpenStackCommand for the
- *     request, then reads its own settings. Nothing is sent before run(), and a
- *     command that is not a Read and a GET never gets as far as a request: there
- *     are no write verbs, and Keystone's login is the one POST this file makes.
- *   - The credential: ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID/_SECRET
- *     when set (a credential of the AI agent's own), else the clouds.yaml the
- *     collector's exporter reads, mounted read-only. The credential's own roles
- *     and access rules are the hard limit, as RBAC is for the Kubernetes AI
- *     agent. Its secret goes in Keystone's login body and nowhere else, and the
- *     token in the X-Auth-Token header of a call to a catalog endpoint: never in
- *     output, errors, logs or the posture.
+ *     request, then reads its own settings. Nothing is sent before run(). A Read
+ *     must be a GET and a change must not be: should the two ever disagree, it
+ *     stops here, whatever anything above said.
+ *   - Two credentials. A read uses
+ *     ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID/_SECRET when set (a
+ *     credential of the AI agent's own), else the clouds.yaml the collector's
+ *     exporter reads, mounted read-only. A change uses
+ *     ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID/_SECRET and nothing
+ *     else: without it, or with the credential reads use, no change runs. The
+ *     credentials' own roles and access rules are the hard limit, as RBAC is for the
+ *     Kubernetes AI agent. A secret goes in Keystone's login body and nowhere else,
+ *     and a token in the X-Auth-Token header of a call to a catalog endpoint: never
+ *     in output, errors, logs or the posture.
+ *   - Before a change, it reads what the change touches with the read credential,
+ *     and holds that to ONEUPTIME_AI_PROTECTED_TARGETS and
+ *     ONEUPTIME_AI_WRITE_TARGETS (getOpenStackLiveScopeRefusal): which project and
+ *     host an instance is in is only known here. What it cannot read, it does not
+ *     change. `openstack dry-run <change>` makes the same reads and stops there.
  *   - A dedicated connection per call: never the proxy the agent uses to reach
  *     OneUptime, never a redirect followed, so the token only ever goes where
  *     the catalog says.
@@ -71,7 +101,7 @@ import { RESOURCE_REDACTED_MARKER } from "../Common/Utils/AiRemediation/Resource
  * that failed, connection refused, a TLS failure, a redirect) has no exit code
  * and no output: "never ran". An HTTP error answer is exit code 1: the service
  * said so, which an investigation can cite. A timeout after the request was sent
- * reads as "ran", as for every executor, although here it only ever read.
+ * reads as "ran", as for every executor: on a change, it may have happened.
  */
 
 // ---- Settings ------------------------------------------------------------------
@@ -89,6 +119,11 @@ export const AI_OPENSTACK_CREDENTIAL_ID_ENV: string =
   "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID";
 export const AI_OPENSTACK_CREDENTIAL_SECRET_ENV: string =
   "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET";
+// The credential changes use, and nothing else does.
+export const AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV: string =
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV;
+export const AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV: string =
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV;
 export const AI_OPENSTACK_AUTH_URL_ENV: string =
   "ONEUPTIME_AI_OPENSTACK_AUTH_URL";
 // What install.sh keeps in the .env the agent shares with the collector.
@@ -713,10 +748,57 @@ export function resolveOpenStackConnection(
   };
 }
 
+/*
+ * The connection a change goes through: the same cloud, region and certificate
+ * authority as a read, and its own credential. There is no falling back to the
+ * read credential, and the read credential is refused if it is given here too: a
+ * credential that can both read everything and change something is what keeping
+ * two was meant to avoid. Secrets are never in what this says.
+ */
+export function resolveOpenStackWriteConnection(data: {
+  env: NodeJS.ProcessEnv;
+  read: OpenStackConnection;
+}): OpenStackConnectionResult {
+  const id: string = readTrimmed(
+    data.env,
+    AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  );
+  const secret: string = readTrimmed(
+    data.env,
+    AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
+  );
+
+  if (!id || !secret) {
+    return {
+      connection: null,
+      problem: `A change uses a credential of its own, and this agent has none: set ${AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV} and ${AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV} ${WHERE_TO_SET}. The OpenStack agent's README says how to make one with the least it needs.`,
+    };
+  }
+
+  const reads: OpenStackCredential = data.read.credential;
+
+  if (reads.kind === "applicationCredential" && reads.id === id) {
+    return {
+      connection: null,
+      problem: `${AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV} names the credential the agent reads with (${data.read.credentialSource}). A change uses a credential of its own: make one with the least it needs, as the OpenStack agent's README says.`,
+    };
+  }
+
+  return {
+    connection: {
+      ...data.read,
+      credential: { kind: "applicationCredential", id, secret },
+      credentialSource: AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+      isAgentCredential: true,
+    },
+    problem: null,
+  };
+}
+
 // ---- The transport ------------------------------------------------------------------
 
 export interface OpenStackHttpRequest {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PUT";
   // Absolute, http or https.
   url: string;
   headers: Record<string, string>;
@@ -1951,10 +2033,41 @@ export interface OpenStackExecutorInternals {
 // A command every check allowed, with what run() sends.
 interface OpenStackCall {
   displayCommand: string;
+  argv: Array<string>;
   request: OpenStackApiRequest;
   connection: OpenStackConnection;
+  // On a change: the credential that makes it. The connection above reads.
+  writeConnection?: OpenStackConnection | undefined;
   timeoutInMs: number;
 }
+
+// A call that got an answer, or the result that says why it did not.
+type OpenStackExchange =
+  | {
+      response: OpenStackHttpResponse;
+      regionName: string;
+      token: OpenStackToken;
+      failure: null;
+    }
+  | { failure: ExecResult };
+
+type OpenStackRead = { body: unknown; problem: null } | { problem: string };
+
+// What a change names, as the agent just read it.
+interface OpenStackChangeFacts {
+  instances: Array<OpenStackReachInstance>;
+  liveTargets: Array<OpenStackLiveTarget>;
+  hosts: Array<OpenStackReachHost>;
+  // What their host holds: everything, or only what the change does not name.
+  onHost: Array<OpenStackReachInstance>;
+  // The host a change that moves nothing is about, when there is one.
+  isComplete: boolean;
+  problems: Array<string>;
+}
+
+// How long one change may spend reading before it is made: the rest is the call's.
+const CHANGE_READ_BUDGET_SHARE: number = 0.5;
+
 
 class OpenStackLoginError extends Error {}
 
@@ -1964,7 +2077,11 @@ export default class OpenStackExecutor implements ResourceExecutor {
     string,
     boolean
   >();
-  private cachedToken: { key: string; token: OpenStackToken } | null = null;
+  // A token per credential: reads and changes each keep their own.
+  private readonly cachedTokens: Map<string, OpenStackToken> = new Map<
+    string,
+    OpenStackToken
+  >();
   // The token logged in for the command in progress: a 401 on it was not its age.
   private readonly freshTokenIds: Set<string> = new Set<string>();
   // Per compute endpoint: what Nova said it speaks. Empty when it would not say.
@@ -2012,15 +2129,20 @@ export default class OpenStackExecutor implements ResourceExecutor {
     }
 
     /*
-     * Nothing this agent runs changes a cloud. Should anything but a read and a
-     * GET ever arrive here, it stops here, whatever anything above said.
+     * Tier and method go together. Should a Read ever not be a GET, or a change be
+     * one, it stops here, whatever anything above said.
      */
-    if (
-      guarded.tier !== ResourceCommandTier.Read ||
-      parsed.request.method !== "GET"
-    ) {
+    const isRead: boolean = guarded.tier === ResourceCommandTier.Read;
+
+    if (isRead !== (parsed.request.method === "GET")) {
       return {
-        refusal: `${refused}: it only ever reads an OpenStack cloud, and "${guarded.displayCommand}" is ${guarded.tier}, so it does not run.`,
+        refusal: `${refused}: its policy reads "${guarded.displayCommand}" as ${guarded.tier} and as a ${parsed.request.method}, which never go together, so it does not run.`,
+      };
+    }
+
+    if (!isRead && !parsed.request.change) {
+      return {
+        refusal: `${refused}: "${guarded.displayCommand}" is ${guarded.tier}, and is none of the changes this agent makes, so it does not run.`,
       };
     }
 
@@ -2032,10 +2154,27 @@ export default class OpenStackExecutor implements ResourceExecutor {
       return { refusal: `${refused}: ${resolved.problem}` };
     }
 
+    let writeConnection: OpenStackConnection | undefined = undefined;
+
+    if (!isRead) {
+      const write: OpenStackConnectionResult = resolveOpenStackWriteConnection({
+        env: this.options.env,
+        read: resolved.connection,
+      });
+
+      if (write.connection === null) {
+        return { refusal: `${refused}: ${write.problem}` };
+      }
+
+      writeConnection = write.connection;
+    }
+
     const call: OpenStackCall = {
       displayCommand: guarded.displayCommand,
+      argv: guarded.argv.slice(),
       request: parsed.request,
       connection: resolved.connection,
+      writeConnection,
       timeoutInMs: guarded.timeoutInMs,
     };
 
@@ -2080,6 +2219,14 @@ export default class OpenStackExecutor implements ResourceExecutor {
 
   private async run(call: OpenStackCall): Promise<ExecResult> {
     try {
+      if (call.request.change) {
+        return await this.runChange(call);
+      }
+
+      if (call.request.dryRunOf) {
+        return await this.runDryRun(call);
+      }
+
       return await this.runCall(call);
     } catch (err: unknown) {
       /*
@@ -2099,19 +2246,49 @@ export default class OpenStackExecutor implements ResourceExecutor {
   }
 
   private async runCall(call: OpenStackCall): Promise<ExecResult> {
-    const deadlineMs: number = this.nowMs() + call.timeoutInMs;
+    const exchanged: OpenStackExchange = await this.exchange({
+      call,
+      connection: call.connection,
+      deadlineMs: this.nowMs() + call.timeoutInMs,
+    });
+
+    if (exchanged.failure) {
+      return exchanged.failure;
+    }
+
+    return this.describeAnswer({
+      call,
+      response: exchanged.response,
+      regionName: exchanged.regionName,
+      token: exchanged.token,
+    });
+  }
+
+  /*
+   * One call of a command, on this connection: a token, the service's URL, the
+   * request, and one more try when a kept token meets a 401. A 401 means nothing
+   * happened, on a change as on a read, so the second try can do no harm.
+   */
+  private async exchange(data: {
+    call: OpenStackCall;
+    connection: OpenStackConnection;
+    deadlineMs: number;
+  }): Promise<OpenStackExchange> {
+    const { call, connection, deadlineMs } = data;
 
     let ca: string | null;
 
     try {
-      ca = this.readCa(call.connection);
+      ca = this.readCa(connection);
     } catch (err: unknown) {
       return {
-        success: false,
-        output: "",
-        errorMessage: `Could not read the CA file ${call.connection.caFile} (${
-          errorCode(err) || errorText(err)
-        }). Mount the cloud's certificate authority into the agent where clouds.yaml says it is.`,
+        failure: {
+          success: false,
+          output: "",
+          errorMessage: `Could not read the CA file ${connection.caFile} (${
+            errorCode(err) || errorText(err)
+          }). Mount the cloud's certificate authority into the agent where clouds.yaml says it is.`,
+        },
       };
     }
 
@@ -2119,25 +2296,32 @@ export default class OpenStackExecutor implements ResourceExecutor {
 
     try {
       token = await this.getToken({
-        connection: call.connection,
+        connection,
         ca,
-        timeoutInMs: Math.min(KEYSTONE_LOGIN_TIMEOUT_MS, call.timeoutInMs),
+        timeoutInMs: Math.min(
+          KEYSTONE_LOGIN_TIMEOUT_MS,
+          Math.max(1, deadlineMs - this.nowMs()),
+        ),
       });
     } catch (err: unknown) {
       return {
-        success: false,
-        output: "",
-        errorMessage: this.redactText(
-          err instanceof OpenStackLoginError ? err.message : errorText(err),
-        ),
+        failure: {
+          success: false,
+          output: "",
+          errorMessage: this.redactText(
+            err instanceof OpenStackLoginError ? err.message : errorText(err),
+          ),
+        },
       };
     }
 
     const located: { baseUrl: string; regionName: string } | string =
-      this.locate({ call, token });
+      this.locate({ call, connection, token });
 
     if (typeof located === "string") {
-      return { success: false, output: "", errorMessage: located };
+      return {
+        failure: { success: false, output: "", errorMessage: located },
+      };
     }
 
     let answer: { response: OpenStackHttpResponse; url: string };
@@ -2145,13 +2329,21 @@ export default class OpenStackExecutor implements ResourceExecutor {
     try {
       answer = await this.send({
         call,
+        connection,
         ca,
         token,
         baseUrl: located.baseUrl,
         deadlineMs,
       });
     } catch (err: unknown) {
-      return this.describeSendFailure({ call, err, baseUrl: located.baseUrl });
+      return {
+        failure: this.describeSendFailure({
+          call,
+          connection,
+          err,
+          baseUrl: located.baseUrl,
+        }),
+      };
     }
 
     /*
@@ -2160,11 +2352,11 @@ export default class OpenStackExecutor implements ResourceExecutor {
      * A new token that meets a 401 was the path.
      */
     if (answer.response.statusCode === 401 && !this.isFresh(token)) {
-      this.cachedToken = null;
+      this.cachedTokens.delete(this.tokenKey(connection));
 
       try {
         token = await this.getToken({
-          connection: call.connection,
+          connection,
           ca,
           timeoutInMs: Math.min(
             KEYSTONE_LOGIN_TIMEOUT_MS,
@@ -2173,6 +2365,7 @@ export default class OpenStackExecutor implements ResourceExecutor {
         });
         answer = await this.send({
           call,
+          connection,
           ca,
           token,
           baseUrl: located.baseUrl,
@@ -2181,26 +2374,747 @@ export default class OpenStackExecutor implements ResourceExecutor {
       } catch (err: unknown) {
         if (err instanceof OpenStackLoginError) {
           return {
-            success: false,
-            output: "",
-            errorMessage: this.redactText(err.message),
+            failure: {
+              success: false,
+              output: "",
+              errorMessage: this.redactText(err.message),
+            },
           };
         }
 
-        return this.describeSendFailure({
-          call,
-          err,
-          baseUrl: located.baseUrl,
-        });
+        return {
+          failure: this.describeSendFailure({
+            call,
+            connection,
+            err,
+            baseUrl: located.baseUrl,
+          }),
+        };
       }
     }
 
-    return this.describeAnswer({
-      call,
+    return {
       response: answer.response,
       regionName: located.regionName,
       token,
+      failure: null,
+    };
+  }
+
+  // ---- A change, and what it touches ----------------------------------------------
+
+  // The answer of one read a change or a dry run needs, through the policy's own route.
+  private async readForChange(data: {
+    words: Array<string>;
+    call: OpenStackCall;
+    deadlineMs: number;
+  }): Promise<OpenStackRead> {
+    const regionName: string | null = (
+      data.call.request.dryRunOf || data.call.request
+    ).regionName;
+    const argv: Array<string> = [
+      OPENSTACK_PROGRAM,
+      ...data.words,
+      ...(regionName ? ["--os-region-name", regionName] : []),
+    ];
+    const parsed: OpenStackCommandParseResult = parseOpenStackCommand(argv);
+
+    if (!parsed.request || parsed.request.method !== "GET") {
+      return {
+        problem:
+          parsed.errorMessage || `"${argv.join(" ")}" is not a read it can make.`,
+      };
+    }
+
+    const read: OpenStackCall = {
+      displayCommand: argv.join(" "),
+      argv,
+      request: parsed.request,
+      connection: data.call.connection,
+      timeoutInMs: data.call.timeoutInMs,
+    };
+    const exchanged: OpenStackExchange = await this.exchange({
+      call: read,
+      connection: read.connection,
+      deadlineMs: data.deadlineMs,
     });
+
+    if (exchanged.failure) {
+      return {
+        problem:
+          exchanged.failure.errorMessage ||
+          `"${read.displayCommand}" got no answer.`,
+      };
+    }
+
+    const status: number = exchanged.response.statusCode;
+
+    if (status < 200 || status >= 300 || exchanged.response.truncated) {
+      return {
+        problem:
+          status >= 200 && status < 300
+            ? `The answer to "${read.displayCommand}" was too long to read.`
+            : this.describeHttpFailure({
+                call: read,
+                connection: read.connection,
+                response: exchanged.response,
+                regionName: exchanged.regionName,
+                token: exchanged.token,
+              }).errorMessage ||
+              `"${read.displayCommand}" answered HTTP ${status}.`,
+      };
+    }
+
+    try {
+      return { body: JSON.parse(exchanged.response.body), problem: null };
+    } catch {
+      return {
+        problem: `The answer to "${read.displayCommand}" is not JSON.`,
+      };
+    }
+  }
+
+  private toReachInstance(row: Row): OpenStackReachInstance {
+    return {
+      id: readString(row["id"]),
+      name: readString(row["name"]) || null,
+      projectId: readString(row["tenant_id"]) || null,
+      projectName: null,
+      host: readString(row["OS-EXT-SRV-ATTR:host"]) || null,
+      status: readString(row["status"]) || null,
+    };
+  }
+
+  // The instances on one host, which is one read and may stop at its limit.
+  private async readInstancesOnHost(data: {
+    host: string;
+    call: OpenStackCall;
+    deadlineMs: number;
+    problems: Array<string>;
+  }): Promise<{ instances: Array<OpenStackReachInstance>; isComplete: boolean }> {
+    const read: OpenStackRead = await this.readForChange({
+      words: [
+        "server",
+        "list",
+        "--all-projects",
+        "--host",
+        data.host,
+        "--limit",
+        String(OPENSTACK_MAX_LIST_LIMIT),
+      ],
+      call: data.call,
+      deadlineMs: data.deadlineMs,
+    });
+
+    if (read.problem !== null) {
+      data.problems.push(read.problem);
+      return { instances: [], isComplete: false };
+    }
+
+    const rows: unknown = isPlainObject(read.body)
+      ? read.body["servers"]
+      : undefined;
+    const instances: Array<OpenStackReachInstance> = (
+      Array.isArray(rows) ? rows : []
+    )
+      .filter((row: unknown): row is Row => {
+        return isPlainObject(row);
+      })
+      .map((row: Row): OpenStackReachInstance => {
+        return this.toReachInstance(row);
+      });
+
+    return {
+      instances,
+      isComplete: instances.length < OPENSTACK_MAX_LIST_LIMIT,
+    };
+  }
+
+  // What nova-compute on one host says of itself.
+  private async readHost(data: {
+    host: string;
+    call: OpenStackCall;
+    deadlineMs: number;
+    problems: Array<string>;
+  }): Promise<OpenStackReachHost> {
+    const read: OpenStackRead = await this.readForChange({
+      words: [
+        "compute",
+        "service",
+        "list",
+        "--host",
+        data.host,
+        "--service",
+        "nova-compute",
+      ],
+      call: data.call,
+      deadlineMs: data.deadlineMs,
+    });
+    const unread: OpenStackReachHost = {
+      name: data.host,
+      state: null,
+      status: null,
+      forcedDown: null,
+      disabledReason: null,
+    };
+
+    if (read.problem !== null) {
+      data.problems.push(read.problem);
+      return unread;
+    }
+
+    const rows: unknown = isPlainObject(read.body)
+      ? read.body["services"]
+      : undefined;
+    const row: unknown = Array.isArray(rows) ? rows[0] : undefined;
+
+    if (!isPlainObject(row)) {
+      data.problems.push(
+        `Nova has no nova-compute on a host called ${data.host}.`,
+      );
+      return unread;
+    }
+
+    return {
+      name: data.host,
+      state: readString(row["state"]) || null,
+      status: readString(row["status"]) || null,
+      forcedDown:
+        typeof row["forced_down"] === "boolean" ? row["forced_down"] : null,
+      disabledReason: readString(row["disabled_reason"]) || null,
+    };
+  }
+
+  /*
+   * What a change names, read just now with the read credential. Everything a list
+   * of targets could be compared with, and on a dry run also what a person approving
+   * it should see: the state of the host an evacuation is about, and what else that
+   * host holds. Never throws, and what it could not read it says.
+   */
+  private async readChangeFacts(data: {
+    change: OpenStackChange;
+    call: OpenStackCall;
+    deadlineMs: number;
+    forDryRun: boolean;
+  }): Promise<OpenStackChangeFacts> {
+    const { change, call, deadlineMs, forDryRun } = data;
+    const facts: OpenStackChangeFacts = {
+      instances: [],
+      liveTargets: [],
+      hosts: [],
+      onHost: [],
+      isComplete: true,
+      problems: [],
+    };
+
+    for (const id of change.instanceIds) {
+      const read: OpenStackRead = await this.readForChange({
+        words: ["server", "show", id],
+        call,
+        deadlineMs,
+      });
+      const row: unknown =
+        read.problem === null && isPlainObject(read.body)
+          ? read.body["server"]
+          : undefined;
+
+      if (read.problem !== null || !isPlainObject(row)) {
+        facts.problems.push(
+          read.problem !== null
+            ? read.problem
+            : `Nova's answer about ${id} holds no instance.`,
+        );
+        facts.isComplete = false;
+        facts.instances.push({
+          id,
+          name: null,
+          projectId: null,
+          projectName: null,
+          host: null,
+          status: null,
+        });
+        facts.liveTargets.push({
+          target: `instance:${id}`,
+          projectId: null,
+          hosts: [],
+        });
+        continue;
+      }
+
+      const instance: OpenStackReachInstance = this.toReachInstance({
+        ...row,
+        id,
+      });
+
+      facts.instances.push(instance);
+      facts.liveTargets.push({
+        target: `instance:${id}`,
+        projectId: instance.projectId,
+        hosts: [
+          instance.host || "",
+          readString(row["OS-EXT-SRV-ATTR:hypervisor_hostname"]),
+        ].filter((host: string): boolean => {
+          return host.length > 0;
+        }),
+      });
+    }
+
+    if (change.serviceHost) {
+      facts.liveTargets.push({
+        target: `host:${change.serviceHost}`,
+        projectId: null,
+        hosts: [change.serviceHost],
+      });
+
+      if (forDryRun) {
+        facts.hosts.push(
+          await this.readHost({
+            host: change.serviceHost,
+            call,
+            deadlineMs,
+            problems: facts.problems,
+          }),
+        );
+
+        const onHost: {
+          instances: Array<OpenStackReachInstance>;
+          isComplete: boolean;
+        } = await this.readInstancesOnHost({
+          host: change.serviceHost,
+          call,
+          deadlineMs,
+          problems: facts.problems,
+        });
+
+        facts.onHost = onHost.instances;
+        facts.isComplete = facts.isComplete && onHost.isComplete;
+      }
+    }
+
+    if (change.agentId) {
+      const read: OpenStackRead = await this.readForChange({
+        words: ["network", "agent", "show", change.agentId],
+        call,
+        deadlineMs,
+      });
+      const row: unknown =
+        read.problem === null && isPlainObject(read.body)
+          ? read.body["agent"]
+          : undefined;
+      const host: string = isPlainObject(row) ? readString(row["host"]) : "";
+
+      if (!host) {
+        facts.problems.push(
+          read.problem !== null
+            ? read.problem
+            : `Neutron's answer about ${change.agentId} names no host.`,
+        );
+        facts.isComplete = false;
+      }
+
+      facts.liveTargets.push({
+        target: `agent:${change.agentId}`,
+        projectId: null,
+        hosts: host ? [host] : [],
+      });
+
+      if (forDryRun && host) {
+        const onHost: {
+          instances: Array<OpenStackReachInstance>;
+          isComplete: boolean;
+        } = await this.readInstancesOnHost({
+          host,
+          call,
+          deadlineMs,
+          problems: facts.problems,
+        });
+
+        facts.onHost = onHost.instances;
+        facts.isComplete = facts.isComplete && onHost.isComplete;
+      }
+    }
+
+    if (forDryRun && change.route === "server evacuate") {
+      const sources: Array<string> = Array.from(
+        new Set<string>(
+          facts.instances
+            .map((instance: OpenStackReachInstance): string => {
+              return instance.host || "";
+            })
+            .filter((host: string): boolean => {
+              return host.length > 0;
+            }),
+        ),
+      );
+
+      for (const host of sources) {
+        facts.hosts.push(
+          await this.readHost({
+            host,
+            call,
+            deadlineMs,
+            problems: facts.problems,
+          }),
+        );
+
+        const onHost: {
+          instances: Array<OpenStackReachInstance>;
+          isComplete: boolean;
+        } = await this.readInstancesOnHost({
+          host,
+          call,
+          deadlineMs,
+          problems: facts.problems,
+        });
+
+        facts.isComplete = facts.isComplete && onHost.isComplete;
+        facts.onHost.push(
+          ...onHost.instances.filter(
+            (instance: OpenStackReachInstance): boolean => {
+              return !change.instanceIds.includes(instance.id);
+            },
+          ),
+        );
+      }
+    }
+
+    return facts;
+  }
+
+  // Keystone's names for these projects, as far as it will say.
+  private async readProjectNames(data: {
+    projectIds: Array<string>;
+    call: OpenStackCall;
+    deadlineMs: number;
+  }): Promise<Map<string, string>> {
+    const names: Map<string, string> = new Map<string, string>();
+
+    for (const id of data.projectIds.slice(
+      0,
+      OPENSTACK_REACH_MAX_LISTED_PROJECTS,
+    )) {
+      if (this.nowMs() >= data.deadlineMs) {
+        break;
+      }
+
+      const read: OpenStackRead = await this.readForChange({
+        words: ["project", "show", id],
+        call: data.call,
+        deadlineMs: data.deadlineMs,
+      });
+      const row: unknown =
+        read.problem === null && isPlainObject(read.body)
+          ? read.body["project"]
+          : undefined;
+      const name: string = isPlainObject(row) ? readString(row["name"]) : "";
+
+      if (name) {
+        names.set(id, name);
+      }
+    }
+
+    return names;
+  }
+
+  private buildReach(data: {
+    change: OpenStackChange;
+    facts: OpenStackChangeFacts;
+    projectNames: ReadonlyMap<string, string>;
+    wouldBeRefused: string | null;
+  }): OpenStackChangeReach {
+    const { change, facts } = data;
+    const isAboutInstances: boolean = change.instanceIds.length > 0;
+
+    return buildOpenStackChangeReach({
+      route: change.route,
+      kind: isAboutInstances ? "changes" : "on-host",
+      instances: isAboutInstances ? facts.instances : facts.onHost,
+      projectNames: data.projectNames,
+      hosts: facts.hosts,
+      leftBehind: isAboutInstances ? facts.onHost : [],
+      isComplete: facts.isComplete,
+      problems: facts.problems,
+      wouldBeRefused: data.wouldBeRefused,
+    });
+  }
+
+  /*
+   * Why this agent would not make this change, on what it just read, or null. The
+   * write switch and the targets its words name are the guard's (PrepareGuard), and
+   * a dry run is a Read that never met them, so they are asked here.
+   */
+  private getWouldBeRefused(data: {
+    call: OpenStackCall;
+    change: OpenStackChange;
+    facts: OpenStackChangeFacts;
+  }): string | null {
+    const { call, change, facts } = data;
+    const config: ExecutorOptions["config"] = this.options.config;
+    const protectedTargets: Array<string> = mergeTargets(
+      config.protectedTargets,
+    );
+    const argv: Array<string> = [
+      OPENSTACK_PROGRAM,
+      ...call.argv.slice(call.request.dryRunOf ? 2 : 1),
+    ];
+    const policy: ResourceCommandPolicyResult = (
+      this.options.guardPolicy || DEFAULT_GUARD_POLICY
+    ).evaluateArgv({
+      resourceType: AiResourceType.OpenStackCloud,
+      argv,
+    });
+    const refusal: string | null = PrepareGuard.describeWriteRefusal({
+      config,
+      result: policy,
+      protectedTargets,
+      policy: this.options.guardPolicy || DEFAULT_GUARD_POLICY,
+      resourceType: AiResourceType.OpenStackCloud,
+    });
+
+    if (refusal) {
+      return refusal;
+    }
+
+    const live: string | null = getOpenStackLiveScopeRefusal({
+      displayCommand: policy.displayCommand,
+      targets: facts.liveTargets,
+      protectedTargets,
+      writeTargets: config.writeTargets,
+    });
+
+    if (live) {
+      return live;
+    }
+
+    const write: OpenStackConnectionResult = resolveOpenStackWriteConnection({
+      env: this.options.env,
+      read: call.connection,
+    });
+
+    if (write.connection === null) {
+      return write.problem;
+    }
+
+    if (change.route === "server evacuate") {
+      const running: OpenStackReachHost | undefined = facts.hosts.find(
+        (host: OpenStackReachHost): boolean => {
+          return host.state === "up";
+        },
+      );
+
+      if (running) {
+        return `Nova only takes an evacuation once the instance's host is down, and nova-compute on ${running.name} reads up. Evacuating a host that is alive would run an instance twice.`;
+      }
+    }
+
+    return null;
+  }
+
+  // `openstack dry-run <change>`: every read a change makes first, and no change.
+  private async runDryRun(call: OpenStackCall): Promise<ExecResult> {
+    const inner: OpenStackApiRequest = call.request
+      .dryRunOf as OpenStackApiRequest;
+    const change: OpenStackChange = inner.change as OpenStackChange;
+    const deadlineMs: number = this.nowMs() + call.timeoutInMs;
+    const facts: OpenStackChangeFacts = await this.readChangeFacts({
+      change,
+      call,
+      deadlineMs,
+      forDryRun: true,
+    });
+    const projectIds: Array<string> = Array.from(
+      new Set<string>(
+        [...facts.instances, ...facts.onHost]
+          .map((instance: OpenStackReachInstance): string => {
+            return instance.projectId || "";
+          })
+          .filter((id: string): boolean => {
+            return id.length > 0;
+          }),
+      ),
+    );
+    const reach: OpenStackChangeReach = this.buildReach({
+      change,
+      facts,
+      projectNames: await this.readProjectNames({
+        projectIds,
+        call,
+        deadlineMs,
+      }),
+      wouldBeRefused: this.getWouldBeRefused({ call, change, facts }),
+    });
+
+    return this.finish({
+      success: true,
+      exitCode: 0,
+      stdout: `Nothing was changed. ${describeOpenStackChangeReachCounts(reach)}
+${renderOpenStackChangeReach(reach)}`,
+      stderr: "",
+    });
+  }
+
+  /*
+   * A change: what it touches read first with the read credential and held to the
+   * protected and write targets, then the call or calls that make it with the write
+   * credential. Nothing is sent when any of that says no: such a result has no exit
+   * code and no output, which the server reads as "never ran".
+   */
+  private async runChange(call: OpenStackCall): Promise<ExecResult> {
+    const change: OpenStackChange = call.request.change as OpenStackChange;
+    const writeConnection: OpenStackConnection | undefined =
+      call.writeConnection;
+    const startedMs: number = this.nowMs();
+    const deadlineMs: number = startedMs + call.timeoutInMs;
+    const refused: string = refusalPrefix(AiResourceType.OpenStackCloud);
+
+    if (!writeConnection) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: `${refused}: a change uses a credential of its own, and none was found for "${call.displayCommand}".`,
+      };
+    }
+
+    const facts: OpenStackChangeFacts = await this.readChangeFacts({
+      change,
+      call,
+      deadlineMs: startedMs + call.timeoutInMs * CHANGE_READ_BUDGET_SHARE,
+      forDryRun: false,
+    });
+
+    if (facts.problems.length > 0) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: this.redactText(
+          `${refused}: it could not read what "${call.displayCommand}" would touch, so it changed nothing. ${facts.problems[0]}`,
+        ),
+      };
+    }
+
+    const scope: string | null = getOpenStackLiveScopeRefusal({
+      displayCommand: call.displayCommand,
+      targets: facts.liveTargets,
+      protectedTargets: mergeTargets(this.options.config.protectedTargets),
+      writeTargets: this.options.config.writeTargets,
+    });
+
+    if (scope) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: this.redactText(`${refused}: ${scope}`),
+      };
+    }
+
+    const paths: ReadonlyArray<string> = call.request.paths || [
+      call.request.path,
+    ];
+    const service: string = SERVICE_NAMES[call.request.service];
+    const lines: Array<string> = [];
+    let sentAny: boolean = false;
+    let failure: string | null = null;
+    let mayHaveHappened: boolean = false;
+
+    this.options.logger.info("Making a change on the cloud", {
+      route: change.route,
+      calls: paths.length,
+    });
+
+    for (const path of paths) {
+      const one: OpenStackCall = {
+        ...call,
+        request: { ...call.request, path },
+      };
+      const exchanged: OpenStackExchange = await this.exchange({
+        call: one,
+        connection: writeConnection,
+        deadlineMs,
+      });
+
+      if (exchanged.failure) {
+        /*
+         * No answer: it may be the cloud in trouble, so the rest are not sent. Whether
+         * this one happened is what its failure says: output means it may have.
+         */
+        mayHaveHappened =
+          mayHaveHappened || Boolean(exchanged.failure.output);
+        failure =
+          exchanged.failure.errorMessage || `No answer to ${one.request.path}.`;
+        lines.push(`${path}: no answer: ${failure}`);
+        break;
+      }
+
+      sentAny = true;
+
+      const status: number = exchanged.response.statusCode;
+
+      if (status >= 200 && status < 300) {
+        lines.push(`${path}: ${service} accepted it (HTTP ${status}).`);
+        continue;
+      }
+
+      const failed: ExecResult = this.describeHttpFailure({
+        call: one,
+        connection: writeConnection,
+        response: exchanged.response,
+        regionName: exchanged.regionName,
+        token: exchanged.token,
+      });
+
+      failure = failed.errorMessage || `HTTP ${status}`;
+      lines.push(`${path}: refused: ${failure}`);
+
+      /*
+       * A credential that may not do it may not do the next one either. Anything
+       * else is about this instance, and the others of an evacuation still need
+       * a home.
+       */
+      if (status === 401 || status === 403) {
+        break;
+      }
+    }
+
+    if (!sentAny && !mayHaveHappened) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: this.redactText(
+          failure || `Nothing was sent for "${call.displayCommand}".`,
+        ),
+      };
+    }
+
+    const reach: OpenStackChangeReach = this.buildReach({
+      change,
+      facts,
+      projectNames: new Map<string, string>(),
+      wouldBeRefused: null,
+    });
+    const stdout: string = [
+      describeOpenStackChangeReachCounts(reach),
+      ...lines,
+      failure
+        ? ""
+        : `The API took it, which is not the same as done: ${change.instanceIds.length > 0 ? "Nova works on an instance in the background, so read it again" : "read it again"} to see it took effect.`,
+      renderOpenStackChangeReach(reach),
+    ]
+      .filter((line: string): boolean => {
+        return line.length > 0;
+      })
+      .join("\n");
+
+    if (failure) {
+      return this.finish({
+        success: false,
+        exitCode: 1,
+        stdout,
+        stderr: failure,
+        errorMessage: `Exit code 1: ${failure}`,
+      });
+    }
+
+    return this.finish({ success: true, exitCode: 0, stdout, stderr: "" });
   }
 
   private readCa(connection: OpenStackConnection): string | null {
@@ -2236,29 +3150,27 @@ export default class OpenStackExecutor implements ResourceExecutor {
     timeoutInMs: number;
   }): Promise<OpenStackToken> {
     const key: string = this.tokenKey(data.connection);
-    const kept: { key: string; token: OpenStackToken } | null =
-      this.cachedToken;
+    const kept: OpenStackToken | undefined = this.cachedTokens.get(key);
 
     this.freshTokenIds.clear();
 
     if (
       kept &&
-      kept.key === key &&
-      (kept.token.expiresAtMs === null ||
-        kept.token.expiresAtMs - TOKEN_EXPIRY_MARGIN_MS > this.nowMs())
+      (kept.expiresAtMs === null ||
+        kept.expiresAtMs - TOKEN_EXPIRY_MARGIN_MS > this.nowMs())
     ) {
-      return kept.token;
+      return kept;
     }
 
     const token: OpenStackToken = await this.login(data);
 
-    this.cachedToken = { key, token };
+    this.cachedTokens.set(key, token);
     this.freshTokenIds.add(token.id);
 
     return token;
   }
 
-  // Keystone's login: the one POST this agent ever makes, and the secret's one trip.
+  // Keystone's login: a secret's one trip.
   private async login(data: {
     connection: OpenStackConnection;
     ca: string | null;
@@ -2357,13 +3269,14 @@ export default class OpenStackExecutor implements ResourceExecutor {
   // Which URL answers this call, or why none does (nothing was sent).
   private locate(data: {
     call: OpenStackCall;
+    connection: OpenStackConnection;
     token: OpenStackToken;
   }): { baseUrl: string; regionName: string } | string {
-    const { call, token } = data;
+    const { call, connection, token } = data;
     const regions: Array<string> = getCatalogRegions(token.catalog);
     const regionName: string | undefined =
       call.request.regionName ||
-      call.connection.regionName ||
+      connection.regionName ||
       regions[0] ||
       undefined;
     const service: string = SERVICE_NAMES[call.request.service];
@@ -2376,11 +3289,11 @@ export default class OpenStackExecutor implements ResourceExecutor {
       catalog: token.catalog,
       service: call.request.service,
       regionName,
-      endpointInterface: call.connection.endpointInterface,
+      endpointInterface: connection.endpointInterface,
     });
 
     if (!url) {
-      return `The cloud's catalog has no ${call.connection.endpointInterface} endpoint for ${service} in region ${regionName}. Regions in the catalog: ${
+      return `The cloud's catalog has no ${connection.endpointInterface} endpoint for ${service} in region ${regionName}. Regions in the catalog: ${
         regions.join(", ") || "none"
       }. Name another with --os-region-name.`;
     }
@@ -2455,26 +3368,36 @@ export default class OpenStackExecutor implements ResourceExecutor {
 
   private async send(data: {
     call: OpenStackCall;
+    connection: OpenStackConnection;
     ca: string | null;
     token: OpenStackToken;
     baseUrl: string;
     deadlineMs: number;
   }): Promise<{ response: OpenStackHttpResponse; url: string }> {
-    const { call } = data;
+    const { call, connection } = data;
     const headers: Record<string, string> = {
       Accept: "application/json",
       "User-Agent": this.userAgent(),
       "X-Auth-Token": data.token.id,
     };
+    const body: string | null =
+      call.request.body === undefined ? null : JSON.stringify(call.request.body);
+
+    if (body !== null) {
+      headers["Content-Type"] = "application/json";
+      headers["Content-Length"] = String(Buffer.byteLength(body, "utf8"));
+    }
 
     if (call.request.service === "compute") {
-      const version: { microversion: string | null } =
-        await this.readComputeVersion({
-          baseUrl: data.baseUrl,
-          connection: call.connection,
-          ca: data.ca,
-          timeoutInMs: Math.max(1, data.deadlineMs - this.nowMs()),
-        });
+      // A call that exists only up to some microversion says so itself.
+      const version: { microversion: string | null } = call.request.microversion
+        ? { microversion: call.request.microversion }
+        : await this.readComputeVersion({
+            baseUrl: data.baseUrl,
+            connection,
+            ca: data.ca,
+            timeoutInMs: Math.max(1, data.deadlineMs - this.nowMs()),
+          });
 
       if (version.microversion) {
         headers["OpenStack-API-Version"] = `compute ${version.microversion}`;
@@ -2502,8 +3425,8 @@ export default class OpenStackExecutor implements ResourceExecutor {
         method: call.request.method,
         url,
         headers,
-        body: null,
-        verifyTls: call.connection.verifyTls,
+        body,
+        verifyTls: connection.verifyTls,
         ca: data.ca,
         timeoutInMs: Math.max(1, Math.floor(data.deadlineMs - this.nowMs())),
         maxResponseBytes: MAX_OPENSTACK_RESPONSE_BYTES,
@@ -2513,6 +3436,7 @@ export default class OpenStackExecutor implements ResourceExecutor {
 
   private describeSendFailure(data: {
     call: OpenStackCall;
+    connection: OpenStackConnection;
     err: unknown;
     baseUrl: string;
   }): ExecResult {
@@ -2521,9 +3445,9 @@ export default class OpenStackExecutor implements ResourceExecutor {
     const message: string = this.redactText(
       describeTransportProblem({
         err,
-        what: `${service}'s GET ${call.request.path}`,
+        what: `${service}'s ${call.request.method} ${call.request.path}`,
         url: data.baseUrl,
-        connection: call.connection,
+        connection: data.connection,
         timeoutInMs: call.timeoutInMs,
       }),
     );
@@ -2561,7 +3485,7 @@ export default class OpenStackExecutor implements ResourceExecutor {
     }
 
     if (status < 200 || status >= 300) {
-      return this.describeHttpFailure(data);
+      return this.describeHttpFailure({ ...data, connection: call.connection });
     }
 
     if (response.truncated) {
@@ -2597,6 +3521,7 @@ export default class OpenStackExecutor implements ResourceExecutor {
 
   private describeHttpFailure(data: {
     call: OpenStackCall;
+    connection: OpenStackConnection;
     response: OpenStackHttpResponse;
     regionName: string;
     token: OpenStackToken;
@@ -2608,16 +3533,25 @@ export default class OpenStackExecutor implements ResourceExecutor {
       (response.truncated ? null : readApiErrorMessage(response.body)) ||
       shorten(response.statusMessage);
     const redactedSaid: string = this.redactText(said);
-    const source: string = call.connection.credentialSource;
+    const source: string = data.connection.credentialSource;
     const path: string = call.request.path;
+    const isChange: boolean = call.request.method !== "GET";
     let advice: string = "";
 
     if (status === 401) {
       advice = token.hasAccessRules
-        ? ` This credential is limited by access rules, and they do not list this path, or ${service} has no service_type set for keystonemiddleware. Make a new credential from the rules the OpenStack agent ships (access/application-credential-access-rules.json), which list every read the AI agent makes.`
+        ? ` This credential is limited by access rules, and they do not list this path, or ${service} has no service_type set for keystonemiddleware. Make a new credential from the rules the OpenStack agent ships (access/${
+            isChange
+              ? "write-application-credential-access-rules.json"
+              : "application-credential-access-rules.json"
+          }), which list every ${isChange ? "change" : "read"} the AI agent makes.`
         : ` ${service} did not accept the token from ${source}: check that ${service}'s keystonemiddleware can validate tokens.`;
     } else if (status === 403) {
-      advice = ` The credential in ${source} may not read this. The OpenStack agent's README says what each level of access sees: hypervisors and services take level 1 or 2, and Cinder's services and pools level 1.`;
+      advice = isChange
+        ? ` The credential in ${source} may not make this change. The OpenStack agent's README says how to give the write credential the least it needs, on each way of deploying a cloud.`
+        : ` The credential in ${source} may not read this. The OpenStack agent's README says what each level of access sees: hypervisors and services take level 1 or 2, and Cinder's services and pools level 1.`;
+    } else if (status === 409 && isChange) {
+      advice = ` ${service} will not do this while the thing it names is in the state it is in: read it again before trying anything else.`;
     } else if (status === 404) {
       advice = ` This cloud has no such thing, or ${service} here does not have this API.`;
     } else if (status === 300 || status === 406) {
@@ -2631,7 +3565,7 @@ export default class OpenStackExecutor implements ResourceExecutor {
       exitCode: 1,
       stdout: "",
       stderr: `HTTP ${status}${redactedSaid ? ` ${redactedSaid}` : ""}`,
-      errorMessage: `Exit code 1: ${service} answered GET ${path} with HTTP ${status}${
+      errorMessage: `Exit code 1: ${service} answered ${call.request.method} ${path} with HTTP ${status}${
         redactedSaid ? ` (${redactedSaid})` : ""
       }.${advice}`,
     });
@@ -2819,6 +3753,44 @@ export default class OpenStackExecutor implements ResourceExecutor {
   // ---- Posture -------------------------------------------------------------------
 
   /*
+   * Whether an agent that may write has a credential that logs in. A credential for
+   * changes that does not is found here, while a person can still fix it, rather
+   * than on the night the fix is needed. A login is all this does with it.
+   */
+  private async probeWriteCredential(data: {
+    connection: OpenStackConnection;
+    ca: string | null;
+    details: Record<string, string | number | boolean | null>;
+  }): Promise<void> {
+    if (!this.options.config.allowWrites) {
+      return;
+    }
+
+    const write: OpenStackConnectionResult = resolveOpenStackWriteConnection({
+      env: this.options.env,
+      read: data.connection,
+    });
+
+    if (write.connection === null) {
+      data.details["writeCredentialWorks"] = false;
+      data.details["writeCredentialProblem"] = write.problem;
+      return;
+    }
+
+    try {
+      await this.getToken({
+        connection: write.connection,
+        ca: data.ca,
+        timeoutInMs: POSTURE_REQUEST_TIMEOUT_MS,
+      });
+      data.details["writeCredentialWorks"] = true;
+    } catch (err: unknown) {
+      data.details["writeCredentialWorks"] = false;
+      data.details["writeCredentialProblem"] = this.redactText(errorText(err));
+    }
+  }
+
+  /*
    * A login (the credential works, and its catalog says where everything is), and
    * Nova's version document for what the cloud runs. Reachable means Keystone gave
    * a token. A cloud whose Nova is down is reachable, and its investigation is the
@@ -2896,6 +3868,8 @@ export default class OpenStackExecutor implements ResourceExecutor {
     details["regions"] = regions.join(",");
     details["projectName"] = token.projectName;
     details["hasAccessRules"] = token.hasAccessRules;
+
+    await this.probeWriteCredential({ connection, ca, details });
 
     let toolVersion: string | null = null;
 

@@ -87,6 +87,8 @@ export type OpenStackPaging =
   | "links"
   // The answer's own `next`: Glance.
   | "next"
+  // <key>_links holds a rel "next", and it means an offset: a marker means nothing to Manila.
+  | "offset"
   // No paging at all: Keystone and Placement, and a few of Nova's and Neutron's.
   | "none";
 
@@ -411,6 +413,9 @@ export default class OpenStackServiceClient {
           ...data.query,
           ...(data.paging === "none" ? {} : { limit: this.pageSize }),
           ...(marker === undefined ? {} : { marker: marker }),
+          ...(data.paging === "offset" && items.length > 0
+            ? { offset: items.length }
+            : {}),
         },
       });
 
@@ -452,6 +457,19 @@ export default class OpenStackServiceClient {
         };
       }
 
+      if (data.paging === "offset") {
+        // One that kept offering another page forever would be read forever without this.
+        if (pageCount >= MAX_PAGES_PER_LIST) {
+          throw new OpenStackApiError({
+            kind: "malformed",
+            status: 200,
+            url: `${this.baseUrl}${data.path}`,
+            message: `${this.describe()} kept offering another page of ${data.read}, so the probe stopped reading it.`,
+          });
+        }
+        continue;
+      }
+
       const last: JSONObject = page[page.length - 1] as JSONObject;
       const nextMarker: JSONValue | undefined = last?.[idField];
 
@@ -481,7 +499,7 @@ export default class OpenStackServiceClient {
       return typeof body["next"] === "string" && Boolean(body["next"]);
     }
 
-    if (paging === "links") {
+    if (paging === "links" || paging === "offset") {
       const links: JSONValue | undefined = body[`${key}_links`];
 
       if (!Array.isArray(links)) {

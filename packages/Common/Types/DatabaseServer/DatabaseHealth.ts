@@ -285,6 +285,9 @@ const REASON_MYSQL_THREADS_RUNNING: { one: string; other: string } = {
 const REASON_MYSQL_DIRTY_PAGES: string = translationKey(
   "{{percent}} of the buffer pool dirty",
 );
+const REASON_GALERA_OUT_OF_SYNC: string = translationKey(
+  "This Galera node is out of step with its cluster, and nobody asked it to be",
+);
 const REASON_REDIS_MEMORY: string = translationKey(
   "Memory at {{percent}} of maxmemory",
 );
@@ -560,6 +563,9 @@ export const DATABASE_HEALTH_REASONS: Readonly<Record<string, ReasonBuilder>> =
       return countReason(REASON_MYSQL_THREADS_RUNNING, context.value);
     },
     "database-mysql-buffer-pool-dirty": percentReason(REASON_MYSQL_DIRTY_PAGES),
+    "database-mysql-galera-node-out-of-sync": (): DatabaseHealthText => {
+      return { text: REASON_GALERA_OUT_OF_SYNC };
+    },
     "database-mysql-replica-lag": (
       context: ReasonContext,
     ): DatabaseHealthText => {
