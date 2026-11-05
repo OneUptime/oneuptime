@@ -430,6 +430,12 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "OpenStack", "View Cloud", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Status Pages",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_OWNERS, [
       "Project",
       "OpenStack",
