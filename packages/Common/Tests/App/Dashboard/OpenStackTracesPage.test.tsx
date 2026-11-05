@@ -587,6 +587,7 @@ describe("a cloud sending OpenStack's own tracing", () => {
 
     expect(native).toHaveTextContent("It does not cross an HTTP call");
     expect(native).toHaveTextContent("keystoneauth");
+    expect(screen.queryByTestId("openstack-traces-own-tracing")).toBeNull();
     expect(
       screen.queryByText(/Only requests signed with your key/),
     ).not.toBeInTheDocument();
@@ -621,6 +622,13 @@ describe("a cloud sending OpenStack's own tracing", () => {
     await screen.findByTestId("openstack-traces-status");
 
     expect(screen.queryByTestId("openstack-traces-native")).toBeNull();
+    // It only hears that there is more to turn on, and where.
+    expect(
+      screen.getByTestId("openstack-traces-own-tracing").querySelector("a"),
+    ).toHaveAttribute(
+      "href",
+      "/docs/telemetry/openstack#openstacks-own-tracing",
+    );
   });
 });
 

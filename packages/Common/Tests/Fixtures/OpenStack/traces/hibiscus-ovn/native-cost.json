@@ -1,0 +1,90 @@
+{
+  "off": {
+    "answers": {
+      "compute": {
+        "p50Milliseconds": 0.0,
+        "p95Milliseconds": 0.0,
+        "requests": 40
+      },
+      "image": {
+        "p50Milliseconds": 0.0,
+        "p95Milliseconds": 0.0,
+        "requests": 40
+      },
+      "network": {
+        "p50Milliseconds": 0.0,
+        "p95Milliseconds": 0.0,
+        "requests": 40
+      }
+    },
+    "collectorBytesWhileQuiet": 0,
+    "cpuSecondsWhileQuiet": {
+      "devstack@c-api.service": 0.04,
+      "devstack@c-sch.service": 0.15,
+      "devstack@c-vol.service": 0.03,
+      "devstack@ceilometer-acompute.service": 1.16,
+      "devstack@etcd.service": 0.01,
+      "devstack@g-api.service": 0.11,
+      "devstack@keystone.service": 0.13,
+      "devstack@n-api-meta.service": 0.01,
+      "devstack@n-api.service": 0.01,
+      "devstack@n-cond-cell1.service": 0.46,
+      "devstack@n-cpu.service": 0.09,
+      "devstack@n-novnc-cell1.service": 0.03,
+      "devstack@n-sch.service": 0.12,
+      "devstack@n-super-cond.service": 0.04,
+      "devstack@neutron-api.service": 0.15,
+      "devstack@neutron-ovn-maintenance-worker.service": 0.02,
+      "devstack@neutron-periodic-workers.service": 0.19,
+      "devstack@neutron-rpc-server.service": 2.12,
+      "devstack@placement-api.service": 0.05
+    },
+    "cpuSecondsWhileQuietInAll": 4.92,
+    "quietSeconds": 120,
+    "spansWhileQuiet": 0
+  },
+  "on": {
+    "answers": {
+      "compute": {
+        "p50Milliseconds": 0.0,
+        "p95Milliseconds": 0.0,
+        "requests": 40
+      },
+      "image": {
+        "p50Milliseconds": 0.0,
+        "p95Milliseconds": 0.0,
+        "requests": 40
+      },
+      "network": {
+        "p50Milliseconds": 0.0,
+        "p95Milliseconds": 0.0,
+        "requests": 40
+      }
+    },
+    "collectorBytesWhileQuiet": 52496,
+    "cpuSecondsWhileQuiet": {
+      "devstack@c-api.service": 0.04,
+      "devstack@c-sch.service": 0.22,
+      "devstack@c-vol.service": 0.03,
+      "devstack@ceilometer-acompute.service": 1.3,
+      "devstack@etcd.service": 0.08,
+      "devstack@g-api.service": 0.23,
+      "devstack@keystone.service": 0.14,
+      "devstack@n-api-meta.service": 0.01,
+      "devstack@n-api.service": 0.01,
+      "devstack@n-cond-cell1.service": 0.54,
+      "devstack@n-cpu.service": 0.1,
+      "devstack@n-novnc-cell1.service": 0.06,
+      "devstack@n-sch.service": 0.14,
+      "devstack@n-super-cond.service": 0.04,
+      "devstack@neutron-api.service": 0.18,
+      "devstack@neutron-ovn-maintenance-worker.service": 0.02,
+      "devstack@neutron-periodic-workers.service": 0.2,
+      "devstack@neutron-rpc-server.service": 2.22,
+      "devstack@placement-api.service": 0.05
+    },
+    "cpuSecondsWhileQuietInAll": 5.61,
+    "quietSeconds": 120,
+    "spansWhileQuiet": 60
+  }
+}

@@ -515,13 +515,15 @@ Add this filter to each of those APIs' paste file, and \`otel_tracing\` to each 
 
 ${codeBlock("ini", "[filter:otel_tracing]\npaste.filter_factory = oslo_middleware:TracingMiddleware.factory")}
 
-A trace now follows a request over RPC: a boot is one trace from \`nova-api\` through \`nova-conductor\` and \`nova-scheduler\` to \`nova-compute\`, and those spans hold the request ID its logs hold. It does not cross an HTTP call, so Nova asking Neutron is a trace of its own. \`keystone\` and Placement have no pipeline to add the filter to.
+A trace now follows a request over RPC: a boot is one trace from \`nova-api\` through \`nova-conductor\` and \`nova-scheduler\` to \`nova-compute\`, and those spans hold the request ID its logs hold. It does not cross an HTTP call, so Nova asking Neutron is a trace of its own. \`keystone\` and Placement have no pipeline to add the filter to, and \`cinder-volume\` sends nothing here either.
 
 To carry a trace across HTTP calls, add one line to keystoneauth where each service runs. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades:
 
 ${codeBlock("bash", `${OPENSTACK_KEYSTONEAUTH_PATCH} "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"`)}
 
-\`nova-compute\` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace even then.
+A boot's trace then crosses Neutron and Glance too, for what \`nova-api\` asks them. \`nova-compute\` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace.
+
+@@COST@@
 
 This was run on DevStack on 2026.2, and nowhere else.`,
   };

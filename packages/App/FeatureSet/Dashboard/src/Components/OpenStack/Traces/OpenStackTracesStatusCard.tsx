@@ -1,5 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
+import Route from "Common/Types/API/Route";
 import Card from "Common/UI/Components/Card/Card";
+import Link from "Common/UI/Components/Link/Link";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -18,6 +20,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * a fault once a request that uses it was traced, and this says that too.
  */
 
+const OWN_TRACING_DOCS: Route = new Route(
+  "/docs/telemetry/openstack#openstacks-own-tracing",
+);
 const SIGNED_ONLY_WORDS: string = translationKey(
   "Only requests signed with your key are traced, so this says what has been traced, not how the cloud is doing.",
 );
@@ -135,7 +140,21 @@ const OpenStackTracesStatusCard: FunctionComponent<ComponentProps> = (
             )}
           </p>
         ) : (
-          <></>
+          <p
+            className="text-gray-500"
+            data-testid="openstack-traces-own-tracing"
+          >
+            {translator.translateText(
+              "On 2026.2, OpenStack's own tracing can trace every API request with nothing signed.",
+            )}{" "}
+            <Link
+              className="text-indigo-600 hover:text-indigo-700 hover:underline"
+              to={OWN_TRACING_DOCS}
+              openInNewTab={true}
+            >
+              {translator.translateText("How to turn it on")}
+            </Link>
+          </p>
         )}
         {GAP_ORDER.map((gap: OpenStackTraceGap): ReactElement => {
           const names: Array<string> = notSeen.filter(

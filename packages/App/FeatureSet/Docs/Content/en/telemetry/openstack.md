@@ -1204,7 +1204,7 @@ A CADF event can hold what should not be kept: its initiator's credential holds 
 
 ## Trace requests through the control plane
 
-"Why does booting an instance take four minutes?" crosses Nova, Neutron, Keystone and Glance, and logs only show the pieces. A trace shows where the time went. OpenStack's way of making one is [OSProfiler](https://docs.openstack.org/osprofiler/latest/), and OneUptime shows what it sends in [Traces](/docs/telemetry/traces-explorer), joined to the cloud's parts and to its logs.
+"Why does booting an instance take four minutes?" crosses Nova, Neutron, Keystone and Glance, and logs only show the pieces. A trace shows where the time went. OpenStack's way of making one is [OSProfiler](https://docs.openstack.org/osprofiler/latest/), and OneUptime shows what it sends in [Traces](/docs/telemetry/traces-explorer), joined to the cloud's parts and to its logs. On 2026.2 there is also [OpenStack's own tracing](#openstacks-own-tracing), which needs nothing signed.
 
 Be clear about what you are turning on:
 
@@ -1221,6 +1221,7 @@ Be clear about what you are turning on:
 - [Turn on traces](#turn-on-traces): The collector, the libraries and the config.
 - [Trace a request](#trace-a-request): The command for your cloud, and where its trace is.
 - [What tracing costs](#what-tracing-costs): What was counted, and what nobody has measured.
+- [OpenStack's own tracing](#openstacks-own-tracing): Every API request with nothing signed, on 2026.2.
 :::
 
 ### What a trace shows
@@ -1349,7 +1350,7 @@ Each opens [that request](#follow-a-request), across every service, which includ
 
 ### What tracing costs
 
-Nothing until a request is signed. With OSProfiler on and nothing signed, a request costs one failed check of a header. OpenStack [gives no figure](https://docs.openstack.org/osprofiler/latest/user/integration.html) for what a signed one costs, and neither do we, because nobody has measured it. A signed request does more work in every service it crosses, sends every span over HTTP from each of them, and carries your key across the message bus in its context. Sign what you are looking into, not traffic.
+With OSProfiler alone, nothing until a request is signed. With OSProfiler on and nothing signed, a request costs one failed check of a header. OpenStack [gives no figure](https://docs.openstack.org/osprofiler/latest/user/integration.html) for what a signed one costs, and neither do we, because nobody has measured it. A signed request does more work in every service it crosses, sends every span over HTTP from each of them, and carries your key across the message bus in its context. Sign what you are looking into, not traffic.
 
 What has been counted is what a signed boot sends, on one machine's DevStack:
 
@@ -1371,7 +1372,48 @@ Your key is in neither. It does travel between a service's own parts, in the con
 
 ### Traces on a schedule
 
-A trace only exists when a request is signed, so nothing here traces a cloud on its own. [The lifecycle check](#the-lifecycle-check) signs its own writes when it is given the key, each step in a trace of its own, so a slow boot it sees has a trace. The key is the one place OneUptime holds one: encrypted, write-only, and for that check alone.
+With OSProfiler alone, a trace only exists when a request is signed, so nothing here traces a cloud on its own. [The lifecycle check](#the-lifecycle-check) signs its own writes when it is given the key, each step in a trace of its own, so a slow boot it sees has a trace. The key is the one place OneUptime holds one: encrypted, write-only, and for that check alone.
+
+### OpenStack's own tracing
+
+On 2026.2, oslo.messaging 18.3.1 and oslo.middleware 8.2.0 trace every API request with nothing signed. Earlier releases do not have them. Keep [the steps above](#turn-on-traces): OSProfiler's driver is what gives each service a tracer to send through, and without it oslo.messaging fails on every call with `has no attribute 'trace_exporter'`.
+
+Add this to each service's config, beside `[profiler]`:
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+Add this to `nova.conf`, `neutron.conf`, `cinder.conf` and `glance-api.conf`, with `service_name` that API's own name and `otlp_endpoint` the collector `connection_string` names:
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+Add this filter to each of those APIs' paste file, and `otel_tracing` to each pipeline, just before `osprofiler`. Then restart them:
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+A trace now follows a request over RPC: a boot is one trace from `nova-api` through `nova-conductor` and `nova-scheduler` to `nova-compute`, and those spans hold the request ID its logs hold, so its [logs](#from-a-trace-to-its-logs) need no guess. It does not cross an HTTP call, so Nova asking Neutron is a trace of its own. `keystone` and Placement have no pipeline to add the filter to, `cinder-volume` sends nothing here either, and the **Traces** page says which of the two a cloud is sending.
+
+To carry a trace across HTTP calls, add one line to keystoneauth where each service runs. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades:
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+A boot's trace then crosses Neutron and Glance too, for what `nova-api` asks them. `nova-compute` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace.
+
+@@COST@@
+
+This was run on DevStack on 2026.2, and nowhere else.
 
 ## Check the cloud from outside
 
@@ -1476,45 +1518,6 @@ Turn the check off and no more runs start. Until nothing named for it is left, t
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
-
-### OpenStack's own tracing
-
-On 2026.2, oslo.messaging 18.3.1 and oslo.middleware 8.2.0 trace every API request with nothing signed. Earlier releases do not have them. Keep [the steps above](#turn-on-traces): OSProfiler's driver is what gives each service a tracer to send through, and without it oslo.messaging fails on every call with `has no attribute 'trace_exporter'`.
-
-Add this to each service's config, beside `[profiler]`:
-
-```ini
-[oslo_messaging_tracing]
-tracing_enabled = True
-```
-
-Add this to `nova.conf`, `neutron.conf`, `cinder.conf` and `glance-api.conf`, with `service_name` that API's own name and `otlp_endpoint` the collector `connection_string` names:
-
-```ini
-[oslo_middleware_tracing]
-enabled = True
-otlp_endpoint = http://127.0.0.1:4318
-service_name = nova-api
-```
-
-Add this filter to each of those APIs' paste file, and `otel_tracing` to each pipeline, just before `osprofiler`. Then restart them:
-
-```ini
-[filter:otel_tracing]
-paste.filter_factory = oslo_middleware:TracingMiddleware.factory
-```
-
-A trace now follows a request over RPC: a boot is one trace from `nova-api` through `nova-conductor` and `nova-scheduler` to `nova-compute`, and those spans hold the request ID its logs hold. It does not cross an HTTP call, so Nova asking Neutron is a trace of its own. `keystone` and Placement have no pipeline to add the filter to. The **Traces** page says which of the two a cloud is sending.
-
-To carry a trace across HTTP calls, add one line to keystoneauth where each service runs. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades:
-
-```bash
-sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
-```
-
-`nova-compute` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace even then.
-
-This was run on DevStack on 2026.2, and nowhere else.
 
 ## AI agent
 

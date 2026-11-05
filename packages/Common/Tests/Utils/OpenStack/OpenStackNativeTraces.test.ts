@@ -5,8 +5,12 @@ import {
 } from "../../Helpers/OpenStackTraceRecordings";
 import { JSONObject } from "../../../Types/JSON";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
-import { OpenStackLogAttribute } from "../../../Utils/OpenStack/OpenStackLogs";
 import {
+  OpenStackLogAttribute,
+  stampOpenStackLogRecord,
+} from "../../../Utils/OpenStack/OpenStackLogs";
+import {
+  OpenStackTraceLogRow,
   OpenStackTraceRequest,
   OpenStackTraceRequestMatch,
   joinOpenStackTraceToRequests,
@@ -441,14 +445,13 @@ describe("a trace's requests, when its spans name them", () => {
 });
 
 /*
- * What really came. `native-with-osprofiler-boot` was signed, and oslo's spans in it are their own
- * traces beside OSProfiler's, which is the shape a cloud with the guide's setup sends.
+ * What really came. The guide's setup with nothing signed: native-always-on-* as OpenStack ships
+ * it, and native-crossing-boot with the guide's line in keystoneauth.
  */
-describe("on a real 2026.2", () => {
+describe("on a real 2026.2, with nothing signed", () => {
   const recording: OpenStackTraceRecording = new OpenStackTraceRecording(
     "hibiscus-ovn",
   );
-  const SCENE: string = "native-with-osprofiler-boot";
 
   interface Read {
     recorded: RecordedSpan;
@@ -456,15 +459,11 @@ describe("on a real 2026.2", () => {
     read: OpenStackDriverSpan;
   }
 
-  function readBoot(): Array<Read> {
+  function readScene(scene: string): Array<Read> {
     const services: Map<JSONObject, OpenStackDriverService> = new Map();
     const spans: Array<Read> = [];
 
-    for (const recorded of recording.spans(SCENE, "native")) {
-      if (recorded.scopeName === OSPROFILER_DRIVER_SCOPE_NAME) {
-        continue;
-      }
-
+    for (const recorded of recording.spans(scene, "native")) {
       let service: OpenStackDriverService | undefined = services.get(
         recorded.block,
       );
@@ -492,87 +491,272 @@ describe("on a real 2026.2", () => {
     return spans;
   }
 
+  function isThePost(span: Read): boolean {
+    return span.read.name === "POST /compute/v2.1/servers";
+  }
+
   function theBoot(spans: Array<Read>): Array<Read> {
-    const root: Read = spans.find((span: Read): boolean => {
-      return span.read.name === "POST /compute/v2.1/servers";
-    })!;
+    const root: Read = spans.find(isThePost)!;
 
     return spans.filter((span: Read): boolean => {
       return span.recorded.traceId === root.recorded.traceId;
     });
   }
 
-  test("a boot is one trace from Nova's API through its conductor and scheduler to its compute", () => {
-    const boot: Array<Read> = theBoot(readBoot());
+  function servicesOf(spans: Array<Read>): Array<string> {
+    return Array.from(
+      new Set(
+        spans.map((span: Read): string => {
+          return span.service;
+        }),
+      ),
+    ).sort();
+  }
 
-    expect(
-      Array.from(
-        new Set(
-          boot.map((span: Read): string => {
-            return span.service;
+  function logRows(scene: string): Array<OpenStackTraceLogRow> {
+    return recording.journal(scene).map((line): OpenStackTraceLogRow => {
+      const stamp: { attributes: Record<string, string>; body: string } =
+        stampOpenStackLogRecord({
+          attributes: { "journald.unit": line.unit },
+          body: line.message,
+          severityNumber: 9,
+        });
+
+      return {
+        time: new Date(line.time * 1000),
+        body: stamp.body,
+        attributes: stamp.attributes,
+      };
+    });
+  }
+
+  describe("as OpenStack ships it", () => {
+    const SCENE: string = "native-always-on-boot";
+
+    test("the boot worked, and everything in it is oslo's", () => {
+      expect(recording.scene(SCENE).exitCode).toBe(0);
+      expect(recording.scene(SCENE).traceIds).toEqual([]);
+
+      for (const span of readScene(SCENE)) {
+        expect([
+          OSLO_MESSAGING_SCOPE_NAME,
+          OSLO_MIDDLEWARE_SCOPE_NAME,
+        ]).toContain(span.recorded.scopeName);
+      }
+    });
+
+    test("a boot is one trace from Nova's API through its conductor and scheduler to its compute", () => {
+      const boot: Array<Read> = theBoot(readScene(SCENE));
+      const ids: Set<string> = new Set(
+        boot.map((span: Read): string => {
+          return span.recorded.spanId;
+        }),
+      );
+
+      expect(servicesOf(boot)).toEqual([
+        "nova-api",
+        "nova-compute",
+        "nova-conductor",
+        "nova-scheduler",
+      ]);
+
+      for (const span of boot) {
+        // Each hop names the one before it: nothing here is a guess from the time it ran.
+        if (!isThePost(span)) {
+          expect(ids.has(span.read.parentSpanId)).toBe(true);
+        }
+      }
+    });
+
+    test("its RPC spans hold the request Nova says made the instance, and its HTTP span none", () => {
+      const boot: Array<Read> = theBoot(readScene(SCENE));
+      const asked: string = recording.requestIdOf("ou_trace_native_always");
+
+      for (const span of boot) {
+        const requestId: unknown =
+          span.recorded.attributes["openstack.request_id"];
+
+        if (span.recorded.scopeName === OSLO_MESSAGING_SCOPE_NAME) {
+          expect(requestId).toBe(asked);
+        } else {
+          expect(requestId).toBeUndefined();
+        }
+      }
+    });
+
+    test("so its request is first among its logs, and sure, with every service that logged it", () => {
+      const boot: Array<Read> = theBoot(readScene(SCENE));
+      const requests: Array<OpenStackTraceRequest> =
+        joinOpenStackTraceToRequests({
+          spans: boot.map((span: Read) => {
+            return {
+              service: span.service,
+              method: String(span.recorded.attributes["http.method"] || ""),
+              path: String(span.recorded.attributes["http.path"] || ""),
+              startAt: new Date(Number(span.recorded.startNano / 1000000n)),
+              endAt: new Date(Number(span.recorded.endNano / 1000000n)),
+              attributes: span.recorded.attributes,
+            };
           }),
-        ),
-      ).sort(),
-    ).toEqual(["nova-api", "nova-compute", "nova-conductor", "nova-scheduler"]);
+          logs: logRows(SCENE),
+        });
 
-    const ids: Set<string> = new Set(
-      boot.map((span: Read): string => {
-        return span.recorded.spanId;
-      }),
-    );
-
-    for (const span of boot) {
-      // Each hop names the one before it: nothing here is a guess from the time it ran.
-      if (span.read.name !== "POST /compute/v2.1/servers") {
-        expect(ids.has(span.read.parentSpanId)).toBe(true);
-      }
-    }
-  });
-
-  test("its RPC spans each hold one request's ID, and its HTTP span none", () => {
-    const boot: Array<Read> = theBoot(readBoot());
-    const named: Set<string> = new Set<string>();
-
-    for (const span of boot) {
-      const requestId: unknown =
-        span.recorded.attributes["openstack.request_id"];
-
-      if (span.recorded.scopeName === OSLO_MESSAGING_SCOPE_NAME) {
-        expect(typeof requestId).toBe("string");
-        named.add(requestId as string);
-      } else {
-        expect(requestId).toBeUndefined();
-      }
-    }
-
-    expect(named.size).toBe(1);
-  });
-
-  test("every span says which service it is, in the word an operator knows", () => {
-    const words: Set<string> = new Set<string>();
-
-    for (const span of readBoot()) {
-      words.add(span.service);
-      expect(span.recorded.attributes["openstack.service"]).toBe(span.service);
-      expect(span.recorded.attributes["http.url"]).toBeUndefined();
-    }
-
-    expect(Array.from(words)).toEqual(
-      expect.arrayContaining(["nova-api", "neutron-server", "glance-api"]),
-    );
-    expect(Array.from(words)).not.toContain("nova-nova-compute");
-    expect(Array.from(words)).not.toContain("nova-osapi_compute");
-  });
-
-  test("nothing crosses an HTTP call as OpenStack ships it", () => {
-    const spans: Array<Read> = readBoot();
-    const carried: Array<Read> = spans.filter((span: Read): boolean => {
-      return (
-        span.recorded.scopeName === OSLO_MIDDLEWARE_SCOPE_NAME &&
-        Boolean(span.recorded.parentSpanId)
+      expect(requests[0]!.rootId).toBe(
+        recording.requestIdOf("ou_trace_native_always"),
+      );
+      expect(requests[0]!.match).toBe(OpenStackTraceRequestMatch.NamedBySpan);
+      expect(requests[0]!.services).toEqual(
+        expect.arrayContaining([
+          "nova-api",
+          "nova-compute",
+          "nova-conductor",
+          "nova-scheduler",
+        ]),
       );
     });
 
-    expect(carried).toEqual([]);
+    test("nothing crosses an HTTP call: Nova asking Neutron is a trace of its own", () => {
+      const spans: Array<Read> = readScene(SCENE);
+
+      expect(servicesOf(spans)).toEqual(
+        expect.arrayContaining(["neutron-server", "glance-api"]),
+      );
+      expect(servicesOf(theBoot(spans))).not.toContain("neutron-server");
+
+      for (const span of spans) {
+        if (span.recorded.scopeName === OSLO_MIDDLEWARE_SCOPE_NAME) {
+          expect(span.recorded.parentSpanId).toBe("");
+        }
+      }
+    });
+
+    test("every span says which service it is, in the word an operator knows", () => {
+      for (const span of readScene(SCENE)) {
+        expect(span.recorded.attributes["openstack.service"]).toBe(
+          span.service,
+        );
+        expect(span.recorded.attributes["http.url"]).toBeUndefined();
+        expect(span.service).not.toContain("nova-nova");
+        expect(span.service).not.toContain("osapi_compute");
+      }
+    });
+
+    test("what a boot asks of the instance it made names that instance", () => {
+      const instance: string = recording.instance("ou_trace_native_always").id;
+      const named: Array<string> = readScene(SCENE).flatMap(
+        (span: Read): Array<string> => {
+          return readOpenStackSpanResources(span.recorded.attributes).map(
+            (resource: { id: string }): string => {
+              return resource.id;
+            },
+          );
+        },
+      );
+
+      expect(named).toContain(instance);
+    });
+  });
+
+  describe("with the guide's line in keystoneauth", () => {
+    const SCENE: string = "native-crossing-boot";
+
+    test("the boot's trace crosses Neutron and Glance as well, with nothing signed", () => {
+      expect(recording.scene(SCENE).exitCode).toBe(0);
+      expect(recording.scene(SCENE).traceIds).toEqual([]);
+      expect(servicesOf(theBoot(readScene(SCENE)))).toEqual([
+        "glance-api",
+        "neutron-server",
+        "nova-api",
+        "nova-compute",
+        "nova-conductor",
+        "nova-scheduler",
+      ]);
+    });
+
+    test("Neutron's spans sit under the call that made them, and a page can tell", () => {
+      const boot: Array<Read> = theBoot(readScene(SCENE));
+      const post: Read = boot.find(isThePost)!;
+      const neutron: Array<Read> = boot.filter((span: Read): boolean => {
+        return span.service === "neutron-server";
+      });
+
+      expect(neutron.length).toBeGreaterThan(0);
+
+      for (const span of neutron) {
+        expect(span.read.parentSpanId).toBe(post.recorded.spanId);
+        expect(
+          isOpenStackTraceCarriedOverHttp({
+            parentSpanId: span.read.parentSpanId,
+            attributes: {
+              [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: span.recorded.scopeName,
+            },
+          }),
+        ).toBe(true);
+      }
+    });
+
+    test("what nova-compute does on a thread of its own stays outside, under the same request", () => {
+      const spans: Array<Read> = readScene(SCENE);
+      const boot: Array<Read> = theBoot(spans);
+      const asked: string = recording.requestIdOf("ou_trace_native_crossing");
+      const outside: Array<Read> = spans.filter((span: Read): boolean => {
+        return (
+          span.recorded.traceId !== boot[0]!.recorded.traceId &&
+          span.recorded.attributes["openstack.request_id"] === asked
+        );
+      });
+
+      expect(outside.length).toBeGreaterThan(0);
+      expect(servicesOf(outside)).toContain("nova-compute");
+      // The build is handed to its thread, so its span in the boot's trace has nothing under it.
+      const built: Read = boot.find((span: Read): boolean => {
+        return span.read.name === "build_and_run_instance receive";
+      })!;
+
+      expect(
+        boot.filter((span: Read): boolean => {
+          return span.read.parentSpanId === built.recorded.spanId;
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  test("cinder-volume is in no trace here either, though a volume was made and attached", () => {
+    const spans: Array<Read> = readScene("native-always-on-volume");
+
+    expect(recording.scene("native-always-on-volume").exitCode).toBe(0);
+    expect(servicesOf(spans)).toEqual(
+      expect.arrayContaining([
+        "cinder-api",
+        "cinder-scheduler",
+        "nova-compute",
+      ]),
+    );
+    expect(servicesOf(spans)).not.toContain("cinder-volume");
+  });
+
+  test("a scheduling that fails is a failed span, saying no valid host and no more", () => {
+    const failed: Array<Read> = readScene(
+      "native-always-on-failed-boot",
+    ).filter((span: Read): boolean => {
+      return span.read.isFailed;
+    });
+
+    expect(failed.length).toBeGreaterThan(0);
+    expect(failed[0]!.service).toBe("nova-conductor");
+    expect(failed[0]!.read.statusMessage).toContain("No valid host was found");
+    expect(failed[0]!.read.statusMessage).not.toContain("Traceback");
+  });
+
+  test("an idle cloud's spans are nearly all nova-compute's object calls", () => {
+    const spans: Array<Read> = readScene("native-always-on-idle");
+    const objectCalls: Array<Read> = spans.filter((span: Read): boolean => {
+      return ["object_action", "object_class_action_versions"].includes(
+        String(span.recorded.attributes["rpc.method"]),
+      );
+    });
+
+    expect(spans.length).toBeGreaterThan(0);
+    expect(objectCalls.length / spans.length).toBeGreaterThan(0.8);
   });
 });

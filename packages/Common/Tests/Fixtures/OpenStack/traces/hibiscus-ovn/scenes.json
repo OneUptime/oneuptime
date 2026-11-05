@@ -1,367 +1,422 @@
 [
  {
-  "endedAt": "2026-11-05T05:23:47Z",
+  "endedAt": "2026-11-05T17:50:39Z",
   "exitCode": 0,
   "expectsNoSpans": true,
   "mustSucceed": true,
   "scene": "off-signed-list",
-  "seconds": 1.888,
+  "seconds": 2.028,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:23:45Z",
+  "startedAt": "2026-11-05T17:50:37Z",
   "traceIds": [
-   "1337212f-5b20-4864-b77c-68ffaf781a34"
+   "305beca3-7b1b-4617-bb04-27e2d9691500"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:25:08Z",
+  "endedAt": "2026-11-05T17:52:03Z",
   "exitCode": 0,
   "expectsNoSpans": true,
   "mustSucceed": true,
   "scene": "no-libraries-signed-list",
-  "seconds": 1.911,
+  "seconds": 2.175,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:25:06Z",
+  "startedAt": "2026-11-05T17:52:01Z",
   "traceIds": [
-   "9027e5d7-097c-4e1d-8d9a-26d2a7b2c49c"
+   "2c140090-6e87-4c2f-818c-03e73a31b4ca"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:38:27Z",
+  "endedAt": "2026-11-05T18:05:42Z",
   "exitCode": 0,
   "expectsNoSpans": true,
   "mustSucceed": true,
   "scene": "unsigned-list",
-  "seconds": 2.279,
+  "seconds": 2.594,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:38:25Z",
+  "startedAt": "2026-11-05T18:05:39Z",
   "traceIds": []
  },
  {
-  "endedAt": "2026-11-05T05:38:45Z",
+  "endedAt": "2026-11-05T18:06:00Z",
   "exitCode": 0,
   "expectsNoSpans": true,
   "mustSucceed": true,
   "scene": "wrong-key-list",
-  "seconds": 2.124,
+  "seconds": 2.396,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:38:42Z",
+  "startedAt": "2026-11-05T18:05:57Z",
   "traceIds": [
-   "73c9a151-e278-4521-9db0-0294904f43e4"
+   "9114bc11-bca8-462c-8cf9-3d8ac10811ca"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:39:02Z",
+  "endedAt": "2026-11-05T18:06:17Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": true,
   "scene": "signed-list",
-  "seconds": 1.922,
+  "seconds": 2.17,
   "spansMade": 13,
-  "startedAt": "2026-11-05T05:39:00Z",
+  "startedAt": "2026-11-05T18:06:15Z",
   "traceIds": [
-   "049ba788-c418-4a15-b0c1-9908a8b25710"
+   "0e16445c-a0a5-4631-aa93-f21f73aa5c3e"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:39:24Z",
+  "endedAt": "2026-11-05T18:06:45Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": true,
   "scene": "signed-boot",
-  "seconds": 7.817,
-  "spansMade": 131,
-  "startedAt": "2026-11-05T05:39:17Z",
+  "seconds": 13.422,
+  "spansMade": 140,
+  "startedAt": "2026-11-05T18:06:32Z",
   "traceIds": [
-   "f2600432-6843-4bcd-87e7-305a308118ac"
+   "281501ed-a876-47fb-b2a0-79d4518d83fd"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:39:49Z",
+  "endedAt": "2026-11-05T18:07:11Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-show",
-  "seconds": 1.855,
+  "seconds": 2.111,
   "spansMade": 14,
-  "startedAt": "2026-11-05T05:39:47Z",
+  "startedAt": "2026-11-05T18:07:09Z",
   "traceIds": [
-   "7454f2cc-fad2-4d17-b625-94aa48da6b7b"
+   "e09c79a3-8195-47a0-8aa5-e55b26c9fadc"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:40:08Z",
+  "endedAt": "2026-11-05T18:07:31Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-boot-failed",
-  "seconds": 4.184,
-  "spansMade": 33,
-  "startedAt": "2026-11-05T05:40:04Z",
+  "seconds": 5.176,
+  "spansMade": 37,
+  "startedAt": "2026-11-05T18:07:26Z",
   "traceIds": [
-   "5c64122f-52f8-4dae-838e-58f27d6f720a"
+   "55649454-bdcc-436f-8d96-091ae2e24af0"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:40:57Z",
+  "endedAt": "2026-11-05T18:08:24Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-volume",
-  "seconds": 27.036,
-  "spansMade": 94,
-  "startedAt": "2026-11-05T05:40:30Z",
+  "seconds": 29.869,
+  "spansMade": 96,
+  "startedAt": "2026-11-05T18:07:54Z",
   "traceIds": [
-   "bb9ebcd4-51bf-4954-bad4-2b3b6d619d59",
-   "3073a87a-bc8f-4fb2-a3be-3d4a840e50c5",
-   "11cefc2d-9436-4e63-8122-958da1215003",
-   "c8175c8d-eed4-4a50-8ad2-445429db3dc3"
+   "1cce8fb3-42d8-474e-82f8-694fbd29ae1c",
+   "05f4abc7-130c-4f49-ad59-e45a0e68cb55",
+   "11ca2fe4-e65d-4c45-b2da-188f5be3af75",
+   "71adc7b1-0062-4638-aa2f-eebecdbc17e9"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:41:28Z",
+  "endedAt": "2026-11-05T18:08:59Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-network",
-  "seconds": 16.256,
-  "spansMade": 49,
-  "startedAt": "2026-11-05T05:41:12Z",
+  "seconds": 19.494,
+  "spansMade": 52,
+  "startedAt": "2026-11-05T18:08:39Z",
   "traceIds": [
-   "3e5771a1-c434-410d-8bf9-531dea3a020a",
-   "733ed22a-4a93-43ec-953a-ac23a667584b",
-   "ddf80aec-10df-440d-a989-42225a8dd2d9",
-   "9f6b488f-3bc1-49ef-ab6d-bd44676b2d90",
-   "90be3694-d244-4133-8811-038f44ccf1b3",
-   "d2aa3ad0-8dff-4224-a79a-6ce0387be669",
-   "3b4c6236-f959-4b3f-bc27-a2333279df14",
-   "a820eadb-0090-426d-a4b5-2ff85a69423c"
+   "ea99fe51-dd95-4ec7-aa33-b6d0618c48f7",
+   "0ba7bca3-50ab-4a97-bbdd-da613709bdc8",
+   "1743b285-d39b-4b3e-9671-daa9e4ba1899",
+   "c8a26795-c003-46bf-a482-7b0af10a7e39",
+   "82b8447c-0d95-4e36-ba55-7c09e28327d1",
+   "a8f83b00-1c91-41bb-99b7-a3ef8a92d75d",
+   "45961076-150b-4083-9540-df29d9931883",
+   "1c9ab5af-65be-4222-8460-e481c902ca9b"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:41:45Z",
+  "endedAt": "2026-11-05T18:09:16Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-image",
-  "seconds": 1.666,
+  "seconds": 1.977,
   "spansMade": 5,
-  "startedAt": "2026-11-05T05:41:44Z",
+  "startedAt": "2026-11-05T18:09:14Z",
   "traceIds": [
-   "04486806-ea4c-4165-8ed7-9f6f4ea20e5d"
+   "365fe53f-4ed2-4b98-b476-ffaf17e60b8c"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:42:02Z",
+  "endedAt": "2026-11-05T18:09:33Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-token",
-  "seconds": 1.836,
-  "spansMade": 6,
-  "startedAt": "2026-11-05T05:42:00Z",
+  "seconds": 1.975,
+  "spansMade": 2,
+  "startedAt": "2026-11-05T18:09:31Z",
   "traceIds": [
-   "e11d662b-12a2-44d3-8e9f-dfb7a4777e1d"
+   "61ba8800-d6b5-41a4-8f72-6d7be860a8da"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:42:24Z",
+  "endedAt": "2026-11-05T18:09:55Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-delete",
-  "seconds": 6.343,
-  "spansMade": 57,
-  "startedAt": "2026-11-05T05:42:17Z",
+  "seconds": 6.911,
+  "spansMade": 55,
+  "startedAt": "2026-11-05T18:09:48Z",
   "traceIds": [
-   "cdeccefd-d1d7-42ed-b1bf-f96af2b7b781",
-   "3e5e883f-a52b-426b-8aa1-fcda5d90483c"
+   "e1c3e7e2-dee0-4b90-a7e1-40ccd6105db7",
+   "ad07815f-3063-4e87-aafe-04bf62cc24aa"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:42:43Z",
+  "endedAt": "2026-11-05T18:10:14Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-by-header",
-  "seconds": 3.819,
+  "seconds": 4.023,
   "spansMade": 7,
-  "startedAt": "2026-11-05T05:42:39Z",
+  "startedAt": "2026-11-05T18:10:10Z",
   "traceIds": [
-   "8fe43f91-7f8b-4916-b1d6-5b8b3e91c369"
+   "c61941c0-59a1-4fa5-a321-cec145da21f0"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:43:00Z",
+  "endedAt": "2026-11-05T18:10:32Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": true,
   "scene": "collector-down-signed-list",
-  "seconds": 1.976,
+  "seconds": 2.199,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:42:58Z",
+  "startedAt": "2026-11-05T18:10:29Z",
   "traceIds": [
-   "e9ed6bf7-0384-460d-8f08-7feb9df7e23d"
+   "96d63959-2978-4311-a174-9bcc3a4ad7e3"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:43:27Z",
+  "endedAt": "2026-11-05T18:11:00Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": true,
   "scene": "collector-down-signed-boot",
-  "seconds": 12.085,
+  "seconds": 12.853,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:43:15Z",
+  "startedAt": "2026-11-05T18:10:47Z",
   "traceIds": [
-   "9141d834-7bce-45ab-8dfb-6f9686865d6f"
+   "a6584de2-bd06-43f0-aaab-5db79bb61201"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:45:00Z",
+  "endedAt": "2026-11-05T18:12:38Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-boot-sql",
-  "seconds": 12.311,
-  "spansMade": 987,
-  "startedAt": "2026-11-05T05:44:47Z",
+  "seconds": 13.171,
+  "spansMade": 971,
+  "startedAt": "2026-11-05T18:12:25Z",
   "traceIds": [
-   "8034e4f8-b17a-4a7f-b4af-b56d2eeebb89"
+   "f2f2f05d-01f4-4c35-9b2c-e796a4a3a220"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:46:29Z",
+  "endedAt": "2026-11-05T18:14:13Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-boot-requests",
-  "seconds": 11.914,
-  "spansMade": 204,
-  "startedAt": "2026-11-05T05:46:17Z",
+  "seconds": 12.815,
+  "spansMade": 199,
+  "startedAt": "2026-11-05T18:14:00Z",
   "traceIds": [
-   "395e71cf-a8a3-407c-be80-ee6d88946cd8"
+   "4ac5ce15-c10c-4c1f-b130-08e6347c8120"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:47:13Z",
+  "endedAt": "2026-11-05T18:14:57Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-boot-placement",
-  "seconds": 11.745,
-  "spansMade": 181,
-  "startedAt": "2026-11-05T05:47:01Z",
+  "seconds": 12.376,
+  "spansMade": 186,
+  "startedAt": "2026-11-05T18:14:45Z",
   "traceIds": [
-   "c794ded1-ff5b-4e4a-bdf2-8612591484aa"
+   "b1302d84-0aaa-4189-a4c0-3cdb1f6cc616"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:48:43Z",
+  "endedAt": "2026-11-05T18:16:32Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-boot-whole",
-  "seconds": 11.89,
-  "spansMade": 161,
-  "startedAt": "2026-11-05T05:48:31Z",
+  "seconds": 13.837,
+  "spansMade": 169,
+  "startedAt": "2026-11-05T18:16:19Z",
   "traceIds": [
-   "7bc54dc5-4413-4f9e-979c-06013100a703"
+   "d22347c9-e1ab-4f2f-8903-c784102cb0b8"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:49:04Z",
+  "endedAt": "2026-11-05T18:16:55Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-boot-failed-whole",
-  "seconds": 6.192,
-  "spansMade": 37,
-  "startedAt": "2026-11-05T05:48:58Z",
+  "seconds": 7.365,
+  "spansMade": 35,
+  "startedAt": "2026-11-05T18:16:47Z",
   "traceIds": [
-   "27fd9c93-0692-4aea-ae52-778ed39385ec"
+   "cfaf9e53-173d-4757-a5bd-58cc141904b1"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:50:34Z",
+  "endedAt": "2026-11-05T18:18:36Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "signed-boot-osprofiler-fix",
-  "seconds": 12.064,
-  "spansMade": 160,
-  "startedAt": "2026-11-05T05:50:22Z",
+  "seconds": 18.034,
+  "spansMade": 172,
+  "startedAt": "2026-11-05T18:18:18Z",
   "traceIds": [
-   "09e056a6-6c2a-4d34-8edd-c38dac827f57"
+   "97a97d3d-e1d3-4e54-81dc-5ebb5552c509"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:52:12Z",
+  "endedAt": "2026-11-05T18:20:20Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "native-messaging-boot",
-  "seconds": 19.295,
+  "seconds": 21.341,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:51:52Z",
+  "startedAt": "2026-11-05T18:19:59Z",
   "traceIds": []
  },
  {
-  "endedAt": "2026-11-05T05:53:27Z",
+  "endedAt": "2026-11-05T18:21:35Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "native-messaging-idle",
   "seconds": 60.004,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:52:27Z",
+  "startedAt": "2026-11-05T18:20:35Z",
   "traceIds": []
  },
  {
-  "endedAt": "2026-11-05T05:55:08Z",
+  "endedAt": "2026-11-05T18:23:18Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "native-both-boot",
-  "seconds": 20.712,
-  "spansMade": 97,
-  "startedAt": "2026-11-05T05:54:47Z",
+  "seconds": 20.801,
+  "spansMade": 99,
+  "startedAt": "2026-11-05T18:22:57Z",
   "traceIds": []
  },
  {
-  "endedAt": "2026-11-05T05:56:23Z",
+  "endedAt": "2026-11-05T18:24:33Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "native-both-idle",
   "seconds": 60.004,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:55:23Z",
+  "startedAt": "2026-11-05T18:23:33Z",
   "traceIds": []
  },
  {
-  "endedAt": "2026-11-05T05:57:57Z",
+  "endedAt": "2026-11-05T18:26:14Z",
   "exitCode": 0,
   "expectsNoSpans": false,
   "mustSucceed": false,
   "scene": "native-with-osprofiler-boot",
-  "seconds": 12.402,
-  "spansMade": 342,
-  "startedAt": "2026-11-05T05:57:44Z",
+  "seconds": 17.666,
+  "spansMade": 357,
+  "startedAt": "2026-11-05T18:25:56Z",
   "traceIds": [
-   "c9430091-fd5c-464a-aadd-869245f5019d"
+   "8ef8a937-a628-46d0-b33b-c311f49ff1f5"
   ]
  },
  {
-  "endedAt": "2026-11-05T05:59:31Z",
+  "endedAt": "2026-11-05T18:27:58Z",
+  "exitCode": 0,
+  "expectsNoSpans": false,
+  "mustSucceed": false,
+  "scene": "native-always-on-boot",
+  "seconds": 20.617,
+  "spansMade": 205,
+  "startedAt": "2026-11-05T18:27:37Z",
+  "traceIds": []
+ },
+ {
+  "endedAt": "2026-11-05T18:28:20Z",
+  "exitCode": 0,
+  "expectsNoSpans": false,
+  "mustSucceed": false,
+  "scene": "native-always-on-failed-boot",
+  "seconds": 6.993,
+  "spansMade": 56,
+  "startedAt": "2026-11-05T18:28:13Z",
+  "traceIds": []
+ },
+ {
+  "endedAt": "2026-11-05T18:29:15Z",
+  "exitCode": 0,
+  "expectsNoSpans": false,
+  "mustSucceed": false,
+  "scene": "native-always-on-volume",
+  "seconds": 40.306,
+  "spansMade": 303,
+  "startedAt": "2026-11-05T18:28:35Z",
+  "traceIds": []
+ },
+ {
+  "endedAt": "2026-11-05T18:32:31Z",
+  "exitCode": 0,
+  "expectsNoSpans": false,
+  "mustSucceed": false,
+  "scene": "native-always-on-idle",
+  "seconds": 180.004,
+  "spansMade": 100,
+  "startedAt": "2026-11-05T18:29:31Z",
+  "traceIds": []
+ },
+ {
+  "endedAt": "2026-11-05T18:36:22Z",
+  "exitCode": 0,
+  "expectsNoSpans": false,
+  "mustSucceed": false,
+  "scene": "native-crossing-boot",
+  "seconds": 20.857,
+  "spansMade": 230,
+  "startedAt": "2026-11-05T18:36:01Z",
+  "traceIds": []
+ },
+ {
+  "endedAt": "2026-11-05T18:37:57Z",
   "exitCode": 0,
   "expectsNoSpans": true,
   "mustSucceed": true,
   "scene": "off-again-signed-boot",
-  "seconds": 12.793,
+  "seconds": 12.502,
   "spansMade": 0,
-  "startedAt": "2026-11-05T05:59:19Z",
+  "startedAt": "2026-11-05T18:37:45Z",
   "traceIds": [
-   "99619f7d-5f94-4b1e-a814-1f8cffc10040"
+   "ebc31e4a-138b-47a4-a62e-0de4b13013f4"
   ]
  }
 ]

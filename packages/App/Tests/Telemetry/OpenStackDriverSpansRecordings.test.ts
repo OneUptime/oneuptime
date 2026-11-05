@@ -327,9 +327,7 @@ describe.each(getRecordedTraceReleases())(
       await OtelTracesIngestService.processTracesFromQueue({
         projectId: PROJECT_ID,
         headers: {},
-        body: movedToNow(
-          recording.otlp("native-with-osprofiler-boot", "native"),
-        ),
+        body: movedToNow(recording.otlp("native-always-on-boot", "native")),
       } as unknown as TelemetryRequest);
       await TelemetryFanInWriter.flushAll();
 
