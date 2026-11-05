@@ -19,6 +19,7 @@ import {
   OpenStackRouterAgentReading,
   getOpenStackAddressesFree,
   getOpenStackAddressesTone,
+  getOpenStackContainerClusterNodeCounts,
   getOpenStackFlavorExternalId,
   getOpenStackFloatingIpAssociation,
   getOpenStackInstanceAddresses,
@@ -36,7 +37,9 @@ import {
 import { ResourceColumnTone } from "../Infrastructure/ResourceTable";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS,
   OPENSTACK_IMAGE_STATE_PRESETS,
+  OPENSTACK_STACK_STATE_PRESETS,
   OPENSTACK_INSTANCE_STATE_PRESETS,
   OPENSTACK_VOLUME_STATE_PRESETS,
   OpenStackStatePreset,
@@ -1336,3 +1339,164 @@ export const ADDRESSES_FREE_COLUMN: OpenStackListColumn =
       return free === null ? "" : formatOpenStackCount(free);
     },
   });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Stacks and Kubernetes clusters
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Heat or Magnum. Why one failed is a probe's to say, so it is folded
+ * away until someone asks for it, and a cluster's project comes from its Heat stack where this
+ * credential can read that.
+ */
+const STACK_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  OpenStackColumn.TimeInState,
+  OpenStackColumn.Project,
+  OpenStackColumn.Region,
+  getOpenStackFactColumn({
+    id: "status-reason",
+    title: "Why",
+    hideOnMobile: true,
+    isHiddenByDefault: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "statusReason");
+    },
+  }),
+];
+
+export const OpenStackStackList: FunctionComponent<OpenStackListProps> = (
+  props: OpenStackListProps,
+): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.Stack),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.Stack}
+      query={props.query}
+      tableId={props.tableId || "openstack-stacks-table"}
+      title={props.title || "Stacks"}
+      description={
+        props.description ||
+        "Every Heat stack in this cloud, its status in Heat's own words, and whose it is."
+      }
+      singularName="stack"
+      pluralName="stacks"
+      emptyTitle={props.emptyTitle || "No stacks reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Heat. Only the Full view credential sees every project's: Heat shows anything less its own project's stacks or none, and no error says so."
+      }
+      columns={STACK_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_STACK_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+export const OpenStackContainerClusterList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.ContainerCluster),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  const columns: Array<OpenStackColumn | OpenStackListColumn> = useMemo(() => {
+    return [
+      OpenStackColumn.Status,
+      getOpenStackFactColumn({
+        id: "nodes",
+        title: "Nodes",
+        description:
+          "How many nodes this cluster was asked for, which is what Magnum reports whether or not they came up.",
+        getText: (row: OpenStackResource): string => {
+          const { controlPlane, workers } =
+            getOpenStackContainerClusterNodeCounts(row);
+          if (controlPlane === null || workers === null) {
+            return "";
+          }
+          return translator.translateTemplate(
+            "{{controlPlane}} control plane, {{workers}}",
+            {
+              controlPlane: `${controlPlane}`,
+              workers: translator.translatePlural(
+                { one: "{{count}} worker", other: "{{count}} workers" },
+                workers,
+              ),
+            },
+          );
+        },
+      }),
+      OpenStackColumn.TimeInState,
+      OpenStackColumn.Project,
+      OpenStackColumn.Region,
+      getOpenStackLinkColumn({
+        id: "stack",
+        title: "Heat Stack",
+        hideOnMobile: true,
+        isHiddenByDefault: true,
+        getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+          const stackId: string = getOpenStackFactText(row, "stackId");
+          return stackId
+            ? { kind: OpenStackResourceKind.Stack, externalId: stackId }
+            : null;
+        },
+      }),
+      getOpenStackFactColumn({
+        id: "status-reason",
+        title: "Why",
+        hideOnMobile: true,
+        isHiddenByDefault: true,
+        getText: (row: OpenStackResource): string => {
+          return getOpenStackFactText(row, "statusReason");
+        },
+      }),
+    ];
+  }, [translator]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.ContainerCluster}
+      query={props.query}
+      tableId={props.tableId || "openstack-container-clusters-table"}
+      title={props.title || "Kubernetes Clusters"}
+      description={
+        props.description ||
+        "Every Kubernetes cluster Magnum built in this cloud, and its status in Magnum's own words."
+      }
+      singularName="Kubernetes cluster"
+      pluralName="Kubernetes clusters"
+      emptyTitle={props.emptyTitle || "No Kubernetes clusters reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Magnum. Only the Full view credential sees every project's: Magnum shows anything less none at all, and no error says so."
+      }
+      columns={columns}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};

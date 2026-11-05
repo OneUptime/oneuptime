@@ -87,11 +87,12 @@ export const OpenStackDependencyStatePill: FunctionComponent<{
 
 /*
  * The line under its name: what is wrong, how many answer, or what would have it read.
- * What nobody named says which setting names it, because that is all it takes.
+ * What nobody named says which setting names it, because that is all it takes. A probe reads a
+ * cloud's APIs and nothing they stand on, so a cloud one collects has no such setting to change.
  */
-export function useOpenStackDependencyLine(): (
-  summary: OpenStackDependencySummary,
-) => string {
+export function useOpenStackDependencyLine(
+  isProbeCollected?: boolean | undefined,
+): (summary: OpenStackDependencySummary) => string {
   const translator: Translator = useTranslator();
 
   return (summary: OpenStackDependencySummary): string => {
@@ -100,10 +101,15 @@ export function useOpenStackDependencyLine(): (
 
     switch (summary.state) {
       case "NotWatched":
-        return translator.translateTemplate(
-          "Name its targets in {{variable}} to read it.",
-          { variable: definition.targetsVariable },
-        );
+        return isProbeCollected
+          ? translator.translateTemplate(
+              "A probe reads the cloud's APIs, and not this. The OpenStack agent does, with its targets in {{variable}}.",
+              { variable: definition.targetsVariable },
+            )
+          : translator.translateTemplate(
+              "Name its targets in {{variable}} to read it.",
+              { variable: definition.targetsVariable },
+            );
       case "NoReading":
         return (
           translator.translateText(
@@ -134,6 +140,12 @@ export function useOpenStackDependencyLine(): (
 
 export interface ComponentProps {
   modelId: ObjectID;
+  isProbeCollected?: boolean | undefined;
+  /*
+   * On the Overview of a cloud a probe collects: draws nothing until something here is read,
+   * rather than six rows of what a probe never reads above what it does.
+   */
+  hidesWhenNothingIsWatched?: boolean | undefined;
 }
 
 const VIEW_ALL_CLASS_NAME: string =
@@ -145,7 +157,7 @@ const OpenStackControlPlaneCard: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const listClassName: string = useCardRuledListClassName();
   const lineOf: (summary: OpenStackDependencySummary) => string =
-    useOpenStackDependencyLine();
+    useOpenStackDependencyLine(props.isProbeCollected);
   const { region } = useOpenStackRegion();
   const routes: OpenStackPartRoutes = useMemo(() => {
     return getOpenStackPartRoutes(props.modelId);
@@ -165,6 +177,16 @@ const OpenStackControlPlaneCard: FunctionComponent<ComponentProps> = (
       now: new Date(),
     });
   }, [read.data, region]);
+
+  if (
+    props.hidesWhenNothingIsWatched &&
+    (!read.data ||
+      summaries.every((summary: OpenStackDependencySummary): boolean => {
+        return summary.state === "NotWatched";
+      }))
+  ) {
+    return <></>;
+  }
 
   return (
     <div className="mb-6" data-testid="openstack-control-plane-card">

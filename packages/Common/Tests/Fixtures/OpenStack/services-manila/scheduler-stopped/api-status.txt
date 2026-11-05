@@ -1,0 +1,5 @@
+200 manila-shares
+200 manila-shares-versioned
+200 manila-services
+500 manila-pools
+200 manila-types

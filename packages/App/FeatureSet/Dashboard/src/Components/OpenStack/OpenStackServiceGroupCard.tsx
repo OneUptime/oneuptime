@@ -20,6 +20,7 @@ import {
   getOpenStackServiceTitle,
   getOpenStackStaleAgentIds,
   getOpenStackWorkerFamily,
+  getOpenStackWorkersNotListedWords,
   getOpenStackWorkerHost,
   getOpenStackWorkerRank,
   isOpenStackApiScrapeFailed,
@@ -47,6 +48,8 @@ export interface ComponentProps {
   showRegion: boolean;
   // The network backend the agents list reports, on Neutron's card.
   backendName?: string | null | undefined;
+  // How it is collected, which says why a service's workers can't be listed.
+  isCollectedByProbe?: boolean | undefined;
   getRowRoute: (row: OpenStackResource) => Route | undefined;
   now: Date;
 }
@@ -194,6 +197,10 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
   const { group } = props;
 
   const seconds: number | null = getOpenStackCollectionSeconds(group.api);
+  const workersNotListed: string | null = getOpenStackWorkersNotListedWords({
+    group,
+    isCollectedByProbe: Boolean(props.isCollectedByProbe),
+  });
   const shown: Array<OpenStackResource> = isExpanded
     ? group.workers
     : group.workers.slice(0, OPENSTACK_SERVICE_GROUP_WORKERS_SHOWN);
@@ -272,6 +279,16 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               </ResourcePartRow>
+            </li>
+          ) : (
+            <></>
+          )}
+          {workersNotListed ? (
+            <li
+              className="bg-gray-50 px-5 py-2 text-xs text-gray-600 md:px-6"
+              data-testid="openstack-service-group-workers-not-listed"
+            >
+              {translator.translateText(workersNotListed)}
             </li>
           ) : (
             <></>

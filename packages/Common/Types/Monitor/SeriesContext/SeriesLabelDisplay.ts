@@ -134,6 +134,18 @@ const FriendlyLabelNames: Record<string, string> = {
   "openstack.instance.source": "Source",
   "openstack.project.id": "Project",
   openstack_service: "Service Type",
+  // What the agent's control plane jobs stamp, and what those exporters say.
+  openstack_exporter_host: "Machine",
+  proxy: "Backend",
+  queue: "Queue",
+  vhost: "Virtual Host",
+  database: "Database",
+  capacity_scope: "What Fills Up",
+  resourcetype: "Resource",
+  capacity_name: "Name",
+  availability_zone: "Zone",
+  flavor: "Flavor",
+  flavor_id: "Flavor ID",
   hostname: "Host",
   service: "Service",
   uuid: "UUID",
@@ -351,6 +363,9 @@ const LabelPriority: Record<string, number> = {
    */
   hostname: 25,
   service: 26,
+  flavor: 25,
+  capacity_name: 25,
+  capacity_scope: 26,
   "openstack.instance.id": 25,
   network_name: 25,
   tenant: 25,
@@ -359,6 +374,11 @@ const LabelPriority: Record<string, number> = {
   "openstack.region.name": 60,
   openstack_service: 25,
   router_id: 25,
+  openstack_exporter_host: 25,
+  proxy: 25,
+  queue: 25,
+  vhost: 45,
+  database: 25,
   /*
    * VMware: the object that breached first (VM / template / datastore /
    * resource pool / NIC-or-disk instance), then the host it runs on, then

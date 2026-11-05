@@ -31,7 +31,11 @@ tell them apart:
   said of that same cloud at the same moment, on its own.
   `?recording=hibiscus-ovn/access/reader` is what the exporter answered one credential on a healthy
   cloud, for each level of access the docs describe: `reader`, `monitoring-role` and
-  `monitoring-admin-get`. `&without=volume` makes a recording's cloud one with no such service.
+  `monitoring-admin-get`. `?recording=hibiscus-ovn/capacity/healthy` is three more hosts, set up
+  differently on a real Placement, and `capacity/host-lost` is one of them gone. `&without=volume`
+  makes a recording's cloud one with no such service. A service a cloud may not run has a group of
+  its own: `?recording=services-heat-magnum/magnum-failed` on its own, or
+  `?recording=gazpacho-ovs/healthy&also=services-heat-magnum/access/admin` beside a whole cloud.
 - **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
@@ -48,11 +52,18 @@ A cloud's Traces page reads spans, so it has a recording of its own: `?traces=fl
 is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
 (`Fixture/TraceRecordings.js`). With none, the cloud has no traces, which is how every cloud starts.
 
+A cloud's logs and change events can be read on top of either: `?logs=epoxy-ovn` is what that real
+cloud's services wrote (`Common/Tests/Fixtures/OpenStack/service-logs`), through the ingest's own
+stamp and the code that writes a change event (`Fixture/ServiceLogs.js`), with what the default drop
+filters take out left out, and the instances, volume and service it wrote about in the inventory
+under the IDs they really had. Only the clock moves.
+
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
-`?probe=checking|collecting|partial|untrusted|plain-http`, `?probes=many`,
-`?tests=ok,untrusted,...`, `?clouds=none`, `?archived=1`, `?linked=1`, `?role=read|none`,
-`?alerts=none|some|all|denied`, `?open=0|1|many`,
+`?probe=checking|collecting|partial|untrusted|plain-http|gone`, `?probes=many`,
+`?tests=ok,untrusted,...` (`connectionTestOutcome` in `Fixture/ProbeCollection.js` has every failure
+a test names), `?clouds=none`, `?archived=1`, `?linked=1`, `?role=read|none`,
+`?alerts=none|some|all|denied`, `?open=0|1|many|regions`,
 `?fail=inventory,attention,regions,consumers,blast,metrics,events`, `?lang=de|fa` and
 `?theme=dark`. `?region=` is the product's own. They are read when a page loads, and a
 reload reads what the tab was first given: a link inside the product knows nothing of them.
@@ -91,6 +102,8 @@ the pages while working on them.
 
 ## What the walks hold
 
+`OpenStackOptionalServices.spec.ts`: a service a cloud may not run. A cloud without it shows no trace of it in the menu, on Services, on the Overview or in Recommendations, and an old link says so rather than breaking. A cloud with it gets its menu entries, its lists and its part's pages, a failed stack and a failed cluster reach Needs attention by name and land on their own pages, and each page says what the agent can't see, at every width.
+
 `DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
 
 `ExporterVersions.spec.ts`: the Overview and each list on what the agent's own exporter and exporter 1.7.0 said of one cloud: less to say on 1.7.0, and nothing false.
@@ -102,7 +115,7 @@ German and Persian.
 `OpenStackProjectsAndTopology.spec.ts`: Projects with quota data (`?estate=tenants`, a project
 at 90% of a quota and a nova-compute stopped under two projects) and without it (`?estate=calm`,
 which is most clouds), a project's page and who is told, Domains, a list opened on a project, and
-the Topology with that host red. No recording holds a quota series, so `tenants` is made up in the
+the Topology with that host red. No recorded project is at 90% of a quota, so `tenants` is made up in the
 shape the snapshot scan writes.
 
 `OpenStackPartPages.spec.ts`: the compute, network and storage lists and part pages, the step
@@ -119,9 +132,16 @@ a line: what real clouds really said goes through the same pages in
 `Common/Tests/App/Dashboard/OpenStackUsagePagesRecordings.test.tsx`. `?estate=calm` has no source, so
 each page says what is missing and how to add it. And what it costs on a cloud's Settings.
 
+`OpenStackCapacity.spec.ts`: the Capacity page on what real clouds' exporters answered (a host's real ratio and reservation, a stopped nova-compute, a disabled one) and on `?capacity=short`, made up in the snapshot's own shape: a fragmented estate, a zone that can't lose a host, a forecast, an orphaned allocation and a probe's answer. It reads one row whatever the estate, and fits a phone.
+
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.
+
+`OpenStackLogs.spec.ts`: on what real clouds' services wrote, a failed build from its instance's
+page to the scheduler's line in two clicks, which services a request reached and which it could
+not be followed to, and what happened to an instance, a volume and a compute service on each one's
+Feed.
 
 `OpenStackLinks.spec.ts`: a cloud joined to the rest of OneUptime (`?estate=links`, every record
 made up): a hypervisor and the host on its machine with its real load beside what Nova has

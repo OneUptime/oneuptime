@@ -1,4 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
@@ -313,6 +316,27 @@ function getCountChips(
       ),
       page: PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS,
     },
+    {
+      key: "stacks",
+      icon: IconProp.Layers,
+      label: translator.translatePlural(
+        { one: "{{count}} stack", other: "{{count}} stacks" },
+        summary.stackCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_STACKS,
+    },
+    {
+      key: "container-clusters",
+      icon: IconProp.Kubernetes,
+      label: translator.translatePlural(
+        {
+          one: "{{count}} Kubernetes cluster",
+          other: "{{count}} Kubernetes clusters",
+        },
+        summary.containerClusterCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+    },
   ];
 
   const counts: Record<string, number> = {
@@ -326,6 +350,8 @@ function getCountChips(
     "floating-ips": summary.floatingIpCount,
     volumes: summary.volumeCount,
     projects: summary.projectCount,
+    stacks: summary.stackCount,
+    "container-clusters": summary.containerClusterCount,
   };
 
   const reported: Array<CountChip> = chips.filter(
@@ -784,6 +810,7 @@ const OpenStackCloudOverview: FunctionComponent<
     RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION] as Route,
     { modelId: modelId },
   );
+  const isProbeCollected: boolean = isOpenStackProbeCollected(cloud);
   const cloudRoute: Route = routes.cloudRoute;
 
   const inScope: (row: OpenStackResource) => boolean = (
@@ -1114,7 +1141,7 @@ const OpenStackCloudOverview: FunctionComponent<
                   to={documentationRoute}
                   className="text-sm font-medium text-indigo-600 hover:underline"
                 >
-                  {translator.translateText("Setup guide") || "Setup guide"}
+                  {translator.translateText("Setup guide")}
                 </Link>
               )}
             </div>
@@ -1191,6 +1218,14 @@ const OpenStackCloudOverview: FunctionComponent<
       <OpenStackAccessNotice
         gaps={accessGaps}
         documentationRoute={documentationRoute}
+        settingsRouteOfProbeCloud={
+          isProbeCollected
+            ? RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )
+            : null
+        }
       />
 
       {/*
@@ -1241,7 +1276,7 @@ const OpenStackCloudOverview: FunctionComponent<
                   )}
                   className="font-medium text-indigo-600 hover:underline"
                 >
-                  {translator.translateText("See them all") || "See them all"}
+                  {translator.translateText("See them all")}
                 </Link>
               </li>
             );
@@ -1435,7 +1470,15 @@ const OpenStackCloudOverview: FunctionComponent<
         <></>
       )}
 
-      {isCurrent ? <OpenStackControlPlaneCard modelId={modelId} /> : <></>}
+      {isCurrent ? (
+        <OpenStackControlPlaneCard
+          modelId={modelId}
+          isProbeCollected={isProbeCollected}
+          hidesWhenNothingIsWatched={isProbeCollected}
+        />
+      ) : (
+        <></>
+      )}
 
       {/*
        * What Security Events found about this cloud this week, for whoever may read it:
@@ -1481,6 +1524,15 @@ const OpenStackCloudOverview: FunctionComponent<
           RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE] as Route,
           { modelId: modelId },
         )}
+      />
+
+      {/*
+       * Last on the page: the OpenStack AI agent's connection and whether AI may
+       * investigate, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.OpenStackCloud)}
+        resourceId={modelId}
       />
     </Fragment>
   );

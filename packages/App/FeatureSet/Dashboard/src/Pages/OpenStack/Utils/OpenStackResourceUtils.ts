@@ -6,7 +6,11 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -33,12 +37,24 @@ export interface OpenStackInventorySummary {
   projectCount: number;
   serviceCount: number;
   downServiceCount: number;
+  bareMetalNodeCount: number;
+  /*
+   * How many nodes Placement holds, whatever Ironic shows this credential: it answers a project
+   * with what that project owns, and Placement answers everyone.
+   */
+  bareMetalProviderCount: number;
+  // The services a read has heard from, by what Keystone's catalog calls them.
+  services: Array<string>;
   vcpuCapacity: number;
   vcpuAllocated: number;
   memoryCapacityBytes: number;
   memoryAllocatedBytes: number;
   storageCapacityBytes: number;
   storageUsedBytes: number;
+  stackCount: number;
+  containerClusterCount: number;
+  // The services a cloud may not run that this one does, in the region being read.
+  optionalServices: Array<OpenStackServiceType>;
 }
 
 export function toOpenStackInventorySummary(
@@ -48,6 +64,13 @@ export function toOpenStackInventorySummary(
     const value: JSONValue = summary[key];
     return typeof value === "number" && Number.isFinite(value) ? value : 0;
   };
+  const services: Array<string> = Array.isArray(summary["services"])
+    ? (summary["services"] as Array<JSONValue>).filter(
+        (service: JSONValue): service is string => {
+          return typeof service === "string";
+        },
+      )
+    : [];
 
   return {
     regionCount: readNumber("regionCount"),
@@ -62,12 +85,18 @@ export function toOpenStackInventorySummary(
     projectCount: readNumber("projectCount"),
     serviceCount: readNumber("serviceCount"),
     downServiceCount: readNumber("downServiceCount"),
+    bareMetalNodeCount: readNumber("bareMetalNodeCount"),
+    bareMetalProviderCount: readNumber("bareMetalProviderCount"),
+    services: services,
     vcpuCapacity: readNumber("vcpuCapacity"),
     vcpuAllocated: readNumber("vcpuAllocated"),
     memoryCapacityBytes: readNumber("memoryCapacityBytes"),
     memoryAllocatedBytes: readNumber("memoryAllocatedBytes"),
     storageCapacityBytes: readNumber("storageCapacityBytes"),
     storageUsedBytes: readNumber("storageUsedBytes"),
+    stackCount: readNumber("stackCount"),
+    containerClusterCount: readNumber("containerClusterCount"),
+    optionalServices: getOpenStackOptionalServicesOf(services),
   };
 }
 
@@ -99,6 +128,20 @@ export async function fetchOpenStackInventorySummary(
 }
 
 /*
+ * Whether Ironic is here at all: it said so of itself, or there are rows from when it did. A cloud
+ * without it never has either, because only Ironic's own series make them: an empty scrape of it
+ * makes nothing (OpenStackSnapshotScan).
+ */
+export function isOpenStackRunningBareMetal(
+  summary: Pick<OpenStackInventorySummary, "bareMetalNodeCount" | "services">,
+): boolean {
+  return (
+    summary.bareMetalNodeCount > 0 ||
+    summary.services.includes(OpenStackServiceType.BareMetal)
+  );
+}
+
+/*
  * True while the cloud has reported nothing a person could read: no capacity and
  * no parts of any kind. Its page then shows the setup guide instead of a wall of
  * zeros, because no parts is what a cloud that has not connected yet looks like.
@@ -115,7 +158,8 @@ export function isOpenStackInventoryEmpty(
     summary.routerCount === 0 &&
     summary.floatingIpCount === 0 &&
     summary.projectCount === 0 &&
-    summary.serviceCount === 0
+    summary.serviceCount === 0 &&
+    summary.bareMetalNodeCount === 0
   );
 }
 

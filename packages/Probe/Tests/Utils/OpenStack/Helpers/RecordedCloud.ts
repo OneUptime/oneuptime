@@ -142,6 +142,8 @@ const EXPORTER_SERVICES: ReadonlyArray<string> = [
   "network",
   "volume",
   "image",
+  "orchestration",
+  "container-infra",
 ];
 
 export function loadScene(release: string, scene: string): RecordedScene {
@@ -698,8 +700,25 @@ export function createRecordedCloud(
 
       const l3Agents: Array<string> = rest.split("/");
 
-      // Not recorded yet: the exporter's series, in the API reference's shape.
       if (l3Agents[0] === "routers" && l3Agents[2] === "l3-agents") {
+        /*
+         * record.sh asks about one router, the estate's own, so this is the real answer about
+         * it. For any other, the exporter's series in the API reference's shape.
+         */
+        const recordedAgents: JSONObject | undefined = recordedJson(
+          scene,
+          "neutron-router-l3-agents",
+        );
+        const isEstatesRouter: boolean = (
+          recorded("neutron-routers")["routers"] as Array<JSONObject>
+        ).some((router: JSONObject): boolean => {
+          return router["id"] === l3Agents[1] && router["name"] === "ou-router";
+        });
+
+        if (recordedAgents && isEstatesRouter) {
+          return json(200, recordedAgents);
+        }
+
         return json(200, {
           agents: seriesNamed(scene, "openstack_neutron_l3_agent_of_router")
             .filter((series: PrometheusSeries): boolean => {

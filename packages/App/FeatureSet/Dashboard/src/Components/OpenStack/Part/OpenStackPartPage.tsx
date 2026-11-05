@@ -32,7 +32,7 @@ import { OpenStackPart } from "./UseOpenStackPart";
 
 const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.Api]: translationKey(
-    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or the agent may not have collected it yet.",
+    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or it may not have been collected yet.",
   ),
   [OpenStackResourceKind.Hypervisor]: translationKey(
     "This hypervisor is not in this cloud's inventory. It may have gone, or Nova may not have reported it yet.",
@@ -66,6 +66,12 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   ),
   [OpenStackResourceKind.Image]: translationKey(
     "This image is not in this cloud's inventory. It may have been deleted, or Glance may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.Stack]: translationKey(
+    "This stack is not in this cloud's inventory. It may have been deleted, or Heat may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.ContainerCluster]: translationKey(
+    "This Kubernetes cluster is not in this cloud's inventory. It may have been deleted, or Magnum may not have reported it yet.",
   ),
 };
 

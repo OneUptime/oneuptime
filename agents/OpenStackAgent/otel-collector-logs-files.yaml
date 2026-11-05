@@ -72,18 +72,22 @@ receivers:
         combine_field: body
         combine_with: "\n"
         source_identifier: attributes["log.file.path"]
-        is_first_entry: 'body matches "^\\{" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:DEBUG|INFO|AUDIT|WARNING) [A-Za-z0-9_.-]+(?: |$)"'
+        is_first_entry: 'body matches "^\\{" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.:-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)" or body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:DEBUG|INFO|AUDIT|WARNING) [A-Za-z0-9_.:-]+(?: |$)"'
         force_flush_period: 2s
         max_batch_size: 2000
         max_log_size: 256KiB
 
 processors:
-  # Which cloud and machine each record is from. OneUptime files a record under the
-  # cloud by `openstack.cloud.name`, so keep it the name the cloud's agent uses.
+  # Which cloud, region and machine each record is from: a log line says none of them.
+  # OneUptime files a record under the cloud by `openstack.cloud.name`, so keep it the
+  # name the cloud's agent uses.
   resource:
     attributes:
       - key: openstack.cloud.name
         value: ${env:OPENSTACK_CLOUD_NAME}
+        action: upsert
+      - key: openstack.region.name
+        value: ${env:OPENSTACK_REGION_NAME}
         action: upsert
       - key: openstack.node.name
         value: ${env:OPENSTACK_NODE_NAME}

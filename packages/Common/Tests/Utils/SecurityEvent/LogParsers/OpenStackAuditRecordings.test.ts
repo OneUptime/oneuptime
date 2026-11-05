@@ -23,7 +23,9 @@ import {
   OPENSTACK_AUDIT_RECORDED_RELEASES,
   PhaseFacts,
   RecordedLine,
+  RecordedScene,
   eventsOf,
+  readRecordedCollector,
   readRecordedFacts,
   readRecordedPhase,
 } from "./OpenStackAuditFixtures";
@@ -99,8 +101,22 @@ const CLOUD: string = OPENSTACK_AUDIT_RECORDED_CLOUD;
 
 test("there are recordings to read, of the releases this leans on", () => {
   expect(OPENSTACK_AUDIT_RECORDED_RELEASES).toEqual(
-    expect.arrayContaining(["epoxy-ovn", "flamingo-ovn"]),
+    expect.arrayContaining(["epoxy-ovn", "flamingo-ovn", "hibiscus-ovn"]),
   );
+});
+
+test("at least one recording holds a wrong password's hash, so what follows reads a real one", () => {
+  const holding: Array<string> = OPENSTACK_AUDIT_RECORDED_RELEASES.filter(
+    (release: string): boolean => {
+      return readRecordedPhase(release, "devstack").some(
+        (line: RecordedLine): boolean => {
+          return line.raw.includes("partial_password_hash");
+        },
+      );
+    },
+  );
+
+  expect(holding).toContain("hibiscus-ovn");
 });
 
 describe.each(OPENSTACK_AUDIT_RECORDED_RELEASES)("%s", (release: string) => {
@@ -192,6 +208,445 @@ describe.each(OPENSTACK_AUDIT_RECORDED_RELEASES)("%s", (release: string) => {
       expect(
         matching("OpenStack role granted on a protected project", taken),
       ).toEqual([]);
+    });
+  });
+
+  describe("failed logins", () => {
+    const signIns: Array<NormalizedSecurityEvent> = ofType(
+      events,
+      "identity.authenticate",
+    );
+    const failed: Array<NormalizedSecurityEvent> = signIns.filter(
+      (event: NormalizedSecurityEvent): boolean => {
+        return event.statusName === "Failure";
+      },
+    );
+    const burst: DetectionRuleLibraryEntry = libraryEntry(
+      "OpenStack failed logins burst",
+    );
+
+    test("with Keystone's own defaults, each is sent, and a login that worked is not", () => {
+      const defaults: Array<NormalizedSecurityEvent> = ofType(
+        eventsOf(readRecordedPhase(release, "keystone-defaults")),
+        "identity.authenticate",
+      );
+
+      expect(
+        facts["keystone-defaults"]?.scenes.map((scene: RecordedScene) => {
+          return [scene.scene, scene.exitCode];
+        }),
+      ).toEqual([["failed-logins", 0]]);
+      expect(defaults).toHaveLength(24);
+      expect(
+        defaults.every((event: NormalizedSecurityEvent): boolean => {
+          return event.statusName === "Failure";
+        }),
+      ).toBe(true);
+    });
+
+    test("reach Security Events, saying who, from where and against what", () => {
+      expect(failed).toHaveLength(24);
+
+      for (const event of failed) {
+        expect(event.activityName).toBe("Logon");
+        expect(event.severityName).toBe(OcsfSeverity.Low);
+        expect(event.principalIp).toBeTruthy();
+        expect(
+          event.attributes[OpenStackAuditAttribute.InitiatorAddress],
+        ).toBeTruthy();
+        expect(event.targetResource).toBe("Keystone");
+        expect(event.targetHost).toBe(CLOUD);
+        expect(event.message).toBe(
+          `${event.principalUser} failed to sign in to OpenStack`,
+        );
+      }
+    });
+
+    test("a real user's name them, and their ID", () => {
+      const admin: Array<NormalizedSecurityEvent> = failed.filter(
+        (event: NormalizedSecurityEvent): boolean => {
+          return event.principalUser === "admin";
+        },
+      );
+
+      expect(admin).toHaveLength(12);
+
+      for (const event of admin) {
+        expect(event.attributes[OpenStackAuditAttribute.InitiatorId]).toMatch(
+          /^[0-9a-f]{32}$/,
+        );
+      }
+    });
+
+    test("a user who does not exist is named by what was typed, and has no ID", () => {
+      const nobody: Array<NormalizedSecurityEvent> = failed.filter(
+        (event: NormalizedSecurityEvent): boolean => {
+          return event.principalUser === "ou-nobody";
+        },
+      );
+
+      expect(nobody).toHaveLength(12);
+
+      for (const event of nobody) {
+        expect(
+          event.attributes[OpenStackAuditAttribute.InitiatorId],
+        ).toBeUndefined();
+        expect(event.attributes[OpenStackAuditAttribute.ReasonCode]).toBe(
+          "404",
+        );
+        expect(event.attributes[OpenStackAuditAttribute.Reason]).toBe(
+          "Could not find user: ou-nobody.",
+        );
+      }
+    });
+
+    test("an account Keystone has locked says so, and is still a failed login", () => {
+      expect(
+        failed.some((event: NormalizedSecurityEvent): boolean => {
+          return String(
+            event.attributes[OpenStackAuditAttribute.Reason],
+          ).startsWith("The account is locked");
+        }),
+      ).toBe(true);
+    });
+
+    test("fire the burst, from one address, at its threshold and not before", () => {
+      const matched: Array<NormalizedSecurityEvent> = matching(
+        burst.title,
+        events,
+      );
+      const addresses: Set<unknown> = new Set(
+        matched.map((event: NormalizedSecurityEvent): unknown => {
+          return event.attributes[burst.groupByField as string];
+        }),
+      );
+
+      expect(matched).toEqual(failed);
+      expect(addresses.size).toBe(1);
+      expect(matched.length).toBeGreaterThanOrEqual(burst.matchCountThreshold);
+      expect(burst.matchCountThreshold).toBe(10);
+    });
+
+    test("a login that worked is no part of the burst", () => {
+      const worked: Array<NormalizedSecurityEvent> = signIns.filter(
+        (event: NormalizedSecurityEvent): boolean => {
+          return event.statusName === "Success";
+        },
+      );
+
+      expect(worked.length).toBeGreaterThan(0);
+      expect(matching(burst.title, worked)).toEqual([]);
+    });
+
+    test("are read the same in every format a cloud logs in", () => {
+      for (const phase of ["oslo-default", "json", "journal-native"]) {
+        const inPhase: Array<NormalizedSecurityEvent> = ofType(
+          eventsOf(readRecordedPhase(release, phase)),
+          "identity.authenticate",
+        ).filter((event: NormalizedSecurityEvent): boolean => {
+          return event.statusName === "Failure";
+        });
+
+        expect({ phase, count: inPhase.length }).toEqual({ phase, count: 24 });
+        expect(
+          new Set(
+            inPhase.map((event: NormalizedSecurityEvent): string => {
+              return event.principalUser;
+            }),
+          ),
+        ).toEqual(new Set(["admin", "ou-nobody"]));
+      }
+    });
+  });
+
+  describe("every other shape of grant", () => {
+    const grants: Array<NormalizedSecurityEvent> = ofType(
+      events,
+      "identity.role_assignment.created",
+    );
+
+    function attributeOf(
+      event: NormalizedSecurityEvent,
+      key: OpenStackAuditAttribute,
+    ): unknown {
+      return event.attributes[key];
+    }
+
+    test("Keystone sends nothing for one on the system, though the scene made one", () => {
+      /*
+       * On admin and on ou-payments for one user, on ou-payments for the one refused below,
+       * on the domain directly and handed down, and to a group. --system all made none.
+       */
+      expect(grants).toHaveLength(6);
+      expect(
+        grants.filter((event: NormalizedSecurityEvent): boolean => {
+          return (
+            attributeOf(event, OpenStackAuditAttribute.TargetType) === "system"
+          );
+        }),
+      ).toEqual([]);
+    });
+
+    test("on a domain names the domain", () => {
+      const onDomain: Array<NormalizedSecurityEvent> = grants.filter(
+        (event: NormalizedSecurityEvent): boolean => {
+          return (
+            attributeOf(event, OpenStackAuditAttribute.TargetType) === "domain"
+          );
+        },
+      );
+
+      expect(onDomain).toHaveLength(2);
+
+      for (const event of onDomain) {
+        expect(attributeOf(event, OpenStackAuditAttribute.DomainId)).toBe(
+          "default",
+        );
+        expect(event.targetResource).toBe("domain default");
+      }
+    });
+
+    test("handed down to a domain's projects says so, and who, though the event has no initiator", () => {
+      const inherited: NormalizedSecurityEvent | undefined = grants.find(
+        (event: NormalizedSecurityEvent): boolean => {
+          return event.message?.includes("every project under it") === true;
+        },
+      );
+
+      expect(inherited).toBeDefined();
+      expect(inherited?.principalUser).toBe("admin");
+      expect(inherited?.message?.startsWith("admin granted role")).toBe(true);
+    });
+
+    test("to a group names the group", () => {
+      const toGroup: NormalizedSecurityEvent | undefined = grants.find(
+        (event: NormalizedSecurityEvent): boolean => {
+          return Boolean(attributeOf(event, OpenStackAuditAttribute.GroupId));
+        },
+      );
+
+      expect(toGroup).toBeDefined();
+      expect(toGroup?.message).toContain(
+        `to group ${attributeOf(toGroup!, OpenStackAuditAttribute.GroupId)}`,
+      );
+      expect(toGroup?.targetUser).toBe("");
+    });
+  });
+
+  describe("the records a credential lives in", () => {
+    test("a credential's blob, and an EC2 secret, are nowhere: only its ID is sent", () => {
+      const created: Array<NormalizedSecurityEvent> = ofType(
+        events,
+        "identity.credential.created",
+      );
+
+      expect(created).toHaveLength(2);
+
+      for (const event of created) {
+        // One of the two has no initiator: its line says who it was for.
+        expect(event.principalUser).toBe("admin");
+        expect(event.severityName).toBe(OcsfSeverity.Medium);
+        expect(JSON.stringify(event)).not.toContain("blob");
+      }
+    });
+
+    test("a trust's line is read as the log driver's, though its logger holds a colon", () => {
+      const trust: RecordedLine | undefined = lines.find(
+        (line: RecordedLine): boolean => {
+          return line.raw.startsWith(
+            "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created",
+          );
+        },
+      );
+
+      expect(trust?.attributes["openstack.logger"]).toBe(
+        "oslo.messaging.notification.identity.OS-TRUST:trust.created",
+      );
+    });
+
+    test("a trust is named as a trust, and is worth attention", () => {
+      const trusts: Array<NormalizedSecurityEvent> = ofType(
+        events,
+        "identity.OS-TRUST:trust.created",
+      );
+
+      expect(trusts).toHaveLength(1);
+      expect(trusts[0]?.message).toMatch(/^admin created trust [0-9a-f]{32}$/);
+      expect(trusts[0]?.severityName).toBe(OcsfSeverity.Medium);
+    });
+
+    test("a password changed says whose, and holds no password", () => {
+      const changed: Array<NormalizedSecurityEvent> = ofType(
+        events,
+        "identity.user.updated",
+      );
+
+      expect(changed).toHaveLength(1);
+      expect(changed[0]?.targetUser).toMatch(/^[0-9a-f]{32}$/);
+    });
+  });
+
+  describe("someone asking for what they may not have", () => {
+    const refused: Array<NormalizedSecurityEvent> = ofType(
+      events,
+      "audit.http.response",
+    ).filter((event: NormalizedSecurityEvent): boolean => {
+      return event.principalUser === "ou-log-prober";
+    });
+
+    test("reaches Security Events, each saying what was refused", () => {
+      const lines: Array<string> = refused.map(
+        (event: NormalizedSecurityEvent): string => {
+          return String(event.message);
+        },
+      );
+
+      expect(refused.length).toBeGreaterThanOrEqual(6);
+
+      for (const event of refused) {
+        expect(event.statusName).toBe("Failure");
+        expect(event.severityName).toBe(OcsfSeverity.Medium);
+        expect(event.attributes[OpenStackAuditAttribute.ReasonCode]).toBe(
+          "403",
+        );
+      }
+
+      expect(lines).toEqual(
+        expect.arrayContaining([
+          "ou-log-prober was refused read/list on /compute/v2.1/os-services (403)",
+        ]),
+      );
+    });
+
+    test("a token that means nothing never reaches the filter, so says nothing here", () => {
+      expect(
+        refused.filter((event: NormalizedSecurityEvent): boolean => {
+          return event.attributes[OpenStackAuditAttribute.ReasonCode] === "401";
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  describe("what a real collector sent, with each of the agent's logs profiles", () => {
+    const fromJournal: Array<RecordedLine> = readRecordedCollector(
+      release,
+      "devstack",
+    );
+    const fromFiles: Array<RecordedLine> = readRecordedCollector(
+      release,
+      "oslo-default",
+    );
+
+    test("the journal profile's lines read as the journal's do, whatever it joined to them", () => {
+      const read: Array<NormalizedSecurityEvent> = eventsOf(fromJournal);
+
+      for (const type of [
+        "identity.role_assignment.created",
+        "identity.application_credential.created",
+        "identity.credential.created",
+        "security_group_rule.create.end",
+      ]) {
+        expect({ type, count: ofType(read, type).length }).toEqual({
+          type,
+          count: ofType(events, type).length,
+        });
+      }
+
+      expect(
+        ofType(read, "identity.authenticate").filter(
+          (event: NormalizedSecurityEvent): boolean => {
+            return event.statusName === "Failure";
+          },
+        ),
+      ).toHaveLength(24);
+    });
+
+    test("uWSGI's next line, joined on, costs no event", () => {
+      const joined: Array<RecordedLine> = fromJournal.filter(
+        (line: RecordedLine): boolean => {
+          return (
+            line.raw.includes("\n[pid: ") &&
+            line.raw.startsWith("INFO oslo.messaging.notification.identity.")
+          );
+        },
+      );
+
+      expect(joined.length).toBeGreaterThan(0);
+
+      for (const line of joined) {
+        expect(line.events.length).toBeGreaterThan(0);
+      }
+    });
+
+    test("names its cloud by what the profile stamps, and its who and what", () => {
+      const grant: NormalizedSecurityEvent = ofType(
+        eventsOf(fromJournal),
+        "identity.role_assignment.created",
+      )[0] as NormalizedSecurityEvent;
+
+      expect(grant.targetHost).toBe(CLOUD);
+      expect(grant.principalUser).toBe("admin");
+    });
+
+    test("the files profile's lines read too", () => {
+      const read: Array<NormalizedSecurityEvent> = eventsOf(fromFiles);
+
+      expect(
+        ofType(read, "identity.authenticate").filter(
+          (event: NormalizedSecurityEvent): boolean => {
+            return event.statusName === "Failure";
+          },
+        ),
+      ).toHaveLength(24);
+      expect(
+        ofType(read, "identity.role_assignment.created").length,
+      ).toBeGreaterThan(0);
+      expect(
+        ofType(read, "security_group_rule.create.end").length,
+      ).toBeGreaterThanOrEqual(3);
+    });
+
+    test("no line or event holds a credential, as the collector sent it", () => {
+      for (const line of [...fromJournal, ...fromFiles]) {
+        expect(line.body).not.toContain("partial_password_hash");
+        expect(line.body).not.toContain('"attachments"');
+        expect(line.body).not.toContain('"credential"');
+        expect(JSON.stringify(line.events)).not.toContain(
+          "partial_password_hash",
+        );
+      }
+    });
+  });
+
+  describe("in oslo.log's own format, which names a user by ID", () => {
+    const oslo: Array<NormalizedSecurityEvent> = eventsOf(
+      readRecordedPhase(release, "oslo-default"),
+    );
+
+    test("a security group opened still says who, by ID, and a case says it is a user", () => {
+      const opened: Array<NormalizedSecurityEvent> = ofType(
+        oslo,
+        "security_group_rule.create.end",
+      );
+
+      expect(opened.length).toBeGreaterThanOrEqual(3);
+
+      for (const event of opened) {
+        expect(event.principalUser).toMatch(/^[0-9a-f]{32}$/);
+        expect(event.observables).toContain(`user ${event.principalUser}`);
+        expect(event.observables).not.toContain(event.principalUser);
+      }
+    });
+
+    test("a role grant reads as it does anywhere else", () => {
+      const grants: Array<NormalizedSecurityEvent> = ofType(
+        oslo,
+        "identity.role_assignment.created",
+      );
+
+      expect(grants.length).toBeGreaterThan(0);
+      expect(grants[0]?.principalUser).toBe("admin");
+      expect(grants[0]?.message).toContain("granted role");
     });
   });
 
@@ -570,11 +1025,7 @@ describe.each(OPENSTACK_AUDIT_RECORDED_RELEASES)("%s", (release: string) => {
     const templates: Array<DetectionRuleLibraryEntry> =
       DETECTION_RULE_LIBRARY.filter(
         (entry: DetectionRuleLibraryEntry): boolean => {
-          return (
-            entry.dataKind === DetectionRuleDataKind.OpenStackAuditTrail &&
-            // These recordings' failed-logins scene never reached Keystone.
-            entry.title !== "OpenStack failed logins burst"
-          );
+          return entry.dataKind === DetectionRuleDataKind.OpenStackAuditTrail;
         },
       );
 

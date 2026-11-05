@@ -94,6 +94,12 @@ export enum MonitorRecommendationResourceType {
  */
 export interface MonitorRecommendationContext {
   /*
+   * The services a cloud has reported, by what Keystone's catalog calls them. A template about a
+   * service a cloud may not run is offered only to a cloud reporting it. Not known is the same as
+   * not reporting it: an alert that could never fire is worse than one a moment late.
+   */
+  openStackServices?: ReadonlyArray<string> | null | undefined;
+  /*
    * The service's detected runtime. `null` and `undefined` mean the same
    * thing here — nothing identified the runtime — and both are accepted
    * because `detectServiceLanguage` returns `null` while an absent field is
@@ -164,6 +170,11 @@ export interface MonitorRecommendationContext {
    * monitor over logs nobody sends.
    */
   kubernetesProvider?: string | null | undefined;
+  /*
+   * Whether a probe collects this cloud. Some series only a native read of an API sends, and on an
+   * agent's cloud a template over one would never fire. Anything but true withholds them.
+   */
+  openStackIsCollectedByProbe?: boolean | null | undefined;
 }
 
 /*

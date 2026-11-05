@@ -6,7 +6,6 @@ import OneUptimeDate from "../../Types/Date";
 import OpenStackResourceService, {
   OpenStackAttentionRows,
   OpenStackDomainSummary,
-  OpenStackInventorySummary,
   OpenStackProjectOverview,
   OpenStackProjectSummary,
   OpenStackTopologyRead,
@@ -118,8 +117,8 @@ import { getOpenStackListSeekReads } from "../Utils/OpenStack/OpenStackListSeekQ
  *   POST /openstack-resource/domain-projects/:cloudId   { domainId }
  *     How many projects each domain holds, and the IDs a filter by domain narrows to.
  *
- *   POST /openstack-resource/topology/:cloudId
- *     What the cloud's map is drawn from, bounded however large the cloud is.
+ *   POST /openstack-resource/topology/:cloudId   { regionName? }
+ *     What the cloud's or a region's map is drawn from, bounded however large it is.
  *
  *   POST /openstack-resource/reach-of-instance/:cloudId   { instanceId }
  *     What an instance is elsewhere in OneUptime: its host, its Kubernetes node, its services.
@@ -1061,6 +1060,7 @@ export default class OpenStackResourceAPI extends BaseAPI<
       projectId,
       openStackCloudId,
       now: OneUptimeDate.getCurrentDate(),
+      regionName: this.readRegionName(req),
     });
 
     return Response.sendJsonObjectResponse(
@@ -1345,17 +1345,16 @@ export default class OpenStackResourceAPI extends BaseAPI<
     const { projectId, openStackCloudId } =
       await this.resolveCloudForRequest(req);
 
-    const summary: OpenStackInventorySummary =
-      await this.service.getInventorySummary({
-        projectId,
-        openStackCloudId,
-        regionName: this.readRegionName(req),
-      });
+    const regionName: string | null | undefined = this.readRegionName(req);
 
     return Response.sendJsonObjectResponse(
       req,
       res,
-      summary as unknown as JSONObject,
+      (await this.service.getInventorySummary({
+        projectId,
+        openStackCloudId,
+        regionName,
+      })) as unknown as JSONObject,
     );
   }
 }

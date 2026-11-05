@@ -664,6 +664,8 @@ const RESOURCE_UNDO_EXAMPLES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.AwsAccount]: CLOUD_UNDO_EXAMPLE,
   [AiResourceType.AzureSubscription]: CLOUD_UNDO_EXAMPLE,
   [AiResourceType.GoogleCloudProject]: CLOUD_UNDO_EXAMPLE,
+  [AiResourceType.OpenStackCloud]:
+    "OneUptime AI only reads an OpenStack cloud and changes nothing there, so such a change has no rollbackCommand — omit it",
 };
 
 export function getResourceUndoExamples(resourceType: AiResourceType): string {

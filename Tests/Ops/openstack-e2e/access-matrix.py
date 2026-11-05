@@ -60,7 +60,25 @@ READS = [
     ("load-balancer", "load balancers", "/v2/lbaas/loadbalancers", "loadbalancers", {}),
     ("load-balancer", "amphorae", "/v2/octavia/amphorae", "amphorae", {}),
     ("baremetal", "nodes", "/v1/nodes/detail", "nodes", {"X-OpenStack-Ironic-API-Version": "1.82"}),
+    ("orchestration", "stacks", "/stacks", "stacks", {}),
+    ("orchestration", "services", "/services", "services", {}),
+    ("container-infra", "clusters", "/clusters", "clusters", {"OpenStack-API-Version": "container-infra latest"}),
+    ("container-infra", "services", "/mservices", "mservices", {"OpenStack-API-Version": "container-infra latest"}),
 ]
+
+# One call per thing, which a table of lists has no row for: whichever things this cloud has
+# one of, named by the environment, because OVN has neither of these. Recorded apart, as
+# partReads, with what each credential got.
+def part_reads():
+    router = os.environ.get("OU_READ_ROUTER_ID", "")
+    dhcp_agent = os.environ.get("OU_READ_DHCP_AGENT_ID", "")
+    reads = []
+    if router:
+        reads.append(("network", "a router's L3 agents", f"/v2.0/routers/{router}/l3-agents", "agents", {}))
+    if dhcp_agent:
+        reads.append(("network", "a DHCP agent's networks", f"/v2.0/agents/{dhcp_agent}/dhcp-networks", "networks", {}))
+    return reads
+
 
 # Writes a monitoring credential must be refused. Each creates something small
 # if it wrongly succeeds, on a throwaway cloud, and the run fails if one does.
@@ -126,11 +144,7 @@ OTHER_SERVICES_READS = [
     ("load-balancer", "load balancers, as the exporter asks", "/v2.0/lbaas/loadbalancers", "loadbalancers", {}),
     ("load-balancer", "amphorae, as the exporter asks", "/v2.0/octavia/amphorae", "amphorae", {}),
     ("baremetal", "conductors", "/v1/conductors", "conductors", {"X-OpenStack-Ironic-API-Version": "1.82"}),
-    ("orchestration", "stacks, as the exporter asks", "/stacks", "stacks", {}),
     ("orchestration", "stacks, all projects", "/stacks?global_tenant=true", "stacks", {}),
-    ("orchestration", "services", "/services", "services", {}),
-    ("container-infra", "clusters", "/clusters", "clusters", {"OpenStack-API-Version": "container-infra latest"}),
-    ("container-infra", "services", "/mservices", "mservices", {"OpenStack-API-Version": "container-infra latest"}),
     ("sharev2", "shares, all projects", "/shares/detail?all_tenants=1", "shares", {}),
     ("sharev2", "services", "/services", "services", MANILA_VERSION),
     ("sharev2", "pools", "/scheduler-stats/pools/detail", "pools", MANILA_VERSION),
@@ -209,7 +223,19 @@ def main():
     admin_name = tokens[0][0]
     endpoints = endpoints_from_env()
 
-    matrix = {"reads": [], "writes": [], "credentials": [name for name, _ in tokens]}
+    matrix = {"reads": [], "partReads": [], "writes": [], "credentials": [name for name, _ in tokens]}
+    for service, label, path, key, headers in part_reads():
+        base = endpoints.get(service)
+        if not base:
+            continue
+        row = {"service": service, "read": label, "results": {}}
+        for name, token in tokens:
+            status, text = request(base + path, token, headers=headers)
+            row["results"][name] = {"status": status, "count": count_of(text, key) if status == 200 else None}
+            if status != 200:
+                row["results"][name]["reason"] = reason_of(text)
+        matrix["partReads"].append(row)
+
     for service, label, path, key, headers in READS + OTHER_SERVICES_READS:
         base = endpoints.get(service)
         if not base:
@@ -266,6 +292,9 @@ def main():
             count = "" if result["count"] is None else f" ({result['count']})"
             cells += f"{(mark + count):<24}"
         print(f"{row['service'] + ': ' + row['read']:<40}" + cells)
+    for row in matrix["partReads"]:
+        print(f"{row['service'] + ': ' + row['read']:<40}" + "".join(
+            f"{str(row['results'][n]['status']) + ' (' + str(row['results'][n]['count']) + ')':<24}" for n in names))
     for row in matrix["writes"]:
         print(f"write {row['service']}: {row['write']:<30}" + " ".join(
             f"{n}={row['results'][n]['status']}" for n in row["results"]))

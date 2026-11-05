@@ -9,6 +9,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   OPENSTACK_CLOUD_SPAN_ATTRIBUTE,
+  OPENSTACK_REGION_SPAN_ATTRIBUTE,
   OpenStackTracedServices,
 } from "Common/Utils/OpenStack/OpenStackTraces";
 import { keyForOpenStackCloud } from "Common/Utils/Telemetry/EntityKey";
@@ -16,6 +17,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackControlPlaneMapCard from "../../../Components/OpenStack/Traces/OpenStackControlPlaneMapCard";
 import OpenStackTraceARequestCard from "../../../Components/OpenStack/Traces/OpenStackTraceARequestCard";
@@ -42,6 +47,7 @@ const OpenStackCloudTraces: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
 
   const cloud: OpenStackRead<OpenStackCloud | null> =
     useOpenStackRead<OpenStackCloud | null>(() => {
@@ -57,9 +63,9 @@ const OpenStackCloudTraces: FunctionComponent<
   const traced: OpenStackRead<OpenStackTracedServices | null> =
     useOpenStackRead<OpenStackTracedServices | null>(() => {
       return cloudName
-        ? fetchOpenStackTracedServices(cloudName)
+        ? fetchOpenStackTracedServices(cloudName, region)
         : Promise.resolve(null);
-    }, [cloudName]);
+    }, [cloudName, region]);
 
   const canBeTraced: OpenStackRead<Array<string>> = useOpenStackRead<
     Array<string>
@@ -131,9 +137,11 @@ const OpenStackCloudTraces: FunctionComponent<
       <TracesViewer
         attributeFilters={{
           [OPENSTACK_CLOUD_SPAN_ATTRIBUTE]: cloudName,
+          ...(region ? { [OPENSTACK_REGION_SPAN_ATTRIBUTE]: region } : {}),
         }}
         attributeFilterDisplayKeys={{
           [OPENSTACK_CLOUD_SPAN_ATTRIBUTE]: "Cloud",
+          [OPENSTACK_REGION_SPAN_ATTRIBUTE]: "Region",
         }}
         entityScope={{
           entityKeys: [

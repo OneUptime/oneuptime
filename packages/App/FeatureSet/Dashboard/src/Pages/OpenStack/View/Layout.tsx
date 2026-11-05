@@ -56,6 +56,9 @@ const OpenStackCloudViewBody: FunctionComponent<{
           floatingIps: summary.floatingIpCount,
           volumes: summary.volumeCount,
           projects: summary.projectCount,
+          stacks: summary.stackCount,
+          containerClusters: summary.containerClusterCount,
+          optionalServices: summary.optionalServices,
         });
       })
       .catch(() => {});
@@ -68,7 +71,13 @@ const OpenStackCloudViewBody: FunctionComponent<{
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getOpenStackBreadcrumbs(path)}
-      sideMenu={<SideMenu modelId={modelId} resourceCounts={resourceCounts} />}
+      sideMenu={
+        <SideMenu
+          modelId={modelId}
+          resourceCounts={resourceCounts}
+          region={region}
+        />
+      }
     >
       <OpenStackRegionBar openStackCloudId={modelId} />
       <Outlet />

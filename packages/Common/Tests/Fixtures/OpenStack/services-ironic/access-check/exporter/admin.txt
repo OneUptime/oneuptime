@@ -1,2 +1,2 @@
 baremetal 200 14 series
-compute 200 21 series
+compute 200 84 series

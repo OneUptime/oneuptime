@@ -382,6 +382,7 @@ describe("what the pages go without on exporter 1.7.0", () => {
     const QUIET: ReadonlyArray<string> = [
       "Block Storage API Down",
       "Block Storage Service Down",
+      "Image Stuck",
       "Storage Pool Critical",
       "Storage Pool Warning",
       "Volume Stuck",

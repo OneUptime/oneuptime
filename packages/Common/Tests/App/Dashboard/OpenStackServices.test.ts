@@ -48,6 +48,7 @@ import {
   getOpenStackWorkerMachine,
   getOpenStackWorkerRank,
   hasOpenStackHostPastAllocationLine,
+  getOpenStackWorkersNotListedWords,
   isOpenStackApiExternalId,
   isOpenStackApiScrapeFailed,
   isOpenStackIssueAboutService,
@@ -61,8 +62,15 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackOverviewReads";
 import {
   getOpenStackRegionFromSearch,
+  getOpenStackRegionIssueQuery,
+  getOpenStackRegionMetricFilters,
   getOpenStackRegionRoute,
+  isOpenStackIssueInRegion,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackRegion";
+import { OPENSTACK_REGION_PAGES } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackRegionBar";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
+import JSONFunctions from "../../../Types/JSONFunctions";
 
 /*
  * What the Overview's cards and the Services page read: how a cloud's APIs and workers
@@ -456,9 +464,29 @@ describe("how a cloud's services group", () => {
     expect(
       groupsOf(
         [row(OpenStackResourceKind.Api, { name: undefined })],
-        [worker("baremetal", "ironic-conductor", "c-1")],
+        [worker("something-else", "something-conductor", "c-1")],
       ),
     ).toEqual([]);
+  });
+
+  test("Ironic has a card where it reports, with what only a probe says of its conductors", () => {
+    const [group] = groupsOf(
+      [api("baremetal")],
+      [worker("baremetal", "ironic-conductor", "c-1")],
+    );
+
+    expect(group?.service).toBe("baremetal");
+    expect(group?.counts.total).toBe(1);
+  });
+
+  test("a cloud without Ironic has no card for it, and no card is made from nothing", () => {
+    expect(
+      groupsOf([api("identity")], []).map(
+        (group: OpenStackServiceGroup): string => {
+          return group.service;
+        },
+      ),
+    ).toEqual(["identity"]);
   });
 
   test("what needs someone comes first: broken, then to look at, then calm", () => {
@@ -502,7 +530,10 @@ describe("how a cloud's services group", () => {
         api("placement"),
         api("compute"),
         api("identity"),
+        api("baremetal"),
         api("dns"),
+        api("container-infra"),
+        api("orchestration"),
       ]).map((group: OpenStackServiceGroup): string => {
         return group.service;
       }),
@@ -1296,5 +1327,232 @@ describe("the region in the address", () => {
       "/dashboard/p/openstack/c?region=eu%20west%2F2",
     );
     expect(route.toString()).toBe("/dashboard/p/openstack/c");
+  });
+});
+
+describe("a service a cloud may not run", () => {
+  test("is a group of its own, with its workers under it where a probe listed them", () => {
+    const [heat]: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
+      apis: [api("orchestration")],
+      workers: [worker("orchestration", "heat-engine", "compute-01")],
+      now: NOW,
+    });
+    expect(heat!.service).toBe("orchestration");
+    expect(heat!.workers.map(getOpenStackWorkerHost)).toEqual(["compute-01"]);
+  });
+
+  test("its API's row is one, whichever it is", () => {
+    expect(isOpenStackApiExternalId("RegionOne/orchestration")).toBe(true);
+    expect(isOpenStackApiExternalId("RegionOne/container-infra")).toBe(true);
+    expect(
+      isOpenStackApiExternalId(
+        "RegionOne/container-infra/compute-01/magnum-conductor",
+      ),
+    ).toBe(false);
+  });
+
+  test("has what people call it, and its alerts", () => {
+    expect(getOpenStackServiceTitle("orchestration")).toBe(
+      "Orchestration (Heat)",
+    );
+    expect(getOpenStackServiceAlertTemplateIds("orchestration")).toEqual(
+      expect.arrayContaining([
+        "openstack-orchestration-api-down",
+        "openstack-stack-failed",
+      ]),
+    );
+    expect(getOpenStackServiceAlertTemplateIds("container-infra")).toEqual(
+      expect.arrayContaining([
+        "openstack-container-infra-api-down",
+        "openstack-container-cluster-failed",
+      ]),
+    );
+  });
+
+  describe("workers nothing here could list", () => {
+    const group: (
+      service: string,
+      status?: string,
+    ) => Pick<OpenStackServiceGroup, "service" | "workers" | "api"> = (
+      service: string,
+      status: string = "up",
+    ): Pick<OpenStackServiceGroup, "service" | "workers" | "api"> => {
+      return {
+        service,
+        workers: [],
+        api: Object.assign(new OpenStackResource(), { status }),
+      };
+    };
+
+    test("on an agent's cloud, says the exporter doesn't read them", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("container-infra"),
+          isCollectedByProbe: false,
+        }),
+      ).toMatch(/a stopped one isn't shown anywhere here/);
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("orchestration"),
+          isCollectedByProbe: false,
+        }),
+      ).toMatch(/With every engine stopped Heat's API stops answering/);
+    });
+
+    test("on a probe's, says only an admin may", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("orchestration"),
+          isCollectedByProbe: true,
+        }),
+      ).toMatch(/Only the Full view credential/);
+    });
+
+    test("a service that lists its own says nothing, and neither does one whose API is down", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("compute"),
+          isCollectedByProbe: false,
+        }),
+      ).toBeNull();
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: group("orchestration", "down"),
+          isCollectedByProbe: false,
+        }),
+      ).toBeNull();
+    });
+
+    test("nor does one that has them", () => {
+      expect(
+        getOpenStackWorkersNotListedWords({
+          group: {
+            ...group("orchestration"),
+            workers: [new OpenStackResource()],
+          },
+          isCollectedByProbe: true,
+        }),
+      ).toBeNull();
+    });
+  });
+});
+
+describe("what a region narrows, on each signal", () => {
+  test("a metric's datapoint says it, and the whole cloud asks for none", () => {
+    expect(getOpenStackRegionMetricFilters("RegionTwo")).toEqual({
+      "openstack.region.name": "RegionTwo",
+    });
+    expect(getOpenStackRegionMetricFilters(null)).toEqual({});
+  });
+
+  test("an incident or alert of the region, or one that names none", () => {
+    const query: JSONObject = getOpenStackRegionIssueQuery("RegionTwo");
+    const wanted: unknown = query["openstack.region.name"];
+
+    expect(wanted).toBeInstanceOf(EqualToOrNull);
+    expect((wanted as EqualToOrNull<string>).value).toBe("RegionTwo");
+  });
+
+  test("survives the trip to the API, which reads it back as the same filter", () => {
+    const sent: JSONObject = JSONFunctions.deserialize(
+      JSON.parse(
+        JSON.stringify(
+          JSONFunctions.serialize(getOpenStackRegionIssueQuery("RegionTwo")),
+        ),
+      ),
+    );
+
+    expect(sent["openstack.region.name"]).toBeInstanceOf(EqualToOrNull);
+  });
+
+  test.each<[string, JSONObject | null | undefined, string | null, boolean]>([
+    ["the whole cloud reads everything", { a: "b" }, null, true],
+    [
+      "the whole cloud reads another region's",
+      { "openstack.region.name": "RegionTwo" },
+      null,
+      true,
+    ],
+    [
+      "its own region",
+      { "openstack.region.name": "RegionTwo" },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "as ingest writes a resource's attribute",
+      { "resource.openstack.region.name": "RegionTwo" },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "not another region's",
+      { "openstack.region.name": "RegionOne" },
+      "RegionTwo",
+      false,
+    ],
+    ["a series that names none is the whole cloud's", {}, "RegionTwo", true],
+    ["declared by hand, with no series", null, "RegionTwo", true],
+    ["no labels read at all", undefined, "RegionTwo", true],
+    [
+      "a blank name is no name",
+      { "openstack.region.name": "  " },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "spaces around a name are not part of it",
+      { "openstack.region.name": " RegionTwo " },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "a name is matched as written, not by what it begins with",
+      { "openstack.region.name": "RegionTwoWest" },
+      "RegionTwo",
+      false,
+    ],
+    [
+      "a label that is not a name says nothing",
+      { "openstack.region.name": 7 as unknown as string },
+      "RegionTwo",
+      true,
+    ],
+  ])(
+    "what is open: %s",
+    (
+      _name: string,
+      labels: JSONObject | null | undefined,
+      region: string | null,
+      expected: boolean,
+    ) => {
+      expect(isOpenStackIssueInRegion(labels, region)).toBe(expected);
+    },
+  );
+});
+
+describe("the pages a region can be chosen on", () => {
+  const pages: ReadonlyArray<PageMap> = OPENSTACK_REGION_PAGES;
+
+  test.each<[string, PageMap]>([
+    ["the map", PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY],
+    ["what the cloud stands on", PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE],
+    ["metrics", PageMap.OPENSTACK_CLOUD_VIEW_METRICS],
+    ["logs", PageMap.OPENSTACK_CLOUD_VIEW_LOGS],
+    ["traces", PageMap.OPENSTACK_CLOUD_VIEW_TRACES],
+    ["incidents", PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS],
+    ["alerts", PageMap.OPENSTACK_CLOUD_VIEW_ALERTS],
+    ["maintenance", PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE],
+  ])("%s", (_name: string, page: PageMap) => {
+    expect(pages).toContain(page);
+  });
+
+  test.each<[string, PageMap]>([
+    ["a cloud's settings", PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS],
+    ["its owners", PageMap.OPENSTACK_CLOUD_VIEW_OWNERS],
+    ["Keystone's projects", PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS],
+    ["Keystone's domains", PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS],
+  ])("not %s, where a region means nothing", (_name: string, page: PageMap) => {
+    expect(pages).not.toContain(page);
   });
 });

@@ -18,11 +18,20 @@ import {
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
   isOpenStackAdminDisabled,
+  isOpenStackContainerClusterFailed,
+  isOpenStackContainerClusterStuck,
+  isOpenStackBareMetalMaintenanceTooLong,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeStuck,
+  isOpenStackBareMetalPowerUnexpected,
   isOpenStackFloatingIpAssociated,
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
   isOpenStackServiceDown,
   isOpenStackServiceForcedDown,
+  isOpenStackStackFailed,
+  isOpenStackStackStuck,
+  isOpenStackServiceQuiet,
   isOpenStackVolumeInError,
   isOpenStackVolumeStuck,
   minutesInState,
@@ -33,7 +42,10 @@ import {
   OpenStackQuotaResource,
   getOpenStackProjectQuotas,
 } from "Common/Types/OpenStack/OpenStackQuota";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
+  OpenStackResourceKind,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionItem,
@@ -67,7 +79,10 @@ import {
  *     what Placement allows; an instance or volume in error, or an instance, volume
  *     or image stuck on its way to something else; a storage pool past 85%; an external
  *     network past 90%; a router or floating IP that should be active and is not; a
- *     service disabled for more than a week.
+ *     service disabled for more than a week; a bare metal node failed, stuck, left in
+ *     maintenance for more than a week, or deployed with its power off; a service a cloud
+ *     may not run that has gone quiet; a stack or Kubernetes cluster that failed, or has
+ *     stayed in progress past what Heat and Magnum give one of their own accord.
  *
  * Three things these rules never do:
  *
@@ -92,12 +107,20 @@ export type OpenStackRouteFor = (row: OpenStackResource) => Route | undefined;
 const FINE: OpenStackAssessment = { severity: null, reasons: [] };
 
 const REASON_API_DOWN: string = translationKey("Not answering");
+/*
+ * All anyone can say of a service a cloud may not run that stopped reporting: the exporter answers
+ * the same for one that is stopped and one that is gone, and a page must not say which.
+ */
+const REASON_API_QUIET: string = translationKey(
+  "Not heard from for {{duration}}. It may be stopped or taken out of this cloud: the exporter answers the same for both",
+);
 const REASON_SCRAPE_FAILED: string = translationKey(
   "Not answering: the last read of it failed",
 );
 const REASON_SERVICE_DOWN: string = translationKey("Down");
-export const OPENSTACK_REASON_FORCED_DOWN: string =
-  translationKey("Forced down by an operator");
+export const OPENSTACK_REASON_FORCED_DOWN: string = translationKey(
+  "Forced down by an operator",
+);
 const REASON_SERVICE_DOWN_WITH_INSTANCES: { one: string; other: string } = {
   one: "Down, with {{count}} instance on it",
   other: "Down, with {{count}} instances on it",
@@ -122,6 +145,9 @@ export const OPENSTACK_REASON_INSTANCE_ERROR: string =
   translationKey("In ERROR");
 const REASON_STUCK: string = translationKey("{{status}} for {{duration}}");
 const REASON_VOLUME_ERROR: string = translationKey("In {{status}}");
+const REASON_CLUSTER_UNHEALTHY: string = translationKey(
+  "Magnum reads it as unhealthy",
+);
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
 const REASON_CEPH_ERROR: string = translationKey(
   "Its Ceph cluster {{cluster}} reads HEALTH_ERR",
@@ -222,6 +248,9 @@ const KIND_ROUTER: string = translationKey("Router");
 const KIND_FLOATING_IP: string = translationKey("Floating IP");
 const KIND_PROJECT: string = translationKey("Project");
 const KIND_IMAGE: string = translationKey("Image");
+const KIND_STACK: string = translationKey("Stack");
+const KIND_CONTAINER_CLUSTER: string = translationKey("Kubernetes cluster");
+const KIND_BARE_METAL_NODE: string = translationKey("Bare metal node");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
@@ -233,10 +262,13 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_STORAGE_POOL,
   KIND_NETWORK,
   KIND_ROUTER,
+  KIND_CONTAINER_CLUSTER,
+  KIND_STACK,
   KIND_VOLUME,
   KIND_INSTANCE,
   KIND_FLOATING_IP,
   KIND_IMAGE,
+  KIND_BARE_METAL_NODE,
   KIND_PROJECT,
 ];
 
@@ -263,8 +295,32 @@ function factsOf(row: OpenStackResource): JSONObject {
 
 export function assessOpenStackApi(
   row: OpenStackResource,
+  // Without it, this reads only what the row says, as a page with no clock to hand does.
+  now?: Date | undefined,
 ): OpenStackAssessment {
   if (row.status !== "down") {
+    if (
+      now &&
+      isOpenStackServiceQuiet({
+        service: row.name,
+        lastSeenAt: row.lastSeenAt,
+        now,
+      })
+    ) {
+      return {
+        severity: ResourceAttentionSeverity.Warning,
+        reasons: [
+          {
+            text: REASON_API_QUIET,
+            values: {
+              duration: formatOpenStackDuration(
+                minutesInState({ stateChangedAt: row.lastSeenAt, now }) || 0,
+              ),
+            },
+          },
+        ],
+      };
+    }
     return FINE;
   }
   return {
@@ -720,6 +776,72 @@ export function assessOpenStackImage(data: {
 }
 
 /*
+ * A stack that failed stays failed until someone updates or deletes it, whoever's it is, so it
+ * reads here however long ago it happened, as a volume in error does. A warning, like one: what the
+ * project already runs carries on, and only this one thing has not got where it was going.
+ */
+export function assessOpenStackStack(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackStackFailed(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackStackStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+/*
+ * The same for a cluster. Only a probe says what Magnum thinks of a running cluster's health, and
+ * nothing here reads Magnum's UNKNOWN as anything: it is what Magnum says of any cluster it could not
+ * reach, recorded on every scene.
+ */
+export function assessOpenStackContainerCluster(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackContainerClusterFailed(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackContainerClusterStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  if (factsOf(row)["healthStatus"] === OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_CLUSTER_UNHEALTHY }],
+    };
+  }
+  return FINE;
+}
+
+/*
  * A project at a quota: its next instance or volume is about to be refused. A warning,
  * however far past the line, since nothing it runs now has stopped. Says nothing without
  * quota data, which most clouds do not collect, and nothing about a reading so old that
@@ -769,6 +891,110 @@ export function assessOpenStackProject(data: {
   };
 }
 
+/*
+ * A machine Ironic manages. Maintenance is planned, like a disabled service, until it has been there
+ * too long; a failed node is failed whether or not it is also in maintenance, which Ironic sometimes
+ * puts one in by itself.
+ */
+const REASON_NODE_MAINTENANCE_LONG: string = translationKey(
+  "In maintenance for {{days}} days",
+);
+const REASON_NODE_POWER_UNEXPECTED: string = translationKey(
+  "Deployed, with its power off",
+);
+
+export function getOpenStackBareMetalProvisionUpdatedAt(
+  row: OpenStackResource,
+): string | undefined {
+  const value: unknown = factsOf(row)["provisionUpdatedAt"];
+  return typeof value === "string" ? value : undefined;
+}
+
+export function getOpenStackBareMetalPowerState(
+  row: OpenStackResource,
+): string | null {
+  const value: unknown = factsOf(row)["powerState"];
+  return typeof value === "string" ? value : null;
+}
+
+export function assessOpenStackBareMetalNode(data: {
+  row: OpenStackResource;
+  now: Date;
+  /*
+   * What Nova says of the instance on this node, once read: one someone stopped has its node's
+   * power off on purpose. The server's read of what needs attention has already left those out.
+   */
+  instanceStatus?: string | null | undefined;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  const reasons: Array<ResourceAttentionText> = [];
+
+  if (isOpenStackBareMetalNodeInError(row.status)) {
+    reasons.push({
+      text: REASON_VOLUME_ERROR,
+      values: { status: row.status || "" },
+    });
+  }
+
+  const provisionUpdatedAt: string | undefined =
+    getOpenStackBareMetalProvisionUpdatedAt(row);
+
+  if (
+    isOpenStackBareMetalNodeStuck({
+      status: row.status,
+      adminState: row.adminState,
+      stateChangedAt: row.stateChangedAt,
+      provisionUpdatedAt,
+      now,
+    })
+  ) {
+    reasons.push({
+      text: REASON_STUCK,
+      values: {
+        status: row.status || "",
+        duration: formatOpenStackDuration(
+          minutesInState({
+            stateChangedAt: provisionUpdatedAt || row.stateChangedAt,
+            now,
+          }) || 0,
+        ),
+      },
+    });
+  }
+
+  if (
+    isOpenStackBareMetalMaintenanceTooLong({
+      adminState: row.adminState,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    const minutes: number = minutesInState({
+      stateChangedAt: row.stateChangedAt,
+      now,
+    }) as number;
+    reasons.push({
+      text: REASON_NODE_MAINTENANCE_LONG,
+      values: { days: `${Math.floor(minutes / (24 * 60))}` },
+    });
+  }
+
+  if (
+    isOpenStackBareMetalPowerUnexpected({
+      status: row.status,
+      adminState: row.adminState,
+      powerState: getOpenStackBareMetalPowerState(row),
+      instanceStatus: data.instanceStatus,
+    })
+  ) {
+    reasons.push({ text: REASON_NODE_POWER_UNEXPECTED });
+  }
+
+  return reasons.length > 0
+    ? { severity: ResourceAttentionSeverity.Warning, reasons }
+    : FINE;
+}
+
 export function assessOpenStackResource(data: {
   row: OpenStackResource;
   now: Date;
@@ -778,7 +1004,7 @@ export function assessOpenStackResource(data: {
   const { row, now } = data;
   switch (row.kind) {
     case OpenStackResourceKind.Api:
-      return assessOpenStackApi(row);
+      return assessOpenStackApi(row, now);
     case OpenStackResourceKind.Service:
       return assessOpenStackService({
         row,
@@ -804,6 +1030,12 @@ export function assessOpenStackResource(data: {
       return assessOpenStackProject({ row, now });
     case OpenStackResourceKind.Image:
       return assessOpenStackImage({ row, now });
+    case OpenStackResourceKind.Stack:
+      return assessOpenStackStack({ row, now });
+    case OpenStackResourceKind.ContainerCluster:
+      return assessOpenStackContainerCluster({ row, now });
+    case OpenStackResourceKind.BareMetalNode:
+      return assessOpenStackBareMetalNode({ row, now });
     default:
       return FINE;
   }
@@ -821,11 +1053,15 @@ const KIND_WORDS: Partial<Record<string, string>> = {
   [OpenStackResourceKind.FloatingIp]: KIND_FLOATING_IP,
   [OpenStackResourceKind.Project]: KIND_PROJECT,
   [OpenStackResourceKind.Image]: KIND_IMAGE,
+  [OpenStackResourceKind.Stack]: KIND_STACK,
+  [OpenStackResourceKind.ContainerCluster]: KIND_CONTAINER_CLUSTER,
+  [OpenStackResourceKind.BareMetalNode]: KIND_BARE_METAL_NODE,
 };
 
 function iconOf(kind: string | undefined): IconProp {
   switch (kind) {
     case OpenStackResourceKind.Hypervisor:
+    case OpenStackResourceKind.BareMetalNode:
       return IconProp.ServerStack;
     case OpenStackResourceKind.Volume:
     case OpenStackResourceKind.StoragePool:
@@ -841,9 +1077,36 @@ function iconOf(kind: string | undefined): IconProp {
       return IconProp.Cog;
     case OpenStackResourceKind.Project:
       return IconProp.Folder;
+    case OpenStackResourceKind.Stack:
+      return IconProp.Layers;
+    case OpenStackResourceKind.ContainerCluster:
+      return IconProp.Kubernetes;
     default:
       return IconProp.Cube;
   }
+}
+
+/*
+ * The stacks of clusters that themselves need someone. Magnum builds a cluster with a Heat stack,
+ * so one failed cluster is one failed stack too, recorded together: said once, by the name the person
+ * who asked for it knows it by. The cluster's page links to the stack.
+ */
+function getStacksSaidByTheirClusters(data: {
+  rows: Array<OpenStackResource>;
+  now: Date;
+}): Set<string> {
+  const stackIds: Set<string> = new Set();
+  for (const row of data.rows) {
+    const stackId: unknown = factsOf(row)["stackId"];
+    if (
+      row.kind === OpenStackResourceKind.ContainerCluster &&
+      typeof stackId === "string" &&
+      assessOpenStackContainerCluster({ row, now: data.now }).severity
+    ) {
+      stackIds.add(stackId);
+    }
+  }
+  return stackIds;
 }
 
 /*
@@ -967,12 +1230,23 @@ export function getOpenStackAttentionItems(data: {
     }),
   );
 
+  const stacksOfClusters: Set<string> = getStacksSaidByTheirClusters({
+    rows: data.rows,
+    now: data.now,
+  });
+
   const items: Array<ResourceAttentionItem> = [...everyWorkerDown];
 
   for (const row of data.rows) {
     if (
       row.kind === OpenStackResourceKind.Service &&
       coveredByEveryWorkerDown.has(`${row.regionName}/${row.name}`)
+    ) {
+      continue;
+    }
+    if (
+      row.kind === OpenStackResourceKind.Stack &&
+      stacksOfClusters.has(row.externalId || "")
     ) {
       continue;
     }
@@ -1002,11 +1276,8 @@ export function getOpenStackAttentionItems(data: {
       detail: getOpenStackDetail(row),
       severity: assessment.severity,
       reasons: assessment.reasons,
-      // What Nova recorded about why it failed, in its own words. Only a probe has this.
-      message:
-        typeof factsOf(row)["faultMessage"] === "string"
-          ? (factsOf(row)["faultMessage"] as string)
-          : undefined,
+      // What the service recorded about why, in its own words. Only a probe has most of these.
+      message: getOpenStackAttentionMessage(row),
       route: data.routeFor?.(row),
     });
   }
@@ -1020,6 +1291,28 @@ export function getOpenStackAttentionItems(data: {
   );
 
   return sortResourceAttention(items, OPENSTACK_ATTENTION_KIND_ORDER);
+}
+
+/*
+ * Why it failed, in the words of whatever said so. Nova's fault and Ironic's last_error only a
+ * probe has; a node's maintenance reason is the one thing the exporter says of why.
+ */
+function getOpenStackAttentionMessage(
+  row: OpenStackResource,
+): string | undefined {
+  const facts: JSONObject = factsOf(row);
+  for (const said of [
+    facts["faultMessage"],
+    facts["lastError"],
+    facts["statusReason"],
+  ]) {
+    if (typeof said === "string" && said) {
+      return said;
+    }
+  }
+  return row.kind === OpenStackResourceKind.BareMetalNode
+    ? row.disabledReason || undefined
+    : undefined;
 }
 
 export function getOpenStackHealth(

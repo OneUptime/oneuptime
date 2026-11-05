@@ -1,0 +1,13 @@
+openstack_glance_up 1
+openstack_identity_up 1
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="runnervm7aw5e",id="04576247-065b-4a2d-b748-c977b1c36e3f",service="neutron-openvswitch-agent"} 0
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="runnervm7aw5e",id="5d83a2c1-f292-455b-947a-bfcb11193b7f",service="neutron-metadata-agent"} 1
+openstack_neutron_agent_state{adminState="up",availability_zone="nova",hostname="runnervm7aw5e",id="62772db5-bb58-4886-bc48-4dd7aab9d015",service="neutron-dhcp-agent"} 1
+openstack_neutron_agent_state{adminState="up",availability_zone="nova",hostname="runnervm7aw5e",id="8043d9bc-75f6-4487-bc08-27e54b425623",service="neutron-l3-agent"} 1
+openstack_neutron_up 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="runnervm7aw5e",id="249245d8-eb7c-4d2c-9872-b89c9b0c2da4",service="nova-compute",zone="nova"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="runnervm7aw5e",id="6ba02e1a-9fc6-429e-8d46-c9871c41eb35",service="nova-conductor",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="runnervm7aw5e",id="8a2b8ea9-b4b4-4ba3-8681-a295a3b9ef05",service="nova-scheduler",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="runnervm7aw5e",id="bd8456c7-483c-4052-a647-6ea52f667e49",service="nova-conductor",zone="internal"} 1
+openstack_nova_up 1
+openstack_placement_up 1

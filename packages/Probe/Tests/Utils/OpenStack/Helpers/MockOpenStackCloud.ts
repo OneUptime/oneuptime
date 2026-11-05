@@ -105,6 +105,9 @@ export default class MockOpenStackCloud {
     [OpenStackServiceType.Network]: 0,
     [OpenStackServiceType.Volume]: 0,
     [OpenStackServiceType.Image]: 0,
+    [OpenStackServiceType.Orchestration]: 0,
+    [OpenStackServiceType.ContainerInfra]: 0,
+    [OpenStackServiceType.BareMetal]: 0,
   };
   // How many times each kind of read was made, to say which one a budget went on.
   public readonly requestsByRoute: Map<string, number> = new Map();
@@ -386,6 +389,10 @@ export default class MockOpenStackCloud {
       return this.routeCompute(pathname.substring("/compute/v2.1".length), url);
     }
 
+    if (pathname === "/placement/allocation_candidates") {
+      return this.routeAllocationCandidates(url);
+    }
+
     if (pathname.startsWith("/placement/resource_providers")) {
       return this.routePlacement(pathname);
     }
@@ -607,6 +614,10 @@ export default class MockOpenStackCloud {
               ...this.templates["flavor"],
               id: uuidOf("30000000", index),
               name: `flavor-${index}`,
+              // Every one a shape of its own, as a catalogue's sizes are.
+              ram: 1024 + index,
+              vcpus: 1,
+              disk: 10,
             } as JSONObject;
           },
         });
@@ -677,6 +688,57 @@ export default class MockOpenStackCloud {
             : [],
       },
       this.options.clock.now(),
+    );
+  }
+
+  /*
+   * What Nova's scheduler would be told: every host of this size has room, up to the limit it asks
+   * for, in the shape of the API reference. Rows are made as a page asks for them, as everywhere.
+   */
+  private routeAllocationCandidates(
+    url: globalThis.URL,
+  ): OpenStackHttpResponse {
+    const now: number = this.options.clock.now();
+    const limit: number = Number(url.searchParams.get("limit")) || 1000;
+    const hosts: number = Math.min(this.counts.hypervisors, limit);
+    const resources: Record<string, number> = {};
+
+    for (const part of (url.searchParams.get("resources") || "").split(",")) {
+      const [name, amount] = part.split(":");
+
+      if (name && amount) {
+        resources[name] = Number(amount);
+      }
+    }
+
+    const allocationRequests: Array<JSONObject> = [];
+    const summaries: JSONObject = {};
+
+    for (let index: number = 0; index < hosts; index++) {
+      const uuid: string = uuidOf("00000000", index);
+
+      allocationRequests.push({
+        allocations: { [uuid]: { resources: resources } },
+      });
+      summaries[uuid] = {
+        resources: {
+          VCPU: { capacity: 1536, used: 0 },
+          MEMORY_MB: { capacity: 1146382, used: 0 },
+          DISK_GB: { capacity: 2047, used: 0 },
+        },
+        traits: [],
+        parent_provider_uuid: null,
+        root_provider_uuid: uuid,
+      };
+    }
+
+    return json(
+      200,
+      {
+        allocation_requests: allocationRequests,
+        provider_summaries: summaries,
+      },
+      now,
     );
   }
 
@@ -959,10 +1021,7 @@ export default class MockOpenStackCloud {
           networks: [
             {
               ...this.templates["network"],
-              id: uuidOf(
-                "41000000",
-                agent % Math.max(this.counts.networks, 1),
-              ),
+              id: uuidOf("41000000", agent % Math.max(this.counts.networks, 1)),
             },
           ],
         },

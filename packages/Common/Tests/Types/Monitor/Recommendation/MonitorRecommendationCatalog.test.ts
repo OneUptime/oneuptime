@@ -19,7 +19,13 @@ import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTempl
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllOpenShiftAlertTemplates } from "../../../../Types/Monitor/OpenShiftAlertTemplates";
-import { getAllOpenStackAlertTemplates } from "../../../../Types/Monitor/OpenStackAlertTemplates";
+import {
+  OpenStackAlertTemplate,
+  getAllOpenStackAlertTemplates,
+  getOpenStackAlertTemplatesForCloud,
+} from "../../../../Types/Monitor/OpenStackAlertTemplates";
+import { OpenStackServiceType } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import { getAllOpenStackLogAlertTemplates } from "../../../../Types/Monitor/OpenStackLogAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
@@ -172,9 +178,18 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.OpenStack,
-    monitorTypes: [MonitorType.OpenStack],
-    templateCount: getAllOpenStackAlertTemplates().length,
-    contextFreeTemplateCount: getAllOpenStackAlertTemplates().length,
+    /*
+     * The metric templates, and what a cloud's own services write and say:
+     * Logs monitors scoped to the cloud (OpenStackLogAlertTemplates).
+     */
+    monitorTypes: [MonitorType.OpenStack, MonitorType.Logs],
+    templateCount:
+      getAllOpenStackAlertTemplates().length +
+      getAllOpenStackLogAlertTemplates().length,
+    // Nothing known about a cloud offers none of what needs a service it may not run.
+    contextFreeTemplateCount:
+      getOpenStackAlertTemplatesForCloud({}).length +
+      getAllOpenStackLogAlertTemplates().length,
     identifierFieldName: "cloudIdentifier",
   },
   {
@@ -274,6 +289,88 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
 ];
 
 describe("MonitorRecommendationCatalog", () => {
+  describe("what a cloud is offered", () => {
+    const BARE_METAL_IDS: Array<string> = getAllOpenStackAlertTemplates()
+      .filter((template: OpenStackAlertTemplate): boolean => {
+        return template.forService === OpenStackServiceType.BareMetal;
+      })
+      .map((template: OpenStackAlertTemplate): string => {
+        return template.id;
+      });
+
+    const offered: (
+      context?: { openStackServices?: Array<string> | null } | undefined,
+    ) => Array<string> = (
+      context?: { openStackServices?: Array<string> | null } | undefined,
+    ): Array<string> => {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.OpenStack,
+        context,
+      ).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      });
+    };
+
+    it("there are bare metal templates for this to hold on", () => {
+      expect(BARE_METAL_IDS.length).toBe(5);
+    });
+
+    it.each([
+      ["nothing known", undefined],
+      ["no services said", {}],
+      ["a read that failed", { openStackServices: null }],
+      ["a cloud without Ironic", { openStackServices: ["compute", "identity"] }],
+    ])(
+      "%s: not one bare metal alert",
+      (_name: string, context: { openStackServices?: null | Array<string> } | undefined) => {
+        for (const id of BARE_METAL_IDS) {
+          expect(offered(context)).not.toContain(id);
+        }
+        // And everything every cloud runs, which is the point of having a catalog.
+        expect(offered(context)).toContain("openstack-compute-api-down");
+        expect(offered(context)).toContain("openstack-cloud-stopped-reporting");
+      },
+    );
+
+    it("a cloud reporting Ironic is offered them, with everything else", () => {
+      const list: Array<string> = offered({
+        openStackServices: [OpenStackServiceType.BareMetal],
+      });
+
+      expect(list).toEqual(expect.arrayContaining(BARE_METAL_IDS));
+      expect(list).toContain("openstack-compute-api-down");
+      expect(list.length).toBe(offered(undefined).length + BARE_METAL_IDS.length);
+    });
+
+    it("a cloud a probe collects, reporting every one of them, is offered everything", () => {
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.OpenStack,
+          {
+            openStackServices: Object.values(OpenStackServiceType),
+            openStackIsCollectedByProbe: true,
+          },
+        ).length,
+      ).toBe(
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          MonitorRecommendationResourceType.OpenStack,
+        ).length,
+      );
+    });
+
+    it("a dismissal of one still resolves, whatever a cloud runs now", () => {
+      for (const id of BARE_METAL_IDS) {
+        expect(
+          MonitorRecommendationCatalog.getAllRecommendations().some(
+            (recommendation: MonitorRecommendation): boolean => {
+              return recommendation.templateId === id;
+            },
+          ),
+        ).toBe(true);
+      }
+    });
+  });
+
   describe("completeness", () => {
     it("has a definition for every resource type in the enum", () => {
       const enumMembers: Array<MonitorRecommendationResourceType> =
@@ -1374,5 +1471,53 @@ describe("MonitorRecommendationCatalog", () => {
         }),
       ).toEqual(rumRecommendationIds());
     });
+  });
+});
+
+describe("an OpenStack cloud's recommendations", () => {
+  const idsOf: (context?: MonitorRecommendationContext) => Array<string> = (
+    context?: MonitorRecommendationContext,
+  ): Array<string> => {
+    return MonitorRecommendationCatalog.getRecommendations(
+      MonitorRecommendationResourceType.OpenStack,
+      context,
+    ).map((recommendation: MonitorRecommendation): string => {
+      return recommendation.templateId;
+    });
+  };
+
+  test("a cloud that doesn't run Heat or Magnum is offered nothing of them", () => {
+    for (const ids of [
+      idsOf(),
+      idsOf({ openStackServices: [] }),
+      idsOf({ openStackServices: null }),
+    ]) {
+      expect(ids).not.toContain("openstack-stack-failed");
+      expect(ids).not.toContain("openstack-container-cluster-failed");
+      expect(ids).toContain("openstack-compute-api-down");
+    }
+  });
+
+  test("one that runs Heat is offered Heat's, and only an agent's is spared what it can't read", () => {
+    const ids: Array<string> = idsOf({ openStackServices: ["orchestration"] });
+    expect(ids).toContain("openstack-stack-failed");
+    expect(ids).toContain("openstack-orchestration-api-down");
+    expect(ids).not.toContain("openstack-orchestration-engine-down");
+    expect(
+      idsOf({
+        openStackServices: ["orchestration"],
+        openStackIsCollectedByProbe: true,
+      }),
+    ).toContain("openstack-orchestration-engine-down");
+  });
+
+  test("a monitor set up from one of them still resolves on a cloud that no longer runs it", () => {
+    expect(
+      MonitorRecommendationCatalog.getAllPossibleRecommendations(
+        MonitorRecommendationResourceType.OpenStack,
+      ).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      }),
+    ).toContain("openstack-stack-failed");
   });
 });

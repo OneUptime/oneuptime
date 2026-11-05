@@ -377,10 +377,12 @@ scene_volume_attach() {
   remember volume_attached "$(openstack volume show ou-log-vol -f value -c id)"
   openstack server add volume ou-log-vm ou-log-vol
   wait_for_volume ou-log-vol in-use
-  openstack volume snapshot create --force --volume ou-log-vol ou-log-snap
-  sleep 10
-  openstack volume snapshot delete ou-log-snap
-  sleep 5
+  # Hibiscus refuses a snapshot of a volume in use, and the detach is still to come.
+  if openstack volume snapshot create --force --volume ou-log-vol ou-log-snap; then
+    sleep 10
+    openstack volume snapshot delete ou-log-snap
+    sleep 5
+  fi
   openstack server remove volume ou-log-vm ou-log-vol
   wait_for_volume ou-log-vol available
   openstack volume delete ou-log-vol
@@ -620,6 +622,7 @@ start_journald_profile() {
     ONEUPTIME_URL=http://127.0.0.1:9 \
     ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
     OPENSTACK_CLOUD_NAME=devstack \
+    OPENSTACK_REGION_NAME=RegionOne \
     OPENSTACK_NODE_NAME="$HOST" \
     "OPENSTACK_LOGS_UNITS=[devstack@*]" \
     OPENSTACK_LOGS_STATE_DIRECTORY="$state" \
@@ -657,6 +660,7 @@ start_files_profile() {
     -e ONEUPTIME_URL=http://127.0.0.1:9 \
     -e ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
     -e OPENSTACK_CLOUD_NAME=devstack \
+    -e OPENSTACK_REGION_NAME=RegionOne \
     -e OPENSTACK_NODE_NAME="$HOST" \
     -e OPENSTACK_LOGS_TIMEZONE=UTC \
     -e OPENSTACK_LOGS_RECORDING_FILE=/recording/otlp-logs.json \

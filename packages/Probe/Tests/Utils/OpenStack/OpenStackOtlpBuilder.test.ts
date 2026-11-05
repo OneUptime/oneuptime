@@ -75,6 +75,7 @@ const SERVER: NonNullable<OpenStackComputeInventory["servers"]>[number] = {
   flavorName: "m1.tiny",
   instanceName: "instance-00000001",
   imageId: null,
+  networkNames: [],
   taskState: null,
   updatedAt: "2026-11-04T11:00:00Z",
   faultMessage: null,
@@ -110,14 +111,14 @@ describe("a DHCP agent's networks", () => {
     network: ReportedDatapoint | undefined;
     count: number;
   } {
-    const built: OpenStackOtlpBuildResult = build(
+    const points: Array<ReportedDatapoint> = build(
       reading(OpenStackServiceType.Network, inventory),
     );
 
     return {
-      agent: named(built, "openstack_neutron_agent_state")[0],
-      network: named(built, "openstack_neutron_network")[0],
-      count: built.datapointCount,
+      agent: named(points, "openstack_neutron_agent_state")[0],
+      network: named(points, "openstack_neutron_network")[0],
+      count: points.length,
     };
   }
 
@@ -538,6 +539,12 @@ describe("an instance", () => {
               ram: 512,
               disk: 1,
               isPublic: true,
+              isDisabled: false,
+              request: {
+                resources: { VCPU: 1, MEMORY_MB: 512, DISK_GB: 1 },
+                requiredTraits: [],
+                forbiddenTraits: [],
+              },
             },
           ],
           servers: [SERVER],
@@ -585,6 +592,7 @@ describe("an instance", () => {
               taskState: "spawning",
               faultMessage: "No valid host was found.",
               imageId: "image-1",
+              networkNames: ["private", "a, b"],
             },
           ],
         }),
@@ -594,6 +602,7 @@ describe("an instance", () => {
 
     expect(point.labels).toMatchObject({
       image_id: "image-1",
+      network_names: '["private","a, b"]',
       task_state: "spawning",
       updated_at: "2026-11-04T11:00:00Z",
       fault_message: "No valid host was found.",
@@ -602,7 +611,13 @@ describe("an instance", () => {
     expect(
       getOpenStackMetricByMetricName("openstack_nova_server_status")
         ?.probeOnlyAttributes,
-    ).toEqual(["task_state", "updated_at", "fault_message", "image_id"]);
+    ).toEqual([
+      "task_state",
+      "updated_at",
+      "fault_message",
+      "image_id",
+      "network_names",
+    ]);
   });
 
   test("a hypervisor has its capacity only while Nova says it", () => {

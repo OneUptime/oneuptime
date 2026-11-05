@@ -11,6 +11,10 @@ import {
   estimateOpenStackInstanceMetricsVolume,
 } from "./OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "./OpenStackResourceKind";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+} from "./OpenStackOptionalServices";
 
 /*
  * WHAT A CLOUD OF ANY SIZE COSTS, BEFORE ANYTHING IS INSTALLED.
@@ -292,6 +296,23 @@ export const OPENSTACK_PER_PART_READS_PER_COLLECTION: number = 2000;
 export const OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION: number = 250;
 
 /*
+ * What asking Placement how many of a flavor fit costs. GET /allocation_candidates is the one read
+ * here that makes Placement work: it is what Nova's scheduler asks once for every boot. So it is
+ * asked about one shape of flavor at a time, at most this many a collection and in turns, however
+ * many flavors there are: a couple of boots' worth of work a minute. What was not asked this time
+ * is sent as it last stood. A first collection asks nothing, because nothing is known yet of what
+ * to ask about, and neither does one that has already been told to slow down.
+ */
+export const OPENSTACK_CANDIDATE_READS_PER_COLLECTION: number = 4;
+
+/*
+ * The most candidates one answer holds: Nova's own [scheduler] max_placement_results, so a read
+ * asks for what one boot does. An answer this long may not be all of them, so a count from it is
+ * a floor, and its page says so. Zero is exact either way, which is what an alert reads.
+ */
+export const OPENSTACK_CANDIDATE_RESULT_LIMIT: number = 1000;
+
+/*
  * What happened to an instance that changed, which only Nova's own record says. A call per
  * instance, this many a collection, and what is left waits for the next.
  */
@@ -331,6 +352,9 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Network]: 0,
     [OpenStackServiceType.Volume]: 0,
     [OpenStackServiceType.Image]: 0,
+    [OpenStackServiceType.Orchestration]: 0,
+    [OpenStackServiceType.ContainerInfra]: 0,
+    [OpenStackServiceType.BareMetal]: 0,
   };
 }
 
@@ -477,7 +501,9 @@ export function simulateOpenStackProbeRequests(data: {
             Math.min(
               options.providersChangedPerCollection ?? 0,
               OPENSTACK_PER_PART_READS_PER_COLLECTION,
-            ),
+            ) +
+            // What each shape of flavor would be told: see above. None on a first collection.
+            Math.min(counts.flavors, OPENSTACK_CANDIDATE_READS_PER_COLLECTION),
     );
 
     // Agents, networks, subnets, routers, floating IPs, address pools and security groups.
@@ -674,7 +700,7 @@ const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
 export interface OpenStackSeriesCounts {
   // Read every collection: Nova, Placement, Neutron and Cinder.
   fast: number;
-  // Read about every five minutes: Keystone and Glance.
+  // Read about every five minutes: Keystone, Glance and the services a cloud may not run.
   slow: number;
   // What goes away in summary mode: an instance's status and three allocations, a volume's two.
   perInstance: number;
@@ -697,6 +723,12 @@ export function getOpenStackSeriesCounts(data: {
   // In summary mode, the series that stay: chosen projects, and any part in a bad state.
   keptInstances?: number | undefined;
   isOvs?: boolean | undefined;
+  /*
+   * How many flavors a probe has had an answer from Placement about: all of them, once it has
+   * been round them. Each says the region's number and its zones', and this counts one zone. The
+   * agent's exporter never asks, so none unless this says so.
+   */
+  flavorsAnswered?: number | undefined;
 }): OpenStackSeriesCounts {
   const { counts } = data;
   const isSummary: boolean = Boolean(data.isSummaryMode);
@@ -717,7 +749,10 @@ export function getOpenStackSeriesCounts(data: {
 
   // Four series for each of three resource classes, and three usages.
   const placement: number =
-    counts.hypervisors * 15 + 1 + SCRAPE_SERIES_PER_READING;
+    counts.hypervisors * 15 +
+    1 +
+    SCRAPE_SERIES_PER_READING +
+    (data.flavorsAnswered ?? 0) * 2;
 
   const network: number =
     counts.networkAgents +
@@ -755,6 +790,18 @@ export function getOpenStackSeriesCounts(data: {
 
   const image: number = counts.images * 2 + 1 + 1 + SCRAPE_SERIES_PER_READING;
 
+  /*
+   * A service a cloud may not run still says its collection answered, with nothing, as the agent's
+   * scrape job for it does for ever: that is how a service that left the catalog is told from one
+   * that failed. What it lists on a cloud that runs it isn't here: stacks and clusters are few.
+   */
+  const optionalServices: number =
+    OPENSTACK_OPTIONAL_SERVICES.filter(
+      (entry: OpenStackOptionalService): boolean => {
+        return Boolean(entry.isReadByProbe);
+      },
+    ).length * SCRAPE_SERIES_PER_READING;
+
   const summaryCounts: number = isSummary
     ? STATUSES_USUALLY_PRESENT + counts.projects
     : 0;
@@ -764,7 +811,7 @@ export function getOpenStackSeriesCounts(data: {
       (compute + placement + network + volume) * counts.regions +
       perInstance +
       summaryCounts * counts.regions,
-    slow: identity * counts.regions + image * counts.regions,
+    slow: (identity + image + optionalServices) * counts.regions,
     perInstance: perInstance,
     inTurnsFast:
       (counts.networks +
@@ -823,8 +870,11 @@ export function estimateOpenStackVolume(data: {
    */
   collectionIntervalInMinutes?: number | undefined;
 }): OpenStackVolumeEstimate {
-  const series: OpenStackSeriesCounts = getOpenStackSeriesCounts(data);
   const probeInterval: number | undefined = data.collectionIntervalInMinutes;
+  const series: OpenStackSeriesCounts = getOpenStackSeriesCounts({
+    ...data,
+    flavorsAnswered: probeInterval !== undefined ? data.counts.flavors : 0,
+  });
   const fastPerDay: number =
     probeInterval !== undefined
       ? (24 * 60) / probeInterval

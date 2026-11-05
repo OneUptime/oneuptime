@@ -36,6 +36,9 @@
  *                 those the same names twice over, which must link to nothing.
  *   usage         calm, with real usage: a hypervisor past its line, a neighbour burning all
  *                 of it, and one instance made to wait.
+ *   control-plane calm, standing on a RabbitMQ with every node stopped, a Galera with a node
+ *                 out of sync, a Memcached that is fine and a machine whose ovn-controller
+ *                 stopped, with HAProxy and libvirt never named.
  */
 
 export const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -1254,6 +1257,7 @@ function partsRow(row) {
         updatedAt: "2026-11-04T11:00:00Z",
         addressIpv4: null,
         addressIpv6: null,
+        networkNames: [],
       },
     };
   }
@@ -1263,10 +1267,18 @@ function partsRow(row) {
       facts: {
         ...row.facts,
         addressIpv4: "10.77.0.12",
+        networkNames: ["public-dmz"],
         // The stuck image of this estate, which is what it says it booted from.
         imageId: openStackUuid("79490afb", 3),
         updatedAt: "2026-11-04T11:00:00Z",
       },
+    };
+  }
+  // Nova says which networks each is on, to a probe. "public-dmz" is the shared one here.
+  if (row.kind === "Instance") {
+    return {
+      ...row,
+      facts: { ...row.facts, networkNames: ["public-dmz"] },
     };
   }
   // A probe was told which pool holds each of these. The third pool holds none of them.
@@ -1591,8 +1603,100 @@ function usageInventory(context) {
   ];
 }
 
+/*
+ * One machine under the cloud, in the shape the control plane scan writes for what its exporter
+ * said (Common/Tests/Fixtures/OpenStack/control-plane holds real ones).
+ */
+function controlPlaneMachine(context, dependency, host, fields = {}) {
+  return stamped(
+    {
+      kind: "ControlPlane",
+      externalId: `RegionOne/${dependency}/${host}`,
+      name: host,
+      regionName: "RegionOne",
+      status: "up",
+      ...fields,
+      facts: { dependency, scrapeFailed: false, ...(fields.facts || {}) },
+    },
+    context,
+  );
+}
+
+function controlPlaneInventory(context) {
+  const now = new Date(context.lastSeenAt).toISOString();
+  const earlier = new Date(context.lastSeenAt - 30 * MINUTE).toISOString();
+
+  return [
+    ...calmInventory(context),
+    ...["10.0.0.11", "10.0.0.12", "10.0.0.13"].map((host) => {
+      return controlPlaneMachine(context, "rabbitmq", host, {
+        status: "down",
+        facts: { scrapeFailed: true },
+      });
+    }),
+    controlPlaneMachine(context, "mariadb", "10.0.0.11", {
+      facts: {
+        galeraOn: true,
+        clusterPrimary: true,
+        ready: true,
+        clusterSize: 3,
+        localState: 4,
+        threadsConnected: 40,
+        maxConnections: 4096,
+      },
+    }),
+    controlPlaneMachine(context, "mariadb", "10.0.0.12", {
+      facts: {
+        galeraOn: true,
+        clusterPrimary: true,
+        ready: true,
+        clusterSize: 3,
+        localState: 2,
+        desynced: false,
+        threadsConnected: 40,
+        maxConnections: 4096,
+      },
+    }),
+    controlPlaneMachine(context, "mariadb", "10.0.0.13", {
+      facts: {
+        galeraOn: true,
+        clusterPrimary: true,
+        ready: true,
+        clusterSize: 3,
+        localState: 4,
+        threadsConnected: 40,
+        maxConnections: 4096,
+      },
+    }),
+    ...["10.0.0.11", "10.0.0.12"].map((host) => {
+      return controlPlaneMachine(context, "memcached", host, {
+        facts: { currentConnections: 41, askedAt: now },
+      });
+    }),
+    controlPlaneMachine(context, "network", "10.0.0.21", {
+      facts: {
+        ovsSeenAt: now,
+        ovsDatabaseSeenAt: now,
+        ovnChassisSeenAt: now,
+        ovnControllerSeenAt: earlier,
+        bridgePorts: 8,
+      },
+    }),
+    controlPlaneMachine(context, "network", "10.0.0.22", {
+      facts: {
+        ovsSeenAt: now,
+        ovsDatabaseSeenAt: now,
+        ovnChassisSeenAt: now,
+        ovnControllerSeenAt: now,
+        bridgePorts: 8,
+      },
+    }),
+  ];
+}
+
 const ESTATES = {
   busy: busyInventory,
+  "control-plane": controlPlaneInventory,
   parts: partsInventory,
   links: linksInventory,
   usage: usageInventory,

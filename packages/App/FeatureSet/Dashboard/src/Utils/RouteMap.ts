@@ -373,6 +373,10 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]: `${RouteParams.ModelID}/network-agents/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]: `${RouteParams.ModelID}/snapshots`,
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]: `${RouteParams.ModelID}/images/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS]: `${RouteParams.ModelID}/stacks`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]: `${RouteParams.ModelID}/stacks/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]: `${RouteParams.ModelID}/kubernetes-clusters`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: `${RouteParams.ModelID}/kubernetes-clusters/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]: `${RouteParams.ModelID}/projects`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
@@ -380,6 +384,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL]: `${RouteParams.ModelID}/projects/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]: `${RouteParams.ModelID}/capacity`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
@@ -4812,6 +4817,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STACKS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]
+    }`,
+  ),
+
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]
@@ -4851,6 +4880,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]
     }`,
   ),
 

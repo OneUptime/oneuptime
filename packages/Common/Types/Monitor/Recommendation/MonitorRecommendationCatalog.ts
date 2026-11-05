@@ -60,6 +60,7 @@ import {
 import {
   OpenStackAlertTemplate,
   getAllOpenStackAlertTemplates,
+  getOpenStackAlertTemplatesForCloud,
 } from "../OpenStackAlertTemplates";
 import {
   OpenStackLogAlertTemplate,
@@ -445,7 +446,34 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
   return [...metricRecommendations, ...notificationRecommendations];
 }
 
-function getOpenStackRecommendations(): Array<MonitorRecommendation> {
+/*
+ * What a cloud is offered: everything every cloud has, and what needs a service it may not run or a
+ * series only a probe sends only if it has them. Knowing nothing about a cloud offers what every
+ * cloud has.
+ */
+function getOpenStackRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  const isOffered: Set<string> = new Set(
+    getOpenStackAlertTemplatesForCloud({
+      services: context?.openStackServices,
+      isCollectedByProbe: context?.openStackIsCollectedByProbe,
+    }).map((template: OpenStackAlertTemplate): string => {
+      return template.id;
+    }),
+  );
+
+  return getAllPossibleOpenStackRecommendations().filter(
+    (recommendation: MonitorRecommendation): boolean => {
+      return (
+        recommendation.monitorType !== MonitorType.OpenStack ||
+        isOffered.has(recommendation.templateId)
+      );
+    },
+  );
+}
+
+function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> {
   const metricRecommendations: Array<MonitorRecommendation> =
     getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
       return normalize({
@@ -463,7 +491,8 @@ function getOpenStackRecommendations(): Array<MonitorRecommendation> {
           });
         },
       });
-    });
+    },
+  );
 
   /*
    * What only a cloud's services say - a request no host could take, a lost message bus -
@@ -883,6 +912,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "cloudIdentifier",
       icon: IconProp.Cloud,
       getRecommendations: getOpenStackRecommendations,
+      getAllPossibleRecommendations: getAllPossibleOpenStackRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.VMware,

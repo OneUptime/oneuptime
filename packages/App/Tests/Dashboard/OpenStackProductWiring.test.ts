@@ -112,7 +112,11 @@ const stripComments: SquashFunction = (source: string): string => {
 // Every PageMap key a page of this merge lives at, mounted and linked.
 const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "OPENSTACK_CLOUD_VIEW"],
+  ["AI/Insights.tsx", "OPENSTACK_CLOUD_VIEW_AI_INSIGHTS"],
+  ["AI/Logs.tsx", "OPENSTACK_CLOUD_VIEW_AI_LOGS"],
+  ["AI/Agent.tsx", "OPENSTACK_CLOUD_VIEW_AI_AGENT"],
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
+  ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
   ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],
@@ -145,6 +149,13 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["StoragePoolDetail.tsx", "OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL"],
   ["Images.tsx", "OPENSTACK_CLOUD_VIEW_IMAGES"],
   ["ImageDetail.tsx", "OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL"],
+  ["Stacks.tsx", "OPENSTACK_CLOUD_VIEW_STACKS"],
+  ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
+  ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
+  [
+    "ContainerClusterDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL",
+  ],
   ["Projects.tsx", "OPENSTACK_CLOUD_VIEW_PROJECTS"],
   ["ProjectDetail.tsx", "OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL"],
   ["Domains.tsx", "OPENSTACK_CLOUD_VIEW_DOMAINS"],
@@ -180,9 +191,6 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
 // Pages later issues build. Their keys stay; nothing mounts or links them yet.
 const LATER_PAGE_KEYS: ReadonlyArray<string> = [
   "OPENSTACK_CLOUD_VIEW_INSIGHTS",
-  "OPENSTACK_CLOUD_VIEW_AI_INSIGHTS",
-  "OPENSTACK_CLOUD_VIEW_AI_LOGS",
-  "OPENSTACK_CLOUD_VIEW_AI_AGENT",
 ];
 
 const VIEW_PAGE_KEYS: ReadonlyArray<string> = MOUNTED_VIEW_PAGES.map(
@@ -346,7 +354,6 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   test("no page of a later issue, or of Proxmox's, is imported", () => {
     for (const page of [
       "Insights",
-      "AI/",
       "Nodes",
       "NodeDetail",
       "Guests",
@@ -366,16 +373,24 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   });
 
   test("no View page on disk is left unrouted", () => {
-    const onDisk: Array<string> = fs
-      .readdirSync(path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View"))
-      .filter((file: string): boolean => {
-        return (
-          file.endsWith(".tsx") &&
-          file !== "Layout.tsx" &&
-          file !== "SideMenu.tsx"
-        );
-      })
-      .sort();
+    const onDisk: Array<string> = [
+      ...fs
+        .readdirSync(path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View"))
+        .filter((file: string): boolean => {
+          return (
+            file.endsWith(".tsx") &&
+            file !== "Layout.tsx" &&
+            file !== "SideMenu.tsx"
+          );
+        }),
+      ...fs
+        .readdirSync(
+          path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View", "AI"),
+        )
+        .map((file: string): string => {
+          return `AI/${file}`;
+        }),
+    ].sort();
 
     expect(onDisk).toEqual(
       MOUNTED_VIEW_PAGES.map((entry: [string, string]): string => {
@@ -455,10 +470,12 @@ describe("the side menus have no dead links", () => {
 
     expect(titles).toEqual([
       "Basic",
+      "AI",
       "Control Plane",
       "Compute",
       "Network",
       "Storage",
+      "Orchestration",
       "Tenancy",
       "Telemetry",
       "Activity",
@@ -525,6 +542,8 @@ describe("the side menus have no dead links", () => {
       ["floatingIpCount", "floatingIps"],
       ["volumeCount", "volumes"],
       ["projectCount", "projects"],
+      ["stackCount", "stacks"],
+      ["containerClusterCount", "containerClusters"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
       expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
@@ -541,6 +560,41 @@ describe("the side menus have no dead links", () => {
       "openStackClouds: new Includes([props.modelId])",
     );
     expect(sideMenu).not.toContain("proxmoxClusters");
+  });
+});
+
+describe("a service a cloud may not run", () => {
+  const sideMenu: string = squash(
+    readSource("Pages", "OpenStack", "View", "SideMenu.tsx"),
+  );
+
+  test.each([
+    ["Stacks", "runsHeat"],
+    ["Kubernetes Clusters", "runsMagnum"],
+  ])("%s is in the menu only for a cloud that runs it", (title: string, flag: string) => {
+    const entry: number = sideMenu.indexOf(`title: "${title}"`);
+    expect(entry).toBeGreaterThan(0);
+    expect(sideMenu.substring(0, entry).lastIndexOf(`{${flag} ? (`)).toBeGreaterThan(
+      0,
+    );
+  });
+
+  test("the section itself only for a cloud that runs one of them", () => {
+    const section: number = sideMenu.indexOf(
+      '<SideMenuSection title="Orchestration">',
+    );
+    expect(sideMenu.substring(section - 30, section)).toContain(
+      "runsHeat || runsMagnum ? (",
+    );
+  });
+
+  test("what it runs is from its rows, in the region being read, never a setting", () => {
+    expect(
+      squash(readSource("Pages", "OpenStack", "View", "Layout.tsx")),
+    ).toContain("optionalServices: summary.optionalServices");
+    expect(squash(fs.readFileSync(path.join(
+      REPO_ROOT, "packages", "App", "FeatureSet", "Dashboard", "src", "Pages", "OpenStack", "Utils", "OpenStackResourceUtils.ts",
+    ), "utf8"))).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
   });
 });
 
@@ -754,6 +808,11 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       ),
     );
 
+    // A storage pool's page names the Ceph cluster behind it, which is no leak: it means to.
+    const mayNameCeph: boolean =
+      relative.endsWith("OpenStackStoragePoolCephCard.tsx") ||
+      relative.endsWith("OpenStackUsageReads.ts");
+
     for (const forbidden of [
       "ProxmoxCluster",
       "proxmoxCluster",
@@ -761,8 +820,7 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       "pve_",
       "pveVersion",
       "pve-",
-      "cephCluster",
-      "CephCluster",
+      ...(mayNameCeph ? [] : ["cephCluster", "CephCluster"]),
       "QEMU",
       "isBackedUp",
       "A OpenStack",
@@ -891,9 +949,9 @@ describe("the inventory lists read on the server", () => {
      */
     expect(page).toContain("fetchOpenStackServiceRows");
     expect(page).toContain("getOpenStackServiceGroups");
-    expect(page).toContain('testId="openstack-services-capped"');
+    expect(page).toContain("rows.leftOut");
     expect(reads).toContain("kind:kind");
-    expect(reads).toContain("limit:LIMIT_PER_PROJECT");
+    expect(reads).toContain("limit:OPENSTACK_WORKERS_READ_WHOLE");
     expect(reads).toContain("read(OpenStackResourceKind.Api)");
     expect(reads).toContain("read(OpenStackResourceKind.Service)");
     expect(reads).not.toContain("read(OpenStackResourceKind.Instance)");

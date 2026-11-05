@@ -6,7 +6,7 @@ import {
   OpenStackServiceFamily,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
@@ -20,6 +20,7 @@ import {
   getOpenStackListView,
 } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import OpenStackPartNotice from "./OpenStackPartNotice";
+import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
 /*
@@ -34,10 +35,25 @@ export interface ComponentProps {
   kind: OpenStackResourceKind;
 }
 
+// What each service does differently, recorded on real credentials (access-check).
+const OPENSTACK_LIMITED_VIEW_WORDS: Partial<
+  Record<OpenStackResourceKind, string>
+> = {
+  [OpenStackResourceKind.Stack]: translationKey(
+    "This credential sees its own project's stacks here at most, and no error says so: Heat shows a plain reader those with no project on them, and the monitoring role none. So this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+  ),
+  [OpenStackResourceKind.ContainerCluster]: translationKey(
+    "This credential sees no project's Kubernetes clusters but its own, and no error says so: Magnum answers anything but an admin that way, so this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+  ),
+};
+
 const OpenStackLimitedViewNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(
+    props.openStackCloudId,
+  );
 
   const read: OpenStackRead<OpenStackListView> =
     useOpenStackRead<OpenStackListView>(async () => {
@@ -80,7 +96,8 @@ const OpenStackLimitedViewNotice: FunctionComponent<ComponentProps> = (
         testId="openstack-limited-view-notice"
         tone="neutral"
         text={translator.translateText(
-          "This credential sees its own project's rows here, and no error says so: Neutron and Cinder answer anything but an admin that way, so this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+          OPENSTACK_LIMITED_VIEW_WORDS[props.kind] ||
+            "This credential sees its own project's rows here, and no error says so: Neutron and Cinder answer anything but an admin that way, so this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
         )}
       />
     );
@@ -95,7 +112,9 @@ const OpenStackLimitedViewNotice: FunctionComponent<ComponentProps> = (
       testId="openstack-limited-view-notice"
       tone="neutral"
       text={translator.translateText(
-        "Every row here is one project's. Neutron and Cinder answer a limited credential with its own project's rows and no error, so this list may not be the whole cloud. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+        isProbeCollected
+          ? "Every row here is one project's. Neutron and Cinder answer a limited credential with its own project's rows and no error, so this list may not be the whole cloud. Test Connection, under Data Collection on this cloud's Settings page, says what this credential can read."
+          : "Every row here is one project's. Neutron and Cinder answer a limited credential with its own project's rows and no error, so this list may not be the whole cloud. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
       )}
     />
   );

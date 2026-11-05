@@ -10,6 +10,7 @@ import OpenStackServiceClient, {
   mapWithLimit,
 } from "../OpenStackServiceClient";
 import { takeReadTurn } from "../OpenStackReadTurns";
+import collectAllocationCandidates from "./AllocationCandidatesCollector";
 import { OpenStackCollectorContext } from "./OpenStackCollectorContext";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { OPENSTACK_PER_PART_READS_PER_COLLECTION } from "Common/Types/OpenStack/OpenStackScale";
@@ -275,23 +276,24 @@ export default async function collectPlacement(
     for (const provider of providers) {
       provider.allocations = undefined;
     }
+  } else {
+    await forEachProvider(context, {
+      name: "allocations",
+      isInventory: false,
+      providers: toRead.slice(0, OPENSTACK_PER_PART_READS_PER_COLLECTION),
+      read: async (provider: PlacementProviderRecord): Promise<void> => {
+        const allocations: OpenStackJsonAnswer = await client.get({
+          read: "a provider's allocations",
+          path: `/resource_providers/${encodeURIComponent(provider.uuid)}/allocations`,
+        });
 
-    return;
+        provider.allocations = toPlacementAllocations(allocations.body);
+      },
+    });
   }
 
-  await forEachProvider(context, {
-    name: "allocations",
-    isInventory: false,
-    providers: toRead.slice(0, OPENSTACK_PER_PART_READS_PER_COLLECTION),
-    read: async (provider: PlacementProviderRecord): Promise<void> => {
-      const allocations: OpenStackJsonAnswer = await client.get({
-        read: "a provider's allocations",
-        path: `/resource_providers/${encodeURIComponent(provider.uuid)}/allocations`,
-      });
-
-      provider.allocations = toPlacementAllocations(allocations.body);
-    },
-  });
+  // Last of all, because nothing else depends on it, so when time runs short this is what goes.
+  await collectAllocationCandidates(context);
 }
 
 /*

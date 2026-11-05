@@ -85,6 +85,7 @@ import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
 } from "./Part/OpenStackPartRoutes";
+import useIsOpenStackProbeCollected from "./Part/UseIsOpenStackProbeCollected";
 
 /*
  * Every inventory list of an OpenStack cloud. A cloud can hold hundreds of
@@ -275,6 +276,8 @@ export function getOpenStackLinkColumn(data: {
   getLink: (row: OpenStackResource) => OpenStackPartLink | null;
   hideOnMobile?: boolean | undefined;
   description?: string | undefined;
+  // Off until the viewer asks for it in Customize Columns.
+  isHiddenByDefault?: boolean | undefined;
 }): OpenStackListColumn {
   return {
     id: data.id,
@@ -284,6 +287,7 @@ export function getOpenStackLinkColumn(data: {
     disableSort: true,
     hideOnMobile: data.hideOnMobile,
     headerTooltip: data.description,
+    isHiddenByDefault: data.isHiddenByDefault,
     hasValue: (row: OpenStackResource): boolean => {
       return Boolean(data.getLink(row));
     },
@@ -564,6 +568,10 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     return getOpenStackPartRoutes(props.openStackCloudId);
   }, [props.openStackCloudId]);
 
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(
+    props.openStackCloudId,
+  );
+
   /*
    * A column no row on the page holds is left out. Until a page has arrived, none of the
    * ones that can be empty are drawn, so a column never appears and then goes.
@@ -574,7 +582,8 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
 
   const showsProject: boolean = props.columns.includes(OpenStackColumn.Project);
 
-  const [apiState, setApiState] = useState<OpenStackApiState>("not-reported");
+  // Nothing can be said of what its API says until that has been read.
+  const [apiState, setApiState] = useState<OpenStackApiState>("not-read");
   const [hypervisorsAreListed, setHypervisorsAreListed] = useState<
     boolean | undefined
   >(undefined);
@@ -812,6 +821,7 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     kind: props.kind,
     api: apiState,
     hypervisorsAreListed: hypervisorsAreListed,
+    isProbeCollected: isProbeCollected,
   });
 
   const filters: Array<Filter<OpenStackResource>> = useMemo(() => {

@@ -580,7 +580,8 @@ start_database_agent() {
     -e DATABASE_QUERY_EVENTS=false \
     -e DATABASE_SERVER_ID= \
     "$DATABASE_AGENT_COLLECTOR_IMAGE" \
-    --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml >/dev/null
+    --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml \
+    --set=service::telemetry::metrics::level=none >/dev/null
 }
 
 # ----------------------------------------------------------------------------
@@ -635,6 +636,24 @@ while time.time() < end:
   record memcached-evictions-high
   wait "$writer" 2>/dev/null
 
+  # What a cloud's services do: hold connections to each, ask all the time, and come back.
+  python3 -I -c '
+import socket, sys, time
+held = {}
+while True:
+    for address in sys.argv[1:]:
+        try:
+            while len(held.setdefault(address, [])) < 20:
+                held[address].append(socket.create_connection((address, 11211), 1))
+            for one in held[address]:
+                one.sendall(b"get ou-nothing\r\n")
+                one.recv(100)
+        except OSError:
+            held[address] = []
+    time.sleep(1)
+' "$(node_address 1)" "$(node_address 2)" &
+  clients=$!
+  sleep 10
   docker stop ou-memcached2 >/dev/null
   sleep 5
   RECORD_GAP=10 record memcached-one-down
@@ -642,8 +661,10 @@ while time.time() < end:
   sleep 5
   RECORD_GAP=10 record memcached-cluster-down
   docker start ou-memcached1 ou-memcached2 >/dev/null
-  sleep 5
+  sleep 10
   RECORD_GAP=10 record memcached-recovered
+  kill "$clients" 2>/dev/null
+  wait "$clients" 2>/dev/null || true
 }
 
 # ----------------------------------------------------------------------------
@@ -733,6 +754,14 @@ EOF
   start_backend 18082
   sleep 10
   RECORD_GAP=10 record haproxy-recovered
+
+  # Its exporter is inside it, so a stopped HAProxy answers nothing at all.
+  docker stop ou-haproxy >/dev/null
+  sleep 5
+  RECORD_GAP=10 record haproxy-down
+  docker start ou-haproxy >/dev/null
+  sleep 10
+  RECORD_GAP=10 record haproxy-recovered-from-down
   kill "$traffic" 2>/dev/null
 }
 
@@ -916,6 +945,8 @@ start_collector() {
     -e OPENSTACK_CLOUD_NAME=recording \
     -e 'OPENSTACK_EXPORTER_CLOUDS=[]' \
     -e OPENSTACK_EXPORTER_ADDRESS=127.0.0.1:1 \
+    -e 'OPENSTACK_QUOTA_CLOUDS=[]' \
+    -e OPENSTACK_QUOTA_EXPORTER_ADDRESS=127.0.0.1:1 \
     -e 'OPENSTACK_WORKER_STATE_CLOUDS=[]' \
     -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:1 \
     -e 'OPENSTACK_LIBVIRT_EXPORTER_TARGETS=[]' \

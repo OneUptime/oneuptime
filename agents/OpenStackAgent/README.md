@@ -8,7 +8,7 @@ One agent watches one cloud: one Keystone, with one region or several. It only e
 
 ## Prerequisites
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later and root
+- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later, glibc 2.34 or later (RHEL 9, Ubuntu 22.04, Debian 12) and root
 - A route from that machine to Keystone and to each service's public endpoint
 - A credential for the cloud: see [Access](#access)
 - A **OneUptime Telemetry Ingestion Key**: create one from *Project Settings → Telemetry Ingestion Keys*
@@ -84,7 +84,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia and Ironic are not here because those clouds do not run them. `troubleshoot.sh` asks them too, where a cloud does.
+Octavia, Ironic, Heat and Magnum are not here because those clouds do not run them. `troubleshoot.sh` asks them too, where a cloud does.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 
@@ -244,7 +244,7 @@ ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
-COMPOSE_PROFILES=openstack-exporter
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
 ```
 
 And start it: `docker compose up -d`.
@@ -305,7 +305,7 @@ Kolla-Ansible serves it on its internal VIP on `9198`, behind an HAProxy that gi
 | Everything of Cinder's | It asks the catalog for `volumev3`, and finds no such thing where Cinder registers as `block-storage` | **Volumes** and **Storage pools** stay empty, and **Services** has no Block Storage API, `cinder-volume` or `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** and **Volume Stuck** stay quiet |
 | How many instances a hypervisor holds, and its aggregates | Nova's list of hypervisors fails at the newest microversion, which Kolla-Ansible asks for | Those two on **Hypervisors**, and what a lost host says it takes with it. Its vCPUs, memory and disk are still there: they come from Placement |
 | Domains | It has no such series | **Domains** stays empty |
-| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**, and an image stuck on its way to `active` goes unnoticed |
+| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**. **Image Stuck** stays quiet, so an image stuck on its way to `active` goes unnoticed |
 | A network's MTU | It has no such label | That line on a network's page |
 
 ## What the cloud stands on
@@ -343,7 +343,7 @@ sudo -E bash install-traces.sh
 
 It uses Docker Compose where the machine has it, and otherwise a systemd service (`bash install-traces.sh native` asks for that). It listens on `127.0.0.1:4318`, because [OSProfiler's OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) can only post plain HTTP, removes what a traced call was handed (`args`, `kwargs`, `result`, `db.params`), stamps the cloud, region and machine, which the driver never says, and forwards the rest to OneUptime over TLS.
 
-It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, and this, with a key of your own that is the same on every service:
+It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, below version 1.44, which [hangs a service as it starts a subprocess](https://github.com/open-telemetry/opentelemetry-python/issues/5789), and this, with a key of your own that is the same on every service:
 
 ```ini
 [profiler]
@@ -353,7 +353,7 @@ connection_string = otlp://127.0.0.1:4318
 trace_sqlalchemy = False
 ```
 
-Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement, `nova-conductor`, `nova-scheduler` and `cinder-volume` send nothing, each for its own reason: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
+Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement sends nothing, and on 2025.2 `nova-conductor`, `nova-scheduler` and `cinder-volume` do not either: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
 
 | Setting | Default | What it is for |
 | --- | --- | --- |
@@ -362,6 +362,34 @@ Nothing arrives until a request is signed with that key: only a signed request i
 | `OPENSTACK_NODE_NAME` | this machine's name | What a span says it came from |
 | `OPENSTACK_TRACES_LISTEN_ADDRESS` | `127.0.0.1:4318` | Without Docker: where it listens. For services in containers of their own, such as OpenStack-Ansible's in LXC |
 | `OPENSTACK_TRACES_PUBLISH_ADDRESS` | `127.0.0.1` | With Docker: the address the port is published on |
+
+## OneUptime AI agent
+
+`docker-compose.yml` also has `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`, profile `openstack-ai-agent`). With it, OneUptime AI reads the cloud while it investigates an incident or alert, and cites what it ran. It shares this folder's `.env`, and registers under the same `OPENSTACK_CLOUD_NAME` the collector reports.
+
+It only reads. It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each command becomes one `GET` to the service that answers it. Its policy has no command that changes a cloud, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
+
+`install.sh` starts it beside the exporter it bundles (`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`). To start it yourself:
+
+```bash
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent docker compose up -d
+```
+
+- **The credential.** It uses the entry of `clouds.yaml` the exporter reads: what the access level you chose lets that credential see is what it can read. A credential made with access rules needs to be [replaced](#replacing-a-credential) from the current `access/application-credential-access-rules.json`, which gained a few `GET` paths for the agent; until then, the commands those paths answer come back with a `403` and everything else works.
+- **Your own exporter.** There is no `clouds.yaml` here then. Make a credential for the agent, and set in `.env`:
+
+  ```bash
+  COMPOSE_PROFILES=openstack-ai-agent
+  OPENSTACK_AI_CLOUDS_FILE=/dev/null
+  OPENSTACK_AUTH_URL=https://keystone.example.com:5000
+  ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=...
+  ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=...
+  ```
+
+- **Without Docker.** `install.sh --without-docker` does not run it. Run the Docker install to have OneUptime AI read this cloud.
+- **Other settings.** `ONEUPTIME_AI_INVESTIGATION=false` stops investigations. `ONEUPTIME_AI_OPENSTACK_CLOUD` picks another entry of `clouds.yaml`, `ONEUPTIME_AI_OPENSTACK_REGION` and `ONEUPTIME_AI_OPENSTACK_INTERFACE` the region and endpoints a command reads, and `ONEUPTIME_AI_OPENSTACK_CA_FILE` a certificate authority.
+
+What it may run, and how to troubleshoot it: [Infrastructure AI Agents](https://oneuptime.com/docs/ai/infrastructure-ai-agents#openstack-clouds).
 
 ## Settings
 
@@ -379,7 +407,7 @@ Answers to the installer. Set any of them in the environment to skip its questio
 | `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none |
 | `OPENSTACK_CA_FILE` | No | A PEM file with the CA of a cloud that has its own. The installer keeps a copy as `ca.pem` next to `clouds.yaml`, and `.env` then says `./ca.pem` |
 | `OPENSTACK_EXPORTER_USER` | No | The `uid:gid` the exporter's container runs as, which must own `clouds.yaml`. The installer sets it (default: `65532:65532`) |
-| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter. The installer sets it |
+| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter, and `openstack-ai-agent` the [AI agent](#oneuptime-ai-agent). The installer sets it |
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | `host:port` of [an exporter running without `--multi-cloud`](#bring-your-own-exporter). `.env` holds it in brackets |
 | `OPENSTACK_RABBITMQ_TARGETS`, `OPENSTACK_MARIADB_TARGETS`, `OPENSTACK_MEMCACHED_TARGETS`, `OPENSTACK_HAPROXY_TARGETS`, `OPENSTACK_NETWORK_EXPORTER_TARGETS`, `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | [What the cloud stands on](#what-the-cloud-stands-on). The installer keeps them across a re-run, and never asks |
 | `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target in those lists that does not say its own (default: the first region) |
@@ -431,20 +459,21 @@ Monitoring must never be what takes a cloud down, so the defaults are gentle. Ea
 
 | Setting | Default | Turning it on or changing it gives you | What it costs |
 |---------|---------|---------------------------------|---------------|
-| Slow metrics | Off | Quotas and limits per project, and usage per server: the list is below | One call per project per scrape, so it grows with the number of projects |
+| Project quotas | Off | How much of each quota a project has used, on its page and under Needs attention, and the Project Quota Nearly Reached alert | Four API calls per project, per region, once an hour (Nova one, Cinder two, Neutron one), from an exporter of their own |
+| Slow metrics | Off | Nova's own quota lists and usage per server: the list is below | One call per project per scrape, so it grows with the number of projects |
 | Per-port series | Off | `openstack_neutron_port`, `openstack_neutron_ports`, `openstack_neutron_ports_no_ips`, `openstack_neutron_ports_lb_not_active` | An unscoped list of every port. On a large cloud that [can saturate Neutron and cause cascading failures](https://github.com/openstack-exporter/openstack-exporter/issues/540), so leave it off unless you know your port count is small |
 | Services a cloud may not run | On | Load balancers, bare metal, stacks, clusters, shares, DNS, object storage, databases and Gnocchi, where the cloud has them | A cloud without one pays one login each 5 minutes. Designate costs one call per zone per scrape, so it grows with the number of zones |
 | Scrape intervals | 2 and 5 minutes | Fresher data, or less load | Twice as often is twice the API calls. Keep each `scrape_timeout` under its `scrape_interval`, so a slow scrape never stacks on the one before |
 
+- **Project quotas:** run `install.sh` again with `OPENSTACK_COLLECT_QUOTAS=true`. It starts a second exporter, `openstack-quota-exporter`, that reads nothing else, and the collector asks it once an hour for `openstack_nova_limits_*`, `openstack_neutron_quota_*`, `openstack_cinder_limits_*` and `openstack_cinder_volume_type_quota_gigabytes`. They change slowly, and an exporter reads the same things whichever job asks, so reading them less often takes an exporter of their own. Your own exporter has no such thing: the agent reads what it says, on every scrape.
 - **Slow metrics:** delete the `--disable-metric` line for what you want, from the exporter's `command` in `docker-compose.yml`, or from `ExecStart` in `oneuptime-openstack-exporter.service` without Docker. The cost is one call per project per scrape:
 
   | Delete | To collect |
   |--------|------------|
   | `--disable-metric=nova-quota_cores` | `openstack_nova_quota_*` |
-  | `--disable-metric=nova-limits_vcpus_max` | `openstack_nova_limits_*` |
-  | `--disable-metric=neutron-quota_network` | `openstack_neutron_quota_*` |
-  | `--disable-metric=cinder-limits_volume_max_gb` | `openstack_cinder_limits_*`, `openstack_cinder_volume_type_quota_gigabytes` |
   | `--disable-metric=nova-server_local_gb` | `openstack_nova_server_local_gb`, usage per server. This one is a single usage report that walks every server rather than a call per project, and it is slow on a large cloud all the same |
+
+  The three lines that leave project quotas out of this exporter (`--disable-metric=nova-limits_vcpus_max`, `--disable-metric=neutron-quota_network`, `--disable-metric=cinder-limits_volume_max_gb`) stay in. Deleting them reads them every two minutes as well.
 
   Each flag names the series that reads the rest of its row, which is why one line turns them all off. Do not use the exporter's own `--disable-slow-metrics` instead: it also takes `openstack_glance_image_*`, the image list the Images page reads with one call. Neutron's list of quotas is an admin's alone at every level but level 1, so `openstack_neutron_quota_*` needs that level.
 - **Per-port series:** delete the four `--disable-metric=neutron-port*` lines, in the same place.
