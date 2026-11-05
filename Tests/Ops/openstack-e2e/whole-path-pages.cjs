@@ -151,8 +151,11 @@ async function lookAt(page, target, seen) {
   }
   report.emptyStates = await shown(page, EMPTY_MARKS);
   if (target.isNamed) {
+    const allowed = target.allowEmpty || [];
     for (const line of report.emptyStates) {
-      report.problems.push(`drew an empty state: ${line}`);
+      if (!allowed.includes(line.split(":")[0])) {
+        report.problems.push(`drew an empty state: ${line}`);
+      }
     }
   }
   const words = await page

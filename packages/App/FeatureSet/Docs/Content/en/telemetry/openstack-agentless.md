@@ -89,6 +89,10 @@ Pick the regions to read, name the cloud, and click **Connect Cloud**. The cloud
 
 The cloud's **Overview** shows a **Data Collection** card. It reads **Checking** until the first collection, which starts within a minute, then **Collecting**, and the pages fill in. When some services were read and another was not, it says which. If no probe comes for the cloud for 15 minutes, because it is offline or too old, it reads **Not collecting** and says so, whatever the last collection found.
 
+The **Data Collection** card on the cloud's **Settings** page holds what you connected it with:
+
+![The Data Collection card on a cloud's Settings page: its Keystone address, its probe, the application credential it logs in with, its regions, the certificate it trusts and how often it collects](/docs/static/images/OpenStackDataCollection.png)
+
 ## Connect a cloud from the API or Terraform
 
 A cloud's connection settings are ordinary fields of the [OpenStack Cloud resource](/reference/open-stack-cloud) in the API, at `/api/openstack-cloud`, so a cloud can be connected with no dashboard at all. With Terraform that is `oneuptime_openstack_cloud`:
