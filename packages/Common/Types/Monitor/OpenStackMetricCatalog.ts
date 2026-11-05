@@ -40,6 +40,7 @@ export type OpenStackMetricCategory =
   | "Bare Metal"
   | "Databases"
   | "Metrics"
+  | "Key Manager"
   | "Projects"
   | "Checks"
   | "Capacity";
@@ -2773,6 +2774,89 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     service: OpenStackServiceType.Metric,
     identityAttributes: [],
   }),
+  // Object storage: Swift, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_object_store_up",
+    friendlyName: translationKey("Object Storage API Up"),
+    description:
+      "Whether the exporter's read of Swift answered (1) or failed (0). A credential Swift refuses reads 0 just as a stopped proxy does, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_object_store_bytes",
+    friendlyName: translationKey("Object Container Size"),
+    description:
+      "How much a container holds. Only the containers of the credential's own project, with no project label, recorded: Swift keeps every other project's account from anything without ResellerAdmin.",
+    category: "Storage",
+    unit: "bytes",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["container_name"],
+    probeOnlyAttributes: ["tenant_id"],
+  }),
+  metric({
+    metricName: "openstack_object_store_objects",
+    friendlyName: translationKey("Objects in a Container"),
+    description:
+      "How many objects a container holds. Only the containers of the credential's own project, with no project label, recorded.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["container_name"],
+    probeOnlyAttributes: ["tenant_id"],
+  }),
+  // Key manager: Barbican. Only a probe sends these: the exporter has no reader for it, recorded.
+  metric({
+    metricName: "openstack_barbican_up",
+    friendlyName: translationKey("Key Manager API Up"),
+    description:
+      "Whether Barbican's API answered (1) or failed (0). Only a probe sends this. A credential it refuses reads 1, because it answered.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_secrets",
+    friendlyName: translationKey("Secrets"),
+    description:
+      "How many secrets this credential's own project holds. Only a probe sends this. Barbican answers about one project at a time, an admin too, and OneUptime reads no secret itself.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_orders",
+    friendlyName: translationKey("Secret Orders"),
+    description:
+      "How many orders this credential's own project holds. Only a probe sends this.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_containers",
+    friendlyName: translationKey("Secret Containers"),
+    description:
+      "How many secret containers this credential's own project holds. Only a probe sends this.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
   // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_trove_up",
@@ -3033,6 +3117,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Bare Metal",
     "Databases",
     "Metrics",
+    "Key Manager",
     "Projects",
     "Checks",
     "Capacity",

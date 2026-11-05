@@ -518,6 +518,14 @@ export function isOpenStackGnocchiBacklogged(facts: {
   );
 }
 
+/*
+ * Swift says nothing of how much room a cloud has unless its storage servers' /recon are read, and a container
+ * has no state of its own to be wrong in. So how large one is heading is the one thing here that could want
+ * someone, and this is a line a person would want to hear about rather than one anything breaks at.
+ */
+export const OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES: number =
+  1024 * 1024 * 1024 * 1024;
+
 export function isOpenStackDatabaseInstanceInError(
   status: string | null | undefined,
 ): boolean {

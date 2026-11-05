@@ -237,6 +237,18 @@ const FACTS_ON_AN_API_ROW: ReadonlyMap<string, OpenStackApiRowFact> = new Map<
   OpenStackApiRowFact
 >([
   [
+    "openstack_barbican_secrets",
+    { service: OpenStackServiceType.KeyManager, fact: "secretCount" },
+  ],
+  [
+    "openstack_barbican_orders",
+    { service: OpenStackServiceType.KeyManager, fact: "orderCount" },
+  ],
+  [
+    "openstack_barbican_containers",
+    { service: OpenStackServiceType.KeyManager, fact: "containerCount" },
+  ],
+  [
     "openstack_gnocchi_status_measures_to_process",
     {
       service: OpenStackServiceType.Metric,
@@ -300,6 +312,8 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_sharev2_share_gb",
   "openstack_sharev2_share_status",
   "openstack_sharev2_agent_state",
+  "openstack_object_store_bytes",
+  "openstack_object_store_objects",
   "openstack_trove_instance_status",
   "openstack_trove_instance_volume_size_gb",
   "openstack_trove_instance_volume_used_gb",
@@ -1467,6 +1481,42 @@ function foldShare(data: {
 }
 
 /*
+ * A Swift container, from either of its two series. The exporter says only its name and no project: its
+ * series are the credential's own project's, recorded. A name is unique only within an account and a region,
+ * so both are in the row's id, as far as a collector says them. A probe says whose it is.
+ */
+function foldObjectContainer(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const name: string | null = getLabel(data.attributes, "container_name");
+  if (!name) {
+    return;
+  }
+  const project: string | null = getLabel(data.attributes, "tenant_id");
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.ObjectContainer,
+    externalId: regional(data.region, project ? `${project}/${name}` : name),
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name,
+    regionName: data.region,
+    openStackProjectId: project,
+  });
+  if (data.metricName === "openstack_object_store_bytes") {
+    entry.diskAllocatedBytes = data.value;
+  } else {
+    entry.facts["objectCount"] = data.value;
+  }
+}
+
+/*
  * A database, from any of Trove's three series about it. Each carries the instance's labels, and the
  * two sizes are in their values. An instance that isn't running reads 0 used, recorded in BUILD and
  * ERROR. Why one failed is only said by a probe, which an admin's read of Trove's mgmt API tells.
@@ -2537,6 +2587,17 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_designate_recordsets_status":
       foldDnsRecordset({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_object_store_bytes":
+    case "openstack_object_store_objects":
+      foldObjectContainer({
+        buffer,
+        attributes,
+        region,
+        value,
+        observedAt,
+        metricName,
+      });
       return;
     case "openstack_trove_instance_status":
     case "openstack_trove_instance_volume_size_gb":

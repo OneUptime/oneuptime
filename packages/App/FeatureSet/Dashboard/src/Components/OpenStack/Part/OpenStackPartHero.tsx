@@ -43,6 +43,7 @@ export const OPENSTACK_PART_SLUGS: Partial<
   [OpenStackResourceKind.ContainerCluster]: "container-cluster",
   [OpenStackResourceKind.Share]: "share",
   [OpenStackResourceKind.DatabaseInstance]: "database-instance",
+  [OpenStackResourceKind.ObjectContainer]: "object-container",
   [OpenStackResourceKind.DnsZone]: "dns-zone",
 };
 
@@ -64,6 +65,7 @@ const ICONS: Partial<Record<OpenStackResourceKind, IconProp>> = {
   [OpenStackResourceKind.ContainerCluster]: IconProp.Kubernetes,
   [OpenStackResourceKind.Share]: IconProp.Folder,
   [OpenStackResourceKind.DatabaseInstance]: IconProp.Database,
+  [OpenStackResourceKind.ObjectContainer]: IconProp.Cube,
   [OpenStackResourceKind.DnsZone]: IconProp.Globe,
 };
 
@@ -84,6 +86,7 @@ const ACCENTS: Partial<Record<OpenStackResourceKind, ResourcePartAccent>> = {
   [OpenStackResourceKind.ContainerCluster]: "sky",
   [OpenStackResourceKind.Share]: "emerald",
   [OpenStackResourceKind.DatabaseInstance]: "sky",
+  [OpenStackResourceKind.ObjectContainer]: "sky",
   [OpenStackResourceKind.DnsZone]: "sky",
 };
 

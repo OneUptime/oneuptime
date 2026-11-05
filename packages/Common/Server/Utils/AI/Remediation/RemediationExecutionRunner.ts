@@ -550,12 +550,18 @@ export function describeOpenStackReachForFeed(
 export function describeProposedPlanForFeed(data: {
   sourceLabel: string;
   plan: AiRemediationCommandPlan;
+  // A workflow's step wrote it, not a model: "AI composed" would not be true.
+  isProposedByWorkflow?: boolean | undefined;
 }): MarkdownText {
   const count: number = data.plan.commands.length;
   const first: AiRemediationCommand | undefined = data.plan.commands[0];
   const gitOps: MarkdownText | string = mdText`${describeGitOpsPutBackForFeed(
     data.plan.commands,
   )}${describeOpenStackReachForFeed(data.plan.commands)}`;
+
+  if (data.isProposedByWorkflow) {
+    return mdText`⚡ **${data.sourceLabel} proposes a fix.**${gitOps} Review the exact command and why, then approve with one click to run it.`;
+  }
 
   if (first?.rolledBackChangeId) {
     return mdText`⚡ **${data.sourceLabel}: AI proposes rolling back a recorded change first, in a ${count}-command remediation plan.** Its first command is ${first.command}.${gitOps} Review the exact commands and reasoning, then approve with one click to run them.`;
@@ -1764,23 +1770,38 @@ export default class RemediationExecutionRunner {
       return;
     }
 
+    await this.announceProposedPlan({ suggestion, plan: recordedPlan });
+  }
+
+  /*
+   * What a plan waiting for a person says, whoever proposed it: on the incident or alert,
+   * and in the channel, with its buttons.
+   */
+  public static async announceProposedPlan(data: {
+    suggestion: AutoRemediationSuggestion;
+    plan: AiRemediationCommandPlan;
+    isProposedByWorkflow?: boolean | undefined;
+  }): Promise<void> {
+    const { suggestion, plan } = data;
+
     // A cloud change is dry-run for the person who approves it.
     CloudChangeDryRun.startForProposedPlan({
       suggestionId: suggestion.id!,
-      plan: recordedPlan,
+      plan,
     });
 
     await this.postFeedItem({
       suggestion,
       markdown: describeProposedPlanForFeed({
-        sourceLabel,
-        plan: recordedPlan,
+        sourceLabel: this.describeSource(suggestion),
+        plan,
+        isProposedByWorkflow: data.isProposedByWorkflow,
       }),
       pingWorkspace: true,
       // Approve it, or dismiss it, from the channel.
       appendMessageBlocks: await RemediationChatMessage.getProposalBlocks({
         suggestion,
-        commandPlan: recordedPlan,
+        commandPlan: plan,
       }),
     });
   }
@@ -1791,7 +1812,7 @@ export default class RemediationExecutionRunner {
    * resource, for other incidents and alerts (RemediationTrackRecordReader).
    * The plan as it was when there is nothing to add or it cannot be read.
    */
-  private static async withTrackRecords(data: {
+  public static async withTrackRecords(data: {
     suggestion: AutoRemediationSuggestion;
     plan: AiRemediationCommandPlan;
   }): Promise<AiRemediationCommandPlan> {

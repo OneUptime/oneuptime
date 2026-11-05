@@ -168,6 +168,8 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_designate_recordsets_status",
   "openstack_designate_agent_state",
   "openstack_gnocchi_up",
+  "openstack_object_store_up",
+  "openstack_barbican_up",
   "openstack_trove_up",
   "openstack_trove_instance_status",
   "openstack_sharev2_up",
@@ -246,6 +248,10 @@ describe("OpenStackMetricCatalog", () => {
           })
           .sort(),
       ).toEqual([
+        "openstack_barbican_containers",
+        "openstack_barbican_orders",
+        "openstack_barbican_secrets",
+        "openstack_barbican_up",
         "openstack_cinder_backup_gb",
         "openstack_cinder_snapshot_gb",
         "openstack_cloudkitty_rated",
@@ -301,6 +307,8 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_nova_flavor",
         "openstack_nova_server_status",
         "openstack_nova_up",
+        "openstack_object_store_bytes",
+        "openstack_object_store_objects",
         "openstack_placement_up",
         "openstack_sharev2_share_gb",
         "openstack_sharev2_share_status",
@@ -691,8 +699,11 @@ describe("OpenStackMetricCatalog", () => {
 
     test("every service has a scrape job under the name the series say", () => {
       for (const service of Object.values(OpenStackServiceType)) {
-        // The exporter has no series for CloudKitty, so only a probe reads it.
-        if (service !== OpenStackServiceType.Rating) {
+        // The exporter has no reader for Barbican, recorded, and no series for CloudKitty.
+        if (
+          service !== OpenStackServiceType.KeyManager &&
+          service !== OpenStackServiceType.Rating
+        ) {
           expect(COLLECTOR_CONFIG).toContain(`openstack_service: ${service}`);
         }
       }

@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 107 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove or Designate to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 110 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove, Designate, Gnocchi or Swift to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -167,6 +167,9 @@ Every template reads at least three collections of what it watches, and fires on
 | Metrics API Down | Availability | Critical | `openstack_gnocchi_up` and `up` for `gnocchi`, Min per region, **past 15 minutes** | The exporter's read of Gnocchi failed, or the exporter did not answer. A credential Gnocchi refuses reads the same, so a cloud whose credential has never read Gnocchi isn't offered this | Both read 1 |
 | Gnocchi No Processors | Metrics | Critical | `openstack_gnocchi_status_metricd_processors`, Max per region, **past 15 minutes** | Gnocchi's status names no processor. Its API goes on answering and taking measures, so **Metrics API Down** says nothing of this | It names one |
 | Gnocchi Backlog Growing | Metrics | Warning | `openstack_gnocchi_status_measures_to_process`, a line through the **past 2 hours** | The line passes 10,000 measures within the next hour. A backlog past that and falling doesn't fire | The line no longer gets to 9,000 |
+| Object Storage API Down | Availability | Critical | `openstack_object_store_up` and `up` for `object-store`, Min per region, **past 15 minutes** | The exporter's read of Swift failed, or the exporter did not answer. A credential Swift refuses reads the same, so a cloud whose credential has never read Swift isn't offered this | Both read 1 |
+| Object Container Growth Forecast | Storage | Warning | `openstack_object_store_bytes`, a line through the **past 7 days**, per container | The line passes 1 TiB within the next week. Change it to what your cloud should hear about | The line no longer gets to 90% of that |
+| Key Manager API Down | Availability | Critical | `openstack_barbican_up`, Min per region, **past 15 minutes**. Only a probe offers this | Below 1. The exporter has no reader for Barbican at all | Reads 1 |
 | Databases API Down | Availability | Critical | `openstack_trove_up` and `up` for `database`, Min per region, **past 15 minutes** | The exporter's read of Trove failed, or the exporter did not answer. It reads Trove's mgmt API, so a credential refused reads the same as a stopped API, and a cloud whose credential has never read Trove isn't offered this | Both read 1 |
 | Database Instance in Error | Databases | Warning | A count of `openstack_trove_instance_status` with each error status, per instance, **past 15 minutes** | An instance holds an error status for the whole window | It is fixed or deleted |
 | Database Instance Stuck | Databases | Warning | A count of `openstack_trove_instance_status` with each passing status, per instance, **past 1 hour** | An instance holds a passing status for the whole window. Trove has no list of its workers, so this is what says `trove-taskmanager` stopped | It reaches its next status, or is deleted |
@@ -561,6 +564,27 @@ Only a cloud that runs Gnocchi sends these, and a cloud without it shows no trac
 | `openstack_gnocchi_status_measures_to_process` | `count` | Max | How many measures `gnocchi-metricd` has yet to process. |
 | `openstack_gnocchi_status_metric_having_measures_to_process` | `count` | Max | How many metrics have measures waiting. |
 | `openstack_gnocchi_status_metricd_processors` | `count` | Max | How many processors Gnocchi's status names. |
+
+### Object storage
+
+Only a cloud that runs Swift sends these, and a cloud without it shows no trace of them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_object_store_up` | | Min | Whether the exporter's read of Swift answered. A credential Swift refuses reads 0 just as a stopped proxy does. |
+| `openstack_object_store_bytes` | `bytes` | Max | How much a container holds, with `container_name`. Only the credential's own project's, with no project label. |
+| `openstack_object_store_objects` | `count` | Max | How many objects a container holds, with `container_name`. Only the credential's own project's, with no project label. |
+
+### Key manager
+
+Only a probe sends these, on a cloud whose catalog names Barbican: the exporter has no reader for it. A cloud without it shows no trace of them, and neither does a cloud the agent collects.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_barbican_up` | | Min | Whether Barbican's API answered. A credential it refuses reads 1, because it answered. Only a probe sends this. |
+| `openstack_barbican_secrets` | `count` | Max | How many secrets this credential's own project holds. Only a probe sends this. |
+| `openstack_barbican_orders` | `count` | Max | How many orders this credential's own project holds. Only a probe sends this. |
+| `openstack_barbican_containers` | `count` | Max | How many secret containers this credential's own project holds. Only a probe sends this. |
 
 ### Databases
 

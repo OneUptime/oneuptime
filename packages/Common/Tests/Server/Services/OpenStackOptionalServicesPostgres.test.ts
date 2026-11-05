@@ -213,6 +213,19 @@ function dnsRecordset(
   });
 }
 
+function objectContainer(
+  id: string,
+  overrides: Partial<ParsedOpenStackResource> = {},
+): ParsedOpenStackResource {
+  return resource({
+    kind: OpenStackResourceKind.ObjectContainer,
+    externalId: `RegionOne/${id}`,
+    name: id,
+    status: null,
+    ...overrides,
+  });
+}
+
 function scrape(
   service: string,
   overrides: Partial<OpenStackOptionalServiceScrape> = {},
@@ -1145,6 +1158,22 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       expect(summary.closedServices).toEqual([OpenStackServiceType.Dns]);
     });
 
+    test("the summary counts Swift's containers", async () => {
+      await write([
+        api(OpenStackServiceType.ObjectStore),
+        objectContainer("a"),
+        objectContainer("b"),
+      ]);
+      expect(
+        (
+          await OpenStackResourceService.getInventorySummary({
+            projectId: PROJECT_ID,
+            openStackCloudId: CLOUD_ID,
+          })
+        ).objectContainerCount,
+      ).toBe(2);
+    });
+
     test("one that has read up once is down, and not closed", async () => {
       await write([
         api(OpenStackServiceType.Database, {
@@ -1311,6 +1340,15 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       });
       expect(radius.dnsZoneCount).toBe(2);
       expect(radius.projectCount).toBe(2);
+    });
+
+    test("Swift's API reaches its containers, and an agent's have no project to say", async () => {
+      await write([objectContainer("a"), objectContainer("b")]);
+      const radius: OpenStackBlastRadius = await radiusOf({
+        kind: OpenStackResourceKind.Api,
+        name: OpenStackServiceType.ObjectStore,
+      });
+      expect(radius.objectContainerCount).toBe(2);
     });
 
     test("Trove's API reaches its databases, by project", async () => {

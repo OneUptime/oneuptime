@@ -43,6 +43,8 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackDatabaseInventory,
+  OpenStackKeyManagerInventory,
+  OpenStackObjectStoreInventory,
   OpenStackDnsInventory,
   OpenStackMetricInventory,
   OpenStackPlacementInventory,
@@ -94,6 +96,8 @@ import collectDns, {
   DNS_ALL_PROJECTS_HEADERS,
 } from "./Collectors/DnsCollector";
 import collectIdentity from "./Collectors/IdentityCollector";
+import collectKeyManager from "./Collectors/KeyManagerCollector";
+import collectObjectStore from "./Collectors/ObjectStoreCollector";
 import collectMetric from "./Collectors/MetricCollector";
 import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
@@ -217,6 +221,8 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Database,
   OpenStackServiceType.Metric,
   OpenStackServiceType.Dns,
+  OpenStackServiceType.ObjectStore,
+  OpenStackServiceType.KeyManager,
   OpenStackServiceType.Rating,
 ]);
 
@@ -1395,6 +1401,18 @@ export default class OpenStackCollector {
             const inventory: OpenStackDnsInventory = {};
             byService.dns = inventory;
             work = collectDns(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.ObjectStore: {
+            const inventory: OpenStackObjectStoreInventory = {};
+            byService["object-store"] = inventory;
+            work = collectObjectStore(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.KeyManager: {
+            const inventory: OpenStackKeyManagerInventory = {};
+            byService["key-manager"] = inventory;
+            work = collectKeyManager(context(inventory));
             break;
           }
           case OpenStackServiceType.Database: {

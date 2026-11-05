@@ -51,6 +51,8 @@ import OpenStackCloudContainerClusters from "../Pages/OpenStack/View/ContainerCl
 import OpenStackCloudContainerClusterDetail from "../Pages/OpenStack/View/ContainerClusterDetail";
 import OpenStackCloudDnsZones from "../Pages/OpenStack/View/DnsZones";
 import OpenStackCloudDnsZoneDetail from "../Pages/OpenStack/View/DnsZoneDetail";
+import OpenStackCloudObjectContainers from "../Pages/OpenStack/View/ObjectContainers";
+import OpenStackCloudObjectContainerDetail from "../Pages/OpenStack/View/ObjectContainerDetail";
 import OpenStackCloudDatabaseInstances from "../Pages/OpenStack/View/DatabaseInstances";
 import OpenStackCloudDatabaseInstanceDetail from "../Pages/OpenStack/View/DatabaseInstanceDetail";
 import OpenStackCloudShares from "../Pages/OpenStack/View/Shares";
@@ -744,6 +746,39 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        {/* Object storage: only a cloud that runs Swift links here. */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS,
+          )}
+          element={
+            <OpenStackCloudObjectContainers
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL,
+          )}
+          element={
+            <OpenStackCloudObjectContainerDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL
+                ] as Route
               }
             />
           }

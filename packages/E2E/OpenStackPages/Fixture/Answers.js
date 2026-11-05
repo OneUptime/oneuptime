@@ -153,6 +153,7 @@ export function getInventorySummary(allRows, regionName) {
     containerClusterCount: ofKind(rows, "ContainerCluster").length,
     shareCount: ofKind(rows, "Share").length,
     databaseInstanceCount: ofKind(rows, "DatabaseInstance").length,
+    objectContainerCount: ofKind(rows, "ObjectContainer").length,
     dnsZoneCount: ofKind(rows, "DnsZone").length,
     closedServices: Array.from(
       new Set(
@@ -731,6 +732,13 @@ export function getBlastRadius(allRows, part) {
             byProject: countsByProject(inRegion("DnsZone")),
           },
         ]);
+      case "object-store":
+        return finish([
+          {
+            count: "objectContainerCount",
+            byProject: countsByProject(inRegion("ObjectContainer")),
+          },
+        ]);
       case "database":
         return finish([
           {
@@ -890,6 +898,7 @@ export function getProjectSummaries(allRows, projectIds) {
       containerClusterCount: count("ContainerCluster"),
       shareCount: count("Share"),
       databaseInstanceCount: count("DatabaseInstance"),
+      objectContainerCount: count("ObjectContainer"),
       dnsZoneCount: count("DnsZone"),
     };
   });
@@ -997,6 +1006,11 @@ export function getTopologyRead(allRows, regionName) {
     "Instance",
     "Volume",
     "StoragePool",
+    "Share",
+    "ObjectContainer",
+    "DatabaseInstance",
+    "DnsZone",
+    "DnsRecordset",
     "Network",
     "Subnet",
     "Router",

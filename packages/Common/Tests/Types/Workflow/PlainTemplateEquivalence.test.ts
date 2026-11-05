@@ -62,7 +62,7 @@ const CHANGED: Array<string> = [
  * New Relic ones were built simple, so there is no old graph to hold them to.
  */
 const INTEGRATION_TEMPLATE: RegExp =
-  /^(jira|dynamics|zabbix|huntress|datadog|new-relic)-/;
+  /^(jira|dynamics|zabbix|huntress|datadog|new-relic|openstack)-/;
 
 interface Shape {
   nodes: Record<string, { metadataId: string; arguments: JSONValue }>;

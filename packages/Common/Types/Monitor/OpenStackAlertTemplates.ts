@@ -46,6 +46,7 @@ import {
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
@@ -258,6 +259,11 @@ const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
 const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
 const SHARE_GROUP: Array<string> = [REGION, "id", "name"];
 const DATABASE_INSTANCE_GROUP: Array<string> = [REGION, "id", "name"];
+const OBJECT_CONTAINER_GROUP: Array<string> = [
+  REGION,
+  "tenant_id",
+  "container_name",
+];
 const DNS_ZONE_GROUP: Array<string> = [REGION, "id", "name"];
 // One incident per zone, however many of its recordsets went wrong together.
 const DNS_ZONE_OF_RECORDSET_GROUP: Array<string> = [
@@ -284,6 +290,8 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.KeyManager]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.ObjectStore]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Metric]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Dns]: RollingTime.Past15Minutes,
 };
@@ -304,6 +312,8 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
   [OpenStackServiceType.Database]: "openstack_trove_up",
+  [OpenStackServiceType.KeyManager]: "openstack_barbican_up",
+  [OpenStackServiceType.ObjectStore]: "openstack_object_store_up",
   [OpenStackServiceType.Metric]: "openstack_gnocchi_up",
   [OpenStackServiceType.Dns]: "openstack_designate_up",
 };
@@ -3196,6 +3206,98 @@ const metricBacklogGrowingTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Object storage: Swift, on a cloud that runs it ---
+
+const objectStoreApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate(
+  {
+    id: "openstack-object-store-api-down",
+    name: "Object Storage API Down",
+    summary: "Swift's API does not answer for 15 minutes.",
+    description:
+      "Alert when the exporter's read of Swift fails for 15 minutes (openstack_object_store_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. A credential Swift refuses reads the same as a stopped proxy, recorded, so a cloud whose credential has never read Swift isn't offered this. Swift's proxy answers with an object server stopped, so this says nothing of that. Check the swift-proxy-server service and its log, then `openstack object store account show` with this credential.",
+    service: OpenStackServiceType.ObjectStore,
+    collectionMetricName: "up",
+    incidentDescription: `The exporter's read of Swift is failing: its proxy stopped answering, or this credential is no longer allowed its own account, which reads the same. Nothing can read or write an object while the proxy is down. Check the swift-proxy-server service and its log, then openstack object store account show with this credential. The incident resolves on its own once it answers again.`,
+  },
+);
+
+/*
+ * Where a container is heading, read as a line through the last week. Swift says nothing of how much room a
+ * cloud has unless its storage servers' /recon are read, so the line is one a person would want to hear about,
+ * and it's theirs to change. A cloud fills up at its own pace, so this reads a week and looks a week ahead.
+ */
+const objectContainerGrowthTemplate: OpenStackAlertTemplate = {
+  id: "openstack-object-container-growth",
+  name: "Object Container Growth Forecast",
+  forService: OpenStackServiceType.ObjectStore,
+  summary: "A Swift container is heading past 1 TiB within a week.",
+  description:
+    "Alert when a line through the last week of a container's size (openstack_object_store_bytes) passes 1 TiB within the next week. One incident per container. Only the containers of this credential's own project are read, recorded. Change the line to what this cloud should hear about. Check what writes to it, then `openstack object store account show` for how much that project holds.",
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildForecastStep({
+      args,
+      service: OpenStackServiceType.ObjectStore,
+      rollingTime: RollingTime.Past7Days,
+      horizonInHours: 7 * 24,
+      groupByAttributeKeys: OBJECT_CONTAINER_GROUP,
+      query: {
+        alias: "bytes",
+        metricName: "openstack_object_store_bytes",
+        aggregationType: MetricsAggregationType.Max,
+      },
+      value: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
+      words: {
+        incidentTitle: "[OpenStack] Object Container Growth Forecast",
+        incidentDescription:
+          "This container is heading past 1 TiB within a week at its growth over the last one. Nothing is wrong yet. Check what writes to it, then openstack object store account show for how much its project holds. The incident resolves on its own once its growth no longer gets there.",
+        criteriaName: "Object Container Growth Forecast - heading past 1 TiB",
+        criteriaDescription:
+          "Triggers when a line through the last week of a container's size passes 1 TiB within the next week.",
+      },
+    });
+  },
+};
+
+// --- Key manager: Barbican, on a cloud a probe collects ---
+
+const keyManagerApiDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-key-manager-api-down",
+  name: "Key Manager API Down",
+  forService: OpenStackServiceType.KeyManager,
+  requiresProbe: true,
+  summary: "Barbican's API does not answer, on a cloud a probe collects.",
+  description:
+    "Alert when Barbican's API does not answer for 15 minutes (openstack_barbican_up reads 0, which only a probe sends: the exporter has no reader for Barbican at all, recorded). One incident per region. A credential Barbican refuses still reads as answering, because it did. Check the barbican-api service and its log, then `openstack secret list` with a credential that works.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.KeyManager,
+      hasOwnAnchor: true,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "api_up",
+          metricName:
+            OPENSTACK_API_UP_METRIC_BY_SERVICE[OpenStackServiceType.KeyManager],
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Key Manager API Down",
+        incidentDescription:
+          "Barbican's API is not answering, so nothing can read or store a secret: whatever keeps its encryption keys there, such as an encrypted volume, can't be attached. Check the barbican-api service and its log, then openstack secret list with a credential that works. The incident resolves on its own once it answers again.",
+        criteriaName: "Key Manager API Down - not answering",
+        criteriaDescription:
+          "Triggers when Barbican's API does not answer for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -3782,6 +3884,9 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     shareInErrorTemplate,
     shareStuckTemplate,
     databaseApiDownTemplate,
+    keyManagerApiDownTemplate,
+    objectStoreApiDownTemplate,
+    objectContainerGrowthTemplate,
     metricApiDownTemplate,
     metricNoProcessorsTemplate,
     metricBacklogGrowingTemplate,

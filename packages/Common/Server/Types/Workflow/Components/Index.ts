@@ -46,6 +46,7 @@ import TextToJSON from "./JSON/TextToJson";
 import JavaScriptCode from "./JavaScript";
 import JavaScriptCheck from "./JavaScriptCheck";
 import Log from "./Log";
+import ProposeOpenStackFix from "./OpenStack/ProposeFix";
 import MattermostSendMessageToChannel from "./Mattermost/SendMessageToChannel";
 import ManualTrigger from "./Manual";
 import MicrosoftTeamsSendMessageToChannel from "./MicrosoftTeams/SendMessageToChannel";
@@ -73,6 +74,7 @@ import ApiPatch from "./API/Patch";
 
 const Components: Dictionary<ComponentCode> = {
   [ComponentID.AIGenerateText]: new GenerateText(),
+  [ComponentID.OpenStackProposeFix]: new ProposeOpenStackFix(),
   [ComponentID.Webhook]: new WebhookTrigger(),
   [ComponentID.IncomingEmail]: new IncomingEmailWorkflowTrigger(),
   [ComponentID.HuntressIncidentReport]: new HuntressWorkflowTrigger(),

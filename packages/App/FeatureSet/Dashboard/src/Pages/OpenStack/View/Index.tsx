@@ -375,6 +375,15 @@ function getCountChips(
       page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
     },
     {
+      key: "object-containers",
+      icon: IconProp.Cube,
+      label: translator.translatePlural(
+        { one: "{{count}} container", other: "{{count}} containers" },
+        summary.objectContainerCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS,
+    },
+    {
       key: "dns-zones",
       icon: IconProp.Globe,
       label: translator.translatePlural(
@@ -401,6 +410,7 @@ function getCountChips(
     "container-clusters": summary.containerClusterCount,
     shares: summary.shareCount,
     databases: summary.databaseInstanceCount,
+    "object-containers": summary.objectContainerCount,
     "dns-zones": summary.dnsZoneCount,
   };
 

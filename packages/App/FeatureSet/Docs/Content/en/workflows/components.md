@@ -29,6 +29,7 @@ You rarely need it open while you build. Every block's settings end with **How t
 | Read or change incidents, monitors and other records  | [OneUptime data components](#oneuptime-data-components)          |
 | Open, acknowledge and resolve incidents or alerts for another tool's problems | [Incidents and alerts from other tools](#incidents-and-alerts-from-other-tools) |
 | Acknowledge or close a Zabbix problem                 | [Zabbix](#zabbix)                                                 |
+| Ask a person to approve a fix to an OpenStack cloud   | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 A dedicated block beats a generic one: the Slack block knows Slack's limits, and a record block knows the record's fields, so you get clearer errors and logs than from an **API** block doing the same job.
 
@@ -427,6 +428,28 @@ Acknowledge or close a problem in Zabbix, or add a message to it, through Zabbix
 To acknowledge or close, the block reads the problem first. A problem Zabbix resolved already, or acknowledged already when that is all you ask, is left as it is, and the block takes **Unchanged**, as it does for a problem Zabbix does not have, or the token's user cannot see. A problem whose trigger does not allow closing problems by hand is acknowledged instead, and its message says it stays open until Zabbix sees it recover.
 
 **Updated** fires when Zabbix took the update, and **Error** when Zabbix could not be reached or refused it, with Zabbix's reason: Zabbix answers a refused request with a success status, so the block reads what Zabbix answered rather than its status. It returns **Summary**, what it did in a sentence.
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+Asks a person to approve one change to the OpenStack cloud an alert or incident is about. It never makes the change. The fix waits on the alert or incident, and in the channels it posts to, like one OneUptime AI proposes, whatever the cloud's fix mode is. A workflow can't approve what it proposes.
+
+It needs no AI model, and it goes through the same rules as a fix OneUptime AI proposes: the command policy, the agent's write targets and protected targets, and the agent's read of what the change touches. An evacuation of a host that is still up, or one the agent can't read in full, is not proposed.
+
+| Setting              | What it does                                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Alert ID**         | The alert the fix is for, usually the ID your trigger returned. Fill in this or **Incident ID**, and the cloud comes from what the record is linked to.                                                   |
+| **Incident ID**      | The incident the fix is for, usually the ID your trigger returned. Fill in this or **Alert ID**.                                                                                                            |
+| **Command**          | The change to propose, in the one spelling OneUptime takes. See [the changes a fix can make](/docs/telemetry/openstack#fixes). It can use values from earlier blocks, and it is read after they are filled in. |
+| **Why**              | What the person approving it reads first. Left empty, it says which workflow asked.                                                                                                                          |
+| **OpenStack Cloud ID** | Under **More fields**. Only for a record linked to more than one cloud, or to none.                                                                                                                         |
+
+It returns **Suggestion ID** (the fix waiting for approval), **Tier** (Safe or Riskier, as OneUptime reads the command) and **Already Waiting** (true when the same change on that cloud was already waiting, so no second one was added).
+
+**Success** fires once a person has been asked, without waiting for their answer. **Error** fires when nothing was proposed, with why in **Error**: the command is refused, fixes aren't allowed on that cloud yet, or a project's workflows have proposed 20 fixes in the last hour.
+
+The [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) template is a place to start.
 
 ## OneUptime data components
 
