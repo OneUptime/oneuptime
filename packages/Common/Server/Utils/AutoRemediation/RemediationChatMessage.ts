@@ -43,6 +43,12 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  OpenStackChangeReach,
+  OpenStackReachInstance,
+  OpenStackReachProject,
+  describeOpenStackChangeReachCounts,
+} from "../../../Utils/AiRemediation/Resource/OpenStackChangeReach";
 import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
 import AlertService from "../../Services/AlertService";
 import IncidentService from "../../Services/IncidentService";
@@ -124,6 +130,8 @@ export interface RemediationActionValue {
 // What a message shows of a change's reasoning and answers, at most.
 const MAX_RATIONALE_CHARS: number = 400;
 const MAX_DRY_RUN_SUMMARY_CHARS: number = 400;
+// How many projects and instances a change's chat message names.
+const MAX_REACH_NAMES_IN_CHAT: number = 8;
 
 // A value's separator: a suggestion id never holds one.
 const ACTION_VALUE_SEPARATOR: string = ":";
@@ -537,6 +545,11 @@ export default class RemediationChatMessage {
       lines.push(RemediationChatMessage.describeDryRun(command));
     }
 
+    // What it touches: the numbers always, for whoever is about to press Approve.
+    if (command.reach) {
+      lines.push(RemediationChatMessage.describeReach(command.reach));
+    }
+
     const record: RemediationTrackRecord | undefined = command.trackRecord;
 
     if (record) {
@@ -544,6 +557,57 @@ export default class RemediationChatMessage {
     }
 
     return FeedMarkdown.join(lines, getChatLineBreak(data.workspaceType));
+  }
+
+  /*
+   * What an OpenStack change touches, as its cloud's AI agent read it: how many,
+   * whose, and the first of them by name. The names come from the cloud's tenants, so
+   * each goes in as a value, and nothing in one acts.
+   */
+  private static describeReach(reach: OpenStackChangeReach): MarkdownText {
+    const named: (name: string) => MarkdownText = (
+      name: string,
+    ): MarkdownText => {
+      return mdText`${capped(name, 80)}`;
+    };
+    const projects: Array<MarkdownText> = reach.projects
+      .slice(0, MAX_REACH_NAMES_IN_CHAT)
+      .map((project: OpenStackReachProject): MarkdownText => {
+        return mdText`${named(project.name || project.id)} (${String(project.instanceCount)})`;
+      });
+    const instances: Array<MarkdownText> =
+      reach.kind === "changes"
+        ? reach.instances
+            .slice(0, MAX_REACH_NAMES_IN_CHAT)
+            .map((instance: OpenStackReachInstance): MarkdownText => {
+              return named(instance.name || instance.id);
+            })
+        : [];
+    const more: number =
+      reach.kind === "changes" ? reach.instanceCount - instances.length : 0;
+    const lines: Array<MarkdownText> = [
+      mdText`${describeOpenStackChangeReachCounts(reach)}`,
+    ];
+
+    if (projects.length > 0) {
+      lines.push(mdText`Projects: ${FeedMarkdown.join(projects, ", ")}.`);
+    }
+
+    if (instances.length > 0) {
+      lines.push(
+        more > 0
+          ? mdText`Instances: ${FeedMarkdown.join(instances, ", ")}, and ${String(more)} more.`
+          : mdText`Instances: ${FeedMarkdown.join(instances, ", ")}.`,
+      );
+    }
+
+    if (reach.leftBehindCount > 0) {
+      lines.push(
+        mdText`It leaves ${String(reach.leftBehindCount)} more on that host, which it does not name.`,
+      );
+    }
+
+    return FeedMarkdown.join(lines, " ");
   }
 
   private static describeDryRun(command: AiRemediationCommand): MarkdownText {

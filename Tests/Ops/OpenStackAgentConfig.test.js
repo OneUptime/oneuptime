@@ -557,7 +557,13 @@ describe("the OpenStack agent's compose file", () => {
 describe("the access the agent asks for", () => {
   const policyDir = path.join(AGENT, "access", "policy");
 
-  test.each(fs.readdirSync(policyDir))(
+  const WRITE_POLICY = "write-nova.yaml";
+
+  test.each(
+    fs.readdirSync(policyDir).filter((file) => {
+      return file !== WRITE_POLICY;
+    }),
+  )(
     "%s only adds the monitoring role to rules, keeping each default",
     (file) => {
       const policy = yaml.load(read(path.join(policyDir, file)));
@@ -574,6 +580,77 @@ describe("the access the agent asks for", () => {
       }
     },
   );
+
+  describe("the credential that makes changes", () => {
+    const writeRules = JSON.parse(
+      read(
+        path.join(
+          AGENT,
+          "access",
+          "write-application-credential-access-rules.json",
+        ),
+      ),
+    );
+    const policy = yaml.load(read(path.join(policyDir, WRITE_POLICY)));
+
+    test("its policy file only ever takes away: each rule keeps its default and refuses the role", () => {
+      const rules = Object.entries(policy);
+
+      expect(rules.length).toBeGreaterThan(10);
+      for (const [name, rule] of rules) {
+        expect({ name, rule }).toEqual({
+          name,
+          rule: expect.stringMatching(
+            /^\(rule:[a-z_]+( or rule:[a-z_]+)*\) and not role:oneuptime_remediation$/,
+          ),
+        });
+        // Nothing in it widens anything, or names the role an admin.
+        expect(rule).not.toContain("role:oneuptime_monitoring");
+        expect(name).not.toMatch(/context_is_admin|admin_required|admin_only/);
+      }
+    });
+
+    test.each([
+      "os_compute_api:servers:stop",
+      "os_compute_api:servers:rebuild",
+      "os_compute_api:servers:resize",
+      "os_compute_api:os-deferred-delete:force",
+      "os_compute_api:os-admin-actions:reset_state",
+      "os_compute_api:os-admin-password",
+    ])("%s is taken away", (name) => {
+      expect(policy[name]).toContain("not role:oneuptime_remediation");
+    });
+
+    test.each([
+      "os_compute_api:servers:start",
+      "os_compute_api:servers:reboot",
+      "os_compute_api:os-migrate-server:migrate",
+      "os_compute_api:os-migrate-server:migrate_live",
+      "os_compute_api:os-evacuate",
+      "os_compute_api:os-services:update",
+    ])("%s, which it needs, is left alone", (name) => {
+      expect(policy[name]).toBeUndefined();
+    });
+
+    test("its access rules are the four calls a change makes, and nothing else: it can't even read", () => {
+      for (const rule of writeRules) {
+        expect(Object.keys(rule).sort()).toEqual(["method", "path", "service"]);
+      }
+
+      expect(
+        writeRules
+          .map((rule) => {
+            return `${rule.method} ${rule.service} ${rule.path}`;
+          })
+          .sort(),
+      ).toEqual([
+        "POST compute /v2.1/servers/*/action",
+        "PUT compute /v2.1/os-services/disable-log-reason",
+        "PUT compute /v2.1/os-services/enable",
+        "PUT network /v2.0/agents/*",
+      ]);
+    });
+  });
 
   test("application credential access rules only ever read", () => {
     const rules = JSON.parse(

@@ -185,7 +185,7 @@ flowchart TB
     field -->|"No"| nothing
 ```
 
-**On Create**, **On Update** y **On Create or Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Fields to pass on** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío.
+**On Create**, **On Update** y **On Create or Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Fields to pass on** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío. Lo mismo ocurre con un campo en el que el registro no tiene nada, como el monitor de una alerta que ningún monitor generó.
 
 **On Create or Update** también pasa **What Happened**: `created` cuando un registro nuevo inició la ejecución, y `updated` cuando lo hizo un cambio, como en `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar los dos casos de forma distinta, compáralo en un bloque **If / Else**, o toma un camino para cada uno con **Switch / Case**.
 

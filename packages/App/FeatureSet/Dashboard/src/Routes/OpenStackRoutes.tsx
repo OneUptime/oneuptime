@@ -49,6 +49,8 @@ import OpenStackCloudStacks from "../Pages/OpenStack/View/Stacks";
 import OpenStackCloudStackDetail from "../Pages/OpenStack/View/StackDetail";
 import OpenStackCloudContainerClusters from "../Pages/OpenStack/View/ContainerClusters";
 import OpenStackCloudContainerClusterDetail from "../Pages/OpenStack/View/ContainerClusterDetail";
+import OpenStackCloudDnsZones from "../Pages/OpenStack/View/DnsZones";
+import OpenStackCloudDnsZoneDetail from "../Pages/OpenStack/View/DnsZoneDetail";
 import OpenStackCloudDatabaseInstances from "../Pages/OpenStack/View/DatabaseInstances";
 import OpenStackCloudDatabaseInstanceDetail from "../Pages/OpenStack/View/DatabaseInstanceDetail";
 import OpenStackCloudShares from "../Pages/OpenStack/View/Shares";
@@ -712,6 +714,35 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL
                 ] as Route
+              }
+            />
+          }
+        />
+
+        {/* DNS: only a cloud that runs Designate links here. */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES,
+          )}
+          element={
+            <OpenStackCloudDnsZones
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudDnsZoneDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL] as Route
               }
             />
           }

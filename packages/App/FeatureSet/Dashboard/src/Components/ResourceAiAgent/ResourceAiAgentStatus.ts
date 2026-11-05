@@ -930,6 +930,18 @@ export function getResourceAiAttentionStepText(
         values,
       );
     case "remediation_write_access_missing":
+      /*
+       * An OpenStack agent with the write switch on can still have nothing to write with.
+       * "Give it write access" would send whoever already did round in a circle, so the
+       * server's own words say what is wrong.
+       */
+      if (
+        status.agent?.posture?.allowWrites === true ||
+        status.agent?.posture?.writesOffReason
+      ) {
+        return `${gap.title}. ${gap.nextStep}`;
+      }
+
       return translateTemplate(
         "Give the {{agent}} write access with the steps below.",
         values,

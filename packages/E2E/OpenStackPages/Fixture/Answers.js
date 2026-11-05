@@ -14,11 +14,14 @@ import {
   isOpenStackBareMetalNodeInMaintenance,
   isOpenStackBareMetalNodeStuck,
   isOpenStackBareMetalPowerUnexpected,
+  isOpenStackGnocchiBacklogged,
+  isOpenStackGnocchiWithoutProcessors,
   isOpenStackServiceQuiet,
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   isOpenStackDatabaseVolumeNearlyFull,
   OPENSTACK_SHARE_STUCK_MINUTES,
@@ -34,6 +37,8 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
   OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SHARE_ERROR_STATUSES,
@@ -148,6 +153,7 @@ export function getInventorySummary(allRows, regionName) {
     containerClusterCount: ofKind(rows, "ContainerCluster").length,
     shareCount: ofKind(rows, "Share").length,
     databaseInstanceCount: ofKind(rows, "DatabaseInstance").length,
+    dnsZoneCount: ofKind(rows, "DnsZone").length,
     closedServices: Array.from(
       new Set(
         ofKind(rows, "Api")
@@ -259,6 +265,9 @@ const ATTENTION_QUERIES = [
     where: (row, now) => {
       return (
         row.status === "down" ||
+        (row.name === "gnocchi" &&
+          (isOpenStackGnocchiWithoutProcessors(row.facts || {}) ||
+            isOpenStackGnocchiBacklogged(row.facts || {}))) ||
         isOpenStackServiceQuiet({
           service: row.name,
           lastSeenAt: row.lastSeenAt,
@@ -333,6 +342,22 @@ const ATTENTION_QUERIES = [
         OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status) &&
         stuckSince(row, OPENSTACK_IMAGE_STUCK_MINUTES, now)
       );
+    },
+  },
+  {
+    kind: "DnsZone",
+    where: (row, now) => {
+      return (
+        row.status === OPENSTACK_DNS_STATUS_ERROR ||
+        (row.status === OPENSTACK_DNS_STATUS_PENDING &&
+          stuckSince(row, OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES, now))
+      );
+    },
+  },
+  {
+    kind: "DnsRecordset",
+    where: (row) => {
+      return row.status === OPENSTACK_DNS_STATUS_ERROR;
     },
   },
   {
@@ -699,6 +724,13 @@ export function getBlastRadius(allRows, part) {
       });
     };
     switch (part.name) {
+      case "dns":
+        return finish([
+          {
+            count: "dnsZoneCount",
+            byProject: countsByProject(inRegion("DnsZone")),
+          },
+        ]);
       case "database":
         return finish([
           {
@@ -858,6 +890,7 @@ export function getProjectSummaries(allRows, projectIds) {
       containerClusterCount: count("ContainerCluster"),
       shareCount: count("Share"),
       databaseInstanceCount: count("DatabaseInstance"),
+      dnsZoneCount: count("DnsZone"),
     };
   });
 }

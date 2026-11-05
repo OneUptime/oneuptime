@@ -5,7 +5,10 @@ import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePri
 import StatusPageService, {
   assertStatusPageWriteValues,
 } from "../../../Server/Services/StatusPageService";
-import { Service } from "../../../Server/Services/StatusPagePrivateUserSessionService";
+import {
+  Service,
+  SessionMetadata,
+} from "../../../Server/Services/StatusPagePrivateUserSessionService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
@@ -407,26 +410,42 @@ describe("a session's refresh token expires by the end of its limit", () => {
     return session;
   };
 
+  // The renewal's one write, finding the row.
+  const stubRenewalWrite: (
+    service: Service,
+  ) => Mock<(...args: Array<unknown>) => Promise<{ affected: number }>> = (
+    service: Service,
+  ): Mock<(...args: Array<unknown>) => Promise<{ affected: number }>> => {
+    const update: Mock<
+      (...args: Array<unknown>) => Promise<{ affected: number }>
+    > = jest.fn(async (): Promise<{ affected: number }> => {
+      return { affected: 1 };
+    });
+
+    getJestSpyOn(service, "getRepository").mockReturnValue({
+      update: update,
+    } as never);
+
+    return update;
+  };
+
   test("a refresh never renews a session past the end of its limit", async () => {
     page = pageWithLength(12);
     const service: Service = new Service();
-    const update: jest.SpiedFunction<typeof service.updateOneByIdAndFetch> =
-      getJestSpyOn(service, "updateOneByIdAndFetch").mockImplementation(
-        async (): Promise<StatusPagePrivateUserSession> => {
-          return new StatusPagePrivateUserSession();
-        },
-      ) as unknown as jest.SpiedFunction<typeof service.updateOneByIdAndFetch>;
+    const update: Mock<
+      (...args: Array<unknown>) => Promise<{ affected: number }>
+    > = stubRenewalWrite(service);
     const session: StatusPagePrivateUserSession = sessionStartedHoursAgo(3);
 
-    const renewed: { refreshTokenExpiresAt: Date } =
+    const renewed: SessionMetadata | null =
       await service.renewSessionWithNewRefreshToken({ session });
 
     const expectedEnd: number = session.createdAt!.getTime() + 12 * HOUR;
 
-    expect(renewed.refreshTokenExpiresAt.getTime()).toBe(expectedEnd);
+    expect(renewed!.refreshTokenExpiresAt.getTime()).toBe(expectedEnd);
     expect(
       (
-        update.mock.calls[0]![0].data as {
+        update.mock.calls[0]![1] as {
           refreshTokenExpiresAt: Date;
         }
       ).refreshTokenExpiresAt.getTime(),
@@ -435,55 +454,43 @@ describe("a session's refresh token expires by the end of its limit", () => {
 
   test("a refresh on a page with no limit renews the 30 days from now", async () => {
     const service: Service = new Service();
-    getJestSpyOn(service, "updateOneByIdAndFetch").mockImplementation(
-      async (): Promise<StatusPagePrivateUserSession> => {
-        return new StatusPagePrivateUserSession();
-      },
-    );
+    stubRenewalWrite(service);
 
-    const renewed: { refreshTokenExpiresAt: Date } =
+    const renewed: SessionMetadata | null =
       await service.renewSessionWithNewRefreshToken({
         session: sessionStartedHoursAgo(20 * 24),
       });
 
-    expect(renewed.refreshTokenExpiresAt.getTime()).toBe(thirtyDaysFromNow());
+    expect(renewed!.refreshTokenExpiresAt.getTime()).toBe(thirtyDaysFromNow());
   });
 
   test("a refresh of a session whose sign-in time is unknown keeps the 30 days and reads no page", async () => {
     page = pageWithLength(1);
     const service: Service = new Service();
-    getJestSpyOn(service, "updateOneByIdAndFetch").mockImplementation(
-      async (): Promise<StatusPagePrivateUserSession> => {
-        return new StatusPagePrivateUserSession();
-      },
-    );
+    stubRenewalWrite(service);
     const session: StatusPagePrivateUserSession = sessionStartedHoursAgo(0);
     delete (session as unknown as Record<string, unknown>)["createdAt"];
 
-    const renewed: { refreshTokenExpiresAt: Date } =
+    const renewed: SessionMetadata | null =
       await service.renewSessionWithNewRefreshToken({ session });
 
-    expect(renewed.refreshTokenExpiresAt.getTime()).toBe(thirtyDaysFromNow());
+    expect(renewed!.refreshTokenExpiresAt.getTime()).toBe(thirtyDaysFromNow());
     expect(pageRead).not.toHaveBeenCalled();
   });
 
   test("an expiry the caller chose is kept as it is", async () => {
     page = pageWithLength(1);
     const service: Service = new Service();
-    getJestSpyOn(service, "updateOneByIdAndFetch").mockImplementation(
-      async (): Promise<StatusPagePrivateUserSession> => {
-        return new StatusPagePrivateUserSession();
-      },
-    );
+    stubRenewalWrite(service);
     const chosen: Date = new Date(FROZEN_NOW.getTime() + 2 * DAY);
 
-    const renewed: { refreshTokenExpiresAt: Date } =
+    const renewed: SessionMetadata | null =
       await service.renewSessionWithNewRefreshToken({
         session: sessionStartedHoursAgo(0),
         refreshTokenExpiresAt: chosen,
       });
 
-    expect(renewed.refreshTokenExpiresAt).toEqual(chosen);
+    expect(renewed!.refreshTokenExpiresAt).toEqual(chosen);
     expect(pageRead).not.toHaveBeenCalled();
   });
 

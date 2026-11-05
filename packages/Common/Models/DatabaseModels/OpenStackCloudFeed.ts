@@ -41,6 +41,8 @@ export enum OpenStackCloudFeedEventType {
   LabelRuleExecuted = "LabelRuleExecuted",
   // What the cloud's own notifications said happened to one of its parts.
   LifecycleEvent = "LifecycleEvent",
+  // A change OneUptime AI made on the cloud, and who approved it.
+  AiFix = "AiFix",
 }
 
 @EnableDocumentation()

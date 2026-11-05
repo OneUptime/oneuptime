@@ -126,7 +126,7 @@ En blokk som ikke kjører, er vanligvis et koblingsproblem. Åpne **Bygger**, og
 Åpne kjøringen, og se på trinnet. En referanse som ikke ble oppløst, fremheves på selve trinnet som en advarsel, og innstillingen dens i blokken **Mottatt** er merket **Did not resolve**.
 
 - Ser du den bokstavelige teksten `{{local.components.…}}`, ble ikke referansen oppløst. Vanligvis er det en skrivefeil i komponent-ID-en eller ID-en til returverdien — husk at det er blokkens **Identifier**, ikke navnet som står på den. Sjekk også stavemåten til selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bokstavelig tekst, og kjøringen melder likevel **Utført**. Var kjøringen en test med **Run just this step**, kjørte ikke den tidligere blokken i det hele tatt — kjør hele arbeidsflyten i stedet.
-- Ser du **Empty text**, kjørte den tidligere blokken, men produserte ikke det feltet.
+- Ser du **Empty text**, eller et hull i en melding, kjørte den tidligere blokken, men har ingenting i det feltet. Enten har posten ingen verdi der, noe fanen **Full Log** noterer på en egen linje, eller så sender ikke blokken feltet videre, noe trinnet advarer om.
 
 Den samme advarselen står i fanen **Full Log** som en linje som begynner med `Warning:`.
 :::

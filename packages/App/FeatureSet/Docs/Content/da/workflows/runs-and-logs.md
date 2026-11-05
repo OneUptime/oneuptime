@@ -126,7 +126,7 @@ En blok, der ikke kører, er som regel et forbindelsesproblem. Åbn **Bygger**, 
 Åbn kørslen, og se på trinnet. En reference, der ikke blev opløst, fremhæves på selve trinnet som en advarsel, og dens indstilling i blokken **Modtaget** er markeret **Did not resolve**.
 
 - Ser du den bogstavelige tekst `{{local.components.…}}`, blev referencen ikke opløst. Som regel er det en slåfejl i komponent-ID'et eller returværdiens ID — husk, at det er blokkens **Identifier**, ikke det navn, der står på den. Tjek også stavningen af selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bogstavelig tekst, og kørslen melder stadig **Udført**. Var kørslen en test med **Run just this step**, kørte den tidligere blok slet ikke — kør hele workflowet i stedet.
-- Ser du **Empty text**, kørte den tidligere blok, men producerede ikke det felt.
+- Ser du **Empty text**, eller et hul i en besked, kørte den tidligere blok, men har intet i det felt. Enten har posten ingen værdi der, hvilket fanen **Full Log** noterer på en linje for sig, eller også sender blokken ikke feltet videre, hvilket trinnet advarer om.
 
 Den samme advarsel står i fanen **Full Log** som en linje, der begynder med `Warning:`.
 :::

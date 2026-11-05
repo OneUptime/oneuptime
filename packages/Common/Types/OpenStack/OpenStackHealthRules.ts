@@ -7,6 +7,8 @@ import {
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
   OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
@@ -76,6 +78,12 @@ export const OPENSTACK_SHARE_STUCK_MINUTES: number = 60;
  * only thing that says trove-taskmanager stopped.
  */
 export const OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES: number = 60;
+/*
+ * Designate's worker gives up on a change by itself in a few minutes, and the zone reads ERROR
+ * (recorded, with the DNS server it writes to stopped). So a zone still PENDING after this has nothing
+ * working on it: its worker has stopped, recorded, and the API takes changes it never carries out.
+ */
+export const OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES: number = 30;
 /*
  * A database's volume, of the part of it the database has used. Past this, it stops taking writes
  * without much warning. The same line as a storage pool's.
@@ -480,6 +488,36 @@ export function isOpenStackShareStuck(data: {
   return minutes !== null && minutes >= OPENSTACK_SHARE_STUCK_MINUTES;
 }
 
+/*
+ * Gnocchi's backlog, read off its API's own row. metricd aggregates what comes in, so with no processors
+ * measures only pile up: nothing is lost, and nothing can read anything newer until it comes back. Recorded:
+ * a stopped metricd reads 0 processors, and the API goes on answering and taking measures.
+ *
+ * A busy cloud's backlog never reads 0 and that's fine, so what's wrong is one that is heading past this
+ * and not falling, which only a line through a window can say. A page has one reading, so it says only
+ * that the backlog is past this now.
+ */
+export const OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES: number = 10000;
+export const OPENSTACK_GNOCCHI_MEASURES_FACT: string = "measuresToProcess";
+export const OPENSTACK_GNOCCHI_METRICS_FACT: string = "metricsWithMeasures";
+export const OPENSTACK_GNOCCHI_PROCESSORS_FACT: string = "metricdProcessors";
+
+export function isOpenStackGnocchiWithoutProcessors(facts: {
+  [key: string]: unknown;
+}): boolean {
+  return facts[OPENSTACK_GNOCCHI_PROCESSORS_FACT] === 0;
+}
+
+export function isOpenStackGnocchiBacklogged(facts: {
+  [key: string]: unknown;
+}): boolean {
+  const measures: unknown = facts[OPENSTACK_GNOCCHI_MEASURES_FACT];
+  return (
+    typeof measures === "number" &&
+    measures > OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES
+  );
+}
+
 export function isOpenStackDatabaseInstanceInError(
   status: string | null | undefined,
 ): boolean {
@@ -527,6 +565,26 @@ export function isOpenStackDatabaseVolumeNearlyFull(data: {
   const percent: number | null = getOpenStackDatabaseVolumePercent(data);
   return (
     percent !== null && percent >= OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT
+  );
+}
+
+export function isOpenStackDnsInError(
+  status: string | null | undefined,
+): boolean {
+  return status === OPENSTACK_DNS_STATUS_ERROR;
+}
+
+export function isOpenStackDnsZoneStuckPending(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (data.status !== OPENSTACK_DNS_STATUS_PENDING) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return (
+    minutes !== null && minutes >= OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES
   );
 }
 

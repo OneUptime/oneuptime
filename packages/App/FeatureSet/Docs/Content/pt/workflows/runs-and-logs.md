@@ -126,7 +126,7 @@ Um bloco que não roda costuma ser um problema de ligação. Abra o **Construtor
 Abra a execução e olhe o passo. Uma referência que não resolveu aparece no próprio passo como aviso, e a configuração dela no bloco **Recebido** fica marcada como **Did not resolve**.
 
 - Se você vê o texto literal `{{local.components.…}}`, a referência não resolveu. Normalmente é um erro de digitação no ID do componente ou no ID do valor de retorno — lembre-se de que é o **Identifier** do bloco, não o nome exibido nele. Confira também a grafia do próprio `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` é enviado como texto literal e a execução ainda informa **Executado**. Se a execução foi um teste com **Run just this step**, o bloco anterior nem rodou — rode o workflow inteiro.
-- Se você vê **Empty text**, o bloco anterior rodou mas não produziu esse campo.
+- Se você vê **Empty text**, ou uma lacuna em uma mensagem, o bloco anterior rodou mas não tem nada nesse campo. Ou o registro não tem valor ali, o que a aba **Full Log** anota em uma linha própria, ou o bloco não repassa o campo, o que a etapa avisa.
 
 O mesmo aviso aparece na aba **Full Log**, em uma linha que começa com `Warning:`.
 :::

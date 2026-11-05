@@ -18,7 +18,9 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import AiResourceType, {
+  FIXES_NEED_A_SECOND_OPT_IN_AI_RESOURCE_TYPES,
   READ_ONLY_AI_RESOURCE_TYPES,
+  doFixesNeedASecondOptIn,
   isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
@@ -28,12 +30,14 @@ import {
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 
 /*
- * WHAT HOLDS FOR A RESOURCE AI ONLY READS.
+ * OFF UNTIL TWICE OPTED IN.
  *
- * #5746 ships no command that changes an OpenStack cloud, and each place that could still
- * say fixes are on says they are off: what a person sets, what an agent reports, what a
- * first connection defaults to, and what the server tells the page. #5747 takes the type
- * off READ_ONLY_AI_RESOURCE_TYPES, and these tests are where it finds what that opens.
+ * An OpenStack cloud has fixes now, and they stay off until two people's worth of
+ * choices say otherwise: the agent's write switch, with its credential for changes, and
+ * a mode that is not Off, chosen on the cloud's AI agent page or named in the agent's
+ * ONEUPTIME_AI_FIXES. What a first connection or an agent's defaults do on other
+ * resources (start on "ask for approval") does not happen here: a production cloud's
+ * control plane starts on Off.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -73,7 +77,7 @@ function cloudRow(
   };
 }
 
-function connectedAgent(): ResourceAiAgent {
+function connectedAgent(posture: JSONObject = {}): ResourceAiAgent {
   return {
     id: AGENT_ID,
     _id: AGENT_ID.toString(),
@@ -91,6 +95,7 @@ function connectedAgent(): ResourceAiAgent {
       writeTargets: [],
       protectedTargets: [],
       reachable: true,
+      ...posture,
     },
   } as unknown as ResourceAiAgent;
 }
@@ -119,30 +124,33 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("which kinds AI only reads", () => {
-  test("an OpenStack cloud, and nothing else", () => {
-    expect(READ_ONLY_AI_RESOURCE_TYPES).toEqual([
+describe("which kinds have fixes", () => {
+  test("no kind is read-only any more", () => {
+    expect(READ_ONLY_AI_RESOURCE_TYPES).toEqual([]);
+    expect(isReadOnlyAiResourceType(AiResourceType.OpenStackCloud)).toBe(false);
+  });
+
+  test("an OpenStack cloud's need a second opt-in, and nothing else's do", () => {
+    expect(FIXES_NEED_A_SECOND_OPT_IN_AI_RESOURCE_TYPES).toEqual([
       AiResourceType.OpenStackCloud,
     ]);
-    expect(isReadOnlyAiResourceType(AiResourceType.OpenStackCloud)).toBe(true);
-    expect(isReadOnlyAiResourceType(AiResourceType.ProxmoxCluster)).toBe(false);
+    expect(doFixesNeedASecondOptIn(AiResourceType.OpenStackCloud)).toBe(true);
+    expect(doFixesNeedASecondOptIn(AiResourceType.ProxmoxCluster)).toBe(false);
+    expect(doFixesNeedASecondOptIn("nothing")).toBe(false);
+    expect(doFixesNeedASecondOptIn(undefined)).toBe(false);
   });
 });
 
 describe("what a person may set", () => {
   test.each(FIX_MODES)(
-    "a fix mode of %s is refused, saying why",
+    "a mode of %s is a choice they can make",
     (mode: ResourceAiRemediationMode) => {
-      const data: JSONObject = { aiRemediationMode: mode };
-
       expect(() => {
         ResourceAiAccessSettings.validateSettings({
           resourceType: AiResourceType.OpenStackCloud,
-          data,
+          data: { aiRemediationMode: mode },
         });
-      }).toThrow(
-        "OneUptime AI only reads this OpenStack cloud: it has no command that changes it, so fixes stay off.",
-      );
+      }).not.toThrow();
     },
   );
 
@@ -158,23 +166,63 @@ describe("what a person may set", () => {
     }).not.toThrow();
   });
 
-  test("the same mode on a kind with fixes is not refused for that reason", () => {
-    expect(() => {
-      ResourceAiAccessSettings.validateSettings({
-        resourceType: AiResourceType.ProxmoxCluster,
-        data: { aiRemediationMode: ResourceAiRemediationMode.Automatic },
-      });
-    }).not.toThrow();
+  test("an allowlist holds changes, and refuses what could never run", () => {
+    const data: JSONObject = {
+      aiCommandAllowlist: [
+        "openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6",
+      ],
+    };
+
+    ResourceAiAccessSettings.validateSettings({
+      resourceType: AiResourceType.OpenStackCloud,
+      data,
+    });
+
+    expect(data["aiCommandAllowlist"]).toEqual([
+      "openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6",
+    ]);
+
+    for (const entry of [
+      "openstack server delete 358ee736-ba74-40ba-a354-7ead413c5df6",
+      "openstack user list",
+      "openstack server list",
+      "openstack server evacuate 358ee736-ba74-40ba-a354-7ead413c5df6",
+    ]) {
+      expect(() => {
+        ResourceAiAccessSettings.validateSettings({
+          resourceType: AiResourceType.OpenStackCloud,
+          data: { aiCommandAllowlist: [entry] },
+        });
+      }).toThrow();
+    }
   });
 });
 
 describe("what an agent reports", () => {
+  test("its write switch alone turns nothing on: an agent's defaults are not a choice", async () => {
+    const update: jest.SpiedFunction<typeof OpenStackCloudService.updateOneBy> =
+      jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
+
+    const applied: ResourceAiAgentSettingsApplied | null =
+      await ResourceAiAgentService.applyReportedAiSettings({
+        resource: agentResource(ResourceAiRemediationMode.Disabled),
+        reported: {
+          investigation: true,
+          fixes: "RequireApproval",
+          isConfigured: false,
+        },
+      });
+
+    expect(applied?.remediationMode).toBeUndefined();
+    expect(update).not.toHaveBeenCalled();
+  });
+
   test.each(
     AGENT_AI_FIXES_MODES.filter((fixes: AgentAiFixesMode): boolean => {
       return fixes !== "Disabled";
     }),
   )(
-    "an agent whose configuration says %s changes nothing",
+    "a configuration that names %s is the second opt-in",
     async (fixes: AgentAiFixesMode) => {
       const update: jest.SpiedFunction<
         typeof OpenStackCloudService.updateOneBy
@@ -183,19 +231,15 @@ describe("what an agent reports", () => {
       const applied: ResourceAiAgentSettingsApplied | null =
         await ResourceAiAgentService.applyReportedAiSettings({
           resource: agentResource(ResourceAiRemediationMode.Disabled),
-          reported: {
-            investigation: true,
-            fixes,
-            isConfigured: true,
-          },
+          reported: { investigation: true, fixes, isConfigured: true },
         });
 
-      expect(applied?.remediationMode).toBeUndefined();
-      expect(update).not.toHaveBeenCalled();
+      expect(applied?.remediationMode?.to).toBe(fixes);
+      expect(update).toHaveBeenCalledTimes(1);
     },
   );
 
-  test("a mode already on the row is taken back to off", async () => {
+  test("a configuration that says off takes a mode on the row back to off", async () => {
     const update: jest.SpiedFunction<typeof OpenStackCloudService.updateOneBy> =
       jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
 
@@ -204,7 +248,7 @@ describe("what an agent reports", () => {
         resource: agentResource(ResourceAiRemediationMode.Automatic),
         reported: {
           investigation: true,
-          fixes: "Automatic",
+          fixes: "Disabled",
           isConfigured: true,
         },
       });
@@ -212,7 +256,6 @@ describe("what an agent reports", () => {
     expect(applied?.remediationMode?.to).toBe(
       ResourceAiRemediationMode.Disabled,
     );
-    expect(update).toHaveBeenCalledTimes(1);
     expect(
       (update.mock.calls[0]![0] as unknown as { data: JSONObject }).data,
     ).toEqual({ aiRemediationMode: ResourceAiRemediationMode.Disabled });
@@ -264,36 +307,104 @@ describe("a first connection", () => {
 });
 
 describe("what the server tells the page", () => {
-  function status(row: ResourceAiAccessRow): ResourceAiAccessStatus {
+  function status(
+    row: ResourceAiAccessRow,
+    posture: JSONObject = {},
+  ): ResourceAiAccessStatus {
     return ResourceAiAccessService.buildStatus({
       resource: row,
-      agentRow: connectedAgent(),
+      agentRow: connectedAgent(posture),
       gates: READY_GATES,
     });
   }
 
   test.each(FIX_MODES)(
-    "a row that somehow says %s still reads off, and is never ready to fix",
+    "a mode of %s, and an agent that may write: ready to fix",
     (mode: ResourceAiRemediationMode) => {
       const built: ResourceAiAccessStatus = status(
         cloudRow({ aiRemediationMode: mode }),
       );
 
-      expect(built.aiRemediationMode).toBe(ResourceAiRemediationMode.Disabled);
-      expect(built.isRemediationReady).toBe(false);
+      expect(built.aiRemediationMode).toBe(mode);
+      expect(built.isRemediationReady).toBe(true);
       expect(built.isInvestigationReady).toBe(true);
+      expect(built.gaps).toEqual([]);
     },
   );
 
-  test("it says so as the one gap, which blocks fixes and not investigations", () => {
-    const gaps: Array<ResourceAiAccessGap> = status(cloudRow()).gaps;
+  test("off: not ready, and it says how to turn it on", () => {
+    const built: ResourceAiAccessStatus = status(cloudRow());
 
-    expect(gaps).toHaveLength(1);
-    expect(gaps[0]).toMatchObject({
+    expect(built.isRemediationReady).toBe(false);
+    expect(built.isInvestigationReady).toBe(true);
+    expect(built.gaps).toHaveLength(1);
+    expect(built.gaps[0]).toMatchObject({
       code: "remediation_disabled",
       blocksInvestigation: false,
       blocksRemediation: true,
-      title: "OneUptime AI only reads this OpenStack cloud",
     });
+  });
+
+  test("on, with an agent that may not write: not ready, whatever the row says", () => {
+    const gaps: Array<ResourceAiAccessGap> = status(
+      cloudRow({ aiRemediationMode: ResourceAiRemediationMode.Automatic }),
+      { allowWrites: false },
+    ).gaps;
+
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]).toMatchObject({
+      code: "remediation_write_access_missing",
+      blocksRemediation: true,
+    });
+    expect(gaps[0]?.nextStep).toContain("ONEUPTIME_AI_ALLOW_WRITES=true");
+  });
+
+  test("the switch is on and something else stops it: it says that, not to turn the switch on", () => {
+    const gaps: Array<ResourceAiAccessGap> = status(
+      cloudRow({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      }),
+      {
+        allowWrites: false,
+        allowWritesSetting: "true",
+        writesOffReason:
+          "Changes use a credential of their own: set ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID and its secret.",
+      },
+    ).gaps;
+
+    expect(gaps[0]?.nextStep).toContain("credential of their own");
+    expect(gaps[0]?.nextStep).not.toContain("ONEUPTIME_AI_ALLOW_WRITES=true");
+  });
+
+  test("a credential for changes that does not log in is said while it can be fixed", () => {
+    const built: ResourceAiAccessStatus = status(
+      cloudRow({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      }),
+      {
+        details: {
+          writeCredentialWorks: false,
+          writeCredentialProblem: "Keystone refused the credential.",
+        },
+      },
+    );
+
+    expect(built.isRemediationReady).toBe(false);
+    expect(built.isInvestigationReady).toBe(true);
+    expect(built.gaps[0]).toMatchObject({
+      code: "remediation_write_access_missing",
+      nextStep: "Keystone refused the credential.",
+    });
+  });
+
+  test("one that logs in stands in nobody's way", () => {
+    expect(
+      status(
+        cloudRow({
+          aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        }),
+        { details: { writeCredentialWorks: true } },
+      ).isRemediationReady,
+    ).toBe(true);
   });
 });

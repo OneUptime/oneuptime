@@ -80,16 +80,21 @@ const DOCKER: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
  * a * for the object it touches (broad; none exists for Proxmox, whose
  * paths are written out per guest), and one that is only a read.
  */
-// An OpenStack cloud is only ever read: it has no fixes or allowlist to set.
 const TYPES_WITH_FIXES: ReadonlyArray<AiResourceType> =
   ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
     return !isReadOnlyAiResourceType(type);
   });
 
 const ENTRIES: Record<
-  Exclude<AiResourceType, AiResourceType.OpenStackCloud>,
+  AiResourceType,
   { valid: string; broad: string | null; read: string }
 > = {
+  [AiResourceType.OpenStackCloud]: {
+    valid:
+      "openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6",
+    broad: "openstack server reboot --hard *",
+    read: "openstack server list",
+  },
   [AiResourceType.DockerHost]: {
     valid: "docker stop web",
     broad: "docker stop *",

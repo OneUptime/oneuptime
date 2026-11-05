@@ -8,6 +8,9 @@ import {
   isOpenStackAdminDisabled,
   isOpenStackServiceDown,
   percentOf,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_METRICS_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_API_STATUS_CLOSED,
@@ -89,6 +92,7 @@ const SERVICE_OF_FAMILY: Record<string, OpenStackServiceType> = {
   [OpenStackServiceFamily.BareMetal]: OpenStackServiceType.BareMetal,
   [OpenStackServiceFamily.SharedFileSystems]:
     OpenStackServiceType.SharedFileSystems,
+  [OpenStackServiceFamily.Dns]: OpenStackServiceType.Dns,
 };
 
 function factsOf(row: OpenStackResource | null | undefined): JSONObject {
@@ -429,6 +433,9 @@ const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
   [OpenStackServiceType.Orchestration]: translationKey(
     "The agent's exporter doesn't read Heat's engines, so they aren't listed here. With every engine stopped Heat's API stops answering, which this page does say. A probe reads them.",
   ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "The agent's exporter doesn't read Designate's services, so a stopped worker isn't shown here: Designate's API goes on taking changes, and its zones read PENDING, which is what says so. A probe reads them.",
+  ),
   [OpenStackServiceType.SharedFileSystems]: translationKey(
     "The agent's exporter doesn't read Manila's services, so a stopped one isn't shown anywhere here: Manila's API carries on answering without it, and its shares just stop changing. Run openstack share service list, or collect this cloud with a probe, which reads them.",
   ),
@@ -444,6 +451,9 @@ const WORKERS_REFUSED_TO_THIS_CREDENTIAL: Partial<Record<string, string>> = {
   ),
   [OpenStackServiceType.Orchestration]: translationKey(
     "Heat refuses this credential its list of engines, so they aren't listed here. Only the Full view credential reads them.",
+  ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "Designate refuses this credential its list of services, so they aren't listed here. Only the Full view credential reads them.",
   ),
   [OpenStackServiceType.SharedFileSystems]: translationKey(
     "Manila refuses this credential its list of services, so they aren't listed here, and a stopped one isn't shown anywhere: Manila's API carries on answering without it. Only the Full view credential reads them.",
@@ -550,6 +560,12 @@ const CANNOT_READ_PLACEMENT: string = translationKey(
  * and a stopped API read the same, and what opens it. By service, for what each really does.
  */
 const CLOSED_TO_THIS_CREDENTIAL_WORDS: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Metric]: translationKey(
+    "OneUptime has never had an answer from Gnocchi with this credential. The exporter reads Gnocchi's status, which only an admin may, and a refusal reads just as Gnocchi being down does. So either Gnocchi is down, or this credential needs to be a Full view one. Its alerts aren't offered until it has answered once: they could only say the same thing.",
+  ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "Designate answers this credential, and refuses it every project's zones. The exporter reads every project's, and a refusal is the one thing that reads 0 here: a stopped Designate says nothing at all. Reading it takes the Full view credential.",
+  ),
   [OpenStackServiceType.Database]: translationKey(
     "OneUptime has never had an answer from Trove with this credential. The exporter reads Trove's mgmt API, which only an admin may, and a refusal reads just as Trove being down does. So either Trove refuses this credential, or it has been down since OneUptime started reading it. Reading it takes the Full view credential.",
   ),
@@ -563,6 +579,12 @@ export function getOpenStackClosedToThisCredentialWords(
 
 // Each is a service whose read asks for what only an admin may, so a refusal reads as a stopped API.
 const CANNOT_READ_OPTIONAL_SERVICE: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Metric]: translationKey(
+    "This credential has never read Gnocchi",
+  ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "This credential has never read Designate's zones",
+  ),
   [OpenStackServiceType.Database]: translationKey(
     "This credential has never read Trove",
   ),
@@ -854,6 +876,53 @@ export function isOpenStackApiExternalId(externalId: string): boolean {
   );
 }
 
+/*
+ * A service with no parts of its own says what it has to say on its API's page, as a few numbers off its row.
+ */
+export interface OpenStackApiTile {
+  key: string;
+  title: string;
+  fact: string;
+  description: string;
+}
+
+const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
+  Record<string, ReadonlyArray<OpenStackApiTile>>
+> = {
+  [OpenStackServiceType.Metric]: [
+    {
+      key: "measures",
+      title: translationKey("Measures waiting"),
+      fact: OPENSTACK_GNOCCHI_MEASURES_FACT,
+      description: translationKey(
+        "How many measures gnocchi-metricd has yet to process. A busy cloud's never reads 0: one that keeps rising means it isn't keeping up.",
+      ),
+    },
+    {
+      key: "metrics",
+      title: translationKey("Metrics waiting"),
+      fact: OPENSTACK_GNOCCHI_METRICS_FACT,
+      description: translationKey(
+        "How many metrics have measures waiting for gnocchi-metricd.",
+      ),
+    },
+    {
+      key: "processors",
+      title: translationKey("Processors"),
+      fact: OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+      description: translationKey(
+        "How many metricd processors Gnocchi's status names. With none, measures pile up and nothing newer can be read, and its API goes on answering.",
+      ),
+    },
+  ],
+};
+
+export function getOpenStackApiTiles(
+  service: string | null | undefined,
+): ReadonlyArray<OpenStackApiTile> {
+  return OPENSTACK_API_TILES_OF_A_SERVICE[service || ""] || [];
+}
+
 // The alert templates that watch each kind of worker, as the Recommendations list has them.
 const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.Identity]: "openstack-identity-api-down",
@@ -869,6 +938,8 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",
   [OpenStackServiceType.Database]: "openstack-database-api-down",
+  [OpenStackServiceType.Metric]: "openstack-metric-api-down",
+  [OpenStackServiceType.Dns]: "openstack-dns-api-down",
 };
 
 const SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS: Array<string> = [
@@ -936,6 +1007,19 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-share-service-down",
         "openstack-share-in-error",
         "openstack-share-stuck",
+      ];
+    case OpenStackServiceType.Dns:
+      return [
+        ...own,
+        "openstack-dns-zone-in-error",
+        "openstack-dns-zone-stuck-pending",
+        "openstack-dns-recordset-in-error",
+      ];
+    case OpenStackServiceType.Metric:
+      return [
+        ...own,
+        "openstack-metric-no-processors",
+        "openstack-metric-backlog-growing",
       ];
     case OpenStackServiceType.Database:
       return [

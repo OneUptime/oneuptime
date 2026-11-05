@@ -485,7 +485,7 @@ En forespørgsel er altid begrænset til det projekt, workflowet kører i. Du ka
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — kørslens log nævner dem, der blev droppet, så kig der, når et felt ikke lander. **Fields to pass on**, på Find-komponenterne og triggerne, vælges fra en liste; dens **Rediger som JSON** viser de samme kolonnenøgler med værdien `true`: `{"_id": true, "name": true}`.
+En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — kørslens log nævner dem, der blev droppet, så kig der, når et felt ikke lander. **Fields to pass on**, på Find-komponenterne og triggerne, vælges fra en liste; dens **Rediger som JSON** viser de samme kolonnenøgler med værdien `true`: `{"_id": true, "name": true}`. Felterne i en relateret post står under dens nøgle, som i `{"monitor": {"name": true}}`: `{"monitor": true}` sender kun dens id videre.
 
 **Brugerdefinerede felter** er én kolonne, `customFields`, der rummer hvert brugerdefineret felts værdi under feltets navn. Update-komponenterne ændrer kun de brugerdefinerede felter, du nævner, og alle andre beholder deres værdi:
 

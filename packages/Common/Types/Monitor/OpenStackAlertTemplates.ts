@@ -10,7 +10,12 @@ import {
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import FilterCondition from "../Filter/FilterCondition";
-import { CriteriaFilter, FilterType, NoDataPolicy } from "./CriteriaFilter";
+import {
+  CriteriaFilter,
+  FilterType,
+  MetricForecastOptions,
+  NoDataPolicy,
+} from "./CriteriaFilter";
 import MonitorStepOpenStackMonitor, {
   OPENSTACK_REGION_ATTRIBUTE,
 } from "./MonitorStepOpenStackMonitor";
@@ -41,7 +46,9 @@ import {
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+  OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
@@ -77,6 +84,9 @@ import {
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -100,6 +110,7 @@ export type OpenStackAlertTemplateCategory =
   | "Orchestration"
   | "Bare Metal"
   | "Databases"
+  | "Metrics"
   | "Projects"
   | "Capacity";
 
@@ -243,6 +254,13 @@ const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
 const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
 const SHARE_GROUP: Array<string> = [REGION, "id", "name"];
 const DATABASE_INSTANCE_GROUP: Array<string> = [REGION, "id", "name"];
+const DNS_ZONE_GROUP: Array<string> = [REGION, "id", "name"];
+// One incident per zone, however many of its recordsets went wrong together.
+const DNS_ZONE_OF_RECORDSET_GROUP: Array<string> = [
+  REGION,
+  "zone_id",
+  "zone_name",
+];
 
 // The smallest window holding three collections of what a service's job collects.
 export const OPENSTACK_WINDOW_BY_SERVICE: Record<
@@ -262,6 +280,8 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.Metric]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.Dns]: RollingTime.Past15Minutes,
 };
 
 export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
@@ -280,6 +300,8 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
   [OpenStackServiceType.Database]: "openstack_trove_up",
+  [OpenStackServiceType.Metric]: "openstack_gnocchi_up",
+  [OpenStackServiceType.Dns]: "openstack_designate_up",
 };
 
 /*
@@ -562,6 +584,7 @@ export function buildOfflineCriteria(data: {
   value: number;
   additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
+  forecast?: MetricForecastOptions | undefined;
 }): MonitorCriteriaInstance {
   const args: OpenStackAlertTemplateArgs = data.notification.args;
 
@@ -575,6 +598,7 @@ export function buildOfflineCriteria(data: {
     value: data.value,
     additionalFilters: data.additionalFilters,
     filterCondition: data.filterCondition,
+    forecast: data.forecast,
     incidentTitle: `${data.notification.incidentTitle} - ${args.monitorName}`,
     incidentDescription: data.notification.incidentDescription,
     criteriaName: data.notification.criteriaName,
@@ -803,6 +827,59 @@ const cloudStoppedReportingTemplate: OpenStackAlertTemplate = {
  * count, because a cloud without Cinder answers that job with nothing for ever:
  * that is a service it does not have, not an outage.
  */
+/*
+ * Where a series is heading rather than where it is: a line through the window, followed past now
+ * (MetricForecast). It recovers when that line no longer gets there, so a series that is past its line and
+ * falling has recovered, which is what catching up looks like. A series that stops reporting is judged on
+ * nothing, and stays as it was: a stopped API says that for itself.
+ */
+const OPENSTACK_FORECAST_RECOVERY_SHARE: number = 0.9;
+
+function buildForecastStep(data: {
+  args: OpenStackAlertTemplateArgs;
+  service: OpenStackServiceType;
+  query: OpenStackQuery;
+  rollingTime: RollingTime;
+  horizonInHours: number;
+  groupByAttributeKeys: Array<string>;
+  value: number;
+  words: IncidentWords;
+}): MonitorStep {
+  const forecast: MetricForecastOptions = {
+    horizonInHours: data.horizonInHours,
+  };
+
+  return buildOpenStackMonitorStep({
+    openstackMonitor: buildOpenStackSeriesConfig({
+      cloudIdentifier: data.args.cloudIdentifier,
+      queries: [data.query],
+      rollingTime: data.rollingTime,
+      groupByAttributeKeys: data.groupByAttributeKeys,
+      anchorService: data.service,
+    }),
+    offlineCriteriaInstance: buildOfflineCriteria({
+      notification: { args: data.args, ...data.words },
+      metricAlias: data.query.alias,
+      filterType: FilterType.ForecastAbove,
+      value: data.value,
+      forecast,
+    }),
+    // An empty window has no trend, so a gone series can't read as zero: it has to count as recovered.
+    onlineCriteriaInstance: countGoneSeriesAsRecovered(
+      buildHealthyCriteriaInstance({
+        onlineMonitorStatusId: data.args.onlineMonitorStatusId,
+        metricAlias: data.query.alias,
+        filterType: FilterType.ForecastBelow,
+        value: data.value,
+        // Past a dead band, so it doesn't flap on its line.
+        recoveryValue: data.value * OPENSTACK_FORECAST_RECOVERY_SHARE,
+        filterCondition: FilterCondition.All,
+        forecast,
+      }),
+    ),
+  });
+}
+
 function buildApiDownTemplate(data: {
   id: string;
   name: string;
@@ -2828,6 +2905,245 @@ const databaseApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   incidentDescription: `The exporter's read of Trove is failing: its API stopped answering, or this credential is no longer allowed its mgmt API, which reads the same. Databases already running carry on, but none can be created, resized or backed up. Check the trove-api service and its log, then openstack database instance list --all-projects with this credential. The incident resolves on its own once it answers again.`,
 });
 
+// --- DNS ---
+
+const dnsZoneInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-zone-in-error",
+  name: "DNS Zone in Error",
+  forService: OpenStackServiceType.Dns,
+  summary: "A Designate zone is in ERROR.",
+  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_zone_status filtered to that status label, in every collection of the window). One incident per zone, in a region. Its worker gave up on writing it to a DNS server, recorded with the server stopped, so what the zone says may be out of date there. Check that the DNS servers in its pool are answering, then \`openstack zone show\`. It recovers when the zone reads anything else.`,
+  category: "Network",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      groupByAttributeKeys: DNS_ZONE_GROUP,
+      queries: [
+        {
+          alias: statusAlias(OPENSTACK_DNS_STATUS_ERROR),
+          metricName: "openstack_designate_zone_status",
+          aggregationType: MetricsAggregationType.Count,
+          attributes: { status: OPENSTACK_DNS_STATUS_ERROR },
+        },
+      ],
+      aliases: [statusAlias(OPENSTACK_DNS_STATUS_ERROR)],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] DNS Zone in Error",
+        incidentDescription: `Designate's worker gave up writing this zone to a DNS server, so what it answers there may be out of date. Check that the DNS servers in its pool are answering, then openstack zone show and the designate-worker log. The incident resolves on its own once it reads anything else.`,
+        criteriaName: "DNS Zone in Error - ERROR for the whole window",
+        criteriaDescription:
+          "Triggers when a zone reads ERROR for the whole window.",
+      },
+    });
+  },
+};
+
+const dnsZoneStuckPendingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-zone-stuck-pending",
+  name: "DNS Zone Stuck Pending",
+  forService: OpenStackServiceType.Dns,
+  summary: `A Designate zone stays PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes.`,
+  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_PENDING} for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes (a count of openstack_designate_zone_status filtered to that status label, in every collection of the window, because PENDING's code is 0). One incident per zone, in a region. Its worker gives up by itself in a few minutes, so what stays PENDING has nothing working on it: a stopped worker reads this way, recorded, and the API goes on taking changes it never carries out. Check that designate-worker is running, then \`openstack dns service list\`.`,
+  category: "Network",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      rollingTime: windowHolding(OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES),
+      groupByAttributeKeys: DNS_ZONE_GROUP,
+      queries: [
+        {
+          alias: statusAlias(OPENSTACK_DNS_STATUS_PENDING),
+          metricName: "openstack_designate_zone_status",
+          aggregationType: MetricsAggregationType.Count,
+          attributes: { status: OPENSTACK_DNS_STATUS_PENDING },
+        },
+      ],
+      aliases: [statusAlias(OPENSTACK_DNS_STATUS_PENDING)],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] DNS Zone Stuck Pending",
+        incidentDescription: `This zone has read PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes, and its worker gives up long before that, so nothing is working on it. Changes to it are being accepted and not carried out. Check that designate-worker is running, then openstack dns service list. The incident resolves on its own once it reads anything else.`,
+        criteriaName: `DNS Zone Stuck Pending - PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes`,
+        criteriaDescription: `Triggers when a zone reads PENDING for the whole ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES}-minute window.`,
+      },
+    });
+  },
+};
+
+/*
+ * One query per type someone asks for, because a monitor's attribute filter is equality, and a zone's
+ * own SOA and NS read ERROR with it, recorded: DNS Zone in Error already says that. Per zone, so one
+ * failure of a zone's writes is one incident.
+ */
+const dnsRecordsetInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-recordset-in-error",
+  name: "DNS Recordset in Error",
+  forService: OpenStackServiceType.Dns,
+  summary: "A Designate recordset someone asked for is in ERROR.",
+  description: `Alert when a recordset of type ${OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR.join(", ")} reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_recordsets_status filtered to that status and type). One incident per zone, however many of its recordsets went wrong together. A zone's own SOA and NS read ERROR when the zone does, recorded, so they are left to DNS Zone in Error. Check \`openstack recordset list\` for the zone, and that the DNS servers in its pool are answering.`,
+  category: "Network",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> =
+      OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR.map(
+        (type: string): OpenStackQuery => {
+          return {
+            alias: `recordset_${type.toLowerCase()}`,
+            metricName: "openstack_designate_recordsets_status",
+            aggregationType: MetricsAggregationType.Count,
+            attributes: { status: OPENSTACK_DNS_STATUS_ERROR, type },
+          };
+        },
+      );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      groupByAttributeKeys: DNS_ZONE_OF_RECORDSET_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] DNS Recordset in Error",
+        incidentDescription: `A recordset in this zone reads ERROR: Designate's worker could not write it to a DNS server, so it may not answer as asked. Check openstack recordset list for the zone named above, and that the DNS servers in its pool are answering. The incident resolves on its own once it reads anything else.`,
+        criteriaName: "DNS Recordset in Error - ERROR for the whole window",
+        criteriaDescription:
+          "Triggers when a recordset someone asked for reads ERROR for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * Only a probe can say this: to the agent's exporter a stopped Designate reads as nothing at all, the
+ * same as a cloud without it, recorded, and all it can do is go quiet.
+ */
+const dnsApiDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-api-down",
+  name: "DNS API Down",
+  forService: OpenStackServiceType.Dns,
+  requiresProbe: true,
+  summary: "Designate's API does not answer, on a cloud a probe collects.",
+  description:
+    "Alert when Designate's API does not answer for 15 minutes (openstack_designate_up reads 0, which is what a probe says when its catalog names Designate and the API doesn't answer). One incident per region. Only a probe sends this: a stopped Designate gives the agent's exporter an empty answer, the same as a cloud without Designate, recorded, so a cloud the agent collects can only say it went quiet. On Services it does. Check the designate-api service and its log, then `openstack zone list` with a credential that works.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      hasOwnAnchor: true,
+      groupByAttributeKeys: API_GROUP,
+      queries: [
+        {
+          alias: "api_up",
+          metricName:
+            OPENSTACK_API_UP_METRIC_BY_SERVICE[OpenStackServiceType.Dns],
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] DNS API Down",
+        incidentDescription:
+          "Designate's API is not answering. Names already served go on answering from their DNS servers, but none can be created or changed. Check the designate-api service and its log, then openstack zone list with a credential that works. The incident resolves on its own once it answers again.",
+        criteriaName: "DNS API Down - not answering",
+        criteriaDescription:
+          "Triggers when Designate's API does not answer for the whole window.",
+      },
+    });
+  },
+};
+
+// --- Metrics: Gnocchi, on a cloud that runs it ---
+
+const metricApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
+  id: "openstack-metric-api-down",
+  name: "Metrics API Down",
+  summary: "Gnocchi's API does not answer for 15 minutes.",
+  description:
+    "Alert when the exporter's read of Gnocchi fails for 15 minutes (openstack_gnocchi_up reads 0), or the exporter does not answer that collection (up reads 0). One incident per region. The exporter reads Gnocchi's status, which only an admin may, so a credential it refuses reads the same as a stopped API, recorded. A cloud whose credential has never read Gnocchi isn't offered this. Check the gnocchi-api service and its log, then `openstack metric status` with this credential.",
+  service: OpenStackServiceType.Metric,
+  collectionMetricName: "up",
+  incidentDescription: `The exporter's read of Gnocchi is failing: its API stopped answering, or this credential is no longer allowed its status, which reads the same. Measures can't reach Gnocchi while its API is down, and nothing can read them. Check the gnocchi-api service and its log, then openstack metric status with this credential. The incident resolves on its own once it answers again.`,
+});
+
+const metricNoProcessorsTemplate: OpenStackAlertTemplate = {
+  id: "openstack-metric-no-processors",
+  name: "Gnocchi No Processors",
+  forService: OpenStackServiceType.Metric,
+  summary: "Nothing processes Gnocchi's measures for 15 minutes.",
+  description:
+    "Alert when Gnocchi's status names no metricd processor for 15 minutes (openstack_gnocchi_status_metricd_processors reads 0, recorded with gnocchi-metricd stopped). One incident per region. Gnocchi's API goes on answering and taking measures, so Metrics API Down says nothing of this. Nothing is lost, but nothing newer can be read until metricd is back. Check the gnocchi-metricd service and its log, then `openstack metric status`.",
+  category: "Metrics",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Metric,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "processors",
+          metricName: "openstack_gnocchi_status_metricd_processors",
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Gnocchi No Processors",
+        incidentDescription: `Gnocchi's status names no metricd processor, so measures are piling up and nothing newer can be read. Nothing is lost while this lasts. Check the gnocchi-metricd service and its log, then openstack metric status. The incident resolves on its own once a processor is back.`,
+        criteriaName: "Gnocchi No Processors - none running",
+        criteriaDescription:
+          "Triggers when Gnocchi's status names no metricd processor for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * Where the backlog is heading, read as a line through the last two hours. A busy cloud's backlog is never 0 and
+ * may be large, so one that is falling is fine however large it is, and a flat reading under the line is too.
+ * What this says is that nothing has been catching up. Recorded only at 5 and then 10 measures, a minute apart,
+ * so the line itself is proven on what a monitor would read of those, and the size on made-up readings.
+ */
+const metricBacklogGrowingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-metric-backlog-growing",
+  name: "Gnocchi Backlog Growing",
+  forService: OpenStackServiceType.Metric,
+  summary: `Gnocchi's backlog is heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the hour.`,
+  description: `Alert when a line through the last two hours of Gnocchi's backlog (openstack_gnocchi_status_measures_to_process) passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour. One incident per region. One already past that and falling doesn't fire, and that's what recovering looks like. Check how much gnocchi-metricd has been given to do, then \`openstack metric status\` for how many processors it has.`,
+  category: "Metrics",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildForecastStep({
+      args,
+      service: OpenStackServiceType.Metric,
+      // Two hours, so a five-minute scrape's newest reading is never stale when it's checked.
+      rollingTime: RollingTime.Past2Hours,
+      horizonInHours: 1,
+      groupByAttributeKeys: REGION_GROUP,
+      query: {
+        alias: "measures_to_process",
+        metricName: "openstack_gnocchi_status_measures_to_process",
+        aggregationType: MetricsAggregationType.Max,
+      },
+      value: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+      words: {
+        incidentTitle: "[OpenStack] Gnocchi Backlog Growing",
+        incidentDescription: `Gnocchi's backlog is heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the hour, so metricd isn't keeping up and what can be read is falling behind. Check how much gnocchi-metricd has been given to do, then openstack metric status for how many processors it has. The incident resolves on its own once the backlog is falling or under the line.`,
+        criteriaName: `Gnocchi Backlog Growing - heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures`,
+        criteriaDescription: `Triggers when a line through the last two hours of Gnocchi's backlog passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour.`,
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -3413,9 +3729,16 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     shareInErrorTemplate,
     shareStuckTemplate,
     databaseApiDownTemplate,
+    metricApiDownTemplate,
+    metricNoProcessorsTemplate,
+    metricBacklogGrowingTemplate,
     databaseInstanceInErrorTemplate,
     databaseInstanceStuckTemplate,
     databaseVolumeNearlyFullTemplate,
+    dnsApiDownTemplate,
+    dnsZoneInErrorTemplate,
+    dnsZoneStuckPendingTemplate,
+    dnsRecordsetInErrorTemplate,
     bareMetalNodeInErrorTemplate,
     bareMetalNodeStuckTemplate,
     bareMetalNodeMaintenanceTooLongTemplate,
