@@ -1,0 +1,22 @@
+[
+  {
+    "mode": "Automatic",
+    "verdict": "RequiresApproval",
+    "requiresHuman": true
+  },
+  {
+    "mode": "Automatic, allowlisted",
+    "verdict": "RequiresApproval",
+    "requiresHuman": true
+  },
+  {
+    "mode": "Bypass approval",
+    "verdict": "RequiresApproval",
+    "requiresHuman": true
+  },
+  {
+    "mode": "Bypass approval, allowlisted",
+    "verdict": "RequiresApproval",
+    "requiresHuman": true
+  }
+]

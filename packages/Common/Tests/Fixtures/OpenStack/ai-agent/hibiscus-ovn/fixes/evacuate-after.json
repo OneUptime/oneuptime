@@ -1,0 +1,38 @@
+[
+  {
+    "ID": "33e415fa-e1ae-4a8f-a67e-323f5e484179",
+    "Name": "ou-evacuate-payments",
+    "Status": "REBUILD",
+    "Task State": "rebuild_spawning",
+    "Power State": 0,
+    "Networks": {},
+    "Image Name": "cirros-0.6.3-x86_64-disk",
+    "Image ID": "c3accd9f-b084-406d-ba15-f93fc7665e83",
+    "Flavor": "ou.tiny",
+    "Availability Zone": "nova",
+    "Host": "ou-fake-compute",
+    "Properties": {},
+    "Pinned Availability Zone": "nova",
+    "Scheduler Hints": {},
+    "Project ID": "9e84df37cdbd438ca580c365c569f013",
+    "Host Status": "UNKNOWN"
+  },
+  {
+    "ID": "7bc0fdc4-2434-4aa8-a949-8017c3ce9c2a",
+    "Name": "ou-evacuate-research",
+    "Status": "REBUILD",
+    "Task State": "rebuild_spawning",
+    "Power State": 0,
+    "Networks": {},
+    "Image Name": "cirros-0.6.3-x86_64-disk",
+    "Image ID": "c3accd9f-b084-406d-ba15-f93fc7665e83",
+    "Flavor": "ou.tiny",
+    "Availability Zone": "nova",
+    "Host": "ou-fake-compute",
+    "Properties": {},
+    "Pinned Availability Zone": "nova",
+    "Scheduler Hints": {},
+    "Project ID": "3bc88e740a7e48958de4224670889fe5",
+    "Host Status": "UNKNOWN"
+  }
+]
