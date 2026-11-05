@@ -265,6 +265,7 @@ const ATTENTION_QUERIES = [
   },
   { kind: "Service", where: () => true, whole: true },
   { kind: "Hypervisor", where: () => true, whole: true },
+  { kind: "ControlPlane", where: () => true, whole: true },
   {
     kind: "StoragePool",
     where: (row) => {

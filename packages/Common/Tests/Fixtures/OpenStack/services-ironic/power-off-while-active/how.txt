@@ -1,0 +1,2 @@
+A node that is deployed, with its power off.
+On its own: an active node powered off by someone, which Ironic records and leaves active.

@@ -15,8 +15,8 @@ import {
  *
  * `?estate=calm` has no quota data, which is most clouds, and `?estate=tenants` has it,
  * with a project at 90% of its instance quota and a nova-compute stopped under two
- * projects. A quota series has never been in a recording, so these are made up, in the
- * shape the snapshot scan writes (OpenStackSnapshotScanQuota.test.ts holds that shape).
+ * projects. No recorded project is at 90%, so these are made up, in the shape the snapshot
+ * scan writes (OpenStackSnapshotScanQuota.test.ts holds that shape, on recordings too).
  */
 
 // projectIdOf(1) and projectIdOf(2) of Fixture/Data.js, by how the page lists them.

@@ -6,3 +6,5 @@
 503 ironic-conductors
 503 ironic-versions
 503 ironic-drivers
+503 ironic-nodes-as-system
+503 ironic-conductors-as-system

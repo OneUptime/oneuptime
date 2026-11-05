@@ -33,6 +33,7 @@ import {
   getOpenStackAlertTemplatesByCategory,
   getOpenStackDefaultAlertTemplateId,
 } from "../../../Types/Monitor/OpenStackAlertTemplates";
+import { getAllOpenStackControlPlaneAlertTemplates } from "../../../Types/Monitor/OpenStackControlPlaneAlertTemplates";
 import {
   OPENSTACK_QUOTA_EXPORTER_READS,
   OpenStackMetricDefinition,
@@ -154,7 +155,11 @@ const ARGS: OpenStackAlertTemplateArgs = {
 };
 
 const TEMPLATES: Array<OpenStackAlertTemplate> =
-  getAllOpenStackAlertTemplates();
+  getAllOpenStackAlertTemplates().filter(
+    (template: OpenStackAlertTemplate): boolean => {
+      return !getAllOpenStackControlPlaneAlertTemplates().includes(template);
+    },
+  );
 
 type TemplateCase = [string, OpenStackAlertTemplate];
 
@@ -2491,7 +2496,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
     );
 
     test("the docs count the templates", () => {
-      expect(DOCS).toContain(`OneUptime ships ${TEMPLATES.length} templates`);
+      expect(DOCS).toContain(
+        `OneUptime ships ${getAllOpenStackAlertTemplates().length} templates`,
+      );
     });
   });
 });
