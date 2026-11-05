@@ -291,7 +291,7 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      {counts.hasBareMetal ? (
+      {runs(OpenStackServiceType.BareMetal) ? (
         <SideMenuSection title="Bare Metal">
           <SideMenuItem
             link={{

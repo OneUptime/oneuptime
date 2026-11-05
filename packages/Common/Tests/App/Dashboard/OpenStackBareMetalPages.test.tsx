@@ -30,7 +30,6 @@ import OpenStackCloudBareMetalNodeDetail from "../../../../App/FeatureSet/Dashbo
 import OpenStackCloudBareMetalNodes from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/BareMetalNodes";
 import OpenStackCloudServices from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import OpenStackCloudSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SideMenu";
-import { isOpenStackRunningBareMetal } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { OpenStackRecording } from "../../Helpers/OpenStackRecordings";
 import {
   CLOUD_ID,
@@ -747,7 +746,7 @@ describe("the Services page", () => {
 
     expect(card).toHaveTextContent("Bare Metal (Ironic)");
     expect(
-      within(card).getByTestId("openstack-service-group-note"),
+      within(card).getByTestId("openstack-service-group-workers-not-listed"),
     ).toHaveTextContent(/no series for Ironic's conductors/);
   });
 
@@ -758,7 +757,7 @@ describe("the Services page", () => {
     await renderPage(OpenStackCloudServices, "/services");
 
     expect(
-      await screen.findByTestId("openstack-service-group-note"),
+      await screen.findByTestId("openstack-service-group-workers-not-listed"),
     ).toHaveTextContent(/baremetal:conductor:get/);
   });
 
@@ -788,7 +787,9 @@ describe("the Services page", () => {
     expect(card).toHaveTextContent("ironic-conductor");
     expect(card).toHaveTextContent("conductor-1");
     expect(card.getAttribute("data-health")).toBe("Unhealthy");
-    expect(screen.queryByTestId("openstack-service-group-note")).toBeNull();
+    expect(
+      screen.queryByTestId("openstack-service-group-workers-not-listed"),
+    ).toBeNull();
   });
 
   test("gone quiet reads Quiet, never up in green and never down", async () => {
@@ -824,25 +825,27 @@ describe("the Services page", () => {
 });
 
 describe("a cloud without Ironic shows no trace of it", () => {
-  function menu(hasBareMetal: boolean | undefined): void {
+  function menu(
+    optionalServices: Array<OpenStackServiceType> | undefined,
+  ): void {
     render(
       <MemoryRouter>
         <OpenStackCloudSideMenu
           modelId={new ObjectID(CLOUD_ID)}
           resourceCounts={{
             hypervisors: 2,
-            hasBareMetal,
-            bareMetalNodes: hasBareMetal ? 5 : 0,
+            optionalServices,
+            bareMetalNodes: optionalServices?.length ? 5 : 0,
           }}
         />
       </MemoryRouter>,
     );
   }
 
-  test.each([[false], [undefined]])(
-    "the menu has no section, with hasBareMetal %s",
-    async (hasBareMetal: boolean | undefined) => {
-      menu(hasBareMetal);
+  test.each([[[]], [undefined], [[OpenStackServiceType.Orchestration]]])(
+    "the menu has no section, with services %s",
+    async (optionalServices: Array<OpenStackServiceType> | undefined) => {
+      menu(optionalServices);
       await settle();
 
       expect(screen.queryByText("Bare Metal")).toBeNull();
@@ -850,39 +853,10 @@ describe("a cloud without Ironic shows no trace of it", () => {
   );
 
   test("a cloud running it does, with its count", async () => {
-    menu(true);
+    menu([OpenStackServiceType.BareMetal]);
     await settle();
 
     expect(await screen.findByText("Bare Metal")).toBeInTheDocument();
     expect(screen.getByText("Nodes")).toBeInTheDocument();
   });
-
-  test.each([
-    ["no rows and no such service", 0, ["compute", "identity"], false],
-    [
-      "Ironic reporting, and showing this credential no node",
-      0,
-      ["baremetal"],
-      true,
-    ],
-    [
-      "nodes it knew, with Ironic gone from the services read",
-      3,
-      ["compute"],
-      true,
-    ],
-    ["nodes and Ironic", 3, ["baremetal", "compute"], true],
-  ] as Array<[string, number, Array<string>, boolean]>)(
-    "%s",
-    (
-      _name: string,
-      bareMetalNodeCount: number,
-      services: Array<string>,
-      expected: boolean,
-    ) => {
-      expect(
-        isOpenStackRunningBareMetal({ bareMetalNodeCount, services }),
-      ).toBe(expected);
-    },
-  );
 });

@@ -1361,7 +1361,7 @@ function writeBareMetal(
 
   for (const conductor of inventory.conductors || []) {
     writer.add(
-      "conductor_state",
+      "agent_state",
       {
         hostname: conductor.hostname,
         service: "ironic-conductor",

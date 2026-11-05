@@ -313,7 +313,7 @@ describe("conductors, which only a probe reads", () => {
     const [conductor] = ofKind(
       scan([
         [
-          "openstack_ironic_conductor_state",
+          "openstack_ironic_agent_state",
           1,
           { hostname: "conductor-1", service: "ironic-conductor" },
         ],
@@ -331,7 +331,7 @@ describe("conductors, which only a probe reads", () => {
     const [conductor] = ofKind(
       scan([
         [
-          "openstack_ironic_conductor_state",
+          "openstack_ironic_agent_state",
           0,
           { hostname: "conductor-1", service: "ironic-conductor" },
         ],

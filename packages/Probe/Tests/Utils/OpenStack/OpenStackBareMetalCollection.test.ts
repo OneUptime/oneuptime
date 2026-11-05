@@ -276,11 +276,19 @@ describe("a cloud without Ironic shows no trace of it", () => {
     expect(summaryOf(report)).toBeUndefined();
     expect(
       points.filter((point: ReportedDatapoint): boolean => {
-        return (
-          point.metric.startsWith("openstack_ironic_") ||
-          point.labels["openstack_service"] === "baremetal"
-        );
+        return point.metric.startsWith("openstack_ironic_");
       }),
+    ).toEqual([]);
+    /*
+     * What the receiver says of a scrape, as the agent's does for a job with nothing to read. It is
+     * what the scan never makes a row from, which the rows below hold.
+     */
+    expect(
+      ofKind(rowsOf(report), OpenStackResourceKind.Api).filter(
+        (row: OpenStackResourceBufferEntry): boolean => {
+          return row.name === OpenStackServiceType.BareMetal;
+        },
+      ),
     ).toEqual([]);
     expect(ofKind(rowsOf(report), OpenStackResourceKind.BareMetalNode)).toEqual(
       [],
@@ -591,7 +599,7 @@ describe("what a credential's scope decides", () => {
     });
 
     expect(ironicStatus("deploy-failed", "ironic-conductors")).toBe(403);
-    expect(pointsNamed(points, "openstack_ironic_conductor_state")).toEqual([]);
+    expect(pointsNamed(points, "openstack_ironic_agent_state")).toEqual([]);
     expect(pointsNamed(points, "openstack_ironic_up")[0]?.value).toBe(1);
     expect(summaryOf(report)?.errorCode).toBeUndefined();
     expect(JSON.stringify(report.summary?.warnings || [])).not.toContain(

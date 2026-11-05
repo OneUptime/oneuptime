@@ -148,7 +148,7 @@ test.describe("bare metal", () => {
 
     await expect(card).toContainText("Bare Metal (Ironic)");
     await expect(
-      card.getByTestId("openstack-service-group-note"),
+      card.getByTestId("openstack-service-group-workers-not-listed"),
     ).toContainText("no series for Ironic's conductors");
   });
 

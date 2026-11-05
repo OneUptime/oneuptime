@@ -250,7 +250,7 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
   // Only a probe says this one: the exporter has nothing on Ironic's conductors.
-  "openstack_ironic_conductor_state",
+  "openstack_ironic_agent_state",
 ]);
 
 const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
@@ -668,7 +668,7 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
       "openstack_container_infra_agent_state",
       OpenStackServiceFamily.ContainerInfra,
     ],
-    ["openstack_ironic_conductor_state", OpenStackServiceFamily.BareMetal],
+    ["openstack_ironic_agent_state", OpenStackServiceFamily.BareMetal],
   ]);
 
 function foldServiceState(data: {

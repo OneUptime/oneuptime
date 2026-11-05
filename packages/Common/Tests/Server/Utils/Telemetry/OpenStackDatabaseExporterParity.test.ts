@@ -242,8 +242,14 @@ describe("the database exporter's series, name by name", () => {
       "openstack_cinder_pool_capacity_free_gb",
       "openstack_cinder_pool_capacity_total_gb",
       "openstack_cinder_snapshot_gb",
-      // Ironic isn't in that exporter: the agent reads it through the API, as it does the pools.
-      "openstack_ironic_conductor_state",
+      // None of what a cloud may not run is in that exporter: the agent reads each through its API.
+      "openstack_container_infra_agent_state",
+      "openstack_container_infra_cluster_status",
+      "openstack_container_infra_up",
+      "openstack_heat_agent_state",
+      "openstack_heat_stack_status",
+      "openstack_heat_up",
+      "openstack_ironic_agent_state",
       "openstack_ironic_node",
       "openstack_ironic_node_provision_updated_at",
       "openstack_ironic_node_updated_at",

@@ -122,13 +122,6 @@ export function getInventorySummary(allRows, regionName) {
     }).length,
     bareMetalNodeCount: ofKind(rows, "BareMetalNode").length,
     bareMetalProviderCount: ofKind(rows, "PlacementProvider").length,
-    services: Array.from(
-      new Set(
-        ofKind(rows, "Api").map((row) => {
-          return row.name;
-        }),
-      ),
-    ),
     vcpuCapacity: sum(giving, "vcpuCapacity"),
     vcpuAllocated: sum(giving, "vcpuAllocated"),
     memoryCapacityBytes: sum(giving, "memoryCapacityBytes"),

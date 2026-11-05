@@ -2109,7 +2109,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     unit: "seconds",
   }),
   metric({
-    metricName: "openstack_ironic_conductor_state",
+    metricName: "openstack_ironic_agent_state",
     friendlyName: translationKey("Bare Metal Conductor Alive"),
     description:
       "1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list.",

@@ -326,16 +326,6 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          {props.note ? (
-            <li
-              className="px-5 py-3 text-sm text-gray-500 md:px-6"
-              data-testid="openstack-service-group-note"
-            >
-              {translator.translateText(props.note)}
-            </li>
-          ) : (
-            <></>
-          )}
           {shown.map((row: OpenStackResource): ReactElement => {
             return (
               <OpenStackWorkerRow

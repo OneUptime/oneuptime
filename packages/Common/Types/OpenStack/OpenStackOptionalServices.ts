@@ -61,6 +61,7 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       service: OpenStackServiceType.BareMetal,
       upMetricName: "openstack_ironic_up",
       isEmptyWhenStopped: true,
+      isReadByProbe: true,
     },
     {
       service: OpenStackServiceType.Orchestration,

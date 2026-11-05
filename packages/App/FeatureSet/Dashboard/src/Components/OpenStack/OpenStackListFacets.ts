@@ -347,7 +347,6 @@ const LABEL_FAILED: string = translationKey("Failed");
 const LABEL_STUCK: string = translationKey("Stuck");
 const LABEL_IN_ERROR: string = translationKey("In error");
 
-const LABEL_FAILED: string = translationKey("Failed");
 const LABEL_IN_MAINTENANCE: string = translationKey("In maintenance");
 
 function stuckPreset(data: {
