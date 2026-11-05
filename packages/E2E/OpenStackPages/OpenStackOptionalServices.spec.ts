@@ -1,7 +1,9 @@
 import { Locator, Page } from "@playwright/test";
 import {
+  FixtureRecord,
   VIEWPORTS,
   expect,
+  fixtureRecord,
   openCloudPage,
   partPath,
   screenshot,
@@ -275,6 +277,120 @@ test.describe("a whole cloud that runs both", () => {
     await openCloudPage(page, "", BOTH_ON_A_WHOLE_CLOUD);
     await expect(page.getByText("8 stacks")).toBeVisible();
     await expect(page.getByText("1 Kubernetes cluster")).toBeVisible();
+  });
+});
+
+/*
+ * What no runner has reached: a cluster Magnum finished, with OneUptime's Kubernetes agent on it. Made
+ * up (estate=magnum), and the links are the real rule: OpenStackLinks and its Postgres tests hold it.
+ */
+test.describe("a Magnum cluster with OneUptime's Kubernetes agent on it", () => {
+  const MAGNUM: string = "estate=magnum";
+  const CLUSTER: string = "3b143fea-d790-4490-995b-033a2263c60c";
+  const WITHOUT_AGENT: string = "9f6c221b-9ba3-4d20-ad26-e906bc1b3803";
+  const KUBERNETES_CLUSTER: string = "76000000-0000-4000-8000-000000000002";
+
+  test("links to its Kubernetes cluster, and that page links back", async ({
+    page,
+  }) => {
+    await page.goto(`${partPath("kubernetes-clusters", CLUSTER)}?${MAGNUM}`);
+    const links: Locator = page.getByTestId(
+      "openstack-container-cluster-links",
+    );
+    await expect(links).toContainText("from-magnum");
+    await expect(links).toContainText("2 nodes");
+    await screenshot(page, "magnum-cluster-with-agent");
+
+    await links.getByRole("link", { name: "from-magnum" }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/kubernetes/${KUBERNETES_CLUSTER}$`),
+    );
+
+    const back: Locator = page.getByTestId(
+      "kubernetes-cluster-openstack-placement",
+    );
+    await expect(back).toContainText("spec.providerID");
+    await expect(
+      back.getByTestId("openstack-placement-magnum-status"),
+    ).toContainText("CREATE_COMPLETE");
+    await screenshot(page, "kubernetes-cluster-from-magnum");
+
+    await back
+      .getByTestId("openstack-placement-magnum-cluster")
+      .getByRole("link")
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/kubernetes-clusters/${CLUSTER}`),
+    );
+    await expect(
+      page.getByTestId("openstack-container-cluster-overview"),
+    ).toBeVisible();
+  });
+
+  test("a cluster no agent reports from says nothing of one", async ({
+    page,
+  }) => {
+    await page.goto(
+      `${partPath("kubernetes-clusters", WITHOUT_AGENT)}?${MAGNUM}`,
+    );
+    await expect(
+      page.getByTestId("openstack-container-cluster-overview"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("openstack-container-cluster-links"),
+    ).toHaveCount(0);
+  });
+
+  test("one of its servers names it, and a hypervisor names who has a server on it", async ({
+    page,
+  }) => {
+    await openCloudPage(page, "instances", MAGNUM);
+    await page
+      .locator("tr", { hasText: "ou-cluster-real-rfhmez6mgxk3-node-0" })
+      .first()
+      .getByRole("button", { name: /view/i })
+      .first()
+      .click();
+    const row: Locator = page.getByTestId(
+      "openstack-instance-details-magnum-cluster",
+    );
+    await expect(row).toContainText("ou-cluster-real");
+
+    await openCloudPage(page, "hypervisors", MAGNUM);
+    await page
+      .locator("tr", { hasText: "compute-01" })
+      .first()
+      .getByRole("button", { name: /view/i })
+      .first()
+      .click();
+    await expect(
+      page.locator('[data-testid$="-magnum-clusters"]'),
+    ).toContainText("ou-cluster-real");
+  });
+
+  test("an instance of any other name asks nothing", async ({ page }) => {
+    await openCloudPage(page, "instances", MAGNUM);
+    await page
+      .locator("tr", { hasText: "web-1" })
+      .first()
+      .getByRole("button", { name: /view/i })
+      .first()
+      .click();
+    await expect(page.getByTestId("openstack-instance-overview")).toBeVisible();
+    await expect(
+      page.getByTestId("openstack-instance-details-magnum-cluster"),
+    ).toHaveCount(0);
+    const asked: FixtureRecord = await fixtureRecord(page);
+    expect(
+      asked.apiRequests.filter(
+        (request: { url: string; body: Record<string, unknown> | null }) => {
+          return (
+            request.url.includes("/blast-radius/") &&
+            request.body?.["kind"] === "Instance"
+          );
+        },
+      ),
+    ).toEqual([]);
   });
 });
 

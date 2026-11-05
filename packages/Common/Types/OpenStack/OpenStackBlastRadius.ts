@@ -62,6 +62,8 @@ export interface OpenStackBlastRadius {
    * the stack a cluster is built with. A failure there is the same failure, seen from the other end.
    */
   belongsTo?: Array<OpenStackBlastRadiusOwner> | undefined;
+  // The Magnum clusters with a server on this hypervisor, which its failure reaches.
+  magnumClusters?: Array<OpenStackBlastRadiusOwner> | undefined;
 }
 
 export interface OpenStackBlastRadiusOwner {

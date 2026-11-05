@@ -1124,6 +1124,67 @@ describe("what an alert on a hypervisor says beyond the cloud", () => {
     };
   }
 
+  test("it names the Magnum clusters with a server on it, whether or not the Kubernetes agent runs on them", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 3,
+          magnumClusters: [
+            {
+              kind: OpenStackResourceKind.ContainerCluster,
+              externalId: "c1",
+              name: "ou-cluster",
+              status: "CREATE_COMPLETE",
+            },
+            {
+              kind: OpenStackResourceKind.ContainerCluster,
+              externalId: "c2",
+              name: null,
+              status: null,
+            },
+          ],
+        },
+      }),
+    );
+    expect(text).toContain(
+      "**Kubernetes clusters with a server on it:** ou-cluster, c2.",
+    );
+  });
+
+  test("a hypervisor with none on it says nothing of them", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 3,
+          magnumClusters: [],
+        },
+      }),
+    );
+    expect(text).not.toContain("Kubernetes clusters");
+  });
+
+  test("a server of a Magnum cluster names it, though it can't say what the server holds", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        partKind: OpenStackResourceKind.Instance,
+        radius: {
+          ...getEmptyOpenStackBlastRadius(false),
+          belongsTo: [
+            {
+              kind: OpenStackResourceKind.ContainerCluster,
+              externalId: "c1",
+              name: "ou-cluster",
+              status: "CREATE_FAILED",
+            },
+          ],
+        },
+      }),
+    );
+    expect(text).toContain("**Part of Kubernetes cluster:** ou-cluster.");
+  });
+
   test("it lists the hosts, Kubernetes clusters and services it takes with it", () => {
     const text: string = OpenStackAlertContext.toMarkdown(
       contextWith({

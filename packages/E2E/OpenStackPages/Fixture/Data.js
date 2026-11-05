@@ -1516,10 +1516,109 @@ const BUSY_OTHER_PRODUCTS = {
   instancesInOtherClouds: [],
 };
 
+/*
+ * ---------------------------------------------------------------------------
+ * magnum: a cluster Magnum built, with OneUptime's Kubernetes agent on it. Made up: no runner has
+ * brought a Magnum cluster up, let alone run the agent on one. What Magnum and Heat call each thing is
+ * what a real cloud recorded (services-heat-magnum/access-check), and the links are the real rule.
+ * ---------------------------------------------------------------------------
+ */
+export const MAGNUM_CLUSTER = "3b143fea-d790-4490-995b-033a2263c60c";
+export const MAGNUM_CLUSTER_WITHOUT_AGENT = "9f6c221b-9ba3-4d20-ad26-e906bc1b3803";
+export const MAGNUM_KUBERNETES_CLUSTER = uuid("76000000", 2);
+export const MAGNUM_MACHINE = "compute-01.acme.example";
+const MAGNUM_STACK = "ou-cluster-real-rfhmez6mgxk3";
+
+export function magnumServerIdOf(number) {
+  return instanceIdOf(number);
+}
+
+function magnumInventory(context) {
+  const region = REGION_ONE;
+  const onMachine = {
+    hypervisorName: MAGNUM_MACHINE,
+    openStackProjectId: projectIdOf(1),
+  };
+  const part = (fields) => {
+    return stamped(
+      { regionName: region, openStackProjectId: projectIdOf(1), ...fields },
+      context,
+    );
+  };
+  return [
+    ...projects(context),
+    ...apis(context, region),
+    api(context, "orchestration", region),
+    api(context, "container-infra", region),
+    ...flavorsAndImages(context, region),
+    novaCompute(context, "compute-01", region),
+    hypervisor(context, MAGNUM_MACHINE, region, { instanceCount: 3 }),
+    instance(context, 1, `${MAGNUM_STACK}-master-0`, region, onMachine),
+    instance(context, 2, `${MAGNUM_STACK}-node-0`, region, onMachine),
+    instance(context, 3, "web-1", region, onMachine),
+    part({
+      kind: "Stack",
+      externalId: "4a7750cc-ca1c-4c4b-a10e-4ce526d83b7f",
+      name: MAGNUM_STACK,
+      status: "CREATE_COMPLETE",
+    }),
+    part({
+      kind: "ContainerCluster",
+      externalId: MAGNUM_CLUSTER,
+      name: "ou-cluster-real",
+      status: "CREATE_COMPLETE",
+      facts: {
+        stackId: "4a7750cc-ca1c-4c4b-a10e-4ce526d83b7f",
+        masterCount: 1,
+        nodeCount: 1,
+      },
+    }),
+    part({
+      kind: "Stack",
+      externalId: "66b02f15-9492-45b2-84aa-a82a4edf21f7",
+      name: "ou-cluster-times-out-abc123",
+      status: "CREATE_COMPLETE",
+    }),
+    part({
+      kind: "ContainerCluster",
+      externalId: MAGNUM_CLUSTER_WITHOUT_AGENT,
+      name: "ou-cluster-times-out",
+      status: "CREATE_COMPLETE",
+      facts: {
+        stackId: "66b02f15-9492-45b2-84aa-a82a4edf21f7",
+        masterCount: 1,
+        nodeCount: 1,
+      },
+    }),
+  ];
+}
+
+const MAGNUM_OTHER_PRODUCTS = {
+  hosts: [],
+  kubernetesNodes: [
+    {
+      clusterId: MAGNUM_KUBERNETES_CLUSTER,
+      clusterName: "from-magnum",
+      nodeName: "ou-cluster-real-master-0",
+      providerId: `openstack:///${instanceIdOf(1)}`,
+    },
+    {
+      clusterId: MAGNUM_KUBERNETES_CLUSTER,
+      clusterName: "from-magnum",
+      nodeName: "ou-cluster-real-node-0",
+      providerId: `openstack:///${instanceIdOf(2)}`,
+    },
+  ],
+  services: [],
+  cephClusters: [],
+  instancesInOtherClouds: [],
+};
+
 const OTHER_PRODUCTS = {
   busy: BUSY_OTHER_PRODUCTS,
   parts: BUSY_OTHER_PRODUCTS,
   links: LINKS_OTHER_PRODUCTS,
+  magnum: MAGNUM_OTHER_PRODUCTS,
 };
 
 /*
@@ -1699,6 +1798,7 @@ const ESTATES = {
   "control-plane": controlPlaneInventory,
   parts: partsInventory,
   links: linksInventory,
+  magnum: magnumInventory,
   usage: usageInventory,
   calm: calmInventory,
   "forced-down": forcedDownInventory,
