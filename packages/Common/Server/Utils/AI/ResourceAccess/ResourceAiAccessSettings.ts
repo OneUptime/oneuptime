@@ -445,7 +445,7 @@ export default class ResourceAiAccessSettings {
       throw new BadDataException(
         `OneUptime AI only reads this ${getResourceSentenceName(
           data.resourceType,
-        )}: it has no command that changes one, so fixes stay off.`,
+        )}: it has no command that changes it, so fixes stay off.`,
       );
     }
 

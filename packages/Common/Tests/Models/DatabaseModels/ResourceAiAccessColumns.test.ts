@@ -1,5 +1,6 @@
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
@@ -145,6 +146,13 @@ const CASES: Array<ResourceCase> = [
     noun: "account",
     edit: Permission.EditCloudResource,
     read: Permission.ReadCloudResource,
+  },
+  {
+    type: AiResourceType.OpenStackCloud,
+    model: OpenStackCloud,
+    noun: "OpenStack cloud",
+    edit: Permission.EditOpenStackCloud,
+    read: Permission.ReadOpenStackCloud,
   },
 ];
 

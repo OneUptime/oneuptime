@@ -85,6 +85,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   CLOUD_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import {
@@ -3909,7 +3910,11 @@ describe("every resource type", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "%s: the Change modal's mode cards name its own riskier changes",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =

@@ -915,6 +915,19 @@ Your key is in neither. It does travel between a service's own parts, in the con
 
 A trace only exists when a request is signed, so nothing here traces a cloud on its own. The planned lifecycle check signs its own requests when it is given the key, so a slow boot it sees has a trace: it is not built yet.
 
+## AI agent
+
+The agent's `docker-compose.yml` also runs the **OpenStack AI agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cloud it runs read-only `openstack` commands through it — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — and cites what it ran. There is no `openstack` binary in the agent and no shell: each command becomes one `GET` to the service that answers it, with the agent's own credential. The agent registers with the same `OPENSTACK_CLOUD_NAME` the collector reports, so it serves this cloud.
+
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cloud with it, and the cloud's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs. **AI > Agent** has the agent's status, **Test connection**, **Reset agent** and the install instructions, **AI > Insights** what it has done, and **AI > Logs** the commands it ran.
+- **It only reads.** Its policy has no command that changes a cloud, whatever a setting says: `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here, and the agent says so when it starts. Keystone's users, credentials and role assignments are off-limits too, and so are consoles and Barbican's secrets.
+- **The credential is the hard limit.** It uses the credential in `clouds.yaml` that the exporter reads, so it sees what the level you chose in [Choose how much the agent sees](#choose-how-much-the-agent-sees) lets it see. If you made that credential with access rules, make a new one from the current [rules](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json): they gained a few `GET` paths for the agent (an instance's actions, one network, subnet, router, floating IP, port or image), and the old ones still work for everything else. To use a credential of its own, set `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` and `OPENSTACK_AUTH_URL`, and `OPENSTACK_AI_CLOUDS_FILE=/dev/null` if there is no `clouds.yaml` beside the agent, as with your own exporter.
+- **Secrets stay out.** An instance's `user_data`, its admin password, an image's `direct_url` and a volume's `provider_auth`, and the generic secrets every AI agent masks, are removed from the output before it reaches the model or a log.
+- `install.sh` starts it with the exporter it bundles (the `openstack-ai-agent` Compose profile). With your own exporter, or to leave it out, set `COMPOSE_PROFILES` in `.env` yourself. `install.sh --without-docker` does not run it: run the container beside the two services, or use the Docker install if you want OneUptime AI to read this cloud.
+- It runs as the owner of `clouds.yaml` with no capabilities and a read-only root filesystem.
+
+What it may run and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#openstack-clouds). OneUptime AI's investigations read this cloud's Needs attention, blast radius, service logs and lifecycle events as well, where you have turned them on.
+
 ## Run as a systemd service
 
 To start the agent with the machine and restart it when it fails, install its systemd unit. It assumes the agent lives in `/opt/oneuptime-openstack-agent`, where the install script puts it. An install without Docker is a systemd service already.

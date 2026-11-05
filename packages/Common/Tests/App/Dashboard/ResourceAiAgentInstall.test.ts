@@ -47,6 +47,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
   CLOUD_AI_RESOURCE_TYPES,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
@@ -85,6 +86,7 @@ const COLLECTOR_DIRECTORIES: Record<ComposeInstalledAiResourceType, string> = {
   [AiResourceType.CephCluster]: "CephAgent",
   [AiResourceType.DatabaseServer]: "DatabaseAgent",
   [AiResourceType.Host]: "HostAIAgent",
+  [AiResourceType.OpenStackCloud]: "OpenStackAgent",
 };
 
 interface ComposeService {
@@ -189,7 +191,7 @@ function installerDirectory(
     "utf8",
   );
   const match: RegExpMatchArray | null = installer.match(
-    /^INSTALL_DIR="(?:\$\{INSTALL_DIR:-)?([^"}]+)\}?"/m,
+    /^(?:DEFAULT_)?INSTALL_DIR="(?:\$\{INSTALL_DIR:-)?([^"}]+)\}?"/m,
   );
 
   return match ? match[1]! : null;
@@ -229,6 +231,7 @@ describe("the agent's service", () => {
       "oneuptime-ceph-ai-agent",
       "oneuptime-database-ai-agent",
       "oneuptime-host-ai-agent",
+      "oneuptime-openstack-ai-agent",
     ]);
   });
 
@@ -1025,7 +1028,10 @@ describe("the write switch", () => {
         `compose up -d ${getResourceAiAgentServiceName(type)}`,
       );
 
-      if (type === AiResourceType.DatabaseServer) {
+      if (
+        type === AiResourceType.DatabaseServer ||
+        isReadOnlyAiResourceType(type)
+      ) {
         // A session id is not a target anyone can scope in advance.
         expect(commands.scopedEnv).toBeNull();
         expect(commands.scopedNote).toBeNull();
@@ -1085,6 +1091,11 @@ describe("the write switch", () => {
     "%s: the disclosure says what writes allow and what OneUptime never does",
     (type: ComposeInstalledAiResourceType) => {
       const disclosure: string = getResourceAiAgentWriteDisclosure(type);
+
+      if (isReadOnlyAiResourceType(type)) {
+        expect(disclosure).toMatch(/only reads/);
+        return;
+      }
 
       expect(disclosure).toMatch(/^Write access lets the agent /);
       expect(disclosure).toContain("OneUptime still holds the line");

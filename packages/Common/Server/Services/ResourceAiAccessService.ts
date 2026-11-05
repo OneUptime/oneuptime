@@ -601,8 +601,14 @@ export class ResourceAiAccessServiceClass {
       ? ResourceAiAgentService.getAgentSummary(agentRow, data.now)
       : null;
     const posture: ResourceAiAgentPosture | null = agent?.posture || null;
-    const remediationMode: ResourceAiRemediationMode =
-      resource.aiRemediationMode;
+    /*
+     * A resource OneUptime AI only reads has no command a fix could run, so fixes
+     * are off whatever a saved row says.
+     */
+    const isReadOnly: boolean = isReadOnlyAiResourceType(type);
+    const remediationMode: ResourceAiRemediationMode = isReadOnly
+      ? ResourceAiRemediationMode.Disabled
+      : resource.aiRemediationMode;
 
     /*
      * Where investigation and fixes are set: by the resource's AI agent
@@ -695,17 +701,11 @@ export class ResourceAiAccessServiceClass {
       });
     }
 
-    /*
-     * A resource OneUptime AI only reads has no command a fix could run, so
-     * fixes are off whatever a saved row or an agent's report says.
-     */
-    const isReadOnly: boolean = isReadOnlyAiResourceType(type);
-
     if (isReadOnly) {
       gaps.push({
         code: "remediation_disabled",
         title: `OneUptime AI only reads this ${noun}`,
-        nextStep: `It has no command that changes a ${noun}, so fixes stay off. An investigation's report says what a person should change.`,
+        nextStep: `It has no command that changes this ${noun}, so fixes stay off. An investigation's report says what a person should change.`,
         blocksInvestigation: false,
         blocksRemediation: true,
       });

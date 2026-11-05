@@ -569,6 +569,7 @@ describe("ResourceAiDeleteCleanup", () => {
         [AiResourceType.AwsAccount]: 'the AWS account "x"',
         [AiResourceType.AzureSubscription]: 'the Azure subscription "x"',
         [AiResourceType.GoogleCloudProject]: 'the Google Cloud project "x"',
+        [AiResourceType.OpenStackCloud]: 'the OpenStack cloud "x"',
       };
 
       for (const resourceType of ALL_AI_RESOURCE_TYPES) {

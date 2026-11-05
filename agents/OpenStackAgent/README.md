@@ -363,6 +363,34 @@ Nothing arrives until a request is signed with that key: only a signed request i
 | `OPENSTACK_TRACES_LISTEN_ADDRESS` | `127.0.0.1:4318` | Without Docker: where it listens. For services in containers of their own, such as OpenStack-Ansible's in LXC |
 | `OPENSTACK_TRACES_PUBLISH_ADDRESS` | `127.0.0.1` | With Docker: the address the port is published on |
 
+## OneUptime AI agent
+
+`docker-compose.yml` also has `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`, profile `openstack-ai-agent`). With it, OneUptime AI reads the cloud while it investigates an incident or alert, and cites what it ran. It shares this folder's `.env`, and registers under the same `OPENSTACK_CLOUD_NAME` the collector reports.
+
+It only reads. It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each command becomes one `GET` to the service that answers it. Its policy has no command that changes a cloud, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
+
+`install.sh` starts it beside the exporter it bundles (`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`). To start it yourself:
+
+```bash
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent docker compose up -d
+```
+
+- **The credential.** It uses the entry of `clouds.yaml` the exporter reads: what the access level you chose lets that credential see is what it can read. A credential made with access rules needs to be [replaced](#replacing-a-credential) from the current `access/application-credential-access-rules.json`, which gained a few `GET` paths for the agent; until then, the commands those paths answer come back with a `403` and everything else works.
+- **Your own exporter.** There is no `clouds.yaml` here then. Make a credential for the agent, and set in `.env`:
+
+  ```bash
+  COMPOSE_PROFILES=openstack-ai-agent
+  OPENSTACK_AI_CLOUDS_FILE=/dev/null
+  OPENSTACK_AUTH_URL=https://keystone.example.com:5000
+  ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=...
+  ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=...
+  ```
+
+- **Without Docker.** `install.sh --without-docker` does not run it. Run the Docker install to have OneUptime AI read this cloud.
+- **Other settings.** `ONEUPTIME_AI_INVESTIGATION=false` stops investigations. `ONEUPTIME_AI_OPENSTACK_CLOUD` picks another entry of `clouds.yaml`, `ONEUPTIME_AI_OPENSTACK_REGION` and `ONEUPTIME_AI_OPENSTACK_INTERFACE` the region and endpoints a command reads, and `ONEUPTIME_AI_OPENSTACK_CA_FILE` a certificate authority.
+
+What it may run, and how to troubleshoot it: [Infrastructure AI Agents](https://oneuptime.com/docs/ai/infrastructure-ai-agents#openstack-clouds).
+
 ## Settings
 
 Answers to the installer. Set any of them in the environment to skip its question, and to change one later. The first group lives in `.env`; `clouds.yaml` alone holds the credential.

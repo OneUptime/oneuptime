@@ -1003,6 +1003,7 @@ describe("ResourceAiAccessService.getResourcesForSubject", () => {
         "dockerSwarmClusters",
         "hosts",
         "monitors",
+        "openStackClouds",
         "podmanHosts",
         "proxmoxClusters",
         "vmwareVCenters",

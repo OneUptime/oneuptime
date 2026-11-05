@@ -2145,10 +2145,15 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.ShortText,
     allowedValues: Object.values(ResourceAiRemediationMode),
     title: "AI Remediation Mode",
+    /*
+     * The API and Terraform docs for the mode: the same semantics as the
+     * ResourceAiRemediationMode doc comment in
+     * Types/ResourceAiAgent/ResourceAiAccess.ts (the canonical text).
+     */
     description:
-      "Disabled: AI never proposes or runs a change on this OpenStack cloud. OneUptime AI only reads an OpenStack cloud today: it has no command that changes one, so this stays Disabled and any other mode is refused.",
+      "OneUptime AI only reads an OpenStack cloud today: it has no command that changes one, so this stays Disabled and any other mode is refused. Disabled: AI never proposes or runs a change on this OpenStack cloud. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the OpenStack cloud's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the OpenStack cloud can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
     defaultValue: ResourceAiRemediationMode.Disabled,
-    example: ResourceAiRemediationMode.Disabled,
+    example: ResourceAiRemediationMode.RequireApproval,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -2168,7 +2173,7 @@ export default class OpenStackCloud extends BaseModel {
     required: false,
     title: "AI Command Allowlist",
     description:
-      "Optional JSON array of command patterns that Automatic mode may run on this OpenStack cloud without approval. OneUptime AI only reads an OpenStack cloud today, and a read needs no approval, so no pattern is valid here yet and this stays empty.",
+      "OneUptime AI only reads an OpenStack cloud today, and a read needs no approval, so no pattern is valid here yet and this stays empty. Optional JSON array of command patterns that Automatic mode may run on this OpenStack cloud without approval even though they are riskier changes. Each pattern is one command line for this OpenStack cloud's agent (openstack) and is compared with the command word by word: * stands for exactly one word (a name, an id), never for extra words or flags, and every flag the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this OpenStack cloud is refused. Destructive commands (Denied tier) never run regardless, and a command that always needs a human still asks. Adding a pattern needs Project Owner, Project Admin or Edit AI Rule; anyone who may edit the OpenStack cloud can remove patterns or clear the list.",
   })
   @Column({
     type: ColumnType.JSON,
