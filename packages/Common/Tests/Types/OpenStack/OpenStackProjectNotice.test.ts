@@ -144,13 +144,16 @@ describe("a notice is armed only once an operator has seen who it tells", () => 
       },
       false,
     ],
-  ])("%s", (
-    _name: string,
-    notice: OpenStackProjectNoticeRecipient,
-    expected: boolean,
-  ) => {
-    expect(isOpenStackProjectNoticeArmed(notice)).toBe(expected);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      notice: OpenStackProjectNoticeRecipient,
+      expected: boolean,
+    ) => {
+      expect(isOpenStackProjectNoticeArmed(notice)).toBe(expected);
+    },
+  );
 
   test("the channel is whichever of the two it holds, and neither when both", () => {
     expect(getOpenStackNoticeChannel({ email: "a@example.com" })).toBe(

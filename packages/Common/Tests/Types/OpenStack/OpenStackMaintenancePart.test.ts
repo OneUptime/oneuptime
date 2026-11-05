@@ -95,18 +95,17 @@ describe("which series are on a part under maintenance", () => {
       false,
     ],
     ["a series with no labels at all", {}, false],
-  ])("%s", (
-    _name: string,
-    labels: Record<string, string>,
-    expected: boolean,
-  ) => {
-    expect(
-      isOpenStackSeriesOnMaintainedPart({
-        labels,
-        parts: parts(["compute-01.example.internal"]),
-      }),
-    ).toBe(expected);
-  });
+  ])(
+    "%s",
+    (_name: string, labels: Record<string, string>, expected: boolean) => {
+      expect(
+        isOpenStackSeriesOnMaintainedPart({
+          labels,
+          parts: parts(["compute-01.example.internal"]),
+        }),
+      ).toBe(expected);
+    },
+  );
 
   test("nothing under maintenance quiets nothing", () => {
     expect(

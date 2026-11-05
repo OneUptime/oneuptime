@@ -249,16 +249,19 @@ describe("OpenStackProjectNoticeAPI", () => {
       ["an empty token", { previewToken: "" }],
       ["a token someone made up", { previewToken: "made-up" }],
       ["a token that isn't text", { previewToken: { value: TOKEN } as never }],
-    ])("with %s, it is refused and stays off", async (_name: string, body: JSONObject) => {
-      const answer: Answer = await call({
-        route: "turn-on/:noticeId",
-        params: { noticeId: NOTICE_ID.toString() },
-        body,
-      });
+    ])(
+      "with %s, it is refused and stays off",
+      async (_name: string, body: JSONObject) => {
+        const answer: Answer = await call({
+          route: "turn-on/:noticeId",
+          params: { noticeId: NOTICE_ID.toString() },
+          body,
+        });
 
-      expect(answer.error?.message).toContain("See who this tells first");
-      expect(update).not.toHaveBeenCalled();
-    });
+        expect(answer.error?.message).toContain("See who this tells first");
+        expect(update).not.toHaveBeenCalled();
+      },
+    );
 
     test("with no preview ever asked for, even an empty token is refused", async () => {
       jest

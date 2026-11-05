@@ -262,22 +262,23 @@ describe("sending what is waiting", () => {
       },
       "already been told",
     ],
-  ])("%s: nothing goes out", async (
-    _name: string,
-    data: Parameters<typeof arrange>[0],
-    why: string,
-  ) => {
-    const sent: Sent = arrange({ pending: [rowOf()], ...data });
+  ])(
+    "%s: nothing goes out",
+    async (_name: string, data: Parameters<typeof arrange>[0], why: string) => {
+      const sent: Sent = arrange({ pending: [rowOf()], ...data });
 
-    await OpenStackProjectNoticeSender.sendWhatIsDue();
+      await OpenStackProjectNoticeSender.sendWhatIsDue();
 
-    expect(sent.emails).not.toHaveBeenCalled();
-    expect(sent.webhooks).not.toHaveBeenCalled();
-    expect(lastStatus(sent)).toBe(OpenStackProjectNoticeDeliveryStatus.Skipped);
-    expect(sent.updates[sent.updates.length - 1]!.data.statusMessage).toContain(
-      why,
-    );
-  });
+      expect(sent.emails).not.toHaveBeenCalled();
+      expect(sent.webhooks).not.toHaveBeenCalled();
+      expect(lastStatus(sent)).toBe(
+        OpenStackProjectNoticeDeliveryStatus.Skipped,
+      );
+      expect(
+        sent.updates[sent.updates.length - 1]!.data.statusMessage,
+      ).toContain(why);
+    },
+  );
 
   test("over before it went out: nothing goes out", async () => {
     const sent: Sent = arrange({
@@ -346,19 +347,22 @@ describe("sending what is waiting", () => {
     [400, OpenStackProjectNoticeDeliveryStatus.Failed],
     [404, OpenStackProjectNoticeDeliveryStatus.Failed],
     [301, OpenStackProjectNoticeDeliveryStatus.Failed],
-  ])("a webhook answering %d", async (
-    status: number,
-    expected: OpenStackProjectNoticeDeliveryStatus,
-  ) => {
-    const sent: Sent = arrange({ pending: [rowOf()], notice: webhookNotice() });
-    sent.webhooks.mockResolvedValue(
-      new HTTPErrorResponse(status, {}, {}) as never,
-    );
+  ])(
+    "a webhook answering %d",
+    async (status: number, expected: OpenStackProjectNoticeDeliveryStatus) => {
+      const sent: Sent = arrange({
+        pending: [rowOf()],
+        notice: webhookNotice(),
+      });
+      sent.webhooks.mockResolvedValue(
+        new HTTPErrorResponse(status, {}, {}) as never,
+      );
 
-    await OpenStackProjectNoticeSender.sendWhatIsDue();
+      await OpenStackProjectNoticeSender.sendWhatIsDue();
 
-    expect(lastStatus(sent)).toBe(expected);
-  });
+      expect(lastStatus(sent)).toBe(expected);
+    },
+  );
 
   test("a webhook that timed out may have been read, so it isn't sent again", async () => {
     const sent: Sent = arrange({ pending: [rowOf()], notice: webhookNotice() });

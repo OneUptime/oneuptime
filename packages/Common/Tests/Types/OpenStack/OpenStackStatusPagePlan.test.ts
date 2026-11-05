@@ -604,15 +604,18 @@ describe("which row a part belongs to, and what it is called to a tenant", () =>
       null,
       "A part of the cloud",
     ],
-  ])("%s", (
-    _name: string,
-    part: { kind: string; name?: string; externalId?: string },
-    service: OpenStackStatusPageService | null,
-    words: string,
-  ) => {
-    expect(getOpenStackStatusPageServiceOfPart(part)).toBe(service);
-    expect(describeOpenStackPartToAProject(part)).toBe(words);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      part: { kind: string; name?: string; externalId?: string },
+      service: OpenStackStatusPageService | null,
+      words: string,
+    ) => {
+      expect(getOpenStackStatusPageServiceOfPart(part)).toBe(service);
+      expect(describeOpenStackPartToAProject(part)).toBe(words);
+    },
+  );
 
   test("a host's name never reaches a tenant, whatever the part says", () => {
     expect(

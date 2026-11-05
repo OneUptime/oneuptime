@@ -374,13 +374,16 @@ describe("what an incident's description keeps from a status page", () => {
       `Above.\n\n${OPENSTACK_REACH_HEADING}\n\nx\n\nBelow, by a person.`,
       "Above.",
     ],
-  ])("%s", (
-    _name: string,
-    description: string | null | undefined,
-    expected: string,
-  ) => {
-    expect(removeOpenStackReachFromDescription(description)).toBe(expected);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      description: string | null | undefined,
+      expected: string,
+    ) => {
+      expect(removeOpenStackReachFromDescription(description)).toBe(expected);
+    },
+  );
 
   test("a description of megabytes on one line is cut without a quantifier", () => {
     const long: string = "x".repeat(4 * 1024 * 1024);

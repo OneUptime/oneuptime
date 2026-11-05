@@ -762,6 +762,7 @@ What is told is about that project only: what it holds on the part, in our words
 | A project that was deleted, with an instance left behind | Nobody, however its notice is set |
 | A second incident on a part already told about | Nobody, until both are over. Then it is told once that it is over |
 | A notice turned off in the minute before it went out | Nobody, and **What Was Sent** says why |
+| A host someone disabled, with no maintenance event | Nobody. It pages your team, and what a project runs there carries on |
 
 Each notice goes out at most once. If a worker stops part way through sending, that notice is not sent again, and **What Was Sent** says it may or may not have gone. A webhook is a POST of JSON with an `id` that doesn't change, and only an answer saying it wasn't taken (`429` or a `5xx`) is tried again.
 
