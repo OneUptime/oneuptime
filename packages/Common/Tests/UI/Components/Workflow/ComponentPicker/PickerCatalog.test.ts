@@ -128,6 +128,7 @@ describe("what the picker leads with", () => {
       // Incidents and alerts for another tool's problems, next to paging.
       "From Other Tools",
       "AI",
+      "OpenStack",
       "API",
       "Telegram",
       "IRC",
@@ -153,6 +154,7 @@ describe("what the picker leads with", () => {
       "Incident From Another Tool",
       "Alert From Another Tool",
       "Generate Text with AI",
+      "Propose an OpenStack fix",
       "API Put (JSON)",
       "API Patch (JSON)",
       "API Delete (JSON)",
