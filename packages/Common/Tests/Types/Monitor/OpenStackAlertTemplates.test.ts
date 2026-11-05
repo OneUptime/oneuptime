@@ -268,6 +268,12 @@ function scrapeIntervalsInSeconds(): Record<string, number> {
     intervals[match[1]!] = Number(match[2]);
   }
 
+  /*
+   * The exporter has no series for CloudKitty, so the agent has no job for it. A probe reads it every
+   * five minutes, like the rest of what a cloud may not run: OpenStackRatingCollection.test.ts holds that.
+   */
+  intervals[OpenStackServiceType.Rating] = 300;
+
   return intervals;
 }
 
@@ -567,6 +573,10 @@ const THRESHOLDS: Readonly<
     value: 1,
   },
   "openstack-container-infra-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-rating-api-down": {
     filterType: FilterType.LessThan,
     value: 1,
   },
@@ -913,6 +923,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
   },
+  "openstack-rating-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
   "openstack-orchestration-engine-down": {
     breached: { heat_engine_up: 0 },
     healthy: { heat_engine_up: 1 },
@@ -1139,6 +1153,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         // The services a cloud may not run: #5743.
         "Orchestration API Down",
         "Kubernetes Clusters API Down",
+        "Rating API Down",
         "Heat Engine Down",
         "Magnum Conductor Down",
         "Stack Failed",
@@ -2116,6 +2131,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "openstack-bare-metal-conductor-down",
         "openstack-container-infra-conductor-down",
         "openstack-orchestration-engine-down",
+        "openstack-rating-api-down",
         "openstack-share-service-down",
       ]);
       for (const id of probeOnly) {

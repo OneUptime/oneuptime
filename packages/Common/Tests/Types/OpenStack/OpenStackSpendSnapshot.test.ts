@@ -27,6 +27,7 @@ import {
   getOpenStackSpendGrowers,
   getOpenStackSpendSource,
   getOpenStackVcpuHoursOnCourseFor,
+  getOpenStackRatedFactKey,
   readOpenStackRatedByPeriod,
   readOpenStackSpendSnapshot,
 } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
@@ -87,7 +88,7 @@ describe("where a project's cost comes from", () => {
     const cost: OpenStackProjectCost = getOpenStackProjectCost({
       quantities: TEN_HOURS,
       priceList: prices,
-      rated: { total: 123.45, byType: {}, readAt: null },
+      rated: { total: 123.45, readAt: null },
     });
 
     expect(cost).toEqual({
@@ -115,7 +116,7 @@ describe("where a project's cost comes from", () => {
       getOpenStackProjectCost({
         quantities: TEN_HOURS,
         priceList: prices,
-        rated: { total: 0, byType: {}, readAt: null },
+        rated: { total: 0, readAt: null },
       }).source,
     ).toBe(OpenStackCostSource.PriceList);
   });
@@ -135,7 +136,7 @@ describe("where a project's cost comes from", () => {
       getOpenStackProjectCost({
         quantities: TEN_HOURS,
         priceList: null,
-        rated: { total: 5, byType: {}, readAt: null },
+        rated: { total: 5, readAt: null },
       }).amount,
     ).toBe(5);
   });
@@ -162,32 +163,58 @@ describe("where a project's cost comes from", () => {
 });
 
 describe("what CloudKitty's figures read as, on a project's row", () => {
-  test.each([[null], [undefined], ["x"], [[1]], [{ "2026-11": "x" }]])(
-    "%j reads as nothing",
-    (value: unknown) => {
-      expect(readOpenStackRatedByPeriod(value)).toEqual({});
-    },
-  );
+  test.each([
+    [null],
+    [undefined],
+    ["x"],
+    [[1]],
+    [{ "rated:RegionOne": "x" }],
+    [{ "rated:RegionOne": { "2026-11": "x" } }],
+  ])("%j reads as nothing", (value: unknown) => {
+    expect(readOpenStackRatedByPeriod(value)).toEqual({});
+  });
 
-  test("only what's above zero is a rating, and each type's the same", () => {
+  test("only what's above zero is a rating", () => {
     expect(
       readOpenStackRatedByPeriod({
-        "2026-11": {
-          total: "12.5",
-          byType: { "instance.usage": 10, volume: 0, bad: "x", ok: "2.5" },
-          readAt: "2026-11-05T00:00:00.000Z",
+        "rated:RegionOne": {
+          "2026-11": {
+            total: "12.5",
+            readAt: "2026-11-05T00:00:00.000Z",
+          },
+          "2026-10": { total: 0 },
+          "2026-09": { total: -1 },
+          "2026-08": { total: "abc" },
         },
-        "2026-10": { total: 0 },
-        "2026-09": { total: -1 },
-        "2026-08": { total: "abc" },
       }),
     ).toEqual({
       "2026-11": {
         total: 12.5,
-        byType: { "instance.usage": 10, ok: 2.5 },
         readAt: "2026-11-05T00:00:00.000Z",
       },
     });
+  });
+
+  test("a project's regions add up, and the sum is as fresh as the oldest of them", () => {
+    expect(
+      readOpenStackRatedByPeriod({
+        "rated:RegionOne": {
+          "2026-11": { total: 2.5, readAt: "2026-11-05T01:00:00.000Z" },
+          "2026-10": { total: 40, readAt: "2026-11-05T01:00:00.000Z" },
+        },
+        "rated:RegionTwo": {
+          "2026-11": { total: 1, readAt: "2026-11-05T00:05:00.000Z" },
+        },
+      }),
+    ).toEqual({
+      "2026-11": { total: 3.5, readAt: "2026-11-05T00:05:00.000Z" },
+      "2026-10": { total: 40, readAt: "2026-11-05T01:00:00.000Z" },
+    });
+  });
+
+  test("each region's figures are a fact of their own, because a fact is replaced whole", () => {
+    expect(getOpenStackRatedFactKey("RegionOne")).toBe("rated:RegionOne");
+    expect(getOpenStackRatedFactKey(null)).toBe("rated:");
   });
 });
 
