@@ -572,14 +572,14 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 500,
+          "status": 200,
           "count": null,
-          "seesAll": false,
-          "reason": "An error occurred"
+          "seesAll": true
         }
       }
     }
   ],
+  "partReads": [],
   "writes": [
     {
       "service": "compute",
@@ -718,9 +718,9 @@
       "write": "create a container",
       "results": {
         "monitoring-admin-get": {
-          "status": 500,
+          "status": 401,
           "wrote": false,
-          "reason": "An error occurred"
+          "reason": "<html><h1>Unauthorized</h1><p>This server could not verify that you are authorized to access the document you requested.</p></html>"
         }
       }
     }

@@ -1,31 +1,31 @@
 # HELP openstack_designate_recordsets recordsets
 # TYPE openstack_designate_recordsets gauge
-openstack_designate_recordsets{tenant_id="877c6b7796f24d749487877296ae2f2c",zone_id="7eae3c2e-1f55-4837-877d-7e58879b282c",zone_name="ou-payments.example.org."} 2
-openstack_designate_recordsets{tenant_id="ae4a67bb74a44dddb73258c2b4fa0bb6",zone_id="634caaf6-b532-4613-842a-3191e87ee20a",zone_name="ou-active.example.org."} 5
-openstack_designate_recordsets{tenant_id="ae4a67bb74a44dddb73258c2b4fa0bb6",zone_id="f5201d9a-2f25-4b1c-a253-405f7f357742",zone_name="ou-error.example.org."} 2
-openstack_designate_recordsets{tenant_id="ae4a67bb74a44dddb73258c2b4fa0bb6",zone_id="fddfd8d0-c06d-491f-8c66-3ef70f0ddba5",zone_name="ou-pending.example.org."} 2
+openstack_designate_recordsets{tenant_id="1cda02e6eed540fbacdaacfa3a986fa5",zone_id="93e78a3a-495c-4d03-b2cb-ca4b9f65790f",zone_name="ou-payments.example.org."} 2
+openstack_designate_recordsets{tenant_id="bffcf4cde8b3423c98e188158beeae84",zone_id="0dcaa32c-8d89-4848-8d69-bed6ecca4f43",zone_name="ou-pending.example.org."} 2
+openstack_designate_recordsets{tenant_id="bffcf4cde8b3423c98e188158beeae84",zone_id="2b868981-e2b3-40cc-9a62-4e1044b15e07",zone_name="ou-active.example.org."} 5
+openstack_designate_recordsets{tenant_id="bffcf4cde8b3423c98e188158beeae84",zone_id="35dcc674-0bb6-422d-a5bb-86335733e014",zone_name="ou-error.example.org."} 2
 # HELP openstack_designate_recordsets_status recordsets_status
 # TYPE openstack_designate_recordsets_status gauge
-openstack_designate_recordsets_status{id="109a0ec6-44ed-4a26-9e0a-c50e23e503f3",name="ou-error.example.org.",status="ACTIVE",type="SOA",zone_id="f5201d9a-2f25-4b1c-a253-405f7f357742",zone_name="ou-error.example.org."} 1
-openstack_designate_recordsets_status{id="1a7c09df-2a24-447d-b973-8d99a4d42ab9",name="ou-payments.example.org.",status="ACTIVE",type="SOA",zone_id="7eae3c2e-1f55-4837-877d-7e58879b282c",zone_name="ou-payments.example.org."} 1
-openstack_designate_recordsets_status{id="242a10dc-cd91-4610-86bd-19a449feb7f3",name="error.ou-active.example.org.",status="ACTIVE",type="A",zone_id="634caaf6-b532-4613-842a-3191e87ee20a",zone_name="ou-active.example.org."} 1
-openstack_designate_recordsets_status{id="2c1ef3c4-58f8-40ff-b6dc-81bd9e18c833",name="www.ou-active.example.org.",status="ACTIVE",type="A",zone_id="634caaf6-b532-4613-842a-3191e87ee20a",zone_name="ou-active.example.org."} 1
-openstack_designate_recordsets_status{id="4088e42f-1a3e-406d-bc82-cb0c370e8c96",name="pending.ou-active.example.org.",status="ACTIVE",type="A",zone_id="634caaf6-b532-4613-842a-3191e87ee20a",zone_name="ou-active.example.org."} 1
-openstack_designate_recordsets_status{id="5fa6f56b-14e4-408a-99c1-360ef813d545",name="ou-pending.example.org.",status="ACTIVE",type="SOA",zone_id="fddfd8d0-c06d-491f-8c66-3ef70f0ddba5",zone_name="ou-pending.example.org."} 1
-openstack_designate_recordsets_status{id="a4ee11a0-6ca7-43ab-a4b3-131970da7161",name="ou-payments.example.org.",status="ACTIVE",type="NS",zone_id="7eae3c2e-1f55-4837-877d-7e58879b282c",zone_name="ou-payments.example.org."} 1
-openstack_designate_recordsets_status{id="b2316e7f-ef94-447f-a677-f8771be9a17b",name="ou-pending.example.org.",status="ACTIVE",type="NS",zone_id="fddfd8d0-c06d-491f-8c66-3ef70f0ddba5",zone_name="ou-pending.example.org."} 1
-openstack_designate_recordsets_status{id="bb99ac79-0162-486b-a94e-57f1e8ccdf01",name="ou-active.example.org.",status="ACTIVE",type="NS",zone_id="634caaf6-b532-4613-842a-3191e87ee20a",zone_name="ou-active.example.org."} 1
-openstack_designate_recordsets_status{id="d33d252b-28fa-48d9-8418-cfddeee2c5a9",name="ou-active.example.org.",status="ACTIVE",type="SOA",zone_id="634caaf6-b532-4613-842a-3191e87ee20a",zone_name="ou-active.example.org."} 1
-openstack_designate_recordsets_status{id="e1d329f0-eb5e-4422-a4d5-4f741f5e9106",name="ou-error.example.org.",status="ACTIVE",type="NS",zone_id="f5201d9a-2f25-4b1c-a253-405f7f357742",zone_name="ou-error.example.org."} 1
+openstack_designate_recordsets_status{id="045e10a2-aded-480d-94ea-1529a247cb15",name="ou-error.example.org.",status="ACTIVE",type="NS",zone_id="35dcc674-0bb6-422d-a5bb-86335733e014",zone_name="ou-error.example.org."} 1
+openstack_designate_recordsets_status{id="4f607f1b-0851-4f94-8b3a-3eb23dcc0aea",name="ou-active.example.org.",status="ACTIVE",type="NS",zone_id="2b868981-e2b3-40cc-9a62-4e1044b15e07",zone_name="ou-active.example.org."} 1
+openstack_designate_recordsets_status{id="85a1712b-9d0e-4641-bd48-8b932988d2b0",name="ou-pending.example.org.",status="ACTIVE",type="SOA",zone_id="0dcaa32c-8d89-4848-8d69-bed6ecca4f43",zone_name="ou-pending.example.org."} 1
+openstack_designate_recordsets_status{id="8ad07dd9-3427-4524-9b56-964d73761132",name="ou-payments.example.org.",status="ACTIVE",type="SOA",zone_id="93e78a3a-495c-4d03-b2cb-ca4b9f65790f",zone_name="ou-payments.example.org."} 1
+openstack_designate_recordsets_status{id="8fc5a2b8-bec9-4de3-b018-c06f97ce5c11",name="pending.ou-active.example.org.",status="ACTIVE",type="A",zone_id="2b868981-e2b3-40cc-9a62-4e1044b15e07",zone_name="ou-active.example.org."} 1
+openstack_designate_recordsets_status{id="90b25c47-79f6-46cf-9561-a2c44914fc3c",name="ou-payments.example.org.",status="ACTIVE",type="NS",zone_id="93e78a3a-495c-4d03-b2cb-ca4b9f65790f",zone_name="ou-payments.example.org."} 1
+openstack_designate_recordsets_status{id="97b209e5-7145-4f71-b02c-62cd04e0606c",name="error.ou-active.example.org.",status="ACTIVE",type="A",zone_id="2b868981-e2b3-40cc-9a62-4e1044b15e07",zone_name="ou-active.example.org."} 1
+openstack_designate_recordsets_status{id="9b3cce74-7f45-4482-bc54-cd4cc2158eaf",name="ou-error.example.org.",status="ACTIVE",type="SOA",zone_id="35dcc674-0bb6-422d-a5bb-86335733e014",zone_name="ou-error.example.org."} 1
+openstack_designate_recordsets_status{id="a86d6e59-b43b-47b2-a06b-a04baf52efd1",name="ou-active.example.org.",status="ACTIVE",type="SOA",zone_id="2b868981-e2b3-40cc-9a62-4e1044b15e07",zone_name="ou-active.example.org."} 1
+openstack_designate_recordsets_status{id="b863a280-e3f2-4f73-82fd-81e634436daf",name="www.ou-active.example.org.",status="ACTIVE",type="A",zone_id="2b868981-e2b3-40cc-9a62-4e1044b15e07",zone_name="ou-active.example.org."} 1
+openstack_designate_recordsets_status{id="dc508b63-4703-4a99-bcf2-32fa119afa5c",name="ou-pending.example.org.",status="ACTIVE",type="NS",zone_id="0dcaa32c-8d89-4848-8d69-bed6ecca4f43",zone_name="ou-pending.example.org."} 1
 # HELP openstack_designate_up up
 # TYPE openstack_designate_up gauge
 openstack_designate_up 1
 # HELP openstack_designate_zone_status zone_status
 # TYPE openstack_designate_zone_status gauge
-openstack_designate_zone_status{id="634caaf6-b532-4613-842a-3191e87ee20a",name="ou-active.example.org.",status="ACTIVE",tenant_id="ae4a67bb74a44dddb73258c2b4fa0bb6",type="PRIMARY"} 1
-openstack_designate_zone_status{id="7eae3c2e-1f55-4837-877d-7e58879b282c",name="ou-payments.example.org.",status="ACTIVE",tenant_id="877c6b7796f24d749487877296ae2f2c",type="PRIMARY"} 1
-openstack_designate_zone_status{id="f5201d9a-2f25-4b1c-a253-405f7f357742",name="ou-error.example.org.",status="ACTIVE",tenant_id="ae4a67bb74a44dddb73258c2b4fa0bb6",type="PRIMARY"} 1
-openstack_designate_zone_status{id="fddfd8d0-c06d-491f-8c66-3ef70f0ddba5",name="ou-pending.example.org.",status="ACTIVE",tenant_id="ae4a67bb74a44dddb73258c2b4fa0bb6",type="PRIMARY"} 1
+openstack_designate_zone_status{id="0dcaa32c-8d89-4848-8d69-bed6ecca4f43",name="ou-pending.example.org.",status="ACTIVE",tenant_id="bffcf4cde8b3423c98e188158beeae84",type="PRIMARY"} 1
+openstack_designate_zone_status{id="2b868981-e2b3-40cc-9a62-4e1044b15e07",name="ou-active.example.org.",status="ACTIVE",tenant_id="bffcf4cde8b3423c98e188158beeae84",type="PRIMARY"} 1
+openstack_designate_zone_status{id="35dcc674-0bb6-422d-a5bb-86335733e014",name="ou-error.example.org.",status="ACTIVE",tenant_id="bffcf4cde8b3423c98e188158beeae84",type="PRIMARY"} 1
+openstack_designate_zone_status{id="93e78a3a-495c-4d03-b2cb-ca4b9f65790f",name="ou-payments.example.org.",status="ACTIVE",tenant_id="1cda02e6eed540fbacdaacfa3a986fa5",type="PRIMARY"} 1
 # HELP openstack_designate_zones zones
 # TYPE openstack_designate_zones gauge
 openstack_designate_zones 4

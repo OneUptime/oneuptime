@@ -700,6 +700,7 @@ phase_root_docker() {
 
   section "troubleshoot.sh without sudo says to use it, rather than that the credential isn't there"
   note "the agent's folder, installed under a root umask of 077: $(stat_of "$DEFAULT_DIR")"
+  check "nobody else can change what root runs from it" bash -c "! sudo -u '$PLAIN_USER' test -w '$DEFAULT_DIR'"
   as_plain "curl -fsSL '$ONEUPTIME_URL/install/openstack-agent/troubleshoot.sh' | bash -s -- -d '$DEFAULT_DIR'" </dev/null \
     >"$PHASE_DIR/doctor-no-sudo.log" 2>&1 || true
   says "$PHASE_DIR/doctor-no-sudo.log" "Run this with sudo"

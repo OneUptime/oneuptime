@@ -47,6 +47,8 @@ import OpenStackCloudStacks from "../Pages/OpenStack/View/Stacks";
 import OpenStackCloudStackDetail from "../Pages/OpenStack/View/StackDetail";
 import OpenStackCloudContainerClusters from "../Pages/OpenStack/View/ContainerClusters";
 import OpenStackCloudContainerClusterDetail from "../Pages/OpenStack/View/ContainerClusterDetail";
+import OpenStackCloudShares from "../Pages/OpenStack/View/Shares";
+import OpenStackCloudShareDetail from "../Pages/OpenStack/View/ShareDetail";
 import OpenStackCloudProjects from "../Pages/OpenStack/View/Projects";
 import OpenStackCloudProjectDetail from "../Pages/OpenStack/View/ProjectDetail";
 import OpenStackCloudDomains from "../Pages/OpenStack/View/Domains";
@@ -58,6 +60,7 @@ import OpenStackCloudRecommendations from "../Pages/OpenStack/View/Recommendatio
 import OpenStackCloudCapacity from "../Pages/OpenStack/View/Capacity";
 import OpenStackCloudLogs from "../Pages/OpenStack/View/Logs";
 import OpenStackCloudTraces from "../Pages/OpenStack/View/Traces";
+import OpenStackCloudChecks from "../Pages/OpenStack/View/Checks";
 import OpenStackCloudIncidents from "../Pages/OpenStack/View/Incidents";
 import OpenStackCloudAlerts from "../Pages/OpenStack/View/Alerts";
 import OpenStackCloudScheduledMaintenance from "../Pages/OpenStack/View/ScheduledMaintenance";
@@ -677,6 +680,33 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* Shares: only a cloud that runs Manila links here. */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
+          )}
+          element={
+            <OpenStackCloudShares
+              {...props}
+              pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SHARES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudShareDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
         {/* Tenancy */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -786,6 +816,19 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudTraces
               {...props}
               pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_TRACES] as Route}
+            />
+          }
+        />
+
+        {/* Checks */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_CHECKS,
+          )}
+          element={
+            <OpenStackCloudChecks
+              {...props}
+              pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CHECKS] as Route}
             />
           }
         />

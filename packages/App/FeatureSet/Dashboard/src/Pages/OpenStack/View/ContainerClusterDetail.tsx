@@ -4,9 +4,14 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { OpenStackBlastRadius } from "Common/Types/OpenStack/OpenStackBlastRadius";
 import {
+  OpenStackContainerClusterLink,
+  getEmptyOpenStackReachAcrossProducts,
+} from "Common/Types/OpenStack/OpenStackLinks";
+import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
+import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -15,6 +20,7 @@ import {
   OpenStackPartAlerts,
   OpenStackPartOpenEvents,
 } from "../../../Components/OpenStack/Part/OpenStackPartActivity";
+import { OpenStackReachList } from "../../../Components/OpenStack/Part/OpenStackInstanceLinksCard";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import useOpenStackPart, {
@@ -29,6 +35,7 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
+import { fetchOpenStackKubernetesClusterOfMagnumCluster } from "../Utils/OpenStackLinkReads";
 import { fetchOpenStackBlastRadius } from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_CONTAINER_CLUSTER_ALERT_TEMPLATE_IDS,
@@ -66,6 +73,14 @@ const ContainerClusterOverview: FunctionComponent<{
       return fetchOpenStackBlastRadius({
         openStackCloudId: part.openStackCloudId,
         kind: OpenStackResourceKind.ContainerCluster,
+        externalId: part.externalId,
+      });
+    }, [part.externalId, part.refreshToken]);
+
+  const kubernetes: OpenStackRead<OpenStackContainerClusterLink | null> =
+    useOpenStackRead<OpenStackContainerClusterLink | null>(() => {
+      return fetchOpenStackKubernetesClusterOfMagnumCluster({
+        openStackCloudId: part.openStackCloudId,
         externalId: part.externalId,
       });
     }, [part.externalId, part.refreshToken]);
@@ -236,6 +251,31 @@ const ContainerClusterOverview: FunctionComponent<{
           testId="openstack-container-cluster-why-not-known"
           text={WHY_NOT_KNOWN}
         />
+      ) : (
+        <></>
+      )}
+
+      {kubernetes.data ? (
+        <div className="mb-6" data-testid="openstack-container-cluster-links">
+          <Card
+            title="Elsewhere in OneUptime"
+            description="OneUptime's Kubernetes agent runs on this cluster, so its nodes, pods and what runs on them are there."
+          >
+            <OpenStackReachList
+              testId="openstack-container-cluster-links-list"
+              reach={{
+                ...getEmptyOpenStackReachAcrossProducts(),
+                kubernetesClusters: [
+                  {
+                    id: kubernetes.data.kubernetesClusterId,
+                    name: kubernetes.data.kubernetesClusterName,
+                    nodeCount: kubernetes.data.nodeCount,
+                  },
+                ],
+              }}
+            />
+          </Card>
+        </div>
       ) : (
         <></>
       )}

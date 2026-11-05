@@ -7,13 +7,23 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, configure, screen } from "@testing-library/react";
+import {
+  cleanup,
+  configure,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import * as React from "react";
 import path from "path";
 import {
   OpenStackResourceBufferEntry,
 } from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import ObjectID from "../../../Types/ObjectID";
+import { OpenStackContainerClusterLink } from "../../../Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
+import { OpenStackPlacementOfKubernetesCluster } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementOfHost";
 import OpenStackCloudContainerClusterDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusterDetail";
 import OpenStackCloudContainerClusters from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
 import OpenStackCloudStackDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
@@ -514,6 +524,127 @@ describe("a Kubernetes cluster's page", () => {
     expect(attentionRowsOf("openstack-container-cluster-attention")).toEqual(
       [],
     );
+  });
+
+  describe("with OneUptime's Kubernetes agent on it", () => {
+    const LINK: OpenStackContainerClusterLink = {
+      openStackCloudId: "71000000-0000-4000-8000-000000000001",
+      cloudName: "devstack",
+      regionName: "RegionOne",
+      externalId: "x",
+      name: "ou-cluster-real",
+      status: "CREATE_FAILED",
+      kubernetesClusterId: "76000000-0000-4000-8000-000000000002",
+      kubernetesClusterName: "from-magnum",
+      nodeCount: 2,
+    };
+
+    test("names its Kubernetes cluster, one step away, and how many of its nodes are here", async () => {
+      server.rows = recorded("access-check", "exporter/admin");
+      server.magnumLink = LINK;
+
+      await renderPage(
+        OpenStackCloudContainerClusterDetail,
+        partPath(
+          "kubernetes-clusters",
+          clusterId(server.rows, "ou-cluster-real"),
+        ),
+      );
+
+      const card: HTMLElement = await screen.findByTestId(
+        "openstack-container-cluster-links",
+      );
+      expect(card).toHaveTextContent("from-magnum");
+      expect(card).toHaveTextContent("2 nodes");
+      expect(
+        within(card).getByRole("link", { name: "from-magnum" }),
+      ).toHaveAttribute(
+        "href",
+        expect.stringContaining(`/kubernetes/${LINK.kubernetesClusterId}`),
+      );
+    });
+
+    test("without one says nothing of one, and the read that said so was made", async () => {
+      server.rows = recorded("access-check", "exporter/admin");
+
+      await renderPage(
+        OpenStackCloudContainerClusterDetail,
+        partPath(
+          "kubernetes-clusters",
+          clusterId(server.rows, "ou-cluster-real"),
+        ),
+      );
+
+      await screen.findByTestId("openstack-container-cluster-overview");
+      await settle();
+      expect(
+        screen.queryByTestId("openstack-container-cluster-links"),
+      ).not.toBeInTheDocument();
+      expect(
+        server.postCalls.filter((call: { path: string }): boolean => {
+          return call.path.includes("kubernetes-cluster-of-magnum-cluster");
+        }).length,
+      ).toBe(1);
+    });
+
+    test("a read of it that failed leaves the page as it was, because it is one more thing to know", async () => {
+      server.rows = recorded("access-check", "exporter/admin");
+      server.failPosts.add("kubernetes-cluster-of-magnum-cluster");
+
+      await renderPage(
+        OpenStackCloudContainerClusterDetail,
+        partPath(
+          "kubernetes-clusters",
+          clusterId(server.rows, "ou-cluster-real"),
+        ),
+      );
+
+      expect(
+        await screen.findByTestId("openstack-container-cluster-details-stack"),
+      ).toHaveTextContent("ou-cluster-real-rfhmez6mgxk3");
+      await settle();
+      expect(
+        screen.queryByTestId("openstack-container-cluster-links"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("the Kubernetes cluster's page names it, and the cloud, and leads back", async () => {
+      server.magnumLink = LINK;
+
+      render(
+        <MemoryRouter>
+          <OpenStackPlacementOfKubernetesCluster
+            clusterId={new ObjectID(LINK.kubernetesClusterId)}
+          />
+        </MemoryRouter>,
+      );
+
+      const card: HTMLElement = await screen.findByTestId(
+        "kubernetes-cluster-openstack-placement",
+      );
+      expect(card).toHaveTextContent("spec.providerID");
+      expect(
+        within(card).getByTestId("openstack-placement-cloud"),
+      ).toHaveTextContent("devstack");
+      expect(
+        within(card).getByTestId("openstack-placement-magnum-cluster"),
+      ).toHaveTextContent("ou-cluster-real");
+      expect(
+        within(card).getByTestId("openstack-placement-magnum-status"),
+      ).toHaveTextContent("CREATE_FAILED");
+    });
+
+    test("a Kubernetes cluster on no Magnum cluster's servers has no card at all", async () => {
+      const { container } = render(
+        <MemoryRouter>
+          <OpenStackPlacementOfKubernetesCluster
+            clusterId={new ObjectID(LINK.kubernetesClusterId)}
+          />
+        </MemoryRouter>,
+      );
+      await settle();
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 
   test("its alerts are the two that watch every cluster", async () => {

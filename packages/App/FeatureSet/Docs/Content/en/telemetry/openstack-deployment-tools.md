@@ -20,7 +20,7 @@ Every path, port and variable below was read from the tool's own source or docs.
 
 | Tool | Read from | Run for real |
 | --- | --- | --- |
-| Kolla-Ansible | Its source, at master and `stable/2026.1` | Its exporters at the versions it pins, in real clusters and on a real cloud, failing and recovering, with Alertmanager posting to a webhook |
+| Kolla-Ansible | Its source, at master and `stable/2026.1` | Its exporters at the versions it pins, in real clusters and on a real cloud, failing and recovering, with Alertmanager posting to a webhook. What it posted then opened and resolved an incident on the right cloud, on a running OneUptime |
 | OpenStack-Ansible | Its source and docs | The agent and its logs profile, on a cloud this tool did not deploy |
 | OpenStack-Helm | Its chart values | The probe and the Kubernetes agent, each on its own |
 | Atmosphere | Its docs and source | The probe and the Kubernetes agent, each on its own |
@@ -29,6 +29,8 @@ Every path, port and variable below was read from the tool's own source or docs.
 | Mirantis MOSK | Mirantis's docs, whose examples show other receivers rather than a webhook | Nothing on MOSK |
 
 What each guide's **Who did what** turns on was recorded on DevStack, on every release the rig runs, and on none of these tools. Where each tool takes it was read from that tool's source or docs.
+
+One part of this has run on a live OneUptime, started as Docker Compose starts it, with its app built from this code. It was sent what a real agent and a real Alertmanager had sent: each cloud registered from its first data and filled 60 rows of inventory across 14 kinds, the firing webhook opened one incident on the right cloud and on no other, the same webhook again opened nothing, and the resolved webhook resolved it. What it was sent was recorded on DevStack and in a test cluster, not on a cloud any of these tools deployed, and no guide's commands ran against it.
 
 ## Forward what is already firing
 

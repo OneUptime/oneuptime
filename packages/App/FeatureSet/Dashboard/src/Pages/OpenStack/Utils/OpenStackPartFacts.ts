@@ -14,6 +14,7 @@ import {
   isOpenStackContainerClusterFailed,
   isOpenStackFloatingIpAssociated,
   isOpenStackServiceDown,
+  isOpenStackShareInError,
   isOpenStackStackFailed,
   isSameOpenStackHost,
   minutesInState,
@@ -144,6 +145,11 @@ export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
 export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-storage-pool-warning",
   "openstack-storage-pool-critical",
+];
+
+export const OPENSTACK_SHARE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-share-in-error",
+  "openstack-share-stuck",
 ];
 
 export const OPENSTACK_STACK_ALERT_TEMPLATE_IDS: Array<string> = [
@@ -1057,6 +1063,12 @@ const EXPLAIN_POOL_FULL: string = translationKey(
 const EXPLAIN_POOL_FILLING: string = translationKey(
   "This pool is filling up. Add capacity or free space before Cinder's scheduler runs out of room for new volumes.",
 );
+const EXPLAIN_SHARE_ERROR: string = translationKey(
+  "Manila couldn't do what this share was asked for, and it stays like this until someone deals with it. Whoever asked for it doesn't have what they asked for. openstack share message list says what Manila recorded about it. A share with no zone never reached a backend, which is what a share type nothing matches looks like.",
+);
+const EXPLAIN_SHARE_STUCK: string = translationKey(
+  "This share has been on its way to something else for longer than it should take. Manila has no timeout of its own for this, so either its backend is very slow or nothing is working on it any more. Check openstack share service list, then manila-share's log on the backend that holds it.",
+);
 const EXPLAIN_STACK_FAILED: string = translationKey(
   "Heat could not finish what this stack was asked to do, and it stays like this until someone updates or deletes it. What it built so far may be partly there, and is still using its project's quota. Run openstack stack failures list to see which resource failed.",
 );
@@ -1120,6 +1132,10 @@ export function getOpenStackPartExplanation(
         : EXPLAIN_POOL_FILLING;
     case OpenStackResourceKind.Image:
       return EXPLAIN_IMAGE_STUCK;
+    case OpenStackResourceKind.Share:
+      return isOpenStackShareInError(row.status)
+        ? EXPLAIN_SHARE_ERROR
+        : EXPLAIN_SHARE_STUCK;
     case OpenStackResourceKind.Stack:
       return isOpenStackStackFailed(row.status)
         ? EXPLAIN_STACK_FAILED
@@ -1222,6 +1238,7 @@ export function isOpenStackIssueAbout(
         readSeriesLabel(labels, "router_id") === row.externalId
       );
     case OpenStackResourceKind.Stack:
+    case OpenStackResourceKind.Share:
       return (
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
@@ -1318,6 +1335,7 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.Domain]: OpenStackServiceType.Identity,
   [OpenStackResourceKind.Stack]: OpenStackServiceType.Orchestration,
   [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
+  [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,
 };
 
 const NOT_ANSWERING: OpenStackEmptyWords = {
