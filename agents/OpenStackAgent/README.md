@@ -8,7 +8,7 @@ One agent watches one cloud: one Keystone, with one region or several. It only e
 
 ## Prerequisites
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later and root
+- Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later, glibc 2.34 or later (RHEL 9, Ubuntu 22.04, Debian 12) and root
 - A route from that machine to Keystone and to each service's public endpoint
 - A credential for the cloud: see [Access](#access)
 - A **OneUptime Telemetry Ingestion Key**: create one from *Project Settings → Telemetry Ingestion Keys*
