@@ -1,0 +1,55 @@
+$ openstack service list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "52f095f321704a4a9f6ad938d1d1da5e",
+    "name": "keystone",
+    "type": "identity",
+    "enabled": true
+  },
+  {
+    "id": "685066161fb74259afd131bd6e2afd29",
+    "name": "nova_legacy",
+    "type": "compute_legacy",
+    "enabled": true,
+    "description": "Nova Compute Service (Legacy 2.0)"
+  },
+  {
+    "id": "75d4a1c6938f443baf37b751be3140c9",
+    "name": "nova",
+    "type": "compute",
+    "enabled": true,
+    "description": "Nova Compute Service"
+  },
+  {
+    "id": "78a801b3d869429499dfd8b94b360daa",
+    "name": "placement",
+    "type": "placement",
+    "enabled": true,
+    "description": "Placement Service"
+  },
+  {
+    "id": "7faf7addfed94a34b9504660627531a2",
+    "name": "glance",
+    "type": "image",
+    "enabled": true,
+    "description": "Glance Image Service"
+  },
+  {
+    "id": "821fe524d58c4efebc951488a173f9ba",
+    "name": "neutron",
+    "type": "network",
+    "enabled": true,
+    "description": "Neutron Service"
+  },
+  {
+    "id": "921d51beae914a7eac48e9034c418fc2",
+    "name": "cinder",
+    "type": "block-storage",
+    "enabled": true,
+    "description": "Cinder Volume Service"
+  }
+]

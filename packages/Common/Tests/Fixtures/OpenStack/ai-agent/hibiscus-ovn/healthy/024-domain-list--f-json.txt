@@ -1,0 +1,13 @@
+$ openstack domain list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "default",
+    "name": "Default",
+    "enabled": true,
+    "description": "The default domain"
+  }
+]
