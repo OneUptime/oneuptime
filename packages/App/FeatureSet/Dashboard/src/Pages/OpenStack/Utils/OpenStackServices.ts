@@ -660,21 +660,30 @@ export function getOpenStackRowsAsThisCredentialReadsThem(data: {
     apis: data.apis,
     workers: data.workers,
   });
-  return data.rows.map((row: OpenStackResource): OpenStackResource => {
-    return row.kind === OpenStackResourceKind.Api &&
-      ((row.name === OpenStackServiceType.Placement &&
-        row.status === "down" &&
-        closed.has(row.regionName || "")) ||
-        isOpenStackApiClosedToThisCredential({
-          name: row.name,
-          status: row.status,
-          facts: row.facts as JSONObject | undefined,
-        }))
-      ? (Object.assign(new OpenStackResource(), row, {
-          status: OPENSTACK_API_STATUS_CLOSED,
-        }) as OpenStackResource)
-      : row;
-  });
+  const asRead: Array<OpenStackResource> = data.rows.map(
+    (row: OpenStackResource): OpenStackResource => {
+      return row.kind === OpenStackResourceKind.Api &&
+        ((row.name === OpenStackServiceType.Placement &&
+          row.status === "down" &&
+          closed.has(row.regionName || "")) ||
+          isOpenStackApiClosedToThisCredential({
+            name: row.name,
+            status: row.status,
+            facts: row.facts as JSONObject | undefined,
+          }))
+        ? (Object.assign(new OpenStackResource(), row, {
+            status: OPENSTACK_API_STATUS_CLOSED,
+          }) as OpenStackResource)
+        : row;
+    },
+  );
+
+  // Nothing to say differently: the very list it was given, so what a page memoizes holds.
+  return asRead.every((row: OpenStackResource, index: number): boolean => {
+    return row === data.rows[index];
+  })
+    ? data.rows
+    : asRead;
 }
 
 function isApiUp(
