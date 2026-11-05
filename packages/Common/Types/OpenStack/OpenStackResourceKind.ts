@@ -76,6 +76,9 @@ export enum OpenStackResourceKind {
    * (ALLOCATED, ERROR), its role says MASTER or BACKUP, and its compute instance is a fact.
    */
   Amphora = "Amphora",
+  // A listener in front of a load balancer, and a member behind a pool. Only a probe reads them.
+  Listener = "Listener",
+  LoadBalancerMember = "LoadBalancerMember",
   /*
    * A database Trove runs for a project, on an instance Nova runs. "Instance" alone is Nova's. Only
    * Trove's own series make one.
@@ -213,6 +216,8 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
     OpenStackResourceKind.LoadBalancer,
     OpenStackResourceKind.LoadBalancerPool,
     OpenStackResourceKind.Amphora,
+    OpenStackResourceKind.Listener,
+    OpenStackResourceKind.LoadBalancerMember,
   ],
   [OpenStackServiceType.Database]: [OpenStackResourceKind.DatabaseInstance],
   // What it says goes on its API's row: OneUptime reads no secret, only how many there are.

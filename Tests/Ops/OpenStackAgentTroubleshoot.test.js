@@ -177,6 +177,9 @@ const ROW_OF = {
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
   },
+  "load-balancer:listeners": (project) => {
+    return { id: `listener-${project}`, project_id: project };
+  },
   "sharev2:shares, all projects": (project) => {
     return { id: `share-${project}`, project_id: project };
   },
@@ -1278,6 +1281,7 @@ describe("a plain reader, and the trap", () => {
   test.each([
     ["load-balancer: load balancers"],
     ["load-balancer: amphorae"],
+    ["load-balancer: listeners"],
     ["baremetal: nodes"],
     ["orchestration: stacks"],
     ["orchestration: services"],

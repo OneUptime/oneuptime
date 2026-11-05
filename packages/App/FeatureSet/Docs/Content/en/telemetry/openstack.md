@@ -825,8 +825,8 @@ A load balancer in `ERROR`, one stuck `PENDING_UPDATE` or `PENDING_CREATE` for a
 | --- | --- | --- |
 | Every project's load balancers and pools, with both statuses | Yes | Its own project's at most, and the monitoring role none |
 | Amphorae, their role, their instance and their certificate | Yes | No: Octavia lets only an admin list them |
-| Listeners and members | No: the exporter has no series for them | No |
-| Traffic: connections, bytes, request errors | No: the exporter has no `stats_*` series, and Octavia's API is the only place that says | No |
+| Listeners and members | No: the exporter has no series for them. A [probe](/docs/telemetry/openstack-agentless) reads them | A probe: its own project's |
+| Traffic: connections, bytes, request errors | No: the exporter has no `stats_*` series, and Octavia's API is the only place that says. A probe reads it and charts the rate between two readings | A probe: its own project's |
 | Octavia's own workers on **Services** | No: nothing the agent reads lists them | No |
 
 A pool whose members all fail their health check is `ERROR` in operating status while it and its load balancer stay `ACTIVE` in provisioning, recorded, so a page that read provisioning alone would show nothing wrong. A load balancer in provisioning `ERROR` reads operating `OFFLINE`. The OVN provider reports 0 for every traffic counter, which is not a fault.

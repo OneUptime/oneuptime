@@ -750,6 +750,7 @@ describe("what the recordings show, as the pages say it", () => {
     ).toEqual([
       "load-balancer: load balancers",
       "load-balancer: amphorae",
+      "load-balancer: listeners",
       "baremetal: nodes",
       "orchestration: stacks",
       "orchestration: services",

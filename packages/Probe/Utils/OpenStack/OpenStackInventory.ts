@@ -1298,6 +1298,212 @@ export interface OpenStackContainerInfraInventory {
   conductors?: Array<MagnumConductorRecord> | undefined;
 }
 
+/*
+ * Octavia, which a cloud may not run. Each record is what its list says, in its own words: the exporter
+ * reads the load balancers, the pools and the amphorae, and a probe adds the listeners, the members and
+ * the traffic, which have no series of the exporter's. A stats read is cumulative, so what is kept of it
+ * is a rate between two readings (OpenStackLoadBalancerRates).
+ */
+export interface OctaviaLoadBalancerRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  provisioningStatus: string | null;
+  operatingStatus: string | null;
+  provider: string | null;
+  vipAddress: string | null;
+}
+
+export function toOctaviaLoadBalancer(
+  item: JSONObject,
+): OctaviaLoadBalancerRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["project_id"]),
+    provisioningStatus: text(item["provisioning_status"]),
+    operatingStatus: text(item["operating_status"]),
+    provider: text(item["provider"]),
+    vipAddress: text(item["vip_address"]),
+  };
+}
+
+export interface OctaviaPoolRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  provisioningStatus: string | null;
+  operatingStatus: string | null;
+  protocol: string | null;
+  algorithm: string | null;
+  // The exporter joins a pool's load balancers into one label, and so does this.
+  loadBalancerIds: string | null;
+}
+
+export function toOctaviaPool(item: JSONObject): OctaviaPoolRecord {
+  const loadBalancers: JSONArray = Array.isArray(item["loadbalancers"])
+    ? (item["loadbalancers"] as JSONArray)
+    : [];
+
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["project_id"]),
+    provisioningStatus: text(item["provisioning_status"]),
+    operatingStatus: text(item["operating_status"]),
+    protocol: text(item["protocol"]),
+    algorithm: text(item["lb_algorithm"]),
+    loadBalancerIds:
+      loadBalancers
+        .map((one: JSONValue): string => {
+          return text((one as JSONObject | null)?.["id"]) || "";
+        })
+        .filter((id: string): boolean => {
+          return id.length > 0;
+        })
+        .join(",") || null,
+  };
+}
+
+export interface OctaviaAmphoraRecord {
+  id: string | null;
+  loadBalancerId: string | null;
+  computeId: string | null;
+  role: string | null;
+  status: string | null;
+  // Octavia writes it as UTC without a zone; the exporter's label has the Z.
+  certExpiration: string | null;
+  haIp: string | null;
+  managementIp: string | null;
+}
+
+export function toOctaviaAmphora(item: JSONObject): OctaviaAmphoraRecord {
+  const expiration: string | null = text(item["cert_expiration"]);
+
+  return {
+    id: text(item["id"]),
+    loadBalancerId: text(item["loadbalancer_id"]),
+    computeId: text(item["compute_id"]),
+    role: text(item["role"]),
+    status: text(item["status"]),
+    certExpiration:
+      expiration && !/(Z|[+-]\d\d:?\d\d)$/.test(expiration)
+        ? `${expiration}Z`
+        : expiration,
+    haIp: text(item["ha_ip"]),
+    managementIp: text(item["lb_network_ip"]),
+  };
+}
+
+export interface OctaviaListenerRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  provisioningStatus: string | null;
+  operatingStatus: string | null;
+  protocol: string | null;
+  protocolPort: number | null;
+  loadBalancerId: string | null;
+  defaultPoolId: string | null;
+}
+
+export function toOctaviaListener(item: JSONObject): OctaviaListenerRecord {
+  const loadBalancers: JSONArray = Array.isArray(item["loadbalancers"])
+    ? (item["loadbalancers"] as JSONArray)
+    : [];
+
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["project_id"]),
+    provisioningStatus: text(item["provisioning_status"]),
+    operatingStatus: text(item["operating_status"]),
+    protocol: text(item["protocol"]),
+    protocolPort: numeric(item["protocol_port"]),
+    loadBalancerId: text((loadBalancers[0] as JSONObject | undefined)?.["id"]),
+    defaultPoolId: text(item["default_pool_id"]),
+  };
+}
+
+export interface OctaviaMemberRecord {
+  id: string | null;
+  name: string | null;
+  poolId: string | null;
+  projectId: string | null;
+  provisioningStatus: string | null;
+  operatingStatus: string | null;
+  address: string | null;
+  protocolPort: number | null;
+  weight: number | null;
+  isBackup: boolean;
+}
+
+export function toOctaviaMember(
+  item: JSONObject,
+  poolId: string,
+): OctaviaMemberRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    poolId: poolId,
+    projectId: text(item["project_id"]),
+    provisioningStatus: text(item["provisioning_status"]),
+    operatingStatus: text(item["operating_status"]),
+    address: text(item["address"]),
+    protocolPort: numeric(item["protocol_port"]),
+    weight: numeric(item["weight"]),
+    isBackup: item["backup"] === true,
+  };
+}
+
+// A stats read: the counters since the load balancer or listener was built.
+export interface OctaviaStats {
+  activeConnections: number | null;
+  totalConnections: number | null;
+  bytesIn: number | null;
+  bytesOut: number | null;
+  requestErrors: number | null;
+}
+
+export function toOctaviaStats(body: JSONObject): OctaviaStats {
+  const stats: JSONObject = (body["stats"] as JSONObject | undefined) || {};
+
+  return {
+    activeConnections: numeric(stats["active_connections"]),
+    totalConnections: numeric(stats["total_connections"]),
+    bytesIn: numeric(stats["bytes_in"]),
+    bytesOut: numeric(stats["bytes_out"]),
+    requestErrors: numeric(stats["request_errors"]),
+  };
+}
+
+/*
+ * What traffic a load balancer or a listener is moving, per second between two readings of its
+ * counters. Null where there is no earlier reading to compare with, or the counters went down, which is a
+ * listener rebuilt and says nothing of a rate.
+ */
+export interface OctaviaRates {
+  // Which: a load balancer's or a listener's.
+  scope: "loadbalancer" | "listener";
+  id: string;
+  name: string | null;
+  loadBalancerId: string | null;
+  activeConnections: number | null;
+  connectionsPerSecond: number | null;
+  bytesInPerSecond: number | null;
+  bytesOutPerSecond: number | null;
+  requestErrorsPerSecond: number | null;
+}
+
+export interface OpenStackLoadBalancerInventory {
+  loadBalancers?: Array<OctaviaLoadBalancerRecord> | undefined;
+  pools?: Array<OctaviaPoolRecord> | undefined;
+  amphorae?: Array<OctaviaAmphoraRecord> | undefined;
+  listeners?: Array<OctaviaListenerRecord> | undefined;
+  members?: Array<OctaviaMemberRecord> | undefined;
+  rates?: Array<OctaviaRates> | undefined;
+}
+
 export interface OpenStackSharedFileSystemsInventory {
   shares?: Array<ManilaShareRecord> | undefined;
   services?: Array<ManilaServiceRecord> | undefined;
@@ -1501,6 +1707,7 @@ export interface OpenStackInventoryByService {
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
   rating?: OpenStackRatingInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
+  "load-balancer"?: OpenStackLoadBalancerInventory | undefined;
   database?: OpenStackDatabaseInventory | undefined;
   "key-manager"?: OpenStackKeyManagerInventory | undefined;
   "object-store"?: OpenStackObjectStoreInventory | undefined;
