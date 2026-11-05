@@ -1,0 +1,37 @@
+$ openstack port show ee0403a5-492d-4c7f-abcb-fe08cac4700f -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "id": "ee0403a5-492d-4c7f-abcb-fe08cac4700f",
+  "name": "",
+  "network_id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+  "project_id": "e71c5446a4554b279a7bfa4c63d0b451",
+  "mac_address": "fa:16:3e:ea:6d:ae",
+  "admin_state_up": true,
+  "status": "ACTIVE",
+  "device_id": "c171783b-0239-488e-82e2-3edacfbfab67",
+  "device_owner": "network:router_interface",
+  "fixed_ips": [
+    {
+      "subnet_id": "b1b73687-a8b2-4b65-b172-e1aa7a7c3f3f",
+      "ip_address": "fde1:27f8:565f::1"
+    }
+  ],
+  "allowed_address_pairs": [],
+  "extra_dhcp_opts": [],
+  "security_groups": [],
+  "description": "",
+  "binding:vnic_type": "normal",
+  "binding:profile": {},
+  "binding:host_id": "",
+  "binding:vif_type": "unbound",
+  "binding:vif_details": {},
+  "port_security_enabled": false,
+  "tags": [],
+  "created_at": "2026-11-05T05:26:17Z",
+  "updated_at": "2026-11-05T05:26:17Z",
+  "revision_number": 2,
+  "tenant_id": "e71c5446a4554b279a7bfa4c63d0b451"
+}

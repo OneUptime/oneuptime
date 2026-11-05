@@ -62,8 +62,10 @@ import {
   FAKE_TOKEN,
   FakeOpenStack,
   FakeOpenStackOptions,
+  RecordedAgentCommand,
   fakeReply,
   findOpenStackFixtures,
+  readRecordedAgentRun,
 } from "./Helpers/FakeOpenStack";
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
 import { ResourceCommandTier } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
@@ -273,7 +275,7 @@ function recordedIds(cloud: FakeOpenStack): Record<string, string> {
   };
 }
 
-const REQUEST_ID: string = "req-6e2493c0-6eb6-4345-9deb-90826d851f67";
+const REQUEST_ID: string = "req-b86b5713-3f8d-4e21-9a25-c8ba53f6b25a";
 
 /*
  * Every command of the allowlist: what it is written as, the path and query of
@@ -2803,6 +2805,113 @@ describe("an agent's life", () => {
  * and the cause can be read, and on a healthy cloud they read differently. It does
  * not prove a model reads them so: no model is called in a test here.
  */
+describe("what the agent's real code printed on a real cloud", () => {
+  const SCENES: ReadonlyArray<string> = ["healthy", "compute-down"];
+
+  function allOf(scene: string): Array<RecordedAgentCommand> {
+    return readRecordedAgentRun(scene);
+  }
+
+  for (const scene of SCENES) {
+    test(`${scene}: every read the policy allows ran, and answered`, () => {
+      const printed: Array<RecordedAgentCommand> = allOf(scene);
+
+      for (const recorded of printed) {
+        assert.strictEqual(recorded.success, true, recorded.command);
+        assert.strictEqual(recorded.exitCode, 0, recorded.command);
+      }
+
+      for (const route of OPENSTACK_COMMAND_ROUTES) {
+        if (route.tier !== ResourceCommandTier.Read) {
+          continue;
+        }
+
+        assert.ok(
+          printed.some((recorded: RecordedAgentCommand): boolean => {
+            return (
+              recorded.command === `openstack ${route.command}` ||
+              recorded.command.startsWith(`openstack ${route.command} `)
+            );
+          }),
+          `Nothing recorded for ${route.command}: run the rig with -f ai_agent_only=true, and import-ai-agent-recording.py`,
+        );
+      }
+    });
+
+    test(`${scene}: a password in an instance's user data stayed out`, () => {
+      const printed: Array<RecordedAgentCommand> = allOf(scene);
+      const shown: RecordedAgentCommand = printed
+        .filter((recorded: RecordedAgentCommand): boolean => {
+          return recorded.command.startsWith("openstack server show ");
+        })
+        .find((recorded: RecordedAgentCommand): boolean => {
+          return recorded.stdout.includes('"name": "ou-user-data"');
+        }) as RecordedAgentCommand;
+
+      assert.strictEqual(
+        (JSON.parse(shown.stdout) as Record<string, unknown>)[
+          "OS-EXT-SRV-ATTR:user_data"
+        ],
+        "[redacted]",
+      );
+
+      for (const recorded of printed) {
+        // The password's start, and "#cloud-config" as Nova hands it back, in base64.
+        assert.ok(
+          !recorded.text.includes("ou-ai-agent-rig-"),
+          recorded.command,
+        );
+        assert.ok(
+          !recorded.text.includes("I2Nsb3VkLWNvbmZpZw"),
+          recorded.command,
+        );
+      }
+    });
+  }
+
+  /*
+   * Server events in every other test here are this one answer: what the agent reads back
+   * from them is what it printed on the cloud, so they are not a shape of our own.
+   */
+  test("the recorded server event reads back as the cloud's did", async () => {
+    const h: Harness = harness();
+    const healthy: Array<RecordedAgentCommand> = allOf("healthy");
+    const recordedOf: (start: string) => string = (start: string): string => {
+      return (
+        healthy.find((recorded: RecordedAgentCommand): boolean => {
+          return recorded.command.startsWith(start);
+        }) as RecordedAgentCommand
+      ).stdout;
+    };
+    const server: string = "e6591b80-42a0-4c02-8a0d-9438949af8e5";
+    const stdoutOf: (result: ExecResult) => unknown = (
+      result: ExecResult,
+    ): unknown => {
+      return JSON.parse(result.output.replace(/^\[stdout\]\n/, ""));
+    };
+
+    assert.deepStrictEqual(
+      stdoutOf(await run(h, `openstack server event list ${server} -f json`)),
+      JSON.parse(recordedOf("openstack server event list ")),
+    );
+    assert.deepStrictEqual(
+      stdoutOf(
+        await run(
+          h,
+          `openstack server event show ${server} ${REQUEST_ID} -f json`,
+        ),
+      ),
+      {
+        ...(JSON.parse(recordedOf("openstack server event show ")) as Record<
+          string,
+          unknown
+        >),
+        instance_uuid: server,
+      },
+    );
+  });
+});
+
 describe("a stopped nova-compute, on recorded answers", () => {
   const SCENES: ReadonlyArray<string> = ["compute-down"];
 
@@ -2840,6 +2949,19 @@ describe("a stopped nova-compute, on recorded answers", () => {
         return line.includes(word);
       }) || ""
     );
+  }
+
+  // What this command printed on a real cloud in that scene.
+  function recorded(scene: string, command: string): string {
+    const found: RecordedAgentCommand | undefined = readRecordedAgentRun(
+      scene,
+    ).find((candidate: RecordedAgentCommand): boolean => {
+      return candidate.command === `openstack ${command}`;
+    });
+
+    assert.ok(found, `${scene} has no recording of ${command}`);
+
+    return (found as RecordedAgentCommand).stdout;
   }
 
   for (const scene of SCENES) {
@@ -2921,6 +3043,72 @@ describe("a stopped nova-compute, on recorded answers", () => {
 
     assert.match(row, /disabled/);
     assert.match(row, /\bup\b/);
+  });
+
+  test("the same commands printed the same things on a real cloud", () => {
+    const service: string = rowOf(
+      recorded("compute-down", "compute service list --service nova-compute"),
+      "nova-compute",
+    );
+
+    assert.match(service, /compute-01/);
+    assert.match(service, /enabled/);
+    assert.match(service, /\bdown\b/);
+    assert.match(
+      rowOf(
+        recorded("compute-down", "hypervisor list"),
+        "compute-01.example.internal",
+      ),
+      /\bdown\b/,
+    );
+
+    const instances: string = recorded(
+      "compute-down",
+      "server list --all-projects --host compute-01 --limit 100",
+    );
+
+    for (const name of ["ou-running", "ou-research-1", "ou-stopped"]) {
+      const row: string = rowOf(instances, name);
+
+      assert.match(row, /compute-01/, name);
+      assert.match(row, /UNKNOWN/, name);
+    }
+
+    assert.match(rowOf(instances, "ou-running"), /ACTIVE/);
+    assert.match(rowOf(instances, "ou-stopped"), /SHUTOFF/);
+    assert.ok(!instances.includes("ou-failed"));
+
+    // What it is not: the network agents and storage are fine.
+    assert.match(
+      rowOf(
+        recorded("compute-down", "network agent list --host compute-01"),
+        "neutron-ovn-agent",
+      ),
+      /true/,
+    );
+    assert.match(
+      rowOf(
+        recorded("compute-down", "volume service list --service cinder-volume"),
+        "cinder-volume",
+      ),
+      /\bup\b/,
+    );
+
+    // And the same reads, with it running.
+    assert.match(
+      rowOf(
+        recorded("healthy", "compute service list --service nova-compute"),
+        "nova-compute",
+      ),
+      /\bup\b/,
+    );
+    assert.doesNotMatch(
+      recorded(
+        "healthy",
+        "server list --all-projects --host compute-01 --limit 100",
+      ),
+      /UNKNOWN/,
+    );
   });
 
   test("with Nova's API stopped, the same read says that instead", async () => {

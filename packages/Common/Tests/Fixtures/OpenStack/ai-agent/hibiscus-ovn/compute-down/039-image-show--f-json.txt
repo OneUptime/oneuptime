@@ -1,0 +1,29 @@
+$ openstack image show 36b7d7be-a928-45ad-b8a2-0d9c2d7ef195 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "name": "ou-image-stuck",
+  "disk_format": "qcow2",
+  "container_format": "bare",
+  "visibility": "public",
+  "size": null,
+  "virtual_size": null,
+  "status": "queued",
+  "checksum": null,
+  "protected": false,
+  "min_ram": 0,
+  "min_disk": 0,
+  "owner": "7d12d4f1273942508ecbab053dd52b4f",
+  "os_hidden": false,
+  "os_hash_algo": null,
+  "os_hash_value": null,
+  "id": "36b7d7be-a928-45ad-b8a2-0d9c2d7ef195",
+  "created_at": "2026-11-05T05:27:20Z",
+  "updated_at": "2026-11-05T05:27:20Z",
+  "tags": [],
+  "self": "/v2/images/36b7d7be-a928-45ad-b8a2-0d9c2d7ef195",
+  "file": "/v2/images/36b7d7be-a928-45ad-b8a2-0d9c2d7ef195/file",
+  "schema": "/v2/schemas/image"
+}
