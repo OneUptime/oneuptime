@@ -1409,7 +1409,10 @@ export function isOpenStackListPossiblyOneProject(data: {
  * and on every recorded release, whatever the list holds, empty or not. Only a cloud
  * with no Cinder to ask falls back to a guess from the rows.
  */
-export type OpenStackListView = "whole" | "own-project" | "possibly-one-project";
+export type OpenStackListView =
+  | "whole"
+  | "own-project"
+  | "possibly-one-project";
 
 export function getOpenStackListView(data: {
   volumeApi: OpenStackApiState;

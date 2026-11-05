@@ -243,10 +243,8 @@ describe.each(RELEASES)("on %s", (release: string) => {
     test("Placement says down, and every call being refused is all that means", () => {
       expect(apiOf(rows, OpenStackServiceType.Placement)?.status).toBe("down");
       expect(
-        apiOf(
-          asThisCredentialReadsThem(rows),
-          OpenStackServiceType.Placement,
-        )?.status,
+        apiOf(asThisCredentialReadsThem(rows), OpenStackServiceType.Placement)
+          ?.status,
       ).toBe(OPENSTACK_API_STATUS_CLOSED);
     });
 
@@ -323,12 +321,11 @@ describe.each(RELEASES)("on %s", (release: string) => {
       expect(
         getOpenStackListView({
           volumeApi: "up",
-          volumeWorkerCount: ofKind(
-            rows,
-            OpenStackResourceKind.Service,
-          ).filter((row: OpenStackResource): boolean => {
-            return (row.facts as JSONObject)["family"] === "volume";
-          }).length,
+          volumeWorkerCount: ofKind(rows, OpenStackResourceKind.Service).filter(
+            (row: OpenStackResource): boolean => {
+              return (row.facts as JSONObject)["family"] === "volume";
+            },
+          ).length,
           projectIdsInList: [],
           knownProjectCount: ofKind(rows, OpenStackResourceKind.Project).length,
         }),
@@ -372,110 +369,110 @@ describe.each(RELEASES)("on %s", (release: string) => {
 describe("what a list can say of a credential", () => {
   const LOOKS_LIKE_ONE_PROJECT: ReadonlyArray<string | null> = ["a"];
 
-  test.each<[string, Parameters<typeof getOpenStackListView>[0], OpenStackListView]>(
+  test.each<
+    [string, Parameters<typeof getOpenStackListView>[0], OpenStackListView]
+  >([
     [
-      [
-        "Cinder lists its workers: an admin, whatever the rows look like",
-        {
-          volumeApi: "up",
-          volumeWorkerCount: 2,
-          projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
-          knownProjectCount: 8,
-        },
-        "whole",
-      ],
-      [
-        "Cinder answers and lists none: its own project, however many rows",
-        {
-          volumeApi: "up",
-          volumeWorkerCount: 0,
-          projectIdsInList: ["a", "b"],
-          knownProjectCount: 8,
-        },
-        "own-project",
-      ],
-      [
-        "and with no rows at all: an empty 200 is not an empty cloud",
-        {
-          volumeApi: "up",
-          volumeWorkerCount: 0,
-          projectIdsInList: [],
-          knownProjectCount: 8,
-        },
-        "own-project",
-      ],
-      [
-        "a plain reader knows of one project, and it still says so",
-        {
-          volumeApi: "up",
-          volumeWorkerCount: 0,
-          projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
-          knownProjectCount: 1,
-        },
-        "own-project",
-      ],
-      [
-        "Cinder's API down: last known workers still say an admin read them",
-        {
-          volumeApi: "down",
-          volumeWorkerCount: 2,
-          projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
-          knownProjectCount: 8,
-        },
-        "whole",
-      ],
-      [
-        "no Cinder at all: a guess from the rows, and it only says may",
-        {
-          volumeApi: "not-reported",
-          volumeWorkerCount: 0,
-          projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
-          knownProjectCount: 8,
-        },
-        "possibly-one-project",
-      ],
-      [
-        "no Cinder, and several projects' rows: nothing to say",
-        {
-          volumeApi: "not-reported",
-          volumeWorkerCount: 0,
-          projectIdsInList: ["a", "b"],
-          knownProjectCount: 8,
-        },
-        "whole",
-      ],
-      [
-        "no Cinder, and one project known: a cloud with one project looks the same",
-        {
-          volumeApi: "not-reported",
-          volumeWorkerCount: 0,
-          projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
-          knownProjectCount: 1,
-        },
-        "whole",
-      ],
-      [
-        "no Cinder and no rows: nothing to go on",
-        {
-          volumeApi: "not-reported",
-          volumeWorkerCount: 0,
-          projectIdsInList: [],
-          knownProjectCount: 8,
-        },
-        "whole",
-      ],
-      [
-        "Cinder's API down and no workers ever seen: can't tell, so it doesn't say",
-        {
-          volumeApi: "down",
-          volumeWorkerCount: 0,
-          projectIdsInList: [],
-          knownProjectCount: 8,
-        },
-        "whole",
-      ],
+      "Cinder lists its workers: an admin, whatever the rows look like",
+      {
+        volumeApi: "up",
+        volumeWorkerCount: 2,
+        projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
+        knownProjectCount: 8,
+      },
+      "whole",
     ],
-  )(
+    [
+      "Cinder answers and lists none: its own project, however many rows",
+      {
+        volumeApi: "up",
+        volumeWorkerCount: 0,
+        projectIdsInList: ["a", "b"],
+        knownProjectCount: 8,
+      },
+      "own-project",
+    ],
+    [
+      "and with no rows at all: an empty 200 is not an empty cloud",
+      {
+        volumeApi: "up",
+        volumeWorkerCount: 0,
+        projectIdsInList: [],
+        knownProjectCount: 8,
+      },
+      "own-project",
+    ],
+    [
+      "a plain reader knows of one project, and it still says so",
+      {
+        volumeApi: "up",
+        volumeWorkerCount: 0,
+        projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
+        knownProjectCount: 1,
+      },
+      "own-project",
+    ],
+    [
+      "Cinder's API down: last known workers still say an admin read them",
+      {
+        volumeApi: "down",
+        volumeWorkerCount: 2,
+        projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
+        knownProjectCount: 8,
+      },
+      "whole",
+    ],
+    [
+      "no Cinder at all: a guess from the rows, and it only says may",
+      {
+        volumeApi: "not-reported",
+        volumeWorkerCount: 0,
+        projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
+        knownProjectCount: 8,
+      },
+      "possibly-one-project",
+    ],
+    [
+      "no Cinder, and several projects' rows: nothing to say",
+      {
+        volumeApi: "not-reported",
+        volumeWorkerCount: 0,
+        projectIdsInList: ["a", "b"],
+        knownProjectCount: 8,
+      },
+      "whole",
+    ],
+    [
+      "no Cinder, and one project known: a cloud with one project looks the same",
+      {
+        volumeApi: "not-reported",
+        volumeWorkerCount: 0,
+        projectIdsInList: LOOKS_LIKE_ONE_PROJECT,
+        knownProjectCount: 1,
+      },
+      "whole",
+    ],
+    [
+      "no Cinder and no rows: nothing to go on",
+      {
+        volumeApi: "not-reported",
+        volumeWorkerCount: 0,
+        projectIdsInList: [],
+        knownProjectCount: 8,
+      },
+      "whole",
+    ],
+    [
+      "Cinder's API down and no workers ever seen: can't tell, so it doesn't say",
+      {
+        volumeApi: "down",
+        volumeWorkerCount: 0,
+        projectIdsInList: [],
+        knownProjectCount: 8,
+      },
+      "whole",
+    ],
+  ])(
     "%s",
     (
       _name: string,
@@ -670,12 +667,12 @@ describe("the words, held to the table the docs print from the recordings", () =
     expect(words).not.toContain("Infrastructure only");
   });
 
-  test.each<[string]>([
-    ["Nova: servers, all projects"],
-    ["Nova: flavors"],
-  ])("%s: Infrastructure only is not told it needs more", (read: string) => {
-    expect(levelsOf(read)[1]).not.toBe("refused");
-  });
+  test.each<[string]>([["Nova: servers, all projects"], ["Nova: flavors"]])(
+    "%s: Infrastructure only is not told it needs more",
+    (read: string) => {
+      expect(levelsOf(read)[1]).not.toBe("refused");
+    },
+  );
 
   test("instances: every project's take Full view or Infrastructure only, as the table recorded", () => {
     expect(levelsOf("Nova: servers, all projects")).toEqual([

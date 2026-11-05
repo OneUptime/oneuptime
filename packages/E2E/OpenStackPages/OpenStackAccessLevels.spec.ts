@@ -294,9 +294,7 @@ test.describe("Infrastructure only: the monitoring role on an empty project", ()
     await expect(page.locator("body")).toContainText(
       "Only the Full view credential",
     );
-    await expect(page.locator("body")).not.toContainText(
-      "Infrastructure only",
-    );
+    await expect(page.locator("body")).not.toContainText("Infrastructure only");
   });
 
   for (const [subPath, empty] of [
@@ -393,7 +391,9 @@ test.describe("a service that isn't deployed", () => {
     await expect(page.locator("body")).not.toContainText("can't list");
 
     await openCloudPage(page, "volumes", noCinder);
-    await expect(page.getByText("No volumes reported yet").first()).toBeVisible();
+    await expect(
+      page.getByText("No volumes reported yet").first(),
+    ).toBeVisible();
     await expect(page.locator("body")).not.toContainText("can't list");
 
     await openCloudPage(page, "services", noCinder);
@@ -461,9 +461,7 @@ test.describe("every release we record", () => {
       expect(await gapsOf(page)).toEqual(["volume-services", "storage-pools"]);
 
       await openCloudPage(page, "", level("monitoring-admin-get", release));
-      await expect(
-        page.getByTestId("openstack-overview-health"),
-      ).toBeVisible();
+      await expect(page.getByTestId("openstack-overview-health")).toBeVisible();
       await page.waitForLoadState("networkidle");
       await expect(notice(page)).toHaveCount(0);
     });

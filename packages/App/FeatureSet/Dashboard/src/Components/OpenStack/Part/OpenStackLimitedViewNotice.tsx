@@ -1,7 +1,11 @@
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceFamily,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -15,7 +19,6 @@ import {
   OpenStackListView,
   getOpenStackListView,
 } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
-import { OpenStackServiceFamily, OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
