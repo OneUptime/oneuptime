@@ -2812,7 +2812,8 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   metric({
     metricName: "openstack_loadbalancer_total_pools",
     friendlyName: translationKey("Load Balancer Pools"),
-    description: "How many pools Octavia listed for this credential, per region.",
+    description:
+      "How many pools Octavia listed for this credential, per region.",
     category: "Load Balancers",
     defaultAggregation: MetricsAggregationType.Max,
     unit: "count",

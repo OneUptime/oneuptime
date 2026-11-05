@@ -2739,7 +2739,8 @@ const shareServiceDownTemplate: OpenStackAlertTemplate = {
 
 // --- Load balancers ---
 
-const OCTAVIA_LOAD_BALANCER: string = "openstack_loadbalancer_loadbalancer_status";
+const OCTAVIA_LOAD_BALANCER: string =
+  "openstack_loadbalancer_loadbalancer_status";
 const OCTAVIA_POOL: string = "openstack_loadbalancer_pool_status";
 const OCTAVIA_AMPHORA: string = "openstack_loadbalancer_amphora_status";
 
@@ -2926,7 +2927,8 @@ const poolWithoutHealthyMembersTemplate: OpenStackAlertTemplate =
     statuses: new Set(["ERROR"]),
     groupByAttributeKeys: LOAD_BALANCER_GROUP,
     incidentDescription: `Every member of this pool fails its health check, so the load balancer has nowhere to send what it gets. The pool and the load balancer still read ACTIVE, because provisioning is a different thing from health. Check openstack loadbalancer member list for the pool named above, then whether the members are running, listen on their port and answer the health monitor's path, and whether their security group lets the amphora's checks in. The incident resolves on its own once a member is healthy again.`,
-    criteriaName: "Pool Has No Healthy Members - operating ERROR for the whole window",
+    criteriaName:
+      "Pool Has No Healthy Members - operating ERROR for the whole window",
     criteriaDescription:
       "Triggers when a pool's operating status is ERROR for the whole window.",
   });

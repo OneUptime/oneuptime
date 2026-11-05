@@ -107,7 +107,7 @@ describe("buildOpenStackBlastRadius", () => {
   });
 
   test("projects hit equally stay in a stable order", () => {
-    const build = (): Array<string> => {
+    const build: () => Array<string> = (): Array<string> => {
       return buildOpenStackBlastRadius({
         counts: [
           {

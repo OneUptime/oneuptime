@@ -1630,11 +1630,7 @@ function foldAmphora(data: {
    */
   entry.facts["loadBalancerId"] =
     getLabel(data.attributes, "loadbalancer_id") || null;
-  setFact(
-    entry,
-    "certExpiresAt",
-    getLabel(data.attributes, "cert_expiration"),
-  );
+  setFact(entry, "certExpiresAt", getLabel(data.attributes, "cert_expiration"));
   setFact(entry, "haIp", getLabel(data.attributes, "ha_ip"));
   setFact(entry, "managementIp", getLabel(data.attributes, "lb_network_ip"));
 }
