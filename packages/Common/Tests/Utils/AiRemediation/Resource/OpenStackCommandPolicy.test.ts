@@ -173,6 +173,78 @@ const DEFAULT_LIMIT_QUERY: Record<string, string> = {
 
 const ALLOWLIST: ReadonlyArray<AllowedRow> = [
   {
+    command: "openstack share list",
+    route: "share list",
+    service: "sharev2",
+    path: "/shares/detail",
+    query: DEFAULT_LIMIT_QUERY,
+    listKey: "shares",
+    limit: OPENSTACK_DEFAULT_LIST_LIMIT,
+  },
+  {
+    command: "openstack share service list",
+    route: "share service list",
+    service: "sharev2",
+    path: "/services",
+    query: {},
+    listKey: "services",
+  },
+  {
+    command: "openstack share pool list",
+    route: "share pool list",
+    service: "sharev2",
+    path: "/scheduler-stats/pools/detail",
+    query: {},
+    listKey: "pools",
+  },
+  {
+    command: "openstack zone list",
+    route: "zone list",
+    service: "dns",
+    path: "/v2/zones",
+    query: DEFAULT_LIMIT_QUERY,
+    listKey: "zones",
+    limit: OPENSTACK_DEFAULT_LIST_LIMIT,
+  },
+  {
+    command: "openstack recordset list 3f2a1c9e-7b4d-4e6f-8a1b-2c3d4e5f6a7b",
+    route: "recordset list",
+    service: "dns",
+    path: "/v2/zones/3f2a1c9e-7b4d-4e6f-8a1b-2c3d4e5f6a7b/recordsets",
+    query: DEFAULT_LIMIT_QUERY,
+    listKey: "recordsets",
+    limit: OPENSTACK_DEFAULT_LIST_LIMIT,
+  },
+  {
+    command: "openstack container list",
+    route: "container list",
+    service: "object-store",
+    path: "",
+    query: { format: "json", ...DEFAULT_LIMIT_QUERY },
+    listKey: "containers",
+    limit: OPENSTACK_DEFAULT_LIST_LIMIT,
+  },
+  {
+    command: "openstack database instance list",
+    route: "database instance list",
+    service: "database",
+    path: "/mgmt/instances",
+    query: {
+      include_clustered: "False",
+      deleted: "False",
+      ...DEFAULT_LIMIT_QUERY,
+    },
+    listKey: "instances",
+    limit: OPENSTACK_DEFAULT_LIST_LIMIT,
+  },
+  {
+    command: "openstack metric status",
+    route: "metric status",
+    service: "metric",
+    path: "/v1/status",
+    query: { details: "true" },
+  },
+  {
     command: "openstack server list",
     route: "server list",
     service: "compute",
@@ -1670,7 +1742,7 @@ describe("no read changes a cloud", () => {
     for (const route of OPENSTACK_COMMAND_ROUTES) {
       const last: string = route.command.split(" ").pop() as string;
 
-      expect(["list", "show"]).toContain(last);
+      expect(["list", "show", "status"]).toContain(last);
     }
   });
 
@@ -1679,7 +1751,7 @@ describe("no read changes a cloud", () => {
       ResourceCommandPolicy.getWriteCommandGuide(AiResourceType.OpenStackCloud),
     ).toBe(OpenStackCommandPolicy.writeCommandGuide);
     expect(OpenStackCommandPolicy.readCommandGuide).not.toMatch(
-      /`(?:openstack )?[a-z ]*(?:create|delete|set|reboot|stop|start)\b/,
+      /`(?:openstack )?(?:[a-z]+ )*(?:create|delete|set|reboot|stop|start)\b/,
     );
   });
 
@@ -1762,6 +1834,11 @@ describe("the access rules a level 1 credential ships with", () => {
     volume: { services: ["block-storage", "volumev3"], prefix: "/v3" },
     image: { services: ["image"], prefix: "/v2" },
     identity: { services: ["identity"], prefix: "/v3" },
+    sharev2: { services: ["sharev2"], prefix: "/v2" },
+    dns: { services: ["dns"], prefix: "" },
+    "object-store": { services: ["object-store"], prefix: "/v1/AUTH_project" },
+    database: { services: ["database"], prefix: "/v1.0/project" },
+    metric: { services: ["metric"], prefix: "" },
   };
 
   // Keystone's matching: * is one segment, ** any number.
@@ -1812,6 +1889,68 @@ describe("the access rules a level 1 credential ships with", () => {
           );
         }),
       }).toEqual({ command: route.command, service: name, listed: true });
+    }
+  });
+});
+
+describe("the services a cloud may not run", () => {
+  test("Designate is asked for every project's by a header, as nothing else is", () => {
+    const request: OpenStackApiRequest = requestOf(
+      "openstack zone list --all-projects --limit 50",
+    );
+    expect(request.headers).toEqual({ "X-Auth-All-Projects": "true" });
+    expect(request.query).toEqual({ limit: "50" });
+  });
+
+  test("a list that crosses tenants must say how long it may be", () => {
+    for (const command of [
+      "openstack share list --all-projects",
+      "openstack zone list --all-projects",
+    ]) {
+      expectDenied(command);
+    }
+  });
+
+  test("Swift pages by name and asks for JSON, because its answer is otherwise plain text", () => {
+    expect(
+      requestOf("openstack container list --limit 10 --marker ou-a").query,
+    ).toEqual({
+      format: "json",
+      limit: "10",
+      marker: "ou-a",
+    });
+  });
+
+  test("Trove reads what the exporter reads, and Gnocchi its details", () => {
+    expect(requestOf("openstack database instance list").query).toMatchObject({
+      include_clustered: "False",
+      deleted: "False",
+    });
+    expect(requestOf("openstack metric status").query).toEqual({
+      details: "true",
+    });
+  });
+
+  test("Barbican stays off limits, whatever the words", () => {
+    for (const command of [
+      "openstack secret list",
+      "openstack order list",
+      "openstack ca list",
+    ]) {
+      expectDenied(command);
+    }
+  });
+
+  test("nothing that would change one of these is a command at all", () => {
+    for (const command of [
+      "openstack share delete 3f2a1c9e-7b4d-4e6f-8a1b-2c3d4e5f6a7b",
+      "openstack zone delete 3f2a1c9e-7b4d-4e6f-8a1b-2c3d4e5f6a7b",
+      "openstack recordset create zone a",
+      "openstack container delete a",
+      "openstack database instance delete 3f2a1c9e-7b4d-4e6f-8a1b-2c3d4e5f6a7b",
+      "openstack metric delete a",
+    ]) {
+      expectDenied(command);
     }
   });
 });
