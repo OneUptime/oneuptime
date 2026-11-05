@@ -784,6 +784,7 @@ describe("what only a probe adds, in the rows it fills", () => {
 
       expect(row?.facts["forcedDown"]).toBeNull();
     });
+  });
 
   test("each instance has the address it is reached at, which the exporter leaves empty", async () => {
     const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
