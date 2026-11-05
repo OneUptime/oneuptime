@@ -56,8 +56,12 @@ const READ_PERMISSIONS: Array<Permission> = [
 
 // Postgres answers a decimal as text: read it back as the number it is.
 const decimalTransformer: ValueTransformer = {
-  to: (value: number | null | undefined): number | null => {
-    return value === null || value === undefined ? null : value;
+  /*
+   * Undefined stays undefined: TypeORM leaves such a column to its DEFAULT only then, and null
+   * in a NOT NULL column fails the write.
+   */
+  to: (value: number | null | undefined): number | null | undefined => {
+    return value;
   },
   from: (value: string | number | null | undefined): number | null => {
     if (value === null || value === undefined) {
