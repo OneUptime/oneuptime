@@ -736,7 +736,9 @@ const store = {
   DockerHost: [],
   KubernetesCluster: [],
   PodmanHost: [],
-  // What a project's and a domain's owner and label rules are stored as.
+  // What a project's and a domain's owner and label rules are stored as, and were.
+  OpenStackCloudOwnerRule: [],
+  OpenStackCloudLabelRule: [],
   AlertOwnerRule: [],
   IncidentOwnerRule: [],
   AlertLabelRule: [],

@@ -232,12 +232,15 @@ test.describe("One project's page", () => {
       page.getByTestId("openstack-scoped-rule-add").first(),
     ).toBeVisible();
 
+    // Its own rules, by the project's ID, and any written earlier as a marker's pair.
     const record: FixtureRecord = await fixtureRecord(page);
-    expect(
-      record.listRequests.some((request: { modelName?: string }) => {
-        return request.modelName === "AlertOwnerRule";
-      }),
-    ).toBe(true);
+    for (const modelName of ["OpenStackCloudOwnerRule", "AlertOwnerRule"]) {
+      expect(
+        record.listRequests.some((request: { modelName?: string }) => {
+          return request.modelName === modelName;
+        }),
+      ).toBe(true);
+    }
   });
 
   test("a project gone from the inventory says so", async ({
@@ -358,6 +361,25 @@ test.describe("The Topology", () => {
     await expect(
       page.getByTestId("resource-topology-notice-gap"),
     ).toContainText("what this cloud reports says neither");
+  });
+
+  test("and stops saying what a probe told it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "topology", "estate=parts");
+
+    await expect(
+      page.getByTestId("resource-topology-card-cloud"),
+    ).toBeVisible();
+    // Every instance here names its networks, and not every volume its pool.
+    await expect(
+      page.getByTestId("resource-topology-notice-gap"),
+    ).toContainText("Volumes are not joined to their storage pools");
+    await expect(
+      page.getByTestId("resource-topology-notice-gap"),
+    ).not.toContainText("Instances");
   });
 
   test("a failed read says so, with Try again", async ({

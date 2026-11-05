@@ -297,6 +297,8 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "forcedDown",
     // What an instance booted from, nor for this.
     "imageId",
+    // Nor which networks it has an address on.
+    "networkNames",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
     "storageProtocol",
     "cephFsid",
@@ -725,9 +727,10 @@ describe("what only a probe adds, in the rows it fills", () => {
     function answerWith(
       change: (service: JSONObject) => JSONObject,
     ): (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined {
-      const services: Array<JSONObject> = recordedJson(SCENE, "nova-services")?.[
-        "services"
-      ] as Array<JSONObject>;
+      const services: Array<JSONObject> = recordedJson(
+        SCENE,
+        "nova-services",
+      )?.["services"] as Array<JSONObject>;
 
       return (request: OpenStackHttpRequest) => {
         return new globalThis.URL(request.url).pathname ===
@@ -845,29 +848,30 @@ describe("what only a probe adds, in the rows it fills", () => {
   test("an instance that lost its floating address falls back to its fixed one, and one with none says none", async () => {
     const answerWithAddresses: (
       addresses: JSONObject,
-    ) => (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined =
-      (addresses: JSONObject) => {
-        return (
-          request: OpenStackHttpRequest,
-        ): OpenStackHttpResponse | undefined => {
-          const url: URL = new URL(request.url);
+    ) => (
+      request: OpenStackHttpRequest,
+    ) => OpenStackHttpResponse | undefined = (addresses: JSONObject) => {
+      return (
+        request: OpenStackHttpRequest,
+      ): OpenStackHttpResponse | undefined => {
+        const url: URL = new URL(request.url);
 
-          if (!url.pathname.endsWith("/servers/detail")) {
-            return undefined;
-          }
+        if (!url.pathname.endsWith("/servers/detail")) {
+          return undefined;
+        }
 
-          const servers: Array<JSONObject> = recordedJson(
-            SCENE,
-            "nova-servers",
-          )?.["servers"] as Array<JSONObject>;
+        const servers: Array<JSONObject> = recordedJson(
+          SCENE,
+          "nova-servers",
+        )?.["servers"] as Array<JSONObject>;
 
-          return jsonAnswer(200, {
-            servers: servers.map((server: JSONObject): JSONObject => {
-              return { ...server, addresses: addresses };
-            }),
-          });
-        };
+        return jsonAnswer(200, {
+          servers: servers.map((server: JSONObject): JSONObject => {
+            return { ...server, addresses: addresses };
+          }),
+        });
       };
+    };
 
     const fixedOnly: Array<OpenStackResourceBufferEntry> = rowsOf(
       await rowsFrom(
@@ -910,9 +914,10 @@ describe("what only a probe adds, in the rows it fills", () => {
     "on %s, every volume names a pool Cinder's own list holds, so a pool knows what is on it",
     async (release: string) => {
       const scene: RecordedScene = loadScene(release, "healthy");
-      const volumes: Array<JSONObject> = recordedJson(scene, "cinder-volumes")?.[
-        "volumes"
-      ] as Array<JSONObject>;
+      const volumes: Array<JSONObject> = recordedJson(
+        scene,
+        "cinder-volumes",
+      )?.["volumes"] as Array<JSONObject>;
       const pools: Array<string> = (
         recordedJson(scene, "cinder-pools")?.["pools"] as Array<JSONObject>
       ).map((pool: JSONObject): string => {
@@ -989,6 +994,67 @@ describe("what only a probe adds, in the rows it fills", () => {
     for (const row of volumes) {
       expect(row.facts["pool"]).toBeNull();
       expect(row.diskCapacityBytes).toBeGreaterThan(0);
+    }
+  });
+
+  test("each instance says its networks, as Nova does, and the same collection reports them", async () => {
+    const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
+      "servers"
+    ] as Array<JSONObject>;
+    const rows: Map<string, OpenStackResourceBufferEntry> = await rowsFrom();
+    const instances: Array<OpenStackResourceBufferEntry> = rowsOf(
+      rows,
+      OpenStackResourceKind.Instance,
+    );
+    const networkNames: Array<string | null> = rowsOf(
+      rows,
+      OpenStackResourceKind.Network,
+    ).map((row: OpenStackResourceBufferEntry): string | null => {
+      return row.name;
+    });
+
+    expect(instances).toHaveLength(servers.length);
+
+    let joined: number = 0;
+
+    for (const server of servers) {
+      const names: Array<string> = Object.keys(
+        (server["addresses"] as JSONObject) || {},
+      ).sort();
+
+      expect(
+        instances.find((row: OpenStackResourceBufferEntry): boolean => {
+          return row.externalId === server["id"];
+        })?.facts["networkNames"],
+      ).toEqual(names);
+
+      for (const name of names) {
+        expect(networkNames).toContain(name);
+        joined++;
+      }
+    }
+
+    // ou-failed never got one, and the rest did: this is not passing on nothing.
+    expect(joined).toBeGreaterThan(0);
+  });
+
+  test("each volume names a pool the same collection reports", async () => {
+    const rows: Map<string, OpenStackResourceBufferEntry> = await rowsFrom();
+    const poolNames: Array<string | null> = rowsOf(
+      rows,
+      OpenStackResourceKind.StoragePool,
+    ).map((row: OpenStackResourceBufferEntry): string | null => {
+      return row.name;
+    });
+    const volumes: Array<OpenStackResourceBufferEntry> = rowsOf(
+      rows,
+      OpenStackResourceKind.Volume,
+    );
+
+    expect(volumes.length).toBeGreaterThan(0);
+
+    for (const volume of volumes) {
+      expect(poolNames).toContain(volume.facts["pool"]);
     }
   });
 
