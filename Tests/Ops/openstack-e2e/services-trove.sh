@@ -26,6 +26,16 @@ instance_status() {
   openstack database instance show "$1" -f value -c status
 }
 
+# Recorded: libvirt could not boot the guest, "failed to initialize kvm: Permission denied". Other
+# groups boot under KVM on the same runners, so deploying Trove is what took the device away.
+log "KVM for the guest, whatever deploying Trove did to it"
+ls -l /dev/kvm || true
+echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm-for-everyone.rules >/dev/null
+sudo udevadm control --reload-rules
+sudo udevadm trigger --name-match=kvm
+sudo chmod 666 /dev/kvm
+ls -l /dev/kvm || true
+
 log "The estate"
 services_base
 # Trove's plugin installs its command line only from git, and this deploys from the release.
