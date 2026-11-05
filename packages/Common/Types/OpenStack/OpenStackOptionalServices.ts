@@ -108,6 +108,12 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       isReadByProbe: true,
       readsDownWhenRefused: true,
     },
+    // The exporter has no reader for it, so only a probe's series can start its row.
+    {
+      service: OpenStackServiceType.KeyManager,
+      upMetricName: "openstack_barbican_up",
+      isReadByProbe: true,
+    },
     {
       service: OpenStackServiceType.Database,
       upMetricName: "openstack_trove_up",

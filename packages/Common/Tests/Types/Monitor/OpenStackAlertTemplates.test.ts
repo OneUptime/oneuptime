@@ -271,7 +271,11 @@ function scrapeIntervalsInSeconds(): Record<string, number> {
   return intervals;
 }
 
-const INTERVALS: Record<string, number> = scrapeIntervalsInSeconds();
+const INTERVALS: Record<string, number> = {
+  ...scrapeIntervalsInSeconds(),
+  // The exporter has no reader for it, so no job: a probe reads it as it reads any service a cloud may not run.
+  [OpenStackServiceType.KeyManager]: 300,
+};
 
 // Which job's collections a query reads.
 function serviceOf(query: MetricQueryConfigData): OpenStackServiceType {
@@ -626,6 +630,10 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.ForecastAbove,
     value: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
   },
+  "openstack-key-manager-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-database-api-down": {
     filterType: FilterType.LessThan,
     value: 1,
@@ -974,6 +982,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { bytes: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES * 2 },
     healthy: { bytes: 0 },
   },
+  "openstack-key-manager-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
   "openstack-database-api-down": {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
@@ -1158,6 +1170,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Gnocchi Backlog Growing",
         "Object Storage API Down",
         "Object Container Growth Forecast",
+        "Key Manager API Down",
         "Databases API Down",
         "Database Instance in Error",
         "Database Instance Stuck",
@@ -2115,6 +2128,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       expect(probeOnly.sort()).toEqual([
         "openstack-bare-metal-conductor-down",
         "openstack-container-infra-conductor-down",
+        "openstack-key-manager-api-down",
         "openstack-orchestration-engine-down",
         "openstack-share-service-down",
       ]);

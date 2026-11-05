@@ -41,6 +41,7 @@ export const OPENSTACK_CATALOG_TYPES: Readonly<
   // What Keystone's catalog holds for Manila's v2 API, recorded.
   [OpenStackServiceType.SharedFileSystems]: ["sharev2", "shared-file-system"],
   [OpenStackServiceType.Database]: ["database"],
+  [OpenStackServiceType.KeyManager]: ["key-manager"],
   [OpenStackServiceType.ObjectStore]: ["object-store"],
   [OpenStackServiceType.Metric]: ["metric"],
   [OpenStackServiceType.Dns]: ["dns"],

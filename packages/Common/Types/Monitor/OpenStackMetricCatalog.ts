@@ -40,6 +40,7 @@ export type OpenStackMetricCategory =
   | "Bare Metal"
   | "Databases"
   | "Metrics"
+  | "Key Manager"
   | "Projects"
   | "Checks"
   | "Capacity";
@@ -2785,6 +2786,54 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["container_name"],
     probeOnlyAttributes: ["tenant_id"],
   }),
+  // Key manager: Barbican. Only a probe sends these: the exporter has no reader for it, recorded.
+  metric({
+    metricName: "openstack_barbican_up",
+    friendlyName: translationKey("Key Manager API Up"),
+    description:
+      "Whether Barbican's API answered (1) or failed (0). Only a probe sends this. A credential it refuses reads 1, because it answered.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_secrets",
+    friendlyName: translationKey("Secrets"),
+    description:
+      "How many secrets this credential's own project holds. Only a probe sends this. Barbican answers about one project at a time, an admin too, and OneUptime reads no secret itself.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_orders",
+    friendlyName: translationKey("Secret Orders"),
+    description:
+      "How many orders this credential's own project holds. Only a probe sends this.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_barbican_containers",
+    friendlyName: translationKey("Secret Containers"),
+    description:
+      "How many secret containers this credential's own project holds. Only a probe sends this.",
+    category: "Key Manager",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
   // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_trove_up",
@@ -3045,6 +3094,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Bare Metal",
     "Databases",
     "Metrics",
+    "Key Manager",
     "Projects",
     "Checks",
     "Capacity",

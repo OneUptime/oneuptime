@@ -869,20 +869,28 @@ The exporter reads Gnocchi's status, which only an admin may. Gnocchi refuses an
 
 A cloud that runs Swift gets **Object Storage** under **Storage** on its own, and one that doesn't shows no trace of it. It lists the containers of the credential's own project, how much each holds and how many objects, and each has a page of its own.
 
-| What | Agent, Full view | Anything less |
-| --- | --- | --- |
-| This credential's own project's containers, and how much each holds | Yes | Nothing: see below |
-| Whether its proxy answers | Yes | No |
-| Another project's containers | No | No |
-| A stopped object, container or account server | No | No |
+| What | Agent, Full view | Probe, Full view | Probe, with `ResellerAdmin` | Anything less |
+| --- | --- | --- | --- | --- |
+| This credential's own project's containers, and how much each holds | Yes, with no project | Yes | Yes | Nothing: see below |
+| Whether its proxy answers | Yes | Yes | Yes | No |
+| Another project's containers | No | No | Yes, up to 200 projects a collection | No |
+| A stopped object, container or account server | No | No | No | No |
 
-Swift keeps every project's account from every other project's credentials, recorded, so this list is never the whole cloud's. Only `ResellerAdmin` reads another project's, and the exporter asks only for its own either way.
+Swift keeps every project's account from every other project's credentials, recorded, so without `ResellerAdmin` this list is never the whole cloud's. The exporter asks only for its own account either way. A probe whose credential has that role reads each project's in turn, one read per account, and says whose each container is.
 
-A credential Swift refuses reads `openstack_object_store_up` 0, just as a stopped proxy does. So a credential that has never once read Swift is told that, rather than that Swift is down, and isn't offered its alerts. An application credential with access rules also needs `include_service_catalog = True` in `proxy-server.conf`.
+A credential Swift refuses reads `openstack_object_store_up` 0, just as a stopped proxy does. So a credential that has never once read Swift is told that, rather than that Swift is down, and isn't offered its alerts. A probe tells the two apart: Swift answered, so its API reads up, and the connection test says it was refused. An application credential with access rules also needs `include_service_catalog = True` in `proxy-server.conf`.
 
 A stopped object server changes nothing here, recorded: Swift's lists come from its account and container servers, and its proxy goes on answering. Only what each storage server says through its own `/recon` would say so, and that isn't in Keystone's catalog.
 
 **Object Container Growth Forecast** reads a line through the last week of each container, and looks a week ahead. Swift says nothing here of how much room a cloud has, so its line of 1 TiB is one to hear about rather than one anything breaks at. Change it to fit your cloud. No runner holds a week of growth, so it has only been checked on made-up numbers.
+
+## Barbican
+
+The exporter has no reader for Barbican: asking it for `key-manager` is a `400`, recorded. So a cloud the agent collects shows no trace of it, whether it runs it or not, and only a [probe](/docs/telemetry/openstack-agentless) says anything.
+
+A probe reads Barbican where Keystone's catalog names it, and puts it on **Services**: whether its API answers, and how many secrets, orders and containers this credential's own project holds. Barbican answers about one project at a time, an admin too, so those are never the cloud's. OneUptime reads no secret: a list says only that one exists, and it asks for the one row it takes to get the total.
+
+Barbican refuses a plain reader, and that reads as what it is: its API answered, so it reads as up, and the counts say nothing.
 
 ## Service logs
 
