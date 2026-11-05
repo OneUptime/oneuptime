@@ -130,20 +130,6 @@ export async function fetchOpenStackInventorySummary(
 }
 
 /*
- * Whether Ironic is here at all: it said so of itself, or there are rows from when it did. A cloud
- * without it never has either, because only Ironic's own series make them: an empty scrape of it
- * makes nothing (OpenStackSnapshotScan).
- */
-export function isOpenStackRunningBareMetal(
-  summary: Pick<OpenStackInventorySummary, "bareMetalNodeCount" | "services">,
-): boolean {
-  return (
-    summary.bareMetalNodeCount > 0 ||
-    summary.services.includes(OpenStackServiceType.BareMetal)
-  );
-}
-
-/*
  * True while the cloud has reported nothing a person could read: no capacity and
  * no parts of any kind. Its page then shows the setup guide instead of a wall of
  * zeros, because no parts is what a cloud that has not connected yet looks like.

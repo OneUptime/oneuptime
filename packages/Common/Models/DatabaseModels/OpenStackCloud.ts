@@ -1957,6 +1957,74 @@ export default class OpenStackCloud extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.JSON,
+    title: "Spend Snapshot",
+    description:
+      "What this cloud's usage added up to when a worker last read its inventory, as JSON: this month against last, the largest domains and flavors, the top growers, and what could be reclaimed. Estimates, never an invoice. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public spendSnapshot?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Usage Read At",
+    description:
+      "The time this cloud's usage has been counted up to. Written by the server, and how a time is never counted twice.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public usageReadAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateOpenStackCloud,
+    ],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditOpenStackCloud,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Price List",
+    description:
+      "What this cloud's operator says things cost, per hour, in one currency, as JSON. Optional: usage works without it, and a price of zero means no price has been set.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public priceList?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.ShortText,
     allowedValues: Object.values(OpenStackCollectionStatus),
     title: "Collection Status",

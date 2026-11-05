@@ -1529,6 +1529,26 @@ describe("install.sh, PostgreSQL's SQL checks", () => {
     },
   );
 
+  // The same three choices, in the words of the driver the MySQL config's readings of Galera use.
+  test.each([
+    ["true", "false", "false"],
+    ["true", "true", "false"],
+    ["false", "true", "skip-verify"],
+    ["false", "false", "true"],
+  ])(
+    "TLS insecure %s, skip verify %s: the MySQL driver's tls %s",
+    (insecure, skipVerify, tls) => {
+      const run = runInstall(scratch(), {
+        ...POSTGRES,
+        DATABASE_TLS_INSECURE: insecure,
+        DATABASE_TLS_INSECURE_SKIP_VERIFY: skipVerify,
+      });
+
+      expect(run.status).toBe(0);
+      expect(run.envLine("DATABASE_TLS_MYSQL")).toBe(tls);
+    },
+  );
+
   test("a re-run works the mode out again from the switches in .env, never keeping an old one", () => {
     const dir = scratch();
     const first = runInstall(dir, POSTGRES);

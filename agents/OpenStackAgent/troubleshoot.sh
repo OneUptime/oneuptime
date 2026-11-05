@@ -993,7 +993,7 @@ classify_read() {
     return 0
   fi
   flat=$(printf '%s\n' "$RESP_BODY" | json_flatten)
-  summary=$(list_summary "$flat" "$key" "$attr")
+  summary=$(list_summary "$flat" "$key" "${attr%\?}")
   rows="${summary%% *}"
   summary="${summary#* }"
   projects="${summary%% *}"
@@ -1001,6 +1001,10 @@ classify_read() {
   names="${names# }"
   if [ "$attr" = "*" ] && [ "$rows" -gt 0 ]; then
     RESULT="all"
+  # Rows that are nobody's: Ironic shows those to no project, so this is more than one's view.
+  elif [ "${attr%\?}" != "$attr" ] && [ "$rows" -gt 0 ] && [ "$projects" = 0 ]; then
+    RESULT="all"
+    REASON=" (no row is any project's)"
   elif [ "$projects" -ge 2 ]; then
     RESULT="all"
     REASON=" ($projects projects in $rows rows)"
@@ -1010,7 +1014,8 @@ classify_read() {
   elif [ "$projects" = 1 ]; then
     RESULT="own"
     REASON=" (every row is in one project)"
-  elif [ "$HAS_ADMIN_ROLE" = 1 ]; then
+  # Ironic shows even an admin only what its project owns, so empty is no likely truth there.
+  elif [ "$HAS_ADMIN_ROLE" = 1 ] && [ "${attr%\?}" = "$attr" ]; then
     RESULT="all"
     REASON=" (nothing here to tell by, and the credential has the admin role)"
   else
@@ -1212,7 +1217,7 @@ block-storage|volume types|/types|volume_types|-|OpenStack-API-Version: volume 3
 image|images|/v2/images?limit=100|images|owner|-|private images in other projects.|text:Glance shows any credential the public images and its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|load balancers|/v2/lbaas/loadbalancers?limit=100&fields=project_id|loadbalancers|project_id|-|load balancers in other projects.|text:Octavia shows a project reader its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|amphorae|/v2/octavia/amphorae?limit=100|amphorae|-|-|amphorae.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
-baremetal|nodes|/v1/nodes/detail?limit=100|nodes|*|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes.|text:Ironic shows a project only the nodes it owns. To read them all: use a full-view credential (README.md, "Level 1: Full view").
+baremetal|nodes|/v1/nodes/detail?limit=100|nodes|owner?|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes other projects own.|text:Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy, or system scope (README.md, "Bare metal").
 orchestration|stacks|/stacks|stacks|project|-|other projects' stacks, and whose each one is.|text:Heat shows anything less its own project's with no project on them, or refuses. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 orchestration|services|/services|services|-|-|Heat's engines.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 container-infra|clusters|/clusters|clusters|*|OpenStack-API-Version: container-infra latest|other projects' Kubernetes clusters.|text:Magnum shows anything less none of them, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").

@@ -106,6 +106,8 @@ import CloudSubnetDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenS
 import CloudRouters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Routers";
 import CloudRouterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/RouterDetail";
 import CloudFloatingIps from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIps";
+import CloudBareMetalNodes from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/BareMetalNodes";
+import CloudBareMetalNodeDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/BareMetalNodeDetail";
 import CloudFloatingIpDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIpDetail";
 import CloudNetworkAgents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/NetworkAgents";
 import CloudNetworkAgentDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/NetworkAgentDetail";
@@ -187,6 +189,7 @@ import {
   getAttentionRows,
   getBlastRadius,
   getCounts,
+  getBareMetalClasses,
   getInventorySummary,
   getRegionSummaries,
   getTopConsumers,
@@ -371,17 +374,16 @@ const estate = buildEstate(
     estate: ESTATE,
     recording: RECORDING,
     recordedRows: RECORDING
-      ? [RECORDING, ...(params.get("also") ? [params.get("also")] : [])].flatMap(
-          (name) => {
-            return rowsFromRecording(name, {
-              region: REGION_ONE,
-              loadedAt: IS_CONNECTED
-                ? LOADED_AT - MINUTE
-                : LOADED_AT - QUIET_FOR,
-              without: params.get("without") || "",
-            });
-          },
-        )
+      ? [
+          RECORDING,
+          ...(params.get("also") ? [params.get("also")] : []),
+        ].flatMap((name) => {
+          return rowsFromRecording(name, {
+            region: REGION_ONE,
+            loadedAt: IS_CONNECTED ? LOADED_AT - MINUTE : LOADED_AT - QUIET_FOR,
+            without: params.get("without") || "",
+          });
+        })
       : null,
     isConnected: IS_CONNECTED,
     quietFor: QUIET_FOR,
@@ -513,13 +515,10 @@ const alerts = [];
 const scheduledMaintenances = [];
 const LINKED = params.get("linked") === "1";
 if (LINKED) {
-  incidents.push(
-    openIncident(61, "Nova API errors in RegionOne", [], 45),
-    {
-      ...openIncident(62, "A payment provider is slow", [], 30),
-      openStackCloudIds: [],
-    },
-  );
+  incidents.push(openIncident(61, "Nova API errors in RegionOne", [], 45), {
+    ...openIncident(62, "A payment provider is slow", [], 30),
+    openStackCloudIds: [],
+  });
   alerts.push(openAlert(61, "Volume stuck in creating", [], 20), {
     ...openAlert(62, "A certificate expires soon", [], 10),
     openStackCloudIds: [],
@@ -938,9 +937,16 @@ const store = {
       : [
           withCapacity(
             params.get("collection") === "Probe"
-              ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
+              ? probeCollectedCloud(
+                  estate.cloud,
+                  params.get("probe"),
+                  LOADED_AT,
+                )
               : params.get("collection")
-                ? { ...estate.cloud, collectionMethod: params.get("collection") }
+                ? {
+                    ...estate.cloud,
+                    collectionMethod: params.get("collection"),
+                  }
                 : estate.cloud,
           ),
           ...(params.get("archived") === "1"
@@ -1611,9 +1617,7 @@ function usageSeries(metricName, attributes) {
     if (devices) {
       for (const [device, readings] of Object.entries(devices[0])) {
         if (readings[devices[1]] !== undefined) {
-          out.push(
-            seriesFromRow({ ...labels, device }, readings[devices[1]]),
-          );
+          out.push(seriesFromRow({ ...labels, device }, readings[devices[1]]));
         }
       }
     }
@@ -2060,6 +2064,13 @@ async function handleApi(method, options) {
         ? failed()
         : ok(getInventorySummary(estate.inventory, regionOfBody(body)));
     }
+    if (parsed.pathname.includes("/openstack-resource/bare-metal-classes/")) {
+      return FAILS.has("inventory")
+        ? failed()
+        : ok({
+            classes: getBareMetalClasses(estate.inventory, regionOfBody(body)),
+          });
+    }
     if (parsed.pathname.includes("/openstack-resource/needs-attention/")) {
       if (FAILS.has("inventory") || FAILS.has("attention")) {
         return failed();
@@ -2225,7 +2236,9 @@ async function handleApi(method, options) {
         ),
       });
     }
-    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")) {
+    if (
+      parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")
+    ) {
       fixture.writeRequests.push({
         kind: "storage-pool-ceph-confirm",
         data: serialize(body),
@@ -2239,7 +2252,9 @@ async function handleApi(method, options) {
         ? ok({})
         : new HTTPErrorResponse(
             404,
-            { message: "That pool or that Ceph cluster is not in this project" },
+            {
+              message: "That pool or that Ceph cluster is not in this project",
+            },
             {},
           );
     }
@@ -2423,6 +2438,11 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS, CloudRouters],
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL, CloudRouterDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS, CloudFloatingIps],
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES, CloudBareMetalNodes],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+    CloudBareMetalNodeDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL, CloudFloatingIpDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS, CloudNetworkAgents],
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL, CloudNetworkAgentDetail],
@@ -2476,7 +2496,10 @@ const PAGES = [
 
 const FixtureLayout = withNavigation(CloudLayout, PageMap.OPENSTACK_CLOUD_VIEW);
 const FixtureCloudsList = withNavigation(CloudsList, PageMap.OPENSTACK_CLOUDS);
-const FixtureArchived = withNavigation(CloudsArchived, PageMap.OPENSTACK_ARCHIVED);
+const FixtureArchived = withNavigation(
+  CloudsArchived,
+  PageMap.OPENSTACK_ARCHIVED,
+);
 const FixtureOwnerRules = withNavigation(
   OwnerRules,
   PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
@@ -2514,7 +2537,9 @@ const OTHER_PRODUCT_PAGES = [
     PageMap.HOST_VIEW,
     otherProductPage("other-product-host", (path) => {
       return (
-        <OpenStackPlacementOfHost hostId={new ObjectID(path[path.length - 1])} />
+        <OpenStackPlacementOfHost
+          hostId={new ObjectID(path[path.length - 1])}
+        />
       );
     }),
   ],

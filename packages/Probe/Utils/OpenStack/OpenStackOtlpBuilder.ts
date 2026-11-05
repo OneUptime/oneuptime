@@ -2,10 +2,12 @@ import {
   OpenStackComputeInventory,
   OpenStackContainerInfraInventory,
   OpenStackIdentityInventory,
+  OpenStackBareMetalInventory,
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackPlacementInventory,
+  OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
   NovaFlavorRecord,
   NovaHypervisorRecord,
@@ -202,6 +204,39 @@ const CLUSTER_STATUS_CODES: Readonly<Record<string, number>> = {
   ADOPT_COMPLETE: 17,
 };
 
+/*
+ * What the exporter's share_status series reads for the words a real cloud has been recorded in. Nothing
+ * reads this value: every rule and template reads the status label, because creating's code is 0.
+ */
+const SHARE_STATUS_CODES: Readonly<Record<string, number>> = {
+  creating: 0,
+  available: 1,
+  error: 9,
+};
+
+// The words the exporter's counter reports, each reading 0 until a share holds it, recorded.
+const SHARE_COUNTED_STATUSES: ReadonlyArray<string> = [
+  "available",
+  "creating",
+  "deleting",
+  "error",
+  "error_deleting",
+  "extending",
+  "inactive",
+  "managing",
+  "migrating",
+  "migration_error",
+  "restoring",
+  "reverting",
+  "reverting_error",
+  "reverting_to_snapshot",
+  "shrinking",
+  "shrinking_error",
+  "soft_deleting",
+  "unmanaging",
+  "updating",
+];
+
 type Labels = Record<string, string | number | boolean | null | undefined>;
 
 function labelText(
@@ -251,8 +286,10 @@ export interface OpenStackServiceReading {
     | OpenStackNetworkInventory
     | OpenStackVolumeInventory
     | OpenStackImageInventory
+    | OpenStackBareMetalInventory
     | OpenStackOrchestrationInventory
     | OpenStackContainerInfraInventory
+    | OpenStackSharedFileSystemsInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
   apiUp: boolean | null;
@@ -1175,6 +1212,7 @@ function writeVolume(
           volume_type: volume.volumeType,
           server_id: volume.serverId,
           pool: volume.poolName,
+          image_id: volume.imageId,
           updated_at: volume.updatedAt,
         },
         volume.sizeGb,
@@ -1213,6 +1251,7 @@ function writeVolume(
           status: snapshot.status,
           tenant_id: snapshot.tenantId,
           volume_id: snapshot.volumeId,
+          created_at: snapshot.createdAt,
           updated_at: snapshot.updatedAt,
         },
         snapshot.sizeGb,
@@ -1294,11 +1333,81 @@ function writeImage(
           tenant_id: image.owner,
           visibility: image.visibility,
           hidden: image.isHidden,
+          protected: image.isProtected,
           status: image.status,
         },
         Math.floor(createdAt / 1000),
       );
     }
+  }
+}
+
+function toUnixSeconds(value: string | null): number | null {
+  const at: number = value ? Date.parse(value) : Number.NaN;
+  return Number.isNaN(at) ? null : Math.floor(at / 1000);
+}
+
+/*
+ * What the exporter sends for a node, the same way, with what only Ironic's API says beside it, marked
+ * in OpenStackMetricCatalog. The exporter leaves two labels empty for every node of the cloud it was
+ * recorded on (deploy_kernel and deploy_ramdisk): they are in a node's driver_info, which is not read.
+ */
+function writeBareMetal(
+  writer: SeriesWriter,
+  inventory: OpenStackBareMetalInventory,
+): void {
+  for (const node of inventory.nodes || []) {
+    writer.add(
+      "node",
+      {
+        id: node.uuid,
+        name: node.name,
+        provision_state: node.provisionState,
+        power_state: node.powerState,
+        maintenance: node.isInMaintenance,
+        maintenance_reason: node.maintenanceReason,
+        resource_class: node.resourceClass,
+        retired: node.isRetired,
+        retired_reason: node.retiredReason,
+        console_enabled: node.isConsoleEnabled,
+        driver: node.driver,
+        owner: node.owner,
+        lessee: node.lessee,
+        instance_uuid: node.instanceUuid,
+        conductor: node.conductor,
+        conductor_group: node.conductorGroup,
+        fault: node.fault,
+        target_provision_state: node.targetProvisionState,
+        target_power_state: node.targetPowerState,
+        last_error: node.lastError,
+      },
+      1,
+    );
+
+    const times: Labels = {
+      id: node.uuid,
+      name: node.name,
+      provision_state: node.provisionState,
+    };
+
+    writer.add(
+      "node_provision_updated_at",
+      times,
+      toUnixSeconds(node.provisionUpdatedAt),
+    );
+    writer.add("node_updated_at", times, toUnixSeconds(node.updatedAt));
+  }
+
+  for (const conductor of inventory.conductors || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: conductor.hostname,
+        service: "ironic-conductor",
+        conductor_group: conductor.conductorGroup,
+      },
+      conductor.isAlive ? 1 : 0,
+    );
   }
 }
 
@@ -1423,6 +1532,68 @@ function writeContainerInfra(
   }
 }
 
+/*
+ * A share's type goes by its name in the label the exporter fills with that, and its own read's
+ * share_type_name stays out, because the exporter's is empty and an empty label is no label.
+ */
+function writeSharedFileSystems(
+  writer: SeriesWriter,
+  inventory: OpenStackSharedFileSystemsInventory,
+): void {
+  if (inventory.shares) {
+    writer.add("shares_counter", {}, inventory.shares.length);
+
+    const counts: Record<string, number> = {};
+    for (const status of SHARE_COUNTED_STATUSES) {
+      counts[status] = 0;
+    }
+
+    for (const share of inventory.shares) {
+      const status: string = share.status || "";
+      counts[status] = (counts[status] || 0) + 1;
+      const shared: Labels = {
+        id: share.id,
+        name: share.name,
+        project_id: share.projectId,
+        share_proto: share.protocol,
+        share_type: share.shareTypeName,
+        status: share.status,
+        access_rules_status: share.accessRulesStatus,
+        host: share.host,
+      };
+      writer.add(
+        "share_gb",
+        { ...shared, availability_zone: share.availabilityZone },
+        share.sizeGb,
+      );
+      writer.add(
+        "share_status",
+        { ...shared, size: share.sizeGb },
+        SHARE_STATUS_CODES[status] ?? -1,
+      );
+    }
+
+    for (const status of Object.keys(counts).sort()) {
+      writer.add("share_status_counter", { status }, counts[status] as number);
+    }
+  }
+
+  // The exporter has no series for these, so these are a native read's own.
+  for (const service of inventory.services || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: service.host,
+        service: service.binary,
+        zone: service.zone,
+        state: service.state,
+        adminState: service.isDisabled ? "disabled" : "enabled",
+      },
+      service.state === "up" ? 1 : 0,
+    );
+  }
+}
+
 function writeInventory(
   writer: SeriesWriter,
   reading: OpenStackServiceReading,
@@ -1450,6 +1621,9 @@ function writeInventory(
     case OpenStackServiceType.Image:
       writeImage(writer, reading.inventory as OpenStackImageInventory);
       return;
+    case OpenStackServiceType.BareMetal:
+      writeBareMetal(writer, reading.inventory as OpenStackBareMetalInventory);
+      return;
     case OpenStackServiceType.Orchestration:
       writeOrchestration(
         writer,
@@ -1460,6 +1634,12 @@ function writeInventory(
       writeContainerInfra(
         writer,
         reading.inventory as OpenStackContainerInfraInventory,
+      );
+      return;
+    case OpenStackServiceType.SharedFileSystems:
+      writeSharedFileSystems(
+        writer,
+        reading.inventory as OpenStackSharedFileSystemsInventory,
       );
       return;
     default:

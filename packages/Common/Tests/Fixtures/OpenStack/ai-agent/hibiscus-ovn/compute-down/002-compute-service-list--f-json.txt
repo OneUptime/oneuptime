@@ -1,0 +1,51 @@
+$ openstack compute service list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "79c31123-72f5-45bb-9efa-9164dac337ec",
+    "binary": "nova-scheduler",
+    "host": "compute-01",
+    "zone": "internal",
+    "status": "enabled",
+    "state": "up",
+    "updated_at": "2026-11-05T05:30:40.000000",
+    "disabled_reason": null,
+    "forced_down": false
+  },
+  {
+    "id": "0a67a029-ef4a-4351-9516-b00c0a049b8b",
+    "binary": "nova-conductor",
+    "host": "compute-01",
+    "zone": "internal",
+    "status": "enabled",
+    "state": "up",
+    "updated_at": "2026-11-05T05:30:35.000000",
+    "disabled_reason": null,
+    "forced_down": false
+  },
+  {
+    "id": "3f48f64c-2539-4c7a-a684-30120bee8131",
+    "binary": "nova-conductor",
+    "host": "compute-01",
+    "zone": "internal",
+    "status": "enabled",
+    "state": "up",
+    "updated_at": "2026-11-05T05:30:35.000000",
+    "disabled_reason": null,
+    "forced_down": false
+  },
+  {
+    "id": "996eaedd-257d-4e81-adf9-aab7c387b172",
+    "binary": "nova-compute",
+    "host": "compute-01",
+    "zone": "nova",
+    "status": "enabled",
+    "state": "down",
+    "updated_at": "2026-11-05T05:29:40.000000",
+    "disabled_reason": null,
+    "forced_down": false
+  }
+]

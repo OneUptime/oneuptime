@@ -1,0 +1,63 @@
+$ openstack endpoint list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "09317c140cbf4c23ab071b5ad034c3d0",
+    "region_id": "RegionOne",
+    "interface": "public",
+    "service_id": "78a801b3d869429499dfd8b94b360daa",
+    "url": "http://10.1.0.196/placement",
+    "enabled": true
+  },
+  {
+    "id": "25577a796b8340bcb79ade57cf3bb09f",
+    "region_id": "RegionOne",
+    "interface": "public",
+    "service_id": "685066161fb74259afd131bd6e2afd29",
+    "url": "http://10.1.0.196/compute/v2/$(project_id)s",
+    "enabled": true
+  },
+  {
+    "id": "3d03dadb9a8c4c7fb58c2a41a8e5529b",
+    "region_id": "RegionOne",
+    "interface": "public",
+    "service_id": "75d4a1c6938f443baf37b751be3140c9",
+    "url": "http://10.1.0.196/compute/v2.1",
+    "enabled": true
+  },
+  {
+    "id": "5c45a913b7694418ba15ff3c5f53888f",
+    "region_id": "RegionOne",
+    "interface": "public",
+    "service_id": "52f095f321704a4a9f6ad938d1d1da5e",
+    "url": "http://10.1.0.196/identity",
+    "enabled": true
+  },
+  {
+    "id": "5e7a71375dcc45298ed4fe085b94c1a7",
+    "region_id": "RegionOne",
+    "interface": "public",
+    "service_id": "921d51beae914a7eac48e9034c418fc2",
+    "url": "http://10.1.0.196/volume/v3",
+    "enabled": true
+  },
+  {
+    "id": "78f934029b034dcba63f601888983541",
+    "region_id": "RegionOne",
+    "interface": "public",
+    "service_id": "7faf7addfed94a34b9504660627531a2",
+    "url": "http://10.1.0.196/image",
+    "enabled": true
+  },
+  {
+    "id": "9a0cd450419241fc96329f7861c41b87",
+    "region_id": "RegionOne",
+    "interface": "public",
+    "service_id": "821fe524d58c4efebc951488a173f9ba",
+    "url": "http://10.1.0.196/networking",
+    "enabled": true
+  }
+]

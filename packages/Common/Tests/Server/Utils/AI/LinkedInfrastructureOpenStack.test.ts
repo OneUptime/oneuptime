@@ -31,6 +31,12 @@ import {
   summarizeOpenStackAttention,
 } from "../../../../Types/OpenStack/OpenStackAttentionSummary";
 import { JSONObject } from "../../../../Types/JSON";
+import { getOpenStackPartLogAttributes } from "../../../../Utils/OpenStack/OpenStackPartLogFacts";
+import {
+  OPENSTACK_RECORDING_NOW,
+  OpenStackRecording,
+  getOpenStackDrilledReleases,
+} from "../../../Helpers/OpenStackRecordings";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   OpenStackResourceKind,
@@ -832,6 +838,68 @@ describe("what the cloud's page says needs attention", () => {
     attention.mockRestore();
   });
 });
+
+/*
+ * The same words on what real clouds reported with nova-compute stopped, through the real
+ * snapshot scan, rather than on rows written for the test.
+ */
+describe.each(getOpenStackDrilledReleases())(
+  "what an investigation hears first of a stopped nova-compute, on %s",
+  (release: string) => {
+    const rows: Array<OpenStackResource> = new OpenStackRecording(
+      release,
+      "compute-down",
+    ).rows;
+    const attention: OpenStackAttentionSummary = summarizeOpenStackAttention({
+      rows: rows as unknown as Array<JSONObject>,
+      totalsByKind: {},
+      now: OPENSTACK_RECORDING_NOW,
+      rowsPerKind: 8,
+    });
+    const section: string = LinkedInfrastructureContext.buildContextSection({
+      ...linked(undefined),
+      openStackAttention: [{ cloud: CLOUD, summary: attention }],
+    });
+
+    test("it names the service and its host, then the hypervisor and what it holds", () => {
+      const service: number = section.indexOf(
+        'Service "nova-compute" on "compute-01": down.',
+      );
+      const hypervisor: RegExpMatchArray | null = section.match(
+        /Hypervisor "compute-01\.example\.internal"[^\n]*: down, holding (\d+) instances\./,
+      );
+
+      expect(service).toBeGreaterThan(-1);
+      expect(hypervisor).not.toBeNull();
+      expect(hypervisor!.index).toBeGreaterThan(service);
+      expect(Number(hypervisor![1])).toBeGreaterThan(0);
+    });
+
+    test("the service's logs are found by what its row holds", () => {
+      const row: OpenStackResource = rows.find(
+        (candidate: OpenStackResource): boolean => {
+          return (
+            candidate.kind === OpenStackResourceKind.Service &&
+            candidate.name === "nova-compute"
+          );
+        },
+      ) as OpenStackResource;
+
+      expect(
+        getOpenStackPartLogAttributes({
+          kind: OpenStackResourceKind.Service,
+          externalId: row.externalId as string,
+          name: row.name,
+          hypervisorName: row.hypervisorName,
+          workerHost: (row.facts as JSONObject)["host"] as string,
+        }),
+      ).toEqual({
+        "openstack.service": "nova-compute",
+        "openstack.host": "compute-01",
+      });
+    });
+  },
+);
 
 describe("the part's logs", () => {
   function logs(partLogAttributes: Record<string, string> | undefined): string {
