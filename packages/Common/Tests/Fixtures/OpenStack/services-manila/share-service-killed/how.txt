@@ -1,0 +1,2 @@
+manila-share killed: what a service that died reads as.
+On its own: manila-share was killed, so nothing wrote stopped, and Manila says down once its heartbeat is old enough.
