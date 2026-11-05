@@ -478,7 +478,7 @@ describe("the Networks page", () => {
 
   describe("on a cloud a probe collects", () => {
     beforeEach(() => {
-      Object.assign(server.cloud as object, {
+      Object.assign(server.cloud as Record<string, unknown>, {
         collectionMethod: OpenStackCollectionMethod.Probe,
       });
     });
@@ -1145,7 +1145,7 @@ describe("network agents", () => {
   });
 
   test("on a cloud a probe collects, that says to give the probe a credential, with no agent to run a script on", async () => {
-    Object.assign(server.cloud as object, {
+    Object.assign(server.cloud as Record<string, unknown>, {
       collectionMethod: OpenStackCollectionMethod.Probe,
     });
     server.rows = [
