@@ -1,0 +1,8 @@
+200 cloudkitty-versions
+200 cloudkitty-info-metrics
+200 cloudkitty-summary-this-month
+200 cloudkitty-report-this-month
+200 cloudkitty-summary-last-month
+200 cloudkitty-report-last-month
+200 cloudkitty-summary-this-month-ou-payments
+403 cloudkitty-report-this-month-ou-payments

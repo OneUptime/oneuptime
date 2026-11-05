@@ -147,6 +147,7 @@ The same for the services a cloud may not run, where yours runs them:
 | `barbican.conf` | `key-manager` |
 | `trove.conf` | `database` |
 | `gnocchi.conf` | `metric` |
+| `cloudkitty.conf` | `rating`, for a probe, since the exporter doesn't read CloudKitty |
 | `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
 
 On the services a cloud may not run, what each level got on real clouds differs from the tables above in four ways:
