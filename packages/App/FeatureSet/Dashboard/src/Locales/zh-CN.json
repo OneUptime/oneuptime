@@ -27863,7 +27863,6 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} 只传递 ID：该记录已经不存在。",
   "“{{key}}” goes more than one related record deep.": "“{{key}}”深入了不止一层相关记录。",
   "“{{key}}” has an unexpected value.": "“{{key}}”的值不符合预期。",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "“{{key}}”会传递整条相关记录。请从中选择后续步骤需要的字段。",
   "Not passed on": "未传递的字段",
   "Pick at least one field.": "请至少选择一个字段。",
   "Pick one from the list, or paste its ID.": "从列表中选择一个，或粘贴其 ID。",
@@ -43718,5 +43717,7 @@
   "This address is not Keystone": "This address is not Keystone",
   "This cloud is too large to collect from a probe": "This cloud is too large to collect from a probe",
   "This probe may not collect this cloud": "This probe may not collect this cloud",
-  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "过去 {{days}} 天内有人处理过或标记为有用的问题，减去被标记为噪声的问题。"
+  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "过去 {{days}} 天内有人处理过或标记为有用的问题，减去被标记为噪声的问题。",
+  "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.": "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.",
+  "“{{key}}” passes on only the ID of the related record. Pick the fields of it the next steps need.": "“{{key}}”只传递相关记录的 ID。请从中选择后续步骤需要的字段。"
 }

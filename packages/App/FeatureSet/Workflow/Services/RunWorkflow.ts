@@ -42,6 +42,14 @@ import {
   WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
   getChildWorkflowArchivedMessage,
 } from "Common/Types/Workflow/WorkflowArchive";
+import {
+  RecordFieldReading,
+  RecordFieldReadingKind,
+  isEmptyRecordField,
+  readRecordField,
+  takesEmptyValues,
+  whatToDoAboutRecordField,
+} from "Common/Types/Workflow/EmptyValues";
 import { WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE } from "Common/Types/Workflow/WorkflowProjectBlocked";
 import {
   UnhandledStepFailure,
@@ -1591,6 +1599,7 @@ export default class RunWorkflow {
     argument: Argument;
     before: JSONValue;
     after: JSONValue;
+    storageMap: StorageMap;
   }): void {
     /*
      * A setting kept as a list or an object - a Switch / Case's cases, a
@@ -1621,16 +1630,87 @@ export default class RunWorkflow {
 
     const distinct: Array<string> = Array.from(new Set(unresolved));
 
+    /*
+     * The step id and the return value name are right when it is a field of a
+     * record that is not there, which the warning can say exactly.
+     */
+    const whatToDo: Array<string> = distinct.flatMap((raw: string) => {
+      const reading: RecordFieldReading | null = this.readFieldOfRecord(
+        params.storageMap,
+        raw.slice(2, -2),
+      );
+
+      return reading ? [whatToDoAboutRecordField(reading)] : [];
+    });
+
     this.logStepWarning(
       {
         message: `${distinct.join(", ")} in "${
           params.argument.name
-        }" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+        }" did not resolve to anything and was left as literal text. ${
+          whatToDo.length > 0
+            ? Array.from(new Set(whatToDo)).join(" ")
+            : "Check the step id and the return value name."
+        }`,
         argumentId: params.argument.id,
         unresolvedReferences: distinct,
       },
       "Warning: ",
     );
+  }
+
+  /*
+   * What a reference reads of an earlier step's record, when it reads one. The
+   * steps are the graph as drawn, so a run narrowed to one step still knows them.
+   */
+  private readFieldOfRecord(
+    storageMap: StorageMap,
+    path: string,
+  ): RecordFieldReading | null {
+    return readRecordField({
+      path: path,
+      getStep: (componentId: string): NodeDataProp | undefined => {
+        return this.graphRunStack?.stack[componentId]?.node;
+      },
+      storageMap: storageMap as unknown as JSONObject,
+    });
+  }
+
+  /*
+   * Say what became of the references that came through empty (EmptyValues).
+   * A field the step does not pass on is a mistake in the workflow, which a
+   * warning on the step says how to fix. Anything else is the record having
+   * nothing there, which is nothing to warn about on every run: the full log
+   * says so for whoever wonders why a message has a gap in it.
+   */
+  private logEmptyReferences(params: {
+    argument: Argument;
+    paths: Array<string>;
+    storageMap: StorageMap;
+  }): void {
+    for (const path of Array.from(new Set(params.paths))) {
+      const reference: string = `{{${path}}}`;
+      const reading: RecordFieldReading | null = this.readFieldOfRecord(
+        params.storageMap,
+        path,
+      );
+
+      if (reading?.kind === RecordFieldReadingKind.NotPassedOn) {
+        this.logStepWarning(
+          {
+            message: `${reference} in "${params.argument.name}" came through empty: ${whatToDoAboutRecordField(reading)}`,
+            argumentId: params.argument.id,
+            unresolvedReferences: [reference],
+          },
+          "Warning: ",
+        );
+        continue;
+      }
+
+      this.log(
+        `${reference} in "${params.argument.name}" has no value in this run, so it came through empty.`,
+      );
+    }
   }
 
   // A setting's value as text to look for {{...}} in, or null for neither.
@@ -1867,16 +1947,41 @@ export default class RunWorkflow {
         argument.type === ComponentInputType.Query ||
         argument.type === ComponentInputType.Select;
 
+      /*
+       * A value with nothing in it comes through empty where that is safe: a
+       * message, not an ID a database step reads or writes (EmptyValues).
+       */
+      const emptyReferencePaths: Array<string> = [];
+
       argumentContent = VMAPI.replaceValueInPlace(
         storageMap as any,
         argumentContent as string,
         isJSONDocument,
+        takesEmptyValues({ metadata: component.metadata, argument: argument })
+          ? {
+              isEmptyPath: (path: string): boolean => {
+                return isEmptyRecordField(
+                  this.readFieldOfRecord(storageMap, path),
+                );
+              },
+              onEmptyValue: (path: string): void => {
+                emptyReferencePaths.push(path);
+              },
+            }
+          : undefined,
       );
 
       this.logUnresolvedReferences({
         argument: argument,
         before: contentBeforeSubstitution,
         after: argumentContent,
+        storageMap: storageMap,
+      });
+
+      this.logEmptyReferences({
+        argument: argument,
+        paths: emptyReferencePaths,
+        storageMap: storageMap,
       });
 
       if (typeof argumentContent === "string" && isJSONDocument) {

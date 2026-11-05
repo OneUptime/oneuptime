@@ -27863,7 +27863,6 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} gibt nur die ID weiter: Der Eintrag ist bereits gelöscht.",
   "“{{key}}” goes more than one related record deep.": "„{{key}}“ reicht tiefer als einen verknüpften Datensatz.",
   "“{{key}}” has an unexpected value.": "„{{key}}“ hat einen unerwarteten Wert.",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "„{{key}}“ gibt den ganzen verknüpften Datensatz weiter. Wählen Sie die Felder daraus aus, die die nächsten Schritte brauchen.",
   "Not passed on": "Nicht weitergegeben",
   "Pick at least one field.": "Wählen Sie mindestens ein Feld aus.",
   "Pick one from the list, or paste its ID.": "Wählen Sie einen aus der Liste aus oder fügen Sie seine ID ein.",
@@ -43718,5 +43717,7 @@
   "This address is not Keystone": "This address is not Keystone",
   "This cloud is too large to collect from a probe": "This cloud is too large to collect from a probe",
   "This probe may not collect this cloud": "This probe may not collect this cloud",
-  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "Probleme, auf die jemand reagiert oder die jemand als nützlich bezeichnet hat, abzüglich der als Rauschen bezeichneten, in den letzten {{days}} Tagen."
+  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "Probleme, auf die jemand reagiert oder die jemand als nützlich bezeichnet hat, abzüglich der als Rauschen bezeichneten, in den letzten {{days}} Tagen.",
+  "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.": "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.",
+  "“{{key}}” passes on only the ID of the related record. Pick the fields of it the next steps need.": "„{{key}}“ gibt vom verknüpften Datensatz nur die ID weiter. Wählen Sie die Felder daraus aus, die die nächsten Schritte brauchen."
 }

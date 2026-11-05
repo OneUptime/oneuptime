@@ -134,8 +134,9 @@ export const FieldPickerOptionsCopy: {
   noSuchField: translationKey(
     "There is no field called “{{key}}”, so the run leaves it out.",
   ),
+  // A read returns a related record's ID alone unless it names its fields.
   wholeRelation: translationKey(
-    "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.",
+    "“{{key}}” passes on only the ID of the related record. Pick the fields of it the next steps need.",
   ),
   unexpectedValue: translationKey("“{{key}}” has an unexpected value."),
   tooDeep: translationKey("“{{key}}” goes more than one related record deep."),

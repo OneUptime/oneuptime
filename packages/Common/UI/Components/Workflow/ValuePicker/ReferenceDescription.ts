@@ -12,12 +12,11 @@
  */
 
 import {
-  ComponentInputType,
   NodeDataProp,
   ReturnValue,
 } from "../../../../Types/Workflow/Component";
 import { SELECT_FIELDS_NAME } from "../../../../Types/Workflow/Components/BaseModel";
-import { selectedColumnIds } from "./StepValueSource";
+import { readsFieldNotPassedOn } from "../../../../Types/Workflow/PassedOnFields";
 import {
   ParsedReferencePath,
   ReferenceRootType,
@@ -26,6 +25,8 @@ import {
   looksLikeReferencePath,
   parseReferencePath,
   parseTemplateExpressions,
+  pathAfter,
+  pathPastReturnValue,
 } from "../../../../Types/Workflow/TemplateSyntax";
 
 export enum ReferenceKind {
@@ -130,76 +131,6 @@ export const isChipReference: IsChipReferenceFunction = (
   return singleReference(text) !== null;
 };
 
-type PathAfterFunction = (inner: string, nameSegment: number) => string;
-
-/*
- * What a path reads past the name it starts with. For
- * local.components.x.returnValues.body.title, past segment 4 ("body"), that is
- * "title"; for ...returnValues.body[0].title it is "[0].title", since an index
- * written on the name is part of the way in too.
- */
-const pathAfter: PathAfterFunction = (
-  inner: string,
-  nameSegment: number,
-): string => {
-  const segments: Array<string> = inner.split(".");
-  const name: string = segments[nameSegment] || "";
-  const bracket: number = name.indexOf("[");
-  const index: string = bracket === -1 ? "" : name.slice(bracket);
-  const rest: string = segments.slice(nameSegment + 1).join(".");
-
-  if (!index) {
-    return rest;
-  }
-
-  return rest ? `${index}.${rest}` : index;
-};
-
-const FIELD_NAME: RegExp = /^[A-Za-z0-9_-]+/;
-
-type IsPassedOnFunction = (step: NodeDataProp, path: string) => boolean;
-
-/*
- * Whether a record step passes on the field a path into its record reads:
- * "title", or a related record's field "currentIncidentState.name". True
- * when the step's Fields to pass on cannot be read, as nothing can be said.
- */
-const isPassedOn: IsPassedOnFunction = (
-  step: NodeDataProp,
-  path: string,
-): boolean => {
-  const selected: Array<string> | null = selectedColumnIds(step);
-
-  if (!selected) {
-    return true;
-  }
-
-  const segments: Array<string> = path.split(".").map((segment: string) => {
-    return segment.match(FIELD_NAME)?.[0] || "";
-  });
-  const field: string = segments[0] || "";
-
-  if (!field) {
-    return true;
-  }
-
-  if (!selected.includes(field)) {
-    return false;
-  }
-
-  // A related record's field is passed on only when it is named.
-  const relatedField: string = segments[1] || "";
-  const passesRelatedFields: boolean = selected.some((id: string): boolean => {
-    return id.startsWith(`${field}.`);
-  });
-
-  return (
-    !relatedField ||
-    !passesRelatedFields ||
-    selected.includes(`${field}.${relatedField}`)
-  );
-};
-
 type JoinFunction = (source: string, parts: Array<string>) => string;
 
 const join: JoinFunction = (source: string, parts: Array<string>): string => {
@@ -262,7 +193,7 @@ export const describeReference: DescribeReferenceFunction = (
   // A step's return value.
   const componentId: string = parsed.componentId as string;
   const returnValueId: string = parsed.returnValueId as string;
-  const deeper: string = pathAfter(expression.inner, 4);
+  const deeper: string = pathPastReturnValue(expression.inner);
 
   if (!context.graphComponents) {
     const parts: Array<string> = deeper
@@ -338,13 +269,16 @@ export const describeReference: DescribeReferenceFunction = (
   } else if ((context.downstreamIds || []).includes(componentId)) {
     problem = `"${title}" runs after this step, so this value is empty here.`;
   } else if (
-    returnValue.type === ComponentInputType.BaseModel &&
-    deeper &&
-    !isPassedOn(step, deeper)
+    readsFieldNotPassedOn({
+      step: step,
+      returnValue: returnValue,
+      pathPastValue: deeper,
+    })
   ) {
     /*
      * A record's field its step does not pass on is empty, the record or
-     * not: the value picker lists it apart, and the chip says so too.
+     * not: the value picker lists it apart, the chip says so too, and so do
+     * the workflow's checks and a run (Types/Workflow/EmptyValues).
      */
     problem = `"${title}" doesn't pass this field on, so it is empty here. Add it to its ${SELECT_FIELDS_NAME}.`;
   }
