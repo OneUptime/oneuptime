@@ -188,7 +188,6 @@ export interface OpenStackInventorySummary {
   shareCount: number;
   databaseInstanceCount: number;
   objectContainerCount: number;
-  objectContainerCount: number;
   dnsZoneCount: number;
 }
 
@@ -230,6 +229,7 @@ export interface OpenStackProjectSummary {
   containerClusterCount: number;
   shareCount: number;
   databaseInstanceCount: number;
+  objectContainerCount: number;
   dnsZoneCount: number;
 }
 
