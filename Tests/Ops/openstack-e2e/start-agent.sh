@@ -75,12 +75,13 @@ docker run -d --name ou-openstack-collector --network host \
   -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9182 \
   "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
 
-# A config it refuses stops it within seconds, and every recording that doesn't come through it
-# goes on regardless, so this says so here rather than an hour later in stop-agent.sh.
-sleep 15
+# A collector that refuses its config exits at once, and the run only finds out at its
+# very end, when stop-agent.sh sees nothing was exported. The scenes are still worth
+# recording without it, so this says so now and carries on.
+sleep 5
 if [ "$(docker inspect -f '{{.State.Running}}' ou-openstack-collector 2>/dev/null)" != "true" ]; then
-  echo "The collector stopped: nothing it would have sent gets recorded." >&2
-  docker logs ou-openstack-collector 2>&1 | grep -v 'Configuration references unset' | tail -20 >&2
+  echo "::warning::The agent's collector stopped as it started, so this run records no OTLP."
+  docker logs ou-openstack-collector 2>&1 | tail -20 >&2
 fi
 
 # The exporter answers once it is listening. Keystone's answer is the real test,
