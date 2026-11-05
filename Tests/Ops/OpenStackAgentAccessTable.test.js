@@ -816,7 +816,14 @@ describe("there is no policy file for Cinder", () => {
   test("in the folder, or in what OneUptime serves", () => {
     expect(
       fs.readdirSync(path.join(AGENT_DIR, "access", "policy")).sort(),
-    ).toEqual(["keystone.yaml", "neutron.yaml", "nova.yaml", "placement.yaml"]);
+    ).toEqual([
+      "keystone.yaml",
+      "neutron.yaml",
+      "nova.yaml",
+      "placement.yaml",
+      // Takes actions away from the credential that makes changes: it reads nothing for anyone.
+      "write-nova.yaml",
+    ]);
     expect(
       read(
         path.join(

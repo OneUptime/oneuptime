@@ -2,6 +2,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
+  doFixesNeedASecondOptIn,
   isCloudAiResourceType,
   isReadOnlyAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -11,6 +12,8 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
@@ -564,6 +567,19 @@ const INSTALL_SPECS: Readonly<
         description: "That credential's secret. Set both or neither.",
       },
       {
+        name: "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID",
+        composeValue:
+          "${ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID:-}",
+        description:
+          "Only for fixes: a second application credential, used for changes and nothing else. Without it the agent stays read-only, whatever else is set. It may not be the credential it reads with.",
+      },
+      {
+        name: "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET",
+        composeValue:
+          "${ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET:-}",
+        description: "That credential's secret. Set both or neither.",
+      },
+      {
         name: "ONEUPTIME_AI_OPENSTACK_REGION",
         composeValue: "${ONEUPTIME_AI_OPENSTACK_REGION:-}",
         description:
@@ -584,19 +600,20 @@ const INSTALL_SPECS: Readonly<
     ],
     prerequisites: [
       translationKey(
-        "The credential's roles and access rules are the hard limit. A credential at the access levels the OpenStack agent's README recommends can read and nothing else. One made before this agent existed may not list every read it makes: make a new one from the rules the agent ships, access/application-credential-access-rules.json.",
+        "The credentials' roles and access rules are the hard limit. A read credential at the access levels the OpenStack agent's README recommends can read and nothing else. One made before this agent existed may not list every read the agent makes: make a new one from the rules the agent ships, or the agent says which read was refused. Fixes need a second credential: the same README says how to make it with the least it needs, on each way of deploying a cloud.",
       ),
       translationKey(
         "Installed the agent without Docker? This one still runs in a container: it needs Docker on some machine with a route to Keystone and to each service's endpoint, and clouds.yaml next to its docker-compose.yml.",
       ),
     ],
-    writeTargetNoun: null,
-    writeTargetsExample: null,
+    writeTargetNoun: translationKey("projects, hosts or instances"),
+    writeTargetsExample:
+      "project:9aee824cac87464292adffc328de1662,host:compute-*",
     protectedTargetsDescription: translationKey(
-      "Has no effect yet: OneUptime AI only reads an OpenStack cloud, so there is nothing to protect.",
+      "What OneUptime AI never changes, whatever else is set and whoever approves it: project:ID, host:NAME or instance:ID, separated by commas, each of which may hold a *. Put the instance this agent runs on here, if it runs on this cloud.",
     ),
     writeDisclosure: translationKey(
-      "OneUptime AI only reads an OpenStack cloud: the agent has no command that changes one, whatever is set here.",
+      "Write access lets the agent start, reboot and migrate instances, evacuate those of a dead hypervisor, and enable or disable compute services and network agents, through a second credential you give it. OneUptime still holds the line: nothing it runs deletes anything or touches Keystone, quotas or security groups, and an evacuation always asks a person.",
     ),
     installScript: null,
     isStandalone: false,
@@ -1197,7 +1214,9 @@ export function getResourceAiAgentInstall(data: {
         value: "(empty)",
         description: isReadOnly
           ? READ_ONLY_FIX_SETTING
-          : "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: the agent's default, ask-for-approval when writes are allowed, else off.",
+          : doFixesNeedASecondOptIn(data.resourceType)
+            ? "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: off until a person picks a mode on this page. With the variable above set, this page follows the agent, so they stay off."
+            : "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: the agent's default, ask-for-approval when writes are allowed, else off.",
       },
       {
         name: RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -1212,11 +1231,11 @@ export function getResourceAiAgentInstall(data: {
         description: isReadOnly
           ? READ_ONLY_FIX_SETTING
           : spec.writeTargetNoun
-          ? translateTemplate(
-              "Optional: comma-separated {{targets}} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.",
-              { targets: translatableTerm(spec.writeTargetNoun) },
-            )
-          : "Optional: comma-separated targets fixes may change. Empty means any, except the agent's own.",
+            ? translateTemplate(
+                "Optional: comma-separated {{targets}} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.",
+                { targets: translatableTerm(spec.writeTargetNoun) },
+              )
+            : "Optional: comma-separated targets fixes may change. Empty means any, except the agent's own.",
       },
       {
         name: RESOURCE_AI_PROTECTED_TARGETS_ENV,
@@ -1258,6 +1277,13 @@ export function getResourceAiAgentWriteAccessCommands(
 ): ResourceAiAgentWriteAccessCommands {
   const spec: InstallSpec = getInstallSpec(resourceType);
   const service: string = getResourceAiAgentServiceName(resourceType);
+  // What this kind of agent also needs before it writes.
+  const credentialLines: string =
+    resourceType === AiResourceType.OpenStackCloud
+      ? `
+${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV}=<the credential's ID>
+${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}=<the credential's secret>`
+      : "";
   // Whole sentences: with or without targets, in the collector's directory or not.
   let envIntro: string;
 
@@ -1294,7 +1320,7 @@ export function getResourceAiAgentWriteAccessCommands(
         ),
     envIntro: envIntro,
     scopedEnv: spec.writeTargetsExample
-      ? `${RESOURCE_AI_ALLOW_WRITES_ENV}=true
+      ? `${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}
 ${RESOURCE_AI_WRITE_TARGETS_ENV}=${spec.writeTargetsExample}`
       : null,
     scopedNote:
@@ -1307,7 +1333,7 @@ ${RESOURCE_AI_WRITE_TARGETS_ENV}=${spec.writeTargetsExample}`
             },
           )
         : null,
-    allTargetsEnv: `${RESOURCE_AI_ALLOW_WRITES_ENV}=true`,
+    allTargetsEnv: `${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}`,
     restartCommand: composeCommand(resourceType, `up -d ${service}`),
   };
 }

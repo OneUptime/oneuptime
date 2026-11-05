@@ -207,6 +207,9 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "access/policy/neutron.yaml",
       "access/policy/nova.yaml",
       "access/policy/placement.yaml",
+      // The credential the AI agent makes changes with, kept apart from the one it reads with.
+      "access/write-application-credential-access-rules.json",
+      "access/policy/write-nova.yaml",
       "control-plane-targets.py",
       // The optional logs profile, on each controller and compute node.
       "install-logs.sh",

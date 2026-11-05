@@ -69,6 +69,7 @@ import ResourceAiAccessService, {
 } from "../../../Services/ResourceAiAccessService";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../ResourceAccess/ResourceAccessToolNames";
+import { OpenStackChangeReach } from "../../../../Utils/AiRemediation/Resource/OpenStackChangeReach";
 import { Indigo500 } from "../../../../Types/BrandColors";
 import {
   KubernetesAiAccessGap,
@@ -498,6 +499,50 @@ export function describeGitOpsPutBackForFeed(
 }
 
 /*
+ * How much an OpenStack plan touches, in the feed item that asks for its approval:
+ * the numbers its cloud's AI agent read, added up over its commands.
+ */
+export function describeOpenStackReachForFeed(
+  commands: Array<AiRemediationCommand>,
+): MarkdownText | string {
+  const reaches: Array<OpenStackChangeReach> = commands
+    .map((command: AiRemediationCommand): OpenStackChangeReach | undefined => {
+      return command.reach;
+    })
+    .filter(
+      (
+        reach: OpenStackChangeReach | undefined,
+      ): reach is OpenStackChangeReach => {
+        return reach?.kind === "changes";
+      },
+    );
+
+  if (reaches.length === 0) {
+    return "";
+  }
+
+  const instances: number = reaches.reduce(
+    (sum: number, reach: OpenStackChangeReach): number => {
+      return sum + reach.instanceCount;
+    },
+    0,
+  );
+  const projects: Set<string> = new Set<string>();
+
+  for (const reach of reaches) {
+    for (const project of reach.projects) {
+      projects.add(project.id);
+    }
+  }
+
+  return mdText` It changes ${String(instances)} ${
+    instances === 1 ? "instance" : "instances"
+  } in ${String(projects.size)} ${
+    projects.size === 1 ? "project" : "projects"
+  }.`;
+}
+
+/*
  * The feed item a proposed plan posts on its incident or alert. A plan that
  * starts with a rollback OneUptime built from a recorded change says so,
  * and one with a change its GitOps owner puts back says that.
@@ -508,9 +553,9 @@ export function describeProposedPlanForFeed(data: {
 }): MarkdownText {
   const count: number = data.plan.commands.length;
   const first: AiRemediationCommand | undefined = data.plan.commands[0];
-  const gitOps: MarkdownText | string = describeGitOpsPutBackForFeed(
+  const gitOps: MarkdownText | string = mdText`${describeGitOpsPutBackForFeed(
     data.plan.commands,
-  );
+  )}${describeOpenStackReachForFeed(data.plan.commands)}`;
 
   if (first?.rolledBackChangeId) {
     return mdText`⚡ **${data.sourceLabel}: AI proposes rolling back a recorded change first, in a ${count}-command remediation plan.** Its first command is ${first.command}.${gitOps} Review the exact commands and reasoning, then approve with one click to run them.`;
@@ -665,7 +710,7 @@ const RESOURCE_UNDO_EXAMPLES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.AzureSubscription]: CLOUD_UNDO_EXAMPLE,
   [AiResourceType.GoogleCloudProject]: CLOUD_UNDO_EXAMPLE,
   [AiResourceType.OpenStackCloud]:
-    "OneUptime AI only reads an OpenStack cloud and changes nothing there, so such a change has no rollbackCommand — omit it",
+    "openstack compute service set --enable <host> nova-compute undoes a disable of that service; openstack network agent set --enable <agent id> undoes a disable of that agent. A start, a reboot, a move or an evacuation has no undo, so omit the rollbackCommand",
 };
 
 export function getResourceUndoExamples(resourceType: AiResourceType): string {
@@ -1978,7 +2023,7 @@ export default class RemediationExecutionRunner {
       suggestion,
       markdown: mdText`⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} ${changeWords} it did not run on its own.**${describeGitOpsPutBackForFeed(
         commands,
-      )} Review the exact command(s) and reasoning, then approve with one click to run them.`,
+      )}${describeOpenStackReachForFeed(commands)} Review the exact command(s) and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
       // Approve it, or dismiss it, from the channel.
       appendMessageBlocks: await RemediationChatMessage.getProposalBlocks({

@@ -485,7 +485,7 @@ En spørring er alltid begrenset til prosjektet arbeidsflyten kjører i. Du kan 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nøkkel som ikke er en kolonne, ignoreres i stedet for å bli avvist — kjøringens logg nevner de som ble droppet, så se der når et felt ikke lander. **Fields to pass on**, på Find-komponentene og triggerne, velges fra en liste; **Rediger som JSON** der viser de samme kolonnenøklene med verdien `true`: `{"_id": true, "name": true}`.
+En nøkkel som ikke er en kolonne, ignoreres i stedet for å bli avvist — kjøringens logg nevner de som ble droppet, så se der når et felt ikke lander. **Fields to pass on**, på Find-komponentene og triggerne, velges fra en liste; **Rediger som JSON** der viser de samme kolonnenøklene med verdien `true`: `{"_id": true, "name": true}`. Feltene til en relatert post står under nøkkelen dens, som i `{"monitor": {"name": true}}`: `{"monitor": true}` sender bare ID-en dens videre.
 
 **Egendefinerte felt** er én kolonne, `customFields`, som rommer verdien til hvert egendefinerte felt under navnet på feltet. Update-komponentene endrer bare de egendefinerte feltene du nevner, og alle andre beholder verdien sin:
 

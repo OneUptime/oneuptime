@@ -498,6 +498,7 @@ export const OPENSTACK_COMMAND_ROUTES: ReadonlyArray<OpenStackRoute> = [
       host: valueOption(HOST_RULE, "host"),
       status: valueOption(SERVER_STATUS_RULE, "status"),
       name: valueOption(NAME_RULE, "name"),
+      uuid: valueOption(UUID_RULE, "uuid"),
       "availability-zone": valueOption(NAME_RULE, "availability_zone"),
       "changes-since": valueOption(TIME_RULE, "changes-since"),
       long: LONG_OPTION,
@@ -1385,9 +1386,8 @@ function spellChange(route: OpenStackChangeRoute): string {
 }
 
 // Every change OneUptime AI may make, spelled, for refusals.
-export const OPENSTACK_CHANGES_SUMMARY: string = OPENSTACK_CHANGE_ROUTES.map(
-  spellChange,
-).join("; ");
+export const OPENSTACK_CHANGES_SUMMARY: string =
+  OPENSTACK_CHANGE_ROUTES.map(spellChange).join("; ");
 
 interface OpenStackChangeSpellingFailure {
   // How far into the words it read before it stopped.
@@ -1602,7 +1602,9 @@ function analyzeChange(words: ReadonlyArray<string>): OpenStackAnalysis | null {
   }
 
   if (words.includes("--down") || words.includes("--up")) {
-    return deny(`"openstack ${shorten(words.join(" "))}": ${FORCED_DOWN_REASON}`);
+    return deny(
+      `"openstack ${shorten(words.join(" "))}": ${FORCED_DOWN_REASON}`,
+    );
   }
 
   const routes: Array<OpenStackChangeRoute> = changeRoutesOf(head);
@@ -1644,9 +1646,7 @@ function analyzeChange(words: ReadonlyArray<string>): OpenStackAnalysis | null {
       allowed: true,
       tier: route.tier,
       reason: `${call.does}${
-        requiresHuman
-          ? ", which always asks a person, in every mode"
-          : ""
+        requiresHuman ? ", which always asks a person, in every mode" : ""
       }`,
       verb: route.route,
       targets: getChangeTargets({ values: read.values, isMove }),
@@ -1761,6 +1761,11 @@ export function readOpenStackChange(argv: unknown): OpenStackChange | null {
 
 // ---- What a target entry may say -----------------------------------------------
 
+// What a target entry may be, with * for any run of it.
+const HOST_TARGET_ENTRY: RegExp = /^[A-Za-z0-9*][A-Za-z0-9._*-]{0,254}$/;
+const ID_TARGET_ENTRY: RegExp = /^[0-9a-fA-F*][0-9a-fA-F*-]{0,63}$/;
+const IPV4_ADDRESS_WORDS: RegExp = /^[0-9.]+$/;
+
 /*
  * Why an entry of ONEUPTIME_AI_PROTECTED_TARGETS or ONEUPTIME_AI_WRITE_TARGETS
  * means nothing here, or null when it reads. An entry nothing can ever match is
@@ -1786,12 +1791,12 @@ export function describeOpenStackTargetEntryProblem(
   }
 
   if (kind === HOST_TARGET_PREFIX) {
-    return /^[A-Za-z0-9*][A-Za-z0-9._*-]{0,254}$/.test(value)
+    return HOST_TARGET_ENTRY.test(value)
       ? null
       : `"${shown}" is not a host's name: letters, digits, dots, dashes and underscores, with * for any run of them.`;
   }
 
-  return /^[0-9a-fA-F*][0-9a-fA-F*-]{0,63}$/.test(value)
+  return ID_TARGET_ENTRY.test(value)
     ? null
     : `"${shown}" is not an ID: write the ID a list prints (with * for any run of it), because a name can be reused. openstack project show NAME -f value -c id prints a project's.`;
 }
@@ -1800,7 +1805,7 @@ export function describeOpenStackTargetEntryProblem(
 function shortHostName(name: string): string {
   const dot: number = name.indexOf(".");
 
-  if (dot <= 0 || /^[0-9.]+$/.test(name) || name.includes(":")) {
+  if (dot <= 0 || IPV4_ADDRESS_WORDS.test(name) || name.includes(":")) {
     return name;
   }
 
@@ -1831,10 +1836,7 @@ function hostEntryNames(entry: string, host: string): boolean {
   return shortHostName(pattern) === shortHostName(name);
 }
 
-function readEntry(
-  entry: unknown,
-  prefix: string,
-): string | null {
+function readEntry(entry: unknown, prefix: string): string | null {
   if (typeof entry !== "string") {
     return null;
   }
@@ -1912,10 +1914,7 @@ function isOpenStackTargetInWriteScope(
       hostEntries.length > 0 ||
       hasProjectEntry ||
       writeTargets.some((entry: string): boolean => {
-        const pattern: string | null = readEntry(
-          entry,
-          INSTANCE_TARGET_PREFIX,
-        );
+        const pattern: string | null = readEntry(entry, INSTANCE_TARGET_PREFIX);
 
         return pattern !== null && idEntryNames(pattern, id);
       })
@@ -2028,22 +2027,27 @@ export function getOpenStackLiveScopeRefusal(data: {
     const id: string = live.target.startsWith(INSTANCE_TARGET_PREFIX)
       ? live.target.slice(INSTANCE_TARGET_PREFIX.length)
       : "";
-    const inScope: boolean = data.writeTargets.some((entry: string): boolean => {
-      const project: string | null = readEntry(entry, PROJECT_TARGET_PREFIX);
-      const host: string | null = readEntry(entry, HOST_TARGET_PREFIX);
-      const instance: string | null = readEntry(entry, INSTANCE_TARGET_PREFIX);
+    const inScope: boolean = data.writeTargets.some(
+      (entry: string): boolean => {
+        const project: string | null = readEntry(entry, PROJECT_TARGET_PREFIX);
+        const host: string | null = readEntry(entry, HOST_TARGET_PREFIX);
+        const instance: string | null = readEntry(
+          entry,
+          INSTANCE_TARGET_PREFIX,
+        );
 
-      return (
-        (project !== null &&
-          live.projectId !== null &&
-          idEntryNames(project, live.projectId)) ||
-        (host !== null &&
-          live.hosts.some((candidate: string): boolean => {
-            return hostEntryNames(host, candidate);
-          })) ||
-        (instance !== null && id !== "" && idEntryNames(instance, id))
-      );
-    });
+        return (
+          (project !== null &&
+            live.projectId !== null &&
+            idEntryNames(project, live.projectId)) ||
+          (host !== null &&
+            live.hosts.some((candidate: string): boolean => {
+              return hostEntryNames(host, candidate);
+            })) ||
+          (instance !== null && id !== "" && idEntryNames(instance, id))
+        );
+      },
+    );
 
     if (!inScope) {
       return `"${shown}" would change ${live.target}${

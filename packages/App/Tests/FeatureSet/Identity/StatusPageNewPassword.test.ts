@@ -279,6 +279,13 @@ jest.mock("Common/Server/Utils/Response", () => {
 // Importing the router registers every handler on the mock router above.
 import "../../../FeatureSet/Identity/API/StatusPageAuthentication";
 
+/*
+ * The first write as a teammate loads this on its way (OwnedScopePermission),
+ * and with it every owner table's service: half a minute on a busy machine,
+ * which would otherwise count against whichever test writes as a teammate first.
+ */
+import "Common/Server/Types/Database/Permissions/OwnerTableRegistry";
+
 type Row = Record<string, unknown>;
 
 let readers: Array<Row>;
@@ -757,6 +764,51 @@ describe.each(WAYS_A_PASSWORD_CHANGES)(
     });
   },
 );
+
+/*
+ * The refresh reads the session, decides, and then writes its new token. The new
+ * password lands in between - here, as the refresh asks whether the sign-in still
+ * counts, the last thing it does before the write. A renewal that wrote over the
+ * revocation would hand whoever is refreshing a working session.
+ */
+describe("a new password landing while a refresh is on its way", () => {
+  it.each<[string, () => Promise<void>]>(WAYS_A_PASSWORD_CHANGES)(
+    "set by %s: the session stays ended, no token goes out, and the cookies go",
+    async (_name: string, changePassword: () => Promise<void>) => {
+      jest
+        .spyOn(StatusPagePrivateUserSessionService, "doesSignInStillCount")
+        .mockImplementation(async (): Promise<boolean> => {
+          await changePassword();
+          return true;
+        });
+
+      sendErrorResponse.mockClear();
+
+      const answer: Answer = await refreshSession(REFRESH_TOKEN);
+
+      expect(errorMessage(answer)).toBe(SESSION_ENDED_MESSAGE);
+      expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+      expect(removeCookie).toHaveBeenCalledTimes(2);
+
+      expect(sessionOf(SESSION_ID)["isRevoked"]).toBe(true);
+      expect(sessionOf(SESSION_ID)["revokedReason"]).toBe("Password changed");
+      expect(sessionOf(SESSION_ID)["refreshToken"]).toBe(
+        await hashOf(REFRESH_TOKEN),
+      );
+    },
+  );
+
+  it("nothing landing: the session renews, as the control", async () => {
+    const answer: Answer = await refreshSession(REFRESH_TOKEN);
+
+    expect(answer.error).toBeNull();
+    expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+    expect(sessionOf(SESSION_ID)["isRevoked"]).toBe(false);
+    expect(String(sessionOf(SESSION_ID)["refreshToken"])).not.toBe(
+      await hashOf(REFRESH_TOKEN),
+    );
+  });
+});
 
 describe("POST /reset-password", () => {
   it("emails the reader once that their password changed", async () => {

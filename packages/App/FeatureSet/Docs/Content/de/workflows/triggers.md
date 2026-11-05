@@ -185,7 +185,7 @@ flowchart TB
     field -->|"Nein"| nothing
 ```
 
-**On Create**, **On Update** und **On Create or Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Fields to pass on** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an.
+**On Create**, **On Update** und **On Create or Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Fields to pass on** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an. Ebenso ein Feld, in dem der Datensatz nichts hat, etwa der Monitor einer Warnung, die kein Monitor ausgelöst hat.
 
 **On Create or Update** reicht außerdem **What Happened** weiter: `created`, wenn ein neuer Datensatz den Lauf gestartet hat, und `updated`, wenn es eine Änderung war, wie in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Um beides unterschiedlich zu behandeln, vergleichen Sie es in einem **If / Else**-Baustein oder nehmen mit **Switch / Case** für jedes einen eigenen Pfad.
 

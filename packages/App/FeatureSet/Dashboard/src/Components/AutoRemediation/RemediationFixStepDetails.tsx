@@ -8,6 +8,7 @@ import RemediationFixFact, {
 } from "./RemediationFixFact";
 import RemediationTrackRecordLine from "./RemediationTrackRecordLine";
 import CloudDryRunNote from "./CloudDryRunNote";
+import OpenStackReachNote from "./OpenStackReachNote";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionState,
@@ -465,6 +466,15 @@ function CloudCommandNote(props: {
 }): ReactElement {
   const translator: Translator = useTranslator();
   const { command } = props;
+
+  // What an OpenStack change touches, as its cloud's AI agent read it.
+  if (command.reach) {
+    return (
+      <div className="mt-2 space-y-1" data-testid="remediation-command-reach">
+        <OpenStackReachNote reach={command.reach} />
+      </div>
+    );
+  }
 
   if (
     command.stepType !== RunbookStepType.ResourceCommand ||

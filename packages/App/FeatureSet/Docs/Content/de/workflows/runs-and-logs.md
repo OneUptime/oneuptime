@@ -126,7 +126,7 @@ Ein Baustein, der nicht läuft, ist meist ein Verdrahtungsproblem. Öffnen Sie d
 Öffnen Sie die Ausführung und sehen Sie sich den Schritt an. Ein Verweis, der sich nicht aufgelöst hat, wird am Schritt selbst als Warnung gemeldet, und seine Einstellung im Block **Empfangen** ist mit **Nicht behoben** markiert.
 
 - Sehen Sie den wörtlichen Text `{{local.components.…}}`, hat sich der Verweis nicht aufgelöst. Meist ist das ein Tippfehler in der Komponenten-ID oder der Rückgabewert-ID – denken Sie daran, dass es die **Kennung** des Bausteins ist, nicht der darauf angezeigte Name. Prüfen Sie auch die Schreibweise von `local.components` selbst: `{{local.componets.api-get-1.returnValues.response-body}}` wird als wörtlicher Text gesendet, und die Ausführung meldet trotzdem **Ausgeführt**. War die Ausführung ein Test mit **Nur diesen Schritt ausführen**, lief der frühere Baustein überhaupt nicht – führen Sie stattdessen den ganzen Workflow aus.
-- Sehen Sie **Leerer Text**, lief der frühere Baustein, hat dieses Feld aber nicht erzeugt.
+- Sehen Sie **Leerer Text** oder eine Lücke in einer Nachricht, lief der frühere Baustein, hat in diesem Feld aber nichts. Entweder enthält der Datensatz dort keinen Wert, was der Reiter **Full Log** in einer eigenen Zeile vermerkt, oder der Baustein reicht das Feld nicht weiter, wovor der Schritt warnt.
 
 Dieselbe Warnung steht im Reiter **Full Log** als Zeile, die mit `Warning:` beginnt.
 :::

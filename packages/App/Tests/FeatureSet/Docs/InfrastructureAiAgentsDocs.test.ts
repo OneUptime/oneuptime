@@ -237,7 +237,7 @@ const RESOURCE_SECTIONS: ReadonlyArray<ResourceSection> = [
   },
   {
     title: "OpenStack clouds",
-    fixesHeading: "### OpenStack clouds have no fixes yet",
+    fixesHeading: "### Fixes on OpenStack clouds",
     types: [AiResourceType.OpenStackCloud],
   },
   {
@@ -2465,15 +2465,15 @@ describe("Infrastructure AI Agents docs", (): void => {
   describe("what a fix may run, against the command policy", (): void => {
     const fixes: string = section(page, "## How fixes work");
 
-    it("says a resource AI only reads has no fixes, and offers it no write target", (): void => {
-      const noFixes: string = oneLine(
-        section(fixes, "### OpenStack clouds have no fixes yet"),
+    it("says fixes on an OpenStack cloud need a second opt-in and a credential of their own", (): void => {
+      const openStack: string = oneLine(
+        section(fixes, "### Fixes on OpenStack clouds"),
       );
 
-      expect(noFixes).toContain(
-        "OneUptime AI only reads an OpenStack cloud. Its policy has no command that changes one",
-      );
-      expect(noFixes).toContain("`ONEUPTIME_AI_ALLOW_WRITES`");
+      expect(openStack).toContain("`ONEUPTIME_AI_ALLOW_WRITES=true` alone");
+      expect(openStack).toContain("the credential for changes");
+      expect(openStack).toContain("`openstack dry-run <change>`");
+      expect(openStack).toContain("with who approved it");
       // The guide the model reads says the same.
       expect(
         evaluate(AiResourceType.OpenStackCloud, "openstack server stop x").tier,

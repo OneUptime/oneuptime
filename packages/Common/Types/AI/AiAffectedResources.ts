@@ -144,16 +144,11 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       noun: translationKey("Proxmox cluster"),
       isFixedByOneUptimeAi: true,
     },
-    /*
-     * Linked for its owners, its page's Incidents and Alerts tabs and the
-     * investigation's context: no AI agent acts on an OpenStack cloud yet, so
-     * saying it can be fixed would promise a fix nothing can run.
-     */
     {
       kind: AiAffectedResourceKind.OpenStackCloud,
       relation: "openStackClouds",
       noun: translationKey("OpenStack cloud"),
-      isFixedByOneUptimeAi: false,
+      isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.VMwareVCenter,

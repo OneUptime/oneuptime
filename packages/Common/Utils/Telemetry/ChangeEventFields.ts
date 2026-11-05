@@ -110,6 +110,9 @@ export const ChangeEventAttribute: {
   readonly CloudEventId: string;
   readonly CloudAccountRecordId: string;
   readonly MadeBy: string;
+  readonly ApprovedBy: string;
+  readonly ApprovedByUserId: string;
+  readonly ApprovedFrom: string;
   readonly RunnerJobId: string;
   readonly AutoRemediationSuggestionId: string;
   readonly AiStep: string;
@@ -168,6 +171,13 @@ export const ChangeEventAttribute: {
    * fix or rolled it back (CloudAiChangeStep).
    */
   MadeBy: "oneuptime.change.made_by",
+  /*
+   * Who said yes to a change a person approved, and where. Absent from one nobody
+   * was asked about.
+   */
+  ApprovedBy: "oneuptime.change.approved_by",
+  ApprovedByUserId: "oneuptime.change.approved_by_user_id",
+  ApprovedFrom: "oneuptime.change.approved_from",
   RunnerJobId: "oneuptime.runner_job.id",
   AutoRemediationSuggestionId: "oneuptime.auto_remediation_suggestion.id",
   AiStep: "oneuptime.ai.step",
