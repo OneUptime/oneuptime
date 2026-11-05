@@ -70,15 +70,15 @@ A cloud's series follow from its counts. The calculator on a cloud's **Documenta
 | Cinder | Services, snapshots and backups, 2 per storage pool, plus 26 |
 | Instances and volumes, unless summary mode is on | 4 per instance, 2 per volume |
 | Summary mode's counts, when it is on | One per status and one per project: about 6 plus projects |
-| Keystone, Glance | Projects, domains and 9, and 2 per image plus 5 |
+| Keystone, Glance | Projects, domains and 9, and 2 per image plus 5. A probe adds 3 for each of Heat and Magnum, whether or not a cloud runs them |
 
 Each scrape's rows are what you are billed for: the first five lines arrive every 2 minutes, 720 times a day, and the last every 5 minutes, 288 times. The price is the one on your bill, [per GB for how long it is kept](/docs/telemetry/openstack#what-it-costs). The bill reads the real size of each row, and this works it out at 1,024 bytes a row, what OneUptime's billing falls back on when it has no size for a row. A row with many labels, such as an instance's, costs more than that, and one with none costs less.
 
 | Cloud | Series | GB a day, every series | GB a day, in summary mode | A month kept 15 days, in summary mode |
 | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instances, 20 projects | 1,051 | 0.7 | Not in summary mode | $2.10 |
-| 500 hypervisors, 20,000 instances, 1,000 projects | 123,823 | 84.5 | 16.6 | $49.69 |
-| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,159 | 844.5 | 164.9 | $494.71 |
+| 10 hypervisors, 100 instances, 20 projects | 1,057 | 0.7 | Not in summary mode | $2.10 |
+| 500 hypervisors, 20,000 instances, 1,000 projects | 123,829 | 84.5 | 16.6 | $49.69 |
+| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,165 | 844.5 | 164.9 | $494.71 |
 
 Those are through the agent, with one instance in a thousand in a state that keeps its series. A probe past the summary size sends what has not changed once a cycle rather than every collection, which comes to about 13.2 GB a day at the second size and 116 GB at the third.
 
