@@ -35,12 +35,14 @@ Each service is read on its own and at the same time as the others. A Neutron th
 | APIs on plain HTTP | Not collected: a token is never sent unencrypted | Collected |
 | Largest cloud | About 48 MiB of metrics per collection | No limit |
 | Service logs and the AI agent | Not included | Included |
+| What the cloud stands on: RabbitMQ, MariaDB, Memcached, HAProxy, OVN, libvirt | Not included: a probe reads the cloud's APIs | Included, with its targets named |
+| Each instance's real CPU, memory and disk, from libvirt or Ceilometer | Not included | Included, with their exporters named |
 | Logins to Keystone | One for the life of a token, usually an hour | One per scrape |
 | A plain `reader` on one project | That project's instances, volumes and networks | That project's volumes and networks, and no instances |
 
 Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin.
 
-Pick the agent for a cloud past a probe's payload cap, for service logs, for the AI agent, or for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default.
+Pick the agent for a cloud past a probe's payload cap, for service logs, for the AI agent, for what the cloud stands on and each instance's real usage, or for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default. Pick a probe for everything else: there is nothing to install, and it reads more of what Nova and Cinder say.
 
 You can switch a cloud from one to the other at any time on its **Settings** page.
 
@@ -81,7 +83,31 @@ A cloud with its own certificate authority presents a certificate the probe does
 Pick the regions to read, name the cloud, and click **Connect Cloud**. The cloud's page opens.
 :::
 
-The cloud's **Overview** shows a **Data Collection** card. It reads **Checking** until the first collection, which starts within a minute, then **Collecting**, and the pages fill in. When some services were read and another was not, it says which.
+The cloud's **Overview** shows a **Data Collection** card. It reads **Checking** until the first collection, which starts within a minute, then **Collecting**, and the pages fill in. When some services were read and another was not, it says which. If no probe comes for the cloud for 15 minutes, because it is offline or too old, it reads **Not collecting** and says so, whatever the last collection found.
+
+## Connect a cloud from the API or Terraform
+
+A cloud's connection settings are ordinary fields of the [OpenStack Cloud resource](/reference/open-stack-cloud) in the API, at `/api/openstack-cloud`, so a cloud can be connected with no dashboard at all. With Terraform that is `oneuptime_openstack_cloud`:
+
+```hcl
+resource "oneuptime_openstack_cloud" "prod_eu" {
+  name                      = "prod-eu"
+  collection_method         = "Probe"
+  auth_url                  = "https://keystone.example.com:5000/v3"
+  credential_kind           = "applicationCredential"
+  application_credential_id = var.openstack_application_credential_id
+  credential_secret         = var.openstack_application_credential_secret
+  collection_probe_id       = oneuptime_probe.eu_west.id
+  collection_regions        = jsonencode(["RegionOne"])
+
+  # A cloud with its own certificate authority: the fingerprints it presents.
+  trusted_certificate_fingerprints = jsonencode(["AB:CD:EF:..."])
+}
+```
+
+For a user name and password, set `credential_kind` to `password`, with `keystone_username`, `project_name` and, when they are not `Default`, `user_domain_name` and `project_domain_name`. `endpoint_interface`, `collection_interval_in_minutes` and `collection_options` are what the form folds under **More fields**. Only `name` is required, because a cloud the agent sends has none of these.
+
+`credential_secret` is write-only, so no read returns it and Terraform keeps it out of plans and outputs. [The rules for a saved credential](#the-saved-credential) hold here too: changing the address, the probe or the trusted certificates needs the secret in the same request. What the probe reports, such as `collection_status`, `collection_error` and `presented_certificate`, can be read and not set.
 
 ## What it costs your cloud
 
@@ -96,9 +122,11 @@ Monitoring must never be what takes a cloud down, so a collection is gentle by c
 - **Backing off.** Asked to wait with a `429` or `Retry-After`, the probe waits. A service that answers `429`, `503` or nothing at all is left alone for a minute, then two, then four, up to half an hour, and its series keep saying it is down while it waits. A slow answer slows the next request.
 - **A refused credential waits longest.** Repeating one is what locks an account, so it waits five minutes, then ten, up to an hour. A credential you corrected is tried at once.
 
-On each collection, with the defaults, a region costs about 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and three more per hypervisor, and, about every five minutes, 5 to Keystone and 1 to Glance. A list longer than a thousand rows takes a call per thousand. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it. A cloud on OVN has none to ask about.
+- **Less of a large cloud.** Past 5,000 instances a cloud keeps counts and its parts, and no series per instance or per volume, unless you choose otherwise under **Real usage per instance** on its **Settings** page. What changed, what you chose to keep and what an alert is watching still goes on every collection. The rest goes in turns, and the **Data Collection** card says how long a turn takes.
 
-Two things are off unless you turn them on, under **Data Collection** on the cloud's **Settings** page, because each costs your cloud more:
+On each collection, with the defaults, a region costs 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and two more per hypervisor, and, about every five minutes, 5 to Keystone and 1 to Glance. A hypervisor's inventory is read once, and again only when Placement says it changed. A list longer than a thousand rows takes a call per thousand. Each instance that changed takes one more call to Nova, to read what it went through, and at most 25 are read in a collection: a quiet cloud makes none. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it. A cloud on OVN has none to ask about.
+
+Two things are off unless you turn them on, under **What it reads beyond the defaults** in the **Data Collection** card on the cloud's **Settings** page, or under **More fields** as you connect it, because each costs your cloud more:
 
 | Option | What you get | What it costs |
 |---|---|---|
@@ -214,7 +242,7 @@ The cloud answered too slowly for this interval. Collect less often, or check it
 :::
 
 :::details The probe did not pick this up
-The probe is offline, or runs a OneUptime version older than OpenStack collection. Check that it is connected on the **Probes** page, and update it.
+The probe is offline, or runs a OneUptime version older than OpenStack collection. Check that it is connected on the **Probes** page, and update it. A cloud's card says this too once a collection is 15 minutes overdue, however its last collection went, and goes back by itself when the probe does.
 :::
 
 :::details This cloud is too large to collect from a probe

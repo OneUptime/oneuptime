@@ -113,7 +113,10 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "../../../Models/DatabaseModels/OpenStackCloudConnectionTest";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import ObjectID from "../../../Types/ObjectID";
-import OpenStackCollectionErrorCode from "../../../Types/OpenStack/OpenStackCollectionError";
+import OpenStackCollectionErrorCode, {
+  OpenStackCollectionErrorAdvice,
+  OpenStackCollectionErrorUtil,
+} from "../../../Types/OpenStack/OpenStackCollectionError";
 import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import OpenStackCollectionStatus from "../../../Types/OpenStack/OpenStackCollectionStatus";
 import OpenStackConnectionTestStatus from "../../../Types/OpenStack/OpenStackConnectionTestStatus";
@@ -513,6 +516,133 @@ describe("the Overview's Data Collection card", () => {
     expect(getItemMock.mock.calls.length).toBe(firstReads + 1);
   });
 
+  describe("a probe that stopped coming", () => {
+    const MINUTE_IN_MS: number = 60 * 1000;
+
+    test("what it last reported doesn't go on reading as how the cloud is", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        lastCollectionAt: new Date(Date.now() - 180 * MINUTE_IN_MS),
+        nextCollectionAt: new Date(Date.now() - 175 * MINUTE_IN_MS),
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByText("Not collecting")).toBeInTheDocument();
+      expect(
+        screen.queryByText("The probe is collecting this cloud."),
+      ).toBeNull();
+      expect(
+        screen.getByText("The probe did not pick this up"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("openstack-collection-status")).toHaveTextContent(
+        /and no probe has come for it\./,
+      );
+      expect(screen.getByTestId("openstack-collection-status")).toHaveTextContent(
+        "Check that the probe is connected on the Probes page.",
+      );
+    });
+
+    test("a new cloud no probe ever came for stops saying Checking", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Pending,
+        nextCollectionAt: new Date(Date.now() - 20 * MINUTE_IN_MS),
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.queryByText("Checking")).toBeNull();
+      expect(screen.getByText("Not collecting")).toBeInTheDocument();
+    });
+
+    test("it says so until the probe is back, which nobody has to reload to see", async () => {
+      jest.useFakeTimers();
+
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        nextCollectionAt: new Date(Date.now() - 60 * MINUTE_IN_MS),
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByText("Not collecting")).toBeInTheDocument();
+
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        nextCollectionAt: new Date(Date.now() + MINUTE_IN_MS),
+      };
+
+      await act(async () => {
+        jest.advanceTimersByTime(OPENSTACK_STATUS_POLL_INTERVAL_IN_MS);
+      });
+      await flush();
+
+      expect(screen.getByText("Collecting")).toBeInTheDocument();
+    });
+
+    test("a collection running its full time budget is not that", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        nextCollectionAt: new Date(Date.now() - 10 * MINUTE_IN_MS),
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByText("Collecting")).toBeInTheDocument();
+    });
+
+    test("it asks for what tells it", async () => {
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(
+        (getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> })
+          .select["nextCollectionAt"],
+      ).toBe(true);
+    });
+  });
+
+  /*
+   * Every way a collection can fail, on the card that says so: its title, what the probe wrote
+   * and the one thing to do about it. A code with no words would show nothing helpful.
+   */
+  test.each(Object.values(OpenStackCollectionErrorCode))(
+    "%s says what failed and what to do",
+    async (code: OpenStackCollectionErrorCode) => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Failed,
+        collectionErrorCode: code,
+        collectionError: "What the probe wrote about keystone.example.com.",
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      const advice: OpenStackCollectionErrorAdvice =
+        OpenStackCollectionErrorUtil.getAdvice(code);
+      const status: HTMLElement = screen.getByTestId(
+        "openstack-collection-status",
+      );
+
+      expect(screen.getByText("Not collecting")).toBeInTheDocument();
+      expect(status).toHaveTextContent(advice.title);
+      expect(status).toHaveTextContent(advice.nextStep);
+      expect(status).toHaveTextContent(
+        "What the probe wrote about keystone.example.com.",
+      );
+    },
+  );
+
   test("a read that fails says so", async () => {
     getItemMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error("The server is not answering.");
@@ -681,6 +811,78 @@ describe("the Settings page's Data Collection card", () => {
   });
 
   describe("what it reads beyond the defaults", () => {
+    afterEach(() => {
+      window.location.hash = "";
+    });
+
+    function foldOf(): HTMLElement {
+      return screen.getByTestId("openstack-collection-options-fold");
+    }
+
+    function foldedItems(): Array<string> {
+      return within(foldOf())
+        .getAllByTestId("folded-section-item")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        });
+    }
+
+    test("starts folded, naming what is inside, because most clouds never need either", async () => {
+      render(<OpenStackDataCollectionCard modelId={modelId()} />);
+      await flush();
+
+      expect(foldOf()).toHaveAttribute("data-collapsed", "true");
+      expect(foldedItems()).toEqual(["Project limits", "Ports"]);
+    });
+
+    test("folded, what is on still says so: nothing in force is hidden", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionOptions: { collectProjectLimits: true },
+      };
+
+      render(<OpenStackDataCollectionCard modelId={modelId()} />);
+      await flush();
+
+      expect(foldOf()).toHaveAttribute("data-collapsed", "true");
+      expect(foldedItems()).toEqual(["Project limits: On", "Ports"]);
+    });
+
+    test("a link that names its place finds it open, which is how the Projects page sends people here", async () => {
+      window.location.hash = "#collection-options";
+
+      render(<OpenStackDataCollectionCard modelId={modelId()} />);
+      await flush();
+
+      expect(foldOf()).toHaveAttribute("data-collapsed", "false");
+      expect(
+        screen.getByTestId("openstack-collection-options"),
+      ).toHaveAttribute("id", "collection-options");
+    });
+
+    test("folded by hand after that, it stays folded", async () => {
+      window.location.hash = "#collection-options";
+
+      render(<OpenStackDataCollectionCard modelId={modelId()} />);
+      await flush();
+
+      fireEvent.click(within(foldOf()).getByTestId("folded-section-header"));
+      await flush();
+
+      expect(foldOf()).toHaveAttribute("data-collapsed", "true");
+    });
+
+    test("a cloud the agent sends has no such thing to fold", async () => {
+      stored = { collectionMethod: OpenStackCollectionMethod.Agent };
+
+      render(<OpenStackDataCollectionCard modelId={modelId()} />);
+      await flush();
+
+      expect(
+        screen.queryByTestId("openstack-collection-options-fold"),
+      ).toBeNull();
+    });
+
     test("Project limits, which the Projects page sends people here for, with what it costs", async () => {
       render(<OpenStackDataCollectionCard modelId={modelId()} />);
       await flush();
@@ -689,13 +891,11 @@ describe("the Settings page's Data Collection card", () => {
         "openstack-collection-options",
       );
 
-      expect(within(options).getByText("Project limits")).toBeInTheDocument();
       expect(
         within(options).getByText(
           "Quotas and limits per project, for the Projects page. Costs four API calls per project, on every collection.",
         ),
       ).toBeInTheDocument();
-      expect(within(options).getByText("Ports")).toBeInTheDocument();
       expect(
         within(options).getByText(
           "One series per port, and how many have no address or a load balancer that is down. Costs one paged list per network or project you name, or of every port if you name none. An unscoped list of ports can saturate Neutron on a large cloud.",

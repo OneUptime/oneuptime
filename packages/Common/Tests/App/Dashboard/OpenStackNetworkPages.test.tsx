@@ -19,6 +19,7 @@ import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource"
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
 import { JSONObject } from "../../../Types/JSON";
+import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OpenStackCloudFloatingIpDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIpDetail";
 import OpenStackCloudFloatingIps from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIps";
@@ -473,6 +474,53 @@ describe("the Networks page", () => {
     await renderPage(OpenStackCloudNetworks, "/networks");
     await screen.findByText("private");
     expect(screen.queryByTestId("openstack-limited-view-notice")).toBeNull();
+  });
+
+  describe("on a cloud a probe collects", () => {
+    beforeEach(() => {
+      Object.assign(server.cloud as object, {
+        collectionMethod: OpenStackCollectionMethod.Probe,
+      });
+    });
+
+    test("what is off is turned on under Data Collection: there is no exporter to change a flag on", async () => {
+      server.rows = [privateNetwork()];
+
+      await renderPage(OpenStackCloudNetworks, "/networks");
+      await screen.findByTestId("openstack-network-counts");
+
+      const ports: HTMLElement = await screen.findByText(
+        /turn on Ports under Data Collection/i,
+      );
+      expect(ports).toBeInTheDocument();
+      expect(screen.getByTestId("openstack-ports-off")).not.toHaveTextContent(
+        /--disable-metric/,
+      );
+      expect(
+        screen.getByTestId("openstack-security-groups-by-project-off"),
+      ).toHaveTextContent(/turn on Project limits under Data Collection/i);
+      expect(
+        screen.getByTestId("openstack-security-groups-by-project-off"),
+      ).not.toHaveTextContent(/--disable-metric/);
+    });
+
+    test("a list that may be one project's says to test the connection, not to run a script on an agent", async () => {
+      server.rows = [
+        privateNetwork(),
+        projectRow(PROJECT_A, "payments"),
+        projectRow(PROJECT_B, "research"),
+      ];
+
+      await renderPage(OpenStackCloudNetworks, "/networks");
+
+      const notice: HTMLElement = await screen.findByText(
+        /Test Connection, under Data Collection/,
+      );
+      expect(notice).toBeInTheDocument();
+      expect(
+        screen.getByTestId("openstack-limited-view-notice"),
+      ).not.toHaveTextContent(/troubleshoot\.sh/);
+    });
   });
 });
 

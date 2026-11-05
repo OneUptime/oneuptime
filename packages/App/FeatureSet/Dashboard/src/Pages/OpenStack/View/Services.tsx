@@ -23,6 +23,7 @@ import React, {
   useState,
 } from "react";
 import OpenStackAccessNotice from "../../../Components/OpenStack/OpenStackAccessNotice";
+import { isOpenStackProbeCollected } from "../../../Components/OpenStack/OpenStackProbeCollectionView";
 import {
   OpenStackRegionState,
   useOpenStackRegion,
@@ -104,7 +105,11 @@ const OpenStackCloudServices: FunctionComponent<
           ModelAPI.getItem<OpenStackCloud>({
             modelType: OpenStackCloud,
             id: modelId,
-            select: { otelCollectorStatus: true, lastSeenAt: true },
+            select: {
+              otelCollectorStatus: true,
+              lastSeenAt: true,
+              collectionMethod: true,
+            },
           }),
         ]);
       return { rows, cloud };
@@ -153,6 +158,7 @@ const OpenStackCloudServices: FunctionComponent<
     RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION] as Route,
     { modelId: modelId },
   );
+  const isProbeCollected: boolean = isOpenStackProbeCollected(data.cloud);
 
   // Only a cloud that reports can say a credential can't list something.
   const accessGaps: Array<OpenStackAccessGap> = isConnected
@@ -237,6 +243,14 @@ const OpenStackCloudServices: FunctionComponent<
       <OpenStackAccessNotice
         gaps={accessGaps}
         documentationRoute={documentationRoute}
+        settingsRouteOfProbeCloud={
+          isProbeCollected
+            ? RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )
+            : null
+        }
       />
 
       {data.rows.workerCount > data.rows.workers.length ? (
@@ -261,7 +275,11 @@ const OpenStackCloudServices: FunctionComponent<
           <TableEmptyState
             kind={TableEmptyStateKind.Empty}
             title="No services reported yet"
-            description="The agent reports each service's API once it can reach Keystone. Check that it is running, and that the machine it runs on can reach your cloud."
+            description={
+              isProbeCollected
+                ? "The probe reports each service's API once it can reach Keystone. The Data Collection card on this cloud's Overview says how that is going."
+                : "The agent reports each service's API once it can reach Keystone. Check that it is running, and that the machine it runs on can reach your cloud."
+            }
           />
         </div>
       ) : (

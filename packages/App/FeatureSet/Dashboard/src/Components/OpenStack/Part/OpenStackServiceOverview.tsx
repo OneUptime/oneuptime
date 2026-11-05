@@ -605,7 +605,7 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
         testId="openstack-service-details"
         description={
           isApi
-            ? "What Keystone's catalog and the agent's collection say about this API."
+            ? "What Keystone's catalog and the last collection say about this API."
             : "What OpenStack's own service list says about this worker."
         }
         rows={details}

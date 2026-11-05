@@ -12,18 +12,25 @@ import { OpenStackAccessGap } from "../../Pages/OpenStack/Utils/OpenStackService
 /*
  * What this credential can't list, and how to fix it. A list a credential cannot read
  * looks empty, and "0 hypervisors" would be a lie, so a page says what it could not read,
- * and links to the step of the guide that gives the agent a credential that can. The fix
- * is the same whatever is closed, so it is said once.
+ * and links to where a better credential goes: the step of the guide that gives the agent
+ * one, or a cloud's Settings page when a probe collects it. The fix is the same whatever is
+ * closed, so it is said once.
  */
 
 const OPENSTACK_ACCESS_FIX: string = translationKey(
   "Each service answers, and shows this credential none of them, so these are closed to it rather than empty. They take the Full view or Infrastructure only credential. Give the agent one of those, then run troubleshoot.sh on its machine to see what it can read.",
 );
 
+const OPENSTACK_ACCESS_FIX_ON_A_PROBE: string = translationKey(
+  "Each service answers, and shows this credential none of them, so these are closed to it rather than empty. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+);
+
 export interface ComponentProps {
   gaps: Array<OpenStackAccessGap>;
   // The cloud's setup guide.
   documentationRoute: Route;
+  // A probe collects this cloud, so the credential is on its Settings page.
+  settingsRouteOfProbeCloud?: Route | null | undefined;
 }
 
 const OpenStackAccessNotice: FunctionComponent<ComponentProps> = (
@@ -64,19 +71,29 @@ const OpenStackAccessNotice: FunctionComponent<ComponentProps> = (
             className="mt-2 text-sm text-amber-800"
             data-testid="openstack-access-fix"
           >
-            {translator.translateText(OPENSTACK_ACCESS_FIX) ||
-              OPENSTACK_ACCESS_FIX}
+            {props.settingsRouteOfProbeCloud
+              ? translator.translateText(OPENSTACK_ACCESS_FIX_ON_A_PROBE) ||
+                OPENSTACK_ACCESS_FIX_ON_A_PROBE
+              : translator.translateText(OPENSTACK_ACCESS_FIX) ||
+                OPENSTACK_ACCESS_FIX}
           </p>
           <Link
-            to={getRouteToPageAnchor(
-              props.documentationRoute,
-              OPENSTACK_CREDENTIAL_STEP_ANCHOR,
-            )}
+            to={
+              props.settingsRouteOfProbeCloud ||
+              getRouteToPageAnchor(
+                props.documentationRoute,
+                OPENSTACK_CREDENTIAL_STEP_ANCHOR,
+              )
+            }
             dataTestId="openstack-access-guide"
             className="mt-3 inline-flex text-sm font-medium text-amber-900 underline hover:text-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           >
-            {translator.translateText("See which credential can read what") ||
-              "See which credential can read what"}
+            {props.settingsRouteOfProbeCloud
+              ? translator.translateText("Open Data Collection") ||
+                "Open Data Collection"
+              : translator.translateText(
+                  "See which credential can read what",
+                ) || "See which credential can read what"}
           </Link>
         </div>
       </div>

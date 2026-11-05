@@ -85,7 +85,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackProbeCollectionView";
 import OpenStackCloudConnectionTest from "../../../Models/DatabaseModels/OpenStackCloudConnectionTest";
 import ObjectID from "../../../Types/ObjectID";
-import OpenStackCollectionErrorCode from "../../../Types/OpenStack/OpenStackCollectionError";
+import OpenStackCollectionErrorCode, {
+  OpenStackCollectionErrorAdvice,
+  OpenStackCollectionErrorUtil,
+} from "../../../Types/OpenStack/OpenStackCollectionError";
 import OpenStackConnectionTestStatus from "../../../Types/OpenStack/OpenStackConnectionTestStatus";
 import { OpenStackConnectionTestSummary } from "../../../Types/OpenStack/OpenStackProbeCollection";
 import { OpenStackServiceType } from "../../../Types/OpenStack/OpenStackResourceKind";
@@ -226,6 +229,47 @@ describe("what it tests", () => {
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("says why in words, because a tooltip on a disabled button never shows on a phone", () => {
+    render(
+      <OpenStackConnectionTestPanel
+        input={{ ...INPUT, credentialSecret: "" }}
+      />,
+    );
+
+    expect(screen.getByTestId("openstack-test-blocked")).toHaveTextContent(
+      "Enter the credential's secret first.",
+    );
+  });
+
+  test("once it can, there is nothing to say about it", () => {
+    render(<OpenStackConnectionTestPanel input={INPUT} />);
+
+    expect(screen.queryByTestId("openstack-test-blocked")).toBeNull();
+  });
+
+  test("an address on plain HTTP is never tried, and says to turn on TLS or use the agent", () => {
+    render(
+      <OpenStackConnectionTestPanel
+        input={{ ...INPUT, authUrl: "http://keystone.example.com:5000/v3" }}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByTestId(
+      "openstack-test-connection-button",
+    );
+
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(createMock).not.toHaveBeenCalled();
+
+    expect(screen.getByTestId("openstack-test-blocked")).toHaveTextContent(
+      "OneUptime never sends a credential or a token unencrypted.",
+    );
+    expect(screen.getByTestId("openstack-test-blocked")).toHaveTextContent(
+      "turn on TLS, or use the OpenStack agent",
+    );
   });
 
   test("an application credential: what the form holds, trimmed, and the secret as typed", async () => {
@@ -371,34 +415,76 @@ describe("what it says", () => {
     ).toBeUndefined();
   });
 
+  /*
+   * Every failure the issue says the test names, in the words a person reads. The probe's own
+   * tests hold what it writes for each and which code each is
+   * (OpenStackConnectionTest.test.ts, OpenStackCollectionErrors.test.ts), so here the sentence
+   * is the one it writes. A title or a next step reworded fails here, to be looked at.
+   */
   test.each([
     [
+      "DNS",
       OpenStackCollectionErrorCode.AddressNotFound,
       "The probe cannot find this host name",
-      "Check the spelling, or use an IP address.",
+      "The probe cannot find keystone.example.com in DNS (ENOTFOUND). Check the spelling, or use an IP address.",
+      "The name has to resolve in DNS on the probe's network.",
     ],
     [
+      "TCP, with nothing listening",
       OpenStackCollectionErrorCode.ConnectionRefused,
       "Nothing answers on that port",
+      "keystone.example.com:5000 refused the connection: nothing listens on port 5000 there.",
       "Check the address and port.",
     ],
     [
+      "TCP, with nothing answering",
+      OpenStackCollectionErrorCode.ConnectionTimedOut,
+      "The probe gets no answer from the cloud",
+      "The probe got no answer from keystone.example.com:5000 (ETIMEDOUT). Allow the probe's machine to reach it on TCP 5000, or pick a probe in the cloud's network.",
+      "Allow the probe's machine to reach this API through your firewall",
+    ],
+    [
+      "TCP, anything else",
+      OpenStackCollectionErrorCode.ConnectionFailed,
+      "The probe could not connect to the cloud",
+      "The probe could not connect to keystone.example.com:5000 (ECONNRESET): socket hang up",
+      "Check that the API is running",
+    ],
+    [
+      "TLS",
       OpenStackCollectionErrorCode.TlsFailed,
       "The secure connection failed",
+      "The secure connection to keystone.example.com:5000 failed (EPROTO): wrong version number Check that the address points at an HTTPS port.",
       "The API and the probe could not agree on TLS.",
+    ],
+    [
+      "a refused credential",
+      OpenStackCollectionErrorCode.InvalidCredential,
+      "Keystone refused the credential",
+      "Keystone answered HTTP 401 to the application credential.",
+      "Make a new one and enter it here.",
+    ],
+    [
+      "the wrong project",
+      OpenStackCollectionErrorCode.WrongProjectScope,
+      "The account has no role on that project",
+      "Keystone accepted user monitor, but not on project monitoring in domain Default: the project does not exist there, or the user has no role on it.",
+      "Check the project name and both domains.",
     ],
   ])(
     "%s says exactly what failed and what to do",
     async (
+      _name: string,
       code: OpenStackCollectionErrorCode,
       title: string,
+      message: string,
       nextStep: string,
     ) => {
       answers = [
         {
           status: OpenStackConnectionTestStatus.Failed,
           errorCode: code,
-          errorMessage: "What the probe wrote about keystone.example.com.",
+          errorMessage: message,
         },
       ];
 
@@ -408,9 +494,7 @@ describe("what it says", () => {
       await tick();
 
       expect(screen.getByText(title)).toBeInTheDocument();
-      expect(
-        screen.getByText("What the probe wrote about keystone.example.com."),
-      ).toBeInTheDocument();
+      expect(screen.getByText(message)).toBeInTheDocument();
       expect(screen.getByTestId("openstack-test-result")).toHaveTextContent(
         nextStep,
       );
@@ -419,6 +503,104 @@ describe("what it says", () => {
       ).toBeNull();
     },
   );
+
+  // Whatever else can stop one: a code with no words of its own would say nothing useful.
+  test.each(Object.values(OpenStackCollectionErrorCode))(
+    "%s has its title and its next step on screen",
+    async (code: OpenStackCollectionErrorCode) => {
+      answers = [
+        {
+          status: OpenStackConnectionTestStatus.Failed,
+          errorCode: code,
+          errorMessage: "What the probe wrote.",
+        },
+      ];
+
+      render(<OpenStackConnectionTestPanel input={INPUT} />);
+
+      await startTest();
+      await tick();
+
+      const advice: OpenStackCollectionErrorAdvice =
+        OpenStackCollectionErrorUtil.getAdvice(code);
+      const result: HTMLElement = screen.getByTestId("openstack-test-result");
+
+      expect(advice.title).not.toBe("");
+      expect(advice.nextStep).not.toBe("");
+      expect(result).toHaveTextContent(advice.title);
+      expect(result).toHaveTextContent(advice.nextStep);
+      expect(result).toHaveTextContent("What the probe wrote.");
+    },
+  );
+
+  test("a permission missing is said per service: what goes without it, and what opens it", async () => {
+    answers = [
+      {
+        status: OpenStackConnectionTestStatus.Failed,
+        errorCode: OpenStackCollectionErrorCode.NoPermission,
+        errorMessage: "The credential may not read what monitoring needs.",
+        summary: {
+          ...WORKED,
+          accessLevel: "Other",
+          reads: [
+            {
+              regionName: "RegionOne",
+              service: OpenStackServiceType.Compute,
+              read: "hypervisors",
+              access: "Refused",
+              reason: "HTTP 403",
+              goesWithout: "The Hypervisors page and its alerts",
+              fix: "openstack role add --user oneuptime --project monitoring oneuptime_monitoring",
+            },
+            {
+              regionName: "RegionOne",
+              service: OpenStackServiceType.Volume,
+              read: "storage pools",
+              access: "Refused",
+              reason: "HTTP 403",
+              goesWithout: "The Storage Pools page and its alerts",
+            },
+            {
+              regionName: "RegionOne",
+              service: OpenStackServiceType.Network,
+              read: "networks",
+              access: "Failing",
+              reason: "HTTP 503",
+            },
+          ],
+        },
+      },
+    ];
+
+    render(<OpenStackConnectionTestPanel input={INPUT} />);
+
+    await startTest();
+    await tick();
+
+    expect(
+      screen.getByText("The credential cannot read what monitoring needs"),
+    ).toBeInTheDocument();
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "openstack-test-read",
+    );
+
+    expect(rows).toHaveLength(3);
+    // What is failing is told apart from what is refused, and comes first.
+    expect(rows[0]).toHaveAttribute("data-access", "Failing");
+    expect(rows[0]).toHaveTextContent("Networking (Neutron), RegionOne: networks");
+    expect(rows[1]).toHaveAttribute("data-access", "Refused");
+    expect(rows[1]).toHaveTextContent("Compute (Nova), RegionOne: hypervisors");
+    expect(rows[1]).toHaveTextContent(
+      "Goes without it: The Hypervisors page and its alerts",
+    );
+    expect(rows[1]).toHaveTextContent(
+      "What opens it: openstack role add --user oneuptime --project monitoring oneuptime_monitoring",
+    );
+    expect(rows[2]).toHaveTextContent(
+      "Block Storage (Cinder), RegionOne: storage pools",
+    );
+  });
 
   test("a catalog on plain HTTP says exactly that: turn on TLS, or use the agent", async () => {
     answers = [

@@ -97,6 +97,7 @@ import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
+import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import {
   OpenStackQuotaResource,
   getOpenStackQuotaFactKey,
@@ -621,6 +622,56 @@ describe("the Services page", () => {
     expect(
       await screen.findByText("This credential can't list compute services"),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("openstack-access-fix")).toHaveTextContent(
+      "Give the agent one of those",
+    );
+    expect(screen.getByTestId("openstack-access-guide")).toHaveAttribute(
+      "href",
+      expect.stringContaining("/documentation#"),
+    );
+  });
+
+  test("on a cloud a probe collects, the credential is changed on its Settings page, with no agent to run a script on", async () => {
+    rowsFor = workersRowsOf([api("compute")], []);
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+      collectionMethod: OpenStackCollectionMethod.Probe,
+    });
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    await screen.findByText("This credential can't list compute services");
+
+    const fix: HTMLElement = screen.getByTestId("openstack-access-fix");
+
+    expect(fix).toHaveTextContent("Give the probe one of those");
+    expect(fix).toHaveTextContent("Test Connection says what it can read");
+    expect(fix).not.toHaveTextContent("troubleshoot.sh");
+    expect(screen.getByTestId("openstack-access-guide")).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/openstack/${CLOUD_ID}/settings`),
+    );
+  });
+
+  test("with none reported, each says where to look: its agent, or the probe's Data Collection card", async () => {
+    await renderPage(OpenStackCloudServices, "/services");
+    expect(
+      await screen.findByTestId("openstack-services-empty"),
+    ).toHaveTextContent("Check that it is running");
+    cleanup();
+
+    cloud = cloudWith({ collectionMethod: OpenStackCollectionMethod.Probe });
+    await renderPage(OpenStackCloudServices, "/services");
+
+    const empty: HTMLElement = await screen.findByTestId(
+      "openstack-services-empty",
+    );
+
+    expect(empty).toHaveTextContent(
+      "The Data Collection card on this cloud's Overview says how that is going.",
+    );
+    expect(empty).not.toHaveTextContent("The agent reports");
   });
 
   test("a cloud that has stopped reporting says so, and asks nothing of its credential", async () => {
