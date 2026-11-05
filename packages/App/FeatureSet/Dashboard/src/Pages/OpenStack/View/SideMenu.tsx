@@ -48,6 +48,7 @@ export interface ResourceCounts {
   stacks?: number | undefined;
   containerClusters?: number | undefined;
   shares?: number | undefined;
+  loadBalancers?: number | undefined;
   /*
    * The services a cloud may not run that this one does, in the region being read. What decides
    * whether their entries are here at all: a cloud without one shows no trace of it.
@@ -367,6 +368,21 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Activity}
         />
+        {runs(OpenStackServiceType.LoadBalancer) ? (
+          <SideMenuItem
+            link={{
+              title: "Load Balancers",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Globe}
+            badge={counts.loadBalancers}
+          />
+        ) : (
+          <></>
+        )}
       </SideMenuSection>
 
       <SideMenuSection title="Storage">

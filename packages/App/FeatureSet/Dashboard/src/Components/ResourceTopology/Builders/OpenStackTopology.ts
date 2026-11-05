@@ -670,6 +670,41 @@ export function buildOpenStackTopology(
     });
   }
 
+  /*
+   * What Octavia runs has no node on a cloud that doesn't run it. A load balancer stands in Network,
+   * and its amphorae and pools are its page's to list, not the map's: a map of a large cloud would be
+   * mostly amphorae.
+   */
+  for (const row of rowsOf(OpenStackResourceKind.LoadBalancer)) {
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+
+    nodes.push({
+      id: `load-balancer:${row.externalId}`,
+      parentId: sectionId(row.regionName, "network", SECTION_NETWORK),
+      kind: "openstack.loadbalancer",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      facts: projectFacts(row),
+      context: projectName(row),
+      keywords: projectKeywords(row),
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
+
   for (const row of rowsOf(OpenStackResourceKind.Network)) {
     const id: string = `network:${row.externalId}`;
     networkIds.set(row.externalId!, id);

@@ -31,6 +31,12 @@ import {
   isOpenStackServiceForcedDown,
   isOpenStackStackFailed,
   isOpenStackStackStuck,
+  isOpenStackAmphoraCertificateExpiring,
+  isOpenStackAmphoraInError,
+  isOpenStackLoadBalancerInError,
+  isOpenStackLoadBalancerStuck,
+  isOpenStackPoolWithoutHealthyMembers,
+  getOpenStackAmphoraCertificateDaysLeft,
   isOpenStackShareInError,
   isOpenStackShareStuck,
   isOpenStackServiceQuiet,
@@ -258,6 +264,9 @@ const KIND_STACK: string = translationKey("Stack");
 const KIND_CONTAINER_CLUSTER: string = translationKey("Kubernetes cluster");
 const KIND_BARE_METAL_NODE: string = translationKey("Bare metal node");
 const KIND_SHARE: string = translationKey("Share");
+const KIND_LOAD_BALANCER: string = translationKey("Load balancer");
+const KIND_LOAD_BALANCER_POOL: string = translationKey("Pool");
+const KIND_AMPHORA: string = translationKey("Amphora");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
@@ -273,6 +282,9 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_STACK,
   KIND_VOLUME,
   KIND_SHARE,
+  KIND_LOAD_BALANCER,
+  KIND_LOAD_BALANCER_POOL,
+  KIND_AMPHORA,
   KIND_INSTANCE,
   KIND_FLOATING_IP,
   KIND_IMAGE,
@@ -641,6 +653,151 @@ export function assessOpenStackShare(data: {
     })
   ) {
     return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+const REASON_LOAD_BALANCER_TWO_MASTERS: string = translationKey(
+  "{{count}} amphorae say they are the MASTER",
+);
+const REASON_POOL_NO_HEALTHY_MEMBERS: string = translationKey(
+  "No member is healthy: every one fails its health check",
+);
+const REASON_AMPHORA_CERTIFICATE_EXPIRED: string = translationKey(
+  "Its certificate expired {{days}} days ago",
+);
+const REASON_AMPHORA_CERTIFICATE_EXPIRING: string = translationKey(
+  "Its certificate expires in {{days}} days",
+);
+
+/*
+ * A load balancer in error stays there until someone fails it over or deletes it, so it reads here
+ * however long ago it happened, and as critical, because it serves nothing or has not been changed as
+ * asked. Operating status says what its health checks make of it and is the pool's to judge: the load
+ * balancer provisions ACTIVE while every member behind it is down, recorded.
+ */
+export function assessOpenStackLoadBalancer(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackLoadBalancerInError(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackLoadBalancerStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  /*
+   * Worked out for the rows a page of Needs attention was answered with, and on a load balancer's own
+   * page from its amphorae. A list of load balancers does not carry it, and so does not judge it.
+   */
+  const masters: unknown = factsOf(row)["masterAmphoraCount"];
+  if (typeof masters === "number" && masters > 1) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [
+        {
+          text: REASON_LOAD_BALANCER_TWO_MASTERS,
+          values: { count: String(masters) },
+        },
+      ],
+    };
+  }
+  return FINE;
+}
+
+/*
+ * A pool with every member failing is critical: the load balancer has nowhere to send what it gets.
+ * Some members failing (DEGRADED) is the pool's page to say and nothing to list here.
+ */
+export function assessOpenStackLoadBalancerPool(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row } = data;
+  if (isOpenStackLoadBalancerInError(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  if (
+    isOpenStackPoolWithoutHealthyMembers(
+      factsOf(row)["operatingStatus"] as string | undefined,
+    )
+  ) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [{ text: REASON_POOL_NO_HEALTHY_MEMBERS }],
+    };
+  }
+  return FINE;
+}
+
+/*
+ * An amphora in error is one the health manager could not replace. One whose certificate has under 14
+ * days left is one Octavia's housekeeping should already have renewed: a warning while there is time,
+ * and critical once it has ended, because the load balancer's controller can no longer reach it.
+ */
+export function assessOpenStackAmphora(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (isOpenStackAmphoraInError(row.status)) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [
+        { text: REASON_VOLUME_ERROR, values: { status: row.status || "" } },
+      ],
+    };
+  }
+  const certExpiresAt: string | undefined = factsOf(row)["certExpiresAt"] as
+    | string
+    | undefined;
+  if (
+    isOpenStackAmphoraCertificateExpiring({
+      status: row.status,
+      certExpiresAt,
+      now,
+    })
+  ) {
+    const days: number = getOpenStackAmphoraCertificateDaysLeft({
+      certExpiresAt,
+      now,
+    }) as number;
+    return days < 0
+      ? {
+          severity: ResourceAttentionSeverity.Critical,
+          reasons: [
+            {
+              text: REASON_AMPHORA_CERTIFICATE_EXPIRED,
+              values: { days: String(Math.ceil(-days)) },
+            },
+          ],
+        }
+      : {
+          severity: ResourceAttentionSeverity.Warning,
+          reasons: [
+            {
+              text: REASON_AMPHORA_CERTIFICATE_EXPIRING,
+              values: { days: String(Math.floor(days)) },
+            },
+          ],
+        };
   }
   return FINE;
 }
@@ -1092,6 +1249,12 @@ export function assessOpenStackResource(data: {
       });
     case OpenStackResourceKind.Share:
       return assessOpenStackShare({ row, now });
+    case OpenStackResourceKind.LoadBalancer:
+      return assessOpenStackLoadBalancer({ row, now });
+    case OpenStackResourceKind.LoadBalancerPool:
+      return assessOpenStackLoadBalancerPool({ row, now });
+    case OpenStackResourceKind.Amphora:
+      return assessOpenStackAmphora({ row, now });
     default:
       return FINE;
   }
@@ -1113,6 +1276,9 @@ const KIND_WORDS: Partial<Record<string, string>> = {
   [OpenStackResourceKind.ContainerCluster]: KIND_CONTAINER_CLUSTER,
   [OpenStackResourceKind.BareMetalNode]: KIND_BARE_METAL_NODE,
   [OpenStackResourceKind.Share]: KIND_SHARE,
+  [OpenStackResourceKind.LoadBalancer]: KIND_LOAD_BALANCER,
+  [OpenStackResourceKind.LoadBalancerPool]: KIND_LOAD_BALANCER_POOL,
+  [OpenStackResourceKind.Amphora]: KIND_AMPHORA,
 };
 
 function iconOf(kind: string | undefined): IconProp {
@@ -1124,6 +1290,10 @@ function iconOf(kind: string | undefined): IconProp {
     case OpenStackResourceKind.StoragePool:
     case OpenStackResourceKind.Share:
       return IconProp.Database;
+    case OpenStackResourceKind.LoadBalancer:
+    case OpenStackResourceKind.LoadBalancerPool:
+    case OpenStackResourceKind.Amphora:
+      return IconProp.Globe;
     case OpenStackResourceKind.Image:
       return IconProp.Image;
     case OpenStackResourceKind.Network:
@@ -1404,6 +1574,13 @@ function getOpenStackDetail(row: OpenStackResource): string | undefined {
   }
   if (row.kind === OpenStackResourceKind.Instance && row.hypervisorName) {
     return row.hypervisorName;
+  }
+  // An amphora has no name of its own, so what it is for says which one it is.
+  if (row.kind === OpenStackResourceKind.Amphora) {
+    const role: unknown = factsOf(row)["role"];
+    return [typeof role === "string" ? role : "", row.regionName || ""]
+      .filter(Boolean)
+      .join(" · ");
   }
   return row.regionName || undefined;
 }

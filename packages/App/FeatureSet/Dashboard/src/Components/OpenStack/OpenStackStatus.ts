@@ -3,6 +3,7 @@ import {
   isOpenStackBareMetalNodeStuck,
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
+  isOpenStackLoadBalancerStuck,
   isOpenStackShareStuck,
   isOpenStackStackStuck,
   isOpenStackVolumeStuck,
@@ -15,6 +16,8 @@ import {
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_LOAD_BALANCER_ERROR_STATUSES,
+  OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
@@ -222,6 +225,21 @@ function shareTone(word: string): ResourceStatusTone {
     : "neutral";
 }
 
+// Octavia's provisioning statuses, and an amphora's own: ALLOCATED to a load balancer, READY in the spare pool.
+function loadBalancerTone(word: string): ResourceStatusTone {
+  const upper: string = word.toUpperCase();
+  if (upper === "ACTIVE" || upper === "ALLOCATED") {
+    return "positive";
+  }
+  if (OPENSTACK_LOAD_BALANCER_ERROR_STATUSES.has(upper)) {
+    return "danger";
+  }
+  return OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES.has(upper) ||
+    upper === "BOOTING"
+    ? "warning"
+    : "neutral";
+}
+
 function enabledTone(word: string): ResourceStatusTone {
   return word.toLowerCase() === "enabled" ? "positive" : "neutral";
 }
@@ -290,6 +308,10 @@ function toneOf(
       return stackOrClusterTone(word);
     case OpenStackResourceKind.Share:
       return shareTone(word);
+    case OpenStackResourceKind.LoadBalancer:
+    case OpenStackResourceKind.LoadBalancerPool:
+    case OpenStackResourceKind.Amphora:
+      return loadBalancerTone(word);
     default:
       return "neutral";
   }
@@ -317,6 +339,9 @@ function isStuck(input: OpenStackStatusInput, word: string): boolean {
       return isOpenStackContainerClusterStuck(reading);
     case OpenStackResourceKind.Share:
       return isOpenStackShareStuck(reading);
+    case OpenStackResourceKind.LoadBalancer:
+    case OpenStackResourceKind.LoadBalancerPool:
+      return isOpenStackLoadBalancerStuck(reading);
     case OpenStackResourceKind.BareMetalNode:
       return isOpenStackBareMetalNodeStuck({
         ...reading,
@@ -343,6 +368,9 @@ function isOnTheWay(kind: string | null | undefined, word: string): boolean {
       return OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(word);
     case OpenStackResourceKind.Share:
       return OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.LoadBalancer:
+    case OpenStackResourceKind.LoadBalancerPool:
+      return OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES.has(word);
     case OpenStackResourceKind.BareMetalNode:
       return OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(word);
     default:
@@ -490,6 +518,25 @@ export const OPENSTACK_STATUS_WORDS: Partial<
     "awaiting_transfer",
     "backup_creating",
     "backup_restoring",
+  ],
+  [OpenStackResourceKind.LoadBalancer]: [
+    "ACTIVE",
+    ...Array.from(OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES),
+    ...Array.from(OPENSTACK_LOAD_BALANCER_ERROR_STATUSES),
+  ],
+  [OpenStackResourceKind.LoadBalancerPool]: [
+    "ACTIVE",
+    ...Array.from(OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES),
+    ...Array.from(OPENSTACK_LOAD_BALANCER_ERROR_STATUSES),
+  ],
+  [OpenStackResourceKind.Amphora]: [
+    "ALLOCATED",
+    "READY",
+    "BOOTING",
+    "PENDING_CREATE",
+    "PENDING_DELETE",
+    "DELETED",
+    "ERROR",
   ],
   [OpenStackResourceKind.Stack]: [
     "CREATE_COMPLETE",

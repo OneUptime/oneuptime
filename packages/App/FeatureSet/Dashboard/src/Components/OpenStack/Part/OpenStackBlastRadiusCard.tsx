@@ -92,6 +92,14 @@ const COUNT_WORDS: ReadonlyArray<CountWords> = [
     key: "shares",
     words: { one: "{{count}} share", other: "{{count}} shares" },
   },
+  {
+    count: "loadBalancerCount",
+    key: "load-balancers",
+    words: {
+      one: "{{count}} load balancer",
+      other: "{{count}} load balancers",
+    },
+  },
 ];
 
 const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
@@ -258,10 +266,50 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
             )}
           </div>
         )}
+        {data.loadBalancers && data.loadBalancers.length > 0 ? (
+          <div data-testid={`${props.testId}-load-balancers`}>
+            <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
+              {translator.translateText("Load balancers with an amphora here")}
+            </p>
+            <ul className={listClassName}>
+              {data.loadBalancers.map(
+                (owner: OpenStackBlastRadiusOwner): ReactElement => {
+                  return (
+                    <li
+                      key={owner.externalId}
+                      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
+                    >
+                      <Link
+                        to={props.routes.getPartRoute(
+                          OpenStackResourceKind.LoadBalancer,
+                          owner.externalId,
+                        )}
+                        className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                      >
+                        <bdi>{owner.name || owner.externalId}</bdi>
+                      </Link>
+                      {owner.status ? (
+                        <span className="text-xs text-gray-500">
+                          <bdi>{owner.status}</bdi>
+                        </span>
+                      ) : (
+                        <></>
+                      )}
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        ) : (
+          <></>
+        )}
         {data.magnumClusters && data.magnumClusters.length > 0 ? (
           <div data-testid={`${props.testId}-magnum-clusters`}>
             <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
-              {translator.translateText("Kubernetes clusters with a server here")}
+              {translator.translateText(
+                "Kubernetes clusters with a server here",
+              )}
             </p>
             <ul className={listClassName}>
               {data.magnumClusters.map(

@@ -77,6 +77,11 @@ const PART_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.ContainerCluster]:
     PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
   [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+  [OpenStackResourceKind.LoadBalancer]:
+    PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL,
+  [OpenStackResourceKind.LoadBalancerPool]:
+    PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL,
+  [OpenStackResourceKind.Amphora]: PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL,
 };
 
 const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
@@ -100,6 +105,12 @@ const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.ContainerCluster]:
     PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
   [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
+  // Pools and amphorae are listed on the Load Balancers page, under the load balancers.
+  [OpenStackResourceKind.LoadBalancer]:
+    PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+  [OpenStackResourceKind.LoadBalancerPool]:
+    PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+  [OpenStackResourceKind.Amphora]: PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
 };
 
 export function routeParamFromOpenStackId(externalId: string): string {

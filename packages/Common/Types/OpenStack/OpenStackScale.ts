@@ -355,6 +355,7 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Orchestration]: 0,
     [OpenStackServiceType.ContainerInfra]: 0,
     [OpenStackServiceType.SharedFileSystems]: 0,
+    [OpenStackServiceType.LoadBalancer]: 0,
     [OpenStackServiceType.BareMetal]: 0,
   };
 }

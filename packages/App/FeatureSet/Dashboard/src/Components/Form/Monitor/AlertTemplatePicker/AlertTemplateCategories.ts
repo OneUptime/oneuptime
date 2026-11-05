@@ -195,6 +195,11 @@ export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
     icon: IconProp.Server,
   },
   {
+    category: "Load Balancers",
+    label: "Load Balancers",
+    icon: IconProp.Globe,
+  },
+  {
     category: "Projects",
     label: "Projects",
     icon: IconProp.Folder,

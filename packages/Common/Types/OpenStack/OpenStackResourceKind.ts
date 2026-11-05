@@ -62,6 +62,20 @@ export enum OpenStackResourceKind {
    * so a cloud without Manila has none.
    */
   Share = "Share",
+  /*
+   * A load balancer Octavia runs. Its status is its provisioning status, which is what Octavia
+   * changes when someone asks for something, and its operating status is a fact: they say different
+   * things, and a pool whose members are all down leaves the load balancer provisioning ACTIVE. Only
+   * Octavia's own series make one (OpenStackSnapshotScan), so a cloud without Octavia has none.
+   */
+  LoadBalancer = "LoadBalancer",
+  // A pool of members behind a load balancer, with the same two statuses.
+  LoadBalancerPool = "LoadBalancerPool",
+  /*
+   * A virtual machine Octavia runs a load balancer in. Its status is Octavia's word for it
+   * (ALLOCATED, ERROR), its role says MASTER or BACKUP, and its compute instance is a fact.
+   */
+  Amphora = "Amphora",
 }
 
 /*
@@ -84,6 +98,8 @@ export enum OpenStackServiceType {
   // A service a cloud may not run: see OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
+  // Octavia's name in the catalog, and the exporter's.
+  LoadBalancer = "load-balancer",
 }
 
 /*
@@ -120,6 +136,7 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.ContainerInfra]: "Kubernetes Clusters (Magnum)",
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
   [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
+  [OpenStackServiceType.LoadBalancer]: "Load Balancers (Octavia)",
 };
 
 /*
@@ -163,6 +180,11 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
   ],
   [OpenStackServiceType.BareMetal]: [OpenStackResourceKind.BareMetalNode],
   [OpenStackServiceType.SharedFileSystems]: [OpenStackResourceKind.Share],
+  [OpenStackServiceType.LoadBalancer]: [
+    OpenStackResourceKind.LoadBalancer,
+    OpenStackResourceKind.LoadBalancerPool,
+    OpenStackResourceKind.Amphora,
+  ],
 };
 
 /*
@@ -411,3 +433,29 @@ export const OPENSTACK_SHARE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
     "replication_change",
     "ensuring",
   ]);
+
+/*
+ * Octavia's statuses (octavia.common.constants). A load balancer, a listener, a pool and a member each
+ * have two: the provisioning status, which is Octavia's work on the object, and the operating status,
+ * which is what its health checks say. They are different questions, recorded apart: a pool whose
+ * members every one fail their health monitor is ACTIVE in provisioning and ERROR in operating.
+ */
+export const OPENSTACK_LOAD_BALANCER_ERROR_STATUSES: ReadonlySet<string> =
+  new Set(["ERROR"]);
+
+// Octavia gives these no timeout of its own once its worker has the request, recorded on a stopped one.
+export const OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set(["PENDING_CREATE", "PENDING_UPDATE", "PENDING_DELETE"]);
+
+// What an operating status says when nothing at all is healthy behind it.
+export const OPENSTACK_LOAD_BALANCER_OPERATING_ERROR: string = "ERROR";
+export const OPENSTACK_LOAD_BALANCER_OPERATING_DEGRADED: string = "DEGRADED";
+
+// An amphora's status: ALLOCATED to a load balancer, READY in the spare pool, BOOTING on the way.
+export const OPENSTACK_AMPHORA_ERROR_STATUSES: ReadonlySet<string> = new Set([
+  "ERROR",
+]);
+export const OPENSTACK_AMPHORA_ROLE_MASTER: string = "MASTER";
+export const OPENSTACK_AMPHORA_ROLE_BACKUP: string = "BACKUP";
+// A load balancer on one amphora has this role, and no pair to split.
+export const OPENSTACK_AMPHORA_ROLE_STANDALONE: string = "STANDALONE";

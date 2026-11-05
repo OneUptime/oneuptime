@@ -28,6 +28,7 @@ export interface OpenStackBlastRadiusProject {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
 }
 
 export interface OpenStackBlastRadius {
@@ -39,6 +40,7 @@ export interface OpenStackBlastRadius {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   // The real number, which `projects` can be shorter than: see the cap.
   projectCount: number;
   // Most affected first, at most OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT of them.
@@ -66,6 +68,12 @@ export interface OpenStackBlastRadius {
   belongsTo?: Array<OpenStackBlastRadiusOwner> | undefined;
   // The Magnum clusters with a server on this hypervisor, which its failure reaches.
   magnumClusters?: Array<OpenStackBlastRadiusOwner> | undefined;
+  /*
+   * The amphorae on this hypervisor and the load balancers they carry, which its failure reaches:
+   * an amphora is an instance in Octavia's own project, so the instances it counts hide them.
+   */
+  amphorae?: Array<OpenStackBlastRadiusOwner> | undefined;
+  loadBalancers?: Array<OpenStackBlastRadiusOwner> | undefined;
 }
 
 export interface OpenStackBlastRadiusOwner {
@@ -88,6 +96,7 @@ export function getEmptyOpenStackBlastRadius(
     stackCount: 0,
     containerClusterCount: 0,
     shareCount: 0,
+    loadBalancerCount: 0,
     projectCount: 0,
     projects: [],
     isKnown,
@@ -101,7 +110,8 @@ export type OpenStackBlastRadiusCount =
   | "floatingIpCount"
   | "stackCount"
   | "containerClusterCount"
-  | "shareCount";
+  | "shareCount"
+  | "loadBalancerCount";
 
 /*
  * Every count a radius holds and what it is called, which is all there is to adding one. What a page
@@ -124,6 +134,11 @@ export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
     other: "Kubernetes clusters",
   },
   { count: "shareCount", one: "share", other: "shares" },
+  {
+    count: "loadBalancerCount",
+    one: "load balancer",
+    other: "load balancers",
+  },
 ];
 
 /*
@@ -163,6 +178,7 @@ export function buildOpenStackBlastRadius(data: {
         stackCount: 0,
         containerClusterCount: 0,
         shareCount: 0,
+        loadBalancerCount: 0,
       };
       project[count] += amount;
       projects.set(projectId, project);

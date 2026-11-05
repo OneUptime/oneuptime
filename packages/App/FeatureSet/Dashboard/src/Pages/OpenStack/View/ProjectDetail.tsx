@@ -88,7 +88,8 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     | "floatingIpCount"
     | "stackCount"
     | "containerClusterCount"
-    | "shareCount";
+    | "shareCount"
+    | "loadBalancerCount";
   page: PageMap;
   one: string;
   other: string;
@@ -140,6 +141,12 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     page: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
     one: "{{count}} share",
     other: "{{count}} shares",
+  },
+  {
+    key: "loadBalancerCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+    one: "{{count}} load balancer",
+    other: "{{count}} load balancers",
   },
 ];
 

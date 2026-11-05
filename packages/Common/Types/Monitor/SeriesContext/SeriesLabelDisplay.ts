@@ -155,6 +155,7 @@ const FriendlyLabelNames: Record<string, string> = {
   router_id: "Router ID",
   network_id: "Network ID",
   network_name: "Network",
+  loadbalancer_id: "Load Balancer ID",
   volume_type: "Volume Type",
   volume_backend_name: "Backend",
   tenant: "Tenant",

@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 94 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic or Manila to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 100 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila or Octavia to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -158,6 +158,12 @@ Every template reads at least three collections of what it watches, and fires on
 | Manila Service Down | Control Plane | Warning | `openstack_sharev2_agent_state` with `adminState=enabled`, Min per host and service, **past 15 minutes**. Only a probe sends this | Manila lists an enabled service as stopped or down. Its API carries on answering, so nothing else says this | It reads 1, or someone disables it |
 | Share in Error | Storage | Warning | `openstack_sharev2_share_gb` with each error status, per share, **past 15 minutes** | A share holds an error status for the whole window | It is fixed or deleted |
 | Share Stuck | Storage | Warning | `openstack_sharev2_share_gb` with each passing status, per share, **past 1 hour** | A share holds a passing status for the whole window. Manila has no timeout of its own for a slow backend. One migrating or being backed up isn't watched | It reaches its next status, or is deleted |
+| Load Balancers API Down | Load Balancers | Critical | `openstack_loadbalancer_up`, Min per region, **past 15 minutes** | Below 1. A stopped Octavia API gives the agent's exporter an empty answer rather than a 0, the same as a cloud without Octavia, so on an agent's cloud this stays quiet and the cloud's pages say when Octavia was last heard from | Reads 1, or has gone |
+| Load Balancer in Error | Load Balancers | Critical | `openstack_loadbalancer_loadbalancer_status` with `provisioning_status=ERROR`, Count per load balancer, **past 15 minutes** | A load balancer holds provisioning ERROR for the whole window. Octavia retries none of these | It is back to ACTIVE, or deleted |
+| Load Balancer Stuck Pending | Load Balancers | Warning | `openstack_loadbalancer_loadbalancer_status` with each `PENDING_*` provisioning status, Count per load balancer, **past 1 hour** | A load balancer holds a PENDING status for the whole window: Octavia's worker is stopped, or lost the request | It reaches ACTIVE or ERROR, or is deleted |
+| Load Balancer With Two Masters | Load Balancers | Critical | `openstack_loadbalancer_amphora_status` with `role=MASTER` and `status=ALLOCATED`, Count per load balancer, **past 15 minutes**. Needs a credential that may list amphorae | More than one allocated amphora says MASTER for one load balancer | Only one does |
+| Amphora in Error | Load Balancers | Critical | `openstack_loadbalancer_amphora_status` with `status=ERROR`, Count per amphora, **past 15 minutes**. Needs a credential that may list amphorae | An amphora holds ERROR for the whole window: the health manager could not replace it | It is replaced |
+| Pool Has No Healthy Members | Load Balancers | Critical | `openstack_loadbalancer_pool_status` with `operating_status=ERROR`, Count per pool, **past 15 minutes** | Every member of a pool fails its health check, while the pool and its load balancer still provision ACTIVE | A member is healthy again |
 | Bare Metal API Down | Bare Metal | Critical | `openstack_ironic_up`, Min per region, **past 15 minutes** | Below 1. Speaks only where a read of Ironic can say so: a probe, or exporter 1.7.0. A stopped Ironic gives the agent's exporter nothing to read, the same as a cloud without Ironic, so there it stays quiet and the cloud's pages say when Ironic was last heard from | Reads 1, or has gone |
 | Bare Metal Node in Error | Bare Metal | Warning | `openstack_ironic_node` for each failed `provision_state`, Max per node, **past 15 minutes** | In that state at every collection for 15 minutes, in maintenance or not | Left it, or was deleted |
 | Bare Metal Node Stuck Transitioning | Bare Metal | Warning | `openstack_ironic_node` for each passing `provision_state` with `maintenance = false`, Max per node, **past 2 hours** | In that state at every collection for 2 hours. A long disk erase can honestly take this long, which a node's page can tell and this can't | Left it, or was deleted |
@@ -521,6 +527,20 @@ Only a cloud that runs Manila sends these, and a cloud without it shows no trace
 | `openstack_sharev2_share_status_counter` | `count` | Max | How many shares hold each status, per region. |
 | `openstack_sharev2_shares_counter` | `count` | Max | How many shares Manila listed for this credential, per region. |
 | `openstack_sharev2_agent_state` | | Min | Whether Manila lists each service as up, with `state` saying `stopped` for one that shut down cleanly and `down` for one that died. Only a probe sends this. |
+
+### Load Balancers
+
+Only a cloud that runs Octavia sends these, and a cloud without it shows no trace of them. Octavia's series carry their status in labels and a code in their value, and a healthy one's code is 0, so a template reads which series are there and never the value.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_loadbalancer_up` | | Min | Whether a read of Octavia got far enough to say. A stopped API gives no 0, only an empty answer. |
+| `openstack_loadbalancer_loadbalancer_status` | | Max | One series per load balancer, with `provisioning_status`, `operating_status`, `provider`, `vip_address` and `project_id`. Its value is a code for the operating status: read the words. |
+| `openstack_loadbalancer_pool_status` | | Max | One series per pool, with `provisioning_status`, `operating_status`, `protocol` and `lb_algorithm`. A pool whose members are all down still reads 0: read `operating_status`. |
+| `openstack_loadbalancer_amphora_status` | | Max | One series per amphora, with `status`, `role`, `compute_id`, `loadbalancer_id` and `cert_expiration`, a text and not a number. Only an admin may list amphorae. |
+| `openstack_loadbalancer_total_loadbalancers` | `count` | Max | How many load balancers Octavia listed for this credential, per region. |
+| `openstack_loadbalancer_total_pools` | `count` | Max | How many pools Octavia listed for this credential, per region. |
+| `openstack_loadbalancer_total_amphorae` | `count` | Max | How many amphorae Octavia listed for this credential, per region. |
 
 ### Bare Metal
 

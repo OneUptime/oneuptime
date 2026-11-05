@@ -108,6 +108,8 @@ the pages while working on them.
 
 `OpenStackManila.spec.ts`: Manila, the same way: no trace on a cloud without it, its shares under Storage on one with it, a share in error from Needs attention to its own page, its API stopped, Topology, and every width.
 
+`OpenStackOctavia.spec.ts`: Octavia, the same way: no trace on a cloud without it, its load balancers under Network on one with it, a load balancer in ERROR, a pool with every member down, a pair with two masters and an amphora in ERROR from Needs attention to their own pages, Services, Topology, and every width.
+
 `DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
 
 `ExporterVersions.spec.ts`: the Overview and each list on what the agent's own exporter and exporter 1.7.0 said of one cloud: less to say on 1.7.0, and nothing false.

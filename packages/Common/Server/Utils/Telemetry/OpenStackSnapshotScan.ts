@@ -257,6 +257,9 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_sharev2_share_gb",
   "openstack_sharev2_share_status",
   "openstack_sharev2_agent_state",
+  "openstack_loadbalancer_loadbalancer_status",
+  "openstack_loadbalancer_pool_status",
+  "openstack_loadbalancer_amphora_status",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
@@ -1414,6 +1417,130 @@ function foldShare(data: {
   entry.facts["backendHost"] = getLabel(data.attributes, "host");
 }
 
+/*
+ * A load balancer, a pool or an amphora, from Octavia's three status series. The value of each is a
+ * code, and not the same code: a load balancer's is its operating status and a pool's its provisioning
+ * status (recorded: a pool with every member down reads 0, and a load balancer that never got built
+ * reads 2), so the words in the labels are what is read and the value is not.
+ */
+function foldLoadBalancer(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.LoadBalancer,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(
+    entry,
+    getLabel(data.attributes, "provisioning_status"),
+    data.observedAt,
+  );
+  setFact(
+    entry,
+    "operatingStatus",
+    getLabel(data.attributes, "operating_status"),
+  );
+  setFact(entry, "provider", getLabel(data.attributes, "provider"));
+  setFact(entry, "vipAddress", getLabel(data.attributes, "vip_address"));
+}
+
+function foldLoadBalancerPool(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.LoadBalancerPool,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(
+    entry,
+    getLabel(data.attributes, "provisioning_status"),
+    data.observedAt,
+  );
+  setFact(
+    entry,
+    "operatingStatus",
+    getLabel(data.attributes, "operating_status"),
+  );
+  setFact(entry, "protocol", getLabel(data.attributes, "protocol"));
+  setFact(entry, "algorithm", getLabel(data.attributes, "lb_algorithm"));
+  // The exporter joins a pool's load balancers into one label.
+  const loadBalancerIds: Array<string> = (
+    getLabel(data.attributes, "loadbalancers") || ""
+  )
+    .split(",")
+    .map((value: string): string => {
+      return value.trim();
+    })
+    .filter((value: string): boolean => {
+      return value.length > 0;
+    });
+  entry.facts["loadBalancerIds"] = loadBalancerIds;
+}
+
+function foldAmphora(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Amphora,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  // An amphora has no name of its own and no project: it runs in Octavia's, which the series do not say.
+  setIdentity(entry, { name: null, regionName: data.region });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  setFact(entry, "role", getLabel(data.attributes, "role"));
+  setFact(entry, "computeId", getLabel(data.attributes, "compute_id"));
+  /*
+   * A spare amphora in the pool has no load balancer, and the exporter sends the label empty.
+   * Facts merge key by key, so say it is empty rather than leave the last one in place.
+   */
+  entry.facts["loadBalancerId"] =
+    getLabel(data.attributes, "loadbalancer_id") || null;
+  setFact(
+    entry,
+    "certExpiresAt",
+    getLabel(data.attributes, "cert_expiration"),
+  );
+  setFact(entry, "haIp", getLabel(data.attributes, "ha_ip"));
+  setFact(entry, "managementIp", getLabel(data.attributes, "lb_network_ip"));
+}
+
 function foldSnapshot(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   attributes: JSONArray;
@@ -2246,6 +2373,15 @@ export function bufferOpenStackSnapshotMetric(data: {
     case "openstack_sharev2_share_gb":
     case "openstack_sharev2_share_status":
       foldShare({ buffer, attributes, region, value, observedAt, metricName });
+      return;
+    case "openstack_loadbalancer_loadbalancer_status":
+      foldLoadBalancer({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_loadbalancer_pool_status":
+      foldLoadBalancerPool({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_loadbalancer_amphora_status":
+      foldAmphora({ buffer, attributes, region, observedAt });
       return;
     case "openstack_ironic_node":
       foldBareMetalNode({ buffer, attributes, region, observedAt });

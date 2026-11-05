@@ -42,6 +42,9 @@ export const OPENSTACK_PART_SLUGS: Partial<
   [OpenStackResourceKind.Stack]: "stack",
   [OpenStackResourceKind.ContainerCluster]: "container-cluster",
   [OpenStackResourceKind.Share]: "share",
+  [OpenStackResourceKind.LoadBalancer]: "load-balancer",
+  [OpenStackResourceKind.LoadBalancerPool]: "load-balancer-pool",
+  [OpenStackResourceKind.Amphora]: "amphora",
 };
 
 const ICONS: Partial<Record<OpenStackResourceKind, IconProp>> = {
@@ -61,6 +64,9 @@ const ICONS: Partial<Record<OpenStackResourceKind, IconProp>> = {
   [OpenStackResourceKind.Stack]: IconProp.Layers,
   [OpenStackResourceKind.ContainerCluster]: IconProp.Kubernetes,
   [OpenStackResourceKind.Share]: IconProp.Folder,
+  [OpenStackResourceKind.LoadBalancer]: IconProp.Globe,
+  [OpenStackResourceKind.LoadBalancerPool]: IconProp.Layers,
+  [OpenStackResourceKind.Amphora]: IconProp.Server,
 };
 
 const ACCENTS: Partial<Record<OpenStackResourceKind, ResourcePartAccent>> = {
@@ -79,6 +85,9 @@ const ACCENTS: Partial<Record<OpenStackResourceKind, ResourcePartAccent>> = {
   [OpenStackResourceKind.Stack]: "sky",
   [OpenStackResourceKind.ContainerCluster]: "sky",
   [OpenStackResourceKind.Share]: "emerald",
+  [OpenStackResourceKind.LoadBalancer]: "indigo",
+  [OpenStackResourceKind.LoadBalancerPool]: "indigo",
+  [OpenStackResourceKind.Amphora]: "indigo",
 };
 
 const LOCATION_LINK_CLASS_NAME: string =

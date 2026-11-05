@@ -27,6 +27,8 @@ Each service is read on its own and at the same time as the others. A Neutron th
 
 Heat, Magnum and Manila are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
 
+A probe does not read Octavia yet. A cloud that runs it and is collected by a probe shows no load balancers, pools or amphorae and no Octavia on **Services**, which is not the same as having none: the [agent](/docs/telemetry/openstack#octavia) reads them, and so does `openstack loadbalancer list`. Its alerts are not offered to such a cloud either, since nothing would send the series they read.
+
 ## Probe or agent?
 
 | | A probe (this page) | The OpenStack Agent |

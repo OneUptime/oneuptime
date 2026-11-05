@@ -27,6 +27,7 @@ const DRAWN_KINDS: ReadonlyArray<[OpenStackResourceKind, string]> = [
   [OpenStackResourceKind.Instance, "openstack.instance"],
   [OpenStackResourceKind.Volume, "openstack.volume"],
   [OpenStackResourceKind.Share, "openstack.share"],
+  [OpenStackResourceKind.LoadBalancer, "openstack.loadbalancer"],
   [OpenStackResourceKind.Network, "openstack.network"],
   [OpenStackResourceKind.Subnet, "openstack.subnet"],
   [OpenStackResourceKind.Router, "openstack.router"],

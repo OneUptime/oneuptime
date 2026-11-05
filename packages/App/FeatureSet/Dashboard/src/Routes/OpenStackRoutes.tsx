@@ -51,6 +51,10 @@ import OpenStackCloudContainerClusters from "../Pages/OpenStack/View/ContainerCl
 import OpenStackCloudContainerClusterDetail from "../Pages/OpenStack/View/ContainerClusterDetail";
 import OpenStackCloudShares from "../Pages/OpenStack/View/Shares";
 import OpenStackCloudShareDetail from "../Pages/OpenStack/View/ShareDetail";
+import OpenStackCloudLoadBalancers from "../Pages/OpenStack/View/LoadBalancers";
+import OpenStackCloudLoadBalancerDetail from "../Pages/OpenStack/View/LoadBalancerDetail";
+import OpenStackCloudLoadBalancerPoolDetail from "../Pages/OpenStack/View/LoadBalancerPoolDetail";
+import OpenStackCloudAmphoraDetail from "../Pages/OpenStack/View/AmphoraDetail";
 import OpenStackCloudProjects from "../Pages/OpenStack/View/Projects";
 import OpenStackCloudProjectDetail from "../Pages/OpenStack/View/ProjectDetail";
 import OpenStackCloudDomains from "../Pages/OpenStack/View/Domains";
@@ -736,6 +740,67 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        {/* Load balancers: only a cloud that runs Octavia links here. */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+          )}
+          element={
+            <OpenStackCloudLoadBalancers
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL,
+          )}
+          element={
+            <OpenStackCloudLoadBalancerDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL,
+          )}
+          element={
+            <OpenStackCloudLoadBalancerPoolDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL,
+          )}
+          element={
+            <OpenStackCloudAmphoraDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL] as Route
               }
             />
           }

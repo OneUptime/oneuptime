@@ -47,6 +47,7 @@ describe("buildOpenStackBlastRadius", () => {
         floatingIpCount: 4,
         stackCount: 0,
         shareCount: 0,
+        loadBalancerCount: 0,
         containerClusterCount: 0,
       },
       {
@@ -58,6 +59,7 @@ describe("buildOpenStackBlastRadius", () => {
         floatingIpCount: 0,
         stackCount: 0,
         shareCount: 0,
+        loadBalancerCount: 0,
         containerClusterCount: 0,
       },
     ]);

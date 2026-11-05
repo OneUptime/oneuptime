@@ -15,6 +15,12 @@ import {
   isOpenStackBareMetalNodeStuck,
   isOpenStackBareMetalPowerUnexpected,
   isOpenStackServiceQuiet,
+  isOpenStackAmphoraCertificateExpiring,
+  isOpenStackAmphoraInError,
+  isOpenStackLoadBalancerInError,
+  isOpenStackLoadBalancerStuck,
+  isOpenStackPoolWithoutHealthyMembers,
+  getOpenStackLoadBalancersWithTwoMasters,
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
@@ -135,6 +141,7 @@ export function getInventorySummary(allRows, regionName) {
     stackCount: ofKind(rows, "Stack").length,
     containerClusterCount: ofKind(rows, "ContainerCluster").length,
     shareCount: ofKind(rows, "Share").length,
+    loadBalancerCount: ofKind(rows, "LoadBalancer").length,
     services: Array.from(
       new Set(
         ofKind(rows, "Api").map((row) => {
@@ -312,6 +319,50 @@ const ATTENTION_QUERIES = [
     },
   },
   {
+    kind: "LoadBalancer",
+    where: (row, now, rows) => {
+      return (
+        isOpenStackLoadBalancerInError(row.status) ||
+        isOpenStackLoadBalancerStuck({
+          status: row.status,
+          stateChangedAt: row.stateChangedAt,
+          now,
+        }) ||
+        getOpenStackLoadBalancersWithTwoMasters(
+          ofKind(rows, "Amphora").map((amphora) => {
+            return {
+              status: amphora.status,
+              loadBalancerId: amphora.facts?.loadBalancerId,
+              role: amphora.facts?.role,
+            };
+          }),
+        ).includes(row.externalId)
+      );
+    },
+  },
+  {
+    kind: "LoadBalancerPool",
+    where: (row) => {
+      return (
+        isOpenStackLoadBalancerInError(row.status) ||
+        isOpenStackPoolWithoutHealthyMembers(row.facts?.operatingStatus)
+      );
+    },
+  },
+  {
+    kind: "Amphora",
+    where: (row, now) => {
+      return (
+        isOpenStackAmphoraInError(row.status) ||
+        isOpenStackAmphoraCertificateExpiring({
+          status: row.status,
+          certExpiresAt: row.facts?.certExpiresAt,
+          now,
+        })
+      );
+    },
+  },
+  {
     kind: "Share",
     where: (row, now) => {
       return (
@@ -394,16 +445,35 @@ export function getAttentionRows(allRows, regionName, now) {
   for (const query of [...ATTENTION_QUERIES, PROJECT_AT_QUOTA]) {
     const found = ofKind(rows, query.kind)
       .filter((row) => {
-        return query.where(row, now);
+        return query.where(row, now, rows);
       })
       .sort((first, second) => {
         return String(first.name).localeCompare(String(second.name));
       });
     answer.totalsByKind[query.kind] = found.length;
     answer.rows.push(
-      ...(query.whole ? found : found.slice(0, ATTENTION_ROWS_PER_KIND)).map(
-        asRawRow,
-      ),
+      ...(query.whole ? found : found.slice(0, ATTENTION_ROWS_PER_KIND))
+        .map((row) => {
+          // As OpenStackResourceService.stampMasterAmphoraCounts does for a page of load balancers.
+          return query.kind === "LoadBalancer"
+            ? {
+                ...row,
+                facts: {
+                  ...(row.facts || {}),
+                  masterAmphoraCount: ofKind(rows, "Amphora").filter(
+                    (amphora) => {
+                      return (
+                        amphora.status === "ALLOCATED" &&
+                        amphora.facts?.role === "MASTER" &&
+                        amphora.facts?.loadBalancerId === row.externalId
+                      );
+                    },
+                  ).length,
+                },
+              }
+            : row;
+        })
+        .map(asRawRow),
     );
   }
   return answer;
@@ -642,6 +712,13 @@ export function getBlastRadius(allRows, part) {
       });
     };
     switch (part.name) {
+      case "load-balancer":
+        return finish([
+          {
+            count: "loadBalancerCount",
+            byProject: countsByProject(inRegion("LoadBalancer")),
+          },
+        ]);
       case "sharev2":
         return finish([
           {
@@ -793,6 +870,7 @@ export function getProjectSummaries(allRows, projectIds) {
       stackCount: count("Stack"),
       containerClusterCount: count("ContainerCluster"),
       shareCount: count("Share"),
+      loadBalancerCount: count("LoadBalancer"),
     };
   });
 }

@@ -155,6 +155,13 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
   ["Shares.tsx", "OPENSTACK_CLOUD_VIEW_SHARES"],
   ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
+  ["LoadBalancers.tsx", "OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS"],
+  ["LoadBalancerDetail.tsx", "OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL"],
+  [
+    "LoadBalancerPoolDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL",
+  ],
+  ["AmphoraDetail.tsx", "OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL"],
   ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
   [
     "ContainerClusterDetail.tsx",
