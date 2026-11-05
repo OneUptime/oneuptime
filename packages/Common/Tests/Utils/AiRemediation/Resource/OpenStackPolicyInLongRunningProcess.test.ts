@@ -122,29 +122,38 @@ const SCRIPT: string = String.raw`
     "the translation": (text) => lib.parseOpenStackCommand(["openstack", "server", "show", text]),
     "the dispatcher, an argv": (text) => lib.ResourceCommandPolicy.evaluateArgv({ resourceType: "OpenStackCloud", argv: ["openstack", text] }),
     "the dispatcher, a line": (text) => lib.ResourceCommandPolicy.evaluateCommand({ resourceType: "OpenStackCloud", command: "openstack " + text }),
-    "OpenStack's redaction": (text) => hook(text),
-    "OpenStack's redaction, in a value": (text) => hook(JSON.stringify({ "OS-EXT-SRV-ATTR:user_data": text, name: text })),
-    "OpenStack's redaction, a key: value line": (text) => hook("OS-EXT-SRV-ATTR:user_data: " + text),
+    "OpenStack's redaction": hook,
+  };
+
+  // The same redaction, of what a cloud wraps a long text in: made before the clock starts.
+  const WRAPPED = {
+    "OpenStack's redaction, in a value": (text) => JSON.stringify({ "OS-EXT-SRV-ATTR:user_data": text, name: text }),
+    "OpenStack's redaction, a key: value line": (text) => "OS-EXT-SRV-ATTR:user_data: " + text,
   };
 
   // OpenStack's rules on the generic ones, end to end: the shapes OpenStack adds.
   const REDACTOR = (text) => lib.redactResourceCommandOutput({ resourceType: "OpenStackCloud", program: "openstack", text });
   const REDACTOR_SHAPES = ["user data pairs", "unclosed user data", "fernet starts", "table rows", "direct urls"];
 
-  const SHORT = 256 * 1024;
-  const LONG = 1024 * 1024;
+  const SHORT = 1024 * 1024;
+  const LONG = 4 * 1024 * 1024;
   const HUGE = 16 * 1024 * 1024;
+  // The generic redactor has its own tests of length, and takes longer than these have.
+  const REDACTOR_SHORT = 256 * 1024;
+  const REDACTOR_LONG = 1024 * 1024;
 
   const timed = (work, text) => {
     let fastest = Infinity;
 
     // The fastest of a few: a loaded machine only ever makes it slower.
     for (let attempt = 0; attempt < 3; attempt++) {
+      // What the last shape left is not this one's to pay for.
+      global.gc();
       const startedAt = process.hrtime.bigint();
       work(text);
       const taken = Number(process.hrtime.bigint() - startedAt) / 1e6;
       fastest = Math.min(fastest, taken);
-      if (fastest < 5) {
+      if (fastest < 50) {
         break;
       }
     }
@@ -156,46 +165,44 @@ const SCRIPT: string = String.raw`
   const results = [];
   let ran = 0;
 
-  for (const [shape, unit] of Object.entries(SHAPES)) {
+  const place = (shape, worker, work, wrap, shortLength, longLength) => {
+    ran++;
+    try {
+      const unit = SHAPES[shape];
+      const short = timed(work, wrap(repeatTo(unit, shortLength)));
+      const long = timed(work, wrap(repeatTo(unit, longLength)));
+      results.push({ shape, worker, short, long });
+    } catch (error) {
+      failures.push({
+        shape,
+        worker,
+        error: String((error && error.message) || error).split("\n")[0].slice(0, 200),
+      });
+    }
+  };
+  const asIs = (text) => text;
+
+  for (const shape of Object.keys(SHAPES)) {
     for (const [worker, work] of Object.entries(WORKERS)) {
-      ran++;
-      try {
-        const short = timed(work, repeatTo(unit, SHORT));
-        const long = timed(work, repeatTo(unit, LONG));
-        results.push({ shape, worker, short, long });
-      } catch (error) {
-        failures.push({
-          shape,
-          worker,
-          error: String((error && error.message) || error).split("\n")[0].slice(0, 200),
-        });
-      }
+      place(shape, worker, work, asIs, SHORT, LONG);
+    }
+    for (const [worker, wrap] of Object.entries(WRAPPED)) {
+      place(shape, worker, hook, wrap, SHORT, LONG);
     }
   }
 
   for (const shape of REDACTOR_SHAPES) {
-    ran++;
-    try {
-      results.push({
-        shape,
-        worker: "the whole redactor",
-        short: timed(REDACTOR, repeatTo(SHAPES[shape], SHORT)),
-        long: timed(REDACTOR, repeatTo(SHAPES[shape], LONG)),
-      });
-    } catch (error) {
-      failures.push({
-        shape,
-        worker: "the whole redactor",
-        error: String((error && error.message) || error).split("\n")[0].slice(0, 200),
-      });
-    }
+    place(shape, "the whole redactor", REDACTOR, asIs, REDACTOR_SHORT, REDACTOR_LONG);
   }
 
   // Sixteen megabytes, as a stuck process would see them: nothing throws.
   for (const shape of ["letters", "user data pairs", "unclosed user data", "fernet starts", "quotes", "newlines"]) {
     const huge = repeatTo(SHAPES[shape], HUGE);
 
-    for (const [worker, work] of Object.entries(WORKERS)) {
+    for (const [worker, work] of [
+      ...Object.entries(WORKERS),
+      ...Object.entries(WRAPPED).map(([worker, wrap]) => [worker, (text) => hook(wrap(text))]),
+    ]) {
       ran++;
       try {
         work(huge);
@@ -236,7 +243,7 @@ const SCRIPT: string = String.raw`
 function runInLongRunningProcess(): ProcessReport {
   const output: string = childProcess.execFileSync(
     process.execPath,
-    ["--no-regexp-optimization", "--max-old-space-size=8192", "-e", SCRIPT],
+    ["--no-regexp-optimization", "--max-old-space-size=8192", "--expose-gc", "-e", SCRIPT],
     {
       cwd: COMMON_ROOT,
       encoding: "utf8",
@@ -263,8 +270,14 @@ describe("the OpenStack policy and redactor, unoptimized, on long hostile input"
   test("the time grows with the length", () => {
     const tooSlow: Array<unknown> = report.slowest.filter(
       (result: { short: number; long: number }): boolean => {
-        // Under 50 ms is not a trend: a loaded machine's noise.
-        return result.long > 50 && result.long > 10 * Math.max(result.short, 1);
+        /*
+         * Under two seconds is not a trend. Refusing a word of quotes writes four times its
+         * length, so what the collector charges that varies widely, while a read that really
+         * grows with the square of four megabytes takes minutes or never ends.
+         */
+        return (
+          result.long > 2000 && result.long > 10 * Math.max(result.short, 1)
+        );
       },
     );
 

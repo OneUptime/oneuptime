@@ -18,10 +18,11 @@ import {
  *   - filters and limits are applied here to recorded rows, as Nova, Neutron and
  *     Cinder document them;
  *   - one object's answer (server show, router show, ...) is that object's row of
- *     the recorded list, wrapped as its API wraps one. A rig step now records them
- *     for real (ai-agent-record.sh);
+ *     the recorded list, wrapped as its API wraps one;
  *   - server events are hand-written after the shape Nova's API reference and
- *     OpenStackInstanceActions in the probe read, until that step's recording.
+ *     OpenStackInstanceActions in the probe read.
+ *
+ * The rig's ai-agent-record.sh runs the same commands against a real DevStack.
  */
 
 export const FAKE_TOKEN: string = `gAAAAA-fake-token-${"x".repeat(60)}`;

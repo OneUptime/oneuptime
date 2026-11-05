@@ -459,7 +459,7 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       // Run as uid 1000, which cannot give the file to the image's own user.
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
-      COMPOSE_PROFILES: "'openstack-exporter'",
+      COMPOSE_PROFILES: "'openstack-exporter,openstack-ai-agent'",
       // The first region named, for a target that does not say its own.
       OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
@@ -1507,7 +1507,7 @@ describe("bring your own exporter", () => {
 
     expect(run.status).toBe(0);
     expect(composeReadAll(run.envFile).COMPOSE_PROFILES).toBe(
-      "openstack-exporter",
+      "openstack-exporter,openstack-ai-agent",
     );
     expect(run.cloudsText).not.toBe("");
   });
@@ -1791,7 +1791,8 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_EXPORTER_ADDRESS: "openstack-exporter:9180",
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "",
-      COMPOSE_PROFILES: "openstack-exporter",
+      // What a re-run starts: the bundled exporter, and now the AI agent beside it.
+      COMPOSE_PROFILES: "openstack-exporter,openstack-ai-agent",
       // What it did not say takes its default, so the next hand has it to change.
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
@@ -2200,14 +2201,14 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
 
   test("keeps every variable docker-compose.yml reads and writes exactly those, with what it and the doctor read", () => {
     const names = envNames(script);
-    const expected = [
+    const expected = new Set([
       ...composeVariables(),
       // Compose itself reads which profiles to start from .env.
       "COMPOSE_PROFILES",
-      // This script and troubleshoot.sh.
+      // This script and troubleshoot.sh, and the AI agent's own credential in the compose file.
       "OPENSTACK_AUTH_URL",
-    ];
-    expect([...names].sort()).toEqual(expected.sort());
+    ]);
+    expect([...names].sort()).toEqual([...expected].sort());
     expect(writtenNames(script)).toEqual(names);
   });
 
@@ -2223,8 +2224,13 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
       expect(lines).toContain(line);
     }
     // Each list is written one name at a time, by the same helper.
-    for (const list of ["TARGET_LIST_NAMES", "VERY_LARGE_CLOUD_NAMES"]) {
-      const loop = script.slice(script.indexOf(`for name in $${list}; do`));
+    for (const list of [
+      "$TARGET_LIST_NAMES",
+      "$VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES",
+    ]) {
+      const head = `for name in ${list}; do`;
+      expect(script).toContain(head);
+      const loop = script.slice(script.indexOf(head));
       expect(loop.slice(0, loop.indexOf("\ndone"))).toContain(
         `printf '%s=%s\\n' "$name" "$(env_value "\${!name}")" >> "$ENV_FILE"`,
       );
@@ -2351,8 +2357,29 @@ describe("the .env the installer writes, as the real Docker Compose reads it (re
       const config = realComposeConfig(run.installDir);
       expect(Object.keys(config.services).sort()).toEqual([
         "oneuptime-openstack-agent",
+        "oneuptime-openstack-ai-agent",
         "openstack-exporter",
       ]);
+      // The AI agent serves the cloud the collector reports, with the same file.
+      const aiAgent = config.services["oneuptime-openstack-ai-agent"];
+      expect(
+        serviceEnvironment(config, "oneuptime-openstack-ai-agent"),
+      ).toMatchObject({
+        ONEUPTIME_URL: URL,
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
+        ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+        OPENSTACK_CLOUD_NAME: cloudName,
+        OPENSTACK_EXPORTER_CLOUDS: "[RegionOne,RegionTwo]",
+        ONEUPTIME_AI_ALLOW_WRITES: "false",
+      });
+      expect(aiAgent.user).toBe("1000:1000");
+      expect(aiAgent.read_only).toBe(true);
+      expect(aiAgent.cap_drop).toEqual(["ALL"]);
+      expect(
+        aiAgent.volumes.map((volume) => {
+          return `${path.basename(volume.source)}:${volume.target}:${volume.read_only}`;
+        }),
+      ).toContain("clouds.yaml:/etc/openstack/clouds.yaml:true");
       expect(
         serviceEnvironment(config, "oneuptime-openstack-agent"),
       ).toMatchObject({
