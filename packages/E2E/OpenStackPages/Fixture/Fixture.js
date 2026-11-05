@@ -62,6 +62,7 @@ import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
+import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
 import CloudHypervisors from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Hypervisors";
@@ -172,6 +173,7 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { buildCapacitySnapshotOf } from "./Capacity";
 import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
 /*
@@ -630,16 +632,41 @@ function matches(modelName, record, query) {
   return true;
 }
 
+/*
+ * What the worker would keep on the cloud, worked out from this estate's rows by the same code
+ * (OpenStackCapacitySnapshot). ?capacity=none is a cloud no worker has been through yet.
+ */
+function withCapacity(cloud) {
+  return params.get("capacity") === "none"
+    ? cloud
+    : {
+        ...cloud,
+        capacitySnapshot: buildCapacitySnapshotOf(estate.inventory, {
+          scenario: params.get("capacity"),
+          loadedAt: LOADED_AT,
+        }),
+      };
+}
+
 const store = {
   OpenStackCloud:
     params.get("clouds") === "none"
       ? []
       : [
-          params.get("collection") === "Probe"
-            ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
-            : params.get("collection")
-              ? { ...estate.cloud, collectionMethod: params.get("collection") }
-              : estate.cloud,
+          withCapacity(
+            params.get("collection") === "Probe"
+              ? probeCollectedCloud(
+                  estate.cloud,
+                  params.get("probe"),
+                  LOADED_AT,
+                )
+              : params.get("collection")
+                ? {
+                    ...estate.cloud,
+                    collectionMethod: params.get("collection"),
+                  }
+                : estate.cloud,
+          ),
         ],
   OpenStackCloudConnectionTest: [],
   OpenStackCloudOwnerUser: [],
@@ -1812,6 +1839,7 @@ function withNavigation(Component, pageKey) {
 
 const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW, CloudOverview],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS, CloudHypervisors],

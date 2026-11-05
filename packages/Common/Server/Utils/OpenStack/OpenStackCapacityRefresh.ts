@@ -5,7 +5,9 @@ import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
-import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import Query from "../../../Types/BaseDatabase/Query";
+import Metric from "../../../Models/AnalyticsModels/Metric";
 import { OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -35,9 +37,13 @@ import {
   OPENSTACK_CAPACITY_FORECAST_WINDOW_HOURS,
   OPENSTACK_CAPACITY_MISMATCH_EVERY_MINUTES,
   OpenStackCapacityFlavor,
+  OpenStackCapacityFlavorSourceRow,
   OpenStackCapacityForecastRow,
+  OpenStackCapacityHostSourceRow,
   OpenStackCapacityMismatchRow,
+  OpenStackCapacityNetworkSourceRow,
   OpenStackCapacityPool,
+  OpenStackCapacityPoolSourceRow,
   OpenStackCapacitySnapshot,
   OpenStackCapacityZone,
   buildOpenStackCapacitySnapshot,
@@ -192,7 +198,11 @@ export default class OpenStackCapacityRefresh {
       });
 
     const hosts: Array<OpenStackCapacityHost> = rows.hypervisors.map(
-      readOpenStackCapacityHost,
+      (row: JSONObject): OpenStackCapacityHost => {
+        return readOpenStackCapacityHost(
+          row as unknown as OpenStackCapacityHostSourceRow,
+        );
+      },
     );
 
     const instances: Array<OpenStackInstancesOnHost> | null = isDue(
@@ -226,7 +236,7 @@ export default class OpenStackCapacityRefresh {
     const flavors: Array<OpenStackCapacityFlavor> = rows.flavors.map(
       (row: JSONObject): OpenStackCapacityFlavor => {
         const flavor: OpenStackCapacityFlavor = readOpenStackCapacityFlavor({
-          row: row as Parameters<typeof readOpenStackCapacityFlavor>[0]["row"],
+          row: row as unknown as OpenStackCapacityFlavorSourceRow,
           instanceCount: 0,
         });
         flavor.instanceCount =
@@ -239,7 +249,7 @@ export default class OpenStackCapacityRefresh {
     for (const row of rows.storagePools) {
       const pool: OpenStackCapacityPool | null =
         readOpenStackCapacityStoragePool(
-          row as Parameters<typeof readOpenStackCapacityStoragePool>[0],
+          row as unknown as OpenStackCapacityPoolSourceRow,
         );
       if (pool) {
         pools.push(pool);
@@ -248,7 +258,7 @@ export default class OpenStackCapacityRefresh {
     for (const row of rows.externalNetworks) {
       const pool: OpenStackCapacityPool | null =
         readOpenStackCapacityExternalNetwork(
-          row as Parameters<typeof readOpenStackCapacityExternalNetwork>[0],
+          row as unknown as OpenStackCapacityNetworkSourceRow,
         );
       if (pool) {
         pools.push(pool);
@@ -408,31 +418,19 @@ export default class OpenStackCapacityRefresh {
     );
 
     try {
-      const result: AggregatedResult = await MetricService.aggregateBy({
-        query: {
-          projectId: data.projectId,
-          time: new InBetween<Date>(startDate, endDate),
-          name: OPENSTACK_CAPACITY_ALLOCATED_SERIES,
-          attributes: {
-            [OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE]: data.cloudName,
-          },
-        } as unknown as Parameters<
-          typeof MetricService.aggregateBy
-        >[0]["query"],
-        aggregationType: MetricsAggregationType.Max,
+      const result: AggregatedResult = await this.readGrouped({
+        projectId: data.projectId,
+        cloudName: data.cloudName,
+        metricName: OPENSTACK_CAPACITY_ALLOCATED_SERIES,
+        startDate,
+        endDate,
         aggregationInterval: AggregationInterval.Hour,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp: startDate,
-        endTimestamp: endDate,
         limit: FORECAST_READ_ROW_LIMIT,
-        skip: 0,
         groupByAttributeKeys: [
           "openstack.region.name",
           ...OPENSTACK_CAPACITY_SERIES_LABELS,
         ],
-        props: { isRoot: true },
-      } as unknown as Parameters<typeof MetricService.aggregateBy>[0]);
+      });
 
       return {
         ...data.snapshot,
@@ -485,28 +483,16 @@ export default class OpenStackCapacityRefresh {
     const read: (metricName: string) => Promise<Map<string, number>> = async (
       metricName: string,
     ): Promise<Map<string, number>> => {
-      const result: AggregatedResult = await MetricService.aggregateBy({
-        query: {
-          projectId: data.projectId,
-          time: new InBetween<Date>(startDate, endDate),
-          name: metricName,
-          attributes: {
-            [OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE]: data.cloudName,
-          },
-        } as unknown as Parameters<
-          typeof MetricService.aggregateBy
-        >[0]["query"],
-        aggregationType: MetricsAggregationType.Max,
+      const result: AggregatedResult = await this.readGrouped({
+        projectId: data.projectId,
+        cloudName: data.cloudName,
+        metricName,
+        startDate,
+        endDate,
         aggregationInterval: AggregationInterval.Total,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp: startDate,
-        endTimestamp: endDate,
         limit: REAL_USAGE_READ_ROW_LIMIT,
-        skip: 0,
         groupByAttributeKeys: [OPENSTACK_HYPERVISOR_ATTRIBUTE],
-        props: { isRoot: true },
-      } as unknown as Parameters<typeof MetricService.aggregateBy>[0]);
+      });
 
       const values: Map<string, number> = new Map();
 
@@ -552,6 +538,40 @@ export default class OpenStackCapacityRefresh {
       );
       return { usage: null, isDue: true };
     }
+  }
+
+  private static async readGrouped(data: {
+    projectId: ObjectID;
+    cloudName: string;
+    metricName: string;
+    startDate: Date;
+    endDate: Date;
+    aggregationInterval: AggregationInterval;
+    limit: number;
+    groupByAttributeKeys: Array<string>;
+  }): Promise<AggregatedResult> {
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: new InBetween<Date>(data.startDate, data.endDate),
+      name: data.metricName,
+      attributes: {
+        [OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE]: data.cloudName,
+      },
+    } as Query<Metric>;
+
+    return await MetricService.aggregateBy({
+      query,
+      aggregationType: AggregationType.Max,
+      aggregationInterval: data.aggregationInterval,
+      aggregateColumnName: "value",
+      aggregationTimestampColumnName: "time",
+      startTimestamp: data.startDate,
+      endTimestamp: data.endDate,
+      limit: data.limit,
+      skip: 0,
+      groupByAttributeKeys: data.groupByAttributeKeys,
+      props: { isRoot: true },
+    });
   }
 
   public static async save(data: {

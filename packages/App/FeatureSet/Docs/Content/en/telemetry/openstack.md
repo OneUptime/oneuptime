@@ -6,6 +6,7 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Choose how much it sees](#choose-how-much-the-agent-sees): OpenStack has no global read-only role, so there are three levels.
 - [Install the agent](#install-the-agent): A credential, then the install script, Docker Compose or no Docker at all.
 - [What it costs your cloud](#what-it-costs-your-cloud): What each setting reads, and how to change it.
+- [Capacity](#capacity): How many more of each flavor fit, and how many days until each thing is full.
 - [Service logs](#service-logs): Parsed, with a request followed across services.
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
@@ -413,6 +414,43 @@ Three open upstream issues shape all this, and the project has also [asked for m
 - [Issue 660](https://github.com/openstack-exporter/openstack-exporter/issues/660): one failing service empties a whole scrape. So there is one scrape job per service. Do not merge them.
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and the diagnostic script asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
+
+## Capacity
+
+"Can we fit this?" is the question an OpenStack operator gets asked most, and Nova's free counts don't answer it: allocation ratios, reservations and fragmentation all matter, so a cloud can have thousands of vCPUs free and no room for one large instance. A cloud's **Capacity** page says how many more of each flavor fit, and what is short, soonest first. It reads one summary, worked out every two minutes, so a cloud of 5,000 hosts loads as fast as a cloud of one. **Export CSV** on its flavor table downloads everything on the page.
+
+Everything on it is allocation: what has been promised, not what is busy. An idle instance holds all of it.
+
+**What capacity is.** For each resource provider and resource class, capacity is `(total - reserved) x allocation_ratio`, and allocated is what Placement has promised. That adds up by zone, aggregate, region and cloud. A host whose `nova-compute` is down keeps reporting its last numbers, and a disabled one takes nothing on, so neither counts as room. What they hold is still there, and a forecast counts it.
+
+**How many more fit.** Each flavor is counted host by host, because an instance needs all of what it asks for on one host. Beside the count is what it would be if everything free were on one host, which is how a full cloud is told from a fragmented one. A flavor no host could hold even empty says **Too large for every host**, and nothing ever alerts on it. Counts are for an instance booted from an image: one booted from a volume asks for no root disk.
+
+The page says where each count came from:
+
+| | Through a probe | Through the agent |
+| --- | --- | --- |
+| **Counted from** | `GET /allocation_candidates`, which is what Nova's scheduler asks, as [StackHPC's os-capacity](https://github.com/stackhpc/os-capacity) does. Inventories fill in until a flavor's turn comes round | The Placement series the exporter already sends: `openstack_placement_resource_{total,reserved,allocation_ratio,usage}` |
+| **Sees traits and nested providers** | Yes. A flavor's extra specs are asked for too, so `trait:` and `resources:` count | No: the exporter's flavor series has no extra specs, so a flavor that needs a trait counts every host, and the page says so |
+| **A host's `max_unit`** | Placement's own | Taken to be the host's total, which is what Nova sets |
+
+A probe asks gently, because this is the one read that makes Placement work. It asks about one shape of flavor at a time, so flavors that ask for the same thing are one question, and at most 4 a collection, in turns, however many flavors there are. So a cloud of 40 flavors collected every 2 minutes costs 2 calls a minute and goes round in 20 minutes. Each answer is limited to 1,000 hosts, which is Nova's own `max_placement_results`: one boot's worth of work. A count from an answer that long is a floor, and the page says **At least**. It asks nothing on its first collection, nothing when Placement has been slow that collection, and for an hour nothing once a credential has been refused, because the count from inventories is there anyway. An application credential or the `oneuptime_monitoring` role needs `/allocation_candidates` to be allowed: it is in `access/application-credential-access-rules.json` and `access/policy/placement.yaml`.
+
+**Beside what hosts really use.** Where [real usage](#real-usage) reaches OneUptime, the page puts the ratio you set beside what the hosts really use at their peak over a day, and the ratio at which they would reach the 90% line that **Hypervisor CPU Saturated** and **Hypervisor Memory Pressure** draw. It is a straight line from one day of one workload, so it says how far a ratio could move, not that you should move it. It says nothing until over half of a zone's hosts report.
+
+**When things fill up.** Each zone's resource classes, each external network's IPv4 addresses and each storage pool have a forecast: a straight line through what was allocated over the last week, against what there is today. A new cloud says **Not enough history** until it has a day of it.
+
+**Whether a zone can lose a host.** What is allocated in the zone, on a lost host too, against what its other hosts could promise with the largest gone, as VMware's Host failure asks of a cluster. It compares amounts rather than where each instance would land, so a zone that passes has room for an evacuation, not a promise that every instance finds a host: the flavor table shows what is fragmented. A zone of one host has nothing to say, and neither does one with a host someone disabled, because that is planned work.
+
+**Allocations no instance explains.** When Placement holds more on a host than its instances' flavors add up to, for over half an hour, the page names the host. That is usually an [orphaned allocation](https://docs.openstack.org/nova/latest/admin/troubleshooting/orphaned-allocations.html), left by a delete or a move that failed part way, and it silently eats capacity. It compares vCPUs and memory, because an instance booted from a volume holds none of its flavor's disk. It says nothing of a host with anything on it moving, or an instance of a flavor the cloud no longer lists. To see what they are, and to remove them once you've checked each is really no instance's or migration's:
+
+```bash
+nova-manage placement audit --verbose
+nova-manage placement audit --verbose --delete
+```
+
+**Alerts.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** and **Reserved Headroom Gone** read series OneUptime writes from the same summary. They are in the [monitor's templates](/docs/monitor/openstack-monitor#pre-built-alert-templates) and on the cloud's **Recommendations** page.
+
+**What it costs.** Nothing on the agent. A probe adds the calls above. OneUptime writes about 2 series for each zone's resource class, external network and storage pool, and one for each flavor people can ask for, every two minutes, billed as any other metric.
 
 ## Real usage
 
