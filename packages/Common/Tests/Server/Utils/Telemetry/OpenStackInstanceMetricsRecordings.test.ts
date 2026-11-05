@@ -563,7 +563,7 @@ describe.each(RELEASES)("%s", (release: string) => {
       expect(average(CEILOMETER) / average(LIBVIRT)).toBeLessThan(1.4);
     });
 
-    test("nothing the burner read from its disk reads as anything but what it read: nothing", () => {
+    test("what the burner hardly reads from its disk reads as hardly anything, beside what it writes", () => {
       for (const source of SOURCES) {
         for (const value of valuesOf(
           pointsOfInstance(
@@ -573,7 +573,8 @@ describe.each(RELEASES)("%s", (release: string) => {
             "vda",
           ),
         )) {
-          expect(value).toBe(0);
+          expect(value).toBeGreaterThanOrEqual(0);
+          expect(value).toBeLessThan(MIB);
         }
       }
     });

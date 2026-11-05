@@ -10,8 +10,8 @@
 #   burn      ou-burner has one vCPU and spins on it, and its disk is throttled by libvirt,
 #             which is what a slow backend looks like from above: Instance CPU Saturated
 #             and Instance Disk Latency High
-#   neighbour ou-hog boots with more vCPUs than the runner has threads, and spins on them
-#             all, while the disk's throttle comes off: Hypervisor CPU Saturated, the
+#   neighbour ou-hog and ou-hog-2 boot with as many vCPUs as the runner has threads, and spin
+#             on them all, while the disk's throttle comes off: Hypervisor CPU Saturated, the
 #             first two recovering, and every instance on it really waiting for a CPU
 #   quiet     both have stopped, on timers in their guests: all of them recover
 #
@@ -20,6 +20,8 @@
 #   ou-running is hard rebooted   every counter it has goes back to nothing
 #   ou-burner is shut off         how a source stops talking about an instance
 #   ou-hog is deleted             the same, for one that no longer exists
+#
+# Then quiet for a whole window more, or what fell last has nothing to recover in.
 #
 # Writes OUTPUT_DIR/instance-metrics-drill/timeline.txt, a line for each of those with its
 # time in seconds since the epoch, and servers.json with what Nova says each instance is.
@@ -78,8 +80,9 @@ if [ -f "$POLLING_CONF" ]; then
 fi
 mark "polling-every-$POLLING_INTERVAL"
 
-# More vCPUs than the runner has threads, so nothing on it gets one whenever it wants.
-HOG_VCPUS=$((THREADS + 2))
+# Two of them with as many vCPUs as the runner has threads, so nothing on it gets one whenever it
+# wants. Placement refuses any one instance more than that.
+HOG_VCPUS="$THREADS"
 openstack flavor show ou.hog >/dev/null 2>&1 \
   || openstack flavor create --vcpus "$HOG_VCPUS" --ram 256 --disk 1 ou.hog >/dev/null
 
@@ -126,6 +129,7 @@ sleep "$HOLD_SECONDS"
 sudo virsh blkdeviotune "$BURNER_DOMAIN" vda --write-iops-sec 0 --live || true
 mark neighbour-booting
 boot ou-hog ou.hog "$HOG_SCRIPT"
+boot ou-hog-2 ou.hog "$HOG_SCRIPT"
 sleep "$SETTLE_SECONDS"
 mark neighbour
 sleep "$HOLD_SECONDS"
@@ -144,8 +148,8 @@ OS_PROJECT_NAME=ou-research wait_for_status ou-burner SHUTOFF
 sleep "$((HOLD_SECONDS / 4))"
 
 mark delete-ou-hog
-OS_PROJECT_NAME=ou-research openstack server delete --wait ou-hog >/dev/null
-sleep "$((HOLD_SECONDS / 4))"
+OS_PROJECT_NAME=ou-research openstack server delete --wait ou-hog ou-hog-2 >/dev/null
+sleep "$HOLD_SECONDS"
 mark end
 
 openstack server list --all-projects --long -f json >"$TARGET/servers.json" 2>/dev/null || true

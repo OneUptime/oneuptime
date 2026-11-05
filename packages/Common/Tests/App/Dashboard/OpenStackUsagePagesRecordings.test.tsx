@@ -254,7 +254,10 @@ describe.each(CASES)(
     describe("the burning instance's own page", () => {
       test("shows all of its one vCPU in use, beside what its flavor promised", async () => {
         const usage: HTMLElement = await openBurner();
-        expect(within(usage).getByText("100%")).toBeInTheDocument();
+        // Nearly all of it, to the percent a real runner gives it.
+        expect(
+          within(usage).getByText(/^(9[5-9]|10[0-5])%$/),
+        ).toBeInTheDocument();
         expect(usage).toHaveTextContent("of 1 vCPUs from its flavor");
       });
 

@@ -95,9 +95,12 @@ export const OPENSTACK_LIBVIRT_LONGEST_GAP_MS: number = 15 * 60 * 1000;
 export const OPENSTACK_CEILOMETER_QUIET_MS: number = 11 * 60 * 1000;
 export const OPENSTACK_CEILOMETER_LONGEST_GAP_MS: number = 31 * 60 * 1000;
 
-// What a hypervisor's total adds up: an instance that has reported this recently.
-const LIBVIRT_FRESH_MS: number = 3 * 60 * 1000;
-const CEILOMETER_FRESH_MS: number = OPENSTACK_CEILOMETER_QUIET_MS;
+/*
+ * What a hypervisor's total adds up: an instance its exporter has said anything of this recently.
+ * Either source repeats itself every minute it is read, so this is a few missed scrapes. Ceilometer
+ * goes on saying an instance's last values until a poll finds it gone.
+ */
+const HYPERVISOR_TOTAL_FRESH_MS: number = 3 * 60 * 1000;
 
 const BYTES_PER_MIB: number = 1024 * 1024;
 const NANOSECONDS_PER_SECOND: number = 1e9;
@@ -964,6 +967,10 @@ export function applyOpenStackInstanceMetricSamples(data: {
     if (applySample({ sample, instance, emit, flavorVcpus: current.vcpus })) {
       current.delayMoved = true;
     }
+    // Still being said, whatever it said: not every source has a new value for it every time.
+    if (instance.u && sample.timeMs > instance.u[0]) {
+      instance.u = [sample.timeMs, instance.u[1], instance.u[2]];
+    }
   }
 
   // What takes several series to work out, once each has had its say.
@@ -1029,11 +1036,6 @@ function writeHypervisorTotals(data: {
     }
     const source: OpenStackInstanceMetricSource =
       sourceText as OpenStackInstanceMetricSource;
-    const fresh: number =
-      source === OpenStackInstanceMetricSource.Libvirt
-        ? LIBVIRT_FRESH_MS
-        : CEILOMETER_FRESH_MS;
-
     let latestMs: number = 0;
     let latestTime: JSONValue = null;
     for (const entry of data.touched.values()) {
@@ -1068,7 +1070,7 @@ function writeHypervisorTotals(data: {
     for (const instance of Object.values(state.i)) {
       const usage: [number, number | null, number | null] | undefined =
         instance.u;
-      if (!usage || latestMs - usage[0] > fresh) {
+      if (!usage || latestMs - usage[0] > HYPERVISOR_TOTAL_FRESH_MS) {
         continue;
       }
       reporting += 1;
@@ -1434,8 +1436,6 @@ function applySample(data: {
       if (advanceLevelOf(sample, instance)) {
         noteUsage(instance, sample, { resident: sample.value });
         emit(OpenStackInstanceMetric.MemoryResident, sample.value);
-      } else {
-        noteUsage(instance, sample, {});
       }
       return false;
     }

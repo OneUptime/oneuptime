@@ -1286,7 +1286,11 @@ function usageInventory(context) {
     }
     if (row.kind === "Instance" && row.hypervisorName === USAGE_HOST) {
       index += 1;
-      return { ...row, usage: usageOfInstance(index) };
+      return {
+        ...row,
+        facts: { ...row.facts, flavorId: "5" },
+        usage: usageOfInstance(index),
+      };
     }
     return row;
   });
