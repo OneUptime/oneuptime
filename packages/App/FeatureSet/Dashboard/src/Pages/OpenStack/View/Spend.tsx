@@ -80,7 +80,7 @@ const TABLE_CLASS_NAME: string = "min-w-full text-start text-sm";
 const HEAD_CLASS_NAME: string =
   "border-b border-gray-200 text-xs font-medium uppercase tracking-wide text-gray-500";
 const CELL_CLASS_NAME: string = "py-2 pe-4 text-start align-top";
-const WIDE_CELL_CLASS_NAME: string = `${CELL_CLASS_NAME} hidden md:table-cell`;
+const WIDE_CELL_CLASS_NAME: string = `${CELL_CLASS_NAME} max-md:hidden md:table-cell`;
 const ROW_CLASS_NAME: string = "border-b border-gray-100 last:border-0";
 const LINK_CLASS_NAME: string =
   "font-medium text-indigo-600 hover:text-indigo-700 hover:underline";
