@@ -117,7 +117,18 @@ export const reloadPage: ReloadPageFunction = (): void => {
  */
 let isDocumentUnloading: boolean = false;
 
-if (typeof window !== "undefined") {
+/*
+ * On load, because beforeunload can fire before the first chunk error, and so
+ * on every import: since form fields draw through ChunkLoadRecovery, that is
+ * anything that reads ModelAPI, RouteMap included. This file's other exports
+ * are plain functions, and importing them must not depend on the shape of
+ * what is called window: a test's stand-in, a worker's or a server's global
+ * may have no addEventListener. With none, nothing can leave the page either.
+ */
+if (
+  typeof window !== "undefined" &&
+  typeof window.addEventListener === "function"
+) {
   window.addEventListener("beforeunload", (): void => {
     isDocumentUnloading = true;
   });

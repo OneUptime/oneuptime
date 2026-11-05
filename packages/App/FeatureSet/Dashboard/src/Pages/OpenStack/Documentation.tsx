@@ -9,7 +9,7 @@ const OpenStackDocumentation: FunctionComponent<
     <Fragment>
       <OpenStackDocumentationCard
         title="Connect an OpenStack Cloud"
-        description="Install the OneUptime OpenStack agent on a machine outside the cloud, with a credential that reads what you choose. The cloud appears automatically once data arrives."
+        description="Say how you deploy OpenStack, then follow the steps for it. The cloud appears by itself once its first data arrives."
       />
     </Fragment>
   );

@@ -4,8 +4,11 @@ import {
   TELEMETRY_PRICE_RETENTION_IN_DAYS,
 } from "../Billing/PayAsYouGoPricing";
 import {
+  OpenStackInstanceMetricSource,
   OpenStackInstanceMetricsMode,
   OpenStackInstanceMetricsOptions,
+  OpenStackInstanceMetricsVolume,
+  estimateOpenStackInstanceMetricsVolume,
 } from "./OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "./OpenStackResourceKind";
 
@@ -665,6 +668,25 @@ export interface OpenStackVolumeEstimate {
   perInstanceShare: number;
 }
 
+/*
+ * TelemetryMeteredPlan.getTotalCostInUSD: a GB times the days it is kept, billed for at least the
+ * minimum, at the advertised price for fifteen days.
+ */
+function getOpenStackTelemetryCostPerMonth(data: {
+  gigabytesPerDay: number;
+  retentionInDays: number;
+}): number {
+  return (
+    data.gigabytesPerDay *
+    Math.max(
+      data.retentionInDays,
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
+    ) *
+    (TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS) *
+    30
+  );
+}
+
 export function estimateOpenStackVolume(data: {
   counts: OpenStackCloudCounts;
   isSummaryMode?: boolean | undefined;
@@ -689,25 +711,61 @@ export function estimateOpenStackVolume(data: {
   const bytesPerDay: number = datapointsPerDay * rowSize;
   const gigabytesPerDay: number = bytesPerDay / BYTES_PER_GIB;
 
-  /*
-   * TelemetryMeteredPlan.getTotalCostInUSD: a GB times the days it is kept, billed for at least
-   * the minimum, at the advertised price for fifteen days.
-   */
-  const costPerDay: number =
-    gigabytesPerDay *
-    Math.max(retention, TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS) *
-    (TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS);
-
   return {
     series: series.fast + series.slow,
     datapointsPerDay: datapointsPerDay,
     bytesPerDay: bytesPerDay,
     gigabytesPerDay: gigabytesPerDay,
-    costInUSDPerMonth: costPerDay * 30,
+    costInUSDPerMonth: getOpenStackTelemetryCostPerMonth({
+      gigabytesPerDay,
+      retentionInDays: retention,
+    }),
     perInstanceShare:
       datapointsPerDay === 0
         ? 0
         : (series.perInstance * fastPerDay) / datapointsPerDay,
+  };
+}
+
+/*
+ * What each instance keeping real usage of its own adds on top of that, from either exporter. The
+ * same row size and the same price, so the calculator can put the two side by side. An upper bound
+ * for Ceilometer's: a disk with no requests has no latency, and so no such row.
+ */
+export interface OpenStackInstanceMetricsCost {
+  source: OpenStackInstanceMetricSource;
+  series: number;
+  rowsPerHour: number;
+  gigabytesPerDay: number;
+  costInUSDPerMonth: number;
+}
+
+export function estimateOpenStackInstanceMetricsCost(data: {
+  source: OpenStackInstanceMetricSource;
+  instances: number;
+  retentionInDays?: number | undefined;
+  averageRowSizeInBytes?: number | undefined;
+}): OpenStackInstanceMetricsCost {
+  const volume: OpenStackInstanceMetricsVolume =
+    estimateOpenStackInstanceMetricsVolume({
+      source: data.source,
+      instances: data.instances,
+    });
+  const gigabytesPerDay: number =
+    (volume.rowsPerHour *
+      24 *
+      (data.averageRowSizeInBytes ??
+        OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES)) /
+    BYTES_PER_GIB;
+  return {
+    source: data.source,
+    series: volume.series,
+    rowsPerHour: volume.rowsPerHour,
+    gigabytesPerDay,
+    costInUSDPerMonth: getOpenStackTelemetryCostPerMonth({
+      gigabytesPerDay,
+      retentionInDays: data.retentionInDays ?? 15,
+    }),
   };
 }
 

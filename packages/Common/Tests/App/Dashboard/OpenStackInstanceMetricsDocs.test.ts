@@ -2,7 +2,9 @@ import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
 import {
+  OPENSTACK_CEILOMETER_COLLECTIONS_PER_HOUR,
   OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+  OPENSTACK_LIBVIRT_COLLECTIONS_PER_HOUR,
   OpenStackInstanceMetricSource,
   OpenStackInstanceMetricsVolume,
   estimateOpenStackInstanceMetricsVolume,
@@ -33,7 +35,7 @@ describe("what the docs say keeping them costs", () => {
     ],
     [
       OpenStackInstanceMetricSource.Ceilometer,
-      "Ceilometer's exporter, read every 2 minutes and polled every 5",
+      "Ceilometer's exporter, read every minute and polled every 5",
     ],
   ])(
     "%s is what the code works out",
@@ -54,6 +56,51 @@ describe("what the docs say keeping them costs", () => {
     expect(DOCS).toContain(
       `Every instance while the cloud has ${OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT} or fewer`,
     );
+  });
+});
+
+describe("how often the docs say each is read", () => {
+  const CONFIG: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../../../agents/OpenStackAgent/otel-collector-config.yaml",
+    ),
+    "utf8",
+  );
+
+  function collectionsPerHourOf(jobName: string): number {
+    const job: string = CONFIG.substring(
+      CONFIG.indexOf(`job_name: ${jobName}`),
+    );
+    const match: RegExpMatchArray | null = job.match(/scrape_interval: (\d+)s/);
+    expect(match).not.toBeNull();
+    return 3600 / Number(match![1]);
+  }
+
+  test("what the agent's collector does is what the costs are worked out on", () => {
+    expect(collectionsPerHourOf("oneuptime-openstack-libvirt")).toBe(
+      OPENSTACK_LIBVIRT_COLLECTIONS_PER_HOUR,
+    );
+    expect(collectionsPerHourOf("oneuptime-openstack-ceilometer")).toBe(
+      OPENSTACK_CEILOMETER_COLLECTIONS_PER_HOUR,
+    );
+    expect(OPENSTACK_LIBVIRT_COLLECTIONS_PER_HOUR).toBe(60);
+    expect(OPENSTACK_CEILOMETER_COLLECTIONS_PER_HOUR).toBe(60);
+  });
+});
+
+describe("what the docs say about Ceilometer's polling.yaml", () => {
+  test.each([
+    "`vcpus`",
+    "`memory.resident`",
+    "`disk.device.read.latency`",
+    "`disk.device.write.latency`",
+  ])("names %s, which the file it ships leaves out", (meter: string) => {
+    expect(DOCS).toContain(meter);
+  });
+
+  test("says no released Ceilometer has CPU waiting yet", () => {
+    expect(DOCS).toContain("No released Ceilometer does yet");
   });
 });
 

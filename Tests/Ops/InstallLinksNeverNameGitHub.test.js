@@ -234,6 +234,7 @@ describe("downloads from GitHub's copy of the repository", () => {
       "agents/DockerSwarmAgent/install.sh",
       "agents/HostAIAgent/install.sh",
       "agents/OpenStackAgent/install-logs.sh",
+      "agents/OpenStackAgent/install-traces.sh",
       "agents/OpenStackAgent/install.sh",
       "agents/ProxmoxAgent/install.sh",
       "agents/StorageArrayAgent/install.sh",

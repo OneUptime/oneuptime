@@ -1289,7 +1289,7 @@ describe("every catalog resource facet (pivot and query compilation)", () => {
   test("pins the dropped-scope label of every resource facet", () => {
     expect(Pivot.formatDroppedScopeHint([...RESOURCE_FACET_CATALOG_KEYS])).toBe(
       "Not carried over: hosts, Docker hosts, Podman hosts, Kubernetes clusters, " +
-        "Docker Swarm clusters, Proxmox clusters, vCenters, Ceph clusters, " +
+        "Docker Swarm clusters, Proxmox clusters, OpenStack clouds, vCenters, Ceph clusters, " +
         "storage arrays, serverless functions, cloud resources, " +
         "RUM applications, IoT fleets, databases",
     );

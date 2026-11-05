@@ -367,6 +367,7 @@ describe("describeUnappliedScopeFilters", () => {
       kubernetesClusterId: "Kubernetes cluster",
       dockerSwarmClusterId: "Docker Swarm cluster",
       proxmoxClusterId: "Proxmox cluster",
+      openStackCloudId: "OpenStack cloud",
       vmwareVCenterId: "vCenter",
       cephClusterId: "Ceph cluster",
       storageArrayId: "storage array",
