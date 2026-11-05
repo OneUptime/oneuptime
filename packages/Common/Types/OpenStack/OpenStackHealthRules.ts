@@ -39,11 +39,7 @@ export const OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT: number = 90;
 // How long a part may sit in a state on the way to something else.
 export const OPENSTACK_INSTANCE_STUCK_MINUTES: number = 60;
 export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
-/*
- * No alert template draws this one yet, so it is the one line here with nothing to
- * agree with. An image left in queued is what a failed upload looks like: nothing ever
- * moves it on, and instances that ask for it fail.
- */
+// An image left in queued is what a failed upload looks like: nothing ever moves it on.
 export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 
 /*

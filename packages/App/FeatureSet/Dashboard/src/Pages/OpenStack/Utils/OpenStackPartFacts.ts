@@ -133,6 +133,10 @@ export const OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-volume-stuck",
 ];
 
+export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-image-stuck",
+];
+
 export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-storage-pool-warning",
   "openstack-storage-pool-critical",
@@ -1138,6 +1142,11 @@ export function isOpenStackIssueAbout(
           readSeriesLabel(labels, "id") === row.externalId)
       );
     case OpenStackResourceKind.Volume:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
+    case OpenStackResourceKind.Image:
       return (
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
