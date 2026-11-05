@@ -132,6 +132,11 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_placement_resource_reserved",
   "openstack_placement_resource_usage",
   "openstack_placement_resource_provider_allocations",
+  // Amounts of whatever each Placement class counts, which each row's resourcetype says.
+  "openstack_capacity_allocated",
+  "openstack_capacity_total",
+  // 1 or 0, and a count of flavors is its own unit.
+  "openstack_capacity_can_lose_a_host",
 ];
 
 describe("OpenStackMetricCatalog", () => {
@@ -160,7 +165,8 @@ describe("OpenStackMetricCatalog", () => {
           return (
             metric.onlyFromProbe !== true &&
             metric.fromInstanceSource !== true &&
-            metric.fromSummaryMode !== true
+            metric.fromSummaryMode !== true &&
+            metric.fromCapacity !== true
           );
         })
         .map((metric: OpenStackMetricDefinition): string => {
@@ -187,6 +193,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_backup_gb",
         "openstack_cinder_snapshot_gb",
         "openstack_ironic_conductor_state",
+        "openstack_placement_flavor_fits",
       ]);
 
       for (const metric of onlyFromProbe) {
@@ -222,6 +229,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_neutron_network",
         "openstack_neutron_up",
         "openstack_nova_agent_state",
+        "openstack_nova_flavor",
         "openstack_nova_server_status",
         "openstack_nova_up",
         "openstack_placement_up",
@@ -243,7 +251,8 @@ describe("OpenStackMetricCatalog", () => {
           !OPENSTACK_RECEIVER_SERIES.includes(metricCase[0]) &&
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
-          metricCase[1].fromSummaryMode !== true
+          metricCase[1].fromSummaryMode !== true &&
+          metricCase[1].fromCapacity !== true
         );
       }),
     )(

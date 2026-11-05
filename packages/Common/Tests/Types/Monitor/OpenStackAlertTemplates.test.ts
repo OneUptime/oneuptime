@@ -45,6 +45,7 @@ import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
   OPENSTACK_BARE_METAL_STUCK_MINUTES,
+  OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
@@ -81,7 +82,10 @@ import {
 import {
   SamplesByAlias,
   WINDOW_END_MS,
+  TemplateWalkStep,
+  TimedSample,
   evaluateTemplateCriteria,
+  walkTemplateCriteria,
   isCriteriaInstanceMet,
 } from "./Utils/TemplateCriteriaEvaluation";
 
@@ -446,6 +450,18 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.GreaterThanOrEqualTo,
     value: OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
   },
+  "openstack-flavor-cannot-be-placed": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-capacity-forecast-under-days": {
+    filterType: FilterType.LessThan,
+    value: OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+  },
+  "openstack-reserved-headroom-gone": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-hypervisor-cpu-saturated": {
     filterType: FilterType.GreaterThan,
     value: OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
@@ -626,6 +642,18 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-volume-stuck": {
     breached: { in_creating: 10 },
     healthy: { in_creating: 0 },
+  },
+  "openstack-flavor-cannot-be-placed": {
+    breached: { room_for: 0 },
+    healthy: { room_for: 3 },
+  },
+  "openstack-capacity-forecast-under-days": {
+    breached: { days_until_full: 9 },
+    healthy: { days_until_full: 40 },
+  },
+  "openstack-reserved-headroom-gone": {
+    breached: { can_lose_a_host: 0 },
+    healthy: { can_lose_a_host: 1 },
   },
   "openstack-image-stuck": {
     // When it was created, as a Unix time, which only says the row is there.
@@ -823,6 +851,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Bare Metal Node in Maintenance Too Long",
         "Bare Metal Power State Unexpected",
         "Project Quota Nearly Reached",
+        "Flavor Can No Longer Be Placed",
+        `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
+        "Reserved Headroom Gone",
       ].sort(),
     );
 
@@ -849,6 +880,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Storage",
         "Bare Metal",
         "Projects",
+        "Capacity",
       ] as const
     ).reduce(
       (total: number, category: OpenStackAlertTemplateCategory): number => {
@@ -1509,6 +1541,20 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ).toBe(95);
     });
 
+    test("a forecast recovers past a dead band, so it doesn't flap on its line", () => {
+      const recovery: MonitorCriteriaInstance = recoveryOf(
+        stepOf(
+          getOpenStackAlertTemplateById(
+            "openstack-capacity-forecast-under-days",
+          )!,
+        ),
+      );
+
+      expect(recovery.data!.filters[0]!.value).toBeGreaterThan(
+        OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+      );
+    });
+
     test("a threshold has a dead band, except where the value is a whole count", () => {
       const quota: MonitorCriteriaInstance = recoveryOf(
         stepOf(
@@ -1632,7 +1678,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           expect(
             Boolean(OPENSTACK_EXPORTER_SERIES[metricName]) ||
               OPENSTACK_RECEIVER_SERIES.includes(metricName) ||
-              getOpenStackMetricByMetricName(metricName)!.fromInstanceSource,
+              getOpenStackMetricByMetricName(metricName)!.fromInstanceSource ||
+              getOpenStackMetricByMetricName(metricName)!.fromCapacity,
           ).toBe(true);
         }
       },
@@ -1865,6 +1912,128 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         ).toContain("kept for at least that long");
       });
     });
+    /*
+     * One per status word exists only while something has that status, so the first thing seen
+     * in it, or the only thing, is one data point. Anything on its way to something else is seen
+     * that way, by whichever collection catches it, and that isn't stuck.
+     */
+    test.each([
+      ["openstack-image-stuck", "in_queued", 5],
+      ["openstack-image-stuck", "in_saving", 5],
+      ["openstack-volume-stuck", "in_creating", 2],
+      ["openstack-volume-stuck", "in_creating", 5],
+      ["openstack-instance-stuck-building", "in_build", 5],
+    ])(
+      "%s doesn't fire on %s seen at one collection, of every %s minutes",
+      async (id: string, alias: string, everyMinutes: number) => {
+        const step: MonitorStep = stepOf(getOpenStackAlertTemplateById(id)!);
+        const windowMinutes: number = windowMinutesOf(step);
+        const startMs: number = Date.UTC(2026, 10, 5, 0, 0, 0);
+        const anchor: Array<TimedSample> = [];
+
+        for (
+          let minute: number = 0;
+          minute <= 4 * windowMinutes;
+          minute += everyMinutes
+        ) {
+          anchor.push({ timeMs: startMs + minute * 60000, value: 1 });
+        }
+
+        const steps: Array<TemplateWalkStep> = await walkTemplateCriteria({
+          step,
+          viewConfig: monitorOf(step).metricViewConfig,
+          samplesByAlias: {
+            [OPENSTACK_ANCHOR_METRIC_ALIAS]: anchor,
+            [alias]: [
+              {
+                timeMs: startMs + 2 * windowMinutes * 60000,
+                value: 1793795520,
+              },
+            ],
+          },
+          windowMinutes,
+          startMs: startMs + windowMinutes * 60000,
+          endMs: startMs + 4 * windowMinutes * 60000,
+        });
+
+        expect(
+          steps.filter((one: TemplateWalkStep): boolean => {
+            return one.breached;
+          }),
+        ).toEqual([]);
+      },
+    );
+
+    test.each([
+      ["openstack-image-stuck", "in_queued", 5],
+      ["openstack-volume-stuck", "attaching", 5],
+    ])(
+      "%s does fire on %s held for its whole window, and goes when it does",
+      async (id: string, status: string, everyMinutes: number) => {
+        const step: MonitorStep = stepOf(getOpenStackAlertTemplateById(id)!);
+        const alias: string = status.startsWith("in_")
+          ? status
+          : `in_${status}`;
+        const windowMinutes: number = windowMinutesOf(step);
+        const startMs: number = Date.UTC(2026, 10, 5, 0, 0, 0);
+        const appearsAtMinute: number = 2 * windowMinutes;
+        const goesAtMinute: number = 4 * windowMinutes;
+        const anchor: Array<TimedSample> = [];
+        const held: Array<TimedSample> = [];
+
+        for (
+          let minute: number = 0;
+          minute <= 6 * windowMinutes;
+          minute += everyMinutes
+        ) {
+          const timeMs: number = startMs + minute * 60000;
+          anchor.push({ timeMs, value: 1 });
+          if (minute >= appearsAtMinute && minute <= goesAtMinute) {
+            held.push({ timeMs, value: 1793795520 });
+          }
+        }
+
+        const steps: Array<TemplateWalkStep> = await walkTemplateCriteria({
+          step,
+          viewConfig: monitorOf(step).metricViewConfig,
+          samplesByAlias: {
+            [OPENSTACK_ANCHOR_METRIC_ALIAS]: anchor,
+            [alias]: held,
+          },
+          windowMinutes,
+          startMs: startMs + windowMinutes * 60000,
+          endMs: startMs + 6 * windowMinutes * 60000,
+        });
+
+        const firedAt: TemplateWalkStep = steps.find(
+          (one: TemplateWalkStep): boolean => {
+            return one.breached;
+          },
+        )!;
+
+        // Within a collection or so of the window's end, and not before.
+        expect((firedAt.atMs - startMs) / 60000).toBeGreaterThanOrEqual(
+          appearsAtMinute + windowMinutes - 2 * everyMinutes,
+        );
+        expect((firedAt.atMs - startMs) / 60000).toBeLessThanOrEqual(
+          appearsAtMinute + windowMinutes + everyMinutes,
+        );
+
+        // Once gone, a window on it's healthy, and it doesn't fire again.
+        const after: Array<TemplateWalkStep> = steps.filter(
+          (one: TemplateWalkStep): boolean => {
+            return (
+              one.atMs > startMs + (goesAtMinute + windowMinutes + 1) * 60000
+            );
+          },
+        );
+
+        expect(after.length).toBeGreaterThan(0);
+        for (const one of after) {
+          expect(one).toMatchObject({ breached: false, healthy: true });
+        }
+      },
+    );
 
     test("an instance or a volume stuck is judged on its own, not on a stream of them", () => {
       expect(

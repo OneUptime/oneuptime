@@ -20,9 +20,9 @@ Requests a minute with the defaults, once a collection has settled, on a cloud w
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instances, 20 projects | 1.3 | 3.5 | 10.5 | 3.5 | 2.5 | 0.3 |
-| 500 hypervisors, 20,000 instances, 1,000 projects | 1.3 | 4.2 | 251 | 7.5 | 8.5 | 0.3 |
-| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1.3 | 12.7 | 1,001 | 43.5 | 62.5 | 0.5 |
+| 10 hypervisors, 100 instances, 20 projects | 1.3 | 3.5 | 12.5 | 3.5 | 2.5 | 0.3 |
+| 500 hypervisors, 20,000 instances, 1,000 projects | 1.3 | 4.2 | 253 | 7.5 | 8.5 | 0.3 |
+| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1.3 | 12.7 | 1,003 | 43.5 | 62.5 | 0.5 |
 
 These are counted, not estimated: a test runs the real collector against a mock API of each size, on a clock it moves itself, and holds what it asked to these numbers exactly, service by service, wherever something different falls due. A request count does not depend on the machine it was counted on.
 
@@ -64,7 +64,7 @@ A cloud's series follow from its counts. The calculator on a cloud's **Documenta
 | Series | How many |
 | --- | --- |
 | Compute | 10 per hypervisor, plus flavors and control services, plus 7 |
-| Placement | 15 per hypervisor, plus 4 |
+| Placement | 15 per hypervisor, plus 4. A probe adds about 2 per flavor, for [how many of each fit](/docs/telemetry/openstack#capacity) |
 | Neutron | Agents, networks, routers and floating IPs, 3 per subnet, plus 11. One more per router on ML2/OVS |
 | Cinder | Services, snapshots and backups, 2 per storage pool, plus 26 |
 | Instances and volumes, unless summary mode is on | 4 per instance, 2 per volume |
