@@ -311,10 +311,9 @@ describe("a healthy cloud", () => {
         createCollectorHarness({ transport: cloud.transport }).dependencies,
       );
 
-      const agents: Array<JSONObject> = recordedJson(
-        scene,
-        "neutron-agents",
-      )?.["agents"] as Array<JSONObject>;
+      const agents: Array<JSONObject> = recordedJson(scene, "neutron-agents")?.[
+        "agents"
+      ] as Array<JSONObject>;
       const dhcp: Array<JSONObject> = agents.filter((agent: JSONObject) => {
         return agent["binary"] === "neutron-dhcp-agent";
       });
@@ -430,10 +429,7 @@ describe("a healthy cloud", () => {
       });
       harness.clock = collector.clock;
 
-      await OpenStackCollector.collect(
-        collectionJob(),
-        collector.dependencies,
-      );
+      await OpenStackCollector.collect(collectionJob(), collector.dependencies);
 
       expect(dhcpPaths(cloud)).toEqual([]);
     });
@@ -2417,5 +2413,92 @@ describe("the report is always sent", () => {
     );
 
     expect(report.durationInMs).toBe(1500);
+  });
+});
+
+/*
+ * What telemetry/openstack-agentless.md tells someone a collection costs their cloud, call by
+ * call, on what a real cloud answered. A read added or dropped fails here, and the page with it.
+ * What each instance went through has its own line on that page, so it is counted apart.
+ */
+describe("what a collection asks of a cloud", () => {
+  const INSTANCE_ACTIONS: RegExp = /\/servers\/[^/]+\/os-instance-actions/;
+
+  async function callsByService(
+    cloud: RecordedCloud,
+    harness: CollectorHarness,
+  ): Promise<Record<string, number>> {
+    const before: number = cloud.requests.length;
+
+    await OpenStackCollector.collect(collectionJob(), harness.dependencies);
+
+    const calls: Record<string, number> = {};
+
+    for (const request of cloud.requests.slice(before)) {
+      const pathname: string = new globalThis.URL(request.url).pathname;
+
+      if (!INSTANCE_ACTIONS.test(pathname)) {
+        const service: string = pathname.split("/")[1] as string;
+        calls[service] = (calls[service] || 0) + 1;
+      }
+    }
+
+    return calls;
+  }
+
+  test("the first: Keystone's login and five reads, and what each hypervisor holds", async () => {
+    const cloud: RecordedCloud = createRecordedCloud(HEALTHY);
+    const harness: CollectorHarness = createCollectorHarness({
+      transport: cloud.transport,
+    });
+
+    expect(await callsByService(cloud, harness)).toEqual({
+      identity: 6,
+      compute: 7,
+      // The list, and a hypervisor's inventory, usages and allocations.
+      placement: 4,
+      // The seven it always reads, and whether this cloud has VPNs, which is kept.
+      networking: 8,
+      volume: 5,
+      image: 1,
+    });
+  });
+
+  test("the next: 7 to Nova, 7 to Neutron, 5 to Cinder and 1 to Placement, and 2 per hypervisor", async () => {
+    const cloud: RecordedCloud = createRecordedCloud(HEALTHY);
+    const harness: CollectorHarness = createCollectorHarness({
+      transport: cloud.transport,
+    });
+
+    await callsByService(cloud, harness);
+    harness.clock.advance(2 * 60_000);
+
+    // Keystone and Glance only come round about every five minutes.
+    expect(await callsByService(cloud, harness)).toEqual({
+      compute: 7,
+      placement: 3,
+      networking: 7,
+      volume: 5,
+    });
+  });
+
+  test("ML2/OVS asks one more per router, which holds its L3 agents", async () => {
+    const scene: RecordedScene = loadScene("gazpacho-ovs", "healthy");
+    const cloud: RecordedCloud = createRecordedCloud(scene);
+    const harness: CollectorHarness = createCollectorHarness({
+      transport: cloud.transport,
+    });
+    const routers: Array<JSONObject> = recordedJson(scene, "neutron-routers")?.[
+      "routers"
+    ] as Array<JSONObject>;
+
+    expect(routers.length).toBeGreaterThan(0);
+
+    await callsByService(cloud, harness);
+    harness.clock.advance(2 * 60_000);
+
+    expect((await callsByService(cloud, harness))["networking"]).toBe(
+      7 + routers.length,
+    );
   });
 });

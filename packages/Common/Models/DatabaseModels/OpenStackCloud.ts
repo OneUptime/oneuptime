@@ -198,7 +198,7 @@ export const OPENSTACK_CLOUD_BOOKKEEPING_COLUMNS: Array<string> = [
   pluralName: "OpenStack Clouds",
   icon: IconProp.Cloud,
   tableDescription:
-    "OpenStack clouds that are being monitored in this project. Each cloud is auto-discovered when the OneUptime OpenStack Agent sends metrics, or can be manually registered.",
+    "OpenStack clouds that are being monitored in this project. A cloud is discovered when the OneUptime OpenStack Agent sends its first metrics, or connected with a read-only credential that one of the project's probes collects it with.",
 })
 @Entity({
   name: "OpenStackCloud",

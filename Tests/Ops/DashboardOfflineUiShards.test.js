@@ -9,7 +9,7 @@
  * on its own, so each runs in halves: a group's matrix sets <suite>_shard
  * ("1/2" or "2/2"), the job's env hands it to the suite's Playwright config
  * as a variable of its own (EVENT_OVERVIEW_SHARD, WORKFLOW_BUILDER_SHARD,
- * MODEL_TABLES_SHARD, MONITOR_OVERVIEW_SHARD), and the config passes it to
+ * MODEL_TABLES_SHARD, MONITOR_OVERVIEW_SHARD, OPENSTACK_PAGES_SHARD), and the config passes it to
  * Playwright's shard.
  * A half that no group runs never fails; a half two groups run costs a
  * group's minutes twice; a group that sets the key but runs another suite,
@@ -49,6 +49,10 @@ const SPLIT_SUITES = {
   monitor_overview_shard: {
     suite: "test-monitor-overview-ui",
     variable: "MONITOR_OVERVIEW_SHARD",
+  },
+  openstack_pages_shard: {
+    suite: "test-openstack-pages-ui",
+    variable: "OPENSTACK_PAGES_SHARD",
   },
 };
 

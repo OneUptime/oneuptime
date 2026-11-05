@@ -7,6 +7,7 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | Script | What it does |
 | --- | --- |
 | `estate.sh` | Builds a known estate: two projects with quotas, instances running, shut off and in `ERROR`, volumes available, attached and in `error`, a network, router and floating IPs. Every name starts with `ou-`. |
+| `quota-record.sh` | On the entries that say so: starts the exporter the agent starts for each project's quotas, with its flags, and records what it says of `estate.sh`'s projects, what the agent's collector would send of it, and what the `openstack` CLI says of the same projects. |
 | `start-instance-metrics.sh` | Starts `prometheus-libvirt-exporter`, pinned by digest, against the runner's libvirt, and turns on Ceilometer's own exporter (`[polling] enable_prometheus_exporter`). DevStack's Ceilometer plugin runs only its polling agent here, and stores nothing. |
 | `start-agent.sh` | Starts the OpenStack agent's pinned exporter and collector, with the real `agents/OpenStackAgent/otel-collector-config.yaml`, writing to a file in place of OneUptime. Beside it, the exporter's last non-alpha release, so the two can be compared. |
 | `access-matrix.sh` | Tests least privilege on the cloud's real policies: what an admin, a plain reader, the OneUptime monitoring role and an application credential limited by access rules can each read, that the last two cannot write, and what the agent's own exporter gets with each. Restarts the API services once, because access rules need `service_type` set on each. `merge-policy.py` merges the overrides over what a service's policy file already holds. |
@@ -17,6 +18,7 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | `stop-agent.sh` | Stops the agent, keeps its logs, and fails if the collector exported nothing. |
 | `ai-agent-record.sh` | In a job of its own, and only that with `-f ai_agent_only=true`, and on the weekly run: compiles the OpenStack AI agent as its image does, then runs its real policy and executor over real sockets (`ai-agent-read.js`), once on a healthy cloud and once with `nova-compute` stopped, through every command the policy allows. Each command's exact output goes under `ai-agent/<scene>/`, and it fails when a command does not answer, or the `compute-down` output does not name the host, the instances on it and the cause. The model is not called: this proves what an investigation is given, not what it would write. |
 | `agent-install.sh` | In a job of its own, and only that with `-f agent_install_only=true`: installs the agent the way its docs say, with and without Docker, as a person with no rights and with `sudo`, on this runner and on machines with nothing on them. See below. |
+| `probe-live.sh` | In a job of its own, on a DevStack with `tls-proxy`, because a probe never sends a credential over plain HTTP, and only that with `-f probe_tls_only=true`: runs the probe's real collector and connection test (`packages/Probe/Tests/Utils/OpenStack/OpenStackLiveCloud.test.ts`) against it, over real TLS. Every other test of the probe replays recordings made with curl, so only this shows a real cloud accepts the probe's own requests. It also meets DNS, TCP, TLS, certificate, credential and project failures on a real network, then stops Neutron and Keystone. What it found is uploaded as `openstack-recording-probe-tls`. |
 
 `capacity-record.sh` is a run of its own (`-f capacity_only=true`, and weekly). A DevStack's one host can't show what capacity is about, so it adds three hosts on Nova's fake driver with allocation ratios and reserved amounts that differ, fills them until memory is spread too thinly for a large flavor, loses one, disables one and leaves an allocation no instance owns. Nova and Placement are real throughout, and it asks Placement what `GET /allocation_candidates` says of every flavor (`capacity-placement.py`). `import-capacity-recording.py` copies what the tests read to `packages/Common/Tests/Fixtures/OpenStack/<release>/capacity/`.
 
@@ -30,7 +32,7 @@ The rest of this page is about DevStack. These deploy what customers run, and fo
 | `kolla-guide.sh`, `osa-guide.sh` | Follow its guide, one part at a time. Every block after `follow` is the guide's own text: `OpenStackDeploymentGuides.test.ts` fails when one and the guide differ. |
 | `guide-follow.sh` | What following any guide takes: running a block with its placeholders filled in and a person's answers on its standard input. |
 | `fake-oneuptime.py`, `collector-sink.yaml` | The OneUptime those commands name: it serves the install scripts from this checkout, hands OTLP to a real collector that decodes and keeps it, and keeps each webhook. It proves what reaches OneUptime, not what OneUptime does with it. |
-| `live-oneuptime.py` | That part, with `-f live_oneuptime=true`: a real OneUptime started from its test images, sent what a real agent and a real Alertmanager sent, and read back through its API. |
+| `live-oneuptime.py` | That part, with `-f live_oneuptime=true`: a real OneUptime, its app built from the branch and the rest from its test images, sent what a real agent and a real Alertmanager sent, and read back through its API. |
 
 The artifact is `openstack-recording-kolla-aio` or `openstack-recording-osa-aio`:
 
@@ -65,6 +67,9 @@ access/matrix-default-policy.json    what each credential could read and write, 
 access/matrix.json                   the same, with the policy overrides applied
 access/matrix-access-rules.json      the same, for the access-rule credential
 access/exporter/<level>/<service>.prom  what the agent's exporter got with that credential
+quotas/exporter/<service>.prom              what the quota exporter said, one service at a time
+quotas/otlp/metrics.json                    what the collector would have sent of it
+quotas/cli.txt                              what the openstack CLI said of the same projects
 instance-metrics/scrape-01/libvirt.prom     what the libvirt exporter said, scrape by scrape
 instance-metrics/scrape-01/ceilometer.prom  what Ceilometer's exporter said at the same moment
 instance-metrics/scrape-01/at.txt           when, in seconds since the epoch

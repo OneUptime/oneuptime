@@ -20,10 +20,16 @@ import {
  * nothing to choose, and most clouds have one region, so it draws nothing there. Nor on a
  * page where a region means nothing: a cloud's settings, or a project, which belongs to
  * Keystone, or a part's own page, which is already in one region.
+ *
+ * What reads a region on each page: the inventory's rows and the map, by their region; a
+ * metric's datapoint, a log's and a span's resource; an incident's and an alert's series
+ * labels. A maintenance event names none, and its page says so.
  */
 export const OPENSTACK_REGION_PAGES: ReadonlyArray<PageMap> = [
   PageMap.OPENSTACK_CLOUD_VIEW,
+  PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY,
   PageMap.OPENSTACK_CLOUD_VIEW_SERVICES,
+  PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE,
   PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS,
   PageMap.OPENSTACK_CLOUD_VIEW_INSTANCES,
   PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS,
@@ -38,6 +44,12 @@ export const OPENSTACK_REGION_PAGES: ReadonlyArray<PageMap> = [
   PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS,
   PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOLS,
   PageMap.OPENSTACK_CLOUD_VIEW_IMAGES,
+  PageMap.OPENSTACK_CLOUD_VIEW_METRICS,
+  PageMap.OPENSTACK_CLOUD_VIEW_LOGS,
+  PageMap.OPENSTACK_CLOUD_VIEW_TRACES,
+  PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS,
+  PageMap.OPENSTACK_CLOUD_VIEW_ALERTS,
+  PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE,
 ];
 
 export interface ComponentProps {

@@ -5,6 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   DEFAULT_OPENSTACK_ENDPOINT_INTERFACE,
   OPENSTACK_ENDPOINT_INTERFACES,
+  OpenStackCollectionOptions,
   OpenStackEndpointInterface,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import ModelField, {
@@ -37,6 +38,7 @@ import {
   getOpenStackConnectionTestInput,
   readOpenStackCredentialKind,
   readOpenStackNames,
+  readOpenStackOptions,
   validateOpenStackAuthUrl,
   validateOpenStackFingerprints,
   validateOpenStackOptions,
@@ -433,7 +435,7 @@ function getCertificatesAndRegionsFields(
 // What most clouds leave as it is.
 function getAdvancedFields(
   advancedSection: FormFieldCollapsibleSection<OpenStackCloud>,
-  options: { startsOnDefaults: boolean },
+  options: { startsOnDefaults: boolean; translator: Translator },
 ): Array<CloudField> {
   return [
     {
@@ -502,6 +504,20 @@ function getAdvancedFields(
           (values as Record<string, unknown>)["collectionOptions"],
         );
       },
+      // What is on, on the fold's line: nothing in force is hidden by folding it.
+      getFoldedValue: (values: CloudValues): string | null => {
+        const read: OpenStackCollectionOptions = readOpenStackOptions(
+          (values as Record<string, unknown>)["collectionOptions"],
+        );
+        const on: Array<string> = [
+          ...(read.collectProjectLimits ? ["Project limits"] : []),
+          ...(read.collectPorts ? ["Ports"] : []),
+        ].map((title: string): string => {
+          return (options.translator.translateText(title) as string) || title;
+        });
+
+        return on.length > 0 ? on.join(", ") : null;
+      },
       collapsibleSection: advancedSection,
     },
   ];
@@ -541,7 +557,10 @@ export function getOpenStackConnectFormFields(
       placeholder: "Production OpenStack cloud running in EU West",
       collapsibleSection: advancedSection,
     },
-    ...getAdvancedFields(advancedSection, { startsOnDefaults: true }),
+    ...getAdvancedFields(advancedSection, {
+      startsOnDefaults: true,
+      translator: options.translator,
+    }),
     getLabelsFormField<OpenStackCloud>({
       stepId: "regions-and-name",
       collapsibleSection: advancedSection,
@@ -562,6 +581,9 @@ export function getOpenStackConnectionFormFields(
       isSecretRequired: Boolean(options.isSecretRequired),
     }),
     ...getCertificatesAndRegionsFields(options),
-    ...getAdvancedFields(advancedSection, { startsOnDefaults: false }),
+    ...getAdvancedFields(advancedSection, {
+      startsOnDefaults: false,
+      translator: options.translator,
+    }),
   ];
 }
