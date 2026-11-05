@@ -113,8 +113,8 @@ as_check_user openstack router create oneuptime-check-router >/dev/null
 as_check_user openstack router set --external-gateway public oneuptime-check-router
 as_check_user openstack router add subnet oneuptime-check-router oneuptime-check-subnet
 CHECK_CREDENTIAL="$(as_check_user openstack application credential create --role member oneuptime-check -f json)"
-CHECK_CREDENTIAL_ID="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["id"])' <<<"$CHECK_CREDENTIAL")"
-CHECK_CREDENTIAL_SECRET="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["secret"])' <<<"$CHECK_CREDENTIAL")"
+CHECK_CREDENTIAL_ID="$("${READ[@]}" field id <<<"$CHECK_CREDENTIAL")"
+CHECK_CREDENTIAL_SECRET="$("${READ[@]}" field secret <<<"$CHECK_CREDENTIAL")"
 export CHECK_CREDENTIAL_SECRET
 unset CHECK_CREDENTIAL
 
@@ -136,16 +136,19 @@ python3 -I - >"$SECRETS_DIR/victim.json" <<VICTIM_JSON
 import json, subprocess, os
 def value(*args):
     return subprocess.check_output(["openstack", *args, "-f", "value", "-c", "id"], env={**os.environ, "OS_PROJECT_NAME": "$VICTIM"}, text=True).strip()
+# What only an admin of the cloud may read, from the project this was logged in to.
+def admin_value(*args):
+    return subprocess.check_output(["openstack", *args, "-f", "value", "-c", "id"], text=True).strip()
 print(json.dumps({
-    "project": value("project", "show", "$VICTIM"),
+    "project": admin_value("project", "show", "$VICTIM"),
     "server": value("server", "show", "ou-victim-server"),
     "volume": value("volume", "show", "ou-victim-volume"),
     "network": value("network", "show", "ou-victim-net"),
     "security_group": value("security", "group", "show", "ou-victim-sg"),
     "floating_ip": "$VICTIM_FIP_ID",
     "external_network": value("network", "show", "public"),
-    "user": value("user", "show", "admin"),
-    "member_role": value("role", "show", "member"),
+    "user": admin_value("user", "show", "admin"),
+    "member_role": admin_value("role", "show", "member"),
 }))
 VICTIM_JSON
 
@@ -304,8 +307,8 @@ holds "another project's is still there, and holds nothing named for the check" 
 log "Scene refused: credentials that could reach further"
 # A credential on another project, however good otherwise.
 VICTIM_CREDENTIAL="$(as_victim openstack application credential create --role member ou-check-elsewhere -f json)"
-VICTIM_CREDENTIAL_ID="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["id"])' <<<"$VICTIM_CREDENTIAL")"
-VICTIM_SECRET="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["secret"])' <<<"$VICTIM_CREDENTIAL")"
+VICTIM_CREDENTIAL_ID="$("${READ[@]}" field id <<<"$VICTIM_CREDENTIAL")"
+VICTIM_SECRET="$("${READ[@]}" field secret <<<"$VICTIM_CREDENTIAL")"
 export VICTIM_SECRET
 job_for "$VICTIM_CREDENTIAL_ID" VICTIM_SECRET "$PROJECT" >"$SECRETS_DIR/elsewhere.json"
 run_check refused-scoped-elsewhere lifecycle "$SECRETS_DIR/elsewhere.json"
@@ -314,8 +317,8 @@ holds "a credential scoped elsewhere is refused" "${READ[@]}" expect "$CHECKS_DI
 # An admin on the check's own project.
 openstack role add --project "$PROJECT" --user admin admin
 ADMIN_CREDENTIAL="$(OS_PROJECT_NAME="$PROJECT" openstack application credential create --role admin ou-check-admin -f json)"
-ADMIN_CREDENTIAL_ID="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["id"])' <<<"$ADMIN_CREDENTIAL")"
-ADMIN_SECRET="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["secret"])' <<<"$ADMIN_CREDENTIAL")"
+ADMIN_CREDENTIAL_ID="$("${READ[@]}" field id <<<"$ADMIN_CREDENTIAL")"
+ADMIN_SECRET="$("${READ[@]}" field secret <<<"$ADMIN_CREDENTIAL")"
 export ADMIN_SECRET
 job_for "$ADMIN_CREDENTIAL_ID" ADMIN_SECRET "$PROJECT" >"$SECRETS_DIR/admin.json"
 run_check refused-admin lifecycle "$SECRETS_DIR/admin.json"
@@ -323,8 +326,8 @@ holds "an admin credential is refused, on the right project" "${READ[@]}" expect
 
 # One that can make more credentials.
 UNRESTRICTED_CREDENTIAL="$(as_check_user openstack application credential create --role member --unrestricted ou-check-unrestricted -f json)"
-UNRESTRICTED_ID="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["id"])' <<<"$UNRESTRICTED_CREDENTIAL")"
-UNRESTRICTED_SECRET="$(python3 -I -c 'import json, sys; print(json.load(sys.stdin)["secret"])' <<<"$UNRESTRICTED_CREDENTIAL")"
+UNRESTRICTED_ID="$("${READ[@]}" field id <<<"$UNRESTRICTED_CREDENTIAL")"
+UNRESTRICTED_SECRET="$("${READ[@]}" field secret <<<"$UNRESTRICTED_CREDENTIAL")"
 export UNRESTRICTED_SECRET
 job_for "$UNRESTRICTED_ID" UNRESTRICTED_SECRET "$PROJECT" >"$SECRETS_DIR/unrestricted.json"
 run_check refused-unrestricted lifecycle "$SECRETS_DIR/unrestricted.json"

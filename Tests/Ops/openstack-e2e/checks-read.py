@@ -7,6 +7,8 @@
     checks-read.py expect-api <scene dir>                              exits 1 if a service failed
     checks-read.py says <scene dir> <words>                            exits 1 if it does not say them
     checks-read.py matrix <output.json> <token> <victim project> ...   what this credential can write
+    checks-read.py field <name>                                        one field of the JSON on stdin, as openstack
+                                                                       printed it, in whichever case it did: ID, or id
 
 Only standard library, because this runs on a bare runner. A job holds a throwaway cloud's credential,
 and it stays on the runner.
@@ -189,6 +191,15 @@ def matrix(args):
         sys.exit(1)
 
 
+def field(name):
+    printed = json.load(sys.stdin)
+    for key, value in printed.items():
+        if key.lower() == name.lower():
+            print(value)
+            return
+    sys.exit(f"openstack printed no {name}, only {sorted(printed)}")
+
+
 def main():
     command = sys.argv[1]
     args = sys.argv[2:]
@@ -202,6 +213,8 @@ def main():
         says(*args)
     elif command == "matrix":
         matrix(args)
+    elif command == "field":
+        field(*args)
     else:
         sys.exit(f"What is {command}?")
 
