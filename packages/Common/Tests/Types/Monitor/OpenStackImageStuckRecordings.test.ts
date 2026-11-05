@@ -4,7 +4,6 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import {
   OPENSTACK_ANCHOR_METRIC_ALIAS,
-  OpenStackAlertTemplate,
   OpenStackAlertTemplateArgs,
   getOpenStackAlertTemplateById,
 } from "../../../Types/Monitor/OpenStackAlertTemplates";
@@ -163,25 +162,66 @@ describe.each(["hibiscus-ovn", "gazpacho-ovs"])(
       ).toBeGreaterThan(0);
     });
 
-    test("debug", async () => {
-      const appearsAtMinute: number = 120;
-      const goesAtMinute: number = 240;
+    function minutesIn(atMs: number | null): number | null {
+      return atMs === null ? null : (atMs - FIRST_COLLECTION_MS) / MINUTE_MS;
+    }
+
+    test("an image held in queued fires by name within a collection or so of the hour, and goes when it does", async () => {
+      const appearsAtMinute: number = 2 * OPENSTACK_IMAGE_STUCK_MINUTES;
+      const goesAtMinute: number = 4 * OPENSTACK_IMAGE_STUCK_MINUTES;
+      const walked: Walked = firedAndRecovered(
+        await walk({
+          image: imageNamed("ou-image-stuck"),
+          appearsAtMinute,
+          goesAtMinute,
+          endMinute: 6 * OPENSTACK_IMAGE_STUCK_MINUTES,
+        }),
+      );
+
+      expect(minutesIn(walked.firedAtMs)).toBeGreaterThanOrEqual(
+        appearsAtMinute +
+          OPENSTACK_IMAGE_STUCK_MINUTES -
+          2 * COLLECT_EVERY_MINUTES,
+      );
+      expect(minutesIn(walked.firedAtMs)).toBeLessThanOrEqual(
+        appearsAtMinute + OPENSTACK_IMAGE_STUCK_MINUTES + COLLECT_EVERY_MINUTES,
+      );
+
+      // Uploaded at last, or deleted: its series goes, and a window on nothing's left of it.
+      expect(minutesIn(walked.recoveredAtMs)).toBeGreaterThan(goesAtMinute);
+      expect(minutesIn(walked.recoveredAtMs)).toBeLessThanOrEqual(
+        goesAtMinute + OPENSTACK_IMAGE_STUCK_MINUTES + COLLECT_EVERY_MINUTES,
+      );
+    });
+
+    test("an image caught in queued by one collection, as an upload is, raises nothing", async () => {
       const steps: Array<TemplateWalkStep> = await walk({
         image: imageNamed("ou-image-stuck"),
-        appearsAtMinute,
-        goesAtMinute,
-        endMinute: 360,
+        appearsAtMinute: 2 * OPENSTACK_IMAGE_STUCK_MINUTES,
+        goesAtMinute: 2 * OPENSTACK_IMAGE_STUCK_MINUTES,
+        endMinute: 4 * OPENSTACK_IMAGE_STUCK_MINUTES,
       });
-      const walked: Walked = firedAndRecovered(steps);
-      // eslint-disable-next-line no-console
-      console.log(
-        "FIRED",
-        walked.firedAtMs && (walked.firedAtMs - FIRST_COLLECTION_MS) / MINUTE_MS,
-        "RECOVERED",
-        walked.recoveredAtMs &&
-          (walked.recoveredAtMs - FIRST_COLLECTION_MS) / MINUTE_MS,
-      );
-      expect(true).toBe(true);
+
+      expect(firedAndRecovered(steps).firedAtMs).toBeNull();
+    });
+
+    test("the image beside it, which is active, never does", async () => {
+      const active: RecordedSeries = recorded.find(
+        (series: RecordedSeries): boolean => {
+          return (
+            series.name === "openstack_glance_image_created_at" &&
+            series.labels["status"] === "active"
+          );
+        },
+      )!;
+      const steps: Array<TemplateWalkStep> = await walk({
+        image: active,
+        appearsAtMinute: 0,
+        goesAtMinute: 4 * OPENSTACK_IMAGE_STUCK_MINUTES,
+        endMinute: 4 * OPENSTACK_IMAGE_STUCK_MINUTES,
+      });
+
+      expect(firedAndRecovered(steps).firedAtMs).toBeNull();
     });
   },
 );
