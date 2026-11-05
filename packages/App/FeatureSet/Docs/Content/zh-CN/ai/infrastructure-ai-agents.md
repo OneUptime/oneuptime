@@ -64,7 +64,7 @@ Kubernetes 集群有自己的代理，即 Kubernetes AI 代理，由 Kubernetes 
 | AWS 账户 | `aws` | 云 AI 代理 | `AWS_ACCOUNT_ID`（为空时使用它所运行的账户） | `cloud`——固定目录中的一项操作，从不执行 `aws` 命令 | AWS API，使用它自己的 IAM 角色 |
 | Azure 订阅 | `azure` | 云 AI 代理 | `AZURE_SUBSCRIPTION_ID`（由其设置命令设置） | `cloud`——固定目录中的一项操作，从不执行 `az` 命令 | Azure Resource Manager，以其 Container App 的托管标识访问 |
 | Google Cloud 项目 | `gcp`（或 `google-cloud`） | 云 AI 代理 | `GOOGLE_CLOUD_PROJECT`（为空时使用它所运行的项目） | `cloud`——固定目录中的一项操作，从不执行 `gcloud` 命令 | Google Cloud API，以它自己的服务账号访问 |
-| OpenStack 云 | `openstack` | OpenStack AI 代理 | `OPENSTACK_CLOUD_NAME` | `openstack` 命令，发送到云的 API（代理中没有 `openstack` 二进制文件）——它只读取，没有任何会更改云的命令 |
+| OpenStack 云 | `openstack` | OpenStack AI 代理 | `OPENSTACK_CLOUD_NAME` | `openstack` 命令（代理中没有 `openstack` 二进制文件）。在您选择启用[修复](#openstack-云上的修复)之前，它只读取 | 云的 API，使用 `clouds.yaml` 中的应用凭据 |
 
 数据库服务器：数据库 AI 代理提供针对 PostgreSQL、MySQL（以及 MariaDB 和 Percona Server）、Redis（以及 Valkey、KeyDB 和 Dragonfly）和 MongoDB 的诊断。对于任何其他引擎，它不运行任何内容，并在数据库的 AI 代理页面上说明这一点。
 
@@ -245,7 +245,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 - 云可能没有运行的服务，仅在其目录中列出时可用：Manila 的 `openstack share list --all-projects --limit 50`、`openstack share service list` 和 `openstack share pool list`；Designate 的 `openstack zone list --all-projects --limit 50`，以及用于某个区域记录集的 `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`；Swift 的 `openstack container list`，它只涉及该凭据自己所在的项目；Trove 的 `openstack database instance list`，涉及所有项目，只有管理员才可以；以及用于 Gnocchi 积压和处理器的 `openstack metric status`。
 - 云的结构：`openstack endpoint list`、`openstack service list`、`openstack region list`、`openstack project list`、`openstack domain list`，以及带 ID 的 `project show`。
 - 跨租户的列表必须写明 `--limit N`（最大 200），并用 `--marker ID` 继续。其他每个列表除非另有说明，否则最多 100 行，并会说明是否还有更多。代理从不自行跟随 `next` 链接。
-- 从不允许：任何会更改云的操作——根本没有这样的命令可以运行——Keystone 的用户、凭据、角色分配和令牌、控制台和控制台日志、Barbican 的机密、`--os-cloud` 以及其他所有登录或端点选项。
+- 从不允许：任何会更改云的操作——只有[修复](#openstack-云上的修复)才会这样做——Keystone 的用户、凭据、角色分配和令牌、控制台和控制台日志、Barbican 的机密、`--os-cloud` 以及其他所有登录或端点选项。
 
 实例的 `user_data`、其管理员密码、镜像的 `direct_url`、卷的 `provider_auth` 以及其他任何标记为机密的内容，在输出到达模型或日志之前都会被遮盖。
 

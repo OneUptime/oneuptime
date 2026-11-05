@@ -1,6 +1,6 @@
 # OpenStack por ferramenta de implantação
 
-Ninguém executa "o OpenStack". Executam uma ferramenta que o implanta, e cada ferramenta tem seus próprios caminhos, seus próprios registros e sua própria ideia do que já está em execução. Esta página reúne o que o guia de configuração do OneUptime diz para cada uma: abra **OpenStack → Todas as nuvens**, conecte uma nuvem e responda a **Como você implanta o OpenStack?**
+Ninguém executa "o OpenStack". Executam uma ferramenta que o implanta, e cada ferramenta tem seus próprios caminhos, seus próprios registros e sua própria ideia do que já está em execução. Esta página reúne o que o guia de configuração do OneUptime diz para cada uma: abra **OpenStack → Documentação** e responda a **Como você implanta o OpenStack?**
 
 :::cards
 - [Até onde cada guia foi testado](#até-onde-cada-guia-foi-testado): Leia isto primeiro. Os do Kolla-Ansible e do OpenStack-Ansible foram executados em implantações reais. Os outros não foram.
@@ -16,23 +16,23 @@ Ninguém executa "o OpenStack". Executam uma ferramenta que o implanta, e cada f
 
 ## Até onde cada guia foi testado
 
-Cada caminho, porta e variável abaixo foi lido do código-fonte ou da documentação da própria ferramenta. A bancada de testes que grava os fixtures do OneUptime também implanta o Kolla-Ansible e o OpenStack-Ansible em um runner de CI e executa ali os comandos dos próprios guias, com um substituto do OneUptime que guarda o que o agente envia. Portanto, nenhum guia aqui reportou a um OneUptime em execução a partir de uma implantação real da sua ferramenta. Contra o que cada um foi verificado:
+Cada caminho, porta e variável abaixo foi lido do código-fonte ou da documentação da própria ferramenta. Os guias do Kolla-Ansible e do OpenStack-Ansible também foram seguidos em implantações reais, com os comandos dos próprios guias e um substituto do OneUptime que guarda o que o agente envia. Portanto, nenhum guia aqui reportou a um OneUptime em execução a partir de uma implantação real da sua ferramenta. Contra o que cada um foi verificado:
 
 | Ferramenta | Lido de | Executado de verdade |
 | --- | --- | --- |
-| Kolla-Ansible | Seu código-fonte, no master e no `stable/2026.1` | Os comandos deste guia, em um all-in-one real no `stable/2026.1` com Open vSwitch: o agente em cada credencial, sem Docker, no exportador do próprio Kolla-Ansible e no seu na versão fixada e na 1.7.0, os alvos lidos do seu `prometheus.yml` real e o perfil de logs. Com o Memcached realmente parado ali, seu Alertmanager enviou um webhook firing e depois um resolved, e o que ele enviou, mandado a um OneUptime em execução, abriu um incidente na nuvem certa e em nenhuma outra, e o resolveu |
-| OpenStack-Ansible | Seu código-fonte e documentação | Os comandos deste guia, em um all-in-one real no `stable/2026.1`, em contêineres LXC: o agente na primeira credencial, o exportador na segunda com suas substituições de política, as configurações de RabbitMQ e HAProxy com o agente lendo cada uma, e o perfil de logs no journal |
-| OpenStack-Helm | Os values dos seus charts | A sonda e o agente do Kubernetes, cada um por conta própria |
-| Atmosphere | Sua documentação e código-fonte | A sonda e o agente do Kubernetes, cada um por conta própria |
+| Kolla-Ansible | Seu código-fonte, no master e no `stable/2026.1` | Os comandos deste guia, em um all-in-one real no `stable/2026.1` com Open vSwitch: o agente na credencial Visão completa, sem Docker, no exportador do próprio Kolla-Ansible e no seu na versão fixada e na 1.7.0, o exportador do agente na credencial Somente infraestrutura, os alvos lidos do seu `prometheus.yml` real e o perfil de logs. Com o Memcached realmente parado ali, seu Alertmanager enviou um webhook firing e depois um resolved, e o que ele enviou, mandado a um OneUptime em execução, abriu um incidente na nuvem certa e em nenhuma outra, e o resolveu |
+| OpenStack-Ansible | Seu código-fonte e documentação | Os comandos deste guia, em um all-in-one real no `stable/2026.1`, em contêineres LXC: o agente na credencial Visão completa, o exportador do agente na credencial Somente infraestrutura com suas substituições de política, as configurações de RabbitMQ e HAProxy com o agente lendo cada uma, e o perfil de logs no journal |
+| OpenStack-Helm | Os values dos seus charts | Nada no OpenStack-Helm. A sonda e o agente do Kubernetes foram testados cada um por conta própria |
+| Atmosphere | Sua documentação e código-fonte | Nada no Atmosphere. A sonda e o agente do Kubernetes foram testados cada um por conta própria |
 | Canonical Sunbeam | A documentação da Canonical e o código-fonte dos seus charms | Nada no Sunbeam. A documentação do próprio Sunbeam não menciona o charm do exportador |
-| Red Hat OpenStack on OpenShift | O código-fonte do Telemetry Operator | O preset do OpenShift e o exportador do Ceilometer, cada um por conta própria |
+| Red Hat OpenStack on OpenShift | O código-fonte do Telemetry Operator | Nada na distribuição da Red Hat. O preset do OpenShift e o exportador do Ceilometer foram testados cada um por conta própria |
 | Mirantis MOSK | A documentação da Mirantis, cujos exemplos mostram outros receptores em vez de um webhook | Nada no MOSK |
 
-O que o **Quem fez o quê** de cada guia ativa foi gravado no DevStack, em todas as versões que a bancada executa, e em nenhuma dessas ferramentas. Onde cada ferramenta o aceita foi lido do código-fonte ou da documentação dela.
+O que o **Quem fez o quê** de cada guia ativa foi gravado no DevStack, e em nenhuma dessas ferramentas. Onde cada ferramenta o aceita foi lido do código-fonte ou da documentação dela.
 
-Além disso, todo o caminho foi executado em um OneUptime ativo, iniciado como o Docker Compose o inicia, com seu app e sua sonda compilados a partir deste código, e em um DevStack real em vez de qualquer uma dessas ferramentas. O agente, instalado com os comandos da documentação, registrou a nuvem a partir dos seus primeiros dados, e toda instância, volume e hipervisor teve uma linha com o status que a própria nuvem deu. Com o `nova-compute` realmente parado, sua linha ficou inativa, um monitor do modelo Compute Service Down abriu um incidente nomeando o host 746 segundos depois, e ele foi resolvido 48 segundos após o serviço iniciar de novo. A sonda de um projeto conectou a mesma nuvem pelas rotas do próprio painel e leu de volta suas linhas, e os 114 spans de um boot assinado chegaram pelos seus serviços, a partir do perfil de traces.
+Além disso, todo o caminho foi executado em um OneUptime ativo, iniciado como o Docker Compose o inicia, e em um DevStack real em vez de qualquer uma dessas ferramentas. O agente, instalado com os comandos da documentação, registrou a nuvem a partir dos seus primeiros dados, e toda instância, volume e hipervisor teve uma linha com o status que a própria nuvem deu. Com o `nova-compute` realmente parado, sua linha ficou inativa, um monitor do modelo Compute Service Down abriu um incidente nomeando o host cerca de 12 minutos depois, e ele foi resolvido em até um minuto depois de o serviço iniciar de novo. A sonda de um projeto conectou a mesma nuvem pelas rotas do próprio painel e leu de volta suas linhas, e os 114 spans de um boot assinado chegaram pelos seus serviços, a partir do perfil de traces.
 
-Separadamente, o que um agente real e um Alertmanager real tinham enviado foi gravado no DevStack e em um cluster de teste, não em uma nuvem implantada por alguma dessas ferramentas. Enviado a um OneUptime ativo, o webhook de disparo abriu um incidente na nuvem certa e em nenhuma outra, o mesmo webhook de novo não abriu nada, e o webhook de resolução o resolveu.
+Separadamente, o que um agente real enviou no DevStack e o que o Alertmanager do Kolla-Ansible enviou foram gravados e depois mandados a um OneUptime ativo: o webhook de disparo abriu um incidente na nuvem certa e em nenhuma outra, o mesmo webhook de novo não abriu nada, e o webhook de resolução o resolveu.
 
 ## Encaminhe o que já está disparando
 
@@ -48,7 +48,7 @@ Crie um monitor de Incoming Request como diz o [Prometheus Alertmanager](/docs/i
 Abra **Visão geral → Recursos Vinculados** do monitor e adicione a nuvem OpenStack. Cada incidente passa a aparecer na página **Incidentes** dessa nuvem: as configurações de um monitor Incoming Request não nomeiam nenhuma nuvem, então o Alertmanager de cada nuvem precisa de um monitor próprio. A nuvem aparece nessa lista assim que seus primeiros dados chegam, então faça isso depois dos passos abaixo, ou adicione a nuvem antes em **OpenStack → Todas as nuvens**.
 :::
 
-O Alertmanager foi gravado enviando exatamente neste formato em `Tests/Ops/openstack-e2e`, na versão que o Kolla-Ansible fixa, e a gravação é reproduzida no avaliador real: um incidente por alerta, resolvido pelo seu próprio status `resolved`.
+O Alertmanager, na versão que o Kolla-Ansible fixa, foi gravado enviando exatamente neste formato, e o que ele enviou abriu um incidente em um OneUptime em execução, que o seu próprio status `resolved` resolveu.
 
 ## Kolla-Ansible
 
@@ -576,7 +576,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
 bash install.sh
 ```
 
-Essa varredura se soma ao próprio Prometheus do Kolla-Ansible perguntando a cada minuto. O Kolla-Ansible fixa o exportador 1.7.0, e a resposta dele também diz menos do que o exportador que o agente fixa. Isto é o que as páginas deixaram de ter em cinco nuvens reais, e um teste as confronta com essas gravações:
+Essa leitura se soma ao próprio Prometheus do Kolla-Ansible perguntando a cada minuto. O Kolla-Ansible fixa o exportador 1.7.0, e a resposta dele também diz menos do que o exportador que o agente fixa. Isto é o que as páginas deixaram de ter em cinco nuvens reais, e um teste as confronta com essas gravações:
 
 | Fica sem | Porque | O que custa |
 | --- | --- | --- |

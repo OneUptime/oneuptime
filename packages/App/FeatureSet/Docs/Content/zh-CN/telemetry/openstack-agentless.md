@@ -25,11 +25,11 @@ flowchart TB
 
 每项服务都独立读取，并与其他服务同时进行。Neutron 失败或挂起只会丢失 Neutron 的序列，Nova 的数据照常到达，但有一点是 Nova 自身造成的：它会就列出的每个实例向 Neutron 查询。因此，在 Neutron 宕机期间，探测器会保留上次读取的实例，只查询发生变化的部分。如果某个实例已变化，或探测器刚刚启动，Nova 也无法回答该列表：Nova 会显示为失败，其他序列仍会到达，每个实例在其页面上保持上次的状态，直到 Neutron 恢复。
 
-Heat、Magnum、Manila、Trove、Gnocchi、Designate、Swift 和 Barbican 会在 Keystone 的目录列出它们时读取。未运行这些服务的云不会为此付出任何开销，连接测试也不会提及它们，并且[不会显示它们的任何痕迹](/docs/telemetry/openstack#heat-和-magnum)。
+Heat、Magnum、Manila、Trove、Gnocchi、Designate、Swift 和 Barbican 会在 Keystone 的目录列出它们时读取。一个都没有运行的云不会为此付出任何开销，连接测试也不会提及它们，并且[不会显示它们的任何痕迹](/docs/telemetry/openstack#heat-和-magnum)。
 
-在目录中包含 Octavia 的云上，探测器对负载均衡器、池、监听器和 amphora 各用一次列表请求读取，然后对每个池的成员以及每个状态为 `ACTIVE` 的负载均衡器和监听器的流量计数器各发一次请求。一个包含 3 个负载均衡器、1 个池和 1 个监听器的云，每次收集需要 9 次请求；测试台记录的真实 DevStack 恰好是这个数字。每次收集最多读取 25 个池的成员和 50 个计数器，优先读取最久未读的，其余的保持上次读取时的状态。Octavia 的计数器是累计值，因此探测器会保留每个计数器的上次读数，并绘制两次读数之间每秒的差值：图表从第二次收集开始，计数器下降（监听器被重建）时，该时间段不绘制任何内容。OVN 提供程序的每个计数器都报告 0，这是一条平线，并非故障。
+在目录中包含 Octavia 的云上，探测器对负载均衡器、池、监听器和 amphora 各用一次列表请求读取，然后对每个池的成员以及每个状态为 `ACTIVE` 的负载均衡器和监听器的流量计数器各发一次请求。一个包含 3 个负载均衡器、1 个池和 1 个监听器的云，每次收集需要 9 次请求；我们记录的一个真实 DevStack 恰好是这个数字。每次收集最多读取 25 个池的成员和 50 个计数器，优先读取最久未读的，其余的保持上次读取时的状态。Octavia 的计数器是累计值，因此探测器会保留每个计数器的上次读数，并绘制两次读数之间每秒的差值：图表从第二次收集开始，计数器下降（监听器被重建）时，该时间段不绘制任何内容。OVN 提供程序的每个计数器都报告 0，这是一条平线，并非故障。
 
-读取 amphora 的每一项都需要 Octavia 的管理员规则。低于管理员的凭据只能看到自己项目的负载均衡器、池、监听器和成员，以及自己的计数器，看不到 amphora：“负载均衡器”页面会说明这一点，但不会发出警告。在没有负载均衡器的项目上，monitoring 角色什么也看不到。在此版本中，`load-balancer_global_observer` 的所有读取都会被拒绝。
+读取 amphora 的每一项都需要 Octavia 的管理员规则。低于管理员的凭据只能看到自己项目的负载均衡器、池、监听器和成员，以及自己的计数器，看不到 amphora：“负载均衡器”页面会说明这一点，但不会发出警告。在没有负载均衡器的项目上，monitoring 角色什么也看不到。在记录此内容所用的版本 `stable/2026.1` 上，`load-balancer_global_observer` 的所有读取都被拒绝。
 
 对探测器而言，停止的 Octavia API 是 `up 0`，而代理的导出器无法表达这一点。
 
@@ -41,7 +41,7 @@ Heat、Magnum、Manila、Trove、Gnocchi、Designate、Swift 和 Barbican 会在
 | 凭据保存在哪里 | 在 OneUptime 中加密保存，只发送给探测器 | 在代理的 `clouds.yaml` 文件中 |
 | 需要访问什么 | 通过 HTTPS 访问 Keystone 和各服务的 API | 访问 Keystone 和各服务的 API |
 | 使用明文 HTTP 的 API | 不收集：令牌绝不会未加密发送 | 收集 |
-| 最大的云 | 已针对模拟云（并非真实云）测试到 [200,000 个实例](/docs/telemetry/openstack-very-large-clouds)，最多分十次上传，每次 48 MiB | 尚未测试到任何规模：[它的抓取在](/docs/telemetry/openstack-very-large-clouds#通过代理)远未达到该规模时就已超时 |
+| 最大的云 | 已针对模拟云（并非真实云）测试到 [200,000 个实例](/docs/telemetry/openstack-very-large-clouds)，最多分十次上传，每次 48 MiB | 未做规模测试：[它的抓取在](/docs/telemetry/openstack-very-large-clouds#通过代理)远未达到该规模时就已超时 |
 | 服务日志和 AI 代理 | 不包含 | 包含 |
 | 云所依赖的组件：RabbitMQ、MariaDB、Memcached、HAProxy、OVN、libvirt | 不包含：探测器读取的是云的 API | 包含，并列出其目标 |
 | 来自 libvirt 或 Ceilometer 的每个实例的真实 CPU、内存和磁盘 | 不包含 | 包含，并列出其导出器 |

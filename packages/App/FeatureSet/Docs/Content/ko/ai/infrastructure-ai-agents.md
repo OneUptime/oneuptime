@@ -64,7 +64,7 @@ Kubernetes AI 에이전트와 마찬가지로 리소스 AI 에이전트는 Runne
 | AWS 계정 | `aws` | 클라우드 AI 에이전트 | `AWS_ACCOUNT_ID`(비어 있으면 실행 중인 계정) | `cloud` — 고정된 카탈로그의 작업 하나, `aws` 명령은 절대 아님 | AWS API, 자체 IAM 역할 사용 |
 | Azure 구독 | `azure` | 클라우드 AI 에이전트 | `AZURE_SUBSCRIPTION_ID`(설정 명령이 지정) | `cloud` — 고정된 카탈로그의 작업 하나, `az` 명령은 절대 아님 | Azure Resource Manager, Container App의 관리 ID로 |
 | Google Cloud 프로젝트 | `gcp`(또는 `google-cloud`) | 클라우드 AI 에이전트 | `GOOGLE_CLOUD_PROJECT`(비어 있으면 실행 중인 프로젝트) | `cloud` — 고정된 카탈로그의 작업 하나, `gcloud` 명령은 절대 아님 | Google Cloud API, 자체 서비스 계정으로 |
-| OpenStack 클라우드 | `openstack` | OpenStack AI 에이전트 | `OPENSTACK_CLOUD_NAME` | `openstack` 명령, 클라우드의 API로 전송됨(에이전트에는 `openstack` 바이너리가 없음) — 읽기만 하며 클라우드를 변경하는 명령은 없음 |
+| OpenStack 클라우드 | `openstack` | OpenStack AI 에이전트 | `OPENSTACK_CLOUD_NAME` | `openstack` 명령(에이전트에는 `openstack` 바이너리가 없음). [수정](#openstack-클라우드의-수정)을 켜기 전에는 읽기만 합니다 | 클라우드의 API, `clouds.yaml`의 애플리케이션 자격 증명 사용 |
 
 데이터베이스 서버: 데이터베이스 AI 에이전트에는 PostgreSQL, MySQL(및 MariaDB와 Percona Server), Redis(및 Valkey, KeyDB, Dragonfly), MongoDB용 진단이 있습니다. 그 밖의 엔진에서는 아무것도 실행하지 않으며, 데이터베이스의 AI 에이전트 페이지에 그렇게 표시합니다.
 
@@ -245,7 +245,7 @@ Podman 호스트는 Podman의 Docker 호환 API를 통해 같은 `docker` CLI와
 - 클라우드에서 실행하지 않을 수도 있는 것(카탈로그에 이름이 있는 경우): Manila의 `openstack share list --all-projects --limit 50`, `openstack share service list`, `openstack share pool list`. Designate에서 한 영역의 레코드셋을 보는 `openstack zone list --all-projects --limit 50` 과 `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`. Swift의 `openstack container list`(이 자격 증명이 속한 프로젝트의 것만 나옴). 모든 프로젝트의 것을 보여 주며 관리자만 쓸 수 있는 Trove의 `openstack database instance list`. Gnocchi의 백로그와 프로세서를 보는 `openstack metric status`.
 - 클라우드의 구성: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list`, 그리고 ID를 받는 `project show`.
 - 테넌트를 가로지르는 목록은 `--limit N`(최대 200)을 지정해야 하며 `--marker ID` 로 이어집니다. 그 밖의 모든 목록은 달리 말하지 않는 한 100행에서 멈추고, 더 있으면 그렇다고 알려 줍니다. 에이전트가 `next` 링크를 스스로 따라가는 일은 절대 없습니다.
-- 절대 불가: 클라우드를 변경하는 모든 것(실행할 그런 명령은 없음), Keystone의 사용자, 자격 증명, 역할 할당, 토큰, 콘솔과 콘솔 로그, Barbican의 시크릿, `--os-cloud` 및 그 밖의 모든 로그인 또는 엔드포인트 옵션.
+- 절대 불가: 클라우드를 변경하는 모든 것([수정](#openstack-클라우드의-수정)만 그렇게 함), Keystone의 사용자, 자격 증명, 역할 할당, 토큰, 콘솔과 콘솔 로그, Barbican의 시크릿, `--os-cloud` 및 그 밖의 모든 로그인 또는 엔드포인트 옵션.
 
 인스턴스의 `user_data`, 관리자 비밀번호, 이미지의 `direct_url`, 볼륨의 `provider_auth` 등 비밀로 표시된 모든 것은 출력이 모델이나 로그에 도달하기 전에 마스킹됩니다.
 

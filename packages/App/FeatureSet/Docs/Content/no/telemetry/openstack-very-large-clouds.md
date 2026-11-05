@@ -1,6 +1,6 @@
 # Svært store OpenStack-skyer
 
-Hva en sky av enhver størrelse koster før du installerer noe: hvor hardt overvåkingen belaster kontrollplanet, hvor mye data den sender, og hva OneUptime gjør annerledes etter hvert som en sky vokser. Nesten ingen sky trenger noe av dette: standardinnstillingene til [OpenStack-agenten](/docs/telemetry/openstack) og en [sonde](/docs/telemetry/openstack-agentless) holder opp til tusenvis av instanser uten at noe må settes.
+Hva en sky av enhver størrelse koster før du installerer noe: hvor hardt overvåkingen belaster kontrollplanet, hvor mye data den sender, og hva OneUptime gjør annerledes etter hvert som en sky vokser. Nesten ingen sky bør trenge noe av dette: etter tallene nedenfor holder standardinnstillingene til [OpenStack-agenten](/docs/telemetry/openstack) og en [sonde](/docs/telemetry/openstack-agentless) holder opp til tusenvis av instanser uten at noe må settes.
 
 :::cards
 - [Lasten på kontrollplanet ditt](#lasten-på-kontrollplanet-ditt): Forespørsler per minutt per tjeneste, ved hver størrelse.
@@ -54,13 +54,13 @@ Disse er telt fra eksportørens kildekode, og eksportøren er ikke kjørt ved di
 
 ### Når et API blir tregt
 
-En sonde følger med på hva hver tjeneste vanligvis svarer på, og når et svar tar tre ganger så lang tid og minst ett sekund, eller fem sekunder uansett hva som er vanlig, venter den like lenge som svaret tok før den spør den tjenesten igjen. Flere avlesninger som venter samtidig, tar tur, så en pause ender ikke i en byge. En tjeneste som fortsetter å svare `429` eller `503`, får være i fred i ett minutt, så to, så fire, opptil en halv time. Ingenting annet holdes opp: hver tjeneste spørres for seg.
+En sonde følger med på hva hver tjeneste vanligvis svarer på, og holder igjen når et svar er tregt eller avvist: [Hva den koster skyen din](/docs/telemetry/openstack-agentless#hva-det-koster-skyen-din) sier med hvor mye. Flere avlesninger som venter samtidig, tar tur, så en pause ender ikke i en byge. Ingenting annet holdes opp: hver tjeneste spørres for seg.
 
 Skyens **Datainnsamling**-kort sier fra om det mens det varer, tjeneste for tjeneste: hvor tregt det tregeste svaret var, og hvor lenge sonden holdt tilbake. Agentens eksportør kan ikke gjøre dette. En skraping kjører hel, ved sitt intervall: øk `scrape_interval` og `scrape_timeout` for den jobben for å skåne en tjeneste.
 
 ## Dataene den sender
 
-En skys serier følger av tallene dens. Kalkulatoren på en skys **Dokumentasjon**-side i OneUptime regner dette ut fra tre tall. For å regne det ut selv, for én region:
+En skys serier følger av tallene dens. Kalkulatoren under **OpenStack → Dokumentasjon** i OneUptime regner dette ut fra tre tall. For å regne det ut selv, for én region:
 
 | Serier | Hvor mange |
 | --- | --- |
@@ -72,7 +72,7 @@ En skys serier følger av tallene dens. Kalkulatoren på en skys **Dokumentasjon
 | Sammendragsmodusens tall, når den er på | Én per status og én per prosjekt: omtrent 6 pluss prosjekter |
 | Keystone, Glance | Prosjekter, domener og 9, og 2 per bilde pluss 5. En sonde legger til 3 for hver av Heat og Magnum, enten en sky kjører dem eller ikke |
 
-Radene fra hver skraping er det du faktureres for: de første fem linjene kommer hvert 2. minutt, 720 ganger om dagen, og den siste hvert 5. minutt, 288 ganger. Prisen er den på fakturaen din, [per GB for hvor lenge det lagres](/docs/telemetry/openstack#hva-det-koster). Fakturaen leser den virkelige størrelsen på hver rad, og dette regner det ut med 1 024 byte per rad, det OneUptimes fakturering faller tilbake på når den ikke har noen størrelse for en rad. En rad med mange etiketter, som en instans', koster mer enn det, og en uten noen koster mindre.
+Radene fra hver skraping er det du faktureres for: de første fem linjene kommer hvert 2. minutt, 720 ganger om dagen, og den siste hvert 5. minutt, 288 ganger. Prisen er den på fakturaen din, [per GB for hvor lenge det lagres](/docs/telemetry/data-retention#hva-oppbevaring-koster). Fakturaen leser den virkelige størrelsen på hver rad, og dette regner det ut med 1 024 byte per rad, det OneUptimes fakturering faller tilbake på når den ikke har noen størrelse for en rad. En rad med mange etiketter, som en instans', koster mer enn det, og en uten noen koster mindre.
 
 | Sky | Serier | GB per dag, hver serie | GB per dag, i sammendragsmodus | En måned lagret 15 dager, i sammendragsmodus |
 | --- | --- | --- | --- | --- |
@@ -114,7 +114,7 @@ Over 5 000 instanser beholder en sky tall og rader i stedet for en serie per ins
 - **Hvert par av en region og en tjeneste tilhører én agent.** En rad er den samme raden uansett hvor mange agenter som rapporterer den, men hver agents serier lagres og faktureres.
 - **Keystone tilhører én agent.** Den er én for hele skyen, uansett hvilken region som spør den.
 
-**Én agent per region** er det de fleste skyer vil ha. List bare den regionens oppføringer i `clouds.yaml` og `OPENSTACK_EXPORTER_CLOUDS`. Bare den første agenten beholder Keystone:
+**Én agent per region** er det de fleste skyer vil ha. List bare den regionens oppføringer i `clouds.yaml` og `OPENSTACK_EXPORTER_CLOUDS`. Bare den første agenten beholder Keystone. En agent som setter `OPENSTACK_AGENT_SERVICES` leser bare det den navngir, så legg til enhver annen tjeneste skyen din kjører, som `load-balancer`:
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## Hva den største størrelsen ble holdt til
 
-Den virkelige innsamleren leste et mock-API med 5 000 hypervisorer, 200 000 instanser og 10 000 prosjekter hvert andre minutt i 60 minutter, på en virkelig klokke. Det den sendte, gikk gjennom den virkelige foldingen og de virkelige skrivingene inn i en virkelig Postgres, med Oversiktens avlesninger og opprydningen av utdaterte rader kjørende ved siden av hvert 30. sekund, og 200 instanser som endret seg ved hver innsamling. Hvert budsjett nedenfor er hevdet, og en kjøring som bommer på ett, feiler.
+Den virkelige innsamleren leste et mock-API med 5 000 hypervisorer, 200 000 instanser og 10 000 prosjekter hvert andre minutt i 60 minutter, på en virkelig klokke. Det den sendte, gikk gjennom det virkelige inntaket og de virkelige skrivingene inn i en virkelig Postgres, med Oversiktens avlesninger og opprydningen av utdaterte rader kjørende ved siden av hvert 30. sekund, og 200 instanser som endret seg ved hver innsamling. Hvert budsjett nedenfor er hevdet, og en kjøring som bommer på ett, feiler.
 
 | Hva | Budsjett | Målt |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ Marginen er ikke bred på en så travel maskin. En tidligere time, ved et gjenno
 
 ## Hva sidene leser
 
-En stor skys sider leses like raskt som en liten skys, fordi ingen av dem leser hele skyen.
+En stor skys sider leser lite mer enn en liten skys, fordi ingen av dem leser hele skyen.
 
 | Side | Hva den leser |
 | --- | --- |

@@ -1,6 +1,6 @@
 # OpenStack nach Bereitstellungswerkzeug
 
-Niemand betreibt „OpenStack“. Man betreibt ein Tool, das es bereitstellt, und jedes Tool hat seine eigenen Pfade, seine eigenen Protokolle und seine eigene Vorstellung davon, was schon läuft. Diese Seite gibt wieder, was die Einrichtungsanleitung in OneUptime für jedes davon sagt: Öffnen Sie **OpenStack → Alle Clouds**, verbinden Sie eine Cloud und beantworten Sie **Wie stellen Sie OpenStack bereit?**
+Niemand betreibt „OpenStack“. Man betreibt ein Tool, das es bereitstellt, und jedes Tool hat seine eigenen Pfade, seine eigenen Protokolle und seine eigene Vorstellung davon, was schon läuft. Diese Seite gibt wieder, was die Einrichtungsanleitung in OneUptime für jedes davon sagt: Öffnen Sie **OpenStack → Dokumentation** und beantworten Sie **Wie stellen Sie OpenStack bereit?**
 
 :::cards
 - [Wie weit jede Anleitung getestet wurde](#wie-weit-jede-anleitung-getestet-wurde): Lesen Sie das zuerst. Die für Kolla-Ansible wurde auf einer echten Bereitstellung ausgeführt, bis auf eine Warnung. Die für OpenStack-Ansible wurde teilweise ausgeführt. Die anderen nicht.
@@ -16,23 +16,23 @@ Niemand betreibt „OpenStack“. Man betreibt ein Tool, das es bereitstellt, un
 
 ## Wie weit jede Anleitung getestet wurde
 
-Jeder Pfad, jeder Port und jede Variable unten wurde aus dem Quellcode oder den Dokumenten des jeweiligen Tools gelesen. Der Prüfaufbau, der die Fixtures von OneUptime aufzeichnet, stellt auf einem CI-Runner auch Kolla-Ansible und OpenStack-Ansible bereit und führt dort die eigenen Befehle ihrer Anleitungen aus, mit einem Platzhalter für OneUptime, der festhält, was der Agent sendet. Keine Anleitung hier hat also von einer echten Bereitstellung ihres Tools aus an ein laufendes OneUptime berichtet. Wogegen jede geprüft wurde:
+Jeder Pfad, jeder Port und jede Variable unten wurde aus dem Quellcode oder den Dokumenten des jeweiligen Tools gelesen. Die Anleitungen von Kolla-Ansible und OpenStack-Ansible wurden außerdem auf echten Bereitstellungen befolgt, mit ihren eigenen Befehlen und einem Platzhalter für OneUptime, der festhält, was der Agent sendet. Keine Anleitung hier hat also von einer echten Bereitstellung ihres Tools aus an ein laufendes OneUptime berichtet. Wogegen jede geprüft wurde:
 
 | Tool | Gelesen aus | Echt ausgeführt |
 | --- | --- | --- |
-| Kolla-Ansible | Sein Quellcode, bei master und `stable/2026.1` | Die Befehle dieser Anleitung, auf einem echten All-in-One bei `stable/2026.1` mit Open vSwitch: der Agent mit jeder Credential, ohne Docker, mit dem eigenen Exporter von Kolla-Ansible und mit Ihrem eigenen in der angepinnten Version und in 1.7.0, die Ziele aus seiner echten `prometheus.yml` gelesen, und das Logs-Profil. Bei dort wirklich angehaltenem Memcached sendete sein Alertmanager einen Firing-Webhook und danach einen Resolved-Webhook, und was er sendete, an ein laufendes OneUptime geschickt, öffnete einen Vorfall in der richtigen Cloud und in keiner anderen und löste ihn auf |
-| OpenStack-Ansible | Sein Quellcode und seine Dokumente | Ein echtes All-in-One bei `stable/2026.1`, in LXC-Containern, wo die RabbitMQ- und HAProxy-Einstellungen dieser Anleitung mit seinen Befehlen angewendet wurden und jeder Exporter antwortete, und sein Logs-Profil das Journal las. Seine Agent-Schritte wurden darauf nicht ausgeführt: Der Agent und sein Logs-Profil liefen auf einer Cloud, die dieses Tool nicht bereitgestellt hat |
-| OpenStack-Helm | Seine Chart-Werte | Die Sonde und der Kubernetes-Agent, jeweils für sich |
-| Atmosphere | Seine Dokumente und sein Quellcode | Die Sonde und der Kubernetes-Agent, jeweils für sich |
+| Kolla-Ansible | Sein Quellcode, bei master und `stable/2026.1` | Die Befehle dieser Anleitung, auf einem echten All-in-One bei `stable/2026.1` mit Open vSwitch: der Agent mit der Credential für die Vollansicht, ohne Docker, mit dem eigenen Exporter von Kolla-Ansible und mit Ihrem eigenen in der angepinnten Version und in 1.7.0, der Exporter des Agents mit der Credential „Nur Infrastruktur“, die Ziele aus seiner echten `prometheus.yml` gelesen, und das Logs-Profil. Bei dort wirklich angehaltenem Memcached sendete sein Alertmanager einen Firing-Webhook und danach einen Resolved-Webhook, und was er sendete, an ein laufendes OneUptime geschickt, öffnete einen Vorfall in der richtigen Cloud und in keiner anderen und löste ihn auf |
+| OpenStack-Ansible | Sein Quellcode und seine Dokumente | Die Befehle dieser Anleitung, auf einem echten All-in-One bei `stable/2026.1`, in LXC-Containern: der Agent mit der Credential für die Vollansicht, der Exporter des Agents mit der Credential „Nur Infrastruktur“ samt seinen Policy-Überschreibungen, die RabbitMQ- und HAProxy-Einstellungen, die der Agent jeweils las, und das Logs-Profil auf dem Journal |
+| OpenStack-Helm | Seine Chart-Werte | Nichts auf OpenStack-Helm. Die Sonde und der Kubernetes-Agent wurden jeweils für sich getestet |
+| Atmosphere | Seine Dokumente und sein Quellcode | Nichts auf Atmosphere. Die Sonde und der Kubernetes-Agent wurden jeweils für sich getestet |
 | Canonical Sunbeam | Die Dokumente von Canonical und der Quellcode seiner Charms | Nichts auf Sunbeam. Die eigenen Dokumente von Sunbeam erwähnen den Exporter-Charm nicht |
-| Red Hat OpenStack on OpenShift | Der Quellcode des Telemetry Operators | Das OpenShift-Preset und der Exporter von Ceilometer, jeweils für sich |
+| Red Hat OpenStack on OpenShift | Der Quellcode des Telemetry Operators | Nichts auf der Distribution von Red Hat. Das OpenShift-Preset und der Exporter von Ceilometer wurden jeweils für sich getestet |
 | Mirantis MOSK | Die Dokumente von Mirantis, deren Beispiele andere Empfänger statt eines Webhooks zeigen | Nichts auf MOSK |
 
-Was **Wer was getan hat** in jeder Anleitung voraussetzt, wurde auf DevStack aufgezeichnet, in jedem Release, das der Prüfaufbau ausführt, und auf keinem dieser Tools. Wo jedes Tool es aufnimmt, wurde aus dem Quellcode oder den Dokumenten dieses Tools gelesen.
+Was **Wer was getan hat** in jeder Anleitung voraussetzt, wurde auf DevStack aufgezeichnet und auf keinem dieser Tools. Wo jedes Tool es aufnimmt, wurde aus dem Quellcode oder den Dokumenten dieses Tools gelesen.
 
-Daneben ist der gesamte Weg auf einem laufenden OneUptime gelaufen, gestartet so, wie Docker Compose es startet, mit seiner App und Sonde aus diesem Code gebaut, und auf einem echten DevStack statt auf einem dieser Tools. Der Agent, mit den Befehlen seiner Dokumente installiert, hat die Cloud aus seinen ersten Daten registriert, und jede Instanz, jedes Volume und jeder Hypervisor hatte eine Zeile mit dem Status, den die Cloud selbst angab. Bei wirklich angehaltenem `nova-compute` ging seine Zeile auf ausgefallen, ein Monitor aus der Vorlage Compute Service Down öffnete 746 Sekunden später einen Vorfall, der den Host nannte, und er wurde 48 Sekunden nach dem erneuten Start des Dienstes aufgelöst. Die Sonde eines Projekts verband dieselbe Cloud über die eigenen Routen des Dashboards und las ihre Zeilen zurück, und die 114 Spans eines signierten Boots kamen über seine Dienste hinweg an, aus dem Traces-Profil.
+Daneben ist der gesamte Weg auf einem laufenden OneUptime gelaufen, gestartet so, wie Docker Compose es startet, und auf einem echten DevStack statt auf einem dieser Tools. Der Agent, mit den Befehlen seiner Dokumente installiert, hat die Cloud aus seinen ersten Daten registriert, und jede Instanz, jedes Volume und jeder Hypervisor hatte eine Zeile mit dem Status, den die Cloud selbst angab. Bei wirklich angehaltenem `nova-compute` ging seine Zeile auf ausgefallen, ein Monitor aus der Vorlage Compute Service Down öffnete etwa 12 Minuten später einen Vorfall, der den Host nannte, und er wurde innerhalb einer Minute nach dem erneuten Start des Dienstes aufgelöst. Die Sonde eines Projekts verband dieselbe Cloud über die eigenen Routen des Dashboards und las ihre Zeilen zurück, und die 114 Spans eines signierten Boots kamen über seine Dienste hinweg an, aus dem Traces-Profil.
 
-Getrennt davon wurde aufgezeichnet, was ein echter Agent und ein echter Alertmanager gesendet hatten, auf DevStack und in einem Testcluster, nicht auf einer Cloud, die eines dieser Tools bereitgestellt hat. An ein laufendes OneUptime gesendet, öffnete der Webhook für „firing“ einen Vorfall in der richtigen Cloud und in keiner anderen, derselbe Webhook noch einmal öffnete nichts, und der Webhook für „resolved“ löste ihn auf.
+Getrennt davon wurde aufgezeichnet, was ein echter Agent auf DevStack gesendet hat und was der Alertmanager von Kolla-Ansible gepostet hat, und dann an ein laufendes OneUptime gesendet: Der Webhook für „firing“ öffnete der Webhook für „firing“ einen Vorfall in der richtigen Cloud und in keiner anderen, derselbe Webhook noch einmal öffnete nichts, und der Webhook für „resolved“ löste ihn auf.
 
 ## Weiterleiten, was bereits ausgelöst wird
 
@@ -48,7 +48,7 @@ Erstellen Sie einen Monitor vom Typ Incoming Request, wie [Prometheus Alertmanag
 Öffnen Sie **Übersicht → Verknüpfte Ressourcen** des Monitors und fügen Sie die OpenStack-Cloud hinzu. Jeder Vorfall steht dann auf der Seite **Vorfälle** dieser Cloud: Die eigenen Einstellungen eines Incoming-Request-Monitors nennen keine Cloud, daher braucht der Alertmanager jeder Cloud einen eigenen Monitor. Die Cloud erscheint in dieser Liste, sobald ihre ersten Daten eintreffen, tun Sie dies also nach den Schritten unten, oder fügen Sie die Cloud zuerst unter **OpenStack → Alle Clouds** hinzu.
 :::
 
-Von Alertmanager ist aufgezeichnet, dass er in genau dieser Form sendet, in `Tests/Ops/openstack-e2e`, in der Version, die Kolla-Ansible anpinnt, und die Aufzeichnung läuft durch den echten Evaluator erneut ab: ein Vorfall pro Warnung, aufgelöst durch ihren eigenen Status `resolved`.
+Alertmanager wurde in der Version, die Kolla-Ansible anpinnt, aufgezeichnet, wie er in genau dieser Form sendet, und was er sendete, öffnete auf einem laufenden OneUptime einen Vorfall, den sein eigener Status `resolved` auflöste.
 
 ## Kolla-Ansible
 
@@ -576,7 +576,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
 bash install.sh
 ```
 
-Dieser Durchlauf kommt zusätzlich dazu, dass das Prometheus von Kolla-Ansible selbst jede Minute fragt. Kolla-Ansible pinnt Exporter 1.7.0, und seine Antwort sagt auch weniger als der Exporter, den der Agent anpinnt. Das ist es, worauf die Seiten bei fünf echten Clouds verzichten mussten, und ein Test hält es an diesen Aufzeichnungen fest:
+Dieses Lesen kommt zusätzlich dazu, dass das Prometheus von Kolla-Ansible selbst jede Minute fragt. Kolla-Ansible pinnt Exporter 1.7.0, und seine Antwort sagt auch weniger als der Exporter, den der Agent anpinnt. Das ist es, worauf die Seiten bei fünf echten Clouds verzichten mussten, und ein Test hält es an diesen Aufzeichnungen fest:
 
 | Fehlt | Weil | Was es kostet |
 | --- | --- | --- |

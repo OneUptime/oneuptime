@@ -64,7 +64,7 @@ Precis som Kubernetes-AI-agenten är en resurs-AI-agent inte en Runner. Den visa
 | AWS-konto | `aws` | Moln-AI-agent | `AWS_ACCOUNT_ID` (tomt: kontot som den körs i) | `cloud`: en operation ur en fast katalog, aldrig ett `aws`-kommando | AWS API:erna, med egna IAM-roller |
 | Azure-prenumeration | `azure` | Moln-AI-agent | `AZURE_SUBSCRIPTION_ID` (dess konfigurationskommando sätter den) | `cloud`: en operation ur en fast katalog, aldrig ett `az`-kommando | Azure Resource Manager, som den hanterade identiteten för dess Container App |
 | Google Cloud-projekt | `gcp` (eller `google-cloud`) | Moln-AI-agent | `GOOGLE_CLOUD_PROJECT` (tomt: projektet som den körs i) | `cloud`: en operation ur en fast katalog, aldrig ett `gcloud`-kommando | Google Cloud API:erna, som ett eget tjänstkonto |
-| OpenStack-moln | `openstack` | OpenStack-AI-agent | `OPENSTACK_CLOUD_NAME` | `openstack`-kommandon, skickade till molnets API:er (det finns ingen `openstack`-binär i agenten): den läser bara och har inget kommando som ändrar ett moln |
+| OpenStack-moln | `openstack` | OpenStack-AI-agent | `OPENSTACK_CLOUD_NAME` | `openstack`-kommandon (det finns ingen `openstack`-binär i agenten). Den läser bara, tills du väljer [korrigeringar](#åtgärder-på-openstack-moln) | molnets API:er, med applikationsautentiseringsuppgiften i `clouds.yaml` |
 
 Databasservrar: Databas-AI-agenten har diagnostik för PostgreSQL, MySQL (och MariaDB och Percona Server), Redis (och Valkey, KeyDB och Dragonfly) och MongoDB. För alla andra motorer kör den ingenting och säger det på databasens AI-agentsida.
 
@@ -245,7 +245,7 @@ Det finns ingen `openstack`-binär i agenten, och inget skal. Ett kommando skriv
 - Det ett moln kanske inte kör, där dess katalog namnger det: `openstack share list --all-projects --limit 50`, `openstack share service list` och `openstack share pool list` för Manila; `openstack zone list --all-projects --limit 50` och `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` för en zons recordsets i Designate; `openstack container list` för Swift, som bara gäller den här autentiseringsuppgiftens eget projekt; `openstack database instance list` för Trove, varje projekts, vilket bara en administratör får; och `openstack metric status` för Gnocchis eftersläpning och processorer.
 - Molnets form: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list`, och `project show` med ett ID.
 - En lista över flera tenants måste ange `--limit N`, upp till 200, och fortsätter med `--marker ID`. Varje annan lista stannar vid 100 rader om den inte säger något annat, och säger till när det finns fler. Agenten följer aldrig en `next`-länk på egen hand.
-- Aldrig: allt som ändrar molnet (det finns inget sådant kommando att köra), Keystones användare, autentiseringsuppgifter, rolltilldelningar och tokens, konsoller och konsolloggar, Barbicans hemligheter, `--os-cloud` och alla andra inloggnings- eller endpoint-flaggor.
+- Aldrig: allt som ändrar molnet (bara [en korrigering](#åtgärder-på-openstack-moln) gör det), Keystones användare, autentiseringsuppgifter, rolltilldelningar och tokens, konsoller och konsolloggar, Barbicans hemligheter, `--os-cloud` och alla andra inloggnings- eller endpoint-flaggor.
 
 En instans `user_data`, dess administratörslösenord, en avbildnings `direct_url`, en volyms `provider_auth` och allt annat som är markerat som hemligt maskeras innan utdata når modellen eller en logg.
 

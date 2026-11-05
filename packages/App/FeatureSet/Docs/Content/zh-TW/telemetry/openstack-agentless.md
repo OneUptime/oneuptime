@@ -25,11 +25,11 @@ flowchart TB
 
 每項服務各自獨立讀取，且與其他服務同時進行。Neutron 失敗或卡住只會損失 Neutron 的數列，Nova 的資料仍照常送達，但 Nova 自己有一個例外：它會針對列出的每個執行個體詢問 Neutron。因此在 Neutron 停擺期間，探測器會保留上次讀到的執行個體，只詢問有變動的部分。如果有執行個體發生變動，或探測器剛啟動，Nova 同樣無法回答該清單：Nova 會顯示為失敗，其他數列仍會送達，每個執行個體在其頁面上維持上次的狀態，直到 Neutron 恢復。
 
-Heat、Magnum、Manila、Trove、Gnocchi、Designate、Swift 與 Barbican 會在 Keystone 的目錄列出它們時才讀取。沒有執行這些服務的雲端不會因此產生任何負擔，連線測試也不會提到它們，並且[不會留下任何痕跡](/docs/telemetry/openstack#heat-與-magnum)。
+Heat、Magnum、Manila、Trove、Gnocchi、Designate、Swift 與 Barbican 會在 Keystone 的目錄列出它們時才讀取。沒有執行其中任何一項的雲端不會因此產生任何負擔，連線測試也不會提到它們，並且[不會留下任何痕跡](/docs/telemetry/openstack#heat-與-magnum)。
 
-在目錄中有 Octavia 的雲端上，探測器會以各一次列表讀取其負載平衡器、集區、接聽程式與 amphora，接著對每個集區的成員，以及每個狀態為 `ACTIVE` 的負載平衡器與接聽程式的流量計數器，各發出一次請求。擁有 3 個負載平衡器、1 個集區與 1 個接聽程式的雲端，每次收集需要 9 個請求；測試環境記錄到的真實 DevStack 恰好就是這個數字。每次收集最多讀取 25 個集區的成員與 50 個計數器，優先讀取最久未讀的，其餘維持上次讀取時的內容。Octavia 的計數器是累計值，因此探測器會保留每個計數器的上次讀數，並繪製兩次讀數之間每秒的差值：圖表從第二次收集開始，計數器若減少（接聽程式被重建），該區間不會繪製任何東西。OVN 提供者的每個計數器都回報 0，這是一條平線，並非故障。
+在目錄中有 Octavia 的雲端上，探測器會以各一次列表讀取其負載平衡器、集區、接聽程式與 amphora，接著對每個集區的成員，以及每個狀態為 `ACTIVE` 的負載平衡器與接聽程式的流量計數器，各發出一次請求。擁有 3 個負載平衡器、1 個集區與 1 個接聽程式的雲端，每次收集需要 9 個請求；我們記錄到的真實 DevStack 恰好就是這個數字。每次收集最多讀取 25 個集區的成員與 50 個計數器，優先讀取最久未讀的，其餘維持上次讀取時的內容。Octavia 的計數器是累計值，因此探測器會保留每個計數器的上次讀數，並繪製兩次讀數之間每秒的差值：圖表從第二次收集開始，計數器若減少（接聽程式被重建），該區間不會繪製任何東西。OVN 提供者的每個計數器都回報 0，這是一條平線，並非故障。
 
-讀取 amphora 的每個動作都需要 Octavia 的管理員規則。權限低於管理員的憑證只能看到自己專案的負載平衡器、集區、接聽程式與成員，以及自己的計數器，看不到 amphora：Load Balancers 頁面會說明這點，但不會有任何警告。在沒有負載平衡器的專案上，監控角色什麼都看不到。`load-balancer_global_observer` 在此版本中所有讀取都會被拒絕。
+讀取 amphora 的每個動作都需要 Octavia 的管理員規則。權限低於管理員的憑證只能看到自己專案的負載平衡器、集區、接聽程式與成員，以及自己的計數器，看不到 amphora：Load Balancers 頁面會說明這點，但不會有任何警告。在沒有負載平衡器的專案上，監控角色什麼都看不到。`load-balancer_global_observer` 在錄製所用的版本 `stable/2026.1` 中，所有讀取都會被拒絕。
 
 對探測器而言，停止的 Octavia API 會顯示為 `up 0`，這是代理程式的匯出器無法表達的。
 
@@ -41,7 +41,7 @@ Heat、Magnum、Manila、Trove、Gnocchi、Designate、Swift 與 Barbican 會在
 | 憑證存放位置 | 在 OneUptime 中加密保存，只傳送給探測器 | 在代理程式的 `clouds.yaml` 檔案中 |
 | 需要連線到什麼 | 以 HTTPS 連線到 Keystone 與各服務的 API | Keystone 與各服務的 API |
 | 使用純 HTTP 的 API | 不收集：權杖絕不以未加密方式傳送 | 會收集 |
-| 最大雲端規模 | 已針對模擬雲端（非真實雲端）測試過 [200,000 個執行個體](/docs/telemetry/openstack-very-large-clouds)，最多分十次上傳，每次 48 MiB | 尚未測試到任何規模：[它的擷取](/docs/telemetry/openstack-very-large-clouds#透過代理程式)遠在此之前就會逾時 |
+| 最大雲端規模 | 已針對模擬雲端（非真實雲端）測試過 [200,000 個執行個體](/docs/telemetry/openstack-very-large-clouds)，最多分十次上傳，每次 48 MiB | 未在大規模下測試：[它的擷取](/docs/telemetry/openstack-very-large-clouds#透過代理程式)遠在此之前就會逾時 |
 | 服務日誌與 AI 代理程式 | 不包含 | 包含 |
 | 雲端所依賴的元件：RabbitMQ、MariaDB、Memcached、HAProxy、OVN、libvirt | 不包含：探測器只讀取雲端的 API | 包含，並指明其目標 |
 | 每個執行個體來自 libvirt 或 Ceilometer 的實際 CPU、記憶體與磁碟 | 不包含 | 包含，並指明其匯出器 |

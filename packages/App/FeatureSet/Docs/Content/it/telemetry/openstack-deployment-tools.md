@@ -1,6 +1,6 @@
 # OpenStack per strumento di deployment
 
-Nessuno esegue "OpenStack". Si esegue uno strumento che lo distribuisce, e ogni strumento ha i propri percorsi, i propri log e la propria idea di cosa sia già in esecuzione. Questa pagina riporta ciò che la guida di configurazione in OneUptime dice per ciascuno: apri **OpenStack → Tutti i cloud**, connetti un cloud e rispondi a **Come distribuisci OpenStack?**
+Nessuno esegue "OpenStack". Si esegue uno strumento che lo distribuisce, e ogni strumento ha i propri percorsi, i propri log e la propria idea di cosa sia già in esecuzione. Questa pagina riporta ciò che la guida di configurazione in OneUptime dice per ciascuno: apri **OpenStack → Documentazione** e rispondi a **Come distribuisci OpenStack?**
 
 :::cards
 - [Fino a che punto è stata testata ogni guida](#fino-a-che-punto-è-stata-testata-ogni-guida): leggi prima questa. Quelle di Kolla-Ansible e di OpenStack-Ansible sono state eseguite su distribuzioni reali. Le altre no.
@@ -16,23 +16,23 @@ Nessuno esegue "OpenStack". Si esegue uno strumento che lo distribuisce, e ogni 
 
 ## Fino a che punto è stata testata ogni guida
 
-Ogni percorso, porta e variabile qui sotto è stato letto dal sorgente o dalla documentazione dello strumento stesso. Il banco di prova che registra le fixture di OneUptime distribuisce anche Kolla-Ansible e OpenStack-Ansible su un runner CI, ed esegue lì i comandi delle rispettive guide, con un sostituto di OneUptime che conserva ciò che l'agente invia. Quindi nessuna guida qui ha mai riportato a un OneUptime in esecuzione da una distribuzione reale del proprio strumento. Ecco rispetto a cosa è stata verificata ciascuna:
+Ogni percorso, porta e variabile qui sotto è stato letto dal sorgente o dalla documentazione dello strumento stesso. Anche le guide di Kolla-Ansible e OpenStack-Ansible sono state seguite su distribuzioni reali, con i loro comandi e un sostituto di OneUptime che conserva ciò che l'agente invia. Quindi nessuna guida qui ha mai riportato a un OneUptime in esecuzione da una distribuzione reale del proprio strumento. Ecco rispetto a cosa è stata verificata ciascuna:
 
 | Strumento | Letto da | Eseguito davvero |
 | --- | --- | --- |
-| Kolla-Ansible | Il suo sorgente, a master e `stable/2026.1` | I comandi di questa guida, su un all-in-one reale a `stable/2026.1` con Open vSwitch: l'agente sulla prima credenziale, senza Docker, sull'exporter di Kolla-Ansible e sul tuo alla versione fissata e alla 1.7.0, l'exporter sulla seconda credenziale, i target letti dal suo vero `prometheus.yml`, e il profilo dei log. Con Memcached realmente fermato lì, il suo Alertmanager ha inviato un webhook in stato firing e poi uno resolved, e ciò che ha inviato, spedito a un OneUptime in esecuzione, ha aperto un incidente sul cloud giusto e su nessun altro, e lo ha risolto |
-| OpenStack-Ansible | Il suo sorgente e la documentazione | I comandi di questa guida, su un vero all-in-one a `stable/2026.1`, in container LXC: l'agente sulla prima credenziale, l'exporter sulla seconda con i suoi override delle policy, le impostazioni di RabbitMQ e HAProxy con l'agente che legge ciascuna, e il profilo dei log sul journal |
-| OpenStack-Helm | I valori dei suoi chart | La sonda e l'agente Kubernetes, ciascuno per conto suo |
-| Atmosphere | La sua documentazione e il sorgente | La sonda e l'agente Kubernetes, ciascuno per conto suo |
+| Kolla-Ansible | Il suo sorgente, a master e `stable/2026.1` | I comandi di questa guida, su un all-in-one reale a `stable/2026.1` con Open vSwitch: l'agente sulla credenziale Vista completa, senza Docker, sull'exporter di Kolla-Ansible e sul tuo alla versione fissata e alla 1.7.0, l'exporter dell'agente sulla credenziale Solo infrastruttura, i target letti dal suo vero `prometheus.yml`, e il profilo dei log. Con Memcached realmente fermato lì, il suo Alertmanager ha inviato un webhook in stato firing e poi uno resolved, e ciò che ha inviato, spedito a un OneUptime in esecuzione, ha aperto un incidente sul cloud giusto e su nessun altro, e lo ha risolto |
+| OpenStack-Ansible | Il suo sorgente e la documentazione | I comandi di questa guida, su un vero all-in-one a `stable/2026.1`, in container LXC: l'agente sulla credenziale Vista completa, l'exporter dell'agente sulla credenziale Solo infrastruttura con i suoi override delle policy, le impostazioni di RabbitMQ e HAProxy con l'agente che legge ciascuna, e il profilo dei log sul journal |
+| OpenStack-Helm | I valori dei suoi chart | Nulla su OpenStack-Helm. La sonda e l'agente Kubernetes sono stati testati ciascuno per conto suo |
+| Atmosphere | La sua documentazione e il sorgente | Nulla su Atmosphere. La sonda e l'agente Kubernetes sono stati testati ciascuno per conto suo |
 | Canonical Sunbeam | La documentazione di Canonical e il sorgente dei suoi charm | Nulla su Sunbeam. La documentazione di Sunbeam non menziona il charm dell'exporter |
-| Red Hat OpenStack on OpenShift | Il sorgente del Telemetry Operator | Il preset OpenShift e l'exporter di Ceilometer, ciascuno per conto suo |
+| Red Hat OpenStack on OpenShift | Il sorgente del Telemetry Operator | Nulla sulla distribuzione di Red Hat. Il preset OpenShift e l'exporter di Ceilometer sono stati testati ciascuno per conto suo |
 | Mirantis MOSK | La documentazione di Mirantis, i cui esempi mostrano altri receiver anziché un webhook | Nulla su MOSK |
 
-Ciò che attiva **Chi ha fatto cosa** di ogni guida è stato registrato su DevStack, su ogni release che il banco di prova esegue, e su nessuno di questi strumenti. Dove ogni strumento lo porta è stato letto dal sorgente o dalla documentazione di quello strumento.
+Ciò che attiva **Chi ha fatto cosa** di ogni guida è stato registrato su DevStack, e su nessuno di questi strumenti. Dove ogni strumento lo porta è stato letto dal sorgente o dalla documentazione di quello strumento.
 
-Oltre a questi, l'intero percorso è stato eseguito su un OneUptime attivo, avviato come lo avvia Docker Compose, con la sua app e la sua sonda compilate da questo codice, e su un vero DevStack anziché su uno di questi strumenti. L'agente, installato con i comandi della sua documentazione, ha registrato il cloud dai suoi primi dati, e ogni istanza, volume e hypervisor aveva una riga con lo stato che gli dava il cloud stesso. Con `nova-compute` realmente fermato, la sua riga è passata a down, un monitor del modello Compute Service Down ha aperto un incidente che nomina l'host 746 secondi dopo, ed è stato risolto 48 secondi dopo il riavvio del servizio. La sonda di un progetto ha connesso lo stesso cloud attraverso le route della dashboard e ne ha riletto le righe, e i 114 span di un avvio firmato sono arrivati attraverso i suoi servizi, dal profilo delle tracce.
+Oltre a questi, l'intero percorso è stato eseguito su un OneUptime attivo, avviato come lo avvia Docker Compose, su un vero DevStack anziché su uno di questi strumenti. L'agente, installato con i comandi della sua documentazione, ha registrato il cloud dai suoi primi dati, e ogni istanza, volume e hypervisor aveva una riga con lo stato che gli dava il cloud stesso. Con `nova-compute` realmente fermato, la sua riga è passata a down, un monitor del modello Compute Service Down ha aperto un incidente che nomina l'host circa 12 minuti dopo, ed è stato risolto entro un minuto dal riavvio del servizio. La sonda di un progetto ha connesso lo stesso cloud attraverso le route della dashboard e ne ha riletto le righe, e i 114 span di un avvio firmato sono arrivati attraverso i suoi servizi, dal profilo delle tracce.
 
-Separatamente, ciò che un vero agente e un vero Alertmanager avevano inviato è stato registrato su DevStack e in un cluster di test, non su un cloud distribuito da uno di questi strumenti. Inviato a un OneUptime attivo, il webhook di firing ha aperto un solo incidente sul cloud giusto e su nessun altro, lo stesso webhook di nuovo non ha aperto nulla, e il webhook di resolved lo ha risolto.
+Separatamente, ciò che un vero agente ha inviato su DevStack e ciò che l'Alertmanager di Kolla-Ansible ha inviato sono stati registrati, poi spediti a un OneUptime attivo: il webhook di firing ha aperto un solo incidente sul cloud giusto e su nessun altro, lo stesso webhook di nuovo non ha aperto nulla, e il webhook di resolved lo ha risolto.
 
 ## Inoltra ciò che sta già scattando
 
@@ -48,7 +48,7 @@ Crea un monitor Incoming Request come indica [Prometheus Alertmanager](/docs/int
 Apri **Panoramica → Risorse collegate** del monitor e aggiungi il cloud OpenStack. Ogni incidente compare poi nella pagina **Incidenti** di quel cloud: le impostazioni di un monitor Incoming Request non nominano nessun cloud, quindi l'Alertmanager di ogni cloud ha bisogno di un monitor proprio. Il cloud compare in quell'elenco quando arrivano i suoi primi dati, quindi fallo dopo i passaggi qui sotto, oppure aggiungi prima il cloud in **OpenStack → Tutti i cloud**.
 :::
 
-Alertmanager è registrato mentre invia esattamente questa struttura in `Tests/Ops/openstack-e2e`, alla versione fissata da Kolla-Ansible, e la registrazione viene riprodotta nel vero valutatore: un incidente per avviso, risolto dal proprio stato `resolved`.
+Alertmanager, alla versione fissata da Kolla-Ansible, è stato registrato mentre inviava esattamente questa struttura, e ciò che ha inviato ha aperto un incidente su un OneUptime in esecuzione, che il suo stato `resolved` ha risolto.
 
 ## Kolla-Ansible
 

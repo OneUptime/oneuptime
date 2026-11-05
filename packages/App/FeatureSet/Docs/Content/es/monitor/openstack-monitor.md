@@ -1,6 +1,6 @@
 # Monitor de OpenStack
 
-Un monitor de OpenStack vigila una nube (sus API, los workers que hay detrás, los hipervisores, las instancias, las redes, los pools de almacenamiento y las cuotas de proyecto) y te avisa cuando una API deja de responder, cae un worker, un hipervisor se queda sin margen o se llena un pool. Lee las series `openstack_*` que recopila el agente de OpenStack de OneUptime a partir de openstack-exporter.
+Un monitor de OpenStack vigila una nube (sus API, los workers que hay detrás, los hipervisores, las instancias, las redes, los pools de almacenamiento y las cuotas de proyecto) y te avisa cuando una API deja de responder, cae un worker, un hipervisor se queda sin margen o se llena un pool. Lee las series `openstack_*` que recopila el agente de OpenStack de OneUptime a partir de openstack-exporter, o que recopila una sonda desde las API de la nube.
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-openstack): Seis pasos en el Dashboard.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Recopila las métricas de la nube** con el agente de OpenStack. La página de **Documentación** de la nube, en **Productos → Infraestructura → OpenStack**, te guía en su instalación.
+- **Recopila las métricas de la nube** con el agente de OpenStack, o con [una sonda](/docs/telemetry/openstack-agentless). **Documentación**, en **Productos → Infraestructura → OpenStack**, te guía en la instalación del agente.
 - **Comprueba que la nube está registrada.** Aparece en **Productos → Infraestructura → OpenStack**, con el nombre del `OPENSTACK_CLOUD_NAME` del agente, tras su primera recopilación.
 
 ## Crear un monitor de OpenStack

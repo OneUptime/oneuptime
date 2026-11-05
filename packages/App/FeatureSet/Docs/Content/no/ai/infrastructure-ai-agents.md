@@ -64,7 +64,7 @@ I likhet med Kubernetes-AI-agenten er en ressurs-AI-agent ikke en Runner. Den vi
 | AWS-konto | `aws` | Sky-AI-agent | `AWS_ACCOUNT_ID` (tom: kontoen den kjører i) | `cloud`: én operasjon fra en fast katalog, aldri en `aws`-kommando | AWS-API-ene, med egne IAM-roller |
 | Azure-abonnement | `azure` | Sky-AI-agent | `AZURE_SUBSCRIPTION_ID` (oppsettkommandoen setter den) | `cloud`: én operasjon fra en fast katalog, aldri en `az`-kommando | Azure Resource Manager, som den administrerte identiteten til Container App-en |
 | Google Cloud-prosjekt | `gcp` (eller `google-cloud`) | Sky-AI-agent | `GOOGLE_CLOUD_PROJECT` (tom: prosjektet den kjører i) | `cloud`: én operasjon fra en fast katalog, aldri en `gcloud`-kommando | Google Cloud-API-ene, som en egen tjenestekonto |
-| OpenStack-sky | `openstack` | OpenStack-AI-agent | `OPENSTACK_CLOUD_NAME` | `openstack`-kommandoer, sendt til skyens API-er (agenten har ingen `openstack`-binærfil), som bare leser og ikke har noen kommando som endrer en sky |
+| OpenStack-sky | `openstack` | OpenStack-AI-agent | `OPENSTACK_CLOUD_NAME` | `openstack`-kommandoer (agenten har ingen `openstack`-binærfil). Den bare leser, til du velger inn [rettelser](#rettelser-på-openstack-skyer) | skyens API-er, med applikasjonslegitimasjonen i `clouds.yaml` |
 
 Databaseservere: Database-AI-agenten har diagnostikk for PostgreSQL, MySQL (og MariaDB og Percona Server), Redis (og Valkey, KeyDB og Dragonfly) og MongoDB. For alle andre motorer kjører den ingenting og sier det på databasens AI-agent-side.
 
@@ -245,7 +245,7 @@ Agenten har ingen `openstack`-binærfil og ikke noe skall. En kommando skrives i
 - Det en sky ikke nødvendigvis kjører, der katalogen navngir det: `openstack share list --all-projects --limit 50`, `openstack share service list` og `openstack share pool list` for Manila; `openstack zone list --all-projects --limit 50` og `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` for én sones recordsets i Designate; `openstack container list` for Swift, som bare gjelder denne påloggingsinformasjonens eget prosjekt; `openstack database instance list` for Trove, alle prosjekters, som bare en admin har lov til; og `openstack metric status` for Gnocchis etterslep og prosessorer.
 - Skyens form: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list`, og `project show` med en ID.
 - En liste på tvers av tenants må si `--limit N`, opptil 200, og fortsetter med `--marker ID`. Hver annen liste stopper på 100 rader med mindre den sier noe annet, og sier fra når det finnes flere. Agenten følger aldri en `next`-lenke på egen hånd.
-- Aldri: alt som endrer skyen (det finnes ingen slik kommando), Keystones brukere, påloggingsinformasjon, rolletildelinger og tokener, konsoller og konsolllogger, Barbicans hemmeligheter, `--os-cloud` og alle andre alternativer for pålogging eller endepunkt.
+- Aldri: alt som endrer skyen (bare [en rettelse](#rettelser-på-openstack-skyer) gjør det), Keystones brukere, påloggingsinformasjon, rolletildelinger og tokener, konsoller og konsolllogger, Barbicans hemmeligheter, `--os-cloud` og alle andre alternativer for pålogging eller endepunkt.
 
 En instans' `user_data`, administratorpassordet, en images `direct_url`, et volums `provider_auth` og alt annet som er merket hemmelig, maskeres før utdataene når modellen eller en logg.
 

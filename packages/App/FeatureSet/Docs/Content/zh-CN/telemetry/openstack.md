@@ -223,7 +223,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/keystone
 curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/placement.yaml
 ```
 
-Cinder 没有对应的文件。它的 `os-services` 和 `scheduler-stats/get_pools` 对该角色返回 `403 User does not have admin privileges`，在我们记录的全部五个版本上都是如此。这是因为 Cinder 自己的代码要求 admin 上下文，且发生在策略已经通过之后，所以任何覆盖都无法打开它们。
+Cinder 没有对应的文件。它的 `os-services` 和 `scheduler-stats/get_pools` 对该角色返回 `403 User does not have admin privileges`，在我们记录的全部五个云上都是如此。这是因为 Cinder 自己的代码要求 admin 上下文，且发生在策略已经通过之后，所以任何覆盖都无法打开它们。
 
 **若要撤销这些覆盖，请清空文件（`{}`），绝不要删除它。** 在 Flamingo (2025.2) 和 Epoxy (2025.1) 上，一旦 oslo.policy 已读取过的策略文件消失，它会在每次检查时报错，于是该服务的每个请求都会失败。如果该服务是 Keystone，它将停止验证令牌，整个云都会返回 `503`。如果这种情况已经发生，请重启该服务。
 
@@ -246,7 +246,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 - **通过代理完全看不到实例。** exporter 向 Nova 请求所有项目的服务器，Nova 会拒绝普通 reader，于是这次读取整体失败。只有不使用此代理、直接收集的 OneUptime 探针，才能列出某一个项目的实例。
 - **它可能具有写入能力。** 在 Cinder 的 `enforce_new_defaults` 关闭的云上，普通 `reader` 也可以在其项目中创建卷。在 Epoxy、Flamingo 和 Gazpacho 上确实如此（`202`），而在 Hibiscus 上被拒绝（`403`），因为 DevStack 只在那里开启 `enforce_new_defaults`。Cinder 自己的默认值是关闭。
-- **Placement 读起来像是没有响应。** 它发出的每个调用都被拒绝，而 exporter 报告这种情况的方式与报告 Placement 已停止的方式相同：`openstack_placement_up 0`，在我们记录的全部五个版本上都是如此。页面可以根据该凭据还被关闭了哪些其他内容来判断，并会予以说明。但 [Placement API Down](/docs/monitor/openstack-monitor#预置警报模板) 模板做不到，所以在这个级别请不要启用它。
+- **Placement 读起来像是没有响应。** 它发出的每个调用都被拒绝，而 exporter 报告这种情况的方式与报告 Placement 已停止的方式相同：`openstack_placement_up 0`，在我们记录的全部五个云上都是如此。页面可以根据该凭据还被关闭了哪些其他内容来判断，并会予以说明。但 [Placement API Down](/docs/monitor/openstack-monitor#预置警报模板) 模板做不到，所以在这个级别请不要启用它。
 :::
 
 ### 安装并启动代理
@@ -354,7 +354,7 @@ Everything is ready. Begin running and processing data.
 
 ## 环境变量
 
-安装脚本会把这些变量写入 `/opt/oneuptime-openstack-agent/.env`；Docker Compose 安装则从 `docker-compose.yml` 旁边的 `.env` 读取它们。更改其中一个之后，请在该文件夹中运行 `docker compose up -d`。只有 `clouds.yaml` 保存凭据。
+安装脚本会把这些变量写入 `/opt/oneuptime-openstack-agent/.env`；Docker Compose 安装则从 `docker-compose.yml` 旁边的 `.env` 读取它们。更改其中一个之后，请在该文件夹中运行 `docker compose up -d`，不使用 Docker 时则运行 `sudo systemctl restart oneuptime-openstack-agent`。只有 `clouds.yaml` 保存凭据。
 
 | 变量 | 必需 | 说明 |
 | --- | --- | --- |
@@ -450,7 +450,7 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 | 属性 | 含义 |
 | --- | --- |
 | `openstack.cloud.name` | 云的名称，一个资源属性 |
-| `oneuptime.agent.version` | 代理文件所固定的 collector 版本，一个资源属性 |
+| `oneuptime.agent.version` | 代理文件的版本，一个资源属性：即这些文件所固定的 collector 版本，且每当文件在该 collector 上发生变化时，最后一个数字就会加一 |
 | `openstack.region.name` | 区域，取自 `clouds.yaml` 条目的名称，位于每个数据点上 |
 | `openstack_service` | 该任务的 OpenStack 服务（`compute`、`network` 等），位于每个数据点上 |
 
@@ -468,7 +468,7 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 | 云可能没有运行的服务 | 开启 | 负载均衡器、裸金属、堆栈、集群、共享、DNS、对象存储、数据库和 Gnocchi（云中有这些服务时） | 没有某个服务的云每 5 分钟要为它多登录一次。Designate 每次抓取每个区域要调用一次，因此会随区域数量增长 |
 | 抓取间隔 | 2 分钟和 5 分钟 | 更新鲜的数据，或更低的负载 | 频率翻倍就是 API 调用翻倍。请让每个 `scrape_timeout` 小于其 `scrape_interval`，这样慢的抓取就不会叠在前一次之上 |
 
-**项目配额：** 使用 `OPENSTACK_COLLECT_QUOTAS=true` 再次运行 `install.sh`。它会启动第二个 exporter `openstack-quota-exporter`，只读取这些内容，collector 每小时向它请求一次 `openstack_nova_limits_*`、`openstack_neutron_quota_*`、`openstack_cinder_limits_*` 和 `openstack_cinder_volume_type_quota_gigabytes`。它们变化缓慢，而无论哪个任务来请求，exporter 读取的内容都是一样的，所以要降低读取频率就需要它们专属的 exporter。你自己的 exporter 没有这种机制：代理会在每次抓取时读取它所提供的内容。
+**项目配额：** 使用 `OPENSTACK_COLLECT_QUOTAS=true` 再次运行 `install.sh`。在 Docker Compose 安装上，请把 `openstack-quotas` 添加到 `.env` 中的 `COMPOSE_PROFILES`，并把 `OPENSTACK_QUOTA_CLOUDS` 设置为 `OPENSTACK_EXPORTER_CLOUDS` 的值。两种方式都会启动第二个 exporter `openstack-quota-exporter`，只读取这些内容，collector 每小时向它请求一次 `openstack_nova_limits_*`、`openstack_neutron_quota_*`、`openstack_cinder_limits_*` 和 `openstack_cinder_volume_type_quota_gigabytes`。它们变化缓慢，而无论哪个任务来请求，exporter 读取的内容都是一样的，所以要降低读取频率就需要它们专属的 exporter。你自己的 exporter 没有这种机制：代理会在每次抓取时读取它所提供的内容。
 
 **慢速指标：** 对于你想要的内容，从 `docker-compose.yml` 中 exporter 的 `command` 里删除对应的 `--disable-metric` 行；不使用 Docker 时，则从 `oneuptime-openstack-exporter.service` 的 `ExecStart` 中删除。代价是每次抓取每个项目一次调用。
 
@@ -523,7 +523,7 @@ collector 为每个 OpenStack 服务创建一个抓取任务，通过 exporter �
 
 ## 容量
 
-“放得下这个吗？”是 OpenStack 运维人员被问到最多的问题，而 Nova 的空闲计数回答不了它：分配比、预留和碎片化都很重要，所以一朵云可能有数千个空闲 vCPU，却放不下一个大实例。云的 **容量** 页面会说明每种规格还能再放下多少，以及什么最先不足。它读取一份每两分钟计算一次的摘要，所以一朵有 5,000 台主机的云与只有一台主机的云加载得一样快。其规格表上的 **导出 CSV** 会下载页面上的全部内容。
+“放得下这个吗？”是 OpenStack 运维人员被问到最多的问题，而 Nova 的空闲计数回答不了它：分配比、预留和碎片化都很重要，所以一朵云可能有数千个空闲 vCPU，却放不下一个大实例。云的 **容量** 页面会说明每种规格还能再放下多少，以及什么最先不足。它读取一份每两分钟计算一次的摘要，所以它加载的内容不会随主机数量增长。其规格表上的 **导出 CSV** 会下载页面上的全部内容。
 
 页面上的一切都是分配量：已经承诺的内容，而不是繁忙的内容。空闲的实例也占着全部。
 
@@ -562,7 +562,7 @@ nova-manage placement audit --verbose --delete
 
 ## 支出
 
-私有云仍然要花钱，运行它的人会被问到谁在使用什么，以及什么可以回收。云的 **支出** 页面可以回答这两个问题，适用于任何规模的云，且完全无需设置。它显示的是用于规划的用量和估算。OneUptime 不向任何人开具发票，这里没有任何金额是租户所欠的。
+私有云仍然要花钱，运行它的人会被问到谁在使用什么，以及什么可以回收。云的 **支出** 页面可以回答这两个问题，且完全无需设置。它显示的是用于规划的用量和估算。OneUptime 不向任何人开具发票，这里没有任何金额是租户所欠的。
 
 顶部是 **本月与上月对比**，然后是谁在增长，再是每个项目（从大到小），并带有 **导出 CSV**。其下是各个域，以及在哪种规格和卷类型上使用了多少。项目自己的页面会逐行列出它的当月用量，以及之前的月份。
 
@@ -573,7 +573,7 @@ nova-manage placement audit --verbose --delete
 这对数字意味着：
 
 - **调整大小会把小时数从一种规格移到另一种规格，** 而删除则会使其停止累计。变化从第一次显示它的读取开始计算，所以每一次变化最多可能偏差 15 分钟。存活时间短于此的实例可能永远不会被看到。
-- **某个部分会一直计入，直到清单放弃它，** 这最多是在它消失之后的[过期窗口](#环境变量)。在按轮次读取的大型云上，变化需要等到轮到它才会体现。
+- **某个部分会一直计入，直到清单放弃它，** 这最多是在它消失 15 分钟之后。在按轮次读取的大型云上，变化需要等到轮到它才会体现。
 - **实例从被放置开始到被删除为止，一直占有其规格。** 已关机的实例仍会计入，单独成一行，因为 Nova 会在其主机上为它保留 vCPU 和内存。从未到达主机的实例不计入，被搁置并移出主机的实例也不计入。
 - **处于错误状态或仍在创建中的卷或快照不计入，** 因为总体上它们背后没有空间。
 - **OneUptime 没有读取的那些小时不会被猜测。** 超过一小时的间隔只计入其最后一小时，页面会说明有多少小时未被计入。
@@ -689,7 +689,7 @@ OneUptime 在它们到达时把两者转换成同一组序列，与原始序列�
 | `prometheus-libvirt-exporter`，每分钟读取 | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
 | Ceilometer 的 exporter，每分钟读取、每 5 分钟轮询 | 24 | 864 | 63,072,000 | 630,720,000 |
 
-对任一来源，每多一个磁盘增加 12 个序列，每多一个接口增加 4 个。使用 libvirt 时，每多一个 vCPU 增加 1 个。代理的 collector 在转发它们的过程中把它们保存在内存中，所以大型云可能需要比默认 512 MiB 更多的内存。指南的计算器位于云的 **文档** 下，可以按你的云的规模给这些开销估价。
+对任一来源，每多一个磁盘增加 12 个序列，每多一个接口增加 4 个。使用 libvirt 时，每多一个 vCPU 增加 1 个。代理的 collector 在转发它们的过程中把它们保存在内存中，所以大型云可能需要比默认 512 MiB 更多的内存。指南的计算器位于 **OpenStack → 文档** 下，可以按你的云的规模给这些开销估价。
 
 ## 项目和域
 
@@ -957,7 +957,7 @@ exporter 读取 Trove 的 mgmt API，而只有 admin 才被允许。Trove 会拒
 
 exporter 读取 Gnocchi 的状态，而只有 admin 才被允许。Gnocchi 会拒绝任何权限更低的访问，而 exporter 读取到拒绝的方式与读取到 Gnocchi 已停止完全相同：`openstack_gnocchi_up` 读作 0。所以从未成功读取过 Gnocchi 的凭据会被告知这一点，而不是被告知 Gnocchi 已宕机，并且不会提供它的警报。探针能区分两者：Gnocchi 作出了回答，所以它的 API 读作正常，而连接测试会说明被拒绝了。
 
-**Gnocchi Backlog Growing** 读取一条穿过最近两小时的直线。繁忙的云的积压永远不会读作 0，所以一个很大但正在下降的积压是没问题的，而不在下降的才是它要说明的。测试运行器最多只达到过 10 个度量值的积压，所以它的这条线只在虚构的数字上检查过。
+**Gnocchi Backlog Growing** 读取一条穿过最近两小时的直线。繁忙的云的积压永远不会读作 0，所以一个很大但正在下降的积压是没问题的，而不在下降的才是它要说明的。我们的测试云最多只达到过 10 个度量值的积压，所以它的这条线只在虚构的数字上检查过。
 
 ## Swift
 
@@ -976,9 +976,9 @@ Swift 会让每个项目的账户对其他项目的凭据不可见（已记录�
 
 已停止的对象服务器不会改变 exporter 所说明的任何内容（已记录）：Swift 的列表来自其账户和容器服务器，而它的代理继续回答。只有每台存储服务器通过自己的 `/recon` 报告的内容才能说明这一点，而这并不在 Keystone 的目录中。
 
-所以探针会在你指明它们的地方读取：在 **数据收集** 卡片的 **默认之外读取的内容** 下，以 `host:port` 的形式列出每台存储服务器的 `/recon` 端口。每次收集每台服务器需要 5 次调用，并且不会向它们发送任何凭据。这样你就会得到 **Swift Storage Server Not Answering**、**Swift Rings Differ** 和 **Swift Replication Stale**，以及它们在 Swift 自己页面上汇总的结果。一次记录中只有一台服务器可读，所以环不一致的情形只在虚构的数字上检查过。复制陈旧的情形也一样，它在运行器上每隔几分钟就会完成一次。
+所以探针会在你指明它们的地方读取：在 **数据收集** 卡片的 **默认之外读取的内容** 下，以 `host:port` 的形式列出每台存储服务器的 `/recon` 端口。每次收集每台服务器需要 5 次调用，并且不会向它们发送任何凭据。这样你就会得到 **Swift Storage Server Not Answering**、**Swift Rings Differ** 和 **Swift Replication Stale**，以及它们在 Swift 自己页面上汇总的结果。一次记录中只有一台服务器可读，所以环不一致的情形只在虚构的数字上检查过。复制陈旧的情形也一样，它在测试云上每隔几分钟就会完成一次。
 
-**Object Container Growth Forecast** 读取一条穿过每个容器最近一周的直线，并向前预测一周。Swift 在这里没有说明云有多少空间，所以它设定的 1 TiB 这条线是用来提醒的，而不是会有东西在那里出问题的位置。请根据你的云进行调整。没有任何运行器积累了一周的增长，所以它只在虚构的数字上检查过。
+**Object Container Growth Forecast** 读取一条穿过每个容器最近一周的直线，并向前预测一周。Swift 在这里没有说明云有多少空间，所以它设定的 1 TiB 这条线是用来提醒的，而不是会有东西在那里出问题的位置。请根据你的云进行调整。没有任何测试云积累了一周的增长，所以它只在虚构的数字上检查过。
 
 ## Barbican
 
@@ -1491,7 +1491,7 @@ openstack volume list --name 'oneuptime-check-'
 
 代理的 `docker-compose.yml` 也会运行 **OpenStack AI 代理**，即 `oneuptime-openstack-ai-agent`（镜像 `oneuptime/resource-ai-agent:release`）。当 OneUptime AI 调查这朵云上的事件或警报时，它会通过该代理运行只读的 `openstack` 命令——`openstack compute service list --host compute-01`、`openstack server list --all-projects --limit 50 --host compute-01`、`openstack server event list ID`、`openstack network agent list`、`openstack volume service list`——并引用它运行过的内容。代理中没有 `openstack` 二进制文件，也没有 shell：每条命令都会变成对能回答它的服务的一次 `GET`，使用代理自己的凭据。代理使用与 collector 上报的相同的 `OPENSTACK_CLOUD_NAME` 进行注册，所以它服务于这朵云。
 
-- **AI 调查默认开启。** 代理连接之后，OneUptime AI 会借助它调查这朵云上的事件和警报，云的 **概览** 会显示代理的状态。若要停止，请在代理运行的地方设置 `ONEUPTIME_AI_INVESTIGATION=false`。**AI > 代理** 中有代理的状态、**测试连接**、**重置代理** 和安装说明，**AI > 洞察** 中是它所做的事，**AI > 日志** 中是它运行过的命令。
+- **AI 调查默认开启。** 代理连接之后，OneUptime AI 会借助它调查这朵云上的事件和警报，云的 **概览** 会显示代理的状态。若要停止，请在代理运行的地方设置 `ONEUPTIME_AI_INVESTIGATION=false`。**人工智能 → AI 代理** 中有代理的状态、**测试连接**、**重置代理** 和安装说明，**人工智能 → 洞察** 中是它所做的事，**人工智能 → 日志** 中是它运行过的命令。
 - **在你另行指示之前，它只读取。** 修复功能默认关闭，需要你两次选择启用，并使用它自己的凭据：参见[修复](#修复)。Keystone 的用户、凭据和角色分配、控制台、客户机输出的内容以及 Barbican 的 secret 对它都是禁区，不能读取也不能更改。
 - **凭据是硬性限制。** 它使用 `clouds.yaml` 中 exporter 所读取的那个凭据，所以它能看到的内容取决于你在[选择代理能看到多少](#选择代理能看到多少)中所选的级别。如果你用访问规则创建了该凭据，请根据当前的[规则](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json)创建新的：这些规则为代理增加了几条 `GET` 路径（实例的操作、单个网络、子网、路由器、浮动 IP、端口或镜像），而旧的规则对其他一切仍然有效。若要使用它自己的凭据，请设置 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`、`ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` 和 `OPENSTACK_AUTH_URL`；如果代理旁边没有 `clouds.yaml`（例如使用你自己的 exporter），则还要设置 `OPENSTACK_AI_CLOUDS_FILE=/dev/null`。
 - **机密信息不会出现。** 实例的 `user_data`、其管理员密码、镜像的 `direct_url`、卷的 `provider_auth`，以及每个 AI 代理都会遮蔽的通用机密信息，在输出到达模型或日志之前就被移除。
@@ -1558,9 +1558,9 @@ Nova 只会在 admin 上下文中（在其自己的代码里，策略通过之�
 
    访问规则要求在 Nova（`compute`）和 Neutron（`network`）上为 keystonemiddleware 设置 `service_type`，并重启各自的服务。
 
-3. **一个策略文件，用于访问规则看不到的部分。** `POST /servers/{id}/action` 是同一条路径，既用于启动，也用于强制删除。`access/policy/write-nova.yaml` 会从 `oneuptime_remediation` 角色身上去掉该路径上代理从不执行的每个操作，并保持其他所有人的默认值不变。这样，被盗的凭据只能启动、重启、迁移和疏散，别的什么都做不了。
+3. **一个策略文件，用于访问规则看不到的部分。** `POST /servers/{id}/action` 是同一条路径，既用于启动，也用于强制删除。`https://oneuptime.com/install/openstack-agent/access/policy/write-nova.yaml` 会从 `oneuptime_remediation` 角色身上去掉该路径上代理从不执行的每个操作，并保持其他所有人的默认值不变。这样，被盗的凭据只能启动、重启、迁移和疏散，别的什么都做不了。
 
-然后把它的 ID 和 secret 交给代理，并重启它：
+然后把它的 ID 和 secret 写入代理的 `.env`，并运行 `docker compose up -d`：
 
 ```bash
 ONEUPTIME_AI_ALLOW_WRITES=true
@@ -1612,7 +1612,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 ## 升级代理
 
-代理会把其文件所固定的 collector 版本作为其 **代理版本** 上报。当这个 OneUptime 固定了更新的版本时，旁边会出现一个警告标志。选择它即可看到这些命令。
+代理会把其文件的版本作为其 **代理版本** 上报：即这些文件所固定的 collector 版本，且每当文件在该 collector 上发生变化时，最后一个数字就会加一。当它比这个 OneUptime 版本所固定的版本更旧时，旁边会出现一个警告标志。选择它即可看到这些命令。
 
 collector 镜像固定在 `docker-compose.yml` 中，其配置是它旁边的一个文件，所以仅仅拉取镜像不会让代理前进。请再次运行 `install.sh`（如果你不使用 Docker 安装，则加上 `sudo`）：它会复用你现有 `.env` 中的每个值以及 `clouds.yaml` 中的凭据（不会再次询问任何内容），用 Keystone 校验凭据，刷新代理的文件（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像，并重新创建代理，使 collector 读取它的新配置。
 
@@ -1663,7 +1663,7 @@ sudo userdel oneuptime-openstack
 
 ## 无互联网环境
 
-位于隔离网络之后的代理需要从外部获得三样东西：安装脚本及其文件，由你自己的 OneUptime 提供；其 `docker-compose.yml` 所运行的镜像，由你复制到自己一侧的镜像仓库；除此之外别无其他。代理只会向你的 OneUptime URL 发送数据，并读取你的云。
+位于隔离网络之后的代理需要从外部获得两样东西：安装脚本及其文件，由你自己的 OneUptime 提供；以及其 `docker-compose.yml` 所运行的镜像，由你复制到自己一侧的镜像仓库。代理只会向你的 OneUptime URL 发送数据，并读取你的云。
 
 镜像固定在 `docker-compose.yml` 中，所以你镜像的内容恰好就是代理所运行的内容：
 
