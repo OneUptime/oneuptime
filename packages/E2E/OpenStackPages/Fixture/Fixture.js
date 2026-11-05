@@ -993,7 +993,7 @@ const store = {
   ],
   Incident: incidents,
   Alert: alerts,
-  // What a project's and a domain's owner and label rules are stored as.
+  // What a project's and a domain's owner and label rules were stored as.
   AlertOwnerRule: [],
   IncidentOwnerRule: [],
   AlertLabelRule: [],

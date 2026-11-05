@@ -15,6 +15,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import OpenStackCloudLabelRule from "Common/Models/DatabaseModels/OpenStackCloudLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import OpenStackScopedRulesCard from "../../../Components/OpenStack/OpenStackScopedRulesCard";
+import OpenStackRuleScopeText, {
+  getOpenStackRuleScopeFields,
+} from "../../../Components/OpenStack/OpenStackRuleScope";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
@@ -36,7 +39,7 @@ When a rule matches, every label listed in \`Labels to Add\` is attached to the 
 
 ### By project and domain
 
-These rules label a whole cloud. To label what opens about one project or domain, add labels on the project's page or the Domains page. Those are listed under this table, and match by the project's ID, so a rename breaks nothing.
+A rule with no project or domain labels whole clouds. Give it an **OpenStack Project ID** or **OpenStack Domain ID** and it adds nothing to the cloud: it adds its labels to every alert and incident a monitor opens that reaches that project or domain, on the clouds its other conditions allow. A project's page and the Domains page write these for you, and they match by ID, so a rename breaks nothing.
 `;
 
 const OpenStackCloudLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
@@ -72,7 +75,7 @@ const OpenStackCloudLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         cardProps={{
           title: "OpenStack Cloud Label Rules",
           description:
-            "Auto-attach labels when matching OpenStack clouds are created.",
+            "Auto-attach labels when matching OpenStack clouds are created, or to what opens on one project or domain of them.",
         }}
         helpContent={{
           title: "How OpenStack Cloud Label Rules Work",
@@ -82,7 +85,7 @@ const OpenStackCloudLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         }}
         sortBy="name"
         sortOrder={SortOrder.Ascending}
-        selectMoreFields={{ isEnabled: true }}
+        selectMoreFields={{ isEnabled: true, openStackDomainId: true }}
         filters={[
           { field: { name: true }, title: "Name", type: FieldType.Text },
           {
@@ -97,6 +100,14 @@ const OpenStackCloudLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             field: { description: true },
             title: "Description",
             type: FieldType.Text,
+          },
+          {
+            field: { openStackProjectId: true },
+            title: "Reaches",
+            type: FieldType.Element,
+            getElement: (item: OpenStackCloudLabelRule): ReactElement => {
+              return <OpenStackRuleScopeText rule={item} />;
+            },
           },
           {
             field: { isEnabled: true },
@@ -149,6 +160,7 @@ const OpenStackCloudLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             placeholder: "production|critical",
           },
           ...getLabelRuleActionFields<OpenStackCloudLabelRule>(),
+          ...getOpenStackRuleScopeFields<OpenStackCloudLabelRule>("labels"),
         ]}
         showRefreshButton={true}
       />
