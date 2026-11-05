@@ -765,7 +765,7 @@ describe("each project's quotas", () => {
     expect(run.output).toContain(
       "OPENSTACK_COLLECT_QUOTAS must be true or false",
     );
-    expect(run.envFile).toBeNull();
+    expect(run.envFile).toBe("");
   });
 });
 
@@ -1896,6 +1896,9 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "openstack-exporter",
       // What it did not say takes its default, so the next hand has it to change.
+      OPENSTACK_COLLECT_QUOTAS: "false",
+      OPENSTACK_QUOTA_CLOUDS: "[]",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-quota-exporter:9180",
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
       OPENSTACK_RABBITMQ_TARGETS: "[]",

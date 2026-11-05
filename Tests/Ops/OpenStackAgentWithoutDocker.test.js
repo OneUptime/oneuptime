@@ -434,6 +434,8 @@ describe("install.sh --without-docker", () => {
       "daemon-reload",
       `enable ${EXPORTER_SERVICE}`,
       `restart ${EXPORTER_SERVICE}`,
+      // Off until asked for, and taken off again if it was on.
+      "disable --now oneuptime-openstack-quota-exporter",
       `enable ${COLLECTOR_SERVICE}`,
       `restart ${COLLECTOR_SERVICE}`,
     ]);
@@ -576,6 +578,9 @@ describe("install.sh --without-docker", () => {
       OPENSTACK_EXPORTER_USER: "",
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "",
+      OPENSTACK_COLLECT_QUOTAS: "false",
+      OPENSTACK_QUOTA_CLOUDS: "[]",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "127.0.0.1:9182",
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
       OPENSTACK_RABBITMQ_TARGETS: "[]",
@@ -935,6 +940,7 @@ describe("your own exporter, without Docker", () => {
       expect(env.log("systemctl")).toEqual([
         "daemon-reload",
         `disable --now ${EXPORTER_SERVICE}`,
+        "disable --now oneuptime-openstack-quota-exporter",
         `enable ${COLLECTOR_SERVICE}`,
         `restart ${COLLECTOR_SERVICE}`,
       ]);

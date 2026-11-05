@@ -578,13 +578,8 @@ if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
 else
     OPENSTACK_QUOTA_EXPORTER_ADDRESS="openstack-quota-exporter:9180"
 fi
-if [ "$READS_QUOTAS" = 1 ]; then
-    OPENSTACK_QUOTA_CLOUDS="$OPENSTACK_EXPORTER_CLOUDS"
-    if [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
-        COMPOSE_PROFILES="$COMPOSE_PROFILES,openstack-quotas"
-    fi
-else
-    OPENSTACK_QUOTA_CLOUDS="[]"
+if [ "$READS_QUOTAS" = 1 ] && [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
+    COMPOSE_PROFILES="$COMPOSE_PROFILES,openstack-quotas"
 fi
 
 # The identity endpoint as this script writes it: no trailing slash, ending in /v3.
@@ -662,6 +657,12 @@ if [ "${#REGIONS[@]}" = 0 ]; then
     exit 1
 fi
 OPENSTACK_EXPORTER_CLOUDS="$(IFS=,; printf '[%s]' "${REGIONS[*]}")"
+# Each project's quotas, for the regions the agent reads, once they have been asked for.
+if [ "$READS_QUOTAS" = 1 ]; then
+    OPENSTACK_QUOTA_CLOUDS="$OPENSTACK_EXPORTER_CLOUDS"
+else
+    OPENSTACK_QUOTA_CLOUDS="[]"
+fi
 if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
     if [ "${#REGIONS[@]}" != 1 ]; then
         echo "Error: an exporter in single-cloud mode reads one region, and OPENSTACK_CONTROL_PLANE_REGION names ${#REGIONS[@]}."
