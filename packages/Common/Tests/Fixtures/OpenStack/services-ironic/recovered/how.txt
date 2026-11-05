@@ -1,0 +1,2 @@
+Everything started again.
+Everything started again. The nodes that failed stay failed, as they do on a real cloud.
