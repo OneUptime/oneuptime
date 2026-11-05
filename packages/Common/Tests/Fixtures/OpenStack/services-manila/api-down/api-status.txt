@@ -1,0 +1,5 @@
+503 manila-shares
+503 manila-shares-versioned
+503 manila-services
+503 manila-pools
+503 manila-types

@@ -1,0 +1,9 @@
+$ openstack zone list --all-projects
+Failed to contact the endpoint at https://openstack.example/dns for discovery. Fallback to using that endpoint as the base url.
+Unknown
+$ openstack recordset list all --all-projects
+Failed to contact the endpoint at https://openstack.example/dns for discovery. Fallback to using that endpoint as the base url.
+Unknown
+$ openstack dns service list
+Failed to contact the endpoint at https://openstack.example/dns for discovery. Fallback to using that endpoint as the base url.
+Unknown
