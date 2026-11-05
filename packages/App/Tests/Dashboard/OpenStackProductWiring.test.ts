@@ -475,6 +475,7 @@ describe("the side menus have no dead links", () => {
       "AI",
       "Control Plane",
       "Compute",
+      "Bare Metal",
       "Network",
       "Storage",
       "Orchestration",

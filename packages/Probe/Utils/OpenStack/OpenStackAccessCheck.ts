@@ -521,7 +521,8 @@ export function classifyAccessList(data: {
     return { access: "OwnProjectOnly", reason: "every row is in one project" };
   }
 
-  if (data.hasAdminRole) {
+  // Ironic shows even an admin only what its project owns, so empty is no likely truth there.
+  if (data.hasAdminRole && !mayBeNobodys) {
     return {
       access: "ReadsEverything",
       reason: "nothing here to tell by, and the credential has the admin role",

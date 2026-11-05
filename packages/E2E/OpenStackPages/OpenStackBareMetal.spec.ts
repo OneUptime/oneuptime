@@ -20,8 +20,8 @@ const FAILED: string = "recording=services-ironic/deploy-failed";
 const HALF_ENROLLED: string = "recording=services-ironic/half-enrolled";
 const NO_IRONIC: string = "recording=gazpacho-ovs/healthy";
 
-const CLEAN_FAILED_ID: string = "9654dc06-7244-447a-9e3e-b4c2ec239a6c";
-const MAINTENANCE_ID: string = "1062b540-62b5-44a7-805f-212d8778807c";
+const CLEAN_FAILED_ID: string = "73a89c31-be10-40db-9f7f-c08fad8e6112";
+const MAINTENANCE_ID: string = "3cca2e8c-fd41-4eea-a4db-43aa5e780090";
 
 function rowOf(page: Page, name: string): Locator {
   return page.locator("tr", { hasText: name }).first();
@@ -125,7 +125,7 @@ test.describe("bare metal", () => {
     await expect(rowOf(page, "ou-node-half")).toContainText("enroll");
 
     await page.goto(
-      `${partPath("bare-metal", "b261259e-f7c0-40cf-ac0d-77e575c96445")}?${HALF_ENROLLED}`,
+      `${partPath("bare-metal", "59d335d5-0fe7-452d-9f67-34e82ee6706a")}?${HALF_ENROLLED}`,
     );
     await expect(
       page.getByTestId("openstack-bare-metal-node-enroll"),

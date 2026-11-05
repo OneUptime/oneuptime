@@ -54,22 +54,35 @@ import {
  *
  * Fixtures/OpenStack/services-ironic holds what Ironic's API and the agent's exporter each said in
  * one scene of a real DevStack, with fake hardware: so what the probe makes of the one can be held
- * to the other, label by label, and to what the server's scan makes of it. The rest of the cloud is
- * a recording of a cloud of the same release, which is what the token's catalog names, with Ironic
- * added. So the scenes here are real for Ironic, and the catalog entry and its path are the rig's.
- *
- * Written by hand, because nothing recorded holds them, and each says so: a list of conductors that
- * answers (a project is refused it), and Nova's hypervisor list with a node in it.
+ * to the other, label by label, and to what the server's scan makes of it. Each was read twice, as a
+ * project's admin and with system scope, which see different things. The rest of the cloud is a
+ * recording of a cloud of the same release, which is what the token's catalog names, with Ironic
+ * added. So the scenes here are real for Ironic and for Nova's list of its nodes, and the catalog
+ * entry and its path are the rig's.
  */
+
+type View = "a project's admin" | "system scope";
 
 const CLOUD: RecordedScene = loadScene("gazpacho-ovn", "healthy");
 const SCENES: ReadonlyArray<string> = [
+  "baseline",
   "half-enrolled",
   "maintenance",
   "clean-failed",
   "wait-call-back",
   "deploy-failed",
+  "power-off-while-active",
+  "conductor-down",
+  "recovered",
 ];
+const VIEWS: ReadonlyArray<[string, View]> = SCENES.flatMap(
+  (scene: string): Array<[string, View]> => {
+    return [
+      [scene, "a project's admin"],
+      [scene, "system scope"],
+    ];
+  },
+);
 
 const NODE_ID: string = "1062b540-62b5-44a7-805f-212d8778807c";
 
@@ -78,6 +91,15 @@ function ironicFile(scene: string, call: string): string {
     path.join(FIXTURES_ROOT, "services-ironic", scene, "api", `${call}.json`),
     "utf8",
   );
+}
+
+// Whose nodes a project's admin was shown: its own, as the rig's cloud named it.
+function recordedOwner(scene: string): string {
+  const nodes: Array<JSONObject> = (
+    JSON.parse(ironicFile(scene, "ironic-nodes")) as JSONObject
+  )["nodes"] as Array<JSONObject>;
+
+  return nodes[0]!["owner"] as string;
 }
 
 // What each of a scene's calls answered, by its status on record.
@@ -180,15 +202,29 @@ async function collect(data: {
 
 function ironicAsRecorded(
   scene: string,
+  view: View = "a project's admin",
 ): (pathname: string) => OpenStackHttpResponse | undefined {
+  const asSystem: string = view === "system scope" ? "-as-system" : "";
+
   return (pathname: string): OpenStackHttpResponse | undefined => {
     if (pathname === "/v1/nodes") {
-      return ironicAnswer(scene, "ironic-nodes");
+      return ironicAnswer(scene, `ironic-nodes${asSystem}`);
     }
     if (pathname === "/v1/conductors") {
-      return ironicAnswer(scene, "ironic-conductors");
+      return ironicAnswer(scene, `ironic-conductors${asSystem}`);
     }
     return undefined;
+  };
+}
+
+// Nova's list at the microversion a probe asks at, in the same scene.
+function novaAsRecorded(
+  scene: string,
+): (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined {
+  return (request: OpenStackHttpRequest): OpenStackHttpResponse | undefined => {
+    return new URL(request.url).pathname.endsWith("/os-hypervisors/detail")
+      ? ironicAnswer(scene, "nova-hypervisors-before-2-88")
+      : undefined;
   };
 }
 
@@ -252,7 +288,13 @@ function summaryOf(
   );
 }
 
-function exporterSeries(scene: string): Array<PrometheusSeries> {
+function exporterSeries(
+  scene: string,
+  view: View = "a project's admin",
+  file: string = view === "system scope"
+    ? "baremetal-as-devstack-system-admin"
+    : "baremetal",
+): Array<PrometheusSeries> {
   return parsePrometheusText(
     fs.readFileSync(
       path.join(
@@ -260,7 +302,7 @@ function exporterSeries(scene: string): Array<PrometheusSeries> {
         "services-ironic",
         scene,
         "exporter",
-        "baremetal.prom",
+        `${file}.prom`,
       ),
       "utf8",
     ),
@@ -387,11 +429,13 @@ describe("what it asks Ironic, on a cloud that has it", () => {
 });
 
 describe("what it sends is what the agent's exporter sent, in the same scene", () => {
-  test.each(SCENES)(
-    "%s: every node's every label the exporter has, and its value",
-    async (scene: string) => {
-      const { points } = await collect({ ironic: ironicAsRecorded(scene) });
-      const said: Array<PrometheusSeries> = exporterSeries(scene).filter(
+  test.each(VIEWS)(
+    "%s, as %s: every node's every label the exporter has, and its value",
+    async (scene: string, view: View) => {
+      const { points } = await collect({
+        ironic: ironicAsRecorded(scene, view),
+      });
+      const said: Array<PrometheusSeries> = exporterSeries(scene, view).filter(
         (one: PrometheusSeries): boolean => {
           return one.name === "openstack_ironic_node";
         },
@@ -426,11 +470,13 @@ describe("what it sends is what the agent's exporter sent, in the same scene", (
     },
   );
 
-  test.each(SCENES)(
-    "%s: when Ironic last saw each node move",
-    async (scene: string) => {
-      const { points } = await collect({ ironic: ironicAsRecorded(scene) });
-      const said: Array<PrometheusSeries> = exporterSeries(scene).filter(
+  test.each(VIEWS)(
+    "%s, as %s: when Ironic last saw each node move",
+    async (scene: string, view: View) => {
+      const { points } = await collect({
+        ironic: ironicAsRecorded(scene, view),
+      });
+      const said: Array<PrometheusSeries> = exporterSeries(scene, view).filter(
         (one: PrometheusSeries): boolean => {
           return one.name === "openstack_ironic_node_provision_updated_at";
         },
@@ -463,11 +509,13 @@ describe("what it sends is what the agent's exporter sent, in the same scene", (
     },
   );
 
-  test.each(SCENES)(
-    "%s: the rows are what the exporter's are, as far as it says",
-    async (scene: string) => {
-      const { report } = await collect({ ironic: ironicAsRecorded(scene) });
-      const said: Array<PrometheusSeries> = exporterSeries(scene).filter(
+  test.each(VIEWS)(
+    "%s, as %s: the rows are what the exporter's are, as far as it says",
+    async (scene: string, view: View) => {
+      const { report } = await collect({
+        ironic: ironicAsRecorded(scene, view),
+      });
+      const said: Array<PrometheusSeries> = exporterSeries(scene, view).filter(
         (one: PrometheusSeries): boolean => {
           return one.name === "openstack_ironic_node";
         },
@@ -514,7 +562,7 @@ describe("what only a probe says of a node, from Ironic's own answer", () => {
     )) {
       expect(row.facts["driver"]).toBe("fake-hardware");
       expect(row.facts["conductor"]).toBe("compute-01");
-      expect(row.openStackProjectId).toBe("cc8bdebd938940c0a22ed92aab43840c");
+      expect(row.openStackProjectId).toBe(recordedOwner("deploy-failed"));
     }
   });
 
@@ -611,7 +659,47 @@ describe("what a credential's scope decides", () => {
     ).toBe(5);
   });
 
-  test("a credential that may reads them: written by hand, as no recording holds one yet", async () => {
+  function conductorsOf(
+    report: OpenStackCollectionReport,
+  ): Array<Array<unknown>> {
+    return ofKind(rowsOf(report), OpenStackResourceKind.Service)
+      .filter((row: OpenStackResourceBufferEntry): boolean => {
+        return row.facts["family"] === "baremetal";
+      })
+      .map((row: OpenStackResourceBufferEntry): Array<unknown> => {
+        return [row.name, row.facts["host"], row.status];
+      })
+      .sort();
+  }
+
+  test("a credential that may reads them: alive, then its heartbeat old enough, then alive", async () => {
+    for (const [scene, status] of [
+      ["baseline", "up"],
+      ["conductor-down", "down"],
+      ["recovered", "up"],
+    ] as Array<[string, string]>) {
+      const { report } = await collect({
+        ironic: ironicAsRecorded(scene, "system scope"),
+      });
+
+      expect(conductorsOf(report)).toEqual([
+        ["ironic-conductor", "compute-01", status],
+      ]);
+    }
+  });
+
+  test("with its conductor down Ironic's API still answers, and every node reads as it did", async () => {
+    const { report, points } = await collect({
+      ironic: ironicAsRecorded("conductor-down", "system scope"),
+    });
+
+    expect(pointsNamed(points, "openstack_ironic_up")[0]?.value).toBe(1);
+    expect(
+      ofKind(rowsOf(report), OpenStackResourceKind.BareMetalNode).length,
+    ).toBe(7);
+  });
+
+  test("the group a conductor is in, written by hand, as DevStack has only the one", async () => {
     const { report } = await collect({
       ironic: (pathname: string) => {
         return pathname === "/v1/conductors"
@@ -629,23 +717,39 @@ describe("what a credential's scope decides", () => {
       },
     });
 
-    const conductors: Array<OpenStackResourceBufferEntry> = ofKind(
-      rowsOf(report),
-      OpenStackResourceKind.Service,
-    ).filter((row: OpenStackResourceBufferEntry): boolean => {
-      return row.facts["family"] === "baremetal";
-    });
-
-    expect(
-      conductors
-        .map((row: OpenStackResourceBufferEntry): Array<unknown> => {
-          return [row.name, row.facts["host"], row.status];
-        })
-        .sort(),
-    ).toEqual([
+    expect(conductorsOf(report)).toEqual([
       ["ironic-conductor", "conductor-1", "up"],
       ["ironic-conductor", "conductor-2", "down"],
     ]);
+  });
+
+  test("what's left out of a project's list, which only system scope holds", async () => {
+    const project: Collected = await collect({
+      ironic: ironicAsRecorded("power-off-while-active"),
+    });
+    const everything: Collected = await collect({
+      ironic: ironicAsRecorded("power-off-while-active", "system scope"),
+    });
+    const namesOf: (report: OpenStackCollectionReport) => Array<string> = (
+      report: OpenStackCollectionReport,
+    ): Array<string> => {
+      return ofKind(rowsOf(report), OpenStackResourceKind.BareMetalNode)
+        .map((row: OpenStackResourceBufferEntry): string => {
+          return row.name as string;
+        })
+        .sort();
+    };
+
+    expect(namesOf(project.report)).not.toContain("ou-node-active");
+    expect(namesOf(everything.report)).toContain("ou-node-active");
+    expect(
+      ofKind(
+        rowsOf(everything.report),
+        OpenStackResourceKind.BareMetalNode,
+      ).find((row: OpenStackResourceBufferEntry): boolean => {
+        return row.name === "ou-node-active";
+      })?.facts["powerState"],
+    ).toBe("power off");
   });
 
   test("the access check tells a project's own view from everyone's, on the recording", () => {
@@ -658,7 +762,19 @@ describe("what a credential's scope decides", () => {
         body: nodes,
         key: "nodes",
         projectField: "owner?",
-        ownProjectId: "cc8bdebd938940c0a22ed92aab43840c",
+        ownProjectId: recordedOwner("deploy-failed"),
+        hasAdminRole: true,
+      }).access,
+    ).toBe("OwnProjectOnly");
+  });
+
+  test("none at all, with an admin role, is still only that project's: an admin is shown what it owns", () => {
+    expect(
+      classifyAccessList({
+        body: { nodes: [] },
+        key: "nodes",
+        projectField: "owner?",
+        ownProjectId: "own",
         hasAdminRole: true,
       }).access,
     ).toBe("OwnProjectOnly");
@@ -725,71 +841,143 @@ describe("Ironic's API stopped, which only a probe can tell from a cloud without
 });
 
 /*
- * Nothing recorded holds Nova's hypervisor list with a node in it, so this is Nova's Ironic driver's
- * answer as its source writes it: the shape that broke other exporters (openstack-exporter issue 428),
- * with no cpu_info to parse and none of a host's numbers.
+ * Nova's Ironic driver's list, as recorded: every node there is, under its UUID, with a half-enrolled
+ * one's numbers null (the shape that broke other exporters: openstack-exporter issue 428).
  */
-describe("a node in Nova's list breaks nothing in a probe", () => {
-  function withANode(
-    request: OpenStackHttpRequest,
-  ): OpenStackHttpResponse | undefined {
-    if (!new URL(request.url).pathname.endsWith("/os-hypervisors/detail")) {
-      return undefined;
-    }
-    const recorded: Array<JSONObject> = (
-      JSON.parse(CLOUD.api.get("nova-hypervisors") as string) as {
-        hypervisors: Array<JSONObject>;
-      }
-    ).hypervisors;
-    return jsonAnswer(200, {
-      hypervisors: [
-        ...recorded,
-        {
-          id: "b1a2c3d4-0000-4000-8000-000000000001",
-          hypervisor_hostname: NODE_ID,
-          hypervisor_type: "ironic",
-          hypervisor_version: 1,
-          host_ip: "192.0.2.1",
-          state: "up",
-          status: "enabled",
-          cpu_info: "",
-          service: {
-            id: "b1a2c3d4-0000-4000-8000-000000000002",
-            host: "compute-01",
-            disabled_reason: null,
-          },
-        },
-      ],
-    });
-  }
+describe("Nova's list with nodes in it breaks nothing in a probe", () => {
+  const NOVA_SERIES: ReadonlySet<string> = new Set([
+    "openstack_nova_running_vms",
+    "openstack_nova_current_workload",
+    "openstack_nova_vcpus_available",
+    "openstack_nova_vcpus_used",
+    "openstack_nova_memory_available_bytes",
+    "openstack_nova_memory_used_bytes",
+    "openstack_nova_local_storage_available_bytes",
+    "openstack_nova_local_storage_used_bytes",
+    "openstack_nova_free_disk_bytes",
+  ]);
 
-  test("every host still reads, and Nova's API stays up", async () => {
-    const without: Collected = await collect({});
-    const withIt: Collected = await collect({ answer: withANode });
+  test("the half-enrolled one really has nothing to say, in that scene", () => {
+    const nodes: Array<JSONObject> = (
+      JSON.parse(
+        ironicFile("half-enrolled", "nova-hypervisors-before-2-88"),
+      ) as JSONObject
+    )["hypervisors"] as Array<JSONObject>;
 
-    expect(pointsNamed(withIt.points, "openstack_nova_up")[0]?.value).toBe(1);
     expect(
-      ofKind(rowsOf(withIt.report), OpenStackResourceKind.Hypervisor)
-        .map((row: OpenStackResourceBufferEntry): string | null => {
-          return row.hypervisorName;
-        })
-        .sort(),
-    ).toEqual(
-      ofKind(rowsOf(without.report), OpenStackResourceKind.Hypervisor)
-        .map((row: OpenStackResourceBufferEntry): string | null => {
-          return row.hypervisorName;
-        })
-        .sort(),
-    );
+      nodes.filter((one: JSONObject): boolean => {
+        return one["running_vms"] === null;
+      }).length,
+    ).toBe(1);
+    expect(
+      nodes.every((one: JSONObject): boolean => {
+        return one["hypervisor_type"] === "ironic";
+      }),
+    ).toBe(true);
   });
 
-  test("and the node is no hypervisor", async () => {
-    const { report } = await collect({ answer: withANode });
+  test.each(SCENES)(
+    "%s: every number of every node is what the exporter said",
+    async (scene: string) => {
+      const { points } = await collect({ answer: novaAsRecorded(scene) });
+      const said: Array<PrometheusSeries> = exporterSeries(
+        scene,
+        "a project's admin",
+        "compute",
+      ).filter((one: PrometheusSeries): boolean => {
+        return NOVA_SERIES.has(one.name);
+      });
 
+      const halfEnrolled: Array<string> = (
+        (
+          JSON.parse(
+            ironicFile(scene, "nova-hypervisors-before-2-88"),
+          ) as JSONObject
+        )["hypervisors"] as Array<JSONObject>
+      )
+        .filter((one: JSONObject): boolean => {
+          return one["running_vms"] === null;
+        })
+        .map((one: JSONObject): string => {
+          return one["hypervisor_hostname"] as string;
+        });
+
+      expect(said.length).toBeGreaterThan(0);
+
+      for (const line of said) {
+        const point: ReportedDatapoint | undefined = pointsNamed(
+          points,
+          line.name,
+        ).find((one: ReportedDatapoint): boolean => {
+          return one.labels["hostname"] === line.labels["hostname"];
+        });
+
+        /*
+         * Nova's null is no number. The exporter makes a 0 of it and a probe says nothing, as it does
+         * of what any Nova doesn't say, and the scan makes no row of either.
+         */
+        if (!point && halfEnrolled.includes(line.labels["hostname"] as string)) {
+          expect(line.value).toBe(0);
+          continue;
+        }
+
+        expect({
+          series: line.name,
+          host: line.labels["hostname"],
+          value: point?.value,
+        }).toEqual({
+          series: line.name,
+          host: line.labels["hostname"],
+          value: line.value,
+        });
+      }
+    },
+  );
+
+  test.each(SCENES)(
+    "%s: Nova's API stays up, and no node is a hypervisor",
+    async (scene: string) => {
+      const { report, points } = await collect({
+        answer: novaAsRecorded(scene),
+      });
+      const nodes: Array<string> = (
+        (
+          JSON.parse(
+            ironicFile(scene, "nova-hypervisors-before-2-88"),
+          ) as JSONObject
+        )["hypervisors"] as Array<JSONObject>
+      ).map((one: JSONObject): string => {
+        return one["hypervisor_hostname"] as string;
+      });
+
+      expect(pointsNamed(points, "openstack_nova_up")[0]?.value).toBe(1);
+      expect(nodes.length).toBeGreaterThan(0);
+      expect(
+        ofKind(rowsOf(report), OpenStackResourceKind.Hypervisor).filter(
+          (row: OpenStackResourceBufferEntry): boolean => {
+            return nodes.includes(row.hypervisorName as string);
+          },
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  test("past the microversion that says, its list of nodes is just as harmless", async () => {
+    const { report, points } = await collect({
+      answer: (
+        request: OpenStackHttpRequest,
+      ): OpenStackHttpResponse | undefined => {
+        return new URL(request.url).pathname.endsWith("/os-hypervisors/detail")
+          ? ironicAnswer("half-enrolled", "nova-hypervisors")
+          : undefined;
+      },
+    });
+
+    expect(pointsNamed(points, "openstack_nova_up")[0]?.value).toBe(1);
     expect(
       ofKind(rowsOf(report), OpenStackResourceKind.Hypervisor).filter(
         (row: OpenStackResourceBufferEntry): boolean => {
-          return row.hypervisorName === NODE_ID;
+          return (row.hypervisorName as string).startsWith("0fa2c1b5");
         },
       ),
     ).toEqual([]);

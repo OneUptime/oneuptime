@@ -9,6 +9,7 @@ import {
 } from "../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
+import { getRecordedScrapeFiles } from "./OpenStackRecordedRows";
 
 /*
  * What a real cloud's exporter said, as the rows the snapshot scan makes of it: what a
@@ -137,13 +138,15 @@ function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
 export class OpenStackRecording {
   public readonly rows: Array<OpenStackResource>;
 
-  public constructor(release: string, scene: string) {
+  // asCloud reads a service as another credential did, where the scene holds that as well.
+  public constructor(
+    release: string,
+    scene: string,
+    asCloud?: string | undefined,
+  ) {
     const folder: string = path.join(FIXTURES, release, scene, "exporter");
     const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-    for (const file of fs.readdirSync(folder).sort()) {
-      if (!file.endsWith(".prom")) {
-        continue;
-      }
+    for (const file of getRecordedScrapeFiles(folder, asCloud)) {
       for (const series of parsePrometheusText(
         fs.readFileSync(path.join(folder, file), "utf8"),
       )) {
@@ -187,13 +190,8 @@ export function readOpenStackScene(
   scene: string,
 ): Array<OpenStackRecordedSeries> {
   const folder: string = path.join(FIXTURES, release, scene, "exporter");
-  return fs
-    .readdirSync(folder)
-    .sort()
-    .filter((file: string): boolean => {
-      return file.endsWith(".prom");
-    })
-    .flatMap((file: string): Array<OpenStackRecordedSeries> => {
+  return getRecordedScrapeFiles(folder).flatMap(
+    (file: string): Array<OpenStackRecordedSeries> => {
       return parsePrometheusText(
         fs.readFileSync(path.join(folder, file), "utf8"),
       ).map((series: OpenStackRecordedSeries): OpenStackRecordedSeries => {
@@ -206,7 +204,8 @@ export function readOpenStackScene(
           },
         };
       });
-    });
+    },
+  );
 }
 
 export function getOpenStackReleases(): Array<string> {

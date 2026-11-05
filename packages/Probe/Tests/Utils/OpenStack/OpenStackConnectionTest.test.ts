@@ -11,10 +11,7 @@ import {
   OpenStackConnectionTestSummary,
   OpenStackCredential,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import {
-  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
-  OpenStackServiceType,
-} from "Common/Types/OpenStack/OpenStackResourceKind";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_ACCESS_READS,
   OpenStackAccessReadDefinition,
@@ -55,14 +52,6 @@ import {
   loadScene,
   recordedTokenBody,
 } from "./Helpers/RecordedCloud";
-
-// A read of a service a cloud may not run is asked only where the catalog has it.
-const READS_OF_EVERY_CLOUD: ReadonlyArray<OpenStackAccessReadDefinition> =
-  OPENSTACK_ACCESS_READS.filter(
-    (definition: OpenStackAccessReadDefinition): boolean => {
-      return OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(definition.service);
-    },
-  );
 
 /*
  * A connection test: log in, see what this credential can really read in each region, log
@@ -1969,19 +1958,10 @@ describe("the reads themselves", () => {
       ...loadAccessMatrix("hibiscus-ovn", "matrix"),
       // The services a cloud may not run have recordings of their own.
       ...loadAccessMatrix("services-heat-magnum", "matrix", "access-check"),
+      ...loadAccessMatrix("services-ironic", "matrix", "access-check"),
     ];
 
-    /*
-     * Ironic's access check hasn't been recorded: the run that had it stopped on a cloud without
-     * security groups. What a project's admin was shown of its nodes is in services-ironic's scenes.
-     */
-    const NOT_RECORDED_YET: ReadonlyArray<string> = ["baremetal: nodes"];
-
-    for (const definition of OPENSTACK_ACCESS_READS.filter(
-      (one: OpenStackAccessReadDefinition): boolean => {
-        return !NOT_RECORDED_YET.includes(`${one.service}: ${one.read}`);
-      },
-    )) {
+    for (const definition of OPENSTACK_ACCESS_READS) {
       expect({
         read: `${definition.service}: ${definition.read}`,
         isRecorded: matrix.some((read: AccessMatrixRead): boolean => {

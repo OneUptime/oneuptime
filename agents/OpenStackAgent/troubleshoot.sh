@@ -1014,7 +1014,8 @@ classify_read() {
   elif [ "$projects" = 1 ]; then
     RESULT="own"
     REASON=" (every row is in one project)"
-  elif [ "$HAS_ADMIN_ROLE" = 1 ]; then
+  # Ironic shows even an admin only what its project owns, so empty is no likely truth there.
+  elif [ "$HAS_ADMIN_ROLE" = 1 ] && [ "${attr%\?}" = "$attr" ]; then
     RESULT="all"
     REASON=" (nothing here to tell by, and the credential has the admin role)"
   else

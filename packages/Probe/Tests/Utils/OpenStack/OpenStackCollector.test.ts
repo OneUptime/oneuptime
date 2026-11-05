@@ -17,10 +17,7 @@ import {
   OpenStackCollectionReport,
   OpenStackServiceSummary,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import {
-  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
-  OpenStackServiceType,
-} from "Common/Types/OpenStack/OpenStackResourceKind";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   BACKOFF_BASE_IN_MS,
   REFUSED_CREDENTIAL_BACKOFF_BASE_IN_MS,

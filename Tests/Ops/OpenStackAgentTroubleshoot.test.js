@@ -1631,6 +1631,20 @@ describe("what a 200 proves", () => {
       /baremetal: nodes — .*(own project only|every row is in one project)/,
     );
   });
+
+  test("none at all proves nothing, even to an admin: Ironic shows one only what its project owns", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes" ? { rows: [] } : fullView(read);
+      },
+      roles: ["admin"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
+      "▲ baremetal: nodes — may be own project only (a 200 with nothing here to tell by)",
+    );
+  });
 });
 
 /* ----------------------------------------------------- what else can come back */

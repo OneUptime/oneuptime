@@ -47,9 +47,10 @@ import {
 /*
  * Bare metal, rendered for real over the real tables and part cards, with only the network
  * replaced. Where a row comes from says what it proves: `recorded()` is what a real DevStack's
- * exporter answered (Fixtures/OpenStack/services-ironic), through the real scan. Every other row is
- * written by hand, because nothing recorded holds it: an instance on a node, a conductor, and all
- * of what only a probe reads from Ironic's API.
+ * exporter answered (Fixtures/OpenStack/services-ironic), through the real scan, as the agent's own
+ * credential or, in a second argument, with system scope. Every other row is written by hand: an
+ * instance on a node, which nothing recorded holds, and what only a probe reads from Ironic's API,
+ * whose rows the probe's own tests hold to its recorded answers.
  */
 
 configure({ asyncUtilTimeout: 30000 });
@@ -109,9 +110,9 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-const CLEAN_FAILED_ID: string = "9654dc06-7244-447a-9e3e-b4c2ec239a6c";
-const HALF_ID: string = "b261259e-f7c0-40cf-ac0d-77e575c96445";
-const MAINTENANCE_ID: string = "1062b540-62b5-44a7-805f-212d8778807c";
+const CLEAN_FAILED_ID: string = "73a89c31-be10-40db-9f7f-c08fad8e6112";
+const HALF_ID: string = "59d335d5-0fe7-452d-9f67-34e82ee6706a";
+const MAINTENANCE_ID: string = "3cca2e8c-fd41-4eea-a4db-43aa5e780090";
 const NODE_ID: string = "aaaaaaaa-3333-4333-8333-000000000001";
 const INSTANCE_ID: string = "bbbbbbbb-3333-4333-8333-000000000001";
 
@@ -125,9 +126,11 @@ function minutesAgo(minutes: number): Date {
   return new Date(Date.now() - minutes * 60 * 1000);
 }
 
+const WITH_SYSTEM_SCOPE: string = "devstack-system-admin";
+
 // A real cloud's scene, as the rows OneUptime would hold, seen just now.
-function recorded(scene: string): Array<Row> {
-  return new OpenStackRecording("services-ironic", scene).rows.map(
+function recorded(scene: string, asCloud?: string | undefined): Array<Row> {
+  return new OpenStackRecording("services-ironic", scene, asCloud).rows.map(
     (row: OpenStackResource): Row => {
       return {
         ...row,
@@ -346,30 +349,30 @@ describe("what it can and can't see", () => {
   });
 
   test("Placement holding more than Ironic shows says this list isn't the whole cloud's", async () => {
-    server.rows = [
-      apiRow(),
-      nodeRow(),
-      ...["n-1", "n-2", "n-3"].map((name: string): Row => {
-        return {
-          _id: id(),
-          kind: OpenStackResourceKind.PlacementProvider,
-          externalId: `RegionOne/${name}`,
-          name,
-          regionName: "RegionOne",
-          facts: {},
-        };
-      }),
-    ];
+    // A project's admin owns one of the three: Ironic lists that, and Placement all three.
+    server.rows = recorded("baseline");
 
     await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
 
     expect(
       await screen.findByTestId("openstack-bare-metal-partial"),
-    ).toHaveTextContent(/isn't the whole cloud's/);
+    ).toHaveTextContent(
+      /Placement holds 3 bare metal nodes, and Ironic shows this credential 1/,
+    );
+    expect(screen.queryByText("ou-node-active")).toBeNull();
+  });
+
+  test("the same moment with system scope lists all three, and has nothing to say", async () => {
+    server.rows = recorded("baseline", WITH_SYSTEM_SCOPE);
+
+    await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
+    await screen.findByText("ou-node-active");
+
+    expect(screen.queryByTestId("openstack-bare-metal-partial")).toBeNull();
   });
 
   test("Placement trailing Ironic, as it did on the recording, says nothing", async () => {
-    server.rows = recorded("wait-call-back");
+    server.rows = recorded("wait-call-back", WITH_SYSTEM_SCOPE);
 
     await renderPage(OpenStackCloudBareMetalNodes, "/bare-metal");
     await screen.findByText("ou-node-half");
@@ -515,6 +518,45 @@ describe("a node's page, on what a real cloud said", () => {
     ]) {
       expect(alerts).toContain(name);
     }
+  });
+});
+
+describe("a node's page, with its power off, on what a real cloud said", () => {
+  const NODE_POWERED_OFF: string = "0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d";
+
+  test("deployed with its power off needs someone, and it knows of no instance on it", async () => {
+    server.rows = recorded("power-off-while-active", WITH_SYSTEM_SCOPE);
+
+    await renderPage(
+      OpenStackCloudBareMetalNodeDetail,
+      partPath("bare-metal", NODE_POWERED_OFF),
+    );
+
+    expect(
+      await screen.findByTestId("openstack-bare-metal-node-explanation"),
+    ).toHaveTextContent(/power off/);
+    expect(attentionRowsOf("openstack-bare-metal-node-attention")).toEqual([
+      "This node: Deployed, with its power off",
+    ]);
+    expect(
+      screen.queryByTestId("openstack-bare-metal-node-details-instance"),
+    ).toBeNull();
+  });
+
+  test("its power on again, it needs nobody", async () => {
+    server.rows = recorded("recovered", WITH_SYSTEM_SCOPE);
+
+    await renderPage(
+      OpenStackCloudBareMetalNodeDetail,
+      partPath("bare-metal", NODE_POWERED_OFF),
+    );
+
+    await screen.findByTestId("openstack-bare-metal-node-hero");
+
+    expect(
+      screen.queryByTestId("openstack-bare-metal-node-explanation"),
+    ).toBeNull();
+    expect(attentionRowsOf("openstack-bare-metal-node-attention")).toEqual([]);
   });
 });
 

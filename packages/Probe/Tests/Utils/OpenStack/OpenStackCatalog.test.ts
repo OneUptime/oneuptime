@@ -1,9 +1,6 @@
 import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import { describe, expect, test } from "@jest/globals";
-import {
-  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
-  OpenStackServiceType,
-} from "Common/Types/OpenStack/OpenStackResourceKind";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   OpenStackCatalogService,
   findOpenStackEndpoint,
@@ -84,7 +81,7 @@ describe("what the catalog says", () => {
         service,
         url: findOpenStackEndpoint({
           catalog,
-          service: service as OpenStackServiceType,
+          service,
           regionName: "RegionOne",
           endpointInterface: "public",
         })?.startsWith("https://openstack.example/"),

@@ -27,6 +27,7 @@ const NODE_ID: string = "1062b540-62b5-44a7-805f-212d8778807c";
 const BASE_MS: number = 1793841200000;
 
 type Buffer = Map<string, OpenStackResourceBufferEntry>;
+type SeriesReading = [string, number, Record<string, string>];
 
 function datapoint(
   value: number,
@@ -46,7 +47,7 @@ function datapoint(
 }
 
 function scan(
-  series: Array<[string, number, Record<string, string>]>,
+  series: Array<SeriesReading>,
   atMs?: number,
 ): Array<OpenStackResourceBufferEntry> {
   const buffer: Buffer = new Map();
@@ -398,20 +399,22 @@ describe("a node is no hypervisor", () => {
     expect(provider?.facts).toEqual({ "inventory:CUSTOM_GOLD:used": 1 });
   });
 
-  test("Nova's series of a node say nothing, so they write nothing (from its driver's source)", () => {
+  test("Nova's series of a node write nothing: it holds 0, whatever it says is in use", () => {
     const entries: Array<OpenStackResourceBufferEntry> = scan(
       [
-        "openstack_nova_vcpus_available",
-        "openstack_nova_vcpus_used",
-        "openstack_nova_memory_available_bytes",
-        "openstack_nova_memory_used_bytes",
-        "openstack_nova_local_storage_available_bytes",
-        "openstack_nova_local_storage_used_bytes",
-        "openstack_nova_running_vms",
-      ].map((name: string): [string, number, Record<string, string>] => {
+        // What a node really reads: services-ironic, baseline.
+        ["openstack_nova_vcpus_available", 0],
+        ["openstack_nova_memory_available_bytes", 0],
+        ["openstack_nova_local_storage_available_bytes", 0],
+        ["openstack_nova_memory_used_bytes", 536870912],
+        // And what an instance would add. Nothing recorded has one on a node.
+        ["openstack_nova_vcpus_used", 16],
+        ["openstack_nova_local_storage_used_bytes", 1000000000],
+        ["openstack_nova_running_vms", 1],
+      ].map((reading: Array<string | number>): SeriesReading => {
         return [
-          name,
-          name === "openstack_nova_running_vms" ? 1 : 0,
+          reading[0] as string,
+          reading[1] as number,
           { hostname: NODE_ID, availability_zone: "nova", aggregates: "" },
         ];
       }),
@@ -422,7 +425,18 @@ describe("a node is no hypervisor", () => {
     expect(getOpenStackHostsToReconcile(entries)).toEqual([]);
   });
 
-  test("a half-enrolled node's zeros are no different (from its driver's source)", () => {
+  test("a batch cut anywhere reads the same: a single series of it says nothing", () => {
+    for (const name of [
+      "openstack_nova_memory_used_bytes",
+      "openstack_nova_vcpus_used",
+      "openstack_nova_local_storage_used_bytes",
+      "openstack_nova_running_vms",
+    ]) {
+      expect(scan([[name, 512, { hostname: NODE_ID }]])).toEqual([]);
+    }
+  });
+
+  test("a half-enrolled node's zeros are no different", () => {
     expect(
       scan([
         ["openstack_nova_vcpus_used", 0, { hostname: NODE_ID }],
@@ -449,17 +463,18 @@ describe("a node is no hypervisor", () => {
     );
   });
 
-  test("so does one Nova has numbers for, before microversion 2.88", () => {
+  test("so does one Nova says holds something, though only Placement can say what's in use", () => {
     const [host] = ofKind(
       scan([
-        ["openstack_nova_vcpus_available", 64, { hostname: NODE_ID }],
-        ["openstack_nova_vcpus_used", 8, { hostname: NODE_ID }],
+        ["openstack_nova_memory_available_bytes", 1024, { hostname: NODE_ID }],
+        ["openstack_nova_memory_used_bytes", 512, { hostname: NODE_ID }],
       ]),
       OpenStackResourceKind.Hypervisor,
     );
 
-    expect(host?.vcpuCapacity).toBe(64);
-    expect(host?.vcpuAllocated).toBe(8);
+    expect(host?.hypervisorName).toBe(NODE_ID);
+    expect(host?.memoryCapacityBytes).toBe(1024);
+    expect(host?.memoryAllocatedBytes).toBe(null);
   });
 
   test("a custom class on a host called anything else stays that host's", () => {

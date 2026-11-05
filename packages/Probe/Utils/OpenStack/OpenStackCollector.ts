@@ -133,7 +133,6 @@ import {
   OpenStackServiceSummary,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import {
-  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_TITLES,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
