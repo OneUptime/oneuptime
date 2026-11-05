@@ -1567,6 +1567,11 @@ describe("bring your own exporter", () => {
         "OPENSTACK_AI_CLOUDS_FILE=/dev/null",
         "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=its-own-id",
         "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=its-own-secret",
+        "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID=its-write-id",
+        "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=its-write-secret",
+        "ONEUPTIME_AI_ALLOW_WRITES=true",
+        "ONEUPTIME_AI_FIXES=ask-for-approval",
+        "ONEUPTIME_AI_PROTECTED_TARGETS=host:compute-01",
         "",
       ].join("\n"),
     );
@@ -1579,6 +1584,13 @@ describe("bring your own exporter", () => {
       OPENSTACK_AI_CLOUDS_FILE: "/dev/null",
       ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID: "its-own-id",
       ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET: "its-own-secret",
+      // An upgrade must not turn fixes off, or take away what they may not touch.
+      ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID: "its-write-id",
+      ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET:
+        "its-write-secret",
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_FIXES: "ask-for-approval",
+      ONEUPTIME_AI_PROTECTED_TARGETS: "host:compute-01",
     });
     expect(
       envLines(ownExporter(scratch()).envFile).COMPOSE_PROFILES,

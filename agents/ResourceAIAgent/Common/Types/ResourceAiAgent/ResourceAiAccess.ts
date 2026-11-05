@@ -444,7 +444,6 @@ export function parseResourceAiAgentPosture(
       !writeTargets.malformed &&
       !protectedTargets.malformed,
     allowWritesSetting: readDisplayString(raw["allowWritesSetting"]),
-    writesOffReason: readDisplayString(raw["writesOffReason"]),
     writeTargets: writeTargets.list,
     protectedTargets: protectedTargets.list,
     toolVersion: readDisplayString(raw["toolVersion"]),
@@ -452,6 +451,14 @@ export function parseResourceAiAgentPosture(
     reachError: readDisplayString(raw["reachError"]),
     details: readDetails(raw["details"]),
   };
+
+  const writesOffReason: string | null = readDisplayString(
+    raw["writesOffReason"],
+  );
+
+  if (writesOffReason) {
+    posture.writesOffReason = writesOffReason;
+  }
 
   const reportedAt: unknown = raw["reportedAt"];
 

@@ -391,7 +391,7 @@ Nothing arrives until a request is signed with that key: only a signed request i
 
 `docker-compose.yml` also has `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`, profile `openstack-ai-agent`). With it, OneUptime AI reads the cloud while it investigates an incident or alert, and cites what it ran. It shares this folder's `.env`, and registers under the same `OPENSTACK_CLOUD_NAME` the collector reports.
 
-It only reads. It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each command becomes one `GET` to the service that answers it. Its policy has no command that changes a cloud, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
+It reads, unless you give it what it needs to change something ([Fixes](#fixes)). It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each read becomes one `GET` to the service that answers it. Its policy has no command that changes a cloud, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
 
 `install.sh` starts it beside the exporter it bundles (`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`). To start it yourself:
 
@@ -414,6 +414,90 @@ COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent docker compose up -d
 - **Other settings.** `ONEUPTIME_AI_INVESTIGATION=false` stops investigations. `ONEUPTIME_AI_OPENSTACK_CLOUD` picks another entry of `clouds.yaml`, `ONEUPTIME_AI_OPENSTACK_REGION` and `ONEUPTIME_AI_OPENSTACK_INTERFACE` the region and endpoints a command reads, and `ONEUPTIME_AI_OPENSTACK_CA_FILE` a certificate authority.
 
 What it may run, and how to troubleshoot it: [Infrastructure AI Agents](https://oneuptime.com/docs/ai/infrastructure-ai-agents#openstack-clouds).
+
+### Fixes
+
+OneUptime AI can make ten changes on a cloud, and only ten. It never deletes anything, and never touches Keystone, quotas or security groups.
+
+| Tier | The change |
+| --- | --- |
+| Safe | `openstack server start SERVER-ID`, `openstack server reboot --soft SERVER-ID`, `openstack compute service set --enable HOST nova-compute`, `openstack network agent set --enable AGENT-ID` |
+| Riskier | `openstack server reboot --hard SERVER-ID`, `openstack server migrate SERVER-ID [--host HOST]`, `openstack server migrate live SERVER-ID [--host HOST]`, `openstack compute service set --disable --disable-reason "REASON" HOST nova-compute`, `openstack network agent set --disable AGENT-ID` |
+| Always asks a person | `openstack server evacuate SERVER-ID... [--host HOST]`, in every mode, whatever the allowlist says. The number of instances an evacuation may touch without asking is zero: Nova only takes one once the host is down, so every evacuation that can run is of a dead hypervisor |
+| Denied, whoever approves it | Anything that deletes (`server delete`, `volume delete`, `project delete`...), anything in Keystone, quotas, security groups, `--state` and `--down`, and every command not in this table |
+
+Each change has one spelling, in that order: another flag order, an abbreviation or a flag the real client also takes is refused. So what a person approves, what an allowlist entry names and what runs are the same words. A cold `server migrate` leaves the instance in `VERIFY_RESIZE` until a person confirms it, which OneUptime AI never does.
+
+**Fixes are off until you opt in twice.** On the agent, `ONEUPTIME_AI_ALLOW_WRITES=true` and a credential for changes. On the cloud, **What AI may do** other than Off, or `ONEUPTIME_AI_FIXES` on the agent. A first connection leaves them off, unlike the other kinds of resource.
+
+**Before a person approves a change,** the agent reads what it touches, and the card says how many instances and projects, and which. An evacuation's card also says what state the host is in, and what else it holds that the plan does not name. An evacuation the agent cannot read in full is not proposed. Every fix is a change event on the feed of each part it touched, and on the cloud's, with who approved it.
+
+**Where a change may land.** Both settings take `project:ID`, `host:NAME` and `instance:ID`, separated by commas, each of which may hold a `*`. A project and an instance go by their IDs, because a name can be reused: an entry that names one any other way keeps the agent read-only until it is fixed.
+
+- `ONEUPTIME_AI_PROTECTED_TARGETS` is what is never touched. It wins over every other setting, a write target naming the same thing and a person's approval included. Put the instance this agent runs on here, if it runs on this cloud.
+- `ONEUPTIME_AI_WRITE_TARGETS` limits where changes can land. A move that names no `--host` is refused when a host is listed in either: the scheduler could place it anywhere.
+
+The agent reads which project and host an instance is in just before it changes it, with its read credential. What it cannot read, it does not change.
+
+#### The credential for changes
+
+Changes use a credential of their own, and never the one the agent reads with: the agent refuses to run with the same one in both places.
+
+Nova only hands another project's instance to an admin context, in its own code after policy has passed, so no narrower role can restart an instance in someone else's project. So this credential's role is `admin`, and what limits it is everything around that role:
+
+1. **Its own account, on an empty project with no quota.** There is nothing to touch there, and no quota to make anything with.
+
+   ```bash
+   openstack role create oneuptime_remediation
+   openstack project create --domain default --description "OneUptime fixes: holds nothing" oneuptime-remediation
+   openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 oneuptime-remediation
+   openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 oneuptime-remediation
+   openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 oneuptime-remediation
+   openstack user create --domain default --password-prompt oneuptime-remediation
+   openstack role add --project oneuptime-remediation --user oneuptime-remediation admin
+   openstack role add --project oneuptime-remediation --user oneuptime-remediation oneuptime_remediation
+   ```
+
+2. **Access rules: four paths, and nothing else.** Logged in as that account on that project, fitted to your cloud:
+
+   ```bash
+   curl -fsSLO https://oneuptime.com/install/openstack-agent/access/write-application-credential-access-rules.json
+   curl -fsSLO https://oneuptime.com/install/openstack-agent/access/access-rules-for-cloud.py
+   openstack catalog list -f json | python3 access-rules-for-cloud.py \
+     write-application-credential-access-rules.json > write-access-rules-for-this-cloud.json
+   openstack application credential create oneuptime-agent-fixes \
+     --role admin --role oneuptime_remediation \
+     --access-rules "$(cat write-access-rules-for-this-cloud.json)" \
+     --expiration 2027-11-01T00:00:00
+   ```
+
+   Access rules need `service_type` set for keystonemiddleware on Nova (`compute`) and Neutron (`network`), and a restart of each.
+
+3. **A policy file, for what access rules cannot see.** `POST /servers/{id}/action` is one path for a start and a forced delete. `access/policy/write-nova.yaml` takes away from the `oneuptime_remediation` role every action on that path the agent never makes, and leaves everyone else's defaults as they are. A stolen credential then starts, reboots, moves and evacuates, and nothing else.
+
+Then give the agent its ID and secret, and restart it:
+
+```bash
+ONEUPTIME_AI_ALLOW_WRITES=true
+ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID=...
+ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
+```
+
+Where each way of deploying a cloud keeps those two settings. The first row is the one OneUptime's test rig follows on a real DevStack; the rest say what each tool's own documentation says, and have not been followed on a real deployment:
+
+| Deployment | `service_type` | The policy file |
+| --- | --- | --- |
+| By hand, packages, or DevStack | `[keystone_authtoken] service_type` in `/etc/nova/nova.conf` and `/etc/neutron/neutron.conf`, then restart their APIs | Merge into `/etc/nova/policy.yaml` |
+| Kolla-Ansible | The same section in `/etc/kolla/config/nova.conf` and `/etc/kolla/config/neutron.conf`, then `kolla-ansible reconfigure -t nova,neutron` | `/etc/kolla/config/nova/policy.yaml`, with the same `reconfigure` |
+| OpenStack-Ansible | `nova_nova_conf_overrides` and `neutron_neutron_conf_overrides` in `user_variables.yml`, then run each service's playbook | `nova_policy_overrides` in `user_variables.yml` |
+| OpenStack-Helm | `conf.nova.keystone_authtoken.service_type` and `conf.neutron.keystone_authtoken.service_type` in each chart's values, then `helm upgrade` | `conf.policy` in Nova's values |
+| Atmosphere | The same values, through `openstack_helm_nova_values` and `openstack_helm_neutron_values` | `conf.policy`, through `openstack_helm_nova_values` |
+| Canonical Sunbeam | Not offered by the charms, so access rules are not either: this is the plain credential below | Not offered by the charms |
+| Red Hat OpenStack on OpenShift | `customServiceConfig` of Nova's and Neutron's API templates in the `OpenStackControlPlane` | `defaultConfigOverwrite` of Nova's API template, as `policy.yaml` |
+| Mirantis MOSK | `services` values for Nova and Neutron in the `OpenStackDeployment` | `features.policies` in the `OpenStackDeployment` |
+
+A cloud where you make none of these changes can still use an application credential on that account without `--access-rules`. It works, and it can do everything an admin can, with nothing but the agent's own policy between it and that. Keep that in mind when you decide who may read the agent's `.env`.
+
 
 ## Settings
 

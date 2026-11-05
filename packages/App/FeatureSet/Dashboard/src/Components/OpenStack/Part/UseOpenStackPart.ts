@@ -16,6 +16,7 @@ import {
   fetchOpenStackRow,
   fetchOpenStackRows,
 } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
+import { getOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import { getOpenStackRowsAsThisCredentialReadsThem } from "../../../Pages/OpenStack/Utils/OpenStackServices";
 import {
   OpenStackPartRoutes,
@@ -48,7 +49,8 @@ export interface OpenStackPart {
 
 /*
  * A Placement this credential can't read says down, as a stopped one does. It takes what else
- * this credential reads to tell them apart, and only that row's page needs to ask.
+ * this credential reads to tell them apart, and only that row's page needs to ask. The services
+ * that read down when refused need nothing else: their own row says whether they've ever read up.
  */
 async function asThisCredentialReadsIt(
   row: OpenStackResource,
@@ -56,9 +58,20 @@ async function asThisCredentialReadsIt(
 ): Promise<OpenStackResource> {
   if (
     row.kind !== OpenStackResourceKind.Api ||
-    row.name !== OpenStackServiceType.Placement ||
     row.status !== OPENSTACK_SERVICE_STATUS_DOWN
   ) {
+    return row;
+  }
+  if (getOpenStackOptionalService(row.name)?.readsDownWhenRefused) {
+    return (
+      getOpenStackRowsAsThisCredentialReadsThem({
+        rows: [row],
+        apis: [],
+        workers: [],
+      })[0] || row
+    );
+  }
+  if (row.name !== OpenStackServiceType.Placement) {
     return row;
   }
   try {

@@ -18,6 +18,8 @@ import OpenStackExecutor, {
   AI_OPENSTACK_CREDENTIAL_SECRET_ENV,
   AI_OPENSTACK_INTERFACE_ENV,
   AI_OPENSTACK_REGION_ENV,
+  AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   CloudsYamlResult,
   MAX_OPENSTACK_RESPONSE_BYTES,
   OPENSTACK_AUTH_URL_ENV,
@@ -1215,7 +1217,7 @@ describe("refused before anything is sent", () => {
   });
 });
 
-describe("nothing the agent can run changes the cloud", () => {
+describe("no read the agent can run changes the cloud", () => {
   test("every allowlisted command, every recorded scene: only GETs but the login, and only reads of what it named", async () => {
     for (const scene of ["healthy", "compute-down", "compute-api-down"]) {
       const h: Harness = harness({ cloud: { scene } });
@@ -1247,7 +1249,7 @@ describe("nothing the agent can run changes the cloud", () => {
     }
   });
 
-  test("with every write setting on, the agent stays read-only, and says so", () => {
+  test("the write switch and a named mode, without a credential for changes: it stays read-only, and says so", () => {
     const parsed: ReturnType<typeof parseConfig> = parseConfig({
       ONEUPTIME_URL: URL_OF_ONEUPTIME,
       ONEUPTIME_API_KEY: "ingestion-key",
@@ -1258,12 +1260,148 @@ describe("nothing the agent can run changes the cloud", () => {
     });
 
     assert.strictEqual(parsed.config.allowWrites, false);
-    assert.strictEqual(parsed.config.aiSettings.fixes, "Disabled");
+    assert.match(
+      parsed.config.writesOffReason as string,
+      /credential of their own/,
+    );
     assert.ok(
       parsed.warnings.some((warning: string): boolean => {
-        return warning.includes("only reads this kind of resource");
+        return warning.includes("stays read-only");
       }),
     );
+  });
+
+  test("the write switch with its credential: it may write, and fixes stay off until someone says", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.writesOffReason, null);
+    // The second opt-in has not happened: nothing here says what fixes may do.
+    assert.strictEqual(parsed.config.aiSettings.fixes, "Disabled");
+    assert.strictEqual(parsed.config.aiSettings.isConfigured, false);
+  });
+
+  test("with a mode named too, that mode is what it reports", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_FIXES: "ask-for-approval",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.aiSettings.fixes, "RequireApproval");
+  });
+
+  test("settings in its .env that name no fix mode are not that choice: it stays read-only, and says so", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_INVESTIGATION: "true",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.aiSettings.isConfigured, true);
+    assert.strictEqual(parsed.config.aiSettings.fixes, "Disabled");
+    assert.strictEqual(parsed.config.allowWrites, false);
+    assert.strictEqual(parsed.config.writesOffByFixes, true);
+    assert.ok(
+      parsed.warnings.some((warning: string): boolean => {
+        return warning.includes("names no mode");
+      }),
+    );
+  });
+
+  test("fixes off in its own configuration keep it read-only, credential or not", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_FIXES: "off",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, false);
+    assert.strictEqual(parsed.config.writesOffByFixes, true);
+  });
+
+  test("a target entry that means nothing keeps it read-only, and says which", () => {
+    for (const [name, entry, said] of [
+      ["ONEUPTIME_AI_PROTECTED_TARGETS", "prod", /does not say what it is/],
+      ["ONEUPTIME_AI_PROTECTED_TARGETS", "project:payments", /is not an ID/],
+      ["ONEUPTIME_AI_WRITE_TARGETS", "instance:web-1", /is not an ID/],
+      ["ONEUPTIME_AI_WRITE_TARGETS", "host:a b", /is not a host's name/],
+    ] as Array<[string, string, RegExp]>) {
+      const parsed: ReturnType<typeof parseConfig> = parseConfig({
+        ONEUPTIME_URL: URL_OF_ONEUPTIME,
+        ONEUPTIME_API_KEY: "ingestion-key",
+        ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+        OPENSTACK_CLOUD_NAME: CLOUD,
+        ONEUPTIME_AI_ALLOW_WRITES: "true",
+        [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+        [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+        [name]: entry,
+      });
+
+      assert.strictEqual(parsed.config.allowWrites, false, entry);
+      assert.match(parsed.config.writesOffReason as string, said);
+      assert.ok(
+        (parsed.config.writesOffReason as string).includes(name),
+        entry,
+      );
+    }
+  });
+
+  test("entries that read keep it writable", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+      ONEUPTIME_AI_PROTECTED_TARGETS:
+        "project:9aee824cac87464292adffc328de1662,host:compute-*,instance:358ee736-ba74-40ba-a354-7ead413c5df6",
+      ONEUPTIME_AI_WRITE_TARGETS: "host:compute-*",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.writesOffReason, null);
+  });
+
+  test("another kind of agent is held to none of this", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "proxmox",
+      PROXMOX_CLUSTER_NAME: "pve",
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_PROTECTED_TARGETS: "101",
+    });
+
+    assert.strictEqual(parsed.config.allowWrites, true);
+    assert.strictEqual(parsed.config.writesOffReason, null);
+    assert.strictEqual(parsed.config.aiSettings.fixes, "RequireApproval");
   });
 
   test("a plain install reads, with no warning about fixes", () => {

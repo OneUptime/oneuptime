@@ -6,7 +6,6 @@ import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
-  READ_ONLY_AI_RESOURCE_TYPES,
   isDefaultIdentityPlaceholder,
   isReadOnlyAiResourceType,
   parseAiResourceType,
@@ -104,7 +103,7 @@ function expectDenied(command: string, reason?: RegExp): void {
 }
 
 describe("the type and the policy", () => {
-  test("an OpenStack cloud runs the openstack program, read-only", () => {
+  test("an OpenStack cloud runs the openstack program, with fixes", () => {
     const info: AiResourceTypeInfo =
       AI_RESOURCE_TYPE_INFO[AiResourceType.OpenStackCloud];
 
@@ -112,11 +111,7 @@ describe("the type and the policy", () => {
     expect(info.agentAlias).toBe("openstack");
     expect(info.agentDisplayName).toBe("OpenStack AI agent");
     expect(info.identityEnvVars).toEqual(["OPENSTACK_CLOUD_NAME"]);
-    expect(READ_ONLY_AI_RESOURCE_TYPES).toContain(
-      AiResourceType.OpenStackCloud,
-    );
-    expect(isReadOnlyAiResourceType(AiResourceType.OpenStackCloud)).toBe(true);
-    expect(isReadOnlyAiResourceType(AiResourceType.ProxmoxCluster)).toBe(false);
+    expect(isReadOnlyAiResourceType(AiResourceType.OpenStackCloud)).toBe(false);
     expect(parseAiResourceType("openstack")).toBe(
       AiResourceType.OpenStackCloud,
     );

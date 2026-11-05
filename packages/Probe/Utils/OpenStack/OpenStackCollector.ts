@@ -43,6 +43,7 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackDatabaseInventory,
+  OpenStackMetricInventory,
   OpenStackPlacementInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
@@ -88,6 +89,7 @@ import collectContainerInfra, {
 } from "./Collectors/ContainerInfraCollector";
 import collectDatabase from "./Collectors/DatabaseCollector";
 import collectIdentity from "./Collectors/IdentityCollector";
+import collectMetric from "./Collectors/MetricCollector";
 import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
 import collectOrchestration from "./Collectors/OrchestrationCollector";
@@ -207,6 +209,7 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.ContainerInfra,
   OpenStackServiceType.SharedFileSystems,
   OpenStackServiceType.Database,
+  OpenStackServiceType.Metric,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -1370,6 +1373,12 @@ export default class OpenStackCollector {
             const inventory: OpenStackContainerInfraInventory = {};
             byService["container-infra"] = inventory;
             work = collectContainerInfra(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.Metric: {
+            const inventory: OpenStackMetricInventory = {};
+            byService.gnocchi = inventory;
+            work = collectMetric(context(inventory));
             break;
           }
           case OpenStackServiceType.Database: {
