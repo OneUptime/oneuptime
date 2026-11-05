@@ -697,9 +697,10 @@ describe("power-off-while-active: a deployed node someone powered off", () => {
       severity: ResourceAttentionSeverity.Warning,
       reasons: [{ text: "Deployed, with its power off" }],
     });
-    expect(
-      assess(withSystemScope("baseline").node("ou-node-active")),
-    ).toEqual({ severity: null, reasons: [] });
+    expect(assess(withSystemScope("baseline").node("ou-node-active"))).toEqual({
+      severity: null,
+      reasons: [],
+    });
   });
 
   test("once it is on again, it doesn't", () => {
@@ -885,10 +886,7 @@ describe("the access check: what each credential reads through the exporter", ()
         results: Record<string, { status: number; count: number | null }>;
       }>;
     } = JSON.parse(
-      fs.readFileSync(
-        path.join(IRONIC, "access-check", "matrix.json"),
-        "utf8",
-      ),
+      fs.readFileSync(path.join(IRONIC, "access-check", "matrix.json"), "utf8"),
     );
     const nodes: Record<string, { status: number; count: number | null }> =
       matrix.reads.find((read: { service: string; read: string }): boolean => {

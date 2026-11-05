@@ -2680,13 +2680,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.SharedFileSystems,
-    identityAttributes: [
-      "hostname",
-      "service",
-      "state",
-      "zone",
-      "adminState",
-    ],
+    identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
     onlyFromProbe: true,
   }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.

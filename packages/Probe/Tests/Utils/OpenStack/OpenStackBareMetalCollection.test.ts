@@ -916,7 +916,10 @@ describe("Nova's list with nodes in it breaks nothing in a probe", () => {
          * Nova's null is no number. The exporter makes a 0 of it and a probe says nothing, as it does
          * of what any Nova doesn't say, and the scan makes no row of either.
          */
-        if (!point && halfEnrolled.includes(line.labels["hostname"] as string)) {
+        if (
+          !point &&
+          halfEnrolled.includes(line.labels["hostname"] as string)
+        ) {
           expect(line.value).toBe(0);
           continue;
         }

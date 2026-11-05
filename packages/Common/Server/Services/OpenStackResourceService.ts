@@ -2244,7 +2244,11 @@ export class Service extends DatabaseService<Model> {
            AND "deletedAt" IS NULL
            AND "facts"->>'stackId' = $3
          LIMIT 2`,
-        [data.projectId.toString(), data.openStackCloudId.toString(), data.stackId],
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          data.stackId,
+        ],
       );
     return rows.length === 1 ? rows : [];
   }

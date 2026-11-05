@@ -2161,7 +2161,9 @@ describe("an exporter in single-cloud mode", () => {
     expect(run.output).toContain(
       "An exporter started with --multi-cloud only answers on /probe",
     );
-    expect(run.output).toContain("Set OPENSTACK_EXPORTER_ADDRESS to it instead");
+    expect(run.output).toContain(
+      "Set OPENSTACK_EXPORTER_ADDRESS to it instead",
+    );
   });
 
   test("one that cannot read Keystone says where its log is on Kolla-Ansible", async () => {
@@ -2411,7 +2413,11 @@ describe("what the cloud stands on", () => {
       "openstack-network-exporter",
       "ovs_memory_rules_total 1435",
     ],
-    ["OPENSTACK_LIBVIRT_HEALTH_TARGETS", "prometheus-libvirt-exporter", "libvirt_up 1"],
+    [
+      "OPENSTACK_LIBVIRT_HEALTH_TARGETS",
+      "prometheus-libvirt-exporter",
+      "libvirt_up 1",
+    ],
   ])("%s answering as %s passes", async (variable, what, line) => {
     const cloud = await startCloud({
       metrics: () => {
@@ -2424,7 +2430,9 @@ describe("what the cloud stands on", () => {
     });
     await cloud.close();
 
-    expect(section(run)).toContain(`✔ ${what} at openstack-exporter:9180 answers.`);
+    expect(section(run)).toContain(
+      `✔ ${what} at openstack-exporter:9180 answers.`,
+    );
   });
 
   test("an exporter that says what is behind it is down says that", async () => {
@@ -2488,7 +2496,9 @@ describe("what the cloud stands on", () => {
       },
     });
     const run = await runDoctor(cloud, {
-      env: { OPENSTACK_MEMCACHED_TARGETS: "[RegionTwo@openstack-exporter:9180]" },
+      env: {
+        OPENSTACK_MEMCACHED_TARGETS: "[RegionTwo@openstack-exporter:9180]",
+      },
       args: ["--skip-access"],
     });
     await cloud.close();
@@ -3048,7 +3058,8 @@ describe("the script's helpers", () => {
 
 describe("a folder this user cannot look inside", () => {
   // Root looks inside anything, so there is nothing to see as root.
-  const asAnyoneButRoot = process.getuid && process.getuid() === 0 ? test.skip : test;
+  const asAnyoneButRoot =
+    process.getuid && process.getuid() === 0 ? test.skip : test;
 
   asAnyoneButRoot(
     "says to use sudo, rather than that the agent and its credential are not there",

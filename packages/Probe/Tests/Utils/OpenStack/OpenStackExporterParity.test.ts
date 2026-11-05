@@ -888,10 +888,7 @@ describe("what only a probe adds, in the rows it fills", () => {
       async (release: string) => {
         const scene: RecordedScene = loadScene(release, "compute-forced-down");
 
-        for (const rows of [
-          await rowsOfScene(scene),
-          exporterRowsOf(scene),
-        ]) {
+        for (const rows of [await rowsOfScene(scene), exporterRowsOf(scene)]) {
           const hypervisors: Array<OpenStackResourceBufferEntry> = rowsOf(
             rows,
             OpenStackResourceKind.Hypervisor,
@@ -922,7 +919,9 @@ describe("what only a probe adds, in the rows it fills", () => {
         ],
       ).toBeUndefined();
       expect(
-        namedIn(rows, OpenStackResourceKind.Router, "router1").facts["l3Agents"],
+        namedIn(rows, OpenStackResourceKind.Router, "router1").facts[
+          "l3Agents"
+        ],
       ).toBeDefined();
     });
 
@@ -1343,7 +1342,9 @@ describe("what only a probe adds, in the rows it fills", () => {
           return request.url.includes("dhcp-networks");
         }),
       ).toEqual([]);
-      expect(recordedJson(scene, "neutron-agent-dhcp-networks")).toBeUndefined();
+      expect(
+        recordedJson(scene, "neutron-agent-dhcp-networks"),
+      ).toBeUndefined();
     });
 
     test("nothing but DHCP agents say so", async () => {

@@ -579,13 +579,16 @@ describe("a service a cloud may not run", () => {
     ["Stacks", "runsHeat"],
     ["Shares", "runsManila"],
     ["Kubernetes Clusters", "runsMagnum"],
-  ])("%s is in the menu only for a cloud that runs it", (title: string, flag: string) => {
-    const entry: number = sideMenu.indexOf(`title: "${title}"`);
-    expect(entry).toBeGreaterThan(0);
-    expect(sideMenu.substring(0, entry).lastIndexOf(`{${flag} ? (`)).toBeGreaterThan(
-      0,
-    );
-  });
+  ])(
+    "%s is in the menu only for a cloud that runs it",
+    (title: string, flag: string) => {
+      const entry: number = sideMenu.indexOf(`title: "${title}"`);
+      expect(entry).toBeGreaterThan(0);
+      expect(
+        sideMenu.substring(0, entry).lastIndexOf(`{${flag} ? (`),
+      ).toBeGreaterThan(0);
+    },
+  );
 
   test("the section itself only for a cloud that runs one of them", () => {
     const section: number = sideMenu.indexOf(
@@ -600,9 +603,25 @@ describe("a service a cloud may not run", () => {
     expect(
       squash(readSource("Pages", "OpenStack", "View", "Layout.tsx")),
     ).toContain("optionalServices: summary.optionalServices");
-    expect(squash(fs.readFileSync(path.join(
-      REPO_ROOT, "packages", "App", "FeatureSet", "Dashboard", "src", "Pages", "OpenStack", "Utils", "OpenStackResourceUtils.ts",
-    ), "utf8"))).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
+    expect(
+      squash(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "packages",
+            "App",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Pages",
+            "OpenStack",
+            "Utils",
+            "OpenStackResourceUtils.ts",
+          ),
+          "utf8",
+        ),
+      ),
+    ).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
   });
 });
 

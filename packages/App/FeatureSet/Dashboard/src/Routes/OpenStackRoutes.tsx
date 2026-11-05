@@ -690,7 +690,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudContainerClusters
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS
+                ] as Route
               }
             />
           }
