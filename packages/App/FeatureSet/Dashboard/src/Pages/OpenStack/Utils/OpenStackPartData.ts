@@ -352,13 +352,14 @@ export async function fetchOpenStackComputeServiceOf(data: {
  * host two hypervisors could both be. That takes every host and hypervisor in the project to
  * say, so the server does, the same way it does for a blast radius.
  */
-export async function fetchOpenStackHostOf(
-  machineName: string,
-): Promise<Host | null> {
+export async function fetchOpenStackHostOf(data: {
+  openStackCloudId: ObjectID;
+  machineName: string;
+}): Promise<Host | null> {
   const answer: JSONObject = await postToCloud({
     path: "/openstack-resource/host-of-machine",
-    openStackCloudId: ProjectUtil.getCurrentProjectId()!,
-    body: { machineName },
+    openStackCloudId: data.openStackCloudId,
+    body: { machineName: data.machineName },
   });
   const found: JSONObject | null | undefined = answer["host"] as
     | JSONObject

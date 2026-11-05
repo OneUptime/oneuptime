@@ -1113,6 +1113,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OpenStackResourcePostgres.test.ts --forceExit
 
+      # Clones the migrated tables behind a cloud's links into an isolated schema: what is one
+      # machine from both ends, a Kubernetes node's provider ID out of its jsonb, services through
+      # the entity graph, and a pool's Ceph cluster. Every estate that must link to neither runs
+      # through real SQL here, so a LIMIT or a LIKE can't quietly make two into one.
+      - name: Test the joins between an OpenStack cloud and other products on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackAcrossProductsPostgres.test.ts --forceExit
+
       # Clones the migrated KubernetesResource table (with its unique identity
       # index and the partial index of what needs attention) into an isolated
       # schema and runs KubernetesResourceService's hand-written SQL against

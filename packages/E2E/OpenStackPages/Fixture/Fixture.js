@@ -8,7 +8,7 @@
  * Scenarios are picked with query parameters, parsed once at load, and kept for a reload:
  *
  *   ?estate=    busy (default) | calm | forced-down | new | multi-region | overflow | ovn-stale | tenants
- *               | parts | usage (Data.js)
+ *               | parts | links | usage (Data.js)
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
@@ -114,6 +114,11 @@ import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStac
 import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
 import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
+import {
+  OpenStackPlacementOfHost,
+  OpenStackPlacementOfKubernetesNode,
+  OpenStackPlacementOfService,
+} from "../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementOfHost";
 import CloudsArchived from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Archived";
 import OwnerRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Settings/OwnerRules";
 import LabelRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Settings/LabelRules";
@@ -173,6 +178,18 @@ import {
   buildEstate,
   uuid,
 } from "./Data";
+import {
+  addCephStatusToPools,
+  answerStoragePoolCeph,
+  getHostOfMachine,
+  getPlacementOfHost,
+  getPlacementOfKubernetesNode,
+  getPlacementsOfService,
+  getReachOfInstance,
+  getReachOfPart,
+  getStoragePoolCeph,
+  otherProductsOf,
+} from "./Links";
 import {
   PROBES,
   SHARED_PROBES,
@@ -814,17 +831,8 @@ const store = {
   ScheduledMaintenanceOwnerTeam: [],
   Probe: params.get("probes") === "many" ? PROBES : PROBES.slice(0, 1),
   OpenStackResource: estate.inventory,
-  // A worker's page links to the Hosts product when a host reports under its name.
-  Host:
-    (ESTATE === "busy" || ESTATE === "parts") && !RECORDING
-      ? [
-          {
-            _id: uuid("74000000", 1),
-            name: "compute-03",
-            hostIdentifier: "compute-03",
-          },
-        ]
-      : [],
+  // The hosts this estate holds: what "host-of-machine" reads, and each host's own page.
+  Host: otherProductsOf(estate).hosts,
   IncidentState: incidentStates,
   AlertState: alertStates,
   ScheduledMaintenanceState: [
@@ -1670,17 +1678,43 @@ function seriesOf(metricName, attributes) {
       ];
     case "system.memory.utilization":
       return [seriesFromRow({ state: attributes["state"] }, 0.62)];
-    // What its disks and network move: no walk reads a number from these.
+    // The same agent's byte counters, which only ever climb.
     case "system.disk.io":
+      return [
+        seriesFromRow(
+          { device: "sda", direction: "read" },
+          5e12,
+          5 * 1024 * 1024 * 86400,
+        ),
+        seriesFromRow(
+          { device: "sda", direction: "write" },
+          5e12,
+          12 * 1024 * 1024 * 86400,
+        ),
+      ];
     case "system.network.io":
-      return [];
+      return [
+        seriesFromRow(
+          { device: "eth0", direction: "receive" },
+          5e12,
+          30 * 1024 * 1024 * 86400,
+        ),
+        seriesFromRow(
+          { device: "eth0", direction: "transmit" },
+          5e12,
+          20 * 1024 * 1024 * 86400,
+        ),
+      ];
     default:
       /*
        * What libvirt's or Ceilometer's exporter says about an instance. These estates name
-       * neither, as most clouds don't, so a page asks and hears there are none.
+       * neither, as most clouds don't, so a page asks and hears there are none. What a cloud
+       * stands on is drawn from its rows, so those charts have nothing to add yet either.
        */
       return metricName?.startsWith("openstack.instance.") ||
-        metricName?.startsWith("openstack.hypervisor.instances.")
+        metricName?.startsWith("openstack.hypervisor.instances.") ||
+        metricName?.startsWith("rabbitmq_") ||
+        metricName?.startsWith("mysql_")
         ? []
         : null;
   }
@@ -1826,15 +1860,16 @@ async function handleApi(method, options) {
         : ok(getInventorySummary(estate.inventory, regionOfBody(body)));
     }
     if (parsed.pathname.includes("/openstack-resource/needs-attention/")) {
-      return FAILS.has("inventory") || FAILS.has("attention")
-        ? failed()
-        : ok(
-            getAttentionRows(
-              estate.inventory,
-              regionOfBody(body),
-              new Date(LOADED_AT),
-            ),
-          );
+      if (FAILS.has("inventory") || FAILS.has("attention")) {
+        return failed();
+      }
+      const attention = getAttentionRows(
+        estate.inventory,
+        regionOfBody(body),
+        new Date(LOADED_AT),
+      );
+      addCephStatusToPools(attention.rows, otherProductsOf(estate));
+      return ok(attention);
     }
     if (parsed.pathname.includes("/openstack-resource/region-summaries/")) {
       return FAILS.has("inventory") || FAILS.has("regions")
@@ -1892,11 +1927,104 @@ async function handleApi(method, options) {
       const part = estate.inventory.find((row) => {
         return row.kind === body.kind && row.externalId === body.externalId;
       });
-      return part
-        ? ok(getBlastRadius(estate.inventory, part))
+      if (!part) {
+        return new HTTPErrorResponse(
+          404,
+          { message: "That part is not in this cloud's inventory" },
+          {},
+        );
+      }
+      const radius = getBlastRadius(estate.inventory, part);
+      const reach = getReachOfPart(
+        estate.inventory,
+        otherProductsOf(estate),
+        part,
+      );
+      return ok(reach ? { ...radius, acrossProducts: reach } : radius);
+    }
+    // What the rest of OneUptime is, and where it runs: the real rules, over this estate.
+    if (parsed.pathname.includes("/openstack-resource/host-of-machine/")) {
+      return ok({
+        host: getHostOfMachine(
+          estate.inventory,
+          otherProductsOf(estate),
+          body.machineName,
+        ),
+      });
+    }
+    if (parsed.pathname.includes("/openstack-resource/reach-of-instance/")) {
+      return ok(
+        getReachOfInstance(
+          estate.inventory,
+          otherProductsOf(estate),
+          body.instanceId,
+        ),
+      );
+    }
+    if (parsed.pathname.includes("/openstack-resource/placement-of-host/")) {
+      return ok({
+        placement: getPlacementOfHost(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+        ),
+      });
+    }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/placement-of-kubernetes-node/",
+      )
+    ) {
+      return ok({
+        placement: getPlacementOfKubernetesNode(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+          body.nodeName,
+        ),
+      });
+    }
+    if (parsed.pathname.includes("/openstack-resource/placement-of-service/")) {
+      return ok({
+        placements: getPlacementsOfService(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+        ),
+      });
+    }
+    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")) {
+      fixture.writeRequests.push({
+        kind: "storage-pool-ceph-confirm",
+        data: serialize(body),
+      });
+      return answerStoragePoolCeph(
+        estate.inventory,
+        body.externalId,
+        body,
+        LOADED_AT,
+      )
+        ? ok({})
         : new HTTPErrorResponse(
             404,
-            { message: "That part is not in this cloud's inventory" },
+            { message: "That pool or that Ceph cluster is not in this project" },
+            {},
+          );
+    }
+    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph/")) {
+      const answer = getStoragePoolCeph(
+        estate.inventory,
+        otherProductsOf(estate),
+        body.externalId,
+      );
+      return answer
+        ? ok(answer)
+        : new HTTPErrorResponse(
+            404,
+            { message: "That pool is not in this cloud's inventory" },
             {},
           );
     }
@@ -2100,6 +2228,63 @@ const FixtureLabelRules = withNavigation(
   PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
 );
 
+/*
+ * The places another product's page draws a cloud's card: the real card, on a page that is
+ * otherwise not modelled here. Those pages' own fixtures hold that each really mounts it
+ * (HostPages, KubernetesPages, ResourceOverviews).
+ */
+function otherProductPage(testId, drawCard) {
+  return function OtherProductPage() {
+    useNavigationHooks();
+    const location = useLocation();
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-8" data-testid={testId}>
+        <p
+          data-testid="stub-page"
+          className="mb-6 break-all font-mono text-sm text-gray-600"
+        >
+          {location.pathname}
+        </p>
+        {drawCard(location.pathname.split("/"))}
+      </main>
+    );
+  };
+}
+
+const OTHER_PRODUCT_PAGES = [
+  [
+    PageMap.HOST_VIEW,
+    otherProductPage("other-product-host", (path) => {
+      return (
+        <OpenStackPlacementOfHost hostId={new ObjectID(path[path.length - 1])} />
+      );
+    }),
+  ],
+  [
+    PageMap.SERVICE_VIEW,
+    otherProductPage("other-product-service", (path) => {
+      return (
+        <OpenStackPlacementOfService
+          serviceId={new ObjectID(path[path.length - 1])}
+        />
+      );
+    }),
+  ],
+  [
+    PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
+    otherProductPage("other-product-kubernetes-node", (path) => {
+      return (
+        <OpenStackPlacementOfKubernetesNode
+          clusterId={new ObjectID(path[path.length - 3])}
+          nodeName={path[path.length - 1]}
+        />
+      );
+    }),
+  ],
+].map(([pageKey, Page]) => {
+  return { path: RouteMap[pageKey].toString(), Page };
+});
+
 // A page the views link to that is not modelled: says where it is.
 function StubPage() {
   useNavigationHooks();
@@ -2159,6 +2344,11 @@ function FixtureApp() {
             );
           })}
         </Route>
+        {OTHER_PRODUCT_PAGES.map((page) => {
+          return (
+            <Route key={page.path} path={page.path} element={<page.Page />} />
+          );
+        })}
         <Route path="*" element={<StubPage />} />
       </Routes>
     </>

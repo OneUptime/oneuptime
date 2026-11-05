@@ -688,9 +688,58 @@ describe("the neutral icon, until the trademark check (#5751)", () => {
   });
 });
 
+/*
+ * A Ceph cluster is a Proxmox page's word, and nothing a Proxmox clone should carry here. A
+ * Cinder pool's link to the Ceph product is the one real exception, in the two files whose
+ * whole job it is, and they need one word for it: the ID of the cluster an operator chose.
+ * Any other Ceph identifier, in these two or anywhere else, is still a leftover.
+ */
+const CEPH_LINK_IDENTIFIER: string = "cephClusterId";
+const CEPH_LINK_FILES: ReadonlyArray<string> = [
+  path.join(
+    "Components",
+    "OpenStack",
+    "Part",
+    "OpenStackStoragePoolCephCard.tsx",
+  ),
+  path.join("Pages", "OpenStack", "Utils", "OpenStackLinkReads.ts"),
+];
+
+function withoutTheCephLink(relative: string, source: string): string {
+  return CEPH_LINK_FILES.includes(relative)
+    ? source.replace(new RegExp(`\\b${CEPH_LINK_IDENTIFIER}\\b`, "g"), "")
+    : source;
+}
+
 describe("no Proxmox concept leaked into the OpenStack pages", () => {
   test("there are OpenStack sources to scan", () => {
     expect(OWN_FILES.length).toBeGreaterThan(30);
+  });
+
+  test("the two files that link a pool to Ceph are scanned, and still need the word", () => {
+    const scanned: Array<string> = OWN_FILES.map((file: string): string => {
+      return path.relative(DASHBOARD_SRC, file);
+    });
+    for (const relative of CEPH_LINK_FILES) {
+      expect(scanned).toContain(relative);
+      expect(readSource(relative)).toContain(CEPH_LINK_IDENTIFIER);
+    }
+  });
+
+  test("the exception is that one word, and takes nothing else with it", () => {
+    const cephCard: string = CEPH_LINK_FILES[0] as string;
+    expect(
+      withoutTheCephLink(cephCard, "cephClusterId cephClusterName"),
+    ).toContain("cephCluster");
+    expect(
+      withoutTheCephLink(cephCard, "const cephClusterId: CephCluster"),
+    ).toContain("CephCluster");
+    expect(
+      withoutTheCephLink(
+        path.join("Pages", "OpenStack", "View", "Index.tsx"),
+        "cephClusterId",
+      ),
+    ).toContain("cephCluster");
   });
 
   test.each(
@@ -698,8 +747,11 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       return path.relative(DASHBOARD_SRC, file);
     }),
   )("%s carries no Proxmox identifiers", (relative: string) => {
-    const source: string = stripComments(
-      fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8"),
+    const source: string = withoutTheCephLink(
+      relative,
+      stripComments(
+        fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8"),
+      ),
     );
 
     for (const forbidden of [

@@ -76,11 +76,13 @@ on:
 permissions:
   contents: read
 
-# The control plane's own run takes no DevStack and has nothing to do with a full one,
-# so neither cancels the other. Nor does a run that only records traces, that only installs the
-# agent, or that follows a deployment tool's guide: each of those does something else entirely.
+# A pull request's run is superseded by its next push, and stopped when the pull request closes:
+# cancel-closed-pr-runs.yml joins this group, so it must stay "<name>-<PR number>", or a merged
+# pull request's run goes on holding six runners for hours. A run someone dispatched, or the
+# schedule started, records something of its own, so it has a group of its own and only a person
+# stops it.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.services_only && format('services-{0}', inputs.services_filter) || inputs.kolla_aio && format('kolla-{0}', inputs.kolla_neutron) || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.capacity_only && 'capacity' || inputs.agent_install_only && 'agent-install' || inputs.instance_metrics_only && 'instance-metrics' || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -916,8 +918,9 @@ jobs:
       # Signs real requests, on its own and with a limit of its own, so that a problem here
       # costs neither the drills nor the logs. Before the logs, because it takes back
       # everything it changes, and they leave a cloud configured their own way.
+      # Not for a run that only wants the logs, which would wait for it on the entries that do.
       - name: Record what OSProfiler's driver sends for a signed request
-        if: ${{ matrix.traces && !inputs.instance_metrics_only }}
+        if: ${{ matrix.traces && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh

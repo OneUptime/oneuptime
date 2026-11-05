@@ -260,6 +260,125 @@ describe("a line with oslo.log's JSON formatter", () => {
     expect(stamp.body).not.toContain("hunter2-should-not-stay");
     expect(stamp.body).not.toContain("gAAAA");
   });
+
+  // A line in text ends with the exception being handled, and this says it beside the message.
+  test("the exception it was handling stays with the message, where a failure's words are read", () => {
+    const read: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: JSON.stringify({
+        ...record,
+        message: "Error during ComputeManager._instance_usage_audit",
+        error_summary:
+          "oslo_messaging.exceptions.MessagingTimeout: Timed out waiting for a reply to message ID abc",
+        traceback: null,
+      }),
+      severityNumber: 0,
+    });
+
+    expect(read.body).toBe(
+      "Error during ComputeManager._instance_usage_audit: oslo_messaging.exceptions.MessagingTimeout: Timed out waiting for a reply to message ID abc",
+    );
+    expect(read.attributes[OpenStackLogAttribute.Signal]).toBe(
+      OpenStackLogSignal.RabbitMqConnectionLost,
+    );
+  });
+
+  test("an empty summary, as most lines have, adds nothing", () => {
+    const read: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: JSON.stringify({ ...record, error_summary: "", traceback: null }),
+      severityNumber: 0,
+    });
+
+    expect(read.body).toBe("Failed to build");
+  });
+
+  /*
+   * Read off a real line. The scrub of a line reads text: to it this names a password and opens
+   * a value at the quote that closes the string, and what it took then no longer parsed. The
+   * line lost its level, its request and its service's own words.
+   */
+  test("a message ending in a secret's name reads as itself, with nothing after it", () => {
+    const read: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: JSON.stringify({
+        message: "keystone_authtoken.memcache_password = ",
+        levelname: "DEBUG",
+        name: "uwsgi",
+        context: { request_id: REQUEST },
+      }),
+      severityNumber: 0,
+    });
+
+    expect(read.attributes[OpenStackLogAttribute.Format]).toBe(
+      OpenStackLogFormat.OsloJson,
+    );
+    expect(read.attributes[OpenStackLogAttribute.Level]).toBe("DEBUG");
+    expect(read.attributes[OpenStackLogAttribute.RequestId]).toBe(REQUEST);
+    expect(read.body).toBe("keystone_authtoken.memcache_password = ");
+  });
+
+  test.each([
+    ["a password in its words", "connecting with password=hunter2"],
+    ["a URL's password", "transport_url=rabbit://u:hunter2@host:5672/"],
+    ["a token", `validating gAAAAABl${"a".repeat(100)}hunter2`],
+  ])("%s is gone from the message", (_what: string, message: string) => {
+    const read: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: JSON.stringify({ ...record, message, traceback: null }),
+      severityNumber: 0,
+    });
+
+    expect(read.attributes[OpenStackLogAttribute.Format]).toBe(
+      OpenStackLogFormat.OsloJson,
+    );
+    expect(read.body).not.toContain("hunter2");
+  });
+
+  test("and from a traceback's lines", () => {
+    const read: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: JSON.stringify({
+        ...record,
+        traceback: ["Traceback (most recent call last):", "password=hunter2"],
+      }),
+      severityNumber: 0,
+    });
+
+    expect(read.body).toContain("Traceback");
+    expect(read.body).not.toContain("hunter2");
+  });
+
+  test("a notification written by this formatter is read as one", () => {
+    const read: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: JSON.stringify({
+        message: JSON.stringify({
+          event_type: "instance.reboot.end",
+          priority: "INFO",
+          publisher_id: "nova-compute:compute-01",
+          timestamp: "2026-10-30 10:00:00.654321",
+          payload: {
+            "nova_object.data": {
+              uuid: INSTANCE,
+              display_name: "web-1",
+              request_id: REQUEST,
+            },
+          },
+        }),
+        levelname: "INFO",
+        name: "oslo.messaging.notification.instance.reboot.end",
+        context: { request_id: REQUEST },
+      }),
+      severityNumber: 0,
+    });
+
+    expect(read.event?.type).toBe("instance.reboot.end");
+    expect(read.attributes[OpenStackLogAttribute.Format]).toBe(
+      OpenStackLogFormat.OsloJson,
+    );
+    expect(JSON.parse(read.body)["event_type"]).toBe("instance.reboot.end");
+  });
 });
 
 describe("oslo.log's own journal handler, whose fields sit beside the line", () => {
@@ -302,6 +421,39 @@ describe("oslo.log's own journal handler, whose fields sit beside the line", () 
     );
     expect(stamp.removedAttributes).toEqual(["journald.exception_info"]);
     expect(stamp.severityNumber).toBe(17);
+  });
+
+  /*
+   * Read off a real recording: the journal handler formats its line as a file would, stack trace
+   * and all, and says the stack trace again beside it.
+   */
+  test("a line that holds its traceback already does not hold it twice", () => {
+    const body: string = `2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager [None ${REQUEST} ${USER} ${PROJECT} - - default default] Failed\n2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager Traceback (most recent call last):\n2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager ValueError`;
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {
+        "journald.logger_name": "nova.compute.manager",
+        "journald.exception_info":
+          "Traceback (most recent call last):\nValueError",
+      },
+      body,
+      severityNumber: 0,
+    });
+
+    expect(stamp.body).toBe(body);
+    expect(stamp.removedAttributes).toEqual(["journald.exception_info"]);
+  });
+
+  test("a traceback with no line to go with is the body", () => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {
+        "journald.logger_name": "nova.compute.manager",
+        "journald.exception_info": "ValueError: nope",
+      },
+      body: "",
+      severityNumber: 0,
+    });
+
+    expect(stamp.body).toBe("ValueError: nope");
   });
 
   test("a line with no level of its own takes its severity from the priority", () => {
@@ -358,6 +510,13 @@ describe("an instance named in a line that has no prefix for it", () => {
     [`instance_uuid=${INSTANCE} volume attached`],
     [`{'instance_id': '${INSTANCE}'}`],
     [`Instance ${INSTANCE} is gone`],
+    // Read off a real recording: how Neutron and Placement say it.
+    [
+      `Sending events: [{'server_uuid': '${INSTANCE}', 'name': 'network-vif-plugged'}]`,
+    ],
+    [`Port updated, device_id=${INSTANCE}`],
+    [`Allocations for consumer ${INSTANCE} deleted`],
+    [`Starting to schedule for instances: ['${INSTANCE}']`],
   ])("%s", (message: string) => {
     const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
       attributes: {},
@@ -408,6 +567,20 @@ describe("who wrote it", () => {
     expect(getOpenStackServiceOfFile(file)).toBe(service);
   });
 
+  /*
+   * Read off a real recording: oslo.log names a file after the program, and a service under uWSGI
+   * with log_dir and no log_file has none of its own.
+   */
+  test.each([
+    ["/var/log/kolla/nova/<frozen importlib._bootstrap>.log", "nova"],
+    ["/var/log/kolla/keystone/<frozen importlib._bootstrap>.log", "keystone"],
+    ["<frozen importlib._bootstrap>.log", ""],
+    ["/var/log/kolla/nova/nova-compute.log", "nova-compute"],
+    ["/var/log/kolla/nova/privsep-helper.log", "privsep-helper"],
+  ])("the file %s is %j", (file: string, service: string) => {
+    expect(getOpenStackServiceOfFile(file)).toBe(service);
+  });
+
   test("a pod's container names it, on the cluster that runs it", () => {
     const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
       attributes: {
@@ -452,6 +625,27 @@ describe("the failures every operator knows by their words", () => {
       "ERROR",
       "oslo_messaging.exceptions.MessagingTimeout: Timed out waiting for a reply to message ID 1",
       OpenStackLogSignal.RabbitMqConnectionLost,
+    ],
+    // Read off a real recording, of RabbitMQ stopped under a running cloud.
+    [
+      "ERROR",
+      "ERROR oslo.messaging._drivers.impl_rabbit [None req-a None None] Connection failed: [Errno 111] ECONNREFUSED (retrying in 1.0 seconds): ConnectionRefusedError: [Errno 111] ECONNREFUSED",
+      OpenStackLogSignal.RabbitMqConnectionLost,
+    ],
+    [
+      "ERROR",
+      "ERROR oslo.messaging._drivers.impl_rabbit [-] Connection failed: timed out (retrying in 2.0 seconds): socket.timeout: timed out",
+      OpenStackLogSignal.RabbitMqConnectionLost,
+    ],
+    [
+      "ERROR",
+      "Unable to connect to AMQP server on 192.0.2.10:5672 after inf tries: Basic.publish: (404) NOT_FOUND",
+      OpenStackLogSignal.RabbitMqConnectionLost,
+    ],
+    [
+      "WARNING",
+      "SQL connection failed. 10 attempts left.",
+      OpenStackLogSignal.DatabaseConnectionLost,
     ],
     [
       "WARNING",
@@ -501,6 +695,15 @@ describe("the failures every operator knows by their words", () => {
     ).toBeNull();
   });
 
+  test("a connection failing somewhere else is not the bus", () => {
+    expect(
+      readOpenStackLogSignal({
+        level: "ERROR",
+        text: "ERROR nova.virt.libvirt.host [-] Connection failed: to the hypervisor",
+      }),
+    ).toBeNull();
+  });
+
   test("a whole record is stamped with what it says", () => {
     const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
       attributes: {},
@@ -530,6 +733,41 @@ describe("a load balancer's check of an API", () => {
     expect(stamp.attributes[OpenStackLogAttribute.Noise]).toBe(
       OPENSTACK_LOG_NOISE_HEALTH_CHECK,
     );
+  });
+
+  // An API behind a path, as DevStack's Apache has them all. And uWSGI's own line for a request.
+  test.each([
+    'INFO nova.api.openstack.requestlog [None req-a None None] 10.1.0.200 "GET /compute/" status: 200 len: 1 microversion: - time: 0.001',
+    'INFO nova.api.openstack.requestlog [None req-a None None] 10.1.0.200 "OPTIONS /compute/" status: 200 len: 1 microversion: - time: 0.001',
+    'INFO neutron.api.wsgi [-] 10.1.0.200 "GET /networking/ HTTP/1.1" status: 200 len: 1 time: 0.001',
+    'INFO glance.api [-] 10.1.0.200 "GET /image/healthcheck HTTP/1.1" 200 2 0.001',
+  ])("%s is noise", (line: string) => {
+    expect(
+      stampOpenStackLogRecord({ attributes: {}, body: line, severityNumber: 0 })
+        .attributes[OpenStackLogAttribute.Noise],
+    ).toBe(OPENSTACK_LOG_NOISE_HEALTH_CHECK);
+  });
+
+  test.each([
+    "[pid: 90122|app: 0|req: 1/1] 10.1.0.200 () {56 vars in 1129 bytes} [Wed Nov  4 21:37:49 2026] GET / => generated 267 bytes in 3 msecs (HTTP/1.1 200) 5 headers in 209 bytes (1 switches on core 0)",
+    "[pid: 90122|app: 0|req: 1/1] 10.1.0.200 () {56 vars in 1129 bytes} [Wed Nov  4 21:37:49 2026] OPTIONS /identity/ => generated 0 bytes in 3 msecs (HTTP/1.1 200) 5 headers in 209 bytes (1 switches on core 0)",
+  ])("uWSGI's own line for a check is too: %s", (line: string) => {
+    expect(
+      stampOpenStackLogRecord({ attributes: {}, body: line, severityNumber: 0 })
+        .attributes[OpenStackLogAttribute.Noise],
+    ).toBe(OPENSTACK_LOG_NOISE_HEALTH_CHECK);
+  });
+
+  test.each([
+    "[pid: 90122|app: 0|req: 1/1] 10.1.0.200 () {56 vars in 1129 bytes} [Wed Nov  4 21:37:49 2026] POST /identity/v3/auth/tokens => generated 2599 bytes in 1149 msecs (HTTP/1.1 201) 5 headers in 209 bytes (1 switches on core 0)",
+    "A sentence that says ] GET / => with no uWSGI about it",
+    'INFO nova.api.openstack.requestlog [None req-a None None] 10.1.0.200 "GET /compute/v2.1/servers" status: 200 len: 1 microversion: 2.90 time: 0.001',
+    'INFO nova.api.openstack.requestlog [None req-a None None] 10.1.0.200 "GET /other/" status: 200 len: 1 microversion: - time: 0.001',
+  ])("%s is not", (line: string) => {
+    expect(
+      stampOpenStackLogRecord({ attributes: {}, body: line, severityNumber: 0 })
+        .attributes[OpenStackLogAttribute.Noise],
+    ).toBeUndefined();
   });
 
   test("a real request is not, and neither is an error about one", () => {
@@ -628,6 +866,106 @@ describe("a notification in a log line", () => {
     );
   });
 
+  /*
+   * Read off a real recording: oslo.log adds the exception being handled to an ERROR line, so
+   * Nova's instance.create.error ends with it, and DevStack's format adds the function that
+   * logged it to a DEBUG line. Either can hold a brace of its own.
+   */
+  test.each([
+    [
+      ": nova.exception.FlavorDiskSmallerThanImage: Flavor's disk is too small for requested image.",
+    ],
+    [": nova.exception.Foo: {'a': {'b': 1}}"],
+    [
+      " {{(pid=86917) notify /opt/stack/oslo_messaging/notify/_impl_log.py:43}}",
+    ],
+    [" log_notify /opt/stack/oslo_messaging/notify/_impl_log.py:43"],
+  ])(
+    "what follows the JSON, %s, leaves it readable and stays",
+    (rest: string) => {
+      const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+        attributes: {},
+        body: `${asLine}${rest}`,
+        severityNumber: 0,
+      });
+
+      expect(stamp.event?.type).toBe("instance.power_off.end");
+      expect(stamp.body.endsWith(rest)).toBe(true);
+      expect(stamp.attributes[OpenStackLogAttribute.RequestRootId]).toBe(
+        GLOBAL,
+      );
+    },
+  );
+
+  test("a brace inside the JSON's own strings changes nothing", () => {
+    const braces: Record<string, unknown> = {
+      ...notification,
+      payload: {
+        "nova_object.data": {
+          uuid: INSTANCE,
+          display_name: 'web } { " \\ 1',
+        },
+      },
+    };
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: `2026-10-30 10:00:01.000 1234 INFO oslo.messaging.notification.instance.power_off.end [-] ${JSON.stringify(braces)} after`,
+      severityNumber: 0,
+    });
+
+    expect(stamp.event?.part?.name).toBe('web } { " \\ 1');
+    expect(stamp.body.endsWith(" after")).toBe(true);
+  });
+
+  test("a secret after it goes too", () => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: `${asLine}: failed with password=hunter2`,
+      severityNumber: 0,
+    });
+
+    expect(stamp.event).not.toBeNull();
+    expect(stamp.body).not.toContain("hunter2");
+  });
+
+  test("JSON that never closes is no notification, and its secrets still go", () => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: `2026-10-30 10:00:01.000 1234 INFO oslo.messaging.notification.x [-] {"event_type": "x", "adminPass": "hunter2", "payload": {`,
+      severityNumber: 0,
+    });
+
+    expect(stamp.event).toBeNull();
+    expect(stamp.body).not.toContain("hunter2");
+  });
+
+  // A field's name is read for what it says, and its text for what it holds, whatever else is there.
+  test("a notification's fields lose their secrets and it stays a notification", () => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: `2026-10-30 10:00:01.000 1234 INFO oslo.messaging.notification.instance.power_off.end [-] ${JSON.stringify(
+        {
+          ...notification,
+          payload: {
+            "nova_object.data": {
+              uuid: INSTANCE,
+              display_name: "memcache_password = ",
+              admin_password: "hunter2",
+              note: "it held password=hunter3",
+              url: "rabbit://u:hunter4@host/",
+            },
+          },
+        },
+      )}`,
+      severityNumber: 0,
+    });
+
+    expect(stamp.event?.part?.name).toBe("memcache_password =");
+    expect(stamp.body).not.toContain("hunter2");
+    expect(stamp.body).not.toContain("hunter3");
+    expect(stamp.body).not.toContain("hunter4");
+  });
+
   test("what must never be stored leaves the fields, and the rest of the line stays", () => {
     const leaking: Record<string, unknown> = {
       ...notification,
@@ -695,6 +1033,67 @@ describe("how long a record may be", () => {
 
     expect(stamp.body.length).toBeLessThan(MAX_OPENSTACK_LOG_BODY_LENGTH + 100);
     expect(stamp.body.endsWith("(truncated by OneUptime)")).toBe(true);
+  });
+
+  // Its note is written last, so that nothing reading a value can take it for one.
+  test.each([
+    ["no secret", "x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)],
+    [
+      "a value that never ends",
+      `password=${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`,
+    ],
+    [
+      "a quote that never closes",
+      `password='${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`,
+    ],
+    [
+      "a key that never ends",
+      `-----BEGIN PRIVATE KEY-----\n${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`,
+    ],
+  ])("says so, whatever it holds: %s", (_what: string, body: string) => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body,
+      severityNumber: 0,
+    });
+
+    expect(stamp.body.endsWith("(truncated by OneUptime)")).toBe(true);
+    expect(stamp.body.length).toBeLessThanOrEqual(
+      MAX_OPENSTACK_LOG_BODY_LENGTH + 100,
+    );
+  });
+
+  test("a secret longer than the most that is read goes, all of it", () => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: `password=${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH * 2)}`,
+      severityNumber: 0,
+    });
+
+    expect(stamp.body).not.toContain("xxxx");
+  });
+
+  test("a URL's password the cut fell inside goes, with no @ left to say so", () => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: `${"a".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH - 30)} rabbit://user:${"s".repeat(100)}@host:5672/`,
+      severityNumber: 0,
+    });
+
+    expect(stamp.body).not.toContain("sss");
+    expect(stamp.body.endsWith("(truncated by OneUptime)")).toBe(true);
+  });
+
+  test("the cut leaves no half of a character that takes two", () => {
+    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+      attributes: {},
+      body: `${"a".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH - 1)}\ud83d\ude00 more`,
+      severityNumber: 0,
+    });
+
+    expect(stamp.body).toBe(
+      `${"a".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH - 1)}… (truncated by OneUptime)`,
+    );
   });
 
   test("a value of a line's fields stays a reasonable length", () => {
