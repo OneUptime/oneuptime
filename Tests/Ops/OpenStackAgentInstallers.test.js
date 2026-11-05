@@ -328,22 +328,41 @@ function newerUpstream() {
   return upstream;
 }
 
-// The variables a script's ENV_NAMES list names.
-function envNames(script) {
-  const match = script.match(/^ENV_NAMES="([^"]+)"$/m);
+// The variables a script's list names, with the lists it is made of written out.
+function namesIn(script, list) {
+  const match = script.match(new RegExp(`^${list}="([^"]+)"$`, "m"));
   expect(match).not.toBeNull();
-  return match[1].replace(/\\\n/g, " ").split(/\s+/).filter(Boolean);
+  return match[1]
+    .replace(/\\\n/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .flatMap((name) => {
+      return name.startsWith("$") ? namesIn(script, name.slice(1)) : [name];
+    });
 }
 
-// The variables the heredoc that writes .env sets, in order.
-function writtenNames(script) {
+function envNames(script) {
+  return namesIn(script, "ENV_NAMES");
+}
+
+// What the heredoc that writes .env sets, one a line.
+function heredocLines(script) {
   const heredoc = script.match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
   );
   expect(heredoc).not.toBeNull();
-  return heredoc[1].split("\n").map((line) => {
-    return line.split("=")[0];
-  });
+  return heredoc[1].split("\n");
+}
+
+// What the script writes to .env, in order: the heredoc, then the two lists it writes after it.
+function writtenNames(script) {
+  return [
+    ...heredocLines(script).map((line) => {
+      return line.split("=")[0];
+    }),
+    ...namesIn(script, "TARGET_LIST_NAMES"),
+    ...namesIn(script, "VERY_LARGE_CLOUD_NAMES"),
+  ];
 }
 
 // Every ${VAR} docker-compose.yml interpolates ($$ is a literal $).
@@ -441,6 +460,18 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
       COMPOSE_PROFILES: "'openstack-exporter'",
+      // The first region named, for a target that does not say its own.
+      OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
+      // Never asked for: whoever knows where these run names them by hand.
+      OPENSTACK_RABBITMQ_TARGETS: "'[]'",
+      OPENSTACK_MARIADB_TARGETS: "'[]'",
+      OPENSTACK_MEMCACHED_TARGETS: "'[]'",
+      OPENSTACK_HAPROXY_TARGETS: "'[]'",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "'[]'",
     });
     expect(mode(path.join(run.installDir, ".env"))).toBe(0o600);
     expect(run.output).not.toContain("reusing it");
@@ -1761,6 +1792,17 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "openstack-exporter",
+      // What it did not say takes its default, so the next hand has it to change.
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
+      OPENSTACK_RABBITMQ_TARGETS: "[]",
+      OPENSTACK_MARIADB_TARGETS: "[]",
+      OPENSTACK_MEMCACHED_TARGETS: "[]",
+      OPENSTACK_HAPROXY_TARGETS: "[]",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]",
     });
   });
 
@@ -2170,15 +2212,22 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
   });
 
   test("quotes every value but the validated one for what reads the file", () => {
-    const heredoc = script.match(
-      /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
-    )[1];
-    for (const name of envNames(script)) {
+    const lines = heredocLines(script);
+    for (const name of lines.map((line) => {
+      return line.split("=")[0];
+    })) {
       const line =
         name === "OPENSTACK_EXPORTER_USER"
           ? `${name}=$${name}`
           : `${name}=$(env_value "$${name}")`;
-      expect(heredoc.split("\n")).toContain(line);
+      expect(lines).toContain(line);
+    }
+    // Each list is written one name at a time, by the same helper.
+    for (const list of ["TARGET_LIST_NAMES", "VERY_LARGE_CLOUD_NAMES"]) {
+      const loop = script.slice(script.indexOf(`for name in $${list}; do`));
+      expect(loop.slice(0, loop.indexOf("\ndone"))).toContain(
+        `printf '%s=%s\\n' "$name" "$(env_value "\${!name}")" >> "$ENV_FILE"`,
+      );
     }
   });
 
@@ -2214,7 +2263,7 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
 
   test("installs where the systemd unit and the doctor script look", () => {
     const installDir = "/opt/oneuptime-openstack-agent";
-    expect(script).toContain(`INSTALL_DIR="\${INSTALL_DIR:-${installDir}}"`);
+    expect(script).toContain(`DEFAULT_INSTALL_DIR="${installDir}"`);
     expect(agentFile("systemd/oneuptime-openstack-agent.service")).toContain(
       `WorkingDirectory=${installDir}\n`,
     );
@@ -2691,4 +2740,103 @@ describe("with the real curl, against a server that answers as OneUptime and Key
     expect(run.output).toContain("this machine could not connect to");
     expect(run.output).toContain("Nothing was installed or changed.");
   });
+});
+
+describe("a person with the docker group and no rights on /opt", () => {
+  // What these are about can only be seen where /opt is closed to this user, as it is to most.
+  let optIsClosed = !fs.existsSync("/opt/oneuptime-openstack-agent");
+  try {
+    fs.accessSync("/opt", fs.constants.W_OK);
+    optIsClosed = false;
+  } catch {
+    // Closed, as hoped.
+  }
+  const whereOptIsClosed = optIsClosed ? test : test.skip;
+  const inHome = (dir) => {
+    return path.join(dir, "oneuptime-openstack-agent");
+  };
+  const fromHome = (dir, options = {}) => {
+    return install(dir, { ...options, env: { INSTALL_DIR: "", ...options.env } });
+  };
+
+  whereOptIsClosed(
+    "gets a folder in their home, told so, and an exporter that runs as them",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH });
+
+      expect(run.status).toBe(0);
+      expect(run.output).toContain(`Installing to: ${inHome(dir)}\n`);
+      expect(run.output).toContain(
+        "This user has no rights on /opt, so the agent goes in its home folder.",
+      );
+      expect(fs.existsSync(path.join(inHome(dir), "docker-compose.yml"))).toBe(
+        true,
+      );
+      const env = readIfExists(path.join(inHome(dir), ".env"));
+      expect(env).toContain("OPENSTACK_EXPORTER_USER=1000:1000\n");
+      expect(mode(path.join(inHome(dir), ".env"))).toBe(0o600);
+      expect(mode(path.join(inHome(dir), "clouds.yaml"))).toBe(0o600);
+      // Nothing to give away: the file is already the exporter's user's.
+      expect(run.chownLog).toBe("");
+    },
+  );
+
+  whereOptIsClosed(
+    "the doctor's line says which folder, because it would look in /opt",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH });
+
+      expect(run.output).toContain(`| bash -s -- -d ${inHome(dir)}\n`);
+    },
+  );
+
+  whereOptIsClosed("a re-run finds it there, and asks nothing", () => {
+    const dir = scratch();
+    fromHome(dir, { input: FRESH });
+    const again = fromHome(dir);
+
+    expect(again.status).toBe(0);
+    expect(again.output).toContain(`Found an existing configuration in ${inHome(dir)}/.env`);
+    expect(again.output).toContain(`Installing to: ${inHome(dir)}\n`);
+  });
+
+  whereOptIsClosed("a folder they name is the folder, and no more is said", () => {
+    const dir = scratch();
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain(`Installing to: ${path.join(dir, "agent")}\n`);
+    expect(run.output).not.toContain("home folder");
+  });
+
+  whereOptIsClosed(
+    "an install without Docker still asks for root, with no home folder on offer",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH, args: ["--without-docker"] });
+
+      expect(run.status).toBe(1);
+      // Wherever this runs, one of the two stops it: this user is not root, and it may not be Linux.
+      expect(run.output).toMatch(/so it needs (root|Linux)/);
+      expect(fs.existsSync(inHome(dir))).toBe(false);
+    },
+  );
+
+  whereOptIsClosed(
+    "a machine that says root and still cannot write there is told what to do, after nothing has changed",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH, env: { FAKE_UID: "0" } });
+
+      expect(run.status).toBe(1);
+      expect(run.output).toContain(
+        "Error: could not create /opt/oneuptime-openstack-agent. Nothing was installed or changed.",
+      );
+      expect(run.output).toContain("INSTALL_DIR=$HOME/oneuptime-openstack-agent bash install.sh");
+      expect(fs.existsSync(inHome(dir))).toBe(false);
+      expect(composeCalls(run.docker)).toEqual([]);
+    },
+  );
 });

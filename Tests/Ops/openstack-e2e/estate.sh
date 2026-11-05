@@ -94,8 +94,14 @@ log "An image stuck in queued"
 # Created and never given any data, which is what a failed upload leaves behind: nothing
 # ever moves it on. Public, so every credential the access matrix tries sees the same list,
 # and a plain reader's row in the docs stays what it was.
-openstack image show ou-image-stuck >/dev/null 2>&1 \
-  || openstack image create --public --disk-format qcow2 --container-format bare ou-image-stuck >/dev/null
+# Through the API, because the CLI with no terminal on its stdin uploads that stdin as the image.
+if ! openstack image show ou-image-stuck >/dev/null 2>&1; then
+  curl -sS --fail-with-body --max-time 60 -o /dev/null -X POST \
+    "$(openstack endpoint list --service image --interface public -f value -c URL | head -1)/v2/images" \
+    -H "X-Auth-Token: $(openstack token issue -f value -c id)" \
+    -H "Content-Type: application/json" \
+    -d '{"name": "ou-image-stuck", "disk_format": "qcow2", "container_format": "bare", "visibility": "public"}'
+fi
 openstack image show ou-image-stuck -f value -c status
 
 log "Aggregates: a host in two of them"

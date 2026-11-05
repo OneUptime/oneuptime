@@ -50,11 +50,13 @@ import {
  * and attribute keys. It is every series of every cloud part, with its label values and
  * its value, and then what the server's scan makes of both.
  *
- * Three differences are expected, and each is spelled out where it is compared:
+ * Four differences are expected, and each is spelled out where it is compared:
  *
  *   - the series the agent leaves off by default (quotas, ports, subnet pools) the probe
  *     leaves off too, though these recordings' exporter had some on;
  *   - what only a native collector can add, marked in OpenStackMetricCatalog;
+ *   - the two address labels the exporter has and leaves empty on a real cloud, because it
+ *     only reads accessIPv4 and accessIPv6, and which a probe fills in from Nova's addresses;
  *   - the receiver's own bookkeeping about a scrape, which has no meaning for a probe:
  *     scrape_series_added and scrape_samples_post_metric_relabeling.
  */
@@ -79,9 +81,20 @@ function isOnByDefault(metricName: string): boolean {
   return !getOpenStackMetricByMetricName(metricName)?.offByDefault;
 }
 
-// Labels only the probe sends on each series, as the catalogue marks them.
+// Labels of the exporter's own that it leaves empty on a real cloud, and a probe fills in.
+const FILLED_IN_BY_A_PROBE: Record<string, ReadonlyArray<string>> = {
+  openstack_nova_server_status: ["address_ipv4", "address_ipv6"],
+};
+
+/*
+ * Labels only the probe has something to say in on each series: what the catalogue marks as
+ * its own, and those.
+ */
 function probeOnlyLabelsOf(metricName: string): ReadonlyArray<string> {
-  return getOpenStackMetricByMetricName(metricName)?.probeOnlyAttributes || [];
+  return [
+    ...(getOpenStackMetricByMetricName(metricName)?.probeOnlyAttributes || []),
+    ...(FILLED_IN_BY_A_PROBE[metricName] || []),
+  ];
 }
 
 /*
@@ -260,6 +273,12 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "taskState",
     "faultMessage",
     "updatedAt",
+    "addressIpv4",
+    "addressIpv6",
+    "pool",
+    "storageProtocol",
+    "cephFsid",
+    "cephPool",
     "scrapeFailed",
     "vouchedAt",
     // How long one collection took: its own reading on each path.
@@ -676,6 +695,200 @@ describe("what only a probe adds, in the rows it fills", () => {
       expect(Object.keys((row.facts["labels"] as JSONObject) || {})).toEqual(
         [],
       );
+    }
+  });
+
+  test("each instance has the address it is reached at, which the exporter leaves empty", async () => {
+    const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
+      "servers"
+    ] as Array<JSONObject>;
+
+    const instances: Array<OpenStackResourceBufferEntry> = rowsOf(
+      await rowsFrom(),
+      OpenStackResourceKind.Instance,
+    );
+
+    let withAddress: number = 0;
+
+    for (const server of servers) {
+      const row: OpenStackResourceBufferEntry | undefined = instances.find(
+        (instance: OpenStackResourceBufferEntry): boolean => {
+          return instance.externalId === server["id"];
+        },
+      );
+      const addresses: Array<JSONObject> = Object.values(
+        (server["addresses"] as JSONObject) || {},
+      ).flat() as Array<JSONObject>;
+      const floating: JSONObject | undefined = addresses.find(
+        (address: JSONObject): boolean => {
+          return address["OS-EXT-IPS:type"] === "floating";
+        },
+      );
+
+      // Every recording: Nova has them, in addresses alone.
+      expect(server["accessIPv4"]).toBe("");
+
+      expect(row?.facts["addressIpv4"] ?? null).toBe(
+        (floating || addresses[0])?.["addr"] ?? null,
+      );
+
+      if (addresses.length > 0) {
+        withAddress++;
+      }
+    }
+
+    // ou-failed never got one, and the rest did: this is not passing on nothing.
+    expect(withAddress).toBeGreaterThan(0);
+    expect(withAddress).toBeLessThan(servers.length);
+  });
+
+  test("an instance that lost its floating address falls back to its fixed one, and one with none says none", async () => {
+    const answerWithAddresses: (
+      addresses: JSONObject,
+    ) => (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined =
+      (addresses: JSONObject) => {
+        return (
+          request: OpenStackHttpRequest,
+        ): OpenStackHttpResponse | undefined => {
+          const url: URL = new URL(request.url);
+
+          if (!url.pathname.endsWith("/servers/detail")) {
+            return undefined;
+          }
+
+          const servers: Array<JSONObject> = recordedJson(
+            SCENE,
+            "nova-servers",
+          )?.["servers"] as Array<JSONObject>;
+
+          return jsonAnswer(200, {
+            servers: servers.map((server: JSONObject): JSONObject => {
+              return { ...server, addresses: addresses };
+            }),
+          });
+        };
+      };
+
+    const fixedOnly: Array<OpenStackResourceBufferEntry> = rowsOf(
+      await rowsFrom(
+        answerWithAddresses({
+          "ou-net": [{ version: 4, addr: "10.77.0.5" }],
+        }),
+      ),
+      OpenStackResourceKind.Instance,
+    );
+
+    expect(fixedOnly.length).toBeGreaterThan(0);
+
+    for (const row of fixedOnly) {
+      expect(row.facts["addressIpv4"]).toBe("10.77.0.5");
+    }
+
+    const none: Array<OpenStackResourceBufferEntry> = rowsOf(
+      await rowsFrom(answerWithAddresses({})),
+      OpenStackResourceKind.Instance,
+    );
+
+    expect(none.length).toBeGreaterThan(0);
+
+    // Written down as nothing, because facts merge key by key and a stale one would stay.
+    for (const row of none) {
+      expect(Object.keys(row.facts)).toContain("addressIpv4");
+      expect(row.facts["addressIpv4"]).toBeNull();
+    }
+  });
+
+  test.each(
+    Array.from(
+      new Set(
+        SCENES.map((scene: { release: string; scene: string }): string => {
+          return scene.release;
+        }),
+      ),
+    ),
+  )(
+    "on %s, every volume names a pool Cinder's own list holds, so a pool knows what is on it",
+    async (release: string) => {
+      const scene: RecordedScene = loadScene(release, "healthy");
+      const volumes: Array<JSONObject> = recordedJson(scene, "cinder-volumes")?.[
+        "volumes"
+      ] as Array<JSONObject>;
+      const pools: Array<string> = (
+        recordedJson(scene, "cinder-pools")?.["pools"] as Array<JSONObject>
+      ).map((pool: JSONObject): string => {
+        return pool["name"] as string;
+      });
+
+      expect(volumes.length).toBeGreaterThan(0);
+
+      const report: OpenStackCollectionReport =
+        await OpenStackCollector.collect(
+          collectionJob(),
+          createCollectorHarness({
+            transport: createRecordedCloud(scene).transport,
+          }).dependencies,
+        );
+      const rows: Map<string, OpenStackResourceBufferEntry> = scanAsIngest(
+        OpenStackProbeMetrics.prepare({
+          resourceMetrics: report.resourceMetrics,
+          cloudName: "devstack",
+        }).resourceMetrics,
+      );
+      const volumeRows: Array<OpenStackResourceBufferEntry> = rowsOf(
+        rows,
+        OpenStackResourceKind.Volume,
+      );
+      const poolRows: Array<OpenStackResourceBufferEntry> = rowsOf(
+        rows,
+        OpenStackResourceKind.StoragePool,
+      );
+
+      expect(volumeRows).toHaveLength(volumes.length);
+
+      for (const row of volumeRows) {
+        expect(pools).toContain(row.facts["pool"]);
+        // By the name a pool's row holds, which is what its reach is counted by.
+        expect(
+          poolRows.map((pool: OpenStackResourceBufferEntry) => {
+            return pool.name;
+          }),
+        ).toContain(row.facts["pool"]);
+      }
+    },
+  );
+
+  test("a credential Cinder doesn't tell leaves a volume's pool unsaid, and nothing else goes", async () => {
+    const rows: Map<string, OpenStackResourceBufferEntry> = await rowsFrom(
+      (request: OpenStackHttpRequest): OpenStackHttpResponse | undefined => {
+        if (!new URL(request.url).pathname.endsWith("/volumes/detail")) {
+          return undefined;
+        }
+
+        const volumes: Array<JSONObject> = recordedJson(
+          SCENE,
+          "cinder-volumes",
+        )?.["volumes"] as Array<JSONObject>;
+
+        return jsonAnswer(200, {
+          volumes: volumes.map((volume: JSONObject): JSONObject => {
+            const told: JSONObject = { ...volume };
+            delete told["os-vol-host-attr:host"];
+            return told;
+          }),
+        });
+      },
+    );
+
+    const volumes: Array<OpenStackResourceBufferEntry> = rowsOf(
+      rows,
+      OpenStackResourceKind.Volume,
+    );
+
+    expect(volumes.length).toBeGreaterThan(0);
+
+    for (const row of volumes) {
+      expect(row.facts["pool"]).toBeNull();
+      expect(row.diskCapacityBytes).toBeGreaterThan(0);
     }
   });
 
