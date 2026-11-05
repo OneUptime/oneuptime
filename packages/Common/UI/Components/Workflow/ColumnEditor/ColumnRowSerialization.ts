@@ -21,6 +21,10 @@ import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import { hasTemplatePlaceholder } from "../../../../Utils/TemplatePlaceholders";
 import {
+  readLinkedRecordList,
+  writeLinkedRecordList,
+} from "../../../../Types/Workflow/LinkedRecordValue";
+import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
   DictionaryFilterOperatorOption,
@@ -106,7 +110,8 @@ const literalTextFor: LiteralTextForFunction = (
 export type ClassifyRowValueFunction = (
   control: ModelColumnControl,
   value: unknown,
-) => Pick<ModelColumnRow, "valueMode" | "text" | "rawValue">;
+) => Pick<ModelColumnRow, "valueMode" | "text" | "rawValue"> &
+  Partial<Pick<ModelColumnRow, "values">>;
 
 /**
  * Which of the three editing modes a stored value belongs in.
@@ -118,9 +123,19 @@ export type ClassifyRowValueFunction = (
 export const classifyRowValue: ClassifyRowValueFunction = (
   control: ModelColumnControl,
   value: unknown,
-): Pick<ModelColumnRow, "valueMode" | "text" | "rawValue"> => {
+): Pick<ModelColumnRow, "valueMode" | "text" | "rawValue"> &
+  Partial<Pick<ModelColumnRow, "values">> => {
   if (typeof value === "string" && containsTemplateExpression(value)) {
     return { valueMode: ColumnValueMode.Reference, text: value };
+  }
+
+  // A list of related records: their IDs, in the list's own control.
+  if (control === ModelColumnControl.RecordList) {
+    const ids: Array<string> | null = readLinkedRecordList(value);
+
+    if (ids) {
+      return { valueMode: ColumnValueMode.Literal, text: "", values: ids };
+    }
   }
 
   /*
@@ -336,6 +351,18 @@ export const emitRowValue: EmitRowValueFunction = (
    */
   if (row.valueMode === ColumnValueMode.Reference) {
     return row.text;
+  }
+
+  /*
+   * A list of related records, as a step writes one. An empty one is "", the
+   * marker for a field the record does not set: a row with nothing picked in
+   * it says nothing about the record's list, as a blank box says nothing about
+   * its field. Emptying a record's list is still a write of its own, in JSON.
+   */
+  if (control === ModelColumnControl.RecordList) {
+    return row.values.length > 0
+      ? (writeLinkedRecordList(row.values) as unknown as DictionaryEntryValue)
+      : "";
   }
 
   return emitLiteralValue(control, row.text);

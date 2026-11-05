@@ -45228,5 +45228,9 @@
   "Traffic comes from Octavia's own API, which only a probe reads: the exporter the agent runs has no series for it. Collect this cloud with a probe to chart connections, bytes and request errors here.": "ट्रैफ़िक Octavia के अपने API से आता है, जिसे केवल प्रोब पढ़ता है: एजेंट जो एक्सपोर्टर चलाता है उसमें इसकी कोई सीरीज़ नहीं है। यहाँ कनेक्शन, बाइट और अनुरोध त्रुटियाँ चार्ट करने के लिए इस क्लाउड को प्रोब से कलेक्ट करें।",
   "What listens in front of it. Only a probe reads listeners: the exporter has no series for them, so on a cloud the agent collects this stays empty.": "इसके आगे क्या सुन रहा है। लिस्नर केवल प्रोब पढ़ता है: एक्सपोर्टर में इनकी कोई सीरीज़ नहीं है, इसलिए एजेंट जिस क्लाउड को कलेक्ट करता है उस पर यह खाली रहता है।",
   "AI Fix": "AI फ़िक्स",
-  "Lifecycle Event": "लाइफ़साइकल इवेंट"
+  "Lifecycle Event": "लाइफ़साइकल इवेंट",
+  "Pick from the list": "सूची से चुनें",
+  "Pick from the list instead": "इसके बजाय सूची से चुनें",
+  "There is nothing to pick from yet.": "अभी चुनने के लिए कुछ नहीं है।",
+  "Use “{{value}}”": "“{{value}}” का उपयोग करें"
 }

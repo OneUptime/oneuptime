@@ -12,6 +12,7 @@ import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import FormValues from "../Forms/Types/FormValues";
 import ChoiceSettingField from "./Choice/ChoiceSettingField";
 import ConditionEditor from "./Condition/ConditionEditor";
+import LinkedRecordField from "./LinkedRecord/LinkedRecordField";
 import RecordListField from "./RecordList/RecordListField";
 import { getRecordListKind } from "./RecordList/RecordListKinds";
 import SwitchEditor from "./Switch/SwitchEditor";
@@ -553,6 +554,43 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 placeholder={customProps.placeholder}
                 error={customProps.error}
                 tabIndex={customProps.tabIndex}
+              />
+            </WorkflowViewOnlyFieldset>
+          );
+        },
+      };
+    }
+
+    /*
+     * A setting that names the project's records: the records by name, with
+     * { } beside them for a value from an earlier step.
+     */
+    if (arg.linkedTable) {
+      const linkedTable: string = arg.linkedTable;
+
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <WorkflowViewOnlyFieldset>
+              <LinkedRecordField
+                tableName={linkedTable}
+                value={(values as JSONObject)[arg.id]}
+                onChange={(value: string) => {
+                  void customProps.onChange?.(value);
+                }}
+                isList={arg.isLinkedList}
+                allowsAnyText={arg.linkedAllowsAnyText}
+                ariaLabelledby={customProps.ariaLabelledby}
+                placeholder={customProps.placeholder}
+                error={customProps.error}
+                autoFocus={argIndex === 0 && !isViewOnly}
+                tabIndex={customProps.tabIndex}
+                dataTestId={`workflow-argument-${arg.id}`}
+                onBlur={customProps.onBlur}
               />
             </WorkflowViewOnlyFieldset>
           );

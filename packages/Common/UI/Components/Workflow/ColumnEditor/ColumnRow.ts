@@ -27,6 +27,10 @@ export enum ModelColumnControl {
   Date = "Date",
   ObjectId = "ObjectId",
   Color = "Color",
+  /** The ID of another record of the project, picked from a list of them. */
+  Record = "Record",
+  /** A list of the project's records, picked from a list of them. */
+  RecordList = "RecordList",
   /** Buffers, files, nested JSON, monitor steps — no row can hold one. */
   Unsupported = "Unsupported",
 }
@@ -53,8 +57,9 @@ export enum ColumnValueMode {
  *
  * `text` is what the control shows and is always a string, whatever the column
  * type — the conversion to a JSON number/boolean/null happens once, on the way
- * out, in ColumnRowSerialization. `values` is only used by the multi-value
- * operators (is any of / is none of), which Record mode never offers.
+ * out, in ColumnRowSerialization. `values` holds a list: the multi-value
+ * operators of a query (is any of / is none of), and a record's list of related
+ * records (ModelColumnControl.RecordList).
  */
 export interface ModelColumnRow {
   /**
