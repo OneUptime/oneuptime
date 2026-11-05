@@ -76,9 +76,9 @@ Ciò che ti viene fatturato sono le righe di ogni scrape: le prime cinque righe 
 
 | Cloud | Serie | GB al giorno, ogni serie | GB al giorno, in modalità riepilogo | Un mese con 15 giorni di conservazione, in modalità riepilogo |
 | --- | --- | --- | --- | --- |
-| 10 hypervisor, 100 istanze, 20 progetti | 1.075 | 0,7 | Non in modalità riepilogo | $2,12 |
-| 500 hypervisor, 20.000 istanze, 1.000 progetti | 123.847 | 84,5 | 16,6 | $49,71 |
-| 5.000 hypervisor, 200.000 istanze, 10.000 progetti | 1.237.183 | 844,5 | 164,9 | $494,73 |
+| 10 hypervisor, 100 istanze, 20 progetti | 1.084 | 0,7 | Non in modalità riepilogo | $2,12 |
+| 500 hypervisor, 20.000 istanze, 1.000 progetti | 123.856 | 84,5 | 16,6 | $49,71 |
+| 5.000 hypervisor, 200.000 istanze, 10.000 progetti | 1.237.192 | 844,5 | 164,9 | $494,73 |
 
 Questi valori sono tramite l'agente, con un'istanza su mille in uno stato che ne conserva le serie. Una sonda oltre la dimensione di riepilogo invia ciò che non è cambiato una volta per ciclo anziché a ogni raccolta, il che equivale a circa 13,2 GB al giorno alla seconda dimensione e 116 GB alla terza.
 

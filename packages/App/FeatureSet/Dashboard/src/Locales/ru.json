@@ -45244,5 +45244,7 @@
   "Run this workflow again?": "Запустить этот рабочий процесс снова?",
   "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "Новый запуск начинается с триггера, с теми же значениями и с рабочим процессом в его текущем виде. Каждый шаг выполняется по-настоящему: всё, что он отправляет, записывает или удаляет, происходит на самом деле.",
   "Run with the last run's values": "Запустить со значениями последнего запуска",
-  "Starts a new run with what the run of {{date}} started with.": "Начинает новый запуск с теми же данными, с которых начался запуск от {{date}}."
+  "Starts a new run with what the run of {{date}} started with.": "Начинает новый запуск с теми же данными, с которых начался запуск от {{date}}.",
+  "Can Run Again": "Can Run Again",
+  "Trigger Values": "Trigger Values"
 }

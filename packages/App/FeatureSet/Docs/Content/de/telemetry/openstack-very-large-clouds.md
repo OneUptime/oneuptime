@@ -76,9 +76,9 @@ Die Zeilen jedes Scrapes sind das, was Ihnen berechnet wird: Die ersten fünf Ze
 
 | Cloud | Serien | GB pro Tag, alle Serien | GB pro Tag, im Summary-Modus | Ein Monat bei 15 Tagen Aufbewahrung, im Summary-Modus |
 | --- | --- | --- | --- | --- |
-| 10 Hypervisoren, 100 Instanzen, 20 Projekte | 1.075 | 0,7 | Nicht im Summary-Modus | $2.12 |
-| 500 Hypervisoren, 20.000 Instanzen, 1.000 Projekte | 123.847 | 84,5 | 16,6 | $49.71 |
-| 5.000 Hypervisoren, 200.000 Instanzen, 10.000 Projekte | 1.237.183 | 844,5 | 164,9 | $494.73 |
+| 10 Hypervisoren, 100 Instanzen, 20 Projekte | 1.084 | 0,7 | Nicht im Summary-Modus | $2.12 |
+| 500 Hypervisoren, 20.000 Instanzen, 1.000 Projekte | 123.856 | 84,5 | 16,6 | $49.71 |
+| 5.000 Hypervisoren, 200.000 Instanzen, 10.000 Projekte | 1.237.192 | 844,5 | 164,9 | $494.73 |
 
 Das gilt für den Weg über den Agent, mit einer Instanz von tausend in einem Zustand, der ihre Serie behält. Eine Sonde sendet ab der Größe des Summary-Modus das, was sich nicht geändert hat, einmal pro Zyklus statt bei jeder Erfassung, was bei der zweiten Größe auf etwa 13,2 GB pro Tag kommt und bei der dritten auf 116 GB.
 

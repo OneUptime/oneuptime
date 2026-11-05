@@ -45244,5 +45244,7 @@
   "Run this workflow again?": "क्या इस वर्कफ़्लो को फिर से चलाएँ?",
   "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "एक नया रन ट्रिगर से शुरू होता है, उन्हीं मानों और वर्कफ़्लो के मौजूदा रूप के साथ। हर चरण वास्तव में चलता है: वह जो कुछ भी भेजता, लिखता या हटाता है, वह सचमुच होता है।",
   "Run with the last run's values": "पिछले रन के मानों के साथ चलाएँ",
-  "Starts a new run with what the run of {{date}} started with.": "{{date}} के रन को शुरू में जो मिला था, उसी से एक नया रन शुरू करता है।"
+  "Starts a new run with what the run of {{date}} started with.": "{{date}} के रन को शुरू में जो मिला था, उसी से एक नया रन शुरू करता है।",
+  "Can Run Again": "Can Run Again",
+  "Trigger Values": "Trigger Values"
 }

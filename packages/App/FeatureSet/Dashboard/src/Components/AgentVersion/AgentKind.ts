@@ -195,7 +195,7 @@ export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
  * ovn-controller are running, each RabbitMQ queue, and Geneve's interfaces and no others -
  * so an agent still running the old files reports what it reported and is told to upgrade.
  */
-export const OPENSTACK_AGENT_VERSION: string = "0.161.3";
+export const OPENSTACK_AGENT_VERSION: string = "0.161.4";
 // The collector the OpenStack agent runs: the image its docker-compose.yml pins.
 export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 export const CEPH_AGENT_VERSION: string = "0.161.0";

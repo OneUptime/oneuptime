@@ -76,9 +76,9 @@ Hver scrapes rækker er det, du faktureres for: de første fem linjer ankommer h
 
 | Cloud | Serier | GB om dagen, hver serie | GB om dagen, i oversigtstilstand | En måned opbevaret 15 dage, i oversigtstilstand |
 | --- | --- | --- | --- | --- |
-| 10 hypervisorer, 100 instanser, 20 projekter | 1.075 | 0,7 | Ikke i oversigtstilstand | $2,12 |
-| 500 hypervisorer, 20.000 instanser, 1.000 projekter | 123.847 | 84,5 | 16,6 | $49,71 |
-| 5.000 hypervisorer, 200.000 instanser, 10.000 projekter | 1.237.183 | 844,5 | 164,9 | $494,73 |
+| 10 hypervisorer, 100 instanser, 20 projekter | 1.084 | 0,7 | Ikke i oversigtstilstand | $2,12 |
+| 500 hypervisorer, 20.000 instanser, 1.000 projekter | 123.856 | 84,5 | 16,6 | $49,71 |
+| 5.000 hypervisorer, 200.000 instanser, 10.000 projekter | 1.237.192 | 844,5 | 164,9 | $494,73 |
 
 Disse er gennem agenten, med én instans ud af tusind i en tilstand, der beholder sine serier. En sonde ud over oversigtsstørrelsen sender det, der ikke er ændret, én gang pr. cyklus frem for ved hver indsamling, hvilket løber op i cirka 13,2 GB om dagen ved den anden størrelse og 116 GB ved den tredje.
 

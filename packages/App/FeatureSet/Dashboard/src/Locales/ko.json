@@ -45244,5 +45244,7 @@
   "Run this workflow again?": "이 워크플로를 다시 실행할까요?",
   "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "트리거에서 같은 값과 현재 상태의 워크플로로 새 실행이 시작됩니다. 모든 단계는 실제로 실행됩니다. 보내고, 쓰고, 삭제하는 모든 작업이 실제로 일어납니다.",
   "Run with the last run's values": "마지막 실행의 값으로 실행",
-  "Starts a new run with what the run of {{date}} started with.": "{{date}} 실행이 시작할 때 받은 값으로 새 실행을 시작합니다."
+  "Starts a new run with what the run of {{date}} started with.": "{{date}} 실행이 시작할 때 받은 값으로 새 실행을 시작합니다.",
+  "Can Run Again": "Can Run Again",
+  "Trigger Values": "Trigger Values"
 }

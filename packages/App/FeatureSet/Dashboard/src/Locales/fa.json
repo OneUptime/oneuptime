@@ -45244,5 +45244,7 @@
   "Run this workflow again?": "این گردش کار دوباره اجرا شود؟",
   "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "یک اجرای جدید از راه‌انداز شروع می‌شود، با همان مقادیر و گردش کار به شکل فعلی آن. هر مرحله واقعاً اجرا می‌شود: هر چیزی که بفرستد، بنویسد یا حذف کند واقعاً انجام می‌شود.",
   "Run with the last run's values": "اجرا با مقادیر آخرین اجرا",
-  "Starts a new run with what the run of {{date}} started with.": "یک اجرای جدید را با همان چیزی شروع می‌کند که اجرای {{date}} با آن شروع شد."
+  "Starts a new run with what the run of {{date}} started with.": "یک اجرای جدید را با همان چیزی شروع می‌کند که اجرای {{date}} با آن شروع شد.",
+  "Can Run Again": "Can Run Again",
+  "Trigger Values": "Trigger Values"
 }

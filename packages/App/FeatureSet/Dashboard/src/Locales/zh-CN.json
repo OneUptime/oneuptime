@@ -45244,5 +45244,7 @@
   "Run this workflow again?": "要再次运行此工作流吗？",
   "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "新的运行将从触发器开始，使用相同的值和工作流的当前版本。每个步骤都会真实运行：它发送、写入或删除的任何内容都会实际发生。",
   "Run with the last run's values": "使用上次运行的值运行",
-  "Starts a new run with what the run of {{date}} started with.": "使用 {{date}} 那次运行开始时的内容启动新的运行。"
+  "Starts a new run with what the run of {{date}} started with.": "使用 {{date}} 那次运行开始时的内容启动新的运行。",
+  "Can Run Again": "Can Run Again",
+  "Trigger Values": "Trigger Values"
 }
