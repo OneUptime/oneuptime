@@ -10,6 +10,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import {
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -45,6 +46,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
@@ -264,6 +266,12 @@ function scrapeIntervalsInSeconds(): Record<string, number> {
   for (const match of COLLECTOR_CONFIG.matchAll(jobs)) {
     intervals[match[1]!] = Number(match[2]);
   }
+
+  /*
+   * The exporter has no series for CloudKitty, so the agent has no job for it. A probe reads it every
+   * five minutes, like the rest of what a cloud may not run: OpenStackRatingCollection.test.ts holds that.
+   */
+  intervals[OpenStackServiceType.Rating] = 300;
 
   return intervals;
 }
@@ -567,6 +575,10 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-rating-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-orchestration-engine-down": {
     filterType: FilterType.LessThan,
     value: 1,
@@ -602,6 +614,18 @@ const THRESHOLDS: Readonly<
   "openstack-dns-recordset-in-error": {
     filterType: FilterType.GreaterThan,
     value: 0,
+  },
+  "openstack-metric-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-no-processors": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-backlog-growing": {
+    filterType: FilterType.ForecastAbove,
+    value: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   },
   "openstack-database-api-down": {
     filterType: FilterType.LessThan,
@@ -890,6 +914,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
   },
+  "openstack-rating-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
   "openstack-orchestration-engine-down": {
     breached: { heat_engine_up: 0 },
     healthy: { heat_engine_up: 1 },
@@ -926,6 +954,21 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-dns-recordset-in-error": {
     breached: { recordset_a: 1 },
     healthy: { recordset_a: 0 },
+  },
+  "openstack-metric-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-metric-no-processors": {
+    breached: { processors: 0 },
+    healthy: { processors: 4 },
+  },
+  // Made up: a real runner's backlog read 5 and then 10, far under this.
+  "openstack-metric-backlog-growing": {
+    breached: {
+      measures_to_process: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES * 2,
+    },
+    healthy: { measures_to_process: 0 },
   },
   "openstack-database-api-down": {
     breached: { api_up: 0, collection_answered: 1 },
@@ -1092,6 +1135,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         // The services a cloud may not run: #5743.
         "Orchestration API Down",
         "Kubernetes Clusters API Down",
+        "Rating API Down",
         "Heat Engine Down",
         "Magnum Conductor Down",
         "Stack Failed",
@@ -1106,6 +1150,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "DNS Zone in Error",
         "DNS Zone Stuck Pending",
         "DNS Recordset in Error",
+        "Metrics API Down",
+        "Gnocchi No Processors",
+        "Gnocchi Backlog Growing",
         "Databases API Down",
         "Database Instance in Error",
         "Database Instance Stuck",
@@ -1185,6 +1232,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Orchestration",
         "Bare Metal",
         "Databases",
+        "Metrics",
         "Projects",
         "Capacity",
       ] as const
@@ -1503,7 +1551,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
               windowMinutes: windowMinutesOf(step),
             })
           ).breached,
-        ).toBe(false);
+          // A line through the window is what a forecast reads, so one reading doesn't turn it.
+        ).toBe(
+          CriteriaFilterUtil.isForecastFilterType(
+            firingOf(step).data!.filters[0]!.filterType,
+          ),
+        );
       },
     );
 
@@ -1538,7 +1591,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
             filter.metricMonitorOptions?.onNoDataPolicy;
 
           expect(
-            filter.filterType === FilterType.GreaterThanOrEqualTo
+            filter.filterType === FilterType.GreaterThanOrEqualTo ||
+              // An empty window has no trend, so it can't read as zero.
+              CriteriaFilterUtil.isForecastFilterType(filter.filterType)
               ? policy === NoDataPolicy.Trigger
               : policy === NoDataPolicy.TreatAsZero,
           ).toBe(true);
@@ -2053,6 +2108,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "openstack-bare-metal-conductor-down",
         "openstack-container-infra-conductor-down",
         "openstack-orchestration-engine-down",
+        "openstack-rating-api-down",
         "openstack-share-service-down",
       ]);
       for (const id of probeOnly) {

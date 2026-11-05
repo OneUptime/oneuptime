@@ -8,6 +8,9 @@ import {
   isOpenStackAdminDisabled,
   isOpenStackServiceDown,
   percentOf,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_METRICS_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_API_STATUS_CLOSED,
@@ -557,6 +560,9 @@ const CANNOT_READ_PLACEMENT: string = translationKey(
  * and a stopped API read the same, and what opens it. By service, for what each really does.
  */
 const CLOSED_TO_THIS_CREDENTIAL_WORDS: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Metric]: translationKey(
+    "OneUptime has never had an answer from Gnocchi with this credential. The exporter reads Gnocchi's status, which only an admin may, and a refusal reads just as Gnocchi being down does. So either Gnocchi is down, or this credential needs to be a Full view one. Its alerts aren't offered until it has answered once: they could only say the same thing.",
+  ),
   [OpenStackServiceType.Dns]: translationKey(
     "Designate answers this credential, and refuses it every project's zones. The exporter reads every project's, and a refusal is the one thing that reads 0 here: a stopped Designate says nothing at all. Reading it takes the Full view credential.",
   ),
@@ -573,6 +579,9 @@ export function getOpenStackClosedToThisCredentialWords(
 
 // Each is a service whose read asks for what only an admin may, so a refusal reads as a stopped API.
 const CANNOT_READ_OPTIONAL_SERVICE: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Metric]: translationKey(
+    "This credential has never read Gnocchi",
+  ),
   [OpenStackServiceType.Dns]: translationKey(
     "This credential has never read Designate's zones",
   ),
@@ -867,6 +876,53 @@ export function isOpenStackApiExternalId(externalId: string): boolean {
   );
 }
 
+/*
+ * A service with no parts of its own says what it has to say on its API's page, as a few numbers off its row.
+ */
+export interface OpenStackApiTile {
+  key: string;
+  title: string;
+  fact: string;
+  description: string;
+}
+
+const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
+  Record<string, ReadonlyArray<OpenStackApiTile>>
+> = {
+  [OpenStackServiceType.Metric]: [
+    {
+      key: "measures",
+      title: translationKey("Measures waiting"),
+      fact: OPENSTACK_GNOCCHI_MEASURES_FACT,
+      description: translationKey(
+        "How many measures gnocchi-metricd has yet to process. A busy cloud's never reads 0: one that keeps rising means it isn't keeping up.",
+      ),
+    },
+    {
+      key: "metrics",
+      title: translationKey("Metrics waiting"),
+      fact: OPENSTACK_GNOCCHI_METRICS_FACT,
+      description: translationKey(
+        "How many metrics have measures waiting for gnocchi-metricd.",
+      ),
+    },
+    {
+      key: "processors",
+      title: translationKey("Processors"),
+      fact: OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+      description: translationKey(
+        "How many metricd processors Gnocchi's status names. With none, measures pile up and nothing newer can be read, and its API goes on answering.",
+      ),
+    },
+  ],
+};
+
+export function getOpenStackApiTiles(
+  service: string | null | undefined,
+): ReadonlyArray<OpenStackApiTile> {
+  return OPENSTACK_API_TILES_OF_A_SERVICE[service || ""] || [];
+}
+
 // The alert templates that watch each kind of worker, as the Recommendations list has them.
 const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.Identity]: "openstack-identity-api-down",
@@ -877,10 +933,12 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.Image]: "openstack-image-api-down",
   [OpenStackServiceType.Orchestration]: "openstack-orchestration-api-down",
   [OpenStackServiceType.ContainerInfra]: "openstack-container-infra-api-down",
+  [OpenStackServiceType.Rating]: "openstack-rating-api-down",
   [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",
   [OpenStackServiceType.Database]: "openstack-database-api-down",
+  [OpenStackServiceType.Metric]: "openstack-metric-api-down",
   [OpenStackServiceType.Dns]: "openstack-dns-api-down",
 };
 
@@ -956,6 +1014,12 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-dns-zone-in-error",
         "openstack-dns-zone-stuck-pending",
         "openstack-dns-recordset-in-error",
+      ];
+    case OpenStackServiceType.Metric:
+      return [
+        ...own,
+        "openstack-metric-no-processors",
+        "openstack-metric-backlog-growing",
       ];
     case OpenStackServiceType.Database:
       return [

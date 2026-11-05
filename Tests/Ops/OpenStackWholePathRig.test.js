@@ -171,6 +171,55 @@ describe("what the walk reads", () => {
     ]);
   });
 
+  test("looks at each page the docs will show, named the way their other screenshots are", () => {
+    const files = [...WALK.matchAll(/"(OpenStack[A-Za-z]+\.png)"/g)].map(
+      (match) => {
+        return match[1];
+      },
+    );
+
+    expect(files.sort()).toEqual([
+      "OpenStackCloudOverview.png",
+      "OpenStackDataCollection.png",
+      "OpenStackHypervisors.png",
+      "OpenStackIncidentComputeDown.png",
+      "OpenStackInstances.png",
+      "OpenStackServicesComputeDown.png",
+      "OpenStackTopology.png",
+      "OpenStackTopologyComputeDown.png",
+      "OpenStackTraces.png",
+    ]);
+    // The size the docs' screenshots are, read from one of them: a PNG's header says.
+    const png = fs.readFileSync(
+      path.join(
+        ROOT,
+        "packages/App/FeatureSet/Docs/Static/images/VMwareHosts.png",
+      ),
+    );
+    const pages = fs.readFileSync(
+      path.join(RIG, "whole-path-pages.cjs"),
+      "utf8",
+    );
+
+    expect(pages).toContain(`const WIDTH = ${png.readUInt32BE(16)};`);
+    expect(pages).toContain(`const HEIGHT = ${png.readUInt32BE(20)};`);
+  });
+
+  test("holds the alert to what Nova has on the host, and draws the host red with its instances", () => {
+    expect(WALK).toContain(
+      "the alert says how many instances in which projects are affected",
+    );
+    expect(WALK).toContain('"attribute": "data-health", "value": "critical"');
+    expect(WALK).toContain("resource-topology-chip-instance:");
+  });
+
+  test("gives the browser its API's address, with the port OneUptime moved to", () => {
+    expect(stepNamed("Start OneUptime").run).toContain("HOST=localhost:8880");
+    expect(stepNamed("Walk the whole path").env.PLAYWRIGHT_IMAGE).toMatch(
+      /^mcr\.microsoft\.com\/playwright:v[\d.]+-noble$/,
+    );
+  });
+
   test("signs in again when a session runs out, and asks the same again", () => {
     const script = `
 import importlib.util, json, sys

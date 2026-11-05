@@ -124,6 +124,34 @@ describe("a volume attached to nothing", () => {
   ])("%s", (_name: string, given: OpenStackWasteRow, expected: boolean) => {
     expect(isOpenStackVolumeWaste({ row: given, now: NOW })).toBe(expected);
   });
+
+  /*
+   * What the rig's usage run found on a real cloud: making a volume from an image left one of these,
+   * available and attached to nothing, in the service project. They're Cinder's, and in use.
+   */
+  test.each([
+    ["image-de21946b-c479-4d90-8a58-ab3236cfc135", false],
+    ["IMAGE-DE21946B-C479-4D90-8A58-AB3236CFC135", false],
+    // Named by someone, however much they look like it.
+    ["image-backup", true],
+    ["image-de21946b", true],
+    ["my-image-de21946b-c479-4d90-8a58-ab3236cfc135", true],
+    ["image-de21946b-c479-4d90-8a58-ab3236cfc135-copy", true],
+  ])(
+    "a volume named %s, attached to nothing: %s",
+    (name: string, expected: boolean) => {
+      expect(
+        isOpenStackVolumeWaste({
+          row: row({
+            name,
+            status: "available",
+            facts: { attachedToInstance: false },
+          }),
+          now: NOW,
+        }),
+      ).toBe(expected);
+    },
+  );
 });
 
 describe("a floating IP nothing is using", () => {

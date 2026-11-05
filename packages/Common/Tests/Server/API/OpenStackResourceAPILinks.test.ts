@@ -268,7 +268,7 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
     openStackCloudId: CLOUD_ID.toString(),
     cloudName: "prod",
     regionName: "RegionOne",
-    externalId: "ece79e88-fe71-4268-8080-ed81e6887df4",
+    externalId: "a574ec05-efe3-45ca-a348-6b00a967b446",
     name: "ou-cluster",
     status: "CREATE_COMPLETE",
     kubernetesClusterId: KUBERNETES_CLUSTER_ID.toString(),

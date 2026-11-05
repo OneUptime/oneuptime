@@ -8,6 +8,9 @@ import {
   getOpenStackShortHostName,
   isOpenStackBareMetalNodeId,
   isOpenStackBareMetalNodeInError,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_METRICS_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_OPTIONAL_SERVICES,
@@ -34,6 +37,7 @@ import {
   OPENSTACK_SUMMARY_MODE_SERIES,
   isOpenStackSeriesKeptInSummaryMode,
 } from "../../../Types/OpenStack/OpenStackScale";
+import { getOpenStackRatedFactKey } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
 import logger from "../Logger";
 import {
   foldOpenStackControlPlaneDatapoint,
@@ -219,8 +223,45 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
 const OPENSTACK_FLAVOR_FITS_METRIC_NAME: string =
   "openstack_placement_flavor_fits";
 
+/*
+ * What a service with no parts of its own says of itself, which all goes on its API's row: a few numbers for
+ * a region. They stay where they were while its API isn't answering, and a page says so.
+ */
+interface OpenStackApiRowFact {
+  service: OpenStackServiceType;
+  fact: string;
+}
+
+const FACTS_ON_AN_API_ROW: ReadonlyMap<string, OpenStackApiRowFact> = new Map<
+  string,
+  OpenStackApiRowFact
+>([
+  [
+    "openstack_gnocchi_status_measures_to_process",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_MEASURES_FACT,
+    },
+  ],
+  [
+    "openstack_gnocchi_status_metric_having_measures_to_process",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_METRICS_FACT,
+    },
+  ],
+  [
+    "openstack_gnocchi_status_metricd_processors",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+    },
+  ],
+]);
+
 export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   ...OPENSTACK_API_UP_METRIC_NAMES.keys(),
+  ...FACTS_ON_AN_API_ROW.keys(),
   ...PLACEMENT_RESOURCE_METRIC_NAMES,
   ...NAMED_QUOTA_METRICS.keys(),
   ...TYPED_QUOTA_METRICS.keys(),
@@ -252,6 +293,7 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_identity_project_info",
   "openstack_identity_domain_info",
   "openstack_heat_stack_status",
+  "openstack_cloudkitty_rated",
   "openstack_heat_agent_state",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
@@ -2152,6 +2194,44 @@ function foldProjectQuota(data: {
   entry.quota = quota;
 }
 
+/*
+ * What CloudKitty rated a project for a month. One series per project, month and region. A region's
+ * figures are one metric, which stays whole in an upload (OpenStackReportParts), so they replace the
+ * last of that region's whole, and another region's stay as they are: see getOpenStackRatedFactKey.
+ */
+function foldRated(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "project_id");
+  const period: string | null = getLabel(data.attributes, "period");
+
+  if (!id || !period || data.value <= 0) {
+    return;
+  }
+
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Project,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+
+  setIdentity(entry, { openStackProjectId: id });
+
+  const fact: string = getOpenStackRatedFactKey(data.region);
+  const rated: JSONObject = (entry.facts[fact] as JSONObject) || {};
+
+  rated[period] = {
+    total: data.value,
+    readAt: data.observedAt.toISOString(),
+  };
+  entry.facts[fact] = rated;
+}
+
 function foldDomain(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   attributes: JSONArray;
@@ -2275,6 +2355,20 @@ export function bufferOpenStackSnapshotMetric(data: {
       ),
       vouchesForRows: getLabel(attributes, "vouches_for_rows") !== "false",
     });
+    return;
+  }
+
+  const apiRowFact: OpenStackApiRowFact | undefined =
+    FACTS_ON_AN_API_ROW.get(metricName);
+  if (apiRowFact) {
+    const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+      buffer,
+      kind: OpenStackResourceKind.Api,
+      externalId: regional(region, apiRowFact.service),
+      observedAt,
+    });
+    setIdentity(entry, { name: apiRowFact.service, regionName: region });
+    entry.facts[apiRowFact.fact] = value;
     return;
   }
 
@@ -2421,6 +2515,9 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_identity_domain_info":
       foldDomain({ buffer, attributes, observedAt });
+      return;
+    case "openstack_cloudkitty_rated":
+      foldRated({ buffer, attributes, region, value, observedAt });
       return;
     case "openstack_heat_stack_status":
       foldStack({ buffer, attributes, region, observedAt });

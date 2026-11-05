@@ -246,8 +246,11 @@ export interface OpenStackDeploymentGuideContext {
   cloudName: string;
 }
 
-const TESTED_BY_RIG: string =
-  "It has not been followed end to end on a real deployment of this tool.";
+// Run on a real DevStack, by Tests/Ops/openstack-e2e/whole-path.py, and on none of these tools.
+const WHOLE_PATH: string =
+  "The agent and a probe have each taken a real DevStack all the way into a running OneUptime, through a stopped nova-compute and back, but not from this tool.";
+
+const TESTED_BY_RIG: string = `It has not been followed end to end on a real deployment of this tool. ${WHOLE_PATH}`;
 
 /*
  * WHO DID WHAT: Keystone's audit trail, and keystonemiddleware's audit filter on each API, each
@@ -367,7 +370,7 @@ function kollaAnsible(
   return {
     alreadyRuns:
       "With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.",
-    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one Kolla-Ansible (stable/2026.1, Open vSwitch) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on each credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the targets read from its real prometheus.yml, and the logs profile. One part did not hold: with Memcached and nova-compute stopped there, its Alertmanager posted nothing, so no alert has gone from a Kolla-Ansible stack to OneUptime. What Alertmanager posts at the version Kolla-Ansible pins, recorded in a test cluster, did open and resolve an incident on the right cloud on a running OneUptime.`,
+    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one Kolla-Ansible (stable/2026.1, Open vSwitch) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on each credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the targets read from its real prometheus.yml, and the logs profile. One part did not hold: with Memcached and nova-compute stopped there, its Alertmanager posted nothing, so no alert has gone from a Kolla-Ansible stack to OneUptime. What Alertmanager posts at the version Kolla-Ansible pins, recorded in a test cluster, did open and resolve an incident on the right cloud on a running OneUptime. ${WHOLE_PATH}`,
     firstSteps: [
       {
         title: "Forward what is already firing",

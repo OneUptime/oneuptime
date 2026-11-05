@@ -17,6 +17,7 @@ import { OpenStackBlastRadius } from "../../../Types/OpenStack/OpenStackBlastRad
 import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
@@ -773,7 +774,7 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       );
       expect(row!["name"]).toBe("ou-cluster-real");
       expect(row!["openStackProjectId"]).toBe(
-        "5d1838ef05294dd9a804e284b9f21617",
+        "ae798f87fdb743ddb30bc5a46ac15507",
       );
     });
 
@@ -989,6 +990,48 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       expect(namesOf(read, OpenStackResourceKind.DnsRecordset)).toEqual([
         "broken",
       ]);
+    });
+
+    test("Gnocchi with no processors, or a backlog past the line, though its API reads up", async () => {
+      await write([
+        api(OpenStackServiceType.Metric, {
+          facts: {
+            metricdProcessors: 0,
+            measuresToProcess: 5,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.Metric, {
+          regionName: "RegionTwo",
+          facts: {
+            metricdProcessors: 4,
+            measuresToProcess: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES + 1,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.Metric, {
+          regionName: "RegionThree",
+          facts: {
+            metricdProcessors: 4,
+            measuresToProcess: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        // A number of another service's facts says nothing.
+        api(OpenStackServiceType.Orchestration, {
+          facts: { metricdProcessors: 0, vouchedAt: minutesAgo(1) },
+        }),
+      ]);
+      expect(
+        (await attention()).rows
+          .filter((row: JSONObject): boolean => {
+            return row["kind"] === OpenStackResourceKind.Api;
+          })
+          .map((row: JSONObject): string => {
+            return `${row["name"]} ${row["regionName"]}`;
+          })
+          .sort(),
+      ).toEqual(["gnocchi RegionOne", "gnocchi RegionTwo"]);
     });
 
     test("a project's own page reads its stacks and clusters too", async () => {
