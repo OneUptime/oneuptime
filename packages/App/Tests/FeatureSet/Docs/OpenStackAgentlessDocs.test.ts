@@ -11,7 +11,10 @@ import {
   OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES,
   OPENSTACK_PROBE_COLLECTION_CONCURRENCY,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import { OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT } from "Common/Types/OpenStack/OpenStackScale";
+import {
+  OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION,
+  OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
+} from "Common/Types/OpenStack/OpenStackScale";
 import {
   TerraformAttributeDescriptor,
   getTerraformAttributes,
@@ -98,8 +101,8 @@ describe("the reference table", () => {
     const mebibytes: number =
       OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES / (1024 * 1024);
 
-    expect(row("Largest collection")).toContain(`About ${mebibytes} MiB`);
-    expect(PAGE).toContain(`About ${mebibytes} MiB of metrics per collection`);
+    expect(row("Largest upload")).toContain(`${mebibytes} MiB`);
+    expect(row("Largest cloud")).toContain(`uploads of ${mebibytes} MiB`);
   });
 
   it("says how long a test has", () => {
@@ -470,12 +473,7 @@ describe("what it says about how a collection stands", () => {
   });
 
   it("says how many instances' histories one collection reads", () => {
-    expect(
-      probeConstant(
-        "OpenStackInstanceActions.ts",
-        "MAX_SERVERS_READ_PER_COLLECTION",
-      ),
-    ).toBe(25);
+    expect(OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION).toBe(25);
     expect(PAGE).toContain("at most 25 are read in a collection");
   });
 });
