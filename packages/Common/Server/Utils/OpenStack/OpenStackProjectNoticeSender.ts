@@ -35,6 +35,7 @@ import SSRFProtection from "../SSRFProtection";
 import OpenStackProjectNotices, {
   toOpenStackNoticeRecipient,
 } from "./OpenStackProjectNotices";
+import OpenStackProjectPages from "./OpenStackProjectPages";
 
 /*
  * SENDING WHAT WAS WRITTEN DOWN.
@@ -487,6 +488,8 @@ export default class OpenStackProjectNoticeSender {
           openStackProjectId: true,
           email: true,
           webhookUrl: true,
+          statusPageId: true,
+          statusPageRows: true,
           isEnabled: true,
           previewedRecipient: true,
           previewSeenAt: true,
@@ -562,6 +565,10 @@ export default class OpenStackProjectNoticeSender {
     notice: OpenStackProjectNotice;
     message: OpenStackProjectNoticeMessage;
   }): Promise<OpenStackNoticeSendOutcome> {
+    if (data.notice.statusPageId) {
+      return OpenStackProjectPages.tell(data);
+    }
+
     return data.notice.email
       ? this.sendEmail({ ...data, email: data.notice.email })
       : this.sendWebhook({ ...data, webhookUrl: data.notice.webhookUrl! });

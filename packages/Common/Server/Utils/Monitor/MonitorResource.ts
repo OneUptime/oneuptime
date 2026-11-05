@@ -1346,7 +1346,21 @@ export default class MonitorResourceUtil {
             monitor: monitor,
             isPerSeriesEvaluation: isPerSeriesEvaluation,
             criteriaInstance: matchedCriteriaInstance,
-            breachingFingerprints: allBreachingSeriesFingerprints,
+            breachingFingerprints: new Set<string>(
+              criteriaFanOut.flatMap((matched: MatchedCriteriaResult) => {
+                const criteria: MonitorCriteriaInstance | undefined =
+                  criteriaInstanceMap[matched.criteriaId];
+
+                return criteria?.data?.createIncidents ||
+                  criteria?.data?.createAlerts
+                  ? matched.perSeriesMatches.map(
+                      (series: PerSeriesCriteriaMatch): string => {
+                        return series.fingerprint;
+                      },
+                    )
+                  : [];
+              }),
+            ),
             suppressedFingerprints: suppressedSeriesFingerprints,
           })
             ? null

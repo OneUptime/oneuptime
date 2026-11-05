@@ -11,6 +11,7 @@ import DataStore from "../../../Models/DatabaseModels/DataStore";
 import { DataCheckAttribute } from "../../../Types/DataObservability/DataCheckMetric";
 import { DataObservabilityAttribute } from "../../../Types/DataObservability/DataObservabilityMetric";
 import { JSONObject } from "../../../Types/JSON";
+import MonitorStepOpenStackMonitor from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   OpenStackMaintainedCloud,
@@ -545,10 +546,10 @@ export default class MonitorMaintenanceSuppression {
 
     for (const step of input.monitor.monitorSteps?.data
       ?.monitorStepsInstanceArray || []) {
-      const config: { cloudIdentifier?: string; resourceId?: string } =
-        step.data?.openstackMonitor || {};
+      const config: MonitorStepOpenStackMonitor | undefined =
+        step.data?.openstackMonitor;
 
-      if (config.cloudIdentifier) {
+      if (config?.cloudIdentifier) {
         clouds.push({
           name: config.cloudIdentifier,
           id: config.resourceId?.toString().toLowerCase(),

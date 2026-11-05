@@ -332,6 +332,24 @@ export default class OpenStackProjectNoticeDelivery extends BaseModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.ObjectID,
+    canReadOnRelationQuery: true,
+    title: "Status Page Announcement ID",
+    description: "What this posted on a project's private status page, to end when it is over.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public statusPageAnnouncementId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
     required: true,
     type: TableColumnType.JSON,
     title: "Facts",

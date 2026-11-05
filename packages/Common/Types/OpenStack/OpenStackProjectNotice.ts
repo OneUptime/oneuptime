@@ -30,6 +30,8 @@ import { OpenStackResourceKind } from "./OpenStackResourceKind";
 export enum OpenStackProjectNoticeChannel {
   Email = "Email",
   Webhook = "Webhook",
+  // A private status page an operator made for the project, which tells whoever may read it.
+  StatusPage = "Status Page",
 }
 
 export enum OpenStackProjectNoticeEvent {
@@ -65,21 +67,28 @@ export interface OpenStackProjectNoticeRecipient {
   openStackProjectId: string;
   email?: string | null | undefined;
   webhookUrl?: string | null | undefined;
+  statusPageId?: string | null | undefined;
   isEnabled?: boolean | null | undefined;
   previewedRecipient?: string | null | undefined;
   previewSeenAt?: Date | string | null | undefined;
 }
 
+type OpenStackNoticeAddress = Pick<
+  OpenStackProjectNoticeRecipient,
+  "email" | "webhookUrl" | "statusPageId"
+>;
+
+// Whichever one it holds, and none when it holds anything else: a notice tells exactly one.
 export function getOpenStackNoticeChannel(
-  notice: Pick<OpenStackProjectNoticeRecipient, "email" | "webhookUrl">,
+  notice: OpenStackNoticeAddress,
 ): OpenStackProjectNoticeChannel | null {
-  if (notice.email && !notice.webhookUrl) {
-    return OpenStackProjectNoticeChannel.Email;
-  }
-  if (notice.webhookUrl && !notice.email) {
-    return OpenStackProjectNoticeChannel.Webhook;
-  }
-  return null;
+  const held: Array<OpenStackProjectNoticeChannel> = [
+    ...(notice.email ? [OpenStackProjectNoticeChannel.Email] : []),
+    ...(notice.webhookUrl ? [OpenStackProjectNoticeChannel.Webhook] : []),
+    ...(notice.statusPageId ? [OpenStackProjectNoticeChannel.StatusPage] : []),
+  ];
+
+  return held.length === 1 ? held[0]! : null;
 }
 
 /*
@@ -87,20 +96,18 @@ export function getOpenStackNoticeChannel(
  * recipient by. An email's case means nothing to anyone's mail server, and a URL's does.
  */
 export function getOpenStackNoticeRecipient(
-  notice: Pick<OpenStackProjectNoticeRecipient, "email" | "webhookUrl">,
+  notice: OpenStackNoticeAddress,
 ): string | null {
-  const channel: OpenStackProjectNoticeChannel | null =
-    getOpenStackNoticeChannel(notice);
-
-  if (channel === OpenStackProjectNoticeChannel.Email) {
-    return `email:${String(notice.email).trim().toLowerCase()}`;
+  switch (getOpenStackNoticeChannel(notice)) {
+    case OpenStackProjectNoticeChannel.Email:
+      return `email:${String(notice.email).trim().toLowerCase()}`;
+    case OpenStackProjectNoticeChannel.Webhook:
+      return `webhook:${String(notice.webhookUrl).trim()}`;
+    case OpenStackProjectNoticeChannel.StatusPage:
+      return `statusPage:${String(notice.statusPageId).trim().toLowerCase()}`;
+    default:
+      return null;
   }
-
-  if (channel === OpenStackProjectNoticeChannel.Webhook) {
-    return `webhook:${String(notice.webhookUrl).trim()}`;
-  }
-
-  return null;
 }
 
 // On, and for the recipient an operator saw.
@@ -143,17 +150,16 @@ export interface OpenStackProjectNoticeDecision {
 }
 
 function emptyHoldings(projectId: string): OpenStackBlastRadiusProject {
-  return {
+  const project: OpenStackBlastRadiusProject = {
     projectId,
     name: null,
-    instanceCount: 0,
-    volumeCount: 0,
-    routerCount: 0,
-    floatingIpCount: 0,
-    stackCount: 0,
-    containerClusterCount: 0,
-    shareCount: 0,
-  };
+  } as OpenStackBlastRadiusProject;
+
+  for (const entry of OPENSTACK_BLAST_RADIUS_COUNTS) {
+    project[entry.count] = 0;
+  }
+
+  return project;
 }
 
 /*

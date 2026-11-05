@@ -29,6 +29,8 @@ export interface OpenStackProjectNoticeFacts {
   // Our own words for the part: describeOpenStackPartToAProject.
   partWords: string;
   partKind: string;
+  // Which row of a project's own page this belongs to, if any.
+  service?: string | null | undefined;
   regionName: string | null;
   zoneName?: string | null | undefined;
   // What this project holds on it, and only this project.
@@ -79,15 +81,23 @@ function toLowerStart(words: string): string {
   return words.substring(0, 1).toLowerCase() + words.substring(1);
 }
 
+/*
+ * A name from a cloud as text and only text. In a code span, because in a sentence a mail client's
+ * Markdown would make a link of a project called https://example.com, and nobody chose to send that.
+ */
+function nameOf(value: string | null | undefined): MarkdownText {
+  return FeedMarkdown.code(reported(value));
+}
+
 function whereItIs(facts: OpenStackProjectNoticeFacts): MarkdownText {
   if (facts.zoneName && facts.regionName) {
-    return mdText` in availability zone ${reported(facts.zoneName)}, region ${reported(facts.regionName)}`;
+    return mdText` in availability zone ${nameOf(facts.zoneName)}, region ${nameOf(facts.regionName)}`;
   }
   if (facts.zoneName) {
-    return mdText` in availability zone ${reported(facts.zoneName)}`;
+    return mdText` in availability zone ${nameOf(facts.zoneName)}`;
   }
   return facts.regionName
-    ? mdText` in region ${reported(facts.regionName)}`
+    ? mdText` in region ${nameOf(facts.regionName)}`
     : FeedMarkdown.empty();
 }
 
@@ -125,6 +135,7 @@ export function writeOpenStackProjectNotice(
   facts: OpenStackProjectNoticeFacts,
 ): OpenStackProjectNoticeMessage {
   const name: string = reported(facts.projectName || facts.projectId);
+  const nameInText: MarkdownText = nameOf(facts.projectName || facts.projectId);
   const holdings: string = describeOpenStackBlastRadiusCounts(facts.holdings);
   const startsAt: string | null = toUtc(facts.startsAt);
   const endsAt: string | null = toUtc(facts.endsAt);
@@ -139,11 +150,11 @@ export function writeOpenStackProjectNotice(
   if (holdings) {
     sections.push(
       isOver
-        ? mdText`Project ${name} holds ${holdings} there.`
-        : mdText`This affects project ${name}: ${holdings}.`,
+        ? mdText`Project ${nameInText} holds ${holdings} there.`
+        : mdText`This affects project ${nameInText}: ${holdings}.`,
     );
   } else {
-    sections.push(mdText`This is about project ${name}.`);
+    sections.push(mdText`This is about project ${nameInText}.`);
   }
 
   if (facts.event === OpenStackProjectNoticeEvent.MaintenancePlanned) {

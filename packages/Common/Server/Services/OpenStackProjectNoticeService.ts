@@ -1,5 +1,6 @@
 import Model from "../../Models/DatabaseModels/OpenStackProjectNotice";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
   OpenStackProjectNoticeChannel,
@@ -56,11 +57,15 @@ export class Service extends ProjectReferencesService<Model> {
 
     const email: string | undefined = createBy.data.email?.toString();
     const webhookUrl: string | undefined = createBy.data.webhookUrl?.toString();
+    const statusPageId: string | undefined =
+      createBy.data.statusPageId?.toString();
     const channel: OpenStackProjectNoticeChannel | null =
-      getOpenStackNoticeChannel({ email, webhookUrl });
+      getOpenStackNoticeChannel({ email, webhookUrl, statusPageId });
 
     if (!channel) {
-      throw new BadDataException("A notice tells one email or one webhook.");
+      throw new BadDataException(
+        "A notice tells one email, one webhook or one status page.",
+      );
     }
 
     if (channel === OpenStackProjectNoticeChannel.Webhook) {
@@ -77,7 +82,7 @@ export class Service extends ProjectReferencesService<Model> {
           openStackCloudId: createBy.data.openStackCloudId,
           openStackProjectId,
         },
-        select: { email: true, webhookUrl: true },
+        select: { email: true, webhookUrl: true, statusPageId: true },
         skip: 0,
         limit: 1000,
         props: { isRoot: true },
@@ -85,6 +90,7 @@ export class Service extends ProjectReferencesService<Model> {
       const recipient: string | null = getOpenStackNoticeRecipient({
         email,
         webhookUrl,
+        statusPageId,
       });
 
       if (
@@ -93,6 +99,7 @@ export class Service extends ProjectReferencesService<Model> {
             getOpenStackNoticeRecipient({
               email: notice.email?.toString(),
               webhookUrl: notice.webhookUrl?.toString(),
+              statusPageId: notice.statusPageId?.toString(),
             }) === recipient
           );
         })
@@ -112,8 +119,12 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
-    if (updateBy.data.webhookUrl) {
-      await this.assertWebhookCanBeReached(updateBy.data.webhookUrl.toString());
+    const webhookUrl: unknown = (updateBy.data as unknown as JSONObject)[
+      "webhookUrl"
+    ];
+
+    if (webhookUrl) {
+      await this.assertWebhookCanBeReached(String(webhookUrl));
     }
 
     return { updateBy, carryForward: null };
@@ -124,9 +135,9 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    const data: Partial<Model> = onUpdate.updateBy.data as Partial<Model>;
+    const data: JSONObject = onUpdate.updateBy.data as unknown as JSONObject;
 
-    if (data.email !== undefined || data.webhookUrl !== undefined) {
+    if (data["email"] !== undefined || data["webhookUrl"] !== undefined) {
       for (const id of updatedItemIds) {
         await this.updateOneById({
           id,

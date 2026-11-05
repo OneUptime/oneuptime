@@ -996,7 +996,7 @@ const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
   summary:
     "A nova-compute is disabled with no maintenance event covering its host.",
   description:
-    "Alert when a nova-compute stays disabled for 10 minutes (openstack_nova_agent_state filtered to adminState disabled, whose rows say it is there whether it is up or down) and no maintenance event in progress covers its host, its availability zone or the whole cloud. One incident per host. During an event on the host a disable is expected and this stays quiet, so `openstack compute service set --disable` as part of planned work says nothing. Outside one, nothing new can be scheduled there and nobody said why: check `openstack compute service list --long` for the reason someone gave.",
+    "Alert when a nova-compute stays disabled for 10 minutes (openstack_nova_agent_state filtered to adminState disabled, whose rows say it is there whether it is up or down) and no maintenance event in progress covers its host, its availability zone or the whole cloud. One incident per host. During an event on the host a disable is expected and this stays quiet, so `openstack compute service set --disable` as part of planned work says nothing. Outside one, nothing new can be scheduled there and nobody said why. Check `openstack compute service list --long` for the reason someone gave.",
   category: "Control Plane",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {

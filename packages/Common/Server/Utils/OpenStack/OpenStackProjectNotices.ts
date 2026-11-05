@@ -30,7 +30,10 @@ import {
   getOpenStackProjectsToDecideFor,
 } from "../../../Types/OpenStack/OpenStackProjectNotice";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
-import { describeOpenStackPartToAProject } from "../../../Types/OpenStack/OpenStackStatusPageService";
+import {
+  describeOpenStackPartToAProject,
+  getOpenStackStatusPageServiceOfPart,
+} from "../../../Types/OpenStack/OpenStackStatusPageService";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -69,6 +72,7 @@ export function toOpenStackNoticeRecipient(
     openStackProjectId: notice.openStackProjectId || "",
     email: notice.email?.toString() || null,
     webhookUrl: notice.webhookUrl?.toString() || null,
+    statusPageId: notice.statusPageId?.toString() || null,
     isEnabled: notice.isEnabled,
     previewedRecipient: notice.previewedRecipient,
     previewSeenAt: notice.previewSeenAt,
@@ -103,6 +107,7 @@ export default class OpenStackProjectNotices {
         openStackProjectId: true,
         email: true,
         webhookUrl: true,
+        statusPageId: true,
         isEnabled: true,
         previewedRecipient: true,
         previewSeenAt: true,
@@ -239,6 +244,12 @@ export default class OpenStackProjectNotices {
       projectId: data.told.project.projectId,
       projectName: data.told.project.name,
       partKind: data.partKind,
+      service:
+        getOpenStackStatusPageServiceOfPart({
+          kind: data.partKind,
+          name: data.partName,
+          externalId: data.partExternalId,
+        }) || null,
       partWords: describeOpenStackPartToAProject({
         kind: data.partKind,
         name: data.partName,

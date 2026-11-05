@@ -987,9 +987,6 @@ import OpenStackBudgetService, {
 import OpenStackProjectNoticeDeliveryService, {
   Service as OpenStackProjectNoticeDeliveryServiceType,
 } from "Common/Server/Services/OpenStackProjectNoticeDeliveryService";
-import OpenStackProjectStatusPageService, {
-  Service as OpenStackProjectStatusPageServiceType,
-} from "Common/Server/Services/OpenStackProjectStatusPageService";
 import OpenStackCloudCheckService, {
   Service as OpenStackCloudCheckServiceType,
 } from "Common/Server/Services/OpenStackCloudCheckService";
@@ -1679,7 +1676,6 @@ import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStack
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
 import OpenStackProjectNoticeDelivery from "Common/Models/DatabaseModels/OpenStackProjectNoticeDelivery";
-import OpenStackProjectStatusPage from "Common/Models/DatabaseModels/OpenStackProjectStatusPage";
 import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
@@ -5841,17 +5837,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         OpenStackProjectNoticeDelivery,
         OpenStackProjectNoticeDeliveryService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        OpenStackProjectStatusPage,
-        OpenStackProjectStatusPageServiceType
-      >(
-        OpenStackProjectStatusPage,
-        OpenStackProjectStatusPageService,
       ).getRouter(),
     );
 

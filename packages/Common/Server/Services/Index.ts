@@ -99,7 +99,6 @@ import OpenStackProjectUsageService from "./OpenStackProjectUsageService";
 import OpenStackBudgetService from "./OpenStackBudgetService";
 import OpenStackProjectNoticeService from "./OpenStackProjectNoticeService";
 import OpenStackProjectNoticeDeliveryService from "./OpenStackProjectNoticeDeliveryService";
-import OpenStackProjectStatusPageService from "./OpenStackProjectStatusPageService";
 import OpenStackCloudCheckService from "./OpenStackCloudCheckService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
@@ -716,7 +715,6 @@ const services: Array<BaseService> = [
   OpenStackBudgetService,
   OpenStackProjectNoticeService,
   OpenStackProjectNoticeDeliveryService,
-  OpenStackProjectStatusPageService,
   OpenStackCloudCheckService,
   DockerSwarmClusterService,
   CephClusterService,

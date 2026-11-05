@@ -44,6 +44,7 @@ import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusCount,
   buildOpenStackBlastRadius,
+  getEmptyOpenStackBlastRadius,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
 import {
   OpenStackReachedProject,
@@ -154,11 +155,10 @@ function standIn(data: {
       }
       return null;
     }) as never);
-  if (data.radius) {
-    jest
-      .spyOn(OpenStackResourceService, "getBlastRadius")
-      .mockResolvedValue(data.radius);
-  }
+  // An instance's own radius says what it belongs to, which is a read of its own elsewhere.
+  jest
+    .spyOn(OpenStackResourceService, "getBlastRadius")
+    .mockResolvedValue(data.radius || getEmptyOpenStackBlastRadius(false));
 }
 
 async function describeInstance(

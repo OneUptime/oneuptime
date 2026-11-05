@@ -1,5 +1,6 @@
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -7,11 +8,14 @@ import {
   OpenStackMaintainedPart,
   OpenStackMaintenancePart,
   OpenStackMaintenancePartKind,
+  getOpenStackMachineOfHost,
   readOpenStackMaintenanceParts,
 } from "../../../Types/OpenStack/OpenStackMaintenancePart";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import OpenStackResourceService from "../../Services/OpenStackResourceService";
+import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 
@@ -104,6 +108,93 @@ export default class OpenStackMaintenanceParts {
       );
       return undefined;
     }
+  }
+
+  /*
+   * The events in progress that cover one host, for what its page says of a disable: on the host, on the
+   * zone it is in, or on the whole cloud. What MonitorMaintenanceSuppression quiets by, from the host's end.
+   */
+  public static async readEventsCoveringHost(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    hostName: string;
+    regionName: string | null;
+  }): Promise<Array<{ id: string; title: string }>> {
+    const inProgress: Array<ObjectID> =
+      await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+        data.projectId,
+      );
+
+    if (inProgress.length === 0) {
+      return [];
+    }
+
+    const events: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findBy({
+        query: {
+          projectId: data.projectId,
+          currentScheduledMaintenanceStateId: QueryHelper.any(inProgress),
+        },
+        select: {
+          _id: true,
+          title: true,
+          openStackParts: true,
+          openStackClouds: { _id: true },
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: { isRoot: true },
+      });
+
+    const cloudId: string = data.openStackCloudId.toString();
+    const covering: Array<{ id: string; title: string }> = [];
+
+    for (const event of events) {
+      const parts: Array<OpenStackMaintenancePart> =
+        readOpenStackMaintenanceParts(event.openStackParts).filter(
+          (part: OpenStackMaintenancePart): boolean => {
+            return part.openStackCloudId === cloudId;
+          },
+        );
+      const isOnTheCloud: boolean = (event.openStackClouds || []).some(
+        (cloud: OpenStackCloud): boolean => {
+          return String(cloud._id || "").toLowerCase() === cloudId;
+        },
+      );
+
+      let isCovered: boolean = parts.length === 0 && isOnTheCloud;
+
+      for (const part of parts) {
+        const hostNames: Array<string> =
+          part.kind === OpenStackMaintenancePartKind.AvailabilityZone
+            ? await this.readHostsOfZone({
+                projectId: data.projectId,
+                openStackCloudId: data.openStackCloudId,
+                zoneName: part.name,
+                regionName: part.regionName,
+              })
+            : [part.name];
+
+        isCovered =
+          isCovered ||
+          ((part.regionName || null) === (data.regionName || null) &&
+            hostNames.some((hostName: string): boolean => {
+              return (
+                getOpenStackMachineOfHost(hostName) ===
+                getOpenStackMachineOfHost(data.hostName)
+              );
+            }));
+      }
+
+      if (isCovered) {
+        covering.push({
+          id: (event._id || "").toString(),
+          title: event.title || "",
+        });
+      }
+    }
+
+    return covering;
   }
 
   public static async readHostsOfZone(data: {

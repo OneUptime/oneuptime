@@ -1,6 +1,7 @@
 import OpenStackCloud from "./OpenStackCloud";
 import Project from "./Project";
 import User from "./User";
+import StatusPage from "./StatusPage";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -19,12 +20,14 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import URL from "../../Types/API/URL";
 import Email from "../../Types/Email";
+import { OpenStackProjectPageRow } from "../../Types/OpenStack/OpenStackStatusPagePlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * Who is told when a part affecting one OpenStack project is in an incident or planned maintenance:
- * one email address or webhook an operator configured for that project. Off when made, and turned on
- * only after a preview of who it tells (OpenStackProjectNotice in Types, which says who is told).
+ * Who is told when a part affecting one OpenStack project is in an incident or planned maintenance: one
+ * email address or webhook an operator configured for that project, or the private status page they made
+ * for it. Off when made, and turned on only after a preview of who it tells (OpenStackProjectNotice in
+ * Types, which says who is told).
  */
 
 const readPermissions: Array<Permission> = [
@@ -79,7 +82,7 @@ const deletePermissions: Array<Permission> = [
   pluralName: "OpenStack Project Notices",
   icon: IconProp.Notification,
   tableDescription:
-    "An email address or webhook told when a part affecting one OpenStack project is in an incident or planned maintenance. Off until an operator has seen who it tells.",
+    "An email address, webhook or private status page told when a part affecting one OpenStack project is in an incident or planned maintenance. Off until an operator has seen who it tells.",
 })
 @TableAccessControl({
   create: createPermissions,
@@ -244,6 +247,69 @@ export default class OpenStackProjectNotice extends BaseModel {
     transformer: URL.getDatabaseTransformer(),
   })
   public webhookUrl?: URL = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "statusPageId",
+    type: TableColumnType.Entity,
+    modelType: StatusPage,
+    title: "Status Page",
+    description: "The private status page this project reads, when that is who this tells.",
+  })
+  @ManyToOne(
+    () => {
+      return StatusPage;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "statusPageId" })
+  public statusPage?: StatusPage = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    canReadOnRelationQuery: true,
+    title: "Status Page ID",
+    description: "ID of the private status page this project reads, when that is who this tells.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public statusPageId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Status Page Rows",
+    description:
+      "Which monitor is which row of the private status page, by region and service. Used by OneUptime only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public statusPageRows?: Array<OpenStackProjectPageRow> = undefined;
 
   @ColumnAccessControl({
     create: [],

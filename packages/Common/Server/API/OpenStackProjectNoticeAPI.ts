@@ -26,9 +26,14 @@ import {
 } from "../../Types/OpenStack/OpenStackProjectNotice";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
 import {
+  OpenStackStatusPagePlan,
+  getOpenStackStatusPagePlanKey,
+} from "../../Types/OpenStack/OpenStackStatusPagePlan";
+import {
   OpenStackProjectNoticeMessage,
   writeOpenStackProjectNotice,
 } from "../../Utils/OpenStack/OpenStackProjectNoticeText";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import OpenStackCloudService from "../Services/OpenStackCloudService";
 import OpenStackProjectNoticeService, {
@@ -41,8 +46,13 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import OpenStackMaintenanceParts from "../Utils/OpenStack/OpenStackMaintenanceParts";
 import OpenStackMaintenanceReach from "../Utils/OpenStack/OpenStackMaintenanceReach";
 import OpenStackProjectNotices from "../Utils/OpenStack/OpenStackProjectNotices";
+import OpenStackStatusPages, {
+  OpenStackObjectivesMade,
+  OpenStackStatusPageMade,
+} from "../Utils/OpenStack/OpenStackStatusPages";
 import Response from "../Utils/Response";
 import SSRFProtection from "../Utils/SSRFProtection";
 import BaseAPI from "./BaseAPI";
@@ -65,6 +75,20 @@ import CommonAPI from "./CommonAPI";
  *   POST /openstack-project-notice/who-would-be-told/:cloudId   { kind, externalId } or { parts }
  *     Who would be told were this part to fail now or a maintenance event to be put on these parts, by
  *     the answer that really sends, and why the rest would not. Needs read access to the cloud.
+ *
+ *   POST /openstack-project-notice/status-page-plan/:cloudId
+ *     What making a status page for this cloud would make, and the key that holds a make to it.
+ *
+ *   POST /openstack-project-notice/make-status-page/:cloudId   { planKey, name?, isPublic? }
+ *   POST /openstack-project-notice/make-objectives/:cloudId    { planKey }
+ *     Makes what the plan said, with the permissions of whoever asked, or refuses if it has changed.
+ *
+ *   POST /openstack-project-notice/project-page-plan/:cloudId  { openStackProjectId }
+ *   POST /openstack-project-notice/make-project-page/:cloudId  { openStackProjectId }
+ *     The same for one project's private page.
+ *
+ *   POST /openstack-project-notice/maintenance-covering/:cloudId  { hostName, regionName? }
+ *     The events in progress that cover a host, for what a page says of a disable. Needs read access.
  * ------------------------------------------------------------------
  */
 export default class OpenStackProjectNoticeAPI extends BaseAPI<
@@ -88,6 +112,24 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
     });
     this.register(`${path}/who-would-be-told/:cloudId`, (req, res) => {
       return this.whoWouldBeTold(req, res);
+    });
+    this.register(`${path}/status-page-plan/:cloudId`, (req, res) => {
+      return this.statusPagePlan(req, res);
+    });
+    this.register(`${path}/make-status-page/:cloudId`, (req, res) => {
+      return this.makeStatusPage(req, res);
+    });
+    this.register(`${path}/make-objectives/:cloudId`, (req, res) => {
+      return this.makeObjectives(req, res);
+    });
+    this.register(`${path}/project-page-plan/:cloudId`, (req, res) => {
+      return this.projectPagePlan(req, res);
+    });
+    this.register(`${path}/make-project-page/:cloudId`, (req, res) => {
+      return this.makeProjectPage(req, res);
+    });
+    this.register(`${path}/maintenance-covering/:cloudId`, (req, res) => {
+      return this.maintenanceCovering(req, res);
     });
   }
 
@@ -149,6 +191,7 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
           openStackProjectId: true,
           email: true,
           webhookUrl: true,
+          statusPageId: true,
           isEnabled: true,
           previewToken: true,
         },
@@ -169,11 +212,16 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
   } {
     const email: string | undefined = notice.email?.toString();
     const webhookUrl: string | undefined = notice.webhookUrl?.toString();
+    const statusPageId: string | undefined = notice.statusPageId?.toString();
 
     return {
-      channel: getOpenStackNoticeChannel({ email, webhookUrl }),
+      channel: getOpenStackNoticeChannel({ email, webhookUrl, statusPageId }),
       address: email || webhookUrl || "",
-      recipient: getOpenStackNoticeRecipient({ email, webhookUrl }),
+      recipient: getOpenStackNoticeRecipient({
+        email,
+        webhookUrl,
+        statusPageId,
+      }),
     };
   }
 
@@ -261,7 +309,9 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
     const recipient: string | null = this.recipientOf(notice).recipient;
 
     if (!recipient) {
-      throw new BadDataException("A notice tells one email or one webhook.");
+      throw new BadDataException(
+        "A notice tells one email, one webhook or one status page.",
+      );
     }
 
     const projects: Set<string> =
@@ -320,10 +370,12 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
     return Response.sendEmptySuccessResponse(req, res);
   }
 
-  private async whoWouldBeTold(
-    req: ExpressRequest,
-    res: ExpressResponse,
-  ): Promise<void> {
+  // The cloud, for someone who may read it. Anyone else is told it isn't there.
+  private async readCloudOfRequest(req: ExpressRequest): Promise<{
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }> {
     const cloudId: string = req.params["cloudId"] || "";
 
     if (!ObjectID.isValidUUID(cloudId)) {
@@ -345,7 +397,187 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
       throw new NotFoundException("OpenStack Cloud not found");
     }
 
-    const projectId: ObjectID = cloud.projectId;
+    return { projectId: cloud.projectId, openStackCloudId, props };
+  }
+
+  private async statusPagePlan(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } = await this.readCloudOfRequest(req);
+
+    const plan: OpenStackStatusPagePlan = await OpenStackStatusPages.readPlan({
+      projectId,
+      openStackCloudId,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      plan: plan as unknown as JSONObject,
+      planKey: getOpenStackStatusPagePlanKey(plan),
+    });
+  }
+
+  private async makeStatusPage(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId, props } =
+      await this.readCloudOfRequest(req);
+    const body: JSONObject = (req.body || {}) as JSONObject;
+    const name: unknown = body["name"];
+
+    const made: OpenStackStatusPageMade = await this.oneAtATime(
+      openStackCloudId,
+      () => {
+        return OpenStackStatusPages.makeStatusPage({
+          projectId,
+          openStackCloudId,
+          planKey: body["planKey"],
+          name: typeof name === "string" ? name : undefined,
+          // Who may read it is theirs to widen, once they've read what it says.
+          isPublic: body["isPublic"] === true,
+          props,
+        });
+      },
+    );
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      made as unknown as JSONObject,
+    );
+  }
+
+  private async makeObjectives(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId, props } =
+      await this.readCloudOfRequest(req);
+    const body: JSONObject = (req.body || {}) as JSONObject;
+
+    const made: OpenStackObjectivesMade = await this.oneAtATime(
+      openStackCloudId,
+      () => {
+        return OpenStackStatusPages.makeObjectives({
+          projectId,
+          openStackCloudId,
+          planKey: body["planKey"],
+          props,
+        });
+      },
+    );
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      made as unknown as JSONObject,
+    );
+  }
+
+  private readProjectId(req: ExpressRequest): string {
+    const value: unknown = ((req.body || {}) as JSONObject)[
+      "openStackProjectId"
+    ];
+
+    if (typeof value !== "string" || !value.trim()) {
+      throw new BadDataException("openStackProjectId is required");
+    }
+
+    return value.trim();
+  }
+
+  private async projectPagePlan(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } = await this.readCloudOfRequest(req);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      (await OpenStackStatusPages.readProjectPagePlan({
+        projectId,
+        openStackCloudId,
+        openStackProjectId: this.readProjectId(req),
+      })) as unknown as JSONObject,
+    );
+  }
+
+  private async makeProjectPage(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId, props } =
+      await this.readCloudOfRequest(req);
+    const openStackProjectId: string = this.readProjectId(req);
+
+    const made: OpenStackStatusPageMade = await this.oneAtATime(
+      openStackCloudId,
+      () => {
+        return OpenStackStatusPages.makeProjectPage({
+          projectId,
+          openStackCloudId,
+          openStackProjectId,
+          props,
+        });
+      },
+    );
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      made as unknown as JSONObject,
+    );
+  }
+
+  // Two clicks must not make two of anything: the second reads what the first made, and is refused.
+  private async oneAtATime<T>(
+    openStackCloudId: ObjectID,
+    make: () => Promise<T>,
+  ): Promise<T> {
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: openStackCloudId.toString(),
+      namespace: "OpenStackStatusPages",
+      lockTimeout: 5 * 60 * 1000,
+    });
+
+    try {
+      return await make();
+    } finally {
+      await Semaphore.release(mutex);
+    }
+  }
+
+  // What the page of a disabled host says: whether someone planned this.
+  private async maintenanceCovering(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } = await this.readCloudOfRequest(req);
+    const body: JSONObject = (req.body || {}) as JSONObject;
+    const hostName: unknown = body["hostName"];
+
+    if (typeof hostName !== "string" || !hostName.trim()) {
+      throw new BadDataException("hostName is required");
+    }
+
+    return Response.sendJsonObjectResponse(req, res, {
+      events: (await OpenStackMaintenanceParts.readEventsCoveringHost({
+        projectId,
+        openStackCloudId,
+        hostName: hostName.trim(),
+        regionName:
+          typeof body["regionName"] === "string" ? body["regionName"] : null,
+      })) as unknown as JSONObject,
+    });
+  }
+
+  private async whoWouldBeTold(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } = await this.readCloudOfRequest(req);
     const body: JSONObject = (req.body || {}) as JSONObject;
     let radius: OpenStackBlastRadius;
     let ownerProjectId: string | null = null;
@@ -354,7 +586,7 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
       const parts: Array<OpenStackMaintenancePart> =
         readOpenStackMaintenanceParts(body["parts"]).filter(
           (part: OpenStackMaintenancePart): boolean => {
-            return part.openStackCloudId === cloudId.toLowerCase();
+            return part.openStackCloudId === openStackCloudId.toString();
           },
         );
 

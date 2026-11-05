@@ -41,12 +41,12 @@ export class Service extends ProjectReferencesService<Model> {
     const inserted: Array<unknown> = await this.getRepository().manager.query(
       `INSERT INTO "OpenStackProjectNoticeDelivery" (
          "projectId", "openStackCloudId", "openStackProjectNoticeId", "openStackProjectId", "event",
-         "dedupeKey", "partKey", "incidentId", "scheduledMaintenanceId", "facts", "status", "attempts"
+         "dedupeKey", "partKey", "incidentId", "scheduledMaintenanceId", "facts", "status", "attempts", "version"
        )
        SELECT row."projectId"::uuid, row."openStackCloudId"::uuid, row."openStackProjectNoticeId"::uuid,
               row."openStackProjectId", row."event", row."dedupeKey", row."partKey",
               row."incidentId"::uuid, row."scheduledMaintenanceId"::uuid, row."facts",
-              '${OpenStackProjectNoticeDeliveryStatus.Pending}', 0
+              '${OpenStackProjectNoticeDeliveryStatus.Pending}', 0, 1
        FROM jsonb_to_recordset($1::jsonb) AS row(
          "projectId" text, "openStackCloudId" text, "openStackProjectNoticeId" text,
          "openStackProjectId" text, "event" text, "dedupeKey" text, "partKey" text,
