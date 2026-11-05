@@ -361,6 +361,99 @@ describe("the Capacity page", () => {
     ).toHaveTextContent("gone (lost)");
   });
 
+  describe("bare metal, by resource class", () => {
+    const NODE: OpenStackCapacityHost = {
+      name: "1062b540-62b5-44a7-805f-212d8778807c",
+      regionName: "RegionOne",
+      zone: null,
+      aggregates: [],
+      state: "up",
+      instanceCount: 0,
+      inventories: {
+        CUSTOM_BAREMETAL: {
+          total: 1,
+          reserved: 1,
+          allocationRatio: 1,
+          used: 0,
+        },
+      },
+    };
+
+    function snapshotWithNodes(
+      hosts: Array<OpenStackCapacityHost> = [],
+    ): OpenStackCapacitySnapshot {
+      return buildOpenStackCapacitySnapshot({
+        hosts,
+        bareMetalProviders: [NODE],
+        flavors: [],
+        pools: [],
+        now: NOW,
+      });
+    }
+
+    test("a cloud with nodes says how many of each class can take an instance", async () => {
+      await renderCapacity(snapshotWithNodes());
+
+      const row: HTMLElement = await screen.findByTestId(
+        "openstack-capacity-bare-metal-class",
+      );
+
+      expect(row).toHaveTextContent("CUSTOM_BAREMETAL");
+      expect(
+        within(row)
+          .getAllByRole("cell")
+          .map((cell: HTMLElement): string => {
+            return cell.textContent || "";
+          }),
+      ).toEqual(["CUSTOM_BAREMETAL", "1", "0", "0", "1"]);
+    });
+
+    test("nodes alone are no cloud with nothing reported", async () => {
+      await renderCapacity(snapshotWithNodes());
+      await screen.findByTestId("openstack-capacity-bare-metal-classes");
+
+      expect(screen.queryByTestId("openstack-capacity-no-placement")).toBeNull();
+    });
+
+    test("it says what the agent can't tell of a flavor, with no read of its own to say so", async () => {
+      await renderCapacity(snapshotWithNodes());
+
+      expect(
+        await screen.findByTestId("openstack-capacity-bare-metal-flavors"),
+      ).toHaveTextContent(/The agent's exporter doesn't say/);
+      expect(getItem).toHaveBeenCalledTimes(1);
+    });
+
+    test("a cloud without any has no such card", async () => {
+      await renderCapacity(
+        buildOpenStackCapacitySnapshot({
+          hosts: TIGHT_HOSTS,
+          flavors: [],
+          pools: [],
+          now: NOW,
+        }),
+      );
+      await screen.findByTestId("openstack-capacity");
+
+      expect(
+        screen.queryByTestId("openstack-capacity-bare-metal-classes"),
+      ).toBeNull();
+    });
+
+    test("a snapshot kept before this existed reads as having none, until the next one", async () => {
+      const old: OpenStackCapacitySnapshot = snapshotWithNodes(TIGHT_HOSTS);
+
+      delete old.bareMetalClasses;
+
+      await renderCapacity(old);
+      await screen.findByTestId("openstack-capacity");
+
+      expect(
+        screen.queryByTestId("openstack-capacity-bare-metal-classes"),
+      ).toBeNull();
+    });
+  });
+
   test("a cloud with no Placement numbers says what that takes", async () => {
     await renderCapacity(
       buildOpenStackCapacitySnapshot({

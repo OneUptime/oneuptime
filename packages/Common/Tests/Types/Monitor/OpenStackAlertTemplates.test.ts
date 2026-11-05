@@ -546,6 +546,10 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-bare-metal-conductor-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-container-infra-conductor-down": {
     filterType: FilterType.LessThan,
     value: 1,
@@ -832,6 +836,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-orchestration-engine-down": {
     breached: { heat_engine_up: 0 },
     healthy: { heat_engine_up: 1 },
+  },
+  "openstack-bare-metal-conductor-down": {
+    breached: { ironic_conductor_up: 0 },
+    healthy: { ironic_conductor_up: 1 },
   },
   "openstack-container-infra-conductor-down": {
     breached: { magnum_conductor_up: 0 },
@@ -1941,6 +1949,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       });
 
       expect(probeOnly.sort()).toEqual([
+        "openstack-bare-metal-conductor-down",
         "openstack-container-infra-conductor-down",
         "openstack-orchestration-engine-down",
         "openstack-share-service-down",

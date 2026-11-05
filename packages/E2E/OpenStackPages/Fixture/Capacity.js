@@ -207,6 +207,9 @@ export function buildCapacitySnapshotOf(rows, options) {
 
   const snapshot = buildOpenStackCapacitySnapshot({
     hosts: ofKind("Hypervisor").map(readOpenStackCapacityHost),
+    bareMetalProviders: ofKind("PlacementProvider").map(
+      readOpenStackCapacityHost,
+    ),
     flavors: ofKind("Flavor").map((row) => {
       return readOpenStackCapacityFlavor({ row, instanceCount: 0 });
     }),

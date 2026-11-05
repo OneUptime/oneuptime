@@ -174,6 +174,7 @@ export interface OpenStackInventorySummary {
 // What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
 export interface OpenStackCapacityRows {
   hypervisors: Array<JSONObject>;
+  bareMetalProviders: Array<JSONObject>;
   flavors: Array<JSONObject>;
   storagePools: Array<JSONObject>;
   externalNetworks: Array<JSONObject>;
@@ -3135,6 +3136,10 @@ export class Service extends DatabaseService<Model> {
     return {
       hypervisors: await read(
         OpenStackResourceKind.Hypervisor,
+        OPENSTACK_TOPOLOGY_STRUCTURE_LIMIT,
+      ),
+      bareMetalProviders: await read(
+        OpenStackResourceKind.PlacementProvider,
         OPENSTACK_TOPOLOGY_STRUCTURE_LIMIT,
       ),
       flavors: await read(

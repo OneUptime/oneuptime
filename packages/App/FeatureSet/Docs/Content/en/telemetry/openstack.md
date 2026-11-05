@@ -464,7 +464,7 @@ Three open upstream issues shape all this, and the project has also [asked for m
 
 If your cloud runs Ironic, it gets a **Bare Metal** section with every node Ironic shows the credential: where it is in Ironic's state machine, its power, whether someone put it in maintenance and why, its resource class, and when Ironic last saw it move. A cloud without Ironic has no such section, no alert about it and no line on any page.
 
-A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page.
+A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page, for the nodes Ironic shows this credential, and on the [Capacity](#capacity) page, for every node Placement holds.
 
 What needs someone, at the same lines as the [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates):
 
@@ -491,6 +491,8 @@ Each of these was recorded on a real DevStack, and each page says so where it ma
 Everything on it is allocation: what has been promised, not what is busy. An idle instance holds all of it.
 
 **What capacity is.** For each resource provider and resource class, capacity is `(total - reserved) x allocation_ratio`, and allocated is what Placement has promised. That adds up by zone, aggregate, region and cloud. A host whose `nova-compute` is down keeps reporting its last numbers, and a disabled one takes nothing on, so neither counts as room. What they hold is still there, and a forecast counts it.
+
+**Bare metal.** A node takes one instance whole, so a cloud with Ironic gets a table of its own, by resource class: how many nodes, how many could take an instance, how many are in use, and how many are held back, because Nova's Ironic driver can't use them right now. These are Placement's own numbers, so they are the whole cloud's even where Ironic shows a project only what it owns, and they are not in the vCPUs and memory above. A probe reads which class a flavor asks for and counts it against these. The agent's exporter doesn't say, so on the agent a bare metal flavor counts as its vCPUs, memory and disk, on hosts.
 
 **How many more fit.** Each flavor is counted host by host, because an instance needs all of what it asks for on one host. Beside the count is what it would be if everything free were on one host, which is how a full cloud is told from a fragmented one. A flavor no host could hold even empty says **Too large for every host**, and nothing ever alerts on it. Counts are for an instance booted from an image: one booted from a volume asks for no root disk.
 

@@ -2609,6 +2609,46 @@ const shareServiceDownTemplate: OpenStackAlertTemplate = {
   },
 };
 
+/*
+ * A stopped conductor leaves Ironic's API answering and its nodes listed as they were, recorded on
+ * DevStack, so only its own list says so. The exporter has no series for that, and Ironic refuses a
+ * project's credential the list, so this speaks only for a probe on a cloud whose policy lets it read
+ * them. Warning, as several conductors share the nodes between them.
+ */
+const bareMetalConductorDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-bare-metal-conductor-down",
+  name: "Bare Metal Conductor Down",
+  summary: "An ironic-conductor is down, on a cloud a probe collects.",
+  description:
+    "Alert when Ironic lists a conductor as not alive for 15 minutes (openstack_ironic_agent_state below 1). One incident per host. Only a probe sends this, and only where the cloud's policy lets its credential read Ironic's conductors: by default it refuses a project's. Ironic's API carries on answering with a conductor stopped, and every node reads as it did, recorded, so nothing else says this.",
+  category: "Bare Metal",
+  severity: "Warning",
+  forService: OpenStackServiceType.BareMetal,
+  requiresProbe: true,
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.BareMetal,
+      groupByAttributeKeys: WORKER_GROUP,
+      queries: [
+        {
+          alias: "ironic_conductor_up",
+          metricName: "openstack_ironic_agent_state",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Bare Metal Conductor Down",
+        incidentDescription:
+          "Ironic lists this conductor as not alive. Another takes its nodes where there is one. With none left, nodes read as they did and nothing can be deployed, cleaned or powered through Ironic. Check the ironic-conductor service on this host.",
+        criteriaName: "Bare Metal Conductor Down - ironic-conductor < 1",
+        criteriaDescription:
+          "Triggers when Ironic lists a conductor as not alive for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -3180,6 +3220,7 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     containerClusterFailedTemplate,
     containerClusterStuckTemplate,
     bareMetalApiDownTemplate,
+    bareMetalConductorDownTemplate,
     sharedFileSystemsApiDownTemplate,
     shareServiceDownTemplate,
     shareInErrorTemplate,

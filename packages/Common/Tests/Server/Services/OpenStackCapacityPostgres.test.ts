@@ -313,6 +313,36 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
       ).toMatchObject({ total: 16, reserved: 0, allocationRatio: 4, used: 3 });
     });
 
+    test("what Placement holds of bare metal comes back with its numbers, and is no host", async () => {
+      await write([
+        resource({
+          kind: OpenStackResourceKind.PlacementProvider,
+          externalId: "RegionOne/1062b540-62b5-44a7-805f-212d8778807c",
+          name: "1062b540-62b5-44a7-805f-212d8778807c",
+          facts: {
+            "inventory:CUSTOM_GOLD:total": 1,
+            "inventory:CUSTOM_GOLD:reserved": 1,
+            "inventory:CUSTOM_GOLD:ratio": 1,
+            "inventory:CUSTOM_GOLD:used": 0,
+          },
+        }),
+      ]);
+
+      const rows: OpenStackCapacityRows =
+        await OpenStackResourceService.getCapacityRows(SCOPE);
+
+      expect(rows.hypervisors).toEqual([]);
+      expect(
+        readOpenStackCapacityHost(rows.bareMetalProviders[0] as never),
+      ).toMatchObject({
+        name: "1062b540-62b5-44a7-805f-212d8778807c",
+        state: "up",
+        inventories: {
+          CUSTOM_GOLD: { total: 1, reserved: 1, allocationRatio: 1, used: 0 },
+        },
+      });
+    });
+
     test("a deleted row is no row", async () => {
       await write([hypervisor("cmp-1.example.org")]);
       await database.query(

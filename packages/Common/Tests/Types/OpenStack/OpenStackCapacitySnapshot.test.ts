@@ -19,6 +19,7 @@ import {
   OpenStackCapacitySnapshot,
   buildOpenStackCapacitySnapshot,
   carryOpenStackAllocationMismatches,
+  getOpenStackBareMetalCapacityRows,
   getOpenStackCapacityFlavorRow,
   getOpenStackCapacityHeadline,
   getOpenStackCapacityShortages,
@@ -1204,5 +1205,221 @@ describe("a forecast", () => {
 
     expect(forecast.state).toBe("days");
     expect(forecast.state === "days" && forecast.days).toBeCloseTo(50, 5);
+  });
+});
+
+describe("bare metal, by resource class", () => {
+  function nodeOf(
+    name: string,
+    inventory: { reserved: number; used: number },
+    extra?: Partial<OpenStackCapacityHost>,
+  ): OpenStackCapacityHost {
+    return {
+      name,
+      regionName: "RegionOne",
+      zone: null,
+      aggregates: [],
+      state: "up",
+      instanceCount: 0,
+      inventories: {
+        CUSTOM_GOLD: {
+          total: 1,
+          reserved: inventory.reserved,
+          allocationRatio: 1,
+          used: inventory.used,
+        },
+      },
+      ...extra,
+    };
+  }
+
+  const NODES: Array<OpenStackCapacityHost> = [
+    nodeOf("free", { reserved: 0, used: 0 }),
+    // In use: Nova's Ironic driver reserves a node with an instance on it as well.
+    nodeOf("deployed", { reserved: 1, used: 1 }),
+    nodeOf("with-its-reservation-skipped", { reserved: 0, used: 1 }),
+    nodeOf("in-maintenance", { reserved: 1, used: 0 }),
+  ];
+
+  const ASKS_FOR_GOLD: Record<string, number> = { CUSTOM_GOLD: 1 };
+
+  function classFlavor(
+    resources: Record<string, number>,
+    extra?: Partial<OpenStackCapacityFlavor>,
+  ): OpenStackCapacityFlavor {
+    return { ...flavorOf("bm.gold", resources), ...extra };
+  }
+
+  test("each node is in exactly one of what is free, in use and held back", () => {
+    expect(getOpenStackBareMetalCapacityRows(NODES)).toEqual([
+      {
+        regionName: "RegionOne",
+        resourceClass: "CUSTOM_GOLD",
+        nodeCount: 4,
+        free: 1,
+        used: 2,
+        heldBack: 1,
+      },
+    ]);
+  });
+
+  test("each region and class is its own, most nodes first", () => {
+    const rows: Array<{ regionName: string | null; resourceClass: string }> =
+      getOpenStackBareMetalCapacityRows([
+        nodeOf("a", { reserved: 0, used: 0 }, { regionName: "RegionTwo" }),
+        nodeOf("b", { reserved: 0, used: 0 }),
+        {
+          ...nodeOf("c", { reserved: 0, used: 0 }),
+          inventories: {
+            CUSTOM_SILVER: {
+              total: 1,
+              reserved: 0,
+              allocationRatio: 1,
+              used: 0,
+            },
+          },
+        },
+        {
+          ...nodeOf("d", { reserved: 0, used: 0 }),
+          inventories: {
+            CUSTOM_SILVER: {
+              total: 1,
+              reserved: 0,
+              allocationRatio: 1,
+              used: 0,
+            },
+          },
+        },
+      ]);
+
+    expect(
+      rows.map((row: { regionName: string | null; resourceClass: string }) => {
+        return `${row.regionName}/${row.resourceClass}`;
+      }),
+    ).toEqual([
+      "RegionOne/CUSTOM_SILVER",
+      "RegionOne/CUSTOM_GOLD",
+      "RegionTwo/CUSTOM_GOLD",
+    ]);
+  });
+
+  test("a node is no host: it isn't in any host's sums, count or list of what isn't counted", () => {
+    const snapshot: OpenStackCapacitySnapshot = buildOpenStackCapacitySnapshot({
+      hosts: [],
+      bareMetalProviders: NODES,
+      flavors: [],
+      pools: [],
+      now: NOW,
+    });
+
+    expect(snapshot.cloud.hostCount).toBe(0);
+    expect(snapshot.cloud.resources).toEqual([]);
+    expect(snapshot.regions).toEqual([]);
+    expect(snapshot.zones).toEqual([]);
+    expect(snapshot.hostsNotCounted).toEqual([]);
+    expect(snapshot.bareMetalClasses?.[0]?.nodeCount).toBe(4);
+  });
+
+  test("a cloud without any has nothing to say", () => {
+    expect(
+      buildOpenStackCapacitySnapshot({
+        hosts: [],
+        flavors: [],
+        pools: [],
+        now: NOW,
+      }).bareMetalClasses,
+    ).toEqual([]);
+  });
+
+  test("a flavor that asks for its class is counted against those nodes", () => {
+    const row: OpenStackCapacityFlavorRow = getOpenStackCapacityFlavorRow({
+      flavor: classFlavor(ASKS_FOR_GOLD),
+      hosts: [],
+      bareMetalProviders: NODES,
+      now: NOW,
+    });
+
+    expect(row.fits).toBe(1);
+    expect(row.hostsWithRoom).toBe(1);
+    expect(row.isTooLargeForEveryHost).toBe(false);
+  });
+
+  test("every node of it held back is none for now, and no flavor too large for anything", () => {
+    const row: OpenStackCapacityFlavorRow = getOpenStackCapacityFlavorRow({
+      flavor: classFlavor(ASKS_FOR_GOLD),
+      hosts: [],
+      bareMetalProviders: [nodeOf("in-maintenance", { reserved: 1, used: 0 })],
+      now: NOW,
+    });
+
+    expect(row.fits).toBe(0);
+    expect(row.isTooLargeForEveryHost).toBe(false);
+    expect(row.limitedBy).toBe("CUSTOM_GOLD");
+  });
+
+  test("a flavor that asks for vCPUs is never counted on one", () => {
+    const row: OpenStackCapacityFlavorRow = getOpenStackCapacityFlavorRow({
+      flavor: classFlavor(SMALL),
+      hosts: [],
+      bareMetalProviders: NODES,
+      now: NOW,
+    });
+
+    expect(row.fits).toBe(0);
+    expect(row.isTooLargeForEveryHost).toBe(true);
+  });
+
+  test("only its own region's are counted, because a flavor means nothing in another", () => {
+    const snapshot: OpenStackCapacitySnapshot = buildOpenStackCapacitySnapshot({
+      hosts: [],
+      bareMetalProviders: [
+        nodeOf("elsewhere", { reserved: 0, used: 0 }, { regionName: "RegionTwo" }),
+      ],
+      flavors: [classFlavor(ASKS_FOR_GOLD)],
+      pools: [],
+      now: NOW,
+    });
+
+    expect(snapshot.flavors[0]?.fits).toBe(0);
+  });
+
+  test("a class a real host holds still counts that host", () => {
+    const row: OpenStackCapacityFlavorRow = getOpenStackCapacityFlavorRow({
+      flavor: classFlavor({ CUSTOM_GOLD: 1 }),
+      hosts: [
+        {
+          ...hostOf("gpu-host", { vcpu: 1, memoryMb: 1, diskGb: 1 }),
+          inventories: {
+            CUSTOM_GOLD: {
+              total: 2,
+              reserved: 0,
+              allocationRatio: 1,
+              used: 0,
+            },
+          },
+        },
+      ],
+      bareMetalProviders: [nodeOf("free", { reserved: 0, used: 0 })],
+      now: NOW,
+    });
+
+    expect(row.fits).toBe(3);
+  });
+
+  test("a flavor's row from a probe reads what it really asks for", () => {
+    const read: OpenStackCapacityFlavor = readOpenStackCapacityFlavor({
+      row: {
+        externalId: "RegionOne/bm-gold",
+        name: "bm.gold",
+        regionName: "RegionOne",
+        vcpuCapacity: 16,
+        memoryCapacityBytes: 1024,
+        diskCapacityBytes: 1024,
+        facts: { placementResources: "CUSTOM_GOLD:1" },
+      },
+      instanceCount: 0,
+    });
+
+    expect(read.request.resources).toEqual(ASKS_FOR_GOLD);
   });
 });
