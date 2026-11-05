@@ -259,16 +259,16 @@ export default class OpenStackProjectNoticeSender {
         });
 
       // Whether an event is over is its project's list of states' to say, too.
-      const incompleteStates: Map<string, Array<ObjectID>> = new Map();
+      const overStates: Map<string, Array<ObjectID>> = new Map();
 
       for (const event of events) {
         const projectId: string = event.projectId?.toString() || "";
 
-        if (!incompleteStates.has(projectId)) {
-          incompleteStates.set(
+        if (!overStates.has(projectId)) {
+          overStates.set(
             projectId,
             event.projectId
-              ? await ScheduledMaintenanceStateService.getIncompleteScheduledMaintenanceStateIds(
+              ? await ScheduledMaintenanceStateService.getOverScheduledMaintenanceStateIds(
                   event.projectId,
                 )
               : [],
@@ -276,7 +276,7 @@ export default class OpenStackProjectNoticeSender {
         }
 
         if (
-          incompleteStates.get(projectId)!.some((state: ObjectID): boolean => {
+          !overStates.get(projectId)!.some((state: ObjectID): boolean => {
             return (
               state.toString() ===
               event.currentScheduledMaintenanceStateId?.toString()
