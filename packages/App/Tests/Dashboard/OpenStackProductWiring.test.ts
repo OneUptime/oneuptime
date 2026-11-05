@@ -432,6 +432,39 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   });
 });
 
+/*
+ * A route below a cloud's layout has to match all that is left of the address, so one that takes fewer
+ * segments than its address has never matches and its page is blank. Only in the real app: the E2E
+ * fixture mounts each page at its whole address, and a live run is what found this.
+ */
+describe("a page's route is as deep as its address", () => {
+  const routeMap: string = readSource("Utils", "RouteMap.ts");
+  const mounted: Array<[string, number]> = Array.from(
+    stripComments(readSource("Routes", "OpenStackRoutes.tsx")).matchAll(
+      /getLastPathForKey\(\s*PageMap\.([A-Z_]+)(?:,\s*(\d+))?,?\s*\)/g,
+    ),
+  ).map((match: RegExpMatchArray): [string, number] => {
+    return [match[1]!, Number(match[2] || 1)];
+  });
+
+  test("the routes are found, so the checks below check something", () => {
+    expect(mounted.length).toBeGreaterThan(70);
+    expect(mounted).toContainEqual([
+      "OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL",
+      2,
+    ]);
+  });
+
+  test.each(mounted)("%s takes %d", (key: string, count: number) => {
+    const below: string | undefined = new RegExp(
+      `\\[PageMap\\.${key}\\]:\\s*\`\\$\\{RouteParams\\.ModelID\\}/([^\`]+)\``,
+    ).exec(routeMap)?.[1];
+
+    // Only the product's own Documentation isn't below a cloud, and it is one segment.
+    expect(count).toBe(below ? below.split("/").length : 1);
+  });
+});
+
 describe("the side menus have no dead links", () => {
   const routes: string = stripComments(
     readSource("Routes", "OpenStackRoutes.tsx"),
