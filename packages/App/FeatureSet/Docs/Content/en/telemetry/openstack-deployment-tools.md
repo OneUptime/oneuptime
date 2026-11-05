@@ -28,6 +28,8 @@ Every path, port and variable below was read from the tool's own source or docs.
 | Red Hat OpenStack on OpenShift | The Telemetry Operator's source | The OpenShift preset and Ceilometer's exporter, each on its own |
 | Mirantis MOSK | Mirantis's docs, whose examples show other receivers rather than a webhook | Nothing on MOSK |
 
+What each guide's **Who did what** turns on was recorded on DevStack, on every release the rig runs, and on none of these tools. Where each tool takes it was read from that tool's source or docs.
+
 ## Forward what is already firing
 
 Any tool with an Alertmanager can have incidents today: an alert that fires becomes an incident, with on-call and status pages from the first hour, and it resolves when the alert does. There is nothing to install, and this works alongside everything else on this page.
@@ -115,6 +117,38 @@ sudo bash install-logs.sh files
 
 Kolla's own Fluentd can forward too, with an output in `/etc/kolla/config/fluentd/output/*.conf` as [Fluentd](/docs/telemetry/fluentd) describes, but those records reach **Logs** under a service's name, and not the cloud's pages.
 
+### Who did what on Kolla-Ansible
+
+Keystone's audit trail and the audit filter on each API, into [Security Events](/docs/telemetry/openstack#who-did-what). Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The agent's logs profile reads both from `/var/log/kolla`.
+
+```ini title="/etc/kolla/config/keystone.conf"
+[DEFAULT]
+notification_format = cadf
+notification_opt_out = identity.authenticate.pending
+
+[oslo_messaging_notifications]
+driver = log
+```
+
+```bash
+kolla-ansible reconfigure -i <inventory> -t keystone
+```
+
+This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw.
+
+For who did what through Nova, Neutron, Cinder and Glance, the audit filter needs a setting, which goes in every service's config at once:
+
+```ini title="/etc/kolla/config/global.conf"
+[audit_middleware_notifications]
+driver = log
+```
+
+```bash
+kolla-ansible reconfigure -i <inventory> -t nova,neutron,cinder,glance
+```
+
+It also needs a paste file, and Kolla-Ansible's config tasks copy no paste file for these services. Put yours on each API host, and mount it over the one in the image with `nova_api_extra_volumes`, `neutron_server_extra_volumes`, `cinder_api_extra_volumes` and `glance_api_extra_volumes` in `globals.yml`. pyCADF's map files are in `/var/lib/kolla/venv/etc/pycadf` in the image. [Who did what](/docs/telemetry/openstack#turn-on-the-audit-filter) has the filter's lines.
+
 ## OpenStack-Ansible
 
 OpenStack-Ansible keeps its services' logs in journald and runs no Prometheus of its own, so the agent is the way in, and the logs have a path of their own.
@@ -168,6 +202,41 @@ sudo bash install-logs.sh journald
 
 This runs the agent's logs profile as a systemd service, and reads `/var/log/journal/`, where OpenStack-Ansible's containers' journals arrive.
 
+### Who did what on OpenStack-Ansible
+
+Keystone's audit trail and the audit filter on each API, into [Security Events](/docs/telemetry/openstack#who-did-what). Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The agent's logs profile reads both from the journal.
+
+```yaml title="/etc/openstack_deploy/user_variables.yml"
+keystone_keystone_conf_overrides:
+  DEFAULT:
+    notification_format: cadf
+    notification_opt_out: identity.authenticate.pending
+  oslo_messaging_notifications:
+    driver: log
+```
+
+```bash
+openstack-ansible openstack.osa.keystone
+```
+
+This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw. A second value of `notification_opt_out` goes in as a YAML set, as [its config_template](https://docs.openstack.org/ansible-config_template/latest/) writes a repeated key.
+
+For who did what through Nova, Neutron, Cinder and Glance, each API takes the filter's setting in its conf overrides, and the filter in its paste overrides, with `audit` right after `authtoken` and the context filter that follows it in each pipeline. Nova's, and the same in `neutron_neutron_conf_overrides` and `neutron_api_paste_ini_overrides`, `cinder_cinder_conf_overrides` and `cinder_api_paste_ini_overrides`, and `glance_glance_api_conf_overrides` and `glance_glance_api_paste_ini_overrides`:
+
+```yaml title="/etc/openstack_deploy/user_variables.yml"
+nova_nova_conf_overrides:
+  audit_middleware_notifications:
+    driver: log
+nova_api_paste_ini_overrides:
+  "filter:audit":
+    paste.filter_factory: keystonemiddleware.audit:filter_factory
+    audit_map_file: "/openstack/venvs/nova-{{ nova_venv_tag }}/etc/pycadf/nova_api_audit_map.conf"
+```
+
+```bash
+openstack-ansible openstack.osa.nova
+```
+
 ## OpenStack-Helm
 
 OpenStack-Helm offers charts for Prometheus, Alertmanager and exporters, and whether they are running is up to you. Its control plane runs in Kubernetes, so a probe reads the APIs and the Kubernetes agent sees the pods.
@@ -205,6 +274,49 @@ logs:
       - openstack
 ```
 
+### Who did what on OpenStack-Helm
+
+Keystone's audit trail and the audit filter on each API, into [Security Events](/docs/telemetry/openstack#who-did-what). Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.
+
+```yaml title="keystone's values.yaml"
+conf:
+  keystone:
+    DEFAULT:
+      notification_format: cadf
+      notification_opt_out: identity.authenticate.pending
+    oslo_messaging_notifications:
+      driver: log
+```
+
+This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw.
+
+A chart's `logging.conf` keeps the root logger at `WARNING`, and the log driver writes under a logger of its own, so without one for it nothing is written. A list in values replaces the chart's, so `keys` holds what the chart's has, plus this:
+
+```yaml title="keystone's values.yaml"
+conf:
+  logging:
+    loggers:
+      keys:
+        - root
+        - keystone
+        - notifications
+    logger_notifications:
+      level: INFO
+      handlers:
+        - stdout
+      qualname: oslo.messaging.notification
+      propagate: 0
+```
+
+For who did what through Nova, Neutron and Cinder, their charts' `conf.paste` already has the audit filter in each pipeline, and it needs telling where to write. Each needs the same logger, in `conf.logging`. Glance's chart has the map, and neither the filter nor a place for it in its pipelines: add both to its `conf.paste`.
+
+```yaml title="nova's values.yaml"
+conf:
+  nova:
+    audit_middleware_notifications:
+      driver: log
+```
+
 ## Atmosphere
 
 Atmosphere runs kube-prometheus-stack with its own alert rules, and Loki with Vector for logs. Forward its alerts first, then a probe reads the APIs and the Kubernetes agent sees the pods.
@@ -238,6 +350,33 @@ logs:
     cloudName: prod-eu
     namespaces:
       - openstack
+```
+
+### Who did what on Atmosphere
+
+Keystone's audit trail and the audit filter on each API, into [Security Events](/docs/telemetry/openstack#who-did-what). Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.
+
+```yaml title="your inventory's variables"
+keystone_helm_values:
+  conf:
+    keystone:
+      DEFAULT:
+        notification_format: cadf
+        notification_opt_out: identity.authenticate.pending
+      oslo_messaging_notifications:
+        driver: log
+```
+
+This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw.
+
+For who did what through Nova, Neutron and Cinder, the charts Atmosphere deploys already have the audit filter in each pipeline, and it needs telling where to write, in `nova_helm_values`, `neutron_helm_values` and `cinder_helm_values`. Glance's chart has neither the filter nor a place for it in its pipelines: add both to its `conf.paste`, in `glance_helm_values`.
+
+```yaml title="your inventory's variables"
+nova_helm_values:
+  conf:
+    nova:
+      audit_middleware_notifications:
+        driver: log
 ```
 
 ## Canonical Sunbeam
@@ -278,6 +417,10 @@ Which series it says depends on the exporter release in its snap, which was not 
 ### Service logs
 
 With observability on, the stack's Loki holds the services' logs. OneUptime has no way to read Loki, and the agent's logs profile has not been tried on Sunbeam's charms, so nothing here collects them yet.
+
+### Who did what on Sunbeam
+
+Not yet. Sunbeam's charms write each service's configuration from their own templates, and its Keystone charm has no setting for where notifications go. So neither Keystone's audit trail nor the audit filter can be turned on from outside the charm, and nothing here reaches Security Events.
 
 ## Red Hat OpenStack on OpenShift
 
@@ -323,6 +466,37 @@ logs:
 
 A probe says what is allocated, not what is busy. To read real usage, run the agent on a machine that can reach the compute nodes, with `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` naming each node on Ceilometer's port, `9101`.
 
+### Who did what on Red Hat OpenStack on OpenShift
+
+Keystone's audit trail and the audit filter on each API, into [Security Events](/docs/telemetry/openstack#who-did-what). Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.
+
+```yaml title="your OpenStackControlPlane"
+spec:
+  keystone:
+    template:
+      customServiceConfig: |
+        [DEFAULT]
+        notification_format = cadf
+        notification_opt_out = identity.authenticate.pending
+        
+        [oslo_messaging_notifications]
+        driver = log
+```
+
+This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw.
+
+For who did what through Nova and Neutron, each takes the filter's setting in its `customServiceConfig`, and its paste file in `defaultConfigOverwrite`. Cinder's and Glance's operators take no paste file, so nothing here reaches them.
+
+```yaml title="your OpenStackControlPlane"
+spec:
+  nova:
+    template:
+      apiServiceTemplate:
+        customServiceConfig: |
+          [audit_middleware_notifications]
+          driver = log
+```
+
 ## Mirantis MOSK
 
 StackLight already watches OpenStack's services, MariaDB, Memcached, RabbitMQ and libvirt, with its own alert rules. Forward its alerts first, then a probe reads the APIs.
@@ -350,6 +524,38 @@ alertmanagerSimpleConfig:
 ### Read the APIs
 
 Open **OpenStack → All Clouds**, click **Connect Cloud**, and give it Keystone's address, an application credential and the probe to use. A probe only speaks HTTPS to a cloud.
+
+### Who did what on Mirantis MOSK
+
+For who did what through Nova, Neutron, Cinder and Glance, MOSK has a setting of its own, with the audit filter already in place. With the log driver, each service writes to its standard output, and the Kubernetes agent reads that from the pods' logs, with the cloud named in its values. Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**.
+
+```yaml title="your OpenStackDeployment"
+spec:
+  features:
+    logging:
+      cadf:
+        enabled: true
+        driver: log
+```
+
+That setting does not cover Keystone. Its own audit trail takes `spec:services`, which Mirantis does not validate and takes no responsibility for, so weigh this with your support contract:
+
+```yaml title="your OpenStackDeployment"
+spec:
+  services:
+    identity:
+      keystone:
+        values:
+          conf:
+            keystone:
+              DEFAULT:
+                notification_format: cadf
+                notification_opt_out: identity.authenticate.pending
+              oslo_messaging_notifications:
+                driver: log
+```
+
+This sends a line for each login, which **OpenStack admin credential used from a new address** reads. To send failed logins only, add `identity.authenticate.success` to `notification_opt_out`, and that detection then reads what the audit filter saw.
 
 ## Use the exporter you already run
 

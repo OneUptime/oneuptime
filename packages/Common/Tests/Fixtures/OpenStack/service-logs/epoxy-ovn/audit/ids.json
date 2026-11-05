@@ -1,0 +1,231 @@
+{
+  "ids": {
+    "collector": {},
+    "devstack": {
+      "admin_project": "635fc523390942fe8c8c2bd3a26d1f1b",
+      "identity_user": "e988af08b4024d1f9af182fda1f9b42a",
+      "instance_ok": "bcee0abb-08c3-430a-9a53-cce3284714eb",
+      "instance_spawn_failed": "9dc0747b-1110-4557-87cd-a4dffe691041",
+      "public_image": "95f61316-88f6-484b-8dee-b4f2b1e8b47c",
+      "security_group": "8479b8d2-2ea3-4140-b061-b93f7f4c446f",
+      "volume_attached": "0a188b56-1c4a-4a19-9340-8cc48f11774e"
+    },
+    "journal-native": {
+      "instance_ok": "e0d7db8e-0d38-4caf-91a2-39ff1bf180e1",
+      "instance_spawn_failed": "bf691833-ce50-4d92-9a93-75c2a1fa59fd"
+    },
+    "json": {
+      "instance_ok": "ba5944b4-e075-4a38-8d48-aa3d93f2cd64",
+      "instance_spawn_failed": "57ea1e4d-8721-4f3d-a6d5-c295fa5cbc9d"
+    },
+    "keystone-defaults": {},
+    "oslo-default": {
+      "instance_spawn_failed": "d82da1aa-196b-463d-b2be-545c5276685d"
+    }
+  },
+  "scenes": {
+    "collector": [],
+    "devstack": [
+      {
+        "endedAt": "2026-11-04T21:38:05Z",
+        "exitCode": 0,
+        "scene": "failed-logins",
+        "startedAt": "2026-11-04T21:38:04Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:38:21Z",
+        "exitCode": 0,
+        "scene": "identity",
+        "startedAt": "2026-11-04T21:38:05Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:39:58Z",
+        "exitCode": 1,
+        "scene": "instance-lifecycle",
+        "startedAt": "2026-11-04T21:38:21Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:39:59Z",
+        "exitCode": 1,
+        "scene": "failed-build-scheduler",
+        "startedAt": "2026-11-04T21:39:58Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:40:23Z",
+        "exitCode": 1,
+        "scene": "failed-build-compute",
+        "startedAt": "2026-11-04T21:39:59Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:41:44Z",
+        "exitCode": 1,
+        "scene": "migrate",
+        "startedAt": "2026-11-04T21:40:23Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:42:02Z",
+        "exitCode": 0,
+        "scene": "service-disabled",
+        "startedAt": "2026-11-04T21:41:44Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:42:52Z",
+        "exitCode": 0,
+        "scene": "volume-attach",
+        "startedAt": "2026-11-04T21:42:02Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:43:09Z",
+        "exitCode": 0,
+        "scene": "network",
+        "startedAt": "2026-11-04T21:42:52Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:43:18Z",
+        "exitCode": 0,
+        "scene": "security-group",
+        "startedAt": "2026-11-04T21:43:09Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:43:25Z",
+        "exitCode": 0,
+        "scene": "public-image",
+        "startedAt": "2026-11-04T21:43:18Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:45:01Z",
+        "exitCode": 0,
+        "scene": "conductor-down",
+        "startedAt": "2026-11-04T21:43:25Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:47:26Z",
+        "exitCode": 0,
+        "scene": "rabbit-down",
+        "startedAt": "2026-11-04T21:45:01Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:48:48Z",
+        "exitCode": 0,
+        "scene": "database-down",
+        "startedAt": "2026-11-04T21:47:26Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:50:08Z",
+        "exitCode": 0,
+        "scene": "token-validation",
+        "startedAt": "2026-11-04T21:48:48Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:50:29Z",
+        "exitCode": 0,
+        "scene": "cleanup",
+        "startedAt": "2026-11-04T21:50:08Z"
+      }
+    ],
+    "journal-native": [
+      {
+        "endedAt": "2026-11-04T21:56:14Z",
+        "exitCode": 0,
+        "scene": "failed-logins",
+        "startedAt": "2026-11-04T21:56:13Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:57:51Z",
+        "exitCode": 1,
+        "scene": "instance-lifecycle",
+        "startedAt": "2026-11-04T21:56:14Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:57:52Z",
+        "exitCode": 1,
+        "scene": "failed-build-scheduler",
+        "startedAt": "2026-11-04T21:57:51Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:58:16Z",
+        "exitCode": 1,
+        "scene": "failed-build-compute",
+        "startedAt": "2026-11-04T21:57:52Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:58:22Z",
+        "exitCode": 0,
+        "scene": "cleanup",
+        "startedAt": "2026-11-04T21:58:16Z"
+      }
+    ],
+    "json": [
+      {
+        "endedAt": "2026-11-04T21:53:12Z",
+        "exitCode": 0,
+        "scene": "failed-logins",
+        "startedAt": "2026-11-04T21:53:09Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:54:53Z",
+        "exitCode": 1,
+        "scene": "instance-lifecycle",
+        "startedAt": "2026-11-04T21:53:12Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:54:55Z",
+        "exitCode": 1,
+        "scene": "failed-build-scheduler",
+        "startedAt": "2026-11-04T21:54:53Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:55:18Z",
+        "exitCode": 1,
+        "scene": "failed-build-compute",
+        "startedAt": "2026-11-04T21:54:55Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:55:25Z",
+        "exitCode": 0,
+        "scene": "cleanup",
+        "startedAt": "2026-11-04T21:55:18Z"
+      }
+    ],
+    "keystone-defaults": [
+      {
+        "endedAt": "2026-11-04T21:37:16Z",
+        "exitCode": 0,
+        "scene": "failed-logins",
+        "startedAt": "2026-11-04T21:37:14Z"
+      }
+    ],
+    "oslo-default": [
+      {
+        "endedAt": "2026-11-04T21:51:36Z",
+        "exitCode": 0,
+        "scene": "failed-logins",
+        "startedAt": "2026-11-04T21:51:34Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:51:44Z",
+        "exitCode": 1,
+        "scene": "instance-lifecycle",
+        "startedAt": "2026-11-04T21:51:36Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:51:46Z",
+        "exitCode": 1,
+        "scene": "failed-build-scheduler",
+        "startedAt": "2026-11-04T21:51:44Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:52:16Z",
+        "exitCode": 1,
+        "scene": "failed-build-compute",
+        "startedAt": "2026-11-04T21:51:46Z"
+      },
+      {
+        "endedAt": "2026-11-04T21:52:23Z",
+        "exitCode": 0,
+        "scene": "cleanup",
+        "startedAt": "2026-11-04T21:52:16Z"
+      }
+    ]
+  }
+}
