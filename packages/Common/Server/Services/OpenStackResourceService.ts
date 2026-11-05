@@ -18,9 +18,13 @@ import { JSONObject } from "../../Types/JSON";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
+  OPENSTACK_BARE_METAL_ERROR_STATES,
+  OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_KINDS_BY_SERVICE,
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -46,10 +50,14 @@ import {
 } from "../../Types/OpenStack/OpenStackCounts";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
+  OPENSTACK_BARE_METAL_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
+  OPENSTACK_QUIET_SERVICE_MINUTES,
   OPENSTACK_REDUNDANT_WORKERS,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
@@ -114,6 +122,14 @@ export interface OpenStackInventorySummary {
   projectCount: number;
   serviceCount: number;
   downServiceCount: number;
+  bareMetalNodeCount: number;
+  /*
+   * How many nodes Placement holds, whatever Ironic shows this credential: it answers a project
+   * with what that project owns, and Placement answers everyone.
+   */
+  bareMetalProviderCount: number;
+  // The services a read has heard from, with what each is called in Keystone's catalog.
+  services: Array<string>;
   vcpuCapacity: number;
   vcpuAllocated: number;
   memoryCapacityBytes: number;
@@ -787,8 +803,12 @@ export class Service extends DatabaseService<Model> {
     const places: Array<{
       regionCount: string;
       availabilityZoneCount: string;
+      services: Array<string> | null;
     }> = await this.getRepository().manager.query(
       `SELECT COUNT(DISTINCT "regionName")::text AS "regionCount",
+              ARRAY_AGG(DISTINCT "name") FILTER (
+                WHERE "kind" = '${OpenStackResourceKind.Api}'
+              ) AS "services",
               COUNT(DISTINCT "availabilityZone") FILTER (
                 WHERE "availabilityZone" <> 'internal' AND (
                   "kind" = '${OpenStackResourceKind.Hypervisor}'
@@ -853,6 +873,13 @@ export class Service extends DatabaseService<Model> {
       serviceCount: countOf(OpenStackResourceKind.Service),
       downServiceCount: toNumber(
         rowOf(OpenStackResourceKind.Service)?.downCount,
+      ),
+      bareMetalNodeCount: countOf(OpenStackResourceKind.BareMetalNode),
+      bareMetalProviderCount: countOf(OpenStackResourceKind.PlacementProvider),
+      services: (places[0]?.services || []).filter(
+        (service: string | null): service is string => {
+          return Boolean(service);
+        },
       ),
       vcpuCapacity: toNumber(hypervisors?.vcpuCapacity),
       vcpuAllocated: toNumber(hypervisors?.vcpuAllocated),
@@ -1115,6 +1142,10 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_IMAGE_STUCK_MINUTES,
     );
+    const bareMetalStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_BARE_METAL_STUCK_MINUTES,
+    );
     const base: Array<unknown> = [
       data.projectId.toString(),
       data.openStackCloudId.toString(),
@@ -1136,8 +1167,15 @@ export class Service extends DatabaseService<Model> {
     }> = [
       {
         kind: OpenStackResourceKind.Api,
-        where: `"status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'`,
-        params: [],
+        where: `("status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'
+          OR (NOT ("name" = ANY($3::text[])) AND "lastSeenAt" <= $4))`,
+        params: [
+          Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS),
+          OneUptimeDate.addRemoveMinutes(
+            data.now,
+            -OPENSTACK_QUIET_SERVICE_MINUTES,
+          ),
+        ],
       },
       {
         kind: OpenStackResourceKind.Service,
@@ -1195,6 +1233,42 @@ export class Service extends DatabaseService<Model> {
           imageStuckBefore,
         ],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.BareMetalNode,
+        /*
+         * Failed; on its way for too long; in maintenance for too long; or deployed with its power
+         * off, unless Nova says the instance on it was stopped, which is planned. Nova names a
+         * node's instance's hypervisor by the node's UUID.
+         */
+        where: `("status" = ANY($3::text[])
+          OR ("status" = ANY($4::text[])
+            AND COALESCE("adminState", '') <> '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+            AND ("facts"->>'provisionUpdatedAt' <= $5
+              OR ("facts"->>'provisionUpdatedAt' IS NULL AND "stateChangedAt" <= $6)))
+          OR ("adminState" = '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}' AND "stateChangedAt" <= $7)
+          OR ("status" = 'active' AND "facts"->>'powerState' = 'power off'
+            AND COALESCE("adminState", '') <> '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+            AND NOT EXISTS (
+              SELECT 1 FROM "OpenStackResource" AS instance
+              WHERE instance."projectId" = $1 AND instance."openStackCloudId" = $2
+                AND instance."kind" = '${OpenStackResourceKind.Instance}'
+                AND instance."deletedAt" IS NULL
+                AND instance."hypervisorName" = "OpenStackResource"."externalId"
+                AND instance."status" = 'SHUTOFF'
+            )))`,
+        params: [
+          statuses(OPENSTACK_BARE_METAL_ERROR_STATES),
+          statuses(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES),
+          bareMetalStuckBefore.toISOString(),
+          bareMetalStuckBefore,
+          OneUptimeDate.addRemoveMinutes(
+            data.now,
+            -OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS * 24 * 60,
+          ),
+        ],
+        // What failed before what can wait, however many of those there are.
+        orderBy: `CASE WHEN "status" = ANY($3::text[]) THEN 0 ELSE 1 END, "name" ASC NULLS LAST`,
       },
       {
         kind: OpenStackResourceKind.Network,
@@ -1561,6 +1635,8 @@ export class Service extends DatabaseService<Model> {
    *  - A router: the floating IPs going through it.
    *  - A storage pool: its volumes, when the source says where a volume is (the probe
    *    does, the exporter does not, and then this says it cannot tell).
+   *  - A bare metal node: the instance Nova has on it, which names the node's UUID as its
+   *    hypervisor.
    *  - A service's API in a region: everything of that service in that region, because
    *    nobody there can manage any of it.
    */
@@ -1796,6 +1872,13 @@ export class Service extends DatabaseService<Model> {
     if (part.kind === OpenStackResourceKind.Router) {
       if (part.externalId) {
         await floatingIpsThrough([part.externalId]);
+      }
+      return await finish();
+    }
+
+    if (part.kind === OpenStackResourceKind.BareMetalNode) {
+      if (part.externalId) {
+        await instancesOn(part.externalId);
       }
       return await finish();
     }
@@ -3000,7 +3083,9 @@ export class Service extends DatabaseService<Model> {
             ? "network"
             : service === OpenStackServiceType.Volume
               ? "volume"
-              : null;
+              : service === OpenStackServiceType.BareMetal
+                ? "baremetal"
+                : null;
 
       const isGlobal: boolean = service === OpenStackServiceType.Identity;
       const params: Array<unknown> = [
@@ -3086,12 +3171,80 @@ export class Service extends DatabaseService<Model> {
       if (Array.isArray(gone) && typeof gone[1] === "number") {
         affected += gone[1];
       }
+
+      affected += await this.forgetQuietServices({
+        projectId: data.projectId,
+        openStackCloudId: data.openStackCloudId,
+        reportedAt: new Date(reporting[0].newest),
+      });
     }
 
     if (affected > STALE_DELETE_WARN_THRESHOLD) {
       logger.warn(
         `OpenStackResource cleanup deleted ${affected} rows for cloud ${data.openStackCloudId.toString()}: check this was a real change to the cloud.`,
       );
+    }
+
+    return affected;
+  }
+
+  /**
+   * A service a cloud may not run that has said nothing for weeks, while the rest of the cloud went
+   * on reporting. Nothing can vouch for its rows now (see deleteStaleForCloud), and a stopped API
+   * reads the same as one taken away, so they go only after this long, and come back if it does:
+   * OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS.
+   */
+  private async forgetQuietServices(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    reportedAt: Date;
+  }): Promise<number> {
+    const quiet: Array<{ name: string; regionName: string | null }> =
+      await this.getRepository().manager.query(
+        `SELECT "name", "regionName"
+         FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.Api}'
+           AND NOT ("name" = ANY($3::text[]))
+           AND "lastSeenAt" < $4`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS),
+          OneUptimeDate.addRemoveMinutes(
+            data.reportedAt,
+            -OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS * 24 * 60,
+          ),
+        ],
+      );
+
+    let affected: number = 0;
+
+    for (const api of quiet) {
+      const kinds: ReadonlyArray<OpenStackResourceKind> =
+        OPENSTACK_KINDS_BY_SERVICE[api.name as OpenStackServiceType] || [];
+
+      const result: unknown = await this.getRepository().manager.query(
+        `DELETE FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "regionName" IS NOT DISTINCT FROM $3
+           AND (
+             ("kind" = '${OpenStackResourceKind.Api}' AND "name" = $4)
+             OR "kind" = ANY($5::text[])
+             OR ("kind" = '${OpenStackResourceKind.Service}' AND "facts"->>'family' = $4)
+           )`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          api.regionName,
+          api.name,
+          [...kinds],
+        ],
+      );
+
+      if (Array.isArray(result) && typeof result[1] === "number") {
+        affected += result[1];
+      }
     }
 
     return affected;

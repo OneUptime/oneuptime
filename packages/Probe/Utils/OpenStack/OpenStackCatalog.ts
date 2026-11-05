@@ -35,6 +35,7 @@ export const OPENSTACK_CATALOG_TYPES: Readonly<
   [OpenStackServiceType.Network]: ["network"],
   [OpenStackServiceType.Volume]: ["block-storage", "volumev3"],
   [OpenStackServiceType.Image]: ["image"],
+  [OpenStackServiceType.BareMetal]: ["baremetal"],
 };
 
 function text(value: JSONValue | undefined): string {

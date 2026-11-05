@@ -28,6 +28,7 @@ export type OpenStackMetricCategory =
   | "Storage"
   | "Images"
   | "Identity"
+  | "Bare Metal"
   | "Projects"
   | "Capacity";
 
@@ -212,6 +213,12 @@ function metric(
         : data.description,
   };
 }
+
+const IRONIC_NODE_TIME_LABELS: ReadonlyArray<string> = [
+  "id",
+  "name",
+  "provision_state",
+];
 
 const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   // Availability: the receiver's own two, then each API's.
@@ -1892,6 +1899,85 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "How many instances those series add up, so a total can be told from a total with some of them missing.",
     identityAttributes: HYPERVISOR_USAGE_LABELS,
   }),
+  // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_ironic_up",
+    friendlyName: translationKey("Bare Metal API Up"),
+    description:
+      "1 when a read of Ironic got far enough to say. Stopped, the exporter the OpenStack Agent runs answers an empty 200, as for a cloud without Ironic, so this series goes quiet rather than reading 0: a probe and exporter 1.7.0 can say 0.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_ironic_node",
+    friendlyName: translationKey("Bare Metal Node"),
+    description:
+      "One series per node Ironic shows this credential, always 1: what it says is in its labels, its provision state, power state and whether it is in maintenance. Ironic shows a project only the nodes it owns.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: [
+      "console_enabled",
+      "deploy_kernel",
+      "deploy_ramdisk",
+      "id",
+      "maintenance",
+      "maintenance_reason",
+      "name",
+      "power_state",
+      "provision_state",
+      "resource_class",
+      "retired",
+      "retired_reason",
+    ],
+    probeOnlyAttributes: [
+      "driver",
+      "owner",
+      "lessee",
+      "instance_uuid",
+      "conductor",
+      "conductor_group",
+      "fault",
+      "target_provision_state",
+      "target_power_state",
+      "last_error",
+    ],
+  }),
+  metric({
+    metricName: "openstack_ironic_node_provision_updated_at",
+    friendlyName: translationKey("Bare Metal Node Provision State Updated"),
+    description:
+      "When Ironic last saw this node's provision state move, as a Unix time. A deploy agent's heartbeats move it too, so a long erase is not a node stuck. A node that has never moved has no such series.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: IRONIC_NODE_TIME_LABELS,
+    unit: "seconds",
+  }),
+  metric({
+    metricName: "openstack_ironic_node_updated_at",
+    friendlyName: translationKey("Bare Metal Node Updated"),
+    description:
+      "When this node's record last changed, as a Unix time. A node that has never changed has no such series.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: IRONIC_NODE_TIME_LABELS,
+    unit: "seconds",
+  }),
+  metric({
+    metricName: "openstack_ironic_conductor_state",
+    friendlyName: translationKey("Bare Metal Conductor Alive"),
+    description:
+      "1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: ["hostname", "service", "conductor_group"],
+    onlyFromProbe: true,
+  }),
 ];
 
 export function getAllOpenStackMetrics(): Array<OpenStackMetricDefinition> {
@@ -1931,6 +2017,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Storage",
     "Images",
     "Identity",
+    "Bare Metal",
     "Projects",
     "Capacity",
   ];

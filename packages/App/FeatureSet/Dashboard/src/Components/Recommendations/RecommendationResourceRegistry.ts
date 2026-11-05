@@ -20,6 +20,10 @@ import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/Databa
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import {
+  OpenStackInventorySummary,
+  fetchOpenStackInventorySummary,
+} from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
+import {
   DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
   fetchDatabaseEngineMetricsArrived,
   getDatabaseRecommendationReceivers,
@@ -250,11 +254,25 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },
+  /*
+   * A cloud's recommendations depend on which services it runs: nothing on its row says, and its
+   * inventory does, so a cloud without Ironic is offered no bare metal alert. Asked for whole, not a
+   * region at a time, because a monitor is for the cloud.
+   */
   {
     resourceType: MonitorRecommendationResourceType.OpenStack,
     modelType: OpenStackCloud,
     identifierFieldName: "name",
     displayNameFieldName: "name",
+    loadContext: async (data: {
+      model: BaseModel;
+      context: MonitorRecommendationContext;
+    }): Promise<MonitorRecommendationContext> => {
+      const summary: OpenStackInventorySummary | null =
+        await fetchOpenStackInventorySummary(data.model.id as ObjectID);
+
+      return { ...data.context, openStackServices: summary?.services || [] };
+    },
   },
   {
     resourceType: MonitorRecommendationResourceType.VMware,
