@@ -37,6 +37,10 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import {
+  OPENSTACK_SERVICE_TITLES,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
   OpenStackInventorySummary,
   fetchOpenStackInventorySummary,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
@@ -290,6 +294,31 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         ...data.context,
         openStackServices: summary ? summary.optionalServices : null,
       };
+    },
+    /*
+     * Said only where what a cloud runs changed the list. A cloud without them is offered what
+     * every cloud is, which needs no note, and is told nothing about what it doesn't run.
+     */
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      const services: ReadonlyArray<string> = context.openStackServices || [];
+      if (services.length === 0) {
+        return undefined;
+      }
+      return translateTemplate(
+        "This cloud runs {{services}}, so the recommendations below include alerts on them.",
+        {
+          services: services
+            .map((service: string): string => {
+              return (
+                OPENSTACK_SERVICE_TITLES[service as OpenStackServiceType] ||
+                service
+              );
+            })
+            .join(", "),
+        },
+      );
     },
   },
   {

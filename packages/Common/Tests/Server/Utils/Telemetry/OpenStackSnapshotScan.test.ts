@@ -582,6 +582,7 @@ describe("a hypervisor's capacity", () => {
     const buffer: Buffer = new Map();
     resource(buffer, "total", "VCPU", 2);
     resource(buffer, "reserved", "VCPU", 4);
+    resource(buffer, "allocation_ratio", "VCPU", 1);
     expect(
       rowOf(buffer, OpenStackResourceKind.Hypervisor, "RegionOne/compute-01")
         .vcpuCapacity,
@@ -629,6 +630,7 @@ describe("a hypervisor's capacity", () => {
     fold(buffer, "openstack_nova_vcpus_available", { value: 32, labels });
     fold(buffer, "openstack_nova_vcpus_used", { value: 4, labels });
     resource(buffer, "total", "VCPU", 32);
+    resource(buffer, "reserved", "VCPU", 0);
     resource(buffer, "allocation_ratio", "VCPU", 4);
     resource(buffer, "usage", "VCPU", 8);
     const row: OpenStackResourceBufferEntry = rowOf(

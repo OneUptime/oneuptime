@@ -10,6 +10,7 @@ import {
   OpenStackL3AgentFact,
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_REDUNDANT_WORKERS,
   OPENSTACK_SERVICE_DISABLED_WARNING_DAYS,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
@@ -254,15 +255,7 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_PROJECT,
 ];
 
-/*
- * Workers where one down of several is a warning, because the others carry on. All
- * of them down is a control-plane outage, which getOpenStackAttentionItems says once
- * rather than once per worker.
- */
-const REDUNDANT_WORKERS: ReadonlySet<string> = new Set([
-  "nova-scheduler",
-  "nova-conductor",
-]);
+const REDUNDANT_WORKERS: ReadonlySet<string> = OPENSTACK_REDUNDANT_WORKERS;
 
 function formatPercent(percent: number): string {
   return `${Math.round(percent)}%`;

@@ -291,6 +291,11 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "vouchedAt",
     // How long one collection took: its own reading on each path.
     "collectionSeconds",
+    // What a flavor's extra specs say, which the exporter leaves behind.
+    "placementResources",
+    "placementRequired",
+    "placementForbidden",
+    "isDisabled",
     // When a router's agents were last heard, which is each path's own time too.
     "l3AgentsReportedAt",
     // What an operator told Nova, which the exporter has no label for.
@@ -728,9 +733,10 @@ describe("what only a probe adds, in the rows it fills", () => {
     function answerWith(
       change: (service: JSONObject) => JSONObject,
     ): (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined {
-      const services: Array<JSONObject> = recordedJson(SCENE, "nova-services")?.[
-        "services"
-      ] as Array<JSONObject>;
+      const services: Array<JSONObject> = recordedJson(
+        SCENE,
+        "nova-services",
+      )?.["services"] as Array<JSONObject>;
 
       return (request: OpenStackHttpRequest) => {
         return new globalThis.URL(request.url).pathname ===
@@ -848,29 +854,30 @@ describe("what only a probe adds, in the rows it fills", () => {
   test("an instance that lost its floating address falls back to its fixed one, and one with none says none", async () => {
     const answerWithAddresses: (
       addresses: JSONObject,
-    ) => (request: OpenStackHttpRequest) => OpenStackHttpResponse | undefined =
-      (addresses: JSONObject) => {
-        return (
-          request: OpenStackHttpRequest,
-        ): OpenStackHttpResponse | undefined => {
-          const url: URL = new URL(request.url);
+    ) => (
+      request: OpenStackHttpRequest,
+    ) => OpenStackHttpResponse | undefined = (addresses: JSONObject) => {
+      return (
+        request: OpenStackHttpRequest,
+      ): OpenStackHttpResponse | undefined => {
+        const url: URL = new URL(request.url);
 
-          if (!url.pathname.endsWith("/servers/detail")) {
-            return undefined;
-          }
+        if (!url.pathname.endsWith("/servers/detail")) {
+          return undefined;
+        }
 
-          const servers: Array<JSONObject> = recordedJson(
-            SCENE,
-            "nova-servers",
-          )?.["servers"] as Array<JSONObject>;
+        const servers: Array<JSONObject> = recordedJson(
+          SCENE,
+          "nova-servers",
+        )?.["servers"] as Array<JSONObject>;
 
-          return jsonAnswer(200, {
-            servers: servers.map((server: JSONObject): JSONObject => {
-              return { ...server, addresses: addresses };
-            }),
-          });
-        };
+        return jsonAnswer(200, {
+          servers: servers.map((server: JSONObject): JSONObject => {
+            return { ...server, addresses: addresses };
+          }),
+        });
       };
+    };
 
     const fixedOnly: Array<OpenStackResourceBufferEntry> = rowsOf(
       await rowsFrom(
@@ -913,9 +920,10 @@ describe("what only a probe adds, in the rows it fills", () => {
     "on %s, every volume names a pool Cinder's own list holds, so a pool knows what is on it",
     async (release: string) => {
       const scene: RecordedScene = loadScene(release, "healthy");
-      const volumes: Array<JSONObject> = recordedJson(scene, "cinder-volumes")?.[
-        "volumes"
-      ] as Array<JSONObject>;
+      const volumes: Array<JSONObject> = recordedJson(
+        scene,
+        "cinder-volumes",
+      )?.["volumes"] as Array<JSONObject>;
       const pools: Array<string> = (
         recordedJson(scene, "cinder-pools")?.["pools"] as Array<JSONObject>
       ).map((pool: JSONObject): string => {
@@ -1365,6 +1373,7 @@ describe("the catalogue says who collects what", () => {
       "openstack_cinder_snapshot_gb",
       "openstack_container_infra_agent_state",
       "openstack_heat_agent_state",
+      "openstack_placement_flavor_fits",
     ]);
   });
 });

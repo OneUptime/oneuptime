@@ -1,0 +1,26 @@
+--- /etc/nova/api-paste.ini
+33:keystone = cors http_proxy_to_wsgi compute_req_id faultwrap request_log sizelimit otel_tracing osprofiler authtoken keystonecontext osapi_compute_app_v21
+37:keystone = cors http_proxy_to_wsgi compute_req_id faultwrap request_log sizelimit otel_tracing osprofiler authtoken keystonecontext legacy_v2_compatible osapi_compute_app_v21
+93:[filter:otel_tracing]
+94:paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+--- /etc/neutron/api-paste.ini
+9:noauth = cors http_proxy_to_wsgi request_id fake_project_id catch_errors otel_tracing osprofiler extensions neutronapiapp_v2_0
+10:keystone = cors http_proxy_to_wsgi request_id catch_errors otel_tracing osprofiler authtoken keystonecontext extensions neutronapiapp_v2_0
+61:[filter:otel_tracing]
+62:paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+--- /etc/cinder/api-paste.ini
+13:noauth = request_id cors http_proxy_to_wsgi faultwrap sizelimit otel_tracing osprofiler noauth apiv3
+14:noauth_include_project_id = request_id cors http_proxy_to_wsgi faultwrap sizelimit otel_tracing osprofiler noauth_include_project_id apiv3
+15:keystone = request_id cors http_proxy_to_wsgi faultwrap sizelimit otel_tracing osprofiler authtoken keystonecontext apiv3
+16:keystone_nolimit = request_id cors http_proxy_to_wsgi faultwrap sizelimit otel_tracing osprofiler authtoken keystonecontext apiv3
+71:[filter:otel_tracing]
+72:paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+--- /etc/glance/glance-api-paste.ini
+39:default = cors http_proxy_to_wsgi versionnegotiation otel_tracing osprofiler unauthenticated-context rootapp
+40:caching = cors http_proxy_to_wsgi versionnegotiation otel_tracing osprofiler unauthenticated-context cache rootapp
+41:cachemanagement = cors http_proxy_to_wsgi versionnegotiation otel_tracing osprofiler unauthenticated-context cache cachemanage rootapp
+42:keystone = cors http_proxy_to_wsgi versionnegotiation otel_tracing osprofiler authtoken context rootapp
+43:keystone+caching = cors http_proxy_to_wsgi versionnegotiation otel_tracing osprofiler authtoken context cache rootapp
+44:keystone+cachemanagement = cors http_proxy_to_wsgi versionnegotiation otel_tracing osprofiler authtoken context cache cachemanage rootapp
+96:[filter:otel_tracing]
+97:paste.filter_factory = oslo_middleware:TracingMiddleware.factory

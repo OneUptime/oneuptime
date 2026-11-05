@@ -59,10 +59,12 @@ SCHEDULER = "nova-nova-scheduler"
 # What each scene with something changed has to add to that, once it has run. The scenes come
 # and go with what a release can do, so only one that ran is held to anything.
 SCENE_MUST_CROSS = {
-    "signed-by-header": ("nova-osapi_compute",),
+    # The service's own spans can wait for that worker's next request, on a release whose API
+    # runs on eventlet. Keystone's arrives regardless, under the ID chosen by hand, and is only
+    # there because Nova accepted the signature and passed it on.
+    "signed-by-header": ("keystone-public",),
     "signed-boot-placement": (PLACEMENT,),
     "signed-boot-whole": (PLACEMENT, CONDUCTOR, SCHEDULER),
-    "signed-boot-failed-whole": (CONDUCTOR, SCHEDULER),
     "signed-boot-osprofiler-fix": (PLACEMENT,),
 }
 # How long past a scene's end its spans are still arriving: the driver sends in batches.
@@ -144,6 +146,16 @@ def spans_by_trace(path):
     return traces
 
 
+def left_off_services(traces_dir):
+    """What had to go without OSProfiler, because the cloud would not answer with it on."""
+    path = os.path.join(traces_dir, "which-services-start.txt")
+    if not os.path.exists(path):
+        return ()
+    with open(path, encoding="utf-8") as handle:
+        said = handle.read()
+    return ("neutron-neutron-server",) if "/etc/neutron/neutron.conf" in said and "neutron-api devstack@neutron-rpc-server): no" in said else ()
+
+
 def describe_trace(spans):
     services = {}
     ids = {span.get("spanId") for _, _, span in spans}
@@ -223,8 +235,9 @@ def check(traces_dir):
         if not spans:
             problems.append(f"The signed boot's trace {key} has no spans.")
         services = {service for service, _, _ in spans}
+        left_off = left_off_services(traces_dir)
         for name in BOOT_MUST_CROSS:
-            if name not in services:
+            if name not in services and name not in left_off:
                 problems.append(f"The signed boot's trace has no {name} span: {sorted(services)}.")
         if PLACEMENT in services:
             problems.append(

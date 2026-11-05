@@ -16,8 +16,10 @@ import {
   OpenStackQuotaResource,
   getOpenStackQuotaFactKey,
 } from "../../../Types/OpenStack/OpenStackQuota";
+import { OpenStackRowsLeftOut } from "../../../Types/OpenStack/OpenStackOverview";
 import {
   OpenStackResourceKind,
+  OpenStackServiceFamily,
   OpenStackServiceType,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
@@ -60,8 +62,15 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackOverviewReads";
 import {
   getOpenStackRegionFromSearch,
+  getOpenStackRegionIssueQuery,
+  getOpenStackRegionMetricFilters,
   getOpenStackRegionRoute,
+  isOpenStackIssueInRegion,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackRegion";
+import { OPENSTACK_REGION_PAGES } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackRegionBar";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
+import JSONFunctions from "../../../Types/JSONFunctions";
 
 /*
  * What the Overview's cards and the Services page read: how a cloud's APIs and workers
@@ -1055,7 +1064,7 @@ describe("the attention rows read a region at a time", () => {
     rows: Array<OpenStackResource>,
     totalsByKind: Record<string, number>,
   ): OpenStackAttentionAnswer => {
-    return { rows, totalsByKind };
+    return { rows, totalsByKind, leftOut: [] };
   };
 
   test("add up, kind by kind", () => {
@@ -1087,7 +1096,11 @@ describe("the attention rows read a region at a time", () => {
   });
 
   test("no answers are no rows", () => {
-    expect(mergeOpenStackAttention([])).toEqual({ rows: [], totalsByKind: {} });
+    expect(mergeOpenStackAttention([])).toEqual({
+      rows: [],
+      totalsByKind: {},
+      leftOut: [],
+    });
   });
 
   test("a row's dates arrive as text and read as dates, and a bad one as none", () => {
@@ -1104,6 +1117,174 @@ describe("the attention rows read a region at a time", () => {
     );
     expect(parsed.lastSeenAt).toBeUndefined();
     expect(parsed.diskCapacityBytes).toBe(5);
+  });
+});
+
+describe("a cloud of thousands of hosts, whose fine ones were counted and not read", () => {
+  const COMPUTES_UP: OpenStackRowsLeftOut = {
+    kind: OpenStackResourceKind.Service,
+    regionName: "RegionOne",
+    name: "nova-compute",
+    family: OpenStackServiceFamily.Compute,
+    state: "up",
+    count: 4990,
+  };
+  const COMPUTES_DOWN_PAST_THE_LIMIT: OpenStackRowsLeftOut = {
+    ...COMPUTES_UP,
+    state: "down",
+    count: 3,
+  };
+  const OVN_UP: OpenStackRowsLeftOut = {
+    kind: OpenStackResourceKind.Service,
+    regionName: "RegionTwo",
+    name: "ovn-controller",
+    family: OpenStackServiceFamily.Network,
+    state: "up",
+    count: 5000,
+  };
+  const HOSTS_UP: OpenStackRowsLeftOut = {
+    kind: OpenStackResourceKind.Hypervisor,
+    regionName: "RegionOne",
+    name: null,
+    family: null,
+    state: "up",
+    count: 4990,
+  };
+  const LEFT_OUT: Array<OpenStackRowsLeftOut> = [
+    COMPUTES_UP,
+    COMPUTES_DOWN_PAST_THE_LIMIT,
+    OVN_UP,
+    HOSTS_UP,
+  ];
+
+  function computeWorker(status: string): OpenStackResource {
+    return row(OpenStackResourceKind.Service, {
+      name: "nova-compute",
+      status: status,
+      adminState: "enabled",
+      externalId: `RegionOne/compute/h-${status}/nova-compute`,
+      regionName: "RegionOne",
+      facts: { family: OpenStackServiceFamily.Compute, host: `h-${status}` },
+    });
+  }
+
+  test("workers count what was read and what was only counted, by state", () => {
+    expect(getOpenStackWorkerCounts([computeWorker("down")], LEFT_OUT)).toEqual(
+      { total: 1 + 4990 + 3 + 5000, up: 9990, down: 4, disabled: 0 },
+    );
+  });
+
+  test("a cloud nothing was left out of counts as it always did", () => {
+    expect(getOpenStackWorkerCounts([computeWorker("down")])).toEqual({
+      total: 1,
+      up: 0,
+      down: 1,
+      disabled: 0,
+    });
+  });
+
+  test("hypervisors count what was read and what was only counted, and down reads lost", () => {
+    expect(
+      getOpenStackHypervisorCounts(
+        [
+          row(OpenStackResourceKind.Hypervisor, {
+            status: "down",
+            adminState: "enabled",
+          }),
+        ],
+        [
+          HOSTS_UP,
+          { ...HOSTS_UP, state: "down", count: 2 },
+          { ...HOSTS_UP, state: "disabled", count: 7 },
+        ],
+      ),
+    ).toEqual({ total: 1 + 4990 + 2 + 7, up: 4990, lost: 3, disabled: 7 });
+  });
+
+  test("a group holds its own region's counts, reads what it read, and says how many it did not", () => {
+    const groups: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
+      apis: [api("compute", "up", "RegionOne")],
+      workers: [computeWorker("down")],
+      leftOut: LEFT_OUT,
+      now: new Date(),
+    });
+
+    const compute: OpenStackServiceGroup | undefined = groups.find(
+      (group: OpenStackServiceGroup): boolean => {
+        return group.service === OpenStackServiceType.Compute;
+      },
+    );
+
+    expect(compute?.workers).toHaveLength(1);
+    expect(compute?.counts).toEqual({
+      total: 4994,
+      up: 4990,
+      down: 4,
+      disabled: 0,
+    });
+    expect(compute?.notListedCount).toBe(4993);
+    expect(compute?.health).toBe("Unhealthy");
+
+    // A family nothing was read of still has a group.
+    const network: OpenStackServiceGroup | undefined = groups.find(
+      (group: OpenStackServiceGroup): boolean => {
+        return group.service === OpenStackServiceType.Network;
+      },
+    );
+
+    expect(network?.regionName).toBe("RegionTwo");
+    expect(network?.workers).toHaveLength(0);
+    expect(network?.counts.total).toBe(5000);
+  });
+
+  test("an API that is down has said nothing of workers that were only counted", () => {
+    const [group]: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
+      apis: [api("compute", "down", "RegionOne")],
+      workers: [],
+      leftOut: [COMPUTES_UP],
+      now: new Date(),
+    });
+
+    expect(group?.isLastKnown).toBe(true);
+  });
+
+  test("a credential is not short of what was only counted", () => {
+    const gaps: Array<OpenStackAccessGap> = getOpenStackAccessGaps({
+      apis: [api("compute", "up", "RegionOne")],
+      workers: [],
+      hypervisors: [],
+      leftOut: [COMPUTES_UP, HOSTS_UP],
+    });
+
+    expect(gaps).toEqual([]);
+
+    expect(
+      getOpenStackAccessGaps({
+        apis: [api("compute", "up", "RegionOne")],
+        workers: [],
+        hypervisors: [],
+        leftOut: [{ ...COMPUTES_UP, regionName: "RegionTwo" }],
+      }).map((gap: OpenStackAccessGap): string => {
+        return gap.key;
+      }),
+    ).toEqual(["hypervisors", "compute-services"]);
+  });
+
+  test("the network backend is named from what was only counted too", () => {
+    expect(getOpenStackNetworkBackendName([], [OVN_UP])).toBe(
+      OPENSTACK_BACKEND_OVN,
+    );
+    expect(getOpenStackNetworkBackendName([], [COMPUTES_UP])).toBeNull();
+  });
+
+  test("what was left out of each region's read adds up, and no region's is lost", () => {
+    const merged: OpenStackAttentionAnswer = mergeOpenStackAttention([
+      { rows: [], totalsByKind: { Service: 4993 }, leftOut: [COMPUTES_UP] },
+      { rows: [], totalsByKind: { Service: 5000 }, leftOut: [OVN_UP] },
+    ]);
+
+    expect(merged.leftOut).toEqual([COMPUTES_UP, OVN_UP]);
+    expect(merged.totalsByKind).toEqual({ Service: 9993 });
   });
 });
 
@@ -1232,5 +1413,125 @@ describe("a service a cloud may not run", () => {
         }),
       ).toBeNull();
     });
+  });
+});
+
+describe("what a region narrows, on each signal", () => {
+  test("a metric's datapoint says it, and the whole cloud asks for none", () => {
+    expect(getOpenStackRegionMetricFilters("RegionTwo")).toEqual({
+      "openstack.region.name": "RegionTwo",
+    });
+    expect(getOpenStackRegionMetricFilters(null)).toEqual({});
+  });
+
+  test("an incident or alert of the region, or one that names none", () => {
+    const query: JSONObject = getOpenStackRegionIssueQuery("RegionTwo");
+    const wanted: unknown = query["openstack.region.name"];
+
+    expect(wanted).toBeInstanceOf(EqualToOrNull);
+    expect((wanted as EqualToOrNull<string>).value).toBe("RegionTwo");
+  });
+
+  test("survives the trip to the API, which reads it back as the same filter", () => {
+    const sent: JSONObject = JSONFunctions.deserialize(
+      JSON.parse(
+        JSON.stringify(
+          JSONFunctions.serialize(getOpenStackRegionIssueQuery("RegionTwo")),
+        ),
+      ),
+    );
+
+    expect(sent["openstack.region.name"]).toBeInstanceOf(EqualToOrNull);
+  });
+
+  test.each<[string, JSONObject | null | undefined, string | null, boolean]>([
+    ["the whole cloud reads everything", { a: "b" }, null, true],
+    [
+      "the whole cloud reads another region's",
+      { "openstack.region.name": "RegionTwo" },
+      null,
+      true,
+    ],
+    [
+      "its own region",
+      { "openstack.region.name": "RegionTwo" },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "as ingest writes a resource's attribute",
+      { "resource.openstack.region.name": "RegionTwo" },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "not another region's",
+      { "openstack.region.name": "RegionOne" },
+      "RegionTwo",
+      false,
+    ],
+    ["a series that names none is the whole cloud's", {}, "RegionTwo", true],
+    ["declared by hand, with no series", null, "RegionTwo", true],
+    ["no labels read at all", undefined, "RegionTwo", true],
+    [
+      "a blank name is no name",
+      { "openstack.region.name": "  " },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "spaces around a name are not part of it",
+      { "openstack.region.name": " RegionTwo " },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "a name is matched as written, not by what it begins with",
+      { "openstack.region.name": "RegionTwoWest" },
+      "RegionTwo",
+      false,
+    ],
+    [
+      "a label that is not a name says nothing",
+      { "openstack.region.name": 7 as unknown as string },
+      "RegionTwo",
+      true,
+    ],
+  ])(
+    "what is open: %s",
+    (
+      _name: string,
+      labels: JSONObject | null | undefined,
+      region: string | null,
+      expected: boolean,
+    ) => {
+      expect(isOpenStackIssueInRegion(labels, region)).toBe(expected);
+    },
+  );
+});
+
+describe("the pages a region can be chosen on", () => {
+  const pages: ReadonlyArray<PageMap> = OPENSTACK_REGION_PAGES;
+
+  test.each<[string, PageMap]>([
+    ["the map", PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY],
+    ["what the cloud stands on", PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE],
+    ["metrics", PageMap.OPENSTACK_CLOUD_VIEW_METRICS],
+    ["logs", PageMap.OPENSTACK_CLOUD_VIEW_LOGS],
+    ["traces", PageMap.OPENSTACK_CLOUD_VIEW_TRACES],
+    ["incidents", PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS],
+    ["alerts", PageMap.OPENSTACK_CLOUD_VIEW_ALERTS],
+    ["maintenance", PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE],
+  ])("%s", (_name: string, page: PageMap) => {
+    expect(pages).toContain(page);
+  });
+
+  test.each<[string, PageMap]>([
+    ["a cloud's settings", PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS],
+    ["its owners", PageMap.OPENSTACK_CLOUD_VIEW_OWNERS],
+    ["Keystone's projects", PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS],
+    ["Keystone's domains", PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS],
+  ])("not %s, where a region means nothing", (_name: string, page: PageMap) => {
+    expect(pages).not.toContain(page);
   });
 });

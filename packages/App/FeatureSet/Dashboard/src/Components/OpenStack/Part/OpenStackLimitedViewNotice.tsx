@@ -20,6 +20,7 @@ import {
   getOpenStackListView,
 } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import OpenStackPartNotice from "./OpenStackPartNotice";
+import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
 /*
@@ -50,6 +51,9 @@ const OpenStackLimitedViewNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(
+    props.openStackCloudId,
+  );
 
   const read: OpenStackRead<OpenStackListView> =
     useOpenStackRead<OpenStackListView>(async () => {
@@ -108,7 +112,9 @@ const OpenStackLimitedViewNotice: FunctionComponent<ComponentProps> = (
       testId="openstack-limited-view-notice"
       tone="neutral"
       text={translator.translateText(
-        "Every row here is one project's. Neutron and Cinder answer a limited credential with its own project's rows and no error, so this list may not be the whole cloud. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+        isProbeCollected
+          ? "Every row here is one project's. Neutron and Cinder answer a limited credential with its own project's rows and no error, so this list may not be the whole cloud. Test Connection, under Data Collection on this cloud's Settings page, says what this credential can read."
+          : "Every row here is one project's. Neutron and Cinder answer a limited credential with its own project's rows and no error, so this list may not be the whole cloud. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
       )}
     />
   );

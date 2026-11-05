@@ -13,16 +13,22 @@ import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 /*
  * Security groups and ports are counts, and only counts. There is no row of either: a
  * security group's risky rules are for the audit issue, and listing ports can saturate
- * Neutron (openstack-exporter issue 540), so the agent leaves the per-port read off by
- * default and says how to turn it on rather than pretending there are none.
+ * Neutron (openstack-exporter issue 540), so the per-port read is off by default, on the agent
+ * and on a probe, and this says how to turn it on rather than pretending there are none.
  */
 const REGION_LABEL: string = "openstack.region.name";
 
 const PORTS_OFF: string = translationKey(
   "Ports are not counted, by choice: the list behind the count can saturate Neutron, so the agent leaves it off. Delete the --disable-metric=neutron-ports line from the exporter to count them.",
 );
+const PORTS_OFF_ON_A_PROBE: string = translationKey(
+  "Ports are not counted, by choice: the list behind the count can saturate Neutron. Turn on Ports under Data Collection on this cloud's Settings page to count them.",
+);
 const GROUPS_BY_PROJECT_OFF: string = translationKey(
-  "Counted per region. Per project, these come from Neutron's quotas, which the agent leaves off: delete the --disable-metric=neutron-quota_network line from the exporter to see them.",
+  "Counted per region. Per project, these come from Neutron's quotas, which the agent leaves off: run its install.sh again with OPENSTACK_COLLECT_QUOTAS=true to see them.",
+);
+const GROUPS_BY_PROJECT_OFF_ON_A_PROBE: string = translationKey(
+  "Counted per region. Per project, these come from Neutron's quotas: turn on Project limits under Data Collection on this cloud's Settings page to see them.",
 );
 
 function sum(readings: Array<OpenStackLatestReading>): number {
@@ -38,6 +44,8 @@ export interface ComponentProps {
   cloudName: string;
   // The region being read, or none for the whole cloud.
   regionName?: string | null | undefined;
+  // Which of the two ways of turning a read on this cloud has.
+  isProbeCollected?: boolean | undefined;
 }
 
 const OpenStackNetworkCountsCard: FunctionComponent<ComponentProps> = (
@@ -140,11 +148,18 @@ const OpenStackNetworkCountsCard: FunctionComponent<ComponentProps> = (
       ) : (
         <OpenStackPartNotice
           testId="openstack-security-groups-by-project-off"
-          text={GROUPS_BY_PROJECT_OFF}
+          text={
+            props.isProbeCollected
+              ? GROUPS_BY_PROJECT_OFF_ON_A_PROBE
+              : GROUPS_BY_PROJECT_OFF
+          }
         />
       )}
       {ports.length === 0 ? (
-        <OpenStackPartNotice testId="openstack-ports-off" text={PORTS_OFF} />
+        <OpenStackPartNotice
+          testId="openstack-ports-off"
+          text={props.isProbeCollected ? PORTS_OFF_ON_A_PROBE : PORTS_OFF}
+        />
       ) : (
         <></>
       )}

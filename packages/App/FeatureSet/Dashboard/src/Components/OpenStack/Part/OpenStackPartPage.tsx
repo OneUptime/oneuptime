@@ -32,7 +32,7 @@ import { OpenStackPart } from "./UseOpenStackPart";
 
 const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.Api]: translationKey(
-    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or the agent may not have collected it yet.",
+    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or it may not have been collected yet.",
   ),
   [OpenStackResourceKind.Hypervisor]: translationKey(
     "This hypervisor is not in this cloud's inventory. It may have gone, or Nova may not have reported it yet.",

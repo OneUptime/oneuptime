@@ -197,7 +197,7 @@ export const OPENSTACK_CLOUD_BOOKKEEPING_COLUMNS: Array<string> = [
   pluralName: "OpenStack Clouds",
   icon: IconProp.Cloud,
   tableDescription:
-    "OpenStack clouds that are being monitored in this project. Each cloud is auto-discovered when the OneUptime OpenStack Agent sends metrics, or can be manually registered.",
+    "OpenStack clouds that are being monitored in this project. A cloud is discovered when the OneUptime OpenStack Agent sends its first metrics, or connected with a read-only credential that one of the project's probes collects it with.",
 })
 @Entity({
   name: "OpenStackCloud",
@@ -1926,6 +1926,28 @@ export default class OpenStackCloud extends BaseModel {
     nullable: true,
   })
   public instanceMetricsOptions?: JSONObject = undefined;
+
+  /*
+   * What the Capacity page, its CSV and the capacity alerts read, however large the cloud: a
+   * worker works it out from the inventory every couple of minutes. See OpenStackCapacitySnapshot.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Capacity Snapshot",
+    description:
+      "What this cloud's capacity added up to when a worker last read its inventory, as JSON: what is allocated and what can be, by zone, aggregate, region and cloud, how many more of each flavor fit, when each thing fills up, and what no instance explains. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public capacitySnapshot?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],
