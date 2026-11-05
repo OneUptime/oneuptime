@@ -8,6 +8,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  OPENSTACK_BARE_METAL_STUCK_MINUTES,
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
@@ -17,6 +18,9 @@ import {
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_BARE_METAL_ERROR_STATES,
+  OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
   OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
@@ -349,6 +353,8 @@ const LABEL_FAILED: string = translationKey("Failed");
 const LABEL_STUCK: string = translationKey("Stuck");
 const LABEL_IN_ERROR: string = translationKey("In error");
 
+const LABEL_IN_MAINTENANCE: string = translationKey("In maintenance");
+
 function stuckPreset(data: {
   statuses: ReadonlySet<string>;
   minutes: number;
@@ -393,6 +399,29 @@ export const OPENSTACK_VOLUME_STATE_PRESETS: Array<OpenStackStatePreset> = [
       return {
         status: new Includes(Array.from(OPENSTACK_VOLUME_ERROR_STATUSES)),
       };
+    },
+  },
+];
+
+export const OPENSTACK_BARE_METAL_STATE_PRESETS: Array<OpenStackStatePreset> = [
+  stuckPreset({
+    statuses: OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
+    minutes: OPENSTACK_BARE_METAL_STUCK_MINUTES,
+  }),
+  {
+    value: "failed",
+    label: LABEL_FAILED,
+    getQuery: (): Query<OpenStackResource> => {
+      return {
+        status: new Includes(Array.from(OPENSTACK_BARE_METAL_ERROR_STATES)),
+      };
+    },
+  },
+  {
+    value: "maintenance",
+    label: LABEL_IN_MAINTENANCE,
+    getQuery: (): Query<OpenStackResource> => {
+      return { adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE };
     },
   },
 ];

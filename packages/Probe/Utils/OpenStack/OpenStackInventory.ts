@@ -771,6 +771,8 @@ export interface CinderVolumeRecord {
    * has none.
    */
   poolName: string | null;
+  // The image it was made from, which that image is in use for as long as this volume lasts.
+  imageId: string | null;
   sizeGb: number | null;
   updatedAt: string | null;
 }
@@ -791,6 +793,7 @@ export function toCinderVolume(item: JSONObject): CinderVolumeRecord {
     volumeType: text(item["volume_type"]),
     serverId: attachments[0] ? text(object(attachments[0])["server_id"]) : null,
     poolName: text(item["os-vol-host-attr:host"]),
+    imageId: text(object(item["volume_image_metadata"])["image_id"]),
     sizeGb: numeric(item["size"]),
     updatedAt: text(item["updated_at"]),
   };
@@ -803,6 +806,7 @@ export interface CinderSnapshotRecord {
   tenantId: string | null;
   volumeId: string | null;
   sizeGb: number | null;
+  createdAt: string | null;
   updatedAt: string | null;
 }
 
@@ -814,6 +818,7 @@ export function toCinderSnapshot(item: JSONObject): CinderSnapshotRecord {
     tenantId: text(item["os-extended-snapshot-attributes:project_id"]),
     volumeId: text(item["volume_id"]),
     sizeGb: numeric(item["size"]),
+    createdAt: text(item["created_at"]),
     updatedAt: text(item["updated_at"]),
   };
 }
@@ -864,6 +869,8 @@ export interface GlanceImageRecord {
   status: string | null;
   visibility: string | null;
   isHidden: boolean;
+  // Someone said to keep it, which a list of what could go has to respect.
+  isProtected: boolean;
   imageType: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -879,9 +886,81 @@ export function toGlanceImage(item: JSONObject): GlanceImageRecord {
     status: text(item["status"]),
     visibility: text(item["visibility"]),
     isHidden: item["os_hidden"] === true,
+    isProtected: item["protected"] === true,
     imageType: text(item["image_type"]),
     createdAt: text(item["created_at"]),
     updatedAt: text(item["updated_at"]),
+  };
+}
+
+/*
+ * One machine Ironic manages, of the fields asked for (IRONIC_NODE_FIELDS), which is every one a page
+ * reads and none that says how to reach its controller.
+ */
+export interface IronicNodeRecord {
+  uuid: string | null;
+  name: string | null;
+  provisionState: string | null;
+  // Null until something has set it, which the exporter leaves as nothing too.
+  powerState: string | null;
+  targetProvisionState: string | null;
+  targetPowerState: string | null;
+  isInMaintenance: boolean;
+  maintenanceReason: string | null;
+  fault: string | null;
+  lastError: string | null;
+  resourceClass: string | null;
+  driver: string | null;
+  instanceUuid: string | null;
+  owner: string | null;
+  lessee: string | null;
+  conductor: string | null;
+  conductorGroup: string | null;
+  isRetired: boolean;
+  retiredReason: string | null;
+  isConsoleEnabled: boolean;
+  provisionUpdatedAt: string | null;
+  updatedAt: string | null;
+}
+
+export function toIronicNode(item: JSONObject): IronicNodeRecord {
+  return {
+    uuid: text(item["uuid"]),
+    name: text(item["name"]),
+    provisionState: text(item["provision_state"]),
+    powerState: text(item["power_state"]),
+    targetProvisionState: text(item["target_provision_state"]),
+    targetPowerState: text(item["target_power_state"]),
+    isInMaintenance: item["maintenance"] === true,
+    maintenanceReason: text(item["maintenance_reason"]),
+    fault: text(item["fault"]),
+    lastError: text(item["last_error"]),
+    resourceClass: text(item["resource_class"]),
+    driver: text(item["driver"]),
+    instanceUuid: text(item["instance_uuid"]),
+    owner: text(item["owner"]),
+    lessee: text(item["lessee"]),
+    conductor: text(item["conductor"]),
+    conductorGroup: text(item["conductor_group"]),
+    isRetired: item["retired"] === true,
+    retiredReason: text(item["retired_reason"]),
+    isConsoleEnabled: item["console_enabled"] === true,
+    provisionUpdatedAt: text(item["provision_updated_at"]),
+    updatedAt: text(item["updated_at"]),
+  };
+}
+
+export interface IronicConductorRecord {
+  hostname: string | null;
+  conductorGroup: string | null;
+  isAlive: boolean;
+}
+
+export function toIronicConductor(item: JSONObject): IronicConductorRecord {
+  return {
+    hostname: text(item["hostname"]),
+    conductorGroup: text(item["conductor_group"]),
+    isAlive: item["alive"] === true,
   };
 }
 
@@ -1127,6 +1206,11 @@ export interface OpenStackImageInventory {
   images?: Array<GlanceImageRecord> | undefined;
 }
 
+export interface OpenStackBareMetalInventory {
+  nodes?: Array<IronicNodeRecord> | undefined;
+  conductors?: Array<IronicConductorRecord> | undefined;
+}
+
 export interface OpenStackOrchestrationInventory {
   stacks?: Array<HeatStackRecord> | undefined;
   engines?: Array<HeatEngineRecord> | undefined;
@@ -1149,6 +1233,7 @@ export interface OpenStackInventoryByService {
   network?: OpenStackNetworkInventory | undefined;
   volume?: OpenStackVolumeInventory | undefined;
   image?: OpenStackImageInventory | undefined;
+  baremetal?: OpenStackBareMetalInventory | undefined;
   // Keyed by what each service is called, so a reading finds its own by that.
   orchestration?: OpenStackOrchestrationInventory | undefined;
   "container-infra"?: OpenStackContainerInfraInventory | undefined;

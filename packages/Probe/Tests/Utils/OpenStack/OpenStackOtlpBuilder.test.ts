@@ -1078,6 +1078,7 @@ describe("Cinder", () => {
     volumeType: "lvm",
     serverId: "server-1",
     poolName: null,
+    imageId: null,
     sizeGb: 5,
     updatedAt: "2026-11-04T10:00:00.000000",
   };
@@ -1100,6 +1101,18 @@ describe("Cinder", () => {
       labels: { size: "5", status: "in-use" },
     });
     expect(named(points, "openstack_cinder_volumes")[0]?.value).toBe(1);
+  });
+
+  test("a volume says which image it was made from, so that image is known to be in use", () => {
+    const points: Array<ReportedDatapoint> = build(
+      reading(OpenStackServiceType.Volume, {
+        volumes: [{ ...VOLUME, imageId: "image-1" }],
+      }),
+    );
+
+    expect(named(points, "openstack_cinder_volume_gb")[0]?.labels["image_id"]).toBe(
+      "image-1",
+    );
   });
 
   test("a volume names the pool that holds it on the series the scan reads, and only there", () => {
@@ -1187,6 +1200,7 @@ describe("Cinder", () => {
             tenantId: "p1",
             volumeId: "v1",
             sizeGb: 2,
+            createdAt: "2026-08-01T01:00:00.000000",
             updatedAt: "2026-11-04T01:00:00.000000",
           },
         ],
@@ -1509,6 +1523,7 @@ describe("the rest", () => {
           status: "active",
           visibility: "public",
           isHidden: false,
+          isProtected: true,
           imageType: "snapshot",
           createdAt: "2026-11-04T09:46:46Z",
           updatedAt: "2026-11-04T09:46:47Z",
@@ -1527,7 +1542,12 @@ describe("the rest", () => {
     expect(named(points, "openstack_glance_image_created_at")[0]).toMatchObject(
       {
         value: Date.parse("2026-11-04T09:46:46Z") / 1000,
-        labels: { hidden: "false", status: "active", visibility: "public" },
+        labels: {
+          hidden: "false",
+          protected: "true",
+          status: "active",
+          visibility: "public",
+        },
       },
     );
   });
@@ -1544,6 +1564,7 @@ describe("the rest", () => {
             status: "queued",
             visibility: "public",
             isHidden: false,
+            isProtected: false,
             imageType: null,
             createdAt: "not a date",
             updatedAt: null,

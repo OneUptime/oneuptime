@@ -903,6 +903,7 @@ import { AddOpenStackCloudAiAccess1808993574600 } from "./1808993574600-AddOpenS
 import { AddOpenStackCloudCapacitySnapshot1808993745000 } from "./1808993745000-AddOpenStackCloudCapacitySnapshot";
 import { AddOpenStackRuleProjectAndDomain1808993750000 } from "./1808993750000-AddOpenStackRuleProjectAndDomain";
 import { AddOpenStackCloudCheck1808993900000 } from "./1808993900000-AddOpenStackCloudCheck";
+import { AddOpenStackUsageAndBudgets1808993950000 } from "./1808993950000-AddOpenStackUsageAndBudgets";
 
 export default [
   InitialMigration,
@@ -1810,4 +1811,5 @@ export default [
   AddOpenStackCloudCapacitySnapshot1808993745000,
   AddOpenStackRuleProjectAndDomain1808993750000,
   AddOpenStackCloudCheck1808993900000,
+  AddOpenStackUsageAndBudgets1808993950000,
 ];

@@ -84,7 +84,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia, Ironic, Heat, Magnum, Manila and Trove are not here because those clouds do not run them. `troubleshoot.sh` asks them too, where a cloud does.
+Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove and Gnocchi are not here because those clouds do not run them. `troubleshoot.sh` asks them too, where a cloud does.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 
@@ -131,6 +131,28 @@ Access rules need `service_type` set for keystonemiddleware on each service, and
 [keystone_authtoken]
 service_type = compute
 ```
+
+The same for the services a cloud may not run, where yours runs them:
+
+| Config file | `service_type` |
+|-------------|----------------|
+| `octavia.conf` | `load-balancer` |
+| `ironic.conf` | `baremetal` |
+| `heat.conf` | `orchestration` |
+| `magnum.conf` | `container-infra` |
+| `manila.conf` | `sharev2`. The rules also carry `shared-file-system`, for a Manila configured that way |
+| `designate.conf` | `dns` |
+| `barbican.conf` | `key-manager` |
+| `trove.conf` | `database` |
+| `gnocchi.conf` | `metric` |
+| `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
+
+On the services a cloud may not run, what each level got on real clouds differs from the tables above in four ways:
+
+- **Ironic** answers a project's credential, an admin's too, with only the nodes that project owns, and refuses its conductors. Only system scope reads every node and the conductors, and the agent's credential is on a project. To read a node with it, make its project the owner: `openstack baremetal node set --owner`.
+- **Swift** lists the credential's own project's containers, and no other. Another project's account answers `403` unless the credential has `ResellerAdmin`.
+- **Barbican** answers a credential about its own project alone, and refuses a plain reader. OneUptime reads no secret.
+- **Gnocchi** lets any role on a project create a metric, so on a cloud that runs it, level 2 and level 3 can write there.
 
 The rules also carry `volume` and `volumev3`, for a Cinder configured that way. Keystone needs nothing.
 
@@ -452,6 +474,12 @@ Each service also reports `openstack_<service>_up` (`openstack_nova_up`, `openst
 - `openstack_service`, the job's OpenStack service (`compute`, `network`, ...).
 
 Do not remove the `transform/openstack-identity` processor, or the two deletes of `service.name` and `service.instance.id` in the `resource` processor: monitor filters match on equality, and without the deletes the data would register a phantom Service instead of reaching the cloud.
+
+## Bare metal
+
+The `oneuptime-openstack-baremetal` job reads Ironic where the cloud runs it. Ironic shows a project only the nodes it owns (recorded on DevStack), and by its default policy only a system-scoped credential reads them all, or one whose role has `baremetal:node:list_all`. This agent uses one credential for every service, and Nova's lists refuse system scope, so out of the box it reads what the credential's project owns. The Bare Metal page compares that with what Placement holds, and says when the list isn't the whole cloud's.
+
+The exporter has no series for Ironic's conductors, a node's driver, or why a node failed. A probe reads those from Ironic's API, where its credential may. Stopped, Ironic gives the exporter an empty 200, the same as a cloud without it, so the pages say only that it has gone quiet.
 
 ## What it costs
 

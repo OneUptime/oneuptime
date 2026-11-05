@@ -57,6 +57,10 @@ import {
   OpenStackTopConsumers,
 } from "../../Types/OpenStack/OpenStackOverview";
 import {
+  OPENSTACK_BARE_METAL_CLASS_LIMIT,
+  OpenStackBareMetalClass,
+} from "../../Types/OpenStack/OpenStackBareMetal";
+import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusCount,
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
@@ -2319,6 +2323,65 @@ export class Service extends DatabaseService<Model> {
         data.stackIds,
       ],
     );
+  }
+
+  /**
+   * What there is of each resource class, for the Bare Metal page: one statement over a node's rows,
+   * so it reads the same however many there are. What can take an instance is
+   * canOpenStackBareMetalNodeTakeAnInstance, which a test holds this to on the same rows.
+   */
+  @CaptureSpan()
+  public async getBareMetalClasses(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    regionName?: string | null | undefined;
+  }): Promise<Array<OpenStackBareMetalClass>> {
+    const rows: Array<{
+      resourceClass: string | null;
+      nodeCount: string;
+      availableCount: string;
+      deployedCount: string;
+      maintenanceCount: string;
+      failedCount: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "facts"->>'resourceClass' AS "resourceClass",
+              COUNT(*)::text AS "nodeCount",
+              COUNT(*) FILTER (
+                WHERE "status" = 'available'
+                  AND COALESCE("adminState", '') <> '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+                  AND COALESCE("facts"->>'powerState', '') NOT IN ('', 'error')
+                  AND COALESCE("facts"->>'isRetired', 'false') <> 'true'
+              )::text AS "availableCount",
+              COUNT(*) FILTER (WHERE "status" = 'active')::text AS "deployedCount",
+              COUNT(*) FILTER (
+                WHERE "adminState" = '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+              )::text AS "maintenanceCount",
+              COUNT(*) FILTER (WHERE "status" = ANY($3::text[]))::text AS "failedCount"
+       FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.BareMetalNode}' AND "deletedAt" IS NULL
+         AND ($4::text IS NULL OR "regionName" = $4)
+       GROUP BY "facts"->>'resourceClass'
+       ORDER BY COUNT(*) DESC, "facts"->>'resourceClass' ASC NULLS LAST
+       LIMIT ${OPENSTACK_BARE_METAL_CLASS_LIMIT}`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        Array.from(OPENSTACK_BARE_METAL_ERROR_STATES),
+        data.regionName || null,
+      ],
+    );
+
+    return rows.map((row: (typeof rows)[number]): OpenStackBareMetalClass => {
+      return {
+        resourceClass: row.resourceClass,
+        nodeCount: Number.parseInt(row.nodeCount, 10) || 0,
+        availableCount: Number.parseInt(row.availableCount, 10) || 0,
+        deployedCount: Number.parseInt(row.deployedCount, 10) || 0,
+        maintenanceCount: Number.parseInt(row.maintenanceCount, 10) || 0,
+        failedCount: Number.parseInt(row.failedCount, 10) || 0,
+      };
+    });
   }
 
   /**

@@ -416,13 +416,16 @@ export function getOpenStackServiceGroups(data: {
  * The workers of a service a cloud may not run
  * ---------------------------------------------------------------------------
  *
- * The exporter has no series for Heat's engines or Magnum's conductors, so on an agent's cloud a card
- * for either has an API and no workers, which would read as though it had none. Only a native read of
+ * The exporter has no series for Heat's engines, Magnum's conductors or Ironic's, so on an agent's cloud a card
+ * for any of them has an API and no workers, which would read as though it had none. Only a native read of
  * their APIs lists them, and only for an admin. Each behaves differently when one stops, recorded:
  * with every engine stopped Heat's API can't answer at all, so this page does say so. Magnum's API
  * carries on without its conductor, so nothing else here would.
  */
 const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "The agent's exporter has no series for Ironic's conductors, so none is listed here. Only a probe reads them, where its credential may.",
+  ),
   [OpenStackServiceType.Orchestration]: translationKey(
     "The agent's exporter doesn't read Heat's engines, so they aren't listed here. With every engine stopped Heat's API stops answering, which this page does say. A probe reads them.",
   ),
@@ -435,6 +438,10 @@ const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
 };
 
 const WORKERS_REFUSED_TO_THIS_CREDENTIAL: Partial<Record<string, string>> = {
+  // Recorded: 403 baremetal:conductor:get, to a project's admin.
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "Ironic answers, and doesn't list its conductors to this credential. It refuses a project the list unless its policy says otherwise (baremetal:conductor:get). Its nodes read without it.",
+  ),
   [OpenStackServiceType.Orchestration]: translationKey(
     "Heat refuses this credential its list of engines, so they aren't listed here. Only the Full view credential reads them.",
   ),

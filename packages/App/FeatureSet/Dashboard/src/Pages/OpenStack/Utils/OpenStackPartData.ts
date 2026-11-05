@@ -22,6 +22,7 @@ import {
   OpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "Common/Types/OpenStack/OpenStackBlastRadius";
+import { OpenStackBareMetalClass } from "Common/Types/OpenStack/OpenStackBareMetal";
 import {
   OpenStackCountBy,
   OpenStackCountRow,
@@ -228,6 +229,18 @@ export async function fetchOpenStackBlastRadius(data: {
 }
 
 // How many of a kind there are by one of what they hold, counted on the server.
+export async function fetchOpenStackBareMetalClasses(data: {
+  openStackCloudId: ObjectID;
+  regionName?: string | null | undefined;
+}): Promise<Array<OpenStackBareMetalClass>> {
+  const answer: JSONObject = await postToCloud({
+    path: "/openstack-resource/bare-metal-classes/",
+    openStackCloudId: data.openStackCloudId,
+    ...(data.regionName ? { body: { regionName: data.regionName } } : {}),
+  });
+  return (answer["classes"] as unknown as Array<OpenStackBareMetalClass>) || [];
+}
+
 export async function fetchOpenStackCounts(data: {
   openStackCloudId: ObjectID;
   kind: OpenStackResourceKind;

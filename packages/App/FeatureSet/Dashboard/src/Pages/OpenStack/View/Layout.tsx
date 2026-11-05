@@ -61,6 +61,7 @@ const OpenStackCloudViewBody: FunctionComponent<{
           shares: summary.shareCount,
           databases: summary.databaseInstanceCount,
           optionalServices: summary.optionalServices,
+          bareMetalNodes: summary.bareMetalNodeCount,
         });
       })
       .catch(() => {});

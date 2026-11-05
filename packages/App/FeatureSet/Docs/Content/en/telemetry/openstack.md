@@ -108,7 +108,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia, Ironic, Heat, Magnum, Manila and Trove are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
+Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove and Gnocchi are not here because those clouds do not run them. The [diagnostic script](#troubleshooting) asks them too, where a cloud does, and it reads every path with your real credential and says what that credential can see.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 
@@ -169,6 +169,25 @@ service_type = compute
 | `cinder.conf` | `block-storage`. The rules also carry `volume` and `volumev3`, for a Cinder configured that way |
 | `glance-api.conf` | `image` |
 | `placement.conf` | `placement` |
+| `octavia.conf` | `load-balancer` |
+| `ironic.conf` | `baremetal` |
+| `heat.conf` | `orchestration` |
+| `magnum.conf` | `container-infra` |
+| `manila.conf` | `sharev2`. The rules also carry `shared-file-system`, for a Manila configured that way |
+| `designate.conf` | `dns` |
+| `barbican.conf` | `key-manager` |
+| `trove.conf` | `database` |
+| `gnocchi.conf` | `metric` |
+| `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
+
+Only the services your cloud runs need a line.
+
+On the services a cloud may not run, what each level got on real clouds differs from the tables above in four ways:
+
+- **Ironic** answers a project's credential, an admin's too, with only the nodes that project owns, and refuses its conductors. Only system scope reads every node and the conductors, and the agent's credential is on a project. To read a node with it, make its project the owner: `openstack baremetal node set --owner`.
+- **Swift** lists the credential's own project's containers, and no other. Another project's account answers `403` unless the credential has `ResellerAdmin`.
+- **Barbican** answers a credential about its own project alone, and refuses a plain reader. OneUptime reads no secret.
+- **Gnocchi** lets any role on a project create a metric, so on a cloud that runs it, level 2 and level 3 can write there.
 
 Keystone needs nothing. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
 
@@ -459,6 +478,30 @@ Three open upstream issues shape all this, and the project has also [asked for m
 - [Issue 660](https://github.com/openstack-exporter/openstack-exporter/issues/660): one failing service empties a whole scrape. So there is one scrape job per service. Do not merge them.
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and the diagnostic script asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
+
+## Bare metal
+
+If your cloud runs Ironic, it gets a **Bare Metal** section with every node Ironic shows the credential: where it is in Ironic's state machine, its power, whether someone put it in maintenance and why, its resource class, and when Ironic last saw it move. A cloud without Ironic has no such section, no alert about it and no line on any page.
+
+A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page.
+
+What needs someone, at the same lines as the [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates):
+
+| Reads | Means |
+| --- | --- |
+| A failed state, such as `clean failed` or `deploy failed`, or `error` | It stays failed until someone acts: Ironic retries none of these, and does not always put the node in maintenance |
+| The same passing state, such as `wait call-back`, for 2 hours | Ironic gives up on waiting after 30 minutes by default, so something else is holding it. A long disk erase can honestly take this long: the page reads Ironic's own time, which an erase's heartbeats keep moving, and an alert only reads the word |
+| In maintenance for 7 days | Planned until then, like a service someone disabled, so nothing says it needs attention before that |
+| `active` with its power off | Whatever runs on it has stopped. If its owner stopped the instance on it, the node's page says that is planned. An alert reads one series and cannot tell |
+
+### What it can't see
+
+Each of these was recorded on a real DevStack, and each page says so where it matters:
+
+- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds more nodes than Ironic listed, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
+- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic empties `last_error` within about a minute anyway, with the node still failed. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
+- **The exporter has no conductors.** Only a probe reads them, and Ironic refuses a project's credential the list unless its policy says otherwise (`baremetal:conductor:get`).
+- **A stopped Ironic reads the same as no Ironic.** Asked about one that is stopped, the exporter answers an empty 200, as it does for a cloud that never had it. So a page says only that it hasn't heard from Ironic, and that the nodes are as they last read. It never says down. Two weeks after the rest of the cloud last reported without it, those rows go, and they come back if it does.
 
 ## Capacity
 

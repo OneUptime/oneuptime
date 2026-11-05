@@ -1,0 +1,147 @@
+aodh_wsgi_processes: 1
+aodh_wsgi_threads: 1
+barbican_wsgi_processes: 1
+barbican_wsgi_threads: 1
+blazar_wsgi_processes: 1
+blazar_wsgi_threads: 1
+ceilometer_notification_workers: 1
+cinder_backends:
+  lvm:
+    extra_volume_types:
+      - low-iops
+      - high-iops
+      - ultra-high-iops
+    iscsi_ip_address: 172.29.236.100
+    lvm_type: thin
+    volume_backend_name: LVM_iSCSI
+    volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
+    volume_group: cinder-volumes
+cinder_osapi_volume_workers_max: 1
+cinder_wsgi_buffer_size: 16384
+cinder_wsgi_processes: 1
+cinder_wsgi_threads: 1
+cloudkitty_wsgi_processes: 1
+cloudkitty_wsgi_threads: 1
+debug: true
+galera_innodb_log_buffer_size: 4M
+galera_monitoring_allowed_source: 0.0.0.0/0
+galera_my_cnf_overrides:
+  mysqld:
+    innodb_buffer_pool_size: 16M
+    max_allowed_packet: 8M
+    read_buffer_size: 64K
+    sort_buffer_size: 8M
+    thread_cache_size: '8'
+    thread_stack: 192K
+    tmp_table_size: 8M
+galera_wsrep_provider_options:
+  - option: gcache.size
+    value: 4M
+glance_api_threads: 2
+glance_api_workers: 1
+glance_wsgi_processes: 1
+glance_wsgi_threads: 2
+gnocchi_metricd_workers: 1
+gnocchi_wsgi_processes: 1
+gnocchi_wsgi_threads: 1
+heat_api_threads: 1
+heat_api_workers: 1
+heat_wsgi_buffer_size: 16384
+heat_wsgi_processes: 1
+heat_wsgi_threads: 1
+horizon_wsgi_processes: 1
+horizon_wsgi_threads: 1
+install_method: source
+ironic_inspector_wsgi_processes: 1
+ironic_inspector_wsgi_threads: 1
+ironic_wsgi_processes: 1
+ironic_wsgi_threads: 1
+keystone_wsgi_processes: 2
+keystone_wsgi_threads: 2
+lxc_container_backing_store: dir
+lxc_container_bind_mounts:
+  - container_directory: /openstack/src
+    host_directory: /home/zuul/src
+  - container_directory: /opt/cache/files
+    host_directory: /opt/cache/files
+lxc_net_address: 10.255.255.1
+lxc_net_dhcp_range: 10.255.255.2,10.255.255.253
+lxc_net_netmask: 255.255.255.0
+magnum_conductor_workers: 1
+magnum_wsgi_processes: 1
+manila_osapi_share_workers: 2
+manila_wsgi_buffer_size: 65535
+manila_wsgi_processes: 1
+manila_wsgi_threads: 1
+mistral_wsgi_processes: 1
+mistral_wsgi_threads: 1
+neutron_api_threads: 2
+neutron_api_workers: 1
+neutron_metadata_workers: 1
+neutron_num_sync_threads: 1
+neutron_plugin_type: ml2.ovn
+neutron_rpc_workers: 0
+neutron_use_rpc: false
+neutron_wsgi_processes: 1
+nova_api_threads: 1
+nova_conductor_workers: 1
+nova_metadata_workers: 1
+nova_osapi_compute_workers: 1
+nova_reserved_host_memory_mb: 256
+nova_scheduler_workers: 1
+nova_wsgi_buffer_size: 16384
+nova_wsgi_processes: 1
+nova_wsgi_threads: 1
+octavia_wsgi_buffer_size: 16384
+octavia_wsgi_processes: 1
+octavia_wsgi_threads: 1
+openstack_apache_max_spare_threads: 15
+openstack_apache_min_spare_threads: 5
+openstack_apache_start_servers: 3
+openstack_apache_thread_child: 30
+openstack_apache_thread_limit: 30
+openstack_host_specific_kernel_modules: '{{ query(''vars'', *query(''varnames'', ''^aio1_kernel_modules_'')) | flatten(levels=1) }}'
+openstack_hosts_journald_config:
+  RateLimitBurst: 600
+  RateLimitIntervalSec: 60
+  RuntimeMaxFileSize: 100M
+  RuntimeMaxUse: 2G
+  SystemMaxFileSize: 100M
+  SystemMaxUse: 4G
+openstack_hosts_package_state: latest
+openstack_hosts_systemd_networkd_devices: '{{ query(''vars'', *query(''varnames'', ''^aio_systemd_networkd_devices_'')) | flatten(levels=1) }}'
+openstack_hosts_systemd_networkd_networks: '{{ query(''vars'', *query(''varnames'', ''^aio_systemd_networkd_networks_'')) | flatten(levels=1) }}'
+openstack_hosts_systemd_networkd_prefix: osa_testing
+openstack_hosts_systemd_services: '{{ query(''vars'', *query(''varnames'', ''^aio_systemd_services_'')) | flatten(levels=1) }}'
+openstack_user_kernel_options:
+  - key: kernel.printk
+    value: 4 1 7 4
+placement_wsgi_buffer_size: 16384
+placement_wsgi_processes: 1
+placement_wsgi_threads: 1
+rally_install: true
+skyline_api_workers: 2
+swift_account_server_replicator_workers: 1
+swift_account_server_workers: 1
+swift_container_server_workers: 1
+swift_object_replicator_workers: 1
+swift_object_server_workers: 1
+swift_proxy_server_workers: 1
+swift_proxy_server_workers_capped: 1
+swift_proxy_server_workers_not_capped: 1
+swift_server_replicator_workers: 1
+tempest_install: true
+tempest_network_ping_gateway: true
+tempest_private_net_provider_type: geneve
+tempest_public_net_physical_name: physnet1
+tempest_public_subnet_allocation_pools: 172.29.248.110-172.29.251.246
+tempest_public_subnet_cidr: 172.29.248.0/22
+tempest_run: true
+trove_api_workers: 1
+trove_conductor_workers: 1
+trove_service_net_setup: true
+trove_wsgi_processes: 1
+trove_wsgi_threads: 1
+zun_api_threads: 1
+zun_wsgi_processes: 1
+zun_wsgi_threads: 1

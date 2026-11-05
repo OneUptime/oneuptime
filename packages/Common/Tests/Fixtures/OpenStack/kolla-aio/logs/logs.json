@@ -1,0 +1,796 @@
+{
+"resource": {
+"attributes": [
+{
+"key": "openstack.cloud.name",
+"value": {
+"stringValue": "kolla-aio"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack.node.name",
+"value": {
+"stringValue": "compute-01.example.internal"
+}
+},
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.161.0"
+}
+}
+]
+},
+"logRecords": [
+{
+"timeUnixNano": "1793860594329000000",
+"observedTimeUnixNano": "1793860594413921008",
+"body": {
+"stringValue": "2026-11-05 06:36:34.329 7 INFO neutron.plugins.ml2.drivers.openvswitch.agent.ovs_neutron_agent [None req-99d3613e-666c-4916-b3f3-0012f3407046 - - - - - -] Agent rpc_loop - iteration:924 started"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/neutron/neutron-openvswitch-agent.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860593574000000",
+"observedTimeUnixNano": "1793860593612643247",
+"body": {
+"stringValue": "2026-11-05 06:36:33.574 18 INFO nova.api.openstack.requestlog [None req-120b8549-4eb5-438e-ba18-ec6d656fdcad d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.10 \"GET /\" status: 200 len: 377 microversion: - time: 0.002864"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860594412000000",
+"observedTimeUnixNano": "1793860594413998175",
+"body": {
+"stringValue": "2026-11-05 06:36:34.412 18 INFO nova.api.openstack.requestlog [None req-120b8549-4eb5-438e-ba18-ec6d656fdcad d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1\" status: 200 len: 390 microversion: 2.1 time: 0.002492"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860594526000000",
+"observedTimeUnixNano": "1793860594613391794",
+"body": {
+"stringValue": "2026-11-05 06:36:34.526 18 WARNING neutronclient.v2_0.client [None req-f9234d19-bb1f-47cc-ba44-eaf293abfac0 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] The python binding code in neutronclient is deprecated in favor of OpenstackSDK, please use that as this will be removed in a future release."
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860594593000000",
+"observedTimeUnixNano": "1793860594613398579",
+"body": {
+"stringValue": "2026-11-05 06:36:34.593 18 INFO nova.api.openstack.requestlog [None req-f9234d19-bb1f-47cc-ba44-eaf293abfac0 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1/servers/detail?deleted=False&all_tenants=True\" status: 200 len: 13218 microversion: 2.100 time: 0.176607"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860594901000000",
+"observedTimeUnixNano": "1793860595013881238",
+"body": {
+"stringValue": "2026-11-05 06:36:34.901 21 INFO placement.requestlog [None req-b6143dd5-e57c-4231-a341-7f2e3cecd286 - - - - - -] 192.168.100.10 \"GET /\" status: 200 len: 136 microversion: 1.0"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "21"
+}
+},
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/placement/placement-api.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860594040000000",
+"observedTimeUnixNano": "1793860594213102806",
+"body": {
+"stringValue": "2026-11-05 06:36:34.040 20 WARNING keystone.common.password_hashing [None req-101703dc-807f-49e7-b583-3823dd08b35d - - - - - -] Truncating password to algorithm specific maximum length 72 characters."
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "20"
+}
+},
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/keystone/keystone.log"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860593413402618",
+"body": {
+"stringValue": "[pid: 23|app: 0|req: 2025/2025] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:33 2026] GET /healthcheck => generated 2 bytes in 1 msecs (HTTP/1.0 200) 3 headers in 98 bytes (1 switches on core 0)\n[pid: 23|app: 0|req: 2026/2026] 192.168.100.10 () {38 vars in 1455 bytes} [Thu Nov  5 06:36:34 2026] GET /v2.0/ports?fields=security_groups&fields=device_id&device_id=8e84d92e-29dd-425d-bfc0-247c3af69a03&device_id=36741d62-d7e1-49d1-8601-2908c84dd15b&device_id=0fbab4bc-71ad-4f62-905a-df15fd22f2c0&device_id=faa118ce-0eaa-4f48-be34-1ba6258f8849&device_id=83c63641-0d47-418b-b49a-52e19b05db1a => generated 459 bytes in 23 msecs (HTTP/1.1 200) 4 headers in 157 bytes (1 switches on core 0)\n[pid: 23|app: 0|req: 2027/2027] 192.168.100.10 () {38 vars in 1129 bytes} [Thu Nov  5 06:36:34 2026] GET /v2.0/security-groups?id=a07e1de9-ad93-4eff-825c-138ec520e421&id=d4c3d192-afc1-42be-9be5-a9de6a5b888b&fields=id&fields=name => generated 154 bytes in 23 msecs (HTTP/1.1 200) 4 headers in 157 bytes (1 switches on core 0)\n[pid: 23|app: 0|req: 2028/2028] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:35 2026] GET /healthcheck => generated 2 bytes in 1 msecs (HTTP/1.0 200) 3 headers in 98 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/neutron/neutron-server-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860594648000000",
+"observedTimeUnixNano": "1793860594812911872",
+"body": {
+"stringValue": "2026-11-05 06:36:34.648 18 INFO nova.api.openstack.requestlog [None req-21bdf6e4-7624-4e7b-bee7-d2309be3908e d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1/flavors/detail?is_public=None\" status: 200 len: 1021 microversion: 2.61 time: 0.009156"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+},
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595787000000",
+"observedTimeUnixNano": "1793860595813550988",
+"body": {
+"stringValue": "2026-11-05 06:36:35.787 21 INFO cinder.api.openstack.wsgi [None req-e952a155-ceab-4560-931b-fd8aecf57ea3 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] GET http://192.168.100.250:8776/v3/volumes/detail?all_tenants=True"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/cinder/cinder-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "21"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595801000000",
+"observedTimeUnixNano": "1793860595813557836",
+"body": {
+"stringValue": "2026-11-05 06:36:35.801 21 INFO cinder.volume.api [None req-e952a155-ceab-4560-931b-fd8aecf57ea3 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] Get all volumes completed successfully."
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/cinder/cinder-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "21"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860593612537545",
+"body": {
+"stringValue": "[pid: 18|app: 0|req: 1896/1896] 192.168.100.10 () {22 vars in 225 bytes} [Thu Nov  5 06:36:33 2026] GET / => generated 377 bytes in 3 msecs (HTTP/1.0 200) 3 headers in 91 bytes (1 switches on core 0)\n[pid: 18|app: 0|req: 1897/1897] 192.168.100.10 () {32 vars in 470 bytes} [Thu Nov  5 06:36:34 2026] GET /v2.1 => generated 390 bytes in 3 msecs (HTTP/1.1 200) 9 headers in 357 bytes (1 switches on core 0)\n[pid: 18|app: 0|req: 1898/1898] 192.168.100.10 () {38 vars in 850 bytes} [Thu Nov  5 06:36:34 2026] GET /v2.1/servers/detail?deleted=False&all_tenants=True => generated 13218 bytes in 177 msecs (HTTP/1.1 200) 9 headers in 363 bytes (1 switches on core 0)\n[pid: 18|app: 0|req: 1899/1899] 192.168.100.10 () {38 vars in 816 bytes} [Thu Nov  5 06:36:34 2026] GET /v2.1/flavors/detail?is_public=None => generated 1021 bytes in 10 msecs (HTTP/1.1 200) 9 headers in 360 bytes (1 switches on core 0)\n[pid: 18|app: 0|req: 1900/1900] 192.168.100.10 () {22 vars in 225 bytes} [Thu Nov  5 06:36:35 2026] GET / => generated 377 bytes in 3 msecs (HTTP/1.0 200) 3 headers in 91 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595579000000",
+"observedTimeUnixNano": "1793860595613017728",
+"body": {
+"stringValue": "2026-11-05 06:36:35.579 18 INFO nova.api.openstack.requestlog [None req-21bdf6e4-7624-4e7b-bee7-d2309be3908e d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.10 \"GET /\" status: 200 len: 377 microversion: - time: 0.002493"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595813000000",
+"observedTimeUnixNano": "1793860596013203496",
+"body": {
+"stringValue": "2026-11-05 06:36:35.813 18 INFO nova.api.openstack.requestlog [None req-21bdf6e4-7624-4e7b-bee7-d2309be3908e d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1\" status: 200 len: 390 microversion: 2.1 time: 0.002866"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+},
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860594012671006",
+"body": {
+"stringValue": "[pid: 20|app: 0|req: 3953/3953] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:33 2026] GET /healthcheck => generated 0 bytes in 2 msecs (HTTP/1.0 200) 4 headers in 164 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3954/3954] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:34 2026] GET / => generated 270 bytes in 1 msecs (HTTP/1.1 300) 6 headers in 234 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3955/3955] 192.168.100.10 () {36 vars in 544 bytes} [Thu Nov  5 06:36:34 2026] POST /v3/auth/tokens => generated 3187 bytes in 278 msecs (HTTP/1.1 201) 6 headers in 385 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3956/3956] 192.168.100.10 () {38 vars in 885 bytes} [Thu Nov  5 06:36:34 2026] GET /v3/auth/tokens => generated 3187 bytes in 11 msecs (HTTP/1.1 200) 6 headers in 380 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3957/3957] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:35 2026] GET / => generated 270 bytes in 1 msecs (HTTP/1.1 300) 6 headers in 234 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3958/3958] 192.168.100.10 () {36 vars in 544 bytes} [Thu Nov  5 06:36:35 2026] POST /v3/auth/tokens => generated 3187 bytes in 277 msecs (HTTP/1.1 201) 6 headers in 385 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3959/3959] 192.168.100.10 () {38 vars in 885 bytes} [Thu Nov  5 06:36:35 2026] GET /v3/auth/tokens => generated 3187 bytes in 54 msecs (HTTP/1.1 200) 6 headers in 380 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3960/3960] 192.168.100.10 () {22 vars in 245 bytes} [Thu Nov  5 06:36:35 2026] GET /healthcheck => generated 0 bytes in 2 msecs (HTTP/1.0 200) 4 headers in 164 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/keystone/keystone-uwsgi.log"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860594012612085",
+"body": {
+"stringValue": "[pid: 19|app: 0|req: 1143/1143] 192.168.100.10 () {22 vars in 225 bytes} [Thu Nov  5 06:36:33 2026] GET / => generated 98 bytes in 0 msecs (HTTP/1.0 200) 3 headers in 99 bytes (1 switches on core 0)\n[pid: 19|app: 0|req: 1144/1144] 192.168.100.10 () {22 vars in 225 bytes} [Thu Nov  5 06:36:35 2026] GET / => generated 98 bytes in 0 msecs (HTTP/1.0 200) 3 headers in 99 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-metadata-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860594331000000",
+"observedTimeUnixNano": "1793860594413924760",
+"body": {
+"stringValue": "2026-11-05 06:36:34.331 7 INFO neutron.plugins.ml2.drivers.openvswitch.agent.ovs_neutron_agent [None req-99d3613e-666c-4916-b3f3-0012f3407046 - - - - - -] Agent rpc_loop - iteration:924 completed. Processed ports statistics: {'regular': {'added': 0, 'updated': 0, 'removed': 0}}. Elapsed:0.002"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/neutron/neutron-openvswitch-agent.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860596330000000",
+"observedTimeUnixNano": "1793860596412760259",
+"body": {
+"stringValue": "2026-11-05 06:36:36.330 7 INFO neutron.plugins.ml2.drivers.openvswitch.agent.ovs_neutron_agent [None req-99d3613e-666c-4916-b3f3-0012f3407046 - - - - - -] Agent rpc_loop - iteration:925 started"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/neutron/neutron-openvswitch-agent.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595382000000",
+"observedTimeUnixNano": "1793860595413297296",
+"body": {
+"stringValue": "2026-11-05 06:36:35.382 20 WARNING keystone.common.password_hashing [None req-662d5ddf-6af4-4729-92b6-e0c2a2e6e3c5 - - - - - -] Truncating password to algorithm specific maximum length 72 characters."
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/keystone/keystone.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "20"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860594413833485",
+"body": {
+"stringValue": "[pid: 19|app: 0|req: 1472/1472] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:34 2026] GET / => generated 1778 bytes in 0 msecs (HTTP/1.1 300) 3 headers in 106 bytes (1 switches on core 0)\n[pid: 19|app: 0|req: 1473/1473] 192.168.100.10 () {34 vars in 773 bytes} [Thu Nov  5 06:36:34 2026] GET /v2/images?id=in%3Ad75b05c0-6d31-43ff-a856-fe51910c3d06 => generated 1046 bytes in 7 msecs (HTTP/1.1 200) 4 headers in 158 bytes (1 switches on core 0)\n[pid: 19|app: 0|req: 1474/1474] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:34 2026] GET /healthcheck => generated 2 bytes in 2 msecs (HTTP/1.0 200) 3 headers in 98 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/glance/glance-api-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595229000000",
+"observedTimeUnixNano": "1793860595413172459",
+"body": {
+"stringValue": "2026-11-05 06:36:35.229 21 INFO placement.requestlog [None req-209c678b-3bea-456a-9082-4d445ea99b6b - - - - - -] 192.168.100.10 \"GET /\" status: 200 len: 136 microversion: 1.0"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/placement/placement-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "21"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860595013892824",
+"body": {
+"stringValue": "[pid: 21|app: 0|req: 1398/1398] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:34 2026] GET /healthcheck => generated 2 bytes in 2 msecs (HTTP/1.0 200) 4 headers in 164 bytes (1 switches on core 0)\n/var/lib/kolla/venv/lib/python3.12/site-packages/oslo_context/context.py:101: DeprecationWarning: Policy enforcement is depending on the value of is_admin. This key is deprecated. Please update your policy file to use the standard policy values.\nwarnings.warn(\n[pid: 21|app: 0|req: 1399/1399] 192.168.100.10 () {34 vars in 674 bytes} [Thu Nov  5 06:36:35 2026] GET /v3/volumes/detail?all_tenants=True => generated 5864 bytes in 78 msecs (HTTP/1.1 200) 7 headers in 286 bytes (1 switches on core 0)\n[pid: 21|app: 0|req: 1400/1400] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:36 2026] GET /healthcheck => generated 2 bytes in 2 msecs (HTTP/1.0 200) 4 headers in 164 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/cinder/cinder-api-uwsgi.log"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860595014033014",
+"body": {
+"stringValue": "[pid: 21|app: 0|req: 1603/1603] 192.168.100.10 () {22 vars in 225 bytes} [Thu Nov  5 06:36:34 2026] GET / => generated 136 bytes in 0 msecs (HTTP/1.0 200) 6 headers in 224 bytes (1 switches on core 0)\n[pid: 21|app: 0|req: 1604/1604] 192.168.100.10 () {30 vars in 372 bytes} [Thu Nov  5 06:36:35 2026] GET / => generated 136 bytes in 1 msecs (HTTP/1.1 200) 6 headers in 224 bytes (1 switches on core 0)\n[pid: 21|app: 0|req: 1605/1605] 192.168.100.10 () {22 vars in 225 bytes} [Thu Nov  5 06:36:36 2026] GET / => generated 136 bytes in 0 msecs (HTTP/1.0 200) 6 headers in 224 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/placement/placement-api-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860596537000000",
+"observedTimeUnixNano": "1793860596613283209",
+"body": {
+"stringValue": "2026-11-05 06:36:36.537 20 WARNING keystone.common.password_hashing [None req-bae26995-2354-4113-8668-d02d396498ca - - - - - -] Truncating password to algorithm specific maximum length 72 characters."
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/keystone/keystone.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "20"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595842000000",
+"observedTimeUnixNano": "1793860596013209643",
+"body": {
+"stringValue": "2026-11-05 06:36:35.842 18 INFO nova.api.openstack.requestlog [None req-12111886-188c-42f7-81d2-f9b93b662217 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1/servers/detail\" status: 200 len: 15 microversion: 2.100 time: 0.025105"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595805000000",
+"observedTimeUnixNano": "1793860595813559304",
+"body": {
+"stringValue": "2026-11-05 06:36:35.805 21 INFO cinder.api.openstack.wsgi [None req-e952a155-ceab-4560-931b-fd8aecf57ea3 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] http://192.168.100.250:8776/v3/volumes/detail?all_tenants=True returned with HTTP 200"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/cinder/cinder-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "21"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860596333000000",
+"observedTimeUnixNano": "1793860596412777698",
+"body": {
+"stringValue": "2026-11-05 06:36:36.333 7 INFO neutron.plugins.ml2.drivers.openvswitch.agent.ovs_neutron_agent [None req-99d3613e-666c-4916-b3f3-0012f3407046 - - - - - -] Agent rpc_loop - iteration:925 completed. Processed ports statistics: {'regular': {'added': 0, 'updated': 0, 'removed': 0}}. Elapsed:0.003"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/neutron/neutron-openvswitch-agent.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860595881000000",
+"observedTimeUnixNano": "1793860596013114734",
+"body": {
+"stringValue": "2026-11-05 06:36:35.881 7 ERROR cinder.service [-] Manager for service cinder-backup compute-01.example.internal is reporting problems, not sending heartbeat. Service will appear \"down\"."
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/cinder/cinder-backup.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860596013135653",
+"body": {
+"stringValue": "[pid: 18|app: 0|req: 1901/1901] 192.168.100.10 () {32 vars in 470 bytes} [Thu Nov  5 06:36:35 2026] GET /v2.1 => generated 390 bytes in 3 msecs (HTTP/1.1 200) 9 headers in 357 bytes (1 switches on core 0)\n[pid: 18|app: 0|req: 1902/1902] 192.168.100.10 () {38 vars in 789 bytes} [Thu Nov  5 06:36:35 2026] GET /v2.1/servers/detail => generated 15 bytes in 25 msecs (HTTP/1.1 200) 9 headers in 360 bytes (1 switches on core 0)\n[pid: 18|app: 0|req: 1903/1903] 192.168.100.10 () {22 vars in 225 bytes} [Thu Nov  5 06:36:37 2026] GET / => generated 377 bytes in 3 msecs (HTTP/1.0 200) 3 headers in 91 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860598330000000",
+"observedTimeUnixNano": "1793860598413621033",
+"body": {
+"stringValue": "2026-11-05 06:36:38.330 7 INFO neutron.plugins.ml2.drivers.openvswitch.agent.ovs_neutron_agent [None req-99d3613e-666c-4916-b3f3-0012f3407046 - - - - - -] Agent rpc_loop - iteration:926 started"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/neutron/neutron-openvswitch-agent.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860597597000000",
+"observedTimeUnixNano": "1793860597613140492",
+"body": {
+"stringValue": "2026-11-05 06:36:37.597 20 WARNING keystone.common.password_hashing [None req-23b4f378-36ea-4e13-b3ed-9c8328f950ba - - - - - -] Truncating password to algorithm specific maximum length 72 characters."
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "20"
+}
+},
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/keystone/keystone.log"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860596613338448",
+"body": {
+"stringValue": "[pid: 20|app: 0|req: 3961/3961] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:36 2026] GET / => generated 270 bytes in 1 msecs (HTTP/1.1 300) 6 headers in 234 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3962/3962] 192.168.100.10 () {36 vars in 544 bytes} [Thu Nov  5 06:36:36 2026] POST /v3/auth/tokens => generated 3187 bytes in 276 msecs (HTTP/1.1 201) 6 headers in 385 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3963/3963] 192.168.100.10 () {38 vars in 885 bytes} [Thu Nov  5 06:36:36 2026] GET /v3/auth/tokens => generated 3187 bytes in 10 msecs (HTTP/1.1 200) 6 headers in 380 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3964/3964] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:37 2026] GET / => generated 270 bytes in 1 msecs (HTTP/1.1 300) 6 headers in 234 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3965/3965] 192.168.100.10 () {36 vars in 544 bytes} [Thu Nov  5 06:36:37 2026] POST /v3/auth/tokens => generated 3187 bytes in 276 msecs (HTTP/1.1 201) 6 headers in 385 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3966/3966] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:37 2026] GET /healthcheck => generated 0 bytes in 1 msecs (HTTP/1.0 200) 4 headers in 164 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3967/3967] 192.168.100.10 () {38 vars in 885 bytes} [Thu Nov  5 06:36:37 2026] GET /v3/auth/tokens => generated 3187 bytes in 13 msecs (HTTP/1.1 200) 6 headers in 380 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3968/3968] 192.168.100.10 () {28 vars in 332 bytes} [Thu Nov  5 06:36:38 2026] GET /healthcheck => generated 0 bytes in 2 msecs (HTTP/1.1 200) 4 headers in 164 bytes (1 switches on core 0)\n[pid: 20|app: 0|req: 3969/3969] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:38 2026] GET / => generated 270 bytes in 1 msecs (HTTP/1.1 300) 6 headers in 234 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/keystone/keystone-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860596904000000",
+"observedTimeUnixNano": "1793860597013191022",
+"body": {
+"stringValue": "2026-11-05 06:36:36.904 21 INFO placement.requestlog [None req-11567bd3-8fe1-4100-88ff-117071800b45 - - - - - -] 192.168.100.10 \"GET /\" status: 200 len: 136 microversion: 1.0"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/placement/placement-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "21"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860597584000000",
+"observedTimeUnixNano": "1793860597613153894",
+"body": {
+"stringValue": "2026-11-05 06:36:37.584 18 INFO nova.api.openstack.requestlog [None req-12111886-188c-42f7-81d2-f9b93b662217 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.10 \"GET /\" status: 200 len: 377 microversion: - time: 0.002500"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860599015000000",
+"observedTimeUnixNano": "1793860599212929821",
+"body": {
+"stringValue": "2026-11-05 06:36:39.015 18 INFO nova.api.openstack.requestlog [None req-12111886-188c-42f7-81d2-f9b93b662217 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1\" status: 200 len: 390 microversion: 2.1 time: 0.002961"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860599036000000",
+"observedTimeUnixNano": "1793860599212946785",
+"body": {
+"stringValue": "2026-11-05 06:36:39.036 18 INFO nova.api.openstack.wsgi [None req-7a627b90-515f-4d10-bed0-133f556155b7 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] HTTP exception thrown: Instance ou-does-not-exist could not be found."
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860599037000000",
+"observedTimeUnixNano": "1793860599212948434",
+"body": {
+"stringValue": "2026-11-05 06:36:39.037 18 INFO nova.api.openstack.requestlog [None req-7a627b90-515f-4d10-bed0-133f556155b7 d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1/servers/ou-does-not-exist\" status: 404 len: 92 microversion: 2.100 time: 0.018230"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860597013216654",
+"body": {
+"stringValue": "[pid: 19|app: 0|req: 1475/1475] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:36 2026] GET /healthcheck => generated 2 bytes in 2 msecs (HTTP/1.0 200) 3 headers in 98 bytes (1 switches on core 0)\n[pid: 19|app: 0|req: 1476/1476] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:36 2026] GET / => generated 1778 bytes in 0 msecs (HTTP/1.1 300) 3 headers in 106 bytes (1 switches on core 0)\n[pid: 19|app: 0|req: 1477/1477] 192.168.100.10 () {34 vars in 684 bytes} [Thu Nov  5 06:36:36 2026] GET /v2/images => generated 1626 bytes in 19 msecs (HTTP/1.1 200) 4 headers in 158 bytes (1 switches on core 0)\n[pid: 19|app: 0|req: 1478/1478] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:38 2026] GET /healthcheck => generated 2 bytes in 1 msecs (HTTP/1.0 200) 3 headers in 98 bytes (1 switches on core 0)\n[pid: 19|app: 0|req: 1479/1479] 192.168.100.10 () {32 vars in 462 bytes} [Thu Nov  5 06:36:39 2026] GET / => generated 1778 bytes in 0 msecs (HTTP/1.1 300) 3 headers in 106 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/glance/glance-api-uwsgi.log"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793860599066000000",
+"observedTimeUnixNano": "1793860599212949348",
+"body": {
+"stringValue": "2026-11-05 06:36:39.066 18 INFO nova.api.openstack.requestlog [None req-35ffb692-b60d-42df-9fcf-c6d29af445ba d71f0ea359ec4567ab73e1d793a49c2f 74a06221e357434581545ef59bd219c3 - - default default] 192.168.100.250 \"GET /v2.1/servers/detail?name=ou-does-not-exist\" status: 200 len: 15 microversion: 2.100 time: 0.025361"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/nova/nova-api.log"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "18"
+}
+}
+]
+},
+{
+"observedTimeUnixNano": "1793860597413412904",
+"body": {
+"stringValue": "[pid: 23|app: 0|req: 2029/2029] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:37 2026] GET /healthcheck => generated 2 bytes in 1 msecs (HTTP/1.0 200) 3 headers in 98 bytes (1 switches on core 0)\n[pid: 23|app: 0|req: 2030/2030] 192.168.100.10 () {34 vars in 692 bytes} [Thu Nov  5 06:36:37 2026] GET /v2.0/networks => generated 2005 bytes in 45 msecs (HTTP/1.1 200) 4 headers in 158 bytes (1 switches on core 0)\n[pid: 23|app: 0|req: 2031/2031] 192.168.100.10 () {22 vars in 247 bytes} [Thu Nov  5 06:36:39 2026] GET /healthcheck => generated 2 bytes in 1 msecs (HTTP/1.0 200) 3 headers in 98 bytes (1 switches on core 0)"
+},
+"attributes": [
+{
+"key": "log.file.path",
+"value": {
+"stringValue": "/var/log/kolla/neutron/neutron-server-uwsgi.log"
+}
+}
+]
+}
+],
+"total": 982
+}

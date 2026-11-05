@@ -171,21 +171,21 @@ const ROW_OF = {
   "image:images": (project, visibility = "private") => {
     return { id: `image-${project}`, owner: project, visibility };
   },
+  "baremetal:nodes": (project) => {
+    return { uuid: `node-${project}`, owner: project };
+  },
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
+  },
+  "sharev2:shares, all projects": (project) => {
+    return { id: `share-${project}`, project_id: project };
+  },
+  "dns:zones, all projects": (project) => {
+    return { id: `zone-${project}`, project_id: project };
   },
   // Heat's own list says "project", and only to someone who may read every project's.
   "orchestration:stacks": (project) => {
     return { id: `stack-${project}`, project };
-  },
-  "database:instances, as the exporter asks": (project) => {
-    return { id: `db-${project}`, tenant_id: project };
-  },
-  "database:instances, own project": (project) => {
-    return { id: `db-${project}`, tenant_id: project };
-  },
-  "sharev2:shares, all projects": (project) => {
-    return { id: `share-${project}`, project_id: project };
   },
 };
 
@@ -242,10 +242,15 @@ function projectView(read) {
     case "load-balancer:amphorae":
     case "orchestration:services":
     case "container-infra:services":
+    case "baremetal:conductors":
     case "sharev2:services":
     case "sharev2:pools":
-    case "database:instances, as the exporter asks":
-    case "database:instances, own project":
+    case "dns:zones, all projects":
+    case "key-manager:secrets":
+    case "key-manager:orders":
+    case "object-store:own account":
+    case "database:instances, all projects":
+    case "metric:status":
       return { status: 403 };
     case "network:networks":
       return {
@@ -343,7 +348,11 @@ const SERVICE_PATH = {
   orchestration: "heat-api/v1/own-project",
   "container-infra": "container-infra/v1",
   sharev2: "share/v2",
+  dns: "dns",
+  "key-manager": "key-manager",
+  "object-store": "swift/v1/AUTH_own-project",
   database: "database/v1.0/own-project",
+  metric: "metric",
 };
 
 /*
@@ -899,6 +908,7 @@ describe("the reads it makes", () => {
       orchestration: "/v1/own-project",
       "container-infra": "/v1",
       sharev2: "/v2",
+      "object-store": "/v1/AUTH_own-project",
       database: "/v1.0/own-project",
     };
     const allows = (service, wanted) => {
@@ -998,7 +1008,7 @@ describe("the reads it makes", () => {
         const row = rowsIn(read, ["p"])[0];
         expect({ read: read.label, has: true }).toEqual({
           read: read.label,
-          has: Object.keys(row).includes(read.attr),
+          has: Object.keys(row).includes(read.attr.replace(/\?$/, "")),
         });
       }
     }
@@ -1035,7 +1045,9 @@ describe("a full-view credential", () => {
     const lines = accessLines(run);
     for (const read of matrixReads()) {
       expect(lineAbout(lines, `${read.service}: ${read.label}`)).toMatch(
-        /^✔ .* — reads everything/,
+        read.service === "key-manager"
+          ? /^✔ .* — reads its own project's/
+          : /^✔ .* — reads everything/,
       );
     }
     expect(run.output).toContain(
@@ -1273,9 +1285,14 @@ describe("a plain reader, and the trap", () => {
     ["sharev2: shares, all projects"],
     ["sharev2: services"],
     ["sharev2: pools"],
-    ["database: instances, as the exporter asks"],
-    ["database: instances, own project"],
     ["container-infra: services"],
+    ["baremetal: conductors"],
+    ["dns: zones, all projects"],
+    ["key-manager: secrets"],
+    ["key-manager: orders"],
+    ["object-store: own account"],
+    ["database: instances, all projects"],
+    ["metric: status"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(
       `• ${read} — not deployed (not in this region's catalog)`,
@@ -1631,14 +1648,72 @@ describe("what a 200 proves", () => {
     const run = await runDoctor(cloud);
     await cloud.close();
     expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
-      "✔ baremetal: nodes — reads everything",
+      "✔ baremetal: nodes — reads everything (no row is any project's)",
     );
   });
-});
 
-/* ----------------------------------------------------- what else can come back */
+  test("a project's own nodes are its own view, which is what a real project's admin was shown", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes"
+          ? { rows: [{ uuid: "n1", owner: "project-1" }] }
+          : fullView(read);
+      },
+      roles: ["reader"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toMatch(
+      /baremetal: nodes — .*(own project only|every row is in one project)/,
+    );
+  });
 
-describe("the other answers", () => {
+  test("none at all proves nothing, even to an admin: Ironic shows one only what its project owns", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes" ? { rows: [] } : fullView(read);
+      },
+      roles: ["admin"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
+      "▲ baremetal: nodes — may be own project only (a 200 with nothing here to tell by)",
+    );
+  });
+
+  test("Barbican never reads as everything, and it is nothing to fix: it answers any credential about its own project alone", async () => {
+    const cloud = await startCloud({ scenario: fullView, roles: ["admin"] });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "key-manager: secrets")).toBe(
+      "✔ key-manager: secrets — reads its own project's (Barbican answers any credential about its own project alone)",
+    );
+  });
+
+  test("Swift's 500 to a credential with access rules says the setting that causes it", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.service === "object-store"
+          ? { status: 500 }
+          : fullView(read);
+      },
+      roles: ["admin"],
+      tokenExtra: {
+        application_credential: {
+          id: APP_ID,
+          restricted: true,
+          access_rules: [{ path: "/v2.1/servers" }],
+        },
+      },
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(run.output).toContain(
+      "Swift answers a credential with access rules 500 while [filter:authtoken] in proxy-server.conf has include_service_catalog = False.",
+    );
+  });
+
   test("404: the API is not deployed. 503: that says nothing about the credential, and the service is named", async () => {
     const cloud = await startCloud({
       serviceStatus: { "load-balancer": 503 },

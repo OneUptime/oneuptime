@@ -1960,6 +1960,7 @@ describe("the reads themselves", () => {
       ...loadAccessMatrix("hibiscus-ovn", "matrix"),
       // The services a cloud may not run have recordings of their own.
       ...loadAccessMatrix("services-heat-magnum", "matrix", "access-check"),
+      ...loadAccessMatrix("services-ironic", "matrix", "access-check"),
       ...loadAccessMatrix("services-manila", "matrix", "access-check"),
     ];
 
