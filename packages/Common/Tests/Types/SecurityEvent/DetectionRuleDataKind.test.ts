@@ -343,6 +343,10 @@ describe("each library rule names the kind of event its Sigma reads", () => {
           ).toBe(true);
           expect(readsField(entry, "oneuptime.cloud.operation")).toBe(true);
           break;
+        case DetectionRuleDataKind.OpenStackAuditTrail:
+          // What OpenStackAuditLogParser keeps, and nothing else reads these.
+          expect(entry.sigmaRuleYaml).toContain("openstack.audit.");
+          break;
         default:
           throw new Error(`No check for ${String(entry.dataKind)}`);
       }
