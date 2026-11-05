@@ -244,7 +244,7 @@ ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
-COMPOSE_PROFILES=openstack-exporter
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
 ```
 
 And start it: `docker compose up -d`.
@@ -407,7 +407,7 @@ Answers to the installer. Set any of them in the environment to skip its questio
 | `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none |
 | `OPENSTACK_CA_FILE` | No | A PEM file with the CA of a cloud that has its own. The installer keeps a copy as `ca.pem` next to `clouds.yaml`, and `.env` then says `./ca.pem` |
 | `OPENSTACK_EXPORTER_USER` | No | The `uid:gid` the exporter's container runs as, which must own `clouds.yaml`. The installer sets it (default: `65532:65532`) |
-| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter. The installer sets it |
+| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter, and `openstack-ai-agent` the [AI agent](#oneuptime-ai-agent). The installer sets it |
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | `host:port` of [an exporter running without `--multi-cloud`](#bring-your-own-exporter). `.env` holds it in brackets |
 | `OPENSTACK_RABBITMQ_TARGETS`, `OPENSTACK_MARIADB_TARGETS`, `OPENSTACK_MEMCACHED_TARGETS`, `OPENSTACK_HAPROXY_TARGETS`, `OPENSTACK_NETWORK_EXPORTER_TARGETS`, `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | [What the cloud stands on](#what-the-cloud-stands-on). The installer keeps them across a re-run, and never asks |
 | `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target in those lists that does not say its own (default: the first region) |
