@@ -69,13 +69,19 @@ function lifecycleFindings(data: {
   }
 
   const lines: Array<OpenStackCheckFaultFinding> = [];
+  // On a step's duration: how long it took is what this fired on, whatever else the run met.
+  const isOnDuration: boolean = data.metricNames.includes(
+    OpenStackCheckMetric.LifecycleStepDuration,
+  );
 
-  for (const step of run.steps as Array<OpenStackLifecycleStepResult>) {
-    if (step.status === "Failed") {
-      lines.push({
-        title: OPENSTACK_LIFECYCLE_STEP_TITLES[step.step] || step.step,
-        fault: step.fault,
-      });
+  if (!isOnDuration) {
+    for (const step of run.steps as Array<OpenStackLifecycleStepResult>) {
+      if (step.status === "Failed") {
+        lines.push({
+          title: OPENSTACK_LIFECYCLE_STEP_TITLES[step.step] || step.step,
+          fault: step.fault,
+        });
+      }
     }
   }
 

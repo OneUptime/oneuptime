@@ -196,10 +196,10 @@ function createHarness(
   const store: Harness["store"] = {
     claimApiChecks: jest.fn(async () => {
       return [{ openStackCloudCheckId: "api-job" }];
-    }),
+    }) as unknown as jest.Mock,
     claimLifecycleChecks: jest.fn(async () => {
       return [{ openStackCloudCheckId: "lifecycle-job" }];
-    }),
+    }) as unknown as jest.Mock,
     recordReport: jest.fn(async () => {
       return {
         accepted: true,
@@ -220,7 +220,7 @@ function createHarness(
         }),
         ...outcome,
       };
-    }),
+    }) as unknown as jest.Mock,
   };
 
   const router: RecordingRouter = createOpenStackCheckRouter(
@@ -336,7 +336,7 @@ describe("asking for work", () => {
       throw failure;
     });
 
-    const next: jest.Mock = jest.fn();
+    const next: jest.Mock = jest.fn() as unknown as jest.Mock;
 
     await harness.route(WORK_URI).handler(
       requestOf({}),

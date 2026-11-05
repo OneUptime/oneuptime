@@ -1,4 +1,5 @@
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudCheck from "../../../Models/DatabaseModels/OpenStackCloudCheck";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "../../../Types/Monitor/OpenStackAlertTemplates";
 import { JSONObject } from "../../../Types/JSON";
@@ -19,6 +20,12 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  OpenStackCheckFindings,
+  getOpenStackCheckFindings,
+  isOpenStackCheckMonitor,
+  openStackCheckFindingsToMarkdown,
+} from "../../../Utils/OpenStack/OpenStackCheckFindings";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
@@ -44,6 +51,7 @@ import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import MetricService from "../../Services/MetricService";
+import OpenStackCloudCheckService from "../../Services/OpenStackCloudCheckService";
 import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import OpenStackResourceService from "../../Services/OpenStackResourceService";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -280,6 +288,8 @@ export interface OpenStackAlertContextResult {
    * responsible, with how long each is waiting where the source says.
    */
   busiestInstances?: Array<OpenStackBusyInstance> | undefined;
+  // On a check's series, what the run met: the step, and the fault in the service's own words.
+  checkFindings?: OpenStackCheckFindings | undefined;
 }
 
 // One of a hypervisor's instances, by the name people know it by.
@@ -313,6 +323,26 @@ export default class OpenStackAlertContext {
       domainId: null,
       partKind: null,
     };
+
+    /*
+     * A check's series name a region and no part of it, and what makes its incident worth reading
+     * is on the check's own row, not in a label.
+     */
+    if (isOpenStackCheckMonitor(data.metricNames || [])) {
+      const findings: OpenStackCheckFindings | null =
+        await this.readCheckFindings({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          seriesLabels: data.seriesLabels,
+          metricNames: data.metricNames || [],
+        });
+
+      if (findings) {
+        result.checkFindings = findings;
+      }
+
+      return result;
+    }
 
     for (const candidate of getOpenStackPartOfSeries(
       data.seriesLabels,
@@ -426,6 +456,38 @@ export default class OpenStackAlertContext {
     }
 
     return result;
+  }
+
+  // Never in the way: the incident still opens, and the check's page says what the run met.
+  public static async readCheckFindings(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    seriesLabels: JSONObject | undefined;
+    metricNames: ReadonlyArray<string>;
+  }): Promise<OpenStackCheckFindings | null> {
+    try {
+      const check: OpenStackCloudCheck | null =
+        await OpenStackCloudCheckService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+          },
+          select: { apiCheckResult: true, lifecycleRecords: true },
+          props: { isRoot: true },
+        });
+
+      return getOpenStackCheckFindings({
+        labels: data.seriesLabels,
+        metricNames: data.metricNames,
+        apiCheckResult: check?.apiCheckResult,
+        lifecycleRecords: check?.lifecycleRecords,
+      });
+    } catch (error) {
+      logger.warn(
+        `Could not read what an OpenStack check met: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
   }
 
   // Never in the way: an alert with no names beside it still fires, and its page has them.
@@ -560,6 +622,10 @@ export default class OpenStackAlertContext {
    */
   public static toMarkdown(context: OpenStackAlertContextResult): string {
     const sections: Array<MarkdownText> = [];
+
+    if (context.checkFindings) {
+      sections.push(openStackCheckFindingsToMarkdown(context.checkFindings));
+    }
 
     if (context.projectId) {
       const domain: MarkdownText = context.domainId

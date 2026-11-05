@@ -9,6 +9,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -93,6 +94,12 @@ export const OPENSTACK_CLOUD_CHECK_BOOKKEEPING_COLUMNS: Array<string> = [
  * and the certificates it was entered for. The lifecycle check only ever runs with this one, because
  * it writes, and what it may write with is held to OpenStackCheckGuard before each run.
  */
+@EnableAuditLog({
+  create: true,
+  update: true,
+  delete: true,
+  ignoreColumns: OPENSTACK_CLOUD_CHECK_BOOKKEEPING_COLUMNS,
+})
 @TenantColumn("projectId")
 @TableAccessControl({
   create: CREATORS,

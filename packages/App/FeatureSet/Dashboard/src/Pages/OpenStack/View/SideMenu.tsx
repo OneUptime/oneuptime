@@ -379,6 +379,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Workflow}
         />
+        <SideMenuItem
+          link={{
+            title: "Checks",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CHECKS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Activity}
+        />
         <RecommendationsSideMenuItem
           link={{
             title: "Recommendations",

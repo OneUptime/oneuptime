@@ -33,6 +33,8 @@
  *   ?probes=    many: a choice of probes, where a new cloud starts on none
  *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
  *               untrusted | plain-http | refused | not-found | no-probe
+ *   ?checks=    on | failed | refused | sweeping | waiting: what a cloud's check has come to,
+ *               with none until someone turns one on (Checks.js)
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
  *   ?archived=  1: the project also has an archived cloud
  *   ?linked=    1: an incident, an alert and a maintenance event linked to this cloud, and one of
@@ -104,6 +106,7 @@ import CloudControlPlane from "../../../App/FeatureSet/Dashboard/src/Pages/OpenS
 import CloudControlPlaneDependency from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlaneDependency";
 import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Topology";
 import CloudTraces from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Traces";
+import CloudChecks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Checks";
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
 import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
@@ -190,6 +193,7 @@ import {
   getStoragePoolCeph,
   otherProductsOf,
 } from "./Links";
+import { checkRowOf } from "./Checks";
 import {
   PROBES,
   SHARED_PROBES,
@@ -761,7 +765,15 @@ const PRODUCTION_LABEL = {
   projectId: PROJECT_ID,
 };
 
+const checkRow = checkRowOf(
+  params.get("checks"),
+  estate.cloud._id,
+  PROJECT_ID,
+  LOADED_AT,
+);
+
 const store = {
+  OpenStackCloudCheck: checkRow ? [checkRow] : [],
   OpenStackCloud:
     params.get("clouds") === "none"
       ? []
@@ -1217,6 +1229,7 @@ function writeRow(modelName, id, data) {
 }
 
 const WRITABLE_TABLES = new Set([
+  "OpenStackCloudCheck",
   "OpenStackCloudOwnerUser",
   "OpenStackCloudOwnerTeam",
   "OpenStackCloudOwnerRule",
@@ -2200,6 +2213,7 @@ const PAGES = [
   ],
   [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY, CloudTopology],
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES, CloudTraces],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS, CloudChecks],
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS, CloudRecommendations],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION, CloudDocumentation],
   [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS, CloudSettings],

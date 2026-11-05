@@ -135,7 +135,9 @@ describe("what a failed run's incident says", () => {
       })!,
     ).toString();
 
-    expect(text).not.toContain("![tracker](https://evil.example/x.png)");
+    // Not an image that loads for whoever reads the incident, and not a mention.
+    expect(text).toContain("\\![tracker]");
+    expect(text).not.toContain("<@channel>");
   });
 
   test("a slow boot that passed says how long it took", () => {
