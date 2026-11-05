@@ -11,11 +11,22 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
+import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
 
+/*
+ * A maintenance event is linked to a whole cloud and names no region, so there is nothing to
+ * narrow this list by. Whoever is reading one region is told that, rather than left to take
+ * every region's events for that region's.
+ */
 const OpenStackCloudScheduledMaintenance: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
 
   const query: Query<ScheduledMaintenance> = {
     projectId: ProjectUtil.getCurrentProjectId()!,
@@ -27,6 +38,15 @@ const OpenStackCloudScheduledMaintenance: FunctionComponent<
 
   return (
     <Fragment>
+      {region ? (
+        <OpenStackPartNotice
+          testId="openstack-maintenance-whole-cloud"
+          tone="neutral"
+          text="Maintenance events belong to the whole cloud rather than to one region, so this list is the same in every region."
+        />
+      ) : (
+        <></>
+      )}
       <ScheduledMaintenancesTable
         query={query}
         createFrom={{ kind: CreateFromRecordKind.OpenStackCloud, id: modelId }}

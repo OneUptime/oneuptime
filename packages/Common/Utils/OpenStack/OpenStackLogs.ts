@@ -74,6 +74,8 @@ export enum OpenStackLogAttribute {
 // The resource attribute the agent stamps on every record of a cloud, as logs store it.
 export const OPENSTACK_CLOUD_LOG_ATTRIBUTE: string =
   "resource.openstack.cloud.name";
+export const OPENSTACK_REGION_LOG_ATTRIBUTE: string =
+  "resource.openstack.region.name";
 
 export enum OpenStackLogFormat {
   Oslo = "oslo",
