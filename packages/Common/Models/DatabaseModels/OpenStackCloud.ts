@@ -1927,6 +1927,28 @@ export default class OpenStackCloud extends BaseModel {
   })
   public instanceMetricsOptions?: JSONObject = undefined;
 
+  /*
+   * What the Capacity page, its CSV and the capacity alerts read, however large the cloud: a
+   * worker works it out from the inventory every couple of minutes. See OpenStackCapacitySnapshot.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Capacity Snapshot",
+    description:
+      "What this cloud's capacity added up to when a worker last read its inventory, as JSON: what is allocated and what can be, by zone, aggregate, region and cloud, how many more of each flavor fit, when each thing fills up, and what no instance explains. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public capacitySnapshot?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: OPENSTACK_CLOUD_READERS,

@@ -51,6 +51,7 @@ import OpenStackCloudControlPlaneDependency from "../Pages/OpenStack/View/Contro
 import OpenStackCloudTopology from "../Pages/OpenStack/View/Topology";
 import OpenStackCloudMetrics from "../Pages/OpenStack/View/Metrics";
 import OpenStackCloudRecommendations from "../Pages/OpenStack/View/Recommendations";
+import OpenStackCloudCapacity from "../Pages/OpenStack/View/Capacity";
 import OpenStackCloudLogs from "../Pages/OpenStack/View/Logs";
 import OpenStackCloudTraces from "../Pages/OpenStack/View/Traces";
 import OpenStackCloudIncidents from "../Pages/OpenStack/View/Incidents";
@@ -780,6 +781,19 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY,
+          )}
+          element={
+            <OpenStackCloudCapacity
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY] as Route
               }
             />
           }

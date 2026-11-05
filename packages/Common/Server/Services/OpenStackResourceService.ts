@@ -9,6 +9,11 @@ import {
   getOpenStackQuotaAtLineSql,
 } from "../../Types/OpenStack/OpenStackQuota";
 import { OPENSTACK_TOPOLOGY_FULL_PART_LIMIT } from "../../Types/OpenStack/OpenStackTopology";
+import {
+  OpenStackInstancesOnHost,
+  OpenStackInventoryField,
+  getOpenStackInventoryFactKey,
+} from "../../Types/OpenStack/OpenStackCapacity";
 import { JSONObject } from "../../Types/JSON";
 import {
   OpenStackResourceKind,
@@ -117,6 +122,14 @@ export interface OpenStackInventorySummary {
   storageUsedBytes: number;
 }
 
+// What a cloud's capacity is worked out from: see OpenStackCapacityRefresh.
+export interface OpenStackCapacityRows {
+  hypervisors: Array<JSONObject>;
+  flavors: Array<JSONObject>;
+  storagePools: Array<JSONObject>;
+  externalNetworks: Array<JSONObject>;
+}
+
 export interface OpenStackAttentionRows {
   // The rows that may need someone, at most ATTENTION_ROWS_PER_KIND of each kind.
   rows: Array<JSONObject>;
@@ -201,6 +214,12 @@ const OPENSTACK_TOPOLOGY_AFFECTED_INSTANCES: number = 2000;
 
 // The most hypervisors, services or routers one read holds, however large the cloud.
 const OPENSTACK_TOPOLOGY_STRUCTURE_LIMIT: number = 20000;
+
+// The most of each a capacity read holds. Past these a cloud is not one this was built to read.
+const OPENSTACK_CAPACITY_FLAVOR_ROWS: number = 5000;
+const OPENSTACK_CAPACITY_POOL_ROWS: number = 2000;
+// A host and a flavor per row: every flavor there is, on every one of 5,000 hosts.
+const OPENSTACK_CAPACITY_INSTANCES_ON_HOSTS_ROWS: number = 200000;
 
 // A page of a list asks about this many projects at once, and a read answers no more.
 const OPENSTACK_PROJECTS_PER_READ: number = 200;
@@ -2650,6 +2669,166 @@ export class Service extends DatabaseService<Model> {
         data.projectId.toString(),
         data.openStackCloudId.toString(),
         data.shortHostNames,
+      ],
+    );
+  }
+
+  /**
+   * What a cloud's capacity is worked out from. Hypervisors, flavors, pools and external networks
+   * stay few at any size, and one indexed read each brings only the columns a sum needs.
+   */
+  @CaptureSpan()
+  public async getCapacityRows(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<OpenStackCapacityRows> {
+    const read: (
+      kind: OpenStackResourceKind,
+      limit: number,
+      where?: string,
+    ) => Promise<Array<JSONObject>> = async (
+      kind: OpenStackResourceKind,
+      limit: number,
+      where?: string,
+    ): Promise<Array<JSONObject>> => {
+      return (
+        (await this.getRepository().manager.query(
+          `SELECT "externalId", "name", "regionName", "availabilityZone", "hypervisorName",
+                  "status", "adminState", "instanceCount", "vcpuCapacity", "memoryCapacityBytes",
+                  "diskCapacityBytes", "diskAllocatedBytes", "facts"
+           FROM "OpenStackResource"
+           WHERE "projectId" = $1 AND "openStackCloudId" = $2
+             AND "kind" = '${kind}' AND "deletedAt" IS NULL
+             ${where ? `AND ${where}` : ""}
+           ORDER BY "externalId" ASC
+           LIMIT ${limit}`,
+          [data.projectId.toString(), data.openStackCloudId.toString()],
+        )) as Array<JSONObject>
+      ).map(toRowWithNumbers);
+    };
+
+    return {
+      hypervisors: await read(
+        OpenStackResourceKind.Hypervisor,
+        OPENSTACK_TOPOLOGY_STRUCTURE_LIMIT,
+      ),
+      flavors: await read(
+        OpenStackResourceKind.Flavor,
+        OPENSTACK_CAPACITY_FLAVOR_ROWS,
+      ),
+      storagePools: await read(
+        OpenStackResourceKind.StoragePool,
+        OPENSTACK_CAPACITY_POOL_ROWS,
+      ),
+      externalNetworks: await read(
+        OpenStackResourceKind.Network,
+        OPENSTACK_CAPACITY_POOL_ROWS,
+        `"facts"->>'isExternal' = 'true'`,
+      ),
+    };
+  }
+
+  /**
+   * How many instances of each flavor each host holds, and how many of those are on their way
+   * somewhere. One statement over every instance's row, so not one to run on every refresh of a
+   * large cloud. Null when there's more than a read holds: a part of the answer would read as
+   * instances missing from hosts, and that is exactly the finding this is for.
+   */
+  @CaptureSpan()
+  public async getInstancesOnHosts(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<Array<OpenStackInstancesOnHost> | null> {
+    const rows: Array<{
+      regionName: string | null;
+      hypervisorName: string;
+      flavorId: string | null;
+      count: string;
+      movingCount: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "regionName", "hypervisorName", "facts"->>'flavorId' AS "flavorId",
+              COUNT(*)::text AS "count",
+              COUNT(*) FILTER (WHERE "status" = ANY($3::text[]))::text AS "movingCount"
+       FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Instance}' AND "deletedAt" IS NULL
+         AND "hypervisorName" IS NOT NULL
+       GROUP BY "regionName", "hypervisorName", "facts"->>'flavorId'
+       LIMIT ${OPENSTACK_CAPACITY_INSTANCES_ON_HOSTS_ROWS}`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        Array.from(OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES),
+      ],
+    );
+
+    if (rows.length >= OPENSTACK_CAPACITY_INSTANCES_ON_HOSTS_ROWS) {
+      return null;
+    }
+
+    return rows.map((row: (typeof rows)[number]): OpenStackInstancesOnHost => {
+      return {
+        regionName: row.regionName,
+        hypervisorName: row.hypervisorName,
+        flavorId: row.flavorId,
+        count: Number.parseInt(row.count, 10) || 0,
+        movingCount: Number.parseInt(row.movingCount, 10) || 0,
+      };
+    });
+  }
+
+  /**
+   * What Placement will promise on a hypervisor, worked out from its row's facts. A collector can
+   * send one scrape's series in several batches, so one batch can hold a host's total and another
+   * its ratio. Each writes the number it has (setInventoryFacts), and this does the sum once they
+   * are all on the row, the same one the fold does when a batch holds them all. A number not
+   * reported yet leaves its class alone, and only what differs is written.
+   */
+  @CaptureSpan()
+  public async reconcileHypervisorCapacity(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    hypervisorNames: Array<string>;
+  }): Promise<void> {
+    if (data.hypervisorNames.length === 0) {
+      return;
+    }
+
+    const capacity: (resourceClass: string, scale: number) => string = (
+      resourceClass: string,
+      scale: number,
+    ): string => {
+      const number: (field: string) => string = (field: string): string => {
+        return `("facts"->>'${getOpenStackInventoryFactKey(resourceClass, field as OpenStackInventoryField)}')::numeric`;
+      };
+
+      const unreserved: string = `(${number("total")} - ${number("reserved")})`;
+
+      // Not GREATEST: it skips a null, so a host with no reserved reading yet would read as 0.
+      return `TRUNC((CASE WHEN ${unreserved} < 0 THEN 0 ELSE ${unreserved} END) * ${number("ratio")} * ${scale})`;
+    };
+
+    const vcpu: string = capacity("VCPU", 1);
+    const memory: string = capacity("MEMORY_MB", 1024 * 1024);
+    const disk: string = capacity("DISK_GB", 1024 * 1024 * 1024);
+
+    await this.getRepository().manager.query(
+      `UPDATE "OpenStackResource"
+       SET "vcpuCapacity" = COALESCE(${vcpu}, "vcpuCapacity"),
+           "memoryCapacityBytes" = COALESCE(${memory}, "memoryCapacityBytes"),
+           "diskCapacityBytes" = COALESCE(${disk}, "diskCapacityBytes"),
+           "updatedAt" = now()
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Hypervisor}'
+         AND "hypervisorName" = ANY($3::text[])
+         AND "deletedAt" IS NULL
+         AND ("vcpuCapacity" IS DISTINCT FROM COALESCE(${vcpu}, "vcpuCapacity")
+           OR "memoryCapacityBytes" IS DISTINCT FROM COALESCE(${memory}, "memoryCapacityBytes")
+           OR "diskCapacityBytes" IS DISTINCT FROM COALESCE(${disk}, "diskCapacityBytes"))`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.hypervisorNames,
       ],
     );
   }

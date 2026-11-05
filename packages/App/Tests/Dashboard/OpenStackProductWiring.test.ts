@@ -113,6 +113,7 @@ const stripComments: SquashFunction = (source: string): string => {
 const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "OPENSTACK_CLOUD_VIEW"],
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
+  ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
   ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],
