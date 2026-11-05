@@ -269,8 +269,10 @@ describe("the note and the setup guide are true to the code", () => {
       "HelmChart/Public/oneuptime/templates/_helpers.tpl",
     );
 
-    // From inboundEmail.existingSecret when a Secret is named, otherwise
-    // inboundEmail.webhookSecret as a plain value, as before.
+    /*
+     * From inboundEmail.existingSecret when a Secret is named, otherwise
+     * inboundEmail.webhookSecret as a plain value, as before.
+     */
     expect(helpers).toContain(
       '- name: INBOUND_EMAIL_WEBHOOK_SECRET\n  {{- if $inboundEmailWebhookSecret }}\n  valueFrom:\n    secretKeyRef:\n      name: {{ $inboundEmailWebhookSecret | quote }}\n      key: {{ include "oneuptime.inboundEmail.webhookSecretKey" $ | quote }}\n',
     );
