@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import EventName from "../../../Utils/EventName";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -69,6 +70,7 @@ import {
 import Select from "Common/Types/BaseDatabase/Select";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
@@ -83,6 +85,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Edge, Node } from "reactflow";
@@ -264,6 +267,37 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
   const isViewOnly: boolean = Boolean(editLockedReason);
 
+  /*
+   * Ask AI changed this workflow, from the panel beside this page: what is on
+   * the canvas is out of date, and the next save would write it back over that
+   * change. A save still waiting for its moment is dropped: what Ask AI read to
+   * change it did not have it, but what was typed a moment before is not worth
+   * losing what was just approved. Read through a ref, as the page's functions
+   * are rebuilt on every render.
+   */
+  const reloadGraph: React.MutableRefObject<() => void> = useRef<() => void>(
+    () => {},
+  );
+
+  useEffect(() => {
+    type ChangedEvent = (event: CustomEvent) => void;
+
+    const onChanged: ChangedEvent = (event: CustomEvent): void => {
+      if (event.detail?.["workflowId"] === modelId.toString()) {
+        reloadGraph.current();
+      }
+    };
+
+    GlobalEvents.addEventListener(EventName.WORKFLOW_CHANGED_BY_AI, onChanged);
+
+    return () => {
+      GlobalEvents.removeEventListener(
+        EventName.WORKFLOW_CHANGED_BY_AI,
+        onChanged,
+      );
+    };
+  }, [modelId.toString()]);
+
   type StartWatchingRunFunction = () => void;
 
   const startWatchingRun: StartWatchingRunFunction = (): void => {
@@ -431,6 +465,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
 
     setIsLoading(false);
+  };
+
+  reloadGraph.current = (): void => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      setSaveTimeout(null);
+    }
+
+    void loadGraph();
   };
 
   type SaveGraphFunction = (

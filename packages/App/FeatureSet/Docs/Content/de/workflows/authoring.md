@@ -13,6 +13,8 @@ Klicken Sie auf eine Vorlage, um zu sehen, was sie tut: ihren Trigger, die Baust
 
 Workflows werden ausgeschaltet angelegt, sodass ihr Trigger sie erst startet, wenn Sie sie einschalten. Ein neuer Workflow öffnet sich im **Editor**, der Arbeitsfläche, auf der Sie ihn gestalten.
 
+Sie können einen Workflow auch Ask AI beschreiben und ihn erstellen lassen. Ask AI findet den Auslöser und die Schritte, richtet sie ein und verbindet sie, und bittet Sie um Zustimmung, bevor der Workflow gespeichert wird. Ein neuer Workflow startet ausgeschaltet: Lesen Sie ihn im Builder, tragen Sie Passwörter, Token oder Webhook-URLs ein, die für Sie offen geblieben sind, denn Ask AI fragt im Gespräch nie danach, und schalten Sie ihn dann selbst ein. Ask AI kann einen Workflow auf dieselbe Weise ändern. Auf der Seite eines Workflows meint „dieser Workflow“ genau diesen. Ask AI speichert in Ihrem Namen, kann also nur tun, was Sie im Builder tun können, und der Builder zeigt die Änderungen, sobald sie gespeichert sind.
+
 ## Die Arbeitsfläche
 
 Ein Workflow ohne Vorlage öffnet sich mit einem einzigen gestrichelten Baustein mit der Aufschrift **Wählen Sie, was diesen Arbeitsablauf startet**. Dieser Baustein ist der Ausgangspunkt – klicken Sie darauf, um einen Trigger zu wählen. Ein aus einer Vorlage angelegter Workflow öffnet sich mit seinen Bausteinen bereits an Ort und Stelle.
