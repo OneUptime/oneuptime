@@ -32,9 +32,9 @@ import Route from "Common/Types/API/Route";
  * change. Nothing in it runs on its own: a change to the cloud goes through a fix.
  */
 
-const TemplateRow: FunctionComponent<{ template: OpenStackRunbookTemplate }> = (props: {
+const TemplateRow: FunctionComponent<{
   template: OpenStackRunbookTemplate;
-}): ReactElement => {
+}> = (props: { template: OpenStackRunbookTemplate }): ReactElement => {
   const translator: Translator = useTranslator();
   const { template } = props;
   const [created, setCreated] = useState<ObjectID | null>(null);

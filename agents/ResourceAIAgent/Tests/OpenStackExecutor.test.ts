@@ -1305,6 +1305,29 @@ describe("no read the agent can run changes the cloud", () => {
     assert.strictEqual(parsed.config.aiSettings.fixes, "RequireApproval");
   });
 
+  test("settings in its .env that name no fix mode are not that choice: it stays read-only, and says so", () => {
+    const parsed: ReturnType<typeof parseConfig> = parseConfig({
+      ONEUPTIME_URL: URL_OF_ONEUPTIME,
+      ONEUPTIME_API_KEY: "ingestion-key",
+      ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+      OPENSTACK_CLOUD_NAME: CLOUD,
+      ONEUPTIME_AI_ALLOW_WRITES: "true",
+      ONEUPTIME_AI_INVESTIGATION: "true",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: "write-id",
+      [AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV]: "write-secret",
+    });
+
+    assert.strictEqual(parsed.config.aiSettings.isConfigured, true);
+    assert.strictEqual(parsed.config.aiSettings.fixes, "Disabled");
+    assert.strictEqual(parsed.config.allowWrites, false);
+    assert.strictEqual(parsed.config.writesOffByFixes, true);
+    assert.ok(
+      parsed.warnings.some((warning: string): boolean => {
+        return warning.includes("names no mode");
+      }),
+    );
+  });
+
   test("fixes off in its own configuration keep it read-only, credential or not", () => {
     const parsed: ReturnType<typeof parseConfig> = parseConfig({
       ONEUPTIME_URL: URL_OF_ONEUPTIME,

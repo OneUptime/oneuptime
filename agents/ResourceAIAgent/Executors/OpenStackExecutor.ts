@@ -2069,7 +2069,6 @@ interface OpenStackChangeFacts {
 // How long one change may spend reading before it is made: the rest is the call's.
 const CHANGE_READ_BUDGET_SHARE: number = 0.5;
 
-
 class OpenStackLoginError extends Error {}
 
 export default class OpenStackExecutor implements ResourceExecutor {
@@ -2423,7 +2422,8 @@ export default class OpenStackExecutor implements ResourceExecutor {
     if (!parsed.request || parsed.request.method !== "GET") {
       return {
         problem:
-          parsed.errorMessage || `"${argv.join(" ")}" is not a read it can make.`,
+          parsed.errorMessage ||
+          `"${argv.join(" ")}" is not a read it can make.`,
       };
     }
 
@@ -2545,7 +2545,10 @@ export default class OpenStackExecutor implements ResourceExecutor {
     call: OpenStackCall;
     deadlineMs: number;
     problems: Array<string>;
-  }): Promise<{ instances: Array<OpenStackReachInstance>; isComplete: boolean }> {
+  }): Promise<{
+    instances: Array<OpenStackReachInstance>;
+    isComplete: boolean;
+  }> {
     const read: OpenStackRead = await this.readForChange({
       words: [
         "server",
@@ -3097,8 +3100,7 @@ ${renderOpenStackChangeReach(reach)}`,
          * No answer: it may be the cloud in trouble, so the rest are not sent. Whether
          * this one happened is what its failure says: output means it may have.
          */
-        mayHaveHappened =
-          mayHaveHappened || Boolean(exchanged.failure.output);
+        mayHaveHappened = mayHaveHappened || Boolean(exchanged.failure.output);
         failure =
           exchanged.failure.errorMessage || `No answer to ${one.request.path}.`;
         lines.push(`${path}: no answer: ${failure}`);
@@ -3152,7 +3154,13 @@ ${renderOpenStackChangeReach(reach)}`,
       wouldBeRefused: null,
     });
     const stdout: string = [
-      describeOpenStackChangeReachCounts(reach),
+      /*
+       * A change reads what it names and no more. What its host holds was read when it was
+       * proposed, so here that goes unsaid rather than reading as nothing.
+       */
+      reach.kind === "changes"
+        ? describeOpenStackChangeReachCounts(reach)
+        : "This changes no instance.",
       ...lines,
       failure
         ? ""
@@ -3441,7 +3449,9 @@ ${renderOpenStackChangeReach(reach)}`,
       "X-Auth-Token": data.token.id,
     };
     const body: string | null =
-      call.request.body === undefined ? null : JSON.stringify(call.request.body);
+      call.request.body === undefined
+        ? null
+        : JSON.stringify(call.request.body);
 
     if (body !== null) {
       headers["Content-Type"] = "application/json";

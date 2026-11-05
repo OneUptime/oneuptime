@@ -2223,9 +2223,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         for (const word of ["clean failed", "deploy failed"]) {
           expect(OPENSTACK_BARE_METAL_ERROR_STATES.has(word)).toBe(true);
         }
-        expect(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back")).toBe(
-          true,
-        );
+        expect(
+          OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back"),
+        ).toBe(true);
       });
 
       test("API Down never reads the scrape's own up, which reads 0 for this job on every cloud when the exporter is down", () => {

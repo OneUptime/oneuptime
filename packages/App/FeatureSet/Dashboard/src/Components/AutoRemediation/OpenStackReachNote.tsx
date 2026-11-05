@@ -1,5 +1,6 @@
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translatableTerm } from "Common/Types/Translator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -20,7 +21,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * they are shown as text and let the browser decide their direction.
  */
 
-export const OPENSTACK_REACH_NOTE_TEST_ID: string = "remediation-openstack-reach";
+export const OPENSTACK_REACH_NOTE_TEST_ID: string =
+  "remediation-openstack-reach";
 
 export interface ComponentProps {
   reach: OpenStackChangeReach;
@@ -67,17 +69,18 @@ const OpenStackReachNote: FunctionComponent<ComponentProps> = (
     instances: reach.instanceCount,
     projects: reach.projectCount,
   };
+  // As counts, not a sentence: one instance in one project reads as well as fifty in nine.
   const heading: string = reach.isComplete
     ? translator.translateTemplate(
         reach.kind === "changes"
-          ? "Changes {{instances}} instances in {{projects}} projects"
-          : "Changes no instance. The host holds {{instances}} instances in {{projects}} projects",
+          ? "Instances it changes: {{instances}}. Projects they belong to: {{projects}}."
+          : "It changes no instance. Instances on the host: {{instances}}. Projects they belong to: {{projects}}.",
         counts,
       )
     : translator.translateTemplate(
         reach.kind === "changes"
-          ? "Changes at least {{instances}} instances in at least {{projects}} projects"
-          : "Changes no instance. The host holds at least {{instances}} instances in at least {{projects}} projects",
+          ? "Instances it changes: at least {{instances}}. Projects they belong to: at least {{projects}}."
+          : "It changes no instance. Instances on the host: at least {{instances}}. Projects they belong to: at least {{projects}}.",
         counts,
       );
 
@@ -145,8 +148,8 @@ const OpenStackReachNote: FunctionComponent<ComponentProps> = (
               "nova-compute on {{host}}: {{state}}, {{status}}",
               {
                 host: host.name,
-                state: host.state || translator.translateText("not read"),
-                status: host.status || translator.translateText("not read"),
+                state: host.state || translatableTerm("not read"),
+                status: host.status || translatableTerm("not read"),
               },
             )}
           </div>

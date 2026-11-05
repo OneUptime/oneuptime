@@ -2071,12 +2071,15 @@ describePostgres("OpenStackResourceService on Postgres", () => {
         }),
       ]);
 
-      const part: { kind: OpenStackResourceKind; name: string; facts: JSONObject } =
-        {
-          kind: OpenStackResourceKind.Service,
-          name: "neutron-l3-agent",
-          facts: { agentId: "agent-1" },
-        };
+      const part: {
+        kind: OpenStackResourceKind;
+        name: string;
+        facts: JSONObject;
+      } = {
+        kind: OpenStackResourceKind.Service,
+        name: "neutron-l3-agent",
+        facts: { agentId: "agent-1" },
+      };
 
       const before: OpenStackBlastRadius =
         await OpenStackResourceService.getBlastRadius({
@@ -2190,12 +2193,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
       // Facts merge key by key, so what the later scrape didn't say is still there.
       expect(
-        (
-          await rowOf(
-            OpenStackResourceKind.Router,
-            named(after, "ou-router"),
-          )
-        )["facts"],
+        (await rowOf(OpenStackResourceKind.Router, named(after, "ou-router")))[
+          "facts"
+        ],
       ).toHaveProperty("l3Agents");
 
       await OpenStackResourceService.forgetAgentsOfRouters({
@@ -2205,12 +2205,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       });
 
       expect(
-        (
-          await rowOf(
-            OpenStackResourceKind.Router,
-            named(after, "ou-router"),
-          )
-        )["facts"],
+        (await rowOf(OpenStackResourceKind.Router, named(after, "ou-router")))[
+          "facts"
+        ],
       ).not.toHaveProperty("l3Agents");
       expect(
         (await rowOf(OpenStackResourceKind.Router, named(after, "router1")))[
@@ -2394,9 +2391,7 @@ describePostgres("OpenStackResourceService on Postgres", () => {
           lastSeenAt: at(-OPENSTACK_BARE_METAL_STUCK_MINUTES * MINUTE_MS),
         }),
       ]);
-      await write([
-        node("stuck", { status: "deploying", lastSeenAt: NOW }),
-      ]);
+      await write([node("stuck", { status: "deploying", lastSeenAt: NOW })]);
 
       expect(await attentionNodes()).toEqual(["stuck"]);
     });
@@ -2573,7 +2568,10 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       await write([
         node("node-1", {
           status: "clean failed",
-          facts: { lastError: "the BMC would not answer", fault: "clean failure" },
+          facts: {
+            lastError: "the BMC would not answer",
+            fault: "clean failure",
+          },
           lastSeenAt: at(-10 * MINUTE_MS),
         }),
       ]);
@@ -2749,9 +2747,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
           await sweep();
 
-          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
-            [],
-          );
+          expect(
+            await externalIds(OpenStackResourceKind.BareMetalNode),
+          ).toEqual([]);
           expect(await externalIds(OpenStackResourceKind.Service)).toEqual([
             "RegionOne/compute/compute-01/nova-compute",
           ]);
@@ -2774,9 +2772,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
           await sweep();
 
-          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
-            ["a-node"],
-          );
+          expect(
+            await externalIds(OpenStackResourceKind.BareMetalNode),
+          ).toEqual(["a-node"]);
         });
 
         test("a whole cloud gone silent forgets nothing, however long", async () => {
@@ -2794,9 +2792,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
 
           await sweep();
 
-          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
-            ["a-node"],
-          );
+          expect(
+            await externalIds(OpenStackResourceKind.BareMetalNode),
+          ).toEqual(["a-node"]);
         });
 
         test("a service every cloud runs is never forgotten this way", async () => {

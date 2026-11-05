@@ -2,6 +2,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
+  doFixesNeedASecondOptIn,
   isCloudAiResourceType,
   isReadOnlyAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -606,7 +607,8 @@ const INSTALL_SPECS: Readonly<
       ),
     ],
     writeTargetNoun: translationKey("projects, hosts or instances"),
-    writeTargetsExample: "project:9aee824cac87464292adffc328de1662,host:compute-*",
+    writeTargetsExample:
+      "project:9aee824cac87464292adffc328de1662,host:compute-*",
     protectedTargetsDescription: translationKey(
       "What OneUptime AI never changes, whatever else is set and whoever approves it: project:ID, host:NAME or instance:ID, separated by commas, each of which may hold a *. Put the instance this agent runs on here, if it runs on this cloud.",
     ),
@@ -1212,7 +1214,9 @@ export function getResourceAiAgentInstall(data: {
         value: "(empty)",
         description: isReadOnly
           ? READ_ONLY_FIX_SETTING
-          : "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: the agent's default, ask-for-approval when writes are allowed, else off.",
+          : doFixesNeedASecondOptIn(data.resourceType)
+            ? "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: off until a person picks a mode on this page. With the variable above set, this page follows the agent, so they stay off."
+            : "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: the agent's default, ask-for-approval when writes are allowed, else off.",
       },
       {
         name: RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -1227,11 +1231,11 @@ export function getResourceAiAgentInstall(data: {
         description: isReadOnly
           ? READ_ONLY_FIX_SETTING
           : spec.writeTargetNoun
-          ? translateTemplate(
-              "Optional: comma-separated {{targets}} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.",
-              { targets: translatableTerm(spec.writeTargetNoun) },
-            )
-          : "Optional: comma-separated targets fixes may change. Empty means any, except the agent's own.",
+            ? translateTemplate(
+                "Optional: comma-separated {{targets}} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.",
+                { targets: translatableTerm(spec.writeTargetNoun) },
+              )
+            : "Optional: comma-separated targets fixes may change. Empty means any, except the agent's own.",
       },
       {
         name: RESOURCE_AI_PROTECTED_TARGETS_ENV,

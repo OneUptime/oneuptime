@@ -132,6 +132,15 @@ async function read(context, argv) {
   return prepared.run();
 }
 
+// The rows of a list read with -f json, as a job's result hands them back: after its stream's name.
+function rowsOf(output) {
+  const marker = "[stdout]\n";
+  const start = output.indexOf(marker);
+  const text = start >= 0 ? output.slice(start + marker.length) : output;
+
+  return JSON.parse(text.slice(text.indexOf("["), text.lastIndexOf("]") + 1));
+}
+
 // What the fix's card says, from the same dry run the server asks the agent for.
 async function propose(context, argv, name) {
   const dryRun = getOpenStackDryRunCommand(argv.join(" "));
@@ -394,9 +403,7 @@ async function main() {
       const listed = await read(context, [
         "openstack", "server", "list", "--all-projects", "--host", host, "--limit", "200", "-f", "json",
       ]);
-      const start = listed.output.indexOf("[");
-      const rows = JSON.parse(listed.output.slice(start, listed.output.lastIndexOf("]") + 1));
-      const ids = rows.map((row) => { return row.id; });
+      const ids = rowsOf(listed.output).map((row) => { return row.id; });
 
       fs.writeFileSync(path.join(folder, "evacuate-ids.txt"), `${ids.join(" ")}\n`);
 

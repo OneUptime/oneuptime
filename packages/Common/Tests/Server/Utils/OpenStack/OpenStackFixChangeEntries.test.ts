@@ -153,9 +153,9 @@ const AGENT_OFF: string = `openstack network agent set --disable ${AGENT}`;
 
 describe("on each part's feed", () => {
   test("an instance's says it, by its ID", () => {
-    const [entry] = buildOpenStackFixChangeEntries(
-      fixOf(START),
-    ) as [ParsedChangeEventEntry];
+    const [entry] = buildOpenStackFixChangeEntries(fixOf(START)) as [
+      ParsedChangeEventEntry,
+    ];
 
     expect(
       isOnFeedOf(entry, {
@@ -172,9 +172,9 @@ describe("on each part's feed", () => {
   });
 
   test("and so does the hypervisor it was on, however that names itself", () => {
-    const [entry] = buildOpenStackFixChangeEntries(
-      fixOf(START),
-    ) as [ParsedChangeEventEntry];
+    const [entry] = buildOpenStackFixChangeEntries(fixOf(START)) as [
+      ParsedChangeEventEntry,
+    ];
 
     for (const hypervisorName of [
       "compute-01",
@@ -292,9 +292,9 @@ describe("on each part's feed", () => {
 
 describe("who approved it", () => {
   test("its title and its who say the person, and where", () => {
-    const [entry] = buildOpenStackFixChangeEntries(
-      fixOf(START),
-    ) as [ParsedChangeEventEntry];
+    const [entry] = buildOpenStackFixChangeEntries(fixOf(START)) as [
+      ParsedChangeEventEntry,
+    ];
 
     expect(entry.title).toBe(
       "OneUptime AI ran server start on web-1, approved by Jane Doe from Slack",
@@ -522,9 +522,9 @@ describe("the recorder", () => {
     expect(attributes(row)[ChangeEventAttribute.IncidentId]).toBe(
       INCIDENT_ID.toString(),
     );
-    expect(attributes(row)[ChangeEventAttribute.AutoRemediationSuggestionId]).toBe(
-      SUGGESTION_ID.toString(),
-    );
+    expect(
+      attributes(row)[ChangeEventAttribute.AutoRemediationSuggestionId],
+    ).toBe(SUGGESTION_ID.toString());
     expect(feedItems.length).toBe(1);
     expect(feedItems[0]?.["openStackCloudFeedEventType"]).toBe(
       OpenStackCloudFeedEventType.AiFix,
@@ -602,14 +602,12 @@ describe("the recorder", () => {
   });
 
   test("a rollback's job reads as one", async () => {
-    jest
-      .spyOn(RunnerJobService, "findOneById")
-      .mockResolvedValue(
-        job({
-          stepId: "ai-rollback-1",
-          payload: { displayCommand: ENABLE, tier: "SafeWrite" },
-        }) as never,
-      );
+    jest.spyOn(RunnerJobService, "findOneById").mockResolvedValue(
+      job({
+        stepId: "ai-rollback-1",
+        payload: { displayCommand: ENABLE, tier: "SafeWrite" },
+      }) as never,
+    );
 
     await OwnChangeRecorder.recordAiCommand(JOB_ID);
 

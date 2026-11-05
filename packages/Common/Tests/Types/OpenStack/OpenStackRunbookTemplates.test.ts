@@ -72,105 +72,108 @@ describe("the failures it covers", () => {
   });
 });
 
-describe.each(ROWS)("%s", (_name: string, template: OpenStackRunbookTemplate) => {
-  test("has checks and fixes, and says when it is for", () => {
-    expect(template.whenItIsFor.length).toBeGreaterThan(10);
-    expect(template.checks.length).toBeGreaterThan(0);
-    expect(template.fixes.length).toBeGreaterThan(0);
-  });
-
-  test("every check with a command is a read the policy allows", () => {
-    for (const check of template.checks) {
-      if (check.command === null) {
-        continue;
-      }
-
-      expect({
-        command: check.command,
-        tier: policyOf(check.command).tier,
-      }).toEqual({ command: check.command, tier: ResourceCommandTier.Read });
-    }
-  });
-
-  test("every fix is the tier it says, by the policy", () => {
-    for (const fix of template.fixes) {
-      if (fix.command === null) {
-        expect({ fix: fix.title, tier: fix.tier }).toEqual({
-          fix: fix.title,
-          tier: OpenStackRunbookFixTier.ByHand,
-        });
-        continue;
-      }
-
-      const policy: ResourceCommandPolicyResult = policyOf(fix.command);
-      const tier: string =
-        policy.requiresHuman === true
-          ? OpenStackRunbookFixTier.AlwaysAsks
-          : policy.tier === ResourceCommandTier.SafeWrite
-            ? OpenStackRunbookFixTier.Safe
-            : policy.tier === ResourceCommandTier.RiskyWrite
-              ? OpenStackRunbookFixTier.Riskier
-              : `not a change: ${policy.tier}`;
-
-      expect({ command: fix.command, tier }).toEqual({
-        command: fix.command,
-        tier: fix.tier,
-      });
-    }
-  });
-
-  test("every alert it answers is a real template", () => {
-    const known: Set<string> = new Set<string>(
-      [
-        ...getAllOpenStackAlertTemplates(),
-        ...getAllOpenStackControlPlaneAlertTemplates(),
-      ].map((alert: OpenStackAlertTemplate): string => {
-        return alert.id;
-      }),
-    );
-
-    expect(template.alertTemplateIds.length).toBeGreaterThan(0);
-
-    for (const id of template.alertTemplateIds) {
-      expect({ id, known: known.has(id) }).toEqual({ id, known: true });
-    }
-  });
-
-  test("becomes a runbook of a person's steps, and nothing that runs on its own", () => {
-    const steps: Array<RunbookStep> = buildOpenStackRunbookSteps(template);
-
-    expect(steps.length).toBe(template.checks.length + template.fixes.length);
-
-    steps.forEach((step: RunbookStep, index: number): void => {
-      expect(step.type).toBe(RunbookStepType.Manual);
-      expect(step.order).toBe(index + 1);
-      expect(step.id.length).toBeGreaterThan(0);
-      expect((step.description || "").length).toBeGreaterThan(0);
+describe.each(ROWS)(
+  "%s",
+  (_name: string, template: OpenStackRunbookTemplate) => {
+    test("has checks and fixes, and says when it is for", () => {
+      expect(template.whenItIsFor.length).toBeGreaterThan(10);
+      expect(template.checks.length).toBeGreaterThan(0);
+      expect(template.fixes.length).toBeGreaterThan(0);
     });
 
-    for (const check of template.checks) {
-      if (check.command) {
+    test("every check with a command is a read the policy allows", () => {
+      for (const check of template.checks) {
+        if (check.command === null) {
+          continue;
+        }
+
+        expect({
+          command: check.command,
+          tier: policyOf(check.command).tier,
+        }).toEqual({ command: check.command, tier: ResourceCommandTier.Read });
+      }
+    });
+
+    test("every fix is the tier it says, by the policy", () => {
+      for (const fix of template.fixes) {
+        if (fix.command === null) {
+          expect({ fix: fix.title, tier: fix.tier }).toEqual({
+            fix: fix.title,
+            tier: OpenStackRunbookFixTier.ByHand,
+          });
+          continue;
+        }
+
+        const policy: ResourceCommandPolicyResult = policyOf(fix.command);
+        const tier: string =
+          policy.requiresHuman === true
+            ? OpenStackRunbookFixTier.AlwaysAsks
+            : policy.tier === ResourceCommandTier.SafeWrite
+              ? OpenStackRunbookFixTier.Safe
+              : policy.tier === ResourceCommandTier.RiskyWrite
+                ? OpenStackRunbookFixTier.Riskier
+                : `not a change: ${policy.tier}`;
+
+        expect({ command: fix.command, tier }).toEqual({
+          command: fix.command,
+          tier: fix.tier,
+        });
+      }
+    });
+
+    test("every alert it answers is a real template", () => {
+      const known: Set<string> = new Set<string>(
+        [
+          ...getAllOpenStackAlertTemplates(),
+          ...getAllOpenStackControlPlaneAlertTemplates(),
+        ].map((alert: OpenStackAlertTemplate): string => {
+          return alert.id;
+        }),
+      );
+
+      expect(template.alertTemplateIds.length).toBeGreaterThan(0);
+
+      for (const id of template.alertTemplateIds) {
+        expect({ id, known: known.has(id) }).toEqual({ id, known: true });
+      }
+    });
+
+    test("becomes a runbook of a person's steps, and nothing that runs on its own", () => {
+      const steps: Array<RunbookStep> = buildOpenStackRunbookSteps(template);
+
+      expect(steps.length).toBe(template.checks.length + template.fixes.length);
+
+      steps.forEach((step: RunbookStep, index: number): void => {
+        expect(step.type).toBe(RunbookStepType.Manual);
+        expect(step.order).toBe(index + 1);
+        expect(step.id.length).toBeGreaterThan(0);
+        expect((step.description || "").length).toBeGreaterThan(0);
+      });
+
+      for (const check of template.checks) {
+        if (check.command) {
+          expect(
+            steps.some((step: RunbookStep): boolean => {
+              return (step.description || "").includes(
+                (check as OpenStackRunbookCheck).command as string,
+              );
+            }),
+          ).toBe(true);
+        }
+      }
+
+      for (const fix of template.fixes) {
         expect(
           steps.some((step: RunbookStep): boolean => {
             return (step.description || "").includes(
-              (check as OpenStackRunbookCheck).command as string,
+              `Tier: ${(fix as OpenStackRunbookFix).tier}.`,
             );
           }),
         ).toBe(true);
       }
-    }
-
-    for (const fix of template.fixes) {
-      expect(
-        steps.some((step: RunbookStep): boolean => {
-          return (step.description || "").includes(
-            `Tier: ${(fix as OpenStackRunbookFix).tier}.`,
-          );
-        }),
-      ).toBe(true);
-    }
-  });
-});
+    });
+  },
+);
 
 describe("what no command reaches", () => {
   test.each([
@@ -195,11 +198,12 @@ describe("what no command reaches", () => {
   });
 
   test("a dead hypervisor's evacuation always asks", () => {
-    const fix: OpenStackRunbookFix | undefined = OPENSTACK_RUNBOOK_TEMPLATES[0]?.fixes.find(
-      (candidate: OpenStackRunbookFix): boolean => {
-        return (candidate.command || "").includes("server evacuate");
-      },
-    );
+    const fix: OpenStackRunbookFix | undefined =
+      OPENSTACK_RUNBOOK_TEMPLATES[0]?.fixes.find(
+        (candidate: OpenStackRunbookFix): boolean => {
+          return (candidate.command || "").includes("server evacuate");
+        },
+      );
 
     expect(fix?.tier).toBe(OpenStackRunbookFixTier.AlwaysAsks);
   });

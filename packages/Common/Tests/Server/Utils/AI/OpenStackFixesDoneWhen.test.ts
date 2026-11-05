@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -15,7 +22,9 @@ import { FakeOpenStack } from "../../../../../../agents/ResourceAIAgent/Tests/He
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import ResourceAiAgent from "../../../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
-import Semaphore, { SemaphoreMutex } from "../../../../Server/Infrastructure/Semaphore";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../../Server/Infrastructure/Semaphore";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
 import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
@@ -250,11 +259,13 @@ beforeEach(() => {
   jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
   jest.spyOn(logger, "error").mockImplementation((): void => {});
   jest.spyOn(logger, "warn").mockImplementation((): void => {});
-  jest.spyOn(AutoRemediationSuggestionService, "findOneById").mockResolvedValue({
-    id: SUGGESTION_ID,
-    _id: SUGGESTION_ID.toString(),
-    status: AutoRemediationSuggestionStatus.Planning,
-  } as unknown as AutoRemediationSuggestion);
+  jest
+    .spyOn(AutoRemediationSuggestionService, "findOneById")
+    .mockResolvedValue({
+      id: SUGGESTION_ID,
+      _id: SUGGESTION_ID.toString(),
+      status: AutoRemediationSuggestionStatus.Planning,
+    } as unknown as AutoRemediationSuggestion);
   jest
     .spyOn(AutoRemediationSuggestionService, "updateOneById")
     .mockResolvedValue(undefined as never);
@@ -384,12 +395,18 @@ describe("a disabled compute service is proposed for re-enabling, and done on ap
     // The instances the recorded cloud holds there, with their real names and projects.
     expect(reach.instanceCount).toBe(3);
     expect(reach.projectCount).toBe(2);
-    expect(reach.instances.map((row: { name: string | null }) => {
-      return row.name;
-    }).sort()).toEqual(["ou-research-1", "ou-running", "ou-stopped"]);
-    expect(reach.projects.map((row: { name: string | null }) => {
-      return row.name;
-    })).toEqual(["ou-payments", "ou-research"]);
+    expect(
+      reach.instances
+        .map((row: { name: string | null }) => {
+          return row.name;
+        })
+        .sort(),
+    ).toEqual(["ou-research-1", "ou-running", "ou-stopped"]);
+    expect(
+      reach.projects.map((row: { name: string | null }) => {
+        return row.name;
+      }),
+    ).toEqual(["ou-payments", "ou-research"]);
 
     // What the plan keeps survives being stored and read back.
     expect(
@@ -440,16 +457,18 @@ describe("a disabled compute service is proposed for re-enabling, and done on ap
     useCloud("compute-disabled");
 
     jest.spyOn(RunnerJobService, "enqueueAiResourceCommand");
-    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockImplementation((async () => {
-      return {
-        id: JOB_ID,
-        _id: JOB_ID.toString(),
-        status: "Succeeded",
-        exitCode: 0,
-        output: "ok",
-        payload: { displayCommand: ENABLE, program: "openstack" },
-      };
-    }) as never);
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockImplementation((async () => {
+        return {
+          id: JOB_ID,
+          _id: JOB_ID.toString(),
+          status: "Succeeded",
+          exitCode: 0,
+          output: "ok",
+          payload: { displayCommand: ENABLE, program: "openstack" },
+        };
+      }) as never);
     jest.spyOn(RunnerJobService, "findOneById").mockResolvedValue({
       id: JOB_ID,
       claimedAt: new Date(),
@@ -461,11 +480,7 @@ describe("a disabled compute service is proposed for re-enabling, and done on ap
       ResourceAiRemediationMode.Automatic,
     );
 
-    await callTool(
-      toolkit,
-      "execute_remediation_command",
-      commandArgs(ENABLE),
-    );
+    await callTool(toolkit, "execute_remediation_command", commandArgs(ENABLE));
 
     expect(toolkit.getExecutedCommands().length).toBe(1);
     expect(toolkit.getCommandsNeedingApproval()).toEqual([]);
@@ -505,9 +520,11 @@ describe("a dead hypervisor's evacuation proposal lists what it touches, and ask
       }),
     ).toEqual(["ou-running", "ou-stopped", "ou-research-1"]);
     expect(
-      reach.projects.map((row: { name: string | null; instanceCount: number }) => {
-        return [row.name, row.instanceCount];
-      }),
+      reach.projects.map(
+        (row: { name: string | null; instanceCount: number }) => {
+          return [row.name, row.instanceCount];
+        },
+      ),
     ).toEqual([
       ["ou-payments", 2],
       ["ou-research", 1],
@@ -651,9 +668,9 @@ describe("a dead hypervisor's evacuation proposal lists what it touches, and ask
   test("one with no agent to ask is never proposed either", async () => {
     useCloud("compute-down");
 
-    jest.spyOn(ResourceCommandJobRunner, "run").mockRejectedValue(
-      new Error("no online agent"),
-    );
+    jest
+      .spyOn(ResourceCommandJobRunner, "run")
+      .mockRejectedValue(new Error("no online agent"));
 
     const toolkit: RemediationCommandToolkit = toolkitFor(
       "Suggest",

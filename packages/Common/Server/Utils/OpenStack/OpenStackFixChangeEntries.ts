@@ -9,13 +9,15 @@ import {
   OpenStackChangeReach,
   OpenStackReachInstance,
 } from "../../../Utils/AiRemediation/Resource/OpenStackChangeReach";
-import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "../../../Utils/OpenStack/OpenStackLogs";
+import {
+  OPENSTACK_CLOUD_LOG_ATTRIBUTE,
+  OpenStackLogAttribute,
+} from "../../../Utils/OpenStack/OpenStackLogs";
 import {
   OPENSTACK_EVENT_HOST_ATTRIBUTE,
   OPENSTACK_EVENT_SERVICE_ATTRIBUTE,
   OpenStackEventAttribute,
 } from "../../../Utils/OpenStack/OpenStackNotifications";
-import { OpenStackLogAttribute } from "../../../Utils/OpenStack/OpenStackLogs";
 import {
   ChangeEventAttribute,
   ChangeEventSource,
@@ -102,7 +104,9 @@ function describeApproval(fix: OpenStackFix): string {
 }
 
 function describeWhatHappened(fix: OpenStackFix, what: string): string {
-  const doing: string = fix.isRollback ? `rolled back with ${what}` : `ran ${what}`;
+  const doing: string = fix.isRollback
+    ? `rolled back with ${what}`
+    : `ran ${what}`;
 
   switch (fix.outcome) {
     case OpenStackFixOutcome.Accepted:
@@ -149,8 +153,7 @@ function commonAttributes(fix: OpenStackFix): Dictionary<string> {
      * Who, for the feed's own column: the person who said yes, or OneUptime AI when
      * nobody did.
      */
-    [ChangeEventAttribute.CloudActor]:
-      fix.approval?.name || "OneUptime AI",
+    [ChangeEventAttribute.CloudActor]: fix.approval?.name || "OneUptime AI",
   };
 
   if (fix.approval?.name) {

@@ -142,14 +142,17 @@ describe("which kinds have fixes", () => {
 });
 
 describe("what a person may set", () => {
-  test.each(FIX_MODES)("a mode of %s is a choice they can make", (mode) => {
-    expect(() => {
-      ResourceAiAccessSettings.validateSettings({
-        resourceType: AiResourceType.OpenStackCloud,
-        data: { aiRemediationMode: mode },
-      });
-    }).not.toThrow();
-  });
+  test.each(FIX_MODES)(
+    "a mode of %s is a choice they can make",
+    (mode: ResourceAiRemediationMode) => {
+      expect(() => {
+        ResourceAiAccessSettings.validateSettings({
+          resourceType: AiResourceType.OpenStackCloud,
+          data: { aiRemediationMode: mode },
+        });
+      }).not.toThrow();
+    },
+  );
 
   test("off stays allowed, and so does turning investigations off", () => {
     expect(() => {
@@ -358,7 +361,9 @@ describe("what the server tells the page", () => {
 
   test("the switch is on and something else stops it: it says that, not to turn the switch on", () => {
     const gaps: Array<ResourceAiAccessGap> = status(
-      cloudRow({ aiRemediationMode: ResourceAiRemediationMode.RequireApproval }),
+      cloudRow({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      }),
       {
         allowWrites: false,
         allowWritesSetting: "true",
@@ -373,7 +378,9 @@ describe("what the server tells the page", () => {
 
   test("a credential for changes that does not log in is said while it can be fixed", () => {
     const built: ResourceAiAccessStatus = status(
-      cloudRow({ aiRemediationMode: ResourceAiRemediationMode.RequireApproval }),
+      cloudRow({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      }),
       {
         details: {
           writeCredentialWorks: false,

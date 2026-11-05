@@ -147,7 +147,8 @@ for unit in devstack@n-api.service devstack@q-svc.service devstack@neutron-api.s
 done
 
 # The one policy file, merged the way an operator would, for what access rules cannot see.
-NOVA_POLICY="$(sudo grep -hE '^policy_file *=' /etc/nova/nova.conf 2>/dev/null | head -1 | sed -E 's/^policy_file *= *//')"
+# Most clouds never set it, so finding nothing is an answer here and not a failure.
+NOVA_POLICY="$( (sudo grep -hE '^policy_file *=' /etc/nova/nova.conf 2>/dev/null || true) | head -1 | sed -E 's/^policy_file *= *//')"
 NOVA_POLICY="${NOVA_POLICY:-/etc/nova/policy.yaml}"
 case "$NOVA_POLICY" in
   /*) ;;
@@ -274,6 +275,10 @@ if wait_for_host "$FAKE_HOST" up; then
   sleep 15
   # The estate leaves this project close to its quota, on purpose.
   openstack quota set --instances 20 --cores 40 ou-payments
+  # Naming the host takes the admin role in the project the instance goes in, and the estate only
+  # makes this user a member of them.
+  openstack role add --project ou-research --user admin admin
+  openstack role add --project ou-payments --user admin admin
   # No network: a fake host has no agent to bind a port. Two projects, so there are two to list.
   OS_PROJECT_NAME=ou-research openstack server create --flavor ou.tiny --image "$IMAGE" --nic none \
     --availability-zone "nova:$FAKE_HOST" --wait ou-evacuate-research >/dev/null || STATUS=1

@@ -76,50 +76,70 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
     {
       id: "openstack-compute-service-down",
       name: translationKey("OpenStack: compute service down"),
-      whenItIsFor: translationKey("A nova-compute reads down or disabled. Its instances may still be running: Nova can't say."),
+      whenItIsFor: translationKey(
+        "A nova-compute reads down or disabled. Its instances may still be running: Nova can't say.",
+      ),
       alertTemplateIds: ["openstack-compute-service-down"],
       checks: [
         {
           title: translationKey("Which service, and is it down or disabled"),
           command: "openstack compute service list --service nova-compute",
-          whatItSays: translationKey("State down means it stopped reporting. Status disabled means someone turned the scheduler off it, and disabled_reason says why."),
+          whatItSays: translationKey(
+            "State down means it stopped reporting. Status disabled means someone turned the scheduler off it, and disabled_reason says why.",
+          ),
         },
         {
           title: translationKey("What that host holds, and whose"),
           command: `openstack server list --all-projects --host ${OPENSTACK_RUNBOOK_HOST} --limit 200`,
-          whatItSays: translationKey("An instance on a dead host keeps reading ACTIVE: host_status UNKNOWN is what says otherwise."),
+          whatItSays: translationKey(
+            "An instance on a dead host keeps reading ACTIVE: host_status UNKNOWN is what says otherwise.",
+          ),
         },
         {
           title: translationKey("Whether the host itself is alive"),
           command: null,
-          whatItSays: translationKey("Ask the machine, not OpenStack: is it up, and what does the nova-compute log say? An evacuation of a host that is still running runs its instances twice."),
+          whatItSays: translationKey(
+            "Ask the machine, not OpenStack: is it up, and what does the nova-compute log say? An evacuation of a host that is still running runs its instances twice.",
+          ),
         },
       ],
       fixes: [
         {
-          title: translationKey("It was only disabled: let the scheduler use it again"),
+          title: translationKey(
+            "It was only disabled: let the scheduler use it again",
+          ),
           command: `openstack compute service set --enable ${OPENSTACK_RUNBOOK_HOST} nova-compute`,
           tier: OpenStackRunbookFixTier.Safe,
-          whatItDoes: translationKey("Lets new instances land there again, and moves nothing. Only if whoever disabled it is done with it."),
+          whatItDoes: translationKey(
+            "Lets new instances land there again, and moves nothing. Only if whoever disabled it is done with it.",
+          ),
         },
         {
-          title: translationKey("It is up but failing: keep new instances off it"),
+          title: translationKey(
+            "It is up but failing: keep new instances off it",
+          ),
           command: `openstack compute service set --disable --disable-reason "REASON" ${OPENSTACK_RUNBOOK_HOST} nova-compute`,
           tier: OpenStackRunbookFixTier.Riskier,
           whatItDoes: translationKey("Leaves what runs there running."),
         },
         {
-          title: translationKey("It is dead and not coming back: evacuate what it held"),
+          title: translationKey(
+            "It is dead and not coming back: evacuate what it held",
+          ),
           command: `openstack server evacuate ${OPENSTACK_RUNBOOK_SERVER}`,
           tier: OpenStackRunbookFixTier.AlwaysAsks,
-          whatItDoes: translationKey("Rebuilds those instances on another host, which loses what was on their local disks. Nova only takes it once the host reads down. Check it is fenced first."),
+          whatItDoes: translationKey(
+            "Rebuilds those instances on another host, which loses what was on their local disks. Nova only takes it once the host reads down. Check it is fenced first.",
+          ),
         },
       ],
     },
     {
       id: "openstack-instance-stuck",
       name: translationKey("OpenStack: instance stuck"),
-      whenItIsFor: translationKey("An instance has stayed in BUILD, REBOOT, MIGRATING or another state on the way to somewhere else."),
+      whenItIsFor: translationKey(
+        "An instance has stayed in BUILD, REBOOT, MIGRATING or another state on the way to somewhere else.",
+      ),
       alertTemplateIds: [
         "openstack-instance-stuck-building",
         "openstack-instance-stuck-transitioning",
@@ -129,17 +149,23 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
         {
           title: translationKey("What state it is in, on which host"),
           command: `openstack server show ${OPENSTACK_RUNBOOK_SERVER}`,
-          whatItSays: translationKey("task_state says what it is waiting for, and fault what went wrong. host_status UNKNOWN means it is the host that is stuck, not the instance."),
+          whatItSays: translationKey(
+            "task_state says what it is waiting for, and fault what went wrong. host_status UNKNOWN means it is the host that is stuck, not the instance.",
+          ),
         },
         {
           title: translationKey("What was asked of it, and what came of it"),
           command: `openstack server event list ${OPENSTACK_RUNBOOK_SERVER}`,
-          whatItSays: translationKey("Each action's request ID follows it through the logs of every service it touched."),
+          whatItSays: translationKey(
+            "Each action's request ID follows it through the logs of every service it touched.",
+          ),
         },
         {
           title: translationKey("Whether its compute service answers"),
           command: `openstack compute service list --host ${OPENSTACK_RUNBOOK_HOST} --service nova-compute`,
-          whatItSays: translationKey("Down means this is the compute service down runbook."),
+          whatItSays: translationKey(
+            "Down means this is the compute service down runbook.",
+          ),
         },
       ],
       fixes: [
@@ -159,26 +185,36 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
           title: translationKey("Its guest does not answer"),
           command: `openstack server reboot --hard ${OPENSTACK_RUNBOOK_SERVER}`,
           tier: OpenStackRunbookFixTier.Riskier,
-          whatItDoes: translationKey("Power-cycles it, whatever the guest is doing."),
+          whatItDoes: translationKey(
+            "Power-cycles it, whatever the guest is doing.",
+          ),
         },
         {
           title: translationKey("Its host is the trouble"),
           command: `openstack server migrate live ${OPENSTACK_RUNBOOK_SERVER} --host ${OPENSTACK_RUNBOOK_HOST}`,
           tier: OpenStackRunbookFixTier.Riskier,
-          whatItDoes: translationKey("Moves it while it runs, to a host you name."),
+          whatItDoes: translationKey(
+            "Moves it while it runs, to a host you name.",
+          ),
         },
         {
-          title: translationKey("Its task state is wrong, and nothing is running"),
+          title: translationKey(
+            "Its task state is wrong, and nothing is running",
+          ),
           command: null,
           tier: OpenStackRunbookFixTier.ByHand,
-          whatItDoes: translationKey("Forcing a state only changes what the database says, so OneUptime AI never does it. A person who has read the logs can, with openstack server set --state."),
+          whatItDoes: translationKey(
+            "Forcing a state only changes what the database says, so OneUptime AI never does it. A person who has read the logs can, with openstack server set --state.",
+          ),
         },
       ],
     },
     {
       id: "openstack-volume-stuck",
       name: translationKey("OpenStack: volume stuck"),
-      whenItIsFor: translationKey("A volume has stayed in creating, deleting, attaching or detaching."),
+      whenItIsFor: translationKey(
+        "A volume has stayed in creating, deleting, attaching or detaching.",
+      ),
       alertTemplateIds: [
         "openstack-volume-stuck",
         "openstack-volumes-in-error",
@@ -188,32 +224,44 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
         {
           title: translationKey("What state it is in, and who has it"),
           command: `openstack volume show ${OPENSTACK_RUNBOOK_VOLUME}`,
-          whatItSays: translationKey("attachments and migration_status say whether it is busy."),
+          whatItSays: translationKey(
+            "attachments and migration_status say whether it is busy.",
+          ),
         },
         {
           title: translationKey("Whether cinder-volume answers for its pool"),
           command: "openstack volume service list --service cinder-volume",
-          whatItSays: translationKey("A stopped cinder-volume leaves everything on its backend where it was."),
+          whatItSays: translationKey(
+            "A stopped cinder-volume leaves everything on its backend where it was.",
+          ),
         },
         {
           title: translationKey("Whether its pool has room"),
           command: "openstack volume backend pool list",
-          whatItSays: translationKey("A full pool fails what asks it for space."),
+          whatItSays: translationKey(
+            "A full pool fails what asks it for space.",
+          ),
         },
       ],
       fixes: [
         {
-          title: translationKey("Restart cinder-volume, or free space on its pool"),
+          title: translationKey(
+            "Restart cinder-volume, or free space on its pool",
+          ),
           command: null,
           tier: OpenStackRunbookFixTier.ByHand,
-          whatItDoes: translationKey("No command here changes a volume or its service: on a storage backend, the wrong word loses data. Resetting a volume's state is for a person who has read the logs, and never OneUptime AI."),
+          whatItDoes: translationKey(
+            "No command here changes a volume or its service: on a storage backend, the wrong word loses data. Resetting a volume's state is for a person who has read the logs, and never OneUptime AI.",
+          ),
         },
       ],
     },
     {
       id: "openstack-router-without-agent",
       name: translationKey("OpenStack: router without an agent"),
-      whenItIsFor: translationKey("A router has no live L3 agent, so the networks behind it can't reach out. On ML2/OVS: OVN has no L3 agents."),
+      whenItIsFor: translationKey(
+        "A router has no live L3 agent, so the networks behind it can't reach out. On ML2/OVS: OVN has no L3 agents.",
+      ),
       alertTemplateIds: [
         "openstack-router-without-active-agent",
         "openstack-network-agent-down",
@@ -222,7 +270,9 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
         {
           title: translationKey("Which agents are down or turned off"),
           command: "openstack network agent list",
-          whatItSays: translationKey("alive says whether it reports. admin_state_up false means someone turned it off."),
+          whatItSays: translationKey(
+            "alive says whether it reports. admin_state_up false means someone turned it off.",
+          ),
         },
         {
           title: translationKey("Which router, and whose"),
@@ -241,14 +291,18 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
           title: translationKey("It is failing: keep new routers off it"),
           command: `openstack network agent set --disable ${OPENSTACK_RUNBOOK_AGENT}`,
           tier: OpenStackRunbookFixTier.Riskier,
-          whatItDoes: translationKey("Leaves what it serves on it. Rescheduling a router to another agent is for a person."),
+          whatItDoes: translationKey(
+            "Leaves what it serves on it. Rescheduling a router to another agent is for a person.",
+          ),
         },
       ],
     },
     {
       id: "openstack-rabbitmq-partition",
       name: translationKey("OpenStack: RabbitMQ partition"),
-      whenItIsFor: translationKey("RabbitMQ's nodes disagree on who is in the cluster, so services stop hearing each other."),
+      whenItIsFor: translationKey(
+        "RabbitMQ's nodes disagree on who is in the cluster, so services stop hearing each other.",
+      ),
       alertTemplateIds: [
         "openstack-rabbitmq-partition-detected",
         "openstack-rabbitmq-node-down",
@@ -257,12 +311,16 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
         {
           title: translationKey("What stopped reporting because of it"),
           command: "openstack compute service list",
-          whatItSays: translationKey("Every service down at once points at the message bus, not at each service."),
+          whatItSays: translationKey(
+            "Every service down at once points at the message bus, not at each service.",
+          ),
         },
         {
           title: translationKey("What the cluster says of itself"),
           command: null,
-          whatItSays: translationKey("On a controller: rabbitmqctl cluster_status lists the partitions and the nodes on each side."),
+          whatItSays: translationKey(
+            "On a controller: rabbitmqctl cluster_status lists the partitions and the nodes on each side.",
+          ),
         },
       ],
       fixes: [
@@ -270,14 +328,18 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
           title: translationKey("Heal the partition"),
           command: null,
           tier: OpenStackRunbookFixTier.ByHand,
-          whatItDoes: translationKey("Restart the nodes on the side you are giving up, on the machines themselves. RabbitMQ is below OpenStack: no command OneUptime AI has reaches it."),
+          whatItDoes: translationKey(
+            "Restart the nodes on the side you are giving up, on the machines themselves. RabbitMQ is below OpenStack: no command OneUptime AI has reaches it.",
+          ),
         },
       ],
     },
     {
       id: "openstack-galera-lost-quorum",
       name: translationKey("OpenStack: Galera lost quorum"),
-      whenItIsFor: translationKey("MariaDB's Galera cluster has no primary component, so every service that writes its database fails."),
+      whenItIsFor: translationKey(
+        "MariaDB's Galera cluster has no primary component, so every service that writes its database fails.",
+      ),
       alertTemplateIds: [
         "openstack-galera-cluster-size-dropped",
         "openstack-galera-node-not-ready",
@@ -286,12 +348,16 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
         {
           title: translationKey("What is failing because of it"),
           command: "openstack endpoint list",
-          whatItSays: translationKey("Then read whether each service answers: an API that reads but can't write points at the database."),
+          whatItSays: translationKey(
+            "Then read whether each service answers: an API that reads but can't write points at the database.",
+          ),
         },
         {
           title: translationKey("What the cluster says of itself"),
           command: null,
-          whatItSays: translationKey("On each database node: SHOW STATUS LIKE 'wsrep_%'. wsrep_cluster_status other than Primary is what this is."),
+          whatItSays: translationKey(
+            "On each database node: SHOW STATUS LIKE 'wsrep_%'. wsrep_cluster_status other than Primary is what this is.",
+          ),
         },
       ],
       fixes: [
@@ -299,7 +365,9 @@ export const OPENSTACK_RUNBOOK_TEMPLATES: ReadonlyArray<OpenStackRunbookTemplate
           title: translationKey("Bring the cluster back"),
           command: null,
           tier: OpenStackRunbookFixTier.ByHand,
-          whatItDoes: translationKey("Bootstrap from the node with the highest wsrep_last_committed, by hand, on the machines. Galera is below OpenStack: no command OneUptime AI has reaches it, and the wrong node loses transactions."),
+          whatItDoes: translationKey(
+            "Bootstrap from the node with the highest wsrep_last_committed, by hand, on the machines. Galera is below OpenStack: no command OneUptime AI has reaches it, and the wrong node loses transactions.",
+          ),
         },
       ],
     },

@@ -112,9 +112,9 @@ export const FIXES_NEED_A_SECOND_OPT_IN_AI_RESOURCE_TYPES: ReadonlyArray<AiResou
 export function doFixesNeedASecondOptIn(value: unknown): boolean {
   return (
     typeof value === "string" &&
-    (FIXES_NEED_A_SECOND_OPT_IN_AI_RESOURCE_TYPES as ReadonlyArray<string>).includes(
-      value,
-    )
+    (
+      FIXES_NEED_A_SECOND_OPT_IN_AI_RESOURCE_TYPES as ReadonlyArray<string>
+    ).includes(value)
   );
 }
 

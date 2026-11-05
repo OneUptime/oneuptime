@@ -249,13 +249,12 @@ export default class OwnChangeRecorder {
       return false;
     }
 
-    const cloud: OpenStackCloud | null = await OpenStackCloudService.findOneById(
-      {
+    const cloud: OpenStackCloud | null =
+      await OpenStackCloudService.findOneById({
         id: cloudId,
         select: { name: true },
         props: { isRoot: true },
-      },
-    );
+      });
 
     const fix: OpenStackFix = {
       jobId,
@@ -274,7 +273,9 @@ export default class OwnChangeRecorder {
       failure: job.errorMessage || null,
       time: getOpenStackFixTime(job),
       approval: await OwnChangeRecorder.getOpenStackFixApproval(job),
-      isRollback: (job.stepId || "").startsWith(ROLLBACK_COMMAND_STEP_ID_PREFIX),
+      isRollback: (job.stepId || "").startsWith(
+        ROLLBACK_COMMAND_STEP_ID_PREFIX,
+      ),
       regionName: parsed?.request?.regionName || null,
       suggestionId: job.autoRemediationSuggestionId || undefined,
       aiRunId: job.aiRunId || undefined,

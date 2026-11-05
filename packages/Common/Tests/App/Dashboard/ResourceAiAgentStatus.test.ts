@@ -289,6 +289,71 @@ describe("settings the agent sets", () => {
   });
 });
 
+describe("an agent that may write, and has nothing to write with", () => {
+  const OPENSTACK: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+    AiResourceType.OpenStackCloud,
+  );
+  const missing: ResourceAiAccessGap = {
+    ...gap("remediation_write_access_missing"),
+    title: "The OpenStack AI agent's credential for changes does not work",
+    nextStep: "Keystone would not log it in: it answered 401.",
+  };
+
+  test("a credential for changes that does not log in says so, rather than asking for write access again", () => {
+    const status: ResourceAiAccessStatus = makeStatus({
+      resourceType: AiResourceType.OpenStackCloud,
+      agent: makeAgent({
+        posture: makePosture({
+          resourceType: AiResourceType.OpenStackCloud,
+          allowWrites: true,
+          details: { writeCredentialWorks: false },
+        }),
+      }),
+      gaps: [missing],
+    });
+
+    expect(getResourceAiAttentionStepText(missing, status, OPENSTACK)).toBe(
+      "The OpenStack AI agent's credential for changes does not work. Keystone would not log it in: it answered 401.",
+    );
+  });
+
+  test("the write switch on and no credential says what is still missing", () => {
+    const status: ResourceAiAccessStatus = makeStatus({
+      resourceType: AiResourceType.OpenStackCloud,
+      agent: makeAgent({
+        posture: makePosture({
+          resourceType: AiResourceType.OpenStackCloud,
+          allowWrites: false,
+          writesOffReason: "A change uses a credential of its own.",
+        }),
+      }),
+      gaps: [
+        {
+          ...missing,
+          title: "The OpenStack AI agent is read-only",
+          nextStep: "A change uses a credential of its own.",
+        },
+      ],
+    });
+
+    expect(
+      getResourceAiAttentionStepText(status.gaps[0]!, status, OPENSTACK),
+    ).toBe(
+      "The OpenStack AI agent is read-only. A change uses a credential of its own.",
+    );
+  });
+
+  test("negative control: an agent that was never let write is asked to be", () => {
+    const status: ResourceAiAccessStatus = makeStatus({
+      gaps: [gap("remediation_write_access_missing")],
+    });
+
+    expect(
+      getResourceAiAttentionStepText(status.gaps[0]!, status, DOCKER),
+    ).toBe(`Give the ${DOCKER.agentName} write access with the steps below.`);
+  });
+});
+
 describe("the descriptors", () => {
   const MODELS: Record<AiResourceType, unknown> = {
     [AiResourceType.DockerHost]: DockerHost,

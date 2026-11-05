@@ -151,10 +151,7 @@ export function buildOpenStackChangeReach(data: {
 
   for (const instance of data.instances) {
     if (instance.projectId) {
-      counts.set(
-        instance.projectId,
-        (counts.get(instance.projectId) || 0) + 1,
-      );
+      counts.set(instance.projectId, (counts.get(instance.projectId) || 0) + 1);
     }
   }
 
@@ -168,9 +165,7 @@ export function buildOpenStackChangeReach(data: {
         : a.id.localeCompare(b.id);
     });
 
-  const named: (
-    instance: OpenStackReachInstance,
-  ) => OpenStackReachInstance = (
+  const named: (instance: OpenStackReachInstance) => OpenStackReachInstance = (
     instance: OpenStackReachInstance,
   ): OpenStackReachInstance => {
     return {
@@ -217,9 +212,7 @@ function instanceFields(instance: OpenStackReachInstance): string {
     orDash(asWord(instance.host, MAX_HOST_LENGTH)),
     orDash(asWord(instance.status, MAX_STATUS_LENGTH)),
     // Anyone's words, last on the line.
-    orDash(cut(instance.projectName, MAX_NAME_LENGTH))
-      .split(" ")
-      .join(" "),
+    orDash(cut(instance.projectName, MAX_NAME_LENGTH)).split(" ").join(" "),
     orDash(cut(instance.name, MAX_NAME_LENGTH)),
   ].join(" ");
 }
@@ -307,7 +300,10 @@ function readInstanceFields(fields: string): OpenStackReachInstance | null {
 export function readOpenStackChangeReach(
   output: unknown,
 ): OpenStackChangeReach | null {
-  if (typeof output !== "string" || !output.includes(OPENSTACK_REACH_LINE_PREFIX)) {
+  if (
+    typeof output !== "string" ||
+    !output.includes(OPENSTACK_REACH_LINE_PREFIX)
+  ) {
     return null;
   }
 
@@ -541,7 +537,9 @@ export function parseStoredOpenStackChangeReach(
         : null;
     })
     .filter(
-      (project: OpenStackReachProject | null): project is OpenStackReachProject => {
+      (
+        project: OpenStackReachProject | null,
+      ): project is OpenStackReachProject => {
         return project !== null;
       },
     );

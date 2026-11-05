@@ -139,10 +139,7 @@ describe("what it counts", () => {
 
 describe("the sentence", () => {
   test.each([
-    [
-      evacuation(),
-      "This changes 3 instances in 2 projects.",
-    ],
+    [evacuation(), "This changes 3 instances in 2 projects."],
     [
       evacuation({ instances: [instance(ids(1)[0] as string)] }),
       "This changes 1 instance in 1 project.",
@@ -353,7 +350,9 @@ describe("what it refuses to read", () => {
     [`${OPENSTACK_REACH_LINE_PREFIX}instances 3`],
     [`${OPENSTACK_REACH_LINE_PREFIX}route server start`],
     [`${OPENSTACK_REACH_LINE_PREFIX}kind changes`],
-    [`${OPENSTACK_REACH_LINE_PREFIX}route server start\n${OPENSTACK_REACH_LINE_PREFIX}kind neither`],
+    [
+      `${OPENSTACK_REACH_LINE_PREFIX}route server start\n${OPENSTACK_REACH_LINE_PREFIX}kind neither`,
+    ],
   ])("%j says no change", (output: unknown) => {
     expect(readOpenStackChangeReach(output)).toBeNull();
   });
@@ -411,11 +410,9 @@ describe("what it refuses to read", () => {
       JSON.stringify({
         ...evacuation(),
         instances: [
-          ...ids(OPENSTACK_REACH_MAX_LISTED_INSTANCES + 5).map(
-            (id: string) => {
-              return { id, name: "x".repeat(10000) };
-            },
-          ),
+          ...ids(OPENSTACK_REACH_MAX_LISTED_INSTANCES + 5).map((id: string) => {
+            return { id, name: "x".repeat(10000) };
+          }),
           { name: "no id" },
           7,
           null,

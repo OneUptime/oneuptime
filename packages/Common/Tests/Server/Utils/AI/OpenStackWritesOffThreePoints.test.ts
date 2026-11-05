@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -10,10 +17,10 @@ import OpenStackExecutor, {
 import { DEFAULT_GUARD_POLICY } from "../../../../../../agents/ResourceAIAgent/Executors/PrepareGuard";
 import {
   ExecResult,
+  GuardPolicy,
   PrepareResult,
   PreparedCommand,
 } from "../../../../../../agents/ResourceAIAgent/Executors/ResourceExecutor";
-import { GuardPolicy } from "../../../../../../agents/ResourceAIAgent/Executors/ResourceExecutor";
 import ResourceAiAgent from "../../../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AIRunService from "../../../../Server/Services/AIRunService";
