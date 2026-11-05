@@ -458,6 +458,8 @@ function getOpenStackRecommendations(
     getOpenStackAlertTemplatesForCloud({
       services: context?.openStackServices,
       isCollectedByProbe: context?.openStackIsCollectedByProbe,
+      isApiCheckOn: context?.openStackIsApiCheckOn,
+      isLifecycleCheckOn: context?.openStackIsLifecycleCheckOn,
     }).map((template: OpenStackAlertTemplate): string => {
       return template.id;
     }),

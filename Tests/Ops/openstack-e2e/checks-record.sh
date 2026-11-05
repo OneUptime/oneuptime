@@ -184,7 +184,8 @@ lookalikes_are_all_there() {
 
 left_by_check() {
   {
-    as_check_user openstack server list -f value -c Name
+    # A server just deleted can read DELETED in a list for a moment. It has gone.
+    as_check_user openstack server list -f value -c Name -c Status | awk '$NF != "DELETED" { print $1 }'
     as_check_user openstack volume list -f value -c Name
     as_check_user openstack floating ip list -f value -c Description 2>/dev/null
     as_check_user openstack security group list -f value -c Name

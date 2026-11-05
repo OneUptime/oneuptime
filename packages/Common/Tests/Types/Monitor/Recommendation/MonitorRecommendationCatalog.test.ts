@@ -349,6 +349,8 @@ describe("MonitorRecommendationCatalog", () => {
           {
             openStackServices: Object.values(OpenStackServiceType),
             openStackIsCollectedByProbe: true,
+            openStackIsApiCheckOn: true,
+            openStackIsLifecycleCheckOn: true,
           },
         ).length,
       ).toBe(

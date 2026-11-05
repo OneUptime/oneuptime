@@ -80,7 +80,15 @@ export async function listOwnedResources(data: {
 }): Promise<OpenStackOwnedListing> {
   const { cloud } = data;
 
-  const servers: Array<JSONObject> = await cloud.listServers();
+  /*
+   * A server Nova has deleted can read DELETED in a list for a moment, as the rig found on one
+   * cloud of two. It is gone: nothing to remove, and nothing a run could still be using.
+   */
+  const servers: Array<JSONObject> = (await cloud.listServers()).filter(
+    (row: JSONObject): boolean => {
+      return row["status"] !== "DELETED";
+    },
+  );
   const volumes: Array<JSONObject> = cloud.hasVolumeService()
     ? await cloud.listVolumes()
     : [];

@@ -240,6 +240,40 @@ describe("a whole run", () => {
     expect(harness.transportsClosed()).toBe(1);
   });
 
+  test("a server Nova reads as DELETED is gone: not deleted twice, and no word of it", async () => {
+    const harness: Harness = createHarness({ readsDeletedBeforeGoing: true });
+
+    const run: OpenStackLifecycleRun = oneRun(
+      await OpenStackLifecycleCheck.run(lifecycleJob(), harness.deps),
+    );
+
+    expect(run.status).toBe("Succeeded");
+    expect(run.writeCount).toBe(2);
+    expect(
+      harness.cloud.log.filter((line: string): boolean => {
+        return line.startsWith("DELETE /compute");
+      }),
+    ).toHaveLength(1);
+    expect(run.warnings).toEqual([]);
+    expect(run.leftoverCount).toBe(0);
+  });
+
+  test("what else a project holds is counted as a person would say it", async () => {
+    const harness: Harness = createHarness();
+
+    harness.cloud.addServer({
+      id: "someone-elses",
+      name: "someone-elses",
+      createdAt: new Date(harness.clock.now()),
+    });
+
+    const run: OpenStackLifecycleRun = oneRun(
+      await OpenStackLifecycleCheck.run(lifecycleJob(), harness.deps),
+    );
+
+    expect(run.warnings.join(" ")).toContain("also holds 1 server and 0 volumes");
+  });
+
   test("with a floating IP and a volume: exactly these requests, and nothing left", async () => {
     const harness: Harness = createHarness();
 

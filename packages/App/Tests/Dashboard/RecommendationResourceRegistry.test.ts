@@ -21,6 +21,7 @@ jest.mock("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
  * a browser `window` too. What each answer does to the context is pinned below.
  */
 const mockOpenStackSummary: jest.Mock = jest.fn();
+const mockOpenStackChecksOn: jest.Mock = jest.fn();
 
 jest.mock(
   "../../FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackResourceUtils",
@@ -29,6 +30,14 @@ jest.mock(
       __esModule: true,
       fetchOpenStackInventorySummary: (id: unknown): Promise<unknown> => {
         return mockOpenStackSummary(id);
+      },
+      fetchOpenStackChecksOn: async (id: unknown): Promise<unknown> => {
+        return (
+          (await mockOpenStackChecksOn(id)) || {
+            isApiCheckOn: false,
+            isLifecycleCheckOn: false,
+          }
+        );
       },
     };
   },
@@ -1346,6 +1355,33 @@ describe("RecommendationResourceRegistry", () => {
           model: cloudOf(OpenStackCollectionMethod.Agent),
         }).openStackIsCollectedByProbe,
       ).toBe(false);
+    });
+
+    test("a check's alerts are offered only where that check is on", async () => {
+      mockOpenStackChecksOn.mockResolvedValueOnce({
+        isApiCheckOn: true,
+        isLifecycleCheckOn: false,
+      });
+
+      const apiOnly: MonitorRecommendationContext = await loadedContext({
+        services: [],
+      });
+
+      expect(idsOffered(apiOnly)).toContain("openstack-token-issue-failing");
+      expect(idsOffered(apiOnly)).not.toContain(
+        "openstack-instance-boot-failing",
+      );
+
+      mockOpenStackChecksOn.mockResolvedValueOnce({
+        isApiCheckOn: false,
+        isLifecycleCheckOn: false,
+      });
+
+      const off: MonitorRecommendationContext = await loadedContext({
+        services: [],
+      });
+
+      expect(idsOffered(off)).not.toContain("openstack-token-issue-failing");
     });
 
     test("what it runs comes from the server, asked about this cloud", async () => {

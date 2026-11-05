@@ -95,13 +95,48 @@ describe.each(
   });
 });
 
+describe("what a check from outside reports", () => {
+  function offered(cloud: {
+    isApiCheckOn?: boolean;
+    isLifecycleCheckOn?: boolean;
+  }): Array<string> {
+    return getOpenStackAlertTemplatesForCloud(cloud)
+      .filter((template: OpenStackAlertTemplate): boolean => {
+        return Boolean(template.requiresCheck);
+      })
+      .map((template: OpenStackAlertTemplate): string => {
+        return template.id;
+      });
+  }
+
+  test("is offered only where that check is on, because nothing else sends its series", () => {
+    expect(offered({})).toEqual([]);
+    expect(offered({ isApiCheckOn: true })).toEqual([
+      "openstack-token-issue-failing",
+      "openstack-service-api-check-failing",
+      "openstack-public-certificate-expiring-30-days",
+      "openstack-public-certificate-expiring-7-days",
+    ]);
+    expect(offered({ isLifecycleCheckOn: true })).toEqual([
+      "openstack-instance-boot-failing",
+      "openstack-instance-boot-slow",
+      "openstack-volume-attach-failing",
+      "openstack-floating-ip-unreachable",
+    ]);
+  });
+});
+
 describe("what a cloud is offered", () => {
   const idsFor: (cloud: {
     services?: ReadonlyArray<string> | null | undefined;
     isCollectedByProbe?: boolean | null | undefined;
+    isApiCheckOn?: boolean | undefined;
+    isLifecycleCheckOn?: boolean | undefined;
   }) => Array<string> = (cloud: {
     services?: ReadonlyArray<string> | null | undefined;
     isCollectedByProbe?: boolean | null | undefined;
+    isApiCheckOn?: boolean | undefined;
+    isLifecycleCheckOn?: boolean | undefined;
   }): Array<string> => {
     return getOpenStackAlertTemplatesForCloud(cloud).map(
       (template: OpenStackAlertTemplate): string => {
@@ -162,6 +197,8 @@ describe("what a cloud is offered", () => {
       idsFor({
         services: Object.values(OpenStackServiceType),
         isCollectedByProbe: true,
+        isApiCheckOn: true,
+        isLifecycleCheckOn: true,
       }).length,
     ).toBe(getAllOpenStackAlertTemplates().length);
   });

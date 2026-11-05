@@ -1,3 +1,4 @@
+import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -98,6 +99,39 @@ export function toOpenStackInventorySummary(
     containerClusterCount: readNumber("containerClusterCount"),
     optionalServices: getOpenStackOptionalServicesOf(services),
   };
+}
+
+export interface OpenStackChecksOn {
+  isApiCheckOn: boolean;
+  isLifecycleCheckOn: boolean;
+}
+
+/*
+ * Whether a cloud's checks from outside are on, for what is offered on it. Off, with no row or when
+ * the server would not answer: an offer goes without, which is what a cloud with neither shows.
+ */
+export async function fetchOpenStackChecksOn(
+  openStackCloudId: ObjectID,
+): Promise<OpenStackChecksOn> {
+  try {
+    const list: ListResult<OpenStackCloudCheck> =
+      await ModelAPI.getList<OpenStackCloudCheck>({
+        modelType: OpenStackCloudCheck,
+        query: { openStackCloudId: openStackCloudId },
+        limit: 1,
+        skip: 0,
+        select: { isApiCheckEnabled: true, isLifecycleCheckEnabled: true },
+        sort: {},
+      });
+    const check: OpenStackCloudCheck | undefined = list.data[0];
+
+    return {
+      isApiCheckOn: check?.isApiCheckEnabled === true,
+      isLifecycleCheckOn: check?.isLifecycleCheckEnabled === true,
+    };
+  } catch {
+    return { isApiCheckOn: false, isLifecycleCheckOn: false };
+  }
 }
 
 // Null when the server would not answer: the caller says so, or goes without.
