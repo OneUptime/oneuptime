@@ -323,7 +323,7 @@ const StackOverview: FunctionComponent<{
               </p>
             ) : (
               <ul className={listClassName}>
-                {ownedInstanceIds.map((id: string): ReactElement => {
+                {listedInstances.map((id: string): ReactElement => {
                   return ownedRow({
                     id,
                     kind: OpenStackResourceKind.Instance,
@@ -331,7 +331,7 @@ const StackOverview: FunctionComponent<{
                     name: owned.data?.instances[id],
                   });
                 })}
-                {ownedVolumeIds.map((id: string): ReactElement => {
+                {listedVolumes.map((id: string): ReactElement => {
                   return ownedRow({
                     id,
                     kind: OpenStackResourceKind.Volume,
