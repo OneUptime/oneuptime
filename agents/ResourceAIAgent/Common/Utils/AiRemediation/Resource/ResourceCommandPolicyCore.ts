@@ -378,7 +378,10 @@ export function renderResourceDisplayCommand(argv: Array<string>): string {
       }
 
       // A word over the limit is refused anyway, and is never run through a quantifier.
-      if (word.length <= MAX_COMMAND_LENGTH_CHARS && SHELL_SAFE_TOKEN.test(word)) {
+      if (
+        word.length <= MAX_COMMAND_LENGTH_CHARS &&
+        SHELL_SAFE_TOKEN.test(word)
+      ) {
         return word;
       }
 

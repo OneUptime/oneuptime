@@ -92,7 +92,7 @@ const SCRIPT: string = String.raw`
     "percent": "%2f",
     "cyrillic": "ѕ",
     "full-width": "１",
-    "zero width": "​",
+    "zero width": "\u200b",
     "uuid heads": "358ee736-ba74-40ba-",
     "hex": "abcdef0123",
     "newlines": "\n",

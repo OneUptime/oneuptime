@@ -18,6 +18,7 @@ import OpenStackCommandPolicy, {
   OPENSTACK_PROGRAM,
   OpenStackApiRequest,
   OpenStackCommandParseResult,
+  OpenStackOption,
   OpenStackRoute,
   parseOpenStackCommand,
 } from "../../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
@@ -103,7 +104,8 @@ function expectDenied(command: string, reason?: RegExp): void {
 
 describe("the type and the policy", () => {
   test("an OpenStack cloud runs the openstack program, read-only", () => {
-    const info = AI_RESOURCE_TYPE_INFO[AiResourceType.OpenStackCloud];
+    const info: AiResourceTypeInfo =
+      AI_RESOURCE_TYPE_INFO[AiResourceType.OpenStackCloud];
 
     expect(info.programs).toEqual(["openstack"]);
     expect(info.agentAlias).toBe("openstack");
@@ -633,7 +635,7 @@ describe("every option of every command", () => {
   test.each(cases)(
     "%s takes --%s, and sends what its route says",
     (_command: string, name: string, route: OpenStackRoute) => {
-      const option = route.options[name]!;
+      const option: OpenStackOption = route.options[name]!;
       const base: Array<string> = sampleOf(route);
       // A scoped list's sample already names its network.
       const argv: Array<string> =
@@ -680,7 +682,7 @@ describe("every option of every command", () => {
   test.each(cases)(
     "%s --%s refuses what its rule does not take",
     (_command: string, name: string, route: OpenStackRoute) => {
-      const option = route.options[name]!;
+      const option: OpenStackOption = route.options[name]!;
 
       if (option.kind === "flag") {
         // A flag takes no value: the next word is read as an ID or an option.
