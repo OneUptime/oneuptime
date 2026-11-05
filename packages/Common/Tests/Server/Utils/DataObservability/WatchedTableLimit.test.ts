@@ -136,6 +136,8 @@ describe("the room a project has", () => {
   });
 
   test("is unlimited where nothing is billed", async () => {
+    jest.spyOn(WatchedTableLimit, "isCharging").mockReturnValue(false);
+
     const canPay: ReturnType<typeof jest.spyOn> = jest.spyOn(
       PayAsYouGoBillingService,
       "canUsePayAsYouGo",

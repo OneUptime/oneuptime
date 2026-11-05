@@ -313,7 +313,7 @@ describe("what it tells a person to click", () => {
     );
     expect(OPTIONS).toContain('translateText("Ports")');
     expect(OPTIONS).toContain(
-      "An unscoped list of ports can saturate Neutron on a large cloud",
+      "Name networks or projects: listing every port can saturate Neutron",
     );
   });
 });

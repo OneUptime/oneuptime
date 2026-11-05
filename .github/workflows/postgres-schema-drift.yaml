@@ -2998,11 +2998,18 @@ jobs:
       # pg_restore on this job's server - a database dumped while in use,
       # streamed into a storage, read back, restored beside the live one
       # byte for byte, switched in with the connections to it ended, and
-      # dropped - in databases of its own. The runner image carries the
-      # PostgreSQL client tools; they are installed if it ever does not.
-      - name: Make sure pg_dump and pg_restore are here
+      # dropped - in databases of its own. With the tools the Enterprise image
+      # picks for this job's PostgreSQL 15: 16, the oldest it carries
+      # (packages/App/Dockerfile.tpl). The runner image's own follow its
+      # Ubuntu, and pg_restore 17 and newer sets transaction_timeout, which a
+      # server older than 17 refuses. With both here, PostgresTools picks 16.
+      - name: Install pg_dump and pg_restore 16
         if: matrix.shard == 3
-        run: command -v pg_dump || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-16
       - name: Test backing up and restoring PostgreSQL on a real server (Enterprise)
         if: matrix.shard == 3
         working-directory: ee

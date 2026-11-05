@@ -6,6 +6,7 @@ import StatusPagePrivateUserSessionService, {
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPagePrivateUserSession from "../../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Email from "../../../Types/Email";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
@@ -260,6 +261,9 @@ function teammate(projectId: ObjectID): DatabaseCommonInteractionProps {
   return {
     userId: TEAMMATE_ID,
     tenantId: projectId,
+    // An API request carries its project's plan, which billing holds it to.
+    currentPlan: PlanType.Growth,
+    isSubscriptionUnpaid: false,
     userTenantAccessPermission: {
       [projectId.toString()]: {
         _type: "UserTenantAccessPermission",

@@ -222,8 +222,15 @@ const renderScreen: (screenCase: ScreenCase) => Promise<void> = async (
     });
   }
 
+  /*
+   * The answer can arrive while waitFor has act's bookkeeping off, and then
+   * React renders it on a timer of its own, which a few promises don't wait
+   * for. A timer set after that one fires after it.
+   */
   await act(async () => {
-    await Promise.resolve();
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
   });
 };
 

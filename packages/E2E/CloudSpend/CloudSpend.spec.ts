@@ -194,7 +194,9 @@ function pageHeading(page: Page): Locator {
 
 // The trail: its label is the same in every language.
 function trail(page: Page): Locator {
-  return page.getByRole("navigation", { name: "Breadcrumb" });
+  return page.getByRole("navigation", {
+    name: new RegExp(`^(?:Breadcrumb|${persian("Breadcrumb")})$`),
+  });
 }
 
 async function trailOf(page: Page): Promise<Array<string>> {

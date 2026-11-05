@@ -2157,7 +2157,7 @@ describe("the create form", () => {
     );
   });
 
-  it("folds Owners and Labels under More fields", () => {
+  it("folds Owners, Labels and Data Observability Databases under More fields", () => {
     expect(
       readCommonSource("UI/Components/FoldedSection/FoldedSectionTitles.ts"),
     ).toContain(
@@ -2168,9 +2168,9 @@ describe("the create form", () => {
     );
     expect(
       CREATE_PAGE.match(/collapsibleSection: advancedSection,/g)?.length,
-    ).toBe(2);
+    ).toBe(3);
     expect(creating).toContain(
-      "**Owners** and **Labels** wait under **More fields**, folded.",
+      "**Owners**, **Labels** and **Data Observability Databases** wait under **More fields**, folded.",
     );
   });
 

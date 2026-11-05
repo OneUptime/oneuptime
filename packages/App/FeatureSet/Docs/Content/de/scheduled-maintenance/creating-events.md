@@ -35,7 +35,7 @@ Gehen Sie zu **Geplante Wartung → Alle Ereignisse** und klicken Sie auf **Gepl
 
 ### Sagen, was passiert und wann
 
-Geben Sie einen **Titel** ein und fügen Sie bei Bedarf eine **Beschreibung** hinzu: Sie ist Markdown und wird auf Ihren Statusseiten angezeigt. **Beginnt am** steht bereits auf der nächsten vollen Stunde Ihrer Uhr und **Endet am** eine Stunde später; ändern Sie beides nur, wenn es nicht stimmt. Wenn Sie **Beginnt am** verschieben, wandert **Endet am** mit, sodass das Zeitfenster seine Länge behält. **Eigentümer** und **Beschriftungen** liegen eingeklappt unter **Weitere Felder**.
+Geben Sie einen **Titel** ein und fügen Sie bei Bedarf eine **Beschreibung** hinzu: Sie ist Markdown und wird auf Ihren Statusseiten angezeigt. **Beginnt am** steht bereits auf der nächsten vollen Stunde Ihrer Uhr und **Endet am** eine Stunde später; ändern Sie beides nur, wenn es nicht stimmt. Wenn Sie **Beginnt am** verschieben, wandert **Endet am** mit, sodass das Zeitfenster seine Länge behält. **Eigentümer**, **Beschriftungen** und **Data Observability Datenbanken** liegen eingeklappt unter **Weitere Felder**.
 
 ### Auswählen, was es betrifft
 

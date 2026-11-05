@@ -35,7 +35,7 @@ Andate in **Manutenzione programmata → Tutti gli eventi** e fate clic su **Cre
 
 ### Dire cosa succede e quando
 
-Scrivete un **Titolo** e aggiungete una **Descrizione** se serve: è in Markdown e viene mostrata sulle vostre pagine di stato. **Inizia il** è già impostato sulla prossima ora piena del vostro orologio, e **Termina il** un'ora dopo; cambiateli solo se sono sbagliati. Spostando **Inizia il** si sposta anche **Termina il**, così la finestra mantiene la sua durata. **Proprietari** ed **Etichette** attendono chiusi in **Altri campi**.
+Scrivete un **Titolo** e aggiungete una **Descrizione** se serve: è in Markdown e viene mostrata sulle vostre pagine di stato. **Inizia il** è già impostato sulla prossima ora piena del vostro orologio, e **Termina il** un'ora dopo; cambiateli solo se sono sbagliati. Spostando **Inizia il** si sposta anche **Termina il**, così la finestra mantiene la sua durata. **Proprietari**, **Etichette** e **Data Observability Database** attendono chiusi in **Altri campi**.
 
 ### Scegliere cosa interessa
 

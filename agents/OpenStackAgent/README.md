@@ -628,7 +628,7 @@ openstack-exporter is the collector operators know, and three of its open issues
 
 It needs a route from this machine to those databases, and one exporter per region and Nova cell. It cannot say whether an API answers, only whether its database does, so watch the APIs themselves. It has been read from its source and its own tests, and has not been run here against a real database.
 
-To upgrade, run `install.sh` again, as on any agent: it keeps all of this, and checks the credential with Keystone for the entries `OPENSTACK_WORKER_STATE_CLOUDS` names. While the targets are set, it refuses a region in `OPENSTACK_EXPORTER_CLOUDS`, because every series would arrive twice.
+To upgrade, run `install.sh` again, as on any agent: it keeps all of this, and checks the credential with Keystone for the entries `OPENSTACK_WORKER_STATE_CLOUDS` names. While the targets are set, it refuses a region in `OPENSTACK_EXPORTER_CLOUDS`, because every series would arrive twice. [`troubleshoot.sh`](#troubleshooting) asks these exporters what the collector asks them, and says which database each can read.
 
 ## Upgrading
 
