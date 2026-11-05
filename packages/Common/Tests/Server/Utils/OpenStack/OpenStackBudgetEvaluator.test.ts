@@ -16,6 +16,7 @@ import AlertSeverityService from "../../../../Server/Services/AlertSeverityServi
 import AlertStateService from "../../../../Server/Services/AlertStateService";
 import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
 import OpenStackBudgetService from "../../../../Server/Services/OpenStackBudgetService";
+import OpenStackScopedRules from "../../../../Server/Utils/OpenStack/OpenStackScopedRules";
 import OpenStackBudgetEvaluator, {
   describeOpenStackBudgetAlert,
   getOpenStackBudgetFingerprint,
@@ -265,6 +266,13 @@ describe("a cloud's budgets, on what a reading worked out", () => {
     jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined as never;
     });
+    jest.spyOn(OpenStackScopedRules, "read").mockResolvedValue({
+      labelIds: [],
+      labelRuleNames: [],
+      owners: [],
+      ownerRuleNames: [],
+    });
+    jest.spyOn(OpenStackScopedRules, "finishAlert").mockResolvedValue();
   });
 
   afterEach(() => {
@@ -292,6 +300,22 @@ describe("a cloud's budgets, on what a reading worked out", () => {
       projectedThisMonth: 120,
       lastCheckedAt: NOW,
     });
+  });
+
+  test("it's on the cloud's Alerts page, and goes where the project's alerts go", async () => {
+    await evaluate({
+      projects: [project("p", { domainId: "d1" })],
+    });
+
+    expect(created[0]!.openStackClouds![0]!.id!.toString()).toBe(
+      CLOUD_ID.toString(),
+    );
+    expect(OpenStackScopedRules.read).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+      reached: [{ projectId: "p", domainId: "d1" }],
+    });
+    expect(OpenStackScopedRules.finishAlert).toHaveBeenCalledTimes(1);
   });
 
   test("the same threshold doesn't raise twice in a month", async () => {

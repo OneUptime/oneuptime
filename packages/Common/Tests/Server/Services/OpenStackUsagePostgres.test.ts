@@ -687,6 +687,44 @@ describePostgres(
       });
     });
 
+    /*
+     * What the docs say a reading costs, at each size #5732 tests at. It grows with projects, not
+     * instances, so a smaller cloud costs what's worked out here, exactly, and the largest is below.
+     */
+    describe.each([
+      { projects: 10, statements: 6 + 2 + 1 + 1 + 1 + 1 + 1 },
+      { projects: 1000, statements: 6 + 2 + 1 + 1 + 1 + 2 + 1 },
+    ])(
+      "with $projects projects",
+      (size: { projects: number; statements: number }) => {
+        test("a reading asks exactly what the docs say", async () => {
+          await write([flavor("small", "m1.small", 1, 2)]);
+          await database.query(
+            `INSERT INTO "${schema}"."${TABLE}"
+              ("projectId", "openStackCloudId", "kind", "externalId", "name", "regionName",
+               "hypervisorName", "openStackProjectId", "status", "lastSeenAt", "version", "facts")
+             SELECT $1, $2, 'Instance', 'i-' || g, 'i-' || g, 'RegionOne', 'cmp-1',
+                    'p-' || g, 'ACTIVE', now(), 0, jsonb_build_object('flavorId', 'small')
+             FROM generate_series(1, ${size.projects}) AS g`,
+            [PROJECT_ID.toString(), CLOUD_ID.toString()],
+          );
+
+          await readAt("2026-11-10T00:00:00.000Z");
+
+          const statements: { calls: Array<unknown> } = jest.spyOn(
+            database,
+            "query",
+          ).mock;
+          const reading: OpenStackUsageRefreshResult = await readAt(
+            "2026-11-10T00:15:00.000Z",
+          );
+
+          expect(statements.calls.length).toBe(1 + size.statements);
+          expect(reading.rowsWritten).toBe(size.projects);
+        });
+      },
+    );
+
     describe("at the largest size tested", () => {
       const seed: () => Promise<void> = async (): Promise<void> => {
         const { hypervisors, instances, projects } = OPENSTACK_LARGE_CLOUD;
@@ -781,7 +819,7 @@ describePostgres(
          *    2  the names of its projects and domains
          *    6  this month's 10,000 rows, 2,000 at a time, and the page that says there are no more
          *    1  last month's, of which there are none
-         *    2  the two days this month is compared on, of which there are none yet
+         *    1  the same day last month, of which there's none, so this month's day isn't read
          *   20  this month's rows written back, 500 at a time
          *    1  the cloud's row, in the same transaction
          *
@@ -791,19 +829,49 @@ describePostgres(
           database,
           "query",
         ).mock;
-        const started: number = Date.now();
         const second: OpenStackUsageRefreshResult = await readAt(
           "2026-11-10T00:15:00.000Z",
           readOpenStackPriceList({ vcpuHour: 0.01, memoryGbHour: 0.005 }),
         );
-        const tookMs: number = Date.now() - started;
 
         // One read of the cloud's own row by this test's readAt, before the reading itself.
-        expect(statements.calls.length).toBe(1 + 6 + 2 + 6 + 1 + 2 + 20 + 1);
+        expect(statements.calls.length).toBe(1 + 6 + 2 + 6 + 1 + 1 + 20 + 1);
+
+        /*
+         * And what it takes: a whole reading, as a worker runs one every quarter of an hour. Each
+         * attempt is the next reading, because each has to do all the work again.
+         */
+        let attempt: number = 0;
+        const whole: FastestRun<OpenStackUsageRefreshResult> =
+          await fastestRunAsync({
+            run: () => {
+              attempt++;
+              return readAt(
+                new Date(
+                  new Date("2026-11-10T00:15:00.000Z").getTime() +
+                    attempt * 15 * 60 * 1000,
+                ).toISOString(),
+                readOpenStackPriceList({ vcpuHour: 0.01, memoryGbHour: 0.005 }),
+              );
+            },
+            limitInMs: 30000,
+          });
+
+        expect(whole.inMs).toBeLessThan(30000);
+
+        // The rules' reads, once an hour, over every instance's row.
+        const waste: FastestRun<OpenStackWasteRows> = await fastestRunAsync({
+          run: () => {
+            return OpenStackProjectUsageService.getWasteRows(SCOPE);
+          },
+          limitInMs: 5000,
+        });
+
+        expect(waste.inMs).toBeLessThan(5000);
+        expect(waste.result.instancesNotSaying).toBe(instances);
 
         expect(second.wasSaved).toBe(true);
         expect(second.rowsWritten).toBe(projects);
-        expect(tookMs).toBeLessThan(30000);
 
         // The row the page reads stays small: under 2 MB, as the Capacity page's does.
         expect(JSON.stringify(second.snapshot).length).toBeLessThan(
@@ -824,7 +892,7 @@ describePostgres(
         );
 
         expect(Number(countOfRows[0]!.count)).toBe(projects);
-      });
+      }, 600000);
     });
   },
 );
