@@ -203,6 +203,12 @@ export default class OpenStackCapacityRefresh {
         );
       },
     );
+    const bareMetalProviders: Array<OpenStackCapacityHost> =
+      rows.bareMetalProviders.map((row: JSONObject): OpenStackCapacityHost => {
+        return readOpenStackCapacityHost(
+          row as unknown as OpenStackCapacityHostSourceRow,
+        );
+      });
 
     const instances: Array<OpenStackInstancesOnHost> | null = isDue(
       previous?.mismatchesCheckedAt,
@@ -294,6 +300,7 @@ export default class OpenStackCapacityRefresh {
 
     let snapshot: OpenStackCapacitySnapshot = buildOpenStackCapacitySnapshot({
       hosts,
+      bareMetalProviders,
       flavors,
       pools,
       mismatches: mismatchPart.mismatches,

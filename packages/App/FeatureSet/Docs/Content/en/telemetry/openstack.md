@@ -485,7 +485,7 @@ Three open upstream issues shape all this, and the project has also [asked for m
 
 If your cloud runs Ironic, it gets a **Bare Metal** section with every node Ironic shows the credential: where it is in Ironic's state machine, its power, whether someone put it in maintenance and why, its resource class, and when Ironic last saw it move. A cloud without Ironic has no such section, no alert about it and no line on any page.
 
-A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page.
+A node is not a hypervisor, even though Nova and Placement both list it as one under its UUID, so it is not counted as somewhere to run a virtual machine. How many nodes of each resource class could take an instance is on the Bare Metal page, for the nodes Ironic shows this credential, and on the [Capacity](#capacity) page, for every node Placement holds.
 
 What needs someone, at the same lines as the [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates):
 
@@ -500,8 +500,8 @@ What needs someone, at the same lines as the [alert templates](/docs/monitor/ope
 
 Each of these was recorded on a real DevStack, and each page says so where it matters:
 
-- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds more nodes than Ironic listed, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
-- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic empties `last_error` within about a minute anyway, with the node still failed. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
+- **Ironic shows a project only the nodes it owns.** Placement answers everyone, so where it holds a node Ironic didn't list, the page says the list is not the whole cloud's. By Ironic's default policy only a system-scoped credential reads every node, or one whose role has `baremetal:node:list_all`.
+- **The exporter doesn't carry why a node failed.** It has a maintenance reason and no `last_error`, and Ironic can empty `last_error` within about a minute anyway, with the node still failed: it did for a failed clean, and left a failed deploy's. So look straight away with `openstack baremetal node show <node> -c last_error`, or in the conductor's log. A [probe](/docs/telemetry/openstack-agentless) reads `last_error` and keeps the last one it saw.
 - **The exporter has no conductors.** Only a probe reads them, and Ironic refuses a project's credential the list unless its policy says otherwise (`baremetal:conductor:get`).
 - **A stopped Ironic reads the same as no Ironic.** Asked about one that is stopped, the exporter answers an empty 200, as it does for a cloud that never had it. So a page says only that it hasn't heard from Ironic, and that the nodes are as they last read. It never says down. Two weeks after the rest of the cloud last reported without it, those rows go, and they come back if it does.
 
@@ -512,6 +512,8 @@ Each of these was recorded on a real DevStack, and each page says so where it ma
 Everything on it is allocation: what has been promised, not what is busy. An idle instance holds all of it.
 
 **What capacity is.** For each resource provider and resource class, capacity is `(total - reserved) x allocation_ratio`, and allocated is what Placement has promised. That adds up by zone, aggregate, region and cloud. A host whose `nova-compute` is down keeps reporting its last numbers, and a disabled one takes nothing on, so neither counts as room. What they hold is still there, and a forecast counts it.
+
+**Bare metal.** A node takes one instance whole, so a cloud with Ironic gets a table of its own, by resource class: how many nodes, how many could take an instance, how many are in use, and how many are held back, because Nova's Ironic driver can't use them right now. These are Placement's own numbers, so they are the whole cloud's even where Ironic shows a project only what it owns, and they are not in the vCPUs and memory above. A probe reads which class a flavor asks for and counts it against these. The agent's exporter doesn't say, so on the agent a bare metal flavor counts as its vCPUs, memory and disk, on hosts.
 
 **How many more fit.** Each flavor is counted host by host, because an instance needs all of what it asks for on one host. Beside the count is what it would be if everything free were on one host, which is how a full cloud is told from a fragmented one. A flavor no host could hold even empty says **Too large for every host**, and nothing ever alerts on it. Counts are for an instance booted from an image: one booted from a volume asks for no root disk.
 
@@ -807,6 +809,23 @@ If your cloud runs Manila, a cloud gets **Shares** under **Storage** on its own,
 Manila's API carries on answering without its other services, so on a cloud the agent collects a stopped `manila-share` isn't shown anywhere: its shares just stop changing, and **Share Stuck** is what eventually says so. A probe with a Full view credential reads them, and **Manila Service Down** then says so. Manila says `stopped` for a service that shut down cleanly, and `down` only for one that died, once its heartbeat has grown old.
 
 A cloud without Manila costs nothing for it: the exporter answers with nothing, and that makes no row. If Manila leaves Keystone's catalog, its rows go about 15 minutes after that starts, as [Heat's and Magnum's do](#heat-and-magnum).
+
+## Trove
+
+A cloud that runs Trove gets **Databases** on its own, and one that doesn't shows no trace of it. Each database has its status in Trove's own word, what it runs, its volume and whose it is, and a page of its own. One in an error state reaches **Needs attention** by name, and so does one still on its way after an hour, or one past 85% of its volume.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's databases and their status | Yes | Yes | Nothing at all: see below |
+| How full a running database's volume is | Yes | Yes | No |
+| Why a database failed, and what it was doing | No. Run `openstack database instance show` | Yes | No |
+| `trove-taskmanager` and `trove-conductor` | No: Trove has no list of them | No | No |
+
+The exporter reads Trove's mgmt API, which only an admin may. Trove refuses anything less, and the exporter reads a refusal just as it reads Trove stopped: `openstack_trove_up` reads 0 and nothing else is said. So a credential that has never once read Trove is told that, rather than that Trove is down, and isn't offered Trove's alerts. A probe reads the same list and tells the two apart: Trove answered, so its API reads as up, and the connection test says it was refused. Once it has read Trove, a 0 reads as down, which is also what a credential that has since lost its access reads as.
+
+A stopped `trove-taskmanager` isn't shown anywhere, because Trove's lists answer without it and it has no list of workers: what it was working on just stops moving, and **Database Instance Stuck** is what says so. Trove gives up on a guest by itself well before that hour.
+
+Nothing has been recorded of a database reaching `ACTIVE`, because Nova refused the guest on every test run, so how full a volume reads has only been checked on made-up numbers. An instance that isn't running reads 0 used, and that reads as nothing rather than as empty.
 
 ## Service logs
 

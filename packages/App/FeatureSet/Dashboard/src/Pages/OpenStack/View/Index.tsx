@@ -365,6 +365,15 @@ function getCountChips(
       ),
       page: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
     },
+    {
+      key: "databases",
+      icon: IconProp.Database,
+      label: translator.translatePlural(
+        { one: "{{count}} database", other: "{{count}} databases" },
+        summary.databaseInstanceCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+    },
   ];
 
   const counts: Record<string, number> = {
@@ -382,6 +391,7 @@ function getCountChips(
     stacks: summary.stackCount,
     "container-clusters": summary.containerClusterCount,
     shares: summary.shareCount,
+    databases: summary.databaseInstanceCount,
   };
 
   const reported: Array<CountChip> = chips.filter(

@@ -58,6 +58,7 @@ import {
  *   cloud > region > availability zone > hypervisor > instance > volume
  *   region > Network > external network > router > floating IP
  *   region > Storage > storage pool, share
+ *   region > Databases > database
  *   region > Control plane > APIs and workers
  *
  * What the agent's exporter says, and so what is drawn. A volume names the instance it
@@ -101,6 +102,7 @@ export interface OpenStackTopologyInput {
 
 const SECTION_NETWORK: string = translationKey("Network");
 const SECTION_STORAGE: string = translationKey("Storage");
+const SECTION_DATABASES: string = translationKey("Databases");
 const SECTION_CONTROL_PLANE: string = translationKey("Control plane");
 const SECTION_NO_REGION: string = translationKey("No region reported");
 const SECTION_NO_ZONE: string = translationKey("No availability zone reported");
@@ -665,6 +667,40 @@ export function buildOpenStackTopology(
       link: linkTo(
         cloudId,
         PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
+
+  /*
+   * A database runs on an instance Nova runs, in a project Trove keeps out of the way, and nothing the
+   * exporter says names it. So it stands in a section of its own.
+   */
+  for (const row of rowsOf(OpenStackResourceKind.DatabaseInstance)) {
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+
+    nodes.push({
+      id: `database:${row.externalId}`,
+      parentId: sectionId(row.regionName, "databases", SECTION_DATABASES),
+      kind: "openstack.database",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      facts: projectFacts(row),
+      context: projectName(row),
+      keywords: projectKeywords(row),
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
         row.externalId!,
       ),
     });

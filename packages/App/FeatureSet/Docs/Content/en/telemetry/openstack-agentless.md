@@ -25,7 +25,7 @@ Every two minutes the probe reads each service of each region you picked, and se
 
 Each service is read on its own and at the same time as the others. A Neutron that fails or hangs costs Neutron's series, and Nova's data arrives as usual, with one catch Nova makes for itself: it asks Neutron about every instance it lists. So while Neutron is down, a probe keeps the instances it last read and asks only what changed. If an instance has changed, or the probe has only just started, Nova can't answer that list either: Nova reads as failing, its other series still arrive, and each instance stays on its page as it last was until Neutron is back.
 
-Heat, Magnum and Manila are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
+Heat, Magnum, Manila and Trove are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
 
 ## Probe or agent?
 
@@ -131,7 +131,7 @@ Monitoring must never be what takes a cloud down, so a collection is gentle by c
 
 On each collection, with the defaults, a region costs 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and two more per hypervisor, up to 4 more to ask Placement [how many of each flavor fit](/docs/telemetry/openstack#capacity), and, about every five minutes, 5 to Keystone and 1 to Glance. A hypervisor's inventory is read once, and again only when Placement says it changed. A list longer than a thousand rows takes a call per thousand. Each instance that changed takes one more call to Nova, to read what it went through, and at most 25 are read in a collection: a quiet cloud makes none. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it, and every ten minutes a call per DHCP agent, at most 20, to ask which networks it serves. A cloud with more DHCP agents goes round them in turns, a cloud past the summary size leaves this out, and a slow Neutron is not asked at all. A cloud on OVN has none to ask about. [Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds#the-load-on-your-control-plane) has what that comes to in requests a minute, at each size.
 
-A cloud that runs Manila pays, about every five minutes, 2 calls to it. A cloud that runs Heat or Magnum pays, about every five minutes, 2 calls to Heat and 3 to Magnum. Neither list says everything: Magnum's doesn't say whose a cluster is or why it failed, and Heat's doesn't say what a stack owns. So the probe also reads a cluster or a stack on its own when its status has moved, at most 25 of each a collection. A cloud with more goes on filling in over the next collections, and one that sits still is never read twice.
+A cloud that runs Manila pays, about every five minutes, 2 calls to it, and one that runs Trove pays 1. A cloud that runs Heat or Magnum pays, about every five minutes, 2 calls to Heat and 3 to Magnum. Neither list says everything: Magnum's doesn't say whose a cluster is or why it failed, and Heat's doesn't say what a stack owns. So the probe also reads a cluster or a stack on its own when its status has moved, at most 25 of each a collection. A cloud with more goes on filling in over the next collections, and one that sits still is never read twice.
 
 Two things are off unless you turn them on, under **What it reads beyond the defaults** in the **Data Collection** card on the cloud's **Settings** page, or under **More fields** as you connect it, because each costs your cloud more:
 
@@ -174,7 +174,7 @@ Past [5,000 instances](/docs/telemetry/openstack-very-large-clouds#summary-mode)
 
 ## Bare metal
 
-On a cloud whose catalog has Ironic, a probe reads its nodes, and asks for each field by name, so a node's `driver_info` is never read in a collection. It adds what the agent's exporter doesn't have: a node's driver, its conductor, its fault and why it failed. Ironic empties `last_error` within about a minute, so a page keeps the last one a collection saw, and says when.
+On a cloud whose catalog has Ironic, a probe reads its nodes, and asks for each field by name, so a node's `driver_info` is never read in a collection. It adds what the agent's exporter doesn't have: a node's driver, its conductor, its fault and why it failed. Ironic can empty `last_error` within about a minute, so a page keeps the last one a collection saw, and says when.
 
 A probe reads the catalog first, so it can say Ironic's API is down, which the agent's exporter can't. A cloud without Ironic is asked nothing about it.
 

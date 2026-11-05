@@ -109,6 +109,7 @@ export default class MockOpenStackCloud {
     [OpenStackServiceType.ContainerInfra]: 0,
     [OpenStackServiceType.BareMetal]: 0,
     [OpenStackServiceType.SharedFileSystems]: 0,
+    [OpenStackServiceType.Database]: 0,
   };
   // How many times each kind of read was made, to say which one a budget went on.
   public readonly requestsByRoute: Map<string, number> = new Map();
