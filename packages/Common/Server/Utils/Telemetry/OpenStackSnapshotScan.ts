@@ -1461,11 +1461,17 @@ function foldDatabaseInstance(data: {
   );
   // Each is written whatever the collector knows: see foldShare. Null reads as not known.
   entry.facts["healthStatus"] = getLabel(data.attributes, "health_status");
-  entry.facts["faultMessage"] = getLabel(data.attributes, "fault_message");
-  entry.facts["taskDescription"] = getLabel(
-    data.attributes,
-    "task_description",
-  );
+  /*
+   * Only a probe says these, and only on the status series: the two sizes carry neither label, and reading
+   * them here would take back what it just said.
+   */
+  if (data.metricName === "openstack_trove_instance_status") {
+    entry.facts["faultMessage"] = getLabel(data.attributes, "fault_message");
+    entry.facts["taskDescription"] = getLabel(
+      data.attributes,
+      "task_description",
+    );
+  }
 }
 
 function foldSnapshot(data: {

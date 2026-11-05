@@ -806,11 +806,14 @@ describe("the agent's real collector, on a cloud with some of these and not othe
     expect(apis).not.toContain("sharev2");
   });
 
-  test("the empty scrape of a service this product knows nothing of yet isn't even kept", () => {
+  test("an empty scrape is kept only to go on a row that is already there, so it starts none", () => {
     expect(Array.from(scrapes.keys()).sort()).toEqual([
       "RegionOne/container-infra",
       "RegionOne/orchestration",
+      "RegionOne/sharev2",
     ]);
+    expect(scrapes.get("RegionOne/sharev2")?.samples).toBe(0);
+    expect(apis).not.toContain("sharev2");
   });
 
   test("what each scrape said, to go on a row that is already there", () => {
