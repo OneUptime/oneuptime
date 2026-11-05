@@ -22,6 +22,11 @@ import logger from "../../../Server/Utils/Logger";
 import OpenStackUsageRefresh, {
   OpenStackUsageRefreshResult,
 } from "../../../Server/Utils/OpenStack/OpenStackUsageRefresh";
+import {
+  OpenStackResourceBufferEntry,
+  getOpenStackHostsToReconcile,
+  getOpenStackHostsWithPartReadings,
+} from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -38,9 +43,20 @@ import {
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import { OPENSTACK_LARGE_CLOUD } from "../../../Types/OpenStack/OpenStackScale";
 import {
+  OpenStackWasteFinding,
+  OpenStackWasteItem,
+  OpenStackWasteRuleId,
+} from "../../../Types/OpenStack/OpenStackWaste";
+import {
   OpenStackSpendSnapshot,
   readOpenStackSpendSnapshot,
 } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
+import {
+  OPENSTACK_USAGE_SCENES,
+  idOfProject,
+  recordedAtOfUsageScene,
+  scanUsageScene,
+} from "../../Helpers/OpenStackRecordedScan";
 import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 
 /*
@@ -791,6 +807,146 @@ describePostgres(
         });
       },
     );
+
+    /*
+     * The whole of it, on what a real cloud did: what the agent's exporter really answered, through
+     * the real scan, written as ingest writes it, and read by the real reading at the times it was
+     * really taken. The arithmetic is written out in OpenStackUsageOnARealCloud.test.ts.
+     */
+    describe("on a real cloud's recording", () => {
+      const toResource: (
+        entry: OpenStackResourceBufferEntry,
+      ) => ParsedOpenStackResource = (
+        entry: OpenStackResourceBufferEntry,
+      ): ParsedOpenStackResource => {
+        return {
+          kind: entry.kind,
+          externalId: entry.externalId,
+          name: entry.name,
+          regionName: entry.regionName,
+          availabilityZone: entry.availabilityZone,
+          hypervisorName: entry.hypervisorName,
+          openStackProjectId: entry.openStackProjectId,
+          status: entry.status,
+          adminState: entry.adminState,
+          disabledReason: entry.disabledReason,
+          vcpuCapacity: entry.vcpuCapacity,
+          vcpuAllocated: entry.vcpuAllocated,
+          memoryCapacityBytes: entry.memoryCapacityBytes,
+          memoryAllocatedBytes: entry.memoryAllocatedBytes,
+          diskCapacityBytes: entry.diskCapacityBytes,
+          diskAllocatedBytes: entry.diskAllocatedBytes,
+          instanceCount: entry.instanceCount,
+          facts: entry.facts,
+          lastSeenAt: entry.observedAt,
+        };
+      };
+
+      test("a real resize and a real deletion come to the hand calculation, and a month on each rule finds what the rig left", async () => {
+        const prices: OpenStackPriceList | null = readOpenStackPriceList({
+          vcpuHour: 0.36,
+          memoryGbHour: 0.72,
+        });
+        let rows: Array<OpenStackResourceBufferEntry> = [];
+
+        for (const scene of OPENSTACK_USAGE_SCENES) {
+          const next: Array<OpenStackResourceBufferEntry> =
+            scanUsageScene(scene);
+
+          await write(next.map(toResource));
+          await OpenStackResourceService.reconcileHypervisorStates({
+            ...SCOPE,
+            shortHostNames: getOpenStackHostsToReconcile(next),
+          });
+          await OpenStackResourceService.reconcileHypervisorCapacity({
+            ...SCOPE,
+            hypervisorNames: getOpenStackHostsWithPartReadings(next),
+          });
+
+          // What the inventory's stale sweep does with what's gone, in its own time.
+          for (const row of rows) {
+            if (
+              !next.some((entry: OpenStackResourceBufferEntry): boolean => {
+                return (
+                  entry.kind === row.kind && entry.externalId === row.externalId
+                );
+              })
+            ) {
+              await removeRow(row.externalId);
+            }
+          }
+
+          rows = next;
+          await readAt(recordedAtOfUsageScene(scene).toISOString(), prices);
+        }
+
+        const adminId: string = idOfProject(rows, "admin");
+        const admin: OpenStackUsagePeriodRow = (await rowOf(
+          adminId,
+          "2026-11",
+        ))!;
+        const totals: ReturnType<typeof getOpenStackUsageTotals> =
+          getOpenStackUsageTotals(admin.quantities);
+
+        expect(totals.vcpuHours).toBeCloseTo(10280 / 3600, 5);
+        expect(totals.memoryGbHours).toBeCloseTo(12467.5 / 3600, 5);
+
+        const stored: Array<{ estimatedCost: string }> = await database.query(
+          `SELECT "estimatedCost" FROM "${schema}"."${USAGE}"
+           WHERE "openStackProjectId" = $1 AND "period" = '2026-11'`,
+          [adminId],
+        );
+
+        expect(Number(stored[0]!.estimatedCost)).toBeCloseTo(3.5215, 3);
+
+        const later: OpenStackUsageRefreshResult = await readAt(
+          new Date(
+            recordedAtOfUsageScene("usage-end").getTime() +
+              31 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+          prices,
+        );
+        const finding: (rule: OpenStackWasteRuleId) => OpenStackWasteFinding = (
+          rule: OpenStackWasteRuleId,
+        ): OpenStackWasteFinding => {
+          return later.snapshot.waste!.find(
+            (entry: OpenStackWasteFinding): boolean => {
+              return entry.rule === rule;
+            },
+          )!;
+        };
+        const namesOf: (rule: OpenStackWasteRuleId) => Array<string | null> = (
+          rule: OpenStackWasteRuleId,
+        ): Array<string | null> => {
+          return finding(rule)
+            .items.map((item: OpenStackWasteItem): string | null => {
+              return item.name;
+            })
+            .sort();
+        };
+
+        expect(namesOf(OpenStackWasteRuleId.UnattachedVolume)).toEqual([
+          "ou-vol-free",
+          "ou-vol-from-image",
+        ]);
+        expect(namesOf(OpenStackWasteRuleId.SpareFloatingIp)).toEqual([
+          "172.24.4.67",
+        ]);
+        expect(namesOf(OpenStackWasteRuleId.ShutOffInstance)).toEqual([
+          "ou-stopped",
+        ]);
+        expect(namesOf(OpenStackWasteRuleId.MovableHost)).toEqual([
+          "ou-use-quiet",
+        ]);
+        // These are the agent's series, which can't say what's in use or list snapshots.
+        expect(finding(OpenStackWasteRuleId.UnusedImage).cannotTell).toBe(
+          "images-in-use-not-reported",
+        );
+        expect(finding(OpenStackWasteRuleId.OldSnapshot).cannotTell).toBe(
+          "snapshots-not-reported",
+        );
+      }, 120000);
+    });
 
     describe("at the largest size tested", () => {
       const seed: () => Promise<void> = async (): Promise<void> => {
