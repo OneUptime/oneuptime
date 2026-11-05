@@ -114,9 +114,14 @@ jobs:
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
-      - name: Make every name one an artifact can hold
+      # One file the upload cannot read costs the whole recording, and a step stopped partway
+      # leaves root's behind it: a collector's state folder cost one this way.
+      - name: Make every name one an artifact can hold, and every file one it can read
         if: always()
-        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
 
       - name: Upload what it did
         if: always()
@@ -306,9 +311,12 @@ jobs:
 
       # Last, because it changes every service's config and breaks things of its own, and
       # on its own, so that a problem here still leaves the drills recorded.
+      # With a limit of its own, as the traces have, so that a cloud it has broken costs this
+      # recording and not the job's limit, which takes the upload with it.
       - name: Record service logs, notifications and audit events
         if: ${{ !inputs.traces_only }}
         continue-on-error: true
+        timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/logs-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -319,9 +327,14 @@ jobs:
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
-      - name: Make every name one an artifact can hold
+      # One file the upload cannot read costs the whole recording, and a step stopped partway
+      # leaves root's behind it: a collector's state folder cost one this way.
+      - name: Make every name one an artifact can hold, and every file one it can read
         if: always()
-        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
 
       - name: Upload the recordings
         if: always()
