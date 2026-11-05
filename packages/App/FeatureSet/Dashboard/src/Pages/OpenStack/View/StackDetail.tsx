@@ -159,7 +159,8 @@ const StackOverview: FunctionComponent<{
       key: "reason",
       label: "Why",
       value: <bdi>{reason}</bdi>,
-      description: "What Heat recorded about its last action, in its own words.",
+      description:
+        "What Heat recorded about its last action, in its own words.",
     });
   }
   for (const owner of radius.data?.belongsTo || []) {

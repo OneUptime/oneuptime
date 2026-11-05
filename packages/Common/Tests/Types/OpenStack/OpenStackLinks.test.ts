@@ -631,12 +631,12 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
       ["a role nothing gives", `${STACK}-worker-1`],
       ["a dash after the number", `${STACK}-master-1-`],
       ["a capital in the role", `${STACK}-Master-1`],
-    ])("%s names no stack", (
-      _name: string,
-      serverName: string | null | undefined,
-    ) => {
-      expect(getOpenStackStackNameOfServer(serverName)).toBeNull();
-    });
+    ])(
+      "%s names no stack",
+      (_name: string, serverName: string | null | undefined) => {
+        expect(getOpenStackStackNameOfServer(serverName)).toBeNull();
+      },
+    );
 
     test("a name as long as OpenStack allows, of nothing but dashes, costs one pass", () => {
       expect(getOpenStackStackNameOfServer("-".repeat(255))).toBeNull();
@@ -671,19 +671,19 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
       ["null", null],
       ["none", 0],
       ["a nonsense count", -5],
-    ])("a count that is %s still looks at the first few", (
-      _name: string,
-      count: number | null | undefined,
-    ) => {
-      const names: Array<string> = getOpenStackServerNamesOfStack({
-        stackName: STACK,
-        masterCount: count,
-        nodeCount: count,
-      });
-      expect(names).toContain(`${STACK}-master-0`);
-      expect(names).toContain(`${STACK}-node-19`);
-      expect(names).not.toContain(`${STACK}-node-20`);
-    });
+    ])(
+      "a count that is %s still looks at the first few",
+      (_name: string, count: number | null | undefined) => {
+        const names: Array<string> = getOpenStackServerNamesOfStack({
+          stackName: STACK,
+          masterCount: count,
+          nodeCount: count,
+        });
+        expect(names).toContain(`${STACK}-master-0`);
+        expect(names).toContain(`${STACK}-node-19`);
+        expect(names).not.toContain(`${STACK}-node-20`);
+      },
+    );
 
     test("a count past anything real is no unbounded read", () => {
       expect(
@@ -828,13 +828,16 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
         ],
         [cluster("one", "a")],
       ],
-    ])("%s: no link", (
-      _name: string,
-      servers: Array<OpenStackServerOfNode>,
-      clusters: Array<OpenStackMagnumClusterOfStack>,
-    ) => {
-      expect(answer(servers, clusters)).toBeNull();
-    });
+    ])(
+      "%s: no link",
+      (
+        _name: string,
+        servers: Array<OpenStackServerOfNode>,
+        clusters: Array<OpenStackMagnumClusterOfStack>,
+      ) => {
+        expect(answer(servers, clusters)).toBeNull();
+      },
+    );
 
     test("whichever order things are read in", () => {
       const random: SeededRandom = seededRandom(5743);

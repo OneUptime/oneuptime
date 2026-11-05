@@ -1545,7 +1545,11 @@ function foldImage(data: {
     setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
     setFact(entry, "visibility", getLabel(data.attributes, "visibility"));
     setBooleanFact(entry, "isHidden", getLabel(data.attributes, "hidden"));
-    setBooleanFact(entry, "isProtected", getLabel(data.attributes, "protected"));
+    setBooleanFact(
+      entry,
+      "isProtected",
+      getLabel(data.attributes, "protected"),
+    );
     setFact(entry, "createdAtSeconds", data.value);
   } else {
     entry.diskCapacityBytes = data.value;
@@ -1860,7 +1864,8 @@ function foldStack(data: {
    * says it owns none, and null says nothing has read it. The IDs a label has room for, and how many
    * there are, because a stack can own more than that.
    */
-  const wasRead: boolean = getLabel(data.attributes, "resources_read") === "true";
+  const wasRead: boolean =
+    getLabel(data.attributes, "resources_read") === "true";
   entry.facts["ownedInstanceIds"] = wasRead
     ? getIdListLabel(data.attributes, "owned_instance_ids")
     : null;

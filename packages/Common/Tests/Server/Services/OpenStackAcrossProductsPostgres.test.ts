@@ -1003,11 +1003,12 @@ describePostgres("the joins across products, on Postgres", () => {
         ),
         OBSERVED_AT_MS,
       ).map(toParsedOpenStackResource);
+      const serverName: RegExp = /^ou-cluster-real-.+-master-0$/;
       const server: ParsedOpenStackResource | undefined = recorded.find(
         (row: ParsedOpenStackResource): boolean => {
           return (
             row.kind === OpenStackResourceKind.Instance &&
-            /^ou-cluster-real-.+-master-0$/.test(row.name || "")
+            serverName.test(row.name || "")
           );
         },
       );

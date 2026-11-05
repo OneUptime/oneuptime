@@ -456,7 +456,10 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       await write([
         api(OpenStackServiceType.Identity, { vouchedAt: NOW }),
         api(OpenStackServiceType.Compute, { vouchedAt: NOW }),
-        api("orchestration", { lastSeenAt: minutesAgo(30), vouchedAt: minutesAgo(30) }),
+        api("orchestration", {
+          lastSeenAt: minutesAgo(30),
+          vouchedAt: minutesAgo(30),
+        }),
         stack("stack-a", { lastSeenAt: minutesAgo(30) }),
         resource({
           kind: OpenStackResourceKind.Service,
@@ -621,16 +624,12 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
 
     test("its row in the summary and the menu's list goes with it", async () => {
       await estate();
-      expect(
-        await optionalServicesOf(CLOUD_ID),
-      ).toEqual(["orchestration"]);
+      expect(await optionalServicesOf(CLOUD_ID)).toEqual(["orchestration"]);
       await record([
         scrape("orchestration", { samples: 0, observedAt: minutesAgo(16) }),
       ]);
       await sweep();
-      expect(
-        await optionalServicesOf(CLOUD_ID),
-      ).toEqual([]);
+      expect(await optionalServicesOf(CLOUD_ID)).toEqual([]);
     });
   });
 
@@ -638,7 +637,10 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
     test("an empty answer writes nothing, however long, so its rows go only with forgetQuietServices", async () => {
       await write([
         api("identity"),
-        api("baremetal", { lastSeenAt: minutesAgo(60), vouchedAt: minutesAgo(60) }),
+        api("baremetal", {
+          lastSeenAt: minutesAgo(60),
+          vouchedAt: minutesAgo(60),
+        }),
       ]);
       await record([
         scrape("baremetal", { samples: 0, observedAt: minutesAgo(600) }),
@@ -693,9 +695,9 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         }),
       ]);
       await sweep();
-      expect(
-        await rows(OpenStackResourceKind.ContainerCluster),
-      ).toHaveLength(1);
+      expect(await rows(OpenStackResourceKind.ContainerCluster)).toHaveLength(
+        1,
+      );
       expect(await rows(OpenStackResourceKind.Service)).toHaveLength(1);
 
       await write([api("container-infra")]);
@@ -794,7 +796,10 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
 
     test("never from another cloud's stack of the same ID", async () => {
       await write([cluster("c", { facts: { stackId: "s" } })]);
-      await write([stack("s", { openStackProjectId: "theirs" })], OTHER_CLOUD_ID);
+      await write(
+        [stack("s", { openStackProjectId: "theirs" })],
+        OTHER_CLOUD_ID,
+      );
       await OpenStackResourceService.reconcileContainerClusterProjects({
         projectId: PROJECT_ID,
         openStackCloudId: CLOUD_ID,
@@ -956,15 +961,14 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         api("orchestration"),
         api("container-infra", { regionName: "RegionTwo" }),
       ]);
-      expect(
-        (await optionalServicesOf(CLOUD_ID)).sort(),
-      ).toEqual(["container-infra", "orchestration"]);
-      expect(
-        await optionalServicesOf(CLOUD_ID, "RegionTwo"),
-      ).toEqual(["container-infra"]);
-      expect(
-        await optionalServicesOf(OTHER_CLOUD_ID),
-      ).toEqual([]);
+      expect((await optionalServicesOf(CLOUD_ID)).sort()).toEqual([
+        "container-infra",
+        "orchestration",
+      ]);
+      expect(await optionalServicesOf(CLOUD_ID, "RegionTwo")).toEqual([
+        "container-infra",
+      ]);
+      expect(await optionalServicesOf(OTHER_CLOUD_ID)).toEqual([]);
     });
 
     test("the summary counts Manila's shares, and a cloud without Manila reads 0", async () => {
@@ -1027,7 +1031,10 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         openStackCloudId: CLOUD_ID,
         openStackProjectIds: ["p1"],
       });
-      expect(summary).toMatchObject({ stackCount: 2, containerClusterCount: 1 });
+      expect(summary).toMatchObject({
+        stackCount: 2,
+        containerClusterCount: 1,
+      });
     });
   });
 
