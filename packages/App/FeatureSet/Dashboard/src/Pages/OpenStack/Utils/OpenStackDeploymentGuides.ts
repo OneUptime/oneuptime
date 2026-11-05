@@ -365,7 +365,7 @@ function kollaAnsible(
   return {
     alreadyRuns:
       "With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.",
-    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its exporters, at the versions Kolla-Ansible pins, were recorded on a test cloud, failing and recovering, with Alertmanager posting to OneUptime. ${TESTED_BY_RIG}`,
+    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its exporters, at the versions Kolla-Ansible pins, were recorded on a test cloud, failing and recovering, with Alertmanager posting to OneUptime. What Alertmanager posted then opened and resolved an incident on the right cloud, on a running OneUptime, though not from a Kolla-Ansible stack. ${TESTED_BY_RIG}`,
     firstSteps: [
       {
         title: "Forward what is already firing",
