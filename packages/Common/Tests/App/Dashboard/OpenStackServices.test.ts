@@ -524,20 +524,14 @@ describe("how a cloud's services group", () => {
   test("a calm cloud reads in the order of Keystone's catalog, each region in turn", () => {
     expect(
       groupsOf([
-        api("image"),
-        api("volume"),
-        api("network"),
-        api("placement"),
-        api("compute"),
-        api("identity"),
-        api("baremetal"),
-        api("dns"),
-        api("container-infra"),
-        api("orchestration"),
+        api("a-service-nobody-listed"),
+        ...[...OPENSTACK_CATALOG_ORDER].reverse().map((service: string) => {
+          return api(service);
+        }),
       ]).map((group: OpenStackServiceGroup): string => {
         return group.service;
       }),
-    ).toEqual([...OPENSTACK_CATALOG_ORDER, "dns"]);
+    ).toEqual([...OPENSTACK_CATALOG_ORDER, "a-service-nobody-listed"]);
   });
 
   test("every scheduler down is one critical, not a look per scheduler", () => {
