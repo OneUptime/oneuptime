@@ -145,16 +145,6 @@ export default class ResourceHeartbeatUtil {
       };
     }
 
-    if (data.openstackMonitor) {
-      return {
-        metricNames: ["openstack_identity_up"],
-        attributes: ResourceHeartbeatUtil.scopedTo(
-          "resource.openstack.cloud.name",
-          data.openstackMonitor.cloudIdentifier,
-        ),
-      };
-    }
-
     return null;
   }
 
