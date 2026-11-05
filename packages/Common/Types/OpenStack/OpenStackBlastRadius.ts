@@ -1,4 +1,5 @@
 import { OpenStackReachAcrossProducts } from "./OpenStackLinks";
+import { OpenStackReachedProject } from "./OpenStackScopedRule";
 
 /*
  * WHAT A FAILED PART TAKES WITH IT, AND WHOSE IT IS.
@@ -34,6 +35,11 @@ export interface OpenStackBlastRadius {
   projectCount: number;
   // Most affected first, at most OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT of them.
   projects: Array<OpenStackBlastRadiusProject>;
+  /*
+   * All of them, past the cap, when asked for: a rule on the sixtieth project has to reach
+   * it even though a description stops naming projects at the fiftieth.
+   */
+  everyProject?: Array<OpenStackReachedProject> | undefined;
   /*
    * False when what was collected cannot say. The agent's exporter does not say which
    * pool a volume is on, so a pool's reach is only known from the probe's reads, and a
@@ -81,6 +87,7 @@ export function buildOpenStackBlastRadius(data: {
   projectNames?: Record<string, string> | undefined;
   projectDomains?: Record<string, string> | undefined;
   isKnown?: boolean | undefined;
+  includeEveryProject?: boolean | undefined;
 }): OpenStackBlastRadius {
   const radius: OpenStackBlastRadius = getEmptyOpenStackBlastRadius(
     data.isKnown ?? true,
@@ -120,6 +127,13 @@ export function buildOpenStackBlastRadius(data: {
   };
 
   radius.projectCount = projects.size;
+  if (data.includeEveryProject) {
+    radius.everyProject = Array.from(projects.values()).map(
+      (project: OpenStackBlastRadiusProject): OpenStackReachedProject => {
+        return { projectId: project.projectId, domainId: project.domainId };
+      },
+    );
+  }
   radius.projects = Array.from(projects.values())
     .sort(
       (

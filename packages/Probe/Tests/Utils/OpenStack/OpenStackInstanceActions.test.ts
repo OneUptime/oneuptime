@@ -65,6 +65,7 @@ function server(overrides: Partial<NovaServerRecord> = {}): NovaServerRecord {
     userId: "user-1",
     addressIpv4: null,
     addressIpv6: null,
+    networkNames: [],
     hostId: null,
     hypervisorHostname: "compute-01.example.internal",
     availabilityZone: null,

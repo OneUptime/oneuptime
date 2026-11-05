@@ -493,9 +493,11 @@ A cloud holds many tenants, so OneUptime keeps track of whose everything is.
 
 On a project's page, add a rule under **Who is told about this** or **Labels on what opens about this**. **Domains** has the same two for a whole domain. From then on, every alert and incident that reaches that project or domain gets those owners or labels.
 
-An alert or incident on a part of the cloud names the projects it reaches in its description, by ID, as ``OpenStack project `<id>` `` and ``OpenStack domain `<id>` ``. A rule here is an ordinary alert rule and an ordinary incident rule that match those words, so the pair also appears under each one's **Owner Rules** or **Label Rules** settings.
+A rule here is an **OpenStack Cloud Owner Rule** or **OpenStack Cloud Label Rule** with the project's or domain's ID on it, so it also appears under the cloud's **Owner Rules** or **Label Rules** settings, where you can write one by hand under **One project or domain**. A rule with either ID adds nothing to the cloud itself. Conditions on the cloud still apply, and a rule made from **Domains** names its cloud, because every cloud has a domain called `default`. If you rename that cloud, update the rule's name condition.
 
-Only what a monitor opens carries those words, and it names at most 50 of the projects it reaches. An incident someone declares by hand carries none, so these rules do not reach it.
+An alert or incident on a part of the cloud reaches each project with something on that part, however many there are. Only a monitor can say what it reaches, so a rule like this does not reach an incident someone declares by hand. Labels go on as the alert opens, and owners right after.
+
+Rules written earlier as a pair of alert and incident rules, matching ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` in the description, keep working and are listed here too. A description names at most 50 of the projects it reaches, so a pair like that stops there. Remove it and add the rule again to lift that limit.
 
 ### Quotas
 
@@ -524,7 +526,7 @@ A part's blast radius is what it takes with it, by count and by project:
 
 A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
 
-The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says which pool holds a volume, when Cinder treats its credential as an admin, and then a pool's blast radius counts its volumes and the instances they are attached to.
+The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says both. The map then joins a volume to its pool, when Cinder treats its credential as an admin, and a pool's blast radius counts its volumes and the instances they are attached to. It also joins an instance to each network it has an address on. Nova names those networks only by name, and Neutron allows two with one name, so the map looks for one in the instance's project, then one shared with it, then any by that name, and draws no join when two are equally likely. What is still unknown stays in the map's notice.
 
 ## Joined up with the rest of OneUptime
 

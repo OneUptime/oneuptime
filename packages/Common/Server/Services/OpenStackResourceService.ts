@@ -1557,6 +1557,8 @@ export class Service extends DatabaseService<Model> {
       externalId?: string | null | undefined;
       facts?: JSONObject | null | undefined;
     };
+    // For what has to find one project among them, past the ones an answer names.
+    includeEveryProject?: boolean | undefined;
   }): Promise<OpenStackBlastRadius> {
     const { part } = data;
     const counts: Array<{
@@ -1646,6 +1648,7 @@ export class Service extends DatabaseService<Model> {
         projectNames,
         projectDomains,
         isKnown,
+        includeEveryProject: data.includeEveryProject,
       });
     };
 
@@ -2432,7 +2435,11 @@ export class Service extends DatabaseService<Model> {
            WHERE "projectId" = $1 AND "openStackCloudId" = $2
              AND "kind" = '${OpenStackResourceKind.Project}'
              AND "externalId" = ANY($3::text[]) AND "deletedAt" IS NULL`,
-          [data.projectId.toString(), data.openStackCloudId.toString(), projectIds],
+          [
+            data.projectId.toString(),
+            data.openStackCloudId.toString(),
+            projectIds,
+          ],
         );
       for (const row of named) {
         if (row.name) {
