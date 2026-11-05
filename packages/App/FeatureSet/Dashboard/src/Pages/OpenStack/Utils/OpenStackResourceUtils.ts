@@ -6,6 +6,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
@@ -50,6 +51,11 @@ export interface OpenStackInventorySummary {
   memoryAllocatedBytes: number;
   storageCapacityBytes: number;
   storageUsedBytes: number;
+  stackCount: number;
+  containerClusterCount: number;
+  shareCount: number;
+  // The services a cloud may not run that this one does, in the region being read.
+  optionalServices: Array<OpenStackServiceType>;
 }
 
 export function toOpenStackInventorySummary(
@@ -59,6 +65,13 @@ export function toOpenStackInventorySummary(
     const value: JSONValue = summary[key];
     return typeof value === "number" && Number.isFinite(value) ? value : 0;
   };
+  const services: Array<string> = Array.isArray(summary["services"])
+    ? (summary["services"] as Array<JSONValue>).filter(
+        (service: JSONValue): service is string => {
+          return typeof service === "string";
+        },
+      )
+    : [];
 
   return {
     regionCount: readNumber("regionCount"),
@@ -75,19 +88,17 @@ export function toOpenStackInventorySummary(
     downServiceCount: readNumber("downServiceCount"),
     bareMetalNodeCount: readNumber("bareMetalNodeCount"),
     bareMetalProviderCount: readNumber("bareMetalProviderCount"),
-    services: Array.isArray(summary["services"])
-      ? (summary["services"] as Array<JSONValue>).filter(
-          (service: JSONValue): service is string => {
-            return typeof service === "string";
-          },
-        )
-      : [],
+    services: services,
     vcpuCapacity: readNumber("vcpuCapacity"),
     vcpuAllocated: readNumber("vcpuAllocated"),
     memoryCapacityBytes: readNumber("memoryCapacityBytes"),
     memoryAllocatedBytes: readNumber("memoryAllocatedBytes"),
     storageCapacityBytes: readNumber("storageCapacityBytes"),
     storageUsedBytes: readNumber("storageUsedBytes"),
+    stackCount: readNumber("stackCount"),
+    containerClusterCount: readNumber("containerClusterCount"),
+    shareCount: readNumber("shareCount"),
+    optionalServices: getOpenStackOptionalServicesOf(services),
   };
 }
 

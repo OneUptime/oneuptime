@@ -14,6 +14,7 @@ import {
   OpenStackEndpointInterface,
   OpenStackReadAccess,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import OpenStackServiceClient, {
@@ -327,6 +328,76 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       projectField: "owner",
       goesWithout: "private images in other projects.",
       fix: `Glance shows any credential the public images and its own. To read every project's: ${USE_FULL_VIEW}.`,
+    },
+    /*
+     * The services a cloud may not run, each asked only of a cloud whose catalog names it. Recorded
+     * on real credentials: only an admin reads these two, and no policy line has been tried.
+     */
+    {
+      service: OpenStackServiceType.Orchestration,
+      read: "stacks",
+      path: "/stacks",
+      key: "stacks",
+      projectField: "project",
+      goesWithout:
+        "other projects' stacks, and whose each one is. Heat shows anything less its own project's with no project on them, or refuses.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.Orchestration,
+      read: "services",
+      path: "/services",
+      key: "services",
+      projectField: "-",
+      goesWithout: "Heat's engines on the Services page.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.SharedFileSystems,
+      read: "shares, all projects",
+      path: "/shares/detail",
+      query: { all_tenants: "1" },
+      key: "shares",
+      projectField: "project_id",
+      goesWithout:
+        "other projects' shares. Manila shows anything less its own project's, or none, and no error.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.SharedFileSystems,
+      read: "services",
+      path: "/services",
+      key: "services",
+      projectField: "-",
+      goesWithout:
+        "Manila's services on the Services page, so a stopped one isn't shown anywhere: Manila's API carries on answering without it.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.ContainerInfra,
+      read: "clusters",
+      path: "/clusters",
+      key: "clusters",
+      projectField: "*",
+      goesWithout:
+        "other projects' Kubernetes clusters. Magnum shows anything less none of them, and no error.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.ContainerInfra,
+      read: "services",
+      path: "/mservices",
+      key: "mservices",
+      projectField: "-",
+      goesWithout:
+        "Magnum's conductors on the Services page, so a stopped one isn't shown anywhere: Magnum's API carries on answering without it.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
     },
   ];
 
@@ -667,10 +738,13 @@ export async function runOpenStackAccessCheck(data: {
       }
 
       if (!client) {
-        write({
-          access: "NotDeployed",
-          reason: "not in this region's catalog",
-        });
+        // A cloud without a service it may not run hears nothing about it.
+        if (!isOpenStackOptionalService(definition.service)) {
+          write({
+            access: "NotDeployed",
+            reason: "not in this region's catalog",
+          });
+        }
         continue;
       }
 

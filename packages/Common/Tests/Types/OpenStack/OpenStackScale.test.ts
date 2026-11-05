@@ -565,6 +565,71 @@ describe("what the docs publish", () => {
   });
 });
 
+describe("what the soak measured, as the docs publish it", () => {
+  const PAGE: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Docs/Content/en/telemetry/openstack-very-large-clouds.md",
+    ),
+    "utf8",
+  );
+
+  // What OpenStackSoak.test.ts wrote at the end of the hour the docs publish. Nothing else writes it.
+  const MEASURED: Record<string, never> = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../Fixtures/OpenStackSoak/measured.json",
+      ),
+      "utf8",
+    ),
+  );
+  const number: (key: string) => number = (key: string): number => {
+    return MEASURED[key] as unknown as number;
+  };
+
+  function seconds(milliseconds: number): string {
+    return milliseconds >= 10000
+      ? `${(milliseconds / 1000).toFixed(0)} s`
+      : `${(milliseconds / 1000).toFixed(1)} s`;
+  }
+
+  test("it held the largest size for the hour, and every budget", () => {
+    expect(number("minutesRan")).toBeGreaterThanOrEqual(60);
+    expect(MEASURED["counts"]).toMatchObject({
+      hypervisors: 5000,
+      instances: 200000,
+      projects: 10000,
+    });
+    expect(MEASURED["requests"]).toEqual(MEASURED["requestsExpected"]);
+    expect(number("skippedCollections")).toBe(0);
+    expect(number("worstLagMs")).toBeLessThan(120000);
+    expect(number("overviewWorstMs")).toBeLessThan(6000);
+    expect(number("longestLockWaitMs")).toBeLessThan(5000);
+    expect(number("rowsDeleted")).toBe(0);
+    expect(MEASURED["failures"]).toEqual([]);
+  });
+
+  test("each number on the page is the one it measured", () => {
+    const perMinute: Record<string, number> = MEASURED[
+      "requestsPerMinute"
+    ] as unknown as Record<string, number>;
+
+    for (const text of [
+      `Keystone ${perMinute["identity"]}, Nova ${perMinute["compute"]}, Placement ${Math.round(perMinute["placement"] as number).toLocaleString("en-US")}, Neutron ${perMinute["network"]}, Cinder ${perMinute["volume"]}, Glance ${perMinute["image"]}`,
+      `${number("skippedCollections")} of ${number("collections")}`,
+      `${seconds(number("medianLagMs"))} at the median, ${seconds(number("worstLagMs"))} at worst`,
+      `${seconds(number("overviewMedianMs"))} at the median, ${seconds(number("overviewWorstMs"))} at worst`,
+      `${number("overviewBytes").toLocaleString("en-US")} bytes of what needs attention`,
+      `${seconds(number("longestLockWaitMs"))}, in ${number("lockSamples").toLocaleString("en-US")} looks`,
+      `at most ${number("worstHeapUsedMb").toLocaleString("en-US")} MiB of JavaScript heap`,
+      `${Math.round(number("medianPayloadBytes") / 1048576)} MiB of metrics a collection`,
+    ]) {
+      expect(PAGE).toContain(text);
+    }
+  });
+});
+
 describe("what the docs tell people to set, to share a cloud between agents", () => {
   const REGIONS_LINE: RegExp = /OPENSTACK_EXPORTER_CLOUDS=\[([^\]]*)\]/;
   const SERVICES_LINE: RegExp = /OPENSTACK_AGENT_SERVICES=(\S+)/;

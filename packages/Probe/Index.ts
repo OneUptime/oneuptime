@@ -23,6 +23,7 @@ import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
 import FetchOpenStackWork from "./Jobs/OpenStack/FetchOpenStackWork";
+import FetchOpenStackChecks from "./Jobs/OpenStack/FetchOpenStackChecks";
 import ScanDataSecurityDatabases from "./Jobs/DataSecurity/ScanDatabases";
 import CollectDataObservabilityTableHealth from "./Jobs/DataObservability/CollectTableHealth";
 import { describePacketCaptureSettings } from "./Utils/PacketCapture/PacketCaptureSettings";
@@ -189,6 +190,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        * OpenStack monitoring without an agent, and its connection tests.
        */
       FetchOpenStackWork();
+
+      /*
+       * What a user would meet at those clouds, from outside: the API checks, and for a cloud that
+       * opted in, a server made, waited for and deleted in a project of its own.
+       */
+      FetchOpenStackChecks();
 
       /*
        * Databases Data Security scans from inside this network, each with

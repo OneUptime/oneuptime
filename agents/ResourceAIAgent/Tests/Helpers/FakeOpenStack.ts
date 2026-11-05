@@ -19,15 +19,15 @@ import {
  *     Cinder document them;
  *   - one object's answer (server show, router show, ...) is that object's row of
  *     the recorded list, wrapped as its API wraps one;
- *   - server events are hand-written after the shape Nova's API reference and
- *     OpenStackInstanceActions in the probe read.
+ *   - server events are what the agent printed on a real cloud (readRecordedAgentRun):
+ *     that run's own instance's action, said of whichever instance was asked about,
+ *     and the list's row is the action without its events, as Nova's list answers.
  *
- * The rig's ai-agent-record.sh runs the same commands against a real DevStack.
+ * The rig's ai-agent-record.sh ran the same commands against a real DevStack, and
+ * readRecordedAgentRun reads what each one printed there.
  */
 
 export const FAKE_TOKEN: string = `gAAAAA-fake-token-${"x".repeat(60)}`;
-
-export const INSTANCE_ACTIONS_ARE_HAND_WRITTEN: boolean = true;
 
 // The fixtures, from wherever this was compiled to.
 export function findOpenStackFixtures(): string {
@@ -658,42 +658,89 @@ export class FakeOpenStack {
     return reply(JSON.stringify(route.wrap ? { [route.wrap]: row } : row));
   }
 
-  // Hand-written: see the head of this file.
+  // What a real cloud answered: see readRecordedServerEvent.
   private answerInstanceActions(
     server: string,
     request: string | undefined,
   ): OpenStackHttpResponse {
     const action: Json = {
-      action: "create",
+      ...readRecordedServerEvent(),
       instance_uuid: server,
-      message: "Error",
-      project_id: "9aee824cac87464292adffc328de1662",
-      request_id: "req-6e2493c0-6eb6-4345-9deb-90826d851f67",
-      start_time: "2026-11-04T12:33:16.000000",
-      updated_at: "2026-11-04T12:33:20.000000",
-      user_id: "925ba1d4138b4a90acf70ba072086ddf",
     };
 
-    if (!request) {
-      return reply(JSON.stringify({ instanceActions: [action] }));
+    if (request) {
+      return reply(JSON.stringify({ instanceAction: action }));
     }
 
-    return reply(
-      JSON.stringify({
-        instanceAction: {
-          ...action,
-          events: [
-            {
-              event: "compute__do_build_and_run_instance",
-              start_time: "2026-11-04T12:33:16.000000",
-              finish_time: "2026-11-04T12:33:20.000000",
-              result: "Error",
-              traceback: "Traceback (most recent call last):\n  ...",
-              host: "compute-01",
-            },
-          ],
-        },
-      }),
-    );
+    const row: Json = { ...action };
+
+    delete row["events"];
+
+    return reply(JSON.stringify({ instanceActions: [row] }));
   }
+}
+
+/*
+ * WHAT THE AGENT'S REAL CODE PRINTED ON A REAL CLOUD.
+ *
+ * Tests/Ops/openstack-e2e/ai-agent-record.sh, on a DevStack of this release, healthy and
+ * with nova-compute stopped, through every command the policy allows. Each file is one
+ * command's whole output, with the runner's name replaced (import-ai-agent-recording.py).
+ */
+export const RECORDED_AGENT_RELEASE: string = "hibiscus-ovn";
+
+export interface RecordedAgentCommand {
+  command: string;
+  success: boolean;
+  exitCode: number | null;
+  stdout: string;
+  // The whole file, for what must appear nowhere in it.
+  text: string;
+}
+
+export function readRecordedAgentRun(
+  scene: string,
+): Array<RecordedAgentCommand> {
+  const folder: string = path.join(
+    findOpenStackFixtures(),
+    "ai-agent",
+    RECORDED_AGENT_RELEASE,
+    scene,
+  );
+  const marker: string = "[stdout]\n";
+
+  return fs
+    .readdirSync(folder)
+    .filter((file: string): boolean => {
+      return file.endsWith(".txt");
+    })
+    .sort()
+    .map((file: string): RecordedAgentCommand => {
+      const text: string = fs.readFileSync(path.join(folder, file), "utf8");
+      const lines: Array<string> = text.split("\n");
+      const start: number = text.indexOf(marker);
+
+      return {
+        command: (lines[0] as string).replace(/^\$ /, ""),
+        success: lines[1] === "success: true",
+        exitCode: Number((lines[2] as string).replace(/^exit code: /, "")),
+        stdout: start < 0 ? "" : text.slice(start + marker.length).trimEnd(),
+        text,
+      };
+    });
+}
+
+// One action of an instance, as Nova's API answered it and the agent printed it whole.
+export function readRecordedServerEvent(): Json {
+  const shown: RecordedAgentCommand | undefined = readRecordedAgentRun(
+    "healthy",
+  ).find((recorded: RecordedAgentCommand): boolean => {
+    return recorded.command.startsWith("openstack server event show ");
+  });
+
+  if (!shown) {
+    throw new Error("The recording has no server event show.");
+  }
+
+  return JSON.parse(shown.stdout) as Json;
 }

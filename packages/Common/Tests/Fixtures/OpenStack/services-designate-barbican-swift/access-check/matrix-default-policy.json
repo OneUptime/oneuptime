@@ -974,6 +974,7 @@
       }
     }
   ],
+  "partReads": [],
   "writes": [
     {
       "service": "compute",

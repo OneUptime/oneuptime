@@ -14,6 +14,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import { OpenStackPlacementOfKubernetesCluster } from "../../../Components/OpenStack/Part/OpenStackPlacementOfHost";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import React, {
@@ -2539,6 +2540,7 @@ const KubernetesClusterOverview: FunctionComponent<
         modelId={modelId}
         refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
+      <OpenStackPlacementOfKubernetesCluster clusterId={modelId} />
 
       {/*
        * The cluster's newest warnings, read on the server from its warning

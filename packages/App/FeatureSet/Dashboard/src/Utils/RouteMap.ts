@@ -373,6 +373,12 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]: `${RouteParams.ModelID}/network-agents/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]: `${RouteParams.ModelID}/snapshots`,
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]: `${RouteParams.ModelID}/images/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS]: `${RouteParams.ModelID}/stacks`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]: `${RouteParams.ModelID}/stacks/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]: `${RouteParams.ModelID}/kubernetes-clusters`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: `${RouteParams.ModelID}/kubernetes-clusters/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARES]: `${RouteParams.ModelID}/shares`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]: `${RouteParams.ModelID}/shares/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]: `${RouteParams.ModelID}/projects`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
@@ -387,6 +393,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: `${RouteParams.ModelID}/checks`,
   [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -4813,6 +4820,42 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STACKS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SHARES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]
+    }`,
+  ),
+
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]
@@ -4893,6 +4936,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_TRACES]
+    }`,
+  ),
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]
     }`,
   ),
 

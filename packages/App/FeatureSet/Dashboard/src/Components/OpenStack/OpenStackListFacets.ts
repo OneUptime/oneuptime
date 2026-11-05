@@ -8,13 +8,22 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_SHARE_STUCK_MINUTES,
+  OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackResourceKind,
@@ -333,6 +342,7 @@ export function getOpenStackStateFacet(
   };
 }
 
+const LABEL_FAILED: string = translationKey("Failed");
 const LABEL_STUCK: string = translationKey("Stuck");
 const LABEL_IN_ERROR: string = translationKey("In error");
 
@@ -390,3 +400,46 @@ export const OPENSTACK_IMAGE_STATE_PRESETS: Array<OpenStackStatePreset> = [
     minutes: OPENSTACK_IMAGE_STUCK_MINUTES,
   }),
 ];
+
+function failedPreset(statuses: ReadonlySet<string>): OpenStackStatePreset {
+  return {
+    value: "failed",
+    label: LABEL_FAILED,
+    getQuery: (): Query<OpenStackResource> => {
+      return { status: new Includes(Array.from(statuses)) };
+    },
+  };
+}
+
+export const OPENSTACK_SHARE_STATE_PRESETS: Array<OpenStackStatePreset> = [
+  stuckPreset({
+    statuses: OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+    minutes: OPENSTACK_SHARE_STUCK_MINUTES,
+  }),
+  {
+    value: "error",
+    label: LABEL_IN_ERROR,
+    getQuery: (): Query<OpenStackResource> => {
+      return {
+        status: new Includes(Array.from(OPENSTACK_SHARE_ERROR_STATUSES)),
+      };
+    },
+  },
+];
+
+export const OPENSTACK_STACK_STATE_PRESETS: Array<OpenStackStatePreset> = [
+  stuckPreset({
+    statuses: OPENSTACK_STACK_IN_PROGRESS_STATUSES,
+    minutes: OPENSTACK_STACK_STUCK_MINUTES,
+  }),
+  failedPreset(OPENSTACK_STACK_FAILED_STATUSES),
+];
+
+export const OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS: Array<OpenStackStatePreset> =
+  [
+    stuckPreset({
+      statuses: OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
+      minutes: OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
+    }),
+    failedPreset(OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES),
+  ];

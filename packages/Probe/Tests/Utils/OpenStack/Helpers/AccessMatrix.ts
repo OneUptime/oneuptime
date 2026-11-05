@@ -44,11 +44,13 @@ export interface AccessMatrixRead {
 export function loadAccessMatrix(
   release: string,
   file: AccessMatrixFile,
+  // A group of services a cloud may not run keeps its in a folder of its own.
+  folder: string = "access",
 ): Array<AccessMatrixRead> {
   return (
     JSON.parse(
       fs.readFileSync(
-        path.join(FIXTURES_ROOT, release, "access", `${file}.json`),
+        path.join(FIXTURES_ROOT, release, folder, `${file}.json`),
         "utf8",
       ),
     ) as { reads: Array<AccessMatrixRead> }

@@ -11,14 +11,19 @@ import {
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
   isOpenStackAdminDisabled,
+  isOpenStackContainerClusterFailed,
   isOpenStackFloatingIpAssociated,
   isOpenStackServiceDown,
+  isOpenStackShareInError,
+  isOpenStackStackFailed,
   isSameOpenStackHost,
   minutesInState,
   percentOf,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_SERVICE_STATUS_UP,
   OpenStackResourceKind,
   OpenStackServiceFamily,
@@ -142,6 +147,21 @@ export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-storage-pool-critical",
 ];
 
+export const OPENSTACK_SHARE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-share-in-error",
+  "openstack-share-stuck",
+];
+
+export const OPENSTACK_STACK_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-stack-failed",
+  "openstack-stack-stuck",
+];
+
+export const OPENSTACK_CONTAINER_CLUSTER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-container-cluster-failed",
+  "openstack-container-cluster-stuck",
+];
+
 function factsOf(row: OpenStackResource | null | undefined): JSONObject {
   return (row?.facts as JSONObject | undefined) || {};
 }
@@ -210,6 +230,19 @@ export function getOpenStackFlavorId(
 }
 
 // What a part goes by: its name, or the end of its id when OpenStack gave it none.
+/*
+ * A cluster's size in Magnum's two counts, and what it was asked for rather than what came up: a
+ * failed cluster reports the same numbers, recorded. Nodes, in the words Kubernetes people use.
+ */
+export function getOpenStackContainerClusterNodeCounts(
+  row: OpenStackResource | null | undefined,
+): { controlPlane: number | null; workers: number | null } {
+  return {
+    controlPlane: numberFact(row, "masterCount"),
+    workers: numberFact(row, "nodeCount"),
+  };
+}
+
 export function getOpenStackPartName(
   row: Pick<OpenStackResource, "name"> | null | undefined,
   externalId: string,
@@ -1030,6 +1063,27 @@ const EXPLAIN_POOL_FULL: string = translationKey(
 const EXPLAIN_POOL_FILLING: string = translationKey(
   "This pool is filling up. Add capacity or free space before Cinder's scheduler runs out of room for new volumes.",
 );
+const EXPLAIN_SHARE_ERROR: string = translationKey(
+  "Manila couldn't do what this share was asked for, and it stays like this until someone deals with it. Whoever asked for it doesn't have what they asked for. openstack share message list says what Manila recorded about it. A share with no zone never reached a backend, which is what a share type nothing matches looks like.",
+);
+const EXPLAIN_SHARE_STUCK: string = translationKey(
+  "This share has been on its way to something else for longer than it should take. Manila has no timeout of its own for this, so either its backend is very slow or nothing is working on it any more. Check openstack share service list, then manila-share's log on the backend that holds it.",
+);
+const EXPLAIN_STACK_FAILED: string = translationKey(
+  "Heat could not finish what this stack was asked to do, and it stays like this until someone updates or deletes it. What it built so far may be partly there, and is still using its project's quota. Run openstack stack failures list to see which resource failed.",
+);
+const EXPLAIN_STACK_STUCK: string = translationKey(
+  "This stack has stayed in progress past the hour Heat gives a stack, unless someone chose longer. If nobody did, the engine working on it has probably stopped, and a restarted engine does not pick it back up. Check openstack orchestration service list and openstack stack show.",
+);
+const EXPLAIN_CLUSTER_FAILED: string = translationKey(
+  "Magnum could not finish this cluster, and what it built so far is still using its project's quota. Magnum builds a cluster with a Heat stack, so the reason is usually there: openstack coe cluster show says which node group failed, and openstack stack failures list on its stack says why.",
+);
+const EXPLAIN_CLUSTER_STUCK: string = translationKey(
+  "This cluster has stayed in progress past the hour Magnum gives a cluster, unless someone chose longer. Only Magnum's conductor moves a cluster on, so check openstack coe service list, then this cluster's Heat stack.",
+);
+const EXPLAIN_CLUSTER_UNHEALTHY: string = translationKey(
+  "Magnum can reach this cluster and reads it as unhealthy. openstack coe cluster show says why, in its health_status_reason.",
+);
 const EXPLAIN_IMAGE_STUCK: string = translationKey(
   "This image has been on its way to something else for longer than it should take, which is what a failed upload looks like. Nothing will move it on, and instances asking for it fail. Upload it again, or delete it.",
 );
@@ -1078,6 +1132,22 @@ export function getOpenStackPartExplanation(
         : EXPLAIN_POOL_FILLING;
     case OpenStackResourceKind.Image:
       return EXPLAIN_IMAGE_STUCK;
+    case OpenStackResourceKind.Share:
+      return isOpenStackShareInError(row.status)
+        ? EXPLAIN_SHARE_ERROR
+        : EXPLAIN_SHARE_STUCK;
+    case OpenStackResourceKind.Stack:
+      return isOpenStackStackFailed(row.status)
+        ? EXPLAIN_STACK_FAILED
+        : EXPLAIN_STACK_STUCK;
+    case OpenStackResourceKind.ContainerCluster:
+      if (isOpenStackContainerClusterFailed(row.status)) {
+        return EXPLAIN_CLUSTER_FAILED;
+      }
+      return factsOf(row)["healthStatus"] ===
+        OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY
+        ? EXPLAIN_CLUSTER_UNHEALTHY
+        : EXPLAIN_CLUSTER_STUCK;
     default:
       return null;
   }
@@ -1167,6 +1237,17 @@ export function isOpenStackIssueAbout(
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "router_id") === row.externalId
       );
+    case OpenStackResourceKind.Stack:
+    case OpenStackResourceKind.Share:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
+    case OpenStackResourceKind.ContainerCluster:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "uuid") === row.externalId
+      );
     default:
       return false;
   }
@@ -1227,7 +1308,7 @@ export { getOpenStackForecast } from "Common/Types/OpenStack/OpenStackForecast";
  * What an empty list means
  * ---------------------------------------------------------------------------
  */
-export type OpenStackApiState = "up" | "down" | "not-reported";
+export type OpenStackApiState = "up" | "down" | "not-reported" | "not-read";
 
 export interface OpenStackEmptyWords {
   title: string;
@@ -1252,12 +1333,22 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.Backup]: OpenStackServiceType.Volume,
   [OpenStackResourceKind.Image]: OpenStackServiceType.Image,
   [OpenStackResourceKind.Domain]: OpenStackServiceType.Identity,
+  [OpenStackResourceKind.Stack]: OpenStackServiceType.Orchestration,
+  [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
+  [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,
 };
 
 const NOT_ANSWERING: OpenStackEmptyWords = {
   title: translationKey("This service's API isn't answering"),
   description: translationKey(
     "Nothing could be read from it, so this list may fill up again once it answers. Check the service's API on the Services page.",
+  ),
+};
+
+const NOT_RUNNING: OpenStackEmptyWords = {
+  title: translationKey("This cloud doesn't run this service"),
+  description: translationKey(
+    "Nothing has been reported about it, which is what a service Keystone's catalog doesn't name looks like. If this cloud does run it, check that the agent's or the probe's credential can see it in the catalog.",
   ),
 };
 
@@ -1353,6 +1444,16 @@ export function getOpenStackEmptyWords(data: {
 }): OpenStackEmptyWords | null {
   if (data.api === "down") {
     return NOT_ANSWERING;
+  }
+  /*
+   * Nothing said anything about this service, so far as OneUptime knows this cloud doesn't run it.
+   * Only someone who followed an old link or typed the address gets here: no menu leads to it.
+   */
+  if (
+    data.api === "not-reported" &&
+    isOpenStackOptionalService(OPENSTACK_SERVICE_OF_KIND[data.kind])
+  ) {
+    return NOT_RUNNING;
   }
   if (data.api === "up") {
     if (data.kind === OpenStackResourceKind.Instance) {

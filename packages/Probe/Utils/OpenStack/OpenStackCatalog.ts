@@ -35,7 +35,11 @@ export const OPENSTACK_CATALOG_TYPES: Readonly<
   [OpenStackServiceType.Network]: ["network"],
   [OpenStackServiceType.Volume]: ["block-storage", "volumev3"],
   [OpenStackServiceType.Image]: ["image"],
+  [OpenStackServiceType.Orchestration]: ["orchestration"],
+  [OpenStackServiceType.ContainerInfra]: ["container-infra"],
   [OpenStackServiceType.BareMetal]: ["baremetal"],
+  // What Keystone's catalog holds for Manila's v2 API, recorded.
+  [OpenStackServiceType.SharedFileSystems]: ["sharev2", "shared-file-system"],
 };
 
 function text(value: JSONValue | undefined): string {
@@ -193,6 +197,8 @@ export function toOpenStackServiceBaseUrl(
       return lastSegment(url) === "v2" ? url : `${url}/v2`;
     case OpenStackServiceType.Volume:
       return url.includes("/v3") ? url : `${url}/v3`;
+    case OpenStackServiceType.ContainerInfra:
+      return lastSegment(url) === "v1" ? url : `${url}/v1`;
     default:
       return url;
   }

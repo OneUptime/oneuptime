@@ -84,7 +84,7 @@ This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OV
 - **none recorded**: a `200` with no rows where an admin saw none either, so there was nothing to tell by.
 - **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers `409 Quota exceeded`. That is harmless, and nothing to fix.
 
-Octavia and Ironic are not here because those clouds do not run them. `troubleshoot.sh` asks them too, where a cloud does.
+Octavia, Ironic, Heat, Magnum and Manila are not here because those clouds do not run them. `troubleshoot.sh` asks them too, where a cloud does.
 
 What the agent's exporter got with each, in series per service. The counts follow what a cloud holds when it is asked, so compare them with each other and not with yours:
 

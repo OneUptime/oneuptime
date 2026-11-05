@@ -1,3 +1,4 @@
+import { OpenStackCheckMetric } from "../../../Utils/OpenStack/OpenStackCheckMetrics";
 import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
@@ -89,6 +90,17 @@ const DISABLED_METRICS: Array<string> = Array.from(
 
 const METRICS: Array<OpenStackMetricDefinition> = getAllOpenStackMetrics();
 
+/*
+ * What the cloud stands on is read from each dependency's own exporter, and not from
+ * openstack-exporter, so what that exporter has says nothing of them. OpenStackControlPlaneScenes
+ * holds those to what real ones said.
+ */
+const OF_THE_EXPORTER: Array<OpenStackMetricDefinition> = METRICS.filter(
+  (metric: OpenStackMetricDefinition): boolean => {
+    return !metric.dependency;
+  },
+);
+
 type MetricCase = [string, OpenStackMetricDefinition];
 
 const METRIC_CASES: Array<MetricCase> = METRICS.map(
@@ -108,16 +120,49 @@ function metricNames(): Array<string> {
  * is 0 or 1, and Placement's resource series change unit with their resourcetype.
  */
 const NO_UNIT_SERIES: ReadonlyArray<string> = [
+  // What the cloud stands on says 0 or 1, or a state's code.
+  "erlang_vm_dist_node_state",
+  "haproxy_backend_status",
+  "haproxy_server_status",
+  "libvirt_up",
+  "memcached_up",
+  "mysql_global_status_wsrep_cluster_status",
+  "mysql_global_status_wsrep_local_state",
+  "mysql_global_status_wsrep_ready",
+  "mysql_global_variables_wsrep_desync",
+  "mysql_global_variables_wsrep_on",
+  "mysql_up",
+  "ovn_northd_status",
+  "ovn_raft_cluster_leader",
+  "ovnc_encap_ip",
+  "ovs_build_info",
+  "rabbitmq_alarms_free_disk_space_watermark",
+  "rabbitmq_alarms_memory_used_watermark",
   "openstack_ironic_up",
   // Always 1: what it says is in its labels, as a status series' word is.
   "openstack_ironic_node",
   "openstack_ironic_conductor_state",
   "up",
+  "openstack_check_token_success",
+  "openstack_check_api_success",
+  "openstack_check_lifecycle_success",
+  "openstack_check_lifecycle_phase_success",
+  "openstack_check_lifecycle_step_success",
+  "openstack_check_lifecycle_refused",
   "openstack_identity_up",
   "openstack_nova_up",
   "openstack_neutron_up",
   "openstack_cinder_up",
   "openstack_glance_up",
+  "openstack_heat_up",
+  "openstack_heat_stack_status",
+  "openstack_heat_agent_state",
+  "openstack_container_infra_up",
+  "openstack_container_infra_cluster_status",
+  "openstack_container_infra_agent_state",
+  "openstack_sharev2_up",
+  "openstack_sharev2_share_status",
+  "openstack_sharev2_agent_state",
   "openstack_placement_up",
   "openstack_nova_agent_state",
   "openstack_neutron_agent_state",
@@ -156,7 +201,7 @@ describe("OpenStackMetricCatalog", () => {
     });
 
     test("names nothing the exporter does not have, but the collection's own two and what only the probe sends", () => {
-      const extra: Array<string> = METRICS.filter(
+      const extra: Array<string> = OF_THE_EXPORTER.filter(
         (metric: OpenStackMetricDefinition): boolean => {
           return !OPENSTACK_EXPORTER_SERIES[metric.metricName];
         },
@@ -166,6 +211,7 @@ describe("OpenStackMetricCatalog", () => {
             metric.onlyFromProbe !== true &&
             metric.fromInstanceSource !== true &&
             metric.fromSummaryMode !== true &&
+            metric.fromCheck !== true &&
             metric.fromCapacity !== true
           );
         })
@@ -192,8 +238,11 @@ describe("OpenStackMetricCatalog", () => {
       ).toEqual([
         "openstack_cinder_backup_gb",
         "openstack_cinder_snapshot_gb",
+        "openstack_container_infra_agent_state",
+        "openstack_heat_agent_state",
         "openstack_ironic_conductor_state",
         "openstack_placement_flavor_fits",
+        "openstack_sharev2_agent_state",
       ]);
 
       for (const metric of onlyFromProbe) {
@@ -220,8 +269,12 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_pool_capacity_total_gb",
         "openstack_cinder_up",
         "openstack_cinder_volume_gb",
+        "openstack_container_infra_cluster_status",
+        "openstack_container_infra_up",
         "openstack_glance_image_bytes",
         "openstack_glance_up",
+        "openstack_heat_stack_status",
+        "openstack_heat_up",
         "openstack_identity_up",
         "openstack_ironic_node",
         "openstack_neutron_agent_state",
@@ -233,6 +286,8 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_nova_server_status",
         "openstack_nova_up",
         "openstack_placement_up",
+        "openstack_sharev2_share_gb",
+        "openstack_sharev2_share_status",
       ]);
 
       for (const metric of marked) {
@@ -252,7 +307,9 @@ describe("OpenStackMetricCatalog", () => {
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
           metricCase[1].fromSummaryMode !== true &&
-          metricCase[1].fromCapacity !== true
+          metricCase[1].fromCheck !== true &&
+          metricCase[1].fromCapacity !== true &&
+          !metricCase[1].dependency
         );
       }),
     )(
@@ -264,6 +321,26 @@ describe("OpenStackMetricCatalog", () => {
         expect(metric.service).toBe(OPENSTACK_EXPORTER_SERIES[name]!.service);
       },
     );
+
+    test("every series the checks from outside send is here, and says so", () => {
+      expect(
+        METRICS.filter((metric: OpenStackMetricDefinition): boolean => {
+          return metric.fromCheck === true;
+        })
+          .map((metric: OpenStackMetricDefinition): string => {
+            return metric.metricName;
+          })
+          .sort(),
+      ).toEqual([...Object.values(OpenStackCheckMetric)].sort());
+
+      for (const metric of METRICS) {
+        if (metric.fromCheck) {
+          expect(metric.category).toBe("Checks");
+          // The exporter has none of them: these stand on nothing it could change.
+          expect(OPENSTACK_EXPORTER_SERIES[metric.metricName]).toBeUndefined();
+        }
+      }
+    });
 
     test("every series worked out from libvirt or Ceilometer is here, and says so", () => {
       const named: Array<string> = METRICS.filter(

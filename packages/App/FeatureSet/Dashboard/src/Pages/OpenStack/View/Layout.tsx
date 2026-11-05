@@ -56,6 +56,10 @@ const OpenStackCloudViewBody: FunctionComponent<{
           floatingIps: summary.floatingIpCount,
           volumes: summary.volumeCount,
           projects: summary.projectCount,
+          stacks: summary.stackCount,
+          containerClusters: summary.containerClusterCount,
+          shares: summary.shareCount,
+          optionalServices: summary.optionalServices,
         });
       })
       .catch(() => {});
