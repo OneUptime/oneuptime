@@ -68,7 +68,13 @@ const OpenStackCloudViewBody: FunctionComponent<{
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getOpenStackBreadcrumbs(path)}
-      sideMenu={<SideMenu modelId={modelId} resourceCounts={resourceCounts} />}
+      sideMenu={
+        <SideMenu
+          modelId={modelId}
+          resourceCounts={resourceCounts}
+          region={region}
+        />
+      }
     >
       <OpenStackRegionBar openStackCloudId={modelId} />
       <Outlet />

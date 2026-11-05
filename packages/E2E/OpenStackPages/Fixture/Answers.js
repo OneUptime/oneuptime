@@ -657,7 +657,7 @@ export function getProjectIdsOfDomain(allRows, domainId) {
 }
 
 // What a cloud's map reads. No estate here is past the stated size, so all of it.
-export function getTopologyRead(allRows) {
+export function getTopologyRead(allRows, regionName) {
   const drawn = new Set([
     "Api",
     "Service",
@@ -672,7 +672,8 @@ export function getTopologyRead(allRows) {
   ]);
   const totalsByKind = {};
   const hosts = new Map();
-  for (const row of allRows) {
+  const rows = ofRegion(allRows, regionName);
+  for (const row of rows) {
     totalsByKind[row.kind] = (totalsByKind[row.kind] || 0) + 1;
     if (row.kind === "Instance" && row.hypervisorName) {
       const key = `${row.regionName}/${row.hypervisorName}`;
@@ -688,7 +689,7 @@ export function getTopologyRead(allRows) {
     projectNames[row.externalId] = row.name;
   }
   return {
-    rows: allRows
+    rows: rows
       .filter((row) => {
         return drawn.has(row.kind);
       })

@@ -102,8 +102,8 @@ import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts"
  *   POST /openstack-resource/domain-projects/:cloudId   { domainId }
  *     How many projects each domain holds, and the IDs a filter by domain narrows to.
  *
- *   POST /openstack-resource/topology/:cloudId
- *     What the cloud's map is drawn from, bounded however large the cloud is.
+ *   POST /openstack-resource/topology/:cloudId   { regionName? }
+ *     What the cloud's or a region's map is drawn from, bounded however large it is.
  *
  *   POST /openstack-resource/reach-of-instance/:cloudId   { instanceId }
  *     What an instance is elsewhere in OneUptime: its host, its Kubernetes node, its services.
@@ -925,6 +925,7 @@ export default class OpenStackResourceAPI extends BaseAPI<
       projectId,
       openStackCloudId,
       now: OneUptimeDate.getCurrentDate(),
+      regionName: this.readRegionName(req),
     });
 
     return Response.sendJsonObjectResponse(

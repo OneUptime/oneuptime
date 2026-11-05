@@ -84,12 +84,16 @@ receivers:
         on_error: send_quiet
 
 processors:
-  # Which cloud and machine each record is from. OneUptime files a record under the
-  # cloud by `openstack.cloud.name`, so keep it the name the cloud's agent uses.
+  # Which cloud, region and machine each record is from: a log line says none of them.
+  # OneUptime files a record under the cloud by `openstack.cloud.name`, so keep it the
+  # name the cloud's agent uses.
   resource:
     attributes:
       - key: openstack.cloud.name
         value: ${env:OPENSTACK_CLOUD_NAME}
+        action: upsert
+      - key: openstack.region.name
+        value: ${env:OPENSTACK_REGION_NAME}
         action: upsert
       - key: openstack.node.name
         value: ${env:OPENSTACK_NODE_NAME}

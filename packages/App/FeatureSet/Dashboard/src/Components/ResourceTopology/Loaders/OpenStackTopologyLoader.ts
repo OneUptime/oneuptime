@@ -25,6 +25,8 @@ import {
   areOpenIssuesUnreadable,
   loadOpenIssues,
 } from "../ResourceTopologyIssuesLoader";
+import { isOpenStackIssueInRegion } from "../../../Pages/OpenStack/Utils/OpenStackRegion";
+import { OpenIssueRecord } from "../ResourceTopologyIssues";
 import { masterTopologyRouteFor } from "../ResourceTopologyLinks";
 import { ResourceTopologyGraph } from "../ResourceTopologyModel";
 import { ResourceTopologyData } from "../ResourceTopologyPage";
@@ -37,6 +39,8 @@ import { ResourceTopologyData } from "../ResourceTopologyPage";
 
 export async function loadOpenStackTopology(
   cloudId: ObjectID,
+  // One region's map. Null draws the whole cloud.
+  regionName: string | null = null,
 ): Promise<ResourceTopologyData> {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -54,7 +58,7 @@ export async function loadOpenStackTopology(
       url: URL.fromString(APP_API_URL.toString())
         .addRoute("/openstack-resource/topology/")
         .addRoute(cloudId.toString()),
-      data: {},
+      data: regionName ? { regionName } : {},
       headers: { ...ModelAPI.getCommonHeaders() },
     }),
     projectId
@@ -83,7 +87,10 @@ export async function loadOpenStackTopology(
     rows: answer.rows,
     instancesByHost: answer.instancesByHost,
     projectNames: answer.projectNames,
-    issues: issues?.records || [],
+    // Another region's are not on this map, and would land on the cloud at the top of it.
+    issues: (issues?.records || []).filter((record: OpenIssueRecord) => {
+      return isOpenStackIssueInRegion(record.seriesLabels, regionName);
+    }),
     now: new Date(),
     truncations: getOpenStackTopologyTruncations(answer),
   });

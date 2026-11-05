@@ -17,11 +17,18 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { keyForOpenStackCloud } from "Common/Utils/Telemetry/EntityKey";
+import { OPENSTACK_REGION_ATTRIBUTE } from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
+import { getOpenStackRegionMetricFilters } from "../Utils/OpenStackRegion";
 
 const OpenStackCloudMetrics: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
 
   const [cloud, setCloud] = useState<OpenStackCloud | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -82,13 +89,18 @@ const OpenStackCloudMetrics: FunctionComponent<
        * itself — that defeats the OR. Drop the attribute fallback (here and
        * in the attributeFilters query merge) once deploy-date + max retention
        * has passed.
+       *
+       * The region is a filter of its own: every series the agent and the probe send says
+       * which region it is from, on the datapoint.
        */}
       <MetricsViewer
         attributeFilters={{
           "resource.openstack.cloud.name": cloud.name,
+          ...getOpenStackRegionMetricFilters(region),
         }}
         attributeFilterDisplayKeys={{
           "resource.openstack.cloud.name": "Cloud",
+          [OPENSTACK_REGION_ATTRIBUTE]: "Region",
         }}
         entityScope={{
           entityKeys: [

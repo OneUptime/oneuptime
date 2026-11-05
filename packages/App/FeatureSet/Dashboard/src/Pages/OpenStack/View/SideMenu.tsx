@@ -31,6 +31,7 @@ import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/D
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import { getOpenStackRegionIssueQuery } from "../Utils/OpenStackRegion";
 
 // From the inventory summary. A kind it doesn't count shows no badge.
 export interface ResourceCounts {
@@ -47,6 +48,8 @@ export interface ResourceCounts {
 export interface ComponentProps {
   modelId: ObjectID;
   resourceCounts?: ResourceCounts | undefined;
+  // The region being read, so a badge says what its page will list.
+  region?: string | null | undefined;
 }
 
 const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
@@ -407,6 +410,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           countQuery={{
             projectId: projectId!,
             openStackClouds: new Includes([props.modelId]),
+            ...(props.region
+              ? { seriesLabels: getOpenStackRegionIssueQuery(props.region) }
+              : {}),
             currentIncidentStateId: new Includes(
               unresolvedIncidentStates.map((state: IncidentState) => {
                 return state.id!;
@@ -428,6 +434,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           countQuery={{
             projectId: projectId!,
             openStackClouds: new Includes([props.modelId]),
+            ...(props.region
+              ? { seriesLabels: getOpenStackRegionIssueQuery(props.region) }
+              : {}),
             currentAlertStateId: new Includes(
               unresolvedAlertStates.map((state: AlertState) => {
                 return state.id!;
