@@ -95,6 +95,8 @@ import PodmanHostLabelRuleService from "./PodmanHostLabelRuleService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import OpenStackCloudService from "./OpenStackCloudService";
 import OpenStackCloudConnectionTestService from "./OpenStackCloudConnectionTestService";
+import OpenStackProjectUsageService from "./OpenStackProjectUsageService";
+import OpenStackBudgetService from "./OpenStackBudgetService";
 import OpenStackCloudCheckService from "./OpenStackCloudCheckService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
@@ -707,6 +709,8 @@ const services: Array<BaseService> = [
   ProxmoxClusterService,
   OpenStackCloudService,
   OpenStackCloudConnectionTestService,
+  OpenStackProjectUsageService,
+  OpenStackBudgetService,
   OpenStackCloudCheckService,
   DockerSwarmClusterService,
   CephClusterService,

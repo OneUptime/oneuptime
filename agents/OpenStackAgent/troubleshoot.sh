@@ -877,7 +877,7 @@ fi
 # than one type, and which it uses depends on the release.
 catalog_url() {
   local service="$1" region="$2" type="" url=""
-  for type in "$service" $([ "$service" = "block-storage" ] && echo "volumev3 volume"); do
+  for type in "$service" $([ "$service" = "block-storage" ] && echo "volumev3 volume") $([ "$service" = "sharev2" ] && echo "shared-file-system"); do
     url=$(printf '%s\n' "$CATALOG" | awk -F '\t' -v t="$type" -v r="$region" '$1 == t && $2 == r && $3 == "public" { print $4; exit }')
     if [ -n "$url" ]; then
       printf '%s' "${url%/}"
@@ -1100,6 +1100,11 @@ report_read() {
       pass "$service: $read — reads everything$REASON"
       COUNT_ALL=$((COUNT_ALL+1))
       ;;
+    project)
+      # All there is: nothing to fix, and no credential reads more.
+      pass "$service: $read — reads its own project's$REASON"
+      COUNT_ALL=$((COUNT_ALL+1))
+      ;;
     own)
       warn "$service: $read — may be own project only$REASON"
       detail "Goes without it: $cost"
@@ -1184,7 +1189,17 @@ else
         RESULT="own"
         REASON=" (as for the networks: a subnet of a shared network is anyone's to see)"
       fi
+      # Recorded: Barbican has no list across projects, for anyone.
+      if [ "$SERVICE" = "key-manager" ] && [ "$RESULT" = "all" ]; then
+        RESULT="project"
+        REASON=" (Barbican answers any credential about its own project alone)"
+      fi
       report_read "$SERVICE" "$READ" "$COST" "$FIX"
+      # Recorded: keystonemiddleware checks access rules against the token's catalog, and with
+      # none Swift raises KeyError: 'catalog'.
+      if [ "$SERVICE" = "object-store" ] && [ "$RESP_CODE" = "500" ] && [ "$HAS_ACCESS_RULES" = 1 ]; then
+        detail "Swift answers a credential with access rules 500 while [filter:authtoken] in proxy-server.conf has include_service_catalog = False. Set it to True beside service_type = object-store, and restart the proxy."
+      fi
     done 3<<'READS'
 identity|projects|/v3/projects|projects|-|-|the Projects page, and project names on instances, volumes and networks.|policy:keystone:"identity:list_projects": "rule:admin_required or role:oneuptime_monitoring"
 identity|domains|/v3/domains|domains|-|-|domains on the Projects page.|policy:keystone:"identity:list_domains": "rule:admin_required or role:oneuptime_monitoring"
@@ -1222,9 +1237,16 @@ orchestration|stacks|/stacks|stacks|project|-|other projects' stacks, and whose 
 orchestration|services|/services|services|-|-|Heat's engines.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 container-infra|clusters|/clusters|clusters|*|OpenStack-API-Version: container-infra latest|other projects' Kubernetes clusters.|text:Magnum shows anything less none of them, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 container-infra|services|/mservices|mservices|-|OpenStack-API-Version: container-infra latest|Magnum's conductors.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+baremetal|conductors|/v1/conductors|conductors|-|X-OpenStack-Ironic-API-Version: 1.82|Ironic's conductors on the Services page.|text:Only system scope reads these: Ironic refuses a project's credential, an admin's too.
 sharev2|shares, all projects|/shares/detail?all_tenants=1|shares|project_id|-|other projects' shares.|text:Manila shows anything less its own project's, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 sharev2|services|/services|services|-|X-OpenStack-Manila-API-Version: 2.65|Manila's services.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 sharev2|pools|/scheduler-stats/pools/detail|pools|-|X-OpenStack-Manila-API-Version: 2.65|Manila's pools.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+dns|zones, all projects|/v2/zones?limit=100|zones|project_id|X-Auth-All-Projects: true|zones and recordsets in other projects, and the alerts on them.|text:Designate refuses anything less a list of every project's zones. To read them: use a full-view credential (README.md, "Level 1: Full view").
+key-manager|secrets|/v1/secrets?limit=100|secrets|-|-|how many secrets this project holds. OneUptime reads no secret itself.|text:Barbican refuses a plain reader, and answers an admin about its own project alone. To read this project's: use a full-view credential (README.md, "Level 1: Full view").
+key-manager|orders|/v1/orders?limit=100|orders|-|-|how many orders this project holds, and any that failed.|text:Barbican refuses a plain reader, and answers an admin about its own project alone. To read this project's: use a full-view credential (README.md, "Level 1: Full view").
+object-store|own account|?limit=100|containers|-|-|this project's containers and how much they hold.|text:Swift refuses a plain reader, and answers about one project's account at a time. To read this one: use a full-view credential (README.md, "Level 1: Full view").
+database|instances, all projects|/mgmt/instances?include_clustered=False&deleted=False&limit=100|instances|-|-|database instances, and the alerts on them.|text:Only an admin reads Trove's management API: use a full-view credential (README.md, "Level 1: Full view").
+metric|status|/v1/status?details=true|storage|-|-|Gnocchi's backlog and what is processing it, and the alerts on them.|text:Only an admin reads this: use a full-view credential (README.md, "Level 1: Full view").
 READS
     check_project_holdings "$REGION"
   done

@@ -1352,6 +1352,8 @@ function foldVolume(data: {
    */
   if (getLabel(data.attributes, "updated_at")) {
     entry.facts["pool"] = getLabel(data.attributes, "pool");
+    // None, from a probe, is a volume not made from an image. Nothing at all is the exporter's.
+    entry.facts["imageId"] = getLabel(data.attributes, "image_id");
   } else {
     setFact(entry, "pool", getLabel(data.attributes, "pool"));
   }
@@ -1437,6 +1439,7 @@ function foldSnapshot(data: {
   setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
   entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
   setFact(entry, "volumeId", getLabel(data.attributes, "volume_id"));
+  setFact(entry, "createdAt", getLabel(data.attributes, "created_at"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
 }
 
@@ -1542,6 +1545,7 @@ function foldImage(data: {
     setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
     setFact(entry, "visibility", getLabel(data.attributes, "visibility"));
     setBooleanFact(entry, "isHidden", getLabel(data.attributes, "hidden"));
+    setBooleanFact(entry, "isProtected", getLabel(data.attributes, "protected"));
     setFact(entry, "createdAtSeconds", data.value);
   } else {
     entry.diskCapacityBytes = data.value;
