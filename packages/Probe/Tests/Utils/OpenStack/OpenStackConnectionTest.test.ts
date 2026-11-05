@@ -1883,6 +1883,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Database]: "database",
     [OpenStackServiceType.Metric]: "metric",
     [OpenStackServiceType.Dns]: "dns",
+    [OpenStackServiceType.Rating]: "rating",
   };
 
   test.each(

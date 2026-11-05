@@ -46,6 +46,7 @@ import {
   OpenStackDnsInventory,
   OpenStackMetricInventory,
   OpenStackPlacementInventory,
+  OpenStackRatingInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
 } from "./OpenStackInventory";
@@ -98,6 +99,7 @@ import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
 import collectOrchestration from "./Collectors/OrchestrationCollector";
 import collectPlacement from "./Collectors/PlacementCollector";
+import collectRating from "./Collectors/RatingCollector";
 import collectBareMetal, {
   IRONIC_MICROVERSION,
 } from "./Collectors/BareMetalCollector";
@@ -215,6 +217,7 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Database,
   OpenStackServiceType.Metric,
   OpenStackServiceType.Dns,
+  OpenStackServiceType.Rating,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -1398,6 +1401,12 @@ export default class OpenStackCollector {
             const inventory: OpenStackDatabaseInventory = {};
             byService.database = inventory;
             work = collectDatabase(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.Rating: {
+            const inventory: OpenStackRatingInventory = {};
+            byService.rating = inventory;
+            work = collectRating(context(inventory));
             break;
           }
           case OpenStackServiceType.SharedFileSystems: {

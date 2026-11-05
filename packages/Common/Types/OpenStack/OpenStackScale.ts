@@ -354,6 +354,7 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Image]: 0,
     [OpenStackServiceType.Orchestration]: 0,
     [OpenStackServiceType.ContainerInfra]: 0,
+    [OpenStackServiceType.Rating]: 0,
     [OpenStackServiceType.SharedFileSystems]: 0,
     [OpenStackServiceType.Database]: 0,
     [OpenStackServiceType.Metric]: 0,
