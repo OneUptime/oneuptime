@@ -595,7 +595,7 @@ The cloud's **Recommendations** page lists what's been left unused, what each wo
 |---|---|---|---|
 | Hypervisors that could be emptied | 20% or less of its vCPUs and memory are allocated, everything on it fits on the other hosts in its zone and aggregates, and the zone could still lose a host afterwards | The whole host | `openstack hypervisor list --long` |
 | Instances shut off for a long time | Shut off for 30 days | Their vCPUs, memory and local disk | `openstack server list --all-projects --status SHUTOFF --long` |
-| Volumes attached to nothing | Available for 30 days, attached to nothing | Their storage | `openstack volume list --all-projects --status available --long` |
+| Volumes attached to nothing | Available for 30 days, attached to nothing, and not one of Cinder's own `image-<id>` volumes, which the command also lists | Their storage | `openstack volume list --all-projects --status available --long` |
 | Old volume snapshots | Made 90 days ago. Probe only | Their storage | `openstack volume snapshot list --all-projects --long` |
 | Images nothing was booted from | Private or shared, 30 days old, not protected, and no instance or volume came from it. Probe only | Their storage | `openstack image list --long` |
 | Floating IPs nothing is using | Unassociated for 7 days | An address | `openstack floating ip list --status DOWN --long` |

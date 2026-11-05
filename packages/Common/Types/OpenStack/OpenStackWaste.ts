@@ -84,7 +84,7 @@ export const OPENSTACK_WASTE_RULES: Readonly<
   [OpenStackWasteRuleId.UnattachedVolume]: {
     title: translationKey("Volumes attached to nothing"),
     description: translationKey(
-      "Available for 30 days or more, with no instance attached. They hold their space on the backend until someone deletes them.",
+      "Available for 30 days or more, with no instance attached. They hold their space on the backend until someone deletes them. Cinder's own image- volumes aren't counted, though the command lists them.",
     ),
     command: "openstack volume list --all-projects --status available --long",
   },
@@ -280,6 +280,15 @@ function isOlderThan(data: {
   );
 }
 
+/*
+ * Volumes Cinder keeps for an image: its image-volume cache, and what's behind an image on Glance's
+ * Cinder store. Each is named image-<the image's id>, and sits available and attached to nothing for
+ * as long as it's doing its job. A real cloud showed this: making a volume from an image left one in
+ * the service project, which the rig's usage run recorded.
+ */
+const OPENSTACK_IMAGE_VOLUME_NAME: RegExp =
+  /^image-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Exactly `available`: attaching, detaching, backing up, in error or in use all say someone's at it.
 export function isOpenStackVolumeWaste(data: {
   row: OpenStackWasteRow;
@@ -291,6 +300,7 @@ export function isOpenStackVolumeWaste(data: {
     data.row.status === "available" &&
     "attachedToInstance" in facts &&
     !facts["attachedToInstance"] &&
+    !OPENSTACK_IMAGE_VOLUME_NAME.test(data.row.name || "") &&
     isOlderThan({
       since: getOpenStackWasteSince(data.row),
       now: data.now,
