@@ -132,10 +132,13 @@ export const operatorsForControl: OperatorsForControlFunction = (
       operators = NUMBER_OPERATORS;
       break;
     case ModelColumnControl.Date:
+    case ModelColumnControl.DateOnly:
       operators = DATE_OPERATORS;
       break;
     case ModelColumnControl.ObjectId:
     case ModelColumnControl.Record:
+    case ModelColumnControl.Choice:
+    case ModelColumnControl.ChoiceList:
     case ModelColumnControl.Color:
       operators = IDENTIFIER_OPERATORS;
       break;
@@ -182,7 +185,8 @@ export const operatorLabelFor: OperatorLabelForFunction = (
   control: ModelColumnControl,
 ): string => {
   const overrides: Partial<Record<DictionaryFilterOperator, string>> =
-    control === ModelColumnControl.Date
+    control === ModelColumnControl.Date ||
+    control === ModelColumnControl.DateOnly
       ? DATE_OPERATOR_LABELS
       : control === ModelColumnControl.Boolean
         ? BOOLEAN_OPERATOR_LABELS

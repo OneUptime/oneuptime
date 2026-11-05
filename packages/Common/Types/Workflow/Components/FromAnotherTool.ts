@@ -606,15 +606,17 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
       required: false,
       isAdvanced: true,
       placeholder: DEFAULT_OUTSIDE_ID_FIELD,
+      customFieldNameOf: kind.tableName,
     },
     {
       id: ids.customFields,
       name: "Custom Fields",
-      description: `More custom fields a new ${n} gets, as a JSON object. The Outside ID is added to them.`,
+      description: `More custom fields a new ${n} gets. The Outside ID is added to them.`,
       type: ComponentInputType.JSON,
       required: false,
       isAdvanced: true,
       placeholder: '{"caseNumber": "CAS-1"}',
+      customFieldsOf: kind.tableName,
     },
     ...(affectedResources ? [{ ...affectedResources, isAdvanced: true }] : []),
     {

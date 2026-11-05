@@ -31,6 +31,12 @@ export enum ModelColumnControl {
   Record = "Record",
   /** A list of the project's records, picked from a list of them. */
   RecordList = "RecordList",
+  /** A calendar date with no time of day: a custom field's. */
+  DateOnly = "DateOnly",
+  /** One of a custom field's own options. */
+  Choice = "Choice",
+  /** Several of a custom field's own options. */
+  ChoiceList = "ChoiceList",
   /** Buffers, files, nested JSON, monitor steps — no row can hold one. */
   Unsupported = "Unsupported",
 }

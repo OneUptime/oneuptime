@@ -425,11 +425,13 @@ describe("jsonOnlyColumns", () => {
   };
 
   test("names the lists and blobs a row cannot hold", () => {
-    expect(ids(ColumnUse.Create)).toEqual([
-      "monitors",
-      "customFields",
-      "telemetryQuery",
-    ]);
+    expect(ids(ColumnUse.Create)).toEqual(["monitors", "telemetryQuery"]);
+  });
+
+  test("never names the column custom fields live in: each is a field of its own", () => {
+    for (const use of ALL_USES) {
+      expect(ids(use)).not.toContain("customFields");
+    }
   });
 
   test("never names a relation set through its own ID column", () => {
@@ -445,7 +447,7 @@ describe("jsonOnlyColumns", () => {
   });
 
   test("never names a field this use cannot write at all", () => {
-    expect(ids(ColumnUse.Update)).toEqual(["monitors", "customFields"]);
+    expect(ids(ColumnUse.Update)).toEqual(["monitors"]);
   });
 
   test("never names a field that is offered as a row", () => {

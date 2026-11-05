@@ -45232,5 +45232,13 @@
   "Pick from the list": "Pick from the list",
   "Pick from the list instead": "Pick from the list instead",
   "There is nothing to pick from yet.": "There is nothing to pick from yet.",
-  "Use “{{value}}”": "Use “{{value}}”"
+  "Use “{{value}}”": "Use “{{value}}”",
+  "Custom fields": "Custom fields",
+  "Custom field": "Custom field",
+  "This project has no custom field with this name.": "This project has no custom field with this name.",
+  "Any custom field": "Any custom field",
+  "Passes on every custom field: {{fields}}": "Passes on every custom field: {{fields}}",
+  "Choice": "Choice",
+  "Choices": "Choices",
+  "This project has no custom fields for these records yet.": "This project has no custom fields for these records yet."
 }

@@ -29,6 +29,8 @@ import ValuePickerPopup, {
   ValuePickerPopupMode,
 } from "../ValuePicker/ValuePickerPopup";
 import { TYPE_A_VALUE_LABEL } from "../ValuePicker/ValueSingleField";
+import { CustomFieldDropdownOption } from "../../../../Types/CustomField/CustomFieldDropdownOption";
+import CustomFieldChoiceInput from "../CustomFields/CustomFieldChoiceInput";
 import LinkedRecordInput, {
   PickFromListButton,
 } from "../LinkedRecord/LinkedRecordInput";
@@ -63,6 +65,8 @@ export interface ComponentProps {
    * lists by name (LinkedRecord/LinkedRecordInput).
    */
   linkedTableName?: string | undefined;
+  // A custom field's own options, which a Choice or ChoiceList column lists.
+  choices?: Array<CustomFieldDropdownOption> | undefined;
   placeholder?: string | undefined;
   /**
    * Every edit reports as one change.
@@ -260,7 +264,38 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type RenderChoiceListFunction = () => ReactElement;
+
+  // Several of a custom field's options, however many it holds in a record.
+  const renderChoiceList: RenderChoiceListFunction = (): ReactElement => {
+    return (
+      <CustomFieldChoiceInput
+        choices={props.choices || []}
+        isList={true}
+        values={props.values}
+        onChangeList={(values: Array<string>) => {
+          props.onChange({ values: values });
+        }}
+        onPickReference={(reference: string) => {
+          props.onChange({ values: [...props.values, reference] });
+        }}
+        ariaLabelledby={props.ariaLabelledby}
+        autoFocus={props.autoFocus}
+        dataTestId={dataTestId}
+      />
+    );
+  };
+
+  const listsChoices: boolean =
+    Boolean(props.choices) &&
+    (props.control === ModelColumnControl.Choice ||
+      props.control === ModelColumnControl.ChoiceList);
+
   if (props.operatorOption?.expectsMultiValue) {
+    if (listsChoices) {
+      return renderChoiceList();
+    }
+
     return props.control === ModelColumnControl.Record && props.linkedTableName
       ? renderRecordList()
       : renderValuesBox();
@@ -293,6 +328,8 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
     (props.control === ModelColumnControl.Record ||
       props.control === ModelColumnControl.RecordList);
 
+  const hasList: boolean = listsRecords || listsChoices;
+
   // A typed column holding a value from an earlier step: the value, as a chip.
   if (isReference) {
     return (
@@ -310,7 +347,7 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        {isViewOnly ? null : listsRecords ? (
+        {isViewOnly ? null : hasList ? (
           <PickFromListButton
             dataTestId={`${dataTestId}-pick-from-list`}
             onClick={() => {
@@ -321,6 +358,30 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
           typeAValueButton
         )}
       </div>
+    );
+  }
+
+  // A custom field's own options, unless kept exactly as it was saved.
+  if (listsChoices && props.valueMode !== ColumnValueMode.Raw) {
+    if (props.control === ModelColumnControl.ChoiceList) {
+      return renderChoiceList();
+    }
+
+    return (
+      <CustomFieldChoiceInput
+        choices={props.choices || []}
+        value={props.text}
+        onChange={setTextAndDetectReference}
+        onPickReference={(reference: string) => {
+          props.onChange({
+            text: reference,
+            valueMode: ColumnValueMode.Reference,
+          });
+        }}
+        ariaLabelledby={props.ariaLabelledby}
+        autoFocus={props.autoFocus}
+        dataTestId={dataTestId}
+      />
     );
   }
 
@@ -420,6 +481,22 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             type={InputType.NUMBER}
             value={props.text}
             placeholder={props.placeholder || "0"}
+            outerDivClassName={INPUT_WRAPPER_CLASS}
+            ariaLabelledby={props.ariaLabelledby}
+            dataTestId={props.dataTestId}
+            tabIndex={props.tabIndex}
+            autoFocus={props.autoFocus}
+            onChange={(value: string) => {
+              props.onChange({ text: value });
+            }}
+          />
+        );
+
+      case ModelColumnControl.DateOnly:
+        return (
+          <Input
+            type={InputType.DATE}
+            value={props.text}
             outerDivClassName={INPUT_WRAPPER_CLASS}
             ariaLabelledby={props.ariaLabelledby}
             dataTestId={props.dataTestId}

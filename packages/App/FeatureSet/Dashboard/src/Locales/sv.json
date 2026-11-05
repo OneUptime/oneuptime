@@ -45232,5 +45232,13 @@
   "Pick from the list": "Välj från listan",
   "Pick from the list instead": "Välj från listan i stället",
   "There is nothing to pick from yet.": "Det finns inget att välja mellan ännu.",
-  "Use “{{value}}”": "Använd ”{{value}}”"
+  "Use “{{value}}”": "Använd ”{{value}}”",
+  "Custom fields": "Anpassade fält",
+  "Custom field": "Anpassat fält",
+  "This project has no custom field with this name.": "Det här projektet har inget anpassat fält med det här namnet.",
+  "Any custom field": "Valfritt anpassat fält",
+  "Passes on every custom field: {{fields}}": "Skickar vidare alla anpassade fält: {{fields}}",
+  "Choice": "Val",
+  "Choices": "Flera val",
+  "This project has no custom fields for these records yet.": "Det här projektet har ännu inga anpassade fält för de här posterna."
 }
