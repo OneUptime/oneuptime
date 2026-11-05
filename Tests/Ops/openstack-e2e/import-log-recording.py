@@ -9,7 +9,8 @@ because import-recording.py rewrites <release>/ whole:
 
     journal/<phase>.jsonl        each kept line the journal held, with its fields, as written
     files/<phase>.jsonl          each kept line of a service's log file, in the order written
-    notifications/<phase>.jsonl  each kept notification's whole line, as written (JSON text)
+    notifications/<phase>.jsonl  each kept notification's whole line, the same way as the two
+                                 above: a phase's journal, and <phase>-files for its files
     otlp/<phase>.jsonl           records a real collector sent, one to a line, in OTLP's shape
     failures/<phase>.jsonl       every record a real collector sent saying something failed
     api/<phase>/                 Nova's instance actions as the API answered them
@@ -315,9 +316,6 @@ def import_journal(phase_dir, phase, out):
             continue
         clean = replace_secrets(message)
         assert_clean(clean, f"{phase} journal")
-        if NOTIFICATION_LOGGER in clean:
-            notifications.append(json.dumps(clean))
-            continue
         fields = {
             key: replace_secrets(str(entry[key]))
             for key in JOURNAL_FIELDS
@@ -326,7 +324,11 @@ def import_journal(phase_dir, phase, out):
         for value in fields.values():
             assert_clean(value, f"{phase} journal field")
         fields["MESSAGE"] = clean
-        kept_journal.append(json.dumps(fields, sort_keys=True))
+        line = json.dumps(fields, sort_keys=True)
+        if NOTIFICATION_LOGGER in clean:
+            notifications.append(line)
+        else:
+            kept_journal.append(line)
 
     write_lines(os.path.join(out, "journal", f"{phase}.jsonl"), kept_journal)
     write_lines(os.path.join(out, "notifications", f"{phase}.jsonl"), notifications)

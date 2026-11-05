@@ -399,6 +399,17 @@ function readNeutronResource(
   );
 }
 
+// An instance's own port says so: the instance's Logs tab shows what names its UUID.
+function readInstanceOfResource(
+  family: string,
+  resource: Record<string, unknown> | null,
+): string {
+  return family === "port" &&
+    readText(resource, "device_owner").startsWith("compute:")
+    ? readText(resource, "device_id")
+    : "";
+}
+
 // The first word of an event type: nova's instance., compute.instance. and the rest.
 function readFamily(type: string): string {
   const unversioned: string = "compute.instance.";
@@ -997,7 +1008,9 @@ export function readOpenStackNotification(data: {
     instanceId:
       part && part.kind === OpenStackResourceKind.Instance
         ? part.id
-        : readText(fields, "instance_uuid", "instance_id") || instanceFromLine,
+        : readText(fields, "instance_uuid", "instance_id") ||
+          readInstanceOfResource(family, resource) ||
+          instanceFromLine,
     host,
     hypervisor,
     movesState,

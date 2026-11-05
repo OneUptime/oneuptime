@@ -510,6 +510,11 @@ describe("an instance named in a line that has no prefix for it", () => {
     [`instance_uuid=${INSTANCE} volume attached`],
     [`{'instance_id': '${INSTANCE}'}`],
     [`Instance ${INSTANCE} is gone`],
+    // Read off a real recording: how Neutron and Placement say it.
+    [`Sending events: [{'server_uuid': '${INSTANCE}', 'name': 'network-vif-plugged'}]`],
+    [`Port updated, device_id=${INSTANCE}`],
+    [`Allocations for consumer ${INSTANCE} deleted`],
+    [`Starting to schedule for instances: ['${INSTANCE}']`],
   ])("%s", (message: string) => {
     const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
       attributes: {},
@@ -619,6 +624,27 @@ describe("the failures every operator knows by their words", () => {
       "oslo_messaging.exceptions.MessagingTimeout: Timed out waiting for a reply to message ID 1",
       OpenStackLogSignal.RabbitMqConnectionLost,
     ],
+    // Read off a real recording, of RabbitMQ stopped under a running cloud.
+    [
+      "ERROR",
+      "ERROR oslo.messaging._drivers.impl_rabbit [None req-a None None] Connection failed: [Errno 111] ECONNREFUSED (retrying in 1.0 seconds): ConnectionRefusedError: [Errno 111] ECONNREFUSED",
+      OpenStackLogSignal.RabbitMqConnectionLost,
+    ],
+    [
+      "ERROR",
+      "ERROR oslo.messaging._drivers.impl_rabbit [-] Connection failed: timed out (retrying in 2.0 seconds): socket.timeout: timed out",
+      OpenStackLogSignal.RabbitMqConnectionLost,
+    ],
+    [
+      "ERROR",
+      "Unable to connect to AMQP server on 192.0.2.10:5672 after inf tries: Basic.publish: (404) NOT_FOUND",
+      OpenStackLogSignal.RabbitMqConnectionLost,
+    ],
+    [
+      "WARNING",
+      "SQL connection failed. 10 attempts left.",
+      OpenStackLogSignal.DatabaseConnectionLost,
+    ],
     [
       "WARNING",
       "Lost connection to MySQL server during query",
@@ -664,6 +690,15 @@ describe("the failures every operator knows by their words", () => {
   test("an ordinary error says none of them", () => {
     expect(
       readOpenStackLogSignal({ level: "ERROR", text: "Disk is full" }),
+    ).toBeNull();
+  });
+
+  test("a connection failing somewhere else is not the bus", () => {
+    expect(
+      readOpenStackLogSignal({
+        level: "ERROR",
+        text: "ERROR nova.virt.libvirt.host [-] Connection failed: to the hypervisor",
+      }),
     ).toBeNull();
   });
 

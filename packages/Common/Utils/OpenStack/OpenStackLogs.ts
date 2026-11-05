@@ -759,7 +759,7 @@ const SIGNAL_PHRASES: ReadonlyArray<{
     phrases: [
       "MessagingTimeout",
       "Timed out waiting for a reply to message ID",
-      "Connection failed: [Errno 111]",
+      "Unable to connect to AMQP server",
     ],
   },
   {
@@ -771,6 +771,7 @@ const SIGNAL_PHRASES: ReadonlyArray<{
       "MySQL server has gone away",
       "Lost connection to server during query",
       "could not connect to server",
+      "SQL connection failed",
     ],
   },
   {
@@ -816,6 +817,14 @@ export function readOpenStackLogSignal(data: {
   const amqp: number = text.indexOf("AMQP server on ");
 
   if (amqp !== -1 && text.indexOf("is unreachable", amqp) !== -1) {
+    return OpenStackLogSignal.RabbitMqConnectionLost;
+  }
+
+  // oslo.messaging's own words for losing it, which name no bus: [Errno 111], timed out.
+  if (
+    text.indexOf("impl_rabbit") !== -1 &&
+    text.indexOf("Connection failed: ") !== -1
+  ) {
     return OpenStackLogSignal.RabbitMqConnectionLost;
   }
 
@@ -917,37 +926,58 @@ function isUwsgiRequestLine(body: string): boolean {
 }
 
 /*
- * An instance named in a line that was not written with its prefix: "instance <uuid>",
- * instance_uuid=<uuid>, 'instance_id': '<uuid>'. An instance's Logs tab shows what names
- * its UUID, and a Neutron or Cinder line says it this way, when it says it.
+ * What a line calls an instance when it was not written with its prefix: "instance <uuid>",
+ * instance_uuid=<uuid>, 'instance_id': '<uuid>'. Neutron says a port's device_id and its
+ * calls to Nova's server_uuid, and Placement an allocation's consumer. A port's device can be a
+ * router, and a consumer a migration: then this says an instance that is none, and no instance's
+ * page ever asks for it.
+ */
+const INSTANCE_MENTIONS: ReadonlyArray<string> = [
+  "instance",
+  "server_uuid",
+  "device_id",
+  "consumer",
+];
+
+/*
+ * An instance named in a line that was not written with its prefix. An instance's Logs tab shows
+ * what names its UUID, and a Neutron or Cinder line says it this way, when it says it.
  */
 function findInstanceMention(message: string): string {
   const text: string = message.slice(0, MAX_INSTANCE_MENTION_SCAN_LENGTH);
   const lower: string = text.toLowerCase();
-  let from: number = 0;
 
-  for (;;) {
-    const at: number = lower.indexOf("instance", from);
+  for (const mention of INSTANCE_MENTIONS) {
+    let from: number = 0;
 
-    if (at === -1) {
-      return "";
-    }
+    for (;;) {
+      const at: number = lower.indexOf(mention, from);
 
-    let position: number = at + "instance".length;
-    const limit: number = Math.min(text.length, position + 16);
-
-    while (position < limit) {
-      const code: number = text.charCodeAt(position);
-
-      if (isHexDigit(code) && isOpenStackUuid(text.slice(position, position + UUID_LENGTH))) {
-        return text.slice(position, position + UUID_LENGTH);
+      if (at === -1) {
+        break;
       }
 
-      position++;
-    }
+      let position: number = at + mention.length;
+      const limit: number = Math.min(text.length, position + 16);
 
-    from = at + "instance".length;
+      while (position < limit) {
+        const code: number = text.charCodeAt(position);
+
+        if (
+          isHexDigit(code) &&
+          isOpenStackUuid(text.slice(position, position + UUID_LENGTH))
+        ) {
+          return text.slice(position, position + UUID_LENGTH);
+        }
+
+        position++;
+      }
+
+      from = at + mention.length;
+    }
   }
+
+  return "";
 }
 
 const SEVERITY_BY_LEVEL: ReadonlyMap<string, number> = new Map<string, number>([

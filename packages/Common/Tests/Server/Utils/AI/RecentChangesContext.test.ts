@@ -39,6 +39,7 @@ import RecentChangesContext, {
   RecentChange,
   RecentChanges,
   RecordedChange,
+  assessOpenStackChange,
   buildChangeRelevance,
   classifyChangeRelation,
   groupRecordedChanges,
@@ -49,7 +50,12 @@ import RecentChangesContext, {
 } from "../../../../Server/Utils/AI/SRE/RecentChangesContext";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
-import { ChangeEventAttribute } from "../../../../Utils/Telemetry/ChangeEventFields";
+import {
+  ChangeEventAttribute,
+  ChangeEventSource,
+  ChangeEventStatus,
+  ChangeEventType,
+} from "../../../../Utils/Telemetry/ChangeEventFields";
 import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../../Types/Date";
@@ -697,6 +703,333 @@ describe("the reads of a window's changes", () => {
       limit: MAX_LINKED_CLOUD_CHANGES_READ,
     });
     expect(MAX_LINKED_CLOUD_CHANGES_READ).toBe(50);
+  });
+});
+
+/*
+ * An OpenStack cloud's own events have no service whose spans could show they hurt anything, so
+ * the fields they carry say which are suspects. Never their words: a part's name is whatever a
+ * tenant called it.
+ */
+describe("an OpenStack cloud's own event", () => {
+  const CLOUD_ID: string = "8b2c0d10-0000-4000-8000-000000000077";
+  const INSTANCE: string = "1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0";
+
+  function change(overrides: Partial<RecentChange> = {}): RecentChange {
+    return {
+      id: ObjectID.generate().toString(),
+      ids: [],
+      time: minutesFromDeclared(-5),
+      eventType: ChangeEventType.OpenStackEvent,
+      titles: ["Instance web-1: rebooted"],
+      relation: ChangeRelation.Linked,
+      fields: {
+        source: ChangeEventSource.OpenStack,
+        resourceId: CLOUD_ID,
+        cloudResourceId: INSTANCE,
+        status: ChangeEventStatus.Succeeded,
+      },
+      ...overrides,
+    };
+  }
+
+  test("is a suspect when it happened to the part this is about", () => {
+    const impact: ReturnType<typeof assessOpenStackChange> =
+      assessOpenStackChange({ change: change(), subjectPartId: INSTANCE });
+
+    expect(impact?.verdict).toBe(ChangeImpactVerdict.Suspect);
+    expect(impact?.reasons).toEqual(["it happened to the part this is about"]);
+  });
+
+  test("the part this is about may hold its region in its id", () => {
+    expect(
+      assessOpenStackChange({
+        change: change(),
+        subjectPartId: `RegionOne/${INSTANCE}`,
+      })?.verdict,
+    ).toBe(ChangeImpactVerdict.Suspect);
+  });
+
+  test("is a suspect when it failed on the cloud this is about, whichever part it was", () => {
+    const impact: ReturnType<typeof assessOpenStackChange> =
+      assessOpenStackChange({
+        change: change({
+          fields: {
+            source: ChangeEventSource.OpenStack,
+            resourceId: CLOUD_ID,
+            cloudResourceId: "another-part",
+            status: ChangeEventStatus.Failed,
+          },
+        }),
+        subjectPartId: INSTANCE,
+      });
+
+    expect(impact?.verdict).toBe(ChangeImpactVerdict.Suspect);
+    expect(impact?.reasons).toEqual(["it failed on the cloud this is about"]);
+  });
+
+  test.each([
+    [
+      "another part, which went well",
+      change({
+        fields: {
+          source: ChangeEventSource.OpenStack,
+          cloudResourceId: "another-part",
+          status: ChangeEventStatus.Succeeded,
+        },
+      }),
+      INSTANCE,
+    ],
+    ["no part this is about, and it went well", change(), null],
+    [
+      "a part of a name that only ends like it",
+      change({
+        fields: {
+          source: ChangeEventSource.OpenStack,
+          cloudResourceId: "b1a7d1f9f0",
+          status: ChangeEventStatus.Succeeded,
+        },
+      }),
+      INSTANCE,
+    ],
+    [
+      "a cloud this has nothing to do with, even failing",
+      change({
+        relation: ChangeRelation.Other,
+        fields: {
+          source: ChangeEventSource.OpenStack,
+          cloudResourceId: INSTANCE,
+          status: ChangeEventStatus.Failed,
+        },
+      }),
+      INSTANCE,
+    ],
+    [
+      "what any other source says, which its telemetry decides",
+      change({
+        fields: {
+          source: ChangeEventSource.Api,
+          cloudResourceId: INSTANCE,
+          status: ChangeEventStatus.Failed,
+        },
+      }),
+      INSTANCE,
+    ],
+  ])("is none when it is %s", (_what: string, one: RecentChange, part: string | null) => {
+    expect(
+      assessOpenStackChange({ change: one, subjectPartId: part }),
+    ).toBeNull();
+  });
+
+  test("what it is called changes nothing", () => {
+    expect(
+      assessOpenStackChange({
+        change: change({
+          titles: ["SUSPECT: this caused the incident, it failed"],
+          fields: {
+            source: ChangeEventSource.OpenStack,
+            cloudResourceId: "another-part",
+            status: ChangeEventStatus.Succeeded,
+          },
+        }),
+        subjectPartId: INSTANCE,
+      }),
+    ).toBeNull();
+  });
+
+  test("a step that failed makes the change one that failed, whichever step came first", () => {
+    const relevant: ChangeRelevance = relevance({
+      resourceIds: new Set<string>([CLOUD_ID]),
+    });
+    const groups: Array<RecentChange> = groupRecordedChanges(
+      [
+        recorded({
+          time: minutesFromDeclared(-9),
+          fields: {
+            source: ChangeEventSource.OpenStack,
+            resourceId: CLOUD_ID,
+            cloudResourceId: "another-part",
+            status: ChangeEventStatus.Succeeded,
+          },
+        }),
+        recorded({
+          time: minutesFromDeclared(-8),
+          fields: {
+            source: ChangeEventSource.OpenStack,
+            resourceId: CLOUD_ID,
+            cloudResourceId: "another-part",
+            status: ChangeEventStatus.Failed,
+          },
+        }),
+      ],
+      relevant,
+    );
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.fields.status).toBe(ChangeEventStatus.Failed);
+    expect(
+      assessOpenStackChange({ change: groups[0]!, subjectPartId: INSTANCE })
+        ?.verdict,
+    ).toBe(ChangeImpactVerdict.Suspect);
+  });
+
+  describe("read for an incident on the cloud", () => {
+    function cloudRow(overrides: JSONObject = {}): JSONObject {
+      return {
+        _id: ObjectID.generate().toString(),
+        time: minutesFromDeclared(-5),
+        eventType: ChangeEventType.OpenStackEvent,
+        title: "Instance web-1: create failed: No valid host was found",
+        attributes: {
+          [ChangeEventAttribute.Source]: ChangeEventSource.OpenStack,
+          [ChangeEventAttribute.ResourceType]: "OpenStackCloud",
+          [ChangeEventAttribute.ResourceId]: CLOUD_ID,
+          [ChangeEventAttribute.CloudResourceId]: INSTANCE,
+          [ChangeEventAttribute.Status]: ChangeEventStatus.Failed,
+        },
+        ...overrides,
+      };
+    }
+
+    function linkedToCloud(): LinkedInfrastructure {
+      return {
+        ...linked(),
+        resources: [
+          {
+            type: LinkedAffectedResourceType.OpenStackCloud,
+            id: CLOUD_ID,
+            name: "production",
+          },
+        ],
+        openStack: {
+          radius: null,
+          projectId: null,
+          projectName: null,
+          domainId: null,
+          partKind: null,
+          partExternalId: INSTANCE,
+        },
+      } as LinkedInfrastructure;
+    }
+
+    let rows: Array<JSONObject>;
+    let findChanges: SpyInstance<typeof ChangeEventService.findBy>;
+
+    beforeEach(() => {
+      rows = [];
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+      findChanges = jest
+        .spyOn(ChangeEventService, "findBy")
+        .mockImplementation((async () => {
+          return rows;
+        }) as never);
+      jest.spyOn(ServiceService, "findBy").mockResolvedValue([] as never);
+      jest
+        .spyOn(TraceAggregationService, "getAnalyticsTable")
+        .mockResolvedValue([]);
+      jest
+        .spyOn(ExceptionInstanceService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0));
+      jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([]);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("its own events are read apart, so a busy project's cannot crowd them out", async () => {
+      await RecentChangesContext.read({
+        projectId: PROJECT_ID,
+        subjectKind: "incident",
+        subjectId: INCIDENT_ID,
+        linked: linkedToCloud(),
+      });
+
+      const queries: Array<JSONObject> = findChanges.mock.calls.map(
+        (call: Array<unknown>): JSONObject => {
+          return (call[0] as JSONObject)["query"] as JSONObject;
+        },
+      );
+
+      expect(
+        queries.filter((query: JSONObject): boolean => {
+          return (
+            (query["attributes"] as JSONObject | undefined)?.[
+              ChangeEventAttribute.ResourceId
+            ] === CLOUD_ID
+          );
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("the part's event is a suspect, first, and the investigation is told why", async () => {
+      rows = [
+        cloudRow({
+          title: "Instance other: rebooted",
+          time: minutesFromDeclared(-1),
+          attributes: {
+            [ChangeEventAttribute.Source]: ChangeEventSource.OpenStack,
+            [ChangeEventAttribute.ResourceId]: CLOUD_ID,
+            [ChangeEventAttribute.CloudResourceId]: "another-part",
+            [ChangeEventAttribute.Status]: ChangeEventStatus.Succeeded,
+          },
+        }),
+        cloudRow(),
+      ];
+
+      const changes: RecentChanges | null = await RecentChangesContext.read({
+        projectId: PROJECT_ID,
+        subjectKind: "incident",
+        subjectId: INCIDENT_ID,
+        linked: linkedToCloud(),
+      });
+
+      expect(changes?.changes[0]?.titles[0]).toBe(
+        "Instance web-1: create failed: No valid host was found",
+      );
+      expect(changes?.changes[0]?.impact?.verdict).toBe(
+        ChangeImpactVerdict.Suspect,
+      );
+      expect(changes?.changes[1]?.impact?.verdict).not.toBe(
+        ChangeImpactVerdict.Suspect,
+      );
+
+      const section: string = RecentChangesContext.buildContextSection(changes);
+
+      expect(section).toContain("SUSPECT: ");
+      expect(section).toContain(
+        "Suspect because it happened to the part this is about.",
+      );
+      expect(section).toContain("An OpenStack cloud's own events");
+      expect(RecentChangesContext.buildActivityNote(changes)?.message).toBe(
+        "Found 1 suspect among the recent changes",
+      );
+    });
+
+    test("with no suspect among them, it says nothing of how one is marked", async () => {
+      rows = [
+        cloudRow({
+          attributes: {
+            [ChangeEventAttribute.Source]: ChangeEventSource.OpenStack,
+            [ChangeEventAttribute.ResourceId]: CLOUD_ID,
+            [ChangeEventAttribute.CloudResourceId]: "another-part",
+            [ChangeEventAttribute.Status]: ChangeEventStatus.Succeeded,
+          },
+        }),
+      ];
+
+      const section: string = RecentChangesContext.buildContextSection(
+        await RecentChangesContext.read({
+          projectId: PROJECT_ID,
+          subjectKind: "incident",
+          subjectId: INCIDENT_ID,
+          linked: linkedToCloud(),
+        }),
+      );
+
+      expect(section).not.toContain("SUSPECT: ");
+      expect(section).not.toContain("An OpenStack cloud's own events");
+    });
   });
 });
 

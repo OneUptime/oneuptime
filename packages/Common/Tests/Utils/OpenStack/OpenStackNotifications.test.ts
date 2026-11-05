@@ -594,6 +594,33 @@ describe("Neutron's, Cinder's and Glance's", () => {
     expect(event.part).toBeNull();
   });
 
+  test("an instance's own port names the instance, and a router's does not", () => {
+    expect(
+      eventOf({
+        event_type: "port.update.end",
+        payload: {
+          port: {
+            id: "abc",
+            device_id: INSTANCE,
+            device_owner: "compute:nova",
+          },
+        },
+      }).instanceId,
+    ).toBe(INSTANCE);
+    expect(
+      eventOf({
+        event_type: "port.update.end",
+        payload: {
+          port: {
+            id: "abc",
+            device_id: "the-router",
+            device_owner: "network:router_interface",
+          },
+        },
+      }).instanceId,
+    ).toBe("");
+  });
+
   test("a security group rule is kept for its audit trail, and is no part", () => {
     expect(
       eventOf({
