@@ -103,6 +103,7 @@ import {
   OpenStackServiceGroup,
   OpenStackWorkerCounts,
   getOpenStackAccessGaps,
+  getOpenStackRowsAsThisCredentialReadsThem,
   getOpenStackAttentionName,
   getOpenStackFullestPoolPercent,
   getOpenStackHypervisorCounts,
@@ -794,10 +795,30 @@ const OpenStackCloudOverview: FunctionComponent<
     );
   };
 
-  const rows: Array<OpenStackResource> = (attention?.rows || []).filter(
-    inScope,
-  );
-  const apisInScope: Array<OpenStackResource> = apis.filter(inScope);
+  /*
+   * Only rows that were read can say a credential is closed to something: with its workers
+   * unread, a stopped Placement stays a stopped Placement.
+   */
+  const asCredentialReadsThem: (
+    read: Array<OpenStackResource>,
+  ) => Array<OpenStackResource> = (
+    read: Array<OpenStackResource>,
+  ): Array<OpenStackResource> => {
+    return attention
+      ? getOpenStackRowsAsThisCredentialReadsThem({
+          rows: read,
+          apis: apis,
+          workers: attention.rows.filter((row: OpenStackResource): boolean => {
+            return row.kind === OpenStackResourceKind.Service;
+          }),
+        })
+      : read;
+  };
+  const rows: Array<OpenStackResource> = asCredentialReadsThem(
+    attention?.rows || [],
+  ).filter(inScope);
+  const apisInScope: Array<OpenStackResource> =
+    asCredentialReadsThem(apis).filter(inScope);
   const hypervisors: Array<OpenStackResource> = rows.filter(
     (row: OpenStackResource): boolean => {
       return row.kind === OpenStackResourceKind.Hypervisor;

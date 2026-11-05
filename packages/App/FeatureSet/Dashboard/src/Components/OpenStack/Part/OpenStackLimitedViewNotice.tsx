@@ -1,23 +1,34 @@
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceFamily,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   countOpenStackRows,
+  fetchOpenStackApiStates,
   fetchOpenStackCounts,
 } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
-import { isOpenStackListPossiblyOneProject } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
+import {
+  OpenStackApiState,
+  OpenStackListView,
+  getOpenStackListView,
+} from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
 /*
  * Neutron and Cinder answer a limited credential with a 200 and only its own project's
- * rows, so a list can look whole and not be. This says so when every row is one project's
- * and more than one is known, and it only says "may": a page can't always tell, because a
- * cloud with one project that holds any of these looks the same.
+ * rows, so a list can look whole and not be, and an empty one can look like nothing there.
+ * Where Cinder answers, whether it lists its workers says which this is
+ * (getOpenStackListView), so this says so outright. A cloud with no Cinder to ask only gets a
+ * "may", when every row is one project's and more than one is known.
  */
 export interface ComponentProps {
   openStackCloudId: ObjectID;
@@ -32,9 +43,21 @@ const OpenStackLimitedViewNotice: FunctionComponent<ComponentProps> = (
     props.openStackCloudId,
   );
 
-  const read: OpenStackRead<boolean> = useOpenStackRead<boolean>(async () => {
-    const [counts, projects]: [Array<OpenStackCountRow>, number] =
-      await Promise.all([
+  const read: OpenStackRead<OpenStackListView> =
+    useOpenStackRead<OpenStackListView>(async () => {
+      const facts: JSONObject = { family: OpenStackServiceFamily.Volume };
+      const [apis, volumeWorkers, counts, projects]: [
+        Record<string, OpenStackApiState>,
+        number,
+        Array<OpenStackCountRow>,
+        number,
+      ] = await Promise.all([
+        fetchOpenStackApiStates(props.openStackCloudId),
+        countOpenStackRows({
+          openStackCloudId: props.openStackCloudId,
+          kind: OpenStackResourceKind.Service,
+          query: { facts: facts },
+        }),
         fetchOpenStackCounts({
           openStackCloudId: props.openStackCloudId,
           kind: props.kind,
@@ -45,15 +68,29 @@ const OpenStackLimitedViewNotice: FunctionComponent<ComponentProps> = (
           kind: OpenStackResourceKind.Project,
         }),
       ]);
-    return isOpenStackListPossiblyOneProject({
-      projectIdsInList: counts.map((row: OpenStackCountRow) => {
-        return row.value;
-      }),
-      knownProjectCount: projects,
-    });
-  }, [props.openStackCloudId.toString(), props.kind]);
+      return getOpenStackListView({
+        volumeApi: apis[OpenStackServiceType.Volume] || "not-reported",
+        volumeWorkerCount: volumeWorkers,
+        projectIdsInList: counts.map((row: OpenStackCountRow) => {
+          return row.value;
+        }),
+        knownProjectCount: projects,
+      });
+    }, [props.openStackCloudId.toString(), props.kind]);
 
-  if (!read.data) {
+  if (read.data === "own-project") {
+    return (
+      <OpenStackPartNotice
+        testId="openstack-limited-view-notice"
+        tone="neutral"
+        text={translator.translateText(
+          "This credential sees its own project's rows here, and no error says so: Neutron and Cinder answer anything but an admin that way, so this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+        )}
+      />
+    );
+  }
+
+  if (read.data !== "possibly-one-project") {
     return <></>;
   }
 

@@ -623,7 +623,7 @@ describe("the Services page", () => {
       await screen.findByText("This credential can't list compute services"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("openstack-access-fix")).toHaveTextContent(
-      "Give the agent one of those",
+      "give the agent that credential",
     );
     expect(screen.getByTestId("openstack-access-guide")).toHaveAttribute(
       "href",
@@ -645,7 +645,7 @@ describe("the Services page", () => {
 
     const fix: HTMLElement = screen.getByTestId("openstack-access-fix");
 
-    expect(fix).toHaveTextContent("Give the probe one of those");
+    expect(fix).toHaveTextContent("give the probe that credential");
     expect(fix).toHaveTextContent("Test Connection says what it can read");
     expect(fix).not.toHaveTextContent("troubleshoot.sh");
     expect(screen.getByTestId("openstack-access-guide")).toHaveAttribute(

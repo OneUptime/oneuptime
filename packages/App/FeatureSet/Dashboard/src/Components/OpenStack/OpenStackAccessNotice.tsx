@@ -17,12 +17,25 @@ import { OpenStackAccessGap } from "../../Pages/OpenStack/Utils/OpenStackService
  * closed, so it is said once.
  */
 
+const OPENSTACK_ACCESS_CLOSED: string = translationKey(
+  "Each service answers, and shows this credential none of them, so these are closed to it rather than empty.",
+);
+
+const OPENSTACK_ACCESS_TAKES_INFRASTRUCTURE: string = translationKey(
+  "These take the Full view or Infrastructure only credential.",
+);
+
+// Infrastructure only never reads these, so a page must not send anyone to it for them.
+const OPENSTACK_ACCESS_TAKES_FULL_VIEW: string = translationKey(
+  "Cinder's services and storage pools take the Full view credential alone: Cinder's own code asks for an admin, whatever the policy says, so Infrastructure only goes without them.",
+);
+
 const OPENSTACK_ACCESS_FIX: string = translationKey(
-  "Each service answers, and shows this credential none of them, so these are closed to it rather than empty. They take the Full view or Infrastructure only credential. Give the agent one of those, then run troubleshoot.sh on its machine to see what it can read.",
+  "To read them, give the agent that credential, then run troubleshoot.sh on its machine to see what it can read.",
 );
 
 const OPENSTACK_ACCESS_FIX_ON_A_PROBE: string = translationKey(
-  "Each service answers, and shows this credential none of them, so these are closed to it rather than empty. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+  "To read them, give the probe that credential with Edit Connection, and Test Connection says what it can read.",
 );
 
 export interface ComponentProps {
@@ -41,6 +54,23 @@ const OpenStackAccessNotice: FunctionComponent<ComponentProps> = (
   if (props.gaps.length === 0) {
     return <></>;
   }
+
+  const words: Array<string> = [
+    OPENSTACK_ACCESS_CLOSED,
+    ...(props.gaps.some((gap: OpenStackAccessGap): boolean => {
+      return !gap.isFullViewOnly;
+    })
+      ? [OPENSTACK_ACCESS_TAKES_INFRASTRUCTURE]
+      : []),
+    ...(props.gaps.some((gap: OpenStackAccessGap): boolean => {
+      return gap.isFullViewOnly;
+    })
+      ? [OPENSTACK_ACCESS_TAKES_FULL_VIEW]
+      : []),
+    props.settingsRouteOfProbeCloud
+      ? OPENSTACK_ACCESS_FIX_ON_A_PROBE
+      : OPENSTACK_ACCESS_FIX,
+  ];
 
   return (
     <div
@@ -71,11 +101,11 @@ const OpenStackAccessNotice: FunctionComponent<ComponentProps> = (
             className="mt-2 text-sm text-amber-800"
             data-testid="openstack-access-fix"
           >
-            {props.settingsRouteOfProbeCloud
-              ? translator.translateText(OPENSTACK_ACCESS_FIX_ON_A_PROBE) ||
-                OPENSTACK_ACCESS_FIX_ON_A_PROBE
-              : translator.translateText(OPENSTACK_ACCESS_FIX) ||
-                OPENSTACK_ACCESS_FIX}
+            {words
+              .map((word: string): string => {
+                return translator.translateText(word) || word;
+              })
+              .join(" ")}
           </p>
           <Link
             to={

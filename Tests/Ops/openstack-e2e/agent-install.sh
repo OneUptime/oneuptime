@@ -296,8 +296,13 @@ make_credential() {
     fail "could not make the application credential $name: $(cat "$PHASE_DIR/credential-$name.err")"
     return 1
   fi
-  APP_ID="$(printf '%s' "$answer" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
-  APP_SECRET="$(printf '%s' "$answer" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["secret"])')"
+  # The client's words differ by release, as they do in access-matrix.sh.
+  APP_ID="$(printf '%s' "$answer" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); print(c.get("id") or c["ID"])')"
+  APP_SECRET="$(printf '%s' "$answer" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); print(c.get("secret") or c["Secret"])')"
+  if [ -z "$APP_ID" ] || [ -z "$APP_SECRET" ]; then
+    fail "the application credential $name came back with no ID or no secret"
+    return 1
+  fi
   pass "application credential $name made, limited by access rules"
 }
 
@@ -400,6 +405,8 @@ prepare_cloud() {
   wait_for 180 "the APIs answer again, with service_type set" \
     bash -c "openstack compute service list && openstack network agent list && openstack image list && openstack volume service list"
 
+  # A runner leaves /opt open to anyone, and a machine a person installs on doesn't.
+  sudo chmod 0755 /opt
   sudo useradd --create-home --shell /bin/bash --groups docker "$PLAIN_USER"
   PLAIN_HOME="$(getent passwd "$PLAIN_USER" | cut -d : -f 6)"
   PLAIN_UID="$(id -u "$PLAIN_USER")"
@@ -1091,7 +1098,10 @@ if [ -n "${INGESTION_KEY:-}" ]; then
   # requests.jsonl is read from what arrived, and a body holds no header.
   FOUND=""
   for name in INGESTION_KEY BAD_INGESTION_KEY APP_SECRET ACCOUNT_PASSWORD; do
-    FOUND="$FOUND$(grep -rlF -- "${!name}" "$OUTPUT" 2>/dev/null | tr '\n' ' ')"
+    # An empty one is in every file, and says nothing.
+    if [ -n "${!name:-}" ]; then
+      FOUND="$FOUND$(grep -rlF -- "${!name}" "$OUTPUT" 2>/dev/null | tr '\n' ' ')"
+    fi
   done
   if [ -n "$FOUND" ]; then
     fail "a secret is in: $FOUND"

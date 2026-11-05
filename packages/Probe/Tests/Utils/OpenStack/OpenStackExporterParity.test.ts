@@ -72,6 +72,14 @@ const SCENES: ReadonlyArray<{ release: string; scene: string }> = [
   { release: "epoxy-ovn", scene: "healthy" },
 ];
 
+const RECORDED_RELEASES: ReadonlyArray<string> = [
+  "hibiscus-ovn",
+  "gazpacho-ovs",
+  "gazpacho-ovn",
+  "flamingo-ovn",
+  "epoxy-ovn",
+];
+
 const SCRAPE_LABELS: ReadonlyArray<string> = [
   "openstack.region.name",
   "openstack_service",
@@ -283,8 +291,15 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "vouchedAt",
     // How long one collection took: its own reading on each path.
     "collectionSeconds",
+    // When a router's agents were last heard, which is each path's own time too.
+    "l3AgentsReportedAt",
     // What an operator told Nova, which the exporter has no label for.
     "forcedDown",
+    // Which networks a DHCP agent serves, which it never asks.
+    "dhcpAgentIds",
+    "dhcpNetworkCount",
+    // What an instance booted from, nor for this.
+    "imageId",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
     "storageProtocol",
     "cephFsid",
@@ -978,6 +993,120 @@ describe("what only a probe adds, in the rows it fills", () => {
       expect(row.facts["pool"]).toBeNull();
       expect(row.diskCapacityBytes).toBeGreaterThan(0);
     }
+  });
+
+  test("each instance says what it booted from, in Nova's own answer", async () => {
+    const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
+      "servers"
+    ] as Array<JSONObject>;
+
+    const instances: Array<OpenStackResourceBufferEntry> = rowsOf(
+      await rowsFrom(),
+      OpenStackResourceKind.Instance,
+    );
+
+    expect(instances).toHaveLength(servers.length);
+
+    for (const server of servers) {
+      const imageId: string = (server["image"] as JSONObject)["id"] as string;
+
+      expect(imageId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(
+        instances.find((row: OpenStackResourceBufferEntry): boolean => {
+          return row.externalId === server["id"];
+        })?.facts["imageId"],
+      ).toBe(imageId);
+    }
+  });
+
+  test("the exporter has no label for it, on any of Nova's series or release", () => {
+    const labels: Array<string> = RECORDED_RELEASES.flatMap(
+      (release: string): Array<string> => {
+        return loadScene(release, "healthy")
+          .exporter.filter((series: PrometheusSeries): boolean => {
+            return series.name.startsWith("openstack_nova_");
+          })
+          .flatMap((series: PrometheusSeries): Array<string> => {
+            return Object.keys(series.labels);
+          });
+      },
+    );
+
+    expect(labels.length).toBeGreaterThan(100);
+    expect(
+      labels.filter((label: string): boolean => {
+        return label.toLowerCase().includes("image");
+      }),
+    ).toEqual([]);
+  });
+
+  test("so a cloud the exporter collects says nothing of it, rather than none", () => {
+    const instance: OpenStackResourceBufferEntry | undefined = Array.from(
+      scanAsIngest(exporterAsOtlp(SCENE, `${COLLECTED_AT_MS}000000`)).values(),
+    ).find((row: OpenStackResourceBufferEntry): boolean => {
+      return row.kind === OpenStackResourceKind.Instance;
+    });
+
+    expect(instance).toBeDefined();
+    expect(Object.keys(instance?.facts || {})).not.toContain("imageId");
+  });
+
+  describe("a DHCP agent's networks, on ML2/OVS", () => {
+    const OVS: RecordedScene = loadScene("gazpacho-ovs", "healthy");
+
+    async function rowsOfOvs(): Promise<
+      Map<string, OpenStackResourceBufferEntry>
+    > {
+      const report: OpenStackCollectionReport =
+        await OpenStackCollector.collect(
+          collectionJob(),
+          createCollectorHarness({
+            transport: createRecordedCloud(OVS).transport,
+          }).dependencies,
+        );
+
+      return scanAsIngest(
+        OpenStackProbeMetrics.prepare({
+          resourceMetrics: report.resourceMetrics,
+          cloudName: "devstack",
+        }).resourceMetrics,
+      );
+    }
+
+    test("the agent says how many, and the networks say which agent", async () => {
+      const rows: Map<string, OpenStackResourceBufferEntry> = await rowsOfOvs();
+
+      const agent: OpenStackResourceBufferEntry = rowsOf(
+        rows,
+        OpenStackResourceKind.Service,
+      ).find((row: OpenStackResourceBufferEntry): boolean => {
+        return row.name === "neutron-dhcp-agent";
+      })!;
+      const agentId: string = agent.facts["agentId"] as string;
+
+      const served: Array<OpenStackResourceBufferEntry> = rowsOf(
+        rows,
+        OpenStackResourceKind.Network,
+      ).filter((row: OpenStackResourceBufferEntry): boolean => {
+        return ((row.facts["dhcpAgentIds"] as Array<string>) || []).includes(
+          agentId,
+        );
+      });
+
+      expect(served.length).toBeGreaterThan(0);
+      expect(agent.facts["dhcpNetworkCount"]).toBe(served.length);
+    });
+
+    test("nothing but DHCP agents say so", async () => {
+      for (const row of rowsOf(
+        await rowsOfOvs(),
+        OpenStackResourceKind.Service,
+      )) {
+        if (row.name !== "neutron-dhcp-agent") {
+          expect(Object.keys(row.facts)).not.toContain("dhcpNetworkCount");
+        }
+      }
+    });
   });
 
   test("each snapshot is a row of its own, which the exporter only counts", async () => {
