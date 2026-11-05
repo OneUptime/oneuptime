@@ -281,10 +281,11 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_neutron_agent_state",
     friendlyName: translationKey("Network Agent Alive"),
     description:
-      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work.",
+      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work. dhcp_network_count says how many networks a DHCP agent serves: only a probe sends it.",
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Network,
+    probeOnlyAttributes: ["dhcp_network_count"],
     identityAttributes: [
       "id",
       "hostname",
@@ -657,6 +658,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   metric({
     metricName: "openstack_neutron_network",
     friendlyName: translationKey("Network Info"),
+    probeOnlyAttributes: ["dhcp_agent_ids"],
     description:
       "One series per network, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, DOWN is 2, ERROR is 3. Whether it is external is in the is_external label.",
     category: "Network",

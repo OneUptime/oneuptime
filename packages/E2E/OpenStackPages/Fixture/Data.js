@@ -135,10 +135,7 @@ export function worker(context, family, host, binary, region, fields = {}) {
       facts: {
         family,
         host,
-        agentId: openStackUuid(
-          "d7ef14b8",
-          (host.length * 31 + binary.length * 7) % 9973,
-        ),
+        agentId: neutronAgentId(host, binary),
         ...(fields.facts || {}),
       },
     },
@@ -278,6 +275,13 @@ export function storagePool(context, name, region, fields = {}) {
  * A network (gazpacho-ovs/healthy): addresses used and total are added up across its
  * subnets, and are what the external pool rules read.
  */
+function neutronAgentId(host, binary) {
+  return openStackUuid(
+    "d7ef14b8",
+    (host.length * 31 + binary.length * 7) % 9973,
+  );
+}
+
 export function network(context, number, name, region, fields = {}) {
   const total = fields.ipsTotal ?? 253;
   const used = fields.ipsUsed ?? 20;
@@ -1221,6 +1225,22 @@ function partsRow(row) {
     return { ...row, growsPerDay: 512 };
   }
   // A probe read Nova's addresses too, and this one never got one.
+  // Which networks a DHCP agent serves, which only a probe says.
+  if (row.kind === "Service" && row.name === "neutron-dhcp-agent") {
+    return {
+      ...row,
+      facts: { ...row.facts, dhcpNetworkCount: 1 },
+    };
+  }
+  if (row.kind === "Network" && row.name === "research-net") {
+    return {
+      ...row,
+      facts: {
+        ...row.facts,
+        dhcpAgentIds: [neutronAgentId("ctl-01", "neutron-dhcp-agent")],
+      },
+    };
+  }
   if (row.kind === "Instance" && row.name === "ou-failed") {
     return {
       ...row,

@@ -302,6 +302,22 @@ export async function fetchOpenStackNetworkAgentNames(
   });
 }
 
+// A region's DHCP agents, of which there are few, for a network to name its own by id.
+export async function fetchOpenStackDhcpAgents(data: {
+  openStackCloudId: ObjectID;
+  regionName?: string | undefined;
+}): Promise<Array<OpenStackResource>> {
+  return await fetchOpenStackRows({
+    openStackCloudId: data.openStackCloudId,
+    kind: OpenStackResourceKind.Service,
+    query: {
+      name: "neutron-dhcp-agent",
+      ...(data.regionName ? { regionName: data.regionName } : {}),
+    },
+    limit: 200,
+  });
+}
+
 /*
  * The nova-compute on a hypervisor. Nova names a service by its short host name and a
  * hypervisor by its full one, so this asks for both.

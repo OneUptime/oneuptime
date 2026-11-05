@@ -646,7 +646,9 @@ for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
     detail "Response head: $(printf '%s' "$SCRAPE_OUT" | head -c 200)"
     add_finding "The exporter has no clouds.yaml entry named \"$REGION\", or cannot log in with it. Each region needs an entry named for it. Check the exporter's log. An exporter started without --multi-cloud, as Kolla-Ansible starts it, has no /probe: set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS and OPENSTACK_EXPORTER_CLOUDS=[] instead."
     if [ "$EXPORTER_RUNNING" = 1 ] && [ "$NATIVE" = 0 ]; then
-      AUTHERR=$(docker logs --tail 50 "$EXPORTER_CONTAINER" 2>&1 | grep -iE '401|auth|permission|denied|x509|could not|failed' | tail -3)
+      # A service this cloud does not run is a line too, on every scrape, and says nothing
+      # about why this one failed.
+      AUTHERR=$(docker logs --tail 200 "$EXPORTER_CONTAINER" 2>&1 | grep -v 'No suitable endpoint could be found' | grep -iE '401|auth|permission|denied|x509|could not|failed' | tail -3)
       if [ -n "$AUTHERR" ]; then
         warn "The exporter's log shows:"
         printf '%s\n' "$AUTHERR" | while read -r l; do detail "$(printf '%s' "$l" | head -c 160)"; done

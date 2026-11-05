@@ -1485,11 +1485,37 @@ export function getOpenStackL3AgentExternalId(
 
 /*
  * Only an L3 agent holds routers, and only the exporter's l3_agent_of_router series says
- * which. A DHCP agent serves networks, and nothing the agent collects says which ones.
+ * which. A DHCP agent serves networks, and only a probe says which ones.
  */
 export function isOpenStackL3Agent(
   row: Pick<OpenStackResource, "name">,
 ): boolean {
   const name: string = (row.name || "").toLowerCase();
   return name.includes("l3-agent") || name.includes("l3 agent");
+}
+
+export function isOpenStackDhcpAgent(
+  row: Pick<OpenStackResource, "name">,
+): boolean {
+  const name: string = (row.name || "").toLowerCase();
+  return name.includes("dhcp-agent") || name.includes("dhcp agent");
+}
+
+// How many networks a DHCP agent serves, or null when nothing collected says.
+export function getOpenStackDhcpNetworkCount(
+  row: OpenStackResource | null | undefined,
+): number | null {
+  return numberFact(row, "dhcpNetworkCount");
+}
+
+// Which DHCP agents serve a network, by the ids of their records, where a probe has said.
+export function getOpenStackNetworkDhcpAgentIds(
+  row: OpenStackResource | null | undefined,
+): Array<string> {
+  const ids: JSONValue | undefined = factsOf(row)["dhcpAgentIds"];
+  return Array.isArray(ids)
+    ? (ids as Array<JSONValue>).filter((id: JSONValue): id is string => {
+        return typeof id === "string";
+      })
+    : [];
 }

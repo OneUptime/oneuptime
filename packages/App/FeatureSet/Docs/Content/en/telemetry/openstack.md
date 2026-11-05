@@ -9,6 +9,7 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Service logs](#service-logs): Parsed, with a request followed across services.
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
+- [Trace a request](#trace-requests-through-the-control-plane): One signed request, followed across the control plane.
 - [By deployment tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat and Mirantis.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -351,6 +352,17 @@ The collector makes one scrape job per OpenStack service, through the exporter's
 | `oneuptime-openstack-placement` | 2 minutes | 110 s | `openstack_placement_resource_total`, `openstack_placement_resource_usage`, `openstack_placement_resource_allocation_ratio`, `openstack_placement_resource_reserved` |
 | `oneuptime-openstack-identity` | 5 minutes | 120 s | `openstack_identity_projects`, `openstack_identity_project_info`, `openstack_identity_domains`, `openstack_identity_regions` |
 | `oneuptime-openstack-image` | 5 minutes | 120 s | `openstack_glance_images`, `openstack_glance_image_bytes`, `openstack_glance_image_created_at` |
+| `oneuptime-openstack-load-balancer` | 5 minutes | 120 s | `openstack_loadbalancer_total_loadbalancers`, `openstack_loadbalancer_loadbalancer_status`, `openstack_loadbalancer_total_amphorae`, `openstack_loadbalancer_amphora_status`, `openstack_loadbalancer_total_pools`, `openstack_loadbalancer_pool_status` |
+| `oneuptime-openstack-baremetal` | 5 minutes | 120 s | `openstack_ironic_node`, `openstack_ironic_node_updated_at`, `openstack_ironic_node_provision_updated_at` |
+| `oneuptime-openstack-orchestration` | 5 minutes | 120 s | `openstack_heat_stack_status`, `openstack_heat_stack_status_counter` |
+| `oneuptime-openstack-container-infra` | 5 minutes | 120 s | `openstack_container_infra_total_clusters`, `openstack_container_infra_cluster_masters`, `openstack_container_infra_cluster_nodes`, `openstack_container_infra_cluster_status` |
+| `oneuptime-openstack-sharev2` | 5 minutes | 120 s | `openstack_sharev2_shares_counter`, `openstack_sharev2_share_gb`, `openstack_sharev2_share_status`, `openstack_sharev2_share_status_counter` |
+| `oneuptime-openstack-dns` | 5 minutes | 120 s | `openstack_designate_zones`, `openstack_designate_zone_status`, `openstack_designate_recordsets`, `openstack_designate_recordsets_status` |
+| `oneuptime-openstack-object-store` | 5 minutes | 120 s | `openstack_object_store_objects`, `openstack_object_store_bytes` |
+| `oneuptime-openstack-database` | 5 minutes | 120 s | `openstack_trove_total_instances`, `openstack_trove_instance_status`, `openstack_trove_instance_volume_size_gb`, `openstack_trove_instance_volume_used_gb` |
+| `oneuptime-openstack-gnocchi` | 5 minutes | 120 s | `openstack_gnocchi_status_metricd_processors`, `openstack_gnocchi_status_metric_having_measures_to_process`, `openstack_gnocchi_status_measures_to_process` |
+
+The last nine are services a cloud may not run. Asked about one that is not in its catalog, the exporter logs in to Keystone, logs one line (`No suitable endpoint could be found in the service catalog`) and answers with nothing, and that cloud shows no trace of the service. It is one login each 5 minutes per service and region, which is why these are all 5 minutes. To ask only for the services you run, set `OPENSTACK_AGENT_SERVICES`, such as `identity|compute|placement|network|volume|image`.
 
 Each service also reports `openstack_<service>_up`, such as `openstack_nova_up`. The [OpenStack monitor](/docs/monitor/openstack-monitor#collected-metrics) lists every series with what it means. Every series carries:
 
@@ -371,6 +383,7 @@ Monitoring must never be what takes a cloud down, so the defaults are gentle. Ea
 | --- | --- | --- | --- |
 | Slow metrics | Off | Quotas and limits per project, and usage per server | One call per project per scrape, so it grows with the number of projects |
 | Per-port series | Off | `openstack_neutron_port`, `openstack_neutron_ports`, `openstack_neutron_ports_no_ips`, `openstack_neutron_ports_lb_not_active` | An unscoped list of every port. On a large cloud that [can saturate Neutron and cause cascading failures](https://github.com/openstack-exporter/openstack-exporter/issues/540), so leave it off unless you know your port count is small |
+| Services a cloud may not run | On | Load balancers, bare metal, stacks, clusters, shares, DNS, object storage, databases and Gnocchi, where the cloud has them | A cloud without one pays one login each 5 minutes. Designate costs one call per zone per scrape, so it grows with the number of zones |
 | Scrape intervals | 2 and 5 minutes | Fresher data, or less load | Twice as often is twice the API calls. Keep each `scrape_timeout` under its `scrape_interval`, so a slow scrape never stacks on the one before |
 
 **Slow metrics:** delete the `--disable-metric` line for what you want, from the exporter's `command` in `docker-compose.yml`, or from `ExecStart` in `oneuptime-openstack-exporter.service` without Docker. The cost is one call per project per scrape.
@@ -391,7 +404,7 @@ Each flag names the series that reads the rest of its row, which is why one line
 
 Then run `docker compose up -d --force-recreate`, or `sudo systemctl daemon-reload` and restart both services without Docker. An upgrade replaces these files and keeps your copy as `<file>.bak.<timestamp>`, so make your edit again afterwards.
 
-Two more lines stay in, because you will not miss them. `--disable-metric=neutron-subnets_total` leaves out many series saying what the address pools already say (`openstack_neutron_subnets_total`, `openstack_neutron_subnets_used`, `openstack_neutron_subnets_free`). `--disable-metric=nova-security_groups` leaves out a read of a route Nova no longer has, which would only fill the exporter's log.
+Three more lines stay in, because you will not miss them. `--disable-metric=neutron-subnets_total` leaves out many series saying what the address pools already say (`openstack_neutron_subnets_total`, `openstack_neutron_subnets_used`, `openstack_neutron_subnets_free`). `--disable-metric=nova-security_groups` leaves out a read of a route Nova no longer has, which would only fill the exporter's log. `--disable-metric=gnocchi-total_metrics` leaves out a read of every metric in Gnocchi, page by page, for one count (`openstack_gnocchi_total_metrics`): a Gnocchi can hold millions.
 
 To read internal endpoints rather than public ones, add `--endpoint-type=internal` in the same place.
 
@@ -737,6 +750,170 @@ These six [detections](/docs/telemetry/security-events) come from the rule libra
 ### What is never stored
 
 A CADF event can hold what should not be kept: its initiator's credential holds part of a token, an invalid password's attachment holds part of its hash, and an API request can hold anything. OneUptime keeps a list of named fields, and nothing else of an event, so what a new release adds stays out until someone reads it and adds it. A request path keeps no query string. Request and response bodies stay off: the audit filter does not write them, and they would not be kept if it did. Audit records keep [Security Events'](/docs/telemetry/security-events) own retention, and a line goes through a project's log scrub rules before it is read.
+
+## Trace requests through the control plane
+
+"Why does booting an instance take four minutes?" crosses Nova, Neutron, Keystone and Glance, and logs only show the pieces. A trace shows where the time went. OpenStack's way of making one is [OSProfiler](https://docs.openstack.org/osprofiler/latest/), and OneUptime shows what it sends in [Traces](/docs/telemetry/traces-explorer), joined to the cloud's parts and to its logs.
+
+Be clear about what you are turning on:
+
+- **It is off until you ask for it, and it is per request.** A span exists only for a request [signed with an HMAC key](https://docs.openstack.org/osprofiler/latest/user/integration.html) your services hold. With nothing signed nothing is sent, so this is never an always-on feed.
+- **Its [OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) is marked experimental** by OpenStack, so try it on a cloud that can take it first.
+- **It can only post plain HTTP**, which is why a collector on each machine takes its spans and forwards them to OneUptime over TLS.
+- **It needs `opentelemetry-sdk` and `opentelemetry-exporter-otlp` in each service**, which no deployment tool's images hold.
+
+> [!WARNING]
+> On OpenStack 2026.2, use a test cloud first. On our test cloud, a restart with these libraries in and OSProfiler on did not come back, twice, and we do not know why yet. On 2025.2 it did.
+
+:::cards
+- [What a trace shows](#what-a-trace-shows): What is traced, and what is not, on a stock cloud.
+- [Turn on traces](#turn-on-traces): The collector, the libraries and the config.
+- [Trace a request](#trace-a-request): The command for your cloud, and where its trace is.
+- [What tracing costs](#what-tracing-costs): What was counted, and what nobody has measured.
+:::
+
+### What a trace shows
+
+Everything here was read from what the driver really sent for a signed boot on DevStack, on OpenStack 2025.2, not from its documentation. One request is one trace, whichever services it crosses, and its Trace ID is the one the client prints. Each service is named as you know it, and joined to its page. A trace is also tied to what its requests named: a boot to the instance it made, its image and its network.
+
+| Service | On a stock cloud | What you can do |
+| --- | --- | --- |
+| `nova-api`, `nova-compute`, `neutron-server`, `keystone`, `glance-api`, `cinder-api`, `cinder-scheduler` | In the trace | |
+| Placement | Sends nothing. It keeps a config of its own without `[profiler_otlp]`, so the driver stops as it starts, with `no such option profiler_otlp` in its log | [One line](#placement-one-line) of its code. With `trace_requests` on, `nova-compute` shows its own calls to Placement without it |
+| `nova-conductor`, `nova-scheduler` | Send nothing while they run more than one worker. They make the driver and then fork, and nothing a forked worker made arrived | [One worker each](#novas-conductor-and-scheduler-one-worker-each) |
+| `cinder-volume` | Sends nothing. It always runs each backend in a forked worker | Nothing to set |
+| Neutron's RPC server | Sends nothing. It never says it started OSProfiler, and Neutron's API does | Nothing to set |
+
+So on a stock cloud, a span that one of those called arrives with a parent that never does. `nova-compute`'s `build_and_run_instance` is called by `nova-conductor`, so everything `nova-compute` did for a boot is under a span whose parent is missing. The trace is whole otherwise, it says **Not in this trace** above the waterfall, and those services' lines are still in [the logs of that request](#from-a-trace-to-its-logs).
+
+### Turn on traces
+
+Open your cloud's **Traces** page. It has these steps for whichever tool deployed your cloud, with its paths and variables. None of those tools' guides has been followed on a real deployment of that tool: what has been run is the same config on DevStack, and each guide says so.
+
+:::steps
+#### Run the collector on each machine
+
+On every controller and compute node whose services you want traced. It listens on this machine alone, removes what a call was handed, says which cloud and machine a span is from, and forwards the rest over TLS.
+
+```bash
+curl -fsSLO https://oneuptime.com/install/openstack-agent/install-traces.sh
+sudo -E bash install-traces.sh
+```
+
+#### Give each service the libraries
+
+In the environment each service runs from. Without them a service says so in its log and carries on, untraced.
+
+```bash
+pip install opentelemetry-sdk opentelemetry-exporter-otlp
+```
+
+#### Turn OSProfiler on
+
+Make one key with `openssl rand -hex 32`, and give every service that same key. Anyone holding it can make any request traced, so keep it as you keep a password. Leave `hmac_keys` unset and OSProfiler uses the literal value `SECRET_KEY`. Add this to `nova.conf`, `neutron.conf`, `cinder.conf`, `glance-api.conf` and `keystone.conf`, and restart them.
+
+```ini
+[profiler]
+enabled = True
+hmac_keys = <your key>
+connection_string = otlp://127.0.0.1:4318
+trace_sqlalchemy = False
+```
+
+#### Check each service started it
+
+Each service's own log should hold this line as it starts, and no `Could not initialize driver`:
+
+```text
+osprofiler is enabled with connection string: otlp://127.0.0.1:4318
+```
+:::
+
+### Placement, one line
+
+Without this, a signed request still reaches Placement and works, and Placement's own part of it is not in the trace. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades. It was worked out from Placement's source and the error it logs, and has not been run yet, so try it on a test cloud first. Run it with the Python in Placement's environment, add the same `[profiler]` section to `placement.conf`, and restart it:
+
+```bash
+sed -i '/profiler\.set_defaults(config)/a\        config.register_opts(profiler._OTLP_OPTS, group="profiler_otlp")' "$(python3 -c 'import placement.wsgi as module; print(module.__file__)')"
+```
+
+### Nova's conductor and scheduler, one worker each
+
+With one worker each they run in the process that made the driver, which should bring them into a trace: the services that sent spans on our test cloud are the ones that do not fork, and these two do. That has not been run yet. One worker is also all the capacity each of those processes then has, so this is for a test cloud, or a quiet hour of looking into something, and not for a busy cloud to run on.
+
+```ini title="nova.conf"
+[conductor]
+workers = 1
+
+[scheduler]
+workers = 1
+```
+
+OpenStack-Helm's Nova chart sets both to 1 already and scales by pods.
+
+### Trace a request
+
+**Trace a request**, on your cloud's **Traces** page, has the commands for this cloud. They ask for your key without echoing it, which keeps it out of your shell's history and the machine's process list:
+
+```bash
+read -rs OS_PROFILE && export OS_PROFILE
+openstack server list
+openstack server create --wait --flavor <flavor> --image <image> --network <network> oneuptime-trace-test
+openstack server delete --wait oneuptime-trace-test
+unset OS_PROFILE
+```
+
+`openstack --os-profile <key> server create ...` does the same, with the key in your history. Each command prints `Trace ID: ...`, whether or not anything was traced, so paste it into the page to open that trace. Give it a few seconds, because spans are sent in batches.
+
+A signed `server list` crosses `nova-api`, `keystone`, `neutron-server` and `glance-api`. A signed boot adds `nova-compute`, tied to the instance it made. If those are there, it works.
+
+| What you see | What it means |
+| --- | --- |
+| No `Trace ID` line | The client has no OSProfiler, and ignores your key without it. `pip install osprofiler` where you run `openstack` |
+| A `Trace ID`, and no trace | A wrong key is not an error: the request just goes untraced. Check the key, that the service was restarted, its log, and that the collector answers `curl -i -X POST http://127.0.0.1:4318/v1/traces` |
+| A span missing its parent | It was called by a service that sends nothing. See [What a trace shows](#what-a-trace-shows) |
+
+Your traces are on the cloud's **Traces** page, an instance's, a volume's and a network's are on its **Traces** tab, and a service's and an API's on theirs. An instance a request made is found by the requests that named it: a boot's own `POST` cannot name it, and what follows does.
+
+### The control plane
+
+The cloud's **Traces** page draws the control plane from your newest traces: which service called which, how often and how long it took. It is what those requests crossed and no more, so a service no traced request reached is not on it, and a call from a service that sends nothing is not drawn.
+
+### From a trace to its logs
+
+No span holds a request ID, and no log line holds a trace's, because OSProfiler and oslo.log do not know each other. With the [logs profile](#service-logs) on, the card above a trace finds its requests by what the two have in common, and says how sure each is:
+
+| It says | Which means |
+| --- | --- |
+| Its lines name an instance this trace touched | As good as an ID: on a real boot, this gives the request ID Nova's own instance actions give |
+| An API logged the same call at the same moment | Sure, unless someone else made the same call at that moment |
+| Only the same services at the same moment | On a quiet cloud that is the request, and on a busy one it may not be |
+
+Each opens [that request](#follow-a-request), across every service, which includes the ones that send no spans.
+
+### What tracing costs
+
+Nothing until a request is signed. With OSProfiler on and nothing signed, a request costs one failed check of a header. OpenStack [gives no figure](https://docs.openstack.org/osprofiler/latest/user/integration.html) for what a signed one costs, and neither do we, because nobody has measured it. A signed request does more work in every service it crosses, sends every span over HTTP from each of them, and carries your key across the message bus in its context. Sign what you are looking into, not traffic.
+
+What has been counted is what a signed boot sends, on one machine's DevStack:
+
+| Settings | Spans | What the collector sends on |
+| --- | --- | --- |
+| The defaults above | About 100 | About 50 KB |
+| `trace_requests = True` | About 150 | About 90 KB |
+| `trace_sqlalchemy = True` | About 900 | About 1 MB |
+
+With the collector stopped, a signed boot still worked and its spans were lost, so tracing did not get in the request's way.
+
+### What a span holds
+
+OSProfiler's driver copies what a traced call was handed into its span, written out as Python would print it: an instance's admin password and user data, and a volume's connection info. The collector removes `args`, `kwargs`, `result` and `db.params` before they leave the machine, and OneUptime removes them on arrival for a span that came some other way. Nothing turns that off. A statement from `trace_sqlalchemy` is kept with its placeholders, and its values are not.
+
+Your key is in neither. It does travel between a service's own parts, in the context of each message on your message bus, for as long as a signed request lasts.
+
+### Traces on a schedule
+
+A trace only exists when a request is signed, so nothing here traces a cloud on its own. The planned lifecycle check signs its own requests when it is given the key, so a slow boot it sees has a trace: it is not built yet.
 
 ## Run as a systemd service
 

@@ -381,6 +381,29 @@ test.describe("network", () => {
     ).toHaveCount(0);
   });
 
+  test("a DHCP agent a probe asked lists what it serves, and the network names it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "network-agents", PARTS);
+    await openRow(page, "neutron-dhcp-agent");
+    await expect(
+      page.getByTestId("openstack-network-agent-details-dhcp-networks"),
+    ).toContainText("1");
+
+    await page.getByRole("tab", { name: "Networks" }).click();
+    await expect(rowOf(page, "research-net")).toBeVisible();
+    await expect(
+      page.locator("tr").filter({ hasText: "web-net" }),
+    ).toHaveCount(0);
+
+    await openRow(page, "research-net");
+    await expect(
+      page.getByTestId("openstack-network-details-dhcp-agents"),
+    ).toContainText("ctl-01");
+  });
+
   test("an external pool filling up says when it runs out, from its own last day", async ({
     page,
   }: {
