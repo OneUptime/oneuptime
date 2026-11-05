@@ -12,6 +12,7 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
 - [Trace a request](#trace-requests-through-the-control-plane): One signed request, followed across the control plane.
+- [Check it from outside](#check-the-cloud-from-outside): Whether anyone can actually boot an instance, from a probe outside the cloud.
 - [By deployment tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat and Mirantis.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -1043,7 +1044,111 @@ Your key is in neither. It does travel between a service's own parts, in the con
 
 ### Traces on a schedule
 
-A trace only exists when a request is signed, so nothing here traces a cloud on its own. The planned lifecycle check signs its own requests when it is given the key, so a slow boot it sees has a trace: it is not built yet.
+A trace only exists when a request is signed, so nothing here traces a cloud on its own. [The lifecycle check](#the-lifecycle-check) signs its own writes when it is given the key, each step in a trace of its own, so a slow boot it sees has a trace. The key is the one place OneUptime holds one: encrypted, write-only, and for that check alone.
+
+## Check the cloud from outside
+
+Every service can report healthy while no one can boot an instance, so the truest test is doing what users do, from where they are. A probe does it from outside the cloud, because a check inside a failed cloud says nothing. Run these on [a probe of your own](/docs/probe/custom-probe), somewhere that reaches the cloud's public endpoints the way your users do. On OneUptime Cloud, shared probes never receive OpenStack credentials.
+
+Both are on the cloud's **Checks** page. [The OpenStack monitor's templates](/docs/monitor/openstack-monitor#checks-from-outside) turn what they find into incidents.
+
+### API checks
+
+Every minute by default, and read-only. Keystone issues a token, each service in the catalog answers an authenticated one-row read, and each endpoint's certificate is read for when it expires. Whatever the catalog names is what gets asked, so there is no list to keep.
+
+A cloud a probe already collects needs one click: **Turn On API Checks** uses the same probe, address and credential. A cloud the agent collects has none of those on a probe, so it asks for them. Any credential that can log in will do, because a service that refuses it has still answered.
+
+It costs one login and one small read per service per region, each minute, with no retries. A credential Keystone refuses is asked again later rather than every minute, because repeating one is what locks an account.
+
+### The lifecycle check
+
+Every 30 minutes by default, and only if you opt in. In a project it has to itself, with a credential of its own, it creates a server, waits for `ACTIVE`, optionally attaches a floating IP and pings it, optionally creates and attaches a volume, then deletes everything. Each step's duration is a series, and a failed run names its step and the fault Nova or Cinder gave.
+
+:::warning
+This check writes to your cloud. Everything below is what keeps that to one project, and it is checked before every run.
+:::
+
+Create the project, with room for three runs at once, because what a run that died left behind counts against the quota until the janitor removes it:
+
+```bash
+openstack project create --domain default --description "OneUptime lifecycle check" oneuptime-checks
+openstack quota set --instances 3 --cores 3 --ram 2048 --volumes 3 --gigabytes 3 \
+  --floating-ips 3 --secgroups 6 --secgroup-rules 20 --ports 8 oneuptime-checks
+openstack user create --domain default --password-prompt oneuptime-check
+openstack role add --project oneuptime-checks --user oneuptime-check member
+```
+
+Give the project a network to boot on, as that user on that project. The router is only for the floating IP part:
+
+```bash
+openstack network create oneuptime-check-net
+openstack subnet create --network oneuptime-check-net --subnet-range 192.168.250.0/24 oneuptime-check-subnet
+openstack router create oneuptime-check-router
+openstack router set --external-gateway public oneuptime-check-router
+openstack router add subnet oneuptime-check-router oneuptime-check-subnet
+```
+
+Then make its credential, still as that user:
+
+```bash
+openstack application credential create --role member oneuptime-check
+```
+
+On the **Checks** page, choose **Turn On the Lifecycle Check**, name the project, and paste the credential's ID and secret. Leave the flavor, image and network empty and each run picks them: the small test image if there is one, the smallest flavor that fits it, and the project's one network. If it cannot tell which you mean it says so rather than guessing.
+
+#### What it creates
+
+Everything has a name of exactly this form, in the check's project, and nothing else is ever created:
+
+```text
+oneuptime-check-<key>-<when>-<random>-<part>
+```
+
+`<key>` is twelve hex characters of a hash of this check, so two checks sharing a project never touch each other's. `<when>` is when the run started, in UTC. `<part>` says what it is:
+
+| Part | What it is | When |
+| --- | --- | --- |
+| `server` | One server, of the smallest flavor that fits | Every run |
+| `sg` | One security group, letting ICMP in from anywhere | With the floating IP part |
+| `fip` | One floating IP. A floating IP has no name, so this is its description | With the floating IP part |
+| `volume` | One volume, 1 GiB unless you say otherwise | With the volume part |
+
+Nova also makes the server's port, and deletes it with the server.
+
+#### What it may touch
+
+It deletes what a run just made, and what the janitor finds. The janitor deletes something only if all of this holds, and nothing that merely looks similar does:
+
+- Its name is exactly the form above, for this check's key, and for what it is: `oneuptime-check-web`, a copy called `...-server-old` or a volume with a server's name are all left alone.
+- It names no other project.
+- It is older than two intervals, by both what its name says and what the service says. A run still going is younger than one.
+- For a volume, it is attached to nothing this check did not make.
+
+Each run starts with the janitor, so what a crash left behind is gone within two intervals and a run. Until then a run skips itself if something named for the check is younger than a run can take, because a run may still be going, and a run never starts while one is.
+
+#### What it refuses
+
+Before each run, and again before each write, it refuses to go on with a credential that could reach further than the project it was given. A refused run writes nothing, and the page says why.
+
+- Its token is not scoped to a project, or is scoped to another one. After the first run the project's ID is pinned, so a new project of the same name is refused too.
+- Any of its roles has `admin` or `service` in its name, or Keystone calls this its admin project.
+- It is an application credential created `--unrestricted`, which could make more credentials.
+- It can read what only an admin can: every project, every hypervisor or every network agent. A role can be called anything, so this is asked as well as the names.
+
+An application credential is better than a password here, because it cannot be scoped to any other project.
+
+#### Trace a slow boot
+
+Save your [OSProfiler](#trace-requests-through-the-control-plane) key on the **Checks** page and each step's writes are signed, each step its own trace, so a slow boot has a trace holding the boot and nothing else. The waits are not signed, because a signed request does more work in every service it crosses. The key is encrypted and write-only, like the credential: it goes to this probe and into each signature, and comes back from nowhere.
+
+#### Turning it off
+
+Turn the check off and no more runs start. Until nothing named for it is left, the probe keeps running the janitor alone, which is why the credential is kept that long. Then OneUptime forgets the credential and the key, and you can delete the project. Deleting the cloud in OneUptime forgets them at once and clears nothing up, so turn the check off first and wait for the page to stop saying it is clearing up. If the credential is gone first, find what is left by name:
+
+```bash
+openstack server list --name '^oneuptime-check-'
+openstack volume list --name 'oneuptime-check-'
+```
 
 ### OpenStack's own tracing
 

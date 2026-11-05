@@ -42,6 +42,13 @@ export interface OpenStackTlsTarget {
   pinnedAddresses: ReadonlyArray<string>;
   trustedFingerprints: ReadonlyArray<string>;
   connectTimeoutInMs: number;
+  /*
+   * Told what each connection's certificate is, trusted or not, before it is judged, so that
+   * one that has expired can still be reported as having expired. Nothing is sent to it.
+   */
+  onCertificate?:
+    | ((certificate: OpenStackPresentedCertificate) => void)
+    | undefined;
 }
 
 export class OpenStackCertificateError extends Error {
@@ -211,13 +218,28 @@ function connectAndVerify(
       socket.once("error", onError);
 
       socket.once("secureConnect", () => {
+        const certificate: DetailedPeerCertificate | PeerCertificate =
+          socket.getPeerCertificate(false);
+        const authorizationError: string | null = socket.authorizationError
+          ? String(socket.authorizationError)
+          : null;
+
+        if (target.onCertificate && certificate?.fingerprint256) {
+          target.onCertificate({
+            ...describePeerCertificate(
+              certificate,
+              socket.authorized ? null : authorizationError,
+            ),
+            host: target.host,
+            port: target.port,
+          });
+        }
+
         settle(
           judgeOpenStackCertificate({
             authorized: socket.authorized,
-            authorizationError: socket.authorizationError
-              ? String(socket.authorizationError)
-              : null,
-            certificate: socket.getPeerCertificate(false),
+            authorizationError: authorizationError,
+            certificate: certificate,
             trustedFingerprints: target.trustedFingerprints,
             host: target.host,
             port: target.port,

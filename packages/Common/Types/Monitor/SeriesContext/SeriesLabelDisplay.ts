@@ -134,6 +134,9 @@ const FriendlyLabelNames: Record<string, string> = {
   "openstack.instance.source": "Source",
   "openstack.project.id": "Project",
   openstack_service: "Service Type",
+  service_type: "Service Type",
+  // What a check of an endpoint's certificate is about, beside its host.
+  port: "Port",
   // What the agent's control plane jobs stamp, and what those exporters say.
   openstack_exporter_host: "Machine",
   proxy: "Backend",
