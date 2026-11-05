@@ -261,9 +261,14 @@ describe("the audit parser, in a process that compiles regular expressions unopt
     () => {
       const read: Report = reportOf();
 
-      expect(read.pathLong <= 200 || read.pathLong <= read.pathShort * 10).toBe(
-        true,
-      );
+      /*
+       * Four megabytes split into half a million strings, so on a busy machine the garbage
+       * collector is most of what this measures: 76ms to 331ms on the same code in one minute.
+       * Reading it twice over, as anything quadratic would, takes minutes and not a second.
+       */
+      expect(
+        read.pathLong <= 1000 || read.pathLong <= read.pathShort * 10,
+      ).toBe(true);
     },
     TIME_LIMIT_MS,
   );

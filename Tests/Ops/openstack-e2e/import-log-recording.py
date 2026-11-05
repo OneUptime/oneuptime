@@ -19,6 +19,7 @@ because import-recording.py rewrites <release>/ whole:
     audit-filter.txt             the keystonemiddleware filter as a real service loaded it
     ids.json                     which instance is which, and when each scene ran
     audit/<phase>.jsonl          every line an audit trail is read from, and a few it is not
+    audit/collector-<phase>.jsonl  the same lines as a real collector sent them, attributes and all
     audit/ids.json               what those phases' scenes made, and how each scene went
 
 --audit-only writes the audit folder and nothing else, for a run that is only about that.
@@ -481,6 +482,52 @@ def import_audit(phase_dir, phase, out):
 
     if kept:
         write_lines(os.path.join(out, "audit", f"{phase}.jsonl"), kept)
+    return len(kept) + import_audit_collector(phase_dir, phase, out)
+
+
+def import_audit_collector(phase_dir, phase, out):
+    """The same lines, as a real collector sent them, which is not always as they were written."""
+    source = os.path.join(phase_dir, "otlp-logs.json")
+    # One phase per profile: the journal's, and the files'.
+    if phase not in ("devstack", "oslo-default") or not os.path.isfile(source):
+        return 0
+
+    kept = []
+    counts = {}
+    with open(source, encoding="utf-8", errors="replace") as handle:
+        for raw in handle:
+            try:
+                batch = json.loads(raw)
+            except ValueError:
+                continue
+            for resource_logs in batch.get("resourceLogs", []):
+                resource = {
+                    f"resource.{item.get('key')}": item.get("value", {}).get("stringValue")
+                    for item in resource_logs.get("resource", {}).get("attributes", [])
+                }
+                for scope in resource_logs.get("scopeLogs", []):
+                    for record in scope.get("logRecords", []):
+                        body = record.get("body", {}).get("stringValue") or ""
+                        if "oslo.messaging.notification." not in body:
+                            continue
+                        kind = audit_kind(body)
+                        if kind == "other-notification":
+                            continue
+                        if kind is not None:
+                            counts[kind] = counts.get(kind, 0) + 1
+                            if counts[kind] > AUDIT_KEEP[kind]:
+                                continue
+                        attributes = dict(resource)
+                        for item in record.get("attributes", []):
+                            value = item.get("value", {}).get("stringValue")
+                            if value is not None:
+                                attributes[item.get("key")] = value
+                        clean = replace_secrets(json.dumps({"attributes": attributes, "body": body}, sort_keys=True))
+                        assert_clean(clean, f"{phase} collector, audit")
+                        kept.append(clean)
+
+    if kept:
+        write_lines(os.path.join(out, "audit", f"collector-{phase}.jsonl"), kept)
     return len(kept)
 
 
