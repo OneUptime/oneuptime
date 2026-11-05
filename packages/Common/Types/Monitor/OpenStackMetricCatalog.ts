@@ -29,7 +29,6 @@ export type OpenStackMetricCategory =
   | "Images"
   | "Identity"
   | "Bare Metal"
-  | "Projects";
   | "Projects"
   | "Capacity";
 

@@ -434,6 +434,7 @@ describe("a node is no hypervisor", () => {
   test("a host really called by a UUID keeps its row, on what it holds", () => {
     const entries: Array<OpenStackResourceBufferEntry> = scan([
       [PLACEMENT[0]!, 64, { hostname: NODE_ID, resourcetype: "VCPU" }],
+      [PLACEMENT[1]!, 0, { hostname: NODE_ID, resourcetype: "VCPU" }],
       [PLACEMENT[2]!, 4, { hostname: NODE_ID, resourcetype: "VCPU" }],
       [PLACEMENT[3]!, 8, { hostname: NODE_ID, resourcetype: "VCPU" }],
     ]);
@@ -482,6 +483,7 @@ describe("a node is no hypervisor", () => {
     const [host] = ofKind(
       scan([
         [PLACEMENT[0]!, 8, { hostname: "compute-01", resourcetype: "VCPU" }],
+        [PLACEMENT[1]!, 0, { hostname: "compute-01", resourcetype: "VCPU" }],
         [PLACEMENT[2]!, 4, { hostname: "compute-01", resourcetype: "VCPU" }],
       ]),
       OpenStackResourceKind.Hypervisor,

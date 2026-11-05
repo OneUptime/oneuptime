@@ -529,6 +529,7 @@ describe("how a cloud's services group", () => {
         api("placement"),
         api("compute"),
         api("identity"),
+        api("baremetal"),
         api("dns"),
       ]).map((group: OpenStackServiceGroup): string => {
         return group.service;
