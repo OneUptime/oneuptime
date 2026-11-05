@@ -17367,7 +17367,7 @@
   "This is the Community Edition image": "This is the Community Edition image",
   "This is the newest session in the window": "This is the newest session in the window",
   "This is the oldest session in the window": "This is the oldest session in the window",
-  "This is the run you just started.": "This is the run you just started.",
+  "This is the run you just started.": "Questa è l'esecuzione che hai appena avviato.",
   "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.": "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
   "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.": "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
   "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.": "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.",
@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "Passa tutti i campi personalizzati: {{fields}}",
   "Choice": "Scelta",
   "Choices": "Scelte",
-  "This project has no custom fields for these records yet.": "Questo progetto non ha ancora campi personalizzati per questi record."
+  "This project has no custom fields for these records yet.": "Questo progetto non ha ancora campi personalizzati per questi record.",
+  "Run this workflow again?": "Eseguire di nuovo questo workflow?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "Una nuova esecuzione parte dal trigger, con gli stessi valori e il workflow così com'è ora. Ogni passaggio viene eseguito davvero: tutto ciò che invia, scrive o elimina accade realmente.",
+  "Run with the last run's values": "Esegui con i valori dell'ultima esecuzione",
+  "Starts a new run with what the run of {{date}} started with.": "Avvia una nuova esecuzione con ciò con cui è partita l'esecuzione del {{date}}."
 }

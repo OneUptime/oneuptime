@@ -18,6 +18,8 @@ Chaque fois qu'un workflow s'exécute, OneUptime enregistre ce qui s'est passé 
 
 Lancer une exécution depuis le **Constructeur** ouvre la même vue **Exécution du flux de travail**, qui suit déjà l'exécution : vous la regardez se dérouler au lieu de la chercher ensuite.
 
+Pour réessayer une exécution avec les mêmes valeurs, appuyez sur Exécuter à nouveau dans sa vue, ou dans le menu ⋯ de sa ligne. Une nouvelle exécution démarre depuis le déclencheur avec ce avec quoi cette exécution a commencé : la charge utile d'un webhook n'a donc pas besoin d'être renvoyée. Elle exécute le workflow tel qu'il est maintenant, vous pouvez donc modifier une étape et réessayer aussitôt. Ses étapes s'exécutent pour de vrai et, tant que le workflow est désactivé, c'est une exécution de test. Le panneau d'exécution du workflow dans le Builder propose les valeurs de la dernière exécution de la même façon. Le test d'une seule étape se relance depuis l'étape. Une exécution qui a commencé avec plus de 1 Mo de valeurs ne peut pas être relancée, pas plus qu'une exécution antérieure à la conservation de ces valeurs par OneUptime. Elles sont chiffrées et personne ne peut les lire via l'API.
+
 ## Statuts d'exécution
 
 ```mermaid title="Les statuts par lesquels passe une exécution"

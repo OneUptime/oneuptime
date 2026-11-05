@@ -17367,7 +17367,7 @@
   "This is the Community Edition image": "This is the Community Edition image",
   "This is the newest session in the window": "This is the newest session in the window",
   "This is the oldest session in the window": "This is the oldest session in the window",
-  "This is the run you just started.": "This is the run you just started.",
+  "This is the run you just started.": "這是你剛剛啟動的執行。",
   "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.": "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
   "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.": "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
   "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.": "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.",
@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "傳遞所有自訂欄位：{{fields}}",
   "Choice": "選項",
   "Choices": "多個選項",
-  "This project has no custom fields for these records yet.": "此專案還沒有用於這些記錄的自訂欄位。"
+  "This project has no custom fields for these records yet.": "此專案還沒有用於這些記錄的自訂欄位。",
+  "Run this workflow again?": "要再次執行此工作流程嗎？",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "新的執行將從觸發器開始，使用相同的值和工作流程的目前版本。每個步驟都會真實執行：它傳送、寫入或刪除的任何內容都會實際發生。",
+  "Run with the last run's values": "使用上次執行的值執行",
+  "Starts a new run with what the run of {{date}} started with.": "使用 {{date}} 那次執行開始時的內容啟動新的執行。"
 }

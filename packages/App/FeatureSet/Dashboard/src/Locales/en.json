@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "Passes on every custom field: {{fields}}",
   "Choice": "Choice",
   "Choices": "Choices",
-  "This project has no custom fields for these records yet.": "This project has no custom fields for these records yet."
+  "This project has no custom fields for these records yet.": "This project has no custom fields for these records yet.",
+  "Run this workflow again?": "Run this workflow again?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.",
+  "Run with the last run's values": "Run with the last run's values",
+  "Starts a new run with what the run of {{date}} started with.": "Starts a new run with what the run of {{date}} started with."
 }

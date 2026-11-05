@@ -17367,7 +17367,7 @@
   "This is the Community Edition image": "This is the Community Edition image",
   "This is the newest session in the window": "This is the newest session in the window",
   "This is the oldest session in the window": "This is the oldest session in the window",
-  "This is the run you just started.": "This is the run you just started.",
+  "This is the run you just started.": "방금 시작한 실행입니다.",
   "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.": "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
   "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.": "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
   "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.": "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.",
@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "모든 사용자 지정 필드를 전달합니다: {{fields}}",
   "Choice": "선택 항목",
   "Choices": "여러 선택 항목",
-  "This project has no custom fields for these records yet.": "이 프로젝트에는 아직 이 레코드에 대한 사용자 지정 필드가 없습니다."
+  "This project has no custom fields for these records yet.": "이 프로젝트에는 아직 이 레코드에 대한 사용자 지정 필드가 없습니다.",
+  "Run this workflow again?": "이 워크플로를 다시 실행할까요?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "트리거에서 같은 값과 현재 상태의 워크플로로 새 실행이 시작됩니다. 모든 단계는 실제로 실행됩니다. 보내고, 쓰고, 삭제하는 모든 작업이 실제로 일어납니다.",
+  "Run with the last run's values": "마지막 실행의 값으로 실행",
+  "Starts a new run with what the run of {{date}} started with.": "{{date}} 실행이 시작할 때 받은 값으로 새 실행을 시작합니다."
 }

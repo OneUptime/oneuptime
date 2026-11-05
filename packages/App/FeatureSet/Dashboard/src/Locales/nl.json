@@ -17367,7 +17367,7 @@
   "This is the Community Edition image": "This is the Community Edition image",
   "This is the newest session in the window": "This is the newest session in the window",
   "This is the oldest session in the window": "This is the oldest session in the window",
-  "This is the run you just started.": "This is the run you just started.",
+  "This is the run you just started.": "Dit is de uitvoering die je zojuist hebt gestart.",
   "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.": "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
   "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.": "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
   "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.": "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.",
@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "Geeft elk aangepast veld door: {{fields}}",
   "Choice": "Keuze",
   "Choices": "Keuzes",
-  "This project has no custom fields for these records yet.": "Dit project heeft nog geen aangepaste velden voor deze records."
+  "This project has no custom fields for these records yet.": "Dit project heeft nog geen aangepaste velden voor deze records.",
+  "Run this workflow again?": "Deze workflow opnieuw uitvoeren?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "Een nieuwe uitvoering start bij de trigger, met dezelfde waarden en de workflow zoals die nu is. Elke stap wordt echt uitgevoerd: alles wat hij verstuurt, schrijft of verwijdert, gebeurt daadwerkelijk.",
+  "Run with the last run's values": "Uitvoeren met de waarden van de laatste uitvoering",
+  "Starts a new run with what the run of {{date}} started with.": "Start een nieuwe uitvoering met waarmee de uitvoering van {{date}} begon."
 }
