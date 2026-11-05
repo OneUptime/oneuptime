@@ -21,7 +21,9 @@ jest.mock("../../../../../Models/DatabaseModels/Index", () => {
 jest.mock(
   "../../../../../UI/Components/Workflow/ValuePicker/ValuePickerMenu",
   () => {
-    const React: typeof import("react") = jest.requireActual("react");
+    const React: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
 
     return {
       __esModule: true,

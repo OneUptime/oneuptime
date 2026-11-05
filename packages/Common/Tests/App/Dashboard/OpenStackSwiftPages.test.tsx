@@ -127,12 +127,12 @@ function recorded(scene: string, exporter: string = "exporter"): Array<Row> {
     return {
       _id: id(),
       kind: entry.kind,
-      name: entry.name,
+      name: entry.name ?? undefined,
       externalId: entry.externalId,
-      regionName: entry.regionName,
-      openStackProjectId: entry.openStackProjectId,
-      status: entry.status,
-      diskAllocatedBytes: entry.diskAllocatedBytes,
+      regionName: entry.regionName ?? undefined,
+      openStackProjectId: entry.openStackProjectId ?? undefined,
+      status: entry.status ?? undefined,
+      diskAllocatedBytes: entry.diskAllocatedBytes ?? undefined,
       facts: entry.facts,
       lastSeenAt: new Date(),
     };

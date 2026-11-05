@@ -70,6 +70,9 @@ const SERVERS: Array<Server> = serversOnTsNode();
 // A require() of a module named by a string.
 const REQUIRE_CALL: RegExp = /require\(\s*"([^"]+)"\s*\)/gu;
 
+const COPY_OF_COMMON: RegExp =
+  /^COPY (?:--exclude=Tests )?\.\/packages\/Common \/usr\/src\/Common$/m;
+
 describe("servers that boot through ts-node", () => {
   test("are found: the App, the Probe, the Runner and the rest", () => {
     expect(
@@ -124,7 +127,8 @@ describe("servers that boot through ts-node", () => {
         "utf8",
       );
 
-      expect(dockerfile).toContain("COPY ./packages/Common /usr/src/Common");
+      // Most images leave Common's tests behind: which is what the --exclude is.
+      expect(dockerfile).toMatch(COPY_OF_COMMON);
       expect(dockerfile).toContain("WORKDIR /usr/src/app");
     },
   );

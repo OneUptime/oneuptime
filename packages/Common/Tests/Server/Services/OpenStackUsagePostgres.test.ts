@@ -68,7 +68,7 @@ import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
  * OPENSTACK_INVENTORY_TEST_DATABASE_*), against a database with the migrations applied. It works on
  * a structure-only clone in a schema of its own, dropped afterwards.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS"] === "true"
     ? describe
     : describe.skip;

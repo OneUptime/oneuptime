@@ -181,7 +181,7 @@ describe("the conditions builder in every dashboard language", () => {
     expect(BUILDER_STRINGS).toContain("Match all");
     expect(BUILDER_STRINGS).toContain("Is in");
     expect(BUILDER_STRINGS).toContain("Applies to");
-    expect(APPLIES_TO_STRINGS).toHaveLength(68);
+    expect(APPLIES_TO_STRINGS).toHaveLength(72);
     expect(BUILDER_STRINGS).toContain("All incidents");
     expect(BUILDER_STRINGS).toContain("Only incidents that match conditions");
     expect(BUILDER_STRINGS).toContain("Only data stores that match conditions");

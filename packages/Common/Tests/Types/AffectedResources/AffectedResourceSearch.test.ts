@@ -51,7 +51,7 @@ describe("the kinds", () => {
     expect(AFFECTED_RESOURCE_KINDS).toContain(
       AffectedResourceKind.NetworkDevice,
     );
-    expect(AFFECTED_RESOURCE_KINDS).toHaveLength(16);
+    expect(AFFECTED_RESOURCE_KINDS).toHaveLength(17);
   });
 
   test("a network device comes right after a host, as on the incident's card", () => {

@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { DataSource } from "typeorm";
 import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
@@ -54,7 +55,7 @@ import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
  *   - at the largest size tested, it reads within a stated budget, and the row the page reads
  *     stays small.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -524,10 +525,9 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
     });
 
     test("no hosts asks nothing", async () => {
-      const query: jest.SpiedFunction<typeof database.query> = jest.spyOn(
-        database,
-        "query",
-      );
+      const query: SpyInstance<
+        (...args: Parameters<typeof database.query>) => Promise<unknown>
+      > = jest.spyOn(database, "query");
 
       await OpenStackResourceService.reconcileHypervisorCapacity({
         ...SCOPE,
@@ -540,8 +540,9 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
 
   describe("the worker's whole refresh, with only the metric store stood in for", () => {
     test("is worked out from the rows, kept on the cloud, and reads nothing it isn't due", async () => {
-      const metricReads: jest.SpiedFunction<typeof MetricService.aggregateBy> =
-        jest.spyOn(MetricService, "aggregateBy").mockResolvedValue({
+      const metricReads: SpyInstance<typeof MetricService.aggregateBy> = jest
+        .spyOn(MetricService, "aggregateBy")
+        .mockResolvedValue({
           data: [],
         } as never);
       const host: (used: {
@@ -652,7 +653,7 @@ describePostgres("what the capacity refresh reads, on Postgres", () => {
       );
 
       // The next run, two minutes on, as the worker makes it: from what it kept on the cloud.
-      const instancesRead: jest.SpiedFunction<
+      const instancesRead: SpyInstance<
         typeof OpenStackResourceService.getInstancesOnHosts
       > = jest.spyOn(OpenStackResourceService, "getInstancesOnHosts");
       const next: OpenStackCapacityRefreshResult =

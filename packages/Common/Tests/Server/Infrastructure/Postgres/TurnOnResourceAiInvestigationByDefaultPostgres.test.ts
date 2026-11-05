@@ -33,11 +33,15 @@ const describePostgres: typeof describe.skip =
 /*
  * The AiResourceType values are the resource tables' names - but for the
  * clouds', which share the CloudAccount table and got their AI columns
- * later (AddCloudAccountAiAccess), so this migration never touched them.
+ * later (AddCloudAccountAiAccess), so this migration never touched them, and
+ * OpenStack's, whose table came later and started with investigation on
+ * (AddOpenStackCloudAiAccess).
  */
 const RESOURCE_TABLES: Array<string> = ALL_AI_RESOURCE_TYPES.filter(
   (type: AiResourceType): boolean => {
-    return !isCloudAiResourceType(type);
+    return (
+      !isCloudAiResourceType(type) && type !== AiResourceType.OpenStackCloud
+    );
   },
 ).map(String);
 

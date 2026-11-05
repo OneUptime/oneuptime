@@ -390,7 +390,7 @@ describe("the Networks page", () => {
     expect(screen.getByText("8")).toBeInTheDocument();
     expect(
       screen.getByTestId("openstack-security-groups-by-project-off"),
-    ).toHaveTextContent(/--disable-metric=neutron-quota_network/);
+    ).toHaveTextContent(/OPENSTACK_COLLECT_QUOTAS=true/);
   });
 
   test("with a region chosen, the counts and the external list are that region's", async () => {
@@ -478,7 +478,7 @@ describe("the Networks page", () => {
 
   describe("on a cloud a probe collects", () => {
     beforeEach(() => {
-      Object.assign(server.cloud as Record<string, unknown>, {
+      Object.assign(server.cloud!, {
         collectionMethod: OpenStackCollectionMethod.Probe,
       });
     });
@@ -1145,7 +1145,7 @@ describe("network agents", () => {
   });
 
   test("on a cloud a probe collects, that says to give the probe a credential, with no agent to run a script on", async () => {
-    Object.assign(server.cloud as Record<string, unknown>, {
+    Object.assign(server.cloud!, {
       collectionMethod: OpenStackCollectionMethod.Probe,
     });
     server.rows = [

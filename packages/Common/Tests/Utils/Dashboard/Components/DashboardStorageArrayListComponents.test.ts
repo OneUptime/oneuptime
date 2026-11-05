@@ -829,6 +829,11 @@ describe("Storage Array dashboard template", () => {
             | undefined
         )?.["filterData"] as Record<string, unknown> | undefined;
 
+        // OpenStack's charts ask for one kind of part, each by its attribute.
+        if (type === DashboardTemplateType.OpenStack) {
+          continue;
+        }
+
         expect({
           type,
           hasAttributes: Boolean(

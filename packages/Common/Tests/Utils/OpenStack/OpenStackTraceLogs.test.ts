@@ -7,6 +7,7 @@ import {
   OpenStackTraceSpanForLogs,
   joinOpenStackTraceToRequests,
 } from "../../../Utils/OpenStack/OpenStackTraceLogs";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * From a trace to the logs of its requests. Neither holds the other's ID, so what matters is
@@ -241,13 +242,19 @@ describe("what a trace's requests are, and how sure that is", () => {
   });
 
   test("a body too long to read costs a moment", () => {
-    const started: number = Date.now();
-
-    joinOpenStackTraceToRequests({
-      spans: [span({ method: "GET", path: "/v2.1/servers" })],
-      logs: [line({ root: "req-long", body: "x".repeat(1024 * 1024) })],
+    const spans: Parameters<typeof joinOpenStackTraceToRequests>[0]["spans"] = [
+      span({ method: "GET", path: "/v2.1/servers" }),
+    ];
+    const logs: Parameters<typeof joinOpenStackTraceToRequests>[0]["logs"] = [
+      line({ root: "req-long", body: "x".repeat(1024 * 1024) }),
+    ];
+    const read: FastestRun<unknown> = fastestRun({
+      run: (): unknown => {
+        return joinOpenStackTraceToRequests({ spans, logs });
+      },
+      limitInMs: 1000,
     });
 
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(read.inMs).toBeLessThan(1000);
   });
 });

@@ -539,9 +539,12 @@ describe("PlatformResourceIdentity.openstack", () => {
 
   test("a worker is named by its host and binary, not by its row id in Nova", () => {
     const expected: ExpectedIdentity<OpenStackResourceIdentity> = {
+      resourceId: undefined,
+      resourceName: undefined,
       hostName: "compute-01",
       serviceName: "nova-compute",
       regionName: "RegionOne",
+      projectId: undefined,
     };
 
     expectSameIdentity(PlatformResourceIdentity.openstack(worker), expected);

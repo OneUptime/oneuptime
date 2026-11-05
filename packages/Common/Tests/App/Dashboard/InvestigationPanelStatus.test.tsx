@@ -496,13 +496,14 @@ describe("InvestigationPanel status reporting", () => {
     await waitFor(() => {
       expect(postMock).toHaveBeenCalledTimes(2);
     });
-    await Promise.resolve();
-    await Promise.resolve();
+    // The next poll is set once the failed one has been handled, a few ticks on.
+    await waitFor(() => {
+      expect(jest.getTimerCount()).toBe(1);
+    });
 
     expect(onStatusChange).toHaveBeenLastCalledWith(AIRunStatus.Running);
     expect(onStatusChange).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Investigating…")).toBeInTheDocument();
-    expect(jest.getTimerCount()).toBe(1);
   });
 
   test("does not refetch when the same subject is passed as a new ObjectID instance", async () => {

@@ -345,7 +345,7 @@ describe("Acknowledge on an incident", () => {
     expect(note).toHaveAttribute("aria-expanded", "false");
     // The editor is there, folded away.
     expect(
-      within(dialog).getByTestId("markdown-editor-toolbar"),
+      await within(dialog).findByTestId("markdown-editor-toolbar"),
     ).not.toBeVisible();
 
     // A confirm, not the wide editor dialog.
@@ -399,7 +399,9 @@ describe("Acknowledge on an incident", () => {
       "true",
     );
     expect(dialog).toHaveClass("sm:max-w-7xl");
-    expect(within(dialog).getByTestId("markdown-editor-toolbar")).toBeVisible();
+    expect(
+      await within(dialog).findByTestId("markdown-editor-toolbar"),
+    ).toBeVisible();
     // No templates in this project: no picker.
     expect(within(dialog).queryByText("Select Note Template")).toBeNull();
 

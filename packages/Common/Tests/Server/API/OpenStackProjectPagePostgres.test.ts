@@ -50,7 +50,7 @@ import { mockRouter } from "./Helpers";
  * Opt in as OpenStackResourcePostgres.test.ts does (RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS=true and
  * OPENSTACK_INVENTORY_TEST_DATABASE_*). The tables are cloned, structure only, into a schema of their own.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS"] === "true"
     ? describe
     : describe.skip;

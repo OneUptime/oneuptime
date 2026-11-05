@@ -46,6 +46,18 @@ const NOT_SECRETS: Record<string, string> = {
   "OpenStackCloud.credentialKind": "which of the two kinds of credential it is",
   "OpenStackCloud.applicationCredentialId":
     "what names the credential, as a user name does: the secret that goes with it is left out",
+  "OpenStackCloudCheck.isCredentialSet":
+    "a switch saying whether a credential is saved",
+  "OpenStackCloudCheck.credentialsUpdatedAt":
+    "when the credential last changed",
+  "OpenStackCloudCheck.credentialKind":
+    "which of the two kinds of credential it is",
+  "OpenStackCloudCheck.applicationCredentialId":
+    "what names the credential, as a user name does: the secret that goes with it is left out",
+  "OpenStackCloudCheck.credentialProjectName":
+    "the project the credential is scoped to, not the credential",
+  "OpenStackCloudCheck.credentialProjectDomainName":
+    "the domain of the project the credential is scoped to, not the credential",
   "VMwareVCenter.isVCenterPasswordSet":
     "a switch saying whether a password is set",
   "VMwareVCenter.vcenterCredentialsUpdatedAt":

@@ -1177,7 +1177,9 @@ describe("who changed a part", () => {
     );
 
     expect(list).toHaveTextContent("an-admin");
-    expect(list).toHaveTextContent("update/stop");
+    // A person reads what happened, not the API's own path for it.
+    expect(list).toHaveTextContent("an-admin stop");
+    expect(list).not.toHaveTextContent("update/stop");
     expect(list).toHaveTextContent("Failed");
 
     const read: ListCall = callsOf("SecurityEvent")[0] as ListCall;
@@ -1187,7 +1189,7 @@ describe("who changed a part", () => {
 
     expect(attributesOf(read)).toEqual({
       [OpenStackAuditAttribute.Cloud]: CLOUD_NAME,
-      [OpenStackAuditAttribute.TargetId]: INSTANCE,
+      [OpenStackAuditAttribute.PartId]: INSTANCE,
     });
     expect(new Date(around.startValue).getTime()).toBe(
       CHANGED.getTime() - 15 * 60 * 1000,

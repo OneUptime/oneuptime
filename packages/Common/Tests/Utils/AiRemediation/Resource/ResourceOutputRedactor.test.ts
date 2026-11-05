@@ -282,6 +282,7 @@ describe("the hook table", () => {
         "docker",
         "govc",
         "journalctl",
+        "openstack",
         "ps",
         "pvesh",
         "systemctl",

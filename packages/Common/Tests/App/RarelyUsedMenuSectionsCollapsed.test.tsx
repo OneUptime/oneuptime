@@ -222,6 +222,11 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
    * section (the deeper wiring views and the hand-drawn links): Network's
    * everyday pages are Overview, Devices, Sites, Map and Discovery.
    */
+  // What an OpenStack cloud is made of, which its menu exists to open.
+  "Compute",
+  "Control Plane",
+  "Network",
+  "Tenancy",
   // A resource's own views.
   "Activity",
   /*

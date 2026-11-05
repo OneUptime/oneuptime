@@ -322,7 +322,8 @@ describe("claiming clouds", () => {
         trustedCertificateFingerprints: [FINGERPRINT],
         collectionIntervalInMinutes: 5,
         settingsVersion: 4,
-        options: undefined,
+        // What a cloud nobody has set anything on reads of its instances.
+        options: { instanceSeriesMode: "automatic", keptProjectIds: [] },
       },
     ]);
   });
@@ -378,6 +379,7 @@ describe("claiming clouds", () => {
         "name",
         "authUrl",
         "endpointInterface",
+        "instanceMetricsOptions",
         "collectionRegions",
         "credentialKind",
         "applicationCredentialId",
@@ -409,6 +411,8 @@ describe("claiming clouds", () => {
     expect(job?.options).toEqual({
       collectPorts: true,
       portNetworkIds: ["n"],
+      instanceSeriesMode: "automatic",
+      keptProjectIds: [],
     });
   });
 

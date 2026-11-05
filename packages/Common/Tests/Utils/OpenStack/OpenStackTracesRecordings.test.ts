@@ -296,7 +296,10 @@ describe.each(getRecordedTraceReleases())(
             "nova.network.neutron.ClientWrapper.proxy",
           );
           expect(
-            Number((span.recorded.endNano - span.recorded.startNano) / 1000n),
+            Number(
+              (span.recorded.endNano - span.recorded.startNano) /
+                BigInt("1000"),
+            ),
           ).toBeLessThan(5000);
           expect(
             spans.some((candidate: ReadSpan): boolean => {
@@ -405,8 +408,12 @@ describe.each(getRecordedTraceReleases())(
               service: span.service.service,
               method: String(span.attributes["http.method"] || ""),
               path: String(span.attributes["http.path"] || ""),
-              startAt: new Date(Number(span.recorded.startNano / 1000000n)),
-              endAt: new Date(Number(span.recorded.endNano / 1000000n)),
+              startAt: new Date(
+                Number(span.recorded.startNano / BigInt("1000000")),
+              ),
+              endAt: new Date(
+                Number(span.recorded.endNano / BigInt("1000000")),
+              ),
               attributes: span.attributes,
             };
           },

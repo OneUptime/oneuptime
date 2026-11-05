@@ -17,6 +17,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * The two run pages - every run in the project (Workflows → Logs → Runs) and
@@ -67,7 +68,7 @@ jest.mock("../../../UI/Utils/DownloadFile", () => {
   };
 });
 
-const mockSendRunAgain: jest.Mock<(runId: string) => Promise<void>> = jest.fn(
+const mockSendRunAgain: Mock<(runId: string) => Promise<void>> = jest.fn(
   async (): Promise<void> => {
     return undefined;
   },

@@ -1132,7 +1132,7 @@ describe("a form", () => {
     fields: Fields<TestEntity>,
   ): void => {
     render(
-      <BasicForm<TestEntity>
+      <BasicForm
         id="the-form"
         fields={fields}
         initialValues={{ name: "Database" } as FormValues<TestEntity>}
@@ -1194,7 +1194,7 @@ describe("a form", () => {
 
   test("asks for a control as it is drawn, for a field on a step not reached yet", async () => {
     render(
-      <BasicForm<TestEntity>
+      <BasicForm
         id="the-form"
         fields={[
           TEXT_FIELD,
@@ -1279,7 +1279,7 @@ describe("a form", () => {
       jest.fn<(values: FormValues<TestEntity>) => void>();
 
     render(
-      <BasicForm<TestEntity>
+      <BasicForm
         id="the-form"
         fields={[
           { ...TEXT_FIELD, stepId: undefined } as Field<TestEntity>,

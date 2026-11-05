@@ -89,6 +89,10 @@ const OTHER_CLIENTS: Record<string, string> = {
     "a website monitor's request, to the address it checks",
   "packages/Probe/Utils/Monitors/SyntheticRuntime/PlaywrightCapabilityBroker.ts":
     "a synthetic monitor's browser requests",
+  "packages/Probe/Utils/OpenStack/OpenStackHttp.ts":
+    "an OpenStack cloud's APIs",
+  "packages/Probe/Utils/OpenStack/OpenStackTls.ts":
+    "an OpenStack API's TLS handshake",
   "packages/Probe/Utils/VMware/VSphereHttp.ts": "a vCenter's API",
   "packages/Probe/Utils/VMware/VSphereTls.ts": "a vCenter's TLS handshake",
   "packages/Runner/Services/KubernetesExecutor.ts":

@@ -276,7 +276,7 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
     expect(suspect.impact?.reasons).toEqual([
       "it happened to the part this is about",
     ]);
-    expect(buildOpenStackFeedLine(recorded).markdown).toContain(
+    expect(buildOpenStackFeedLine(recorded).toString()).toContain(
       recorded.event.type,
     );
   }

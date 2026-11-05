@@ -880,7 +880,9 @@ describe.each(["gazpacho-ovs", "hibiscus-ovn"])(
         for (const { metricName, datapoint } of exported) {
           latestMs = Math.max(
             latestMs,
-            Number(BigInt(datapoint["timeUnixNano"] as string) / 1000000n),
+            Number(
+              BigInt(datapoint["timeUnixNano"] as string) / BigInt("1000000"),
+            ),
           );
           if (isOpenStackSnapshotDatapoint({ metricName, datapoint })) {
             bufferOpenStackSnapshotMetric({ metricName, datapoint, buffer });

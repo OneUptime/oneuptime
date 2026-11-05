@@ -18,7 +18,7 @@ jest.mock("../../../../../Models/DatabaseModels/Index", () => {
 jest.mock("../../../../../UI/Components/Workflow/ModelSchema", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../../UI/Components/Workflow/ModelSchema",
-  );
+  ) as Record<string, unknown>;
 
   return { ...actual, useModelSchema: jest.fn() };
 });

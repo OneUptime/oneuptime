@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -126,6 +127,13 @@ describe("what the part takes with it", () => {
                 volumeCount: 0,
                 routerCount: 0,
                 floatingIpCount: 0,
+                stackCount: 0,
+                containerClusterCount: 0,
+                shareCount: 0,
+                loadBalancerCount: 0,
+                databaseInstanceCount: 0,
+                dnsZoneCount: 0,
+                objectContainerCount: 0,
               },
               {
                 projectId: "p-2",
@@ -134,6 +142,13 @@ describe("what the part takes with it", () => {
                 volumeCount: 0,
                 routerCount: 0,
                 floatingIpCount: 0,
+                stackCount: 0,
+                containerClusterCount: 0,
+                shareCount: 0,
+                loadBalancerCount: 0,
+                databaseInstanceCount: 0,
+                dnsZoneCount: 0,
+                objectContainerCount: 0,
               },
             ],
           },
@@ -220,6 +235,13 @@ describe("a whole region's API", () => {
         volumeCount: 0,
         routerCount: 0,
         floatingIpCount: 0,
+        stackCount: 0,
+        containerClusterCount: 0,
+        shareCount: 0,
+        loadBalancerCount: 0,
+        databaseInstanceCount: 0,
+        dnsZoneCount: 0,
+        objectContainerCount: 0,
       },
     ],
   };
@@ -791,13 +813,14 @@ describe("what the cloud's page says needs attention", () => {
   });
 
   test("the read itself: a cloud's rows, and a failure that leaves the rest", async () => {
-    const attention: jest.SpiedFunction<
+    const attention: SpyInstance<
       typeof OpenStackResourceService.getAttentionRows
     > = jest
       .spyOn(OpenStackResourceService, "getAttentionRows")
       .mockResolvedValueOnce({
         rows: [service("compute-01", "down")],
         totalsByKind: {},
+        leftOut: [],
       })
       .mockRejectedValueOnce(new Error("the database is away"));
     const read: (data: {

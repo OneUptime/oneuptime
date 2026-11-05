@@ -285,6 +285,7 @@ const CASES: Array<ResourceCase> = [
     firstSection: "Basic",
     breadcrumbs: getOpenStackBreadcrumbs,
     trail: ["Project", "OpenStack", "View Cloud"],
+    metricsInsights: null,
   },
 ];
 

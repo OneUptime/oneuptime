@@ -17,6 +17,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import Route from "../../../Types/API/Route";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudCheck from "../../../Models/DatabaseModels/OpenStackCloudCheck";
 import ObjectID from "../../../Types/ObjectID";
@@ -281,7 +282,11 @@ function checkOn(extra: Record<string, unknown>): OpenStackCloudCheck {
 function renderPage(): void {
   render(
     <MemoryRouter>
-      <OpenStackCloudChecks {...({} as never)} />
+      <OpenStackCloudChecks
+        pageRoute={new Route("/")}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />
     </MemoryRouter>,
   );
 }
