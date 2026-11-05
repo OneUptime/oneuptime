@@ -496,7 +496,8 @@ export function simulateOpenStackProbeRequests(data: {
     if (
       isOvs &&
       !isSummary &&
-      minute - dhcpAgentsReadAt >= OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES - 0.5
+      minute - dhcpAgentsReadAt >=
+        OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES - 0.5
     ) {
       dhcpAgentsReadAt = minute;
       network += Math.min(

@@ -77,7 +77,10 @@ describe("what a DHCP agent's networks cost", () => {
   });
 
   test("however many agents a cloud runs, the same few a round", () => {
-    const many: OpenStackCloudCounts = { ...OPENSTACK_SMALL_CLOUD, dhcpAgents: 500 };
+    const many: OpenStackCloudCounts = {
+      ...OPENSTACK_SMALL_CLOUD,
+      dhcpAgents: 500,
+    };
 
     expect(
       neutronCallsPerHour({ counts: many, isOvs: true }) -
