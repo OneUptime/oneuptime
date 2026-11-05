@@ -314,7 +314,7 @@ Fixes have the same four modes as on a Kubernetes cluster — `ONEUPTIME_AI_FIXE
 
 After a fix runs, OneUptime watches the incident's or alert's monitors. If they do not recover, the plan's rollback runs and OneUptime AI composes one more plan, with the failed attempt in front of it — at most two rounds per incident or alert. In **Automatic** mode that second round asks for approval; in **Bypass approval** it runs on its own too. Unattended fixes are circuit-broken to three per resource per hour: past that, or while another unattended OneUptime AI round is still changing or verifying the same resource, a round proposes its plan for approval instead of running it.
 
-One incident or alert gets one AI fix lane. When it is linked to a Kubernetes cluster whose fixes are on, the cluster's round runs and no resource round does. Otherwise the first linked resource with fixes on and a ready agent gets the round, in this order: Docker host, Podman host, Docker Swarm cluster, Proxmox cluster, VMware vCenter, Ceph cluster, Database server, Host, AWS account, Azure subscription, Google Cloud project. The round only changes that resource.
+One incident or alert gets one AI fix lane. When it is linked to a Kubernetes cluster whose fixes are on, the cluster's round runs and no resource round does. Otherwise the first linked resource with fixes on and a ready agent gets the round, in this order: Docker host, Podman host, Docker Swarm cluster, Proxmox cluster, VMware vCenter, Ceph cluster, Database server, Host, AWS account, Azure subscription, Google Cloud project, OpenStack cloud. The round only changes that resource.
 
 ### Safe, riskier and never
 
@@ -380,6 +380,21 @@ Every fix names one OSD (`3` or `osd.3`), PG (`1.2f`), daemon (as `ceph orch ps`
 | **Always a person** | `ceph osd set pause` (it stops all client I/O), `ceph osd pool set rbd size 3` (and `min_size`)                                                                                                                                                                                                                                              |
 | **Never**           | `ceph osd purge 3` (and destroy, rm, lost, crush changes), `ceph osd pool delete rbd` (and creating, renaming or any other pool setting), `ceph auth ls`, `ceph config-key ls`, `ceph tell osd.3 injectargs --debug-osd 20`, `ceph --id admin status`, `config`, `daemon`, fs and mon changes, `mgr module enable`, `orch apply`, `crash rm` |
 
+### Fixes on OpenStack clouds
+
+There is no `openstack` binary in the agent. Each change is the one call to the cloud's API it names, made with a credential the agent keeps for changes and nothing else. A change has one spelling, in the order below: another flag order, an abbreviation or a flag the real client also takes is refused, so what a person approves, what an allowlist entry names and what runs are the same words. Before it makes a change, the agent reads what it touches, and refuses it when it cannot.
+
+|                     | Commands |
+| ------------------- | -------- |
+| **Safe**            | `openstack server start 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server reboot --soft 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --enable compute-01 nova-compute`, `openstack network agent set --enable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **Riskier**         | `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate live 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --disable --disable-reason maintenance compute-01 nova-compute`, `openstack network agent set --disable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **Always a person** | `openstack server evacuate 358ee736-ba74-40ba-a354-7ead413c5df6` — an evacuation of any number of instances, in every mode, whatever the allowlist says, because Nova only takes one once the host is down |
+| **Never**           | `openstack server delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack project delete 9aee824cac87464292adffc328de1662`, `openstack user list`, `openstack role add --user a --project b c`, `openstack quota set --instances 100 abc`, `openstack security group delete abc`, `openstack server set --state active 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume set --state available 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --down compute-01 nova-compute`, `openstack server stop 358ee736-ba74-40ba-a354-7ead413c5df6` and every command not listed here |
+
+The fix's card says how many instances and projects a change touches, and which, as the agent read them: `openstack dry-run <change>` is the read, and an investigation can run it too. An evacuation the agent cannot read in full is not proposed. Each fix is a change event on the feed of every part it touched, and on the cloud's, with who approved it. A cold `server migrate` leaves the instance in `VERIFY_RESIZE` until a person confirms it, which OneUptime AI never does.
+
+Fixes here start off until you opt in twice, unlike other resources: `ONEUPTIME_AI_ALLOW_WRITES=true` alone leaves **What AI may do** at Off, and needs the credential for changes before it does anything at all. [The OpenStack agent's guide](/docs/telemetry/openstack#the-credential-for-changes) says how to make that credential with the least it needs, on each way of deploying a cloud.
+
 ### Fixes on database servers
 
 `12345` below is a session id as `db sessions` prints it: the PostgreSQL pid, the MySQL processlist id, the Redis client id or the MongoDB opid. The agent looks the session up first, and never touches its own connection, a server or replication thread, or a session that is not there.
@@ -427,10 +442,6 @@ Before a person approves a fix that changes a cloud account, OneUptime dry-runs 
 
 On the fix's card and in its Slack and Microsoft Teams message, a cloud change also says what it does in plain words, above its exact command: "Scale the ECS service web out to 4 tasks". The words are read from the command by the catalog's grammar, never from what OneUptime AI wrote. When OneUptime AI plans a fix for an account, it is told what the incident or alert is linked to there: its Cloud resources, by the ids a change names them by, and its App Platforms environments, where a fix changes the services that run in them.
 
-### OpenStack clouds have no fixes yet
-
-OneUptime AI only reads an OpenStack cloud. Its policy has no command that changes one, so an investigation's report says what a person should change. **What AI may do** on a cloud has no fix mode to pick, and `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing there: the agent says so when it starts, and stays read-only.
-
 ### The command allowlist
 
 In **Automatic** mode, the resource's **Command allowlist** on the AI agent page lets riskier commands you name run without approval. It is matched word by word against the command, not as text:
@@ -440,9 +451,10 @@ In **Automatic** mode, the resource's **Command allowlist** on the AI agent page
 - An entry that can never pre-approve a change is refused: a read-only command (reads never need approval), a command the policy denies, or one for another kind of resource. A list holds at most 50 entries of at most 500 characters.
 - An entry with a `*` where the target goes — `docker stop *` pre-approves stopping **every** container — asks you to confirm before it is saved.
 - A Proxmox path is one word, so it cannot hold a `*`: write one entry per guest, such as `pvesh create /nodes/pve1/qemu/100/status/shutdown`.
+- On an OpenStack cloud, an entry for an evacuation is refused when it is saved: it always asks a person, so it would pre-approve nothing.
 - Nothing on the allowlist overrides a change that always needs a person, or a command the policy denies.
 
-One valid entry per resource: `docker stop web` (Docker and Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (databases), `systemctl stop nginx` (hosts), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud).
+One valid entry per resource: `docker stop web` (Docker and Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (databases), `systemctl stop nginx` (hosts), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud), `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6` (OpenStack clouds).
 
 ### Who may change it
 
@@ -476,7 +488,7 @@ The agent reports these settings to OneUptime with every heartbeat, so OneUptime
 | Database servers        | `session:<id>`                                                                                                                                                                                       | `session:*`             |
 | Hosts                   | full unit names (`nginx.service`), `pid:<pid>` for a process, `journal` for a journal vacuum                                                                                                         | `nginx.service,app-*`   |
 | Cloud accounts          | the resource's id: an ARN, an Azure resource ID in lowercase, or a Google Cloud full resource name                                                                                                   | `arn:aws:ecs:*:123456789012:service/prod/*` |
-| OpenStack clouds        | none: OneUptime AI only reads a cloud |
+| OpenStack clouds        | `instance:<id>`, `host:<name>` and `agent:<id>` for what a change names, and `destination:<name>` for where a move lands. An entry is `project:<id>`, `host:<name>` or `instance:<id>`, and only those: anything else keeps the agent read-only. The agent reads which project and host an instance is in just before it changes it |
 
 ### What the agent protects on its own
 
@@ -487,6 +499,7 @@ OneUptime AI never changes the agent itself or what it runs in, whatever `ONEUPT
 - **Database servers:** the agent's own session.
 - **Hosts:** every OneUptime unit (`oneuptime-*`, the Host AI agent's own included), the OpenTelemetry collector (`otelcol-contrib.service`, `otelcol.service`), the Docker engine it runs in (`docker.service`, `docker.socket`, `containerd.service`), and the agent's own process and the processes above it.
 - **Proxmox:** the agent cannot tell which guest it runs in. If it runs in a VM or container of the same cluster, put that VMID in `ONEUPTIME_AI_PROTECTED_TARGETS`; do the same with the agent's VM on VMware.
+- **OpenStack clouds:** the agent cannot tell which instance it runs in. If it runs on the same cloud, put that instance in `ONEUPTIME_AI_PROTECTED_TARGETS`, as `instance:<id>`. On a cloud, this list is yours, and it wins over every other setting, a person's approval included.
 - **Cloud accounts:** everything its setup command created: on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service account.
 
 ## Credentials and least privilege
@@ -502,7 +515,7 @@ The agent uses only the credentials in its own environment and mounts — mostly
 | Database server              | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (the collector's login), or `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` when set; `DATABASE_ENDPOINT` and the TLS settings                                            | The collector's monitoring login (`pg_monitor` on PostgreSQL)         | A login of the agent's own that may signal other sessions: `pg_signal_backend` (PostgreSQL), `CONNECTION_ADMIN` (MySQL 8), `+client\|kill` (Redis ACL), the `killop` action (MongoDB)                                        |
 | Host                         | Nothing: it runs privileged as root in the host's namespaces                                                                                                                                                                            | Leave `ONEUPTIME_AI_ALLOW_WRITES` unset                               | `ONEUPTIME_AI_WRITE_TARGETS` to the units AI may change                                                                                                                                                                      |
 | Cloud accounts               | The identity of where it runs: on AWS its ECS task's role, which may only assume the write role in `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN`; on Azure its Container App's managed identity; on Google Cloud the service account its VM or Cloud Run service runs as | Nothing: OneUptime reads the account through its read-only connection | The role its setup command writes: the permissions of the changes turned on and the reads they need, nothing else. On AWS each change assumes `OneUptimeAiAgentWrite` with a session policy for that one change on its one resource |
-| OpenStack cloud              | The application credential in `clouds.yaml` that the collector's exporter reads (`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS`, or `ONEUPTIME_AI_OPENSTACK_CLOUD` for another entry), or `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` when set, with `OPENSTACK_AUTH_URL`; `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
+| OpenStack cloud              | For changes, `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` and `_SECRET`, an application credential of its own: [the guide](/docs/telemetry/openstack#the-credential-for-changes) says how to make it. For reads, the application credential in `clouds.yaml` that the collector's exporter reads (`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS`, or `ONEUPTIME_AI_OPENSTACK_CLOUD` for another entry), or `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` when set, with `OPENSTACK_AUTH_URL`; `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
 The collectors' READMEs have the exact commands: the `pveum` commands for a Proxmox fixes token ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), the vSphere fixes role ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), the Ceph read and fixes caps ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) and the database grants per engine ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)). A Cloud AI agent's role is written by its setup command: turn a change off and run the command again, and its permissions leave the role.
 

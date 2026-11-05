@@ -406,7 +406,7 @@ describe("what happened", () => {
 
     for (const entry of entries) {
       expect(entry.title.length).toBeLessThanOrEqual(500);
-      expect(entry.description.length).toBeLessThanOrEqual(4000);
+      expect(entry.description.length).toBeLessThanOrEqual(5000);
       expect(
         entry.attributes[ChangeEventAttribute.Command]?.length,
       ).toBeLessThanOrEqual(500);

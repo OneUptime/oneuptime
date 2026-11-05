@@ -176,6 +176,37 @@ describe("the round trip", () => {
     );
   });
 
+  test("the network agent a change is about, so its fix lands on that agent's feed", () => {
+    const agent: { id: string; binary: string; host: string } = {
+      id: "f1fe06bd-337d-4ee0-b1df-3284823c1490",
+      binary: "neutron-l3-agent",
+      host: "network-01",
+    };
+    const reach: OpenStackChangeReach = evacuation({ agent });
+    const read: OpenStackChangeReach | null = readOpenStackChangeReach(
+      renderOpenStackChangeReach(reach),
+    );
+
+    expect(read?.agent).toEqual(agent);
+    // What a plan keeps survives being stored and read back.
+    expect(
+      parseStoredOpenStackChangeReach(
+        JSON.parse(JSON.stringify(reach)) as Parameters<
+          typeof parseStoredOpenStackChangeReach
+        >[0],
+      )?.agent,
+    ).toEqual(agent);
+  });
+
+  test("a change no network agent is in the middle of has none, however it is read", () => {
+    const reach: OpenStackChangeReach = evacuation();
+
+    expect(reach.agent).toBeNull();
+    expect(
+      readOpenStackChangeReach(renderOpenStackChangeReach(reach))?.agent,
+    ).toBeNull();
+  });
+
   test("it is found in a command's whole output", () => {
     const reach: OpenStackChangeReach = evacuation();
     const output: string = `[stdout]\nNothing was changed. ${describeOpenStackChangeReachCounts(reach)}\n${renderOpenStackChangeReach(reach)}\n[stderr]\nsomething else\n`;

@@ -21,7 +21,7 @@ The user documentation — install, what each resource may run, how fixes work, 
 | `aws` | AWS account | `AWS_ACCOUNT_ID` (defaults to the account STS says the agent is in) | `cloud` — one operation of a fixed catalog, as the one AWS API call it maps to |
 | `azure` | Azure subscription | `AZURE_SUBSCRIPTION_ID` (defaults to the one subscription its managed identity can read) | `cloud`, as one Azure Resource Manager call |
 | `gcp` (or `google-cloud`) | Google Cloud project | `GOOGLE_CLOUD_PROJECT` (defaults to the metadata server's project) | `cloud`, as one Compute Engine, Cloud Run or Cloud SQL call |
-| `openstack` | OpenStack cloud | `OPENSTACK_CLOUD_NAME` | `openstack` commands, each one read of the cloud's APIs. It only reads |
+| `openstack` | OpenStack cloud | `OPENSTACK_CLOUD_NAME` | `openstack` commands, each one call to the cloud's APIs. Reads with one credential, and changes only with a second one |
 
 The agent registers with the **same identity the collector reports**, so it serves exactly the resource the collector's telemetry created in OneUptime. If the collector still uses its default name (`docker-host`, `ceph`, …), every host installed with that default reports into the same resource — the agent warns about it at start-up. Give each one a unique name, on the collector and the agent alike.
 

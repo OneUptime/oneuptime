@@ -424,16 +424,16 @@ describe("the descriptors", () => {
     },
   );
 
-  test("OpenStack: a cloud AI only reads says so, and offers no fixes", () => {
+  test("OpenStack: the page offers fixes, with their words", () => {
     const descriptor: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
       AiResourceType.OpenStackCloud,
     );
 
-    expect(descriptor.isReadOnly).toBe(true);
-    expect(descriptor.allowlistPlaceholder).toBe("");
-    expect(descriptor.riskierExamples).toBe(
-      "no changes: it only reads an OpenStack cloud",
+    expect(descriptor.isReadOnly).toBe(false);
+    expect(descriptor.allowlistPlaceholder).toBe(
+      "openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6",
     );
+    expect(descriptor.alwaysHumanExamples).toContain("evacuating");
   });
 
   test("the commands tables keep apart: one preferences key per type", () => {

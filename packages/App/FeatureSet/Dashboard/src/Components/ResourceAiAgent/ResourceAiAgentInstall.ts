@@ -11,6 +11,8 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
@@ -609,7 +611,7 @@ const INSTALL_SPECS: Readonly<
       "What OneUptime AI never changes, whatever else is set and whoever approves it: project:ID, host:NAME or instance:ID, separated by commas, each of which may hold a *. Put the instance this agent runs on here, if it runs on this cloud.",
     ),
     writeDisclosure: translationKey(
-      "With this on, OneUptime AI can start, reboot and migrate instances, evacuate those of a dead hypervisor, and enable or disable compute services and network agents, through the second credential you give the agent. It never deletes anything, and never touches Keystone, quotas or security groups. An evacuation always asks a person.",
+      "Write access lets the agent start, reboot and migrate instances, evacuate those of a dead hypervisor, and enable or disable compute services and network agents, through a second credential you give it. OneUptime still holds the line: nothing it runs deletes anything or touches Keystone, quotas or security groups, and an evacuation always asks a person.",
     ),
     installScript: null,
     isStandalone: false,
@@ -1271,6 +1273,13 @@ export function getResourceAiAgentWriteAccessCommands(
 ): ResourceAiAgentWriteAccessCommands {
   const spec: InstallSpec = getInstallSpec(resourceType);
   const service: string = getResourceAiAgentServiceName(resourceType);
+  // What this kind of agent also needs before it writes.
+  const credentialLines: string =
+    resourceType === AiResourceType.OpenStackCloud
+      ? `
+${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV}=<the credential's ID>
+${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}=<the credential's secret>`
+      : "";
   // Whole sentences: with or without targets, in the collector's directory or not.
   let envIntro: string;
 
@@ -1307,7 +1316,7 @@ export function getResourceAiAgentWriteAccessCommands(
         ),
     envIntro: envIntro,
     scopedEnv: spec.writeTargetsExample
-      ? `${RESOURCE_AI_ALLOW_WRITES_ENV}=true
+      ? `${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}
 ${RESOURCE_AI_WRITE_TARGETS_ENV}=${spec.writeTargetsExample}`
       : null,
     scopedNote:
@@ -1320,7 +1329,7 @@ ${RESOURCE_AI_WRITE_TARGETS_ENV}=${spec.writeTargetsExample}`
             },
           )
         : null,
-    allTargetsEnv: `${RESOURCE_AI_ALLOW_WRITES_ENV}=true`,
+    allTargetsEnv: `${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}`,
     restartCommand: composeCommand(resourceType, `up -d ${service}`),
   };
 }

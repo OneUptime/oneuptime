@@ -421,10 +421,10 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "evacuating the instances of a dead hypervisor",
     ),
     riskierExamples: translationKey(
-      "hard-reboot or migrate an instance, disable a compute service or a network agent",
+      "riskier changes such as hard-rebooting or migrating an instance, or disabling a compute service or a network agent",
     ),
     riskierChanges: translationKey(
-      "hard-rebooting or migrating an instance, and disabling a compute service or a network agent",
+      "hard-rebooting or migrating an instance, or disabling a compute service or a network agent",
     ),
     commandsTableId: "openstack-cloud-ai-commands",
     isCloudAccount: false,

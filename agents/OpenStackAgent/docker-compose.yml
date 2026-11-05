@@ -320,8 +320,8 @@ services:
       # /etc/openstack/ca.pem) unless this does.
       - ONEUPTIME_AI_OPENSTACK_CA_FILE=${ONEUPTIME_AI_OPENSTACK_CA_FILE:-}
       # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION (true or
-      # false). It only reads a cloud, so the three below it change nothing yet: fixes stay
-      # off, and the agent says so at start-up if they are set.
+      # false). Fixes are off until you opt in twice: ONEUPTIME_AI_ALLOW_WRITES=true with the
+      # credential above, and a mode other than off, here or on the cloud's AI agent page.
       - ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
       - ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
       - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
