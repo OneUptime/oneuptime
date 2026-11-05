@@ -841,12 +841,14 @@ export default class OpenStackAlertContext {
     }
 
     if (radius?.magnumClusters && radius.magnumClusters.length > 0) {
+      const clusterNames: string = radius.magnumClusters
+        .map((owner: OpenStackBlastRadiusOwner): string => {
+          return owner.name || owner.externalId;
+        })
+        .join(", ");
+
       sections.push(
-        mdText`**Kubernetes clusters with a server on it:** ${radius.magnumClusters
-          .map((owner: OpenStackBlastRadiusOwner): string => {
-            return owner.name || owner.externalId;
-          })
-          .join(", ")}.`,
+        mdText`**Kubernetes clusters with a server on it:** ${clusterNames}.`,
       );
     }
 

@@ -262,7 +262,7 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                     className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
                   />
                   <div className="min-w-0 text-sm font-medium text-gray-900">
-                    {translator.translateText("API") || "API"}
+                    {translator.translateText("API")}
                   </div>
                 </div>
                 <div
@@ -369,7 +369,7 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                   className="h-4 w-4"
                 />
                 {isExpanded
-                  ? translator.translateText("Show fewer") || "Show fewer"
+                  ? translator.translateText("Show fewer")
                   : translator.translatePlural(
                       {
                         one: "Show {{count}} more",

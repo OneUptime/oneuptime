@@ -518,7 +518,17 @@ export const OpenStackLifecycleOptionsField: FunctionComponent<
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <OptionInput
             label="Volume size (GiB)"
-            placeholder={`${DEFAULT_OPENSTACK_LIFECYCLE_VOLUME_SIZE_IN_GIB}, up to ${MAX_OPENSTACK_LIFECYCLE_VOLUME_SIZE_IN_GIB}`}
+            placeholder={translator.translateTemplate(
+              "{{size}}, up to {{max}}",
+              {
+                size: translator.formatNumber(
+                  DEFAULT_OPENSTACK_LIFECYCLE_VOLUME_SIZE_IN_GIB,
+                ),
+                max: translator.formatNumber(
+                  MAX_OPENSTACK_LIFECYCLE_VOLUME_SIZE_IN_GIB,
+                ),
+              },
+            )}
             value={
               options.volumeSizeInGiB !== undefined
                 ? String(options.volumeSizeInGiB)
@@ -636,7 +646,17 @@ export function getOpenStackLifecycleCheckFormFields(
       fieldType: FormFieldSchemaType.Number,
       required: false,
       defaultValue: DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
-      description: `From ${MIN_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES} minutes to ${MAX_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES / 60} hours. A run never starts while one is going.`,
+      description: options.translator.translateTemplate(
+        "From {{minutes}} minutes to {{hours}} hours. A run never starts while one is going.",
+        {
+          minutes: options.translator.formatNumber(
+            MIN_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
+          ),
+          hours: options.translator.formatNumber(
+            MAX_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES / 60,
+          ),
+        },
+      ),
       validation: {
         minValue: MIN_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
         maxValue: MAX_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
