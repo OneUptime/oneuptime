@@ -49,6 +49,10 @@ prepare_host() {
   ip -brief address
   # A runner's image writes this line with a stray word in it, which breaks name resolution.
   sudo sed -i 's/^-e \+//g' /etc/hosts
+  # And names this machine by the address of its only interface, beside which bootstrap-servers
+  # adds the API address. RabbitMQ's precheck then finds two and stops: the name has to resolve to
+  # the API address alone. A real host has the one line Kolla-Ansible writes.
+  sudo sed -i "/$(hostname -s)/d" /etc/hosts
   docker system prune -af >/dev/null 2>&1 || true
 
   log "Two interfaces for the quick start to name"
@@ -134,6 +138,7 @@ deploy() {
   prepare_host
   install_kolla
   logged bootstrap-servers kolla-ansible bootstrap-servers -i "$KOLLA_INVENTORY"
+  getent ahostsv4 "$(hostname -s)" | tee "$KOLLA_RECORDING/hostname-resolves-to.txt" || true
   # That page again: every command after bootstrap-servers runs on what it made.
   printf 'ansible_python_interpreter: %s/bin/python\n' "$KOLLA_RUNTIME_VENV" >/etc/kolla/globals.d/rig-python.yml
   # The images its quick start deploys, from quay.io. Prechecks refuses them unless told they
