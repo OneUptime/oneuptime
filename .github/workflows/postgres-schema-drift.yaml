@@ -1208,6 +1208,49 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OpenStackUsagePostgres.test.ts --forceExit
 
+      # How a service a cloud may not run comes and goes, in the SQL that does it, on a real cloud's
+      # OTLP: an empty scrape can't give a cloud a row for it, a failed scrape reads down, and its
+      # rows go only once the rest of the cloud has gone on answering without it.
+      - name: Test how an optional OpenStack service comes and goes on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackOptionalServicesPostgres.test.ts --forceExit
+
+      # The hand-written SQL over the facts column that the Projects, Domains and Topology pages stand
+      # on: who is at a quota, a page of projects, a blast radius through a pool's volumes.
+      - name: Test what the OpenStack projects and topology pages read on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackProjectsAndTopologyPostgres.test.ts --forceExit
+
+      # What keeps the inventory table standing up at OpenStack's largest clouds: writes that only
+      # write what changed, deletes and statements of a stated size, reads that don't slow down.
+      - name: Test the OpenStack inventory at scale on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackScalePostgres.test.ts --forceExit
+
       # Clones the migrated KubernetesResource table (with its unique identity
       # index and the partial index of what needs attention) into an isolated
       # schema and runs KubernetesResourceService's hand-written SQL against

@@ -7,6 +7,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Swift in a real browser through the real router, on what a real stable/2026.1 DevStack recorded
@@ -23,16 +24,6 @@ const REFUSED: string =
 
 const CONTAINER: string = "RegionOne/ou-container-admin";
 
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
 function sideMenuLink(page: Page, name: string): Locator {
   return page.getByRole("link", { name, exact: false });
 }
@@ -40,6 +31,8 @@ function sideMenuLink(page: Page, name: string): Locator {
 test.describe("a cloud that doesn't run Swift", () => {
   test("its menu, its Services page and what it can alert on say nothing of it", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", WITHOUT_SWIFT);
     await expect(sideMenuLink(page, "Hypervisors").first()).toBeVisible();
@@ -58,6 +51,8 @@ test.describe("a cloud that doesn't run Swift", () => {
 
   test("an old link says it doesn't run it, and is no error", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "object-containers", WITHOUT_SWIFT);
     await expect(
@@ -67,7 +62,11 @@ test.describe("a cloud that doesn't run Swift", () => {
 });
 
 test.describe("a cloud that runs Swift", () => {
-  test("the list lands on a container's page", async ({ page }) => {
+  test("the list lands on a container's page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openCloudPage(page, "", RUNNING);
     await sideMenuLink(page, "Object Storage").first().click();
 
@@ -78,7 +77,7 @@ test.describe("a cloud that runs Swift", () => {
     await screenshot(page, "object-container");
   });
 
-  test("Topology draws its containers", async ({ page }) => {
+  test("Topology draws its containers", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "topology", RUNNING);
     await expect(
       page.getByRole("button", { name: /ou-container-admin/ }),
@@ -88,6 +87,8 @@ test.describe("a cloud that runs Swift", () => {
   for (const viewport of VIEWPORTS) {
     test(`Object Storage and a container's page fit at ${viewport.width} pixels`, async ({
       page,
+    }: {
+      page: Page;
     }) => {
       await page.setViewportSize({
         width: viewport.width,
@@ -95,13 +96,13 @@ test.describe("a cloud that runs Swift", () => {
       });
       await openCloudPage(page, "object-containers", RUNNING);
       await expect(page.getByText("ou-container-admin").first()).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await page.goto(`${partPath("object-containers", CONTAINER)}?${RUNNING}`);
       await expect(
         page.getByTestId("openstack-object-container-overview"),
       ).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });
@@ -109,6 +110,8 @@ test.describe("a cloud that runs Swift", () => {
 test.describe("a credential Swift refuses", () => {
   test("isn't read as down, nor offered alerts that could only say so", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "services", REFUSED);
     await expect(page.getByTestId("openstack-access-notice")).toContainText(

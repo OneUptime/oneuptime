@@ -249,8 +249,7 @@ export default class OpenStackResource extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Region",
-    description:
-      "The region this part is in.",
+    description: "The region this part is in.",
   })
   @Column({
     nullable: true,
@@ -371,8 +370,7 @@ export default class OpenStackResource extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Disabled Reason",
-    description:
-      "Why an operator disabled this part, in their own words.",
+    description: "Why an operator disabled this part, in their own words.",
   })
   @Column({
     nullable: true,
@@ -448,8 +446,7 @@ export default class OpenStackResource extends BaseModel {
     type: TableColumnType.BigPositiveNumber,
     canReadOnRelationQuery: true,
     title: "Memory Capacity",
-    description:
-      "Memory this part can promise to instances.",
+    description: "Memory this part can promise to instances.",
   })
   @Column({
     nullable: true,
@@ -584,8 +581,7 @@ export default class OpenStackResource extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Instances",
-    description:
-      "How many instances this part holds.",
+    description: "How many instances this part holds.",
   })
   @Column({
     nullable: true,
@@ -622,8 +618,7 @@ export default class OpenStackResource extends BaseModel {
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Metrics Updated At",
-    description:
-      "When this row's numbers were last read.",
+    description: "When this row's numbers were last read.",
   })
   @Column({
     nullable: true,

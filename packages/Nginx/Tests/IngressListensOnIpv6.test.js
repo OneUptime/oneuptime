@@ -269,6 +269,14 @@ function mainConfIn(prefix) {
     });
 }
 
+// The rendered server config, with the log folder its access_log lines name moved too.
+function writeServerConf(prefix, rendered) {
+  fs.writeFileSync(
+    path.join(prefix, "conf.d", "default.conf"),
+    rendered.replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`),
+  );
+}
+
 function makePrefix() {
   const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-nginx-v6-"));
 
@@ -614,8 +622,8 @@ for (const setting of LISTEN_SETTINGS) {
       const prefix = makePrefix();
 
       try {
-        fs.writeFileSync(
-          path.join(prefix, "conf.d", "default.conf"),
+        writeServerConf(
+          prefix,
           runScript(
             template,
             containerEnvironment({
@@ -674,7 +682,7 @@ test(
           `${setting.address} ${setting.options}: no primary 7850 listen`,
         );
 
-        fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), rendered);
+        writeServerConf(prefix, rendered);
 
         const result = spawnSync(
           "nginx",
@@ -838,7 +846,7 @@ test(
         "a listener was left on the ingress's real port",
       );
 
-      fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), rendered);
+      writeServerConf(prefix, rendered);
 
       nginx = spawn(
         "nginx",

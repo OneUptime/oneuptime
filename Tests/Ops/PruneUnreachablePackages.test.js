@@ -2127,22 +2127,34 @@ describe("the real certificate sidecar's walk runs in CI", () => {
 // Packages a reached package requires inside a try or for a database
 // OneUptime does not use. None is installed, and none has to be (ssh2's
 // cpu-features, a native helper it requires in a try, is installed where a
-// build of it can be made: the Runner image's build stage).
+// build of it can be made: the Runner image's build stage). Common installs
+// the mongodb driver to read table health, and typeorm's optional require
+// reaches it: the driver asks for its own extras inside a try too, in lib/deps.js
+// (kerberos, snappy, socks, zstd, aws4, client encryption and two cloud
+// credential readers).
 const OPTIONAL_MISSING = new Set([
+  "@aws-sdk/credential-providers",
   "@google-cloud/spanner",
+  "@mongodb-js/zstd",
   "@sap/hana-client",
   "@sap/hana-client/extension/Stream",
+  "aws4",
   "better-sqlite3",
   "bufferutil",
   "cpu-features",
   "encoding",
+  "gcp-metadata",
+  "kerberos",
   "mongodb",
+  "mongodb-client-encryption",
   "mysql",
   "oracledb",
   "pg-native",
   "pg-query-stream",
   "react-native-sqlite-storage",
   "redis",
+  "snappy",
+  "socks",
   "sql.js",
   "sqlite3",
   "typeorm-aurora-data-api-driver",

@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
@@ -767,7 +768,7 @@ test.describe("a host on OpenStack", () => {
       await expect(row).toContainText(words);
       await expect(row.getByRole("link")).toHaveAttribute(
         "href",
-        new RegExp(`^${href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+        new RegExp(`^${escapeRegExp(href)}`),
       );
     }
     await screenshot(page, "host-on-openstack");

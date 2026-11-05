@@ -8,6 +8,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A cloud connected through a probe, from the Dashboard alone, in a real browser: Connect Cloud
@@ -73,15 +74,6 @@ async function refuseNextWrite(page: Page, message: string): Promise<void> {
       }
     ).__openStackPagesRefuseNextWrite(refusal);
   }, message);
-}
-
-// What the page would scroll sideways by, were it wider than the window.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-
-  expect(overflow).toBeLessThanOrEqual(1);
 }
 
 function nextButton(page: Page): Locator {
@@ -1156,19 +1148,19 @@ test.describe("on every width, and in the dark", () => {
       await expect(
         page.getByTestId("openstack-presented-fingerprint"),
       ).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `data-collection-untrusted-${viewport.width}`);
 
       await openCloudPage(page, "settings", "estate=calm&collection=Probe");
       await expect(page.getByTestId("openstack-data-collection")).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `settings-data-collection-${viewport.width}`);
 
       await page.getByRole("button", { name: "Test Connection" }).click();
       await expect(
         page.getByTestId("openstack-test-connection-button"),
       ).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 

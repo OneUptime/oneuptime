@@ -1758,6 +1758,13 @@ async function startIngress({
     rendered = withoutBodyLimitIn(rendered, edit);
   }
 
+  // The template's own access_log lines name the image's log folder too.
+  rendered = replaceEveryOccurrence(
+    rendered,
+    "/var/log/nginx/",
+    `${prefix}/logs/`,
+  );
+
   const temporaryPaths = [
     "client_body_temp_path",
     "proxy_temp_path",

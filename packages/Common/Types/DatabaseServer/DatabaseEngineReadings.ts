@@ -267,8 +267,7 @@ export function mergeDatabaseEngineReadings(data: {
     if (name === data.instance) {
       continue;
     }
-    const instance: DatabaseEngineReadingsInstance =
-      existing!.instances[name]!;
+    const instance: DatabaseEngineReadingsInstance = existing!.instances[name]!;
     const at: Date | null = toDate(instance.at);
     if (
       !at ||
@@ -279,10 +278,7 @@ export function mergeDatabaseEngineReadings(data: {
     entries.push([name, instance]);
   }
 
-  entries.push([
-    data.instance,
-    { at: data.now.toISOString(), values: values },
-  ]);
+  entries.push([data.instance, { at: data.now.toISOString(), values: values }]);
 
   entries.sort(
     (

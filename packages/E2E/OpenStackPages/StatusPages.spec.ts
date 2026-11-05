@@ -1,5 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { VIEWPORTS, expect, openCloudPage, screenshot, test } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Telling people about a cloud, in a real browser: what a status page would make is read before anything
@@ -190,13 +191,7 @@ test.describe("on a phone", () => {
     await expect(page.getByTestId("openstack-status-page-plan")).toBeVisible();
     await screenshot(page, "openstack-status-pages-plan-mobile");
 
-    const overflows: boolean = await page.evaluate((): boolean => {
-      return (
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth + 1
-      );
-    });
-    expect(overflows).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 });
 

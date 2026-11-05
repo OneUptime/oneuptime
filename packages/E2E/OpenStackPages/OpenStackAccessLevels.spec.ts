@@ -9,6 +9,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * What each page says at each level of access, on what the agent's exporter really answered
@@ -479,13 +480,7 @@ test.describe("the words, wherever they are read", () => {
     for (const subPath of ["", "storage-pools", "volumes"]) {
       await openCloudPage(page, subPath, PROJECT_VIEW);
       await page.waitForLoadState("networkidle");
-      const overflow: number = await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      });
-      expect(overflow).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
     }
     await screenshot(page, "openstack-access-project-view-390");
   });

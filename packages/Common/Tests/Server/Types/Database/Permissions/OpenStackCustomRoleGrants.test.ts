@@ -170,7 +170,7 @@ describe("what a custom role can be granted", () => {
     }),
   )(
     "%s is offered, with a title and a line that say what it is",
-    (permission) => {
+    (permission: Permission) => {
       const props: PermissionProps | undefined = grantable.get(permission);
       expect(props).toBeDefined();
       expect(props?.isAssignableToTenant).toBe(true);
@@ -370,6 +370,10 @@ describe("the API's own routes", () => {
           projectId: PROJECT_ID,
         }) as never;
       });
+    const reachesInventory: () => Promise<never> = async (): Promise<never> => {
+      reachedInventory = true;
+      return {} as never;
+    };
     for (const name of [
       "getInventorySummary",
       "getRows",
@@ -394,10 +398,7 @@ describe("the API's own routes", () => {
             >,
             name,
           )
-          .mockImplementation(async () => {
-            reachedInventory = true;
-            return {} as never;
-          });
+          .mockImplementation(reachesInventory);
       }
     }
   });

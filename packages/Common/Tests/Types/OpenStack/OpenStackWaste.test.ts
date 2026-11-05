@@ -1014,7 +1014,10 @@ describe("what a rule says for itself", () => {
     [OpenStackWasteRuleId.ShutOffInstance, OPENSTACK_WASTE_INSTANCE_DAYS],
     [OpenStackWasteRuleId.UnusedImage, OPENSTACK_WASTE_IMAGE_DAYS],
     [OpenStackWasteRuleId.OldSnapshot, OPENSTACK_WASTE_SNAPSHOT_DAYS],
-  ])("%s's words say the same days as its rule", (rule, days) => {
-    expect(OPENSTACK_WASTE_RULES[rule].description).toContain(`${days} days`);
-  });
+  ])(
+    "%s's words say the same days as its rule",
+    (rule: OpenStackWasteRuleId, days: number) => {
+      expect(OPENSTACK_WASTE_RULES[rule].description).toContain(`${days} days`);
+    },
+  );
 });

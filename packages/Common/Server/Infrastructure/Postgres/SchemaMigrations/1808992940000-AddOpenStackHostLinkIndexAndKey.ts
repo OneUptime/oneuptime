@@ -8,7 +8,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * without blocking those writes. Every existing row's column is null, so the validation
  * finds nothing to refuse. Safe to run again after a stop part way.
  */
-export class AddOpenStackHostLinkIndexAndKey1808992940000 implements MigrationInterface {
+export class AddOpenStackHostLinkIndexAndKey1808992940000
+  implements MigrationInterface
+{
   public name: string = "AddOpenStackHostLinkIndexAndKey1808992940000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.

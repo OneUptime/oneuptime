@@ -1,4 +1,4 @@
-import { Locator, Page } from "@playwright/test";
+import { Download, Locator, Page } from "@playwright/test";
 import fsPromises from "fs/promises";
 import {
   CLOUD_ID,
@@ -11,6 +11,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Who's using what, and what could be reclaimed: the Spend page and the Recommendations page, in a
@@ -45,7 +46,7 @@ test.describe("usage with no prices", () => {
   }) => {
     await openCloudPage(page, "spend", "recording=hibiscus-ovn/healthy");
 
-    const strip = page.getByTestId("openstack-spend-strip");
+    const strip: Locator = page.getByTestId("openstack-spend-strip");
 
     await expect(strip).toContainText("vCPU-Hours This Month");
     await expect(strip).toContainText("Memory GB-Hours This Month");
@@ -120,7 +121,7 @@ test.describe("with prices", () => {
       "recording=hibiscus-ovn/healthy&spend=priced",
     );
 
-    const strip = page.getByTestId("openstack-spend-strip");
+    const strip: Locator = page.getByTestId("openstack-spend-strip");
 
     await expect(strip).toContainText("This Month So Far");
     await expect(strip).toContainText("On Course For");
@@ -185,7 +186,7 @@ test.describe("with prices", () => {
       "recording=hibiscus-ovn/healthy&spend=priced",
     );
 
-    const download = page.waitForEvent("download");
+    const download: Promise<Download> = page.waitForEvent("download");
     await page.getByTestId("openstack-spend-export").click();
     const file: string | null = await (await download).path();
     const csv: string = await fsPromises.readFile(file as string, "utf8");
@@ -313,7 +314,7 @@ test.describe("budgets", () => {
       "recording=hibiscus-ovn/healthy&spend=priced",
     );
 
-    const budgets = page.getByTestId("openstack-budgets");
+    const budgets: Locator = page.getByTestId("openstack-budgets");
 
     await expect(budgets).toContainText("No budgets yet");
     await budgets
@@ -357,11 +358,11 @@ test.describe("budgets", () => {
 });
 
 test.describe("what could be reclaimed", () => {
-  const rule = (page: Page, id: string) => {
+  function rule(page: Page, id: string): Locator {
     return page.locator(
       `[data-testid="openstack-waste-rule"][data-rule="${id}"]`,
     );
-  };
+  }
 
   test("finds what's been left on a real cloud, and nothing that's in use", async ({
     page,
@@ -374,7 +375,7 @@ test.describe("what could be reclaimed", () => {
       "recording=hibiscus-ovn/healthy&waste=old&spend=priced",
     );
 
-    const volumes = rule(page, "unattached-volume");
+    const volumes: Locator = rule(page, "unattached-volume");
     await expect(volumes).toHaveAttribute("data-count", "1");
     await expect(volumes.getByTestId("openstack-waste-frees")).toContainText(
       "1 GB of storage",
@@ -391,7 +392,7 @@ test.describe("what could be reclaimed", () => {
     await expect(volumes).not.toContainText("ou-vol-used");
     await expect(volumes).not.toContainText("ou-vol-bad");
 
-    const instances = rule(page, "shut-off-instance");
+    const instances: Locator = rule(page, "shut-off-instance");
     await expect(instances).toHaveAttribute("data-count", "1");
     await instances.getByTestId("openstack-waste-toggle").click();
     await expect(
@@ -542,14 +543,7 @@ test.describe("what the page reads, and how it looks", () => {
       );
       await expect(page.getByTestId("openstack-spend-strip")).toBeVisible();
 
-      const scrolls: boolean = await page.evaluate((): boolean => {
-        return (
-          document.documentElement.scrollWidth >
-          document.documentElement.clientWidth + 1
-        );
-      });
-
-      expect(scrolls).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `spend-${viewport.width}`);
     });
   }

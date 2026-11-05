@@ -179,7 +179,9 @@ describe("what only a native read says", () => {
       const rows: Array<OpenStackResourceBufferEntry> = rowsOfReport(
         report,
       ).rows.filter((row: OpenStackResourceBufferEntry): boolean => {
-        return row.kind === OpenStackResourceKind.Service && row.name === binary;
+        return (
+          row.kind === OpenStackResourceKind.Service && row.name === binary
+        );
       });
 
       expect(rows.length).toBeGreaterThan(0);
@@ -359,7 +361,9 @@ describe("a cloud without Manila", () => {
 describe("the connection test", () => {
   const scene: RecordedScene = loadScene(GROUP, "baseline");
 
-  function readsOf(catalog: Array<JSONObject>): Promise<Array<OpenStackAccessRead>> {
+  function readsOf(
+    catalog: Array<JSONObject>,
+  ): Promise<Array<OpenStackAccessRead>> {
     return testConnectionOnRecordedService({
       catalog,
       answer: (path: string): RecordedAnswer | undefined => {

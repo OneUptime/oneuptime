@@ -769,9 +769,16 @@ describe("what a flavor asks Placement for", () => {
       { vcpus: null, ramMib: undefined, diskGib: null },
       { resources: {}, requiredTraits: [], forbiddenTraits: [] },
     ],
-  ])("%s", (_name: string, flavor, expected: OpenStackFlavorRequest) => {
-    expect(getOpenStackFlavorRequest(flavor)).toEqual(expected);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      flavor: Parameters<typeof getOpenStackFlavorRequest>[0],
+      expected: OpenStackFlavorRequest,
+    ) => {
+      expect(getOpenStackFlavorRequest(flavor)).toEqual(expected);
+    },
+  );
 
   test("a long hostile extra spec key takes no longer than its length", () => {
     const key: string = `resources${"1".repeat(2000000)}!:VCPU`;

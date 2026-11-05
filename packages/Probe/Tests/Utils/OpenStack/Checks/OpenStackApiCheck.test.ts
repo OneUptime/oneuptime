@@ -424,7 +424,11 @@ describe("what it reads from an answer", () => {
     expect(getOpenStackServiceOfCatalogType("compute")).toBe(
       OpenStackServiceType.Compute,
     );
-    expect(getOpenStackServiceOfCatalogType("load-balancer")).toBeNull();
+    expect(getOpenStackServiceOfCatalogType("load-balancer")).toBe(
+      OpenStackServiceType.LoadBalancer,
+    );
+    // Aodh's: a catalog type nothing here collects, which gets a read of its own.
+    expect(getOpenStackServiceOfCatalogType("alarming")).toBeNull();
     expect(getOpenStackServiceOfCatalogType("compute_legacy")).toBeNull();
   });
 });

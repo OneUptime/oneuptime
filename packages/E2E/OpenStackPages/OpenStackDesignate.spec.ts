@@ -7,6 +7,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Designate in a real browser through the real router, on what a real stable/2026.1 DevStack recorded
@@ -25,16 +26,6 @@ const REFUSED: string =
 
 const ZONE_IN_ERROR: string = "f5201d9a-2f25-4b1c-a253-405f7f357742";
 
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
 function sideMenuLink(page: Page, name: string): Locator {
   return page.getByRole("link", { name, exact: false });
 }
@@ -46,6 +37,8 @@ function needsAttention(page: Page): Locator {
 test.describe("a cloud that doesn't run Designate", () => {
   test("its menu, its Services page and what it can alert on say nothing of it", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", WITHOUT_DESIGNATE);
     await expect(sideMenuLink(page, "Hypervisors").first()).toBeVisible();
@@ -62,6 +55,8 @@ test.describe("a cloud that doesn't run Designate", () => {
 
   test("an old link says it doesn't run it, and is no error", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "dns-zones", WITHOUT_DESIGNATE);
     await expect(
@@ -73,6 +68,8 @@ test.describe("a cloud that doesn't run Designate", () => {
 test.describe("a cloud that runs Designate", () => {
   test("a zone in error reaches Needs attention by name, and lands on its page", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", FAILED);
     await expect(sideMenuLink(page, "DNS Zones").first()).toBeVisible();
@@ -88,6 +85,8 @@ test.describe("a cloud that runs Designate", () => {
 
   test("a recordset in error reaches Needs attention by name, and lands on its zone", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", FAILED);
 
@@ -101,7 +100,11 @@ test.describe("a cloud that runs Designate", () => {
     ).toBeVisible();
   });
 
-  test("the list says what each is, in Designate's word", async ({ page }) => {
+  test("the list says what each is, in Designate's word", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openCloudPage(page, "dns-zones", FAILED);
     const row: Locator = page
       .locator("tr", { hasText: "ou-error.example.org." })
@@ -110,7 +113,7 @@ test.describe("a cloud that runs Designate", () => {
     await screenshot(page, "dns-zones");
   });
 
-  test("Topology draws its zones", async ({ page }) => {
+  test("Topology draws its zones", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "topology", FAILED);
     await expect(
       page.getByRole("button", { name: /ou-error\.example\.org/ }).first(),
@@ -120,6 +123,8 @@ test.describe("a cloud that runs Designate", () => {
   for (const viewport of VIEWPORTS) {
     test(`DNS Zones and a zone's page fit at ${viewport.width} pixels`, async ({
       page,
+    }: {
+      page: Page;
     }) => {
       await page.setViewportSize({
         width: viewport.width,
@@ -129,13 +134,13 @@ test.describe("a cloud that runs Designate", () => {
       await expect(
         page.getByText("ou-error.example.org.").first(),
       ).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await page.goto(`${partPath("dns-zones", ZONE_IN_ERROR)}?${FAILED}`);
       await expect(
         page.getByTestId("openstack-dns-zone-overview"),
       ).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });
@@ -143,6 +148,8 @@ test.describe("a cloud that runs Designate", () => {
 test.describe("a credential Designate refuses", () => {
   test("isn't read as down, nor offered alerts that could only say so", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", REFUSED);
     await expect(needsAttention(page).getByText("DNS (Designate)")).toHaveCount(
@@ -163,6 +170,8 @@ test.describe("a credential Designate refuses", () => {
 test.describe("its API stopped, which a real exporter can't tell from a cloud without it", () => {
   test("a recording of one, and nothing else, shows no trace of it, as a cloud without one does", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "services", API_STOPPED);
     await expect(page.getByText("Compute (Nova)").first()).toBeVisible();

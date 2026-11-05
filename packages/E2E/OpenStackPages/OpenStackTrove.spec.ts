@@ -7,6 +7,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Trove in a real browser through the real router, on what a real stable/2026.1 DevStack recorded
@@ -22,16 +23,6 @@ const REFUSED: string = "recording=services-trove/access/reader";
 
 const DATABASE_IN_ERROR: string = "05c54197-08e7-4989-a5b2-dda7b57eb018";
 
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
 function sideMenuLink(page: Page, name: string): Locator {
   return page.getByRole("link", { name, exact: false });
 }
@@ -43,6 +34,8 @@ function needsAttention(page: Page): Locator {
 test.describe("a cloud that doesn't run Trove", () => {
   test("its menu, its Services page and what it can alert on say nothing of it", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", WITHOUT_TROVE);
     await expect(sideMenuLink(page, "Hypervisors").first()).toBeVisible();
@@ -59,6 +52,8 @@ test.describe("a cloud that doesn't run Trove", () => {
 
   test("an old link says it doesn't run it, and is no error", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "databases", WITHOUT_TROVE);
     await expect(
@@ -70,6 +65,8 @@ test.describe("a cloud that doesn't run Trove", () => {
 test.describe("a cloud that runs Trove", () => {
   test("a database in error reaches Needs attention by name, and lands on its page", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", FAILED);
     await expect(sideMenuLink(page, "Databases").first()).toBeVisible();
@@ -85,7 +82,11 @@ test.describe("a cloud that runs Trove", () => {
     await screenshot(page, "database-in-error");
   });
 
-  test("the list says what each runs, in Trove's word", async ({ page }) => {
+  test("the list says what each runs, in Trove's word", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openCloudPage(page, "databases", FAILED);
     const row: Locator = page
       .locator("tr", { hasText: "ou-db-no-host" })
@@ -97,6 +98,8 @@ test.describe("a cloud that runs Trove", () => {
 
   test("Topology draws its databases in a section of their own", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "topology", FAILED);
     await expect(
@@ -107,6 +110,8 @@ test.describe("a cloud that runs Trove", () => {
   for (const viewport of VIEWPORTS) {
     test(`databases and a database's page fit at ${viewport.width} pixels`, async ({
       page,
+    }: {
+      page: Page;
     }) => {
       await page.setViewportSize({
         width: viewport.width,
@@ -114,13 +119,13 @@ test.describe("a cloud that runs Trove", () => {
       });
       await openCloudPage(page, "databases", FAILED);
       await expect(page.getByText("ou-db-no-host").first()).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await page.goto(`${partPath("databases", DATABASE_IN_ERROR)}?${FAILED}`);
       await expect(
         page.getByTestId("openstack-database-instance-overview"),
       ).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });
@@ -128,6 +133,8 @@ test.describe("a cloud that runs Trove", () => {
 test.describe("a credential Trove refuses, which reads just as its API stopped does", () => {
   test("isn't read as down, nor offered alerts that could only say so", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", REFUSED);
     await expect(
@@ -144,7 +151,7 @@ test.describe("a credential Trove refuses, which reads just as its API stopped d
     await expect(page.getByText("Databases API Down")).toHaveCount(0);
   });
 
-  test("its list says so too", async ({ page }) => {
+  test("its list says so too", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "databases", REFUSED);
     await expect(
       page.getByText("This credential has never read this service"),
@@ -155,6 +162,8 @@ test.describe("a credential Trove refuses, which reads just as its API stopped d
 test.describe("its API stopped, once it has been read", () => {
   test("what a real stopped API says on its own is the same as a refusal, so it reads closed until a row has answered", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "services", API_DOWN);
     await expect(page.getByText("Databases (Trove)").first()).toBeVisible();
