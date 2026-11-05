@@ -1,4 +1,8 @@
 import {
+  OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+  OpenStackInstanceMetricSource,
+} from "Common/Types/OpenStack/OpenStackInstanceMetrics";
+import {
   OPENSTACK_SERVICE_TITLES,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -7,8 +11,10 @@ import {
   OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
   OpenStackCloudCounts,
+  OpenStackInstanceMetricsCost,
   OpenStackRequestsByService,
   OpenStackVolumeEstimate,
+  estimateOpenStackInstanceMetricsCost,
   estimateOpenStackVolume,
   getOpenStackCountsOfSize,
   getOpenStackExporterRequestsPerMinute,
@@ -57,6 +63,12 @@ export interface OpenStackCostView {
   probeVolume: OpenStackVolumeEstimate;
   requestsPerMinute: OpenStackRequestsByService;
   exporterRequestsPerMinute: OpenStackRequestsByService;
+  // What real usage per instance adds on top, were every instance to keep it.
+  instanceMetrics: {
+    isOnByDefault: boolean;
+    libvirt: OpenStackInstanceMetricsCost;
+    ceilometer: OpenStackInstanceMetricsCost;
+  };
 }
 
 // Exported for tests: every number on the card, from what was typed.
@@ -91,6 +103,18 @@ export function getOpenStackCostView(data: {
     }),
     requestsPerMinute: getOpenStackProbeRequestsPerMinute(counts),
     exporterRequestsPerMinute: getOpenStackExporterRequestsPerMinute(counts),
+    instanceMetrics: {
+      isOnByDefault:
+        counts.instances <= OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+      libvirt: estimateOpenStackInstanceMetricsCost({
+        source: OpenStackInstanceMetricSource.Libvirt,
+        instances: counts.instances,
+      }),
+      ceilometer: estimateOpenStackInstanceMetricsCost({
+        source: OpenStackInstanceMetricSource.Ceilometer,
+        instances: counts.instances,
+      }),
+    },
   };
 }
 
@@ -268,6 +292,81 @@ const OpenStackCostCalculator: FunctionComponent = (): ReactElement => {
             {translator.translateText(
               "A probe's are counted from the collector itself. The agent's are counted from its exporter's source, and its exporter has not been run at these sizes.",
             )}
+          </p>
+        </div>
+
+        <div
+          className="mt-5 text-sm"
+          data-testid="openstack-cost-instance-metrics"
+        >
+          <div className="font-medium text-gray-900">
+            {translator.translateText(
+              "Real CPU, memory, disk and network per instance, on top of that",
+            )}
+          </div>
+          <ul className="mt-1 space-y-1 text-gray-700">
+            <li
+              className="flex flex-wrap justify-between gap-x-4"
+              data-testid="openstack-cost-instance-metrics-libvirt"
+            >
+              <span>{translator.translateText("From libvirt's exporter")}</span>
+              <span className="text-gray-900">
+                {translator.translateTemplate(
+                  "{{gigabytes}} GB a day, ${{dollars}} a month",
+                  {
+                    gigabytes: rounded(
+                      view.instanceMetrics.libvirt.gigabytesPerDay,
+                    ),
+                    dollars: rounded(
+                      view.instanceMetrics.libvirt.costInUSDPerMonth,
+                    ),
+                  },
+                )}
+              </span>
+            </li>
+            <li
+              className="flex flex-wrap justify-between gap-x-4"
+              data-testid="openstack-cost-instance-metrics-ceilometer"
+            >
+              <span>
+                {translator.translateText("From Ceilometer's exporter")}
+              </span>
+              <span className="text-gray-900">
+                {translator.translateTemplate(
+                  "{{gigabytes}} GB a day, ${{dollars}} a month",
+                  {
+                    gigabytes: rounded(
+                      view.instanceMetrics.ceilometer.gigabytesPerDay,
+                    ),
+                    dollars: rounded(
+                      view.instanceMetrics.ceilometer.costInUSDPerMonth,
+                    ),
+                  },
+                )}
+              </span>
+            </li>
+          </ul>
+          <p
+            className="mt-1 text-gray-600"
+            data-testid="openstack-cost-instance-metrics-default"
+          >
+            {view.instanceMetrics.isOnByDefault
+              ? translator.translateTemplate(
+                  "Once you point the agent at one of them, a cloud this size keeps these for every instance, until it passes {{limit}}.",
+                  {
+                    limit: translator.formatNumber(
+                      OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+                    ),
+                  },
+                )
+              : translator.translateTemplate(
+                  "Past {{limit}} instances a cloud keeps only each hypervisor's totals until you choose. That is what these would cost for every instance: choose the projects and aggregates that are worth it in the cloud's Settings.",
+                  {
+                    limit: translator.formatNumber(
+                      OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+                    ),
+                  },
+                )}
           </p>
         </div>
 

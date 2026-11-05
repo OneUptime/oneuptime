@@ -37,6 +37,7 @@ import {
 } from "../Infrastructure/ResourceTable";
 import { formatBytes } from "../TelemetryResource/telemetryFormat";
 import {
+  countOpenStackRows,
   fetchOpenStackApiStates,
   fetchOpenStackNames,
 } from "../../Pages/OpenStack/Utils/OpenStackPartData";
@@ -574,9 +575,36 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
   const showsProject: boolean = props.columns.includes(OpenStackColumn.Project);
 
   const [apiState, setApiState] = useState<OpenStackApiState>("not-reported");
+  const [hypervisorsAreListed, setHypervisorsAreListed] = useState<
+    boolean | undefined
+  >(undefined);
 
   const serviceType: OpenStackServiceType | undefined =
     OPENSTACK_SERVICE_OF_KIND[props.kind];
+
+  // An empty list of instances can be a cloud with none: only a closed list of hosts says otherwise.
+  useEffect(() => {
+    if (!props.checkAccess || props.kind !== OpenStackResourceKind.Instance) {
+      return;
+    }
+    let ignore: boolean = false;
+    countOpenStackRows({
+      openStackCloudId: props.openStackCloudId,
+      kind: OpenStackResourceKind.Hypervisor,
+    })
+      .then((count: number) => {
+        if (!ignore) {
+          setHypervisorsAreListed(count > 0);
+        }
+      })
+      .catch(() => {
+        // The page's own words for an empty list are still true.
+      });
+    // eslint-disable-next-line consistent-return
+    return () => {
+      ignore = true;
+    };
+  }, [props.checkAccess, props.openStackCloudId.toString(), props.kind]);
 
   useEffect(() => {
     if (!props.checkAccess || !serviceType) {
@@ -783,6 +811,7 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
   const emptyWords: OpenStackEmptyWords | null = getOpenStackEmptyWords({
     kind: props.kind,
     api: apiState,
+    hypervisorsAreListed: hypervisorsAreListed,
   });
 
   const filters: Array<Filter<OpenStackResource>> = useMemo(() => {

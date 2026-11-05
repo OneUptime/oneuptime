@@ -12,6 +12,8 @@ import {
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
+  OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
+  OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES,
   OPENSTACK_LARGE_CLOUD,
   OPENSTACK_MEDIUM_CLOUD,
   OPENSTACK_PER_PART_READS_PER_COLLECTION,
@@ -720,6 +722,184 @@ describe("what is a call per thing stops growing with the cloud", () => {
 
     expect(routers.size).toBe(counts.routers);
   }, 600000);
+
+  describe("a DHCP agent's networks", () => {
+    const ROUTE: string = "/networking/v2.0/agents/{id}/dhcp-networks";
+
+    function dhcpScene(dhcpAgents: number): Scene {
+      return sceneOf(
+        {
+          ...getOpenStackCountsOfSize({
+            hypervisors: Math.max(dhcpAgents, 10),
+            instances: 100,
+            projects: 10,
+          }),
+          dhcpAgents: dhcpAgents,
+        },
+        { networkBackend: "ovs" },
+      );
+    }
+
+    function askedOf(scene: Scene): number {
+      return scene.cloud.requestsByRoute.get(ROUTE) || 0;
+    }
+
+    test("a call per agent, once a round, and no more however often it is collected", async () => {
+      const scene: Scene = dhcpScene(3);
+
+      await collect(scene);
+      expect(askedOf(scene)).toBe(3);
+
+      // The collections of the next nine and a half minutes ask nothing.
+      for (let minute: number = 2; minute <= 8; minute += 2) {
+        scene.cloud.resetCounts();
+        await collect(scene);
+        expect(askedOf(scene)).toBe(0);
+      }
+
+      scene.cloud.resetCounts();
+      await collect(scene);
+      expect(askedOf(scene)).toBe(3);
+    }, 600000);
+
+    test("what wasn't asked this time is still said, so nothing reads as gone between rounds", async () => {
+      const scene: Scene = dhcpScene(3);
+
+      const first: OpenStackCollectionReport = await collect(scene);
+      const second: OpenStackCollectionReport = await collect(scene);
+
+      const counts: (report: OpenStackCollectionReport) => Array<string> = (
+        report: OpenStackCollectionReport,
+      ): Array<string> => {
+        return datapointsOf(report.resourceMetrics)
+          .filter((point: ReportedDatapoint): boolean => {
+            return point.labels["dhcp_network_count"] !== undefined;
+          })
+          .map((point: ReportedDatapoint): string => {
+            return point.labels["dhcp_network_count"] as string;
+          });
+      };
+
+      expect(counts(first)).toEqual(["1", "1", "1"]);
+      expect(counts(second)).toEqual(counts(first));
+    }, 600000);
+
+    test("bounded: a cloud with hundreds of agents asks the same few a round, going round them all", async () => {
+      const agents: number = OPENSTACK_DHCP_AGENT_READS_PER_ROUND * 2 + 5;
+      const scene: Scene = dhcpScene(agents);
+
+      await collect(scene);
+      expect(askedOf(scene)).toBe(OPENSTACK_DHCP_AGENT_READS_PER_ROUND);
+
+      let report: OpenStackCollectionReport | null = null;
+
+      for (let round: number = 0; round < 2; round++) {
+        scene.cloud.resetCounts();
+        scene.clock.advance(OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES * 60_000);
+        report = await collect(scene);
+        expect(askedOf(scene)).toBe(OPENSTACK_DHCP_AGENT_READS_PER_ROUND);
+      }
+
+      expect(
+        datapointsOf(report!.resourceMetrics).filter(
+          (point: ReportedDatapoint): boolean => {
+            return point.labels["dhcp_network_count"] !== undefined;
+          },
+        ),
+      ).toHaveLength(agents);
+    }, 600000);
+
+    test("budgeted: what the docs state is what it asks", async () => {
+      const scene: Scene = dhcpScene(3);
+      let asked: number = 0;
+
+      for (let minute: number = 0; minute < 60; minute += 2) {
+        scene.cloud.resetCounts();
+        await collect(scene);
+        asked += askedOf(scene);
+      }
+
+      expect(asked).toBe(18);
+    }, 900000);
+
+    test("gentle: a Neutron that has slowed this collection down isn't asked at all", async () => {
+      let neutronLatency: number = 10;
+
+      const scene: Scene = sceneOf(
+        { ...OPENSTACK_SMALL_CLOUD, dhcpAgents: 3 },
+        {
+          networkBackend: "ovs",
+          latencyInMs: (
+            _request: { url: string },
+            service: OpenStackServiceType,
+          ): number => {
+            return service === OpenStackServiceType.Network
+              ? neutronLatency
+              : 10;
+          },
+        },
+      );
+
+      await collect(scene);
+      expect(askedOf(scene)).toBe(3);
+
+      neutronLatency = 3000;
+      scene.cloud.resetCounts();
+      scene.clock.advance(OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES * 60_000);
+      const slowed: OpenStackCollectionReport = await collect(scene);
+
+      expect(askedOf(scene)).toBe(0);
+      // What it last said is still said, and the next quiet round asks again.
+      expect(
+        datapointsOf(slowed.resourceMetrics).filter(
+          (point: ReportedDatapoint): boolean => {
+            return point.labels["dhcp_network_count"] !== undefined;
+          },
+        ),
+      ).toHaveLength(3);
+
+      neutronLatency = 10;
+      scene.cloud.resetCounts();
+      scene.clock.advance(2 * 60_000);
+      await collect(scene);
+
+      expect(askedOf(scene)).toBe(3);
+    }, 600000);
+
+    test("past the summary size, nothing is asked: one agent there can answer with thousands", async () => {
+      const scene: Scene = sceneOf(
+        {
+          ...getOpenStackCountsOfSize({
+            hypervisors: 10,
+            instances: OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT + 1,
+            projects: 10,
+          }),
+          dhcpAgents: 3,
+        },
+        { networkBackend: "ovs" },
+      );
+
+      // A first collection can't know yet how large the cloud is.
+      await collect(scene);
+      scene.cloud.resetCounts();
+
+      scene.clock.advance(OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES * 60_000);
+      const report: OpenStackCollectionReport = await collect(scene);
+
+      expect(report.summary?.isSummaryMode).toBe(true);
+      expect(askedOf(scene)).toBe(0);
+    }, 900000);
+
+    test("on OVN, which has no such agents, nothing is asked", async () => {
+      const scene: Scene = sceneOf(OPENSTACK_SMALL_CLOUD, {
+        networkBackend: "ovn",
+      });
+
+      await collect(scene);
+
+      expect(askedOf(scene)).toBe(0);
+    }, 600000);
+  });
 
   test("quotas on a cloud of 10,000 projects are read a few hundred at a time", async () => {
     const counts: OpenStackCloudCounts = getOpenStackCountsOfSize({

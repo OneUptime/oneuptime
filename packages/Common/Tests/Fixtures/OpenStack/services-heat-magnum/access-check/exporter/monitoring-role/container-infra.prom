@@ -1,0 +1,6 @@
+# HELP openstack_container_infra_total_clusters total_clusters
+# TYPE openstack_container_infra_total_clusters gauge
+openstack_container_infra_total_clusters 0
+# HELP openstack_container_infra_up up
+# TYPE openstack_container_infra_up gauge
+openstack_container_infra_up 1

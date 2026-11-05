@@ -1783,8 +1783,8 @@ export class Service extends DatabaseService<Model> {
         count: "volumeCount",
         byProject: await countByProject({
           kind: OpenStackResourceKind.Volume,
-          where: `"facts"->>'pool' = $3`,
-          params: [part.name || ""],
+          where: `"facts"->>'pool' = $3 AND "regionName" IS NOT DISTINCT FROM $4`,
+          params: [part.name || "", part.regionName ?? null],
         }),
       });
       const found: boolean = (counts[0]?.byProject.length || 0) > 0;
@@ -1805,11 +1805,13 @@ export class Service extends DatabaseService<Model> {
                AND volume."kind" = '${OpenStackResourceKind.Volume}'
                AND volume."deletedAt" IS NULL
                AND volume."facts"->>'pool' = $3
+               AND volume."regionName" IS NOT DISTINCT FROM $4
              GROUP BY instance."openStackProjectId"`,
             [
               data.projectId.toString(),
               data.openStackCloudId.toString(),
               part.name || "",
+              part.regionName ?? null,
             ],
           );
         counts.push({
@@ -1824,8 +1826,28 @@ export class Service extends DatabaseService<Model> {
           ),
         });
       }
-      // No volume names a pool: either it holds none, or nothing says where they are.
-      return await finish(found);
+      if (found) {
+        return await finish();
+      }
+      /*
+       * No volume names this pool. If any of the cloud's volumes names a pool, this one holds
+       * none. If none does, nothing says where they are, so it cannot tell: the agent's
+       * exporter never says, and neither does a probe whose credential Cinder won't tell.
+       */
+      const named: Array<unknown> = await this.getRepository().manager.query(
+        `SELECT 1 FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.Volume}' AND "deletedAt" IS NULL
+           AND "regionName" IS NOT DISTINCT FROM $3
+           AND "facts"->>'pool' IS NOT NULL
+         LIMIT 1`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          part.regionName ?? null,
+        ],
+      );
+      return await finish(named.length > 0);
     }
 
     if (part.kind === OpenStackResourceKind.Api) {
@@ -2618,6 +2640,54 @@ export class Service extends DatabaseService<Model> {
         data.projectId.toString(),
         data.openStackCloudId.toString(),
         data.shortHostNames,
+      ],
+    );
+  }
+
+  /**
+   * A router whose agents were all taken off it has no series left to say so, and a row's facts
+   * merge key by key, so it would name them for ever: a dead agent it no longer has would still
+   * read as an outage, and a live one as carrying it. So a router heard from long after its agents
+   * were last heard from has none (getOpenStackRoutersWithoutAgents has how long, and why).
+   * Changes only what differs, so most clouds' routers, which have no agents to forget, cost one
+   * indexed read per batch.
+   */
+  @CaptureSpan()
+  public async forgetAgentsOfRouters(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    routers: Array<{ externalId: string; agentsReportedBefore: Date }>;
+  }): Promise<void> {
+    if (data.routers.length === 0) {
+      return;
+    }
+
+    await this.getRepository().manager.query(
+      `UPDATE "OpenStackResource" AS router
+       SET "facts" = router."facts" - 'l3Agents' - 'l3AgentsReportedAt',
+           "updatedAt" = now()
+       FROM unnest($3::text[], $4::timestamptz[]) AS heard("externalId", "agentsReportedBefore")
+       WHERE router."projectId" = $1 AND router."openStackCloudId" = $2
+         AND router."kind" = '${OpenStackResourceKind.Router}'
+         AND router."externalId" = heard."externalId"
+         AND router."facts" ? 'l3Agents'
+         AND COALESCE(
+           (router."facts"->>'l3AgentsReportedAt')::timestamptz,
+           '-infinity'::timestamptz
+         ) < heard."agentsReportedBefore"`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.routers.map(
+          (router: { externalId: string; agentsReportedBefore: Date }) => {
+            return router.externalId;
+          },
+        ),
+        data.routers.map(
+          (router: { externalId: string; agentsReportedBefore: Date }) => {
+            return router.agentsReportedBefore;
+          },
+        ),
       ],
     );
   }

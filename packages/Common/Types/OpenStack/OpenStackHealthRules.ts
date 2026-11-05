@@ -39,11 +39,7 @@ export const OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT: number = 90;
 // How long a part may sit in a state on the way to something else.
 export const OPENSTACK_INSTANCE_STUCK_MINUTES: number = 60;
 export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
-/*
- * No alert template draws this one yet, so it is the one line here with nothing to
- * agree with. An image left in queued is what a failed upload looks like: nothing ever
- * moves it on, and instances that ask for it fail.
- */
+// An image left in queued is what a failed upload looks like: nothing ever moves it on.
 export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 
 /*
@@ -75,6 +71,18 @@ export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
 export const OPENSTACK_SERVICE_DISABLED_WARNING_DAYS: number = 7;
 
 /*
+ * What fills up within this many days is what Capacity Forecast Under N Days alerts on, and what
+ * the Capacity page marks. Two weeks: about what it takes to find a host a home, or to clean up.
+ */
+export const OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS: number = 14;
+
+/*
+ * A host's allocations and its instances can disagree for a moment whenever one is starting or
+ * going away. Disagreeing for this long is no moment.
+ */
+export const OPENSTACK_ALLOCATION_MISMATCH_MINUTES: number = 30;
+
+/*
  * What an operator set: Nova and Cinder say enabled or disabled, Neutron says up or
  * down. Nothing here is a failure, whichever word it is in.
  */
@@ -100,6 +108,21 @@ export function isOpenStackServiceDown(data: {
   return (
     data.status === OPENSTACK_SERVICE_STATUS_DOWN &&
     !isOpenStackAdminDisabled(data.adminState)
+  );
+}
+
+/*
+ * An operator told Nova this service is down, usually so its instances can be evacuated. It reads
+ * down whatever the service is doing, and only until someone lets it back up. Only a native read
+ * of Nova says so: the exporter's series have no such label, and then this is simply not known.
+ */
+export function isOpenStackServiceForcedDown(data: {
+  status?: string | null | undefined;
+  facts?: JSONObject | null | undefined;
+}): boolean {
+  return (
+    data.status === OPENSTACK_SERVICE_STATUS_DOWN &&
+    data.facts?.["forcedDown"] === true
   );
 }
 

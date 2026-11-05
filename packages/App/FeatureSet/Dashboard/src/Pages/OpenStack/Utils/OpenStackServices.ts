@@ -10,6 +10,7 @@ import {
   percentOf,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_API_STATUS_CLOSED,
   OPENSTACK_SERVICE_TITLES,
   OpenStackResourceKind,
   OpenStackServiceFamily,
@@ -469,12 +470,81 @@ const CANNOT_LIST_VOLUME_SERVICES: string = translationKey(
   "This credential can't list volume services",
 );
 
+const CANNOT_READ_PLACEMENT: string = translationKey(
+  "This credential can't read Placement",
+);
+
 export interface OpenStackAccessGap {
   key: string;
   // English: "This credential can't list hypervisors".
   title: string;
   // The service whose API says up with nothing to show.
   service: string;
+  /*
+   * Cinder's services and pools answer anything but an admin with a 403, from Cinder's own
+   * code, so only the Full view credential reads them. Infrastructure only goes without them
+   * by design. Everything else closed here opens at that level too.
+   */
+  isFullViewOnly: boolean;
+}
+
+/*
+ * Placement closed to this credential reads the same as Placement stopped: the exporter says
+ * openstack_placement_up 0 when every call it made failed, and a 403 is a failed call. Recorded
+ * for a plain reader on all five releases. What tells them apart is Nova: where it answers and
+ * lists no compute services, this credential is closed to infrastructure, so Placement's word
+ * says nothing about Placement. Never a critical "API down", then, on a cloud nobody can
+ * see into, and an API this page can't judge is never called up either.
+ */
+function getRegionsClosedToInfrastructure(data: {
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+}): Set<string> {
+  const closed: Set<string> = new Set();
+  for (const api of data.apis) {
+    const regionName: string | null = api.regionName || null;
+    if (
+      api.name === OpenStackServiceType.Compute &&
+      api.status === "up" &&
+      !data.workers.some((worker: OpenStackResource): boolean => {
+        return (
+          getOpenStackWorkerFamily(worker) === OpenStackServiceFamily.Compute &&
+          (worker.regionName || null) === regionName
+        );
+      })
+    ) {
+      closed.add(regionName || "");
+    }
+  }
+  return closed;
+}
+
+/*
+ * Rows as this credential can honestly say them: the same rows, but for a Placement it can't
+ * read. Stateless and cheap, so a page calls it on whatever it read.
+ */
+export function getOpenStackRowsAsThisCredentialReadsThem(data: {
+  rows: Array<OpenStackResource>;
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+}): Array<OpenStackResource> {
+  const closed: Set<string> = getRegionsClosedToInfrastructure({
+    apis: data.apis,
+    workers: data.workers,
+  });
+  if (closed.size === 0) {
+    return data.rows;
+  }
+  return data.rows.map((row: OpenStackResource): OpenStackResource => {
+    return row.kind === OpenStackResourceKind.Api &&
+      row.name === OpenStackServiceType.Placement &&
+      row.status === "down" &&
+      closed.has(row.regionName || "")
+      ? (Object.assign(new OpenStackResource(), row, {
+          status: OPENSTACK_API_STATUS_CLOSED,
+        }) as OpenStackResource)
+      : row;
+  });
 }
 
 function isApiUp(
@@ -560,6 +630,7 @@ export function getOpenStackAccessGaps(data: {
       key: "hypervisors",
       title: titleOf(OpenStackResourceKind.Hypervisor),
       service: OpenStackServiceType.Compute,
+      isFullViewOnly: false,
     });
   }
 
@@ -574,6 +645,7 @@ export function getOpenStackAccessGaps(data: {
       key: "compute-services",
       title: CANNOT_LIST_COMPUTE_SERVICES,
       service: OpenStackServiceType.Compute,
+      isFullViewOnly: false,
     });
   }
 
@@ -588,6 +660,7 @@ export function getOpenStackAccessGaps(data: {
       key: "network-agents",
       title: titleOf(OpenStackResourceKind.Service),
       service: OpenStackServiceType.Network,
+      isFullViewOnly: false,
     });
   }
 
@@ -602,6 +675,7 @@ export function getOpenStackAccessGaps(data: {
       key: "volume-services",
       title: CANNOT_LIST_VOLUME_SERVICES,
       service: OpenStackServiceType.Volume,
+      isFullViewOnly: true,
     });
   }
 
@@ -615,6 +689,28 @@ export function getOpenStackAccessGaps(data: {
       key: "storage-pools",
       title: titleOf(OpenStackResourceKind.StoragePool),
       service: OpenStackServiceType.Volume,
+      isFullViewOnly: true,
+    });
+  }
+
+  const closedRegions: Set<string> = getRegionsClosedToInfrastructure({
+    apis: data.apis,
+    workers: data.workers,
+  });
+  if (
+    data.apis.some((api: OpenStackResource): boolean => {
+      return (
+        api.name === OpenStackServiceType.Placement &&
+        (api.status === "down" || api.status === OPENSTACK_API_STATUS_CLOSED) &&
+        closedRegions.has(api.regionName || "")
+      );
+    })
+  ) {
+    gaps.push({
+      key: "placement",
+      title: CANNOT_READ_PLACEMENT,
+      service: OpenStackServiceType.Placement,
+      isFullViewOnly: false,
     });
   }
 

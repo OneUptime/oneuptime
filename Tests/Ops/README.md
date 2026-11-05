@@ -2023,6 +2023,10 @@ python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
 
 See [its README](agent-ebpf-e2e/README.md) for what it checks and how to run it.
 
+### `OpenStackServicesRig.test.js`
+
+The rig for the services a cloud may not run (`record-services` in `test.openstack-e2e.yaml`, and `openstack-e2e/services-*.sh`), checked without a DevStack, because one takes half an hour to deploy on shared runners. It pins that the job runs only when asked and that a filtered-out entry skips every step. It runs each group's script start to finish with every wait answered and every command line stubbed, which proves no state but finds what `set -u` or a typo would otherwise find an hour into a run, and that a scene going wrong costs only itself. It runs `record.sh` against a stub of each service, for the reads each one has and the names the importer keeps, and `import-services-recording.py` on a recording written in the test, for what it keeps, what it scrubs, and the fixtures it must never touch.
+
 ### `openstack-e2e/`
 
 Not part of `npm test`: it deploys a real OpenStack with DevStack, builds a known

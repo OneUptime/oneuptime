@@ -1,5 +1,6 @@
 import {
   NeutronAgentRecord,
+  NeutronDhcpAgentNetworksRecord,
   NeutronL3AgentRecord,
   NeutronPortRecord,
   NeutronQuotaDetail,
@@ -28,6 +29,8 @@ import {
 } from "./OpenStackCollectorContext";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
+  OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
+  OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES,
   OPENSTACK_PER_PART_READS_PER_COLLECTION,
   OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
 } from "Common/Types/OpenStack/OpenStackScale";
@@ -47,6 +50,9 @@ import {
  * Routers say which L3 agents hold them with a call per router, which a cloud on OVN
  * has no use for: it has no L3 agents. So the agent list decides whether to ask, as it
  * does for the exporter. A cloud with thousands of routers asks in turns (OpenStackReadTurns).
+ *
+ * DHCP agents say which networks they serve with a call per agent, which the exporter never makes.
+ * That one is asked last and least: see collectDhcpAgentNetworks.
  */
 
 const NETWORK_FIELDS: Array<string> = [
@@ -113,6 +119,7 @@ const PORT_FIELDS: Array<string> = [
 ];
 
 const OVN_CONTROLLER_BINARY: string = "ovn-controller";
+const DHCP_AGENT_BINARY: string = "neutron-dhcp-agent";
 const VPN_EXTENSION_ALIAS: string = "vpnaas";
 
 // A cloud gains an extension when it is upgraded, not from one minute to the next.
@@ -308,6 +315,125 @@ export default async function collectNetwork(
   if (context.options.collectProjectLimits) {
     await collectProjectQuotas(context);
   }
+
+  await collectDhcpAgentNetworks(context);
+}
+
+/*
+ * Which networks each DHCP agent serves, a call per agent, and the one read here nothing depends
+ * on. So it is the last thing asked, and the first thing given up:
+ *
+ *   - bounded: at most OPENSTACK_DHCP_AGENT_READS_PER_ROUND a round, however many agents a cloud
+ *     runs. What was not read is sent as it last stood, and the next round goes on from there;
+ *   - gentle: a round every OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES at most, and none at all on a
+ *     Neutron that has already slowed this collection down, or a cloud past the summary size,
+ *     where one agent can serve thousands of networks and Neutron answers with each in full;
+ *   - budgeted: a round is only started with most of the collection's time still left, and when
+ *     it fails or is refused it isn't asked again until the next round, which a credential that
+ *     may not read this costs one call per ten minutes.
+ *
+ * Nothing vouches for rows on it, so a round that fails costs itself and no row.
+ */
+async function collectDhcpAgentNetworks(
+  context: OpenStackCollectorContext<OpenStackNetworkInventory>,
+): Promise<void> {
+  const { run, inventory } = context;
+  const client: OpenStackServiceClient = run.client;
+
+  if (context.isSummaryMode) {
+    return;
+  }
+
+  const agentIds: Array<string> = [];
+
+  for (const agent of inventory.agents || []) {
+    if (agent.binary === DHCP_AGENT_BINARY && agent.id) {
+      agentIds.push(agent.id);
+    }
+  }
+
+  if (agentIds.length === 0) {
+    return;
+  }
+
+  const idOf: (agentId: string) => string = (agentId: string): string => {
+    return agentId;
+  };
+
+  const memoryKey: string = `${context.memoryKey}/${run.regionName}/dhcp-agent-networks`;
+  const turns: OpenStackReadTurns<NeutronDhcpAgentNetworksRecord> =
+    new OpenStackReadTurns({
+      memory: context.memory,
+      memoryKey: memoryKey,
+      now: client.now(),
+    });
+
+  const isDue: boolean =
+    context.memory.recall<boolean>(
+      `${memoryKey}/round`,
+      OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES * 60_000 - 30_000,
+      client.now(),
+    ) === undefined;
+
+  if (
+    isDue &&
+    !run.isStopped() &&
+    client.pausedForInMs === 0 &&
+    client.now() < getLastRoundStart(context)
+  ) {
+    // Before asking, so that a round that fails waits its turn like one that worked.
+    context.memory.remember(`${memoryKey}/round`, true, client.now());
+
+    await run.read({
+      name: "networks of DHCP agents",
+      isInventory: false,
+      isQuietWhenRefused: true,
+      run: async () => {
+        await turns.read({
+          items: agentIds,
+          limit: OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
+          idOf: idOf,
+          read: async (
+            agentId: string,
+          ): Promise<NeutronDhcpAgentNetworksRecord> => {
+            const answer: OpenStackListAnswer = await client.list({
+              read: "a DHCP agent's networks",
+              path: `/agents/${encodeURIComponent(agentId)}/dhcp-networks`,
+              key: "networks",
+              paging: "none",
+            });
+
+            const networkIds: Array<string> = [];
+
+            for (const network of answer.items) {
+              if (typeof network["id"] === "string") {
+                networkIds.push(network["id"]);
+              }
+            }
+
+            return { agentId: agentId, networkIds: networkIds };
+          },
+        });
+      },
+    });
+  }
+
+  inventory.dhcpAgentNetworks = turns.getRecords({
+    items: agentIds,
+    idOf: idOf,
+  });
+}
+
+/*
+ * The latest a round may start: with half of the collection's time left. Running out of time is
+ * what would have this read say Neutron is down, and nothing here is worth that.
+ */
+function getLastRoundStart(
+  context: OpenStackCollectorContext<OpenStackNetworkInventory>,
+): number {
+  const startedAt: number = context.run.startedAt;
+
+  return startedAt + (context.run.client.getDeadlineAt() - startedAt) / 2;
 }
 
 /*

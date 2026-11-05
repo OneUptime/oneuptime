@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
 import {
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
@@ -15,6 +16,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
+import { OpenStackVolumeList } from "../../../Components/OpenStack/OpenStackLists";
 import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
 import OpenStackStoragePoolCephCard from "../../../Components/OpenStack/Part/OpenStackStoragePoolCephCard";
@@ -38,7 +40,10 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
-import { fetchOpenStackStoragePoolForecast } from "../Utils/OpenStackPartData";
+import {
+  countOpenStackRows,
+  fetchOpenStackStoragePoolForecast,
+} from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS,
   OpenStackForecast,
@@ -51,12 +56,12 @@ import {
 
 /*
  * One Cinder pool: how full it is at the storage pool templates' two lines, what is free,
- * and when it fills at its recent growth. Nothing the agent collects says which pool a
- * volume is on, so this page can't list its volumes and says so, rather than reading as a
- * pool that holds none.
+ * and when it fills at its recent growth. Only a probe with a credential Cinder tells knows
+ * which pool a volume is on, and then the Volumes tab lists them. Without that this page can't
+ * say what is on it and says so, rather than reading as a pool that holds none.
  */
 const VOLUMES_UNKNOWN: string = translationKey(
-  "Nothing collected says which pool a volume is on, so this page can't say which volumes are here or whose they are. openstack volume list --long shows it, with a credential that can read it.",
+  "Nothing collected says which pool a volume is on, so this page can't say which volumes are here or whose they are. A probe reads it with a credential Cinder treats as an admin, and openstack volume list --long shows it.",
 );
 
 const StoragePoolOverview: FunctionComponent<{
@@ -217,12 +222,35 @@ const StoragePoolOverview: FunctionComponent<{
   );
 };
 
+// A pool is named for its host and backend, and two regions can share those.
+function getVolumesOfPoolQuery(row: OpenStackResource): {
+  facts: JSONObject;
+  regionName?: string;
+} {
+  return {
+    facts: { pool: row.name || "" },
+    ...(row.regionName ? { regionName: row.regionName } : {}),
+  };
+}
+
 const OpenStackCloudStoragePoolDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.StoragePool,
   );
+  const row: OpenStackResource | null = part.row;
+
+  // Whether anything says which volumes are here. Nothing is what the agent's exporter says.
+  const volumeCount: OpenStackRead<number> = useOpenStackRead<number>(() => {
+    return row?.name
+      ? countOpenStackRows({
+          openStackCloudId: part.openStackCloudId,
+          kind: OpenStackResourceKind.Volume,
+          query: getVolumesOfPoolQuery(row),
+        })
+      : Promise.resolve(0);
+  }, [row?.name, row?.regionName, part.refreshToken]);
 
   return (
     <OpenStackPartPage
@@ -230,9 +258,27 @@ const OpenStackCloudStoragePoolDetail: FunctionComponent<
       overview={(row: OpenStackResource): ReactElement => {
         return <StoragePoolOverview part={part} row={row} />;
       }}
-      tabs={(row: OpenStackResource): Array<Tab> => {
-        const attributes: Record<string, string> = { name: row.name || "" };
+      tabs={(tabRow: OpenStackResource): Array<Tab> => {
+        const attributes: Record<string, string> = { name: tabRow.name || "" };
         return [
+          ...(volumeCount.data
+            ? [
+                {
+                  name: "Volumes",
+                  children: (
+                    <OpenStackVolumeList
+                      openStackCloudId={part.openStackCloudId}
+                      query={getVolumesOfPoolQuery(tabRow)}
+                      tableId="openstack-storage-pool-volumes-table"
+                      title="Volumes on this pool"
+                      description="The Cinder volumes on this pool, as Cinder says of each."
+                      emptyTitle="No volumes on this pool"
+                      emptyDescription="Cinder says no volume is on this pool, or this credential can't see the ones that are. Only the Full view credential sees every project's."
+                    />
+                  ),
+                },
+              ]
+            : []),
           {
             name: "Metrics",
             children: (

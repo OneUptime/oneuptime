@@ -75,8 +75,12 @@ const DOCS: string = readRepoFile(
   "openstack-monitor.md",
 );
 
+// The exporter it runs by default: the database path's other one turns off almost everything.
 const DISABLED_METRICS: Array<string> = Array.from(
-  COMPOSE.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
+  COMPOSE.slice(
+    COMPOSE.indexOf("\n  openstack-exporter:"),
+    COMPOSE.indexOf("\n  openstack-worker-state-exporter:"),
+  ).matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
 ).map((match: RegExpMatchArray): string => {
   return match[1]!;
 });
@@ -202,8 +206,11 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_glance_image_bytes",
         "openstack_glance_up",
         "openstack_identity_up",
+        "openstack_neutron_agent_state",
         "openstack_neutron_floating_ip",
+        "openstack_neutron_network",
         "openstack_neutron_up",
+        "openstack_nova_agent_state",
         "openstack_nova_server_status",
         "openstack_nova_up",
         "openstack_placement_up",
@@ -445,14 +452,38 @@ describe("OpenStackMetricCatalog", () => {
       expect(COMPOSE).not.toMatch(/^\s*- --disable-slow-metrics\s*$/m);
     });
 
-    test.each(DISABLED_METRICS)(
+    /*
+     * Off, for a service this catalogue has no series of yet (#5744). Whoever adds Gnocchi's
+     * adds this one too, marked off by that line, and takes it out of this list.
+     */
+    const OFF_FOR_A_SERVICE_NOT_IN_THE_CATALOGUE: ReadonlyArray<string> = [
+      "gnocchi-total_metrics",
+    ];
+
+    function metricNameOf(disabled: string): string {
+      const [service, ...head] = disabled.split("-");
+      return `openstack_${service}_${head.join("-")}`;
+    }
+
+    test.each(
+      DISABLED_METRICS.filter((disabled: string): boolean => {
+        return !OFF_FOR_A_SERVICE_NOT_IN_THE_CATALOGUE.includes(disabled);
+      }),
+    )(
       "the agent's --disable-metric=%s names a series here, marked off by that line",
       (disabled: string) => {
-        const [service, ...head] = disabled.split("-");
-        const metricName: string = `openstack_${service}_${head.join("-")}`;
+        expect(
+          getOpenStackMetricByMetricName(metricNameOf(disabled))?.offByDefault,
+        ).toBe(disabled);
+      },
+    );
 
-        expect(getOpenStackMetricByMetricName(metricName)?.offByDefault).toBe(
-          disabled,
+    test.each(OFF_FOR_A_SERVICE_NOT_IN_THE_CATALOGUE)(
+      "--disable-metric=%s is on the agent's list and not in the catalogue yet",
+      (disabled: string) => {
+        expect(DISABLED_METRICS).toContain(disabled);
+        expect(getOpenStackMetricByMetricName(metricNameOf(disabled))).toBe(
+          undefined,
         );
       },
     );

@@ -24,12 +24,15 @@
  *
  *   busy          (default) one region, ML2/OVS, something wrong of every kind.
  *   calm          the same cloud with nothing wrong, and a host disabled on purpose.
+ *   forced-down   calm, with a host an operator told Nova is down and one that just stopped.
  *   new           a cloud that exists and has reported nothing yet.
  *   multi-region  two regions: RegionOne is calm, RegionTwo has lost its compute API.
  *   overflow      more instances in ERROR than Needs attention reads.
  *   ovn-stale     a calm cloud on OVN, with a stale record beside a live agent.
  *   parts         busy, with what a part's page has to say that busy does not hold: hosts
  *                 in zones and aggregates, an image stuck saving, what the probe lists.
+ *   usage         calm, with real usage: a hypervisor past its line, a neighbour burning all
+ *                 of it, and one instance made to wait.
  */
 
 export const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -132,10 +135,7 @@ export function worker(context, family, host, binary, region, fields = {}) {
       facts: {
         family,
         host,
-        agentId: openStackUuid(
-          "d7ef14b8",
-          (host.length * 31 + binary.length * 7) % 9973,
-        ),
+        agentId: neutronAgentId(host, binary),
         ...(fields.facts || {}),
       },
     },
@@ -275,6 +275,13 @@ export function storagePool(context, name, region, fields = {}) {
  * A network (gazpacho-ovs/healthy): addresses used and total are added up across its
  * subnets, and are what the external pool rules read.
  */
+function neutronAgentId(host, binary) {
+  return openStackUuid(
+    "d7ef14b8",
+    (host.length * 31 + binary.length * 7) % 9973,
+  );
+}
+
 export function network(context, number, name, region, fields = {}) {
   const total = fields.ipsTotal ?? 253;
   const used = fields.ipsUsed ?? 20;
@@ -976,6 +983,36 @@ function calmInventory(context) {
 }
 
 /*
+ * forced-down: a calm cloud where an operator told Nova compute-02 is down, as a probe reports
+ * it, which is the one collector that can say so. compute-01 is a plain stopped service with
+ * nothing saying which it is, as the agent's exporter leaves it. No recording is a probe's rows,
+ * so these are made up in the shape the scan writes.
+ */
+function forcedDownInventory(context) {
+  return calmInventory(context).map((row) => {
+    if (row.kind !== "Service" || row.name !== "nova-compute") {
+      return row;
+    }
+    if (row.externalId.includes("compute-02")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+        facts: { ...row.facts, forcedDown: true },
+      };
+    }
+    if (row.externalId.includes("compute-01")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+      };
+    }
+    return { ...row, facts: { ...row.facts, forcedDown: false } };
+  });
+}
+
+/*
  * ---------------------------------------------------------------------------
  * multi-region: RegionOne is calm. RegionTwo has lost its compute API, and a
  * nova-compute with instances on it. The same host name in both regions is two hosts.
@@ -1166,6 +1203,12 @@ const PARTS_HOSTS = {
   "compute-05.acme.example": { zone: "az-b", aggregates: null },
 };
 
+const PARTS_VOLUME_POOLS = {
+  "payments-db-data": "ctl-02@ceph#rbd-fast",
+  "research-archive": "ctl-02@ceph#rbd-fast",
+  "web-assets": "ctl-01@lvmdriver-1#lvmdriver-1",
+};
+
 function partsRow(row) {
   if (row.kind === "Hypervisor") {
     const place = PARTS_HOSTS[row.name];
@@ -1181,6 +1224,23 @@ function partsRow(row) {
   if (row.kind === "StoragePool" && row.name === "ctl-02@ceph#rbd-fast") {
     return { ...row, growsPerDay: 512 };
   }
+  // A probe read Nova's addresses too, and this one never got one.
+  // Which networks a DHCP agent serves, which only a probe says.
+  if (row.kind === "Service" && row.name === "neutron-dhcp-agent") {
+    return {
+      ...row,
+      facts: { ...row.facts, dhcpNetworkCount: 1 },
+    };
+  }
+  if (row.kind === "Network" && row.name === "research-net") {
+    return {
+      ...row,
+      facts: {
+        ...row.facts,
+        dhcpAgentIds: [neutronAgentId("ctl-01", "neutron-dhcp-agent")],
+      },
+    };
+  }
   if (row.kind === "Instance" && row.name === "ou-failed") {
     return {
       ...row,
@@ -1188,13 +1248,29 @@ function partsRow(row) {
         ...row.facts,
         faultMessage:
           "No valid host was found. There are not enough hosts available.",
+        updatedAt: "2026-11-04T11:00:00Z",
+        addressIpv4: null,
+        addressIpv6: null,
       },
     };
   }
   if (row.kind === "Instance" && row.name === "batch-worker-7") {
     return {
       ...row,
-      facts: { ...row.facts, addressIpv4: "10.77.0.12" },
+      facts: {
+        ...row.facts,
+        addressIpv4: "10.77.0.12",
+        // The stuck image of this estate, which is what it says it booted from.
+        imageId: openStackUuid("79490afb", 3),
+        updatedAt: "2026-11-04T11:00:00Z",
+      },
+    };
+  }
+  // A probe was told which pool holds each of these. The third pool holds none of them.
+  if (row.kind === "Volume" && PARTS_VOLUME_POOLS[row.name]) {
+    return {
+      ...row,
+      facts: { ...row.facts, pool: PARTS_VOLUME_POOLS[row.name] },
     };
   }
   return row;
@@ -1224,10 +1300,93 @@ function partsInventory(context) {
   ];
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * usage: calm, with what libvirt's or Ceilometer's exporter says on compute-01. The numbers are
+ * made up to put it over a line. What real clouds really said goes through the same pages in
+ * OpenStackUsagePagesRecordings.test.tsx, and these are for what only a browser shows.
+ * ---------------------------------------------------------------------------
+ */
+export const USAGE_HOST = "compute-01.acme.example";
+const MIB = 1024 * 1024;
+
+function usageOfInstance(index) {
+  if (index === 0) {
+    // The noisy neighbour: nearly all of its 32 vCPUs, which is nearly all of the host's 32 threads.
+    return {
+      flavorId: "huge",
+      cpuCores: 29.4,
+      cpuPercent: 91.9,
+      contentionPercent: 2,
+      memoryUsageBytes: 56 * GIB,
+      memoryResidentBytes: 60 * GIB,
+      disks: {
+        vda: { read: 40 * MIB, write: 120 * MIB, readMs: 3, writeMs: 7 },
+        vdb: { read: 0, write: 900 * MIB, writeMs: 64 },
+      },
+      interfaces: { "tap5e2d1c0a-44": { receive: 25 * MIB, transmit: 310 * MIB } },
+    };
+  }
+  // Everyone else, on m1.xlarge's 8 vCPUs, doing very little and being made to wait for it.
+  return {
+    flavorId: "5",
+    cpuCores: 0.3 + index / 10,
+    cpuPercent: ((0.3 + index / 10) / 8) * 100,
+    contentionPercent: 24 - index,
+    memoryUsageBytes: 2 * GIB,
+    memoryResidentBytes: (4 + index) * GIB,
+    disks: { vda: { read: 200 * 1024, write: 400 * 1024, readMs: 2, writeMs: 3 } },
+    interfaces: { [`tap${index}abc1234-0${index}`]: { receive: 8192, transmit: 4096 } },
+  };
+}
+
+function usageInventory(context) {
+  let index = -1;
+  const rows = calmInventory(context).map((row) => {
+    if (row.kind === "Hypervisor" && row.name === USAGE_HOST) {
+      return {
+        ...row,
+        vcpuCapacity: 128,
+        facts: {
+          ...row.facts,
+          resourceTotals: { VCPU: 32, MEMORY_MB: 512 * 1024 },
+        },
+        hypervisorUsage: {
+          cpuCores: 31.2,
+          cpuPercent: 97.5,
+          memoryResidentBytes: 180 * GIB,
+          memoryPercent: 35.2,
+          reporting: 10,
+        },
+      };
+    }
+    if (row.kind === "Instance" && row.hypervisorName === USAGE_HOST) {
+      index += 1;
+      const usage = usageOfInstance(index);
+      return {
+        ...row,
+        facts: { ...row.facts, flavorId: usage.flavorId },
+        usage,
+      };
+    }
+    return row;
+  });
+  return [
+    ...rows,
+    flavor(context, "huge", "m1.huge", REGION_ONE, {
+      vcpuCapacity: 32,
+      memoryCapacityBytes: 64 * GIB,
+      diskCapacityBytes: 320 * GIB,
+    }),
+  ];
+}
+
 const ESTATES = {
   busy: busyInventory,
   parts: partsInventory,
+  usage: usageInventory,
   calm: calmInventory,
+  "forced-down": forcedDownInventory,
   "ovn-stale": ovnStaleInventory,
   new: () => {
     return [];

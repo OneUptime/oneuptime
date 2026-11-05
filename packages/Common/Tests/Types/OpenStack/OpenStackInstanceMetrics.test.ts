@@ -252,15 +252,15 @@ describe("what keeping them costs", () => {
     expect(volume.rowsPerMonth).toBe(180000 * 730);
   });
 
-  test("Ceilometer: what it says every two minutes, and only what changed worked out", () => {
+  test("Ceilometer: what it says every minute, and a row worked out only once a poll", () => {
     const volume: ReturnType<typeof estimateOpenStackInstanceMetricsVolume> =
       estimateOpenStackInstanceMetricsVolume({
         source: OpenStackInstanceMetricSource.Ceilometer,
         instances: 100,
       });
-    // 5 + 6 + 2 kept at 30 an hour, and 5 + 6 + 2 worked out at 12.
-    expect(volume.seriesPerInstance).toBe(26);
-    expect(volume.rowsPerHour).toBe((13 * 30 + 13 * 12) * 100);
+    // 4 + 6 + 2 kept at 60 an hour, and 4 + 6 + 2 worked out at 12.
+    expect(volume.seriesPerInstance).toBe(24);
+    expect(volume.rowsPerHour).toBe((12 * 60 + 12 * 12) * 100);
   });
 
   test("grows with each disk and interface", () => {
