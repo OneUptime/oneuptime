@@ -595,6 +595,11 @@ test.describe("storage", () => {
     await expect(blast).toContainText("in 2 projects");
     await expect(blast).not.toContainText("Nothing collected says which pool");
     await screenshot(page, "openstack-storage-pool-knows-its-volumes");
+
+    await page.getByRole("tab", { name: "Volumes" }).click();
+    await expect(rowOf(page, "payments-db-data")).toBeVisible();
+    await expect(rowOf(page, "research-archive")).toBeVisible();
+    await expect(page.locator("tr").filter({ hasText: "web-assets" })).toHaveCount(0);
   });
 
   test("a pool no volume names holds nothing, when the others name theirs", async ({

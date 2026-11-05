@@ -635,6 +635,48 @@ describe("a storage pool's page", () => {
     ).toHaveTextContent("Open Source");
   });
 
+  describe("its volumes", () => {
+    test("are listed where a probe says which they are, and only its own", async () => {
+      server.rows = [
+        poolAt(50),
+        volumeRow({ name: "on-this-pool", facts: { pool: POOL_NAME } }),
+        volumeRow({
+          name: "on-another-pool",
+          facts: { pool: "compute-02@lvmdriver-1#lvmdriver-1" },
+        }),
+        volumeRow({
+          name: "in-another-region",
+          regionName: "RegionTwo",
+          facts: { pool: POOL_NAME },
+        }),
+        volumeRow({ name: "nothing-says", facts: {} }),
+      ];
+
+      await renderPage(OpenStackCloudStoragePoolDetail, PATH);
+
+      fireEvent.click(await screen.findByRole("tab", { name: "Volumes" }));
+      await settle();
+
+      expect(await screen.findByText("on-this-pool")).toBeInTheDocument();
+      expect(screen.queryByText("on-another-pool")).not.toBeInTheDocument();
+      expect(screen.queryByText("in-another-region")).not.toBeInTheDocument();
+      expect(screen.queryByText("nothing-says")).not.toBeInTheDocument();
+    });
+
+    test("have no tab where nothing says, and the page says why", async () => {
+      server.rows = [poolAt(50), volumeRow({ facts: {} })];
+
+      await renderPage(OpenStackCloudStoragePoolDetail, PATH);
+      await screen.findByRole("tab", { name: "Metrics" });
+      await settle();
+
+      expect(screen.queryByRole("tab", { name: "Volumes" })).toBeNull();
+      expect(
+        await screen.findByTestId("openstack-storage-pool-blast"),
+      ).toHaveTextContent("Nothing collected says which pool");
+    });
+  });
+
   test("its Metrics tab is there", async () => {
     server.rows = [poolAt(50)];
 
