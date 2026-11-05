@@ -2194,7 +2194,7 @@ detection:
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
       evaluationIntervalInMinutes: 5,
-      groupByField: "openstack.audit.project_name",
+      groupByField: "targetResource",
       matchCountThreshold: 1,
       sigmaRuleYaml: `title: OpenStack role granted on a protected project
 id: b1d2c8a4-4e0f-4a1c-8f43-73a6d5e2c901
@@ -2217,7 +2217,7 @@ detection:
       id: "c94e1b77-8a26-4d57-b2f1-0ea3f6d81c22",
       title: "OpenStack admin credential used from a new address",
       description:
-        "The admin account signed in to Keystone from an address it had not used in thirty days. If it is not someone you know, its password is somewhere it should not be.",
+        "The admin account was used from an address it had not used in thirty days: a sign-in, a change or a call through the audit filter. If it is not someone you know, its password is somewhere it should not be. Add your other administrators to the rule's list.",
       category: DetectionRuleLibraryCategory.Cloud,
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
@@ -2225,7 +2225,7 @@ detection:
       matchCountThreshold: 1,
       sigmaRuleYaml: `title: OpenStack admin credential used from a new address
 id: c94e1b77-8a26-4d57-b2f1-0ea3f6d81c22
-description: The first Keystone sign-in of the admin account from an address in thirty days.
+description: The first use of the admin account from an address in thirty days.
 level: high
 tags:
   - attack.initial_access
@@ -2233,20 +2233,20 @@ tags:
 correlation:
   type: new_value
   rules:
-    - openstack_admin_sign_in
+    - openstack_admin_used
   group-by:
-    - openstack.audit.initiator_name
+    - principalUser
   timespan: 30d
   condition:
     field: openstack.audit.initiator_address
 ---
-title: OpenStack admin sign-in
-name: openstack_admin_sign_in
+title: OpenStack admin account used
+name: openstack_admin_used
 detection:
   selection:
-    openstack.audit.event_type: identity.authenticate
     openstack.audit.outcome: success
-    openstack.audit.initiator_name: admin
+    openstack.audit.initiator_name:
+      - admin
   condition: selection
 `,
     },
@@ -2254,12 +2254,12 @@ detection:
       id: "0a5d3e68-71f2-4c8b-a9d4-6b2f1e0c7d35",
       title: "OpenStack application credential created",
       description:
-        "Someone made an application credential. Keystone's notification names the credential and not whether it is unrestricted, which is the kind that can make more of itself: openstack application credential show says.",
+        "Someone made an application credential. Keystone's notification reads the same for one that is unrestricted, the kind that can make more of itself, so this fires on each of them, and openstack application credential show says which it was.",
       category: DetectionRuleLibraryCategory.Cloud,
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
       evaluationIntervalInMinutes: 5,
-      groupByField: "openstack.audit.initiator_id",
+      groupByField: "principalUser",
       matchCountThreshold: 1,
       sigmaRuleYaml: `title: OpenStack application credential created
 id: 0a5d3e68-71f2-4c8b-a9d4-6b2f1e0c7d35
@@ -2283,7 +2283,7 @@ detection:
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
       evaluationIntervalInMinutes: 5,
-      groupByField: "openstack.audit.target_id",
+      groupByField: "targetResource",
       matchCountThreshold: 1,
       sigmaRuleYaml: `title: OpenStack security group opened to the world
 id: f7b2e94c-3a68-4e1d-b05f-92c7d1a4e680
@@ -2302,20 +2302,31 @@ detection:
       id: "2d8c6f13-9be4-47a0-8c1d-e5f30a7b9246",
       title: "OpenStack public image published",
       description:
-        "An image was made public, so every project in the cloud can boot from it. A public image holds whatever its owner left in it, and everyone trusts what it runs.",
+        "An image is public that was not seen public in the last thirty days, so every project in the cloud can boot from it. A public image holds whatever its owner left in it, and everyone trusts what it runs. An edit to an image already known to be public stays quiet, because Glance says what an image is and not what it was.",
       category: DetectionRuleLibraryCategory.Cloud,
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
-      evaluationIntervalInMinutes: 5,
-      groupByField: "openstack.audit.target_id",
+      evaluationIntervalInMinutes: 15,
       matchCountThreshold: 1,
       sigmaRuleYaml: `title: OpenStack public image published
 id: 2d8c6f13-9be4-47a0-8c1d-e5f30a7b9246
-description: A Glance image was made public.
+description: The first time in thirty days a Glance image is seen public.
 level: medium
 tags:
   - attack.resource_development
   - attack.t1608
+correlation:
+  type: new_value
+  rules:
+    - openstack_image_public
+  group-by:
+    - targetHost
+  timespan: 30d
+  condition:
+    field: openstack.audit.target_id
+---
+title: OpenStack image is public
+name: openstack_image_public
 detection:
   selection:
     openstack.audit.signal: image-public

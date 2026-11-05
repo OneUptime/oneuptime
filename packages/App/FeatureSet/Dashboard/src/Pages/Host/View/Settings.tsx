@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
+import OpenStackCloudOfHostCard from "../../../Components/OpenStack/Part/OpenStackCloudOfHostCard";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
@@ -42,6 +43,7 @@ const HostSettings: FunctionComponent<
           },
         ]}
       />
+      <OpenStackCloudOfHostCard hostId={modelId} />
       <TelemetryResourceMoreSettings<Host>
         modelType={Host}
         modelId={modelId}

@@ -769,6 +769,11 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         })
                       : null;
 
+                  // Nothing hangs under one of these, so nothing is orphaned.
+                  if (openStackSpan?.saysNothing) {
+                    continue;
+                  }
+
                   const parentSpanId: string = openStackSpan
                     ? openStackSpan.parentSpanId
                     : sessionTraceState !== null &&

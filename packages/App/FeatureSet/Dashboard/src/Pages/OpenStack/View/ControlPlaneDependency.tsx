@@ -48,7 +48,7 @@ import ResourcePartAlertsCard from "../../../Components/ResourcePart/ResourcePar
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
 import ResourcePartRow from "../../../Components/ResourcePart/ResourcePartRow";
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   OpenStackControlPlaneAssessment,
   OpenStackDependencySummary,
@@ -353,9 +353,11 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
 
   const deeperRoute: Route | undefined =
     definition.deeperProduct === "queues"
-      ? (RouteMap[PageMap.MESSAGE_QUEUES] as Route)
+      ? RouteUtil.populateRouteParams(RouteMap[PageMap.MESSAGE_QUEUES] as Route)
       : definition.deeperProduct === "databases"
-        ? (RouteMap[PageMap.DATABASE_ROOT] as Route)
+        ? RouteUtil.populateRouteParams(
+            RouteMap[PageMap.DATABASE_SERVERS] as Route,
+          )
         : undefined;
 
   return (
@@ -449,12 +451,14 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
                 });
                 const lines: Array<string> = isCurrent
                   ? [
-                      ...own.reasons.map((reason: ResourceAttentionText): string => {
-                        return translator.translateTemplate(
-                          reason.text,
-                          reason.values || {},
-                        );
-                      }),
+                      ...own.reasons.map(
+                        (reason: ResourceAttentionText): string => {
+                          return translator.translateTemplate(
+                            reason.text,
+                            reason.values || {},
+                          );
+                        },
+                      ),
                       ...factsOfRow(row),
                     ]
                   : [];

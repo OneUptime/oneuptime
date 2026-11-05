@@ -1,0 +1,37 @@
+# HELP openstack_sharev2_share_gb share_gb
+# TYPE openstack_sharev2_share_gb gauge
+openstack_sharev2_share_gb{availability_zone="",id="6b85136d-53f0-4795-8efb-f2deb8768537",name="ou-share-error",project_id="4143c6d62d3b4afda153c4b3de90c421",share_proto="NFS",share_type="ou-nowhere",share_type_name="",status="error"} 1
+openstack_sharev2_share_gb{availability_zone="manila-zone-0",id="20a2cd20-0104-4fc5-aa57-906013fc2873",name="ou-share-admin",project_id="4143c6d62d3b4afda153c4b3de90c421",share_proto="NFS",share_type="ou-alpha",share_type_name="",status="available"} 1
+openstack_sharev2_share_gb{availability_zone="manila-zone-0",id="b2f8ff8e-9652-4764-87f1-3eba060cc593",name="ou-share-payments",project_id="69f379f1b6a4479c89e90f67155fde30",share_proto="NFS",share_type="ou-alpha",share_type_name="",status="available"} 2
+# HELP openstack_sharev2_share_status share_status
+# TYPE openstack_sharev2_share_status gauge
+openstack_sharev2_share_status{id="20a2cd20-0104-4fc5-aa57-906013fc2873",name="ou-share-admin",project_id="4143c6d62d3b4afda153c4b3de90c421",share_proto="NFS",share_type="ou-alpha",share_type_name="",size="1",status="available"} 1
+openstack_sharev2_share_status{id="6b85136d-53f0-4795-8efb-f2deb8768537",name="ou-share-error",project_id="4143c6d62d3b4afda153c4b3de90c421",share_proto="NFS",share_type="ou-nowhere",share_type_name="",size="1",status="error"} 9
+openstack_sharev2_share_status{id="b2f8ff8e-9652-4764-87f1-3eba060cc593",name="ou-share-payments",project_id="69f379f1b6a4479c89e90f67155fde30",share_proto="NFS",share_type="ou-alpha",share_type_name="",size="2",status="available"} 1
+# HELP openstack_sharev2_share_status_counter share_status_counter
+# TYPE openstack_sharev2_share_status_counter gauge
+openstack_sharev2_share_status_counter{status="available"} 2
+openstack_sharev2_share_status_counter{status="creating"} 0
+openstack_sharev2_share_status_counter{status="deleting"} 0
+openstack_sharev2_share_status_counter{status="error"} 1
+openstack_sharev2_share_status_counter{status="error_deleting"} 0
+openstack_sharev2_share_status_counter{status="extending"} 0
+openstack_sharev2_share_status_counter{status="inactive"} 0
+openstack_sharev2_share_status_counter{status="managing"} 0
+openstack_sharev2_share_status_counter{status="migrating"} 0
+openstack_sharev2_share_status_counter{status="migration_error"} 0
+openstack_sharev2_share_status_counter{status="restoring"} 0
+openstack_sharev2_share_status_counter{status="reverting"} 0
+openstack_sharev2_share_status_counter{status="reverting_error"} 0
+openstack_sharev2_share_status_counter{status="reverting_to_snapshot"} 0
+openstack_sharev2_share_status_counter{status="shrinking"} 0
+openstack_sharev2_share_status_counter{status="shrinking_error"} 0
+openstack_sharev2_share_status_counter{status="soft_deleting"} 0
+openstack_sharev2_share_status_counter{status="unmanaging"} 0
+openstack_sharev2_share_status_counter{status="updating"} 0
+# HELP openstack_sharev2_shares_counter shares_counter
+# TYPE openstack_sharev2_shares_counter gauge
+openstack_sharev2_shares_counter 3
+# HELP openstack_sharev2_up up
+# TYPE openstack_sharev2_up gauge
+openstack_sharev2_up 1

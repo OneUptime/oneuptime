@@ -1,0 +1,5 @@
+200 magnum-clusters
+200 magnum-clustertemplates
+200 magnum-services
+200 magnum-cluster-ou-cluster-real
+200 magnum-nodegroups-ou-cluster-real
