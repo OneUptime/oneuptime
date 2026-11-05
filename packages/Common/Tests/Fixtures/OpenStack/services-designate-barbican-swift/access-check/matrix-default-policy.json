@@ -857,33 +857,6 @@
       }
     },
     {
-      "service": "dns",
-      "read": "zones, own project",
-      "path": "/v2/zones",
-      "results": {
-        "admin": {
-          "status": 200,
-          "count": 3,
-          "seesAll": true
-        },
-        "reader": {
-          "status": 200,
-          "count": 1,
-          "seesAll": false
-        },
-        "monitoring-role": {
-          "status": 200,
-          "count": 0,
-          "seesAll": false
-        },
-        "role-on-a-project": {
-          "status": 200,
-          "count": 1,
-          "seesAll": false
-        }
-      }
-    },
-    {
       "service": "key-manager",
       "read": "secrets",
       "path": "/v1/secrets",
@@ -946,7 +919,7 @@
     {
       "service": "object-store",
       "read": "own account",
-      "path": "",
+      "path": "?limit=1000",
       "results": {
         "admin": {
           "status": 200,
@@ -970,6 +943,33 @@
           "count": null,
           "seesAll": false,
           "reason": "<html><h1>Forbidden</h1><p>Access was denied to this resource.</p></html>"
+        }
+      }
+    },
+    {
+      "service": "dns",
+      "read": "zones, own project",
+      "path": "/v2/zones",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 3,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
         }
       }
     }

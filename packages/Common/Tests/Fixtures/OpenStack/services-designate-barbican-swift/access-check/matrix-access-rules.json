@@ -511,23 +511,6 @@
       }
     },
     {
-      "service": "dns",
-      "read": "zones, own project",
-      "path": "/v2/zones",
-      "results": {
-        "admin": {
-          "status": 200,
-          "count": 3,
-          "seesAll": true
-        },
-        "monitoring-admin-get": {
-          "status": 200,
-          "count": 3,
-          "seesAll": true
-        }
-      }
-    },
-    {
       "service": "key-manager",
       "read": "secrets",
       "path": "/v1/secrets",
@@ -564,7 +547,7 @@
     {
       "service": "object-store",
       "read": "own account",
-      "path": "",
+      "path": "?limit=1000",
       "results": {
         "admin": {
           "status": 200,
@@ -574,6 +557,23 @@
         "monitoring-admin-get": {
           "status": 200,
           "count": null,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "dns",
+      "read": "zones, own project",
+      "path": "/v2/zones",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 3,
+          "seesAll": true
+        },
+        "monitoring-admin-get": {
+          "status": 200,
+          "count": 3,
           "seesAll": true
         }
       }
