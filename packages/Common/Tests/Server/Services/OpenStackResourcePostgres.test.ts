@@ -57,6 +57,8 @@ import { DataSource } from "typeorm";
  *   - getCounts counts on the server, by what a closed list allows, per region, most first,
  *     and a row holding none counts as none rather than being left out;
  *   - getAttentionRows finds an image stuck on its way, and leaves one on its way alone;
+ *   - forgetAgentsOfRouters takes a router's agents off it only once it has been heard from long
+ *     after they were, which is the only thing that can say a router lost its last one;
  *   - getBlastRadius counts what a failed part reaches, by project, across Nova's two
  *     names for one host, and says when what was collected cannot tell;
  *   - getInventorySummary counts from the rows: a service someone disabled is not
@@ -1951,6 +1953,159 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       expect(
         await countsOf(OpenStackResourceKind.Instance, "flavor"),
       ).toHaveLength(OPENSTACK_COUNT_LIMIT);
+    });
+  });
+
+  describe("a router that lost its agents", () => {
+    const ROUTER_ID: string = "router-1";
+    const AGENTS: JSONObject = {
+      "agent-1": {
+        host: "network-01",
+        isAlive: true,
+        isAdminUp: true,
+        haState: null,
+      },
+    };
+
+    // What a scrape that still names its agents writes, as the scan writes it.
+    const heard: (reportedAt: Date) => ParsedOpenStackResource = (
+      reportedAt: Date,
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Router,
+        externalId: ROUTER_ID,
+        name: "edge",
+        status: "ACTIVE",
+        openStackProjectId: "payments",
+        facts: {
+          externalNetworkId: "net-1",
+          l3Agents: AGENTS,
+          l3AgentsReportedAt: reportedAt.toISOString(),
+        },
+        lastSeenAt: reportedAt,
+      });
+    };
+
+    const forget: (agentsReportedBefore: Date) => Promise<void> = async (
+      agentsReportedBefore: Date,
+    ): Promise<void> => {
+      await OpenStackResourceService.forgetAgentsOfRouters({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        routers: [{ externalId: ROUTER_ID, agentsReportedBefore }],
+      });
+    };
+
+    test("heard from long after its agents, it has none, and keeps everything else", async () => {
+      await write([heard(at(-30 * MINUTE_MS))]);
+
+      await forget(at(-10 * MINUTE_MS));
+
+      const row: Row = await rowOf(OpenStackResourceKind.Router, ROUTER_ID);
+      expect(row["facts"]).toEqual({ externalNetworkId: "net-1" });
+      expect(row["name"]).toBe("edge");
+      expect(row["status"]).toBe("ACTIVE");
+    });
+
+    test("heard from soon after them, as batches arriving apart are, it keeps them", async () => {
+      await write([heard(at(-5 * MINUTE_MS))]);
+
+      await forget(at(-10 * MINUTE_MS));
+
+      expect(
+        (await rowOf(OpenStackResourceKind.Router, ROUTER_ID))["facts"],
+      ).toMatchObject({ l3Agents: AGENTS });
+    });
+
+    test("agents held since before anyone said when, as an upgraded cloud's are, go too", async () => {
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Router,
+          externalId: ROUTER_ID,
+          facts: { l3Agents: AGENTS },
+        }),
+      ]);
+
+      await forget(at(0));
+
+      expect(
+        (await rowOf(OpenStackResourceKind.Router, ROUTER_ID))["facts"],
+      ).toEqual({});
+    });
+
+    test("a Neutron agent's blast radius stops counting a router it no longer holds", async () => {
+      await write([
+        heard(at(-30 * MINUTE_MS)),
+        resource({
+          kind: OpenStackResourceKind.Service,
+          externalId: "RegionOne/network/network-01/neutron-l3-agent",
+          name: "neutron-l3-agent",
+          status: "down",
+          facts: { family: "network", agentId: "agent-1" },
+        }),
+      ]);
+
+      const part: { kind: OpenStackResourceKind; name: string; facts: JSONObject } =
+        {
+          kind: OpenStackResourceKind.Service,
+          name: "neutron-l3-agent",
+          facts: { agentId: "agent-1" },
+        };
+
+      const before: OpenStackBlastRadius =
+        await OpenStackResourceService.getBlastRadius({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          part,
+        });
+      expect(before.routerCount).toBe(1);
+
+      await forget(at(-10 * MINUTE_MS));
+
+      const after: OpenStackBlastRadius =
+        await OpenStackResourceService.getBlastRadius({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          part,
+        });
+      expect(after.routerCount).toBe(0);
+    });
+
+    test("nothing else is touched: another cloud's router, and another kind of row", async () => {
+      await OpenStackResourceService.bulkUpsert({
+        projectId: PROJECT_ID,
+        openStackCloudId: OTHER_CLOUD_ID,
+        resources: [heard(at(-30 * MINUTE_MS))],
+      });
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Network,
+          externalId: ROUTER_ID,
+          facts: { l3Agents: AGENTS },
+        }),
+      ]);
+
+      await forget(at(-10 * MINUTE_MS));
+
+      const others: Array<{ facts: JSONObject }> = await database.query(
+        `SELECT "facts" FROM "${schema}"."${TABLE}"
+         WHERE "openStackCloudId" = $1 OR "kind" = $2`,
+        [OTHER_CLOUD_ID.toString(), OpenStackResourceKind.Network],
+      );
+      expect(others).toHaveLength(2);
+      for (const other of others) {
+        expect(other.facts).toMatchObject({ l3Agents: AGENTS });
+      }
+    });
+
+    test("a cloud with no routers to ask about asks nothing", async () => {
+      await expect(
+        OpenStackResourceService.forgetAgentsOfRouters({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          routers: [],
+        }),
+      ).resolves.toBeUndefined();
     });
   });
 
