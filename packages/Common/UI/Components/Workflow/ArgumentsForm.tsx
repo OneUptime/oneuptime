@@ -12,6 +12,8 @@ import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import FormValues from "../Forms/Types/FormValues";
 import ChoiceSettingField from "./Choice/ChoiceSettingField";
 import ConditionEditor from "./Condition/ConditionEditor";
+import CustomFieldNameInput from "./CustomFields/CustomFieldNameInput";
+import CustomFieldsArgumentEditor from "./CustomFields/CustomFieldsArgumentEditor";
 import LinkedRecordField from "./LinkedRecord/LinkedRecordField";
 import RecordListField from "./RecordList/RecordListField";
 import { getRecordListKind } from "./RecordList/RecordListKinds";
@@ -554,6 +556,66 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 placeholder={customProps.placeholder}
                 error={customProps.error}
                 tabIndex={customProps.tabIndex}
+              />
+            </WorkflowViewOnlyFieldset>
+          );
+        },
+      };
+    }
+
+    /*
+     * A setting that holds a record's custom fields and nothing else: each of
+     * them by name, with its own control.
+     */
+    if (arg.customFieldsOf) {
+      const customFieldsOf: string = arg.customFieldsOf;
+
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          // Honours a view itself: its rows held still, its JSON to read.
+          return (
+            <CustomFieldsArgumentEditor
+              tableName={customFieldsOf}
+              initialValue={customProps.initialValue}
+              onChange={(value: string) => {
+                void customProps.onChange?.(value);
+              }}
+              placeholder={customProps.placeholder}
+              error={customProps.error}
+              tabIndex={customProps.tabIndex}
+            />
+          );
+        },
+      };
+    }
+
+    // A setting that names one of a record's custom fields.
+    if (arg.customFieldNameOf) {
+      const customFieldNameOf: string = arg.customFieldNameOf;
+
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <WorkflowViewOnlyFieldset>
+              <CustomFieldNameInput
+                tableName={customFieldNameOf}
+                value={(values as JSONObject)[arg.id]}
+                onChange={(value: string) => {
+                  void customProps.onChange?.(value);
+                }}
+                placeholder={customProps.placeholder}
+                ariaLabelledby={customProps.ariaLabelledby}
+                error={customProps.error}
+                onBlur={customProps.onBlur}
+                dataTestId={`workflow-argument-${arg.id}`}
               />
             </WorkflowViewOnlyFieldset>
           );

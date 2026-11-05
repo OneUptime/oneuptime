@@ -45232,5 +45232,13 @@
   "Pick from the list": "از فهرست انتخاب کنید",
   "Pick from the list instead": "به جای آن از فهرست انتخاب کنید",
   "There is nothing to pick from yet.": "هنوز چیزی برای انتخاب وجود ندارد.",
-  "Use “{{value}}”": "استفاده از «{{value}}»"
+  "Use “{{value}}”": "استفاده از «{{value}}»",
+  "Custom fields": "فیلدهای سفارشی",
+  "Custom field": "فیلد سفارشی",
+  "This project has no custom field with this name.": "این پروژه فیلد سفارشی با این نام ندارد.",
+  "Any custom field": "هر فیلد سفارشی",
+  "Passes on every custom field: {{fields}}": "همهٔ فیلدهای سفارشی را منتقل می‌کند: {{fields}}",
+  "Choice": "گزینه",
+  "Choices": "چند گزینه",
+  "This project has no custom fields for these records yet.": "این پروژه هنوز برای این رکوردها فیلد سفارشی ندارد."
 }

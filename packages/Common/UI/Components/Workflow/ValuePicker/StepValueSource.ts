@@ -26,6 +26,7 @@ import {
   ReturnValue,
 } from "../../../../Types/Workflow/Component";
 import { SELECT_FIELDS_NAME } from "../../../../Types/Workflow/Components/BaseModel";
+import { CUSTOM_FIELDS_COLUMN } from "../../../../Types/Workflow/CustomFieldsColumn";
 import {
   RELATION_FIELD_SEPARATOR,
   selectedColumnIds,
@@ -54,6 +55,9 @@ import {
 import { translationKey } from "../../../Utils/TranslateTemplate";
 
 export { selectedColumnIds };
+
+// Between a record and a field of it, as the field lists name one.
+const FIELD_TITLE_SEPARATOR: string = " › ";
 
 export type LoadRecordColumnsFunction = (
   tableName: string,
@@ -125,20 +129,36 @@ export const recordFieldSuggestions: RecordFieldSuggestionsFunction = (data: {
 }): Array<ValueSuggestion> => {
   const selected: Array<string> | null = selectedColumnIds(data.component);
 
+  const customFieldsTitle: string =
+    data.columns.find((column: ModelSchemaColumn): boolean => {
+      return column.id === CUSTOM_FIELDS_COLUMN;
+    })?.title || "Custom Fields";
+
   const fields: Array<ValueSuggestion> = data.columns
     // A relation holds a whole other record; its fields are added below.
     .filter((column: ModelSchemaColumn) => {
       return !column.isRelation;
     })
     .map((column: ModelSchemaColumn): ValueSuggestion => {
-      const isSelected: boolean = !selected || selected.includes(column.id);
+      /*
+       * A custom field is passed on with the column all of them live in, and
+       * is named under it, as a related record's field is named under that
+       * record.
+       */
+      const isSelected: boolean =
+        !selected ||
+        selected.includes(
+          column.customField ? CUSTOM_FIELDS_COLUMN : column.id,
+        );
       const suggestion: ValueSuggestion = {
         reference: componentReturnValueReference(
           data.component.id,
           data.returnValue.id,
           [column.id],
         ),
-        label: column.title || column.id,
+        label: column.customField
+          ? `${customFieldsTitle}${FIELD_TITLE_SEPARATOR}${column.title}`
+          : column.title || column.id,
         description: isColumnDescriptionInformative(column)
           ? column.description
           : undefined,

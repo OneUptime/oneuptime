@@ -29,6 +29,11 @@ import {
   getCreateOrUpdateTriggerId,
   hasCreateOrUpdateTrigger,
 } from "../../../../../Types/Workflow/CreateOrUpdateTrigger";
+import {
+  CUSTOM_FIELDS_COLUMN,
+  UPDATED_CUSTOM_FIELDS_KEY,
+  getCustomFieldName,
+} from "../../../../../Types/Workflow/CustomFieldsColumn";
 import { DatabaseOperation } from "../../../../../Types/Workflow/DatabaseOperation";
 import { getWatchedColumns } from "../../../../../Types/Workflow/WatchedFields";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
@@ -417,8 +422,37 @@ export default class OnTriggerBaseModel<
       if (Object.prototype.hasOwnProperty.call(updatedFields, key)) {
         return true;
       }
+
+      if (this.isWatchedCustomFieldUpdated(key, updatedFields, miscData)) {
+        return true;
+      }
     }
 
     return false;
+  }
+
+  /*
+   * One custom field of a record, watched by itself: heard when the update
+   * says it changed that one, by name. An event that changed the custom fields
+   * and does not say which - one sent by a server still being upgraded - is
+   * heard too: a run more than asked for beats a run missed.
+   */
+  private isWatchedCustomFieldUpdated(
+    key: string,
+    updatedFields: JSONObject,
+    miscData: JSONObject,
+  ): boolean {
+    const name: string | null = getCustomFieldName(key);
+
+    if (
+      !name ||
+      !Object.prototype.hasOwnProperty.call(updatedFields, CUSTOM_FIELDS_COLUMN)
+    ) {
+      return false;
+    }
+
+    const changed: unknown = miscData[UPDATED_CUSTOM_FIELDS_KEY];
+
+    return !Array.isArray(changed) || changed.includes(name);
   }
 }

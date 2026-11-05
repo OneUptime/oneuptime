@@ -21,10 +21,15 @@
  */
 
 import { JSONObject } from "../../../../Types/JSON";
+import { CUSTOM_FIELDS_COLUMN } from "../../../../Types/Workflow/CustomFieldsColumn";
 import { isAlwaysEmptyColumnId } from "../../../../Types/Workflow/SystemColumns";
 import { columnTypeLabel } from "../ColumnEditor/ColumnControl";
 import { isColumnDescriptionInformative } from "../ColumnEditor/ColumnPickerOptions";
 import { isSystemColumn } from "../ColumnEditor/ColumnUse";
+import {
+  WorkflowCustomField,
+  toCustomFieldColumn,
+} from "../CustomFields/CustomFieldColumns";
 import { ModelSchemaColumn } from "../ModelSchema";
 import {
   translateTemplate,
@@ -40,6 +45,7 @@ export enum FieldPickerMode {
 
 export enum FieldGroupId {
   Main = "main",
+  Custom = "custom",
   Other = "other",
   Related = "related",
   System = "system",
@@ -112,6 +118,9 @@ export interface FieldGroup {
 
 export const FieldPickerOptionsCopy: {
   readonly mainFields: string;
+  readonly customFields: string;
+  readonly anyCustomField: string;
+  readonly passesOnEveryCustomField: string;
   readonly otherFields: string;
   readonly relatedRecords: string;
   readonly relatedHint: string;
@@ -125,6 +134,11 @@ export const FieldPickerOptionsCopy: {
   readonly notAnObject: string;
 } = {
   mainFields: translationKey("Main fields"),
+  customFields: translationKey("Custom fields"),
+  anyCustomField: translationKey("Any custom field"),
+  passesOnEveryCustomField: translationKey(
+    "Passes on every custom field: {{fields}}",
+  ),
   otherFields: translationKey("Other fields"),
   relatedRecords: translationKey("Related records"),
   relatedHint: translationKey("Open one to pick its fields"),
@@ -201,6 +215,11 @@ export interface GetFieldOptionsOptions {
    * list would leave them out (Deleted At), so they can be seen and removed.
    */
   storedPaths?: Array<string> | undefined;
+  /*
+   * The project's custom fields. All of them are passed on together, as the one
+   * column they live in, but each can be watched by itself.
+   */
+  customFields?: Array<WorkflowCustomField> | undefined;
   /*
    * Puts a field's name, its description and its kind in the reader's
    * language, as the fields are listed: a related record's field is named
@@ -326,6 +345,10 @@ export const getFieldOptions: GetFieldOptionsFunction = (
       return FieldGroupId.Main;
     }
 
+    if (column.id === CUSTOM_FIELDS_COLUMN) {
+      return FieldGroupId.Custom;
+    }
+
     if (column.isRelation) {
       // A relation is main when the record cannot be without it.
       const idColumn: string | undefined = column.relationIdColumn;
@@ -404,6 +427,45 @@ export const getFieldOptions: GetFieldOptionsFunction = (
           group: groupOf(column),
           aliases: idColumn ? [column.id] : [],
         });
+        continue;
+      }
+
+      /*
+       * Watched as a whole, the custom fields read as what that does; each of
+       * them is listed after it, to watch by itself.
+       */
+      if (column.id === CUSTOM_FIELDS_COLUMN) {
+        const fields: Array<WorkflowCustomField> = options.customFields || [];
+
+        result.push({
+          path: column.id,
+          title: translate(FieldPickerOptionsCopy.anyCustomField),
+          shortTitle: translate(FieldPickerOptionsCopy.anyCustomField),
+          typeLabel: kindOf(column),
+          columnType: column.type,
+          group: FieldGroupId.Custom,
+          aliases: [],
+        });
+
+        for (const field of fields) {
+          const fieldColumn: ModelSchemaColumn = toCustomFieldColumn(
+            field,
+            column,
+          );
+
+          result.push({
+            path: fieldColumn.id,
+            // Its own name, as a person wrote it: the group says what it is.
+            title: field.name,
+            shortTitle: field.name,
+            typeLabel: kindOf(fieldColumn),
+            columnType: fieldColumn.type,
+            description: field.description,
+            group: FieldGroupId.Custom,
+            aliases: [],
+          });
+        }
+
         continue;
       }
 
@@ -487,13 +549,31 @@ export const getFieldOptions: GetFieldOptionsFunction = (
       continue;
     }
 
+    /*
+     * Passed on, all the custom fields go together, so the one row says which
+     * they are: it is what a search for one of their names finds.
+     */
+    const customFieldNames: Array<string> =
+      column.id === CUSTOM_FIELDS_COLUMN
+        ? (options.customFields || []).map(
+            (field: WorkflowCustomField): string => {
+              return field.name;
+            },
+          )
+        : [];
+
     result.push({
       path: column.id,
       title: name,
       shortTitle: name,
       typeLabel: kindOf(column),
       columnType: column.type,
-      description: description,
+      description:
+        customFieldNames.length > 0
+          ? translateTemplate(FieldPickerOptionsCopy.passesOnEveryCustomField, {
+              fields: customFieldNames.join(", "),
+            })
+          : description,
       group: groupOf(column),
       aliases: [],
     });
@@ -555,11 +635,28 @@ export const getFieldGroups: GetFieldGroupsFunction = (data: {
       });
   };
 
+  type InCustomGroupFunction = () => Array<FieldOption>;
+
+  /*
+   * Any custom field first, then each of them in the project's own order: the
+   * order its record's page shows them in, not the alphabet's.
+   */
+  const inCustomGroup: InCustomGroupFunction = (): Array<FieldOption> => {
+    return data.options.filter((option: FieldOption): boolean => {
+      return option.group === FieldGroupId.Custom && !option.relationPath;
+    });
+  };
+
   const groups: Array<FieldGroup> = [
     {
       id: FieldGroupId.Main,
       label: FieldPickerOptionsCopy.mainFields,
       options: inGroup(FieldGroupId.Main),
+    },
+    {
+      id: FieldGroupId.Custom,
+      label: FieldPickerOptionsCopy.customFields,
+      options: inCustomGroup(),
     },
     {
       id: FieldGroupId.Other,

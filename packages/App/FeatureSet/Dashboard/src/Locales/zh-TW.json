@@ -45232,5 +45232,13 @@
   "Pick from the list": "從清單中選擇",
   "Pick from the list instead": "改為從清單中選擇",
   "There is nothing to pick from yet.": "還沒有可選擇的內容。",
-  "Use “{{value}}”": "使用「{{value}}」"
+  "Use “{{value}}”": "使用「{{value}}」",
+  "Custom fields": "自訂欄位",
+  "Custom field": "自訂欄位",
+  "This project has no custom field with this name.": "此專案沒有使用此名稱的自訂欄位。",
+  "Any custom field": "任意自訂欄位",
+  "Passes on every custom field: {{fields}}": "傳遞所有自訂欄位：{{fields}}",
+  "Choice": "選項",
+  "Choices": "多個選項",
+  "This project has no custom fields for these records yet.": "此專案還沒有用於這些記錄的自訂欄位。"
 }

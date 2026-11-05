@@ -518,6 +518,8 @@ A key that isn't a column is ignored rather than rejected — the run log names 
 
 sets **Notification Count** and leaves the record's other custom fields as they were. Set a custom field to `null` to clear it, or set `customFields` itself to `null` to clear them all. Two workflows that update different custom fields of the same record at the same moment both land. This is the Update components only: the OneUptime API writes `customFields` whole, so a request to it must carry every custom field you want to keep.
 
+Each custom field of the project is listed as a field of its own wherever a component names a record's fields: in the fields a component writes, with the control its type takes and a dropdown's own options; in the conditions of a query; in the values a later step can use; and in the fields a trigger watches, so a workflow can run when one custom field changes. A file custom field is uploaded to a record, so it is the one kind that stays in JSON.
+
 You rarely type these keys yourself. In the component's settings, **Add a field** (or **Add a condition** on a query) lists the model's columns by name, with the kind of value each one takes. Search it by name, by column key or by what the field does, and press **Enter** to add the best match. On a create, the fields the record can't be created without come first, then the model's main fields (the ones it fills in for you if you leave them out), then everything else.
 
 A field that points at another record, such as an incident's severity, lists the project's records by name: pick one, and its ID is written for you. A list of records, such as an incident's labels, works the same way. To use a value from an earlier step instead, press `{ }` beside the list.

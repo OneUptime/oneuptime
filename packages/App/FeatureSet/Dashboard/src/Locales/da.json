@@ -45232,5 +45232,13 @@
   "Pick from the list": "Vælg fra listen",
   "Pick from the list instead": "Vælg i stedet fra listen",
   "There is nothing to pick from yet.": "Der er endnu intet at vælge imellem.",
-  "Use “{{value}}”": "Brug “{{value}}”"
+  "Use “{{value}}”": "Brug “{{value}}”",
+  "Custom fields": "Brugerdefinerede felter",
+  "Custom field": "Brugerdefineret felt",
+  "This project has no custom field with this name.": "Dette projekt har intet brugerdefineret felt med dette navn.",
+  "Any custom field": "Ethvert brugerdefineret felt",
+  "Passes on every custom field: {{fields}}": "Videregiver alle brugerdefinerede felter: {{fields}}",
+  "Choice": "Valg",
+  "Choices": "Flere valg",
+  "This project has no custom fields for these records yet.": "Dette projekt har endnu ingen brugerdefinerede felter til disse poster."
 }

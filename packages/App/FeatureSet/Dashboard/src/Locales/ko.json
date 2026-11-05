@@ -45232,5 +45232,13 @@
   "Pick from the list": "목록에서 선택",
   "Pick from the list instead": "대신 목록에서 선택",
   "There is nothing to pick from yet.": "아직 선택할 항목이 없습니다.",
-  "Use “{{value}}”": "“{{value}}” 사용"
+  "Use “{{value}}”": "“{{value}}” 사용",
+  "Custom fields": "사용자 지정 필드",
+  "Custom field": "사용자 지정 필드",
+  "This project has no custom field with this name.": "이 프로젝트에는 이 이름의 사용자 지정 필드가 없습니다.",
+  "Any custom field": "모든 사용자 지정 필드",
+  "Passes on every custom field: {{fields}}": "모든 사용자 지정 필드를 전달합니다: {{fields}}",
+  "Choice": "선택 항목",
+  "Choices": "여러 선택 항목",
+  "This project has no custom fields for these records yet.": "이 프로젝트에는 아직 이 레코드에 대한 사용자 지정 필드가 없습니다."
 }

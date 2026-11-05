@@ -37,6 +37,9 @@ import {
   readStoredValue,
   writeChosenFields,
 } from "./FieldPicker/FieldPickerOptions";
+import useCustomFields, {
+  CustomFieldsState,
+} from "./CustomFields/UseCustomFields";
 import { ModelSchemaState, useModelSchema } from "./ModelSchema";
 import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -166,6 +169,10 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
 
   const schema: ModelSchemaState = useModelSchema(props.tableName, "read");
 
+  // The project's custom fields, which are listed by name.
+  const customFields: CustomFieldsState = useCustomFields(props.tableName);
+  const isLoadingFields: boolean = schema.isLoading || customFields.isLoading;
+
   // What was stored, read once: the list keeps it from then on.
   const [initialValue] = useState<unknown>(props.initialValue);
 
@@ -185,11 +192,19 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
       mode: mode,
       displayColumnId: displayColumnId,
       storedPaths: storedPaths,
+      customFields: customFields.fields,
       translate: (text: string): string => {
         return translator.translateText(text) || text;
       },
     });
-  }, [schema.columns, mode, displayColumnId, storedPaths, translator.language]);
+  }, [
+    schema.columns,
+    customFields.fields,
+    mode,
+    displayColumnId,
+    storedPaths,
+    translator.language,
+  ]);
 
   const groups: Array<FieldGroup> = useMemo(() => {
     return getFieldGroups({
@@ -256,7 +271,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
 
   // Once the fields are known, what was stored is read as the fields it names.
   useEffect(() => {
-    if (schema.isLoading || paths !== null) {
+    if (isLoadingFields || paths !== null) {
       return;
     }
 
@@ -273,7 +288,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
         mode: mode,
       }),
     );
-  }, [schema.isLoading, schema.error, options]);
+  }, [isLoadingFields, schema.error, options]);
 
   // After a chip goes, the focus moves to the chip that takes its place.
   useEffect(() => {
@@ -370,7 +385,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     return option ? option.title || path : path;
   };
 
-  if (schema.isLoading || (paths === null && !isJson)) {
+  if (isLoadingFields || (paths === null && !isJson)) {
     return (
       <p
         className="py-2 text-sm text-gray-500"

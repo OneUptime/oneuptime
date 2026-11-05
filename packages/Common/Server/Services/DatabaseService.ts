@@ -148,6 +148,10 @@ import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import ColumnValueChange from "../Utils/Database/ColumnValueChange";
 import {
+  CUSTOM_FIELDS_COLUMN,
+  UPDATED_CUSTOM_FIELDS_KEY,
+} from "../../Types/Workflow/CustomFieldsColumn";
+import {
   coerceBooleanColumnsInJSON,
   getBooleanColumnWriteError,
 } from "../../Types/Database/BooleanColumnValue";
@@ -10076,6 +10080,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
              */
             await this.onTriggerWorkflow(item.id!, tenantId, "on-update", {
               updatedFields: JSONFunctions.serialize(changedColumns),
+              ...this.getChangedCustomFields(rowWrite, changedColumns),
             });
 
             await this.onTriggerRealtime(
@@ -10466,6 +10471,36 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return changed;
+  }
+
+  /*
+   * Which custom fields the update changed, when it changed any: a workflow
+   * can watch one of them (Types/Workflow/CustomFieldsColumn), and all of them
+   * are one column, so the column's change does not say which.
+   */
+  private getChangedCustomFields(
+    rowWrite: RowWrite<TBaseModel>,
+    changedColumns: JSONObject,
+  ): JSONObject {
+    if (
+      !Object.prototype.hasOwnProperty.call(
+        changedColumns,
+        CUSTOM_FIELDS_COLUMN,
+      )
+    ) {
+      return {};
+    }
+
+    return {
+      [UPDATED_CUSTOM_FIELDS_KEY]: ColumnValueChange.getChangedCustomFieldNames(
+        {
+          storedValue: (rowWrite.item as unknown as Record<string, unknown>)[
+            CUSTOM_FIELDS_COLUMN
+          ],
+          writtenValue: rowWrite.comparedAs[CUSTOM_FIELDS_COLUMN],
+        },
+      ),
+    };
   }
 
   // Whether a row's write leaves it as it was. See getChangedColumns.

@@ -859,10 +859,48 @@ export default class VMUtil {
       } else if (current && current[key] !== undefined) {
         current = current[key];
       } else {
-        return undefined;
+        /*
+         * A key with a dot of its own: a custom field called "Release 1.2" is
+         * read as customFields.Release 1.2, which splits into two segments.
+         * Only a path that found nothing is tried this way, so nothing that
+         * resolved before reads differently.
+         */
+        const joined: { value: JSONValue; lastIndex: number } | null =
+          VMUtil.findDottedKey(current, paths, i);
+
+        if (!joined) {
+          return undefined;
+        }
+
+        current = joined.value;
+        i = joined.lastIndex;
       }
     }
 
     return current;
+  }
+
+  private static findDottedKey(
+    current: unknown,
+    paths: Array<string>,
+    start: number,
+  ): { value: JSONValue; lastIndex: number } | null {
+    if (!current || typeof current !== "object") {
+      return null;
+    }
+
+    let key: string = paths[start] as string;
+
+    for (let index: number = start + 1; index < paths.length; index++) {
+      key = `${key}.${paths[index]}`;
+
+      const value: JSONValue | undefined = (current as JSONObject)[key];
+
+      if (value !== undefined) {
+        return { value: value, lastIndex: index };
+      }
+    }
+
+    return null;
   }
 }

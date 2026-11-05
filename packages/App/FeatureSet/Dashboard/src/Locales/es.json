@@ -45232,5 +45232,13 @@
   "Pick from the list": "Elegir de la lista",
   "Pick from the list instead": "Elegir de la lista en su lugar",
   "There is nothing to pick from yet.": "Todavía no hay nada para elegir.",
-  "Use “{{value}}”": "Usar «{{value}}»"
+  "Use “{{value}}”": "Usar «{{value}}»",
+  "Custom fields": "Campos personalizados",
+  "Custom field": "Campo personalizado",
+  "This project has no custom field with this name.": "Este proyecto no tiene ningún campo personalizado con este nombre.",
+  "Any custom field": "Cualquier campo personalizado",
+  "Passes on every custom field: {{fields}}": "Pasa todos los campos personalizados: {{fields}}",
+  "Choice": "Opción",
+  "Choices": "Opciones",
+  "This project has no custom fields for these records yet.": "Este proyecto aún no tiene campos personalizados para estos registros."
 }
