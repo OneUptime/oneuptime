@@ -71,8 +71,9 @@ export function getOpenStackTemplateOfMonitors(data: {
   cloud: string;
   monitors: Array<Monitor>;
 }): Map<string, Monitor> {
+  // All of them: one about a service a cloud may not run is only recommended where it does.
   const recommendations: Array<MonitorRecommendation> =
-    MonitorRecommendationCatalog.getRecommendations(
+    MonitorRecommendationCatalog.getAllPossibleRecommendations(
       MonitorRecommendationResourceType.OpenStack,
     );
   const byTemplate: Map<string, Monitor> = new Map();

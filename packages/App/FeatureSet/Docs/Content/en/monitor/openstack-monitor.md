@@ -175,7 +175,7 @@ Every template reads at least three collections of what it watches, and fires on
 
 ### What the services say
 
-Eight more templates read a cloud's logs rather than its metrics, so they are Logs monitors, and they need the agent's [logs profile](/docs/telemetry/openstack#service-logs). Each reads only this cloud's logs, counts what it is looking for, and resolves on its own once the count falls.
+Seven more templates read a cloud's logs rather than its metrics, so they are Logs monitors, and they need the agent's [logs profile](/docs/telemetry/openstack#service-logs). Each reads only this cloud's logs, counts what it is looking for, and resolves on its own once the count falls.
 
 | Template | Category | Severity | Reads | Fires when | Recovers when |
 | --- | --- | --- | --- | --- | --- |
@@ -183,8 +183,7 @@ Eight more templates read a cloud's logs rather than its metrics, so they are Lo
 | RabbitMQ Connection Lost | Service Logs | Critical | `AMQP server on <host> is unreachable`, `Unable to connect to AMQP server`, oslo.messaging's `Connection failed` or `MessagingTimeout`, **past 5 minutes** | 5 or more | Fewer than 5 |
 | Database Connection Lost | Service Logs | Critical | `DBConnectionError`, `SQL connection failed`, or MySQL's `Lost connection` and `Can't connect`, **past 5 minutes** | 5 or more | Fewer than 5 |
 | Too Many Errors from a Service | Service Logs | Warning | `ERROR` and `CRITICAL` lines, per service and machine, **past 5 minutes** | 50 or more | Fewer than 50 |
-| Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token`, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
-| Fernet Key Rotation Out of Step | Service Logs | Critical | Keystone saying `not a recognized Fernet token`, per machine, **past 5 minutes** | 10 or more: a controller holds no key that opens tokens it or another controller gave out. Compare `/etc/keystone/fernet-keys` on each | Fewer than 10 |
+| Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token`, **past 5 minutes** | 10 or more. One is someone's stale session. A controller whose Fernet keys differ from the others reads as this and no line says more, so compare `/etc/keystone/fernet-keys` on each | Fewer than 10 |
 | Instance Action Failed | Events | Warning | `compute.exception` and any `instance.*.error`, per instance, event and reason, **past 15 minutes**. Needs [notifications](/docs/telemetry/openstack#turn-on-notifications) or a probe | One or more | None left in the window |
 | Scheduling Failed | Events | Warning | A compute task's error naming `NoValidHost`, such as `compute_task.build_instances.error`, which is what Nova sends. Cinder's `scheduler.create_volume` too, and `scheduler.select_destinations.error`, which Nova's documentation names and our test clouds never sent. Per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
 
