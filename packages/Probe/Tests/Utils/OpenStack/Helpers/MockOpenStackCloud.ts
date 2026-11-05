@@ -110,6 +110,7 @@ export default class MockOpenStackCloud {
     [OpenStackServiceType.BareMetal]: 0,
     [OpenStackServiceType.SharedFileSystems]: 0,
     [OpenStackServiceType.Database]: 0,
+    [OpenStackServiceType.LoadBalancer]: 0,
     [OpenStackServiceType.KeyManager]: 0,
     [OpenStackServiceType.ObjectStore]: 0,
     [OpenStackServiceType.Metric]: 0,

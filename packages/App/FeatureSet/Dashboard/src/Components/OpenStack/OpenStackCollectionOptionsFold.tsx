@@ -1,6 +1,7 @@
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import { OpenStackCollectionOptions } from "Common/Types/OpenStack/OpenStackProbeCollection";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Button, {
   ButtonSize,
@@ -27,6 +28,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { fetchOpenStackApiStates } from "../../Pages/OpenStack/Utils/OpenStackPartData";
+import { OpenStackApiState } from "../../Pages/OpenStack/Utils/OpenStackPartFacts";
+import useOpenStackRead, { OpenStackRead } from "./Part/UseOpenStackRead";
 import { OpenStackCollectionOptionsField } from "./OpenStackConnectionFields";
 import {
   OPENSTACK_COLLECTION_OPTIONS_ANCHOR,
@@ -119,6 +123,18 @@ const OpenStackCollectionOptionsFold: FunctionComponent<ComponentProps> = (
       });
   };
 
+  /*
+   * Only on a cloud that runs Swift, and on one that has a setting left over, which someone has to be able
+   * to take back out.
+   */
+  const apis: OpenStackRead<Record<string, OpenStackApiState>> =
+    useOpenStackRead<Record<string, OpenStackApiState>>(() => {
+      return fetchOpenStackApiStates(props.modelId);
+    }, [props.modelId.toString()]);
+  const showsSwiftRecon: boolean =
+    Boolean(apis.data?.[OpenStackServiceType.ObjectStore]) ||
+    Boolean(savedOptions.swiftReconAddresses?.length);
+
   const items: Array<FoldedSectionItem> = [
     {
       key: "project-limits",
@@ -134,6 +150,17 @@ const OpenStackCollectionOptionsFold: FunctionComponent<ComponentProps> = (
       value: FOLDED_SECTION_ON,
       translateValue: true,
     },
+    ...(showsSwiftRecon
+      ? [
+          {
+            key: "swift-recon",
+            title: "Swift's storage servers",
+            isSet: Boolean(savedOptions.swiftReconAddresses?.length),
+            value: FOLDED_SECTION_ON,
+            translateValue: true,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -157,6 +184,7 @@ const OpenStackCollectionOptionsFold: FunctionComponent<ComponentProps> = (
         <div className="pt-3">
           <OpenStackCollectionOptionsField
             value={options}
+            showsSwiftRecon={showsSwiftRecon}
             disabled={!props.canEdit || isSaving}
             onChange={(value: OpenStackCollectionOptions) => {
               setError("");

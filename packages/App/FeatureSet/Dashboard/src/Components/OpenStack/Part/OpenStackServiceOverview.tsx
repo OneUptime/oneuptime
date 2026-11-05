@@ -368,7 +368,7 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
       : null;
   const isLastKnown: boolean = !isApi && api.data?.status === "down";
   const apiTiles: ReadonlyArray<OpenStackApiTile> = isApi
-    ? getOpenStackApiTiles(row.name)
+    ? getOpenStackApiTiles(row)
     : [];
   const staleAgentIds: Array<string> = isApi
     ? []

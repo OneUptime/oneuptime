@@ -850,6 +850,22 @@ describe("the Settings page's Data Collection card", () => {
       expect(foldedItems()).toEqual(["Project limits: On", "Ports"]);
     });
 
+    test("a setting left over from Swift's storage servers says so, and can be taken back out", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionOptions: { swiftReconAddresses: ["10.0.0.5:6200"] },
+      };
+
+      render(<OpenStackDataCollectionCard modelId={modelId()} />);
+      await flush();
+
+      expect(foldedItems()).toEqual([
+        "Project limits",
+        "Ports",
+        "Swift's storage servers: On",
+      ]);
+    });
+
     test("a link that names its place finds it open, which is how the Projects page sends people here", async () => {
       window.location.hash = "#collection-options";
 

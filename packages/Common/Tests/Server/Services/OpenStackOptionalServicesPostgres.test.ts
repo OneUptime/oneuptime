@@ -18,6 +18,7 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+  OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
   OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
@@ -1045,6 +1046,55 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
           })
           .sort(),
       ).toEqual(["gnocchi RegionOne", "gnocchi RegionTwo"]);
+    });
+
+    test("what Swift's storage servers say, though its API reads up", async () => {
+      await write([
+        api(OpenStackServiceType.ObjectStore, {
+          facts: {
+            reconServers: 3,
+            reconServersNotAnswering: 1,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.ObjectStore, {
+          regionName: "RegionTwo",
+          facts: {
+            reconServers: 3,
+            reconRingsDiffering: 1,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.ObjectStore, {
+          regionName: "RegionThree",
+          facts: {
+            reconServers: 3,
+            reconOldestReplicationSeconds:
+              OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS + 1,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.ObjectStore, {
+          regionName: "RegionFour",
+          facts: {
+            reconServers: 3,
+            reconServersNotAnswering: 0,
+            reconRingsDiffering: 0,
+            reconOldestReplicationSeconds: 60,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+      ]);
+      expect(
+        (await attention()).rows
+          .filter((row: JSONObject): boolean => {
+            return row["kind"] === OpenStackResourceKind.Api;
+          })
+          .map((row: JSONObject): unknown => {
+            return row["regionName"];
+          })
+          .sort(),
+      ).toEqual(["RegionOne", "RegionThree", "RegionTwo"]);
     });
 
     test("a project's own page reads its stacks and clusters too", async () => {
