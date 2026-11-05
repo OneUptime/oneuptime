@@ -201,7 +201,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         }
         isSublabelAsWritten={Boolean(flavorMemory)}
         percent={percentOf(memory, flavorMemory)}
-        description="What the guest says it is using, or without a balloon driver in the guest, what it holds on its hypervisor, which is more than its flavor because QEMU itself is in it. Its flavor says what it was promised."
+        description="What the guest says it is using, or without a balloon driver in the guest, what it holds on its hypervisor, which is more than its flavor because the process running it counts too. Its flavor says what it was promised."
       />
       <GoldenMetricTile
         title="CPU waiting"
