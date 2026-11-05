@@ -219,7 +219,7 @@ function alertmanagerMonitorSteps(cloudName: string): string {
   return `An alert that fires becomes an incident, with on-call and status pages from the first hour, and it resolves when the alert does. There is nothing to install.
 
 1. In OneUptime, make an Incoming Request monitor as [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor) says, and copy its **Heartbeat URL**. That is the \`<secret key>\` address below.
-2. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud \`${cloudName}\`. Each incident is then on that cloud's **Incidents** page. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.`;
+2. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud \`${cloudName}\`. Each incident is then on that cloud's **Incidents** page, so each cloud's Alertmanager needs a monitor of its own. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.`;
 }
 
 export interface OpenStackDeploymentGuide {

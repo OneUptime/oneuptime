@@ -280,13 +280,15 @@ describe("what the rig ran on a real deployment is what the guide says", () => {
     expect(rigFile("guide-follow.sh")).toContain(
       'GUIDE_EXPIRATION="2027-11-04T00:00:00"',
     );
-    expect(blocksIn(guideAsTheRigReadsIt("kolla-ansible").steps
-      .find((step: SetupGuideStep): boolean => {
-        return step.title === "Create the agent's credential";
-      })!
-      .variants![0]!.markdown).join("\n")).toContain(
-      "--expiration 2027-11-04T00:00:00",
-    );
+    expect(
+      blocksIn(
+        guideAsTheRigReadsIt("kolla-ansible").steps.find(
+          (step: SetupGuideStep): boolean => {
+            return step.title === "Create the agent's credential";
+          },
+        )!.variants![0]!.markdown,
+      ).join("\n"),
+    ).toContain("--expiration 2027-11-04T00:00:00");
   });
 });
 
@@ -401,15 +403,18 @@ describe("How do you deploy OpenStack?", () => {
 });
 
 describe("each guide says plainly how far it has been tested", () => {
-  test.each(NAMED_TOOLS)("%s, on screen, and never claims more", (tool: OpenStackDeploymentTool) => {
-    const intro: string = setupGuideOf(tool).intro as string;
+  test.each(NAMED_TOOLS)(
+    "%s, on screen, and never claims more",
+    (tool: OpenStackDeploymentTool) => {
+      const intro: string = setupGuideOf(tool).intro as string;
 
-    expect(intro).toContain("How far this guide has been tested:");
-    expect(intro).toContain("not been followed end to end");
-    expect(intro.toLowerCase()).not.toMatch(
-      /\b(fully|thoroughly|completely) tested\b|\bverified on\b|\bproduction[- ]ready\b/,
-    );
-  });
+      expect(intro).toContain("How far this guide has been tested:");
+      expect(intro).toContain("not been followed end to end");
+      expect(intro.toLowerCase()).not.toMatch(
+        /\b(fully|thoroughly|completely) tested\b|\bverified on\b|\bproduction[- ]ready\b/,
+      );
+    },
+  );
 
   test("the docs say so too, and first, for every tool", () => {
     const heading: number = DOCS_PAGE.indexOf(
@@ -466,18 +471,21 @@ describe("what is already firing, with no agent", () => {
     }
   }
 
-  test.each(WITH_ALERTMANAGER)("%s gets a first step for it", (tool: OpenStackDeploymentTool) => {
-    const first: SetupGuideStep = setupGuideOf(tool).steps[0]!;
+  test.each(WITH_ALERTMANAGER)(
+    "%s gets a first step for it",
+    (tool: OpenStackDeploymentTool) => {
+      const first: SetupGuideStep = setupGuideOf(tool).steps[0]!;
 
-    expect(first.title).toBe("Forward what is already firing");
-    // An Incoming Request monitor's own settings name no cloud: this is what does.
-    expect(first.markdown).toContain("**Overview → Linked Resources**");
-    expect(first.markdown).toContain(`\`${CLOUD}\``);
-    expect(first.markdown).toContain("Incoming Request monitor");
-    expect(first.markdown).toContain(
-      "/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor",
-    );
-  });
+      expect(first.title).toBe("Forward what is already firing");
+      // An Incoming Request monitor's own settings name no cloud: this is what does.
+      expect(first.markdown).toContain("**Overview → Linked Resources**");
+      expect(first.markdown).toContain(`\`${CLOUD}\``);
+      expect(first.markdown).toContain("Incoming Request monitor");
+      expect(first.markdown).toContain(
+        "/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor",
+      );
+    },
+  );
 
   test.each(WITH_ALERTMANAGER)(
     "%s shows a receiver that parses as it reads it, and posts to the monitor's URL",
@@ -825,17 +833,20 @@ describe("the docs page is the guide, written down", () => {
    * Everything a person can copy from a tool's guide is on the page as it stands, so a
    * command changed in one fails here until the other follows.
    */
-  test.each(NAMED_TOOLS)("every block %s shows", (tool: OpenStackDeploymentTool) => {
-    const page: string = squash(DOCS_PAGE);
-    const blocks: Array<string> = blocksIn(ownMarkdownOf(tool));
+  test.each(NAMED_TOOLS)(
+    "every block %s shows",
+    (tool: OpenStackDeploymentTool) => {
+      const page: string = squash(DOCS_PAGE);
+      const blocks: Array<string> = blocksIn(ownMarkdownOf(tool));
 
-    expect(blocks.length).toBeGreaterThan(0);
+      expect(blocks.length).toBeGreaterThan(0);
 
-    for (const block of blocks) {
-      // A first line naming the file is the block's title on the page.
-      expect(page).toContain(squash(block.replace(/^# [^\n]*\n/, "")));
-    }
-  });
+      for (const block of blocks) {
+        // A first line naming the file is the block's title on the page.
+        expect(page).toContain(squash(block.replace(/^# [^\n]*\n/, "")));
+      }
+    },
+  );
 
   test("it is in the docs' navigation, in English", () => {
     const nav: string = fs.readFileSync(

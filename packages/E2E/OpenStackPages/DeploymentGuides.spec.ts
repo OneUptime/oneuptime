@@ -1,11 +1,5 @@
 import { Locator, Page } from "@playwright/test";
-import {
-  CLOUD_PATH,
-  VIEWPORTS,
-  expect,
-  screenshot,
-  test,
-} from "./Helpers";
+import { CLOUD_PATH, VIEWPORTS, expect, screenshot, test } from "./Helpers";
 
 /*
  * THE SETUP GUIDE ASKS ONE QUESTION.
@@ -92,12 +86,16 @@ test.describe("How do you deploy OpenStack?", () => {
     await expect(
       page.getByText("How far this guide has been tested"),
     ).toBeVisible();
-    await expect(page.getByText("Forward what is already firing")).toBeVisible();
-    await expect(page.getByText("Watch what the cloud stands on")).toBeVisible();
+    await expect(
+      page.getByText("Forward what is already firing"),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Watch what the cloud stands on"),
+    ).toBeVisible();
     await expect(page.getByText(INSTALL_QUESTION)).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Kolla's exporter" })).toHaveCount(
-      1,
-    );
+    await expect(
+      page.getByRole("tab", { name: "Kolla's exporter" }),
+    ).toHaveCount(1);
 
     await screenshot(page, "deployment-guides-kolla-1280");
   });

@@ -605,6 +605,39 @@ describe.each(RECORDINGS)(
       expect(isOpen(incidentsOnTheCloudsPage(ANOTHER_CLOUD)[0]!)).toBe(true);
     });
 
+    /*
+     * Not recorded: a route that groups by less puts several alerts in one notification, and
+     * this makes that from the recording, with a second fingerprint.
+     */
+    it("a notification of two alerts opens two incidents, and one recovering closes only its own", async () => {
+      const alert: JSONObject = (firing["alerts"] as Array<JSONObject>)[0]!;
+      const other: JSONObject = { ...alert, fingerprint: "0123456789abcdef" };
+
+      await post(MONITOR_OF_THE_CLOUD, {
+        ...firing,
+        alerts: [alert, other],
+      });
+
+      expect(table).toHaveLength(2);
+      expect(incidentsOnTheCloudsPage(THE_CLOUD)).toHaveLength(2);
+
+      await post(MONITOR_OF_THE_CLOUD, {
+        ...firing,
+        alerts: [
+          { ...alert, status: "resolved" },
+          { ...other, status: "firing" },
+        ],
+      });
+
+      expect(
+        table.filter(isOpen).map((incident: Incident): string | undefined => {
+          return incident.title;
+        }),
+      ).toEqual([
+        `${alertname} on ${instance} - Fingerprint: 0123456789abcdef`,
+      ]);
+    });
+
     it("the same alert firing again after its recovery is a new incident", async () => {
       await post(MONITOR_OF_THE_CLOUD, firing);
       await post(MONITOR_OF_THE_CLOUD, resolved);

@@ -39,7 +39,7 @@ Make an Incoming Request monitor as [Prometheus Alertmanager](/docs/integrations
 
 ### Put it on the cloud
 
-Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud. Each incident is then on that cloud's **Incidents** page: an Incoming Request monitor's own settings name no cloud. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.
+Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud. Each incident is then on that cloud's **Incidents** page: an Incoming Request monitor's own settings name no cloud, so each cloud's Alertmanager needs a monitor of its own. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.
 :::
 
 Alertmanager is recorded posting to this exact shape in `Tests/Ops/openstack-e2e`, at the version Kolla-Ansible pins, and the recording replays through the real evaluator: one incident per alert, resolved by its own `resolved` status.
