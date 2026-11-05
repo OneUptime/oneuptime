@@ -2441,7 +2441,11 @@ describe("what a collection asks of a cloud", () => {
     for (const request of cloud.requests.slice(before)) {
       const pathname: string = new globalThis.URL(request.url).pathname;
 
-      if (!INSTANCE_ACTIONS.test(pathname)) {
+      // What Placement would decide is counted in OpenStackAllocationCandidates.test.ts.
+      if (
+        !INSTANCE_ACTIONS.test(pathname) &&
+        pathname !== "/placement/allocation_candidates"
+      ) {
         const service: string = pathname.split("/")[1] as string;
         calls[service] = (calls[service] || 0) + 1;
       }
