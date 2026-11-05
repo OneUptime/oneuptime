@@ -35,7 +35,7 @@ Ga naar **Geplande onderhoud → Alle gebeurtenissen** en klik op **Geplande ond
 
 ### Zeggen wat er gebeurt en wanneer
 
-Typ een **Titel** en voeg een **Beschrijving** toe als dat helpt: die is in Markdown en verschijnt op je statuspagina's. **Begint op** staat al op het volgende hele uur van je klok, en **Eindigt op** een uur later; wijzig ze alleen als ze niet kloppen. Als je **Begint op** verschuift, schuift **Eindigt op** mee, zodat het venster zijn lengte houdt. **Eigenaren** en **Labels** wachten ingeklapt onder **Meer velden**.
+Typ een **Titel** en voeg een **Beschrijving** toe als dat helpt: die is in Markdown en verschijnt op je statuspagina's. **Begint op** staat al op het volgende hele uur van je klok, en **Eindigt op** een uur later; wijzig ze alleen als ze niet kloppen. Als je **Begint op** verschuift, schuift **Eindigt op** mee, zodat het venster zijn lengte houdt. **Eigenaren**, **Labels** en **Data Observability Databases** wachten ingeklapt onder **Meer velden**.
 
 ### Kiezen wat het raakt
 

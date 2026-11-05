@@ -35,7 +35,7 @@ Gå til **Planlagt vedligeholdelse → Alle begivenheder**, og klik på **Opret 
 
 ### Sig, hvad der sker og hvornår
 
-Skriv en **Titel**, og tilføj en **Beskrivelse**, hvis det hjælper: den er i Markdown og vises på dine statussider. **Begynder den** står allerede på den næste hele time på dit ur, og **Slutter den** en time senere; ændr dem kun, hvis de er forkerte. Når du flytter **Begynder den**, flytter **Slutter den** med, så vinduet bevarer sin længde. **Ejere** og **Etiketter** venter foldet sammen under **Flere felter**.
+Skriv en **Titel**, og tilføj en **Beskrivelse**, hvis det hjælper: den er i Markdown og vises på dine statussider. **Begynder den** står allerede på den næste hele time på dit ur, og **Slutter den** en time senere; ændr dem kun, hvis de er forkerte. Når du flytter **Begynder den**, flytter **Slutter den** med, så vinduet bevarer sin længde. **Ejere**, **Etiketter** og **Data Observability Databaser** venter foldet sammen under **Flere felter**.
 
 ### Vælg, hvad det påvirker
 

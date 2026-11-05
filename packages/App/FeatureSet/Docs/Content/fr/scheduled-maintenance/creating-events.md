@@ -35,7 +35,7 @@ Allez dans **Maintenance planifiée → Tous les événements** et cliquez sur *
 
 ### Dire ce qui se passe et quand
 
-Saisissez un **Titre** et ajoutez une **Description** si elle aide : elle est en Markdown et s'affiche sur vos pages de statut. **Commence le** est déjà réglé sur la prochaine heure pleine de votre horloge, et **Se termine le** une heure plus tard ; ne les changez que s'ils sont faux. Déplacer **Commence le** déplace **Se termine le** avec lui, pour que la fenêtre garde sa durée. **Propriétaires** et **Étiquettes** attendent sous **Plus de champs**, repliés.
+Saisissez un **Titre** et ajoutez une **Description** si elle aide : elle est en Markdown et s'affiche sur vos pages de statut. **Commence le** est déjà réglé sur la prochaine heure pleine de votre horloge, et **Se termine le** une heure plus tard ; ne les changez que s'ils sont faux. Déplacer **Commence le** déplace **Se termine le** avec lui, pour que la fenêtre garde sa durée. **Propriétaires**, **Étiquettes** et **Bases de données Data Observability** attendent sous **Plus de champs**, repliés.
 
 ### Choisir ce qu'il affecte
 

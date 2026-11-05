@@ -35,7 +35,7 @@ Go to **Scheduled Maintenance → All Events** and click **Create Scheduled Main
 
 ### Say what is happening and when
 
-Type a **Title**, and add a **Description** if it helps: it is Markdown, and it is shown on your status pages. **Starts At** is already the next full hour on your clock, and **Ends At** an hour later; change them only when they are wrong. Moving **Starts At** moves **Ends At** with it, so the window keeps its length. **Owners** and **Labels** wait under **More fields**, folded.
+Type a **Title**, and add a **Description** if it helps: it is Markdown, and it is shown on your status pages. **Starts At** is already the next full hour on your clock, and **Ends At** an hour later; change them only when they are wrong. Moving **Starts At** moves **Ends At** with it, so the window keeps its length. **Owners**, **Labels** and **Data Observability Databases** wait under **More fields**, folded.
 
 ### Pick what it affects
 
