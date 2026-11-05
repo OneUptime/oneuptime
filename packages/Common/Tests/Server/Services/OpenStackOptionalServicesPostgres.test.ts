@@ -103,7 +103,11 @@ function api(
     externalId: `${rest.regionName || "RegionOne"}/${service}`,
     name: service,
     status: "up",
-    facts: { vouchedAt: (vouchedAt || NOW).toISOString() },
+    facts: {
+      vouchedAt: (vouchedAt || NOW).toISOString(),
+      // The stale rule measures from the read before the latest.
+      previousVouchedAt: (vouchedAt || NOW).toISOString(),
+    },
     ...rest,
   });
 }

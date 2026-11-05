@@ -3388,7 +3388,7 @@ export class Service extends DatabaseService<Model> {
     }> = await this.getRepository().manager.query(
       `SELECT "regionName", "name",
               "facts"->>'${OPENSTACK_EMPTY_ANSWER_SINCE_FACT}' AS "emptySince",
-              "facts"->>'vouchedAt' AS "vouchedAt"
+              "facts"->>'previousVouchedAt' AS "vouchedAt"
        FROM "OpenStackResource"
        WHERE "projectId" = $1 AND "openStackCloudId" = $2
          AND "kind" = '${OpenStackResourceKind.Api}'
