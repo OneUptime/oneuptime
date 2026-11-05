@@ -374,6 +374,18 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       tells: "adminOnly",
     },
     {
+      service: OpenStackServiceType.Metric,
+      read: "status",
+      path: "/v1/status",
+      query: { details: "true" },
+      key: "storage",
+      projectField: "-",
+      goesWithout:
+        "Gnocchi's backlog and what is processing it, and the alerts on them. Its API goes on answering without any processor, so nothing else says so.",
+      fix: `To read this: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
       service: OpenStackServiceType.Database,
       read: "instances, all projects",
       path: "/mgmt/instances",

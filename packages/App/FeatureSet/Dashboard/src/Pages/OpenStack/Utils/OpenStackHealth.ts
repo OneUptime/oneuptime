@@ -44,6 +44,9 @@ import {
   isOpenStackVolumeStuck,
   minutesInState,
   percentOf,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  isOpenStackGnocchiBacklogged,
+  isOpenStackGnocchiWithoutProcessors,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackProjectQuota,
@@ -54,6 +57,7 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_SERVICE_STATUS_STOPPED,
   OpenStackResourceKind,
+  OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -120,6 +124,12 @@ const REASON_API_DOWN: string = translationKey("Not answering");
  * All anyone can say of a service a cloud may not run that stopped reporting: the exporter answers
  * the same for one that is stopped and one that is gone, and a page must not say which.
  */
+const REASON_GNOCCHI_NO_PROCESSORS: string = translationKey(
+  "Nothing is processing Gnocchi's measures",
+);
+const REASON_GNOCCHI_BACKLOG: string = translationKey(
+  "{{count}} measures are waiting on gnocchi-metricd",
+);
 const REASON_API_QUIET: string = translationKey(
   "Not heard from for {{duration}}. It may be stopped or taken out of this cloud: the exporter answers the same for both",
 );
@@ -313,6 +323,36 @@ function factsOf(row: OpenStackResource): JSONObject {
   return (row.facts as JSONObject | undefined) || {};
 }
 
+/*
+ * What Gnocchi's API answering says nothing about, because its API goes on answering without any of it,
+ * recorded. Only while it answers: what these read was its last answer, and a stopped API says that for
+ * itself. A page has one reading, so it says the backlog is past the line now, where the alert reads a line
+ * through an hour of them.
+ */
+function assessOpenStackGnocchi(row: OpenStackResource): OpenStackAssessment {
+  const facts: JSONObject = factsOf(row);
+  if (isOpenStackGnocchiWithoutProcessors(facts)) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [{ text: REASON_GNOCCHI_NO_PROCESSORS }],
+    };
+  }
+  if (isOpenStackGnocchiBacklogged(facts)) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        {
+          text: REASON_GNOCCHI_BACKLOG,
+          values: {
+            count: String(facts[OPENSTACK_GNOCCHI_MEASURES_FACT]),
+          },
+        },
+      ],
+    };
+  }
+  return FINE;
+}
+
 export function assessOpenStackApi(
   row: OpenStackResource,
   // Without it, this reads only what the row says, as a page with no clock to hand does.
@@ -340,6 +380,9 @@ export function assessOpenStackApi(
           },
         ],
       };
+    }
+    if (row.name === OpenStackServiceType.Metric) {
+      return assessOpenStackGnocchi(row);
     }
     return FINE;
   }

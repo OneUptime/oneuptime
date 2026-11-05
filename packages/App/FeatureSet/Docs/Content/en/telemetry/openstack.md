@@ -849,6 +849,21 @@ A stopped `trove-taskmanager` isn't shown anywhere, because Trove's lists answer
 
 Nothing has been recorded of a database reaching `ACTIVE`, because Nova refused the guest on every test run, so how full a volume reads has only been checked on made-up numbers. An instance that isn't running reads 0 used, and that reads as nothing rather than as empty.
 
+## Gnocchi
+
+A cloud that runs Gnocchi gets its API on **Services** on its own, and one that doesn't shows no trace of it. Gnocchi has no parts anyone opens one by one, so what it says goes on that API's own page: how many measures and metrics are waiting, and how many processors it has.
+
+No processors reaches **Needs attention**, and so does a backlog past 10,000 measures. Gnocchi's API goes on answering and taking measures with `gnocchi-metricd` stopped, recorded, so its processors are the only place that shows. Nothing is lost while that lasts, but nothing newer can be read.
+
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Whether its API answers | Yes | Yes | Nothing: see below |
+| How many measures and metrics are waiting, and how many processors it has | Yes | Yes | No |
+
+The exporter reads Gnocchi's status, which only an admin may. Gnocchi refuses anything less, and the exporter reads a refusal just as it reads Gnocchi stopped: `openstack_gnocchi_up` reads 0. So a credential that has never once read Gnocchi is told that, rather than that Gnocchi is down, and isn't offered its alerts. A probe tells the two apart: Gnocchi answered, so its API reads up, and the connection test says it was refused.
+
+**Gnocchi Backlog Growing** reads a line through the last two hours. A busy cloud's backlog never reads 0, so a large one that is falling is fine, and one that isn't falling is what it says. The runners only ever got to a backlog of 10 measures, so its line has only been checked on made-up numbers.
+
 ## Service logs
 
 The agent above reads a cloud's APIs from outside. Why an instance failed to build is somewhere else: in `nova-api`, `nova-conductor`, `nova-scheduler`, `nova-compute`, Neutron and Cinder, on several machines. An optional logs profile sends those lines to OneUptime, parsed, with a stack trace as one record. Unlike the agent, it runs on the cloud's own controllers and compute nodes, and it only reads.

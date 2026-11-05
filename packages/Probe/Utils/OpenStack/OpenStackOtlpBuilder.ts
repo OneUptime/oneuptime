@@ -7,6 +7,7 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackDatabaseInventory,
+  OpenStackMetricInventory,
   OpenStackPlacementInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
@@ -75,6 +76,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
   [OpenStackServiceType.Database]: "openstack_trove",
+  [OpenStackServiceType.Metric]: "openstack_gnocchi",
   [OpenStackServiceType.Dns]: "openstack_designate",
 };
 
@@ -303,6 +305,7 @@ export interface OpenStackServiceReading {
     | OpenStackContainerInfraInventory
     | OpenStackSharedFileSystemsInventory
     | OpenStackDatabaseInventory
+    | OpenStackMetricInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
   apiUp: boolean | null;
@@ -1612,6 +1615,27 @@ function writeSharedFileSystems(
  * the first. An instance with no `used` to report reads 0, as the exporter's does, recorded: a page
  * reads that as nothing.
  */
+function writeMetric(
+  writer: SeriesWriter,
+  inventory: OpenStackMetricInventory,
+): void {
+  if (!inventory.status) {
+    return;
+  }
+
+  writer.add(
+    "status_measures_to_process",
+    {},
+    inventory.status.measuresToProcess,
+  );
+  writer.add(
+    "status_metric_having_measures_to_process",
+    {},
+    inventory.status.metricsWithMeasures,
+  );
+  writer.add("status_metricd_processors", {}, inventory.status.processors);
+}
+
 function writeDatabase(
   writer: SeriesWriter,
   inventory: OpenStackDatabaseInventory,
@@ -1691,6 +1715,9 @@ function writeInventory(
       return;
     case OpenStackServiceType.Database:
       writeDatabase(writer, reading.inventory as OpenStackDatabaseInventory);
+      return;
+    case OpenStackServiceType.Metric:
+      writeMetric(writer, reading.inventory as OpenStackMetricInventory);
       return;
     case OpenStackServiceType.SharedFileSystems:
       writeSharedFileSystems(

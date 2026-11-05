@@ -228,6 +228,26 @@ export const OPENSTACK_EXPORTER_SERIES: Readonly<
     service: OpenStackServiceType.Dns,
     recorded: true,
   },
+  openstack_gnocchi_up: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
+  openstack_gnocchi_status_measures_to_process: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
+  openstack_gnocchi_status_metric_having_measures_to_process: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
+  openstack_gnocchi_status_metricd_processors: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
   openstack_trove_up: {
     labels: [],
     service: OpenStackServiceType.Database,

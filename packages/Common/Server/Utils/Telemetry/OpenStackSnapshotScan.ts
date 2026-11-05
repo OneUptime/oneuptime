@@ -8,6 +8,9 @@ import {
   getOpenStackShortHostName,
   isOpenStackBareMetalNodeId,
   isOpenStackBareMetalNodeInError,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_METRICS_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_OPTIONAL_SERVICES,
@@ -219,8 +222,45 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
 const OPENSTACK_FLAVOR_FITS_METRIC_NAME: string =
   "openstack_placement_flavor_fits";
 
+/*
+ * What a service with no parts of its own says of itself, which all goes on its API's row: a few numbers for
+ * a region. They stay where they were while its API isn't answering, and a page says so.
+ */
+interface OpenStackApiRowFact {
+  service: OpenStackServiceType;
+  fact: string;
+}
+
+const FACTS_ON_AN_API_ROW: ReadonlyMap<string, OpenStackApiRowFact> = new Map<
+  string,
+  OpenStackApiRowFact
+>([
+  [
+    "openstack_gnocchi_status_measures_to_process",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_MEASURES_FACT,
+    },
+  ],
+  [
+    "openstack_gnocchi_status_metric_having_measures_to_process",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_METRICS_FACT,
+    },
+  ],
+  [
+    "openstack_gnocchi_status_metricd_processors",
+    {
+      service: OpenStackServiceType.Metric,
+      fact: OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+    },
+  ],
+]);
+
 export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   ...OPENSTACK_API_UP_METRIC_NAMES.keys(),
+  ...FACTS_ON_AN_API_ROW.keys(),
   ...PLACEMENT_RESOURCE_METRIC_NAMES,
   ...NAMED_QUOTA_METRICS.keys(),
   ...TYPED_QUOTA_METRICS.keys(),
@@ -2275,6 +2315,20 @@ export function bufferOpenStackSnapshotMetric(data: {
       ),
       vouchesForRows: getLabel(attributes, "vouches_for_rows") !== "false",
     });
+    return;
+  }
+
+  const apiRowFact: OpenStackApiRowFact | undefined =
+    FACTS_ON_AN_API_ROW.get(metricName);
+  if (apiRowFact) {
+    const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+      buffer,
+      kind: OpenStackResourceKind.Api,
+      externalId: regional(region, apiRowFact.service),
+      observedAt,
+    });
+    setIdentity(entry, { name: apiRowFact.service, regionName: region });
+    entry.facts[apiRowFact.fact] = value;
     return;
   }
 
