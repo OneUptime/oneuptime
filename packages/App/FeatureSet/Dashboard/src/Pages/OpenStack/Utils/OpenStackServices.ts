@@ -560,6 +560,9 @@ const CANNOT_READ_PLACEMENT: string = translationKey(
  * and a stopped API read the same, and what opens it. By service, for what each really does.
  */
 const CLOSED_TO_THIS_CREDENTIAL_WORDS: Partial<Record<string, string>> = {
+  [OpenStackServiceType.ObjectStore]: translationKey(
+    "OneUptime has never had an answer from Swift with this credential. The exporter reads this credential's own project's account, and a refusal reads just as Swift being down does. So either Swift is down, or this credential has no role Swift's proxy lets in, or Swift's proxy-server.conf needs include_service_catalog = True under [filter:authtoken] for its access rules. Its alerts aren't offered until it has answered once: they could only say the same thing.",
+  ),
   [OpenStackServiceType.Metric]: translationKey(
     "OneUptime has never had an answer from Gnocchi with this credential. The exporter reads Gnocchi's status, which only an admin may, and a refusal reads just as Gnocchi being down does. So either Gnocchi is down, or this credential needs to be a Full view one. Its alerts aren't offered until it has answered once: they could only say the same thing.",
   ),
@@ -579,6 +582,9 @@ export function getOpenStackClosedToThisCredentialWords(
 
 // Each is a service whose read asks for what only an admin may, so a refusal reads as a stopped API.
 const CANNOT_READ_OPTIONAL_SERVICE: Partial<Record<string, string>> = {
+  [OpenStackServiceType.ObjectStore]: translationKey(
+    "This credential has never read Swift",
+  ),
   [OpenStackServiceType.Metric]: translationKey(
     "This credential has never read Gnocchi",
   ),
@@ -938,6 +944,7 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",
   [OpenStackServiceType.Database]: "openstack-database-api-down",
+  [OpenStackServiceType.ObjectStore]: "openstack-object-store-api-down",
   [OpenStackServiceType.Metric]: "openstack-metric-api-down",
   [OpenStackServiceType.Dns]: "openstack-dns-api-down",
 };
@@ -1021,6 +1028,8 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-metric-no-processors",
         "openstack-metric-backlog-growing",
       ];
+    case OpenStackServiceType.ObjectStore:
+      return [...own, "openstack-object-container-growth"];
     case OpenStackServiceType.Database:
       return [
         ...own,

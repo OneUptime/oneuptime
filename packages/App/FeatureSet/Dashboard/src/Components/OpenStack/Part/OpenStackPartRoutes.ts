@@ -80,6 +80,8 @@ const PART_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
   [OpenStackResourceKind.DatabaseInstance]:
     PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+  [OpenStackResourceKind.ObjectContainer]:
+    PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL,
   [OpenStackResourceKind.DnsZone]: PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL,
 };
 
@@ -106,6 +108,8 @@ const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
   [OpenStackResourceKind.DatabaseInstance]:
     PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+  [OpenStackResourceKind.ObjectContainer]:
+    PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS,
   [OpenStackResourceKind.DnsZone]: PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES,
 };
 

@@ -79,6 +79,9 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.DnsZone]: translationKey(
     "This zone is not in this cloud's inventory. It may have been deleted, or Designate may not have reported it yet.",
   ),
+  [OpenStackResourceKind.ObjectContainer]: translationKey(
+    "This container is not in this cloud's inventory. It may have been deleted, or Swift may not have reported it yet.",
+  ),
   [OpenStackResourceKind.DatabaseInstance]: translationKey(
     "This database is not in this cloud's inventory. It may have been deleted, or Trove may not have reported it yet.",
   ),

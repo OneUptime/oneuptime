@@ -167,6 +167,11 @@ export const OPENSTACK_DNS_ZONE_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-dns-recordset-in-error",
 ];
 
+// What watches every container this credential can read.
+export const OPENSTACK_OBJECT_CONTAINER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-object-container-growth",
+];
+
 export const OPENSTACK_DATABASE_INSTANCE_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-database-instance-in-error",
   "openstack-database-instance-stuck",
@@ -1462,6 +1467,7 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
   [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,
   [OpenStackResourceKind.DatabaseInstance]: OpenStackServiceType.Database,
+  [OpenStackResourceKind.ObjectContainer]: OpenStackServiceType.ObjectStore,
   [OpenStackResourceKind.DnsZone]: OpenStackServiceType.Dns,
   [OpenStackResourceKind.DnsRecordset]: OpenStackServiceType.Dns,
 };

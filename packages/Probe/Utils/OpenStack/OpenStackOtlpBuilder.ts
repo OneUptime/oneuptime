@@ -7,6 +7,7 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackDatabaseInventory,
+  OpenStackObjectStoreInventory,
   OpenStackDnsInventory,
   OpenStackMetricInventory,
   OpenStackRatingInventory,
@@ -79,6 +80,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
   [OpenStackServiceType.Database]: "openstack_trove",
+  [OpenStackServiceType.ObjectStore]: "openstack_object_store",
   [OpenStackServiceType.Metric]: "openstack_gnocchi",
   [OpenStackServiceType.Dns]: "openstack_designate",
 };
@@ -316,6 +318,7 @@ export interface OpenStackServiceReading {
     | OpenStackRatingInventory
     | OpenStackSharedFileSystemsInventory
     | OpenStackDatabaseInventory
+    | OpenStackObjectStoreInventory
     | OpenStackDnsInventory
     | OpenStackMetricInventory
     | undefined;
@@ -1723,6 +1726,21 @@ function writeDns(
   }
 }
 
+// The exporter's two series, plus whose they are, which it leaves out.
+function writeObjectStore(
+  writer: SeriesWriter,
+  inventory: OpenStackObjectStoreInventory,
+): void {
+  for (const container of inventory.containers || []) {
+    const labels: Labels = {
+      container_name: container.name,
+      tenant_id: container.projectId,
+    };
+    writer.add("bytes", labels, container.bytes);
+    writer.add("objects", labels, container.objects);
+  }
+}
+
 /*
  * The labels the exporter sends, on each of its three series, and what only Trove's own read says on
  * the first. An instance with no `used` to report reads 0, as the exporter's does, recorded: a page
@@ -1828,6 +1846,12 @@ function writeInventory(
       return;
     case OpenStackServiceType.Database:
       writeDatabase(writer, reading.inventory as OpenStackDatabaseInventory);
+      return;
+    case OpenStackServiceType.ObjectStore:
+      writeObjectStore(
+        writer,
+        reading.inventory as OpenStackObjectStoreInventory,
+      );
       return;
     case OpenStackServiceType.Dns:
       writeDns(writer, reading.inventory as OpenStackDnsInventory);

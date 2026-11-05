@@ -49,6 +49,7 @@ export interface ResourceCounts {
   containerClusters?: number | undefined;
   shares?: number | undefined;
   databases?: number | undefined;
+  objectContainers?: number | undefined;
   dnsZones?: number | undefined;
   /*
    * The services a cloud may not run that this one does, in the region being read. What decides
@@ -77,6 +78,7 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
   const runsMagnum: boolean = runs(OpenStackServiceType.ContainerInfra);
   const runsManila: boolean = runs(OpenStackServiceType.SharedFileSystems);
   const runsTrove: boolean = runs(OpenStackServiceType.Database);
+  const runsSwift: boolean = runs(OpenStackServiceType.ObjectStore);
   const runsDesignate: boolean = runs(OpenStackServiceType.Dns);
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -468,6 +470,23 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
             }}
             icon={IconProp.Folder}
             badge={counts.shares}
+          />
+        ) : (
+          <></>
+        )}
+        {runsSwift ? (
+          <SideMenuItem
+            link={{
+              title: "Object Storage",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS
+                ] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Cube}
+            badge={counts.objectContainers}
           />
         ) : (
           <></>

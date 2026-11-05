@@ -1888,3 +1888,62 @@ export const OpenStackDnsRecordsetList: FunctionComponent<
     />
   );
 };
+
+/*
+ * ---------------------------------------------------------------------------
+ * Object storage
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Swift, and only as far as this credential's own project goes: Swift keeps every
+ * other project's account from anything without ResellerAdmin, recorded. A container has no state of its own.
+ */
+const OBJECT_CONTAINER_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  getOpenStackSizeColumn({
+    title: "Holds",
+    field: "diskAllocatedBytes",
+    format: formatOpenStackBytes,
+  }),
+  getOpenStackFactColumn({
+    id: "objects",
+    title: "Objects",
+    getText: (row: OpenStackResource): string => {
+      const count: JSONValue | undefined = ((row.facts as
+        | JSONObject
+        | undefined) || {})["objectCount"];
+      return typeof count === "number" ? formatOpenStackCount(count) : "";
+    },
+  }),
+  OpenStackColumn.Region,
+];
+
+export const OpenStackObjectContainerList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.ObjectContainer}
+      query={props.query}
+      tableId={props.tableId || "openstack-object-containers-table"}
+      title={props.title || "Object Containers"}
+      description={
+        props.description ||
+        "The containers of this credential's own project, and how much each holds. Swift keeps every other project's account from anything without ResellerAdmin, so this is never the whole cloud's."
+      }
+      singularName="container"
+      pluralName="containers"
+      emptyTitle={props.emptyTitle || "No containers reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Swift's account list, of this credential's own project. It may just hold none."
+      }
+      columns={OBJECT_CONTAINER_COLUMNS}
+      filters={[]}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name"
+    />
+  );
+};

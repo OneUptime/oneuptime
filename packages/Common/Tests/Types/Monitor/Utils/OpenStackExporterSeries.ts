@@ -248,6 +248,21 @@ export const OPENSTACK_EXPORTER_SERIES: Readonly<
     service: OpenStackServiceType.Metric,
     recorded: true,
   },
+  openstack_object_store_up: {
+    labels: [],
+    service: OpenStackServiceType.ObjectStore,
+    recorded: true,
+  },
+  openstack_object_store_bytes: {
+    labels: ["container_name"],
+    service: OpenStackServiceType.ObjectStore,
+    recorded: true,
+  },
+  openstack_object_store_objects: {
+    labels: ["container_name"],
+    service: OpenStackServiceType.ObjectStore,
+    recorded: true,
+  },
   openstack_trove_up: {
     labels: [],
     service: OpenStackServiceType.Database,

@@ -404,6 +404,13 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     color: "#fb923c",
     order: 76,
   },
+  "openstack.object-container": {
+    label: translationKey("Object Container"),
+    plural: translationKey("Object Containers"),
+    icon: IconProp.Cube,
+    color: "#0ea5e9",
+    order: 66,
+  },
   "openstack.network": {
     label: translationKey("Network"),
     plural: translationKey("Networks"),

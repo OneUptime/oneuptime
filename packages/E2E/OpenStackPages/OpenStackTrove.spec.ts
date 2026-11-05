@@ -99,7 +99,9 @@ test.describe("a cloud that runs Trove", () => {
     page,
   }) => {
     await openCloudPage(page, "topology", FAILED);
-    await expect(page.getByText("Databases").first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /ou-db-no-host/ }),
+    ).toBeVisible();
   });
 
   for (const viewport of VIEWPORTS) {

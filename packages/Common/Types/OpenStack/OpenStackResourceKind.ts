@@ -67,6 +67,7 @@ export enum OpenStackResourceKind {
    * Trove's own series make one.
    */
   DatabaseInstance = "DatabaseInstance",
+  ObjectContainer = "ObjectContainer",
   // A DNS zone Designate serves. Only Designate's own series make one.
   DnsZone = "DnsZone",
   /*
@@ -99,6 +100,7 @@ export enum OpenStackServiceType {
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
   Database = "database",
+  ObjectStore = "object-store",
   // What the agent's job calls it, and the exporter: Keystone's catalog says `metric`.
   Metric = "gnocchi",
   Dns = "dns",
@@ -140,6 +142,7 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
   [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
   [OpenStackServiceType.Database]: "Databases (Trove)",
+  [OpenStackServiceType.ObjectStore]: "Object Storage (Swift)",
   [OpenStackServiceType.Metric]: "Metrics (Gnocchi)",
   [OpenStackServiceType.Dns]: "DNS (Designate)",
 };
@@ -188,6 +191,7 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: [OpenStackResourceKind.BareMetalNode],
   [OpenStackServiceType.SharedFileSystems]: [OpenStackResourceKind.Share],
   [OpenStackServiceType.Database]: [OpenStackResourceKind.DatabaseInstance],
+  [OpenStackServiceType.ObjectStore]: [OpenStackResourceKind.ObjectContainer],
   // What it says goes on its API's row: it has no parts a person would open one by one.
   [OpenStackServiceType.Metric]: [],
   [OpenStackServiceType.Dns]: [

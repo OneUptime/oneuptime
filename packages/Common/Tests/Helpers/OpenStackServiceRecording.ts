@@ -107,6 +107,17 @@ export class RecordedServiceScene {
     ) as JSONObject;
   }
 
+  // What the rig's own call was answered with, from its api-status.txt.
+  public readApiStatus(call: string): number {
+    const line: string | undefined = fs
+      .readFileSync(path.join(this.folder, "api-status.txt"), "utf8")
+      .split("\n")
+      .find((one: string): boolean => {
+        return one.endsWith(` ${call}`);
+      });
+    return Number(line?.split(" ")[0]);
+  }
+
   public seriesNamed(name: string): Array<RecordedSeries> {
     return this.series.filter((series: RecordedSeries): boolean => {
       return series.name === name;

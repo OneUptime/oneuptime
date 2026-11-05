@@ -1583,6 +1583,14 @@ describe("an OpenStack cloud's recommendations", () => {
     expect(ids).toContain("openstack-metric-api-down");
   });
 
+  test("Swift's go only to a cloud that runs it", () => {
+    expect(idsOf()).not.toContain("openstack-object-container-growth");
+
+    const ids: Array<string> = idsOf({ openStackServices: ["object-store"] });
+    expect(ids).toContain("openstack-object-container-growth");
+    expect(ids).toContain("openstack-object-store-api-down");
+  });
+
   test("Trove's go only to a cloud that runs it", () => {
     expect(idsOf()).not.toContain("openstack-database-instance-in-error");
 

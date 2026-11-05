@@ -1402,6 +1402,31 @@ export interface OpenStackDnsInventory {
   services?: Array<DesignateServiceRecord> | undefined;
 }
 
+// A Swift container, as its account's own list says: its name, how much it holds, and how many objects.
+export interface SwiftContainerRecord {
+  name: string | null;
+  bytes: number | null;
+  objects: number | null;
+  // Whose account it's in: the exporter leaves that out.
+  projectId: string | null;
+}
+
+export function toSwiftContainer(
+  item: JSONObject,
+  projectId: string | null,
+): SwiftContainerRecord {
+  return {
+    name: text(item["name"]),
+    bytes: numeric(item["bytes"]),
+    objects: numeric(item["count"]),
+    projectId,
+  };
+}
+
+export interface OpenStackObjectStoreInventory {
+  containers?: Array<SwiftContainerRecord> | undefined;
+}
+
 export interface OpenStackDatabaseInventory {
   instances?: Array<TroveInstanceRecord> | undefined;
 }
@@ -1427,6 +1452,7 @@ export interface OpenStackInventoryByService {
   rating?: OpenStackRatingInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
   database?: OpenStackDatabaseInventory | undefined;
+  "object-store"?: OpenStackObjectStoreInventory | undefined;
   dns?: OpenStackDnsInventory | undefined;
   gnocchi?: OpenStackMetricInventory | undefined;
 }
