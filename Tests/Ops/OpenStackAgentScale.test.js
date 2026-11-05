@@ -182,7 +182,7 @@ describe("the database path", () => {
       expect(install).toContain(name);
     }
 
-    expect(install).toContain('for name in $VERY_LARGE_CLOUD_NAMES; do');
+    expect(install).toContain('for name in $VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES; do');
   });
 
   test("is read on /metrics, with the service and region the per-service jobs give", () => {

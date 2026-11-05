@@ -1,4 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
@@ -1498,6 +1501,15 @@ const OpenStackCloudOverview: FunctionComponent<
           RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE] as Route,
           { modelId: modelId },
         )}
+      />
+
+      {/*
+       * Last on the page: the OpenStack AI agent's connection and whether AI may
+       * investigate, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.OpenStackCloud)}
+        resourceId={modelId}
       />
     </Fragment>
   );

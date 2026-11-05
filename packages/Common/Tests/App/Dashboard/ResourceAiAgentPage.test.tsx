@@ -85,6 +85,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   CLOUD_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import {
@@ -3721,7 +3722,7 @@ describe("every resource type", () => {
       );
 
       expect(line).toHaveTextContent(
-        `AI investigations are on by default: once the ${descriptor.agentName} connects, OneUptime AI runs ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun} whenever it investigates an incident or alert here. Fixes stay off until you allow them.`,
+        `AI investigations are on by default: once the ${descriptor.agentName} connects, OneUptime AI runs ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun} whenever it investigates an incident or alert here. ${descriptor.isReadOnly ? "It has no command that changes one." : "Fixes stay off until you allow them."}`,
       );
     },
   );
@@ -3909,7 +3910,31 @@ describe("every resource type", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test("a resource OneUptime AI only reads says so where the fixes are, with nothing to choose", async () => {
+    const descriptor: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+      AiResourceType.OpenStackCloud,
+    );
+    grant(ADMIN_PERMISSIONS);
+    serve(makeStatus({ resourceType: AiResourceType.OpenStackCloud }));
+    openAgentPage(descriptor);
+
+    expect(await findTestId("ai-access-fixes")).toHaveTextContent(
+      "OneUptime AI only reads this OpenStack cloud",
+    );
+    expect(screen.queryByTestId("ai-access-fixes-off-hint")).toBeNull();
+
+    const dialog: HTMLElement = await openChangeModal(descriptor);
+
+    expect(
+      within(dialog).queryByTestId("ai-remediation-mode-field"),
+    ).toBeNull();
+  });
+
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "%s: the Change modal's mode cards name its own riskier changes",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =

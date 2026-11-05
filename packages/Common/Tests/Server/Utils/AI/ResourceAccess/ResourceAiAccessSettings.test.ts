@@ -47,6 +47,7 @@ import Permission, {
 } from "../../../../../Types/Permission";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isReadOnlyAiResourceType,
 } from "../../../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiRemediationMode,
@@ -242,7 +243,12 @@ describe("ResourceAiAccessPermissions", () => {
     );
   });
 
-  it.each(ALL_AI_RESOURCE_TYPES)(
+  // A resource OneUptime AI only reads has nothing to pre-approve.
+  it.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "has a sentence name, an agent name and a valid allowlist example for %s",
     (resourceType: AiResourceType) => {
       expect(getResourceSentenceName(resourceType)).toMatch(/^[A-Za-z]/);
@@ -500,7 +506,11 @@ describe("ResourceAiAccessSettings.validateSettings", () => {
     ).toEqual(["systemctl stop nginx"]);
   });
 
-  it.each(ALL_AI_RESOURCE_TYPES)(
+  it.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "accepts the %s example and refuses a read of the same type",
     (resourceType: AiResourceType) => {
       expect(
