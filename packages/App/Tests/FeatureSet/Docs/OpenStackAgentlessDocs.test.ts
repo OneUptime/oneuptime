@@ -12,6 +12,7 @@ import {
   OPENSTACK_PROBE_COLLECTION_CONCURRENCY,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import {
+  OPENSTACK_CANDIDATE_READS_PER_COLLECTION,
   OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
 } from "Common/Types/OpenStack/OpenStackScale";
@@ -475,6 +476,12 @@ describe("what it says about how a collection stands", () => {
   it("says how many instances' histories one collection reads", () => {
     expect(OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION).toBe(25);
     expect(PAGE).toContain("at most 25 are read in a collection");
+  });
+
+  it("says how many flavors Placement is asked about", () => {
+    expect(PAGE).toContain(
+      `up to ${OPENSTACK_CANDIDATE_READS_PER_COLLECTION} more to ask Placement`,
+    );
   });
 });
 

@@ -38,6 +38,8 @@
  *   ?probes=    many: a choice of probes, where a new cloud starts on none
  *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
  *               untrusted | plain-http | refused | not-found | no-probe
+ *   ?checks=    on | failed | refused | sweeping | waiting: what a cloud's check has come to,
+ *               with none until someone turns one on (Checks.js)
  *   ?aiAgent=   connected | unreachable: the OneUptime AI agent's state (AiAgent.js); none
  *               has connected by default
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
@@ -127,6 +129,7 @@ import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack
 import CloudMetrics from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Metrics";
 import CloudLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Logs";
 import CloudTraces from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Traces";
+import CloudChecks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Checks";
 import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
 import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
 import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
@@ -220,6 +223,7 @@ import {
   getStoragePoolCeph,
   otherProductsOf,
 } from "./Links";
+import { checkRowOf } from "./Checks";
 import {
   PROBES,
   SHARED_PROBES,
@@ -900,6 +904,13 @@ const PRODUCTION_LABEL = {
   projectId: PROJECT_ID,
 };
 
+const checkRow = checkRowOf(
+  params.get("checks"),
+  estate.cloud._id,
+  PROJECT_ID,
+  LOADED_AT,
+);
+
 /*
  * What the worker would keep on the cloud, worked out from this estate's rows by the same code
  * (OpenStackCapacitySnapshot). ?capacity=none is a cloud no worker has been through yet.
@@ -917,6 +928,7 @@ function withCapacity(cloud) {
 }
 
 const store = {
+  OpenStackCloudCheck: checkRow ? [checkRow] : [],
   // Every cloud's row has these, with these defaults, since its migration.
   OpenStackCloud: withAiAccessColumns(
     params.get("clouds") === "none"
@@ -1377,6 +1389,7 @@ function writeRow(modelName, id, data) {
 }
 
 const WRITABLE_TABLES = new Set([
+  "OpenStackCloudCheck",
   "OpenStackCloudOwnerUser",
   "OpenStackCloudOwnerTeam",
   "OpenStackCloudOwnerRule",
@@ -2437,6 +2450,7 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_METRICS, CloudMetrics],
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS, CloudLogs],
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES, CloudTraces],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS, CloudChecks],
   [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, CloudIncidents],
   [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS, CloudAlerts],
   [

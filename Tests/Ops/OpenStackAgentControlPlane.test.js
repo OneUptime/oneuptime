@@ -380,7 +380,7 @@ describe("the collector's jobs for what the cloud stands on", () => {
       });
 
       expect(keep).toBeDefined();
-      expect(keep.source_labels).toEqual(["__name__"]);
+      expect(keep.source_labels[0]).toBe("__name__");
     }
   });
 

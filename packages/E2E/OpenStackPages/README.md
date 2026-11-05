@@ -115,7 +115,7 @@ German and Persian.
 `OpenStackProjectsAndTopology.spec.ts`: Projects with quota data (`?estate=tenants`, a project
 at 90% of a quota and a nova-compute stopped under two projects) and without it (`?estate=calm`,
 which is most clouds), a project's page and who is told, Domains, a list opened on a project, and
-the Topology with that host red. No recording holds a quota series, so `tenants` is made up in the
+the Topology with that host red. No recorded project is at 90% of a quota, so `tenants` is made up in the
 shape the snapshot scan writes.
 
 `OpenStackPartPages.spec.ts`: the compute, network and storage lists and part pages, the step

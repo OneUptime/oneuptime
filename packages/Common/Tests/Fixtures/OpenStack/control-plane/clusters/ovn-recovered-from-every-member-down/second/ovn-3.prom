@@ -1,0 +1,2 @@
+ovn_northd_status 1
+ovn_raft_cluster_leader{cluster_uuid="d89a2f90-e235-40a2-baa6-03da71a680bb",database="OVN_Southbound",server_uuid="c8aaf7e0-c591-4af9-93b0-55293786d369"} 0

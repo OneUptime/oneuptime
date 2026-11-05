@@ -1,5 +1,15 @@
 $ openstack hypervisor list
-
++--------------------------------------+--------------------------------------+-----------------+------------+-------+
+| ID                                   | Hypervisor Hostname                  | Hypervisor Type | Host IP    | State |
++--------------------------------------+--------------------------------------+-----------------+------------+-------+
+| 0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d | 0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d | ironic          | 203.0.113.10 | up    |
+| 21fdc1eb-471d-40dd-b0b9-cf9735477d53 | 21fdc1eb-471d-40dd-b0b9-cf9735477d53 | ironic          | 203.0.113.10 | up    |
+| 8ae7c63a-814e-4429-8ee4-8912fd1eeee1 | 8ae7c63a-814e-4429-8ee4-8912fd1eeee1 | ironic          | 203.0.113.10 | up    |
+| 59d335d5-0fe7-452d-9f67-34e82ee6706a | 59d335d5-0fe7-452d-9f67-34e82ee6706a | ironic          | 203.0.113.10 | up    |
+| 3cca2e8c-fd41-4eea-a4db-43aa5e780090 | 3cca2e8c-fd41-4eea-a4db-43aa5e780090 | ironic          | 203.0.113.10 | up    |
+| c86fce69-edca-492e-b2a5-07d4bec1e18f | c86fce69-edca-492e-b2a5-07d4bec1e18f | ironic          | 203.0.113.10 | up    |
+| 73a89c31-be10-40db-9f7f-c08fad8e6112 | 73a89c31-be10-40db-9f7f-c08fad8e6112 | ironic          | 203.0.113.10 | up    |
++--------------------------------------+--------------------------------------+-----------------+------------+-------+
 $ openstack baremetal node list --fields name provision_state power_state maintenance maintenance_reason resource_class last_error
 +-----------------------+-----------------+-------------+-------------+---------------------------------------+----------------+------------------------------------------------------------------------------------------+
 | name                  | provision_state | power_state | maintenance | maintenance_reason                    | resource_class | last_error                                                                               |
@@ -8,9 +18,9 @@ $ openstack baremetal node list --fields name provision_state power_state mainte
 | ou-node-half          | enroll          | None        | False       | None                                  | None           | None                                                                                     |
 | ou-node-maintenance   | available       | None        | True        | OneUptime drill: a disk being swapped | baremetal      | None                                                                                     |
 | ou-node-clean-failed  | clean failed    | None        | False       | None                                  | baremetal      | None                                                                                     |
-| ou-node-deploy-failed | deploy failed   | power on    | False       | None                                  | baremetal      | Timeout reached while waiting for callback for node 37b27be2-8431-4f40-9f03-17c91e413050 |
+| ou-node-deploy-failed | deploy failed   | power on    | False       | None                                  | baremetal      | Timeout reached while waiting for callback for node c86fce69-edca-492e-b2a5-07d4bec1e18f |
 +-----------------------+-----------------+-------------+-------------+---------------------------------------+----------------+------------------------------------------------------------------------------------------+
 $ openstack baremetal conductor list
-Access was denied to the following resource: baremetal:conductor:get (HTTP 403) (Request-ID: req-111bd876-97bd-453b-8195-9f3cd30cdfb2)
+Access was denied to the following resource: baremetal:conductor:get (HTTP 403) (Request-ID: req-79a44464-0513-4062-b9ee-d228196080f7)
 $ openstack baremetal driver list
-"baremetal:driver:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role" requires a scope of ['system'], request was made with project scope. (HTTP 500) (Request-ID: req-aa9430c4-886e-4941-9316-72b63f6d2dc8)
+"baremetal:driver:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role" requires a scope of ['system'], request was made with project scope. (HTTP 500) (Request-ID: req-8778d2c2-16aa-426e-b3c6-cf4f22bd7f35)
