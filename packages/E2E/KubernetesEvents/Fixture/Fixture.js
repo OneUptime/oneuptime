@@ -1452,6 +1452,13 @@ async function handleApi(method, options) {
 
   if (
     method === "POST" &&
+    parsed.pathname.includes("/openstack-resource/placement-of-kubernetes-node/")
+  ) {
+    return ok({ placement: null });
+  }
+
+  if (
+    method === "POST" &&
     parsed.pathname.includes("/kubernetes-resource/needs-attention/")
   ) {
     return ok(serialize(readKubernetesNeedsAttention(resources)));

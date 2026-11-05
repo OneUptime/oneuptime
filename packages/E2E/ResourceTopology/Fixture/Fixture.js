@@ -378,6 +378,8 @@ function matches(record, query) {
 }
 
 const store = {
+  // A cloud with no scheduled check: its Checks read finds none.
+  OpenStackCloudCheck: [],
   VMwareVCenter: [
     {
       _id: IDS.vcenter,
