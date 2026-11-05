@@ -48,6 +48,8 @@ estate has to say nothing beyond its rows. `Fixture/Links.js` answers what a clo
 in OneUptime the same way, with the real matching rules, from what else the estate holds: its
 hosts, Kubernetes nodes, services and Ceph clusters (`OTHER_PRODUCTS` in `Fixture/Data.js`).
 
+A cloud's Spend page and Recommendations read what the worker keeps about its usage, so `Fixture/Spend.js` works that out from the estate's rows by the same code. A recording is one moment, so its hours are made up, as if each project had held what it holds now since the 1st. `?spend=none|priced|partial|zero|cloudkitty|gap` says what's priced, and `?waste=old` runs the waste rules 31 days after the recording.
+
 A cloud's Traces page reads spans, so it has a recording of its own: `?traces=flamingo-ovn/signed-boot`
 is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
 (`Fixture/TraceRecordings.js`). With none, the cloud has no traces, which is how every cloud starts.

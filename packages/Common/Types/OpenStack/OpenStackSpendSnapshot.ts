@@ -51,6 +51,7 @@ export type OpenStackSpendSource =
   | "usage-only";
 
 export const OPENSTACK_SPEND_GROWERS_KEPT: number = 10;
+export const OPENSTACK_SPEND_SMALLEST_GROWTH: number = 0.01;
 export const OPENSTACK_SPEND_DOMAINS_KEPT: number = 200;
 export const OPENSTACK_SPEND_FLAVORS_KEPT: number = 50;
 export const OPENSTACK_SPEND_VOLUME_TYPES_KEPT: number = 50;
@@ -411,7 +412,11 @@ export function getOpenStackSpendGrowers(
 ): Array<OpenStackSpendProject> {
   return projects
     .filter((project: OpenStackSpendProject): boolean => {
-      return project.growth !== null && project.growth > 0;
+      // Less than a cent or a hundredth of an hour would read as growing by nothing.
+      return (
+        project.growth !== null &&
+        project.growth >= OPENSTACK_SPEND_SMALLEST_GROWTH
+      );
     })
     .sort((first: OpenStackSpendProject, second: OpenStackSpendProject) => {
       return (
