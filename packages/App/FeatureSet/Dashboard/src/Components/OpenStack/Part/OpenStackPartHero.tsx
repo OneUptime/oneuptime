@@ -38,6 +38,7 @@ export const OPENSTACK_PART_SLUGS: Partial<
   [OpenStackResourceKind.Volume]: "volume",
   [OpenStackResourceKind.StoragePool]: "storage-pool",
   [OpenStackResourceKind.Image]: "image",
+  [OpenStackResourceKind.BareMetalNode]: "bare-metal-node",
 };
 
 const ICONS: Partial<Record<OpenStackResourceKind, IconProp>> = {
@@ -53,6 +54,7 @@ const ICONS: Partial<Record<OpenStackResourceKind, IconProp>> = {
   [OpenStackResourceKind.Volume]: IconProp.Disc,
   [OpenStackResourceKind.StoragePool]: IconProp.Database,
   [OpenStackResourceKind.Image]: IconProp.Image,
+  [OpenStackResourceKind.BareMetalNode]: IconProp.Server,
 };
 
 const ACCENTS: Partial<Record<OpenStackResourceKind, ResourcePartAccent>> = {
@@ -67,6 +69,7 @@ const ACCENTS: Partial<Record<OpenStackResourceKind, ResourcePartAccent>> = {
   [OpenStackResourceKind.Volume]: "emerald",
   [OpenStackResourceKind.StoragePool]: "emerald",
   [OpenStackResourceKind.Image]: "emerald",
+  [OpenStackResourceKind.BareMetalNode]: "orange",
 };
 
 const LOCATION_LINK_CLASS_NAME: string =

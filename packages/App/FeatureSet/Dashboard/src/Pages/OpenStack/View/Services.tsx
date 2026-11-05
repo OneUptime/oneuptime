@@ -53,6 +53,7 @@ import {
   getOpenStackAccessGaps,
   getOpenStackRowsAsThisCredentialReadsThem,
   getOpenStackNetworkBackendName,
+  getOpenStackServiceGroupNote,
   getOpenStackServiceGroups,
   getOpenStackServiceTitle,
   getOpenStackWorkerHost,
@@ -389,6 +390,7 @@ const OpenStackCloudServices: FunctionComponent<
               <OpenStackServiceGroupCard
                 key={group.key}
                 group={group}
+                note={getOpenStackServiceGroupNote({ group, isProbeCollected })}
                 showRegion={hasRegions}
                 backendName={
                   group.service === OpenStackServiceType.Network

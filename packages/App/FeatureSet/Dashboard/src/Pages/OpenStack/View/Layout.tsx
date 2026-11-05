@@ -4,6 +4,7 @@ import PageComponentProps from "../../PageComponentProps";
 import {
   OpenStackInventorySummary,
   fetchOpenStackInventorySummary,
+  isOpenStackRunningBareMetal,
 } from "../Utils/OpenStackResourceUtils";
 import OpenStackRegionBar from "../../../Components/OpenStack/OpenStackRegionBar";
 import {
@@ -56,6 +57,8 @@ const OpenStackCloudViewBody: FunctionComponent<{
           floatingIps: summary.floatingIpCount,
           volumes: summary.volumeCount,
           projects: summary.projectCount,
+          hasBareMetal: isOpenStackRunningBareMetal(summary),
+          bareMetalNodes: summary.bareMetalNodeCount,
         });
       })
       .catch(() => {});

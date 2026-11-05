@@ -81,6 +81,10 @@ import { getOpenStackListSeekReads } from "../Utils/OpenStack/OpenStackListSeekQ
  *     The cloud's or a region's counts for its layout and Overview pages, in one round
  *     trip, read from the same rows the lists read. Needs read access to the cloud.
  *
+ *   POST /openstack-resource/bare-metal-classes/:cloudId   { regionName? }
+ *     How many nodes there are of each resource class, and how many could take an instance,
+ *     from one statement over the nodes' rows. Needs read access to the cloud.
+ *
  *   POST /openstack-resource/needs-attention/:cloudId   { regionName? }
  *     The rows that may need someone, for the Overview's Needs attention and health
  *     pill (OpenStackHealth has the last word on each). One indexed read per kind, so
@@ -253,6 +257,20 @@ export default class OpenStackResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getInventorySummary(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/bare-metal-classes/:cloudId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getBareMetalClasses(req, res);
         } catch (err) {
           next(err);
         }
@@ -1337,6 +1355,22 @@ export default class OpenStackResourceAPI extends BaseAPI<
       projectId: cloud.projectId,
       openStackCloudId,
     };
+  }
+
+  private async getBareMetalClasses(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, openStackCloudId } =
+      await this.resolveCloudForRequest(req);
+
+    return Response.sendJsonObjectResponse(req, res, {
+      classes: (await this.service.getBareMetalClasses({
+        projectId,
+        openStackCloudId,
+        regionName: this.readRegionName(req),
+      })) as unknown as JSONObject,
+    });
   }
 
   private async getInventorySummary(

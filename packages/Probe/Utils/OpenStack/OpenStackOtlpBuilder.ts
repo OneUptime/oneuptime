@@ -1,6 +1,7 @@
 import {
   OpenStackComputeInventory,
   OpenStackIdentityInventory,
+  OpenStackBareMetalInventory,
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackPlacementInventory,
@@ -188,6 +189,7 @@ export interface OpenStackServiceReading {
     | OpenStackNetworkInventory
     | OpenStackVolumeInventory
     | OpenStackImageInventory
+    | OpenStackBareMetalInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
   apiUp: boolean | null;
@@ -1235,6 +1237,75 @@ function writeImage(
   }
 }
 
+function toUnixSeconds(value: string | null): number | null {
+  const at: number = value ? Date.parse(value) : Number.NaN;
+  return Number.isNaN(at) ? null : Math.floor(at / 1000);
+}
+
+/*
+ * What the exporter sends for a node, the same way, with what only Ironic's API says beside it, marked
+ * in OpenStackMetricCatalog. The exporter leaves two labels empty for every node of the cloud it was
+ * recorded on (deploy_kernel and deploy_ramdisk): they are in a node's driver_info, which is not read.
+ */
+function writeBareMetal(
+  writer: SeriesWriter,
+  inventory: OpenStackBareMetalInventory,
+): void {
+  for (const node of inventory.nodes || []) {
+    writer.add(
+      "node",
+      {
+        id: node.uuid,
+        name: node.name,
+        provision_state: node.provisionState,
+        power_state: node.powerState,
+        maintenance: node.isInMaintenance,
+        maintenance_reason: node.maintenanceReason,
+        resource_class: node.resourceClass,
+        retired: node.isRetired,
+        retired_reason: node.retiredReason,
+        console_enabled: node.isConsoleEnabled,
+        driver: node.driver,
+        owner: node.owner,
+        lessee: node.lessee,
+        instance_uuid: node.instanceUuid,
+        conductor: node.conductor,
+        conductor_group: node.conductorGroup,
+        fault: node.fault,
+        target_provision_state: node.targetProvisionState,
+        target_power_state: node.targetPowerState,
+        last_error: node.lastError,
+      },
+      1,
+    );
+
+    const times: Labels = {
+      id: node.uuid,
+      name: node.name,
+      provision_state: node.provisionState,
+    };
+
+    writer.add(
+      "node_provision_updated_at",
+      times,
+      toUnixSeconds(node.provisionUpdatedAt),
+    );
+    writer.add("node_updated_at", times, toUnixSeconds(node.updatedAt));
+  }
+
+  for (const conductor of inventory.conductors || []) {
+    writer.add(
+      "conductor_state",
+      {
+        hostname: conductor.hostname,
+        service: "ironic-conductor",
+        conductor_group: conductor.conductorGroup,
+      },
+      conductor.isAlive ? 1 : 0,
+    );
+  }
+}
+
 function writeInventory(
   writer: SeriesWriter,
   reading: OpenStackServiceReading,
@@ -1261,6 +1332,9 @@ function writeInventory(
       return;
     case OpenStackServiceType.Image:
       writeImage(writer, reading.inventory as OpenStackImageInventory);
+      return;
+    case OpenStackServiceType.BareMetal:
+      writeBareMetal(writer, reading.inventory as OpenStackBareMetalInventory);
       return;
     default:
       return;

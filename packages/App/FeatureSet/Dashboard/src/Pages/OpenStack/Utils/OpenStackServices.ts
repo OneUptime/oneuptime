@@ -399,6 +399,41 @@ export function getOpenStackServiceGroups(data: {
 }
 
 /*
+ * What a card has to say for itself. Every Ironic has a conductor, so a card with none is saying
+ * what can't be read: the exporter has no series for them, and Ironic refuses a project the list
+ * (recorded: 403 baremetal:conductor:get). A probe that does read them lists them.
+ */
+const NO_CONDUCTORS_ON_THE_AGENT: string = translationKey(
+  "The agent's exporter has no series for Ironic's conductors, so none is listed here. Only a probe reads them, where its credential may.",
+);
+const NO_CONDUCTORS_ON_A_PROBE: string = translationKey(
+  "Ironic answers, and doesn't list its conductors to this credential. It refuses a project the list unless its policy says otherwise (baremetal:conductor:get). Its nodes read without it.",
+);
+
+export function getOpenStackServiceGroupNote(data: {
+  group: Pick<
+    OpenStackServiceGroup,
+    "service" | "api" | "workers" | "notListedCount"
+  >;
+  isProbeCollected: boolean;
+}): string | null {
+  const { group } = data;
+
+  if (
+    group.service !== OpenStackServiceType.BareMetal ||
+    !group.api ||
+    group.workers.length > 0 ||
+    group.notListedCount > 0
+  ) {
+    return null;
+  }
+
+  return data.isProbeCollected
+    ? NO_CONDUCTORS_ON_A_PROBE
+    : NO_CONDUCTORS_ON_THE_AGENT;
+}
+
+/*
  * ---------------------------------------------------------------------------
  * Which backend Neutron runs, as the Services page says it
  * ---------------------------------------------------------------------------

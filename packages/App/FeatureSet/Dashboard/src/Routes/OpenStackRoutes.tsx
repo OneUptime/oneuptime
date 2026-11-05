@@ -22,6 +22,8 @@ import OpenStackCloudFlavors from "../Pages/OpenStack/View/Flavors";
 import OpenStackCloudNetworks from "../Pages/OpenStack/View/Networks";
 import OpenStackCloudRouters from "../Pages/OpenStack/View/Routers";
 import OpenStackCloudFloatingIps from "../Pages/OpenStack/View/FloatingIps";
+import OpenStackCloudBareMetalNodes from "../Pages/OpenStack/View/BareMetalNodes";
+import OpenStackCloudBareMetalNodeDetail from "../Pages/OpenStack/View/BareMetalNodeDetail";
 import OpenStackCloudVolumes from "../Pages/OpenStack/View/Volumes";
 import OpenStackCloudStoragePools from "../Pages/OpenStack/View/StoragePools";
 import OpenStackCloudImages from "../Pages/OpenStack/View/Images";
@@ -393,6 +395,36 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+          )}
+          element={
+            <OpenStackCloudBareMetalNodes
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudBareMetalNodeDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL
+                ] as Route
               }
             />
           }

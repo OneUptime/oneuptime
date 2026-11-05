@@ -1240,6 +1240,7 @@ describe("a plain reader, and the trap", () => {
     ["load-balancer: load balancers"],
     ["load-balancer: amphorae"],
     ["baremetal: nodes"],
+    ["baremetal: conductors"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(
       `• ${read} — not deployed (not in this region's catalog)`,
@@ -1595,7 +1596,37 @@ describe("what a 200 proves", () => {
     const run = await runDoctor(cloud);
     await cloud.close();
     expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
-      "✔ baremetal: nodes — reads everything",
+      "✔ baremetal: nodes — reads everything (no row is any project's)",
+    );
+  });
+
+  test("a project's own nodes are its own view, which is what a real project's admin was shown", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes"
+          ? { rows: [{ uuid: "n1", owner: "project-1" }] }
+          : fullView(read);
+      },
+      roles: ["reader"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toMatch(
+      /baremetal: nodes — .*(own project only|every row is in one project)/,
+    );
+  });
+
+  test("a refused list of conductors says it is the credential, and that nodes read without it", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "conductors" ? { status: 403 } : fullView(read);
+      },
+      roles: ["reader"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: conductors")).toContain(
+      "refused",
     );
   });
 });

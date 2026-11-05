@@ -6,6 +6,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
+import { isOpenStackBareMetalNodeInMaintenance } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Column from "Common/UI/Components/ModelTable/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -36,6 +37,7 @@ import {
 import { ResourceColumnTone } from "../Infrastructure/ResourceTable";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import {
+  OPENSTACK_BARE_METAL_STATE_PRESETS,
   OPENSTACK_IMAGE_STATE_PRESETS,
   OPENSTACK_INSTANCE_STATE_PRESETS,
   OPENSTACK_VOLUME_STATE_PRESETS,
@@ -918,6 +920,119 @@ export const OpenStackNetworkAgentList: FunctionComponent<
       checkAccess={true}
       getViewRoute={routes.routeFor}
       searchPlaceholder="Search by agent or host"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Bare metal nodes
+ * ---------------------------------------------------------------------------
+ *
+ * Ironic's word for where each node is, which a person reads in `openstack baremetal node list`
+ * too. What only its API says, the driver and the instance, shows only for a cloud a probe collects:
+ * a column no row holds is left out (OpenStackResourceList).
+ */
+const BARE_METAL_POWER_OPTIONS: Array<{ value: string; label: string }> = [
+  "power on",
+  "power off",
+].map((word: string) => {
+  return { value: word, label: word };
+});
+
+const BARE_METAL_NODE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackFactColumn({
+    id: "power-state",
+    title: "Power",
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "powerState");
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "maintenance",
+    title: "Maintenance",
+    getText: (row: OpenStackResource): string => {
+      if (!isOpenStackBareMetalNodeInMaintenance(row.adminState)) {
+        return "";
+      }
+      return row.disabledReason || translateText("In maintenance");
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "resource-class",
+    title: "Resource Class",
+    hideOnMobile: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "resourceClass");
+    },
+  }),
+  OpenStackColumn.TimeInState,
+  getOpenStackLinkColumn({
+    id: "instance",
+    title: "Instance",
+    hideOnMobile: true,
+    getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+      const instanceId: string = getOpenStackFactText(row, "instanceId");
+      return instanceId
+        ? { kind: OpenStackResourceKind.Instance, externalId: instanceId }
+        : null;
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "driver",
+    title: "Driver",
+    hideOnMobile: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "driver");
+    },
+  }),
+  OpenStackColumn.Region,
+];
+
+export const OpenStackBareMetalNodeList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.BareMetalNode),
+      getOpenStackFactFacet({
+        key: "power-state",
+        label: "Power",
+        factName: "powerState",
+        options: BARE_METAL_POWER_OPTIONS,
+      }),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.BareMetalNode}
+      query={props.query}
+      tableId={props.tableId || "openstack-bare-metal-nodes-table"}
+      title={props.title || "Nodes"}
+      description={
+        props.description ||
+        "Every machine Ironic shows this credential, as openstack baremetal node list shows them: where each is in Ironic's state machine, its power, and whether someone put it in maintenance."
+      }
+      singularName="node"
+      pluralName="nodes"
+      emptyTitle={props.emptyTitle || "No nodes reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Ironic, which answers a project with only the nodes that project owns."
+      }
+      nameTitle="Node"
+      statusTitle="Provision State"
+      columns={BARE_METAL_NODE_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_BARE_METAL_STATE_PRESETS}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
     />
   );
 };

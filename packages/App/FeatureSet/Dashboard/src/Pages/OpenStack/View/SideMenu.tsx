@@ -43,6 +43,13 @@ export interface ResourceCounts {
   floatingIps?: number | undefined;
   volumes?: number | undefined;
   projects?: number | undefined;
+  /*
+   * Whether this cloud runs Ironic, which is what puts Bare Metal in the menu. A cloud without it
+   * has no such section, and a cloud whose credential Ironic shows no node still has somewhere to
+   * read why not.
+   */
+  hasBareMetal?: boolean | undefined;
+  bareMetalNodes?: number | undefined;
 }
 
 export interface ComponentProps {
@@ -236,6 +243,24 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.RectangleStack}
         />
       </SideMenuSection>
+
+      {counts.hasBareMetal ? (
+        <SideMenuSection title="Bare Metal">
+          <SideMenuItem
+            link={{
+              title: "Nodes",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Server}
+            badge={counts.bareMetalNodes}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Network">
         <SideMenuItem

@@ -1863,6 +1863,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Network]: "network",
     [OpenStackServiceType.Volume]: "block-storage",
     [OpenStackServiceType.Image]: "image",
+    [OpenStackServiceType.BareMetal]: "baremetal",
   };
 
   test.each(

@@ -14,7 +14,10 @@ import {
   OpenStackEndpointInterface,
   OpenStackReadAccess,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import OpenStackServiceClient, {
   OpenStackJsonAnswer,
@@ -46,7 +49,9 @@ export interface OpenStackAccessReadDefinition {
   /*
    * The field naming each row's project. "-" for a list that is not per project, so a
    * 200 is the answer. "*" for one a project's own view of is empty, so any row proves
-   * it: a plain reader's list of Neutron's agents is a 200 with nothing in it.
+   * it: a plain reader's list of Neutron's agents is a 200 with nothing in it. Ending in
+   * "?" for one whose rows may be nobody's: Ironic shows those to no project, so such a
+   * row proves it too.
    */
   projectField: string;
   goesWithout: string;
@@ -328,6 +333,31 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       goesWithout: "private images in other projects.",
       fix: `Glance shows any credential the public images and its own. To read every project's: ${USE_FULL_VIEW}.`,
     },
+    /*
+     * Where a cloud has Ironic. A project sees the nodes it owns, and is refused the conductors:
+     * recorded on DevStack. By Ironic's default policy only a system-scoped credential reads them
+     * all, and a probe's cannot be one, because it reads Nova's lists through the same credential.
+     */
+    {
+      service: OpenStackServiceType.BareMetal,
+      read: "nodes",
+      path: "/v1/nodes",
+      // Ironic reads this as one list with commas in it, and refuses it repeated.
+      query: { limit: "100", fields: "uuid,owner" },
+      key: "nodes",
+      projectField: "owner?",
+      goesWithout: "bare metal nodes other projects own.",
+      fix: "Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy, or system scope, which only the OpenStack Agent can use for Ironic alone.",
+    },
+    {
+      service: OpenStackServiceType.BareMetal,
+      read: "conductors",
+      path: "/v1/conductors",
+      key: "conductors",
+      projectField: "-",
+      goesWithout: "Ironic's conductors on the Services page.",
+      fix: "Ironic refuses a project this list unless its policy says otherwise (baremetal:conductor:get). Nodes read without it.",
+    },
   ];
 
 /*
@@ -406,6 +436,10 @@ export function classifyAccessList(data: {
 
   const rows: JSONValue | undefined = data.body[data.key];
   const projects: Set<string> = new Set();
+  const mayBeNobodys: boolean = data.projectField.endsWith("?");
+  const projectField: string = mayBeNobodys
+    ? data.projectField.slice(0, -1)
+    : data.projectField;
   let rowCount: number = 0;
 
   if (Array.isArray(rows)) {
@@ -416,7 +450,7 @@ export function classifyAccessList(data: {
         continue;
       }
 
-      const project: JSONValue | undefined = row[data.projectField];
+      const project: JSONValue | undefined = row[projectField];
 
       if (typeof project === "string" && project) {
         projects.add(project);
@@ -426,6 +460,10 @@ export function classifyAccessList(data: {
 
   if (data.projectField === "*" && rowCount > 0) {
     return { access: "ReadsEverything" };
+  }
+
+  if (mayBeNobodys && rowCount > 0 && projects.size === 0) {
+    return { access: "ReadsEverything", reason: "no row is any project's" };
   }
 
   if (projects.size >= 2) {
@@ -667,6 +705,10 @@ export async function runOpenStackAccessCheck(data: {
       }
 
       if (!client) {
+        // A service a cloud may not run is not one it is missing, and a test says nothing of it.
+        if (!OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(definition.service)) {
+          continue;
+        }
         write({
           access: "NotDeployed",
           reason: "not in this region's catalog",

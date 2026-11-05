@@ -80,6 +80,7 @@ import useOpenStackDomainFilter, {
   OPENSTACK_PROJECT_OWNED_KINDS,
   OpenStackDomainFilter,
 } from "./UseOpenStackDomainFilter";
+import { getOpenStackBareMetalProvisionUpdatedAt } from "../../Pages/OpenStack/Utils/OpenStackHealth";
 import OpenStackStatusCell from "./OpenStackStatusCell";
 import {
   OpenStackPartRoutes,
@@ -979,6 +980,9 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
                     getOpenStackFact(row, "scrapeFailed") === true
                   }
                   stateChangedAt={row.stateChangedAt}
+                  provisionUpdatedAt={getOpenStackBareMetalProvisionUpdatedAt(
+                    row,
+                  )}
                   now={OneUptimeDate.getCurrentDate()}
                   label={state?.label}
                   isOpenStackWord={state?.isOpenStackWord}

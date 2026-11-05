@@ -37,6 +37,7 @@ import {
   OpenStackInventoryByService,
   OpenStackComputeInventory,
   OpenStackIdentityInventory,
+  OpenStackBareMetalInventory,
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackPlacementInventory,
@@ -82,6 +83,9 @@ import collectIdentity from "./Collectors/IdentityCollector";
 import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
 import collectPlacement from "./Collectors/PlacementCollector";
+import collectBareMetal, {
+  IRONIC_MICROVERSION,
+} from "./Collectors/BareMetalCollector";
 import collectVolume, {
   CINDER_MICROVERSION,
 } from "./Collectors/VolumeCollector";
@@ -118,6 +122,7 @@ import {
   OpenStackServiceSummary,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import {
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_TITLES,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -179,6 +184,8 @@ export function getSlowServiceIntervalInMs(
 const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Identity,
   OpenStackServiceType.Image,
+  // As often as the agent's job for it reads it, which the alert templates count on.
+  OpenStackServiceType.BareMetal,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -188,6 +195,7 @@ const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
   OpenStackServiceType.Network,
   OpenStackServiceType.Volume,
   OpenStackServiceType.Image,
+  OpenStackServiceType.BareMetal,
 ];
 
 const MAX_SUMMARY_WARNINGS: number = 20;
@@ -1136,6 +1144,14 @@ export default class OpenStackCollector {
          * collection answers with nothing, as the agent's job for it does for ever.
          */
         if (!catalogUrl) {
+          /*
+           * A service a cloud may not run is not one it is missing, so a cloud without Ironic has
+           * no line saying so, and no series: nothing here may hint it was ever asked for.
+           */
+          if (!OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(service)) {
+            continue;
+          }
+
           summaries.push({
             service: service,
             regionName: regionName,
@@ -1309,6 +1325,12 @@ export default class OpenStackCollector {
             const inventory: OpenStackVolumeInventory = {};
             byService.volume = inventory;
             work = collectVolume(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.BareMetal: {
+            const inventory: OpenStackBareMetalInventory = {};
+            byService.baremetal = inventory;
+            work = collectBareMetal(context(inventory));
             break;
           }
           default: {
@@ -1806,6 +1828,10 @@ export default class OpenStackCollector {
         ): Promise<Record<string, string>> => {
           if (client.service === OpenStackServiceType.Volume) {
             return { "OpenStack-API-Version": `volume ${CINDER_MICROVERSION}` };
+          }
+
+          if (client.service === OpenStackServiceType.BareMetal) {
+            return { "X-OpenStack-Ironic-API-Version": IRONIC_MICROVERSION };
           }
 
           if (client.service !== OpenStackServiceType.Compute) {

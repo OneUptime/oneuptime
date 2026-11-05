@@ -64,6 +64,9 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.StoragePool]: translationKey(
     "This storage pool is not in this cloud's inventory. It may have gone, or Cinder may not have reported it yet.",
   ),
+  [OpenStackResourceKind.BareMetalNode]: translationKey(
+    "This node is not in this cloud's inventory. It may have been removed, or Ironic may not show it to this credential: it answers a project with only the nodes that project owns.",
+  ),
   [OpenStackResourceKind.Image]: translationKey(
     "This image is not in this cloud's inventory. It may have been deleted, or Glance may not have reported it yet.",
   ),

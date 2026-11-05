@@ -2,7 +2,10 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import { isOpenStackServiceForcedDown } from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  isOpenStackServiceForcedDown,
+  isOpenStackServiceQuiet,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackServiceFamily } from "Common/Types/OpenStack/OpenStackResourceKind";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
@@ -24,6 +27,7 @@ import {
   getOpenStackWorkerRank,
   isOpenStackApiScrapeFailed,
 } from "../../Pages/OpenStack/Utils/OpenStackServices";
+import { OPENSTACK_QUIET_LABEL } from "./OpenStackStatus";
 import OpenStackStatusCell from "./OpenStackStatusCell";
 
 /*
@@ -47,6 +51,8 @@ export interface ComponentProps {
   showRegion: boolean;
   // The network backend the agents list reports, on Neutron's card.
   backendName?: string | null | undefined;
+  // What this card can't list, and why: see getOpenStackServiceGroupNote.
+  note?: string | null | undefined;
   getRowRoute: (row: OpenStackResource) => Route | undefined;
   now: Date;
 }
@@ -265,11 +271,26 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                     : ""}
                 </div>
                 <div className="min-w-0 sm:w-48">
-                  <OpenStackStatusCell
-                    kind={group.api.kind}
-                    status={group.api.status}
-                    isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
-                  />
+                  {group.api.status !== "down" &&
+                  isOpenStackServiceQuiet({
+                    service: group.api.name,
+                    lastSeenAt: group.api.lastSeenAt,
+                    now: props.now,
+                  }) ? (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      label={OPENSTACK_QUIET_LABEL}
+                      isOpenStackWord={false}
+                      tone="warning"
+                    />
+                  ) : (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
+                    />
+                  )}
                 </div>
               </ResourcePartRow>
             </li>
@@ -284,6 +305,16 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
               {translator.translateText(
                 "Its API isn't answering, so nothing has been able to read these workers since. They read as they last did.",
               )}
+            </li>
+          ) : (
+            <></>
+          )}
+          {props.note ? (
+            <li
+              className="px-5 py-3 text-sm text-gray-500 md:px-6"
+              data-testid="openstack-service-group-note"
+            >
+              {translator.translateText(props.note)}
             </li>
           ) : (
             <></>

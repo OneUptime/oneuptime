@@ -919,6 +919,8 @@ export function assessOpenStackResource(data: {
   now: Date;
   instanceCountOnHost?: number | null | undefined;
   projectCountOnHost?: number | null | undefined;
+  // What Nova says of the instance on a bare metal node, where it has been read.
+  instanceStatusOnNode?: string | null | undefined;
 }): OpenStackAssessment {
   const { row, now } = data;
   switch (row.kind) {
@@ -950,7 +952,11 @@ export function assessOpenStackResource(data: {
     case OpenStackResourceKind.Image:
       return assessOpenStackImage({ row, now });
     case OpenStackResourceKind.BareMetalNode:
-      return assessOpenStackBareMetalNode({ row, now });
+      return assessOpenStackBareMetalNode({
+        row,
+        now,
+        instanceStatus: data.instanceStatusOnNode,
+      });
     default:
       return FINE;
   }
@@ -1104,6 +1110,10 @@ export function getOpenStackAttentionItems(data: {
         row: OpenStackResource,
       ) => { instanceCount: number; projectCount: number } | null | undefined)
     | undefined;
+  // What Nova says of the instance on a bare metal node, on the page of the one that reads it.
+  instanceStatusOnNodeFor?:
+    | ((row: OpenStackResource) => string | null | undefined)
+    | undefined;
 }): Array<ResourceAttentionItem> {
   const counts: Map<string, number> = instanceCountsByHost(data.rows);
   const everyWorkerDown: Array<ResourceAttentionItem> = getEveryWorkerDownItems(
@@ -1139,6 +1149,7 @@ export function getOpenStackAttentionItems(data: {
           ? counts.get(`${row.regionName}/${getOpenStackShortHostName(host)}`)
           : undefined),
       projectCountOnHost: radius?.projectCount,
+      instanceStatusOnNode: data.instanceStatusOnNodeFor?.(row),
     });
     if (!assessment.severity) {
       continue;

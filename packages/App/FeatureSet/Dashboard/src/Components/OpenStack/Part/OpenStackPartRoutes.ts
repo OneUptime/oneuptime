@@ -5,6 +5,7 @@ import {
   OpenStackDependency,
   getOpenStackDependencyOfRow,
 } from "Common/Types/OpenStack/OpenStackControlPlane";
+import { isOpenStackBareMetalNodeId } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -70,6 +71,8 @@ const PART_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Project]: PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL,
   [OpenStackResourceKind.Service]: PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL,
   [OpenStackResourceKind.Api]: PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL,
+  [OpenStackResourceKind.BareMetalNode]:
+    PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
 };
 
 const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
@@ -87,6 +90,8 @@ const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Snapshot]: PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS,
   [OpenStackResourceKind.Backup]: PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS,
   [OpenStackResourceKind.Service]: PageMap.OPENSTACK_CLOUD_VIEW_SERVICES,
+  [OpenStackResourceKind.BareMetalNode]:
+    PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
 };
 
 export function routeParamFromOpenStackId(externalId: string): string {
@@ -147,6 +152,13 @@ export function getOpenStackPartRoutes(
       regionName: string | null | undefined,
       hypervisorName: string,
     ): Route | undefined => {
+      // Nova's hypervisor for a bare metal node is the node, by its UUID.
+      if (isOpenStackBareMetalNodeId(hypervisorName)) {
+        return getPartRoute(
+          OpenStackResourceKind.BareMetalNode,
+          hypervisorName,
+        );
+      }
       return getPartRoute(
         OpenStackResourceKind.Hypervisor,
         getOpenStackHypervisorExternalId(regionName, hypervisorName),
