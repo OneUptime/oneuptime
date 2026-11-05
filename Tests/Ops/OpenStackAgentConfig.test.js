@@ -610,6 +610,10 @@ describe("the access the agent asks for", () => {
       ["load-balancer", "/v2.0/lbaas/loadbalancers"],
       ["load-balancer", "/v2.0/lbaas/pools"],
       ["load-balancer", "/v2.0/octavia/amphorae"],
+      // The exporter reads Octavia's versions before anything else, and with that refused it
+      // answers nothing at all: recorded, 0 series on an access-rule credential. Behind a path,
+      // the fitter builds that read's rule from this one.
+      ["load-balancer", "/"],
       ["baremetal", "/v1/nodes/detail"],
       ["orchestration", "/v1/*/stacks"],
       ["container-infra", "/v1/clusters"],
@@ -620,6 +624,9 @@ describe("the access the agent asks for", () => {
       ["dns", "/v2/zones"],
       ["dns", "/v2/zones/*/recordsets"],
       ["object-store", "/v1/*"],
+      // The exporter lists an account with a trailing slash, which /v1/* does not match:
+      // recorded, a 401 from Swift and openstack_object_store_up 0.
+      ["object-store", "/v1/*/"],
       ["database", "/v1.0/*/mgmt/instances"],
       ["metric", "/v1/status"],
     ])("%s %s", (service, rulePath) => {
@@ -634,7 +641,54 @@ describe("the access the agent asks for", () => {
       expect(pathsOf("key-manager").sort()).toEqual(
         ["/v1/containers", "/v1/orders", "/v1/secrets"].sort(),
       );
-      expect(pathsOf("object-store")).toEqual(["/v1/*"]);
+      expect(pathsOf("object-store")).toEqual(["/v1/*", "/v1/*/"]);
+    });
+
+    test("a service's root is fitted as Apache hands it to the service, behind a path", () => {
+      const fitted = JSON.parse(
+        childProcess.execFileSync(
+          "python3",
+          [
+            "-I",
+            path.join(AGENT, "access", "access-rules-for-cloud.py"),
+            path.join(
+              AGENT,
+              "access",
+              "application-credential-access-rules.json",
+            ),
+          ],
+          {
+            input: JSON.stringify([
+              {
+                Type: "load-balancer",
+                Endpoints: [
+                  {
+                    interface: "public",
+                    url: "http://cloud.example/load-balancer",
+                  },
+                ],
+              },
+            ]),
+            encoding: "utf8",
+          },
+        ),
+      );
+      const paths = fitted
+        .filter((rule) => {
+          return rule.service === "load-balancer";
+        })
+        .map((rule) => {
+          return rule.path;
+        });
+      // Recorded: with /load-balancer/ in its rules, GET /load-balancer/ was still a 401.
+      expect(paths).toEqual(
+        expect.arrayContaining([
+          "/",
+          "/load-balancer/",
+          "/load-balancer//",
+          "/load-balancer/v2.0/lbaas/loadbalancers",
+        ]),
+      );
     });
 
     test("no rule opens everything under a service but Cinder's, which has always been that way", () => {
