@@ -11,8 +11,8 @@ haproxy_backend_http_responses_total{proxy="metrics",code="1xx"} 0
 haproxy_backend_http_responses_total{proxy="nova_api_back",code="1xx"} 0
 haproxy_backend_http_responses_total{proxy="keystone_internal_back",code="1xx"} 0
 haproxy_backend_http_responses_total{proxy="metrics",code="2xx"} 0
-haproxy_backend_http_responses_total{proxy="nova_api_back",code="2xx"} 188
-haproxy_backend_http_responses_total{proxy="keystone_internal_back",code="2xx"} 376
+haproxy_backend_http_responses_total{proxy="nova_api_back",code="2xx"} 187
+haproxy_backend_http_responses_total{proxy="keystone_internal_back",code="2xx"} 374
 haproxy_backend_http_responses_total{proxy="metrics",code="3xx"} 0
 haproxy_backend_http_responses_total{proxy="nova_api_back",code="3xx"} 0
 haproxy_backend_http_responses_total{proxy="keystone_internal_back",code="3xx"} 0
@@ -20,7 +20,7 @@ haproxy_backend_http_responses_total{proxy="metrics",code="4xx"} 0
 haproxy_backend_http_responses_total{proxy="nova_api_back",code="4xx"} 24
 haproxy_backend_http_responses_total{proxy="keystone_internal_back",code="4xx"} 0
 haproxy_backend_http_responses_total{proxy="metrics",code="5xx"} 0
-haproxy_backend_http_responses_total{proxy="nova_api_back",code="5xx"} 164
+haproxy_backend_http_responses_total{proxy="nova_api_back",code="5xx"} 163
 haproxy_backend_http_responses_total{proxy="keystone_internal_back",code="5xx"} 0
 haproxy_backend_http_responses_total{proxy="metrics",code="other"} 0
 haproxy_backend_http_responses_total{proxy="nova_api_back",code="other"} 0

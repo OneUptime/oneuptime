@@ -1,0 +1,5 @@
+ovs_bridge_port_count{bridge="br-ex",datapath_type="system"} 2
+ovs_bridge_port_count{bridge="br-int",datapath_type="system"} 15
+ovs_bridge_port_count{bridge="br-tun",datapath_type="system"} 2
+ovs_build_info{db_version="8.5.1",dpdk_version="none",ovs_version="3.3.9"} 1
+ovs_memory_rules_total 234

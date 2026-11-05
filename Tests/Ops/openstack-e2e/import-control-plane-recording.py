@@ -170,8 +170,9 @@ def import_cloud(release, source):
             import_reading(
                 reading_folder,
                 os.path.join(target, scene, reading) if reading else os.path.join(target, scene, "reading"),
-                # The exporter in single-cloud mode says the same as the per-service answers.
-                lambda endpoint: endpoint != "single-cloud",
+                # The exporter in single-cloud mode says the same as the per-service answers, and
+                # is the one the drills could read: the per-service exporter was not running.
+                lambda endpoint: not endpoint.startswith("exporter-"),
                 jobs,
             )
 

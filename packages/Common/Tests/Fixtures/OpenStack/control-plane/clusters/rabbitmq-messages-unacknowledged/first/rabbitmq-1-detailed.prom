@@ -1,6 +1,4 @@
 rabbitmq_detailed_queue_messages_ready{vhost="/",queue="ou-consumed"} 0
 rabbitmq_detailed_queue_messages_ready{vhost="/",queue="ou-unacked"} 0
-rabbitmq_detailed_queue_messages_ready{vhost="/",queue="ou-unconsumed"} 500
 rabbitmq_detailed_queue_consumers{vhost="/",queue="ou-consumed"} 1
 rabbitmq_detailed_queue_consumers{vhost="/",queue="ou-unacked"} 1
-rabbitmq_detailed_queue_consumers{vhost="/",queue="ou-unconsumed"} 0

@@ -77,7 +77,7 @@ export const OPENSTACK_DEPENDENCY_DEFINITIONS: Readonly<
     shape: "cluster",
     targetsVariable: "OPENSTACK_RABBITMQ_TARGETS",
     takesDown:
-      "Every OpenStack service talks through RabbitMQ. With it gone nova-compute, the schedulers and conductors, Neutron's agents and cinder-volume stop reporting and read as down, and nothing can be created, changed or deleted. Instances that are already running carry on.",
+      "Every OpenStack service talks through RabbitMQ. With it gone nova-compute stops reporting within a minute, and on ML2/OVS Neutron's agents do too, while the APIs go on answering, so whatever they ask a worker to do hangs or fails. Instances that are already running carry on.",
     deeperProduct: "queues",
   },
   [OpenStackDependency.MariaDb]: {
@@ -115,7 +115,7 @@ export const OPENSTACK_DEPENDENCY_DEFINITIONS: Readonly<
     shape: "per-host",
     targetsVariable: "OPENSTACK_NETWORK_EXPORTER_TARGETS",
     takesDown:
-      "OVN and Open vSwitch carry the instances' traffic. ovn-controller gone from a host leaves what it programmed in place, but new ports and changes on that host do not arrive. Open vSwitch gone takes that host's instances off the network. A database with no leader stops every change to the network, on every host.",
+      "OVN and Open vSwitch carry the instances' traffic. ovn-controller gone from a host leaves what it programmed in place, but new ports and changes on that host do not arrive, and Neutron reads its agents there as down. Open vSwitch gone takes that host's instances off the network. A database with no leader stops every change to the network, on every host.",
   },
   [OpenStackDependency.Libvirt]: {
     dependency: OpenStackDependency.Libvirt,
@@ -124,7 +124,7 @@ export const OPENSTACK_DEPENDENCY_DEFINITIONS: Readonly<
     shape: "per-host",
     targetsVariable: "OPENSTACK_LIBVIRT_HEALTH_TARGETS",
     takesDown:
-      "nova-compute runs instances through libvirt. With it gone from a host its instances carry on, but none can be started, stopped or moved, and that host's nova-compute goes down.",
+      "nova-compute runs instances through libvirt. With it gone from a host its instances carry on, but none can be started, stopped or moved there, and nova-compute disables itself on that host, so it reads as disabled and not as down, and it stays disabled for a while after libvirt is back.",
   },
 };
 
@@ -161,11 +161,11 @@ export const OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS: number = 10;
 export const OPENSTACK_RABBITMQ_LINK_UP: number = 3;
 
 /*
- * wsrep_local_state: 4 is Synced, and 2 is a node a person took out with wsrep_desync to
- * back it up, which is planned work (https://galeracluster.com/library/documentation/node-states.html).
+ * wsrep_local_state: 4 is Synced. Anything else on a node that answers is it falling behind,
+ * unless wsrep_desync says a person asked for that, which reads the same 2 and is planned work
+ * (https://galeracluster.com/library/documentation/node-states.html).
  */
 export const OPENSTACK_GALERA_STATE_SYNCED: number = 4;
-export const OPENSTACK_GALERA_STATE_DONOR_DESYNCED: number = 2;
 
 // A target that has said nothing for this long is not being read, and says nothing current.
 export const OPENSTACK_CONTROL_PLANE_NO_READING_MINUTES: number = 10;
@@ -241,16 +241,40 @@ export const OPENSTACK_CONTROL_PLANE_FACTS: {
  * When a series that goes away with what it reports was last there: see SEEN_FACTS in
  * OpenStackControlPlaneScan. A machine that never had one has no such fact, and is not
  * said to have lost it: a host of only OVN's databases runs no ovn-controller.
+ *
+ * OvsSeenAt is ovs-vswitchd answering, and OvsDatabaseSeenAt the exporter reading its database.
+ * They are two because openstack-network-exporter 0.3.0 connects to that database once and
+ * never again (its ovsdb.go keeps the connection it made). So after Open vSwitch restarts,
+ * ovs-vswitchd's series come straight back and the database's never do until the exporter
+ * restarts, which recording a stopped OVS on two clouds showed: seven minutes on, still nothing.
+ * Its bridges, its interfaces and all of ovn-controller's series are read through that
+ * connection first, so the same restart leaves all of them unread.
  */
 export const OPENSTACK_NETWORK_FACTS: {
   OvsSeenAt: string;
+  OvsDatabaseSeenAt: string;
   OvnChassisSeenAt: string;
   OvnControllerSeenAt: string;
 } = {
   OvsSeenAt: "ovsSeenAt",
+  OvsDatabaseSeenAt: "ovsDatabaseSeenAt",
   OvnChassisSeenAt: "ovnChassisSeenAt",
   OvnControllerSeenAt: "ovnControllerSeenAt",
 };
+
+/*
+ * The Neutron agents that live on a machine's Open vSwitch or ovn-controller. Recorded: a stopped
+ * ovn-controller reads ovn-controller and neutron-ovn-agent as down within a minute, and a stopped
+ * Open vSwitch those two, or neutron-openvswitch-agent on ML2/OVS, within two. Neutron's DHCP, L3
+ * and metadata agents stayed up through both. An exporter names a machine by the address it is
+ * reached at, and Neutron by its host name, so the two do not join: these are spoken for by a
+ * failure of either on any machine in the region, and nothing else is.
+ */
+export const OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH: ReadonlyArray<string> = [
+  "ovn-controller",
+  "neutron-ovn-agent",
+  "neutron-openvswitch-agent",
+];
 
 /*
  * Facts a row holds one of per backend, server or database, one key each. A scrape can

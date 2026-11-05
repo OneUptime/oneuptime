@@ -1,4 +1,4 @@
 ovn_northd_status 0
-ovn_raft_cluster_leader{cluster_uuid="8ab3fdf1-9b60-4cb8-a32c-95993d43069e",database="OVN_Southbound",server_uuid="ac80bf5e-1148-4ead-8d1b-f5420cf655ed"} 0
-ovn_raft_cluster_server_role{cluster_uuid="8ab3fdf1-9b60-4cb8-a32c-95993d43069e",database="OVN_Southbound",role="candidate",server_uuid="ac80bf5e-1148-4ead-8d1b-f5420cf655ed"} 1
-ovn_raft_cluster_server_status{cluster_uuid="8ab3fdf1-9b60-4cb8-a32c-95993d43069e",database="OVN_Southbound",server_uuid="ac80bf5e-1148-4ead-8d1b-f5420cf655ed",status="disconnected from the cluster (election timeout)"} 1
+ovn_raft_cluster_leader{cluster_uuid="1dd18685-bb5d-4abd-9cff-5f699c2a7103",database="OVN_Southbound",server_uuid="d5f7c2ab-a3a0-4986-9840-bf84845ce490"} 0
+ovn_raft_cluster_server_role{cluster_uuid="1dd18685-bb5d-4abd-9cff-5f699c2a7103",database="OVN_Southbound",role="candidate",server_uuid="d5f7c2ab-a3a0-4986-9840-bf84845ce490"} 1
+ovn_raft_cluster_server_status{cluster_uuid="1dd18685-bb5d-4abd-9cff-5f699c2a7103",database="OVN_Southbound",server_uuid="d5f7c2ab-a3a0-4986-9840-bf84845ce490",status="disconnected from the cluster (election timeout)"} 1

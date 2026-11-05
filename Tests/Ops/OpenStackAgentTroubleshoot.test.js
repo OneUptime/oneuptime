@@ -2311,6 +2311,18 @@ describe("what the cloud stands on", () => {
       "openstack-network-exporter",
       'ovs_build_info{version="3.5.0"} 1',
     ],
+    // A host of only OVN's databases, and its standby: nothing about it is down.
+    [
+      "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+      "openstack-network-exporter",
+      "ovn_northd_status 0",
+    ],
+    // Open vSwitch has restarted, which the exporter does not reconnect to its database after.
+    [
+      "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+      "openstack-network-exporter",
+      "ovs_memory_rules_total 1435",
+    ],
     ["OPENSTACK_LIBVIRT_HEALTH_TARGETS", "prometheus-libvirt-exporter", "libvirt_up 1"],
   ])("%s answering as %s passes", async (variable, what, line) => {
     const cloud = await startCloud({

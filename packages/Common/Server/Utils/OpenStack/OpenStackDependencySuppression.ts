@@ -10,6 +10,10 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "../../../Utils/OpenStack/OpenStackLogs";
 import {
+  OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH,
+  OPENSTACK_EXPORTER_HOST_LABEL,
+} from "../../../Types/OpenStack/OpenStackControlPlane";
+import {
   DependencySuppressionResult,
   SuppressingParent,
 } from "../../../Utils/Monitor/MonitorDependencyRule";
@@ -28,6 +32,10 @@ import logger from "../Logger";
  *
  *  - A RabbitMQ gone in one region says nothing of a worker in another. Its open incident says
  *    which region it is about, so only that region's series wait.
+ *  - An ovn-controller gone from one machine says nothing of a DHCP agent anywhere. Its incident
+ *    names a machine, so it speaks only for the agents that live on what it is about. It cannot
+ *    say which machine's, because an exporter names a machine by address and Neutron by host
+ *    name, so one such agent elsewhere in the region waits with it for as long as it lasts.
  *  - A parent back up has not finished speaking. nova-compute reports again within seconds of
  *    RabbitMQ coming back, but the agent reads that state every 2 minutes and Keystone's every
  *    5, so a worker's series still reads down for a few minutes more. Those minutes are the
@@ -83,10 +91,21 @@ export function getRegionOfSeries(labels: JSONObject): string {
 
 export function coversRegions(
   regions: ReadonlySet<string>,
+  regionsOfOneMachine: ReadonlySet<string> = new Set<string>(),
 ): (labels: JSONObject) => boolean {
   return (labels: JSONObject): boolean => {
     const region: string = getRegionOfSeries(labels);
-    return region === "" || regions.has(region);
+
+    if (region === "" || regions.has(region)) {
+      return true;
+    }
+
+    return (
+      regionsOfOneMachine.has(region) &&
+      OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH.includes(
+        String(labels["service"] || ""),
+      )
+    );
   };
 }
 
@@ -149,25 +168,33 @@ export default class OpenStackDependencySuppression {
     });
 
     const regions: Set<string> = new Set<string>();
+    const regionsOfOneMachine: Set<string> = new Set<string>();
 
     for (const incident of incidents) {
-      const region: string = getRegionOfSeries(
-        (incident.seriesLabels as JSONObject | undefined) || {},
-      );
+      const labels: JSONObject =
+        (incident.seriesLabels as JSONObject | undefined) || {};
+      const region: string = getRegionOfSeries(labels);
 
       // An incident about no region in particular is about all of them.
       if (region === "") {
         return data.suppression;
       }
 
-      regions.add(region);
+      if (labels[OPENSTACK_EXPORTER_HOST_LABEL]) {
+        regionsOfOneMachine.add(region);
+      } else {
+        regions.add(region);
+      }
     }
 
-    if (regions.size === 0) {
+    if (regions.size === 0 && regionsOfOneMachine.size === 0) {
       return data.suppression;
     }
 
-    return { ...data.suppression, coversSeries: coversRegions(regions) };
+    return {
+      ...data.suppression,
+      coversSeries: coversRegions(regions, regionsOfOneMachine),
+    };
   }
 
   // A parent that has only just stopped being down goes on speaking for a few minutes.

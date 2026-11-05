@@ -107,6 +107,9 @@ const REASON_OVS_GONE: string = translationKey("Open vSwitch isn't answering");
 const REASON_OVN_CONTROLLER_GONE: string = translationKey(
   "ovn-controller isn't answering",
 );
+const REASON_OVS_DATABASE_LOST: string = translationKey(
+  "The exporter lost Open vSwitch's database: restart it to read this machine's interfaces and ovn-controller",
+);
 const REASON_NO_LEADER: string = translationKey(
   "The {{database}} database has no leader",
 );
@@ -342,8 +345,17 @@ export function assessOpenStackControlPlaneRow(
     case OpenStackDependency.Network: {
       if (hasGoneFrom(row, OPENSTACK_NETWORK_FACTS.OvsSeenAt)) {
         critical({ text: REASON_OVS_GONE });
+      } else if (hasGoneFrom(row, OPENSTACK_NETWORK_FACTS.OvsDatabaseSeenAt)) {
+        warning({ text: REASON_OVS_DATABASE_LOST });
       }
-      if (hasGoneFrom(row, OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt)) {
+      /*
+       * Whether it is a chassis is read from Open vSwitch, so with that still read, and only
+       * then, ovn-controller's own series being gone says ovn-controller has.
+       */
+      if (
+        hasGoneFrom(row, OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt) &&
+        !hasGoneFrom(row, OPENSTACK_NETWORK_FACTS.OvnChassisSeenAt)
+      ) {
         critical({ text: REASON_OVN_CONTROLLER_GONE });
       }
       break;

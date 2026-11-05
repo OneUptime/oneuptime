@@ -1,10 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
-import {
-  OpenStackControlPlaneEntry,
-  foldOpenStackControlPlaneDatapoint,
-} from "../../../Server/Utils/Telemetry/OpenStackControlPlaneScan";
-import { JSONArray, JSONObject } from "../../../Types/JSON";
+import { JSONObject } from "../../../Types/JSON";
 import { OPENSTACK_REGION_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import {
   OPENSTACK_CONTROL_PLANE_FACTS,
@@ -12,7 +8,6 @@ import {
   OpenStackDependency,
   isOpenStackDependencyDown,
 } from "../../../Types/OpenStack/OpenStackControlPlane";
-import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
   OpenStackDependencyState,
   OpenStackDependencySummary,
@@ -28,6 +23,7 @@ import {
   RecordedReading,
   SCENE_REGION,
   StoredMetricRow,
+  foldIntoInventory,
   getClusterSceneNames,
   readClusterScene,
   rowsOfReading,
@@ -44,76 +40,25 @@ import {
 
 const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
 
-function toAttributes(attributes: JSONObject): JSONArray {
-  return Object.entries(attributes).map(
-    ([key, value]: [string, unknown]): JSONObject => {
-      return { key, value: { stringValue: String(value) } };
-    },
-  );
-}
-
 // A scene as the rows the pages read: each of its readings folded in turn, as batches are.
 function rowsOf(
   scene: RecordedScene,
   region: string = SCENE_REGION,
 ): Array<OpenStackResource> {
-  const entries: Map<string, OpenStackControlPlaneEntry> = new Map();
-
-  scene.readings.forEach((reading: RecordedReading, index: number) => {
-    const time: Date = new Date(
-      NOW.getTime() - (scene.readings.length - index) * 60000,
-    );
-
-    for (const row of rowsOfReading({ scene, reading, time, region })) {
-      foldRow(row, entries, region);
-    }
-  });
-
-  return Array.from(entries.entries()).map(
-    ([externalId, entry]: [
-      string,
-      OpenStackControlPlaneEntry,
-    ]): OpenStackResource => {
-      const resource: OpenStackResource = new OpenStackResource();
-      resource.kind = OpenStackResourceKind.ControlPlane;
-      resource.externalId = externalId;
-      resource.name = entry.name as string;
-      resource.regionName = entry.regionName as string;
-      resource.status = entry.status as string;
-      resource.facts = entry.facts;
-      resource.lastSeenAt = new Date(NOW.getTime() - 60000);
-      return resource;
-    },
+  return foldIntoInventory(
+    scene.readings.flatMap(
+      (reading: RecordedReading, index: number): Array<StoredMetricRow> => {
+        return rowsOfReading({
+          scene,
+          reading,
+          time: new Date(
+            NOW.getTime() - (scene.readings.length - index) * 60000,
+          ),
+          region,
+        });
+      },
+    ),
   );
-}
-
-function foldRow(
-  row: StoredMetricRow,
-  entries: Map<string, OpenStackControlPlaneEntry>,
-  region: string,
-): void {
-  foldOpenStackControlPlaneDatapoint({
-    metricName: row.name,
-    attributes: toAttributes(row.attributes),
-    value: row.value,
-    observedAt: row.time,
-    region,
-    entryFor: (externalId: string): OpenStackControlPlaneEntry => {
-      let entry: OpenStackControlPlaneEntry | undefined =
-        entries.get(externalId);
-      if (!entry) {
-        entry = {
-          name: null,
-          regionName: null,
-          status: null,
-          statusObservedAt: null,
-          facts: {},
-        };
-        entries.set(externalId, entry);
-      }
-      return entry;
-    },
-  });
 }
 
 function summaryOf(

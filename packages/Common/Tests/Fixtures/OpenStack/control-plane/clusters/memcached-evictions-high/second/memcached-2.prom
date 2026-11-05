@@ -10,12 +10,12 @@ memcached_commands_total{command="get",status="hit"} 0
 memcached_commands_total{command="get",status="miss"} 0
 memcached_commands_total{command="incr",status="hit"} 0
 memcached_commands_total{command="incr",status="miss"} 0
-memcached_commands_total{command="set",status="hit"} 449
+memcached_commands_total{command="set",status="hit"} 450
 memcached_commands_total{command="touch",status="hit"} 0
 memcached_commands_total{command="touch",status="miss"} 0
 memcached_current_bytes 8.0052e+06
 memcached_current_connections 4
-memcached_items_evicted_total 369
+memcached_items_evicted_total 370
 memcached_limit_bytes 8.388608e+06
 memcached_max_connections 1024
 memcached_up 1

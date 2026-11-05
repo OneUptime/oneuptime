@@ -137,12 +137,10 @@ const BOOLEAN_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
  * when each was last there is what says so, which is why it is a time and not a yes.
  */
 const SEEN_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
-  ["ovs_build_info", OPENSTACK_NETWORK_FACTS.OvsSeenAt],
+  ["ovs_memory_rules_total", OPENSTACK_NETWORK_FACTS.OvsSeenAt],
+  ["ovs_build_info", OPENSTACK_NETWORK_FACTS.OvsDatabaseSeenAt],
   ["ovnc_encap_ip", OPENSTACK_NETWORK_FACTS.OvnChassisSeenAt],
-  ["ovnc_txn_error", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
-  ["ovnc_txn_uncommitted", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
-  ["ovnc_rconn_discarded", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
-  ["ovnc_rconn_overflow", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
+  ["ovnc_rconn_queued", OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt],
 ]);
 
 const HAPROXY_BACKEND_STATUS: string = "haproxy_backend_status";

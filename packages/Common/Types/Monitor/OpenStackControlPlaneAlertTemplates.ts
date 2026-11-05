@@ -11,6 +11,7 @@ import {
   OPENSTACK_MARIADB_SLOW_QUERIES_WARNING_PER_MINUTE,
   OPENSTACK_MEMCACHED_EVICTIONS_WARNING_PER_MINUTE,
   OPENSTACK_MEMCACHED_NO_CLIENT_CONNECTIONS,
+  OPENSTACK_NETWORK_FACTS,
   OPENSTACK_RABBITMQ_FILE_DESCRIPTORS_WARNING_PERCENT,
   OPENSTACK_RABBITMQ_LINK_UP,
   OPENSTACK_RABBITMQ_QUEUE_DEPENDENCY_LABEL_VALUE,
@@ -77,6 +78,19 @@ import {
  *  - openstack-network-exporter reads the Southbound database's cluster status when a host has
  *    both sockets, as Kolla-Ansible's do. It reads Northbound's only where no Southbound socket
  *    is. So a cloud's reading of Northbound is whatever its exporters can see.
+ *  - The same exporter never reconnects to Open vSwitch's database: after Open vSwitch restarts,
+ *    ovs_build_info, every interface and all of ovn-controller's series stay gone until the
+ *    exporter restarts too. ovs-vswitchd's own series, such as ovs_memory_rules_total, come
+ *    straight back, so that is what says Open vSwitch is running.
+ *  - A host with no Open vSwitch reads exactly as one whose Open vSwitch stopped: ovs_coverage_*
+ *    all 0 and no ovs_build_info. So only a machine it was seen on can lose it: onlyWhereSeen.
+ *  - ovn-controller's coverage series, such as ovnc_rconn_queued, go with it, and ovnc_encap_ip
+ *    stays, because that is read from Open vSwitch. A stopped Open vSwitch takes both, so it reads
+ *    as that and not as a stopped ovn-controller as well.
+ *  - With every member of OVN's databases stopped, ovn_raft_cluster_leader has no series at all
+ *    and ovn_northd_status reads 0 everywhere.
+ *  - libvirt_up reads 0 with the exporter still answering, and nova-compute disables itself, so
+ *    Compute Service Down stays quiet (adminState is no longer enabled).
  *
  * WHAT THESE HOLD THEMSELVES TO. The same as every OpenStack template (OpenStackAlertTemplates):
  * at least three collections in a window, never Sum, a series that goes away counts as
@@ -125,6 +139,17 @@ interface Comparison {
   alias: string;
   filterType: FilterType;
   value: number;
+  // What it reads being gone is what failing looks like, so a gone series reads as 0.
+  goneReadsAsZero?: boolean | undefined;
+}
+
+function gone(alias: string): Comparison {
+  return {
+    alias,
+    filterType: FilterType.LessThan,
+    value: 1,
+    goneReadsAsZero: true,
+  };
 }
 
 function below(alias: string, value: number): Comparison {
@@ -190,6 +215,25 @@ function countGoneSeriesAsRecovered(
   return instance;
 }
 
+// Filters come in the order their comparisons were given.
+function readGoneSeriesAsZero(
+  instance: MonitorCriteriaInstance,
+  comparisons: Array<Comparison>,
+): MonitorCriteriaInstance {
+  ((instance.data?.filters || []) as Array<CriteriaFilter>).forEach(
+    (filter: CriteriaFilter, index: number): void => {
+      if (comparisons[index]?.goneReadsAsZero) {
+        filter.metricMonitorOptions = {
+          ...filter.metricMonitorOptions,
+          onNoDataPolicy: NoDataPolicy.TreatAsZero,
+        };
+      }
+    },
+  );
+
+  return instance;
+}
+
 /*
  * The agent's own `up`, whichever job it is from: while any job answers, the agent is sending,
  * so a window with nothing of this dependency in it means this dependency's series went, and
@@ -226,26 +270,34 @@ function buildStep(data: {
   recovery: Array<Comparison>;
   recoveryCondition: FilterCondition;
   words: IncidentWords;
+  // Only the machines that have had this: see MonitorStepOpenStackMonitor.onlyWhereSeen.
+  onlyWhereSeen?: string | undefined;
 }): MonitorStep {
   const [firstFiring, ...otherFiring] = data.firing;
   const [firstRecovery, ...otherRecovery] = data.recovery;
 
   return buildOpenStackMonitorStep({
-    openstackMonitor: buildOpenStackSeriesConfig({
-      cloudIdentifier: data.args.cloudIdentifier,
-      queries: [...data.queries, ANCHOR],
-      formulas: data.formulas,
-      rollingTime: data.rollingTime,
-      groupByAttributeKeys: data.groupByAttributeKeys,
-    }),
-    offlineCriteriaInstance: buildOfflineCriteria({
-      notification: { args: data.args, ...data.words },
-      metricAlias: firstFiring!.alias,
-      filterType: firstFiring!.filterType,
-      value: firstFiring!.value,
-      additionalFilters: additional(otherFiring),
-      filterCondition: data.firingCondition,
-    }),
+    openstackMonitor: {
+      ...buildOpenStackSeriesConfig({
+        cloudIdentifier: data.args.cloudIdentifier,
+        queries: [...data.queries, ANCHOR],
+        formulas: data.formulas,
+        rollingTime: data.rollingTime,
+        groupByAttributeKeys: data.groupByAttributeKeys,
+      }),
+      ...(data.onlyWhereSeen ? { onlyWhereSeen: data.onlyWhereSeen } : {}),
+    },
+    offlineCriteriaInstance: readGoneSeriesAsZero(
+      buildOfflineCriteria({
+        notification: { args: data.args, ...data.words },
+        metricAlias: firstFiring!.alias,
+        filterType: firstFiring!.filterType,
+        value: firstFiring!.value,
+        additionalFilters: additional(otherFiring),
+        filterCondition: data.firingCondition,
+      }),
+      data.firing,
+    ),
     onlineCriteriaInstance: countGoneSeriesAsRecovered(
       buildHealthyCriteriaInstance({
         onlineMonitorStatusId: data.args.onlineMonitorStatusId,
@@ -1268,6 +1320,332 @@ const haProxyApi4xxRateHighTemplate: OpenStackAlertTemplate =
   });
 
 /*
+ * OVN and Open vSwitch.
+ */
+
+const ovnControllerNotRunningTemplate: OpenStackAlertTemplate = {
+  id: "openstack-ovn-controller-not-running",
+  name: "OVN Controller Not Running",
+  summary: "A chassis has no ovn-controller running for 5 minutes.",
+  description:
+    "Alert when a machine that is an OVN chassis has had no ovn-controller for 5 minutes. Its Open vSwitch still says it is a chassis (ovnc_encap_ip), and the series only a running ovn-controller has are gone (ovnc_rconn_queued). One incident per machine. Neutron reads ovn-controller and neutron-ovn-agent as down there within a minute, and Network Agent Down waits for this, so a stopped ovn-controller opens this and not three. What it programmed stays in place, so its instances keep their traffic, but new ports and changes do not reach that machine. Check `systemctl status ovn-controller` on it, or its container, and `openstack network agent list`.",
+  category: "OVN and Open vSwitch",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildStep({
+      args,
+      rollingTime: WHOLE_WINDOW,
+      groupByAttributeKeys: MACHINE_GROUP,
+      onlyWhereSeen: OPENSTACK_NETWORK_FACTS.OvnControllerSeenAt,
+      queries: [
+        {
+          alias: "is_a_chassis",
+          metricName: "ovnc_encap_ip",
+          aggregationType: MetricsAggregationType.Min,
+        },
+        {
+          alias: "controller_answers",
+          metricName: "ovnc_rconn_queued",
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      firing: [atLeast("is_a_chassis", 1), gone("controller_answers")],
+      firingCondition: FilterCondition.All,
+      recovery: [atLeast("controller_answers", 1)],
+      recoveryCondition: FilterCondition.All,
+      words: {
+        incidentTitle: "[OpenStack] OVN Controller Not Running",
+        incidentDescription: `ovn-controller is not running on the machine named above. What it programmed stays in place, so its instances keep their traffic, but new ports do not come up there and changes to networks do not reach it, and Neutron reads its ovn-controller and neutron-ovn-agent as down. Check systemctl status ovn-controller on that machine, or its container, and openstack network agent list. The incident resolves on its own once it is running again.`,
+        criteriaName: "OVN Controller Not Running - a chassis without one",
+        criteriaDescription:
+          "Triggers when a machine is an OVN chassis and ovn-controller's own series are gone from it for the whole window.",
+      },
+    });
+  },
+};
+
+const ovnDatabaseWithoutLeaderTemplate: OpenStackAlertTemplate = {
+  id: "openstack-ovn-database-without-leader",
+  name: "Northbound or Southbound Database Without a Leader",
+  summary: "An OVN database's members read no leader for 5 minutes.",
+  description:
+    "Alert when no member of an OVN database says it leads for 5 minutes (ovn_raft_cluster_leader). One incident per region and database. Without a leader nothing can change the network, on any machine, though what is programmed keeps carrying traffic. openstack-network-exporter reads Southbound on a machine with both databases' sockets, as Kolla-Ansible's have, so Northbound shows only where a machine has no Southbound to read. Check `ovn-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound` on each member.",
+  category: "OVN and Open vSwitch",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildStep({
+      args,
+      rollingTime: WHOLE_WINDOW,
+      groupByAttributeKeys: DATABASE_GROUP,
+      queries: [
+        {
+          alias: "any_member_leads",
+          metricName: "ovn_raft_cluster_leader",
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      firing: [below("any_member_leads", 1)],
+      recovery: [atLeast("any_member_leads", 1)],
+      recoveryCondition: FilterCondition.All,
+      words: {
+        incidentTitle: "[OpenStack] OVN Database Without a Leader",
+        incidentDescription: `No member of the OVN database named above says it leads, which usually means too few of its members can reach each other. Nothing can change the network on any machine until one does: no new ports, routers or security group changes, though what is programmed keeps carrying traffic. Check ovn-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound on each member, and the network between them. The incident resolves on its own once a member leads again.`,
+        criteriaName: "OVN Database Without a Leader - no member leads",
+        criteriaDescription:
+          "Triggers when no member of an OVN database says it leads for the whole window.",
+      },
+    });
+  },
+};
+
+const ovnNorthdNotActiveTemplate: OpenStackAlertTemplate = {
+  id: "openstack-ovn-northd-not-active",
+  name: "OVN Northd Not Active",
+  summary: "No ovn-northd in a region is active for 10 minutes.",
+  description:
+    "Alert when no ovn-northd in a region reads active for 10 minutes (ovn_northd_status: 1 on the active one, 0 on a standby, and 0 everywhere when OVN's databases have all stopped, which leaves ovn_raft_cluster_leader with no series at all). One incident per region. One stopped member is fine, because a standby takes over. Nothing written to Northbound reaches the machines until one is active. Check `ovs-appctl -t ovn-northd status` on each, and that OVN's databases are running. It waits for a database without a leader, which says so first.",
+  category: "OVN and Open vSwitch",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildStep({
+      args,
+      rollingTime: PART_WINDOW,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "any_northd_active",
+          metricName: "ovn_northd_status",
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      firing: [below("any_northd_active", 1)],
+      recovery: [atLeast("any_northd_active", 1)],
+      recoveryCondition: FilterCondition.All,
+      words: {
+        incidentTitle: "[OpenStack] OVN Northd Not Active",
+        incidentDescription: `No ovn-northd in this region is active, so nothing written to OVN's Northbound database reaches the machines: new ports stay down and changes to networks do not arrive, though what is programmed keeps carrying traffic. Check ovs-appctl -t ovn-northd status on each, and that OVN's databases are running. The incident resolves on its own once one is active again.`,
+        criteriaName: "OVN Northd Not Active - none active",
+        criteriaDescription:
+          "Triggers when no ovn-northd in a region reads active for the whole window.",
+      },
+    });
+  },
+};
+
+const geneveTransmitErrorsTemplate: OpenStackAlertTemplate = {
+  id: "openstack-geneve-transmit-errors",
+  name: "Geneve Transmit Errors",
+  summary: "A machine's Geneve tunnels fail to send, in every minute for 10 minutes.",
+  description:
+    "Alert when a machine's Geneve tunnels report transmit errors in every minute for 10 minutes (ovs_interface_tx_errors_increase, for interfaces of type geneve). One incident per machine. Instances on it lose traffic to other machines while those on the same machine are fine, which is what a bad NIC, a wrong MTU or a route gone from the tunnel network looks like. Check `ovs-vsctl list interface` for the tunnel's error, and `ip -s link` on the machine's tunnel network. Only a machine with a peer has a Geneve tunnel.",
+  category: "OVN and Open vSwitch",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildStep({
+      args,
+      rollingTime: PART_WINDOW,
+      groupByAttributeKeys: MACHINE_GROUP,
+      queries: [
+        {
+          alias: "tunnel_transmit_errors",
+          metricName: "ovs_interface_tx_errors_increase",
+          aggregationType: MetricsAggregationType.Max,
+          attributes: { type: "geneve" },
+        },
+      ],
+      firing: [above("tunnel_transmit_errors", 0)],
+      recovery: [atMost("tunnel_transmit_errors", 0)],
+      recoveryCondition: FilterCondition.All,
+      words: {
+        incidentTitle: "[OpenStack] Geneve Transmit Errors",
+        incidentDescription: `The machine named above has been failing to send on its Geneve tunnels in every minute for 10 minutes. Its instances lose traffic to other machines while traffic on the machine itself is fine, which is what a bad NIC, a wrong MTU or a route gone from the tunnel network looks like. Check ovs-vsctl list interface for the tunnel's error, and ip -s link on its tunnel network. The incident resolves on its own once it stops.`,
+        criteriaName: "Geneve Transmit Errors - errors every minute",
+        criteriaDescription:
+          "Triggers when a machine's Geneve tunnels report transmit errors in every minute of the window.",
+      },
+    });
+  },
+};
+
+const ovsServiceDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-ovs-service-down",
+  name: "Open vSwitch Service Down",
+  summary: "Open vSwitch stops on a machine it ran on, for 5 minutes.",
+  description:
+    "Alert when ovs-vswitchd stops answering on a machine it was running on for 5 minutes, with the exporter still answering (ovs_memory_rules_total is gone). One incident per machine. That machine's instances are off the network. A machine that never ran it never fires, because a host of only OVN's databases reads the same as a stopped one. Neutron reads that machine's Open vSwitch or OVN agents as down within two minutes, and Network Agent Down waits for this. Check `systemctl status openvswitch-switch` on it, or its containers, and `ovs-vsctl show`. Once it is back, restart openstack-network-exporter there too, which does not reconnect to its database on its own.",
+  category: "OVN and Open vSwitch",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildStep({
+      args,
+      rollingTime: WHOLE_WINDOW,
+      groupByAttributeKeys: MACHINE_GROUP,
+      onlyWhereSeen: OPENSTACK_NETWORK_FACTS.OvsSeenAt,
+      queries: [
+        {
+          alias: "vswitchd_answers",
+          metricName: "ovs_memory_rules_total",
+          aggregationType: MetricsAggregationType.Max,
+        },
+        upOf(
+          "exporter_answers",
+          OpenStackDependency.Network,
+          MetricsAggregationType.Min,
+        ),
+      ],
+      firing: [gone("vswitchd_answers"), atLeast("exporter_answers", 1)],
+      firingCondition: FilterCondition.All,
+      recovery: [atLeast("vswitchd_answers", 1)],
+      recoveryCondition: FilterCondition.All,
+      words: {
+        incidentTitle: "[OpenStack] Open vSwitch Service Down",
+        incidentDescription: `Open vSwitch has stopped on the machine named above, which takes its instances off the network, and Neutron reads that machine's Open vSwitch or OVN agents as down. Check systemctl status openvswitch-switch on it, or its containers, and ovs-vsctl show. The incident resolves on its own once it answers again. Restart openstack-network-exporter on that machine afterwards: it does not reconnect to Open vSwitch's database on its own, and until it does ovn-controller and the tunnels there go unread.`,
+        criteriaName: "Open vSwitch Service Down - gone from where it ran",
+        criteriaDescription:
+          "Triggers when ovs-vswitchd's own series are gone for the whole window from a machine it ran on, with the exporter answering.",
+      },
+    });
+  },
+};
+
+const ovsDatabaseNotReadTemplate: OpenStackAlertTemplate = {
+  id: "openstack-ovs-database-not-read",
+  name: "Exporter Lost Open vSwitch's Database",
+  summary: "An exporter stops reading a running Open vSwitch's database for 10 minutes.",
+  description:
+    "Alert when Open vSwitch is running on a machine and openstack-network-exporter has not read its database for 10 minutes (ovs_build_info is gone, and ovs_memory_rules_total is there). Version 0.3.0 connects to that database once, so this follows every restart of Open vSwitch and lasts until the exporter restarts. Nothing is wrong with the network, but until then OVN Controller Not Running and Geneve Transmit Errors cannot see this machine. One incident per machine. Check for a recent restart of Open vSwitch, then restart the exporter on that machine: `docker restart prometheus_openstack_network_exporter` on Kolla-Ansible.",
+  category: "OVN and Open vSwitch",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildStep({
+      args,
+      rollingTime: PART_WINDOW,
+      groupByAttributeKeys: MACHINE_GROUP,
+      onlyWhereSeen: OPENSTACK_NETWORK_FACTS.OvsDatabaseSeenAt,
+      queries: [
+        {
+          alias: "database_read",
+          metricName: "ovs_build_info",
+          aggregationType: MetricsAggregationType.Max,
+        },
+        {
+          alias: "vswitchd_answers",
+          metricName: "ovs_memory_rules_total",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      firing: [gone("database_read"), atLeast("vswitchd_answers", 1)],
+      firingCondition: FilterCondition.All,
+      recovery: [atLeast("database_read", 1)],
+      recoveryCondition: FilterCondition.All,
+      words: {
+        incidentTitle: "[OpenStack] Exporter Lost Open vSwitch's Database",
+        incidentDescription: `openstack-network-exporter on the machine named above has stopped reading Open vSwitch's database, which it does after every restart of Open vSwitch, because it connects only once. Nothing is wrong with the network, but until the exporter restarts OVN Controller Not Running and Geneve Transmit Errors cannot see this machine. Check for a recent restart of Open vSwitch, then restart the exporter there (docker restart prometheus_openstack_network_exporter on Kolla-Ansible). The incident resolves on its own once it reads it again.`,
+        criteriaName: "Exporter Lost Open vSwitch's Database - not read",
+        criteriaDescription:
+          "Triggers when Open vSwitch answers on a machine and its database's series are gone for the whole window.",
+      },
+    });
+  },
+};
+
+function buildExporterTargetDownTemplate(data: {
+  id: string;
+  name: string;
+  category: OpenStackControlPlaneCategory;
+  dependency: OpenStackDependency;
+  exporter: string;
+  blindTo: string;
+}): OpenStackAlertTemplate {
+  return {
+    id: data.id,
+    name: data.name,
+    summary: `${data.exporter} does not answer on a machine for 10 minutes.`,
+    description: `Alert when the agent cannot read ${data.exporter} on a machine for 10 minutes (up reads 0). What it reports may be fine: this says it cannot be seen, so ${data.blindTo} on that machine are not being watched. One incident per machine. Check that the exporter is running there and that the agent can reach its port, with \`curl\` from the agent's machine.`,
+    category: data.category,
+    severity: "Warning",
+    getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+      return buildStep({
+        args,
+        rollingTime: PART_WINDOW,
+        groupByAttributeKeys: MACHINE_GROUP,
+        queries: [
+          upOf("exporter_answers", data.dependency, MetricsAggregationType.Max),
+        ],
+        firing: [below("exporter_answers", 1)],
+        recovery: [atLeast("exporter_answers", 1)],
+        recoveryCondition: FilterCondition.All,
+        words: {
+          incidentTitle: `[OpenStack] ${data.name}`,
+          incidentDescription: `The agent has not been able to read ${data.exporter} on the machine named above for 10 minutes, so ${data.blindTo} there are not being watched. What it reports may be fine. Check that the exporter is running on that machine and that the agent can reach its port, with curl from the agent's machine. The incident resolves on its own once it answers again.`,
+          criteriaName: `${data.name} - not answering`,
+          criteriaDescription:
+            "Triggers when the agent cannot read the exporter on a machine for the whole window.",
+        },
+      });
+    },
+  };
+}
+
+const networkExporterTargetDownTemplate: OpenStackAlertTemplate =
+  buildExporterTargetDownTemplate({
+    id: "openstack-network-exporter-target-down",
+    name: "Network Exporter Target Down",
+    category: "OVN and Open vSwitch",
+    dependency: OpenStackDependency.Network,
+    exporter: "openstack-network-exporter",
+    blindTo: "Open vSwitch and ovn-controller",
+  });
+
+/*
+ * libvirt.
+ */
+
+const libvirtServiceDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-libvirt-service-down",
+  name: "libvirt Service Down",
+  summary: "libvirt does not answer on a machine for 5 minutes.",
+  description:
+    "Alert when libvirt does not answer on a machine for 5 minutes (libvirt_up reads 0, with the exporter still answering). One incident per machine. Its instances carry on, but none can be started, stopped or moved there. nova-compute disables itself on that machine, so Compute Service Down stays quiet and this is the one that speaks. It can stay disabled for a while after libvirt is back, which `openstack compute service list` shows. Check `systemctl status libvirtd` on it, or `docker ps` for nova_libvirt on Kolla-Ansible.",
+  category: "libvirt",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildStep({
+      args,
+      rollingTime: WHOLE_WINDOW,
+      groupByAttributeKeys: MACHINE_GROUP,
+      queries: [
+        {
+          alias: "libvirt_answers",
+          metricName: "libvirt_up",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      firing: [below("libvirt_answers", 1)],
+      recovery: [atLeast("libvirt_answers", 1)],
+      recoveryCondition: FilterCondition.All,
+      words: {
+        incidentTitle: "[OpenStack] libvirt Service Down",
+        incidentDescription: `${takesDownOf(OpenStackDependency.Libvirt)} Check systemctl status libvirtd on the machine named above, or nova_libvirt's container on Kolla-Ansible, and openstack compute service list. The incident resolves on its own once it answers again.`,
+        criteriaName: "libvirt Service Down - not answering",
+        criteriaDescription:
+          "Triggers when libvirt does not answer on a machine for the whole window.",
+      },
+    });
+  },
+};
+
+const libvirtExporterTargetDownTemplate: OpenStackAlertTemplate =
+  buildExporterTargetDownTemplate({
+    id: "openstack-libvirt-exporter-target-down",
+    name: "libvirt Exporter Target Down",
+    category: "libvirt",
+    dependency: OpenStackDependency.Libvirt,
+    exporter: "the libvirt exporter",
+    blindTo: "libvirt's own health and the instances' usage",
+  });
+
+/*
  * What each dependency's templates are, in the order its page lists them. The pages read this,
  * and the alert templates' list is made from it.
  */
@@ -1305,8 +1683,19 @@ const TEMPLATES_BY_DEPENDENCY: Record<
     haProxyApi5xxRateHighTemplate,
     haProxyApi4xxRateHighTemplate,
   ],
-  [OpenStackDependency.Network]: [],
-  [OpenStackDependency.Libvirt]: [],
+  [OpenStackDependency.Network]: [
+    ovnControllerNotRunningTemplate,
+    ovnDatabaseWithoutLeaderTemplate,
+    ovnNorthdNotActiveTemplate,
+    geneveTransmitErrorsTemplate,
+    ovsServiceDownTemplate,
+    ovsDatabaseNotReadTemplate,
+    networkExporterTargetDownTemplate,
+  ],
+  [OpenStackDependency.Libvirt]: [
+    libvirtServiceDownTemplate,
+    libvirtExporterTargetDownTemplate,
+  ],
 };
 
 export function getAllOpenStackControlPlaneAlertTemplates(): Array<OpenStackAlertTemplate> {
@@ -1334,6 +1723,9 @@ export function getOpenStackControlPlaneTemplateIds(
  * What a part of it is about, each a monitor of its own, waits for the whole of it too, so a
  * cluster that goes reads as that and not as each of its nodes.
  */
+const CLOUD_STOPPED_REPORTING_TEMPLATE_ID: string =
+  "openstack-cloud-stopped-reporting";
+
 const WORKER_TEMPLATE_IDS: ReadonlyArray<string> = [
   "openstack-compute-service-down",
   "openstack-scheduler-or-conductor-down",
@@ -1370,6 +1762,8 @@ const CHILDREN_OF_PARENT_TEMPLATE: Readonly<
     OPENSTACK_DATABASE_CONNECTION_LOST_TEMPLATE_ID,
     OPENSTACK_TOKEN_VALIDATION_FAILING_TEMPLATE_ID,
     OPENSTACK_TOO_MANY_ERRORS_TEMPLATE_ID,
+    // The exporter logs in to read anything, so with no Keystone it answers nothing.
+    CLOUD_STOPPED_REPORTING_TEMPLATE_ID,
   ],
   [haProxyDownTemplate.id]: [
     haProxyBackendDownTemplate.id,
@@ -1377,7 +1771,15 @@ const CHILDREN_OF_PARENT_TEMPLATE: Readonly<
     haProxyApi5xxRateHighTemplate.id,
     haProxyApi4xxRateHighTemplate.id,
     ...API_TEMPLATE_IDS,
+    CLOUD_STOPPED_REPORTING_TEMPLATE_ID,
   ],
+  /*
+   * Each of these is one machine's, and each speaks only for the agents that live on what it is
+   * about: OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH, by OpenStackDependencySuppression.
+   */
+  [ovnControllerNotRunningTemplate.id]: ["openstack-network-agent-down"],
+  [ovsServiceDownTemplate.id]: ["openstack-network-agent-down"],
+  [ovnDatabaseWithoutLeaderTemplate.id]: [ovnNorthdNotActiveTemplate.id],
 };
 
 // The templates whose monitors a monitor made from this one waits for.

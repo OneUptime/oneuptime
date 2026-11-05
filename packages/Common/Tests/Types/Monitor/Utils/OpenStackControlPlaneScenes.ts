@@ -1,6 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
-import { JSONObject } from "../../../../Types/JSON";
+import OpenStackResource from "../../../../Models/DatabaseModels/OpenStackResource";
+import {
+  OpenStackControlPlaneEntry,
+  foldOpenStackControlPlaneDatapoint,
+} from "../../../../Server/Utils/Telemetry/OpenStackControlPlaneScan";
+import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import {
   OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE,
   OPENSTACK_REGION_ATTRIBUTE,
@@ -11,6 +16,7 @@ import {
   OPENSTACK_RABBITMQ_QUEUE_DEPENDENCY_LABEL_VALUE,
   OpenStackDependency,
 } from "../../../../Types/OpenStack/OpenStackControlPlane";
+import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackResourceKind";
 
 /*
  * WHAT REAL CLUSTERS SAID WHEN THEY BROKE, AS THE AGENT'S COLLECTOR WOULD HAVE SENT IT.
@@ -30,6 +36,12 @@ import {
  * by turns, one a minute, for as long as it is asked to last. That is the one thing here nobody
  * recorded. Run 41922778894's collector, which ran through all of it, is what says the labels
  * and the increases above are right (OpenStackControlPlaneScenes.test.ts).
+ *
+ * Tests/Ops/openstack-e2e/control-plane-cloud.sh does the same beside a real DevStack, stopping
+ * one thing for some minutes and reading it each minute, so a drill has a timeline of its own
+ * and what the services above did meanwhile (the exporter in single-cloud mode, whose series
+ * carry no dependency). Those minutes are shorter than a template's window, so the last of them
+ * is held to reach it: readCloudDrill's callers say how long.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../../..");
@@ -161,6 +173,45 @@ export function readClusterScene(name: string): RecordedScene {
   };
 }
 
+export interface RecordedDrill {
+  name: string;
+  before: RecordedReading;
+  // One a minute, while it was stopped.
+  minutes: Array<RecordedReading>;
+  // As soon as every worker read as up again.
+  recovered: RecordedReading;
+}
+
+export function getCloudDrillNames(release: string): Array<string> {
+  return fs
+    .readdirSync(path.join(FIXTURES, `cloud-${release}`))
+    .filter((name: string): boolean => {
+      return name !== "healthy";
+    })
+    .sort();
+}
+
+export function readCloudDrill(release: string, name: string): RecordedDrill {
+  const folder: string = path.join(FIXTURES, `cloud-${release}`, name);
+
+  return {
+    name,
+    before: readReading(path.join(folder, "before")),
+    minutes: fs
+      .readdirSync(folder)
+      .filter((reading: string): boolean => {
+        return reading.startsWith("minute-");
+      })
+      .sort()
+      .map((reading: string): RecordedReading => {
+        return readReading(path.join(folder, reading));
+      }),
+    recovered: readReading(path.join(folder, "recovered")),
+  };
+}
+
+const EXPORTER_ENDPOINT: string = "single-cloud";
+
 // The word the agent's job stamps on each endpoint's series.
 export function getDependencyOfEndpoint(endpoint: string): string {
   if (endpoint.endsWith("-detailed")) {
@@ -207,8 +258,13 @@ function attributesOf(
 ): JSONObject {
   return {
     ...labels,
-    [OPENSTACK_DEPENDENCY_LABEL]: getDependencyOfEndpoint(endpoint.name),
-    [OPENSTACK_EXPORTER_HOST_LABEL]: endpoint.host,
+    // openstack-exporter's own series are about the cloud, and no job stamps them.
+    ...(endpoint.name === EXPORTER_ENDPOINT
+      ? {}
+      : {
+          [OPENSTACK_DEPENDENCY_LABEL]: getDependencyOfEndpoint(endpoint.name),
+          [OPENSTACK_EXPORTER_HOST_LABEL]: endpoint.host,
+        }),
     [OPENSTACK_REGION_ATTRIBUTE]: region,
     [OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE]: SCENE_CLOUD,
   };
@@ -336,4 +392,69 @@ export function holdScene(data: {
   }
 
   return rows;
+}
+
+function toAttributes(attributes: JSONObject): JSONArray {
+  return Object.entries(attributes).map(
+    ([key, value]: [string, unknown]): JSONObject => {
+      return { key, value: { stringValue: String(value) } };
+    },
+  );
+}
+
+/*
+ * What the cloud's inventory holds after reading these, through the real scan, in order. Each row
+ * was last seen when its own series last arrived.
+ */
+export function foldIntoInventory(
+  rows: Array<StoredMetricRow>,
+): Array<OpenStackResource> {
+  const entries: Map<string, OpenStackControlPlaneEntry> = new Map();
+  const lastSeen: Map<string, Date> = new Map();
+
+  for (const row of rows) {
+    foldOpenStackControlPlaneDatapoint({
+      metricName: row.name,
+      attributes: toAttributes(row.attributes),
+      value: row.value,
+      observedAt: row.time,
+      region: row.attributes[OPENSTACK_REGION_ATTRIBUTE] as string,
+      entryFor: (externalId: string): OpenStackControlPlaneEntry => {
+        let entry: OpenStackControlPlaneEntry | undefined =
+          entries.get(externalId);
+
+        if (!entry) {
+          entry = {
+            name: null,
+            regionName: null,
+            status: null,
+            statusObservedAt: null,
+            facts: {},
+          };
+          entries.set(externalId, entry);
+        }
+
+        lastSeen.set(externalId, row.time);
+
+        return entry;
+      },
+    });
+  }
+
+  return Array.from(entries.entries()).map(
+    ([externalId, entry]: [
+      string,
+      OpenStackControlPlaneEntry,
+    ]): OpenStackResource => {
+      const resource: OpenStackResource = new OpenStackResource();
+      resource.kind = OpenStackResourceKind.ControlPlane;
+      resource.externalId = externalId;
+      resource.name = entry.name as string;
+      resource.regionName = entry.regionName as string;
+      resource.status = entry.status as string;
+      resource.facts = entry.facts;
+      resource.lastSeenAt = lastSeen.get(externalId) as Date;
+      return resource;
+    },
+  );
 }

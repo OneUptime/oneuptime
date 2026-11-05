@@ -14,7 +14,7 @@ memcached_commands_total{command="set",status="hit"} 0
 memcached_commands_total{command="touch",status="hit"} 0
 memcached_commands_total{command="touch",status="miss"} 0
 memcached_current_bytes 0
-memcached_current_connections 7
+memcached_current_connections 6
 memcached_items_evicted_total 0
 memcached_limit_bytes 8.388608e+06
 memcached_max_connections 1024

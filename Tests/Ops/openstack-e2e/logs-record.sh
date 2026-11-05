@@ -487,9 +487,15 @@ scene_token_validation() {
   sudo rm -rf "$keys"
   sudo "$manage" fernet_setup --keystone-user "$SERVICE_USER" --keystone-group "$(id -gn "$SERVICE_USER")"
   sudo systemctl restart devstack@keystone.service
+  # The APIs and Keystone remember a token they validated in Memcached, so without this the
+  # old keys go on being believed and nothing is refused.
+  sudo systemctl restart memcached.service || true
   sleep 5
-  curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H "X-Auth-Token: $token" "$nova/servers" || true
-  curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H "X-Auth-Token: $token" "$KEYSTONE_V3/projects" || true
+  for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+    curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H "X-Auth-Token: $token" "$nova/servers" || true
+    curl -sS --max-time 30 -o /dev/null -w '%{http_code}\n' -H "X-Auth-Token: $token" "$KEYSTONE_V3/projects" || true
+    : "$attempt"
+  done
   sleep 30
   sudo rm -rf "$keys"
   sudo mv "$keys.ou-backup" "$keys"

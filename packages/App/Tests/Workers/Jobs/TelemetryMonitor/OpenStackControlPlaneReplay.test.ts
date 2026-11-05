@@ -5,10 +5,16 @@ import CriteriaInEffect from "Common/Server/Utils/Monitor/CriteriaInEffect";
 import {
   RecordedScene,
   SCENE_CLOUD,
+  RecordedDrill,
+  RecordedReading,
   StoredMetricRow,
+  foldIntoInventory,
   getClusterSceneNames,
+  getCloudDrillNames,
   holdScene,
+  readCloudDrill,
   readClusterScene,
+  rowsOfReading,
 } from "Common/Tests/Types/Monitor/Utils/OpenStackControlPlaneScenes";
 import { JSONObject } from "Common/Types/JSON";
 import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -19,6 +25,7 @@ import { OPENSTACK_REGION_ATTRIBUTE } from "Common/Types/Monitor/MonitorStepOpen
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   OpenStackAlertTemplate,
+  getAllOpenStackAlertTemplates,
 } from "Common/Types/Monitor/OpenStackAlertTemplates";
 import { getAllOpenStackControlPlaneAlertTemplates } from "Common/Types/Monitor/OpenStackControlPlaneAlertTemplates";
 import ObjectID from "Common/Types/ObjectID";
@@ -65,15 +72,27 @@ jest.mock("Common/Server/Services/MetricService", () => {
 jest.mock("Common/Server/Services/MetricTypeService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
+jest.mock("Common/Server/Services/OpenStackCloudService", () => {
+  return { __esModule: true, default: { findOneBy: jest.fn() } };
+});
+jest.mock("Common/Server/Services/OpenStackResourceService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import OpenStackResourceService from "Common/Server/Services/OpenStackResourceService";
 import { monitorOpenStack } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { FoldedReadArgs, foldRowsAsSqlRead } from "./SqlGroupedFold";
 
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
 const metricFindBy: jest.Mock = MetricService.findBy as unknown as jest.Mock;
+const cloudFindOneBy: jest.Mock =
+  OpenStackCloudService.findOneBy as unknown as jest.Mock;
+const inventoryFindBy: jest.Mock =
+  OpenStackResourceService.findBy as unknown as jest.Mock;
 
 const END_MS: number = Date.UTC(2026, 10, 4, 12, 0, 0);
 const HELD_MINUTES: number = 16;
@@ -127,6 +146,10 @@ function serveRows(rows: Array<StoredMetricRow>): void {
     return rows.filter((row: StoredMetricRow): boolean => {
       return isRowInQuery(row, args as MetricReadQuery);
     });
+  });
+  // What the scan made of the same rows, as the cloud's inventory holds it.
+  inventoryFindBy.mockImplementation(async () => {
+    return foldIntoInventory(rows);
   });
 }
 
@@ -236,7 +259,52 @@ beforeEach(() => {
   (MetricTypeService.findBy as unknown as jest.Mock)
     .mockReset()
     .mockResolvedValue([] as never);
+  cloudFindOneBy.mockReset().mockResolvedValue({ id: ObjectID.generate() } as never);
+  inventoryFindBy.mockReset().mockResolvedValue([] as never);
 });
+
+// A drill as a timeline: what came before, each minute it lasted, and what came after.
+function rowsOfDrill(data: {
+  drill: RecordedDrill;
+  endOfOutageMs: number;
+  heldMinutes: number;
+  minutesAfter: number;
+}): Array<StoredMetricRow> {
+  const { drill } = data;
+  const readings: Array<{ minute: number; reading: RecordedReading }> = [];
+  const outage: number = Math.max(drill.minutes.length, data.heldMinutes);
+
+  for (let minute: number = -HELD_MINUTES; minute < 0; minute++) {
+    readings.push({ minute, reading: drill.before });
+  }
+  for (let minute: number = 0; minute < outage; minute++) {
+    readings.push({
+      minute,
+      reading: drill.minutes[Math.min(minute, drill.minutes.length - 1)]!,
+    });
+  }
+  for (let minute: number = 0; minute < data.minutesAfter; minute++) {
+    readings.push({ minute: outage + minute, reading: drill.recovered });
+  }
+
+  return readings.flatMap(
+    (
+      one: { minute: number; reading: RecordedReading },
+      index: number,
+    ): Array<StoredMetricRow> => {
+      return rowsOfReading({
+        scene: {
+          name: drill.name,
+          readings: [readings[Math.max(index - 1, 0)]!.reading, one.reading],
+        },
+        reading: one.reading,
+        time: new Date(
+          data.endOfOutageMs + (one.minute - outage) * 60000 + 30000,
+        ),
+      });
+    },
+  );
+}
 
 describe("every scene of the recording, through every template", () => {
   const scenes: Array<RecordedScene> = getClusterSceneNames().map(
@@ -276,4 +344,51 @@ describe("every scene of the recording, through every template", () => {
     console.log(lines.join("\n"));
     expect(lines.length).toBe(TEMPLATES.length);
   }, 600000);
+
+  test("prints the drills", async () => {
+    const lines: Array<string> = [];
+    const all: Array<OpenStackAlertTemplate> = getAllOpenStackAlertTemplates();
+
+    for (const release of ["gazpacho-ovn", "gazpacho-ovs"]) {
+      for (const name of getCloudDrillNames(release)) {
+        const drill: RecordedDrill = readCloudDrill(release, name);
+        const fires: Array<string> = [];
+        const afterwards: Array<string> = [];
+
+        for (const template of all) {
+          const during: Verdict = await evaluate({
+            template,
+            rows: rowsOfDrill({
+              drill,
+              endOfOutageMs: END_MS,
+              heldMinutes: 16,
+              minutesAfter: 0,
+            }),
+          });
+          if (during.firing.length > 0) {
+            fires.push(`${template.id}=[${during.firing.join(",")}]`);
+          }
+          const after: Verdict = await evaluate({
+            template,
+            rows: rowsOfDrill({
+              drill,
+              endOfOutageMs: END_MS - 16 * 60000,
+              heldMinutes: 16,
+              minutesAfter: 16,
+            }),
+          });
+          if (after.firing.length > 0) {
+            afterwards.push(`${template.id}=[${after.firing.join(",")}]`);
+          }
+        }
+        lines.push(
+          `${release} ${name}\n  during: ${fires.join(" ")}\n  after: ${afterwards.join(" ")}`,
+        );
+      }
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(lines.join("\n"));
+    expect(lines.length).toBeGreaterThan(0);
+  }, 900000);
 });

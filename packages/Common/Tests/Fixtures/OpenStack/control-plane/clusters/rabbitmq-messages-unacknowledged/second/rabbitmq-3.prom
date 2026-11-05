@@ -1,12 +1,12 @@
 erlang_vm_dist_node_state{peer="rabbit@rabbit1"} 3
 erlang_vm_dist_node_state{peer="rabbit@rabbit2"} 3
-rabbitmq_process_open_fds 39
-rabbitmq_process_resident_memory_bytes 129495040
-rabbitmq_disk_space_available_bytes 89697406976
+rabbitmq_process_open_fds 40
+rabbitmq_process_resident_memory_bytes 128839680
+rabbitmq_disk_space_available_bytes 89287749632
 rabbitmq_process_max_fds 1024
-rabbitmq_resident_memory_limit_bytes 10055580057
+rabbitmq_resident_memory_limit_bytes 10056206745
 rabbitmq_disk_space_available_limit_bytes 50000000
-rabbitmq_erlang_uptime_seconds 145.574
+rabbitmq_erlang_uptime_seconds 161.314
 rabbitmq_queue_messages_ready 0
 rabbitmq_queue_messages_unacked 0
 rabbitmq_queue_messages 0
@@ -14,7 +14,7 @@ rabbitmq_queue_consumers 0
 rabbitmq_connections 0
 rabbitmq_consumers 0
 rabbitmq_queues 0
-rabbitmq_identity_info{rabbitmq_node="rabbit@rabbit3",rabbitmq_cluster="rabbit@rabbit3",rabbitmq_cluster_permanent_id="rabbitmq-cluster-id-9AWVAEzujBfxIovwdjfStg",rabbitmq_endpoint="aggregated"} 1
+rabbitmq_identity_info{rabbitmq_node="rabbit@rabbit3",rabbitmq_cluster="rabbit@rabbit3",rabbitmq_cluster_permanent_id="rabbitmq-cluster-id-I16JcGm8F_nC8wRKva112A",rabbitmq_endpoint="aggregated"} 1
 rabbitmq_alarms_file_descriptor_limit 0
 rabbitmq_alarms_free_disk_space_watermark 0
 rabbitmq_alarms_memory_used_watermark 0

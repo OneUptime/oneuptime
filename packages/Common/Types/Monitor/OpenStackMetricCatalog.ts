@@ -2070,6 +2070,89 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: [...DEPENDENCY_LABELS, "proxy", "code"],
     unit: "count",
   }),
+  metric({
+    metricName: "ovnc_encap_ip",
+    friendlyName: translationKey("OVN Chassis"),
+    description:
+      "1 on a machine set up as an OVN chassis, labelled with its tunnel address. It is read from Open vSwitch, so it stays while ovn-controller is stopped and goes with Open vSwitch.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "ovnc_rconn_queued",
+    friendlyName: translationKey("ovn-controller Messages Queued"),
+    description:
+      "How many OpenFlow messages ovn-controller has queued since it started. Only a running ovn-controller has this series, which is what it is read for here.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "ovn_raft_cluster_leader",
+    friendlyName: translationKey("OVN Database Leader"),
+    description:
+      "1 on the member of an OVN database that leads it, and 0 on the others. openstack-network-exporter reads Southbound on a machine with both databases' sockets, so Northbound shows only where a machine has no Southbound to read.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: [...DEPENDENCY_LABELS, "database"],
+  }),
+  metric({
+    metricName: "ovn_northd_status",
+    friendlyName: translationKey("ovn-northd Active"),
+    description:
+      "1 on the ovn-northd that is active, and 0 on a standby. It reads 0 everywhere with OVN's databases stopped.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "ovs_memory_rules_total",
+    friendlyName: translationKey("Open vSwitch Rules"),
+    description:
+      "How many OpenFlow rules ovs-vswitchd holds. It is asked over ovs-vswitchd's own socket, so this goes when it stops and comes straight back when it starts.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "ovs_build_info",
+    friendlyName: translationKey("Open vSwitch Database Read"),
+    description:
+      "1 while openstack-network-exporter can read Open vSwitch's database, labelled with its version. Version 0.3.0 connects to that database once, so after Open vSwitch restarts this stays gone until the exporter restarts too.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "ovs_interface_tx_errors_increase",
+    friendlyName: translationKey("Tunnel Transmit Errors"),
+    description:
+      "How many transmit errors a machine's Geneve tunnels reported since the last collection. The agent keeps Geneve's interfaces and none of the others, because a machine has one interface per port.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: [...DEPENDENCY_LABELS, "interface", "type"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "libvirt_up",
+    friendlyName: translationKey("libvirt Answering"),
+    description:
+      "Whether libvirt answered its exporter (1) or not (0). The exporter sits beside it, so a stopped libvirt leaves it answering with this at 0.",
+    category: "libvirt",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.Libvirt,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
 ];
 
 export function getAllOpenStackMetrics(): Array<OpenStackMetricDefinition> {
@@ -2108,6 +2191,8 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "MariaDB and Galera",
     "Memcached",
     "HAProxy",
+    "OVN and Open vSwitch",
+    "libvirt",
     "Compute",
     "Network",
     "Storage",
