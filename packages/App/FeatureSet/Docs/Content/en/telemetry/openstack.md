@@ -14,6 +14,7 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Who did what](#who-did-what): Audit trails into Security Events.
 - [Trace a request](#trace-requests-through-the-control-plane): One signed request, followed across the control plane.
 - [Check it from outside](#check-the-cloud-from-outside): Whether anyone can actually boot an instance, from a probe outside the cloud.
+- [With no internet](#with-no-internet): The agent's four images, and how to copy them to a registry of your own.
 - [By deployment tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat and Mirantis.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -1313,7 +1314,7 @@ The agent's `docker-compose.yml` also runs the **OpenStack AI agent**, `oneuptim
 - **The credential is the hard limit.** It uses the credential in `clouds.yaml` that the exporter reads, so it sees what the level you chose in [Choose how much the agent sees](#choose-how-much-the-agent-sees) lets it see. If you made that credential with access rules, make a new one from the current [rules](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json): they gained a few `GET` paths for the agent (an instance's actions, one network, subnet, router, floating IP, port or image), and the old ones still work for everything else. To use a credential of its own, set `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` and `OPENSTACK_AUTH_URL`, and `OPENSTACK_AI_CLOUDS_FILE=/dev/null` if there is no `clouds.yaml` beside the agent, as with your own exporter.
 - **Secrets stay out.** An instance's `user_data`, its admin password, an image's `direct_url` and a volume's `provider_auth`, and the generic secrets every AI agent masks, are removed from the output before it reaches the model or a log.
 - `install.sh` starts it with the exporter it bundles (the `openstack-ai-agent` Compose profile). With your own exporter there is no `clouds.yaml` beside it, so it needs a credential of its own and starts when you add that profile to `COMPOSE_PROFILES` in `.env`. `install.sh --without-docker` does not run it: use the Docker install if you want OneUptime AI to read this cloud.
-- It runs as the owner of `clouds.yaml` with no capabilities and a read-only root filesystem. Delete the `oneuptime-openstack-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI: a re-run of `install.sh` keeps your edit.
+- It runs as the owner of `clouds.yaml` with no capabilities and a read-only root filesystem. Delete the `oneuptime-openstack-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI. A re-run of `install.sh` puts it back and keeps your edited file as `docker-compose.yml.bak.<timestamp>`, so delete it again after an [upgrade](#upgrading-the-agent).
 
 What it may run and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#openstack-clouds). OneUptime AI's investigations read this cloud's Needs attention, blast radius, service logs and lifecycle events as well, where you have turned them on.
 
@@ -1377,6 +1378,33 @@ sudo userdel oneuptime-openstack
 ```
 
 Then delete the credential: `openstack application credential delete oneuptime-agent`. If you used the policy overrides, take them out of each service's file, or empty the file (`{}`). Never delete the file.
+
+## With no internet
+
+An agent behind an air gap needs three things from outside it: the install script and its files, which your own OneUptime serves; the images its `docker-compose.yml` runs, which you copy to a registry on your side; and nothing else. The agent only ever sends to your OneUptime URL and reads your cloud.
+
+The images are pinned in `docker-compose.yml`, so what you mirror is exactly what the agent runs:
+
+| Image | Where it comes from | What for |
+| --- | --- | --- |
+| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | The collector. Always, and the [logs](#service-logs) and [traces](#trace-requests-through-the-control-plane) profiles run the same one |
+| `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | The bundled exporter, and the one that reads project quotas. Not needed if you [run your own exporter](#install-and-start-the-agent) |
+| `oneuptime/resource-ai-agent:release` | Docker Hub | The [AI agent](#ai-agent). Not needed if you take its service out of `docker-compose.yml`. The `release` tag moves with each OneUptime release, so copy it again when you upgrade |
+| `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | Only the [database path](/docs/telemetry/openstack-very-large-clouds#the-database-path) |
+
+The two that name a digest are copied by digest, so a mirror that keeps the digest holds the same bytes. On a machine that reaches the internet and your registry, `crane copy` keeps it (`skopeo copy --all --preserve-digests` does too). Or save them to a file with `docker save`, carry it across, and `docker load` it on the agent's machine.
+
+```bash
+crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
+crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
+```
+
+Then, on the agent's machine, run [the install script](#install-and-start-the-agent) as usual, from your own OneUptime. It tries to pull the images, says so when it cannot, and starts with the ones the machine has. With a registry, change each `image:` in `docker-compose.yml` to your copy and run `docker compose up -d`. `install.sh` replaces `docker-compose.yml` each time it runs and keeps your edited one as `docker-compose.yml.bak.<timestamp>`, so make the edit again after an [upgrade](#upgrading-the-agent).
+
+Do not use `--without-docker` behind a gap. It downloads the collector's and the exporter's release archives from GitHub, with no option to download from a mirror instead.
+
+OneUptime's own images cross the gap another way: [Air-Gapped Installation](/docs/installation/air-gapped) covers the platform's, and not the agent's. The agent's images are not in that bundle.
 
 ## Troubleshooting
 
