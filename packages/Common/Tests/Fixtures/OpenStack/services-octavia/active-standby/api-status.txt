@@ -17,6 +17,6 @@
 200 octavia-listener-stats-ou-lb-ha-listener
 200 octavia-members-ou-lb-pool
 200 octavia-members-ou-lb-ha-pool
-200 octavia-amphora-stats-900247c0
-200 octavia-amphora-stats-0fad3f17
-200 octavia-amphora-stats-9747c222
+200 octavia-amphora-stats-6cd767c2
+200 octavia-amphora-stats-46c373fb
+200 octavia-amphora-stats-4857d190
