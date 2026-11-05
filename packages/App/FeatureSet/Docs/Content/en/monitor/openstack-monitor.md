@@ -163,10 +163,10 @@ Seven more templates read a cloud's logs rather than its metrics, so they are Lo
 | Template | Category | Severity | Reads | Fires when | Recovers when |
 | --- | --- | --- | --- | --- | --- |
 | No Valid Host | Service Logs | Warning | Lines a service wrote at `WARNING` or worse holding `No valid host was found`, **past 15 minutes** | One or more | None left in the window |
-| RabbitMQ Connection Lost | Service Logs | Critical | `AMQP server on <host> is unreachable` or `MessagingTimeout`, **past 5 minutes** | 5 or more | Fewer than 5 |
-| Database Connection Lost | Service Logs | Critical | `DBConnectionError`, or MySQL's `Lost connection` and `Can't connect`, **past 5 minutes** | 5 or more | Fewer than 5 |
+| RabbitMQ Connection Lost | Service Logs | Critical | `AMQP server on <host> is unreachable`, `Unable to connect to AMQP server`, oslo.messaging's `Connection failed` or `MessagingTimeout`, **past 5 minutes** | 5 or more | Fewer than 5 |
+| Database Connection Lost | Service Logs | Critical | `DBConnectionError`, `SQL connection failed`, or MySQL's `Lost connection` and `Can't connect`, **past 5 minutes** | 5 or more | Fewer than 5 |
 | Too Many Errors from a Service | Service Logs | Warning | `ERROR` and `CRITICAL` lines, per service and machine, **past 5 minutes** | 50 or more | Fewer than 50 |
-| Token Validation Failing | Service Logs | Critical | Tokens a service or Keystone cannot validate, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
+| Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token` and Keystone's `not a recognized Fernet token`, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
 | Instance Action Failed | Events | Warning | `compute.exception` and any `instance.*.error`, per instance, event and reason, **past 15 minutes**. Needs [notifications](/docs/telemetry/openstack#turn-on-notifications) or a probe | One or more | None left in the window |
 | Scheduling Failed | Events | Warning | `scheduler.select_destinations.error`, or a compute task's error naming `NoValidHost`, per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
 

@@ -918,8 +918,9 @@ jobs:
       # Signs real requests, on its own and with a limit of its own, so that a problem here
       # costs neither the drills nor the logs. Before the logs, because it takes back
       # everything it changes, and they leave a cloud configured their own way.
+      # Not for a run that only wants the logs, which would wait for it on the entries that do.
       - name: Record what OSProfiler's driver sends for a signed request
-        if: ${{ matrix.traces && !inputs.instance_metrics_only }}
+        if: ${{ matrix.traces && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh

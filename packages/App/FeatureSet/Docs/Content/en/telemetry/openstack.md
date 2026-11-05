@@ -619,11 +619,11 @@ The cloud's **Recommendations** page offers these beside the other [alert templa
 | **RabbitMQ Connection Lost** | `AMQP server on <host> is unreachable`, or `MessagingTimeout` |
 | **Database Connection Lost** | `DBConnectionError`, or MySQL's `Lost connection` and `Can't connect` |
 | **Too Many Errors from a Service** | One service on one machine writing many `ERROR` lines |
-| **Token Validation Failing** | Tokens Keystone gave out being refused: what a controller whose Fernet keys differ from the others looks like |
+| **Token Validation Failing** | A service saying `Authorization failed for token`, or Keystone `not a recognized Fernet token`: what a controller whose Fernet keys differ from the others looks like |
 
 ### What it keeps and costs
 
-A cloud writes a great deal nobody reads. The first time a project's OpenStack logs arrive, it gets these as [drop filters](/docs/telemetry/drop-filters-and-scrub-rules), where they can be counted, changed or turned off. Turned off, they stay off.
+A cloud writes a great deal nobody reads. The first time a project's OpenStack logs arrive, it gets these as [drop filters](/docs/telemetry/drop-filters-and-scrub-rules), where they can be counted, changed or turned off. Turned off, they stay off, and so does one you delete while either of the others is left. Delete all three and the next logs bring all three back, so turn off what you don't want.
 
 | Filter | What it drops | What it costs you |
 | --- | --- | --- |
@@ -635,7 +635,9 @@ These filters match only what OneUptime read from a cloud's logs, so nothing els
 
 ### Secrets in logs
 
-OpenStack's debug logs have leaked tokens and passwords, and a Fernet token in a log is a login. Before a cloud's line is stored, whatever rules a project has set, OneUptime takes out Fernet, JWS and PKI tokens by their shape, the value of anything named as a secret (`password`, `token`, `X-Auth-Token`, `adminPass`, and the like), the password in a URL such as a `transport_url`, and private keys. Nothing turns this off. Four [scrub rules](/docs/telemetry/drop-filters-and-scrub-rules) cover the same shapes on a project's other logs, such as a pod's with no cloud named. Those are yours to change.
+OpenStack's debug logs have leaked tokens and passwords, and a Fernet token in a log is a login. Before a cloud's line is stored, whatever rules a project has set, OneUptime takes out Fernet, JWS and PKI tokens by their shape, the value of anything named as a secret (`password`, `token`, `X-Auth-Token`, `adminPass`, and the like), the password in a URL such as a `transport_url`, and private keys. A line too long to keep whole is cut first, and a secret the cut fell inside goes as well. Nothing turns this off. Four [scrub rules](/docs/telemetry/drop-filters-and-scrub-rules) cover the same shapes on a project's other logs, such as a pod's with no cloud named. Those are yours to change.
+
+oslo.log masks a good deal itself, and not everything: our test clouds' Cinder wrote `connection_info` in the clear, CHAP password included. OneUptime takes that out too, though anyone who can read the service's own log can still read it there.
 
 ## Lifecycle events
 
@@ -665,11 +667,14 @@ Set `driver = log` in `neutron.conf`, `cinder.conf` and `glance-api.conf` too. E
 | Deployed with | Where it goes | What restarts it |
 | --- | --- | --- |
 | Kolla-Ansible | `/etc/kolla/config/global.conf` for every service, and `/etc/kolla/config/nova.conf` for Nova's own | `kolla-ansible reconfigure -i <inventory> -t nova,neutron,cinder,glance` |
-| OpenStack-Ansible | `nova_nova_conf_overrides`, `neutron_neutron_conf_overrides`, `cinder_cinder_conf_overrides` and `glance_glance_api_conf_overrides` in `user_variables.yml` | `openstack-ansible openstack.osa.nova`, and the same for each service |
+| OpenStack-Ansible | `nova_nova_conf_overrides`, `neutron_neutron_conf_overrides`, `cinder_cinder_conf_overrides` and `glance_glance_api_conf_overrides` in `user_variables.yml` | `openstack-ansible openstack.osa.nova`, and the same for each service. An older release names its playbooks `os-nova-install.yml` |
 | OpenStack-Helm | `conf.nova.oslo_messaging_notifications.driver` and `conf.nova.notifications.notification_format` in the chart's values, and the same for each service's chart | `helm upgrade`, which restarts the pods whose configuration changed |
+| Red Hat's distribution | `customServiceConfig` for each service in the `OpenStackControlPlane` resource. This is from Red Hat's documentation: we have not run it | Its operators, when the resource changes |
 | DevStack | Each service's file in `/etc`. `iniset` does it | `sudo systemctl restart "devstack@n-*" "devstack@q-*" "devstack@c-*" "devstack@g-*"` |
 
-A cloud that sends these to Ceilometer too can name two: `driver` can be set more than once.
+A cloud that sends these to Ceilometer too can name two: `driver` can be set more than once. If that Ceilometer reads Nova's older form, use `notification_format = both`. OneUptime reads the versioned one of each pair, so nothing appears twice.
+
+Leave `notify_on_state_change` as it is. It only adds `instance.update` lines, which are [steps on the way](#what-is-kept), and Nova's other events already say when a part's state changed.
 
 ### Without notifications
 
@@ -686,6 +691,8 @@ Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them
 | Routine | `metrics.update`, `*.exists` and `*.usage`, which say nothing happened | Dropped, one setting away from kept. Kept, they are logs and go nowhere else |
 | Trail | Steps on the way: `*.start`, a port updated while an instance boots, `instance.update` | Logs, to follow a request by |
 | Change | Something happened | Logs, the feed, chart markers and OneUptime AI |
+
+Cinder's `volume.attach.start` counts as a change, because Cinder says nothing more about a volume Nova attaches. Nova's `instance.volume_attach.end` says when it finished, on the instance.
 
 ## Who did what
 
@@ -1037,6 +1044,18 @@ That is the design working: the others keep reporting. The diagnostic script say
 
 :::details Every OpenStack service fails after taking a policy file away
 On Flamingo and Epoxy, oslo.policy raises on every check once a policy file it has read is gone, and when the service is Keystone the whole cloud answers `503`. Restart the service. To take overrides off, empty the file (`{}`) and never delete it.
+:::
+
+:::details A cloud's service logs don't arrive
+Read the collector's log: `docker logs oneuptime-openstack-logs` for the files profile, or `journalctl -u oneuptime-openstack-logs` for the journal's. A `401` means a bad ingestion key. If lines arrive under no cloud, `OPENSTACK_CLOUD_NAME` isn't the name the cloud has in OneUptime: run `install-logs.sh` again with the right one.
+:::
+
+:::details Lines arrive with no level, request or service
+OneUptime reads oslo.log's own formats. A cloud that changed `logging_context_format_string` or `logging_default_format_string` writes something else, and those lines are kept as they are, with nothing read from them. Put the format back, or turn on `use_json`, which reads the same whatever the format says.
+:::
+
+:::details The Feed stays empty
+Each service needs `driver = log` and a restart, and Nova `notification_format = versioned` as well: see [Turn on notifications](#turn-on-notifications). To check a service, grep its log for `oslo.messaging.notification`. If there's nothing, look at `default_log_levels`: a level above `INFO` for `oslo.messaging` silences most of them. A cloud whose configuration isn't yours to change can use a [probe](#without-notifications).
 :::
 
 ## Next steps

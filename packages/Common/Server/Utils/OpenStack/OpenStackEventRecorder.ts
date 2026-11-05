@@ -70,6 +70,14 @@ const NOTIFIED_MEMORY_IN_SECONDS: number = 60 * 60;
 const PROBE_ACTION_NAMESPACE: string = "openstack-event-probe-action";
 const PROBE_ACTION_MEMORY_IN_SECONDS: number = 24 * 60 * 60;
 
+/*
+ * Nova with notification_format = both says each thing in two forms, for a Ceilometer that
+ * still reads the older: compute.instance.create.end beside instance.create.end. A cloud
+ * heard using the newer is read by that alone, and one using only the older is read by that.
+ */
+const VERSIONED_NAMESPACE: string = "openstack-event-nova-versioned";
+const UNVERSIONED_EVENT_PREFIX: string = "compute.instance.";
+
 export interface OpenStackEventBufferEntry {
   cloudName: string;
   events: Array<OpenStackRecordedEvent>;
@@ -91,6 +99,16 @@ export function isNovaInstanceNotification(
     !isOpenStackProbeAction(recorded) &&
     recorded.event.part !== null &&
     recorded.event.part.kind === OpenStackResourceKind.Instance
+  );
+}
+
+function isUnversionedNotification(recorded: OpenStackRecordedEvent): boolean {
+  return recorded.event.type.startsWith(UNVERSIONED_EVENT_PREFIX);
+}
+
+function isVersionedNotification(recorded: OpenStackRecordedEvent): boolean {
+  return (
+    isNovaInstanceNotification(recorded) && !isUnversionedNotification(recorded)
   );
 }
 
@@ -181,7 +199,10 @@ export default class OpenStackEventRecorder {
     const events: Array<OpenStackRecordedEvent> =
       await this.withoutProbeRepeats({
         cloudId: data.cloudId,
-        events: data.entry.events,
+        events: await this.withoutOlderForm({
+          cloudId: data.cloudId,
+          events: data.entry.events,
+        }),
       });
 
     const changes: Array<OpenStackRecordedEvent> = events.filter(
@@ -222,6 +243,50 @@ export default class OpenStackEventRecorder {
         });
       },
     );
+  }
+
+  /*
+   * The batch without Nova's older form of what the cloud also says in its newer one. If the
+   * cache cannot answer, a repeat on a feed is better than an event left off it.
+   */
+  private static async withoutOlderForm(data: {
+    cloudId: ObjectID;
+    events: Array<OpenStackRecordedEvent>;
+  }): Promise<Array<OpenStackRecordedEvent>> {
+    const cloudKey: string = data.cloudId.toString();
+
+    try {
+      const holdsVersioned: boolean = data.events.some(isVersionedNotification);
+
+      if (holdsVersioned) {
+        await GlobalCache.setString(VERSIONED_NAMESPACE, cloudKey, "1", {
+          expiresInSeconds: NOTIFIED_MEMORY_IN_SECONDS,
+        });
+      }
+
+      if (!data.events.some(isUnversionedNotification)) {
+        return data.events;
+      }
+
+      if (
+        !holdsVersioned &&
+        !(await GlobalCache.getString(VERSIONED_NAMESPACE, cloudKey))
+      ) {
+        return data.events;
+      }
+
+      return data.events.filter((recorded: OpenStackRecordedEvent): boolean => {
+        return !isUnversionedNotification(recorded);
+      });
+    } catch (error) {
+      logger.warn(
+        `Nova's older notifications could not be checked for repeats on cloud ${cloudKey}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return data.events;
+    }
   }
 
   /*
