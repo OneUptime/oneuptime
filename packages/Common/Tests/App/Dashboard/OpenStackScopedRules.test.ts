@@ -14,7 +14,16 @@ import {
   getOpenStackScopePattern,
   getOpenStackScopeRuleName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackScopedRulesCard";
+import { getOpenStackRuleScopeFields } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackRuleScope";
 import { getOpenStackProjectMarker } from "../../../Types/OpenStack/OpenStackBlastRadius";
+import type { ModelField } from "../../../UI/Components/Forms/ModelForm";
+import {
+  MATCH_CRITERIA_STEP_ID,
+  getLegacyRuleCriteriaFields,
+} from "../../../UI/Components/RuleCriteria/RuleCriteriaModelForm";
+import getRuleDetailFields, {
+  RuleDetailFields,
+} from "../../../UI/Components/RuleRun/RuleDetailFields";
 
 /*
  * What adding owners or labels to a project or a domain writes: one OpenStack Cloud rule
@@ -152,5 +161,44 @@ describe("what a stored pattern says", () => {
         mode: "label",
       }),
     ).toBe("OpenStack domain Acme: labels on its alerts and incidents");
+  });
+});
+
+describe("the rule forms", () => {
+  const fields: Array<ModelField<OpenStackCloudOwnerRule>> =
+    getOpenStackRuleScopeFields<OpenStackCloudOwnerRule>("owners");
+
+  test("hold both columns, off the step whose builder takes over what is on it", () => {
+    expect(
+      fields.map((field: ModelField<OpenStackCloudOwnerRule>): string => {
+        return Object.keys(field.field || {})[0]!;
+      }),
+    ).toEqual(["openStackProjectId", "openStackDomainId"]);
+
+    for (const field of fields) {
+      expect(field.stepId).toBe("owners");
+      expect(field.stepId).not.toBe(MATCH_CRITERIA_STEP_ID);
+      expect(field.required).toBe(false);
+    }
+
+    expect(getLegacyRuleCriteriaFields(fields)).toEqual([]);
+  });
+
+  test("and a rule's own page reads them from its form", () => {
+    const detail: RuleDetailFields<OpenStackCloudOwnerRule> =
+      getRuleDetailFields({
+        model: new OpenStackCloudOwnerRule(),
+        formFields: fields,
+      });
+
+    expect(
+      detail.fields.map((field: { title?: string | undefined }) => {
+        return field.title;
+      }),
+    ).toEqual(["OpenStack Project ID", "OpenStack Domain ID"]);
+    expect(detail.selectMoreFields).toMatchObject({
+      openStackProjectId: true,
+      openStackDomainId: true,
+    });
   });
 });

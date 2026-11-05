@@ -567,13 +567,17 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
             data-testid="openstack-scoped-rules-empty"
             className="px-4 py-3 text-sm text-gray-600"
           >
-            {props.scope
+            {!props.scope
               ? translator.translateText(
-                  "No rule names this yet, so what opens about it goes only to the cloud's own owners.",
-                )
-              : translator.translateText(
                   "No project or domain has a rule yet. Add one from a project's page or the Domains page.",
-                )}
+                )
+              : isOwner
+                ? translator.translateText(
+                    "No rule names this yet, so what opens about it goes only to the cloud's own owners.",
+                  )
+                : translator.translateText(
+                    "No rule names this yet, so what opens about it gets no labels from here.",
+                  )}
           </p>
         ) : null}
         {rules.length > 0 ? (
