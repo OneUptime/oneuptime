@@ -140,7 +140,8 @@ function ago(minutes: number): Date {
 describe("how a row names itself", () => {
   test("an API by the word people use, and one nothing knows as it was written", () => {
     expect(getOpenStackServiceTitle("compute")).toBe("Compute (Nova)");
-    expect(getOpenStackServiceTitle("dns")).toBe("dns");
+    expect(getOpenStackServiceTitle("dns")).toBe("DNS (Designate)");
+    expect(getOpenStackServiceTitle("workloadmanager")).toBe("workloadmanager");
     expect(getOpenStackServiceTitle(undefined)).toBe("");
     expect(getOpenStackAttentionName(api("volume"))).toBe(
       "Block Storage (Cinder)",
@@ -797,7 +798,13 @@ describe("the alerts that watch a service", () => {
     expect(getOpenStackServiceAlertTemplateIds("identity")).toEqual([
       "openstack-identity-api-down",
     ]);
-    expect(getOpenStackServiceAlertTemplateIds("dns")).toEqual([]);
+    expect(getOpenStackServiceAlertTemplateIds("dns")).toEqual([
+      "openstack-dns-api-down",
+      "openstack-dns-zone-in-error",
+      "openstack-dns-zone-stuck-pending",
+      "openstack-dns-recordset-in-error",
+    ]);
+    expect(getOpenStackServiceAlertTemplateIds("workloadmanager")).toEqual([]);
   });
 
   test("each worker's are the ones that fire for it, and exist", () => {

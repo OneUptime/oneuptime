@@ -484,7 +484,8 @@ describe("a cloud with 100,000 instances", () => {
     await settle();
 
     const call: ListCall = listCallsOfInstances().pop() as ListCall;
-    expect(Object.keys(call.sort)).toEqual(["stateChangedAt"]);
+    // With the ID after it, so that rows in one state since one moment keep their order.
+    expect(Object.keys(call.sort)).toEqual(["stateChangedAt", "_id"]);
     expect(call.limit).toBeLessThanOrEqual(PAGE_LIMIT);
   });
 
