@@ -114,9 +114,13 @@ export interface NovaServiceRecord {
   status: string | null;
   state: string | null;
   disabledReason: string | null;
+  // Whether an operator told Nova it is down. Null before microversion 2.11, which says nothing.
+  forcedDown: boolean | null;
 }
 
 export function toNovaService(item: JSONObject): NovaServiceRecord {
+  const forcedDown: JSONValue | undefined = item["forced_down"];
+
   return {
     id: text(item["id"]),
     binary: text(item["binary"]),
@@ -125,6 +129,7 @@ export function toNovaService(item: JSONObject): NovaServiceRecord {
     status: text(item["status"]),
     state: text(item["state"]),
     disabledReason: text(item["disabled_reason"]),
+    forcedDown: typeof forcedDown === "boolean" ? forcedDown : null,
   };
 }
 

@@ -763,7 +763,7 @@ const OpenStackCloudOverview: FunctionComponent<
       <OpenStackDocumentationCard
         cloudName={cloud.name || ""}
         title="Connect this cloud"
-        description="Nothing has been reported yet. Install the OneUptime OpenStack agent on a machine outside the cloud, and its services, hypervisors and instances appear here once data arrives."
+        description="Nothing has been reported yet. Say how you deploy OpenStack and follow the steps for it, and its services, hypervisors and instances appear here once data arrives."
       />
     );
   }

@@ -539,13 +539,23 @@ function foldServiceState(data: {
     hypervisorName:
       data.family === OpenStackServiceFamily.Compute ? host : null,
   });
+  // Nova's own say-so, which only a probe sends. An operator saying down is down.
+  const forcedDown: string | null = getLabel(data.attributes, "forced_down");
   setStatus(
     entry,
-    data.value > 0
+    data.value > 0 && forcedDown !== "true"
       ? OPENSTACK_SERVICE_STATUS_UP
       : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
+  /*
+   * Facts merge key by key, so a Nova worker always writes this, and a collector that does not
+   * say cannot leave behind what the last one did: a cloud moved from a probe to the agent would
+   * otherwise read forced down for good. Null is what a page reads as not known.
+   */
+  if (data.family === OpenStackServiceFamily.Compute) {
+    entry.facts["forcedDown"] = forcedDown === null ? null : forcedDown === "true";
+  }
   entry.adminState =
     getLabel(data.attributes, "adminState") ?? entry.adminState;
   entry.disabledReason =

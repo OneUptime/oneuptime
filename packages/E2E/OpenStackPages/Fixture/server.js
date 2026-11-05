@@ -31,7 +31,7 @@ const recordings = path.join(
 );
 const port = Number(process.env.OPENSTACK_PAGES_FIXTURE_PORT || 4662);
 
-// { "gazpacho-ovs/compute-down": { "compute.prom": "...", ... }, ... }
+// { "gazpacho-ovs/compute-down": { "compute.prom": "...", ... }, ... }, and "<...>@1.7.0".
 function readRecordings() {
   const read = {};
   for (const release of fs.readdirSync(recordings)) {
@@ -40,18 +40,27 @@ function readRecordings() {
       continue;
     }
     for (const scene of fs.readdirSync(releaseFolder)) {
-      const exporter = path.join(releaseFolder, scene, "exporter");
-      if (!fs.existsSync(exporter) || !fs.statSync(exporter).isDirectory()) {
-        continue;
-      }
-      const files = {};
-      for (const file of fs.readdirSync(exporter).sort()) {
-        if (file.endsWith(".prom")) {
-          files[file] = fs.readFileSync(path.join(exporter, file), "utf8");
+      /*
+       * What exporter 1.7.0 said of the same cloud goes in under a name of its own, for the
+       * pages a cloud that brings that exporter gets.
+       */
+      for (const [folder, suffix] of [
+        ["exporter", ""],
+        ["exporter-stable", "@1.7.0"],
+      ]) {
+        const exporter = path.join(releaseFolder, scene, folder);
+        if (!fs.existsSync(exporter) || !fs.statSync(exporter).isDirectory()) {
+          continue;
         }
-      }
-      if (Object.keys(files).length > 0) {
-        read[`${release}/${scene}`] = files;
+        const files = {};
+        for (const file of fs.readdirSync(exporter).sort()) {
+          if (file.endsWith(".prom")) {
+            files[file] = fs.readFileSync(path.join(exporter, file), "utf8");
+          }
+        }
+        if (Object.keys(files).length > 0) {
+          read[`${release}/${scene}${suffix}`] = files;
+        }
       }
     }
     // What the exporter said with each credential: "hibiscus-ovn/access/reader".

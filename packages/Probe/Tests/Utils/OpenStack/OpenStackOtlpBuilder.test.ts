@@ -93,6 +93,7 @@ describe("every datapoint", () => {
               status: "enabled",
               state: "up",
               disabledReason: "",
+              forcedDown: null,
             },
           ],
         }),
@@ -118,6 +119,39 @@ describe("every datapoint", () => {
       timeUnixNano: `${OBSERVED_AT}000000`,
     });
   });
+
+  test.each<[boolean | null, string | undefined]>([
+    [true, "true"],
+    [false, "false"],
+    // A Nova before microversion 2.11 says nothing, and neither does this.
+    [null, undefined],
+  ])(
+    "a worker forced down is %s, as forced_down %s",
+    (forcedDown: boolean | null, label: string | undefined) => {
+      const point: ReportedDatapoint = named(
+        build(
+          reading(OpenStackServiceType.Compute, {
+            services: [
+              {
+                id: "s1",
+                binary: "nova-compute",
+                host: "compute-01",
+                zone: "nova",
+                status: "enabled",
+                state: forcedDown ? "down" : "up",
+                disabledReason: "",
+                forcedDown,
+              },
+            ],
+          }),
+        ),
+        "openstack_nova_agent_state",
+      )[0]!;
+
+      expect(point.labels["forced_down"]).toBe(label);
+      expect(point.value).toBe(forcedDown ? 0 : 1);
+    },
+  );
 
   test("names no cloud: only the server says which cloud a probe's data is", () => {
     const built: OpenStackOtlpBuildResult = OpenStackOtlpBuilder.build(
@@ -262,6 +296,7 @@ describe("the order of a series' lines", () => {
         status: "enabled",
         state: "up",
         disabledReason: null,
+        forcedDown: null,
       };
     };
 

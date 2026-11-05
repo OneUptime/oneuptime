@@ -202,8 +202,12 @@ export function rowsFromRecording(name, data) {
     );
   }
   const healthy = `${name.split("/")[0]}/healthy`;
-  // A credential's answers are all there ever was: it never could read the rest.
-  const isItsOwnWhole = name === healthy || name.includes("/access/");
+  /*
+   * A credential's answers are all there ever was: it never could read the rest. And another
+   * exporter's answer stands alone: it is the only one that cloud's rows ever came from.
+   */
+  const isItsOwnWhole =
+    name === healthy || name.includes("/access/") || name.includes("@");
   return !isItsOwnWhole && hasRecording(healthy)
     ? onTopOf(readScene(healthy, data), readScene(name, data))
     : readScene(name, data);
