@@ -37,6 +37,36 @@ describe("the status pages job", () => {
     );
   });
 
+  test("has the browser that reads the real pages, as the whole path does", () => {
+    const steps = JOB.steps.map((step) => {
+      return JSON.stringify(step);
+    });
+    const walk = JOB.steps.find((candidate) => {
+      return (candidate.run || "").includes("status-pages-live.py");
+    });
+
+    expect(walk.env.PLAYWRIGHT_IMAGE).toBe(
+      WORKFLOW.jobs["whole-path"].steps.find((candidate) => {
+        return (candidate.run || "").includes("whole-path.py");
+      }).env.PLAYWRIGHT_IMAGE,
+    );
+    expect(
+      steps.some((step) => {
+        return step.includes(`docker pull ${walk.env.PLAYWRIGHT_IMAGE}`);
+      }),
+    ).toBe(true);
+    expect(
+      steps.some((step) => {
+        return step.includes("HOST=localhost:8880");
+      }),
+    ).toBe(true);
+    expect(
+      steps.some((step) => {
+        return step.includes("Install E2E dependencies");
+      }),
+    ).toBe(true);
+  });
+
   test("takes no other job with it", () => {
     for (const [name, job] of Object.entries(WORKFLOW.jobs)) {
       if (
