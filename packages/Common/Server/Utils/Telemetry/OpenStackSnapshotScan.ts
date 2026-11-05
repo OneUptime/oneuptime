@@ -25,6 +25,7 @@ import {
   OPENSTACK_BARE_METAL_IN_MAINTENANCE,
   OPENSTACK_BARE_METAL_IN_SERVICE,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
+  OPENSTACK_DNS_STATUS_ACTIVE,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
@@ -260,6 +261,10 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_trove_instance_status",
   "openstack_trove_instance_volume_size_gb",
   "openstack_trove_instance_volume_used_gb",
+  "openstack_designate_zone_status",
+  "openstack_designate_recordsets",
+  "openstack_designate_recordsets_status",
+  "openstack_designate_agent_state",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
@@ -684,6 +689,7 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
     ],
     ["openstack_ironic_agent_state", OpenStackServiceFamily.BareMetal],
     ["openstack_sharev2_agent_state", OpenStackServiceFamily.SharedFileSystems],
+    ["openstack_designate_agent_state", OpenStackServiceFamily.Dns],
   ]);
 
 function foldServiceState(data: {
@@ -1472,6 +1478,95 @@ function foldDatabaseInstance(data: {
       "task_description",
     );
   }
+}
+
+/*
+ * A DNS zone, from Designate's list. The value is the word's code, and PENDING's code is 0, recorded,
+ * so nothing reads it. How many recordsets it holds is a series of its own, which is one call per zone
+ * to the exporter and so only there when that call worked.
+ */
+function foldDnsZone(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DnsZone,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  setFact(entry, "zoneType", getLabel(data.attributes, "type"));
+  // What only a probe says: see foldShare. Null reads as not known.
+  entry.facts["action"] = getLabel(data.attributes, "action");
+}
+
+function foldDnsZoneRecordsets(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "zone_id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DnsZone,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "zone_name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  entry.facts["recordsetCount"] = data.value;
+}
+
+/*
+ * A recordset that isn't ACTIVE. An ACTIVE one has no row: a zone can hold any number of them, and
+ * nothing is asked of them. So a batch that holds only some of a zone's recordsets costs nothing, and
+ * one that went back to ACTIVE goes at the stale rule's next pass.
+ */
+function foldDnsRecordset(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  const status: string | null = getLabel(data.attributes, "status");
+  if (!id || !status || status === OPENSTACK_DNS_STATUS_ACTIVE) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.DnsRecordset,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+  });
+  setStatus(entry, status, data.observedAt);
+  setFact(entry, "recordType", getLabel(data.attributes, "type"));
+  setFact(entry, "zoneId", getLabel(data.attributes, "zone_id"));
+  setFact(entry, "zoneName", getLabel(data.attributes, "zone_name"));
 }
 
 function foldSnapshot(data: {
@@ -2336,6 +2431,15 @@ export function bufferOpenStackSnapshotMetric(data: {
     case "openstack_sharev2_share_gb":
     case "openstack_sharev2_share_status":
       foldShare({ buffer, attributes, region, value, observedAt, metricName });
+      return;
+    case "openstack_designate_zone_status":
+      foldDnsZone({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_designate_recordsets":
+      foldDnsZoneRecordsets({ buffer, attributes, region, value, observedAt });
+      return;
+    case "openstack_designate_recordsets_status":
+      foldDnsRecordset({ buffer, attributes, region, observedAt });
       return;
     case "openstack_trove_instance_status":
     case "openstack_trove_instance_volume_size_gb":

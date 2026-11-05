@@ -42,6 +42,7 @@ import {
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+  OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
@@ -77,6 +78,9 @@ import {
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
   OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR,
+  OPENSTACK_DNS_STATUS_ERROR,
+  OPENSTACK_DNS_STATUS_PENDING,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -243,6 +247,13 @@ const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
 const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
 const SHARE_GROUP: Array<string> = [REGION, "id", "name"];
 const DATABASE_INSTANCE_GROUP: Array<string> = [REGION, "id", "name"];
+const DNS_ZONE_GROUP: Array<string> = [REGION, "id", "name"];
+// One incident per zone, however many of its recordsets went wrong together.
+const DNS_ZONE_OF_RECORDSET_GROUP: Array<string> = [
+  REGION,
+  "zone_id",
+  "zone_name",
+];
 
 // The smallest window holding three collections of what a service's job collects.
 export const OPENSTACK_WINDOW_BY_SERVICE: Record<
@@ -261,6 +272,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.Dns]: RollingTime.Past15Minutes,
 };
 
 export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
@@ -278,6 +290,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
   [OpenStackServiceType.Database]: "openstack_trove_up",
+  [OpenStackServiceType.Dns]: "openstack_designate_up",
 };
 
 /*
@@ -2811,6 +2824,161 @@ const databaseApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   incidentDescription: `The exporter's read of Trove is failing: its API stopped answering, or this credential is no longer allowed its mgmt API, which reads the same. Databases already running carry on, but none can be created, resized or backed up. Check the trove-api service and its log, then openstack database instance list --all-projects with this credential. The incident resolves on its own once it answers again.`,
 });
 
+// --- DNS ---
+
+const dnsZoneInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-zone-in-error",
+  name: "DNS Zone in Error",
+  forService: OpenStackServiceType.Dns,
+  summary: "A Designate zone is in ERROR.",
+  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_zone_status filtered to that status label, in every collection of the window). One incident per zone, in a region. Its worker gave up on writing it to a DNS server, recorded with the server stopped, so what the zone says may be out of date there. It recovers when the zone reads anything else.`,
+  category: "Network",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      groupByAttributeKeys: DNS_ZONE_GROUP,
+      queries: [
+        {
+          alias: statusAlias(OPENSTACK_DNS_STATUS_ERROR),
+          metricName: "openstack_designate_zone_status",
+          aggregationType: MetricsAggregationType.Count,
+          attributes: { status: OPENSTACK_DNS_STATUS_ERROR },
+        },
+      ],
+      aliases: [statusAlias(OPENSTACK_DNS_STATUS_ERROR)],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] DNS Zone in Error",
+        incidentDescription: `Designate's worker gave up writing this zone to a DNS server, so what it answers there may be out of date. Check that the DNS servers in its pool are answering, then openstack zone show and the designate-worker log.`,
+        criteriaName: "DNS Zone in Error - ERROR for the whole window",
+        criteriaDescription:
+          "Triggers when a zone reads ERROR for the whole window.",
+      },
+    });
+  },
+};
+
+const dnsZoneStuckPendingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-zone-stuck-pending",
+  name: "DNS Zone Stuck Pending",
+  forService: OpenStackServiceType.Dns,
+  summary: `A Designate zone stays PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes.`,
+  description: `Alert when a zone reads ${OPENSTACK_DNS_STATUS_PENDING} for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes (a count of openstack_designate_zone_status filtered to that status label, in every collection of the window, because PENDING's code is 0). One incident per zone, in a region. Its worker gives up by itself in a few minutes, so what stays PENDING has nothing working on it: a stopped worker reads this way, recorded, and the API goes on taking changes it never carries out.`,
+  category: "Network",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      rollingTime: windowHolding(OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES),
+      groupByAttributeKeys: DNS_ZONE_GROUP,
+      queries: [
+        {
+          alias: statusAlias(OPENSTACK_DNS_STATUS_PENDING),
+          metricName: "openstack_designate_zone_status",
+          aggregationType: MetricsAggregationType.Count,
+          attributes: { status: OPENSTACK_DNS_STATUS_PENDING },
+        },
+      ],
+      aliases: [statusAlias(OPENSTACK_DNS_STATUS_PENDING)],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] DNS Zone Stuck Pending",
+        incidentDescription: `This zone has read PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes, and its worker gives up long before that, so nothing is working on it. Changes to it are being accepted and not carried out. Check that designate-worker is running, then openstack dns service list.`,
+        criteriaName: `DNS Zone Stuck Pending - PENDING for ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES} minutes`,
+        criteriaDescription: `Triggers when a zone reads PENDING for the whole ${OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES}-minute window.`,
+      },
+    });
+  },
+};
+
+/*
+ * One query per type someone asks for, because a monitor's attribute filter is equality, and a zone's
+ * own SOA and NS read ERROR with it, recorded: DNS Zone in Error already says that. Per zone, so one
+ * failure of a zone's writes is one incident.
+ */
+const dnsRecordsetInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-recordset-in-error",
+  name: "DNS Recordset in Error",
+  forService: OpenStackServiceType.Dns,
+  summary: "A Designate recordset someone asked for is in ERROR.",
+  description: `Alert when a recordset of type ${OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR.join(", ")} reads ${OPENSTACK_DNS_STATUS_ERROR} for 15 minutes (openstack_designate_recordsets_status filtered to that status and type). One incident per zone, however many of its recordsets went wrong together. A zone's own SOA and NS read ERROR when the zone does, recorded, so they are left to DNS Zone in Error.`,
+  category: "Network",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> =
+      OPENSTACK_DNS_RECORD_TYPES_SOMEONE_ASKED_FOR.map(
+        (type: string): OpenStackQuery => {
+          return {
+            alias: `recordset_${type.toLowerCase()}`,
+            metricName: "openstack_designate_recordsets_status",
+            aggregationType: MetricsAggregationType.Count,
+            attributes: { status: OPENSTACK_DNS_STATUS_ERROR, type },
+          };
+        },
+      );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      groupByAttributeKeys: DNS_ZONE_OF_RECORDSET_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] DNS Recordset in Error",
+        incidentDescription: `A recordset in this zone reads ERROR: Designate's worker could not write it to a DNS server, so it may not answer as asked. Check openstack recordset list for the zone named above, and that the DNS servers in its pool are answering.`,
+        criteriaName: "DNS Recordset in Error - ERROR for the whole window",
+        criteriaDescription:
+          "Triggers when a recordset someone asked for reads ERROR for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * Only a probe can say this: to the agent's exporter a stopped Designate reads as nothing at all, the
+ * same as a cloud without it, recorded, and all it can do is go quiet.
+ */
+const dnsApiDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-dns-api-down",
+  name: "DNS API Down",
+  forService: OpenStackServiceType.Dns,
+  requiresProbe: true,
+  summary: "Designate's API does not answer, on a cloud a probe collects.",
+  description:
+    "Alert when Designate's API does not answer for 15 minutes (openstack_designate_up reads 0, which is what a probe says when its catalog names Designate and the API doesn't answer). One incident per region. Only a probe offers this: a stopped Designate gives the agent's exporter an empty answer, the same as a cloud without Designate, recorded, so a cloud the agent collects can only say it went quiet. On Services it does.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Dns,
+      hasOwnAnchor: true,
+      groupByAttributeKeys: API_GROUP,
+      queries: [
+        {
+          alias: "api_up",
+          metricName: OPENSTACK_API_UP_METRIC_BY_SERVICE[OpenStackServiceType.Dns],
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] DNS API Down",
+        incidentDescription:
+          "Designate's API is not answering. Names already served go on answering from their DNS servers, but none can be created or changed. Check the designate-api service and its log, then openstack zone list with a credential that works.",
+        criteriaName: "DNS API Down - not answering",
+        criteriaDescription:
+          "Triggers when Designate's API does not answer for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -3398,6 +3566,10 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     databaseInstanceInErrorTemplate,
     databaseInstanceStuckTemplate,
     databaseVolumeNearlyFullTemplate,
+    dnsApiDownTemplate,
+    dnsZoneInErrorTemplate,
+    dnsZoneStuckPendingTemplate,
+    dnsRecordsetInErrorTemplate,
     bareMetalNodeInErrorTemplate,
     bareMetalNodeStuckTemplate,
     bareMetalNodeMaintenanceTooLongTemplate,
