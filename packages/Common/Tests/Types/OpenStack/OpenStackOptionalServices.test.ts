@@ -72,8 +72,14 @@ describe.each(
 
   test("it has a title, and rows of its own for its API to vouch for", () => {
     expect(OPENSTACK_SERVICE_TITLES[entry.service]).toBeTruthy();
-    // What CloudKitty rated goes on each project's own row, which Keystone answers for.
-    if (entry.service === OpenStackServiceType.Rating) {
+    /*
+     * What CloudKitty rated goes on each project's own row, which Keystone answers for. Gnocchi has no
+     * rows yet, only its API's series.
+     */
+    if (
+      entry.service === OpenStackServiceType.Rating ||
+      entry.service === OpenStackServiceType.Metric
+    ) {
       expect(OPENSTACK_KINDS_BY_SERVICE[entry.service]).toEqual([]);
       return;
     }
