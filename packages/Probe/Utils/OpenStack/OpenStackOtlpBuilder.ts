@@ -539,6 +539,7 @@ function writeCompute(
           adminState: service.status,
           zone: service.zone,
           disabledReason: service.disabledReason,
+          forced_down: service.forcedDown,
         },
         service.state === "up" ? 1 : 0,
       );

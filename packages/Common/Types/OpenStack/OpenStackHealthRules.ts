@@ -95,6 +95,21 @@ export function isOpenStackServiceDown(data: {
 }
 
 /*
+ * An operator told Nova this service is down, usually so its instances can be evacuated. It reads
+ * down whatever the service is doing, and only until someone lets it back up. Only a native read
+ * of Nova says so: the exporter's series have no such label, and then this is simply not known.
+ */
+export function isOpenStackServiceForcedDown(data: {
+  status?: string | null | undefined;
+  facts?: JSONObject | null | undefined;
+}): boolean {
+  return (
+    data.status === OPENSTACK_SERVICE_STATUS_DOWN &&
+    data.facts?.["forcedDown"] === true
+  );
+}
+
+/*
  * Nova names a service by its short host name and a hypervisor by its full one, and
  * Placement agrees with the hypervisor: `compute-01` and
  * `compute-01.example.internal` are one machine. Anything joining the two compares

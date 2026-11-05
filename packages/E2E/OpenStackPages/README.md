@@ -29,7 +29,7 @@ tell them apart:
   stopped API's scrape says nothing of its workers, whose rows stay as they last were.
   `?recording=gazpacho-ovs/healthy@1.7.0` is what exporter 1.7.0, which Kolla-Ansible pins,
   said of that same cloud at the same moment, on its own.
-- **Made up:** `?estate=busy|calm|new|multi-region|overflow|ovn-stale|tenants|parts`
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
