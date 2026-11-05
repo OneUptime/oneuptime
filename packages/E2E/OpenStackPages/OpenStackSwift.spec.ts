@@ -71,10 +71,7 @@ test.describe("a cloud that runs Swift", () => {
     await openCloudPage(page, "", RUNNING);
     await sideMenuLink(page, "Object Storage").first().click();
 
-    await page
-      .getByRole("link", { name: /ou-container-admin/ })
-      .first()
-      .click();
+    await page.locator("tr", { hasText: "ou-container-admin" }).first().click();
     await expect(
       page.getByTestId("openstack-object-container-overview"),
     ).toBeVisible();
@@ -83,7 +80,9 @@ test.describe("a cloud that runs Swift", () => {
 
   test("Topology draws its containers", async ({ page }) => {
     await openCloudPage(page, "topology", RUNNING);
-    await expect(page.getByText("Object Containers").first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /ou-container-admin/ }),
+    ).toBeVisible();
   });
 
   for (const viewport of VIEWPORTS) {

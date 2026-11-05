@@ -1750,6 +1750,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           const labels: Array<string> = [
             ...(OPENSTACK_EXPORTER_SERIES[metricName]?.labels ||
               getOpenStackMetricByMetricName(metricName)!.identityAttributes),
+            // A series the agent sends with fewer than a probe does reads those as "", by design.
+            ...(getOpenStackMetricByMetricName(metricName)
+              ?.probeOnlyAttributes || []),
             OPENSTACK_REGION_ATTRIBUTE,
             "openstack_service",
           ];

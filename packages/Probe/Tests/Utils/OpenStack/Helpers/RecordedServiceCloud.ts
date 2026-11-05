@@ -133,9 +133,14 @@ export interface RecordedServiceCollection {
 export interface RecordedServiceAnswers {
   catalog: Array<JSONObject>;
   // What a path of the service answers. Undefined reads as the 404 anything else would.
-  answer: (path: string, request: RecordedRequest) => RecordedAnswer | undefined;
+  answer: (
+    path: string,
+    request: RecordedRequest,
+  ) => RecordedAnswer | undefined;
   projectId?: string | undefined;
   roles?: Array<string> | undefined;
+  // What Keystone lists. Left out, it lists none, as for a cloud with few.
+  projects?: Array<JSONObject> | undefined;
 }
 
 function transportOf(
@@ -165,7 +170,12 @@ function transportOf(
     // Keystone's lists say nothing here, and answer as they would for a cloud with few.
     if (path.includes("/identity/v3/")) {
       const key: string = path.substring(path.lastIndexOf("/") + 1);
-      return respond({ status: 200, body: JSON.stringify({ [key]: [] }) });
+      return respond({
+        status: 200,
+        body: JSON.stringify({
+          [key]: key === "projects" ? data.projects || [] : [],
+        }),
+      });
     }
 
     const recorded: RecordedRequest = {

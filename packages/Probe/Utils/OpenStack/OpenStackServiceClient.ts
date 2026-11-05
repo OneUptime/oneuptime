@@ -308,7 +308,7 @@ export default class OpenStackServiceClient {
         (response.status === 300 && data.acceptsMultipleChoices)
       ) {
         return {
-          body: this.parseBody(response, data.read, url),
+          body: this.parseBody(response, data.read, url, data.bareListKey),
           date: this.readDate(response),
         };
       }
@@ -551,6 +551,7 @@ export default class OpenStackServiceClient {
     response: OpenStackHttpResponse,
     read: string,
     url: string,
+    bareListKey?: string | undefined,
   ): JSONObject {
     let parsed: unknown;
 
@@ -558,6 +559,11 @@ export default class OpenStackServiceClient {
       parsed = JSON.parse(response.body);
     } catch {
       parsed = null;
+    }
+
+    // Swift's lists are a list, and one with nothing in it may answer with nothing at all.
+    if (bareListKey && (Array.isArray(parsed) || !response.body.trim())) {
+      return { [bareListKey]: (parsed || []) as Array<JSONObject> };
     }
 
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

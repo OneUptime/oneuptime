@@ -639,3 +639,64 @@ describe("Gnocchi Backlog Growing, on made-up readings at the agent's own cadenc
     expect(verdict.recovered).toBe(true);
   }, 600000);
 });
+
+/*
+ * What a recording can't hold: a week of a container's growth. Made up, at the agent's own five-minute scrape.
+ */
+describe("Object Container Growth Forecast, on made-up readings at the agent's own cadence", () => {
+  const WEEK_MINUTES: number = 7 * 24 * 60;
+  const GIB: number = 1024 * 1024 * 1024;
+
+  async function verdictOf(
+    valueAt: (minutesAgo: number) => number,
+  ): Promise<Verdict> {
+    const rows: Array<StoredRow> = [];
+    for (
+      let before: number = WEEK_MINUTES;
+      before > 0;
+      before -= SCRAPE_EVERY_MINUTES
+    ) {
+      rows.push({
+        name: "openstack_object_store_bytes",
+        time: new Date(END_MS - before * 60000 + 30000),
+        value: valueAt(before),
+        attributes: storedAttributes({
+          name: "openstack_object_store_bytes",
+          labels: {
+            container_name: "backups",
+            openstack_service: "object-store",
+          },
+          value: 0,
+        }),
+      });
+    }
+    return await evaluateRows({
+      templateId: "openstack-object-container-growth",
+      rows,
+    });
+  }
+
+  test("one that gets past the line within a week fires, and names the container", async () => {
+    const verdict: Verdict = await verdictOf((minutesAgo: number): number => {
+      // 800 GiB now, and 300 GiB more a week.
+      return 800 * GIB - (minutesAgo / WEEK_MINUTES) * 300 * GIB;
+    });
+    expect(verdict.firing).toEqual(["backups"]);
+  }, 600000);
+
+  test("one that won't get there says nothing, however large", async () => {
+    const verdict: Verdict = await verdictOf((): number => {
+      return 900 * GIB;
+    });
+    expect(verdict.firing).toEqual([]);
+    expect(verdict.recovered).toBe(true);
+  }, 600000);
+
+  test("one that someone is clearing out has recovered, past the line or not", async () => {
+    const verdict: Verdict = await verdictOf((minutesAgo: number): number => {
+      return 1500 * GIB + (minutesAgo / WEEK_MINUTES) * 1000 * GIB;
+    });
+    expect(verdict.firing).toEqual([]);
+    expect(verdict.recovered).toBe(true);
+  }, 600000);
+});

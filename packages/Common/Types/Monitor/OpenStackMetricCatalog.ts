@@ -2771,6 +2771,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.ObjectStore,
     identityAttributes: ["container_name"],
+    probeOnlyAttributes: ["tenant_id"],
   }),
   metric({
     metricName: "openstack_object_store_objects",
@@ -2782,6 +2783,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.ObjectStore,
     identityAttributes: ["container_name"],
+    probeOnlyAttributes: ["tenant_id"],
   }),
   // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
   metric({

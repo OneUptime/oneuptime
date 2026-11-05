@@ -65,11 +65,14 @@ function containers(
 }
 
 // The exporter's labels: a probe adds whose it is.
-function withoutProject(series: ReadonlyArray<unknown>): Array<unknown> {
-  return series.map((one: unknown): unknown => {
-    const { tenant_id: _tenant, ...rest } = (one as { labels: JSONObject })
-      .labels;
-    return { ...(one as object), labels: rest };
+function withoutProject(series: ReadonlyArray<string>): Array<string> {
+  return series.map((one: string): string => {
+    const point: { labels: JSONObject; value: number } = JSON.parse(one) as {
+      labels: JSONObject;
+      value: number;
+    };
+    delete point.labels["tenant_id"];
+    return JSON.stringify(point);
   });
 }
 
@@ -104,7 +107,7 @@ describe("Swift, on what a real cloud said", () => {
 
     expect(row?.name).toBe("ou-container-admin");
     expect(row?.openStackProjectId).toBe(PROJECT);
-    expect(row?.externalId).toBe("RegionOne/ou-container-admin");
+    expect(row?.externalId).toBe(`RegionOne/${PROJECT}/ou-container-admin`);
   });
 
   test("api-down: nothing answers, and its API reads 0, as the exporter's did", async () => {
@@ -181,46 +184,91 @@ describe("a credential with ResellerAdmin", () => {
   const scene: RecordedScene = loadScene(GROUP, "swift-reseller-admin");
   const OTHER: string = "877c6b7796f24d749487877296ae2f2c";
 
-  function answer(
-    requests: { other: number; refused: number },
-    refuse?: boolean,
-  ) {
-    return (path: string): RecordedAnswer | undefined => {
-      if (
-        path.endsWith("/identity/v3/projects") ||
-        path.endsWith("/v3/projects")
-      ) {
-        return {
-          status: 200,
-          body: JSON.stringify({ projects: [{ id: PROJECT }, { id: OTHER }] }),
-        };
-      }
-      if (path.endsWith(`/AUTH_${PROJECT}`)) {
-        return recordedCall(scene, "swift-account");
-      }
-      if (path.endsWith(`/AUTH_${OTHER}`)) {
-        requests.other++;
-        return refuse
-          ? { status: 403, body: "<html><h1>Forbidden</h1></html>" }
-          : recordedCall(scene, "swift-account-ou-payments-as-admin");
-      }
-      return undefined;
-    };
+  async function collectAs(data: {
+    roles: Array<string>;
+    refuse?: boolean | undefined;
+  }): Promise<RecordedServiceCollection & { otherReads: number }> {
+    let otherReads: number = 0;
+    const collected: RecordedServiceCollection =
+      await collectFromRecordedService({
+        catalog: CATALOG,
+        projectId: PROJECT,
+        roles: data.roles,
+        projects: [
+          { id: PROJECT, name: "admin" },
+          { id: OTHER, name: "ou-payments" },
+        ],
+        answer: (path: string): RecordedAnswer | undefined => {
+          if (path.endsWith(`/AUTH_${PROJECT}`)) {
+            return recordedCall(scene, "swift-account");
+          }
+          if (path.endsWith(`/AUTH_${OTHER}`)) {
+            otherReads++;
+            return data.refuse
+              ? { status: 403, body: "<html><h1>Forbidden</h1></html>" }
+              : recordedCall(scene, "swift-account-ou-payments-as-admin");
+          }
+          return undefined;
+        },
+      });
+    return { ...collected, otherReads };
   }
 
-  test("isn't asked of anyone else's without that role, because a refusal is all it would get", async () => {
-    const asked: { other: number; refused: number } = { other: 0, refused: 0 };
-    await collectFromRecordedService({
-      catalog: CATALOG,
-      projectId: PROJECT,
-      roles: ["admin"],
-      answer: answer(asked),
+  test("reads every project's, one read an account, each row saying whose it is", async () => {
+    const { report, otherReads } = await collectAs({
+      roles: ["admin", "ResellerAdmin"],
     });
+    const rows: Array<OpenStackResourceBufferEntry> = containers(
+      rowsOfReport(report).rows,
+    );
 
-    expect(asked.other).toBe(0);
+    expect(otherReads).toBe(1);
+    expect(
+      rows
+        .map((row: OpenStackResourceBufferEntry): string => {
+          return `${row.openStackProjectId} ${row.name}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `${PROJECT} ou-container-admin`,
+        `${OTHER} ou-container-payments`,
+      ].sort(),
+    );
   });
 
-  test("toSwiftAccountUrl swaps the account, and won't guess at one it can't read", () => {
+  test("a container of the same name in two projects is two rows", async () => {
+    const { report } = await collectFromRecordedService({
+      catalog: CATALOG,
+      projectId: PROJECT,
+      roles: ["ResellerAdmin"],
+      projects: [{ id: OTHER, name: "ou-payments" }],
+      answer: (): RecordedAnswer => {
+        return {
+          status: 200,
+          body: JSON.stringify([{ name: "backups", bytes: 1, count: 1 }]),
+        };
+      },
+    });
+
+    expect(containers(rowsOfReport(report).rows)).toHaveLength(2);
+  });
+
+  test("without that role nobody else's is asked for, because a refusal is all it would get", async () => {
+    expect((await collectAs({ roles: ["admin"] })).otherReads).toBe(0);
+  });
+
+  test("a role that isn't what it seemed is refused, and costs only what it reads", async () => {
+    const { report, otherReads } = await collectAs({
+      roles: ["ResellerAdmin"],
+      refuse: true,
+    });
+
+    expect(otherReads).toBe(1);
+    expect(containers(rowsOfReport(report).rows)).toHaveLength(1);
+  });
+
+  test("swaps the account in the catalog's address, and won't guess at one it can't read", () => {
     expect(
       toSwiftAccountUrl({
         ownAccountUrl: `http://swift/v1/AUTH_${PROJECT}`,

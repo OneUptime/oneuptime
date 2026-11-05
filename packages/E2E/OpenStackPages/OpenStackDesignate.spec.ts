@@ -112,7 +112,9 @@ test.describe("a cloud that runs Designate", () => {
 
   test("Topology draws its zones", async ({ page }) => {
     await openCloudPage(page, "topology", FAILED);
-    await expect(page.getByText("DNS Zones").first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /ou-error\.example\.org/ }).first(),
+    ).toBeVisible();
   });
 
   for (const viewport of VIEWPORTS) {

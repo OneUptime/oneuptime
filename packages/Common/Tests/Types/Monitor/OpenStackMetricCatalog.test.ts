@@ -296,6 +296,8 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_nova_flavor",
         "openstack_nova_server_status",
         "openstack_nova_up",
+        "openstack_object_store_bytes",
+        "openstack_object_store_objects",
         "openstack_placement_up",
         "openstack_sharev2_share_gb",
         "openstack_sharev2_share_status",
