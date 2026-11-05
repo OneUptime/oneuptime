@@ -71,6 +71,7 @@ function server(overrides: Partial<NovaServerRecord> = {}): NovaServerRecord {
     flavorId: null,
     flavorName: null,
     instanceName: null,
+    imageId: null,
     taskState: null,
     updatedAt: NOW,
     faultMessage: null,

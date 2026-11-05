@@ -223,6 +223,10 @@ test.describe("compute", () => {
     page: Page;
   }) => {
     await openCloudPage(page, "instances", PARTS);
+    // The image it booted from, where a probe says, by its name.
+    await expect(rowOf(page, "batch-worker-7")).toContainText(
+      "windows-2022-import",
+    );
     await expect(rowOf(page, "batch-worker-7")).toContainText("10.77.0.12");
   });
 
@@ -375,6 +379,29 @@ test.describe("network", () => {
     await expect(
       page.getByTestId("openstack-network-attention-item"),
     ).toHaveCount(0);
+  });
+
+  test("a DHCP agent a probe asked lists what it serves, and the network names it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "network-agents", PARTS);
+    await openRow(page, "neutron-dhcp-agent");
+    await expect(
+      page.getByTestId("openstack-network-agent-details-dhcp-networks"),
+    ).toContainText("1");
+
+    await page.getByRole("tab", { name: "Networks" }).click();
+    await expect(rowOf(page, "research-net")).toBeVisible();
+    await expect(
+      page.locator("tr").filter({ hasText: "web-net" }),
+    ).toHaveCount(0);
+
+    await openRow(page, "research-net");
+    await expect(
+      page.getByTestId("openstack-network-details-dhcp-agents"),
+    ).toContainText("ctl-01");
   });
 
   test("an external pool filling up says when it runs out, from its own last day", async ({

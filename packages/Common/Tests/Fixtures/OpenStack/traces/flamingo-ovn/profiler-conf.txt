@@ -1,0 +1,7 @@
+[profiler]
+enabled = True
+
+hmac_keys = <hmac-key>
+connection_string = otlp://192.0.2.10:4318
+trace_sqlalchemy = False
+trace_requests = False

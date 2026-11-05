@@ -1,0 +1,12 @@
+# HELP openstack_glance_image_bytes image_bytes
+# TYPE openstack_glance_image_bytes gauge
+openstack_glance_image_bytes{id="cd31504b-27eb-4ffa-9f3e-0c816c88c57e",name="cirros-0.6.3-x86_64-disk",tenant_id="d8243fa30c304442988b41a1e8ba0ead"} 2.1692416e+07
+# HELP openstack_glance_image_created_at image_created_at
+# TYPE openstack_glance_image_created_at gauge
+openstack_glance_image_created_at{hidden="false",id="cd31504b-27eb-4ffa-9f3e-0c816c88c57e",name="cirros-0.6.3-x86_64-disk",status="active",tenant_id="d8243fa30c304442988b41a1e8ba0ead",visibility="public"} 1.793795532e+09
+# HELP openstack_glance_images images
+# TYPE openstack_glance_images gauge
+openstack_glance_images 1
+# HELP openstack_glance_up up
+# TYPE openstack_glance_up gauge
+openstack_glance_up 1

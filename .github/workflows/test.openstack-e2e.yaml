@@ -14,6 +14,10 @@ name: OpenStack E2E
 on:
   workflow_dispatch:
     inputs:
+      capacity_only:
+        description: Only record what Placement says of an estate of several hosts, which skips everything else
+        type: boolean
+        default: false
       logs_only:
         description: Only record service logs, notifications and audit events, which skips what takes the rest of the time
         type: boolean
@@ -26,8 +30,27 @@ on:
         description: With logs_only too, only record what OSProfiler's driver sends, on the entries that do
         type: boolean
         default: false
-      capacity_only:
-        description: Only record what Placement says of an estate of several hosts, which skips everything else
+      instance_metrics_only:
+        description: Only run the long real VM metrics drill, on the entries that do, which takes over an hour of recording and nothing else
+        type: boolean
+        default: false
+      kolla_aio:
+        description: Only deploy an all-in-one Kolla-Ansible and follow the guide for it, command by command
+        type: boolean
+        default: false
+      kolla_neutron:
+        description: With kolla_aio, the network backend, which is openvswitch unless you say ovn
+        type: choice
+        options:
+          - openvswitch
+          - ovn
+        default: openvswitch
+      osa_aio:
+        description: Only deploy an all-in-one OpenStack-Ansible and follow the guide for it, command by command
+        type: boolean
+        default: false
+      live_oneuptime:
+        description: Only start a live OneUptime from its test images, and send it what real deployments sent
         type: boolean
         default: false
       agent_install_only:
@@ -47,17 +70,265 @@ permissions:
 
 # The control plane's own run takes no DevStack and has nothing to do with a full one,
 # so neither cancels the other. Nor does a run that only records traces, that only installs the
-# agent, or that only records capacity.
+# agent, or that follows a deployment tool's guide: each of those does something else entirely.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.capacity_only && 'capacity' || inputs.agent_install_only && 'agent-install' || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && format('kolla-{0}', inputs.kolla_neutron) || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.capacity_only && 'capacity' || inputs.agent_install_only && 'agent-install' || inputs.instance_metrics_only && 'instance-metrics' || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  # A live OneUptime, started from its test images as the E2E jobs start it, sent what real
+  # deployments sent: the replay tests hold the same things over a database in memory.
+  live-oneuptime:
+    name: a live OneUptime, sent what real deployments sent
+    if: ${{ inputs.live_oneuptime }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/free-disk-space
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: ./.github/actions/setup-gomplate
+      - name: Preinstall
+        run: npm run prerun
+      - name: Start OneUptime
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images" docker compose -f docker-compose.yml pull
+          docker compose -f docker-compose.yml up --remove-orphans -d
+          npm run status-check
+          docker image inspect "oneuptime/app:test" --format 'Built {{.Created}}, {{json .Config.Labels}}' || true
+          bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Send it what was recorded, and read back what it did
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          ONEUPTIME_URL: http://localhost
+        run: python3 -I Tests/Ops/openstack-e2e/live-oneuptime.py
+      - name: Keep what the containers said
+        if: always()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/recording/containers"
+          export $(grep -v '^#' config.env | xargs)
+          docker compose -f docker-compose.yml ps -a >"${RUNNER_TEMP}/recording/containers/ps.txt" 2>&1 || true
+          docker compose -f docker-compose.yml logs --no-color --tail 3000 app >"${RUNNER_TEMP}/recording/containers/app.log" 2>&1 || true
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-live-oneuptime
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # Every agent's collector config through the real collector, which the "Ops Config Test"
+  # workflow also does, but never gets to when master moves faster than it runs.
+  validate-collector-configs:
+    name: every collector config, in the real collector
+    if: ${{ inputs.kolla_aio || inputs.osa_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: cd Tests/Ops && npm install --no-audit --no-fund
+      - run: bash Tests/Ops/validate-collector-configs.sh
+
+  # A real deployment by Kolla-Ansible, as its quick start says, and its guide followed on
+  # it with the guide's exact commands. By hand only: it takes hours, and fills a runner.
+  # Each part of the guide is a step of its own, so that one failing costs only itself.
+  follow-kolla-guide:
+    name: Kolla-Ansible all-in-one, following its guide
+    if: ${{ inputs.kolla_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/free-disk-space
+        with:
+          min-free-gb: "60"
+
+      - name: Say where the recording goes, to every step after this
+        run: echo "OUTPUT_DIR=${RUNNER_TEMP}/recording" >>"$GITHUB_ENV"
+
+      - name: Deploy Kolla-Ansible, as its quick start says
+        id: deploy
+        timeout-minutes: 150
+        env:
+          KOLLA_NEUTRON: ${{ inputs.kolla_neutron }}
+        run: bash Tests/Ops/openstack-e2e/kolla-aio.sh deploy
+
+      - name: Build the estate
+        id: estate
+        if: ${{ steps.deploy.outcome == 'success' }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/kolla-aio.sh estate
+
+      - name: Start a OneUptime for the guide to name
+        id: prepare
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh prepare
+
+      - name: Record what the cloud and each exporter answer
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh record
+
+      - name: "The guide: forward what is already firing"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh alerts
+
+      - name: "The guide: the agent, on Kolla's own exporter"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh kolla-exporter
+
+      - name: "The guide: the agent, on its own exporter and the first credential"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh full-view
+
+      - name: "The guide: the agent, on an exporter you already run"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh own-exporter
+
+      - name: "The guide: the agent, on an exporter you already run, at Kolla's version"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh own-exporter-170
+
+      - name: "The agent as systemd services, on a Kolla node"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh without-docker
+
+      - name: "The guide: service logs"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 20
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh logs
+
+      - name: "A firing alert, from Kolla's own Alertmanager"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh drill
+
+      # Last, because it reconfigures the services the others read.
+      - name: "The guide: the second credential, and its policy overrides"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 40
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh infrastructure-only
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${OUTPUT_DIR}"
+
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-kolla-aio-${{ inputs.kolla_neutron }}
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # The same for OpenStack-Ansible. Its quick start asks for twice the vCPUs a runner has, so it
+  # has longer, and a step that fails says how far it got.
+  follow-osa-guide:
+    name: OpenStack-Ansible all-in-one, following its guide
+    if: ${{ inputs.osa_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/free-disk-space
+        with:
+          min-free-gb: "80"
+
+      - name: Say where the recording goes, to every step after this
+        run: echo "OUTPUT_DIR=${RUNNER_TEMP}/recording" >>"$GITHUB_ENV"
+
+      - name: Deploy OpenStack-Ansible, as its quick start says
+        id: deploy
+        timeout-minutes: 270
+        run: bash Tests/Ops/openstack-e2e/osa-aio.sh deploy
+
+      - name: Build the estate
+        id: estate
+        if: ${{ steps.deploy.outcome == 'success' }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/osa-aio.sh estate
+
+      - name: Start a OneUptime for the guide to name
+        id: prepare
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh prepare
+
+      - name: Record what the cloud and the agent's exporter answer
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 15
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh record
+
+      - name: "The guide: the agent, on the first credential"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh full-view
+
+      - name: "The guide: what the cloud stands on"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 25
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh stands-on
+
+      - name: "The guide: service logs, from the journal"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 15
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh logs
+
+      - name: "The guide: the second credential, and its policy overrides"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh infrastructure-only
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${OUTPUT_DIR}"
+
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-osa-aio
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
   # Real clusters of what a cloud stands on, in containers, with the exporters
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.capacity_only }}
+    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.instance_metrics_only && !inputs.capacity_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -118,9 +389,14 @@ jobs:
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
-      - name: Make every name one an artifact can hold
+      # One file the upload cannot read costs the whole recording, and a step stopped partway
+      # leaves root's behind it: a collector's state folder cost one this way.
+      - name: Make every name one an artifact can hold, and every file one it can read
         if: always()
-        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
 
       - name: Upload what it did
         if: always()
@@ -251,7 +527,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.capacity_only }}
+    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.capacity_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180
@@ -269,6 +545,7 @@ jobs:
             branch: stable/2026.2
             conf_overrides: ""
             traces: true
+            instance_metrics_drill: true
           - name: gazpacho-ovn
             branch: stable/2026.1
             conf_overrides: ""
@@ -281,6 +558,7 @@ jobs:
           # asks for them by the old name.
           - name: epoxy-ovn
             branch: unmaintained/2025.1
+            instance_metrics_drill: true
             conf_overrides: |
               TARGET_BRANCH=unmaintained/2025.1
           # ML2/OVS reports the DHCP, L3 and OVS agents OVN does not have, and
@@ -298,7 +576,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy DevStack
-        if: ${{ !inputs.traces_only || matrix.traces }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
         with:
           branch: ${{ matrix.branch }}
@@ -321,7 +599,7 @@ jobs:
           enable_workaround_docker_io: "false"
 
       - name: Docker still answers
-        if: ${{ !inputs.traces_only || matrix.traces }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: |
           if ! docker info >/dev/null 2>&1; then
             # DevStack can leave the runner's Docker stopped or removed.
@@ -331,13 +609,13 @@ jobs:
           docker info --format 'Docker {{.ServerVersion}}'
 
       - name: Build the estate
-        if: ${{ !inputs.traces_only || matrix.traces }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: bash Tests/Ops/openstack-e2e/estate.sh
 
       # On its own, as the access matrix is: losing a source of VM metrics costs that
       # recording, not the drills.
       - name: Start what reports real VM metrics
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/start-instance-metrics.sh
         env:
@@ -345,14 +623,14 @@ jobs:
 
       # Before the agent starts, so its collector reads them from its first scrape.
       - name: Start the exporters of what the cloud stands on
-        if: ${{ !inputs.logs_only && matrix.control_plane }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh start
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Start the agent's exporter and collector
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: bash Tests/Ops/openstack-e2e/start-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -367,14 +645,14 @@ jobs:
       # On its own, so that a problem here still leaves the drills recorded. It takes
       # its policy files back off when it ends, whichever way it ends.
       - name: Least privilege, tested on the real policies
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/access-matrix.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Record the failure drills
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only }}
         run: bash Tests/Ops/openstack-e2e/drills.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -382,9 +660,19 @@ jobs:
 
       # After the drills, so the scenes they recorded hold the estate they always held.
       - name: Record real VM metrics from both sources
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/instance-metrics.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Over an hour on its own, so never part of a full run: a noisy instance and a noisy
+      # neighbour for as long as an alert template's window takes to fill and to empty.
+      - name: Run the long real VM metrics drill
+        if: ${{ inputs.instance_metrics_only && matrix.instance_metrics_drill }}
+        continue-on-error: true
+        timeout-minutes: 100
+        run: bash Tests/Ops/openstack-e2e/instance-metrics-drill.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
@@ -392,7 +680,7 @@ jobs:
       # takes the whole cloud down more than once, and on its own, so that a problem here
       # still leaves everything else recorded.
       - name: Stop what the cloud stands on, and record what falls
-        if: ${{ !inputs.logs_only && matrix.control_plane }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh drills
         env:
@@ -402,31 +690,39 @@ jobs:
       # costs neither the drills nor the logs. Before the logs, because it takes back
       # everything it changes, and they leave a cloud configured their own way.
       - name: Record what OSProfiler's driver sends for a signed request
-        if: ${{ matrix.traces }}
+        if: ${{ matrix.traces && !inputs.instance_metrics_only }}
         continue-on-error: true
-        timeout-minutes: 45
+        timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       # Last, because it changes every service's config and breaks things of its own, and
       # on its own, so that a problem here still leaves the drills recorded.
+      # With a limit of its own, as the traces have, so that a cloud it has broken costs this
+      # recording and not the job's limit, which takes the upload with it.
       - name: Record service logs, notifications and audit events
-        if: ${{ !inputs.traces_only }}
+        if: ${{ !inputs.traces_only && !inputs.instance_metrics_only }}
         continue-on-error: true
+        timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/logs-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Stop the agent and keep what it exported
-        if: ${{ always() && !inputs.logs_only }}
+        if: ${{ always() && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: bash Tests/Ops/openstack-e2e/stop-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
-      - name: Make every name one an artifact can hold
+      # One file the upload cannot read costs the whole recording, and a step stopped partway
+      # leaves root's behind it: a collector's state folder cost one this way.
+      - name: Make every name one an artifact can hold, and every file one it can read
         if: always()
-        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
 
       - name: Upload the recordings
         if: always()

@@ -1,0 +1,16 @@
+scrape-01 libvirt 200
+scrape-01 ceilometer 200
+scrape-02 libvirt 200
+scrape-02 ceilometer 200
+scrape-03 libvirt 200
+scrape-03 ceilometer 200
+scrape-04 libvirt 200
+scrape-04 ceilometer 200
+scrape-05 libvirt 200
+scrape-05 ceilometer 200
+scrape-06 libvirt 200
+scrape-06 ceilometer 200
+scrape-07 libvirt 200
+scrape-07 ceilometer 200
+scrape-08 libvirt 200
+scrape-08 ceilometer 200
