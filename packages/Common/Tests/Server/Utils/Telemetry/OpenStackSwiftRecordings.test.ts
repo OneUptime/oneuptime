@@ -1,11 +1,13 @@
 import OpenStackResource from "../../../../Models/DatabaseModels/OpenStackResource";
 import { OpenStackResourceBufferEntry } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import { OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS } from "../../../../Types/OpenStack/OpenStackHealthRules";
 import { isOpenStackApiClosedToThisCredential } from "../../../../Types/OpenStack/OpenStackOptionalServices";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import { scanRecordedSeries } from "../../../Helpers/OpenStackRecordedRows";
 import {
   RECORDED_AT,
   RecordedServiceScene,
@@ -164,6 +166,86 @@ describe("swift-reseller-admin: a credential allowed into any account", () => {
     expect(recorded.readApiStatus("swift-account-ou-payments-as-admin")).toBe(
       200,
     );
+  });
+});
+
+describe("what its storage servers say through /recon, where someone named them", () => {
+  function withFacts(facts: JSONObject): OpenStackResource {
+    const api: OpenStackResource = apiOf(scene("baseline"));
+    api.facts = { ...factsOfRow(api), ...facts };
+    return api;
+  }
+
+  test("nothing named, nothing said", () => {
+    expect(
+      assessOpenStackResource({
+        row: apiOf(scene("baseline")),
+        now: RECORDED_AT,
+      }).severity,
+    ).toBe(null);
+  });
+
+  test("all answering, on the same rings, and replicating says nothing", () => {
+    expect(
+      assessOpenStackResource({
+        row: withFacts({
+          reconServers: 3,
+          reconServersNotAnswering: 0,
+          reconRingsDiffering: 0,
+          reconOldestReplicationSeconds: 300,
+        }),
+        now: RECORDED_AT,
+      }).severity,
+    ).toBe(null);
+  });
+
+  test.each([
+    [
+      { reconServers: 3, reconServersNotAnswering: 1 },
+      "{{count}} of Swift's storage servers aren't answering",
+    ],
+    [
+      { reconServers: 3, reconRingsDiffering: 1 },
+      "Swift's storage servers don't all have the same ring",
+    ],
+    [
+      {
+        reconServers: 3,
+        reconOldestReplicationSeconds:
+          OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS + 1,
+      },
+      "Swift's replication hasn't finished on a server in hours",
+    ],
+  ])(
+    "%j needs someone, though its proxy reads up",
+    (facts: JSONObject, words: string) => {
+      const assessment: {
+        severity: unknown;
+        reasons: Array<{ text: string }>;
+      } = assessOpenStackResource({ row: withFacts(facts), now: RECORDED_AT });
+
+      expect(assessment.severity).toBe(ResourceAttentionSeverity.Warning);
+      expect(assessment.reasons[0]?.text).toBe(words);
+    },
+  );
+
+  test("a probe says what each server said, and taking them out of the settings takes it back", () => {
+    const facts: JSONObject = {};
+    const row: { facts: JSONObject } = { facts };
+    for (const [name, value] of [
+      ["openstack_object_store_recon_servers", 3],
+      ["openstack_object_store_recon_rings_differing", 1],
+      ["openstack_object_store_recon_servers", 0],
+    ] as Array<[string, number]>) {
+      const scanned: Array<OpenStackResourceBufferEntry> = scanRecordedSeries(
+        [{ name, labels: {}, value }],
+        RECORDED_AT.getTime(),
+      );
+      Object.assign(row.facts, scanned[0]?.facts);
+    }
+
+    expect(row.facts["reconServers"]).toBe(0);
+    expect(row.facts["reconRingsDiffering"]).toBe(null);
   });
 });
 

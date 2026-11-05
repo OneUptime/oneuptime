@@ -38,6 +38,17 @@ export const MAX_OPENSTACK_TRUSTED_CERTIFICATES: number = 32;
  * also a bound on the calls a person can ask a cloud to take.
  */
 export const MAX_OPENSTACK_PORT_SCOPES: number = 64;
+export const MAX_OPENSTACK_RECON_ADDRESSES: number = 64;
+
+// host:port, where the host is a name or an address, in brackets when it's IPv6.
+export function isOpenStackReconAddress(address: string): boolean {
+  return (
+    address.length <= 300 &&
+    /^(?:[A-Za-z0-9][A-Za-z0-9.-]*|\[[0-9A-Fa-f:.]+\]):[0-9]{1,5}$/.test(
+      address,
+    )
+  );
+}
 
 // What the rules need to know about a probe.
 export interface OpenStackCollectionProbeFacts {
@@ -426,6 +437,45 @@ export default class OpenStackCollectionSettings {
       return {
         error: `Name at most ${MAX_OPENSTACK_PORT_SCOPES} networks and projects to read ports from: each is a list on every collection.`,
       };
+    }
+
+    const givenAddresses: unknown = raw["swiftReconAddresses"];
+
+    if (givenAddresses !== undefined && givenAddresses !== null) {
+      if (!Array.isArray(givenAddresses)) {
+        return { error: "Name Swift's storage servers as host:port." };
+      }
+
+      const addresses: Array<string> = [];
+
+      for (const item of givenAddresses) {
+        if (typeof item !== "string") {
+          return { error: "Name Swift's storage servers as host:port." };
+        }
+
+        const address: string = item.trim();
+
+        if (address && !isOpenStackReconAddress(address)) {
+          return {
+            error:
+              "Name each of Swift's storage servers as a host and port, such as 10.0.0.5:6200.",
+          };
+        }
+
+        if (address && !addresses.includes(address)) {
+          addresses.push(address);
+        }
+      }
+
+      if (addresses.length > MAX_OPENSTACK_RECON_ADDRESSES) {
+        return {
+          error: `Name at most ${MAX_OPENSTACK_RECON_ADDRESSES} of Swift's storage servers.`,
+        };
+      }
+
+      if (addresses.length > 0) {
+        options.swiftReconAddresses = addresses;
+      }
     }
 
     return { options: options };

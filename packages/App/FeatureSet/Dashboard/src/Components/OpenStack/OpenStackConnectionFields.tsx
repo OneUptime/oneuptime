@@ -110,6 +110,8 @@ export interface OpenStackCollectionOptionsFieldProps {
   value: unknown;
   onChange: (options: OpenStackCollectionOptions) => void;
   disabled?: boolean | undefined;
+  // A cloud that doesn't run Swift hears nothing of its storage servers.
+  showsSwiftRecon?: boolean | undefined;
 }
 
 /*
@@ -122,6 +124,7 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
   const translator: Translator = useTranslator();
   const networksLabelId: string = useId();
   const projectsLabelId: string = useId();
+  const reconLabelId: string = useId();
   const options: OpenStackCollectionOptions = readOpenStackOptions(props.value);
 
   const change: (changed: OpenStackCollectionOptions) => void = (
@@ -194,6 +197,33 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
               }}
             />
           </div>
+        </div>
+      ) : (
+        <></>
+      )}
+      {props.showsSwiftRecon ? (
+        <div>
+          <div
+            id={reconLabelId}
+            className="mb-1 text-xs font-medium text-gray-700"
+          >
+            {translator.translateText("Swift's storage servers")}
+          </div>
+          <OpenStackNamesField
+            value={options.swiftReconAddresses || []}
+            ariaLabelledby={reconLabelId}
+            placeholder={translator.translateText("host:port") as string}
+            disabled={props.disabled}
+            dataTestId="openstack-option-swift-recon"
+            onChange={(names: Array<string>) => {
+              change({ swiftReconAddresses: names });
+            }}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            {translator.translateText(
+              "Only if this cloud runs Swift. Each server's /recon port, which isn't in Keystone's catalog. OneUptime reads replication and rings from it, 5 calls per server on each collection, and sends it no credential. Leave this empty to read none.",
+            )}
+          </p>
         </div>
       ) : (
         <></>

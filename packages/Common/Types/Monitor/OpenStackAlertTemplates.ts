@@ -48,6 +48,7 @@ import {
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
+  OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
@@ -3550,6 +3551,112 @@ const keyManagerApiDownTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- What Swift's storage servers say through /recon, where someone named them ---
+
+const swiftStorageServerDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-swift-storage-server-down",
+  name: "Swift Storage Server Not Answering",
+  forService: OpenStackServiceType.ObjectStore,
+  requiresProbe: true,
+  summary:
+    "One of Swift's storage servers stops answering, on a cloud a probe collects.",
+  description:
+    "Alert when a storage server named in the cloud's settings doesn't answer /recon for 15 minutes (openstack_object_store_recon_up reads 0, which only a probe sends). One incident per server. Swift's proxy goes on answering without it, recorded, so nothing else says this. Check the swift-object, swift-container and swift-account services on that host, then `openstack object store account show`.",
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.ObjectStore,
+      groupByAttributeKeys: [REGION, "address"],
+      queries: [
+        {
+          alias: "recon_up",
+          metricName: "openstack_object_store_recon_up",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Swift Storage Server Not Answering",
+        incidentDescription:
+          "This storage server isn't answering /recon. Swift's proxy goes on answering without it, and what it holds is served from its other replicas while they last. Check the swift-object, swift-container and swift-account services on that host, then openstack object store account show. The incident resolves on its own once it answers again.",
+        criteriaName: "Swift Storage Server Not Answering - /recon < 1",
+        criteriaDescription:
+          "Triggers when a storage server doesn't answer /recon for the whole window.",
+      },
+    });
+  },
+};
+
+const swiftRingsDifferTemplate: OpenStackAlertTemplate = {
+  id: "openstack-swift-rings-differ",
+  name: "Swift Rings Differ",
+  forService: OpenStackServiceType.ObjectStore,
+  requiresProbe: true,
+  summary: "Swift's storage servers don't all have the same ring.",
+  description:
+    "Alert when the storage servers named in the cloud's settings report different checksums for a ring for 15 minutes (openstack_object_store_recon_rings_differ reads 1, which only a probe sends). One incident per ring. Servers on different rings put data in different places. Check that the ring was pushed to every server, then `swift-recon --md5`, and `openstack object store account show` to see that the proxy still answers.",
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.ObjectStore,
+      groupByAttributeKeys: [REGION, "ring"],
+      queries: [
+        {
+          alias: "rings_differ",
+          metricName: "openstack_object_store_recon_rings_differ",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      aliases: ["rings_differ"],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Swift Rings Differ",
+        incidentDescription:
+          "Swift's storage servers report different checksums for this ring, so they put data in different places. Check that the ring was pushed to every server, then swift-recon --md5, and openstack object store account show to see that the proxy still answers. The incident resolves on its own once they agree.",
+        criteriaName: "Swift Rings Differ - checksums differ",
+        criteriaDescription:
+          "Triggers when the storage servers report different checksums for a ring for the whole window.",
+      },
+    });
+  },
+};
+
+const swiftReplicationStaleTemplate: OpenStackAlertTemplate = {
+  id: "openstack-swift-replication-stale",
+  name: "Swift Replication Stale",
+  forService: OpenStackServiceType.ObjectStore,
+  requiresProbe: true,
+  summary: `A Swift server hasn't finished replicating in ${OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS / 3600} hours.`,
+  description: `Alert when a storage server named in the cloud's settings last finished a pass of replication more than ${OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS / 3600} hours ago (openstack_object_store_recon_replication_age_seconds, which only a probe sends). One incident per server and ring. A pass can take a long time on a large cluster, so this is for one that has stopped rather than one that's slow. Check the swift-*-replicator services on that host, then \`swift-recon --replication\`, and \`openstack object store account show\` to see that the proxy still answers.`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.ObjectStore,
+      groupByAttributeKeys: [REGION, "address", "ring"],
+      queries: [
+        {
+          alias: "replication_age_seconds",
+          metricName: "openstack_object_store_recon_replication_age_seconds",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      aliases: ["replication_age_seconds"],
+      value: OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
+      words: {
+        incidentTitle: "[OpenStack] Swift Replication Stale",
+        incidentDescription: `This storage server last finished a pass of replication for this ring more than ${OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS / 3600} hours ago, so what it holds may have fallen behind its other replicas. Check the swift-*-replicator services on that host, then swift-recon --replication, and openstack object store account show to see that the proxy still answers. The incident resolves on its own once a pass finishes.`,
+        criteriaName: `Swift Replication Stale - older than ${OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS / 3600} hours`,
+        criteriaDescription: `Triggers when a server's last finished pass of replication is more than ${OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS / 3600} hours old for the whole window.`,
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -4145,6 +4252,9 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     keyManagerApiDownTemplate,
     objectStoreApiDownTemplate,
     objectContainerGrowthTemplate,
+    swiftStorageServerDownTemplate,
+    swiftRingsDifferTemplate,
+    swiftReplicationStaleTemplate,
     metricApiDownTemplate,
     metricNoProcessorsTemplate,
     metricBacklogGrowingTemplate,

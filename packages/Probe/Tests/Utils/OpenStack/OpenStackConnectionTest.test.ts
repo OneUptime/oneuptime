@@ -1881,6 +1881,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.ContainerInfra]: "container-infra",
     [OpenStackServiceType.SharedFileSystems]: "sharev2",
     [OpenStackServiceType.Database]: "database",
+    [OpenStackServiceType.LoadBalancer]: "load-balancer",
     [OpenStackServiceType.KeyManager]: "key-manager",
     [OpenStackServiceType.ObjectStore]: "object-store",
     [OpenStackServiceType.Metric]: "metric",

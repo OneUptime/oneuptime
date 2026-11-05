@@ -12,7 +12,8 @@ import https from "https";
  *
  *   - HTTPS only. A plain http URL, which a catalog can well hold (DevStack's and
  *     Kolla's defaults), is refused before anything is written, because the request
- *     would carry a token;
+ *     would carry a token. The one exception carries none: a storage server's /recon,
+ *     which only ever speaks plain HTTP (isSwiftReconRequest);
  *   - each host's addresses are checked once, by `resolve`, against the addresses a
  *     probe never connects to, and its socket is pinned to them;
  *   - each request is on a socket whose certificate passed before the request was
@@ -44,6 +45,31 @@ export type OpenStackTransport = (
 export interface OpenStackTransportHandle {
   transport: OpenStackTransport;
   close: () => void;
+}
+
+/*
+ * Swift's storage servers say how they are at /recon, on their own port, in plain HTTP and with no login,
+ * recorded. So a read of it can't be held to the rule above, and needn't be: nothing in it is a secret. This
+ * lets through only a GET under /recon with no token on it, whichever way the request was built.
+ */
+export function isSwiftReconRequest(request: OpenStackHttpRequest): boolean {
+  let url: globalThis.URL;
+
+  try {
+    url = new globalThis.URL(request.url);
+  } catch {
+    return false;
+  }
+
+  return (
+    url.protocol === "http:" &&
+    request.method === "GET" &&
+    !request.body &&
+    url.pathname.startsWith("/recon/") &&
+    !Object.keys(request.headers).some((name: string): boolean => {
+      return name.toLowerCase() === "x-auth-token";
+    })
+  );
 }
 
 export class OpenStackResponseTooLargeError extends Error {
@@ -145,6 +171,19 @@ export function createOpenStackTransport(data: {
   const transport: OpenStackTransport = async (
     request: OpenStackHttpRequest,
   ): Promise<OpenStackHttpResponse> => {
+    if (isSwiftReconRequest(request)) {
+      const url: globalThis.URL = new globalThis.URL(request.url);
+      // Checked as any other host's are, and pinned to what was checked.
+      const pinnedAddresses: Array<string> = await data.resolve(url.origin);
+
+      return await send({
+        request: request,
+        url: url,
+        pinnedAddress: pinnedAddresses[0],
+        maxResponseBytes: data.maxResponseBytes,
+      });
+    }
+
     const refusal: ReturnType<typeof OpenStackAuthUrl.getCatalogUrlRefusal> =
       OpenStackAuthUrl.getCatalogUrlRefusal(request.url);
 
@@ -187,7 +226,9 @@ export function createOpenStackTransport(data: {
 function send(data: {
   request: OpenStackHttpRequest;
   url: globalThis.URL;
-  agent: https.Agent;
+  // A verified HTTPS socket's, or for plain HTTP the one address it may connect to.
+  agent?: https.Agent | undefined;
+  pinnedAddress?: string | undefined;
   maxResponseBytes: number;
 }): Promise<OpenStackHttpResponse> {
   return new Promise<OpenStackHttpResponse>(
@@ -233,12 +274,17 @@ function send(data: {
         }
       };
 
-      const clientRequest: http.ClientRequest = https.request(
+      const isPlain: boolean = url.protocol === "http:";
+      const clientRequest: http.ClientRequest = (
+        isPlain ? http.request : https.request
+      )(
         {
-          host: url.hostname.startsWith("[")
-            ? url.hostname.slice(1, -1)
-            : url.hostname,
-          port: url.port ? Number.parseInt(url.port, 10) : 443,
+          host: isPlain
+            ? data.pinnedAddress
+            : url.hostname.startsWith("[")
+              ? url.hostname.slice(1, -1)
+              : url.hostname,
+          port: url.port ? Number.parseInt(url.port, 10) : isPlain ? 80 : 443,
           method: request.method,
           path: `${url.pathname}${url.search}`,
           headers: headers,

@@ -47,6 +47,7 @@ import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
+  OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
@@ -654,6 +655,18 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-swift-storage-server-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-swift-rings-differ": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-swift-replication-stale": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
+  },
   "openstack-object-container-growth": {
     filterType: FilterType.ForecastAbove,
     value: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
@@ -1037,6 +1050,23 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
   },
+  // Recorded: a stopped object server's port doesn't answer. What it reads is the probe's own word for that.
+  "openstack-swift-storage-server-down": {
+    breached: { recon_up: 0 },
+    healthy: { recon_up: 1 },
+  },
+  // Made up: a runner's one server can't disagree with itself.
+  "openstack-swift-rings-differ": {
+    breached: { rings_differ: 1 },
+    healthy: { rings_differ: 0 },
+  },
+  // Made up: a runner's replication finishes every few minutes.
+  "openstack-swift-replication-stale": {
+    breached: {
+      replication_age_seconds: OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS * 2,
+    },
+    healthy: { replication_age_seconds: 60 },
+  },
   // Made up: no runner holds a week of growth.
   "openstack-object-container-growth": {
     breached: { bytes: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES * 2 },
@@ -1262,6 +1292,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Gnocchi Backlog Growing",
         "Object Storage API Down",
         "Object Container Growth Forecast",
+        "Swift Storage Server Not Answering",
+        "Swift Rings Differ",
+        "Swift Replication Stale",
         "Key Manager API Down",
         "Databases API Down",
         "Database Instance in Error",
@@ -2255,6 +2288,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "openstack-orchestration-engine-down",
         "openstack-rating-api-down",
         "openstack-share-service-down",
+        "openstack-swift-replication-stale",
+        "openstack-swift-rings-differ",
+        "openstack-swift-storage-server-down",
       ]);
       for (const id of probeOnly) {
         const template: OpenStackAlertTemplate =
@@ -2323,6 +2359,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-dns-zone-stuck-pending", ["id", "name"]],
       ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],
       ["openstack-object-container-growth", ["container_name"]],
+      ["openstack-swift-storage-server-down", ["address"]],
+      ["openstack-swift-rings-differ", ["ring"]],
+      ["openstack-swift-replication-stale", ["address", "ring"]],
       ["openstack-database-instance-in-error", ["id", "name"]],
       ["openstack-database-instance-stuck", ["id", "name"]],
       ["openstack-database-volume-nearly-full", ["id", "name"]],
