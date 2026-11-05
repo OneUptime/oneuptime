@@ -101,7 +101,13 @@ export function getOpenStackPartOfSeries(
   const parts: Array<OpenStackSeriesPart> = [];
 
   if (service && host) {
-    for (const family of ["compute", "network", "volume"]) {
+    for (const family of [
+      "compute",
+      "network",
+      "volume",
+      "orchestration",
+      "container-infra",
+    ]) {
       parts.push({
         kind: OpenStackResourceKind.Service,
         externalId: `${region}/${family}/${host}/${service}`,
@@ -138,6 +144,8 @@ export function getOpenStackPartOfSeries(
       { kind: OpenStackResourceKind.Router, externalId: id },
       { kind: OpenStackResourceKind.Instance, externalId: id },
       { kind: OpenStackResourceKind.Volume, externalId: id },
+      { kind: OpenStackResourceKind.Stack, externalId: id },
+      { kind: OpenStackResourceKind.ContainerCluster, externalId: id },
     );
   }
 
@@ -606,6 +614,15 @@ export default class OpenStackAlertContext {
       if (projectLines.length > 0) {
         sections.push(FeedMarkdown.bulletList(projectLines));
       }
+    }
+
+    for (const owner of radius?.belongsTo || []) {
+      const name: string = owner.name || owner.externalId;
+      sections.push(
+        owner.kind === OpenStackResourceKind.ContainerCluster
+          ? mdText`**Built for Kubernetes cluster:** ${name}. A failure of this stack is a failure of that cluster.`
+          : mdText`**Built with Heat stack:** ${name}. openstack stack failures list on it says what failed.`,
+      );
     }
 
     const reach: OpenStackReachAcrossProducts | null | undefined =

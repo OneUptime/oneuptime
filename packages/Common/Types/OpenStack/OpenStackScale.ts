@@ -318,6 +318,8 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Network]: 0,
     [OpenStackServiceType.Volume]: 0,
     [OpenStackServiceType.Image]: 0,
+    [OpenStackServiceType.Orchestration]: 0,
+    [OpenStackServiceType.ContainerInfra]: 0,
   };
 }
 

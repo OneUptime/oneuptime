@@ -43,6 +43,10 @@ import OpenStackCloudVolumeDetail from "../Pages/OpenStack/View/VolumeDetail";
 import OpenStackCloudStoragePoolDetail from "../Pages/OpenStack/View/StoragePoolDetail";
 import OpenStackCloudSnapshots from "../Pages/OpenStack/View/Snapshots";
 import OpenStackCloudImageDetail from "../Pages/OpenStack/View/ImageDetail";
+import OpenStackCloudStacks from "../Pages/OpenStack/View/Stacks";
+import OpenStackCloudStackDetail from "../Pages/OpenStack/View/StackDetail";
+import OpenStackCloudContainerClusters from "../Pages/OpenStack/View/ContainerClusters";
+import OpenStackCloudContainerClusterDetail from "../Pages/OpenStack/View/ContainerClusterDetail";
 import OpenStackCloudProjects from "../Pages/OpenStack/View/Projects";
 import OpenStackCloudProjectDetail from "../Pages/OpenStack/View/ProjectDetail";
 import OpenStackCloudDomains from "../Pages/OpenStack/View/Domains";
@@ -607,6 +611,63 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        {/* Orchestration: only a cloud that runs these links here. */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_STACKS,
+          )}
+          element={
+            <OpenStackCloudStacks
+              {...props}
+              pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STACKS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL,
+          )}
+          element={
+            <OpenStackCloudStackDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+          )}
+          element={
+            <OpenStackCloudContainerClusters
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
+          )}
+          element={
+            <OpenStackCloudContainerClusterDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL
+                ] as Route
               }
             />
           }

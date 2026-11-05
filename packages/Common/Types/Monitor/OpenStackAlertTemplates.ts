@@ -20,6 +20,7 @@ import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
@@ -30,6 +31,7 @@ import {
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
   OPENSTACK_ROUTER_MAX_ACTIVE_AGENTS,
+  OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
@@ -41,12 +43,17 @@ import {
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackServiceType,
 } from "../OpenStack/OpenStackResourceKind";
+import { isOpenStackOptionalService } from "../OpenStack/OpenStackOptionalServices";
 
 export type OpenStackAlertTemplateCategory =
   | "Availability"
@@ -54,6 +61,7 @@ export type OpenStackAlertTemplateCategory =
   | "Compute"
   | "Network"
   | "Storage"
+  | "Orchestration"
   | "Projects";
 
 export type OpenStackAlertTemplateSeverity = "Critical" | "Warning";
@@ -80,6 +88,17 @@ export interface OpenStackAlertTemplate {
   description: string;
   category: OpenStackAlertTemplateCategory;
   severity: OpenStackAlertTemplateSeverity;
+  /*
+   * The service a cloud has to run for this to mean anything, on a service a cloud may not run. It is
+   * only offered to one that does: on one that doesn't its series never exist, so it would be a
+   * monitor that can never fire, and a word about something the cloud has never had.
+   */
+  requiresService?: OpenStackServiceType | undefined;
+  /*
+   * Reads a series only a native read of an API sends: the exporter has no such thing, so on a cloud
+   * the agent collects this could never fire either (OpenStackMetricCatalog's onlyFromProbe).
+   */
+  requiresProbe?: boolean | undefined;
   getMonitorStep: (args: OpenStackAlertTemplateArgs) => MonitorStep;
 }
 
@@ -165,6 +184,8 @@ const HYPERVISOR_GROUP: Array<string> = [REGION, "hostname"];
 const INSTANCE_GROUP: Array<string> = [REGION, "uuid", "name"];
 const VOLUME_GROUP: Array<string> = [REGION, "id", "name", "volume_type"];
 const IMAGE_GROUP: Array<string> = [REGION, "id", "name"];
+const STACK_GROUP: Array<string> = [REGION, "id", "name"];
+const CONTAINER_CLUSTER_GROUP: Array<string> = [REGION, "uuid", "name"];
 const STORAGE_POOL_GROUP: Array<string> = [
   REGION,
   "name",
@@ -185,6 +206,9 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.Network]: RollingTime.Past10Minutes,
   [OpenStackServiceType.Volume]: RollingTime.Past10Minutes,
   [OpenStackServiceType.Placement]: RollingTime.Past10Minutes,
+  // The agent asks about the services a cloud may not run every five minutes.
+  [OpenStackServiceType.Orchestration]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.ContainerInfra]: RollingTime.Past15Minutes,
 };
 
 export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
@@ -197,6 +221,8 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.Network]: "openstack_neutron_up",
   [OpenStackServiceType.Volume]: "openstack_cinder_up",
   [OpenStackServiceType.Image]: "openstack_glance_up",
+  [OpenStackServiceType.Orchestration]: "openstack_heat_up",
+  [OpenStackServiceType.ContainerInfra]: "openstack_container_infra_up",
 };
 
 /*
@@ -677,6 +703,9 @@ function buildApiDownTemplate(data: {
     description: data.description,
     category: "Availability",
     severity: "Critical",
+    ...(isOpenStackOptionalService(data.service)
+      ? { requiresService: data.service }
+      : {}),
     getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
       return buildFloorStep({
         args,
@@ -776,6 +805,30 @@ const placementApiDownTemplate: OpenStackAlertTemplate = buildApiDownTemplate({
   collectionMetricName: "up",
   incidentDescription: `Placement's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. The scheduler asks it where an instance fits, so new instances fail to boot with No valid host. If every API reads down at once, look at the exporter first. Otherwise check placement-api's service and logs and the database, then run openstack endpoint list --service placement. The incident resolves on its own once it answers again.`,
 });
+
+const orchestrationApiDownTemplate: OpenStackAlertTemplate =
+  buildApiDownTemplate({
+    id: "openstack-orchestration-api-down",
+    name: "Orchestration API Down",
+    summary: "Heat's API does not answer for 15 minutes.",
+    description:
+      "Alert when Heat's API does not answer for 15 minutes: every call the exporter made failed (openstack_heat_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. Heat's API asks an engine for its lists, so a stopped heat-engine reads as this too, recorded: each read then waits a minute for an RPC timeout. Check `openstack orchestration service list`, then heat-api's and heat-engine's services and logs.",
+    service: OpenStackServiceType.Orchestration,
+    collectionMetricName: "up",
+    incidentDescription: `Heat's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. Heat's API asks an engine for its lists, so this is also what a stopped heat-engine looks like. What Heat already built carries on, but no stack can be created, changed or deleted, and Magnum builds its clusters with Heat. Check openstack orchestration service list, then heat-api's and heat-engine's services and logs, and RabbitMQ. The incident resolves on its own once it answers again.`,
+  });
+
+const containerInfraApiDownTemplate: OpenStackAlertTemplate =
+  buildApiDownTemplate({
+    id: "openstack-container-infra-api-down",
+    name: "Kubernetes Clusters API Down",
+    summary: "Magnum's API does not answer for 15 minutes.",
+    description:
+      "Alert when Magnum's API does not answer for 15 minutes: every call the exporter made failed (openstack_container_infra_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. Check `openstack coe service list`, then magnum-api's service and logs.",
+    service: OpenStackServiceType.ContainerInfra,
+    collectionMetricName: "up",
+    incidentDescription: `Magnum's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. Clusters already running carry on, but none can be created, resized or deleted. Check openstack coe service list, then magnum-api's service and logs, and the database behind it. The incident resolves on its own once it answers again.`,
+  });
 
 // --- Control plane ---
 
@@ -1888,6 +1941,220 @@ const imageStuckTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Orchestration ---
+
+/*
+ * A stack or cluster holding one word for the whole window, each word its own query because a
+ * monitor's attribute filter is equality. Per part rather than per region, because what someone needs
+ * from these is its name: the exporter counts Heat's words per region too, but a count cannot tell one
+ * stack stuck for two hours from a stream of them passing through, and cannot say which. Its value is
+ * the word's code, none of them 0 for the words read here, so it says the row is there. A word's series
+ * goes away with the word, so one fixed, deleted or finished recovers by that.
+ *
+ * Heat's and Magnum's own timeouts fail what takes too long, and the agent reads both every five
+ * minutes, so a failed one holds three collections in fifteen minutes and a stuck one twenty-four.
+ */
+function buildLifecycleTemplate(data: {
+  id: string;
+  name: string;
+  summary: string;
+  description: string;
+  service: OpenStackServiceType;
+  metricName: string;
+  statuses: ReadonlyArray<string>;
+  groupByAttributeKeys: Array<string>;
+  rollingTime?: RollingTime | undefined;
+  incidentDescription: string;
+  criteriaName: string;
+  criteriaDescription: string;
+}): OpenStackAlertTemplate {
+  return {
+    id: data.id,
+    name: data.name,
+    summary: data.summary,
+    description: data.description,
+    category: "Orchestration",
+    severity: "Warning",
+    requiresService: data.service,
+    getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+      const queries: Array<OpenStackQuery> = data.statuses.map(
+        (status: string): OpenStackQuery => {
+          return {
+            alias: statusAlias(status),
+            metricName: data.metricName,
+            aggregationType: MetricsAggregationType.Max,
+            attributes: { status },
+          };
+        },
+      );
+
+      return buildCeilingStep({
+        args,
+        service: data.service,
+        rollingTime: data.rollingTime,
+        groupByAttributeKeys: data.groupByAttributeKeys,
+        queries,
+        aliases: queries.map((query: OpenStackQuery): string => {
+          return query.alias;
+        }),
+        value: 0,
+        words: {
+          incidentTitle: `[OpenStack] ${data.name}`,
+          incidentDescription: data.incidentDescription,
+          criteriaName: data.criteriaName,
+          criteriaDescription: data.criteriaDescription,
+        },
+      });
+    },
+  };
+}
+
+const stackFailedTemplate: OpenStackAlertTemplate = buildLifecycleTemplate({
+  id: "openstack-stack-failed",
+  name: "Stack Failed",
+  summary: "A Heat stack is in a failed state.",
+  description: `Alert when a stack reads one of ${Array.from(OPENSTACK_STACK_FAILED_STATUSES).join(", ")} for 15 minutes (openstack_heat_stack_status filtered to that status label, in every collection of the window). One incident per stack. A failed stack stays failed until someone updates or deletes it. Check \`openstack stack failures list <stack>\`, then \`openstack stack event list <stack>\`. Magnum builds each cluster with a stack, so a failed cluster fires this too, on its stack.`,
+  service: OpenStackServiceType.Orchestration,
+  metricName: "openstack_heat_stack_status",
+  statuses: Array.from(OPENSTACK_STACK_FAILED_STATUSES),
+  groupByAttributeKeys: STACK_GROUP,
+  incidentDescription: `This Heat stack is in the failed state named above, and stays that way until someone updates or deletes it. Whatever asked for it did not get it: what it built may be partly there, and is still using its project's quota. Check openstack stack failures list for the stack named above, then openstack stack event list. If it belongs to a Kubernetes cluster, openstack coe cluster show says which of its node groups failed. The incident resolves on its own once it is updated or deleted.`,
+  criteriaName: "Stack Failed - a failed status for the whole window",
+  criteriaDescription:
+    "Triggers when a stack holds a failed status for the whole window.",
+});
+
+/*
+ * INIT_IN_PROGRESS is left out, because its code is 0 and so reads as nothing here. It lasts a moment
+ * in Heat, before a stack has an action to be stuck in.
+ */
+const STACK_STUCK_STATUSES: Array<string> = Array.from(
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
+).filter((status: string): boolean => {
+  return status !== "INIT_IN_PROGRESS";
+});
+
+const stackStuckTemplate: OpenStackAlertTemplate = buildLifecycleTemplate({
+  id: "openstack-stack-stuck",
+  name: "Stack Stuck In Progress",
+  summary: `A Heat stack stays in progress for ${OPENSTACK_STACK_STUCK_MINUTES} minutes.`,
+  description: `Alert when a stack stays in one of ${STACK_STUCK_STATUSES.join(", ")} for ${OPENSTACK_STACK_STUCK_MINUTES} minutes (openstack_heat_stack_status filtered to that status label, in every collection of the window). One incident per stack. Heat fails what passes its own timeout, an hour unless someone chose longer, so this is one with a longer timeout, or one whose engine stopped: on a real cloud, restarting the engine moved neither stack it had been working on. Check \`openstack stack show <stack>\` and \`openstack orchestration service list\`, then heat-engine's log.`,
+  service: OpenStackServiceType.Orchestration,
+  metricName: "openstack_heat_stack_status",
+  statuses: STACK_STUCK_STATUSES,
+  groupByAttributeKeys: STACK_GROUP,
+  rollingTime: windowHolding(OPENSTACK_STACK_STUCK_MINUTES),
+  incidentDescription: `This Heat stack has been in progress for ${OPENSTACK_STACK_STUCK_MINUTES} minutes, past the hour Heat gives a stack unless someone chose longer. Either someone did, or the engine working on it stopped, and a restarted engine does not pick it back up by itself. Check openstack stack show for the stack named above and openstack orchestration service list, then heat-engine's log. openstack stack cancel, or an update, is the usual way out once you know why it stopped. The incident resolves on its own once it reaches its next status or is deleted.`,
+  criteriaName: `Stack Stuck In Progress - same status for ${OPENSTACK_STACK_STUCK_MINUTES} minutes`,
+  criteriaDescription: `Triggers when a stack holds an in-progress status for the whole ${OPENSTACK_STACK_STUCK_MINUTES}-minute window.`,
+});
+
+const containerClusterFailedTemplate: OpenStackAlertTemplate =
+  buildLifecycleTemplate({
+    id: "openstack-container-cluster-failed",
+    name: "Kubernetes Cluster Failed",
+    summary: "A Magnum cluster is in a failed state.",
+    description: `Alert when a Magnum cluster reads one of ${Array.from(OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES).join(", ")} for 15 minutes (openstack_container_infra_cluster_status filtered to that status label, in every collection of the window). One incident per cluster. A cluster that failed to build usually has its reason on its Heat stack, and its project's quota is still in use. Check \`openstack coe cluster show <cluster>\` and \`openstack stack failures list <stack_id>\`.`,
+    service: OpenStackServiceType.ContainerInfra,
+    metricName: "openstack_container_infra_cluster_status",
+    statuses: Array.from(OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES),
+    groupByAttributeKeys: CONTAINER_CLUSTER_GROUP,
+    incidentDescription: `This Magnum cluster is in the failed state named above. Whoever asked for it does not have a working cluster, and what it built so far is still using its project's quota. Check openstack coe cluster show for the cluster named above, whose status_reason says which of its node groups failed, then openstack stack failures list on its stack_id, because Magnum builds a cluster with a Heat stack. The incident resolves on its own once it is updated or deleted.`,
+    criteriaName:
+      "Kubernetes Cluster Failed - a failed status for the whole window",
+    criteriaDescription:
+      "Triggers when a cluster holds a failed status for the whole window.",
+  });
+
+const containerClusterStuckTemplate: OpenStackAlertTemplate =
+  buildLifecycleTemplate({
+    id: "openstack-container-cluster-stuck",
+    name: "Kubernetes Cluster Stuck",
+    summary: `A Magnum cluster stays in progress for ${OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES} minutes.`,
+    description: `Alert when a Magnum cluster stays in one of ${Array.from(OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES).join(", ")} for ${OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES} minutes (openstack_container_infra_cluster_status filtered to that status label, in every collection of the window). One incident per cluster. Magnum fails what passes the timeout it was created with, an hour unless someone chose longer, and only its conductor can notice: a stopped conductor leaves a cluster reading this for good. Check \`openstack coe service list\`, then \`openstack coe cluster show <cluster>\` and its stack.`,
+    service: OpenStackServiceType.ContainerInfra,
+    metricName: "openstack_container_infra_cluster_status",
+    statuses: Array.from(OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES),
+    groupByAttributeKeys: CONTAINER_CLUSTER_GROUP,
+    rollingTime: windowHolding(OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES),
+    incidentDescription: `This Magnum cluster has been in progress for ${OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES} minutes, past the hour Magnum gives a cluster unless someone chose longer. Either someone did, or its conductor has stopped noticing how its Heat stack is doing: only a conductor moves a cluster on. Check openstack coe service list, then openstack coe cluster show for the cluster named above, and its stack with openstack stack show. The incident resolves on its own once it reaches its next status or is deleted.`,
+    criteriaName: `Kubernetes Cluster Stuck - same status for ${OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES} minutes`,
+    criteriaDescription: `Triggers when a cluster holds an in-progress status for the whole ${OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES}-minute window.`,
+  });
+
+/*
+ * Only a native read of these APIs lists their workers: the exporter has no series for them, so these
+ * two can only be set up on a cloud a probe collects. No adminState filter on Heat's, because Heat has
+ * no such thing, and every record of a host's engine is one series to a host and binary, by Min.
+ */
+const orchestrationEngineDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-orchestration-engine-down",
+  name: "Heat Engine Down",
+  summary: "A heat-engine is down, on a cloud a probe collects.",
+  description:
+    "Alert when Heat lists a heat-engine as down for 15 minutes (openstack_heat_agent_state below 1, which only a probe sends, because only a read of Heat's own API says so). One incident per host. Heat keeps a record per engine process, and the others carry on while any is left, which is why this is a Warning. With every engine stopped Heat's API can't answer at all, recorded, and Orchestration API Down fires instead. Check `openstack orchestration service list`, then heat-engine's service and logs on that host.",
+  category: "Control Plane",
+  severity: "Warning",
+  requiresService: OpenStackServiceType.Orchestration,
+  requiresProbe: true,
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Orchestration,
+      groupByAttributeKeys: WORKER_GROUP,
+      queries: [
+        {
+          alias: "heat_engine_up",
+          metricName: "openstack_heat_agent_state",
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Heat Engine Down",
+        incidentDescription: `Heat lists a heat-engine as down. The others carry on while any is left, though with less room, and a stack this engine was working on stays in progress until someone moves it. Check openstack orchestration service list, then heat-engine's service and logs on the host named above, and its route to RabbitMQ. The incident resolves on its own once it is up again, or Heat has dropped its record.`,
+        criteriaName: "Heat Engine Down - heat-engine < 1",
+        criteriaDescription:
+          "Triggers when Heat lists a heat-engine as down for the whole window.",
+      },
+    });
+  },
+};
+
+const containerInfraConductorDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-container-infra-conductor-down",
+  name: "Magnum Conductor Down",
+  summary: "A magnum-conductor is down, on a cloud a probe collects.",
+  description:
+    "Alert when an enabled magnum-conductor is down for 15 minutes (openstack_container_infra_agent_state below 1, filtered to adminState enabled, which only a probe sends, because only a read of Magnum's own API says so). One incident per host, and one someone disabled never fires. Magnum's API carries on answering without one, recorded, so nothing else says this: its clusters just stop moving. Check `openstack coe service list`, then magnum-conductor's service and logs on that host.",
+  category: "Control Plane",
+  severity: "Critical",
+  requiresService: OpenStackServiceType.ContainerInfra,
+  requiresProbe: true,
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.ContainerInfra,
+      groupByAttributeKeys: WORKER_GROUP,
+      queries: [
+        {
+          alias: "magnum_conductor_up",
+          metricName: "openstack_container_infra_agent_state",
+          aggregationType: MetricsAggregationType.Min,
+          attributes: { adminState: "enabled" },
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Magnum Conductor Down",
+        incidentDescription: `Magnum lists an enabled magnum-conductor as down. Its API carries on answering, so nothing else says this, but with none left no cluster can be created, resized or deleted, and clusters in progress stop moving. Check openstack coe service list, then magnum-conductor's service and logs on the host named above, and its route to RabbitMQ. The incident resolves on its own once it is up again, or disabled.`,
+        criteriaName:
+          "Magnum Conductor Down - enabled magnum-conductor < 1",
+        criteriaDescription:
+          "Triggers when Magnum lists an enabled magnum-conductor as down for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -1996,11 +2263,15 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     blockStorageApiDownTemplate,
     imageApiDownTemplate,
     placementApiDownTemplate,
+    orchestrationApiDownTemplate,
+    containerInfraApiDownTemplate,
     computeServiceDownTemplate,
     schedulerOrConductorDownTemplate,
     everySchedulerOrConductorDownTemplate,
     networkAgentDownTemplate,
     blockStorageServiceDownTemplate,
+    orchestrationEngineDownTemplate,
+    containerInfraConductorDownTemplate,
     vcpuAllocationHighTemplate,
     memoryAllocationHighTemplate,
     localDiskAllocationHighTemplate,
@@ -2023,8 +2294,33 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     volumesInErrorTemplate,
     volumeStuckTemplate,
     imageStuckTemplate,
+    stackFailedTemplate,
+    stackStuckTemplate,
+    containerClusterFailedTemplate,
+    containerClusterStuckTemplate,
     projectQuotaNearlyReachedTemplate,
   ];
+}
+
+/*
+ * What a cloud can be offered: every template, but for those that need what it doesn't have. Nothing
+ * known about it is no grounds to offer more than every cloud has.
+ */
+export function getOpenStackAlertTemplatesForCloud(cloud: {
+  services?: ReadonlyArray<string> | null | undefined;
+  isCollectedByProbe?: boolean | null | undefined;
+}): Array<OpenStackAlertTemplate> {
+  return getAllOpenStackAlertTemplates().filter(
+    (template: OpenStackAlertTemplate): boolean => {
+      if (template.requiresProbe && cloud.isCollectedByProbe !== true) {
+        return false;
+      }
+      return (
+        !template.requiresService ||
+        Boolean(cloud.services?.includes(template.requiresService))
+      );
+    },
+  );
 }
 
 export function getOpenStackAlertTemplatesByCategory(

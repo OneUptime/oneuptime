@@ -60,6 +60,7 @@ import {
 import {
   OpenStackAlertTemplate,
   getAllOpenStackAlertTemplates,
+  getOpenStackAlertTemplatesForCloud,
 } from "../OpenStackAlertTemplates";
 import {
   OpenStackLogAlertTemplate,
@@ -445,9 +446,33 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
   return [...metricRecommendations, ...notificationRecommendations];
 }
 
-function getOpenStackRecommendations(): Array<MonitorRecommendation> {
-  const metricRecommendations: Array<MonitorRecommendation> =
-    getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
+/*
+ * What is known about a cloud decides only the templates that need something it may not have: a
+ * service a cloud may not run, or a series only a probe sends. Knowing nothing offers what every
+ * cloud has.
+ */
+function getOpenStackRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getOpenStackRecommendationsFromTemplates(
+    getOpenStackAlertTemplatesForCloud({
+      services: context?.openStackServices,
+      isCollectedByProbe: context?.openStackIsCollectedByProbe,
+    }),
+  );
+}
+
+function getAllOpenStackRecommendations(): Array<MonitorRecommendation> {
+  return getOpenStackRecommendationsFromTemplates(
+    getAllOpenStackAlertTemplates(),
+  );
+}
+
+function getOpenStackRecommendationsFromTemplates(
+  templates: Array<OpenStackAlertTemplate>,
+): Array<MonitorRecommendation> {
+  const metricRecommendations: Array<MonitorRecommendation> = templates.map(
+    (template: OpenStackAlertTemplate) => {
       return normalize({
         resourceType: MonitorRecommendationResourceType.OpenStack,
         monitorType: MonitorType.OpenStack,
@@ -463,7 +488,8 @@ function getOpenStackRecommendations(): Array<MonitorRecommendation> {
           });
         },
       });
-    });
+    },
+  );
 
   /*
    * What only a cloud's services say - a request no host could take, a lost message bus -
@@ -883,6 +909,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "cloudIdentifier",
       icon: IconProp.Cloud,
       getRecommendations: getOpenStackRecommendations,
+      getAllPossibleRecommendations: getAllOpenStackRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.VMware,

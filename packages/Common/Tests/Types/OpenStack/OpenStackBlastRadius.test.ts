@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  OPENSTACK_BLAST_RADIUS_COUNTS,
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
   OpenStackBlastRadius,
   buildOpenStackBlastRadius,
@@ -44,6 +45,8 @@ describe("buildOpenStackBlastRadius", () => {
         volumeCount: 0,
         routerCount: 0,
         floatingIpCount: 4,
+        stackCount: 0,
+        containerClusterCount: 0,
       },
       {
         projectId: "payments",
@@ -52,6 +55,8 @@ describe("buildOpenStackBlastRadius", () => {
         volumeCount: 0,
         routerCount: 0,
         floatingIpCount: 0,
+        stackCount: 0,
+        containerClusterCount: 0,
       },
     ]);
   });
@@ -196,5 +201,61 @@ describe("the words outside the Dashboard", () => {
   test("the markers a rule matches hold the ID, closed", () => {
     expect(getOpenStackProjectMarker("abc")).toBe("OpenStack project `abc`");
     expect(getOpenStackDomainMarker("abc")).toBe("OpenStack domain `abc`");
+  });
+});
+
+describe("stacks and Kubernetes clusters", () => {
+  const radius: OpenStackBlastRadius = buildOpenStackBlastRadius({
+    counts: [
+      {
+        count: "stackCount",
+        byProject: [
+          { projectId: "payments", count: 2 },
+          { projectId: "research", count: 1 },
+        ],
+      },
+      {
+        count: "containerClusterCount",
+        byProject: [{ projectId: "payments", count: 1 }],
+      },
+    ],
+  });
+
+  test("add up as everything else does, most affected first", () => {
+    expect(radius.stackCount).toBe(3);
+    expect(radius.containerClusterCount).toBe(1);
+    expect(radius.projectCount).toBe(2);
+    expect(radius.projects[0]).toMatchObject({
+      projectId: "payments",
+      stackCount: 2,
+      containerClusterCount: 1,
+    });
+  });
+
+  test("say what they are in words", () => {
+    expect(describeOpenStackBlastRadius(radius)).toBe(
+      "3 stacks, 1 Kubernetes cluster in 2 projects",
+    );
+  });
+
+  test("count towards a radius not being empty", () => {
+    expect(isOpenStackBlastRadiusEmpty(radius)).toBe(false);
+    expect(isOpenStackBlastRadiusEmpty(getEmptyOpenStackBlastRadius())).toBe(
+      true,
+    );
+  });
+
+  test("every count a radius holds is in the table a page and an alert read", () => {
+    const counted: Array<string> = OPENSTACK_BLAST_RADIUS_COUNTS.map(
+      (entry: { count: string }): string => {
+        return entry.count;
+      },
+    ).sort();
+    const held: Array<string> = Object.keys(getEmptyOpenStackBlastRadius())
+      .filter((key: string): boolean => {
+        return key.endsWith("Count") && key !== "projectCount";
+      })
+      .sort();
+    expect(counted).toEqual(held);
   });
 });

@@ -25,6 +25,8 @@ Every two minutes the probe reads each service of each region you picked, and se
 
 Each service is read on its own and at the same time as the others. A Neutron that fails or hangs costs Neutron's series, and Nova's data arrives as usual.
 
+Heat and Magnum are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
+
 ## Probe or agent?
 
 | | A probe (this page) | The OpenStack Agent |
@@ -38,7 +40,7 @@ Each service is read on its own and at the same time as the others. A Neutron th
 | Logins to Keystone | One for the life of a token, usually an hour | One per scrape |
 | A plain `reader` on one project | That project's instances, volumes and networks | That project's volumes and networks, and no instances |
 
-Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, the image it booted from, whether an operator forced a Nova service down, which networks a DHCP agent serves, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin.
+Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, the image it booted from, whether an operator forced a Nova service down, which networks a DHCP agent serves, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin. On a cloud that runs [Heat or Magnum](/docs/telemetry/openstack#heat-and-magnum), it also sends why a stack or a cluster failed, each cluster's project, template and Kubernetes version, and whether each of Heat's engines and Magnum's conductors is up.
 
 Pick the agent for a cloud past a probe's payload cap, for service logs, for the AI agent, or for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default.
 
@@ -97,6 +99,8 @@ Monitoring must never be what takes a cloud down, so a collection is gentle by c
 - **A refused credential waits longest.** Repeating one is what locks an account, so it waits five minutes, then ten, up to an hour. A credential you corrected is tried at once.
 
 On each collection, with the defaults, a region costs about 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and three more per hypervisor, and, about every five minutes, 5 to Keystone and 1 to Glance. A list longer than a thousand rows takes a call per thousand. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it, and every ten minutes a call per DHCP agent, at most 20, to ask which networks it serves. A cloud with more DHCP agents goes round them in turns, a cloud past the summary size leaves this out, and a slow Neutron is not asked at all. A cloud on OVN has none to ask about.
+
+A cloud that runs Heat or Magnum pays, about every five minutes, 2 calls to Heat and 3 to Magnum. Magnum's list of clusters doesn't say whose each one is or why it failed, so the probe also reads a cluster on its own when its status has moved, at most 25 clusters a collection. A cloud with more goes on filling in over the next collections, and a cluster that sits still is never read twice.
 
 Two things are off unless you turn them on, under **Data Collection** on the cloud's **Settings** page, because each costs your cloud more:
 

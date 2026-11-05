@@ -112,6 +112,12 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_neutron_up",
   "openstack_cinder_up",
   "openstack_glance_up",
+  "openstack_heat_up",
+  "openstack_heat_stack_status",
+  "openstack_heat_agent_state",
+  "openstack_container_infra_up",
+  "openstack_container_infra_cluster_status",
+  "openstack_container_infra_agent_state",
   "openstack_placement_up",
   "openstack_nova_agent_state",
   "openstack_neutron_agent_state",
@@ -177,7 +183,12 @@ describe("OpenStackMetricCatalog", () => {
             return metric.metricName;
           })
           .sort(),
-      ).toEqual(["openstack_cinder_backup_gb", "openstack_cinder_snapshot_gb"]);
+      ).toEqual([
+        "openstack_cinder_backup_gb",
+        "openstack_cinder_snapshot_gb",
+        "openstack_container_infra_agent_state",
+        "openstack_heat_agent_state",
+      ]);
 
       for (const metric of onlyFromProbe) {
         expect(OPENSTACK_EXPORTER_SERIES[metric.metricName]).toBeUndefined();
@@ -203,8 +214,12 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_pool_capacity_total_gb",
         "openstack_cinder_up",
         "openstack_cinder_volume_gb",
+        "openstack_container_infra_cluster_status",
+        "openstack_container_infra_up",
         "openstack_glance_image_bytes",
         "openstack_glance_up",
+        "openstack_heat_stack_status",
+        "openstack_heat_up",
         "openstack_identity_up",
         "openstack_neutron_agent_state",
         "openstack_neutron_floating_ip",

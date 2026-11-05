@@ -1363,6 +1363,8 @@ describe("the catalogue says who collects what", () => {
     expect(onlyFromProbe).toEqual([
       "openstack_cinder_backup_gb",
       "openstack_cinder_snapshot_gb",
+      "openstack_container_infra_agent_state",
+      "openstack_heat_agent_state",
     ]);
   });
 });

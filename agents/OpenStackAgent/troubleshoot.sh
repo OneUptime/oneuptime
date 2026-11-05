@@ -1147,6 +1147,10 @@ image|images|/v2/images?limit=100|images|owner|-|private images in other project
 load-balancer|load balancers|/v2/lbaas/loadbalancers?limit=100&fields=project_id|loadbalancers|project_id|-|load balancers in other projects.|text:Octavia shows a project reader its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|amphorae|/v2/octavia/amphorae?limit=100|amphorae|-|-|amphorae.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 baremetal|nodes|/v1/nodes/detail?limit=100|nodes|*|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes.|text:Ironic shows a project only the nodes it owns. To read them all: use a full-view credential (README.md, "Level 1: Full view").
+orchestration|stacks|/stacks|stacks|project|-|other projects' stacks, and whose each one is.|text:Heat shows anything less its own project's with no project on them, or refuses. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+orchestration|services|/services|services|-|-|Heat's engines.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+container-infra|clusters|/clusters|clusters|*|OpenStack-API-Version: container-infra latest|other projects' Kubernetes clusters.|text:Magnum shows anything less none of them, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+container-infra|services|/mservices|mservices|-|OpenStack-API-Version: container-infra latest|Magnum's conductors.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 READS
     check_project_holdings "$REGION"
   done

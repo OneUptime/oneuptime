@@ -15,6 +15,8 @@
  *               "<release>/access/<level>" is what its exporter answered each credential:
  *               reader, monitoring-role or monitoring-admin-get.
  *   ?without=   compute, network, volume...: with a recording, a service this cloud doesn't run
+ *   ?also=      <group>/<scene>: with a recording, what a real cloud said of a service a cloud may
+ *               not run, on top of what a release's cloud said of the rest
  *   ?traces=    <release>/signed-boot: what OSProfiler's driver really sent for a signed
  *               boot, through the real reader (TraceRecordings.js). With none, a cloud has
  *               no traces, which is how every cloud starts.
@@ -97,6 +99,10 @@ import CloudStoragePools from "../../../App/FeatureSet/Dashboard/src/Pages/OpenS
 import CloudStoragePoolDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StoragePoolDetail";
 import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Images";
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
+import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
+import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudContainerClusters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
+import CloudContainerClusterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusterDetail";
 import CloudProjects from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Projects";
 import CloudProjectDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ProjectDetail";
 import CloudDomains from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Domains";
@@ -333,11 +339,17 @@ const estate = buildEstate(
     estate: ESTATE,
     recording: RECORDING,
     recordedRows: RECORDING
-      ? rowsFromRecording(RECORDING, {
-          region: REGION_ONE,
-          loadedAt: IS_CONNECTED ? LOADED_AT - MINUTE : LOADED_AT - QUIET_FOR,
-          without: params.get("without") || "",
-        })
+      ? [RECORDING, ...(params.get("also") ? [params.get("also")] : [])].flatMap(
+          (name) => {
+            return rowsFromRecording(name, {
+              region: REGION_ONE,
+              loadedAt: IS_CONNECTED
+                ? LOADED_AT - MINUTE
+                : LOADED_AT - QUIET_FOR,
+              without: params.get("without") || "",
+            });
+          },
+        )
       : null,
     isConnected: IS_CONNECTED,
     quietFor: QUIET_FOR,
@@ -2190,6 +2202,13 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS, CloudStacks],
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL, CloudStackDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS, CloudContainerClusters],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
+    CloudContainerClusterDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS, CloudProjects],
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL, CloudProjectDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS, CloudDomains],

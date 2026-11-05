@@ -6,7 +6,11 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -39,6 +43,10 @@ export interface OpenStackInventorySummary {
   memoryAllocatedBytes: number;
   storageCapacityBytes: number;
   storageUsedBytes: number;
+  stackCount: number;
+  containerClusterCount: number;
+  // The services a cloud may not run that this one does, in the region being read.
+  optionalServices: Array<OpenStackServiceType>;
 }
 
 export function toOpenStackInventorySummary(
@@ -68,6 +76,17 @@ export function toOpenStackInventorySummary(
     memoryAllocatedBytes: readNumber("memoryAllocatedBytes"),
     storageCapacityBytes: readNumber("storageCapacityBytes"),
     storageUsedBytes: readNumber("storageUsedBytes"),
+    stackCount: readNumber("stackCount"),
+    containerClusterCount: readNumber("containerClusterCount"),
+    optionalServices: getOpenStackOptionalServicesOf(
+      Array.isArray(summary["optionalServices"])
+        ? (summary["optionalServices"] as Array<JSONValue>).map(
+            (service: JSONValue): string | null => {
+              return typeof service === "string" ? service : null;
+            },
+          )
+        : [],
+    ),
   };
 }
 

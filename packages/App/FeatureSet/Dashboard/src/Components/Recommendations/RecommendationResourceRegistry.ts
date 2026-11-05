@@ -35,6 +35,11 @@ import {
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
+import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
+import {
+  OpenStackInventorySummary,
+  fetchOpenStackInventorySummary,
+} from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 
 /*
@@ -250,11 +255,42 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },
+  /*
+   * Some of an OpenStack cloud's recommendations need a service it may not run, or a series only a
+   * probe sends (OpenStackAlertTemplate.requiresService, requiresProbe). Its row says how it is
+   * collected, and only its inventory says what it runs. A read that fails leaves them withheld, which
+   * is what the page shows anyway on a cloud that has none of them.
+   */
   {
     resourceType: MonitorRecommendationResourceType.OpenStack,
     modelType: OpenStackCloud,
     identifierFieldName: "name",
     displayNameFieldName: "name",
+    contextFieldNames: ["collectionMethod"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return {
+        openStackIsCollectedByProbe:
+          (model as unknown as Record<string, unknown>)["collectionMethod"] ===
+          OpenStackCollectionMethod.Probe,
+      };
+    },
+    loadContext: async (data: {
+      model: BaseModel;
+      context: MonitorRecommendationContext;
+    }): Promise<MonitorRecommendationContext> => {
+      const summary: OpenStackInventorySummary | null =
+        await fetchOpenStackInventorySummary(
+          new ObjectID(
+            (data.model as unknown as Record<string, unknown>)[
+              "_id"
+            ]?.toString() || "",
+          ),
+        );
+      return {
+        ...data.context,
+        openStackServices: summary ? summary.optionalServices : null,
+      };
+    },
   },
   {
     resourceType: MonitorRecommendationResourceType.VMware,

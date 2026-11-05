@@ -45,7 +45,10 @@ import {
   OpenStackServicePlacement,
   getOpenStackCephStatusFact,
 } from "../../Types/OpenStack/OpenStackLinks";
-import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "../../Types/OpenStack/OpenStackResourceKind";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -1203,17 +1206,27 @@ export default class OpenStackResourceAPI extends BaseAPI<
     const { projectId, openStackCloudId } =
       await this.resolveCloudForRequest(req);
 
-    const summary: OpenStackInventorySummary =
-      await this.service.getInventorySummary({
+    const regionName: string | null | undefined = this.readRegionName(req);
+
+    const [summary, optionalServices]: [
+      OpenStackInventorySummary,
+      Array<OpenStackServiceType>,
+    ] = await Promise.all([
+      this.service.getInventorySummary({
         projectId,
         openStackCloudId,
-        regionName: this.readRegionName(req),
-      });
+        regionName,
+      }),
+      this.service.getOptionalServicesOfCloud({
+        projectId,
+        openStackCloudId,
+        regionName,
+      }),
+    ]);
 
-    return Response.sendJsonObjectResponse(
-      req,
-      res,
-      summary as unknown as JSONObject,
-    );
+    return Response.sendJsonObjectResponse(req, res, {
+      ...summary,
+      optionalServices,
+    } as unknown as JSONObject);
   }
 }

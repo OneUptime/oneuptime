@@ -1,14 +1,20 @@
 import {
+  isOpenStackContainerClusterStuck,
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
+  isOpenStackStackStuck,
   isOpenStackVolumeStuck,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_API_STATUS_CLOSED,
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackResourceKind,
@@ -174,6 +180,38 @@ function enabledTone(word: string): ResourceStatusTone {
   return word.toLowerCase() === "enabled" ? "positive" : "neutral";
 }
 
+/*
+ * Heat and Magnum say what they did and how it went in one word. What someone asked to stop or be
+ * undone (a stack suspended, an update rolled back) ended as asked, so it stays neutral, and so does
+ * what nothing is ever done with.
+ */
+const STACK_OR_CLUSTER_NEUTRAL_WORDS: ReadonlySet<string> = new Set([
+  "SUSPEND_COMPLETE",
+  "ROLLBACK_COMPLETE",
+  "INIT_COMPLETE",
+  "DELETE_COMPLETE",
+]);
+
+function stackOrClusterTone(word: string): ResourceStatusTone {
+  const upper: string = word.toUpperCase();
+  if (
+    OPENSTACK_STACK_FAILED_STATUSES.has(upper) ||
+    OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES.has(upper)
+  ) {
+    return "danger";
+  }
+  if (
+    OPENSTACK_STACK_IN_PROGRESS_STATUSES.has(upper) ||
+    OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(upper)
+  ) {
+    return "warning";
+  }
+  return upper.endsWith("_COMPLETE") &&
+    !STACK_OR_CLUSTER_NEUTRAL_WORDS.has(upper)
+    ? "positive"
+    : "neutral";
+}
+
 function toneOf(
   kind: string | null | undefined,
   word: string,
@@ -199,6 +237,9 @@ function toneOf(
     case OpenStackResourceKind.Project:
     case OpenStackResourceKind.Domain:
       return enabledTone(word);
+    case OpenStackResourceKind.Stack:
+    case OpenStackResourceKind.ContainerCluster:
+      return stackOrClusterTone(word);
     default:
       return "neutral";
   }
@@ -220,6 +261,10 @@ function isStuck(input: OpenStackStatusInput, word: string): boolean {
       return isOpenStackVolumeStuck(reading);
     case OpenStackResourceKind.Image:
       return isOpenStackImageStuck(reading);
+    case OpenStackResourceKind.Stack:
+      return isOpenStackStackStuck(reading);
+    case OpenStackResourceKind.ContainerCluster:
+      return isOpenStackContainerClusterStuck(reading);
     default:
       return false;
   }
@@ -234,6 +279,10 @@ function isOnTheWay(kind: string | null | undefined, word: string): boolean {
       return OPENSTACK_VOLUME_TRANSITIONAL_STATUSES.has(word);
     case OpenStackResourceKind.Image:
       return OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.Stack:
+      return OPENSTACK_STACK_IN_PROGRESS_STATUSES.has(word);
+    case OpenStackResourceKind.ContainerCluster:
+      return OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(word);
     default:
       return false;
   }
@@ -369,4 +418,31 @@ export const OPENSTACK_STATUS_WORDS: Partial<
   [OpenStackResourceKind.Router]: ["ACTIVE", "ALLOCATED", "DOWN", "ERROR"],
   [OpenStackResourceKind.FloatingIp]: ["ACTIVE", "DOWN", "ERROR"],
   [OpenStackResourceKind.Project]: ["enabled", "disabled"],
+  [OpenStackResourceKind.Stack]: [
+    "CREATE_COMPLETE",
+    "UPDATE_COMPLETE",
+    ...Array.from(OPENSTACK_STACK_FAILED_STATUSES),
+    ...Array.from(OPENSTACK_STACK_IN_PROGRESS_STATUSES),
+    "ROLLBACK_COMPLETE",
+    "SUSPEND_COMPLETE",
+    "RESUME_COMPLETE",
+    "CHECK_COMPLETE",
+    "SNAPSHOT_COMPLETE",
+    "ADOPT_COMPLETE",
+    "INIT_COMPLETE",
+    "DELETE_COMPLETE",
+  ],
+  [OpenStackResourceKind.ContainerCluster]: [
+    "CREATE_COMPLETE",
+    "UPDATE_COMPLETE",
+    ...Array.from(OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES),
+    ...Array.from(OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES),
+    "RESUME_COMPLETE",
+    "RESTORE_COMPLETE",
+    "ROLLBACK_COMPLETE",
+    "SNAPSHOT_COMPLETE",
+    "CHECK_COMPLETE",
+    "ADOPT_COMPLETE",
+    "DELETE_COMPLETE",
+  ],
 };

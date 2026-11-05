@@ -1,5 +1,8 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
-import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 import { isOpenStackIssueAbout } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
@@ -56,6 +59,11 @@ export interface AlertsProps {
   description: string;
   templateIds: Array<string>;
   part: OpenStackPart;
+  /*
+   * What this part says of its cloud, for a template that needs something a cloud may not have: a
+   * stack's page is on a cloud that runs Heat, whatever else has been read.
+   */
+  context?: MonitorRecommendationContext | undefined;
 }
 
 export const OpenStackPartAlerts: FunctionComponent<AlertsProps> = (
@@ -68,6 +76,7 @@ export const OpenStackPartAlerts: FunctionComponent<AlertsProps> = (
       description={props.description}
       resourceType={MonitorRecommendationResourceType.OpenStack}
       templateIds={props.templateIds}
+      context={props.context}
       resourceId={props.part.openStackCloudId}
       resourceIdentifier={props.part.cloudName}
       getRecommendationsRoute={props.part.routes.getRecommendationsRoute}

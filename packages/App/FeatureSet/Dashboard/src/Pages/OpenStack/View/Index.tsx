@@ -312,6 +312,27 @@ function getCountChips(
       ),
       page: PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS,
     },
+    {
+      key: "stacks",
+      icon: IconProp.Layers,
+      label: translator.translatePlural(
+        { one: "{{count}} stack", other: "{{count}} stacks" },
+        summary.stackCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_STACKS,
+    },
+    {
+      key: "container-clusters",
+      icon: IconProp.Kubernetes,
+      label: translator.translatePlural(
+        {
+          one: "{{count}} Kubernetes cluster",
+          other: "{{count}} Kubernetes clusters",
+        },
+        summary.containerClusterCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+    },
   ];
 
   const counts: Record<string, number> = {
@@ -325,6 +346,8 @@ function getCountChips(
     "floating-ips": summary.floatingIpCount,
     volumes: summary.volumeCount,
     projects: summary.projectCount,
+    stacks: summary.stackCount,
+    "container-clusters": summary.containerClusterCount,
   };
 
   const reported: Array<CountChip> = chips.filter(

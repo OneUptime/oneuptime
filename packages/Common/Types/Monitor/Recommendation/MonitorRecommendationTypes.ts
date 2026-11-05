@@ -164,6 +164,18 @@ export interface MonitorRecommendationContext {
    * monitor over logs nobody sends.
    */
   kubernetesProvider?: string | null | undefined;
+  /*
+   * The services an OpenStack cloud may not run that this one does, from its own API rows
+   * (OpenStackOptionalServices). A template on one of the others could never fire, because its
+   * series don't exist there, and it is a word about something the cloud has never had. `null` and
+   * `undefined` (not known) withhold them: these are an addition to a set that is whole without them.
+   */
+  openStackServices?: ReadonlyArray<string> | null | undefined;
+  /*
+   * Whether a probe collects this cloud. Some series only a native read of an API sends, and on an
+   * agent's cloud a template over one would never fire. Anything but true withholds them.
+   */
+  openStackIsCollectedByProbe?: boolean | null | undefined;
 }
 
 /*

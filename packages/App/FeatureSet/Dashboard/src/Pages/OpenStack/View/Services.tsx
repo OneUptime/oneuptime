@@ -4,6 +4,7 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
+import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Input from "Common/UI/Components/Input/Input";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -105,7 +106,11 @@ const OpenStackCloudServices: FunctionComponent<
           ModelAPI.getItem<OpenStackCloud>({
             modelType: OpenStackCloud,
             id: modelId,
-            select: { otelCollectorStatus: true, lastSeenAt: true },
+            select: {
+              otelCollectorStatus: true,
+              lastSeenAt: true,
+              collectionMethod: true,
+            },
           }),
         ]);
       return { rows, cloud };
@@ -306,6 +311,10 @@ const OpenStackCloudServices: FunctionComponent<
                 key={group.key}
                 group={group}
                 showRegion={hasRegions}
+                isCollectedByProbe={
+                  data.cloud?.collectionMethod ===
+                  OpenStackCollectionMethod.Probe
+                }
                 backendName={
                   group.service === OpenStackServiceType.Network
                     ? backendName

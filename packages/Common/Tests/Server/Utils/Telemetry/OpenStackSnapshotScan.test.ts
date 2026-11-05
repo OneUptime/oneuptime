@@ -3,10 +3,15 @@ import {
   OPENSTACK_API_UP_METRIC_NAMES,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SNAPSHOT_METRIC_NAMES,
+  OpenStackOptionalServiceScrape,
+  bufferOpenStackOptionalServiceScrape,
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
   finishOpenStackResource,
+  getOpenStackApiRowExternalId,
   getOpenStackRoutersWithoutAgents,
+  hasOpenStackContainerClusterProjectToJoin,
+  isOpenStackOptionalServiceScrapeDatapoint,
   isOpenStackSnapshotDatapoint,
 } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONObject } from "../../../../Types/JSON";
@@ -1698,5 +1703,464 @@ describe("a batch's rows, joined", () => {
     });
     expect(hypervisorOf(buffer).status).toBeNull();
     expect(hypervisorOf(buffer).adminState).toBeNull();
+  });
+});
+
+/*
+ * Rows of the services a cloud may not run come from what the exporter says about each. These read
+ * labels off the shapes a real cloud sent: the scenes are in OpenStackHeatMagnumRecordings.test.ts.
+ */
+describe("a Heat stack", () => {
+  const LABELS: LabelMap = {
+    id: "2931cfa5-85d1-43be-bd8f-8a3f9a22cfc3",
+    name: "ou-stack-failed",
+    project_id: "08945d5897854ec2a11d65d907ec6251",
+    status: "CREATE_FAILED",
+  };
+
+  test("is its own row, by Heat's ID, whose name and project it holds", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_stack_status", { value: 4, labels: LABELS });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Stack,
+      LABELS["id"] as string,
+    );
+    expect(row.name).toBe("ou-stack-failed");
+    expect(row.openStackProjectId).toBe("08945d5897854ec2a11d65d907ec6251");
+    expect(row.regionName).toBe("RegionOne");
+    expect(row.status).toBe("CREATE_FAILED");
+  });
+
+  test("reads its status from the word: the value is only that word's code", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 0,
+      labels: { ...LABELS, status: "INIT_IN_PROGRESS" },
+    });
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Stack, LABELS["id"] as string).status,
+    ).toBe("INIT_IN_PROGRESS");
+  });
+
+  test("the newest word in a batch wins", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 9,
+      atMs: BASE_MS + 60000,
+      labels: { ...LABELS, status: "UPDATE_IN_PROGRESS" },
+    });
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 4,
+      atMs: BASE_MS,
+      labels: LABELS,
+    });
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Stack, LABELS["id"] as string).status,
+    ).toBe("UPDATE_IN_PROGRESS");
+  });
+
+  test("with no project, as anything below an admin reads it, holds none rather than an empty one", () => {
+    const buffer: Buffer = new Map();
+    const { project_id: _ignored, ...withoutProject } = LABELS;
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 4,
+      labels: { ...withoutProject, project_id: "" },
+    });
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Stack, LABELS["id"] as string)
+        .openStackProjectId,
+    ).toBeNull();
+  });
+
+  test("with no ID is nothing anyone could link to, and has no row", () => {
+    const buffer: Buffer = new Map();
+    const { id: _ignored, ...withoutId } = LABELS;
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 4,
+      labels: withoutId,
+    });
+    expect(buffer.size).toBe(0);
+  });
+
+  test("says why it failed only when a probe does, and otherwise says nothing is known", () => {
+    const fromAgent: Buffer = new Map();
+    fold(fromAgent, "openstack_heat_stack_status", {
+      value: 4,
+      labels: LABELS,
+    });
+    expect(
+      rowOf(fromAgent, OpenStackResourceKind.Stack, LABELS["id"] as string)
+        .facts["statusReason"],
+    ).toBeNull();
+
+    const fromProbe: Buffer = new Map();
+    fold(fromProbe, "openstack_heat_stack_status", {
+      value: 4,
+      labels: {
+        ...LABELS,
+        status_reason: "Resource CREATE failed: No valid host was found.",
+      },
+    });
+    expect(
+      rowOf(fromProbe, OpenStackResourceKind.Stack, LABELS["id"] as string)
+        .facts["statusReason"],
+    ).toBe("Resource CREATE failed: No valid host was found.");
+  });
+});
+
+describe("a Magnum cluster", () => {
+  const LABELS: LabelMap = {
+    uuid: "9f6c221b-9ba3-4d20-ad26-e906bc1b3803",
+    name: "ou-cluster-times-out",
+    stack_id: "66b02f15-9492-45b2-84aa-a82a4edf21f7",
+    status: "CREATE_FAILED",
+    node_count: "3",
+    master_count: "1",
+    project_id: "",
+  };
+
+  test("is its own row, by Magnum's ID, holding what its one series says", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: LABELS,
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.ContainerCluster,
+      LABELS["uuid"] as string,
+    );
+    expect(row.name).toBe("ou-cluster-times-out");
+    expect(row.status).toBe("CREATE_FAILED");
+    expect(row.facts).toMatchObject({
+      stackId: LABELS["stack_id"],
+      nodeCount: 3,
+      masterCount: 1,
+    });
+  });
+
+  test("has no project from the exporter, and takes one where a probe says", () => {
+    const fromAgent: Buffer = new Map();
+    fold(fromAgent, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: LABELS,
+    });
+    expect(
+      rowOf(
+        fromAgent,
+        OpenStackResourceKind.ContainerCluster,
+        LABELS["uuid"] as string,
+      ).openStackProjectId,
+    ).toBeNull();
+
+    const fromProbe: Buffer = new Map();
+    fold(fromProbe, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: {
+        ...LABELS,
+        project_id: "4d0acfc18c9d4a0b994a7fe34516bf65",
+        status_reason: "default-master failed, default-worker failed",
+        health_status: "UNKNOWN",
+        cluster_template_id: "4203498b-8224-4477-b31e-bd0d55236ac6",
+        cluster_template_name: "ou-template",
+        coe_version: "v1.18.16",
+      },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      fromProbe,
+      OpenStackResourceKind.ContainerCluster,
+      LABELS["uuid"] as string,
+    );
+    expect(row.openStackProjectId).toBe("4d0acfc18c9d4a0b994a7fe34516bf65");
+    expect(row.facts).toMatchObject({
+      statusReason: "default-master failed, default-worker failed",
+      healthStatus: "UNKNOWN",
+      clusterTemplateId: "4203498b-8224-4477-b31e-bd0d55236ac6",
+      clusterTemplateName: "ou-template",
+      coeVersion: "v1.18.16",
+    });
+  });
+
+  test("its counts are numbers, or nothing when the label is no number", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: { ...LABELS, node_count: "not-a-number" },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.ContainerCluster,
+      LABELS["uuid"] as string,
+    );
+    expect(row.facts["nodeCount"]).toBeNull();
+    expect(row.facts["masterCount"]).toBe(1);
+  });
+
+  test("the two series that only repeat it are read by nothing here", () => {
+    for (const metricName of [
+      "openstack_container_infra_cluster_masters",
+      "openstack_container_infra_cluster_nodes",
+      "openstack_container_infra_total_clusters",
+      "openstack_heat_stack_status_counter",
+    ]) {
+      expect(OPENSTACK_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(false);
+    }
+  });
+});
+
+describe("what a batch of them asks of the rows", () => {
+  test("a stack or a cluster can settle a cluster's project, and nothing else can", () => {
+    const batch: Buffer = new Map();
+    fold(batch, "openstack_nova_up", { value: 1 });
+    expect(
+      hasOpenStackContainerClusterProjectToJoin(
+        finishOpenStackBatch(batch.values()),
+      ),
+    ).toBe(false);
+
+    fold(batch, "openstack_heat_stack_status", {
+      value: 5,
+      labels: { id: "a-stack", status: "CREATE_COMPLETE" },
+    });
+    expect(
+      hasOpenStackContainerClusterProjectToJoin(
+        finishOpenStackBatch(batch.values()),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("workers only a native read of an API lists", () => {
+  test("a heat-engine is a worker of its own family, held by host and binary", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_agent_state", {
+      value: 1,
+      labels: {
+        hostname: "compute-01",
+        service: "heat-engine",
+        id: "474df757-7278-4081-b385-fc69599a2da6",
+      },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Service,
+      "RegionOne/orchestration/compute-01/heat-engine",
+    );
+    expect(row.status).toBe("up");
+    expect(row.facts["family"]).toBe("orchestration");
+    expect(row.hypervisorName).toBeNull();
+  });
+
+  /*
+   * Heat keeps a record per engine process, recorded two to a host. A stopped engine keeps its record
+   * for a while after a new one starts, which the rig's own engine_status allows for.
+   */
+  test("one engine's stale record beside a live one is no outage", () => {
+    const buffer: Buffer = new Map();
+    for (const [id, value] of [
+      ["engine-old", 0],
+      ["engine-new", 1],
+    ] as Array<[string, number]>) {
+      fold(buffer, "openstack_heat_agent_state", {
+        value,
+        labels: { hostname: "compute-01", service: "heat-engine", id },
+      });
+    }
+    const [row]: Array<OpenStackResourceBufferEntry> = finishOpenStackBatch(
+      buffer.values(),
+    );
+    expect(row!.status).toBe("up");
+    expect(row!.facts["staleAgentIds"]).toEqual(["engine-old"]);
+  });
+
+  test("with every engine's record stale, the engine is down", () => {
+    const buffer: Buffer = new Map();
+    for (const id of ["engine-a", "engine-b"]) {
+      fold(buffer, "openstack_heat_agent_state", {
+        value: 0,
+        labels: { hostname: "compute-01", service: "heat-engine", id },
+      });
+    }
+    const [row]: Array<OpenStackResourceBufferEntry> = finishOpenStackBatch(
+      buffer.values(),
+    );
+    expect(row!.status).toBe("down");
+    expect(row!.facts["staleAgentIds"]).toBeNull();
+  });
+
+  test("a magnum-conductor is a worker too, with what an operator set on it", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_container_infra_agent_state", {
+      value: 0,
+      labels: {
+        hostname: "compute-01",
+        service: "magnum-conductor",
+        adminState: "enabled",
+      },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Service,
+      "RegionOne/container-infra/compute-01/magnum-conductor",
+    );
+    expect(row.status).toBe("down");
+    expect(row.adminState).toBe("enabled");
+    expect(row.facts["family"]).toBe("container-infra");
+  });
+});
+
+/*
+ * What a scrape says of a service a cloud may not run, kept apart from everything that can make a row.
+ * Recorded on a real cloud with the service and with none: up 1 and 0 samples.
+ */
+describe("a scrape of a service this product knows and a cloud may not run", () => {
+  type Scrapes = Map<string, OpenStackOptionalServiceScrape>;
+
+  const scrapeOf: (
+    points: Array<[string, number]>,
+    service?: string,
+  ) => OpenStackOptionalServiceScrape = (
+    points: Array<[string, number]>,
+    service: string = "orchestration",
+  ): OpenStackOptionalServiceScrape => {
+    const buffer: Scrapes = new Map();
+    for (const [metricName, value] of points) {
+      bufferOpenStackOptionalServiceScrape({
+        metricName,
+        datapoint: datapoint({
+          value,
+          labels: { openstack_service: service },
+        }),
+        buffer,
+      });
+    }
+    return buffer.get(`RegionOne/${service}`)!;
+  };
+
+  test.each(["up", "scrape_samples_scraped", "scrape_duration_seconds"])(
+    "%s is kept, on its own path and never the one that makes a row",
+    (metricName: string) => {
+      const point: JSONObject = datapoint({
+        value: 1,
+        labels: { openstack_service: "orchestration" },
+      });
+      expect(
+        isOpenStackOptionalServiceScrapeDatapoint({
+          metricName,
+          datapoint: point,
+        }),
+      ).toBe(true);
+      expect(
+        isOpenStackSnapshotDatapoint({ metricName, datapoint: point }),
+      ).toBe(false);
+    },
+  );
+
+  test.each([
+    ["a core service, which has its own path", "compute"],
+    ["a service nothing here knows yet", "dns"],
+    ["no service at all", null],
+  ])("%s is not kept", (_why: string, service: string | null) => {
+    expect(
+      isOpenStackOptionalServiceScrapeDatapoint({
+        metricName: "up",
+        datapoint: datapoint({
+          value: 1,
+          labels: service ? { openstack_service: service } : {},
+        }),
+      }),
+    ).toBe(false);
+  });
+
+  test("another agent's series of the same name is nothing to do with this", () => {
+    expect(
+      isOpenStackOptionalServiceScrapeDatapoint({
+        metricName: "http_requests_total",
+        datapoint: datapoint({
+          value: 1,
+          labels: { openstack_service: "orchestration" },
+        }),
+      }),
+    ).toBe(false);
+  });
+
+  test("an answer with nothing in it, as a cloud without the service gives", () => {
+    expect(
+      scrapeOf([
+        ["up", 1],
+        ["scrape_samples_scraped", 0],
+        ["scrape_duration_seconds", 0.013],
+      ]),
+    ).toMatchObject({
+      service: "orchestration",
+      regionName: "RegionOne",
+      answered: true,
+      samples: 0,
+      seconds: 0.013,
+    });
+  });
+
+  test("a failed one", () => {
+    expect(
+      scrapeOf([
+        ["up", 0],
+        ["scrape_samples_scraped", 0],
+      ]),
+    ).toMatchObject({ answered: false, samples: 0, seconds: null });
+  });
+
+  test("what isn't said stays unknown, for a batch that parts them", () => {
+    expect(scrapeOf([["scrape_duration_seconds", 2]])).toMatchObject({
+      answered: null,
+      samples: null,
+      seconds: 2,
+    });
+  });
+
+  test("a value that is no number says nothing", () => {
+    const buffer: Scrapes = new Map();
+    bufferOpenStackOptionalServiceScrape({
+      metricName: "up",
+      datapoint: {
+        attributes: [
+          { key: "openstack_service", value: { stringValue: "orchestration" } },
+        ],
+        timeUnixNano: `${BASE_MS}000000`,
+      },
+      buffer,
+    });
+    expect(buffer.size).toBe(0);
+  });
+
+  test("each region's is its own", () => {
+    const buffer: Scrapes = new Map();
+    for (const region of ["RegionOne", "RegionTwo"]) {
+      bufferOpenStackOptionalServiceScrape({
+        metricName: "up",
+        datapoint: datapoint({
+          value: 1,
+          region,
+          labels: { openstack_service: "orchestration" },
+        }),
+        buffer,
+      });
+    }
+    expect(Array.from(buffer.keys()).sort()).toEqual([
+      "RegionOne/orchestration",
+      "RegionTwo/orchestration",
+    ]);
+  });
+
+  test("is keyed as the row it may change is", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_up", { value: 1 });
+    expect(
+      rowOf(
+        buffer,
+        OpenStackResourceKind.Api,
+        getOpenStackApiRowExternalId("RegionOne", "orchestration"),
+      ).name,
+    ).toBe("orchestration");
   });
 });
