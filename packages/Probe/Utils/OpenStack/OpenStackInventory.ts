@@ -1329,6 +1329,79 @@ export interface OpenStackMetricInventory {
   status?: GnocchiStatusRecord | undefined;
 }
 
+/*
+ * A Designate zone as its own list says, and a recordset of one. The exporter says as much of each. A zone's
+ * recordset count is there only for a zone this read asked about: the exporter makes a call per zone per scrape
+ * to say that, and this doesn't.
+ */
+export interface DesignateZoneRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  type: string | null;
+  action: string | null;
+}
+
+export function toDesignateZone(item: JSONObject): DesignateZoneRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["project_id"]),
+    status: text(item["status"]),
+    type: text(item["type"]),
+    action: text(item["action"]),
+  };
+}
+
+export interface DesignateRecordsetRecord {
+  id: string | null;
+  name: string | null;
+  status: string | null;
+  type: string | null;
+  zoneId: string | null;
+  zoneName: string | null;
+  projectId: string | null;
+}
+
+export function toDesignateRecordset(
+  item: JSONObject,
+): DesignateRecordsetRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    status: text(item["status"]),
+    type: text(item["type"]),
+    zoneId: text(item["zone_id"]),
+    zoneName: text(item["zone_name"]),
+    projectId: text(item["project_id"]),
+  };
+}
+
+// One of Designate's workers. It goes by a heartbeat, so a stopped one reads UP for a while yet, recorded.
+export interface DesignateServiceRecord {
+  host: string | null;
+  name: string | null;
+  status: string | null;
+}
+
+export function toDesignateServiceStatus(
+  item: JSONObject,
+): DesignateServiceRecord {
+  return {
+    host: text(item["hostname"]),
+    name: text(item["service_name"]),
+    status: text(item["status"]),
+  };
+}
+
+export interface OpenStackDnsInventory {
+  zones?: Array<DesignateZoneRecord> | undefined;
+  // Only those of a zone that isn't ACTIVE: see DnsCollector.
+  recordsets?: Array<DesignateRecordsetRecord> | undefined;
+  services?: Array<DesignateServiceRecord> | undefined;
+}
+
 export interface OpenStackDatabaseInventory {
   instances?: Array<TroveInstanceRecord> | undefined;
 }
@@ -1346,5 +1419,6 @@ export interface OpenStackInventoryByService {
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
   database?: OpenStackDatabaseInventory | undefined;
+  dns?: OpenStackDnsInventory | undefined;
   gnocchi?: OpenStackMetricInventory | undefined;
 }

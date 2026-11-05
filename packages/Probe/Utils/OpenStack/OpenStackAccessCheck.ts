@@ -386,6 +386,17 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       tells: "adminOnly",
     },
     {
+      service: OpenStackServiceType.Dns,
+      read: "zones, all projects",
+      path: "/v2/zones",
+      key: "zones",
+      projectField: "project_id",
+      goesWithout:
+        "zones and recordsets in other projects, and the alerts on them. Designate refuses anything less a list of every project's zones.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
       service: OpenStackServiceType.Database,
       read: "instances, all projects",
       path: "/mgmt/instances",
