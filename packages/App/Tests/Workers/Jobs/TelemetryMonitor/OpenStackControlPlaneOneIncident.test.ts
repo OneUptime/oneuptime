@@ -797,6 +797,22 @@ describe("one failure opens one incident", () => {
     ]);
   }, 120000);
 
+  test("with nothing linked, a stopped libvirt is two, so with no libvirt monitor a service that disabled itself still speaks", async () => {
+    await runDrill(
+      "gazpacho-ovn",
+      "libvirt-down",
+      OUTAGE_MINUTES + MINUTES_AFTER,
+      {
+        linked: false,
+      },
+    );
+
+    expect(summaryOf(incidents).sort()).toEqual([
+      "openstack-compute-service-disabled opened 9, still open",
+      "openstack-libvirt-service-down opened 5, still open",
+    ]);
+  }, 120000);
+
   test("with nothing linked, a stopped RabbitMQ opens what each thing reads, which is what the links are for", async () => {
     await runDrill(
       "gazpacho-ovs",

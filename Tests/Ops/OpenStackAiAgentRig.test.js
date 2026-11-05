@@ -184,6 +184,113 @@ describe("the importer", () => {
 
     expect(run().status).not.toBe(0);
   });
+
+  describe("real changes", () => {
+    const FIX_FILES = [
+      "writes-off.json",
+      "enable-proposal.json",
+      "enable-ladder.json",
+      "enable-result.json",
+      "enable-confirmed.txt",
+      "evacuate-proposal.json",
+      "evacuate-ladder.json",
+      "evacuate-result.json",
+      "evacuate-after.json",
+      "least-privilege.json",
+    ];
+
+    function recordFixes(files) {
+      const directory = path.join(folder, "ai-agent", "fixes");
+      fs.mkdirSync(directory, { recursive: true });
+      for (const name of files) {
+        fs.writeFileSync(
+          path.join(directory, name),
+          `{"host":"${FULL}","short":"${SHORT}"}\n`,
+        );
+      }
+    }
+
+    function runOnlyFixes() {
+      return childProcess.spawnSync(
+        "python3",
+        [
+          "-I",
+          IMPORTER,
+          folder,
+          path.join(folder, "fixtures"),
+          "hibiscus-ovn",
+          "--only-fixes",
+        ],
+        { encoding: "utf8" },
+      );
+    }
+
+    function fixesKept() {
+      return path.join(
+        folder,
+        "fixtures",
+        "ai-agent",
+        "hibiscus-ovn",
+        "fixes",
+      );
+    }
+
+    beforeEach(() => {
+      for (const scene of ["healthy", "compute-down"]) {
+        record(scene, { host: SHORT, problems: [] }, `${SHORT} up\n`);
+      }
+    });
+
+    test("are kept under the one name every fixture uses, and an ID leaves a file's name", () => {
+      recordFixes([
+        ...FIX_FILES,
+        "server-start-6c0853d7-0477-433a-ac4c-0eb1047a8bd7-result.json",
+      ]);
+
+      expect(runOnlyFixes().status).toBe(0);
+      expect(read(path.join(fixesKept(), "enable-result.json"))).toBe(
+        '{"host":"compute-01.example.internal","short":"compute-01"}\n',
+      );
+      expect(fs.readdirSync(fixesKept())).toContain("server-start-result.json");
+    });
+
+    test("--only-fixes leaves the reads that are already there", () => {
+      expect(run().status).toBe(0);
+
+      const before = imported("healthy");
+
+      record("healthy", { host: SHORT, problems: [] }, `${SHORT} a new read\n`);
+      recordFixes(FIX_FILES);
+
+      expect(runOnlyFixes().status).toBe(0);
+      expect(imported("healthy")).toBe(before);
+    });
+
+    test("a run that stopped before a change leaves what is there", () => {
+      recordFixes(FIX_FILES);
+      expect(runOnlyFixes().status).toBe(0);
+
+      fs.rmSync(path.join(folder, "ai-agent", "fixes"), {
+        recursive: true,
+        force: true,
+      });
+      recordFixes(FIX_FILES.filter((name) => {
+        return name !== "enable-confirmed.txt";
+      }));
+
+      const refused = runOnlyFixes();
+
+      expect(refused.status).not.toBe(0);
+      expect(refused.stderr).toContain("enable-confirmed.txt");
+      expect(fs.existsSync(path.join(fixesKept(), "enable-confirmed.txt"))).toBe(
+        true,
+      );
+    });
+
+    test("--only-fixes on a run that made none is refused", () => {
+      expect(runOnlyFixes().status).not.toBe(0);
+    });
+  });
 });
 
 describe("real changes", () => {

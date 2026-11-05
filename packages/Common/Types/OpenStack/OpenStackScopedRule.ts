@@ -20,6 +20,9 @@ export interface OpenStackRuleScopeColumns {
 export interface OpenStackReachedProject {
   projectId: string;
   domainId?: string | null | undefined;
+  // What people call it, and what it holds on the part, for telling each owner their own.
+  name?: string | null | undefined;
+  holdings?: string | undefined;
 }
 
 export function isOpenStackRuleScoped(

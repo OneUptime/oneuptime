@@ -1,0 +1,8 @@
+{
+  "command": "openstack server start 6c0853d7-0477-433a-ac4c-0eb1047a8bd7",
+  "result": {
+    "success": true,
+    "exitCode": 0,
+    "output": "[stdout]\nThis changes 1 instance in 1 project.\n/servers/6c0853d7-0477-433a-ac4c-0eb1047a8bd7/action: Nova accepted it (HTTP 202).\nThe API took it, which is not the same as done: Nova works on an instance in the background, so read it again to see it took effect.\noneuptime-openstack-reach route server start\noneuptime-openstack-reach kind changes\noneuptime-openstack-reach complete yes\noneuptime-openstack-reach instances 1\noneuptime-openstack-reach projects 1\noneuptime-openstack-reach left-behind 0\noneuptime-openstack-reach instance 6c0853d7-0477-433a-ac4c-0eb1047a8bd7 3bc88e740a7e48958de4224670889fe5 compute-01 SHUTOFF - ou-user-data\noneuptime-openstack-reach project 3bc88e740a7e48958de4224670889fe5 1 -"
+  }
+}

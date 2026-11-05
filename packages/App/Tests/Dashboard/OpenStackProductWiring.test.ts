@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import { isOpenStackCountable } from "Common/Types/OpenStack/OpenStackCounts";
+import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import fs from "fs";
 import path from "path";
 import {
@@ -118,6 +120,7 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
   ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
   ["Spend.tsx", "OPENSTACK_CLOUD_VIEW_SPEND"],
+  ["StatusPages.tsx", "OPENSTACK_CLOUD_VIEW_STATUS_PAGES"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
   ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],
@@ -210,11 +213,6 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
   [["Settings", "LabelRules.tsx"], "OPENSTACK_SETTINGS_LABEL_RULES"],
 ];
 
-// Pages later issues build. Their keys stay; nothing mounts or links them yet.
-const LATER_PAGE_KEYS: ReadonlyArray<string> = [
-  "OPENSTACK_CLOUD_VIEW_INSIGHTS",
-];
-
 const VIEW_PAGE_KEYS: ReadonlyArray<string> = MOUNTED_VIEW_PAGES.map(
   (entry: [string, string]): string => {
     return entry[1];
@@ -233,7 +231,6 @@ const EVERY_PAGE_KEY: ReadonlyArray<string> = [
   ...PRODUCT_PAGE_KEYS,
   "OPENSTACK_SETTINGS_OWNER_RULE_VIEW",
   "OPENSTACK_SETTINGS_LABEL_RULE_VIEW",
-  ...LATER_PAGE_KEYS,
 ];
 
 function linkedPageKeysOf(source: string): Array<string> {
@@ -366,13 +363,6 @@ describe("every page of this merge is mounted, and nothing else is", () => {
     },
   );
 
-  test.each(LATER_PAGE_KEYS)(
-    "%s is left to a later issue: no route, no lazy import",
-    (key: string) => {
-      expect(routeCode).not.toContain(key);
-    },
-  );
-
   test("no page of a later issue, or of Proxmox's, is imported", () => {
     for (const page of [
       "Insights",
@@ -460,15 +450,6 @@ describe("the side menus have no dead links", () => {
       expect(dense(routes)).toContain(`RouteMap[PageMap.${key}]`);
     }
   });
-
-  test.each(LATER_PAGE_KEYS)(
-    "the cloud menu does not link to %s",
-    (key: string) => {
-      expect(
-        stripComments(readSource("Pages", "OpenStack", "View", "SideMenu.tsx")),
-      ).not.toContain(`PageMap.${key}`);
-    },
-  );
 
   test("the product menu links to the list, archive, docs and rules", () => {
     const sideMenu: string = dense(
@@ -645,6 +626,49 @@ describe("a service a cloud may not run", () => {
         ),
       ),
     ).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
+  });
+});
+
+describe("a page's limited view notice", () => {
+  /*
+   * The notice counts the page's rows by project, so a kind that can't be counted fails its
+   * whole read: the request is refused and the notice never shows. Only a live stack showed it.
+   */
+  test("is only given a kind that can be counted by project", () => {
+    const viewFolder: string = path.join(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Pages/OpenStack/View",
+    );
+    const kinds: Set<string> = new Set<string>();
+
+    for (const file of fs.readdirSync(viewFolder)) {
+      if (!file.endsWith(".tsx")) {
+        continue;
+      }
+
+      const source: string = fs.readFileSync(
+        path.join(viewFolder, file),
+        "utf8",
+      );
+
+      for (const match of source.matchAll(
+        /<OpenStackLimitedViewNotice\b[^>]*?kind=\{OpenStackResourceKind\.([A-Za-z]+)\}/gs,
+      )) {
+        kinds.add(match[1] as string);
+      }
+    }
+
+    expect(kinds.size).toBeGreaterThan(5);
+
+    for (const kind of kinds) {
+      expect({
+        kind,
+        isCountable: isOpenStackCountable(
+          OpenStackResourceKind[kind as keyof typeof OpenStackResourceKind],
+          "project",
+        ),
+      }).toEqual({ kind, isCountable: true });
+    }
   });
 });
 

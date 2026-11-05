@@ -2,7 +2,9 @@ import { describe, expect, test } from "@jest/globals";
 import {
   OPENSTACK_BLAST_RADIUS_COUNTS,
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
+  OPENSTACK_REACH_HEADING,
   OpenStackBlastRadius,
+  OpenStackBlastRadiusProject,
   buildOpenStackBlastRadius,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
@@ -10,6 +12,8 @@ import {
   getOpenStackProjectMarker,
   getEmptyOpenStackBlastRadius,
   isOpenStackBlastRadiusEmpty,
+  mergeOpenStackBlastRadii,
+  removeOpenStackReachFromDescription,
 } from "../../../Types/OpenStack/OpenStackBlastRadius";
 
 /*
@@ -270,5 +274,126 @@ describe("stacks and Kubernetes clusters", () => {
       })
       .sort();
     expect(counted).toEqual(held);
+  });
+});
+
+describe("what several parts take with them", () => {
+  test("a project on two hosts is one project, holding what it holds on both", () => {
+    const merged: OpenStackBlastRadius = mergeOpenStackBlastRadii([
+      buildOpenStackBlastRadius({
+        counts: [
+          {
+            count: "instanceCount",
+            byProject: [
+              { projectId: "payments", count: 3 },
+              { projectId: null, count: 1 },
+            ],
+          },
+        ],
+        projectNames: { payments: "ou-payments" },
+        includeEveryProject: true,
+      }),
+      buildOpenStackBlastRadius({
+        counts: [
+          {
+            count: "instanceCount",
+            byProject: [
+              { projectId: "payments", count: 2 },
+              { projectId: "research", count: 1 },
+            ],
+          },
+        ],
+        projectNames: { research: "ou-research" },
+        includeEveryProject: true,
+      }),
+    ]);
+
+    expect(merged.instanceCount).toBe(7);
+    expect(merged.projectCount).toBe(2);
+    expect(
+      merged.everyProject?.map((project: OpenStackBlastRadiusProject) => {
+        return [project.projectId, project.name, project.instanceCount];
+      }),
+    ).toEqual([
+      ["payments", "ou-payments", 5],
+      ["research", "ou-research", 1],
+    ]);
+    expect(merged.isKnown).toBe(true);
+  });
+
+  test("past the cap, each project still holds what it holds", () => {
+    const byProject: Array<{ projectId: string; count: number }> = [];
+    for (let index: number = 0; index < 60; index++) {
+      byProject.push({ projectId: `p${index}`, count: 100 - index });
+    }
+    const merged: OpenStackBlastRadius = mergeOpenStackBlastRadii([
+      buildOpenStackBlastRadius({
+        counts: [{ count: "instanceCount", byProject }],
+        includeEveryProject: true,
+      }),
+    ]);
+
+    expect(merged.projects).toHaveLength(OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT);
+    expect(merged.everyProject).toHaveLength(60);
+    expect(merged.projectCount).toBe(60);
+  });
+
+  test("known only when every part's reach is", () => {
+    expect(
+      mergeOpenStackBlastRadii([
+        getEmptyOpenStackBlastRadius(true),
+        getEmptyOpenStackBlastRadius(false),
+      ]).isKnown,
+    ).toBe(false);
+  });
+});
+
+describe("what an incident's description keeps from a status page", () => {
+  test("everything from the heading on is for the team", () => {
+    const description: string = `A compute host stopped.\n\n${OPENSTACK_REACH_HEADING}\n\n**What this affects:** 3 instances in 1 project.\n\n- ou-payments: 3 instances`;
+
+    expect(removeOpenStackReachFromDescription(description)).toBe(
+      "A compute host stopped.",
+    );
+  });
+
+  test.each<[string, string | null | undefined, string]>([
+    ["nothing to cut", "A compute host stopped.", "A compute host stopped."],
+    ["no description", undefined, ""],
+    ["a null description", null, ""],
+    [
+      "only what the heading holds",
+      `${OPENSTACK_REACH_HEADING}\n\n- ou-payments`,
+      "",
+    ],
+    [
+      "an edit above the heading stays",
+      `Edited by a person.\n\n${OPENSTACK_REACH_HEADING}\n\nx`,
+      "Edited by a person.",
+    ],
+    [
+      "an edit below the heading does not",
+      `Above.\n\n${OPENSTACK_REACH_HEADING}\n\nx\n\nBelow, by a person.`,
+      "Above.",
+    ],
+  ])(
+    "%s",
+    (
+      _name: string,
+      description: string | null | undefined,
+      expected: string,
+    ) => {
+      expect(removeOpenStackReachFromDescription(description)).toBe(expected);
+    },
+  );
+
+  test("a description of megabytes on one line is cut without a quantifier", () => {
+    const long: string = "x".repeat(4 * 1024 * 1024);
+
+    expect(
+      removeOpenStackReachFromDescription(
+        `${long}\n\n${OPENSTACK_REACH_HEADING}\n\nsecret`,
+      ),
+    ).toBe(long);
   });
 });

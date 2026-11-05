@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import OpenStackProbeMetrics from "Common/Server/Utils/OpenStack/OpenStackProbeMetrics";
 import {
   OpenStackResourceBufferEntry,
@@ -8,9 +10,17 @@ import {
 } from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { OPENSTACK_CLOUDKITTY_MOST_PAGES } from "Common/Types/OpenStack/OpenStackCloudKitty";
+import { readOpenStackPriceList } from "Common/Types/OpenStack/OpenStackPriceList";
 import { OpenStackCollectionReport } from "Common/Types/OpenStack/OpenStackProbeCollection";
+import { getEmptyOpenStackUsageQuantities } from "Common/Types/OpenStack/OpenStackProjectUsage";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
-import { readOpenStackRatedByPeriod } from "Common/Types/OpenStack/OpenStackSpendSnapshot";
+import {
+  OpenStackCostSource,
+  OpenStackProjectCost,
+  getOpenStackProjectCost,
+  readOpenStackRatedByPeriod,
+} from "Common/Types/OpenStack/OpenStackSpendSnapshot";
+import { judgeOpenStackApiAnswer } from "../../../Utils/OpenStack/Checks/OpenStackApiCheck";
 import OpenStackCollector from "../../../Utils/OpenStack/OpenStackCollector";
 import {
   OpenStackHttpRequest,
@@ -24,15 +34,19 @@ import {
   createCollectorHarness,
   datapointsOf,
 } from "./Helpers/CollectorHarness";
-import { RECORDED_AUTH_URL, RECORDED_HOST } from "./Helpers/RecordedCloud";
+import {
+  FIXTURES_ROOT,
+  RECORDED_AUTH_URL,
+  RECORDED_HOST,
+} from "./Helpers/RecordedCloud";
 
 /*
- * HAND-CHECKED AGAINST CLOUDKITTY'S API REFERENCE.
+ * MOSTLY HAND-CHECKED AGAINST CLOUDKITTY'S API REFERENCE.
  *
- * No recording holds a real CloudKitty, so every answer here is written to what its docs say its v2
- * summary and v1 report answer. The collector and the scan are the real ones, and the requests are
- * counted exactly, because that doesn't depend on the machine. When a real CloudKitty is read, its
- * answers belong beside these.
+ * Paging, regions and bad answers can't be had from one small cloud, so those answers are written to
+ * what its docs say its v2 summary and v1 report answer. The collector and the scan are the real ones,
+ * and the requests are counted exactly, because that doesn't depend on the machine. What a real
+ * CloudKitty answered is replayed at the end of this file.
  */
 
 const RATING_URL: string = `${RECORDED_HOST}/rating`;
@@ -41,7 +55,9 @@ const LAST_MONTH: string = "2026-10";
 
 interface Answer {
   status: number;
-  body: unknown;
+  body?: unknown;
+  // What a real one said, as it said it.
+  raw?: string;
 }
 
 function catalogEntry(type: string, url: string): JSONObject {
@@ -165,7 +181,9 @@ function cloudOf(data: {
       return {
         status: answered?.status ?? 404,
         headers: { date: "Wed, 04 Nov 2026 11:50:00 GMT" },
-        body: JSON.stringify(answered?.body ?? { message: "Not found." }),
+        body:
+          answered?.raw ??
+          JSON.stringify(answered?.body ?? { message: "Not found." }),
       };
     },
   };
@@ -609,5 +627,262 @@ describe("a cloud that runs it", () => {
     const { points } = await collect({ cloud });
 
     expect(named(points, "openstack_cloudkitty_rated")).toEqual([]);
+  });
+});
+
+/*
+ * WHAT A REAL CLOUDKITTY ANSWERED, as it answered it: Fixtures/OpenStack/services-cloudkitty, rig run
+ * 42010321592. CloudKitty on stable/2026.1 with InfluxDB behind it, rating what Ceilometer wrote to
+ * Gnocchi every five minutes, with an instance in each of two projects. Each scene's how.txt says how
+ * it got there. In `rated`, each project had three periods rated, the last of them at the rule's 0.5.
+ */
+const REAL_CLOUDKITTY: string = path.join(FIXTURES_ROOT, "services-cloudkitty");
+const OU_PAYMENTS: string = "8c3413dee28c4da890948b17f234333d";
+const OU_RESEARCH: string = "a1006e2604d14ae08e92e21bb431d5e7";
+
+function recorded(scene: string, call: string): Answer {
+  const folder: string = path.join(REAL_CLOUDKITTY, scene);
+  const status: string | undefined = fs
+    .readFileSync(path.join(folder, "api-status.txt"), "utf8")
+    .split("\n")
+    .find((line: string): boolean => {
+      return line.split(" ")[1] === call;
+    })
+    ?.split(" ")[0];
+
+  return {
+    status: Number(status),
+    raw: fs.readFileSync(path.join(folder, "api", `${call}.json`), "utf8"),
+  };
+}
+
+// Each route as this scene recorded it. A project's member was recorded for this month.
+function aRealOne(
+  scene: string,
+  data: { withoutV2?: boolean; asOuPayments?: boolean } = {},
+): (url: URL) => Answer | undefined {
+  return (url: URL): Answer | undefined => {
+    const isThisMonth: boolean = (url.searchParams.get("begin") || "").startsWith(
+      THIS_MONTH,
+    );
+    const month: string = isThisMonth ? "this-month" : "last-month";
+    const asked: string = `${month}${data.asOuPayments && isThisMonth ? "-ou-payments" : ""}`;
+
+    switch (url.pathname) {
+      case "/rating/":
+        return recorded(scene, "cloudkitty-versions");
+      case "/rating/v2/summary":
+        return data.withoutV2
+          ? undefined
+          : recorded(scene, `cloudkitty-summary-${asked}`);
+      case "/rating/v1/report/summary":
+        return recorded(scene, `cloudkitty-report-${asked}`);
+      default:
+        return undefined;
+    }
+  };
+}
+
+function figuresOf(
+  points: Array<ReportedDatapoint>,
+): Array<[string | undefined, string | undefined, number]> {
+  return named(points, "openstack_cloudkitty_rated")
+    .map(
+      (
+        point: ReportedDatapoint,
+      ): [string | undefined, string | undefined, number] => {
+        return [
+          point.labels["project_id"],
+          point.labels["period"],
+          point.value,
+        ];
+      },
+    )
+    .sort();
+}
+
+function warningsOf(report: OpenStackCollectionReport): string {
+  return JSON.stringify(report.summary?.warnings || []).toLowerCase();
+}
+
+describe("what a real CloudKitty answered", () => {
+  test("rated: it was asked what the recording asked, and each project's figure reaches its row", async () => {
+    const cloud: ReturnType<typeof cloudOf> = cloudOf({
+      answer: aRealOne("rated"),
+    });
+    const { points, report } = await collect({ cloud });
+
+    expect(cloud.ratingRequests).toEqual([
+      "/rating/",
+      "/rating/v2/summary?begin=2026-11-01T00%3A00%3A00&end=2026-12-01T00%3A00%3A00&groupby=project_id&limit=1000&offset=0",
+      "/rating/v2/summary?begin=2026-10-01T00%3A00%3A00&end=2026-11-01T00%3A00%3A00&groupby=project_id&limit=1000&offset=0",
+    ]);
+    expect(named(points, "openstack_cloudkitty_up")[0]?.value).toBe(1);
+    expect(figuresOf(points)).toEqual([
+      [OU_PAYMENTS, THIS_MONTH, 0.5],
+      [OU_RESEARCH, THIS_MONTH, 0.5],
+    ]);
+
+    const payments: OpenStackResourceBufferEntry = rowsOf(report).find(
+      (row: OpenStackResourceBufferEntry): boolean => {
+        return (
+          row.kind === OpenStackResourceKind.Project &&
+          row.externalId === OU_PAYMENTS
+        );
+      },
+    )!;
+
+    expect(payments.facts["rated:RegionOne"]).toEqual({
+      [THIS_MONTH]: {
+        total: 0.5,
+        readAt: new Date(COLLECTED_AT_MS).toISOString(),
+      },
+    });
+  });
+
+  test("rated: its figure is preferred to the prices, and with no rule yet the prices stand", async () => {
+    const priceList: ReturnType<typeof readOpenStackPriceList> =
+      readOpenStackPriceList({ vcpuHour: 1 });
+    const costIn: (scene: string) => Promise<OpenStackProjectCost> = async (
+      scene: string,
+    ): Promise<OpenStackProjectCost> => {
+      const { report } = await collect({
+        cloud: cloudOf({ answer: aRealOne(scene) }),
+      });
+      const row: OpenStackResourceBufferEntry | undefined = rowsOf(report).find(
+        (entry: OpenStackResourceBufferEntry): boolean => {
+          return (
+            entry.kind === OpenStackResourceKind.Project &&
+            entry.externalId === OU_PAYMENTS
+          );
+        },
+      );
+
+      return getOpenStackProjectCost({
+        quantities: getEmptyOpenStackUsageQuantities(),
+        priceList,
+        rated: readOpenStackRatedByPeriod(row?.facts)[THIS_MONTH],
+      });
+    };
+
+    expect(await costIn("rated")).toEqual({
+      amount: 0.5,
+      source: OpenStackCostSource.CloudKitty,
+      unpricedLineCount: 0,
+    });
+    expect((await costIn("no-rule-yet")).source).toBe(
+      OpenStackCostSource.PriceList,
+    );
+  });
+
+  test("no rule yet: it rated each project 0.0, and that isn't a figure", async () => {
+    const cloud: ReturnType<typeof cloudOf> = cloudOf({
+      answer: aRealOne("no-rule-yet"),
+    });
+    const { points, report } = await collect({ cloud });
+
+    expect(cloud.ratingRequests.length).toBe(3);
+    expect(named(points, "openstack_cloudkitty_up")[0]?.value).toBe(1);
+    expect(figuresOf(points)).toEqual([]);
+    expect(warningsOf(report)).not.toContain("cloudkitty");
+    expect(warningsOf(report)).not.toContain("rating");
+  });
+
+  test("no rating data: no rows and no columns is a 200 that needs no second page and no v1", async () => {
+    const answer: Answer = recorded(
+      "no-rating-data",
+      "cloudkitty-summary-this-month",
+    );
+
+    expect(answer.status).toBe(200);
+    expect(JSON.parse(answer.raw as string)).toEqual({
+      total: 0,
+      columns: [],
+      results: [],
+      format: "table",
+    });
+
+    const cloud: ReturnType<typeof cloudOf> = cloudOf({
+      answer: aRealOne("no-rating-data"),
+    });
+    const { points, report } = await collect({ cloud });
+
+    expect(cloud.ratingRequests.length).toBe(3);
+    expect(named(points, "openstack_cloudkitty_up")[0]?.value).toBe(1);
+    expect(figuresOf(points)).toEqual([]);
+    expect(warningsOf(report)).not.toContain("cloudkitty");
+    expect(warningsOf(report)).not.toContain("rating");
+  });
+
+  test("a project's member reads its own project and no other", async () => {
+    const { points } = await collect({
+      cloud: cloudOf({ answer: aRealOne("rated", { asOuPayments: true }) }),
+    });
+
+    expect(figuresOf(points)).toEqual([[OU_PAYMENTS, THIS_MONTH, 0.5]]);
+  });
+
+  test("v1's report reads the same figures, in text, with ALL as the kind and not the project", async () => {
+    const cloud: ReturnType<typeof cloudOf> = cloudOf({
+      answer: aRealOne("rated", { withoutV2: true }),
+    });
+    const { points } = await collect({ cloud });
+
+    expect(cloud.ratingRequests).toContain(
+      "/rating/v1/report/summary?begin=2026-11-01T00%3A00%3A00&end=2026-12-01T00%3A00%3A00&groupby=tenant_id&all_tenants=true",
+    );
+    expect(figuresOf(points)).toEqual([
+      [OU_PAYMENTS, THIS_MONTH, 0.5],
+      [OU_RESEARCH, THIS_MONTH, 0.5],
+    ]);
+
+    for (const scene of ["no-rule-yet", "no-rating-data"]) {
+      const empty: Awaited<ReturnType<typeof collect>> = await collect({
+        cloud: cloudOf({ answer: aRealOne(scene, { withoutV2: true }) }),
+      });
+
+      expect(figuresOf(empty.points)).toEqual([]);
+    }
+  });
+
+  test("v1's report refuses a project's member across projects: no news, and its API reads up", async () => {
+    expect(
+      recorded("rated", "cloudkitty-report-this-month-ou-payments").status,
+    ).toBe(403);
+
+    const { points, report } = await collect({
+      cloud: cloudOf({
+        answer: aRealOne("rated", { withoutV2: true, asOuPayments: true }),
+      }),
+    });
+
+    expect(named(points, "openstack_cloudkitty_up")[0]?.value).toBe(1);
+    expect(figuresOf(points)).toEqual([]);
+    expect(warningsOf(report)).not.toContain("cloudkitty");
+    expect(warningsOf(report)).not.toContain("rating");
+  });
+
+  test("its API stopped: Apache's 503 reads down and takes nothing from anything else", async () => {
+    const { points } = await collect({
+      cloud: cloudOf({ answer: aRealOne("api-down") }),
+    });
+
+    expect(named(points, "openstack_cloudkitty_up")[0]?.value).toBe(0);
+    expect(named(points, "openstack_identity_up")[0]?.value).toBe(1);
+    expect(figuresOf(points)).toEqual([]);
+  });
+
+  test("the API check's read answered while it ran, and failed once its API stopped", () => {
+    const judged: (scene: string) => string = (scene: string): string => {
+      return judgeOpenStackApiAnswer({
+        status: recorded(scene, "cloudkitty-info-metrics").status,
+        isKnownRead: true,
+        hasAccessRules: true,
+      });
+    };
+
+    expect(judged("no-rating-data")).toBe("Answered");
+    expect(judged("rated")).toBe("Answered");
+    expect(judged("api-down")).toBe("Failing");
   });
 });

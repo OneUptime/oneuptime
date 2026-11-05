@@ -9,6 +9,7 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [What it costs your cloud](#what-it-costs-your-cloud): What each setting reads, and how to change it.
 - [Capacity](#capacity): How many more of each flavor fit, and how many days until each thing is full.
 - [Spend](#spend): Who's using what, what that comes to at your prices or as CloudKitty rated it, and what could be reclaimed.
+- [Status pages and telling projects](#status-pages-and-telling-projects): A page per region in one step, and telling only the projects a failure reaches.
 - [Service logs](#service-logs): Parsed, with a request followed across services.
 - [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
 - [Who did what](#who-did-what): Audit trails into Security Events.
@@ -182,6 +183,7 @@ service_type = compute
 | `barbican.conf` | `key-manager` |
 | `trove.conf` | `database` |
 | `gnocchi.conf` | `metric` |
+| `cloudkitty.conf` | `rating` |
 | `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
 
 Only the services your cloud runs need a line.
@@ -337,6 +339,18 @@ Without Docker, ask `systemctl status oneuptime-openstack-agent oneuptime-openst
 
 Open **Products → Infrastructure → OpenStack**. The cloud appears under its `OPENSTACK_CLOUD_NAME` after its first collection, within a few minutes. Compute, network, volume and Placement are read every 2 minutes, identity and images every 5.
 :::
+
+The cloud's **Overview** says whether its data is reaching OneUptime, what needs attention first, and how each service is doing:
+
+![An OpenStack cloud's Overview: whether its data is connected, the counts of what it reports, the failed instance and volume that need attention, and its APIs, hypervisors, vCPUs, memory and storage](/docs/static/images/OpenStackCloudOverview.png)
+
+**Hypervisors** says what Nova and Placement have promised on each compute host:
+
+![The Hypervisors page listing a compute host with its state, the vCPUs, memory and disk allocated on it, its aggregates and its region](/docs/static/images/OpenStackHypervisors.png)
+
+**Instances** lists every instance with its status in Nova's own words, its project, flavor and hypervisor:
+
+![The Instances page listing five instances with their status, project, flavor, hypervisor and region, one of them in ERROR and one SHUTOFF](/docs/static/images/OpenStackInstances.png)
 
 ## Environment variables
 
@@ -576,12 +590,12 @@ A price of zero means no price, not a free cloud. What has no price is said to h
 If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it rated replaces the calculation, project by project, and the page says which it used. A probe asks once an hour, for this month and last, and it's asked of `GET /v2/summary`, or `GET /v1/report/summary` on a CloudKitty too old for it. That's at most two requests per 1,000 projects an hour, plus a request for its version each time it's read.
 
 - **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
-- **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **What it sees is what the credential may see.** CloudKitty's own policy shows an admin's credential every project, with access rules or without, and anything less only its own. The projects it doesn't rate go on being worked out from your prices.
 - **A CloudKitty per region adds up.** Each one is read in its own time, and a project's figure is what they rated between them. One CloudKitty the catalog lists for several regions is asked once.
 - **Its figures are the one part of this that's telemetry.** They reach OneUptime as `openstack_cloudkitty_rated`, one datapoint per project and month, once an hour: 20,000 an hour at 10,000 projects, which is next to nothing beside the rest of a cloud that size.
 - **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
 - **If it stops answering,** what each project was rated stays where it was, and the page says when it was last read. **Rating API Down** alerts on that.
-- **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
+- **A real CloudKitty has answered this,** on `stable/2026.1`, with InfluxDB behind it, rating what Ceilometer wrote to Gnocchi. That's the only setup it has been read on. With no rule enabled it rates each project `0`, and with nothing rated yet it answers with no rows. Either way, those projects go on being worked out from your prices.
 
 ### Budgets
 
@@ -711,6 +725,10 @@ A cloud's **Topology** page draws it region by region: availability zones, hyper
 
 Past 5,000 parts, the map reads what has failed and what that takes with it rather than everything, opens on the hosts that failed and says what it left out. **Needs attention** narrows it to all of the rest. [Infrastructure](/docs/telemetry/topology) draws the cloud beside your hosts and clusters.
 
+With `nova-compute` stopped on a host, the host turns red with its instances beneath it, and the page counts the open incident and alert:
+
+![The Topology page with nova-compute stopped: the host is red and reads Down, its instances are beneath it needing attention, and one incident and one alert are open](/docs/static/images/OpenStackTopologyComputeDown.png)
+
 A part's blast radius is what it takes with it, by count and by project:
 
 | When this fails | It reaches |
@@ -723,6 +741,61 @@ A part's blast radius is what it takes with it, by count and by project:
 A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
 
 The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says both. The map then joins a volume to its pool, when Cinder treats its credential as an admin, and a pool's blast radius counts its volumes and the instances they are attached to. It also joins an instance to each network it has an address on. Nova names those networks only by name, and Neutron allows two with one name, so the map looks for one in the instance's project, then one shared with it, then any by that name, and draws no join when two are equally likely. What is still unknown stays in the map's notice.
+
+## Status pages and telling projects
+
+Many clouds are run for other people. When a host fails, they want to tell exactly the projects it affects, and to publish how each region is doing. Everything here is built from what OneUptime already has, and each thing it makes stays editable where it always is. Open a cloud's **Status Pages** page to start.
+
+### A status page in one step
+
+**Create Status Page** first shows what it will create, monitor by monitor, and creates nothing until you say so. Each region is a group, and each service the region runs is a row: Compute, Networking, Block Storage, Images, Identity and Load Balancing, each backed by the monitors that say whether it works. A service your cloud doesn't run has no row.
+
+A monitor that already watches a row is used as it is, so one failure still opens one incident. On a cloud with several regions, a monitor you made for the whole cloud can't be one region's row, because a failure elsewhere would turn it red. That row gets a monitor of its own, which only says how the row reads, and yours goes on opening the incident.
+
+The page is private until you say otherwise. It is an ordinary status page: its groups, rows and who can read it are all on its own pages.
+
+**Create Objectives** makes one objective per row, in [Service Level Objectives](/docs/slo/introduction): 99.9% of the last 30 days, from the uptime of its monitors and, where a [check from outside](#check-the-cloud-from-outside) is on, that check's monitor too. Run it again and it leaves the ones it already made alone.
+
+### Who an incident names
+
+An incident on a part of the cloud takes its [blast radius](#topology-and-blast-radius) and, through [owner rules on a project](#send-a-projects-alerts-to-its-team), adds the teams that own the affected projects. A failed hypervisor says "42 instances in 7 projects", and names them.
+
+All of that sits under the line **In this cloud** in the incident's description, and it is only ever for your team. A status page and its subscribers read the description down to that line, so one customer's name never reaches another's page.
+
+### Telling a project
+
+A **project notice** is one email address or webhook that hears when a part affecting that project has an incident or planned maintenance. Add one on the cloud's **Status Pages** page or on a project's own page.
+
+A notice starts off. Turning it on is always from its preview, which shows who it tells, the project it is about and what a failure would say. Change the address and it is off again, because that is no longer who you saw.
+
+What is told is about that project only: what it holds on the part, in our words. A notice never says a host's name, which OpenStack itself keeps from a project, and never says anything of another project. Every word from your cloud is held to be text, so a project called something odd does nothing in a mail client or to whatever reads a webhook, and an email loads nothing from outside.
+
+| Row | Who is told |
+| --- | --- |
+| Three projects on a host, one turned on | That one, with what it holds there |
+| A project with notices off | Nobody, and the incident's feed says so |
+| A part that reaches 500 projects | Each one turned on, past the 50 an incident's description names |
+| An instance with no project | Nobody. It counts in the total, and the preview says so |
+| A project that was deleted, with an instance left behind | Nobody, however its notice is set |
+| A second incident on a part already told about | Nobody, until both are over. Then it is told once that it is over |
+| A notice turned off in the minute before it went out | Nobody, and **What Was Sent** says why |
+| A host someone disabled, with no maintenance event | Nobody. It pages your team, and what a project runs there carries on |
+
+Each notice goes out at most once. If a worker stops part way through sending, that notice is not sent again, and **What Was Sent** says it may or may not have gone. A webhook is a POST of JSON with an `id` that doesn't change, and only an answer saying it wasn't taken (`429` or a `5xx`) is tried again.
+
+### A project's own private page
+
+**Create Private Page**, on a project's page, makes a private status page for the people who use that project: a row for each service it uses, in each region it is in. A row goes red only when a failure reaches that project, and an announcement says what happened, in the same words a notice uses.
+
+Nobody can read it until you add them under its **Private Users**, and a session on one project's page reads no other's. The page lists only monitors of its own, which no incident is ever on, so nothing about another project can be read through it, on the page or through its API.
+
+### Planned work on a host or a zone
+
+**Schedule Maintenance**, on a hypervisor's or availability zone's page, makes a maintenance event on just that. It shows who it would tell first. When it is made, its feed names the projects it reaches, and whoever asked to hear about those projects is told. While it is on, what that host or the hosts in that zone say stays quiet, including on a status page's row, and every other part goes on paging.
+
+An event linked to the cloud with no hosts or zones named is about the whole cloud.
+
+`openstack compute service set --disable` is expected during an event on that host, and the hypervisor's page says so. Outside one, nobody has said why, so the **Compute Service Disabled** template pages about it. Add that monitor if a host disabled by hand is something you want to hear about. It pages you and tells no project, because what a project already runs there carries on. A `nova-compute` that disabled itself because libvirt went is one failure and one incident: **libvirt Service Down** says it, and this stays quiet while that is open.
 
 ## Joined up with the rest of OneUptime
 
@@ -1233,6 +1306,8 @@ OpenStack-Helm's Nova chart sets both to 1 already and scales by pods.
 
 ### Trace a request
 
+![A cloud's Traces page: when the last span arrived, which services have been in a trace and which have not, and the commands that sign a request on this cloud](/docs/static/images/OpenStackTraces.png)
+
 **Trace a request**, on your cloud's **Traces** page, has the commands for this cloud. They ask for your key without echoing it, which keeps it out of your shell's history and the machine's process list:
 
 ```bash
@@ -1493,7 +1568,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID=...
 ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 ```
 
-Where each way of deploying a cloud keeps those two settings. The first row is the one OneUptime's test rig follows on a real DevStack; the rest say what each tool's own documentation says, and have not been followed on a real deployment:
+Where each way of deploying a cloud keeps those two settings. Only the first row has been run, on a real DevStack, where this credential re-enabled a real `nova-compute` and Nova took the evacuation of a dead host's instances, and everything else it tried was refused: reads and other services with a 401, and other actions on a server with a 403. The rest say what each tool's own documentation says, and have not been followed on a real deployment:
 
 | Deployment | `service_type` | The policy file |
 | --- | --- | --- |

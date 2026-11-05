@@ -1,0 +1,562 @@
+{
+"resourceMetrics": [
+{
+"resource": {
+"attributes": [
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.161.3"
+}
+},
+{
+"key": "openstack.cloud.name",
+"value": {
+"stringValue": "devstack"
+}
+},
+{
+"key": "server.port",
+"value": {
+"stringValue": "9180"
+}
+},
+{
+"key": "url.scheme",
+"value": {
+"stringValue": "http"
+}
+}
+]
+},
+"scopeMetrics": [
+{
+"scope": {
+"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+"version": "0.161.0"
+},
+"metrics": [
+{
+"name": "openstack_gnocchi_status_measures_to_process",
+"description": "status_measures_to_process",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "openstack_gnocchi_status_metric_having_measures_to_process",
+"description": "status_metric_having_measures_to_process",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "up",
+"description": "The scraping was successful",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_duration_seconds",
+"description": "Duration of the scrape",
+"unit": "s",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 0.034949579
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_scraped",
+"description": "The number of samples the target exposed",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 4
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_post_metric_relabeling",
+"description": "The number of samples remaining after metric relabeling was applied",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 4
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_series_added",
+"description": "The approximate number of new series in this scrape",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 4
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "openstack_gnocchi_status_metricd_processors",
+"description": "status_metricd_processors",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 4
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "openstack_gnocchi_up",
+"description": "up",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "gnocchi"
+}
+}
+],
+"timeUnixNano": "1793875265120000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+}
+]
+}
+]
+},
+{
+"resource": {
+"attributes": [
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.161.3"
+}
+},
+{
+"key": "openstack.cloud.name",
+"value": {
+"stringValue": "devstack"
+}
+},
+{
+"key": "server.port",
+"value": {
+"stringValue": "9180"
+}
+},
+{
+"key": "url.scheme",
+"value": {
+"stringValue": "http"
+}
+}
+]
+},
+"scopeMetrics": [
+{
+"scope": {
+"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+"version": "0.161.0"
+},
+"metrics": [
+{
+"name": "scrape_series_added",
+"description": "The approximate number of new series in this scrape",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793875002773000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "up",
+"description": "The scraping was successful",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793875002773000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_duration_seconds",
+"description": "Duration of the scrape",
+"unit": "s",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793875002773000000",
+"asDouble": 0.020231498
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_scraped",
+"description": "The number of samples the target exposed",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793875002773000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_post_metric_relabeling",
+"description": "The number of samples remaining after metric relabeling was applied",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "load-balancer"
+}
+}
+],
+"timeUnixNano": "1793875002773000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+}
+]
+}
+]
+}
+]
+}

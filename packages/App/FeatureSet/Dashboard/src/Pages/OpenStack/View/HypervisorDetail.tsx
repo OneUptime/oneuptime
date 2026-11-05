@@ -32,6 +32,9 @@ import {
   formatOpenStackCount,
 } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
+import OpenStackPlannedWorkCard from "../../../Components/OpenStack/Part/OpenStackPlannedWorkCard";
+import { OpenStackMaintenancePartKind } from "Common/Types/OpenStack/OpenStackMaintenancePart";
+import { isOpenStackAdminDisabled } from "Common/Types/OpenStack/OpenStackHealthRules";
 import OpenStackHostThroughput from "../../../Components/OpenStack/Part/OpenStackHostThroughput";
 import OpenStackHypervisorUsage from "../../../Components/OpenStack/Part/OpenStackHypervisorUsage";
 import {
@@ -492,6 +495,17 @@ const HypervisorOverview: FunctionComponent<{
         description="The instances on this hypervisor, and the projects they belong to. If it fails, these fail with it."
         refreshToken={part.refreshToken}
       />
+
+      <div className="mb-6">
+        <OpenStackPlannedWorkCard
+          testId="openstack-hypervisor-planned-work"
+          openStackCloudId={part.openStackCloudId}
+          kind={OpenStackMaintenancePartKind.Hypervisor}
+          name={hypervisorName}
+          regionName={row.regionName || null}
+          isDisabled={isOpenStackAdminDisabled(row.adminState)}
+        />
+      </div>
 
       <OpenStackPartAlerts
         testId="openstack-hypervisor-alerts"

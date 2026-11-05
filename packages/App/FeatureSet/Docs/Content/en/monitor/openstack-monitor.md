@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 119 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Octavia, Trove, Designate, Gnocchi or Swift to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 120 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Octavia, Trove, Designate, Gnocchi or Swift to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -120,6 +120,7 @@ Every template reads at least three collections of what it watches, and fires on
 | Image API Down | Availability | Critical | `openstack_glance_up` and `up` for `image`, Min per region, **past 15 minutes** | Every call failed, or the exporter did not answer | Both read 1 |
 | Placement API Down | Availability | Critical | `openstack_placement_up` and `up` for `placement`, Min per region, **past 10 minutes** | Every call failed, or the exporter did not answer | Both read 1 |
 | Compute Service Down | Control Plane | Critical | `openstack_nova_agent_state` filtered to `service = nova-compute` and `adminState = enabled`, Min per host, **past 10 minutes** | Below 1: an enabled nova-compute is down. One someone disabled never fires | Up, or disabled |
+| Compute Service Disabled | Control Plane | Warning | `openstack_nova_agent_state` filtered to `service = nova-compute` and `adminState = disabled`, a Count per host, **past 10 minutes** | Above 0: a `nova-compute` was disabled, and no maintenance event in progress covers its host, its availability zone or the cloud. One that disabled itself because libvirt went (its reason starts `AUTO:`) stays quiet while libvirt Service Down is open. Projects are not told of it | It is enabled again, or an event covers it |
 | Scheduler or Conductor Down | Control Plane | Warning | `openstack_nova_agent_state` filtered to `nova-scheduler` or `nova-conductor` and `adminState = enabled`, Min per host and binary, **past 10 minutes** | Below 1. The others carry on while any is left | Up, or disabled |
 | Every Scheduler or Conductor Down | Control Plane | Critical | The same, Max per region and binary, **past 10 minutes** | Below 1: none is alive, so nothing new can boot | One is up |
 | Network Agent Down | Control Plane | Critical | `openstack_neutron_agent_state` filtered to `adminState = up`, Min per host and binary, **past 10 minutes** | Below 1: an agent set up is not alive. One someone set down never fires | Alive, or set down |
@@ -211,6 +212,16 @@ Every template reads at least three collections of what it watches, and fires on
 - **When an API is down, its own series go too**, so that service's other templates resolve, and fire again a window after it is back if the fault is still there. If every API reads down at once, look at the exporter first.
 - **A cloud that has no such service stays quiet.** The exporter answers with nothing for a service that is not in the cloud's catalog, and **Network**, **Block Storage**, **Image** and **Placement API Down** do not read that as an outage. **Identity** and **Compute API Down** do, because that is also how the exporter reports Keystone or Nova's API stopped outright, and every cloud has them.
 
+### When one fires
+
+With `nova-compute` stopped, its row on the cloud's **Services** page goes down within minutes:
+
+![The Services page with nova-compute down on its host for 10 minutes, and every other service and API up](/docs/static/images/OpenStackServicesComputeDown.png)
+
+Once that has lasted the template's whole window, **Compute Service Down** opens one incident, which names the host and resolves on its own once the service is back:
+
+![An incident from the Compute Service Down template, naming the host, service and region, saying what happened, with the monitor and the cloud under Affected Resources](/docs/static/images/OpenStackIncidentComputeDown.png)
+
 ### What the services say
 
 Seven more templates read a cloud's logs rather than its metrics, so they are Logs monitors, and they need the agent's [logs profile](/docs/telemetry/openstack#service-logs). Each reads only this cloud's logs, counts what it is looking for, and resolves on its own once the count falls.
@@ -260,7 +271,7 @@ These read what [the agent reads under the cloud](/docs/telemetry/openstack#what
 | Open vSwitch Service Down | Critical | `ovs_memory_rules_total`, **past 5 minutes** | Gone from a machine that had it, with the exporter answering | Machine |
 | Exporter Lost Open vSwitch's Database | Warning | `ovs_build_info`, **past 10 minutes** | Gone from a machine that had it, with Open vSwitch answering. Restart the exporter | Machine |
 | Network Exporter Target Down | Warning | `up`, **past 10 minutes** | openstack-network-exporter does not answer | Machine |
-| libvirt Service Down | Critical | `libvirt_up`, **past 5 minutes** | Below 1. nova-compute disables itself, so Compute Service Down stays quiet | Machine |
+| libvirt Service Down | Critical | `libvirt_up`, **past 5 minutes** | Below 1. nova-compute disables itself, so Compute Service Down and Compute Service Disabled stay quiet | Machine |
 | libvirt Exporter Target Down | Warning | `up`, **past 10 minutes** | prometheus-libvirt-exporter does not answer | Machine |
 
 **One failure opens one incident.** A stopped RabbitMQ takes `nova-compute` and, on ML2/OVS, Neutron's agents with it, each with a template of its own. So whatever goes with something waits longer than it does, and its monitor is linked to the one it waits for: a monitor dependency, which is made for you when both come from these templates, whichever you create first. While RabbitMQ Down is open in a region, what depends on it opens nothing there, and reads as down on its own page. It goes on waiting for 10 minutes after RabbitMQ Down resolves, because the agent reads those workers every 2 to 5 minutes, and a worker still down after that has something else wrong.
