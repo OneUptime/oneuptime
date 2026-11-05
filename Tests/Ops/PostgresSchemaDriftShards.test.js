@@ -131,7 +131,8 @@ describe("Postgres Schema Drift's shards", () => {
   test("the PostgreSQL client tools are there for the backup suite", () => {
     const toolsAt = suites.findIndex((step) => {
       return (
-        /pg_dump/.test(String(step.run || "")) && !step["working-directory"]
+        /postgresql-client-16/.test(String(step.run || "")) &&
+        !step["working-directory"]
       );
     });
     const backup = suites.find((step) => {
