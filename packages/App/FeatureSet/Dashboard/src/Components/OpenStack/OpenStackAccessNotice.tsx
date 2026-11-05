@@ -119,11 +119,8 @@ const OpenStackAccessNotice: FunctionComponent<ComponentProps> = (
             className="mt-3 inline-flex text-sm font-medium text-amber-900 underline hover:text-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           >
             {props.settingsRouteOfProbeCloud
-              ? translator.translateText("Open Data Collection") ||
-                "Open Data Collection"
-              : translator.translateText(
-                  "See which credential can read what",
-                ) || "See which credential can read what"}
+              ? translator.translateText("Open Data Collection")
+              : translator.translateText("See which credential can read what")}
           </Link>
         </div>
       </div>

@@ -943,7 +943,10 @@ describe("which rows count as a whole region's API", () => {
     ],
     [
       "a service this product does not know",
-      { kind: OpenStackResourceKind.Api, name: "object-store" },
+      {
+        kind: OpenStackResourceKind.Api,
+        name: "a-service-nobody-has-heard-of",
+      },
       null,
     ],
     ["no name", { kind: OpenStackResourceKind.Api }, null],
