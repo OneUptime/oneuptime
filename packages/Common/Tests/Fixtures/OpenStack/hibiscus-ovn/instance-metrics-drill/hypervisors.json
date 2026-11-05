@@ -1,0 +1,9 @@
+[
+  {
+    "ID": "b4a5ac9a-285a-4927-b41c-03722b008c5b",
+    "Hypervisor Hostname": "compute-01.example.internal",
+    "Hypervisor Type": "QEMU",
+    "Host IP": "10.1.0.76",
+    "State": "up"
+  }
+]

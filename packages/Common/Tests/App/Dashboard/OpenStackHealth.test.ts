@@ -14,6 +14,7 @@ import {
   OPENSTACK_VOLUME_STUCK_MINUTES,
   getOpenStackShortHostName,
   isOpenStackServiceDown,
+  isOpenStackServiceForcedDown,
   isSameOpenStackHost,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
@@ -193,6 +194,111 @@ describe("a service", () => {
     expect(
       assess(service({ status: "down", adminState: "enabled" })).severity,
     ).toBe(CRITICAL);
+  });
+
+  describe("forced down by an operator", () => {
+    test("is read as down, as bad as any other down, and says it was an operator", () => {
+      const assessment: OpenStackAssessment = assess(
+        service({
+          status: "down",
+          adminState: "enabled",
+          facts: { forcedDown: true },
+        }),
+      );
+
+      expect(assessment.severity).toBe(CRITICAL);
+      expect(
+        assessment.reasons.map((reason: { text: string }): string => {
+          return reason.text;
+        }),
+      ).toEqual(["Down", "Forced down by an operator"]);
+    });
+
+    test("names what it takes with it first, and says it was an operator", () => {
+      const assessment: OpenStackAssessment = assessOpenStackService({
+        row: service({
+          status: "down",
+          adminState: "enabled",
+          facts: { forcedDown: true },
+        }),
+        now: NOW,
+        instanceCount: 3,
+      });
+
+      expect(assessment.severity).toBe(CRITICAL);
+      expect(
+        assessment.reasons.map((reason: { text: string }): string => {
+          return reason.text;
+        }),
+      ).toContain("Forced down by an operator");
+    });
+
+    test("a redundant one is a warning, as one of several down is", () => {
+      const assessment: OpenStackAssessment = assess(
+        service({
+          name: "nova-scheduler",
+          status: "down",
+          adminState: "enabled",
+          facts: { forcedDown: true },
+        }),
+      );
+
+      expect(assessment.severity).toBe(WARNING);
+      expect(reasonOf(assessment)).toBe("Down");
+      expect(assessment.reasons).toHaveLength(2);
+    });
+
+    test.each<[string, Partial<OpenStackResource>, JSONObject | undefined]>([
+      ["it says it isn't", { status: "down" }, { forcedDown: false }],
+      ["nothing says, as on the agent", { status: "down" }, { forcedDown: null }],
+      ["nothing has ever said", { status: "down" }, undefined],
+    ])(
+      "a stopped one reads plainly down when %s",
+      (
+        _name: string,
+        fields: Partial<OpenStackResource>,
+        facts: JSONObject | undefined,
+      ) => {
+        const assessment: OpenStackAssessment = assess(
+          service({ ...fields, adminState: "enabled", facts }),
+        );
+
+        expect(assessment.severity).toBe(CRITICAL);
+        expect(assessment.reasons).toHaveLength(1);
+        expect(reasonOf(assessment)).toBe("Down");
+      },
+    );
+
+    test("what is left of an old say-so on a worker that came back says nothing", () => {
+      expect(
+        isOpenStackServiceForcedDown({
+          status: "up",
+          facts: { forcedDown: true },
+        }),
+      ).toBe(false);
+      expect(
+        assess(
+          service({
+            status: "up",
+            adminState: "enabled",
+            facts: { forcedDown: true },
+          }),
+        ).severity,
+      ).toBeNull();
+    });
+
+    test("disabled wins: someone disabled it, and it reads as planned work", () => {
+      expect(
+        assess(
+          service({
+            status: "down",
+            adminState: "disabled",
+            stateChangedAt: ago(60),
+            facts: { forcedDown: true },
+          }),
+        ).severity,
+      ).toBeNull();
+    });
   });
 
   test.each(["disabled", "down"])(

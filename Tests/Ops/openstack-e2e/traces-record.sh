@@ -664,7 +664,7 @@ finish() {
   docker logs "$COLLECTOR_NAME" >"$TRACES_DIR/collector.log" 2>&1
   docker rm -f "$COLLECTOR_NAME" >/dev/null 2>&1
   sudo chown -R "$(id -u)" "$TRACES_DIR"
-  sudo journalctl --no-pager -o json --since "$STARTED UTC" -u 'devstack@*' \
+  sudo journalctl --no-pager --all -o json --since "$STARTED UTC" -u 'devstack@*' \
     | python3 -I "$CONFIGURE" journal-lines \
     | gzip -9 >"$TRACES_DIR/journal.jsonl.gz"
   python3 -I "$READ" summary "$TRACES_DIR"

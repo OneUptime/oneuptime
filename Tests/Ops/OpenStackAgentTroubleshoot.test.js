@@ -2128,6 +2128,152 @@ describe("an exporter in single-cloud mode", () => {
   });
 });
 
+/* --------------------------------------------- real usage per instance */
+
+describe("real usage per instance", () => {
+  const THERE = "[openstack-exporter:9180]";
+
+  // What a real exporter says, as it was recorded, for the lines this reads.
+  const LIBVIRT = [
+    "libvirt_up 1",
+    'libvirt_domain_openstack_info{domain="instance-00000001",instance_id="a"} 1',
+    'libvirt_domain_openstack_info{domain="instance-00000002",instance_id="b"} 1',
+    "",
+  ].join("\n");
+  const CEILOMETER = [
+    'ceilometer_cpu{counter="cpu",resource="a"} 5.19e+09',
+    'ceilometer_vcpus{counter="vcpus",resource="a"} 1.0',
+    'ceilometer_memory_resident{counter="memory.resident",resource="a"} 176.5',
+    'ceilometer_disk_device_write_latency{counter="disk.device.write.latency",resource="a-vda"} 1.0',
+    "",
+  ].join("\n");
+
+  function section(run) {
+    return sectionOf(run.output, "Real usage per instance").join("\n");
+  }
+
+  async function doctorWith(variable, metrics, extra = {}) {
+    const cloud = await startCloud({
+      metrics: () => {
+        return metrics;
+      },
+    });
+    const run = await runDoctor(cloud, {
+      env: { [variable]: THERE },
+      args: ["--skip-access"],
+      ...extra,
+    });
+    await cloud.close();
+    return run;
+  }
+
+  test("with neither named, says what the pages say without one, and how to add one", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(section(run)).toContain(
+      "None named, so an instance's and a hypervisor's pages say what is promised and not what is busy.",
+    );
+    expect(section(run)).toContain("OPENSTACK_LIBVIRT_EXPORTER_TARGETS");
+    expect(section(run)).toContain("OPENSTACK_CEILOMETER_EXPORTER_TARGETS");
+  });
+
+  test("libvirt's exporter says how many instances it knows", async () => {
+    const run = await doctorWith("OPENSTACK_LIBVIRT_EXPORTER_TARGETS", LIBVIRT);
+    expect(section(run)).toContain(
+      "✔ prometheus-libvirt-exporter at openstack-exporter:9180 answers, and says which instance each of its 2 domains is.",
+    );
+  });
+
+  test("libvirt's exporter that can't reach libvirt says so", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_LIBVIRT_EXPORTER_TARGETS",
+      "libvirt_up 0\n",
+    );
+    expect(section(run)).toContain(
+      "▲ prometheus-libvirt-exporter at openstack-exporter:9180 answers, and says it cannot reach libvirt (libvirt_up 0).",
+    );
+  });
+
+  test("the wrong port is told apart from a target that is down", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_LIBVIRT_EXPORTER_TARGETS",
+      "mysql_up 1\n",
+    );
+    expect(section(run)).toContain(
+      "✗ openstack-exporter:9180 answers, but with no libvirt_up: it is not prometheus-libvirt-exporter.",
+    );
+    expect(run.output).toContain(
+      "OPENSTACK_LIBVIRT_EXPORTER_TARGETS names openstack-exporter:9180, and what answers there is not prometheus-libvirt-exporter.",
+    );
+  });
+
+  test.each([
+    ["OPENSTACK_LIBVIRT_EXPORTER_TARGETS", "prometheus-libvirt-exporter"],
+    ["OPENSTACK_CEILOMETER_EXPORTER_TARGETS", "Ceilometer's exporter"],
+  ])(
+    "%s not answering costs that node's instances, and is a finding",
+    async (variable, what) => {
+      const cloud = await startCloud();
+      const run = await runDoctor(cloud, {
+        env: { [variable]: THERE },
+        files: { "curl-fails": `/metrics 7\n` },
+        args: ["--skip-access"],
+      });
+      await cloud.close();
+
+      expect(section(run)).toContain(
+        `✗ ${what} at openstack-exporter:9180 does not answer from the agent's network`,
+      );
+      expect(run.output).toContain(
+        `The collector cannot scrape ${what} at openstack-exporter:9180 (${variable})`,
+      );
+    },
+  );
+
+  test("Ceilometer polling everything the pages read has nothing to add", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_CEILOMETER_EXPORTER_TARGETS",
+      CEILOMETER,
+    );
+    const text = section(run);
+    expect(text).toContain(
+      "✔ Ceilometer's exporter at openstack-exporter:9180 answers.",
+    );
+    expect(text).not.toContain("Add it to polling.yaml");
+    expect(text).not.toContain("isn't polling vcpus");
+  });
+
+  test("Ceilometer on the polling.yaml it ships is told what to add, and what going without costs", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_CEILOMETER_EXPORTER_TARGETS",
+      'ceilometer_cpu{counter="cpu",resource="a"} 5.19e+09\n',
+    );
+    const text = section(run);
+    expect(text).toContain(
+      "▲ Ceilometer at openstack-exporter:9180 isn't polling memory.resident, so nothing says what its instances hold on the hypervisor, and Hypervisor Memory Pressure stays quiet. Add it to polling.yaml.",
+    );
+    expect(text).toContain(
+      "▲ Ceilometer at openstack-exporter:9180 isn't polling disk.device.write.latency, so it has no disk latency, and Instance Disk Latency High stays quiet. Add it to polling.yaml.",
+    );
+    // Only a note: an instance's flavor says the same thing.
+    expect(text).toContain(
+      "• Ceilometer at openstack-exporter:9180 isn't polling vcpus, so an instance's CPU is measured against what its flavor says.",
+    );
+  });
+
+  test("Ceilometer before its first polling cycle isn't called broken", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_CEILOMETER_EXPORTER_TARGETS",
+      "python_info 1\n",
+    );
+    expect(section(run)).toContain(
+      "▲ Ceilometer's exporter at openstack-exporter:9180 answers, but says nothing about any instance's CPU.",
+    );
+  });
+});
+
 /* --------------------------------------------- what the cloud stands on */
 
 describe("what the cloud stands on", () => {
@@ -2666,4 +2812,38 @@ describe("the script's helpers", () => {
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
   });
+});
+
+describe("a folder this user cannot look inside", () => {
+  // Root looks inside anything, so there is nothing to see as root.
+  const asAnyoneButRoot = process.getuid && process.getuid() === 0 ? test.skip : test;
+
+  asAnyoneButRoot(
+    "says to use sudo, rather than that the agent and its credential are not there",
+    () => {
+      const dir = scratch();
+      const agent = path.join(dir, "agent");
+      fs.mkdirSync(agent);
+      fs.writeFileSync(path.join(agent, "clouds.yaml"), "clouds: {}\n");
+      // What a umask of 077 leaves when root runs install.sh.
+      fs.chmodSync(agent, 0o000);
+      let result;
+      try {
+        result = spawnSync("bash", [SCRIPT, "-d", agent, "--no-color"], {
+          encoding: "utf8",
+          env: { PATH: process.env.PATH, HOME: dir },
+        });
+      } finally {
+        fs.chmodSync(agent, 0o700);
+      }
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain(
+        `This user cannot look inside ${agent}, so nothing below could be read. Run this with sudo.`,
+      );
+      expect(result.stdout).not.toContain("does not exist");
+      // It stops there: no check of the chain follows, each to say the same.
+      expect(result.stdout).not.toContain("1. Runtime");
+    },
+  );
 });

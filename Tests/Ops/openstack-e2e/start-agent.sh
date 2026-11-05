@@ -20,7 +20,8 @@ COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-co
 EXPORTER_STABLE_IMAGE="${EXPORTER_STABLE_IMAGE:-ghcr.io/openstack-exporter/openstack-exporter:1.7.0}"
 
 # The same goes for what it is told to leave out: one flag per word, on purpose.
-EXPORTER_FLAGS="$(grep -E '^[[:space:]]*- --disable-metric=' "$AGENT_DIR/docker-compose.yml" | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+# Only its own service's: the compose file also starts an exporter with most reads turned off.
+EXPORTER_FLAGS="$(sed -n '/^  openstack-exporter:$/,/^  [a-z-]*:$/p' "$AGENT_DIR/docker-compose.yml" | grep -E '^[[:space:]]*- --disable-metric=' | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
 
 [ -n "$EXPORTER_IMAGE" ] && [ -n "$COLLECTOR_IMAGE" ] || {
   echo "Could not read the agent's image pins from $AGENT_DIR/docker-compose.yml" >&2
@@ -66,7 +67,22 @@ docker run -d --name ou-openstack-collector --network host \
   -e OPENSTACK_LIBVIRT_HEALTH_TARGETS="${OPENSTACK_LIBVIRT_HEALTH_TARGETS:-[]}" \
   -e OPENSTACK_CONTROL_PLANE_REGION="$REGION" \
   -e OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_AGENT_SERVICES='.*' \
+  -e OPENSTACK_AGENT_MEMORY_LIMIT_MIB=512 \
+  -e OPENSTACK_DATABASE_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX= \
+  -e OPENSTACK_WORKER_STATE_CLOUDS='[]' \
+  -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9182 \
   "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
+
+# A collector that refuses its config exits at once, and the run only finds out at its
+# very end, when stop-agent.sh sees nothing was exported. The scenes are still worth
+# recording without it, so this says so now and carries on.
+sleep 5
+if [ "$(docker inspect -f '{{.State.Running}}' ou-openstack-collector 2>/dev/null)" != "true" ]; then
+  echo "::warning::The agent's collector stopped as it started, so this run records no OTLP."
+  docker logs ou-openstack-collector 2>&1 | tail -20 >&2
+fi
 
 # The exporter answers once it is listening. Keystone's answer is the real test,
 # and a scrape of the identity service exercises it.

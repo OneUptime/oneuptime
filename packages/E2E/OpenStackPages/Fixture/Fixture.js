@@ -7,11 +7,14 @@
  *
  * Scenarios are picked with query parameters, parsed once at load, and kept for a reload:
  *
- *   ?estate=    busy (default) | calm | new | multi-region | overflow | ovn-stale | tenants
- *               | parts (Data.js)
+ *   ?estate=    busy (default) | calm | forced-down | new | multi-region | overflow | ovn-stale | tenants
+ *               | parts | usage (Data.js)
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
+ *               "<release>/access/<level>" is what its exporter answered each credential:
+ *               reader, monitoring-role or monitoring-admin-get.
+ *   ?without=   compute, network, volume...: with a recording, a service this cloud doesn't run
  *   ?traces=    <release>/signed-boot: what OSProfiler's driver really sent for a signed
  *               boot, through the real reader (TraceRecordings.js). With none, a cloud has
  *               no traces, which is how every cloud starts.
@@ -252,6 +255,7 @@ const estate = buildEstate(
       ? rowsFromRecording(RECORDING, {
           region: REGION_ONE,
           loadedAt: IS_CONNECTED ? LOADED_AT - MINUTE : LOADED_AT - QUIET_FOR,
+          without: params.get("without") || "",
         })
       : null,
     isConnected: IS_CONNECTED,
@@ -1126,7 +1130,107 @@ function seriesFromRow(labels, value, growsPerDay = 0) {
   };
 }
 
+/*
+ * What libvirt's or Ceilometer's exporter says, as the scan writes it. A row that has no such
+ * thing has no series, which is how a cloud with neither reads. Only `?estate=usage` has any.
+ */
+const INSTANCE_USAGE_FIELDS = {
+  "openstack.instance.cpu.usage": "cpuCores",
+  "openstack.instance.cpu.utilization": "cpuPercent",
+  "openstack.instance.cpu.contention": "contentionPercent",
+  "openstack.instance.memory.usage": "memoryUsageBytes",
+  "openstack.instance.memory.resident": "memoryResidentBytes",
+};
+const INSTANCE_DISK_FIELDS = {
+  "openstack.instance.disk.read.rate": "read",
+  "openstack.instance.disk.write.rate": "write",
+  "openstack.instance.disk.read.latency": "readMs",
+  "openstack.instance.disk.write.latency": "writeMs",
+};
+const INSTANCE_INTERFACE_FIELDS = {
+  "openstack.instance.network.receive.rate": "receive",
+  "openstack.instance.network.transmit.rate": "transmit",
+};
+const HYPERVISOR_USAGE_FIELDS = {
+  "openstack.hypervisor.instances.cpu.usage": "cpuCores",
+  "openstack.hypervisor.instances.cpu.utilization": "cpuPercent",
+  "openstack.hypervisor.instances.memory.resident": "memoryResidentBytes",
+  "openstack.hypervisor.instances.memory.utilization": "memoryPercent",
+  "openstack.hypervisor.instances.reporting": "reporting",
+};
+
+function usageSeries(metricName, attributes) {
+  const hostname = attributes["hostname"];
+  const instanceId = attributes["openstack.instance.id"];
+  if (metricName.startsWith("openstack.hypervisor.instances.")) {
+    return estate.inventory
+      .filter((row) => {
+        return (
+          row.kind === "Hypervisor" &&
+          row.hypervisorUsage &&
+          (!hostname || row.name === hostname)
+        );
+      })
+      .map((row) => {
+        return seriesFromRow(
+          {
+            hostname: row.name,
+            "openstack.instance.source": "libvirt",
+            ...regionLabelOf(row),
+          },
+          row.hypervisorUsage[HYPERVISOR_USAGE_FIELDS[metricName]],
+        );
+      });
+  }
+  const out = [];
+  for (const row of estate.inventory) {
+    if (
+      row.kind !== "Instance" ||
+      !row.usage ||
+      (hostname && row.hypervisorName !== hostname) ||
+      (instanceId && row.externalId !== instanceId)
+    ) {
+      continue;
+    }
+    const labels = {
+      "openstack.instance.id": row.externalId,
+      "openstack.instance.source": "libvirt",
+      hostname: row.hypervisorName,
+      ...regionLabelOf(row),
+    };
+    const field = INSTANCE_USAGE_FIELDS[metricName];
+    if (field && row.usage[field] !== undefined) {
+      out.push(seriesFromRow(labels, row.usage[field]));
+    }
+    const devices = INSTANCE_DISK_FIELDS[metricName]
+      ? [row.usage.disks, INSTANCE_DISK_FIELDS[metricName]]
+      : INSTANCE_INTERFACE_FIELDS[metricName]
+        ? [row.usage.interfaces, INSTANCE_INTERFACE_FIELDS[metricName]]
+        : null;
+    if (devices) {
+      for (const [device, readings] of Object.entries(devices[0])) {
+        if (readings[devices[1]] !== undefined) {
+          out.push(
+            seriesFromRow({ ...labels, device }, readings[devices[1]]),
+          );
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function regionLabelOf(row) {
+  return { "openstack.region.name": row.regionName };
+}
+
 function seriesOf(metricName, attributes) {
+  if (
+    metricName.startsWith("openstack.instance.") ||
+    metricName.startsWith("openstack.hypervisor.instances.")
+  ) {
+    return usageSeries(metricName, attributes);
+  }
   const region = wantedRegion(attributes);
   const service = attributes["service"];
   const host = attributes["hostname"];
@@ -1348,8 +1452,19 @@ function seriesOf(metricName, attributes) {
       ];
     case "system.memory.utilization":
       return [seriesFromRow({ state: attributes["state"] }, 0.62)];
+    // What its disks and network move: no walk reads a number from these.
+    case "system.disk.io":
+    case "system.network.io":
+      return [];
     default:
-      return null;
+      /*
+       * What libvirt's or Ceilometer's exporter says about an instance. These estates name
+       * neither, as most clouds don't, so a page asks and hears there are none.
+       */
+      return metricName?.startsWith("openstack.instance.") ||
+        metricName?.startsWith("openstack.hypervisor.instances.")
+        ? []
+        : null;
   }
 }
 
@@ -1440,6 +1555,9 @@ AnalyticsModelAPI.getList = async (options) => {
   if (
     modelName.startsWith("Log") ||
     modelName.startsWith("ChangeEvent") ||
+    modelName.startsWith("Metric") ||
+    modelName.startsWith("Span") ||
+    modelName.startsWith("SecurityEvent")
     modelName.startsWith("Metric")
   ) {
     return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
@@ -1565,6 +1683,34 @@ async function handleApi(method, options) {
             { message: "That part is not in this cloud's inventory" },
             {},
           );
+    }
+    // The Hosts product's row for a machine, under its short name as the agent reports it.
+    if (parsed.pathname.includes("/openstack-resource/host-of-machine/")) {
+      const shortName = String(body.machineName || "").split(".")[0];
+      return ok({
+        host:
+          store.Host.find((host) => {
+            return host.hostIdentifier === shortName;
+          }) || null,
+      });
+    }
+    // Nothing of another product's is on these estates' instances.
+    if (parsed.pathname.includes("/openstack-resource/reach-of-instance/")) {
+      return ok({});
+    }
+    // A project with no Ceph cluster, so there is nothing to link a pool to.
+    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph/")) {
+      return ok({
+        link: {
+          state: "no-clusters",
+          clusterId: null,
+          clusterName: null,
+          cephPoolName: null,
+        },
+        clusters: [],
+        health: null,
+        capacityUsedPercent: null,
+      });
     }
     // A project that does not use Security Events: the card draws nothing.
     if (parsed.pathname.endsWith("/security-case/resource-security")) {
