@@ -627,6 +627,32 @@ describe("each guide says plainly how far it has been tested", () => {
     },
   );
 
+  test.each([
+    ["kolla-ansible" as OpenStackDeploymentTool, "Kolla-Ansible"],
+    ["openstack-ansible" as OpenStackDeploymentTool, "OpenStack-Ansible"],
+  ])(
+    "%s says what ran as the docs page says it, for the reader rather than the builder",
+    (tool: OpenStackDeploymentTool, name: string) => {
+      const intro: string = setupGuideOf(tool).intro as string;
+      const row: string | undefined = DOCS_PAGE.split("\n").find(
+        (line: string): boolean => {
+          return line.startsWith(`| ${name} |`);
+        },
+      );
+      const ran: string = ((row as string).split("|")[3] as string)
+        .trim()
+        .replace(/`/g, "")
+        .replace(/^This guide's commands, on /, "");
+      const colon: number = ran.indexOf(": ");
+
+      expect(intro).toContain(
+        `Its commands were then run on ${ran.slice(0, colon)}`,
+      );
+      expect(intro).toContain(ran.slice(colon + 2));
+      expect(intro).not.toMatch(/\bCI\b|\brunner\b/);
+    },
+  );
+
   test("the docs say so too, and first, for every tool", () => {
     const heading: number = DOCS_PAGE.indexOf(
       "## How far each guide has been tested",
