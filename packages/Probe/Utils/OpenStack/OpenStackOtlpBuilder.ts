@@ -6,6 +6,7 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackPlacementInventory,
+  OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
   NovaFlavorRecord,
   NovaHypervisorRecord,
@@ -70,6 +71,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.Orchestration]: "openstack_heat",
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
+  [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
 };
 
 // knownServerStatuses, the exporter's nova.go.
@@ -201,6 +203,39 @@ const CLUSTER_STATUS_CODES: Readonly<Record<string, number>> = {
   ADOPT_COMPLETE: 17,
 };
 
+/*
+ * What the exporter's share_status series reads for the words a real cloud has been recorded in. Nothing
+ * reads this value: every rule and template reads the status label, because creating's code is 0.
+ */
+const SHARE_STATUS_CODES: Readonly<Record<string, number>> = {
+  creating: 0,
+  available: 1,
+  error: 9,
+};
+
+// The words the exporter's counter reports, each reading 0 until a share holds it, recorded.
+const SHARE_COUNTED_STATUSES: ReadonlyArray<string> = [
+  "available",
+  "creating",
+  "deleting",
+  "error",
+  "error_deleting",
+  "extending",
+  "inactive",
+  "managing",
+  "migrating",
+  "migration_error",
+  "restoring",
+  "reverting",
+  "reverting_error",
+  "reverting_to_snapshot",
+  "shrinking",
+  "shrinking_error",
+  "soft_deleting",
+  "unmanaging",
+  "updating",
+];
+
 type Labels = Record<string, string | number | boolean | null | undefined>;
 
 function labelText(
@@ -252,6 +287,7 @@ export interface OpenStackServiceReading {
     | OpenStackImageInventory
     | OpenStackOrchestrationInventory
     | OpenStackContainerInfraInventory
+    | OpenStackSharedFileSystemsInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
   apiUp: boolean | null;
@@ -1416,6 +1452,68 @@ function writeContainerInfra(
   }
 }
 
+/*
+ * A share's type goes by its name in the label the exporter fills with that, and its own read's
+ * share_type_name stays out, because the exporter's is empty and an empty label is no label.
+ */
+function writeSharedFileSystems(
+  writer: SeriesWriter,
+  inventory: OpenStackSharedFileSystemsInventory,
+): void {
+  if (inventory.shares) {
+    writer.add("shares_counter", {}, inventory.shares.length);
+
+    const counts: Record<string, number> = {};
+    for (const status of SHARE_COUNTED_STATUSES) {
+      counts[status] = 0;
+    }
+
+    for (const share of inventory.shares) {
+      const status: string = share.status || "";
+      counts[status] = (counts[status] || 0) + 1;
+      const shared: Labels = {
+        id: share.id,
+        name: share.name,
+        project_id: share.projectId,
+        share_proto: share.protocol,
+        share_type: share.shareTypeName,
+        status: share.status,
+        access_rules_status: share.accessRulesStatus,
+        host: share.host,
+      };
+      writer.add(
+        "share_gb",
+        { ...shared, availability_zone: share.availabilityZone },
+        share.sizeGb,
+      );
+      writer.add(
+        "share_status",
+        { ...shared, size: share.sizeGb },
+        SHARE_STATUS_CODES[status] ?? -1,
+      );
+    }
+
+    for (const status of Object.keys(counts).sort()) {
+      writer.add("share_status_counter", { status }, counts[status] as number);
+    }
+  }
+
+  // The exporter has no series for these, so these are a native read's own.
+  for (const service of inventory.services || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: service.host,
+        service: service.binary,
+        zone: service.zone,
+        state: service.state,
+        adminState: service.isDisabled ? "disabled" : "enabled",
+      },
+      service.state === "up" ? 1 : 0,
+    );
+  }
+}
+
 function writeInventory(
   writer: SeriesWriter,
   reading: OpenStackServiceReading,
@@ -1453,6 +1551,12 @@ function writeInventory(
       writeContainerInfra(
         writer,
         reading.inventory as OpenStackContainerInfraInventory,
+      );
+      return;
+    case OpenStackServiceType.SharedFileSystems:
+      writeSharedFileSystems(
+        writer,
+        reading.inventory as OpenStackSharedFileSystemsInventory,
       );
       return;
     default:

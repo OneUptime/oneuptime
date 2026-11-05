@@ -1,0 +1,11 @@
+$ openstack server list --all-projects --host compute-01 --limit 100
+success: true
+exit code: 0
+
+[stdout]
+id                                    name            status   addresses                       availability_zone  fault  flavor   host           host_status  hypervisor                                                         locked  power_state  project_id                        task_state  updated
+cc6e577a-bb98-409f-aef6-c9aaee0494b0  ou-user-data    ACTIVE   ou-research-net=10.78.0.182     nova                      ou.tiny  compute-01  UP           compute-01.example.internal  false   Running      b9e66b583ae5401b8ec2edf04f41c61a              2026-11-05T05:29:36Z
+8bf79fce-384f-4b97-b84a-ca6e460aeb01  ou-from-volume  ACTIVE   ou-research-net=10.78.0.68      nova                      ou.tiny  compute-01  UP           compute-01.example.internal  false   Running      b9e66b583ae5401b8ec2edf04f41c61a              2026-11-05T05:29:11Z
+df478a21-1417-4e96-aae8-a70ee5f6cd38  ou-research-1   ACTIVE   ou-research-net=10.78.0.160     nova                      ou.tiny  compute-01  UP           compute-01.example.internal  false   Running      b9e66b583ae5401b8ec2edf04f41c61a              2026-11-05T05:28:47Z
+27b53216-ae70-46b6-9928-a3416c95db0e  ou-stopped      SHUTOFF  ou-net=10.77.0.240              nova                      ou.tiny  compute-01  UP           compute-01.example.internal  false   Shutdown     adbada83aeeb41cebd344c2f7cf44372              2026-11-05T05:28:00Z
+e6591b80-42a0-4c02-8a0d-9438949af8e5  ou-running      ACTIVE   ou-net=10.77.0.232,172.24.4.47  nova                      ou.tiny  compute-01  UP           compute-01.example.internal  false   Running      adbada83aeeb41cebd344c2f7cf44372              2026-11-05T05:27:51Z

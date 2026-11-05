@@ -1,1 +1,1 @@
-load-balancer 200 9 series
+load-balancer 200 10 series

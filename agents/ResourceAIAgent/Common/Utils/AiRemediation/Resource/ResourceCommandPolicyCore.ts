@@ -325,6 +325,35 @@ export interface ResourceToolPolicy {
     | ((target: string, protectedTarget: string) => boolean)
     | undefined;
   /*
+   * Optional: what a refusal for a protected target says after naming it, for a
+   * tool whose list is the operator's own (the default says it is the agent and
+   * what it runs in).
+   */
+  readonly protectedTargetNote?: string | undefined;
+  /*
+   * Optional: whether this target is inside these write targets in a way the
+   * dispatcher's glob cannot see. Asked on top of that glob, so it can only let
+   * more through: only for a tool whose agent reads the rest when it runs the
+   * change, and refuses it there. MUST NOT throw (a throw is read as "outside").
+   */
+  readonly isTargetInWriteScope?:
+    | ((target: string, writeTargets: ReadonlyArray<string>) => boolean)
+    | undefined;
+  /*
+   * Optional: why an entry of the agent's write or protected targets means
+   * nothing to this tool, or null. Such an entry reads as protecting something
+   * and never matches, so the agent stays read-only until it is fixed. MUST NOT
+   * throw.
+   */
+  readonly describeTargetEntryProblem?:
+    | ((entry: string) => string | null)
+    | undefined;
+  /*
+   * Optional: an allowlist entry for a change that always asks a person is
+   * refused when it is saved, rather than kept and ignored by the ladder.
+   */
+  readonly refusesAlwaysAskingAllowlistEntries?: boolean | undefined;
+  /*
    * argv includes the program. MUST be total — never throw, whatever the
    * argv holds — and fail closed: anything the tool does not recognise is
    * Denied.

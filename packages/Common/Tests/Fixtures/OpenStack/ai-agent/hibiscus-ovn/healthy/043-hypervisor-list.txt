@@ -1,0 +1,7 @@
+$ openstack hypervisor list
+success: true
+exit code: 0
+
+[stdout]
+id                                    status   disabled_reason  host_ip     hypervisor_hostname                                                hypervisor_type  service_host   state  uptime
+758c3bf7-7336-465f-a997-618968d14595  enabled                   10.1.0.196  compute-01.example.internal  QEMU             compute-01  up     05:29:36 up 12 min,  0 user,  load average: 2.28, 2.02, 1.19
