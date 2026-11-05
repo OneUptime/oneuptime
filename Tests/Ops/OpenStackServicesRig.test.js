@@ -256,6 +256,187 @@ print(json.dumps(module.GROUPS))
   );
 });
 
+/* ------------------------------------------------- each script, start to finish, under stubs */
+
+/*
+ * Each script as it runs on a runner, with every wait answered at once and every command line
+ * stubbed. This proves no state: a real cloud does that. It finds what `set -u` and a typo would
+ * otherwise find an hour into a run: a variable set inside one scene's subshell and read in
+ * another, a function called before it is defined, a scene that cannot get through its own lines.
+ */
+describe("each group's script, start to finish", () => {
+  function runGroup(group, { lib = "" } = {}) {
+    const dir = scratch();
+    const bin = path.join(dir, "bin");
+    write(
+      path.join(dir, "services-lib.sh"),
+      `${read(path.join(RIG, "services-lib.sh"))}
+wait_for() {
+  echo "$1: $2"
+}
+wait_for_either() {
+  echo "$1: $2"
+}
+${lib}
+`,
+    );
+    fs.copyFileSync(path.join(RIG, `${group}.sh`), path.join(dir, `${group}.sh`));
+    write(
+      path.join(dir, "record.sh"),
+      `#!/usr/bin/env bash
+set -euo pipefail
+echo "$1 RECORD_SERVICES=$RECORD_SERVICES RECON_TARGETS=\${RECON_TARGETS:-}" >>"$OUTPUT_DIR/recorded.txt"
+`,
+    );
+
+    // A thing does not exist the first time anyone checks by showing it with no format, so each
+    // script's "create it unless it is there" line runs too.
+    writeExecutable(
+      path.join(bin, "openstack"),
+      `#!/usr/bin/env python3
+import hashlib, json, os, sys
+args = " ".join(sys.argv[1:])
+if "catalog list" in args:
+    print(json.dumps([{"Type": "metric", "Endpoints": [{"interface": "public", "url": "http://10.0.0.1/metric"}]}]))
+elif "provider list" in args:
+    print("amphora\\novn")
+elif "-f json" in args and "addresses" in args:
+    print(json.dumps({"addresses": {"ou-net": ["10.77.0.5"]}}))
+elif "image list" in args and "-c ID" in args:
+    print("image-id cirros-0.6.3-x86_64-disk")
+elif "image list" in args:
+    print("cirros-0.6.3-x86_64-disk")
+elif "datastore version list" in args:
+    print("8.4")
+elif "database instance show" in args and "-c status" in args:
+    print("ACTIVE")
+elif "coe cluster show" in args and "-c status" in args:
+    print("CREATE_COMPLETE")
+elif " show " in args and " -f " not in args and " -c " not in args:
+    seen = os.path.join(os.environ["STUB_STATE"], hashlib.sha1(args.encode()).hexdigest())
+    if not os.path.exists(seen):
+        open(seen, "w").close()
+        sys.exit(1)
+elif " -f value" in args:
+    print("stub-value")
+`,
+    );
+    writeExecutable(
+      path.join(bin, "sudo"),
+      `#!/usr/bin/env bash
+case "$1" in
+  systemctl|journalctl) exit 0 ;;
+esac
+exec "$@"
+`,
+    );
+    // Every unit exists, as far as a script asks.
+    writeExecutable(
+      path.join(bin, "systemctl"),
+      `#!/usr/bin/env bash\necho "$2 enabled"\n`,
+    );
+    writeExecutable(path.join(bin, "journalctl"), `#!/usr/bin/env bash\nexit 0\n`);
+    writeExecutable(path.join(bin, "sleep"), `#!/usr/bin/env bash\nexit 0\n`);
+    writeExecutable(
+      path.join(bin, "mysql"),
+      `#!/usr/bin/env bash\nprintf 'id\\nstub-row-id\\n'\n`,
+    );
+    writeExecutable(
+      path.join(bin, "curl"),
+      `#!/usr/bin/env bash
+# Gnocchi's answers, the only API these scripts read for themselves.
+printf '{"id": "stub-metric", "metricd": {"processors": ["one"]}, "storage": {"summary": {"measures": 0, "metrics": 0}}}'
+`,
+    );
+    const output = path.join(dir, "out");
+    fs.mkdirSync(path.join(dir, "state"));
+    const run = spawnSync("bash", [path.join(dir, `${group}.sh`)], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        OUTPUT_DIR: output,
+        STUB_STATE: path.join(dir, "state"),
+      },
+    });
+    return {
+      run,
+      scenes: fs.existsSync(path.join(output, "scenes.txt"))
+        ? read(path.join(output, "scenes.txt"))
+        : "",
+      recorded: fs.existsSync(path.join(output, "recorded.txt"))
+        ? read(path.join(output, "recorded.txt"))
+        : "",
+    };
+  }
+
+  test.each(GROUPS)("%s reaches its end with every scene recorded", (group) => {
+    const { run, scenes, recorded } = runGroup(group);
+    expect({
+      status: run.status,
+      scenes: scenes.trim().split("\n").sort(),
+      stderr: run.stderr,
+    }).toEqual({
+      status: 0,
+      // Each once: Octavia's fallback names some of them again, and only a failure reaches it.
+      scenes: Array.from(new Set(scenesOf(group)))
+        .filter((scene) => {
+          return scene !== "amphora-provider-failed";
+        })
+        .map((scene) => {
+          return `${scene} recorded`;
+        })
+        .sort(),
+      stderr: expect.anything(),
+    });
+    expect(recorded.split("\n")[0]).toContain("RECORD_SERVICES=");
+  });
+
+  test("Swift's scenes are told where its storage servers answer", () => {
+    const { recorded } = runGroup("services-designate-barbican-swift");
+    const swift = recorded.split("\n").find((line) => {
+      return line.startsWith("swift-baseline");
+    });
+    expect(swift).toContain("object=");
+    expect(swift).toContain(":6613");
+    expect(swift).toContain("account=");
+  });
+
+  test("a runner that cannot boot an amphora says so, and the ovn provider's scenes still run", () => {
+    const { run, scenes } = runGroup("services-octavia", {
+      lib: `
+wait_for_either() {
+  [ "$1" != "Load balancer ou-lb" ] || return 1
+  echo "$1: $2"
+}
+`,
+    });
+    expect(run.status).not.toBe(0);
+    expect(scenes).toContain("amphora-provider-failed FAILED");
+    expect(scenes).toContain("ovn-provider recorded\n");
+    expect(scenes).toContain("lb-error recorded\n");
+    expect(scenes).toContain("api-down recorded\n");
+    // Nothing that needs an amphora was tried.
+    expect(scenes).not.toContain("baseline");
+    expect(scenes).not.toContain("pending-update");
+  });
+
+  test("a load balancer stuck in the wrong state costs its own scene, and the rest still run", () => {
+    const { run, scenes } = runGroup("services-octavia", {
+      lib: `
+wait_for() {
+  [ "$1" != "ou-lb provisioning status" ] || return 1
+  echo "$1: $2"
+}
+`,
+    });
+    expect(run.status).not.toBe(0);
+    expect(scenes).toContain("pending-update FAILED");
+    expect(scenes).toContain("pending-create recorded\n");
+    expect(scenes).toContain("recovered recorded\n");
+  });
+});
+
 /* ------------------------------------------------- a scene that goes wrong costs nothing else */
 
 describe("scene()", () => {

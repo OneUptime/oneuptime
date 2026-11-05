@@ -147,10 +147,10 @@ openstack role show oneuptime_monitoring >/dev/null 2>&1 \
 openstack project show ou-monitoring >/dev/null 2>&1 \
   || openstack project create --domain default --description "OneUptime monitoring: holds nothing" ou-monitoring >/dev/null
 openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 ou-monitoring
-# A group that runs without Cinder has no volume quota to set.
-if openstack volume service list >/dev/null 2>&1; then
-  openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 ou-monitoring
-fi
+# A group that runs without Cinder has no volume quota to set, and only there may this fail.
+openstack volume service list >/dev/null 2>&1 || set +e
+openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 ou-monitoring
+set -e
 openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 ou-monitoring
 openstack role add --project ou-monitoring --user ou-monitor oneuptime_monitoring
 openstack role add --project ou-monitoring --user ou-monitor reader
