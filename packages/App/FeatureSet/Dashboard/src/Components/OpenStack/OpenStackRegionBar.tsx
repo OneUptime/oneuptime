@@ -105,14 +105,14 @@ const OpenStackRegionBar: FunctionComponent<ComponentProps> = (
       data-testid="openstack-region-bar"
     >
       <span className="text-sm text-gray-500">
-        {translator.translateText("Region") || "Region"}
+        {translator.translateText("Region")}
       </span>
       <div className="w-56 max-w-full">
         <Dropdown
           options={options}
           value={selected}
           isClearable={false}
-          ariaLabel={translator.translateText("Region") || "Region"}
+          ariaLabel={translator.translateText("Region")}
           dataTestId="openstack-region-picker"
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             const next: string =
