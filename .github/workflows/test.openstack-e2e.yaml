@@ -26,6 +26,10 @@ on:
         description: With logs_only too, only record what OSProfiler's driver sends, on the entries that do
         type: boolean
         default: false
+      instance_metrics_only:
+        description: Only run the long real VM metrics drill, on the entries that do, which takes over an hour of recording and nothing else
+        type: boolean
+        default: false
       kolla_aio:
         description: Only deploy an all-in-one Kolla-Ansible and follow the guide for it, command by command
         type: boolean
@@ -64,7 +68,7 @@ permissions:
 # so neither cancels the other. Nor does a run that only records traces, that only installs the
 # agent, or that follows a deployment tool's guide: each of those does something else entirely.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && format('kolla-{0}', inputs.kolla_neutron) || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.agent_install_only && 'agent-install' || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && format('kolla-{0}', inputs.kolla_neutron) || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.agent_install_only && 'agent-install' || inputs.instance_metrics_only && 'instance-metrics' || 'all' }}
   cancel-in-progress: true
 
 jobs:
@@ -320,7 +324,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime }}
+    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.instance_metrics_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -436,6 +440,7 @@ jobs:
             branch: stable/2026.2
             conf_overrides: ""
             traces: true
+            instance_metrics_drill: true
           - name: gazpacho-ovn
             branch: stable/2026.1
             conf_overrides: ""
@@ -448,6 +453,7 @@ jobs:
           # asks for them by the old name.
           - name: epoxy-ovn
             branch: unmaintained/2025.1
+            instance_metrics_drill: true
             conf_overrides: |
               TARGET_BRANCH=unmaintained/2025.1
           # ML2/OVS reports the DHCP, L3 and OVS agents OVN does not have, and
@@ -465,7 +471,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy DevStack
-        if: ${{ !inputs.traces_only || matrix.traces }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
         with:
           branch: ${{ matrix.branch }}
@@ -488,7 +494,7 @@ jobs:
           enable_workaround_docker_io: "false"
 
       - name: Docker still answers
-        if: ${{ !inputs.traces_only || matrix.traces }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: |
           if ! docker info >/dev/null 2>&1; then
             # DevStack can leave the runner's Docker stopped or removed.
@@ -498,13 +504,13 @@ jobs:
           docker info --format 'Docker {{.ServerVersion}}'
 
       - name: Build the estate
-        if: ${{ !inputs.traces_only || matrix.traces }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: bash Tests/Ops/openstack-e2e/estate.sh
 
       # On its own, as the access matrix is: losing a source of VM metrics costs that
       # recording, not the drills.
       - name: Start what reports real VM metrics
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/start-instance-metrics.sh
         env:
@@ -512,14 +518,14 @@ jobs:
 
       # Before the agent starts, so its collector reads them from its first scrape.
       - name: Start the exporters of what the cloud stands on
-        if: ${{ !inputs.logs_only && matrix.control_plane }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh start
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Start the agent's exporter and collector
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: bash Tests/Ops/openstack-e2e/start-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -534,14 +540,14 @@ jobs:
       # On its own, so that a problem here still leaves the drills recorded. It takes
       # its policy files back off when it ends, whichever way it ends.
       - name: Least privilege, tested on the real policies
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/access-matrix.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Record the failure drills
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only }}
         run: bash Tests/Ops/openstack-e2e/drills.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -549,9 +555,19 @@ jobs:
 
       # After the drills, so the scenes they recorded hold the estate they always held.
       - name: Record real VM metrics from both sources
-        if: ${{ !inputs.logs_only }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/instance-metrics.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Over an hour on its own, so never part of a full run: a noisy instance and a noisy
+      # neighbour for as long as an alert template's window takes to fill and to empty.
+      - name: Run the long real VM metrics drill
+        if: ${{ inputs.instance_metrics_only && matrix.instance_metrics_drill }}
+        continue-on-error: true
+        timeout-minutes: 100
+        run: bash Tests/Ops/openstack-e2e/instance-metrics-drill.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
@@ -559,7 +575,7 @@ jobs:
       # takes the whole cloud down more than once, and on its own, so that a problem here
       # still leaves everything else recorded.
       - name: Stop what the cloud stands on, and record what falls
-        if: ${{ !inputs.logs_only && matrix.control_plane }}
+        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh drills
         env:
@@ -569,9 +585,9 @@ jobs:
       # costs neither the drills nor the logs. Before the logs, because it takes back
       # everything it changes, and they leave a cloud configured their own way.
       - name: Record what OSProfiler's driver sends for a signed request
-        if: ${{ matrix.traces }}
+        if: ${{ matrix.traces && !inputs.instance_metrics_only }}
         continue-on-error: true
-        timeout-minutes: 45
+        timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -581,7 +597,7 @@ jobs:
       # With a limit of its own, as the traces have, so that a cloud it has broken costs this
       # recording and not the job's limit, which takes the upload with it.
       - name: Record service logs, notifications and audit events
-        if: ${{ !inputs.traces_only }}
+        if: ${{ !inputs.traces_only && !inputs.instance_metrics_only }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/logs-record.sh
@@ -589,7 +605,7 @@ jobs:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Stop the agent and keep what it exported
-        if: ${{ always() && !inputs.logs_only }}
+        if: ${{ always() && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
         run: bash Tests/Ops/openstack-e2e/stop-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording

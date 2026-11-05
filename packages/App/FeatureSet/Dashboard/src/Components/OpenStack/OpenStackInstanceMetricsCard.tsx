@@ -7,10 +7,12 @@ import {
   OpenStackInstanceMetricSource,
   OpenStackInstanceMetricsMode,
   OpenStackInstanceMetricsOptions,
-  OpenStackInstanceMetricsVolume,
-  estimateOpenStackInstanceMetricsVolume,
 } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackInstanceMetricsCost,
+  estimateOpenStackInstanceMetricsCost,
+} from "Common/Types/OpenStack/OpenStackScale";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Dropdown, {
@@ -131,23 +133,27 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
   }
 
   const instanceCount: number = read.data.choice.instanceCount;
-  const volume: (
-    source: OpenStackInstanceMetricSource,
-    instances: number,
-  ) => OpenStackInstanceMetricsVolume = (
-    source: OpenStackInstanceMetricSource,
-    instances: number,
-  ): OpenStackInstanceMetricsVolume => {
-    return estimateOpenStackInstanceMetricsVolume({ source, instances });
+  const libvirt: OpenStackInstanceMetricsCost =
+    estimateOpenStackInstanceMetricsCost({
+      source: OpenStackInstanceMetricSource.Libvirt,
+      instances: instanceCount,
+    });
+  const ceilometer: OpenStackInstanceMetricsCost =
+    estimateOpenStackInstanceMetricsCost({
+      source: OpenStackInstanceMetricSource.Ceilometer,
+      instances: instanceCount,
+    });
+  const costOf: (cost: OpenStackInstanceMetricsCost) => string = (
+    cost: OpenStackInstanceMetricsCost,
+  ): string => {
+    return translator.translateTemplate(
+      "{{rows}} rows an hour, about ${{dollars}} a month",
+      {
+        rows: translator.formatNumber(cost.rowsPerHour),
+        dollars: translator.formatNumber(Math.ceil(cost.costInUSDPerMonth)),
+      },
+    );
   };
-  const libvirt: OpenStackInstanceMetricsVolume = volume(
-    OpenStackInstanceMetricSource.Libvirt,
-    instanceCount,
-  );
-  const ceilometer: OpenStackInstanceMetricsVolume = volume(
-    OpenStackInstanceMetricSource.Ceilometer,
-    instanceCount,
-  );
 
   const toOption: (mode: OpenStackInstanceMetricsMode) => DropdownOption = (
     mode: OpenStackInstanceMetricsMode,
@@ -249,11 +255,11 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
             data-testid="openstack-instance-metrics-cost"
           >
             {translator.translateTemplate(
-              "This cloud has {{instances}} instances. Keeping all of them costs about {{libvirt}} rows an hour from libvirt's exporter, or {{ceilometer}} from Ceilometer's. Automatic stops keeping them past {{limit}} instances.",
+              "This cloud has {{instances}} instances. Keeping all of them costs {{libvirt}} from libvirt's exporter, or {{ceilometer}} from Ceilometer's. Automatic stops keeping them past {{limit}} instances.",
               {
                 instances: translator.formatNumber(instanceCount),
-                libvirt: translator.formatNumber(libvirt.rowsPerHour),
-                ceilometer: translator.formatNumber(ceilometer.rowsPerHour),
+                libvirt: costOf(libvirt),
+                ceilometer: costOf(ceilometer),
                 limit: translator.formatNumber(
                   OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
                 ),

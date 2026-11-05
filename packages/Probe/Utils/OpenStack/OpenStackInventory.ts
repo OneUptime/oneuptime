@@ -252,6 +252,8 @@ export interface NovaServerRecord {
   flavorId: string | null;
   flavorName: string | null;
   instanceName: string | null;
+  // The image it booted from. One booted from a volume has none: Nova says "" there.
+  imageId: string | null;
   // What only a native collector reads: see OPENSTACK_PROBE_ONLY_LABELS.
   taskState: string | null;
   updatedAt: string | null;
@@ -331,6 +333,7 @@ export function toNovaServer(item: JSONObject): NovaServerRecord | null {
     flavorId: text(flavor["id"]),
     flavorName: text(flavor["original_name"]),
     instanceName: text(item["OS-EXT-SRV-ATTR:instance_name"]),
+    imageId: text(object(item["image"])["id"]),
     taskState: text(item["OS-EXT-STS:task_state"]),
     updatedAt: text(item["updated"]),
     // Only its message: `details` is a traceback, and stays with Nova.
@@ -494,6 +497,12 @@ export interface NeutronL3AgentRecord {
   haState: string | null;
   isAlive: boolean;
   isAdminUp: boolean;
+}
+
+// The networks one DHCP agent serves, which is all that is kept of Neutron's answer.
+export interface NeutronDhcpAgentNetworksRecord {
+  agentId: string;
+  networkIds: Array<string>;
 }
 
 export interface NeutronFloatingIpRecord {
@@ -896,6 +905,7 @@ export interface OpenStackNetworkInventory {
   subnets?: Array<NeutronSubnetRecord> | undefined;
   routers?: Array<NeutronRouterRecord> | undefined;
   l3Agents?: Array<NeutronL3AgentRecord> | undefined;
+  dhcpAgentNetworks?: Array<NeutronDhcpAgentNetworksRecord> | undefined;
   floatingIps?: Array<NeutronFloatingIpRecord> | undefined;
   ipAvailabilities?: Array<NeutronSubnetAvailabilityRecord> | undefined;
   securityGroupCount?: number | undefined;

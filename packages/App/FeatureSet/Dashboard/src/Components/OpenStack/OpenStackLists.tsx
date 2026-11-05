@@ -22,6 +22,7 @@ import {
   getOpenStackFlavorExternalId,
   getOpenStackFloatingIpAssociation,
   getOpenStackInstanceAddresses,
+  getOpenStackInstanceImage,
   getOpenStackRouterAgentReading,
   isOpenStackNetworkExternal,
   isOpenStackNetworkShared,
@@ -199,6 +200,24 @@ const INSTANCE_FLAVOR_COLUMN: OpenStackListColumn = getOpenStackLinkColumn({
   },
 });
 
+// Only a probe says, so on a cloud the agent collects this column isn't there at all.
+const INSTANCE_IMAGE_COLUMN: OpenStackListColumn = getOpenStackLinkColumn({
+  id: "image",
+  title: "Image",
+  hideOnMobile: true,
+  getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+    const image: ReturnType<typeof getOpenStackInstanceImage> =
+      getOpenStackInstanceImage(row);
+    return image.state === "image"
+      ? {
+          kind: OpenStackResourceKind.Image,
+          externalId: image.imageId,
+          fallbackText: image.imageId,
+        }
+      : null;
+  },
+});
+
 const INSTANCE_ADDRESS_COLUMN: OpenStackListColumn = getOpenStackFactColumn({
   id: "address",
   title: "Address",
@@ -215,6 +234,7 @@ const INSTANCE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
   OpenStackColumn.Status,
   OpenStackColumn.Project,
   INSTANCE_FLAVOR_COLUMN,
+  INSTANCE_IMAGE_COLUMN,
   OpenStackColumn.Hypervisor,
   OpenStackColumn.AvailabilityZone,
   OpenStackColumn.TimeInState,
@@ -881,7 +901,7 @@ export const OpenStackNetworkAgentList: FunctionComponent<
       title={props.title || "Network Agents"}
       description={
         props.description ||
-        "Neutron's agents, as openstack network agent list shows them. Each one says which routers it holds, where the backend reports that."
+        "Neutron's agents, as openstack network agent list shows them. Each one says which routers it holds and which networks it serves, where the backend reports that."
       }
       singularName="network agent"
       pluralName="network agents"

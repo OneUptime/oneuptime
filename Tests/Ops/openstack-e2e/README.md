@@ -13,6 +13,7 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | `drills.sh` | Breaks the cloud one way at a time (`record.sh` after each) and puts it back: a compute service disabled on purpose, `nova-compute`, a Neutron agent, `cinder-volume` and `nova-scheduler` stopped, and Nova's API down. |
 | `record.sh <scene>` | Records one scene: the exporter's answer per service with how long it took, each read-only API call's answer, and what the `openstack` CLI says, for a person to check a page against. |
 | `instance-metrics.sh` | After the drills, boots `ou-burner`, which spins on its CPU, writes to its disk and sends packets, and records what both sources say about it, the idle `ou-running` and the shut-off `ou-stopped`, at the same moments, every 30 seconds for six minutes. |
+| `instance-metrics-drill.sh` | Only with `instance_metrics_only`, in place of everything else above from the access matrix on, because it records for over an hour. A noisy instance, then a noisy neighbour, then quiet, each for long enough that an alert template's window fills and empties, with Ceilometer polling at its real default of five minutes. Then a hard reboot, a shut-off and a delete. What the collector would have sent is what gets replayed. |
 | `stop-agent.sh` | Stops the agent, keeps its logs, and fails if the collector exported nothing. |
 | `agent-install.sh` | In a job of its own, and only that with `-f agent_install_only=true`: installs the agent the way its docs say, with and without Docker, as a person with no rights and with `sudo`, on this runner and on machines with nothing on them. See below. |
 
@@ -65,9 +66,20 @@ instance-metrics/scrape-01/libvirt.prom     what the libvirt exporter said, scra
 instance-metrics/scrape-01/ceilometer.prom  what Ceilometer's exporter said at the same moment
 instance-metrics/scrape-01/at.txt           when, in seconds since the epoch
 instance-metrics/servers.json               what Nova says each of those instances is, and where
+instance-metrics-drill/timeline.txt         when each thing in the long drill happened, in seconds since the epoch
+instance-metrics-drill/servers.json         what Nova says each instance is, at the end of it
 otlp/metrics.json            what the collector would have sent to OneUptime
 logs/                        the containers' logs
+traces/otlp-driver.json.gz   on the entries that record it: what OSProfiler's driver sent for each signed request
+traces/otlp-agent.json.gz    what the agent's traces profile would have sent to OneUptime for them
+traces/scenes.jsonl          each scene: how long, its exit code, its Trace IDs, its spans
+traces/summary.json          each scene's trace, service by service
+traces/check.txt             whether the issue's "done when" held on this run
+traces/native-summary.json   what OpenStack's own OpenTelemetry tracing made, where a release ships it
+traces/journal.jsonl.gz      what the services logged, to hold a trace's requests against
 ```
+
+`-f logs_only=true -f traces_only=true` runs only the traces step, on Hibiscus and Flamingo. `traces-record.sh` says what each scene is for. Its fixtures come from `python3 -I import-trace-recording.py <release> <artifact>/traces`, into `packages/Common/Tests/Fixtures/OpenStack/traces/<release>/`.
 
 Tokens are scrubbed and addresses replaced, although nothing here is a secret: it is a throwaway cloud on a runner that is gone when the job ends.
 

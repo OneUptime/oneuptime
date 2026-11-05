@@ -46,6 +46,7 @@ import {
   OpenStackForecast,
   OpenStackGrowthSample,
   OpenStackHostGroup,
+  OpenStackInstanceImage,
   OpenStackRowState,
   OpenStackSubnetAddresses,
   canOpenStackHypervisorGive,
@@ -59,12 +60,15 @@ import {
   getOpenStackFloatingIpAssociation,
   getOpenStackForecast,
   getOpenStackHostGroupId,
+  getOpenStackInstanceImage,
   getOpenStackCountTotals,
+  getOpenStackDhcpNetworkCount,
   getOpenStackHostGroups,
   getOpenStackHypervisorExternalId,
   getOpenStackInstanceAddresses,
   getOpenStackL3AgentExternalId,
   getOpenStackNetworkBackend,
+  getOpenStackNetworkDhcpAgentIds,
   getOpenStackNetworkSubnets,
   getOpenStackPartExplanation,
   getOpenStackPartName,
@@ -81,6 +85,7 @@ import {
   isOpenStackListPossiblyOneProject,
   isOpenStackNetworkAgent,
   isOpenStackNetworkExternal,
+  isOpenStackDhcpAgent,
   isOpenStackNetworkShared,
   parseOpenStackAggregates,
   parseOpenStackHostGroupId,
@@ -130,6 +135,40 @@ function reasonsOf(state: OpenStackRowState): Array<string> {
     return reason.text;
   });
 }
+
+describe("what an instance booted from", () => {
+  function rowWith(facts: JSONObject): OpenStackResource {
+    return Object.assign(new OpenStackResource(), {
+      kind: OpenStackResourceKind.Instance,
+      facts,
+    });
+  }
+
+  test.each<[string, JSONObject, OpenStackInstanceImage]>([
+    [
+      "a probe names one",
+      { imageId: "image-1", updatedAt: "2026-11-04T11:00:00Z" },
+      { state: "image", imageId: "image-1" },
+    ],
+    [
+      "a probe says none: Nova's answer for one booted from a volume",
+      { imageId: null, updatedAt: "2026-11-04T11:00:00Z" },
+      { state: "booted-from-volume" },
+    ],
+    ["the exporter says nothing of it", {}, { state: "not-collected" }],
+    [
+      "a row from before anyone asked",
+      { updatedAt: "2026-11-04T11:00:00Z" },
+      { state: "booted-from-volume" },
+    ],
+  ])("%s", (_name: string, facts: JSONObject, wanted: OpenStackInstanceImage) => {
+    expect(getOpenStackInstanceImage(rowWith(facts))).toEqual(wanted);
+  });
+
+  test("no row at all is not known either", () => {
+    expect(getOpenStackInstanceImage(null)).toEqual({ state: "not-collected" });
+  });
+});
 
 describe("a hypervisor's state", () => {
   test("up reads Nova's word, in green", () => {
@@ -1780,6 +1819,44 @@ describe("what an empty list means", () => {
         knownProjectCount: 3,
       }),
     ).toBe(true);
+  });
+});
+
+describe("DHCP agents", () => {
+  function rowWith(
+    name: string,
+    facts: JSONObject,
+  ): OpenStackResource {
+    return Object.assign(new OpenStackResource(), { name, facts });
+  }
+
+  test.each<[string, boolean]>([
+    ["neutron-dhcp-agent", true],
+    ["DHCP agent", true],
+    ["neutron-l3-agent", false],
+    ["ovn-controller", false],
+    ["", false],
+  ])("%s is one: %s", (name: string, isOne: boolean) => {
+    expect(isOpenStackDhcpAgent(rowWith(name, {}))).toBe(isOne);
+  });
+
+  test.each<[JSONObject, number | null]>([
+    [{ dhcpNetworkCount: 3 }, 3],
+    [{ dhcpNetworkCount: 0 }, 0],
+    [{ dhcpNetworkCount: null }, null],
+    [{}, null],
+  ])("%j serves %s", (facts: JSONObject, count: number | null) => {
+    expect(getOpenStackDhcpNetworkCount(rowWith("x", facts))).toBe(count);
+  });
+
+  test.each<[JSONObject, Array<string>]>([
+    [{ dhcpAgentIds: ["a", "b"] }, ["a", "b"]],
+    [{ dhcpAgentIds: null }, []],
+    [{}, []],
+    [{ dhcpAgentIds: "a" }, []],
+    [{ dhcpAgentIds: ["a", 1, null] }, ["a"]],
+  ])("%j reads %j", (facts: JSONObject, ids: Array<string>) => {
+    expect(getOpenStackNetworkDhcpAgentIds(rowWith("x", facts))).toEqual(ids);
   });
 });
 

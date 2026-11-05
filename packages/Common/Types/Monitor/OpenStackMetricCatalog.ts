@@ -281,10 +281,11 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_neutron_agent_state",
     friendlyName: translationKey("Network Agent Alive"),
     description:
-      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work.",
+      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work. dhcp_network_count says how many networks a DHCP agent serves: only a probe sends it.",
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Network,
+    probeOnlyAttributes: ["dhcp_network_count"],
     identityAttributes: [
       "id",
       "hostname",
@@ -477,7 +478,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_nova_server_status",
     friendlyName: translationKey("Instance Status"),
     description:
-      "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves address_ipv4 and address_ipv6 empty on a real cloud, and a probe fills them in from the addresses Nova lists. hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled.",
+      "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves address_ipv4 and address_ipv6 empty on a real cloud, and a probe fills them in from the addresses Nova lists. hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled. image_id names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
     category: "Compute",
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
@@ -496,7 +497,12 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "flavor_id",
       "instance_libvirt",
     ],
-    probeOnlyAttributes: ["task_state", "updated_at", "fault_message"],
+    probeOnlyAttributes: [
+      "task_state",
+      "updated_at",
+      "fault_message",
+      "image_id",
+    ],
   }),
   metric({
     metricName: "openstack_nova_server_local_gb",
@@ -652,6 +658,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   metric({
     metricName: "openstack_neutron_network",
     friendlyName: translationKey("Network Info"),
+    probeOnlyAttributes: ["dhcp_agent_ids"],
     description:
       "One series per network, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, DOWN is 2, ERROR is 3. Whether it is external is in the is_external label.",
     category: "Network",
@@ -1652,7 +1659,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: OpenStackInstanceMetric.CpuContention,
     friendlyName: translationKey("Instance CPU Contention"),
     description:
-      "How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter, and from Ceilometer on releases that have its cpu.delay meter.",
+      "How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter. No released Ceilometer has its cpu.delay meter yet, and it is read when one does.",
     identityAttributes: INSTANCE_LABELS,
   }),
   usage({
@@ -1666,7 +1673,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: OpenStackInstanceMetric.MemoryResident,
     friendlyName: translationKey("Instance Memory on Host"),
     description:
-      "What the instance really holds of its hypervisor's memory, whatever the guest says it is using.",
+      "What the instance really holds of its hypervisor's memory, whatever the guest says it is using, which is more than its flavor's size because QEMU itself is in it.",
     identityAttributes: INSTANCE_LABELS,
   }),
   usage({
