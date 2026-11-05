@@ -550,6 +550,26 @@ describe("the kind a span is stored with", () => {
     ).toBe("SPAN_KIND_CLIENT");
   });
 
+  test("the wrapper oslo.messaging puts around a method is where the work enters", () => {
+    expect(
+      readOpenStackDriverSpanKind({
+        kind: "SPAN_KIND_INTERNAL",
+        name: "rpc",
+        attributes: {
+          name: "oslo_messaging.rpc.server.expected_exceptions.<locals>.outer.<locals>.inner",
+        },
+      }),
+    ).toBe("SPAN_KIND_CONSUMER");
+    expect(
+      readOpenStackDriverSpanName({
+        name: "rpc",
+        attributes: {
+          name: "oslo_messaging.rpc.server.expected_exceptions.<locals>.outer.<locals>.inner",
+        },
+      }),
+    ).toBe("rpc server.expected_exceptions");
+  });
+
   test("with nothing to go on, what the driver said stands", () => {
     expect(
       readOpenStackDriverSpanKind({

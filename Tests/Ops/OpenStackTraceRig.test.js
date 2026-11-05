@@ -427,6 +427,117 @@ describe("what the scenes with nothing signed made", () => {
   });
 });
 
+describe("a hang costs its step alone", () => {
+  const PUT_BACK = path.join(RIG, "traces-put-back.sh");
+  const workflow = fs.readFileSync(
+    path.resolve(__dirname, "..", "..", ".github/workflows/test.openstack-e2e.yaml"),
+    "utf8",
+  );
+  const script = fs.readFileSync(RECORD, "utf8");
+
+  function stubs(calls) {
+    const bin = path.join(folder, "bin");
+
+    fs.mkdirSync(bin, { recursive: true });
+
+    const stub = (name, body) => {
+      fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\n${body}\n`, {
+        mode: 0o755,
+      });
+    };
+
+    stub("sudo", 'exec "$@"');
+    stub("timeout", 'shift; exec "$@"');
+    stub("systemctl", `echo "systemctl $*" >> "${calls}"`);
+    stub("docker", `echo "docker $*" >> "${calls}"`);
+
+    return bin;
+  }
+
+  function putBack(saved, bin) {
+    return spawnSync("bash", [PUT_BACK, saved], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    });
+  }
+
+  test("what a killed step left is put back, and the cloud restarted", () => {
+    const calls = path.join(folder, "calls");
+    const bin = stubs(calls);
+    const saved = path.join(folder, "saved");
+    const conf = write("etc/nova.conf", "[profiler]\nenabled = True\n");
+
+    fs.mkdirSync(saved);
+    fs.writeFileSync(
+      path.join(saved, conf.split("/").join("_")),
+      "[DEFAULT]\nas = it was\n",
+    );
+    fs.writeFileSync(path.join(saved, "manifest"), `${conf}\n`);
+
+    const result = putBack(saved, bin);
+
+    expect(result.status).toBe(0);
+    expect(fs.readFileSync(conf, "utf8")).toBe("[DEFAULT]\nas = it was\n");
+    expect(fs.readFileSync(calls, "utf8")).toContain(
+      "systemctl restart devstack@*",
+    );
+    expect(fs.readFileSync(calls, "utf8")).toContain(
+      "docker rm -f ou-openstack-traces",
+    );
+    expect(fs.existsSync(saved)).toBe(false);
+  });
+
+  test("a step that ended well leaves it nothing to do, and no restart", () => {
+    const calls = path.join(folder, "calls");
+    const bin = stubs(calls);
+    const result = putBack(path.join(folder, "never-made"), bin);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("left nothing to put back");
+    expect(fs.existsSync(calls)).toBe(false);
+  });
+
+  test("the workflow runs it whatever became of the step, and before the logs", () => {
+    const putBackStep = workflow.indexOf("Put back whatever the traces step left");
+    const logsStep = workflow.indexOf(
+      "Record service logs, notifications and audit events",
+    );
+
+    expect(putBackStep).toBeGreaterThan(
+      workflow.indexOf("Record what OSProfiler's driver sends"),
+    );
+    expect(logsStep).toBeGreaterThan(putBackStep);
+    expect(workflow.slice(putBackStep, logsStep)).toContain(
+      "if: ${{ always() && matrix.traces }}",
+    );
+  });
+
+  test("the script stops itself before the step's limit can, and clears the way out", () => {
+    const limit = Number(
+      workflow
+        .slice(workflow.indexOf("Record what OSProfiler's driver sends"))
+        .match(/timeout-minutes: (\d+)/)[1],
+    );
+    const stopsAfter = Number(script.match(/^STOP_AFTER=(\d+)$/m)[1]);
+    const scenesWithin = Number(script.match(/^SCENES_WITHIN=(\d+)$/m)[1]);
+
+    expect(stopsAfter).toBeLessThan(limit * 60 - 300);
+    expect(scenesWithin).toBeLessThan(stopsAfter);
+    expect(script).toContain("watch_the_clock");
+    // It only removes what the put-back needs once the cloud has been put back.
+    expect(script.indexOf('sudo rm -rf "$SAVED_DIR"\n\n  log "What was recorded"')).toBeGreaterThan(
+      script.indexOf("restart_services\n  # Only now"),
+    );
+  });
+
+  test("nothing that restarts the cloud can wait for ever", () => {
+    expect(script).toContain(
+      "sudo timeout \"$COMES_BACK_WITHIN\" systemctl restart 'devstack@*'",
+    );
+    expect(script).not.toMatch(/^\s*sudo systemctl restart/m);
+  });
+});
+
 describe("the scenes", () => {
   const script = fs.readFileSync(RECORD, "utf8");
 

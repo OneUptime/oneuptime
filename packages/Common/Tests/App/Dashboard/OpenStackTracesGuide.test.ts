@@ -148,8 +148,12 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
     expect(steps[steps.length - 1]!.title).toBe("Sign a request");
   });
 
-  test("it warns about the newest release, where the rig's cloud did not come back", () => {
-    expect(guideOf(tool).intro).toContain("On OpenStack 2026.2");
+  test("it warns about the SDK version that hung the rig's cloud, and asks for less", () => {
+    expect(guideOf(tool).intro).toContain("below version 1.44");
+    expect(guideOf(tool).intro).toContain("opentelemetry-python/issues/5789");
+    expect(
+      stepTitled(tool, "Give each service the libraries").markdown,
+    ).toContain("<1.44");
   });
 
   test("it is straight about what OSProfiler is, before anything else", () => {
@@ -190,6 +194,10 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
       expect(intro).toContain(service);
       expect(cannotShow).toContain(service);
     }
+
+    // What differs by release is said by release.
+    expect(cannotShow).toContain("on 2025.2");
+    expect(cannotShow).toContain("On 2026.2");
   });
 
   test("it gives Placement's one line, and says what it means to keep it", () => {
@@ -197,6 +205,7 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
 
     expect(placement).toContain(OPENSTACK_PLACEMENT_PATCH);
     expect(placement).toContain("placement.wsgi");
+    expect(placement).toContain("run on 2025.2 and on 2026.2");
   });
 
   test("it says what one worker each costs, and how, on this tool", () => {
@@ -207,6 +216,7 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
 
     expect(oneWorker).toContain("test cloud");
     expect(oneWorker).toContain("capacity");
+    expect(oneWorker).toContain("That was run on 2025.2");
     expect(oneWorker.toLowerCase()).toContain("workers");
   });
 
@@ -348,7 +358,7 @@ describe("what is true of each tool", () => {
 });
 
 describe("the one line Placement needs", () => {
-  test("is exactly what the rig applies to a real Placement", () => {
+  test("is exactly what the rig applied to a real Placement before a span of its arrived", () => {
     const script: string = fs.readFileSync(
       path.join(
         __dirname,

@@ -939,6 +939,14 @@ jobs:
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
+      # Whatever became of the step above, including its limit killing it: a hang there must not
+      # leave OSProfiler on for the steps after it.
+      - name: Put back whatever the traces step left
+        if: ${{ always() && matrix.traces }}
+        continue-on-error: true
+        timeout-minutes: 10
+        run: bash Tests/Ops/openstack-e2e/traces-put-back.sh
+
       # Last, because it changes every service's config and breaks things of its own, and
       # on its own, so that a problem here still leaves the drills recorded.
       # With a limit of its own, as the traces have, so that a cloud it has broken costs this

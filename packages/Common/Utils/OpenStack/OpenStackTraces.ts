@@ -644,7 +644,11 @@ export function getOpenStackPathInSpanName(path: string): string {
  * build_and_run_instance reads ComputeManager.build_and_run_instance. The whole of it stays
  * in the `name` attribute.
  */
-function getShortFunctionName(functionName: string): string {
+function getShortFunctionName(wholeName: string): string {
+  // A closure: oslo_messaging.rpc.server.expected_exceptions.<locals>.outer.<locals>.inner
+  const closure: number = wholeName.indexOf(".<locals>");
+  const functionName: string =
+    closure === -1 ? wholeName : wholeName.slice(0, closure);
   const last: number = functionName.lastIndexOf(".");
 
   if (last <= 0) {
@@ -727,7 +731,11 @@ export function readOpenStackDriverSpanKind(data: {
       return SPAN_KIND_PRODUCER;
     }
 
-    if (functionName.includes(".manager.")) {
+    // nova-scheduler's is the wrapper oslo.messaging puts around the method, and is all it sends.
+    if (
+      functionName.includes(".manager.") ||
+      functionName.startsWith("oslo_messaging.rpc.server.")
+    ) {
       return SPAN_KIND_CONSUMER;
     }
   }
@@ -1218,12 +1226,13 @@ export enum OpenStackTraceGap {
    */
   DriverCannotStart = "driver-cannot-start",
   /*
-   * It makes its driver and then forks its workers, and nothing made in a worker arrived. One
-   * worker runs in the process that made the driver, so nothing has to survive a fork, which the
-   * rig's signed-boot-whole scene is there to prove.
+   * On eventlet it makes its driver and then forks its workers, and nothing made in a worker
+   * arrived. One worker runs in the process that made the driver, so nothing has to survive a
+   * fork, which the rig's signed-boot-whole scene proved on 2025.2. On 2026.2 they run on threads
+   * and send spans as they are, and a page then simply lists them as sent.
    */
   ForkedWorkers = "forked-workers",
-  // The same, with no setting for it: cinder-volume starts a forked process per backend.
+  // The same, with no setting for it: on 2025.2 cinder-volume forks a process per backend.
   AlwaysForks = "always-forks",
 }
 

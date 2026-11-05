@@ -124,7 +124,11 @@ PASTE_FILES=(
 )
 # A service's config that OSProfiler stays off in, once it has shown it cannot start with it on.
 declare -A NOT_TRACED_CONFS=()
-SAVED_DIR="$(mktemp -d)"
+# Beside the run rather than somewhere random, because traces-put-back.sh has to find it if this
+# script is killed before it can put anything back itself.
+SAVED_DIR="${RUNNER_TEMP:-/tmp}/traces-record-saved"
+sudo rm -rf "$SAVED_DIR"
+sudo mkdir -p "$SAVED_DIR"
 PLACEMENT_WSGI="$("$VENV/bin/python" -I -c 'import placement.wsgi as module; print(module.__file__)' 2>/dev/null || true)"
 OSPROFILER_OPTS="$("$VENV/bin/python" -I -c 'import osprofiler.opts as module; print(module.__file__)' 2>/dev/null || true)"
 
@@ -137,6 +141,7 @@ save_files() {
   for file in "$@"; do
     if [ -n "$file" ] && sudo test -f "$file"; then
       sudo cp -p "$file" "$(saved_name "$file")"
+      printf '%s\n' "$file" | sudo tee -a "$SAVED_DIR/manifest" >/dev/null
     fi
   done
 }
@@ -235,13 +240,38 @@ ONE_READ_WITHIN=30
 # Past this no scene starts, which leaves the end of the script the time to put the cloud back
 # and write down what happened, inside the step's own limit.
 SCENES_WITHIN=3600
+# The step's limit is 75 minutes and kills this where it stands, so this stops itself well before
+# that. A TERM runs `finish`, but only once the command in hand has returned, so what is running
+# goes too.
+STOP_AFTER=3900
+
+stop_everything_under() {
+  local child
+  for child in $(pgrep -P "$1" 2>/dev/null); do
+    if [ "$child" != "$BASHPID" ]; then
+      stop_everything_under "$child"
+      kill -TERM "$child" 2>/dev/null || true
+    fi
+  done
+}
+
+watch_the_clock() {
+  local script_pid="$$"
+  (
+    sleep "$STOP_AFTER"
+    echo "This has run for too long: stopping it, so it can put the cloud back." >&2
+    kill -TERM "$script_pid" 2>/dev/null || true
+    stop_everything_under "$script_pid"
+  ) &
+  WATCHDOG_PID=$!
+}
 
 # Every part a boot needs, because a restart brings them back one at a time.
 answers_now() {
   timeout "$ONE_READ_WITHIN" openstack compute service list --service nova-compute -f value -c State 2>/dev/null | grep -q '^up$' \
     && timeout "$ONE_READ_WITHIN" openstack network list -f value -c ID >/dev/null 2>&1 \
     && timeout "$ONE_READ_WITHIN" openstack image list -f value -c ID >/dev/null 2>&1 \
-    && timeout "$ONE_READ_WITHIN" openstack volume service list -f value -c State 2>/dev/null | grep -q '^up$'
+    && timeout "$ONE_READ_WITHIN" openstack volume service list --service cinder-volume -f value -c State 2>/dev/null | grep -q '^up$'
 }
 
 wait_until_answers() {
@@ -643,9 +673,9 @@ finish() {
   local code=$?
   trap - EXIT INT TERM
   set +e
+  kill "${WATCHDOG_PID:-}" 2>/dev/null
   log "Putting the cloud back"
   restore_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}" "$PLACEMENT_WSGI" "$OSPROFILER_OPTS"
-  sudo rm -rf "$SAVED_DIR"
   clear_what_is_stuck
   (
     export OS_PROJECT_NAME=ou-payments
@@ -657,6 +687,8 @@ finish() {
     timeout "$ONE_READ_WITHIN" openstack volume delete ou-trace-vol >/dev/null 2>&1
   )
   restart_services
+  # Only now: until the restart has happened, traces-put-back.sh still has work to do.
+  sudo rm -rf "$SAVED_DIR"
 
   log "What was recorded"
   # Its last batch has a few seconds to reach the file.
@@ -681,6 +713,7 @@ finish() {
   exit "$HOLDS"
 }
 trap finish EXIT INT TERM
+watch_the_clock
 
 # ----------------------------------------------------------------------------
 # The phases
@@ -731,8 +764,21 @@ fi
   "$VENV/bin/pip" list 2>/dev/null | grep -iE '^(opentelemetry-|protobuf|grpcio)' || true
 } >>"$TRACES_DIR/versions.txt"
 if ! restart_services; then
-  log "The cloud did not come back with the driver on"
-  find_what_starts_with_the_driver
+  # OpenTelemetry's SDK added a fork handler in 1.44, the version 2026.2 pins, which never comes
+  # back from a fork made with a preexec_fn, as oslo.concurrency's are (open-telemetry/
+  # opentelemetry-python#5789). stuck/restart-1 says where each process was. This is what the
+  # guide says to install, so whether it answers is what this finds out.
+  log "The cloud did not come back with the driver on: below the SDK that added the fork handler"
+  {
+    echo
+    echo "That did not come back from a restart. What is installed in its place:"
+  } >>"$TRACES_DIR/versions.txt"
+  sudo "$VENV/bin/pip" install 'opentelemetry-sdk<1.44' 'opentelemetry-exporter-otlp<1.44' >>"$TRACES_DIR/pip-install.txt" 2>&1 || true
+  "$VENV/bin/pip" list 2>/dev/null | grep -iE '^(opentelemetry-|protobuf|grpcio)' >>"$TRACES_DIR/versions.txt" || true
+  if ! restart_services; then
+    log "It did not come back with that either"
+    find_what_starts_with_the_driver
+  fi
 fi
 
 EXPECT_NO_SPANS=true MUST_SUCCEED=true scene unsigned-list scene_unsigned_list

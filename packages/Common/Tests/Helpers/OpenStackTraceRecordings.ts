@@ -95,6 +95,19 @@ export class OpenStackTraceRecording {
     return readRecordedSpans(this.otlp(name, folder));
   }
 
+  /*
+   * Whether this release's boot could have Neutron in it: on 2026.2 with OpenTelemetry's SDK at
+   * 1.44, Neutron's API hangs with the driver on, so the rig left it off.
+   */
+  public neutronWasLeftOut(): boolean {
+    return (
+      this.has("which-services-start.txt") &&
+      this.text("which-services-start.txt").includes(
+        "devstack@neutron-rpc-server): no",
+      )
+    );
+  }
+
   public instance(key: string): { id: string; name: string } {
     return this.json<{ id: string; name: string }>(
       `context/${key}-server.json`,
