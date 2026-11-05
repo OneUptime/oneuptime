@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45172,
-    "untranslated": 11570
+    "keys": 45190,
+    "untranslated": 11565
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -199,6 +199,7 @@
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
+    "writesets",
     "x86",
     "z",
     "{{count}} CPU",

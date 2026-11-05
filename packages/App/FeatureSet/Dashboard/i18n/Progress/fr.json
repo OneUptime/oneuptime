@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45172,
-    "untranslated": 6626
+    "keys": 45190,
+    "untranslated": 6621
   },
   "sameAsEnglish": [
     " incidents",
@@ -304,6 +304,7 @@
     "Lesotho",
     "Liberia",
     "Liechtenstein",
+    "Listeners",
     "Local",
     "Log4Shell",
     "Logo",
@@ -661,6 +662,7 @@
     "volume",
     "volumes",
     "workflow",
+    "writesets",
     "x86",
     "z",
     "zone",

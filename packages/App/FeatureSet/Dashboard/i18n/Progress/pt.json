@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45172,
-    "untranslated": 11616
+    "keys": 45190,
+    "untranslated": 11611
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -144,6 +144,7 @@
     "Link-local",
     "Links",
     "Listener",
+    "Listeners",
     "Local",
     "Log4Shell",
     "Loopback",
@@ -411,6 +412,7 @@
     "vertical pod autoscaler",
     "volume",
     "volumes",
+    "writesets",
     "x86",
     "z",
     "{{count}} B",

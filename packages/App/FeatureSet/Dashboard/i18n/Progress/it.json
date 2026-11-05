@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45172,
-    "untranslated": 11633
+    "keys": 45190,
+    "untranslated": 11628
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -433,6 +433,7 @@
     "vertical pod autoscaler",
     "volume",
     "workflow",
+    "writesets",
     "x86",
     "z",
     "{{controlPlane}} control plane, {{workers}}",

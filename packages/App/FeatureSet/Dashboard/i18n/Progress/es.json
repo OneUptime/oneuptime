@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45172,
-    "untranslated": 2831
+    "keys": 45190,
+    "untranslated": 2826
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -246,6 +246,7 @@
     "Legal",
     "Liberia",
     "Liechtenstein",
+    "Listeners",
     "Local",
     "Log4Shell",
     "Loopback",
@@ -609,6 +610,7 @@
     "warn",
     "web-.*",
     "weekend-.*",
+    "writesets",
     "x86",
     "you@company.com",
     "z",

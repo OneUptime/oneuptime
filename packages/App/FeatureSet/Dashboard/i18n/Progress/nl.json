@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45172,
-    "untranslated": 11664
+    "keys": 45190,
+    "untranslated": 11659
   },
   "sameAsEnglish": [
     " is",
@@ -221,6 +221,7 @@
     "Labels",
     "Link-local",
     "Listener",
+    "Listeners",
     "Live",
     "Locks",
     "Log4Shell",
@@ -625,6 +626,7 @@
     "volumes",
     "workflow",
     "workload",
+    "writesets",
     "x86",
     "z",
     "zone",
