@@ -177,6 +177,10 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.OpenStack,
+    /*
+     * The metric templates, and what a cloud's own services write and say:
+     * Logs monitors scoped to the cloud (OpenStackLogAlertTemplates).
+     */
     monitorTypes: [MonitorType.OpenStack, MonitorType.Logs],
     templateCount:
       getAllOpenStackAlertTemplates().length +
