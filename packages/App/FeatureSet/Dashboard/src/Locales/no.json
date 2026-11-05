@@ -45232,5 +45232,13 @@
   "Pick from the list": "Velg fra listen",
   "Pick from the list instead": "Velg fra listen i stedet",
   "There is nothing to pick from yet.": "Det er ingenting å velge mellom ennå.",
-  "Use “{{value}}”": "Bruk «{{value}}»"
+  "Use “{{value}}”": "Bruk «{{value}}»",
+  "Custom fields": "Egendefinerte felt",
+  "Custom field": "Egendefinert felt",
+  "This project has no custom field with this name.": "Dette prosjektet har ikke noe egendefinert felt med dette navnet.",
+  "Any custom field": "Hvilket som helst egendefinert felt",
+  "Passes on every custom field: {{fields}}": "Sender videre alle egendefinerte felt: {{fields}}",
+  "Choice": "Valg",
+  "Choices": "Flere valg",
+  "This project has no custom fields for these records yet.": "Dette prosjektet har ennå ingen egendefinerte felt for disse postene."
 }

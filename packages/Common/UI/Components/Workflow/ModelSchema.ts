@@ -10,11 +10,26 @@
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
+import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { CustomFieldDropdownOption } from "../../../Types/CustomField/CustomFieldDropdownOption";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
 import { WORKFLOW_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import { useEffect, useState } from "react";
+
+/*
+ * One of the project's custom fields, which the builder lists as a field of the
+ * record (CustomFields/CustomFieldColumns). What it is called and what it takes
+ * come from its definition, not from the model: the model has one column for
+ * all of them.
+ */
+export interface ModelSchemaCustomField {
+  name: string;
+  customFieldType?: CustomFieldType | undefined;
+  // A Dropdown or Multi Select Dropdown's options.
+  options: Array<CustomFieldDropdownOption>;
+}
 
 /**
  * A column as the endpoint describes it. `type` is deliberately a bare string
@@ -44,6 +59,8 @@ export interface ModelSchemaColumn {
   linkedTableName?: string | undefined;
   // What such a setting is called: Incident Severity, not Incident Severity ID.
   linkedTitle?: string | undefined;
+  // Set on a custom field, which is listed as a column of its own.
+  customField?: ModelSchemaCustomField | undefined;
   /*
    * Present from the endpoint, absent on anything cached or hand-built before
    * they existed, so every reader must treat them as optional.

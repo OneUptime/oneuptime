@@ -542,6 +542,7 @@ const customFieldsTopic: TopicFunction = (
     paragraphs: [
       `\`${CUSTOM_FIELDS_COLUMN}\` holds the ${words.one}'s custom fields, each under its name. Only the ones you name change. Every other custom field keeps its value.`,
       `To clear one, set it to \`null\`. To clear them all, set \`${CUSTOM_FIELDS_COLUMN}\` itself to \`null\`.`,
+      `You rarely write this by hand: Add a field lists each custom field by its name, with the control its type takes. Clearing one is the part that needs Edit as JSON.`,
     ],
     example: {
       title: "Data (JSON Object)",

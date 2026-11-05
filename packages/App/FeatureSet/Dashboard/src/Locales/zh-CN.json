@@ -45232,5 +45232,13 @@
   "Pick from the list": "从列表中选择",
   "Pick from the list instead": "改为从列表中选择",
   "There is nothing to pick from yet.": "还没有可选择的内容。",
-  "Use “{{value}}”": "使用“{{value}}”"
+  "Use “{{value}}”": "使用“{{value}}”",
+  "Custom fields": "自定义字段",
+  "Custom field": "自定义字段",
+  "This project has no custom field with this name.": "此项目没有使用此名称的自定义字段。",
+  "Any custom field": "任意自定义字段",
+  "Passes on every custom field: {{fields}}": "传递所有自定义字段：{{fields}}",
+  "Choice": "选项",
+  "Choices": "多个选项",
+  "This project has no custom fields for these records yet.": "此项目还没有用于这些记录的自定义字段。"
 }

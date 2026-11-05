@@ -45232,5 +45232,13 @@
   "Pick from the list": "Выберите из списка",
   "Pick from the list instead": "Вместо этого выбрать из списка",
   "There is nothing to pick from yet.": "Пока не из чего выбирать.",
-  "Use “{{value}}”": "Использовать «{{value}}»"
+  "Use “{{value}}”": "Использовать «{{value}}»",
+  "Custom fields": "Настраиваемые поля",
+  "Custom field": "Настраиваемое поле",
+  "This project has no custom field with this name.": "В этом проекте нет настраиваемого поля с таким именем.",
+  "Any custom field": "Любое настраиваемое поле",
+  "Passes on every custom field: {{fields}}": "Передаёт все настраиваемые поля: {{fields}}",
+  "Choice": "Выбор",
+  "Choices": "Несколько вариантов",
+  "This project has no custom fields for these records yet.": "В этом проекте пока нет настраиваемых полей для этих записей."
 }

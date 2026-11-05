@@ -45232,5 +45232,13 @@
   "Pick from the list": "Kies uit de lijst",
   "Pick from the list instead": "Kies in plaats daarvan uit de lijst",
   "There is nothing to pick from yet.": "Er is nog niets om uit te kiezen.",
-  "Use “{{value}}”": "“{{value}}” gebruiken"
+  "Use “{{value}}”": "“{{value}}” gebruiken",
+  "Custom fields": "Aangepaste velden",
+  "Custom field": "Aangepast veld",
+  "This project has no custom field with this name.": "Dit project heeft geen aangepast veld met deze naam.",
+  "Any custom field": "Elk aangepast veld",
+  "Passes on every custom field: {{fields}}": "Geeft elk aangepast veld door: {{fields}}",
+  "Choice": "Keuze",
+  "Choices": "Keuzes",
+  "This project has no custom fields for these records yet.": "Dit project heeft nog geen aangepaste velden voor deze records."
 }

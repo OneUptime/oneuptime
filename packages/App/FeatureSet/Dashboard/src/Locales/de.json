@@ -45232,5 +45232,13 @@
   "Pick from the list": "Aus der Liste auswählen",
   "Pick from the list instead": "Stattdessen aus der Liste auswählen",
   "There is nothing to pick from yet.": "Es gibt noch nichts zur Auswahl.",
-  "Use “{{value}}”": "„{{value}}“ verwenden"
+  "Use “{{value}}”": "„{{value}}“ verwenden",
+  "Custom fields": "Benutzerdefinierte Felder",
+  "Custom field": "Benutzerdefiniertes Feld",
+  "This project has no custom field with this name.": "Dieses Projekt hat kein benutzerdefiniertes Feld mit diesem Namen.",
+  "Any custom field": "Beliebiges benutzerdefiniertes Feld",
+  "Passes on every custom field: {{fields}}": "Gibt jedes benutzerdefinierte Feld weiter: {{fields}}",
+  "Choice": "Auswahl",
+  "Choices": "Mehrfachauswahl",
+  "This project has no custom fields for these records yet.": "Dieses Projekt hat noch keine benutzerdefinierten Felder für diese Datensätze."
 }

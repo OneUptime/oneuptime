@@ -45232,5 +45232,13 @@
   "Pick from the list": "सूची से चुनें",
   "Pick from the list instead": "इसके बजाय सूची से चुनें",
   "There is nothing to pick from yet.": "अभी चुनने के लिए कुछ नहीं है।",
-  "Use “{{value}}”": "“{{value}}” का उपयोग करें"
+  "Use “{{value}}”": "“{{value}}” का उपयोग करें",
+  "Custom fields": "कस्टम फ़ील्ड",
+  "Custom field": "कस्टम फ़ील्ड",
+  "This project has no custom field with this name.": "इस प्रोजेक्ट में इस नाम का कोई कस्टम फ़ील्ड नहीं है।",
+  "Any custom field": "कोई भी कस्टम फ़ील्ड",
+  "Passes on every custom field: {{fields}}": "सभी कस्टम फ़ील्ड आगे भेजता है: {{fields}}",
+  "Choice": "विकल्प",
+  "Choices": "कई विकल्प",
+  "This project has no custom fields for these records yet.": "इस प्रोजेक्ट में इन रिकॉर्ड के लिए अभी कोई कस्टम फ़ील्ड नहीं है।"
 }

@@ -45232,5 +45232,13 @@
   "Pick from the list": "リストから選択",
   "Pick from the list instead": "代わりにリストから選択",
   "There is nothing to pick from yet.": "選択できるものはまだありません。",
-  "Use “{{value}}”": "「{{value}}」を使用"
+  "Use “{{value}}”": "「{{value}}」を使用",
+  "Custom fields": "カスタムフィールド",
+  "Custom field": "カスタムフィールド",
+  "This project has no custom field with this name.": "このプロジェクトには、この名前のカスタムフィールドはありません。",
+  "Any custom field": "任意のカスタムフィールド",
+  "Passes on every custom field: {{fields}}": "すべてのカスタムフィールドを渡します: {{fields}}",
+  "Choice": "選択肢",
+  "Choices": "複数の選択肢",
+  "This project has no custom fields for these records yet.": "このプロジェクトには、これらのレコードのカスタムフィールドはまだありません。"
 }

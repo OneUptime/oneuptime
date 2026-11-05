@@ -40,6 +40,7 @@ import {
   literalFitsControl,
 } from "./ColumnEditor/ColumnControl";
 import {
+  isCustomFieldBag,
   rowsFromParsedValue,
   seedRequiredRows,
   serializeColumnRows,
@@ -47,12 +48,21 @@ import {
 import ModelQueryBuilder from "./ColumnEditor/ModelQueryBuilder";
 import ModelRecordForm from "./ColumnEditor/ModelRecordForm";
 import { ColumnUse } from "./ColumnEditor/ColumnUse";
+import { withCustomFieldColumns } from "./CustomFields/CustomFieldColumns";
+import useCustomFields, {
+  CustomFieldsState,
+} from "./CustomFields/UseCustomFields";
 import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import WorkflowViewOnlyFieldset from "./WorkflowViewOnlyFieldset";
 import CodeType from "../../../Types/Code/CodeType";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
+import {
+  CUSTOM_FIELDS_COLUMN,
+  getCustomFieldColumnId,
+  getCustomFieldName,
+} from "../../../Types/Workflow/CustomFieldsColumn";
 import { maskTemplateExpressions } from "../../../Types/Workflow/TemplateSyntax";
 import React, {
   FunctionComponent,
@@ -98,6 +108,11 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   /** Record mode only; ignored for a query. Defaults to Create. */
   recordIntent?: RecordIntent | undefined;
+  /*
+   * Offer only the record's custom fields: a setting that holds nothing else,
+   * From Another Tool's Custom Fields (CustomFields/CustomFieldsArgumentEditor).
+   */
+  customFieldsOnly?: boolean | undefined;
 }
 
 type ViewMode = "builder" | "json";
@@ -231,6 +246,32 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
   mode: ModelColumnEditorMode,
   hasTemplateExpressions?: boolean | undefined,
 ): CompatibilityResult => {
+  /*
+   * A bag of custom fields is a row for each, so each is what is asked about.
+   * Only where the model has the column: with no schema to go by it stays JSON.
+   */
+  if (
+    parsed &&
+    isCustomFieldBag(parsed[CUSTOM_FIELDS_COLUMN]) &&
+    findColumn(columns, CUSTOM_FIELDS_COLUMN)
+  ) {
+    const bag: JSONObject = parsed[CUSTOM_FIELDS_COLUMN] as JSONObject;
+    const flat: JSONObject = { ...parsed };
+
+    delete flat[CUSTOM_FIELDS_COLUMN];
+
+    for (const name of Object.keys(bag)) {
+      flat[getCustomFieldColumnId(name)] = bag[name] as JSONObject[string];
+    }
+
+    return classifyColumnValueCompatibility(
+      flat,
+      columns,
+      mode,
+      hasTemplateExpressions,
+    );
+  }
+
   if (parsed === null) {
     return {
       compatible: false,
@@ -258,7 +299,11 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
      * does not force the JSON editor, since the runner accepts column names
      * this endpoint does not surface.
      */
-    if (columns.length > 0 && !findColumn(columns, key)) {
+    if (
+      columns.length > 0 &&
+      !findColumn(columns, key) &&
+      getCustomFieldName(key) === null
+    ) {
       reasons.push(
         translateTemplate('"{{key}}" isn\'t a known column on this model.', {
           key: key,
@@ -285,11 +330,15 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
        * A record's list of related records is a row of its own, when it is the
        * list a step writes and nothing more (Types/Workflow/LinkedRecord).
        */
+      const listControl: ModelColumnControl = controlForColumn(
+        findColumn(columns, key),
+      );
+
       if (
         mode === ModelColumnEditorMode.Record &&
-        controlForColumn(findColumn(columns, key)) ===
-          ModelColumnControl.RecordList &&
-        literalFitsControl(ModelColumnControl.RecordList, value)
+        (listControl === ModelColumnControl.RecordList ||
+          listControl === ModelColumnControl.ChoiceList) &&
+        literalFitsControl(listControl, value)
       ) {
         continue;
       }
@@ -429,6 +478,25 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
 
   const schema: ModelSchemaState = useModelSchema(props.tableName, access);
 
+  // The project's custom fields, each listed as a field of the record.
+  const customFields: CustomFieldsState = useCustomFields(props.tableName);
+  const isLoadingColumns: boolean = schema.isLoading || customFields.isLoading;
+
+  const columns: Array<ModelSchemaColumn> = useMemo(() => {
+    const all: Array<ModelSchemaColumn> = withCustomFieldColumns(
+      schema.columns || [],
+      customFields.fields,
+    );
+
+    return props.customFieldsOnly
+      ? all.filter((column: ModelSchemaColumn): boolean => {
+          return (
+            Boolean(column.customField) || column.id === CUSTOM_FIELDS_COLUMN
+          );
+        })
+      : all;
+  }, [schema.columns, customFields.fields, props.customFieldsOnly]);
+
   const initial: ParsedQuery = useMemo(() => {
     return normalizeInitialValue(props.initialValue);
   }, []);
@@ -464,13 +532,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   const compatibility: CompatibilityResult = useMemo(() => {
     return classifyColumnValueCompatibility(
       initial.parsed,
-      schema.columns || [],
+      columns,
       props.mode,
       initial.hasTemplateExpressions,
     );
-  }, [schema.columns, props.mode]);
-
-  const columns: Array<ModelSchemaColumn> = schema.columns || [];
+  }, [columns, props.mode]);
 
   type BuildRowsFunction = (parsed: JSONObject | null) => Array<ModelColumnRow>;
 
@@ -502,14 +568,14 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    if (schema.isLoading || rows !== null) {
+    if (isLoadingColumns || rows !== null) {
       return;
     }
 
     setRows(buildRows(initial.parsed));
-  }, [schema.isLoading, schema.columns]);
+  }, [isLoadingColumns, columns]);
 
-  if (schema.isLoading || rows === null) {
+  if (isLoadingColumns || rows === null) {
     return <ComponentLoader />;
   }
 
@@ -610,7 +676,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   const unknownColumnWarnings: Array<string> = columns.length
     ? rows
         .filter((row: ModelColumnRow) => {
-          return row.columnId !== "" && !findColumn(columns, row.columnId);
+          return (
+            row.columnId !== "" &&
+            !findColumn(columns, row.columnId) &&
+            getCustomFieldName(row.columnId) === null
+          );
         })
         .map((row: ModelColumnRow) => {
           return `"${row.columnId}" isn't a known column on this model.`;
@@ -788,6 +858,7 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
                   : ColumnUse.Update
               }
               onChange={onRowsChange}
+              customFieldsOnly={props.customFieldsOnly}
             />
           )}
         </WorkflowViewOnlyFieldset>
