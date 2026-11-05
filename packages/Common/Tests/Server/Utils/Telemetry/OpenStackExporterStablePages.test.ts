@@ -289,7 +289,7 @@ describe("what the pages go without on exporter 1.7.0", () => {
       ];
 
       expect(lost).toEqual({
-        Hypervisor: ["facts.aggregates", "instanceCount"],
+        Hypervisor: ["instanceCount"],
         Image: [
           "facts.createdAtSeconds",
           "facts.isHidden",
@@ -298,6 +298,30 @@ describe("what the pages go without on exporter 1.7.0", () => {
         ],
         Network: ["facts.mtu"],
       });
+    });
+
+    /*
+     * No row can say this on these clouds, because none of them holds an aggregate and an
+     * empty label says nothing. So it is read from the series: only the pinned exporter
+     * sends any series that names a hypervisor's aggregates at all.
+     */
+    test("a hypervisor's aggregates are on series only the pinned exporter sends", () => {
+      const seriesNamingAggregates: (folder: string) => Array<Series> = (
+        folder: string,
+      ): Array<Series> => {
+        return seriesOf(path.join(FIXTURES, release, "healthy", folder)).filter(
+          (series: Series): boolean => {
+            return (series.datapoint["attributes"] as JSONArray).some(
+              (attribute: unknown): boolean => {
+                return (attribute as JSONObject)["key"] === "aggregates";
+              },
+            );
+          },
+        );
+      };
+
+      expect(seriesNamingAggregates("exporter").length).toBeGreaterThan(0);
+      expect(seriesNamingAggregates("exporter-stable")).toEqual([]);
     });
 
     test("a hypervisor's capacity is still there, from Placement", () => {
@@ -380,7 +404,11 @@ describe("what the pages go without on exporter 1.7.0", () => {
   test.each(WHERE_IT_IS_SAID)(
     "%s says each thing the pages go without",
     (file: string) => {
-      const text: string = fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
+      // In a TypeScript template string a backtick is written with a backslash before it.
+      const text: string = fs
+        .readFileSync(path.join(REPO_ROOT, file), "utf8")
+        .split("\\`")
+        .join("`");
 
       for (const words of [
         "`volumev3`",

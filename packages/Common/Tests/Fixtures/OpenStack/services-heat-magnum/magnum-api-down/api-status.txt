@@ -1,0 +1,3 @@
+503 magnum-clusters
+503 magnum-clustertemplates
+503 magnum-services

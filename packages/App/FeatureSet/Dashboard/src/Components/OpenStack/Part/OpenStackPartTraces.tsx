@@ -6,6 +6,7 @@ import {
   OPENSTACK_CLOUD_SPAN_ATTRIBUTE,
   OPENSTACK_TRACE_RESOURCE_ATTRIBUTES,
   OpenStackTraceAttribute,
+  getOpenStackTraceGap,
   getOpenStackTracedServiceOfApi,
 } from "Common/Utils/OpenStack/OpenStackTraces";
 import {
@@ -32,6 +33,10 @@ const EMPTY_MESSAGE: string =
 
 const EMPTY_SERVICE_MESSAGE: string =
   "No traced request has reached this service. Requests signed with your OSProfiler key appear here: this cloud's Traces page says how.";
+
+// A request does reach it: what it would have sent never leaves it, as OpenStack ships it.
+const EMPTY_GAP_SERVICE_MESSAGE: string =
+  "This service sends no spans as OpenStack ships it, however many requests reach it. This cloud's Traces page says why, and what can be done about it.";
 
 // The word a trace knows this service by, when it is one a trace can name.
 export function getOpenStackPartTracedService(
@@ -97,7 +102,11 @@ const OpenStackPartTraces: FunctionComponent<ComponentProps> = (
           attributeValue: part.cloudName,
         }}
         disableUrlSync={true}
-        emptyMessage={EMPTY_SERVICE_MESSAGE}
+        emptyMessage={
+          getOpenStackTraceGap(service)
+            ? EMPTY_GAP_SERVICE_MESSAGE
+            : EMPTY_SERVICE_MESSAGE
+        }
       />
     );
   }

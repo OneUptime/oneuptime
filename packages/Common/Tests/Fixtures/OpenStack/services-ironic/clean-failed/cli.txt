@@ -1,0 +1,15 @@
+$ openstack hypervisor list
+
+$ openstack baremetal node list --fields name provision_state power_state maintenance maintenance_reason resource_class last_error
++----------------------+-----------------+-------------+-------------+---------------------------------------+----------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| name                 | provision_state | power_state | maintenance | maintenance_reason                    | resource_class | last_error                                                                                                                                        |
++----------------------+-----------------+-------------+-------------+---------------------------------------+----------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| ou-node-available    | available       | None        | False       | None                                  | baremetal      | None                                                                                                                                              |
+| ou-node-half         | enroll          | None        | False       | None                                  | None           | None                                                                                                                                              |
+| ou-node-maintenance  | available       | None        | True        | OneUptime drill: a disk being swapped | baremetal      | None                                                                                                                                              |
+| ou-node-clean-failed | clean failed    | None        | False       | None                                  | baremetal      | Cannot clean node 9654dc06-7244-447a-9e3e-b4c2ec239a6c: node does not support this clean step: {'interface': 'deploy', 'step': 'ou_no_such_step'} |
++----------------------+-----------------+-------------+-------------+---------------------------------------+----------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+$ openstack baremetal conductor list
+Access was denied to the following resource: baremetal:conductor:get (HTTP 403) (Request-ID: req-11d2f5ff-3c43-4cb5-bb55-93f6f156d452)
+$ openstack baremetal driver list
+"baremetal:driver:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role" requires a scope of ['system'], request was made with project scope. (HTTP 500) (Request-ID: req-183c7186-e4f7-4ddb-827f-77a5a11ed3db)

@@ -38,7 +38,7 @@ Each service is read on its own and at the same time as the others. A Neutron th
 | Logins to Keystone | One for the life of a token, usually an hour | One per scrape |
 | A plain `reader` on one project | That project's instances, volumes and networks | That project's volumes and networks, and no instances |
 
-Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin.
+Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, the image it booted from, whether an operator forced a Nova service down, which networks a DHCP agent serves, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin.
 
 Pick the agent for a cloud past a probe's payload cap, for service logs, for the AI agent, or for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default.
 
@@ -96,7 +96,7 @@ Monitoring must never be what takes a cloud down, so a collection is gentle by c
 - **Backing off.** Asked to wait with a `429` or `Retry-After`, the probe waits. A service that answers `429`, `503` or nothing at all is left alone for a minute, then two, then four, up to half an hour, and its series keep saying it is down while it waits. A slow answer slows the next request.
 - **A refused credential waits longest.** Repeating one is what locks an account, so it waits five minutes, then ten, up to an hour. A credential you corrected is tried at once.
 
-On each collection, with the defaults, a region costs about 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and three more per hypervisor, and, about every five minutes, 5 to Keystone and 1 to Glance. A list longer than a thousand rows takes a call per thousand. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it. A cloud on OVN has none to ask about.
+On each collection, with the defaults, a region costs about 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and three more per hypervisor, and, about every five minutes, 5 to Keystone and 1 to Glance. A list longer than a thousand rows takes a call per thousand. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it, and every ten minutes a call per DHCP agent, at most 20, to ask which networks it serves. A cloud with more DHCP agents goes round them in turns, a cloud past the summary size leaves this out, and a slow Neutron is not asked at all. A cloud on OVN has none to ask about.
 
 Two things are off unless you turn them on, under **Data Collection** on the cloud's **Settings** page, because each costs your cloud more:
 

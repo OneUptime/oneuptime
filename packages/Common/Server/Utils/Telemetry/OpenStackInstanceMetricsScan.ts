@@ -36,7 +36,12 @@ import { OPENSTACK_REGION_ATTRIBUTE } from "./OpenStackSnapshotScan";
  *     polling cycle, five minutes by default. Scraped more often than that, a reading
  *     repeats, then jumps. Dividing by the time between scrapes reads 0, 0, then five times
  *     the truth. So a rate here runs between the moments a value CHANGED, and a repeated
- *     value says nothing new, so adds no row: it costs nothing and lies about nothing.
+ *     value says nothing new, so adds no row: it costs nothing and lies about nothing. The
+ *     first value seen says nothing about when it was polled, so the first change only
+ *     starts the clock: on a real burning vCPU, a poll seen 30 seconds after the first
+ *     scrape read 200%. And what a poll leaves as it was really did nothing: everything about
+ *     an instance is polled together, so once something else about it has moved, a disk that
+ *     hasn't reads 0, at the same pace, rather than saying nothing.
  *
  *   - Ceilometer has no label for a disk or an interface: it names the "resource",
  *     `<uuid>-vda` and `<libvirt name>-<uuid>-<tap>`.
@@ -49,7 +54,20 @@ import { OPENSTACK_REGION_ATTRIBUTE } from "./OpenStackSnapshotScan";
  *     size, so it reads the flavor's memory on any idle instance: allocation dressed as
  *     usage. Usage is what the guest's balloon driver reports, as Ceilometer computes it,
  *     and with no driver in the guest there is no such reading, which is said rather than
- *     guessed. What the instance holds on its host (rss) is always there.
+ *     guessed. What the instance holds on its host (rss) is always there, and it holds
+ *     more than its flavor, because QEMU itself is in it: 177 MiB for a 128 MiB flavor.
+ *
+ *   - libvirt reads a shut-off instance's CPU time as exactly 0, where Ceilometer says
+ *     nothing about it at all. Neither is a reading of an instance doing nothing, so neither
+ *     adds a row, and a hypervisor's totals count only the instances that are running.
+ *
+ *   - Ceilometer's polling.yaml decides what it says at all, and what it ships with leaves
+ *     out vcpus, memory.resident and the disks' latency. So an instance's vCPUs fall back
+ *     on what the inventory says of its flavor, and what no source says stays unsaid.
+ *
+ *   - libvirt's exporter leaves a CD-ROM's counters out, which is a config drive's hda on
+ *     every instance that has one, and Ceilometer doesn't. A real disk can have that name
+ *     too, so nothing here guesses: one more device reads 0 from Ceilometer.
  *
  * Rates need the last reading, so they keep state between batches: one value per exporter
  * (the caller keeps it in Redis, and this file is pure). A cumulative counter's rate over a
@@ -57,8 +75,9 @@ import { OPENSTACK_REGION_ATTRIBUTE } from "./OpenStackSnapshotScan";
  * that much since. What is too old to be a rate of now starts again, rather than averaging
  * a day into one sample.
  *
- * Every reading here was first written from the two exporters' source code and is held to
- * real recordings: Tests/Ops/openstack-e2e/instance-metrics.sh.
+ * All of this is held to real recordings of both sources, on every release the rig runs:
+ * Tests/Ops/openstack-e2e/instance-metrics.sh and instance-metrics-drill.sh, replayed by
+ * OpenStackInstanceMetricsRecordings.test.ts.
  */
 
 export const OPENSTACK_INSTANCE_METRICS_SCOPE_NAME: string =
@@ -76,9 +95,12 @@ export const OPENSTACK_LIBVIRT_LONGEST_GAP_MS: number = 15 * 60 * 1000;
 export const OPENSTACK_CEILOMETER_QUIET_MS: number = 11 * 60 * 1000;
 export const OPENSTACK_CEILOMETER_LONGEST_GAP_MS: number = 31 * 60 * 1000;
 
-// What a hypervisor's total adds up: an instance that has reported this recently.
-const LIBVIRT_FRESH_MS: number = 3 * 60 * 1000;
-const CEILOMETER_FRESH_MS: number = OPENSTACK_CEILOMETER_QUIET_MS;
+/*
+ * What a hypervisor's total adds up: an instance its exporter has said anything of this recently.
+ * Either source repeats itself every minute it is read, so this is a few missed scrapes. Ceilometer
+ * goes on saying an instance's last values until a poll finds it gone.
+ */
+const HYPERVISOR_TOTAL_FRESH_MS: number = 3 * 60 * 1000;
 
 const BYTES_PER_MIB: number = 1024 * 1024;
 const NANOSECONDS_PER_SECOND: number = 1e9;
@@ -217,11 +239,12 @@ export const OPENSTACK_CEILOMETER_SERIES: ReadonlyMap<string, SeriesReading> =
       "ceilometer_cpu",
       { reading: Reading.CpuTime, scale: 1 / NANOSECONDS_PER_SECOND },
     ],
+    // Only on Ceilometer's master branch so far: no stable release has this pollster.
     [
       "ceilometer_cpu_delay",
       { reading: Reading.CpuDelay, scale: 1 / NANOSECONDS_PER_SECOND },
     ],
-    // MB before 2025.2 and MiB after: the same number, in a label that was corrected.
+    // MB through 2025.2 and MiB after: the same number, in a label that was corrected.
     [
       "ceilometer_memory_usage",
       { reading: Reading.MemoryUsage, scale: BYTES_PER_MIB },
@@ -513,10 +536,12 @@ export function readOpenStackInstanceMetricSamples(
  */
 
 /*
- * The last of one series. [time of this value, value, time last seen, rate at that time].
- * Short because a compute node's whole state is one value in Redis.
+ * The last of one series. [time of this value, value, time last seen, rate at that time], and
+ * for a polled reading whose first value is all anyone has seen, a 1: that time is when it was
+ * first seen, which says nothing about when it was polled. Short because a compute node's whole
+ * state is one value in Redis.
  */
-export type CounterState = [number, number, number, number | null];
+export type CounterState = [number, number, number, number | null, 1?];
 
 export interface CounterStep {
   next: CounterState;
@@ -535,14 +560,20 @@ export function advanceOpenStackCounter(data: {
   atMs: number;
   value: number;
   behaviour: OpenStackRateBehaviour;
+  // When a poll last came through for this instance, before this reading.
+  lastPollAtMs?: number | null | undefined;
 }): CounterStep {
-  const { previous, atMs, value, behaviour } = data;
+  const { previous, atMs, value, behaviour, lastPollAtMs } = data;
+  const firstSeen: CounterState =
+    behaviour === "polled"
+      ? [atMs, value, atMs, null, 1]
+      : [atMs, value, atMs, null];
 
   if (!previous) {
-    return { next: [atMs, value, atMs, null], rate: null };
+    return { next: firstSeen, rate: null };
   }
 
-  const [changedAtMs, lastValue, seenAtMs, lastRate] = previous;
+  const [changedAtMs, lastValue, seenAtMs, lastRate, isOnlySeen] = previous;
 
   // A retried export, or a batch that lost a race: what is known already stands.
   if (atMs <= seenAtMs) {
@@ -556,15 +587,29 @@ export function advanceOpenStackCounter(data: {
 
   // The collector was off, or the instance moved here and back: start again.
   if (atMs - seenAtMs > longestGap) {
-    return { next: [atMs, value, atMs, null], rate: null };
+    return { next: firstSeen, rate: null };
   }
 
   if (behaviour === "polled" && value === lastValue) {
-    // Still the same polling cycle. Only a long silence says it really did nothing.
+    // A poll has been and gone since this last said anything: it really did nothing.
+    if (lastPollAtMs && lastPollAtMs > changedAtMs) {
+      return { next: [lastPollAtMs, value, atMs, 0], rate: 0 };
+    }
+    // Still the same polling cycle. Otherwise only a long silence says the same thing.
     if (atMs - changedAtMs >= OPENSTACK_CEILOMETER_QUIET_MS) {
       return { next: [atMs, value, atMs, 0], rate: 0 };
     }
-    return { next: [changedAtMs, value, atMs, lastRate], rate: null };
+    return {
+      next: isOnlySeen
+        ? [changedAtMs, value, atMs, lastRate, 1]
+        : [changedAtMs, value, atMs, lastRate],
+      rate: null,
+    };
+  }
+
+  // The first moment anyone knows of. What it added took an unknown time: the clock starts here.
+  if (isOnlySeen) {
+    return { next: [atMs, value, atMs, null], rate: null };
   }
 
   /*
@@ -587,8 +632,9 @@ export function advanceOpenStackLevel(data: {
   atMs: number;
   value: number;
   behaviour: OpenStackRateBehaviour;
+  lastPollAtMs?: number | null | undefined;
 }): { next: CounterState; isNew: boolean } {
-  const { previous, atMs, value, behaviour } = data;
+  const { previous, atMs, value, behaviour, lastPollAtMs } = data;
   if (!previous) {
     return { next: [atMs, value, atMs, null], isNew: true };
   }
@@ -596,12 +642,13 @@ export function advanceOpenStackLevel(data: {
   if (atMs <= seenAtMs) {
     return { next: previous, isNew: false };
   }
-  if (
-    behaviour === "polled" &&
-    value === lastValue &&
-    atMs - changedAtMs < OPENSTACK_CEILOMETER_QUIET_MS
-  ) {
-    return { next: [changedAtMs, value, atMs, null], isNew: false };
+  if (behaviour === "polled" && value === lastValue) {
+    if (lastPollAtMs && lastPollAtMs > changedAtMs) {
+      return { next: [lastPollAtMs, value, atMs, null], isNew: true };
+    }
+    if (atMs - changedAtMs < OPENSTACK_CEILOMETER_QUIET_MS) {
+      return { next: [changedAtMs, value, atMs, null], isNew: false };
+    }
   }
   return { next: [atMs, value, atMs, null], isNew: true };
 }
@@ -623,6 +670,11 @@ export interface OpenStackInstanceMetricsInstanceState {
   u?: [number, number | null, number | null] | undefined;
   // The collection its memory was last worked out for: three series make up one reading.
   m?: number | undefined;
+  /*
+   * The last two moments anything about it moved, for a polled source, which is when a poll
+   * came through. Two because a scrape that sees one has to go by the one before.
+   */
+  c?: [number | null, number] | undefined;
 }
 
 export interface OpenStackInstanceMetricsHostState {
@@ -651,6 +703,8 @@ export interface OpenStackInstancePlacement {
   aggregates: Array<string>;
   // What its hypervisor has, before any ratio, for what its totals come to as a share.
   hypervisorCapacity?: OpenStackHypervisorCapacity | undefined;
+  // What its flavor says, for a source that doesn't: Ceilometer only polls vcpus when asked.
+  vcpus?: number | null | undefined;
 }
 
 interface HypervisorSeen {
@@ -735,6 +789,8 @@ interface TouchedInstance {
   isKept: boolean;
   // A cumulative delay moved, so its share of the instance's vCPUs can be worked out.
   delayMoved: boolean;
+  // What its flavor says it has, for a source that doesn't say.
+  vcpus: number | null;
 }
 
 type EmitSeries = (
@@ -792,6 +848,16 @@ export function applyOpenStackInstanceMetricSamples(data: {
         instance.p = sample.projectId;
       }
       instance.s[Reading.Identity] = [sample.timeMs, 1, sample.timeMs, null];
+    }
+  }
+
+  // When each poll came through, before anything reads it: series come in any order.
+  for (const sample of samples) {
+    if (sample.instanceId && behaviourOf(sample.source) === "polled") {
+      notePollSeen(
+        instanceOf(stateOf(data.states, sample), sample.instanceId),
+        sample,
+      );
     }
   }
 
@@ -855,6 +921,7 @@ export function applyOpenStackInstanceMetricSamples(data: {
           : [],
         isKept,
         delayMoved: false,
+        vcpus: placement?.vcpus || null,
       };
       touched.set(touchKey, entry);
     } else if (sample.timeMs >= entry.latestMs) {
@@ -897,8 +964,12 @@ export function applyOpenStackInstanceMetricSamples(data: {
       });
     };
 
-    if (applySample({ sample, instance, emit })) {
+    if (applySample({ sample, instance, emit, flavorVcpus: current.vcpus })) {
       current.delayMoved = true;
+    }
+    // Still being said, whatever it said: not every source has a new value for it every time.
+    if (instance.u && sample.timeMs > instance.u[0]) {
+      instance.u = [sample.timeMs, instance.u[1], instance.u[2]];
     }
   }
 
@@ -917,6 +988,7 @@ export function applyOpenStackInstanceMetricSamples(data: {
     if (entry.delayMoved) {
       const contention: number | null = getContention(
         entry.instance,
+        entry.vcpus,
         entry.latestMs,
       );
       if (contention !== null) {
@@ -964,11 +1036,6 @@ function writeHypervisorTotals(data: {
     }
     const source: OpenStackInstanceMetricSource =
       sourceText as OpenStackInstanceMetricSource;
-    const fresh: number =
-      source === OpenStackInstanceMetricSource.Libvirt
-        ? LIBVIRT_FRESH_MS
-        : CEILOMETER_FRESH_MS;
-
     let latestMs: number = 0;
     let latestTime: JSONValue = null;
     for (const entry of data.touched.values()) {
@@ -1003,7 +1070,7 @@ function writeHypervisorTotals(data: {
     for (const instance of Object.values(state.i)) {
       const usage: [number, number | null, number | null] | undefined =
         instance.u;
-      if (!usage || latestMs - usage[0] > fresh) {
+      if (!usage || latestMs - usage[0] > HYPERVISOR_TOTAL_FRESH_MS) {
         continue;
       }
       reporting += 1;
@@ -1062,9 +1129,11 @@ function writeHypervisorTotals(data: {
  */
 function getContention(
   instance: OpenStackInstanceMetricsInstanceState,
+  flavorVcpus: number | null,
   atMs: number,
 ): number | null {
-  if (!instance.v) {
+  const vcpus: number | null = instance.v || flavorVcpus;
+  if (!vcpus) {
     return null;
   }
   let total: number = 0;
@@ -1081,7 +1150,7 @@ function getContention(
       }
     }
   }
-  return found ? (total / instance.v) * 100 : null;
+  return found ? (total / vcpus) * 100 : null;
 }
 
 /*
@@ -1216,6 +1285,47 @@ function behaviourOf(
     : "polled";
 }
 
+/*
+ * Everything about an instance is polled together, so a reading of it that moved says a poll has
+ * come through. How many vCPUs it has hardly ever moves, and says nothing either way.
+ */
+function notePollSeen(
+  instance: OpenStackInstanceMetricsInstanceState,
+  sample: OpenStackInstanceMetricSample,
+): void {
+  const previous: CounterState | undefined =
+    instance.s[keyOfSample(sample.reading, sample.device)];
+  if (
+    sample.reading === Reading.Vcpus ||
+    !previous ||
+    previous[1] === sample.value ||
+    sample.timeMs <= previous[2]
+  ) {
+    return;
+  }
+  const latest: number | undefined = instance.c?.[1];
+  if (latest === undefined) {
+    instance.c = [null, sample.timeMs];
+  } else if (sample.timeMs > latest) {
+    instance.c = [latest, sample.timeMs];
+  }
+}
+
+/*
+ * The last poll before this reading, never at it. A scrape can land while a poll is going through,
+ * with its CPU new and its disks still to come, so what a poll left as it was only shows on a later
+ * scrape: calling it 0 there would make the disk's next reading five times the truth.
+ */
+function lastPollBefore(
+  instance: OpenStackInstanceMetricsInstanceState,
+  atMs: number,
+): number | null {
+  if (!instance.c) {
+    return null;
+  }
+  return instance.c[1] < atMs ? instance.c[1] : instance.c[0];
+}
+
 function advanceCounterOf(
   sample: OpenStackInstanceMetricSample,
   instance: OpenStackInstanceMetricsInstanceState,
@@ -1226,6 +1336,7 @@ function advanceCounterOf(
     atMs: sample.timeMs,
     value: sample.value,
     behaviour: behaviourOf(sample.source),
+    lastPollAtMs: lastPollBefore(instance, sample.timeMs),
   });
   instance.s[key] = step.next;
   return step.rate;
@@ -1241,6 +1352,7 @@ function advanceLevelOf(
     atMs: sample.timeMs,
     value: sample.value,
     behaviour: behaviourOf(sample.source),
+    lastPollAtMs: lastPollBefore(instance, sample.timeMs),
   });
   instance.s[key] = step.next;
   return step.isNew;
@@ -1268,8 +1380,9 @@ function applySample(data: {
   sample: OpenStackInstanceMetricSample;
   instance: OpenStackInstanceMetricsInstanceState;
   emit: EmitSeries;
+  flavorVcpus: number | null;
 }): boolean {
-  const { sample, instance, emit } = data;
+  const { sample, instance, emit, flavorVcpus } = data;
 
   switch (sample.reading) {
     case Reading.Vcpus: {
@@ -1279,17 +1392,23 @@ function applySample(data: {
       return false;
     }
     case Reading.CpuTime: {
+      /*
+       * No process behind it: nothing running has used no CPU at all. Off its hypervisor's
+       * totals at once, rather than a few minutes after its last reading goes stale.
+       */
+      if (sample.value === 0) {
+        delete instance.u;
+        return false;
+      }
       const cores: number | null = advanceCounterOf(sample, instance);
       if (cores === null) {
         return false;
       }
       noteUsage(instance, sample, { cores });
       emit(OpenStackInstanceMetric.CpuUsage, cores);
-      if (instance.v) {
-        emit(
-          OpenStackInstanceMetric.CpuUtilization,
-          (cores / instance.v) * 100,
-        );
+      const vcpus: number | null = instance.v || flavorVcpus;
+      if (vcpus) {
+        emit(OpenStackInstanceMetric.CpuUtilization, (cores / vcpus) * 100);
       }
       return false;
     }
@@ -1317,8 +1436,6 @@ function applySample(data: {
       if (advanceLevelOf(sample, instance)) {
         noteUsage(instance, sample, { resident: sample.value });
         emit(OpenStackInstanceMetric.MemoryResident, sample.value);
-      } else {
-        noteUsage(instance, sample, {});
       }
       return false;
     }
@@ -1392,13 +1509,19 @@ function pruneStates(
       continue;
     }
     for (const [instanceId, instance] of Object.entries(state.i)) {
-      const lastSeen: number = Object.values(instance.s).reduce(
-        (latest: number, series: CounterState): number => {
-          return Math.max(latest, series[2]);
+      const times: Array<number> = Object.values(instance.s).map(
+        (series: CounterState): number => {
+          return series[2];
         },
-        instance.u?.[0] || newestMs,
       );
-      if (newestMs - lastSeen > OPENSTACK_CEILOMETER_LONGEST_GAP_MS) {
+      if (instance.u) {
+        times.push(instance.u[0]);
+      }
+      // Nothing but its vCPUs or its project known yet: it has only just appeared.
+      if (times.length === 0) {
+        continue;
+      }
+      if (newestMs - Math.max(...times) > OPENSTACK_CEILOMETER_LONGEST_GAP_MS) {
         delete state.i[instanceId];
         for (const [domain, id] of Object.entries(state.d)) {
           if (id === instanceId) {

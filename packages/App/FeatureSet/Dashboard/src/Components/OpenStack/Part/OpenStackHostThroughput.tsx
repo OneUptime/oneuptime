@@ -14,11 +14,14 @@ import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
  * that fails leaves the tiles out, and the rest of the page says what it can.
  */
 
-function formatRate(value: number | null): string {
+export function formatOpenStackRate(value: number | null): string {
   return value === null ? "—" : `${formatOpenStackBytes(value)}/s`;
 }
 
-function totalOf(first: number | null, second: number | null): number | null {
+export function addOpenStackRates(
+  first: number | null,
+  second: number | null,
+): number | null {
   return first === null && second === null
     ? null
     : (first || 0) + (second || 0);
@@ -57,16 +60,16 @@ const OpenStackHostThroughput: FunctionComponent<{
         title="Disk throughput"
         icon={IconProp.Disc}
         iconColor="amber"
-        value={formatRate(
-          totalOf(diskReadBytesPerSecond, diskWriteBytesPerSecond),
+        value={formatOpenStackRate(
+          addOpenStackRates(diskReadBytesPerSecond, diskWriteBytesPerSecond),
         )}
         sublabel={
           hasDisk
             ? translator.translateTemplate(
                 "{{read}} read, {{written}} written",
                 {
-                  read: formatRate(diskReadBytesPerSecond),
-                  written: formatRate(diskWriteBytesPerSecond),
+                  read: formatOpenStackRate(diskReadBytesPerSecond),
+                  written: formatOpenStackRate(diskWriteBytesPerSecond),
                 },
               )
             : "Not reported"
@@ -78,16 +81,21 @@ const OpenStackHostThroughput: FunctionComponent<{
         title="Network throughput"
         icon={IconProp.Globe}
         iconColor="emerald"
-        value={formatRate(
-          totalOf(networkReceiveBytesPerSecond, networkTransmitBytesPerSecond),
+        value={formatOpenStackRate(
+          addOpenStackRates(
+            networkReceiveBytesPerSecond,
+            networkTransmitBytesPerSecond,
+          ),
         )}
         sublabel={
           hasNetwork
             ? translator.translateTemplate(
                 "{{received}} in, {{transmitted}} out",
                 {
-                  received: formatRate(networkReceiveBytesPerSecond),
-                  transmitted: formatRate(networkTransmitBytesPerSecond),
+                  received: formatOpenStackRate(networkReceiveBytesPerSecond),
+                  transmitted: formatOpenStackRate(
+                    networkTransmitBytesPerSecond,
+                  ),
                 },
               )
             : "Not reported"

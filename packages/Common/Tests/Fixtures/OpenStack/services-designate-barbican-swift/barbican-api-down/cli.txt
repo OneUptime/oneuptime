@@ -1,0 +1,6 @@
+$ openstack secret list
+Failed to contact the endpoint at https://openstack.example/key-manager for discovery. Fallback to using that endpoint as the base url.
+Service Unavailable (HTTP 503)
+$ openstack secret order list
+Failed to contact the endpoint at https://openstack.example/key-manager for discovery. Fallback to using that endpoint as the base url.
+Service Unavailable (HTTP 503)

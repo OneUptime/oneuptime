@@ -24,7 +24,8 @@ const ROOT: string = path.resolve(
 
 export const OPENSTACK_LOG_RELEASES: Array<string> = fs.existsSync(ROOT)
   ? fs.readdirSync(ROOT).filter((name: string): boolean => {
-      return fs.statSync(path.join(ROOT, name)).isDirectory();
+      // A release may hold only its audit trail: see OpenStackAuditFixtures.
+      return fs.existsSync(path.join(ROOT, name, "ids.json"));
     })
   : [];
 

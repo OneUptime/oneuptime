@@ -119,6 +119,7 @@ const OpenStackCloudDomains: FunctionComponent<
         pluralName="domains"
         emptyTitle="No domains reported yet"
         emptyDescription="These come from Keystone, which takes the Full view or Infrastructure only credential. A Project view credential sees none."
+        checkAccess={true}
         columns={columns}
         filters={FILTERS}
         searchPlaceholder="Search by name or ID"

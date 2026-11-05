@@ -1,0 +1,13 @@
+$ openstack hypervisor list
+
+$ openstack baremetal node list --fields name provision_state power_state maintenance maintenance_reason resource_class last_error
++-------------------+-----------------+-------------+-------------+--------------------+----------------+------------+
+| name              | provision_state | power_state | maintenance | maintenance_reason | resource_class | last_error |
++-------------------+-----------------+-------------+-------------+--------------------+----------------+------------+
+| ou-node-available | available       | None        | False       | None               | baremetal      | None       |
+| ou-node-half      | enroll          | None        | False       | None               | None           | None       |
++-------------------+-----------------+-------------+-------------+--------------------+----------------+------------+
+$ openstack baremetal conductor list
+Access was denied to the following resource: baremetal:conductor:get (HTTP 403) (Request-ID: req-f10d5483-6703-419c-8525-60da109ab788)
+$ openstack baremetal driver list
+"baremetal:driver:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role" requires a scope of ['system'], request was made with project scope. (HTTP 500) (Request-ID: req-10ea6070-a024-426d-bbfd-385c8fe18ba9)

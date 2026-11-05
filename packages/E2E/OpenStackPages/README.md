@@ -27,7 +27,12 @@ tell them apart:
   release's agent names, Nova's short and full host names, a floating IP's labels. A drill
   reads on top of its cloud's healthy recording, as the rows OneUptime holds would: a
   stopped API's scrape says nothing of its workers, whose rows stay as they last were.
-- **Made up:** `?estate=busy|calm|new|multi-region|overflow|ovn-stale|tenants|parts`
+  `?recording=gazpacho-ovs/healthy@1.7.0` is what exporter 1.7.0, which Kolla-Ansible pins,
+  said of that same cloud at the same moment, on its own.
+  `?recording=hibiscus-ovn/access/reader` is what the exporter answered one credential on a healthy
+  cloud, for each level of access the docs describe: `reader`, `monitoring-role` and
+  `monitoring-admin-get`. `&without=volume` makes a recording's cloud one with no such service.
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
@@ -36,6 +41,10 @@ Every read is answered from one estate's rows. `Fixture/Answers.js` works out th
 inventory summary, Needs attention and the blast radius from the rows the way
 `OpenStackResourceService` works them out in SQL, down to answering a bigint as text, so an
 estate has to say nothing beyond its rows.
+
+A cloud's Traces page reads spans, so it has a recording of its own: `?traces=flamingo-ovn/signed-boot`
+is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
+(`Fixture/TraceRecordings.js`). With none, the cloud has no traces, which is how every cloud starts.
 
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
@@ -79,6 +88,10 @@ the pages while working on them.
 
 ## What the walks hold
 
+`DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
+
+`ExporterVersions.spec.ts`: the Overview and each list on what the agent's own exporter and exporter 1.7.0 said of one cloud: less to say on 1.7.0, and nothing false.
+
 `Overview.spec.ts`: a cloud's Overview busy, calm, new, in several regions, quiet for days
 and with its inventory and metric reads failing, at 1280, 1024, 768 and 390 pixels, dark,
 German and Persian.
@@ -96,6 +109,18 @@ nova-compute, a stopped L3 agent, OVN's routers and the exporter's snapshot coun
 holds a full pool, a full external network and a stuck volume, and `?estate=parts` is busy with hosts
 in zones and aggregates, a stuck image and the rows only the probe sends, which no recording holds.
 
+`OpenStackInstanceUsage.spec.ts`: what is really busy, as apart from what is promised: a hypervisor
+past its line naming the instances responsible, the step to the busiest one's page, its tiles and
+charts beside its flavor's size, a phone and the dark theme. `?estate=usage` is made up to put it over
+a line: what real clouds really said goes through the same pages in
+`Common/Tests/App/Dashboard/OpenStackUsagePagesRecordings.test.tsx`. `?estate=calm` has no source, so
+each page says what is missing and how to add it. And what it costs on a cloud's Settings.
+
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.
+
+`OpenStackAccessLevels.spec.ts`: every page, on what the exporter really answered each level of
+access: which say "This credential can't list...", which say a list is its own project's, and that
+Full view says neither. A 403, an own-project 200 and a service that isn't deployed, on all five
+releases where it matters.

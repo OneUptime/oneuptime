@@ -268,6 +268,11 @@ scene_failed_logins() {
   # the good login below and every scene after it would be refused with them.
   sleep 15
   openstack token issue -f value -c expires
+  # A good login from an address nothing else here logs in from: the loopback, and not the
+  # host's own address the catalog sends everything else to.
+  body='{"auth":{"identity":{"methods":["password"],"password":{"user":{"name":"admin","domain":{"name":"Default"},"password":"'"$(openstack configuration show --unmask -f value -c auth.password)"'"}}}}}'
+  curl -sS --max-time 30 -o /dev/null -w 'loopback %{http_code}\n' -H 'Content-Type: application/json' \
+    -d "$body" "http://127.0.0.1/identity/v3/auth/tokens" || true
   # Anything but a refusal is no failed login, and this scene says nothing about them.
   [ "$refused" = 24 ]
 }
@@ -864,6 +869,8 @@ set_on_all DEFAULT use_json True
 restart_services
 start_journald_profile || echo "The journald profile did not start" >&2
 scene failed-logins scene_failed_logins
+scene identity scene_identity
+building_scene security-group scene_security_group
 building_scene instance-lifecycle scene_instance_lifecycle
 building_scene failed-build-scheduler scene_failed_build_scheduler
 building_scene failed-build-compute scene_failed_build_compute
@@ -881,6 +888,8 @@ if sudo apt-get install -y libsystemd-dev pkg-config >/dev/null 2>&1 \
   restart_services
   start_journald_profile || echo "The journald profile did not start" >&2
   scene failed-logins scene_failed_logins
+  scene identity scene_identity
+  building_scene security-group scene_security_group
   building_scene instance-lifecycle scene_instance_lifecycle
   building_scene failed-build-scheduler scene_failed_build_scheduler
   building_scene failed-build-compute scene_failed_build_compute

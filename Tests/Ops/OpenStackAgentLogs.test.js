@@ -351,8 +351,12 @@ function hasALevelOfItsOwn(line) {
   );
 }
 
+const RECORDED_RELEASES = fs.readdirSync(SERVICE_LOGS).filter((release) => {
+  return fs.existsSync(path.join(SERVICE_LOGS, release, "ids.json"));
+});
+
 describe.each(
-  fs.existsSync(SERVICE_LOGS) ? fs.readdirSync(SERVICE_LOGS) : ["no recording"],
+  RECORDED_RELEASES.length > 0 ? RECORDED_RELEASES : ["no recording yet"],
 )("the recombine rule, on what %s's services wrote", (release) => {
   const inFiles = recordedLines(release, "files", "oslo-default.jsonl").map(
     (entry) => {
@@ -374,7 +378,7 @@ describe.each(
     const parts = lines.filter(isPartOfTraceback);
     const starts = lines.filter(hasALevelOfItsOwn);
 
-    if (fs.existsSync(path.join(SERVICE_LOGS, release))) {
+    if (RECORDED_RELEASES.includes(release)) {
       expect(lines.length).toBeGreaterThan(50);
       expect(parts.length).toBeGreaterThan(5);
       expect(starts.length).toBeGreaterThan(5);

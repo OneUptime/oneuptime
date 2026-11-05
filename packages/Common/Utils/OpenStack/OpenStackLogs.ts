@@ -279,7 +279,7 @@ export function isOpenStackUuid(value: string): boolean {
 }
 
 // A Keystone id: 32 hex digits, with or without a UUID's dashes.
-function isKeystoneId(value: string): boolean {
+export function isOpenStackKeystoneId(value: string): boolean {
   if (isOpenStackUuid(value)) {
     return true;
   }
@@ -345,7 +345,7 @@ function readContext(context: string, line: OpenStackLogLine): void {
     : identity[1];
 
   if (!isAbsent(user)) {
-    if (isKeystoneId(user!)) {
+    if (isOpenStackKeystoneId(user!)) {
       line.userId = cut(user!);
     } else {
       line.userName = cut(user!);
@@ -353,7 +353,7 @@ function readContext(context: string, line: OpenStackLogLine): void {
   }
 
   if (!isAbsent(project)) {
-    if (isKeystoneId(project!)) {
+    if (isOpenStackKeystoneId(project!)) {
       line.projectId = cut(project!);
     } else {
       line.projectName = cut(project!);

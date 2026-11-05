@@ -21,6 +21,7 @@ import {
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
   isOpenStackServiceDown,
+  isOpenStackServiceForcedDown,
   isOpenStackVolumeInError,
   isOpenStackVolumeStuck,
   minutesInState,
@@ -94,6 +95,8 @@ const REASON_SCRAPE_FAILED: string = translationKey(
   "Not answering: the last read of it failed",
 );
 const REASON_SERVICE_DOWN: string = translationKey("Down");
+export const OPENSTACK_REASON_FORCED_DOWN: string =
+  translationKey("Forced down by an operator");
 const REASON_SERVICE_DOWN_WITH_INSTANCES: { one: string; other: string } = {
   one: "Down, with {{count}} instance on it",
   other: "Down, with {{count}} instances on it",
@@ -315,10 +318,18 @@ export function assessOpenStackService(data: {
     return FINE;
   }
 
+  // Read as down, as Nova reads it, and said to be an operator's doing.
+  const forced: Array<ResourceAttentionText> = isOpenStackServiceForcedDown({
+    status: row.status,
+    facts: row.facts as JSONObject | undefined,
+  })
+    ? [{ text: OPENSTACK_REASON_FORCED_DOWN }]
+    : [];
+
   if (REDUNDANT_WORKERS.has(row.name || "")) {
     return {
       severity: ResourceAttentionSeverity.Warning,
-      reasons: [{ text: REASON_SERVICE_DOWN }],
+      reasons: [{ text: REASON_SERVICE_DOWN }, ...forced],
     };
   }
 
@@ -332,6 +343,7 @@ export function assessOpenStackService(data: {
           values: { count: `${count}` },
           plural: { one: REASON_SERVICE_DOWN_WITH_INSTANCES.one, count },
         },
+        ...forced,
         ...(data.projectCount
           ? [
               {
@@ -350,7 +362,7 @@ export function assessOpenStackService(data: {
 
   return {
     severity: ResourceAttentionSeverity.Critical,
-    reasons: [{ text: REASON_SERVICE_DOWN }],
+    reasons: [{ text: REASON_SERVICE_DOWN }, ...forced],
   };
 }
 

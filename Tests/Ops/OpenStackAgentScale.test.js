@@ -54,7 +54,7 @@ describe("sharing a cloud between agents", () => {
   const jobs = config.receivers.prometheus.config.scrape_configs;
 
   test("every service's job can be turned off by name, in one setting", () => {
-    expect(jobs).toHaveLength(6);
+    expect(jobs).toHaveLength(15);
 
     for (const job of jobs) {
       expect(job.relabel_configs).toEqual(
@@ -86,7 +86,31 @@ describe("sharing a cloud between agents", () => {
     ["compute|placement", ["compute", "placement"]],
     ["identity|image", ["identity", "image"]],
     ["network", ["network"]],
-    [".*", ["identity", "compute", "placement", "network", "volume", "image"]],
+    [
+      ".*",
+      [
+        "identity",
+        "compute",
+        "placement",
+        "network",
+        "volume",
+        "image",
+        "load-balancer",
+        "baremetal",
+        "orchestration",
+        "container-infra",
+        "sharev2",
+        "dns",
+        "object-store",
+        "database",
+        "gnocchi",
+      ],
+    ],
+    // How someone goes back to the core services, as the docs say.
+    [
+      "identity|compute|placement|network|volume|image",
+      ["identity", "compute", "placement", "network", "volume", "image"],
+    ],
   ])("%s keeps the jobs it names, and no others", (regex, expected) => {
     // Prometheus anchors a relabel regex at both ends.
     const anchored = new RegExp(`^(?:${regex})$`);
