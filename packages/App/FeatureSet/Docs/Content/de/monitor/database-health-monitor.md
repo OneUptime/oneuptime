@@ -396,7 +396,7 @@ Bei einem Datenbank-Integritäts-Monitor hat der Ausdruck Zugriff auf:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-Um eine Metrik in einem Ausdruck zu lesen, indizieren Sie das ganze `metrics`-Objekt — die Zeitreihennamen enthalten Punkte und können daher nicht in die geschweiften Klammern:
+Um eine Metrik in einem Ausdruck zu lesen, setzen Sie den Zeitreihennamen mit seinen Punkten in die geschweiften Klammern oder indizieren Sie das ganze `metrics`-Objekt — beides funktioniert:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

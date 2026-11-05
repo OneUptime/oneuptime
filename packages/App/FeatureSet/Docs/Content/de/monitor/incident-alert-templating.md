@@ -433,7 +433,7 @@ Ein Netzwerkgerät wird bei jeder Abfrage gepingt und nur dann per SNMP abgefrag
 | `collectionIssueSummary` | Eine Zeile über jede nicht verfügbare Gruppe, fertig für einen Titel. Leer, wenn alles erfasst wurde. | `string` |
 | `metrics` | Die erfassten Werte, nach Seriennamen. | `Object` |
 
-Die Seriennamen in `metrics` enthalten Punkte, etwa `oneuptime.monitor.database.connections.used.percent`, und ein Pfad liest jeden Punkt als Schritt in ein Objekt, sodass eine Vorlage keinen einzelnen Wert aus `metrics` herausgreifen kann. Setzen Sie `{{metrics}}` als Ganzes ein, als JSON, oder verwenden Sie `{{collectionIssueSummary}}`. Eine Metrik, die nicht erfasst wurde, fehlt in `metrics`, statt null zu sein. Um auf einen einzelnen Wert zu reagieren, vergleichen Sie ihn im Kriterium mit einem [JavaScript-Ausdruck](/docs/monitor/javascript-expression).
+Die Seriennamen in `metrics` enthalten Punkte, etwa `oneuptime.monitor.database.connections.used.percent`, und eine Vorlage kann dennoch einen einzelnen Wert herausgreifen: Schreiben Sie den ganzen Namen nach `metrics.`, wie in `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Setzen Sie `{{metrics}}` als Ganzes ein, als JSON, oder verwenden Sie `{{collectionIssueSummary}}`. Eine Metrik, die nicht erfasst wurde, fehlt in `metrics`, statt null zu sein. Um auf einen einzelnen Wert zu reagieren, vergleichen Sie ihn im Kriterium mit einem [JavaScript-Ausdruck](/docs/monitor/javascript-expression).
 
 ### Monitore externer Statusseiten
 

@@ -396,7 +396,7 @@ Per un monitor Database Health, l'espressione ha accesso a:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-Per leggere una metrica in un'espressione, indicizza l'intero oggetto `metrics`: i nomi delle serie contengono punti, quindi non possono stare tra le parentesi graffe:
+Per leggere una metrica in un'espressione, scrivi il nome della serie, con i suoi punti, tra le parentesi graffe oppure indicizza l'intero oggetto `metrics`: funzionano entrambi i modi:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

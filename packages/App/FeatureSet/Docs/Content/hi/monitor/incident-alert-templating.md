@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | हर अनुपलब्ध समूह के बारे में एक पंक्ति, शीर्षक के लिए तैयार। सब इकट्ठा होने पर खाली। | `string` |
 | `metrics` | इकट्ठा किए गए मान, सीरीज़ के नाम से। | `Object` |
 
-`metrics` में सीरीज़ के नामों में बिंदु होते हैं, जैसे `oneuptime.monitor.database.connections.used.percent`, और पथ हर बिंदु को किसी ऑब्जेक्ट के अंदर एक कदम के रूप में पढ़ता है, इसलिए टेम्पलेट `metrics` से कोई एक मान नहीं निकाल सकता। `{{metrics}}` को पूरा, JSON के रूप में रखें, या `{{collectionIssueSummary}}` का उपयोग करें। जो मेट्रिक इकट्ठा नहीं हुआ, वह `metrics` में मौजूद नहीं होता, शून्य नहीं होता। किसी एक मान पर कार्रवाई के लिए, उसे मानदंड में [JavaScript अभिव्यक्तियाँ](/docs/monitor/javascript-expression) से तुलना करें।
+`metrics` में सीरीज़ के नामों में बिंदु होते हैं, जैसे `oneuptime.monitor.database.connections.used.percent`, फिर भी टेम्पलेट एक मान निकाल सकता है: `metrics.` के बाद पूरा नाम लिखें, जैसे `{{metrics.oneuptime.monitor.database.connections.used.percent}}`। `{{metrics}}` को पूरा, JSON के रूप में रखें, या `{{collectionIssueSummary}}` का उपयोग करें। जो मेट्रिक इकट्ठा नहीं हुआ, वह `metrics` में मौजूद नहीं होता, शून्य नहीं होता। किसी एक मान पर कार्रवाई के लिए, उसे मानदंड में [JavaScript अभिव्यक्तियाँ](/docs/monitor/javascript-expression) से तुलना करें।
 
 ### बाहरी स्टेटस पेज मॉनिटर
 

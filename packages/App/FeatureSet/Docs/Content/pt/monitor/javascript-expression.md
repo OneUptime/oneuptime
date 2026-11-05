@@ -123,7 +123,7 @@ Para um monitor de consultas SQL cuja consulta retorna uma contagem, alertar qua
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-Para um monitor de saúde de banco de dados, leia uma métrica indexando o objeto `metrics` inteiro — os nomes das séries contêm pontos, então não podem ir dentro das chaves:
+Para um monitor de saúde de banco de dados, leia uma métrica escrevendo o nome da série, com os pontos, dentro das chaves, ou indexando o objeto `metrics` inteiro — as duas formas funcionam:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -123,7 +123,7 @@ JavaScript 運算式適用於 Website、API、Incoming Request、Incoming Email�
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-對於資料庫健康狀態監測器，請對整個 `metrics` 物件做索引來讀取某個指標——序列名稱中包含點，因此不能放在大括號內：
+對於資料庫健康狀態監測器，可以把含點的序列名稱直接寫在大括號內，也可以對整個 `metrics` 物件做索引來讀取某個指標——兩種方式都可行：
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

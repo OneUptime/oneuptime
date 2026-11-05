@@ -475,7 +475,7 @@ describe("the examples, run the way the evaluator runs them", () => {
     );
   });
 
-  it("cannot put a dotted series name inside the braces", () => {
+  it("can put a dotted series name inside the braces", () => {
     const metric: string =
       "oneuptime.monitor.database.connections.used.percent";
     const substituted: string = VMUtil.replaceValueInPlace(
@@ -484,8 +484,8 @@ describe("the examples, run the way the evaluator runs them", () => {
       false,
     );
 
-    // The path is split at every dot, finds nothing, and is left as written.
-    expect(substituted).toBe(`{{metrics.${metric}}} > 90`);
+    // The dotted key is read as one name, so the value fills in.
+    expect(substituted).toBe("95 > 90");
   });
 });
 

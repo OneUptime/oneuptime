@@ -433,7 +433,7 @@ En netværksenhed pinges ved hver polling og gennemgås kun via SNMP, når den h
 | `collectionIssueSummary` | Én linje om hver utilgængelig gruppe, klar til en titel. Tom, når alt blev indsamlet. | `string` |
 | `metrics` | De indsamlede værdier, efter serienavn. | `Object` |
 
-Serienavnene i `metrics` indeholder punktummer, som `oneuptime.monitor.database.connections.used.percent`, og en sti læser hvert punktum som et skridt ind i et objekt, så en skabelon kan ikke plukke én værdi ud af `metrics`. Indsæt `{{metrics}}` i sin helhed, som JSON, eller brug `{{collectionIssueSummary}}`. En metrik, der ikke blev indsamlet, mangler i `metrics`; den er ikke nul. For at handle på én værdi sammenligner du den i kriteriet med et [JavaScript-udtryk](/docs/monitor/javascript-expression).
+Serienavnene i `metrics` indeholder punktummer, som `oneuptime.monitor.database.connections.used.percent`, og en skabelon kan stadig plukke én ud: skriv hele navnet efter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Indsæt `{{metrics}}` i sin helhed, som JSON, eller brug `{{collectionIssueSummary}}`. En metrik, der ikke blev indsamlet, mangler i `metrics`; den er ikke nul. For at handle på én værdi sammenligner du den i kriteriet med et [JavaScript-udtryk](/docs/monitor/javascript-expression).
 
 ### Monitorer for eksterne statussider
 

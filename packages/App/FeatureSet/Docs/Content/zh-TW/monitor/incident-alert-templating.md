@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | 關於每個無法使用之群組的一行文字，可直接用於標題。全部收集成功時為空。 | `string` |
 | `metrics` | 收集到的值，依序列名稱。 | `Object` |
 
-`metrics` 中的序列名稱包含句點，例如 `oneuptime.monitor.database.connections.used.percent`，而路徑會把每個句點當作進入物件的一步，因此範本無法從 `metrics` 中取出單一值。請把 `{{metrics}}` 作為 JSON 整體放入，或使用 `{{collectionIssueSummary}}`。未收集到的指標在 `metrics` 中不存在，而不是零。若要針對單一值作判斷，請在條件中用 [JavaScript 運算式](/docs/monitor/javascript-expression) 進行比較。
+`metrics` 中的序列名稱包含句點，例如 `oneuptime.monitor.database.connections.used.percent`，範本仍然可以取出單一值：在 `metrics.` 後寫出完整名稱，如 `{{metrics.oneuptime.monitor.database.connections.used.percent}}`。請把 `{{metrics}}` 作為 JSON 整體放入，或使用 `{{collectionIssueSummary}}`。未收集到的指標在 `metrics` 中不存在，而不是零。若要針對單一值作判斷，請在條件中用 [JavaScript 運算式](/docs/monitor/javascript-expression) 進行比較。
 
 ### 外部狀態頁面監測器
 

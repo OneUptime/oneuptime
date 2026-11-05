@@ -123,7 +123,7 @@ Für einen SQL-Abfrage-Monitor, dessen Abfrage eine Anzahl liefert, bei einer ho
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-Für einen Datenbank-Integritäts-Monitor eine einzelne Metrik lesen, indem Sie das ganze Objekt `metrics` indizieren — die Namen der Reihen enthalten Punkte und können daher nicht zwischen die geschweiften Klammern:
+Für einen Datenbank-Integritäts-Monitor lesen Sie eine einzelne Metrik, indem Sie den Reihennamen mit seinen Punkten zwischen die geschweiften Klammern setzen oder das ganze Objekt `metrics` indizieren — beides funktioniert:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
