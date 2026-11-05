@@ -1,6 +1,7 @@
 import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import { RecordedSeries } from "../../../Helpers/OpenStackRecordedRows";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
+import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import {
   OpenStackAlertTemplate,
@@ -118,15 +119,16 @@ export async function readOpenStackTemplateOnRecording(data: {
       const held: { group: Record<string, string>; samples: SamplesByAlias } =
         samplesByGroup.get(groupKey) || { group, samples: {} };
       /*
-       * A count is of its datapoints, whatever they read, as a monitor's read counts them. A status
-       * whose code is 0 is what that's for, so it mustn't read as its value here.
+       * A Count reads how many series the group holds in a collection, whatever their values: a status
+       * code of 0 is still a row. Anything else reads the series' value, the last one winning as a
+       * recording holds one collection.
        */
+      const isCount: boolean =
+        (query.metricQueryData.filterData as unknown as Record<string, unknown>)[
+          "aggegationType"
+        ] === MetricsAggregationType.Count;
       held.samples[alias] = new Array<number>(windowMinutes).fill(
-        (
-          query.metricQueryData.filterData as unknown as Record<string, unknown>
-        )["aggegationType"] === MetricsAggregationType.Count
-          ? 1
-          : series.value,
+        isCount ? (held.samples[alias]?.[0] || 0) + 1 : series.value,
       );
       samplesByGroup.set(groupKey, held);
     }

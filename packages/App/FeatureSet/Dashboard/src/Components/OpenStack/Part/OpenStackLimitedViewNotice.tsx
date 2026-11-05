@@ -42,6 +42,12 @@ const OPENSTACK_LIMITED_VIEW_WORDS: Partial<
   [OpenStackResourceKind.Stack]: translationKey(
     "This credential sees its own project's stacks here at most, and no error says so: Heat shows a plain reader those with no project on them, and the monitoring role none. So this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
   ),
+  [OpenStackResourceKind.LoadBalancer]: translationKey(
+    "This credential sees its own project's load balancers here at most, and the monitoring role none, and no error says so: Octavia answers anything but an admin that way. So this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+  ),
+  [OpenStackResourceKind.Amphora]: translationKey(
+    "This credential can't list amphorae: Octavia lets only an admin do that, and refuses anything less. Seeing them takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+  ),
   [OpenStackResourceKind.Share]: translationKey(
     "This credential sees its own project's shares here at most, and no error says so: Manila answers anything but an admin that way, recorded, and the monitoring role none. So this list is not the whole cloud. Seeing every project takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
   ),

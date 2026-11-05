@@ -90,6 +90,7 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     | "stackCount"
     | "containerClusterCount"
     | "shareCount"
+    | "loadBalancerCount"
     | "databaseInstanceCount"
     | "dnsZoneCount"
     | "objectContainerCount";
@@ -144,6 +145,12 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     page: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
     one: "{{count}} share",
     other: "{{count}} shares",
+  },
+  {
+    key: "loadBalancerCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+    one: "{{count}} load balancer",
+    other: "{{count}} load balancers",
   },
   {
     key: "databaseInstanceCount",

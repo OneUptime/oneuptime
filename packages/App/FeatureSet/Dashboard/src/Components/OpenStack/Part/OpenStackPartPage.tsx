@@ -76,6 +76,15 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.ContainerCluster]: translationKey(
     "This Kubernetes cluster is not in this cloud's inventory. It may have been deleted, or Magnum may not have reported it yet.",
   ),
+  [OpenStackResourceKind.LoadBalancer]: translationKey(
+    "This load balancer is not in this cloud's inventory. It may have been deleted, or Octavia may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.LoadBalancerPool]: translationKey(
+    "This pool is not in this cloud's inventory. It may have been deleted, or Octavia may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.Amphora]: translationKey(
+    "This amphora is not in this cloud's inventory. It may have been replaced or deleted, or Octavia may not have reported it yet.",
+  ),
   [OpenStackResourceKind.DnsZone]: translationKey(
     "This zone is not in this cloud's inventory. It may have been deleted, or Designate may not have reported it yet.",
   ),
