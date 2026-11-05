@@ -1549,7 +1549,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID=...
 ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 ```
 
-Where each way of deploying a cloud keeps those two settings. The first row is the one OneUptime's test rig follows on a real DevStack; the rest say what each tool's own documentation says, and have not been followed on a real deployment:
+Where each way of deploying a cloud keeps those two settings. Only the first row has been run, on a real DevStack, where this credential re-enabled a real `nova-compute` and Nova took the evacuation of a dead host's instances, and everything else it tried was refused: reads and other services with a 401, and other actions on a server with a 403. The rest say what each tool's own documentation says, and have not been followed on a real deployment:
 
 | Deployment | `service_type` | The policy file |
 | --- | --- | --- |

@@ -1,0 +1,8 @@
+{
+  "command": "openstack server evacuate 33e415fa-e1ae-4a8f-a67e-323f5e484179 7bc0fdc4-2434-4aa8-a949-8017c3ce9c2a",
+  "result": {
+    "success": true,
+    "exitCode": 0,
+    "output": "[stdout]\nThis changes 2 instances in 2 projects.\n/servers/33e415fa-e1ae-4a8f-a67e-323f5e484179/action: Nova accepted it (HTTP 200).\n/servers/7bc0fdc4-2434-4aa8-a949-8017c3ce9c2a/action: Nova accepted it (HTTP 200).\nThe API took it, which is not the same as done: Nova works on an instance in the background, so read it again to see it took effect.\noneuptime-openstack-reach route server evacuate\noneuptime-openstack-reach kind changes\noneuptime-openstack-reach complete yes\noneuptime-openstack-reach instances 2\noneuptime-openstack-reach projects 2\noneuptime-openstack-reach left-behind 0\noneuptime-openstack-reach instance 33e415fa-e1ae-4a8f-a67e-323f5e484179 9e84df37cdbd438ca580c365c569f013 ou-fake-compute ACTIVE - ou-evacuate-payments\noneuptime-openstack-reach instance 7bc0fdc4-2434-4aa8-a949-8017c3ce9c2a 3bc88e740a7e48958de4224670889fe5 ou-fake-compute ACTIVE - ou-evacuate-research\noneuptime-openstack-reach project 3bc88e740a7e48958de4224670889fe5 1 -\noneuptime-openstack-reach project 9e84df37cdbd438ca580c365c569f013 1 -"
+  }
+}

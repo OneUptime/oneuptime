@@ -1,0 +1,81 @@
+{
+  "command": "openstack compute service set --enable compute-01 nova-compute",
+  "tier": "SafeWrite",
+  "requiresHuman": false,
+  "reach": {
+    "route": "compute service set --enable",
+    "kind": "on-host",
+    "instanceCount": 5,
+    "projectCount": 2,
+    "instances": [
+      {
+        "id": "6c0853d7-0477-433a-ac4c-0eb1047a8bd7",
+        "projectId": "3bc88e740a7e48958de4224670889fe5",
+        "host": "compute-01",
+        "status": "ACTIVE",
+        "projectName": "ou-research",
+        "name": "ou-user-data"
+      },
+      {
+        "id": "63265c13-5670-4a2c-9f1d-e6c0b874a627",
+        "projectId": "3bc88e740a7e48958de4224670889fe5",
+        "host": "compute-01",
+        "status": "ACTIVE",
+        "projectName": "ou-research",
+        "name": "ou-from-volume"
+      },
+      {
+        "id": "cf54f1a9-5a2c-4dde-9ee0-4b4332aa7672",
+        "projectId": "3bc88e740a7e48958de4224670889fe5",
+        "host": "compute-01",
+        "status": "ACTIVE",
+        "projectName": "ou-research",
+        "name": "ou-research-1"
+      },
+      {
+        "id": "d8a8811d-867c-43d6-bce3-0ca64ca4e3da",
+        "projectId": "9e84df37cdbd438ca580c365c569f013",
+        "host": "compute-01",
+        "status": "SHUTOFF",
+        "projectName": "ou-payments",
+        "name": "ou-stopped"
+      },
+      {
+        "id": "8a9c83d0-ca21-468f-8191-1b6d279f6b70",
+        "projectId": "9e84df37cdbd438ca580c365c569f013",
+        "host": "compute-01",
+        "status": "ACTIVE",
+        "projectName": "ou-payments",
+        "name": "ou-running"
+      }
+    ],
+    "projects": [
+      {
+        "id": "3bc88e740a7e48958de4224670889fe5",
+        "instanceCount": 3,
+        "name": "ou-research"
+      },
+      {
+        "id": "9e84df37cdbd438ca580c365c569f013",
+        "instanceCount": 2,
+        "name": "ou-payments"
+      }
+    ],
+    "hosts": [
+      {
+        "name": "compute-01",
+        "state": "up",
+        "status": "disabled",
+        "forcedDown": false,
+        "disabledReason": "ou rig: planned"
+      }
+    ],
+    "agent": null,
+    "leftBehindCount": 0,
+    "leftBehind": [],
+    "isComplete": true,
+    "problems": [],
+    "wouldBeRefused": null
+  },
+  "output": "[stdout]\nNothing was changed. This changes no instance, and the host it is about holds 5 instances in 2 projects.\noneuptime-openstack-reach route compute service set --enable\noneuptime-openstack-reach kind on-host\noneuptime-openstack-reach complete yes\noneuptime-openstack-reach instances 5\noneuptime-openstack-reach projects 2\noneuptime-openstack-reach left-behind 0\noneuptime-openstack-reach instance 6c0853d7-0477-433a-ac4c-0eb1047a8bd7 3bc88e740a7e48958de4224670889fe5 compute-01 ACTIVE ou-research ou-user-data\noneuptime-openstack-reach instance 63265c13-5670-4a2c-9f1d-e6c0b874a627 3bc88e740a7e48958de4224670889fe5 compute-01 ACTIVE ou-research ou-from-volume\noneuptime-openstack-reach instance cf54f1a9-5a2c-4dde-9ee0-4b4332aa7672 3bc88e740a7e48958de4224670889fe5 compute-01 ACTIVE ou-research ou-research-1\noneuptime-openstack-reach instance d8a8811d-867c-43d6-bce3-0ca64ca4e3da 9e84df37cdbd438ca580c365c569f013 compute-01 SHUTOFF ou-payments ou-stopped\noneuptime-openstack-reach instance 8a9c83d0-ca21-468f-8191-1b6d279f6b70 9e84df37cdbd438ca580c365c569f013 compute-01 ACTIVE ou-payments ou-running\noneuptime-openstack-reach project 3bc88e740a7e48958de4224670889fe5 3 ou-research\noneuptime-openstack-reach project 9e84df37cdbd438ca580c365c569f013 2 ou-payments\noneuptime-openstack-reach host compute-01 up disabled no ou rig: planned"
+}

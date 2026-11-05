@@ -1,0 +1,7 @@
+{
+  "allowWrites": false,
+  "answers": [
+    "Refused by the OpenStack AI agent: \"openstack compute service set --enable compute-01 nova-compute\" changes the OpenStack cloud, and this agent is read-only (ONEUPTIME_AI_ALLOW_WRITES is not set). To let OneUptime AI apply fixes, set ONEUPTIME_AI_ALLOW_WRITES=true on the agent and restart it.",
+    "Refused by the OpenStack AI agent: an investigation may only run read-only commands, and \"openstack compute service set --enable compute-01 nova-compute\" is SafeWrite."
+  ]
+}
