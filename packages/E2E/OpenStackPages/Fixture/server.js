@@ -58,6 +58,31 @@ function readRecordings() {
   return read;
 }
 
+// { "flamingo-ovn/signed-boot": { otlp: ..., instanceId: "..." }, ... }
+function readTraceRecordings() {
+  const read = {};
+  const traces = path.join(recordings, "traces");
+  if (!fs.existsSync(traces)) {
+    return read;
+  }
+  for (const release of fs.readdirSync(traces)) {
+    const boot = path.join(traces, release, "agent", "signed-boot.json");
+    const server = path.join(
+      traces,
+      release,
+      "context",
+      "instance_booted-server.json",
+    );
+    if (fs.existsSync(boot) && fs.existsSync(server)) {
+      read[`${release}/signed-boot`] = {
+        otlp: JSON.parse(fs.readFileSync(boot, "utf8")),
+        instanceId: JSON.parse(fs.readFileSync(server, "utf8")).id,
+      };
+    }
+  }
+  return read;
+}
+
 const recordingsPlugin = {
   name: "openstack-recordings",
   setup(build) {
@@ -70,6 +95,18 @@ const recordingsPlugin = {
         loader: "json",
       };
     });
+    build.onResolve({ filter: /^openstack-trace-recordings$/ }, (args) => {
+      return { path: args.path, namespace: "openstack-trace-recordings" };
+    });
+    build.onLoad(
+      { filter: /.*/, namespace: "openstack-trace-recordings" },
+      () => {
+        return {
+          contents: JSON.stringify(readTraceRecordings()),
+          loader: "json",
+        };
+      },
+    );
     build.onResolve({ filter: /^\.\.\/Logger$/ }, (args) => {
       return args.importer.endsWith("OpenStackSnapshotScan.ts")
         ? { path: path.join(__dirname, "ScanLogger.js") }

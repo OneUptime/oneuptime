@@ -352,7 +352,7 @@ connection_string = otlp://127.0.0.1:4318
 trace_sqlalchemy = False
 ```
 
-Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and [the guide](https://oneuptime.com/docs/telemetry/openstack#trace-requests-through-the-control-plane) says how for each deployment tool.
+Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and its guide says how for each deployment tool. On a stock cloud Placement, `nova-conductor`, `nova-scheduler` and `cinder-volume` send nothing, each for its own reason: [the docs](https://oneuptime.com/docs/telemetry/openstack#what-a-trace-shows) say which, and what can be done about it.
 
 | Setting | Default | What it is for |
 | --- | --- | --- |

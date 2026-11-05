@@ -37,6 +37,10 @@ inventory summary, Needs attention and the blast radius from the rows the way
 `OpenStackResourceService` works them out in SQL, down to answering a bigint as text, so an
 estate has to say nothing beyond its rows.
 
+A cloud's Traces page reads spans, so it has a recording of its own: `?traces=flamingo-ovn/signed-boot`
+is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
+(`Fixture/TraceRecordings.js`). With none, the cloud has no traces, which is how every cloud starts.
+
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
 `?probe=checking|collecting|partial|untrusted|plain-http`, `?probes=many`,

@@ -19,6 +19,7 @@ import {
   OpenStackDeploymentTool,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
 import {
+  OPENSTACK_PLACEMENT_PATCH,
   OPENSTACK_TRACES_CONNECTION_STRING,
   OPENSTACK_TRACES_INSTALL_FILE,
   getOpenStackTracesGuide,
@@ -54,6 +55,23 @@ function guideOf(tool: OpenStackDeploymentTool): SetupGuideContent {
 
 function textOf(tool: OpenStackDeploymentTool): string {
   return getSetupGuideMarkdown(guideOf(tool));
+}
+
+function topicTitled(
+  tool: OpenStackDeploymentTool,
+  title: string,
+): SetupGuideTopic {
+  const topic: SetupGuideTopic | undefined = (guideOf(tool).advanced || []).find(
+    (candidate: SetupGuideTopic): boolean => {
+      return candidate.title === title;
+    },
+  );
+
+  if (!topic) {
+    throw new Error(`No topic ${title} on ${tool}`);
+  }
+
+  return topic;
 }
 
 function stepTitled(
@@ -95,7 +113,7 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
   });
 
   test("it says what the default key is, because leaving it unset is a real mistake", () => {
-    expect(stepTitled(tool, "Turn OSProfiler on").description).toContain(
+    expect(stepTitled(tool, "Turn OSProfiler on").markdown).toContain(
       "SECRET_KEY",
     );
   });
@@ -128,6 +146,103 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
     const steps: Array<SetupGuideStep> = guideOf(tool).steps;
 
     expect(steps[steps.length - 1]!.title).toBe("Sign a request");
+  });
+
+  test("it is straight about what OSProfiler is, before anything else", () => {
+    const intro: string = guideOf(tool).intro || "";
+
+    expect(intro).toContain("signed with your key");
+    expect(intro).toContain("never an always-on feed");
+    expect(intro).toContain("experimental");
+    expect(intro).toContain("plain HTTP");
+    expect(intro).toContain("libraries");
+  });
+
+  test("it says what a trace shows, and names everything that sends nothing", () => {
+    const intro: string = guideOf(tool).intro || "";
+    const cannotShow: string = topicTitled(
+      tool,
+      "What a trace cannot show",
+    ).markdown;
+
+    for (const service of [
+      "nova-api",
+      "nova-compute",
+      "neutron-server",
+      "keystone",
+      "glance-api",
+      "cinder-api",
+      "cinder-scheduler",
+    ]) {
+      expect(intro).toContain(service);
+    }
+
+    for (const service of [
+      "Placement",
+      "nova-conductor",
+      "nova-scheduler",
+      "cinder-volume",
+    ]) {
+      expect(intro).toContain(service);
+      expect(cannotShow).toContain(service);
+    }
+  });
+
+  test("it gives Placement's one line, and says what it means to keep it", () => {
+    const placement: string = topicTitled(tool, "Placement").markdown;
+
+    expect(placement).toContain(OPENSTACK_PLACEMENT_PATCH);
+    expect(placement).toContain("placement.wsgi");
+  });
+
+  test("it says what one worker each costs, and how, on this tool", () => {
+    const oneWorker: string = topicTitled(
+      tool,
+      "Nova's conductor and scheduler",
+    ).markdown;
+
+    expect(oneWorker).toContain("test cloud");
+    expect(oneWorker).toContain("capacity");
+    expect(oneWorker.toLowerCase()).toContain("workers");
+  });
+
+  test("no step's description holds what only Markdown can draw", () => {
+    for (const step of guideOf(tool).steps) {
+      expect(step.description || "").not.toContain("`");
+    }
+  });
+
+  test("it says how to tell a service started the driver, in the words the service logs", () => {
+    const step: SetupGuideStep = stepTitled(
+      tool,
+      "Check each service started it",
+    );
+
+    expect(step.markdown).toContain(
+      "osprofiler is enabled with connection string",
+    );
+    expect(step.markdown).toContain("Could not initialize driver");
+  });
+
+  test("it says what a working trace looks like", () => {
+    const sign: string = stepTitled(tool, "Sign a request").markdown || "";
+
+    for (const service of [
+      "nova-api",
+      "keystone",
+      "neutron-server",
+      "glance-api",
+      "nova-compute",
+    ]) {
+      expect(sign).toContain(service);
+    }
+  });
+
+  test("it gives no figure for what tracing slows a cloud by", () => {
+    const costs: string = topicTitled(tool, "What it costs").markdown;
+
+    expect(costs).toContain("no overhead figure");
+    expect(costs).not.toMatch(/\d+\s?%/);
   });
 
   test("it says what it costs, what a span holds, and what goes wrong", () => {
@@ -171,8 +286,12 @@ describe("what is true of each tool", () => {
 
     expect(config).toContain("nova_nova_conf_overrides");
     expect(config).toContain("neutron_neutron_conf_overrides");
-    expect(config).toContain("placement_placement_conf_overrides");
     expect(config).toContain("br-mgmt");
+    // Only with the line it needs, which its own topic gives.
+    expect(config).not.toContain("placement_placement_conf_overrides");
+    expect(topicTitled("openstack-ansible", "Placement").markdown).toContain(
+      "placement_placement_conf_overrides",
+    );
 
     const collector: SetupGuideStep = stepTitled(
       "openstack-ansible",
@@ -221,6 +340,26 @@ describe("what is true of each tool", () => {
     expect(
       stepTitled("openstack-ansible", "Run the collector on each machine").note,
     ).toContain("plain HTTP");
+  });
+});
+
+describe("the one line Placement needs", () => {
+  test("is exactly what the rig applied to a real Placement before a span of its arrived", () => {
+    const script: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../../Tests/Ops/openstack-e2e/traces-record.sh",
+      ),
+      "utf8",
+    );
+
+    expect(script).toContain(`sudo ${OPENSTACK_PLACEMENT_PATCH} `);
+  });
+
+  test("adds the group the driver reads, and nothing else", () => {
+    expect(OPENSTACK_PLACEMENT_PATCH).toContain(
+      'config.register_opts(profiler._OTLP_OPTS, group="profiler_otlp")',
+    );
   });
 });
 

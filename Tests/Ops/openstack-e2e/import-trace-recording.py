@@ -100,7 +100,35 @@ def load_replace_secrets():
     return module.replace_secrets, module.read_jsonl_gz, module.message_of
 
 
-REPLACE_SECRETS, READ_JSONL_GZ, MESSAGE_OF = load_replace_secrets()
+SECRETS_REPLACED, READ_JSONL_GZ, MESSAGE_OF = load_replace_secrets()
+
+# The runner's full and short names, as import-recording.py gives every other fixture the same
+# stable ones, so a trace's machine is the machine in the same release's inventory.
+RUNNER_NAMES = []
+
+
+def read_runner_names(folder):
+    path = os.path.join(folder, "context", "hypervisors.json")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        try:
+            hypervisors = json.load(handle)
+        except ValueError:
+            return []
+    names = []
+    for hypervisor in hypervisors:
+        full = hypervisor.get("Hypervisor Hostname", "")
+        if full:
+            names.append((full, "compute-01.example.internal"))
+            names.append((full.split(".")[0], "compute-01"))
+    return names
+
+
+def REPLACE_SECRETS(text):
+    for name, stable in RUNNER_NAMES:
+        text = text.replace(name, stable)
+    return SECRETS_REPLACED(text)
 
 
 def scrubbed(value):
@@ -219,6 +247,7 @@ def main():
     folder = sys.argv[2]
     root = sys.argv[3] if len(sys.argv) > 3 else DEFAULT_FIXTURES
     out = os.path.join(root, "traces", release)
+    RUNNER_NAMES.extend(read_runner_names(folder))
 
     key_check = os.path.join(folder, "key-check.txt")
     if not os.path.exists(key_check):
@@ -300,6 +329,8 @@ def main():
         "summary.json",
         "native-summary.json",
         "native-settings.txt",
+        "which-services-start.txt",
+        "scenes-not-run.txt",
         "versions.txt",
         "profiler-conf.txt",
         "key-check.txt",
@@ -319,6 +350,14 @@ def main():
                 text = REPLACE_SECRETS(handle.read())
             with open(os.path.join(out, "context", name), "w", encoding="utf-8") as handle:
                 handle.write(text)
+
+    for path_of, _, names in os.walk(out):
+        for name in names:
+            with open(os.path.join(path_of, name), encoding="utf-8", errors="replace") as handle:
+                held = handle.read()
+            for runner_name, _ in RUNNER_NAMES:
+                if runner_name in held:
+                    sys.exit(f"{os.path.join(path_of, name)} still names the runner. Fix this before it lands.")
 
     print(f"{release}: wrote {out}")
 

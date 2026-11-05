@@ -12,6 +12,9 @@
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
+ *   ?traces=    <release>/signed-boot: what OSProfiler's driver really sent for a signed
+ *               boot, through the real reader (TraceRecordings.js). With none, a cloud has
+ *               no traces, which is how every cloud starts.
  *   ?collector= disconnected: the agent stopped reporting ?quiet= ago (default 3 days)
  *   ?quiet=     how long ago the agent last reported: minutes, e.g. 4320
  *   ?access=    project: the credential is Project view, so it can list no services,
@@ -91,6 +94,7 @@ import CloudDomains from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/
 import CloudControlPlane from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlane";
 import CloudControlPlaneDependency from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlaneDependency";
 import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Topology";
+import CloudTraces from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Traces";
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
 import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
@@ -165,6 +169,7 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
 /*
  * ---------------------------------------------------------------------------
@@ -212,6 +217,9 @@ const OPEN = ["0", "many"].includes(params.get("open"))
   ? params.get("open")
   : "1";
 const FAILS = new Set((params.get("fail") || "").split(",").filter(Boolean));
+const TRACES = hasTraceRecording(params.get("traces"))
+  ? params.get("traces")
+  : "";
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -701,7 +709,57 @@ const store = {
   Service: [],
   MetricType: [],
   LogSavedView: [],
+  // What the traces viewer offers to narrow by, none of which a walk here reads.
+  DockerHost: [],
+  PodmanHost: [],
+  KubernetesCluster: [],
+  TraceSavedView: [],
 };
+
+/*
+ * What the driver sent for a signed boot, as this cloud's. A Service row per name, as the ingest
+ * makes them, for the control plane map to name its nodes by.
+ */
+const serviceIdOfName = new Map();
+const spanStore = TRACES
+  ? spanRowsFromRecording(TRACES, {
+      cloudName: estate.cloud.name,
+      loadedAt: LOADED_AT,
+      serviceIdOf: (name) => {
+        if (!serviceIdOfName.has(name)) {
+          const id = uuid("77000000", serviceIdOfName.size + 1);
+          serviceIdOfName.set(name, id);
+          store.Service.push({ _id: id, name: name, serviceColor: "#6366f1" });
+        }
+        return serviceIdOfName.get(name);
+      },
+    })
+  : [];
+
+function spansFor(query) {
+  const trace = query?.traceId;
+  const traces =
+    trace && trace.values
+      ? trace.values.map(String)
+      : trace
+        ? [String(trace)]
+        : null;
+
+  return spanStore.filter((span) => {
+    if (traces && !traces.includes(span.traceId)) {
+      return false;
+    }
+    if (query?.isEntrySpan === true && !span.isEntrySpan) {
+      return false;
+    }
+    for (const [key, wanted] of Object.entries(query?.attributes || {})) {
+      if (span.attributes[key] !== wanted) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
 
 for (const name of ARCHIVABLE_VALUE_TABLE_NAMES) {
   for (const record of store[name] || []) {
@@ -1367,11 +1425,22 @@ AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.listRequests.push({ modelName, query: serialize(options.query) });
 
+  if (modelName.startsWith("Span")) {
+    const data = spansFor(options.query).map((record) => {
+      return Object.assign(new options.modelType(), record);
+    });
+    return {
+      data: data.slice(0, options.limit || 10),
+      count: data.length,
+      skip: 0,
+      limit: options.limit || 10,
+    };
+  }
+
   if (
     modelName.startsWith("Log") ||
     modelName.startsWith("ChangeEvent") ||
-    modelName.startsWith("Metric") ||
-    modelName.startsWith("Span")
+    modelName.startsWith("Metric")
   ) {
     return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
   }
@@ -1508,6 +1577,16 @@ async function handleApi(method, options) {
         values: [],
       });
     }
+    // A cloud's Traces: what the viewer offers, none of which a walk here narrows by.
+    if (parsed.pathname.endsWith("/telemetry/traces/get-attributes")) {
+      return ok({ attributes: ["resource.openstack.cloud.name"] });
+    }
+    if (parsed.pathname.endsWith("/telemetry/traces/histogram")) {
+      return ok({ buckets: [] });
+    }
+    if (parsed.pathname.endsWith("/telemetry/traces/facets")) {
+      return ok({ facets: {} });
+    }
     // A part's Metrics: the metric catalog it reads.
     if (parsed.pathname.endsWith("/telemetry/metrics/get-attributes")) {
       return ok({
@@ -1630,6 +1709,7 @@ const PAGES = [
     CloudControlPlaneDependency,
   ],
   [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY, CloudTopology],
+  [PageMap.OPENSTACK_CLOUD_VIEW_TRACES, CloudTraces],
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS, CloudRecommendations],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION, CloudDocumentation],
   [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS, CloudSettings],
