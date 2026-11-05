@@ -78,6 +78,9 @@ services:
       # verify-full - for the PostgreSQL config's SQL checks (install.sh
       # works it out from them).
       - DATABASE_TLS_SSLMODE=${DATABASE_TLS_SSLMODE:-disable}
+      # And as the MySQL driver's tls - false, skip-verify or true - for the
+      # MySQL config's readings of Galera.
+      - DATABASE_TLS_MYSQL=${DATABASE_TLS_MYSQL:-false}
       # How often the database is queried for its statistics.
       - DATABASE_COLLECTION_INTERVAL=${DATABASE_COLLECTION_INTERVAL:-30s}
       # true ships query samples and top queries (PostgreSQL, MySQL,

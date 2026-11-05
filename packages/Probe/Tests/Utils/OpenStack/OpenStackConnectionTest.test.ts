@@ -1879,6 +1879,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.BareMetal]: "baremetal",
     [OpenStackServiceType.Orchestration]: "orchestration",
     [OpenStackServiceType.ContainerInfra]: "container-infra",
+    [OpenStackServiceType.SharedFileSystems]: "sharev2",
   };
 
   test.each(
@@ -1959,6 +1960,7 @@ describe("the reads themselves", () => {
       // The services a cloud may not run have recordings of their own.
       ...loadAccessMatrix("services-heat-magnum", "matrix", "access-check"),
       ...loadAccessMatrix("services-ironic", "matrix", "access-check"),
+      ...loadAccessMatrix("services-manila", "matrix", "access-check"),
     ];
 
     for (const definition of OPENSTACK_ACCESS_READS) {
