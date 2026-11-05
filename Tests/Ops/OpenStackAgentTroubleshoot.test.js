@@ -569,8 +569,11 @@ function startCloud({
 const CURL_WRAPPER = `args=()
 for arg in "$@"; do
   arg="\${arg//openstack-exporter:9180/$FAKE_EXPORTER}"
+  arg="\${arg//openstack-database-exporter:9180/$FAKE_EXPORTER}"
+  arg="\${arg//openstack-worker-state-exporter:9180/$FAKE_EXPORTER}"
   arg="\${arg//exporter.example.com:9180/$FAKE_EXPORTER}"
   arg="\${arg//127.0.0.1:9180/$FAKE_EXPORTER}"
+  arg="\${arg//127.0.0.1:9181/$FAKE_EXPORTER}"
   args+=("$arg")
 done
 if [ -f "$STUB_DIR/curl-fails" ]; then
@@ -607,7 +610,10 @@ case "$1" in
       *Config.User*) cat "$STUB_DIR/exporter.user" 2>/dev/null ;;
       *restarting*) printf 'running restarting=false restarts=0\\n' ;;
       *State.Status*)
-        if [ -f "$STUB_DIR/exporter.state" ]; then cat "$STUB_DIR/exporter.state"; else printf 'running\\n'; fi
+        for container in "$@"; do :; done
+        if [ -f "$STUB_DIR/$container.state" ]; then cat "$STUB_DIR/$container.state"
+        elif [ -f "$STUB_DIR/exporter.state" ]; then cat "$STUB_DIR/exporter.state"
+        else printf 'running\\n'; fi
         ;;
     esac
     exit 0 ;;
@@ -2272,6 +2278,558 @@ describe("an exporter in single-cloud mode", () => {
 
     expect(run.output).toContain(
       "An exporter started without --multi-cloud, as Kolla-Ansible starts it, has no /probe: set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS",
+    );
+  });
+});
+
+/*
+ * The agent "The database path" in the docs describes. It runs no exporter of the APIs, which the
+ * doctor used to call a failure: it said the bundled exporter never started, told people to turn it
+ * on, and blamed the exporter for metrics that were arriving. /metrics answers with what the
+ * exporter's own tests say it writes, with each database's answer as a test needs it.
+ */
+describe("the database path", () => {
+  const TARGETS = "[openstack-database-exporter:9180]";
+  const ON_THE_PATH = {
+    OPENSTACK_EXPORTER_CLOUDS: "[]",
+    OPENSTACK_DATABASE_EXPORTER_TARGETS: TARGETS,
+    OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+    OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+    COMPOSE_PROFILES: "openstack-database-exporter,openstack-ai-agent",
+  };
+  // As that profile starts it: no container of the exporter of the APIs.
+  const NO_API_EXPORTER = { "oneuptime-openstack-exporter.state": "" };
+  const ALL_UP = {
+    cinder: 1,
+    glance: 1,
+    identity: 1,
+    neutron: 1,
+    nova: 1,
+    placement: 1,
+  };
+  const EXPOSITION = fs
+    .readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/Common/Tests/Fixtures/OpenStackDatabaseExporter/v1.2.0/exposition.prom",
+      ),
+      "utf8",
+    )
+    .split("\n")
+    .filter((line) => {
+      return line && !/^openstack_[a-z_]+_up /.test(line);
+    });
+
+  function databaseMetrics(up = ALL_UP) {
+    return [
+      "# HELP go_goroutines Number of goroutines.",
+      "go_goroutines 12",
+      ...EXPOSITION,
+      ...Object.entries(up).map(([service, value]) => {
+        return `openstack_${service}_up ${value}`;
+      }),
+      "",
+    ].join("\n");
+  }
+
+  function workerStateProbe(url) {
+    return url.searchParams.get("include_services") === "compute"
+      ? 'openstack_nova_up 1\nopenstack_nova_agent_state{hostname="compute-01"} 1\n'
+      : 'openstack_cinder_up 1\nopenstack_cinder_pool_capacity_free_gb{name="lvm"} 10\nopenstack_cinder_pool_capacity_total_gb{name="lvm"} 20\n';
+  }
+
+  function pathCloud(options = {}) {
+    return startCloud({
+      metrics: () => {
+        return databaseMetrics();
+      },
+      probe: workerStateProbe,
+      ...options,
+    });
+  }
+
+  function pathDoctor(cloud, { env = {}, files = {}, ...options } = {}) {
+    return runDoctor(cloud, {
+      env: { ...ON_THE_PATH, ...env },
+      files: { ...NO_API_EXPORTER, ...files },
+      ...options,
+    });
+  }
+
+  function verdictOf(run) {
+    return sectionOf(run.output, "11. VERDICT").join("\n");
+  }
+
+  describe("an agent that is working", () => {
+    let cloud;
+    let run;
+
+    beforeAll(async () => {
+      cloud = await pathCloud();
+      run = await pathDoctor(cloud);
+    });
+
+    afterAll(async () => {
+      await cloud.close();
+    });
+
+    test("is not said to be failing, and is not told to start an exporter it does not run", () => {
+      expect(run.status).toBe(0);
+      expect(run.output).not.toContain("✗");
+      expect(run.output).not.toContain("does not exist");
+      expect(run.output).not.toContain("COMPOSE_PROFILES=openstack-exporter");
+      expect(run.output).not.toContain("the agent has nothing to scrape");
+      expect(run.output).not.toContain("ROOT CAUSE");
+      expect(verdictOf(run)).toContain(
+        "The agent looks healthy and OneUptime accepts the token.",
+      );
+    });
+
+    test("says what it reads, and that its containers run", () => {
+      const runtime = sectionOf(run.output, "1. Runtime");
+
+      expect(runtime).toContain(
+        `  • No exporter of the APIs: the agent reads this cloud from its databases, at ${TARGETS} (OPENSTACK_DATABASE_EXPORTER_TARGETS).`,
+      );
+      expect(runtime).toContain(
+        "  ✔ Database exporter 'oneuptime-openstack-database-exporter' is running",
+      );
+      expect(runtime).toContain(
+        "  ✔ Worker-state exporter 'oneuptime-openstack-worker-state-exporter' is running",
+      );
+    });
+
+    test("names each database it reads, and takes no label for one", () => {
+      expect(
+        sectionOf(run.output, "2. openstack-exporter reachability"),
+      ).toContain(
+        `  ✔ The database exporter at openstack-database-exporter:9180 reads cinder, glance, identity, neutron, nova, placement (${
+          EXPOSITION.filter((line) => {
+            return line.startsWith("openstack_");
+          }).length + 6
+        } openstack_* series).`,
+      );
+    });
+
+    test("asks each exporter what the collector asks it, and nothing per service", () => {
+      expect(
+        cloud.requests.filter((request) => {
+          return request.path === "/metrics";
+        }).length,
+      ).toBe(1);
+      expect(
+        cloud.requests
+          .filter((request) => {
+            return request.path === "/probe";
+          })
+          .map((request) => {
+            return `${request.query.get("cloud")} ${request.query.get("include_services")}`;
+          }),
+      ).toEqual(["RegionOne compute", "RegionOne volume"]);
+    });
+
+    test("says each worker-state read answered", () => {
+      const section = sectionOf(run.output, "2. openstack-exporter reachability");
+
+      expect(section).toContain(
+        "  ✔ Region RegionOne: the worker-state exporter says whether each Nova worker is alive (1 series).",
+      );
+      expect(section).toContain(
+        "  ✔ Region RegionOne: the worker-state exporter says how full each storage pool is (2 series).",
+      );
+    });
+
+    test("still logs in, and looks at each service of that region, which nothing else here does", () => {
+      expect(cloud.logins).toHaveLength(1);
+      expect(sectionOf(run.output, "4. Every service in the catalog")).toContain(
+        "  • Region RegionOne",
+      );
+    });
+
+    test("asks the credential what the collector relies on it for, and adds up no level from that", () => {
+      const paths = cloud.requests.map((request) => {
+        return request.path;
+      });
+      const access = sectionOf(run.output, "What this credential can read");
+
+      expect(paths).toContain("/RegionOne/compute/v2.1/os-services");
+      expect(paths).toContain(
+        "/RegionOne/volume/v3/scheduler-stats/get_pools",
+      );
+      expect(paths).not.toContain("/RegionOne/compute/v2.1/servers/detail");
+      expect(paths).not.toContain(
+        "/RegionOne/compute/v2.1/os-hypervisors/detail",
+      );
+      expect(paths).not.toContain("/identity/v3/projects");
+      expect(access).toContain("  ✔ compute: services — reads everything");
+      expect(access).toContain("  ✔ block-storage: pools — reads everything");
+      expect(access).toContain(
+        "  • The pages read the databases, so these lists are all the collector asks of this credential. The AI agent reads with it too, and says what it is refused.",
+      );
+      expect(access.join("\n")).not.toContain("That adds up to");
+      expect(access.join("\n")).not.toContain("falls between the three levels");
+    });
+
+    test("still says what the credential's own project holds", () => {
+      expect(
+        cloud.requests.some((request) => {
+          return request.path === "/RegionOne/compute/v2.1/servers";
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe("its containers", () => {
+    test.each([
+      ["oneuptime-openstack-database-exporter", "Database exporter"],
+      ["oneuptime-openstack-worker-state-exporter", "Worker-state exporter"],
+    ])("%s, never started, is told how to start it", async (container, what) => {
+      const cloud = await pathCloud();
+      const run = await pathDoctor(cloud, {
+        files: { [`${container}.state`]: "" },
+      });
+      await cloud.close();
+
+      expect(run.output).toContain(`  ✗ ${what} '${container}' does not exist.`);
+      expect(run.output).toContain(
+        "Add openstack-database-exporter to COMPOSE_PROFILES",
+      );
+      expect(run.output).not.toContain("COMPOSE_PROFILES=openstack-exporter");
+    });
+
+    test("one that has stopped is sent to its log", async () => {
+      const cloud = await pathCloud();
+      const run = await pathDoctor(cloud, {
+        files: { "oneuptime-openstack-database-exporter.state": "exited\n" },
+      });
+      await cloud.close();
+
+      expect(run.output).toContain(
+        "  ✗ Database exporter 'oneuptime-openstack-database-exporter' is NOT running (state: exited)",
+      );
+      expect(run.output).toContain(
+        "docker logs oneuptime-openstack-database-exporter",
+      );
+    });
+
+    test("a target somewhere else is not looked for here, and neither is an address somewhere else", async () => {
+      const cloud = await pathCloud();
+      const run = await pathDoctor(cloud, {
+        env: {
+          OPENSTACK_DATABASE_EXPORTER_TARGETS: "[exporter.example.com:9180]",
+          OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS: "exporter.example.com:9180",
+          COMPOSE_PROFILES: "openstack-ai-agent",
+        },
+        files: {
+          "oneuptime-openstack-database-exporter.state": "",
+          "oneuptime-openstack-worker-state-exporter.state": "",
+        },
+      });
+      await cloud.close();
+
+      expect(run.status).toBe(0);
+      expect(run.output).not.toContain("does not exist");
+      expect(run.output).toContain(
+        "  ✔ The database exporter at exporter.example.com:9180 reads",
+      );
+      expect(run.output).toContain(
+        "  ✔ Region RegionOne: the worker-state exporter says whether each Nova worker is alive",
+      );
+    });
+  });
+
+  describe("its exporter's answer", () => {
+    test("one it cannot reach is the network, and the verdict sends you there rather than to the APIs", async () => {
+      const cloud = await pathCloud();
+      const run = await pathDoctor(cloud, {
+        files: { "curl-fails": "openstack-database-exporter:9180/metrics 7\n" },
+      });
+      await cloud.close();
+
+      expect(run.status).toBe(1);
+      expect(run.output).toContain(
+        "  ✗ Cannot reach the database exporter at openstack-database-exporter:9180 from the agent's network.",
+      );
+      expect(run.output).toContain("curl: (7) simulated failure");
+      expect(verdictOf(run)).toContain(
+        "ROOT CAUSE: the collector has no OpenStack metrics to ship",
+      );
+      expect(verdictOf(run)).toContain(
+        "Fix the database exporter (see Section 2) — usually its database URLs, or its route to them.",
+      );
+      expect(verdictOf(run)).not.toContain("OPENSTACK_EXPORTER_ADDRESS");
+    });
+
+    test("one that says nothing of OpenStack reads no database", async () => {
+      const cloud = await pathCloud({
+        metrics: () => {
+          return "go_goroutines 12\n";
+        },
+      });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(run.output).toContain(
+        "  ✗ The database exporter at openstack-database-exporter:9180 answers /metrics with no openstack_* series.",
+      );
+      expect(run.output).toContain("Check NOVA_DATABASE_URL and the others");
+      expect(verdictOf(run)).toContain("Fix the database exporter");
+    });
+
+    test("one database it cannot read leaves the rest reporting, and is named", async () => {
+      const cloud = await pathCloud({
+        metrics: () => {
+          return databaseMetrics({ ...ALL_UP, neutron: 0, glance: 0 });
+        },
+      });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(run.output).toContain(
+        "  ▲ The database exporter at openstack-database-exporter:9180 reads cinder, identity, nova, placement, and cannot read the database of: glance, neutron.",
+      );
+      expect(run.output).toContain("Those services' series are missing.");
+      expect(verdictOf(run)).not.toContain("ROOT CAUSE");
+    });
+
+    test("none it can read is a failure, and the verdict says so", async () => {
+      const cloud = await pathCloud({
+        metrics: () => {
+          return databaseMetrics({ nova: 0, neutron: 0 });
+        },
+      });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(run.output).toContain(
+        "  ✗ The database exporter at openstack-database-exporter:9180 answers, and cannot read the database of: nova, neutron.",
+      );
+      expect(verdictOf(run)).toContain("Fix the database exporter");
+    });
+
+    test("a database left out is a service it leaves alone, and no failure", async () => {
+      const cloud = await pathCloud({
+        metrics: () => {
+          return databaseMetrics({ nova: 1, placement: 1 });
+        },
+      });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(run.status).toBe(0);
+      expect(run.output).toContain("reads nova, placement (");
+    });
+
+    test("every target is asked", async () => {
+      const cloud = await pathCloud();
+      const run = await pathDoctor(cloud, {
+        env: {
+          OPENSTACK_DATABASE_EXPORTER_TARGETS:
+            "[openstack-database-exporter:9180,exporter.example.com:9180]",
+        },
+      });
+      const asked = cloud.requests.filter((request) => {
+        return request.path === "/metrics";
+      });
+      await cloud.close();
+
+      expect(asked.length).toBe(2);
+      expect(run.output).toContain(
+        "✔ The database exporter at exporter.example.com:9180 reads",
+      );
+    });
+  });
+
+  describe("what a database cannot say", () => {
+    test("no entries named asks for nothing, says what goes unread, and how to read it", async () => {
+      const cloud = await pathCloud();
+      const run = await pathDoctor(cloud, {
+        env: { OPENSTACK_WORKER_STATE_CLOUDS: "[]" },
+      });
+      const probes = cloud.requests.filter((request) => {
+        return request.path === "/probe";
+      });
+      await cloud.close();
+
+      expect(probes).toEqual([]);
+      expect(run.status).toBe(0);
+      expect(run.output).toContain(
+        "  ▲ Nothing says whether each Nova worker is alive, or how full each storage pool is: a database says neither.",
+      );
+      expect(run.output).toContain(
+        "Set OPENSTACK_WORKER_STATE_CLOUDS in",
+      );
+      expect(run.output).toContain("such as [RegionOne]");
+      // The credential is still looked at, for the region the databases are in.
+      expect(sectionOf(run.output, "4. Every service in the catalog")).toContain(
+        "  • Region RegionOne",
+      );
+      expect(
+        run.output.includes(
+          "Worker-state exporter 'oneuptime-openstack-worker-state-exporter'",
+        ),
+      ).toBe(false);
+    });
+
+    test("an entry that reads nothing is a warning that says which, and the databases go on", async () => {
+      const cloud = await pathCloud({
+        probe: () => {
+          return "";
+        },
+      });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(run.status).toBe(0);
+      expect(run.output).toContain(
+        "  ▲ Region RegionOne: the worker-state exporter answers, and does not say whether each Nova worker is alive.",
+      );
+      expect(run.output).toContain(
+        '  ▲ Region RegionOne: the worker-state exporter answers, and does not say how full each storage pool is.',
+      );
+      expect(run.output).toContain('It needs an entry named "RegionOne"');
+      expect(verdictOf(run)).toContain("The agent looks healthy");
+    });
+
+    test("an exporter it cannot reach is a failure, on the agent's network", async () => {
+      const cloud = await pathCloud();
+      const run = await pathDoctor(cloud, {
+        files: {
+          "curl-fails": "openstack-worker-state-exporter:9180/probe 7\n",
+        },
+      });
+      await cloud.close();
+
+      expect(run.status).toBe(1);
+      expect(run.output).toContain(
+        "  ✗ Region RegionOne: cannot reach the worker-state exporter at openstack-worker-state-exporter:9180 from the agent's network.",
+      );
+      expect(run.output).toContain(
+        "docker logs oneuptime-openstack-worker-state-exporter",
+      );
+    });
+
+    test("a region's name with a space in it is asked for as the collector asks", async () => {
+      const cloud = await pathCloud({ regions: ["Region Two"] });
+      await pathDoctor(cloud, {
+        regions: ["Region Two"],
+        env: { OPENSTACK_WORKER_STATE_CLOUDS: "[Region Two]" },
+      });
+      const clouds = cloud.requests
+        .filter((request) => {
+          return request.path === "/probe";
+        })
+        .map((request) => {
+          return request.query.get("cloud");
+        });
+      await cloud.close();
+
+      expect(clouds).toEqual(["Region Two", "Region Two"]);
+    });
+  });
+
+  describe("the credential", () => {
+    test("one Keystone refuses leaves the databases reporting, which the verdict says", async () => {
+      const cloud = await pathCloud({ loginStatus: 401 });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(verdictOf(run)).toContain(
+        "ROOT CAUSE: the credential in clouds.yaml gets no token from Keystone.",
+      );
+      expect(verdictOf(run)).toContain("The databases go on reporting");
+      expect(verdictOf(run)).not.toContain("the exporter reads nothing");
+    });
+
+    test("what it is refused says what goes without it", async () => {
+      const cloud = await pathCloud({
+        scenario: (read) => {
+          return read.service === "block-storage" && read.label === "pools"
+            ? { status: 403 }
+            : fullView(read);
+        },
+      });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(run.output).toContain("  ▲ block-storage: pools — refused");
+      expect(run.output).toContain(
+        "Goes without it: storage pools, and the alerts on a filling pool.",
+      );
+    });
+
+    test("an API that does not answer costs no series here, and nothing else says so", async () => {
+      const cloud = await pathCloud({
+        serviceStatus: { "load-balancer": 503 },
+      });
+      const run = await pathDoctor(cloud);
+      await cloud.close();
+
+      expect(run.output).toContain(
+        "Its series come from its database, so nothing else here says so: watch it with a website monitor.",
+      );
+      expect(run.output).not.toContain("so its series go missing");
+    });
+  });
+
+  describe("with the APIs read as well", () => {
+    test("says every series arrives twice, and how to choose, and looks at both", async () => {
+      const cloud = await startCloud({
+        metrics: () => {
+          return databaseMetrics();
+        },
+      });
+      const run = await runDoctor(cloud, {
+        env: {
+          OPENSTACK_DATABASE_EXPORTER_TARGETS: TARGETS,
+          OPENSTACK_WORKER_STATE_CLOUDS: "[]",
+        },
+      });
+      await cloud.close();
+
+      expect(run.output).toContain(
+        "  ▲ OPENSTACK_EXPORTER_CLOUDS reads this cloud from its APIs, and OPENSTACK_DATABASE_EXPORTER_TARGETS from its databases, so every series arrives twice.",
+      );
+      expect(run.output).toContain("Set OPENSTACK_EXPORTER_CLOUDS=[] in");
+      expect(run.output).toContain("Bundled exporter 'oneuptime-openstack-exporter'");
+      expect(run.output).toContain("Region RegionOne: the exporter reads Keystone");
+      expect(run.output).toContain("✔ The database exporter at");
+      // Not this path: the pages read what this credential reads.
+      expect(run.output).toContain("That adds up to");
+    });
+  });
+
+  test("an agent with neither says nothing of any of it", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(run.output).not.toContain("database exporter");
+    expect(run.output).not.toContain("worker-state");
+    expect(run.output).not.toContain("from its databases");
+    expect(run.output).not.toContain("a database says neither");
+  });
+
+  test("without Docker its address is this machine's, no container is looked for, and the exporter's service is not asked for", async () => {
+    const cloud = await pathCloud();
+    const run = await pathDoctor(cloud, {
+      native: true,
+      env: {
+        OPENSTACK_DATABASE_EXPORTER_TARGETS: "[exporter.example.com:9180]",
+        COMPOSE_PROFILES: "",
+      },
+      files: { "oneuptime-openstack-exporter.inactive": "" },
+    });
+    await cloud.close();
+
+    expect(run.status).toBe(0);
+    expect(run.docker).toBe("");
+    expect(run.systemctl).not.toContain(
+      "is-active oneuptime-openstack-exporter",
+    );
+    expect(run.curlLog).toContain("http://127.0.0.1:9181/probe?cloud=RegionOne");
+    expect(run.output).toContain(
+      "  ✔ The database exporter at exporter.example.com:9180 reads",
     );
   });
 });
