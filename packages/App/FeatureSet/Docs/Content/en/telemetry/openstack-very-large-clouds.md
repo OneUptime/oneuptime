@@ -1,6 +1,6 @@
 # Very Large OpenStack Clouds
 
-What a cloud of any size costs before you install anything: how hard monitoring leans on its control plane, how much data it sends, and what OneUptime does differently as a cloud grows. Nearly every cloud needs none of this: the defaults of the [OpenStack Agent](/docs/telemetry/openstack) and a [probe](/docs/telemetry/openstack-agentless) hold up to thousands of instances without anything being set.
+What a cloud of any size costs before you install anything: how hard monitoring leans on its control plane, how much data it sends, and what OneUptime does differently as a cloud grows. Nearly every cloud should need none of this: by the counts below, the defaults of the [OpenStack Agent](/docs/telemetry/openstack) and a [probe](/docs/telemetry/openstack-agentless) hold up to thousands of instances without anything being set.
 
 :::cards
 - [The load on your control plane](#the-load-on-your-control-plane): Requests a minute per service, at each size.
@@ -54,13 +54,13 @@ These are counted from the exporter's source, and the exporter has not been run 
 
 ### When an API slows down
 
-A probe watches what each service usually answers in, and when an answer takes three times that and at least a second, or five seconds whatever is usual, it waits as long as that answer took before asking that service again. Several reads waiting at once take turns, so a pause does not end in a burst. A service that keeps answering `429` or `503` is left alone for a minute, then two, then four, up to half an hour. Nothing else is held up: each service is asked on its own.
+A probe watches what each service usually answers in, and holds back when an answer is slow or refused: [What it costs your cloud](/docs/telemetry/openstack-agentless#what-it-costs-your-cloud) says by how much. Several reads waiting at once take turns, so a pause does not end in a burst. Nothing else is held up: each service is asked on its own.
 
 The cloud's **Data Collection** card says so while it lasts, service by service: how slow its slowest answer was, and how long the probe held back. The agent's exporter cannot do this. A scrape runs whole, at its interval: raise `scrape_interval` and `scrape_timeout` for that job to go easier on a service.
 
 ## The data it sends
 
-A cloud's series follow from its counts. The calculator on a cloud's **Documentation** page in OneUptime works this out from three numbers. To work it out yourself, for one region:
+A cloud's series follow from its counts. The calculator under **OpenStack → Documentation** in OneUptime works this out from three numbers. To work it out yourself, for one region:
 
 | Series | How many |
 | --- | --- |
@@ -72,7 +72,7 @@ A cloud's series follow from its counts. The calculator on a cloud's **Documenta
 | Summary mode's counts, when it is on | One per status and one per project: about 6 plus projects |
 | Keystone, Glance | Projects, domains and 9, and 2 per image plus 5. A probe adds 3 for each of Heat and Magnum, whether or not a cloud runs them |
 
-Each scrape's rows are what you are billed for: the first five lines arrive every 2 minutes, 720 times a day, and the last every 5 minutes, 288 times. The price is the one on your bill, [per GB for how long it is kept](/docs/telemetry/openstack#what-it-costs). The bill reads the real size of each row, and this works it out at 1,024 bytes a row, what OneUptime's billing falls back on when it has no size for a row. A row with many labels, such as an instance's, costs more than that, and one with none costs less.
+Each scrape's rows are what you are billed for: the first five lines arrive every 2 minutes, 720 times a day, and the last every 5 minutes, 288 times. The price is the one on your bill, [per GB for how long it is kept](/docs/telemetry/data-retention#what-retention-costs). The bill reads the real size of each row, and this works it out at 1,024 bytes a row, what OneUptime's billing falls back on when it has no size for a row. A row with many labels, such as an instance's, costs more than that, and one with none costs less.
 
 | Cloud | Series | GB a day, every series | GB a day, in summary mode | A month kept 15 days, in summary mode |
 | --- | --- | --- | --- | --- |
@@ -114,7 +114,7 @@ One agent reads a cloud however many regions it has, and that is what to start w
 - **Each pair of a region and a service belongs to one agent.** A row is the same row however many agents report it, but each agent's series are stored and billed.
 - **Keystone belongs to one agent.** It is one for the whole cloud, whichever region asks it.
 
-**One agent per region** is what most clouds want. List only that region's entries in `clouds.yaml` and `OPENSTACK_EXPORTER_CLOUDS`. Only the first agent keeps Keystone:
+**One agent per region** is what most clouds want. List only that region's entries in `clouds.yaml` and `OPENSTACK_EXPORTER_CLOUDS`. Only the first agent keeps Keystone. An agent that sets `OPENSTACK_AGENT_SERVICES` reads only what it names, so add any other service your cloud runs, such as `load-balancer`:
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## What the largest size was held to
 
-The real collector read a mock API of 5,000 hypervisors, 200,000 instances and 10,000 projects every two minutes for 60 minutes, on a real clock. What it sent went through the real fold and the real writes into a real Postgres, with the Overview's reads and the stale-row sweep running beside them every 30 seconds, and 200 instances changing every collection. Each budget below is asserted, and a run that misses one fails.
+The real collector read a mock API of 5,000 hypervisors, 200,000 instances and 10,000 projects every two minutes for 60 minutes, on a real clock. What it sent went through the real ingest and the real writes into a real Postgres, with the Overview's reads and the stale-row sweep running beside them every 30 seconds, and 200 instances changing every collection. Each budget below is asserted, and a run that misses one fails.
 
 | What | Budget | Measured |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ The margin is not wide on a machine that busy. An earlier hour, at a load averag
 
 ## What the pages read
 
-A large cloud's pages read as fast as a small one's, because none of them reads the whole cloud.
+A large cloud's pages read little more than a small one's, because none of them reads the whole cloud.
 
 | Page | What it reads |
 | --- | --- |
