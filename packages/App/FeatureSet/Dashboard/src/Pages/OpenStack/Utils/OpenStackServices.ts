@@ -1,5 +1,6 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { OpenStackRowsLeftOut } from "Common/Types/OpenStack/OpenStackOverview";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
@@ -199,8 +200,28 @@ export interface OpenStackWorkerCounts {
   disabled: number;
 }
 
+/*
+ * What a read counted and did not bring: on a cloud of thousands of hosts, nearly all of its workers.
+ * Only for a page that says how many: none of these is anything to read.
+ */
+export function getOpenStackRowsLeftOut(data: {
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
+  kind: OpenStackResourceKind;
+  regionName?: string | null | undefined;
+}): Array<OpenStackRowsLeftOut> {
+  return (data.leftOut || []).filter((group: OpenStackRowsLeftOut): boolean => {
+    return (
+      group.kind === data.kind &&
+      (!data.regionName ||
+        !group.regionName ||
+        group.regionName === data.regionName)
+    );
+  });
+}
+
 export function getOpenStackWorkerCounts(
   workers: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
 ): OpenStackWorkerCounts {
   const counts: OpenStackWorkerCounts = {
     total: workers.length,
@@ -208,6 +229,15 @@ export function getOpenStackWorkerCounts(
     down: 0,
     disabled: 0,
   };
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    counts.total += group.count;
+    counts[group.state] += group.count;
+  }
+
   for (const worker of workers) {
     if (isOpenStackAdminDisabled(worker.adminState)) {
       counts.disabled += 1;
@@ -238,6 +268,8 @@ export interface OpenStackServiceGroup {
   // What needs someone first.
   workers: Array<OpenStackResource>;
   counts: OpenStackWorkerCounts;
+  // How many of them were not read, because nothing is wrong with them: a very large cloud's.
+  notListedCount: number;
   items: Array<ResourceAttentionItem>;
   health: ResourceHealth;
   // Its API isn't answering, so what its workers say is what they last said.
@@ -261,11 +293,13 @@ interface OpenStackServiceGroupRows {
   regionName: string | null;
   api: OpenStackResource | null;
   workers: Array<OpenStackResource>;
+  leftOut: Array<OpenStackRowsLeftOut>;
 }
 
 export function getOpenStackServiceGroups(data: {
   apis: Array<OpenStackResource>;
   workers: Array<OpenStackResource>;
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
   now: Date;
 }): Array<OpenStackServiceGroup> {
   const groups: Map<string, OpenStackServiceGroupRows> = new Map();
@@ -287,6 +321,7 @@ export function getOpenStackServiceGroups(data: {
       regionName,
       api: null,
       workers: [],
+      leftOut: [],
     };
     groups.set(key, group);
     return group;
@@ -306,6 +341,18 @@ export function getOpenStackServiceGroups(data: {
     }
   }
 
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: data.leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    const service: OpenStackServiceType | undefined =
+      SERVICE_OF_FAMILY[group.family || ""];
+
+    if (service) {
+      groupOf(service, group.regionName).leftOut.push(group);
+    }
+  }
+
   return Array.from(groups.entries())
     .map(
       ([key, group]: [
@@ -322,10 +369,18 @@ export function getOpenStackServiceGroups(data: {
           regionName: group.regionName,
           api: group.api,
           workers: sortOpenStackWorkers(group.workers, data.now),
-          counts: getOpenStackWorkerCounts(group.workers),
+          counts: getOpenStackWorkerCounts(group.workers, group.leftOut),
+          notListedCount: group.leftOut.reduce(
+            (sum: number, leftOut: OpenStackRowsLeftOut): number => {
+              return sum + leftOut.count;
+            },
+            0,
+          ),
           items,
           health: getOpenStackHealth(items),
-          isLastKnown: group.api?.status === "down" && group.workers.length > 0,
+          isLastKnown:
+            group.api?.status === "down" &&
+            (group.workers.length > 0 || group.leftOut.length > 0),
         };
       },
     )
@@ -356,6 +411,7 @@ export const OPENSTACK_BACKEND_LINUX_BRIDGE: string = "ML2/Linux bridge";
 
 export function getOpenStackNetworkBackendName(
   workers: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
 ): string | null {
   const names: Array<string> = workers
     .filter((worker: OpenStackResource): boolean => {
@@ -366,6 +422,16 @@ export function getOpenStackNetworkBackendName(
     .map((worker: OpenStackResource): string => {
       return (worker.name || "").toLowerCase();
     });
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    if (group.family === OpenStackServiceFamily.Network && group.name) {
+      names.push(group.name.toLowerCase());
+    }
+  }
+
   const hasAgent: (word: string) => boolean = (word: string): boolean => {
     return names.some((name: string): boolean => {
       return name.includes(word);
@@ -430,6 +496,7 @@ export function getOpenStackAccessGaps(data: {
   workers: Array<OpenStackResource>;
   // Left out by a page that says nothing about them.
   hypervisors?: Array<OpenStackResource> | undefined;
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
   /*
    * Whether a region holds any pool. Only pools past the rules' line are among the rows
    * that may need someone, so a page says this from the summary's capacity.
@@ -442,12 +509,21 @@ export function getOpenStackAccessGaps(data: {
     family: OpenStackServiceFamily,
   ): ((regionName: string | null) => boolean) => {
     return (regionName: string | null): boolean => {
-      return data.workers.some((worker: OpenStackResource): boolean => {
-        return (
-          getOpenStackWorkerFamily(worker) === family &&
-          (worker.regionName || null) === regionName
-        );
-      });
+      return (
+        data.workers.some((worker: OpenStackResource): boolean => {
+          return (
+            getOpenStackWorkerFamily(worker) === family &&
+            (worker.regionName || null) === regionName
+          );
+        }) ||
+        (data.leftOut || []).some((group: OpenStackRowsLeftOut): boolean => {
+          return (
+            group.kind === OpenStackResourceKind.Service &&
+            group.family === family &&
+            (group.regionName || null) === regionName
+          );
+        })
+      );
     };
   };
 
@@ -466,9 +542,17 @@ export function getOpenStackAccessGaps(data: {
       data.apis,
       OpenStackServiceType.Compute,
       (regionName: string | null): boolean => {
-        return hypervisors.some((row: OpenStackResource): boolean => {
-          return (row.regionName || null) === regionName;
-        });
+        return (
+          hypervisors.some((row: OpenStackResource): boolean => {
+            return (row.regionName || null) === regionName;
+          }) ||
+          (data.leftOut || []).some((group: OpenStackRowsLeftOut): boolean => {
+            return (
+              group.kind === OpenStackResourceKind.Hypervisor &&
+              (group.regionName || null) === regionName
+            );
+          })
+        );
       },
     )
   ) {
@@ -680,6 +764,7 @@ export interface OpenStackHypervisorCounts {
 
 export function getOpenStackHypervisorCounts(
   rows: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
 ): OpenStackHypervisorCounts {
   const counts: OpenStackHypervisorCounts = {
     total: 0,
@@ -687,6 +772,20 @@ export function getOpenStackHypervisorCounts(
     lost: 0,
     disabled: 0,
   };
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Hypervisor,
+  })) {
+    counts.total += group.count;
+
+    if (group.state === "down") {
+      counts.lost += group.count;
+    } else {
+      counts[group.state] += group.count;
+    }
+  }
+
   for (const row of rows) {
     if (row.kind !== OpenStackResourceKind.Hypervisor) {
       continue;

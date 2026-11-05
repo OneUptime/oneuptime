@@ -23,6 +23,8 @@ import {
 } from "../../Types/OpenStack/OpenStackResourceKind";
 import {
   OpenStackRegionSummary,
+  OpenStackRowState,
+  OpenStackRowsLeftOut,
   OpenStackTopConsumer,
   OpenStackTopConsumers,
 } from "../../Types/OpenStack/OpenStackOverview";
@@ -38,10 +40,12 @@ import {
   OpenStackCountRow,
 } from "../../Types/OpenStack/OpenStackCounts";
 import {
+  OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_REDUNDANT_WORKERS,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
   OpenStackL3AgentFact,
@@ -118,6 +122,13 @@ export interface OpenStackAttentionRows {
   rows: Array<JSONObject>;
   // How many there are of each kind, so a list can say "and 1,240 more".
   totalsByKind: Record<string, number>;
+  // Hosts and workers past OPENSTACK_WHOLE_KIND_ROWS that were counted and not read.
+  leftOut: Array<OpenStackRowsLeftOut>;
+}
+
+export interface OpenStackServiceRowsRead {
+  workers: Array<JSONObject>;
+  leftOut: Array<OpenStackRowsLeftOut>;
 }
 
 const OPENSTACK_TOP_CONSUMERS_LIMIT: number = 5;
@@ -260,6 +271,12 @@ const STALE_DELETE_BATCH_SIZE: number = 5000;
 // How far ahead of this server a cloud's clock may be before its dates are refused.
 const MAX_STATE_CHANGE_CLOCK_SKEW_IN_MS: number = 10 * 60 * 1000;
 const ATTENTION_ROWS_PER_KIND: number = 100;
+/*
+ * The most hosts or workers a read brings. Up to this it brings all of them, as it does on nearly
+ * every cloud. Past it the ones that may need someone, these many at most however bad a day it is,
+ * and how many others there are: see OpenStackRowsLeftOut.
+ */
+const OPENSTACK_WHOLE_KIND_ROWS: number = 1000;
 const STALE_DELETE_WARN_THRESHOLD: number = 1000;
 const DEFAULT_STALE_MINUTES: number = 15;
 const MINIMUM_STALE_MINUTES: number = 5;
@@ -1044,9 +1061,10 @@ export class Service extends DatabaseService<Model> {
    * chooses by the same lines as OpenStackHealth, and OpenStackHealth has the last
    * word on each row: a line drawn a little wide here costs a row, never a mistake.
    *
-   * Hypervisors, services and pools are always read, whole, because the rules need
-   * them all: how many schedulers are left, how many instances a dead host held.
-   * There are few of those, even on a large cloud.
+   * Hypervisors and services are read whole up to a line, because the rules read them together:
+   * how many schedulers are left, how many instances a dead host held. A cloud of thousands of
+   * hosts holds tens of thousands of them, nearly all fine, so past it only those that may need
+   * someone are read, and the rest are counted (readWholeKind).
    */
   @CaptureSpan()
   public async getAttentionRows(data: {
@@ -1094,7 +1112,7 @@ export class Service extends DatabaseService<Model> {
       where: string;
       params: Array<unknown>;
       orderBy?: string;
-      // Read whole: see above.
+      // Read through readWholeKind: see above.
       whole?: boolean;
     }> = [
       {
@@ -1195,6 +1213,7 @@ export class Service extends DatabaseService<Model> {
     const rows: Array<JSONObject> = [];
     const totalsByKind: Record<string, number> = {};
     const rowsPerKind: number = data.rowsPerKind || ATTENTION_ROWS_PER_KIND;
+    const leftOut: Array<OpenStackRowsLeftOut> = [];
 
     for (const query of queries) {
       let ownedBy: string = "";
@@ -1211,7 +1230,32 @@ export class Service extends DatabaseService<Model> {
         params.push(data.regionName);
         ownedBy = `${ownedBy} AND "regionName" = $${params.length}`;
       }
-      const limit: string = query.whole ? "" : `LIMIT ${rowsPerKind}`;
+
+      if (query.whole) {
+        const read: {
+          rows: Array<JSONObject>;
+          leftOut: Array<OpenStackRowsLeftOut>;
+        } = await this.readWholeKind({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          kind: query.kind,
+          regionName: data.regionName,
+        });
+
+        rows.push(...read.rows);
+        leftOut.push(...read.leftOut);
+        totalsByKind[query.kind] =
+          read.rows.length +
+          read.leftOut.reduce(
+            (sum: number, group: OpenStackRowsLeftOut): number => {
+              return sum + group.count;
+            },
+            0,
+          );
+        continue;
+      }
+
+      const limit: string = `LIMIT ${rowsPerKind}`;
       const found: Array<JSONObject> = (
         (await this.getRepository().manager.query(
           `SELECT ${ROW_COLUMNS}
@@ -1227,7 +1271,7 @@ export class Service extends DatabaseService<Model> {
       ).map(toRowWithNumbers);
       rows.push(...found);
 
-      if (query.whole || found.length < rowsPerKind) {
+      if (found.length < rowsPerKind) {
         totalsByKind[query.kind] = found.length;
       } else {
         const counted: Array<{ count: string }> =
@@ -1247,7 +1291,203 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { rows, totalsByKind };
+    return { rows, totalsByKind, leftOut };
+  }
+
+  /**
+   * Hosts, workers or what a cloud stands on, for a page that has to count them. All of them up to
+   * OPENSTACK_WHOLE_KIND_ROWS. Past that, the ones a person could need to read, down first, with
+   * how many others there are by state. Those are never fewer than the rules need: a worker of
+   * which one down of several matters is always read, and so is a host past an allocation line.
+   */
+  private async readWholeKind(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    kind: OpenStackResourceKind;
+    regionName?: string | null | undefined;
+    // What a person searched for: a host or binary, which a page cannot look for in what it has not read.
+    search?: string | null | undefined;
+  }): Promise<{
+    rows: Array<JSONObject>;
+    leftOut: Array<OpenStackRowsLeftOut>;
+  }> {
+    const params: Array<unknown> = [
+      data.projectId.toString(),
+      data.openStackCloudId.toString(),
+    ];
+    let scope: string = "";
+
+    if (data.regionName) {
+      params.push(data.regionName);
+      scope = `AND "regionName" = $${params.length}`;
+    }
+
+    const table: string = `"OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${data.kind}' AND "deletedAt" IS NULL
+         ${scope}`;
+
+    const all: Array<JSONObject> = (
+      (await this.getRepository().manager.query(
+        `SELECT ${ROW_COLUMNS} FROM ${table}
+         ORDER BY "name" ASC NULLS LAST
+         LIMIT ${OPENSTACK_WHOLE_KIND_ROWS + 1}`,
+        params,
+      )) as Array<JSONObject>
+    ).map(toRowWithNumbers);
+
+    const isHost: boolean = data.kind === OpenStackResourceKind.Hypervisor;
+
+    if (
+      all.length <= OPENSTACK_WHOLE_KIND_ROWS ||
+      (!isHost && data.kind !== OpenStackResourceKind.Service)
+    ) {
+      return { rows: all, leftOut: [] };
+    }
+
+    const isUnwell: string = `COALESCE("status", '') = '${OPENSTACK_SERVICE_STATUS_DOWN}'
+      OR COALESCE("adminState", '') IN ('disabled', 'down')`;
+    const pastLine: (allocated: string, capacity: string) => string = (
+      allocated: string,
+      capacity: string,
+    ): string => {
+      return `"${allocated}" * 100 > "${capacity}" * ${OPENSTACK_ALLOCATION_WARNING_PERCENT}`;
+    };
+    const isWorthReading: string = isHost
+      ? `${isUnwell}
+         OR ${pastLine("vcpuAllocated", "vcpuCapacity")}
+         OR ${pastLine("memoryAllocatedBytes", "memoryCapacityBytes")}
+         OR ${pastLine("diskAllocatedBytes", "diskCapacityBytes")}`
+      : `${isUnwell}
+         OR "name" IN (${Array.from(OPENSTACK_REDUNDANT_WORKERS)
+           .map((worker: string): string => {
+             return `'${worker}'`;
+           })
+           .join(", ")})`;
+
+    let searched: string = "";
+    const readParams: Array<unknown> = [...params];
+
+    if (data.search) {
+      readParams.push(`%${data.search.replace(/[\\%_]/g, "\\$&")}%`);
+      searched = `OR "name" ILIKE $${readParams.length} OR "facts"->>'host' ILIKE $${readParams.length}`;
+    }
+
+    const rows: Array<JSONObject> = (
+      (await this.getRepository().manager.query(
+        `SELECT ${ROW_COLUMNS} FROM ${table}
+           AND (${isWorthReading} ${searched})
+         ORDER BY CASE WHEN "status" = '${OPENSTACK_SERVICE_STATUS_DOWN}' THEN 0 ELSE 1 END,
+           "name" ASC NULLS LAST
+         LIMIT ${OPENSTACK_WHOLE_KIND_ROWS}`,
+        readParams,
+      )) as Array<JSONObject>
+    ).map(toRowWithNumbers);
+
+    const stateOf: string = `CASE
+        WHEN COALESCE("adminState", '') IN ('disabled', 'down') THEN 'disabled'
+        WHEN "status" = '${OPENSTACK_SERVICE_STATUS_DOWN}' THEN 'down'
+        ELSE 'up'
+      END`;
+    const nameOf: string = isHost ? "NULL" : `"name"`;
+    const familyOf: string = isHost ? "NULL" : `"facts"->>'family'`;
+
+    const counted: Array<{
+      regionName: string | null;
+      name: string | null;
+      family: string | null;
+      state: OpenStackRowState;
+      count: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "regionName", ${nameOf} AS "name", ${familyOf} AS "family",
+              ${stateOf} AS "state", COUNT(*)::text AS "count"
+       FROM ${table}
+       GROUP BY "regionName", ${nameOf}, ${familyOf}, ${stateOf}`,
+      params,
+    );
+
+    const keyOf: (group: {
+      regionName: string | null;
+      name: string | null;
+      family: string | null;
+      state: OpenStackRowState;
+    }) => string = (group: {
+      regionName: string | null;
+      name: string | null;
+      family: string | null;
+      state: OpenStackRowState;
+    }): string => {
+      return JSON.stringify([
+        group.regionName,
+        group.name,
+        group.family,
+        group.state,
+      ]);
+    };
+
+    // What was read comes off what was counted, and what is left is what a page did not get.
+    const read: Map<string, number> = new Map();
+
+    for (const row of rows) {
+      const adminState: unknown = row["adminState"];
+      const facts: JSONObject = (row["facts"] as JSONObject) || {};
+      const key: string = keyOf({
+        regionName: (row["regionName"] as string | null) ?? null,
+        name: isHost ? null : ((row["name"] as string | null) ?? null),
+        family: isHost ? null : ((facts["family"] as string | null) ?? null),
+        state:
+          adminState === "disabled" || adminState === "down"
+            ? "disabled"
+            : row["status"] === OPENSTACK_SERVICE_STATUS_DOWN
+              ? "down"
+              : "up",
+      });
+
+      read.set(key, (read.get(key) || 0) + 1);
+    }
+
+    const leftOut: Array<OpenStackRowsLeftOut> = [];
+
+    for (const group of counted) {
+      const count: number =
+        Number.parseInt(group.count, 10) - (read.get(keyOf(group)) || 0);
+
+      if (count > 0) {
+        leftOut.push({
+          kind: data.kind,
+          regionName: group.regionName,
+          name: group.name,
+          family: group.family,
+          state: group.state,
+          count: count,
+        });
+      }
+    }
+
+    return { rows, leftOut };
+  }
+
+  /**
+   * A cloud's workers for its Services page, as much of them as it can read: see readWholeKind. A
+   * search brings what it finds, wherever that is in the cloud.
+   */
+  @CaptureSpan()
+  public async getServiceRows(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    search?: string | null | undefined;
+  }): Promise<OpenStackServiceRowsRead> {
+    const workers: {
+      rows: Array<JSONObject>;
+      leftOut: Array<OpenStackRowsLeftOut>;
+    } = await this.readWholeKind({
+      projectId: data.projectId,
+      openStackCloudId: data.openStackCloudId,
+      kind: OpenStackResourceKind.Service,
+      search: data.search,
+    });
+
+    return { workers: workers.rows, leftOut: workers.leftOut };
   }
 
   /**
@@ -2010,10 +2250,9 @@ export class Service extends DatabaseService<Model> {
         );
       }
     } else {
-      // The structure, which is few parts on any cloud and is what everything hangs from.
+      // The structure, which is what everything hangs from.
       for (const kind of [
         OpenStackResourceKind.Api,
-        OpenStackResourceKind.Service,
         OpenStackResourceKind.Hypervisor,
         OpenStackResourceKind.StoragePool,
       ]) {
@@ -2021,6 +2260,21 @@ export class Service extends DatabaseService<Model> {
           ...(await read({ kind, limit: OPENSTACK_TOPOLOGY_STRUCTURE_LIMIT })),
         );
       }
+
+      /*
+       * A host's state is on its own row. Its workers add a node each on the control plane, thousands
+       * of them saying nothing, so past the line only those that may need someone are drawn, and the
+       * map's count says how many it left out.
+       */
+      rows.push(
+        ...(
+          await this.readWholeKind({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            kind: OpenStackResourceKind.Service,
+          })
+        ).rows,
+      );
       rows.push(
         ...(await read({
           kind: OpenStackResourceKind.Network,

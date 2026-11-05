@@ -451,6 +451,25 @@ openstack-exporter is the collector operators know, and three of its open issues
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and `troubleshoot.sh` asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
 
+## Very large clouds
+
+[Very Large OpenStack Clouds](https://oneuptime.com/docs/telemetry/openstack-very-large-clouds) has what each size costs in requests a minute and gigabytes a day, and says what each of these gives up.
+
+**Past 5,000 instances** OneUptime keeps a row for every part and counts per hypervisor, project and status, and drops the series per instance and per volume of everything settled as they arrive. Nothing here changes. Choose projects to keep under **Real usage per instance** on the cloud's **Settings** page.
+
+**To share a cloud between agents**, give each the same `OPENSTACK_CLOUD_NAME` and its own share. `OPENSTACK_EXPORTER_CLOUDS` names its regions, and `OPENSTACK_AGENT_SERVICES` its services, such as `compute|placement`. A region and a service belong to one agent, and Keystone to one agent for the whole cloud, or their series arrive twice. Set `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` on an agent with a large share: it holds a scrape in memory on its way out, and the default is `512`.
+
+**Past 1,500 hypervisors or 100,000 instances** a scrape of the APIs runs out of time, because the exporter asks Placement three things per hypervisor one call at a time, and reads every instance on every scrape. Those clouds can be read from their databases with [`openstack_database_exporter`](https://github.com/vexxhost/openstack_database_exporter), which `COMPOSE_PROFILES=openstack-database-exporter` starts:
+
+| Setting | What it is |
+| --- | --- |
+| `OPENSTACK_DATABASE_EXPORTER_TARGETS` | `[openstack-database-exporter:9180]`, with `OPENSTACK_EXPORTER_CLOUDS=[]`, or every series arrives twice |
+| `NOVA_DATABASE_URL`, `NOVA_API_DATABASE_URL`, `PLACEMENT_DATABASE_URL`, `NEUTRON_DATABASE_URL`, `CINDER_DATABASE_URL`, `GLANCE_DATABASE_URL`, `KEYSTONE_DATABASE_URL` | oslo.db's form, with a read-only account: `mysql+pymysql://oneuptime:secret@db.example:3306/nova`. A database left out is a service it leaves alone |
+| `OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX` | What a hypervisor's full name adds to Nova's host name, such as `.example.org`, so an instance finds the hypervisor it runs on |
+| `OPENSTACK_WORKER_STATE_CLOUDS` | The `clouds.yaml` entries to read two small lists from, such as `[RegionOne]`: whether each Nova worker is alive, and how full each storage pool is. A database says neither |
+
+It needs a route from this machine to those databases, and one exporter per region and Nova cell. It cannot say whether an API answers, only whether its database does, so watch the APIs themselves. It has been read from its source and its own tests, and has not been run here against a real database.
+
 ## Upgrading
 
 The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`).

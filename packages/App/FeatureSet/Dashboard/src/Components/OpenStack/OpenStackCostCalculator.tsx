@@ -11,6 +11,7 @@ import {
   OpenStackVolumeEstimate,
   estimateOpenStackVolume,
   getOpenStackCountsOfSize,
+  getOpenStackExporterRequestsPerMinute,
   getOpenStackProbeRequestsPerMinute,
   isOpenStackDatabasePathOffered,
 } from "Common/Types/OpenStack/OpenStackScale";
@@ -49,9 +50,13 @@ export interface OpenStackCostView {
   counts: OpenStackCloudCounts;
   isSummaryMode: boolean;
   isDatabasePathOffered: boolean;
+  // Through the agent, which sends every series every scrape.
   volume: OpenStackVolumeEstimate;
   everySeries: OpenStackVolumeEstimate;
+  // Through a probe, which past the summary size sends what has not changed in turns.
+  probeVolume: OpenStackVolumeEstimate;
   requestsPerMinute: OpenStackRequestsByService;
+  exporterRequestsPerMinute: OpenStackRequestsByService;
 }
 
 // Exported for tests: every number on the card, from what was typed.
@@ -63,6 +68,10 @@ export function getOpenStackCostView(data: {
   const counts: OpenStackCloudCounts = getOpenStackCountsOfSize(data);
   const isSummaryMode: boolean =
     counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT;
+  // One in a thousand in a state an alert watches, as a usual day has.
+  const keptInstances: number = isSummaryMode
+    ? Math.ceil(counts.instances / 1000)
+    : 0;
 
   return {
     counts: counts,
@@ -71,11 +80,17 @@ export function getOpenStackCostView(data: {
     volume: estimateOpenStackVolume({
       counts: counts,
       isSummaryMode: isSummaryMode,
-      // One in a thousand in a state an alert watches, as a usual day has.
-      keptInstances: isSummaryMode ? Math.ceil(counts.instances / 1000) : 0,
+      keptInstances: keptInstances,
     }),
     everySeries: estimateOpenStackVolume({ counts: counts }),
+    probeVolume: estimateOpenStackVolume({
+      counts: counts,
+      isSummaryMode: isSummaryMode,
+      keptInstances: keptInstances,
+      collectionIntervalInMinutes: 2,
+    }),
     requestsPerMinute: getOpenStackProbeRequestsPerMinute(counts),
+    exporterRequestsPerMinute: getOpenStackExporterRequestsPerMinute(counts),
   };
 }
 
@@ -190,28 +205,70 @@ const OpenStackCostCalculator: FunctionComponent = (): ReactElement => {
           </div>
         </dl>
 
+        {view.probeVolume.gigabytesPerDay < view.volume.gigabytesPerDay ? (
+          <p
+            className="mt-2 text-sm text-gray-600"
+            data-testid="openstack-cost-probe-volume"
+          >
+            {translator.translateTemplate(
+              "That is through the agent. A probe sends about {{gigabytes}} GB a day, because past that size it sends what has not changed once a cycle rather than every time.",
+              { gigabytes: rounded(view.probeVolume.gigabytesPerDay) },
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+
         <div className="mt-5 text-sm">
           <div className="font-medium text-gray-900">
-            {translator.translateText(
-              "Requests a minute a probe makes, by service",
-            )}
+            {translator.translateText("Requests a minute, by service")}
           </div>
-          <ul className="mt-1 grid grid-cols-1 gap-x-6 gap-y-1 text-gray-700 sm:grid-cols-2">
-            {SERVICES.map((service: OpenStackServiceType): ReactElement => {
-              return (
-                <li
-                  key={service}
-                  className="flex justify-between"
-                  data-testid={`openstack-cost-requests-${service}`}
-                >
-                  <span>{OPENSTACK_SERVICE_TITLES[service]}</span>
-                  <span className="text-gray-900">
-                    {rounded(view.requestsPerMinute[service])}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <table className="mt-1 w-full text-gray-700">
+            <thead>
+              <tr className="text-left text-xs text-gray-500">
+                <th className="py-1 pr-4 font-normal">
+                  {translator.translateText("Service")}
+                </th>
+                <th className="py-1 pr-4 text-right font-normal">
+                  {translator.translateText("A probe")}
+                </th>
+                <th className="py-1 text-right font-normal">
+                  {translator.translateText("The agent")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {SERVICES.map((service: OpenStackServiceType): ReactElement => {
+                return (
+                  <tr
+                    key={service}
+                    data-testid={`openstack-cost-requests-${service}`}
+                  >
+                    <td className="py-0.5 pr-4">
+                      {OPENSTACK_SERVICE_TITLES[service]}
+                    </td>
+                    <td
+                      className="py-0.5 pr-4 text-right text-gray-900"
+                      data-testid={`openstack-cost-probe-requests-${service}`}
+                    >
+                      {rounded(view.requestsPerMinute[service])}
+                    </td>
+                    <td
+                      className="py-0.5 text-right text-gray-900"
+                      data-testid={`openstack-cost-agent-requests-${service}`}
+                    >
+                      {rounded(view.exporterRequestsPerMinute[service])}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="mt-1 text-xs text-gray-500">
+            {translator.translateText(
+              "A probe's are counted from the collector itself. The agent's are counted from its exporter's source, and its exporter has not been run at these sizes.",
+            )}
+          </p>
         </div>
 
         {view.isSummaryMode ? (

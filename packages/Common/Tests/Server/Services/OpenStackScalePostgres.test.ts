@@ -16,16 +16,20 @@ import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase
 import OpenStackResourceService, {
   OpenStackAttentionRows,
   OpenStackInventorySummary,
+  OpenStackServiceRowsRead,
   OpenStackTopologyRead,
   ParsedOpenStackResource,
 } from "../../../Server/Services/OpenStackResourceService";
 import logger from "../../../Server/Utils/Logger";
+import { getOpenStackListSeekReads } from "../../../Server/Utils/OpenStack/OpenStackListSeekQuery";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
+import { OpenStackRowsLeftOut } from "../../../Types/OpenStack/OpenStackOverview";
 import { OPENSTACK_LARGE_CLOUD } from "../../../Types/OpenStack/OpenStackScale";
 import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 
@@ -943,6 +947,471 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     });
   });
 
+  describe("hosts and workers past what a read brings", () => {
+    const scope: { projectId: ObjectID; openStackCloudId: ObjectID } = {
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+    };
+
+    const worker: (
+      index: number,
+      overrides?: Partial<ParsedOpenStackResource>,
+    ) => ParsedOpenStackResource = (
+      index: number,
+      overrides: Partial<ParsedOpenStackResource> = {},
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Service,
+        externalId: `RegionOne/compute/compute-${index}/nova-compute`,
+        name: "nova-compute",
+        status: "up",
+        adminState: "enabled",
+        facts: { family: "compute", host: `compute-${index}` },
+        ...overrides,
+      });
+    };
+
+    const host: (
+      index: number,
+      overrides?: Partial<ParsedOpenStackResource>,
+    ) => ParsedOpenStackResource = (
+      index: number,
+      overrides: Partial<ParsedOpenStackResource> = {},
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Hypervisor,
+        externalId: `RegionOne/compute-${index}`,
+        name: `compute-${index}`,
+        hypervisorName: `compute-${index}`,
+        status: "up",
+        adminState: "enabled",
+        vcpuCapacity: 100,
+        vcpuAllocated: 50,
+        ...overrides,
+      });
+    };
+
+    test("up to the line it reads them all, as it does on nearly every cloud", async () => {
+      await write(
+        Array.from({ length: 1000 }, (_v: unknown, index: number) => {
+          return worker(index);
+        }),
+      );
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+
+      expect(answer.leftOut).toEqual([]);
+      expect(answer.totalsByKind["Service"]).toBe(1000);
+      expect(
+        answer.rows.filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Service;
+        }),
+      ).toHaveLength(1000);
+    }, 120000);
+
+    test("past it, it reads what could need someone, counts the rest, and the two add up", async () => {
+      const rows: Array<ParsedOpenStackResource> = [];
+
+      for (let index: number = 0; index < 1200; index++) {
+        rows.push(
+          worker(index, {
+            status: index % 100 === 0 ? "down" : "up",
+            adminState: index % 300 === 1 ? "disabled" : "enabled",
+          }),
+        );
+      }
+
+      // Whichever of these is down, the rules need them all to say so of the region.
+      rows.push(
+        worker(9001, {
+          externalId: "RegionOne/compute/controller-1/nova-scheduler",
+          name: "nova-scheduler",
+          facts: { family: "compute", host: "controller-1" },
+        }),
+        worker(9002, {
+          externalId: "RegionOne/compute/controller-2/nova-conductor",
+          name: "nova-conductor",
+          facts: { family: "compute", host: "controller-2" },
+        }),
+        worker(9003, {
+          externalId: "RegionTwo/network/net-1/ovn-controller",
+          name: "ovn-controller",
+          regionName: "RegionTwo",
+          facts: { family: "network", host: "net-1" },
+        }),
+      );
+
+      await write(rows);
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+      const services: Array<JSONObject> = answer.rows.filter(
+        (row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Service;
+        },
+      );
+
+      // Twelve down, four disabled, and two workers the rules read whatever they say.
+      expect(services).toHaveLength(12 + 4 + 2);
+      // Down first.
+      expect(services[0]?.["status"]).toBe("down");
+
+      const total: number =
+        services.length +
+        answer.leftOut.reduce(
+          (sum: number, group: OpenStackRowsLeftOut): number => {
+            return sum + group.count;
+          },
+          0,
+        );
+
+      expect(total).toBe(1203);
+      expect(answer.totalsByKind["Service"]).toBe(1203);
+      expect(answer.leftOut).toEqual(
+        expect.arrayContaining([
+          {
+            kind: OpenStackResourceKind.Service,
+            regionName: "RegionOne",
+            name: "nova-compute",
+            family: "compute",
+            state: "up",
+            count: 1200 - 12 - 4,
+          },
+          {
+            kind: OpenStackResourceKind.Service,
+            regionName: "RegionTwo",
+            name: "ovn-controller",
+            family: "network",
+            state: "up",
+            count: 1,
+          },
+        ]),
+      );
+
+      // One region's own read says only that region's.
+      const regionTwo: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+          regionName: "RegionTwo",
+        });
+
+      expect(regionTwo.leftOut).toEqual([]);
+      expect(regionTwo.totalsByKind["Service"]).toBe(1);
+    }, 120000);
+
+    test("a very bad day is still a stated size: the rest of it is counted, as down", async () => {
+      await write(
+        Array.from({ length: 2500 }, (_v: unknown, index: number) => {
+          return worker(index, { status: "down" });
+        }),
+      );
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+
+      expect(
+        answer.rows.filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Service;
+        }),
+      ).toHaveLength(1000);
+      expect(answer.leftOut).toEqual([
+        {
+          kind: OpenStackResourceKind.Service,
+          regionName: "RegionOne",
+          name: "nova-compute",
+          family: "compute",
+          state: "down",
+          count: 1500,
+        },
+      ]);
+    }, 120000);
+
+    test("a hypervisor past an allocation line is read, and one that is fine is counted", async () => {
+      const rows: Array<ParsedOpenStackResource> = [];
+
+      for (let index: number = 0; index < 1100; index++) {
+        rows.push(host(index));
+      }
+
+      rows.push(
+        host(9001, { vcpuAllocated: 91 }),
+        host(9002, {
+          memoryAllocatedBytes: 95,
+          memoryCapacityBytes: 100,
+        }),
+        host(9003, { diskAllocatedBytes: 91, diskCapacityBytes: 100 }),
+        host(9004, { status: "down" }),
+        host(9005, { adminState: "disabled" }),
+        // Exactly on the line is fine, as the rules have it.
+        host(9006, { vcpuAllocated: 90 }),
+      );
+
+      await write(rows);
+
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
+      const hosts: Array<string> = answer.rows
+        .filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.Hypervisor;
+        })
+        .map((row: JSONObject): string => {
+          return row["name"] as string;
+        });
+
+      expect(hosts.sort()).toEqual([
+        "compute-9001",
+        "compute-9002",
+        "compute-9003",
+        "compute-9004",
+        "compute-9005",
+      ]);
+      expect(answer.leftOut).toEqual([
+        {
+          kind: OpenStackResourceKind.Hypervisor,
+          regionName: "RegionOne",
+          name: null,
+          family: null,
+          state: "up",
+          count: 1101,
+        },
+      ]);
+    }, 120000);
+
+    test("the Services page's read does the same, and a search finds what it left out", async () => {
+      await write([
+        ...Array.from({ length: 1100 }, (_v: unknown, index: number) => {
+          return worker(index);
+        }),
+        worker(9001, { status: "down" }),
+      ]);
+
+      const read: OpenStackServiceRowsRead =
+        await OpenStackResourceService.getServiceRows(scope);
+
+      expect(read.workers).toHaveLength(1);
+      expect(read.leftOut).toEqual([
+        expect.objectContaining({ state: "up", count: 1100 }),
+      ]);
+
+      const found: OpenStackServiceRowsRead =
+        await OpenStackResourceService.getServiceRows({
+          ...scope,
+          search: "compute-1099",
+        });
+
+      expect(
+        found.workers.map((row: JSONObject): string => {
+          return (row["facts"] as JSONObject)["host"] as string;
+        }),
+      ).toEqual(expect.arrayContaining(["compute-1099", "compute-9001"]));
+
+      // What someone types is only ever text to look for.
+      const wildcard: OpenStackServiceRowsRead =
+        await OpenStackResourceService.getServiceRows({
+          ...scope,
+          search: "%",
+        });
+
+      expect(wildcard.workers).toHaveLength(1);
+    }, 120000);
+  });
+
+  describe("a list's next page, from the last row of this one", () => {
+    const scope: { projectId: ObjectID; openStackCloudId: ObjectID } = {
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+    };
+
+    type ListRow = Record<string, unknown>;
+
+    const ROW_COUNT: number = 730;
+    const PAGE: number = 100;
+
+    // Names shared by several, a good many with none at all, as a real cloud's volumes have.
+    const rowsOfList: () => Array<ParsedOpenStackResource> =
+      (): Array<ParsedOpenStackResource> => {
+        return Array.from(
+          { length: ROW_COUNT },
+          (_v: unknown, index: number): ParsedOpenStackResource => {
+            return resource({
+              kind: OpenStackResourceKind.Volume,
+              externalId: `v-${index}`,
+              name: index % 5 === 0 ? null : `volume-${index % 40}`,
+              status: index % 2 === 0 ? "in-use" : "available",
+              regionName: index % 3 === 0 ? "RegionTwo" : "RegionOne",
+            });
+          },
+        );
+      };
+
+    const readPage: (data: {
+      column: string;
+      order: SortOrder;
+      seek?: { value: string | number | null; id: string } | undefined;
+      skip?: number | undefined;
+      filter?: Record<string, unknown> | undefined;
+    }) => Promise<Array<ListRow>> = async (data: {
+      column: string;
+      order: SortOrder;
+      seek?: { value: string | number | null; id: string } | undefined;
+      skip?: number | undefined;
+      filter?: Record<string, unknown> | undefined;
+    }): Promise<Array<ListRow>> => {
+      const query: Record<string, unknown> = {
+        ...scope,
+        kind: OpenStackResourceKind.Volume,
+        ...data.filter,
+      };
+      const select: Record<string, boolean> = {
+        _id: true,
+        name: true,
+        status: true,
+      };
+      const props: { isRoot: boolean } = { isRoot: true };
+
+      if (!data.seek) {
+        return (await OpenStackResourceService.findBy({
+          query: query as never,
+          select: select as never,
+          skip: data.skip || 0,
+          limit: PAGE,
+          sort: {
+            [data.column]: data.order,
+            _id: SortOrder.Ascending,
+          } as never,
+          props: props,
+        })) as unknown as Array<ListRow>;
+      }
+
+      const rows: Array<ListRow> = [];
+
+      for (const read of getOpenStackListSeekReads({
+        value: data.seek.value,
+        id: data.seek.id,
+        order: data.order,
+      })) {
+        rows.push(
+          ...((await OpenStackResourceService.findBy({
+            query: { ...query, [data.column]: read.columnQuery } as never,
+            select: select as never,
+            skip: 0,
+            limit: PAGE - rows.length,
+            sort: (read.isByIdOnly
+              ? { _id: SortOrder.Ascending }
+              : {
+                  [data.column]: data.order,
+                  _id: SortOrder.Ascending,
+                }) as never,
+            props: props,
+          })) as unknown as Array<ListRow>),
+        );
+
+        if (rows.length >= PAGE) {
+          break;
+        }
+      }
+
+      return rows;
+    };
+
+    function idOf(row: ListRow | undefined): string {
+      return String(row?.["_id"]);
+    }
+
+    test.each([
+      ["name", SortOrder.Ascending],
+      ["name", SortOrder.Descending],
+      ["status", SortOrder.Ascending],
+      ["status", SortOrder.Descending],
+    ] as Array<[string, SortOrder]>)(
+      "by %s, %s: every row once, in the order offsets read them",
+      async (column: string, order: SortOrder) => {
+        await write(rowsOfList());
+
+        const byOffset: Array<string> = [];
+
+        for (let skip: number = 0; skip < ROW_COUNT; skip += PAGE) {
+          const page: Array<ListRow> = await readPage({ column, order, skip });
+
+          byOffset.push(...page.map(idOf));
+        }
+
+        expect(new Set(byOffset).size).toBe(ROW_COUNT);
+
+        const bySeek: Array<string> = [];
+        let seek: { value: string | number | null; id: string } | undefined;
+
+        for (;;) {
+          const page: Array<ListRow> = await readPage({ column, order, seek });
+
+          bySeek.push(...page.map(idOf));
+
+          if (page.length < PAGE) {
+            break;
+          }
+
+          const last: ListRow = page[page.length - 1] as ListRow;
+
+          seek = {
+            value: (last[column] as string | null) ?? null,
+            id: idOf(last),
+          };
+        }
+
+        /*
+         * The rows with nothing in the column come in one order either way, past those that have
+         * something. Among those that have, the two agree row for row.
+         */
+        expect(bySeek).toEqual(byOffset);
+      },
+      120000,
+    );
+
+    test("whatever else it is filtered by", async () => {
+      await write(rowsOfList());
+
+      const filter: Record<string, unknown> = { regionName: "RegionTwo" };
+      const first: Array<ListRow> = await readPage({
+        column: "name",
+        order: SortOrder.Ascending,
+        filter,
+      });
+      const last: ListRow = first[first.length - 1] as ListRow;
+      const next: Array<ListRow> = await readPage({
+        column: "name",
+        order: SortOrder.Ascending,
+        filter,
+        seek: { value: (last["name"] as string) ?? null, id: idOf(last) },
+      });
+
+      expect(next.length).toBeGreaterThan(0);
+      expect(next.map(idOf)).toEqual(
+        (
+          await readPage({
+            column: "name",
+            order: SortOrder.Ascending,
+            filter,
+            skip: PAGE,
+          })
+        ).map(idOf),
+      );
+    }, 120000);
+  });
+
   describe("walking a whole kind", () => {
     test("reads each row exactly once, in order, whatever it is filtered by", async () => {
       const rows: Array<ParsedOpenStackResource> = [];
@@ -1237,6 +1706,16 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       expect(attention.result.totalsByKind["Instance"]).toBe(
         Math.floor(OPENSTACK_LARGE_CLOUD.instances / 1000),
       );
+      // What the Overview brings over the network, however many hosts and workers there are.
+      expect(attention.result.totalsByKind["Service"]).toBe(
+        OPENSTACK_LARGE_CLOUD.hypervisors + OPENSTACK_LARGE_CLOUD.networkAgents,
+      );
+      expect(attention.result.totalsByKind["Hypervisor"]).toBe(
+        OPENSTACK_LARGE_CLOUD.hypervisors,
+      );
+      expect(
+        Buffer.byteLength(JSON.stringify(attention.result.rows)),
+      ).toBeLessThan(1024 * 1024);
 
       const regions: FastestRun<unknown> = await time(() => {
         return OpenStackResourceService.getRegionSummaries(scope);
@@ -1269,6 +1748,44 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       expect(topology.result.isSummarized).toBe(true);
       expect(topology.inMs).toBeLessThan(5000);
 
+      // The last page of a list, by offset and from the last row of the page before.
+      const deepOffset: FastestRun<unknown> = await time(() => {
+        return OpenStackResourceService.findBy({
+          query: {
+            ...scope,
+            kind: OpenStackResourceKind.Instance,
+          } as never,
+          select: { _id: true, name: true } as never,
+          skip: OPENSTACK_LARGE_CLOUD.instances - 100,
+          limit: 100,
+          sort: { name: SortOrder.Ascending, _id: SortOrder.Ascending } as never,
+          props: { isRoot: true },
+        });
+      }, 60000);
+      const deepSeek: FastestRun<unknown> = await time(() => {
+        const [read] = getOpenStackListSeekReads({
+          value: `Instance-${OPENSTACK_LARGE_CLOUD.instances - 200}`,
+          id: "00000000-0000-4000-8000-000000000000",
+          order: SortOrder.Ascending,
+        });
+
+        return OpenStackResourceService.findBy({
+          query: {
+            ...scope,
+            kind: OpenStackResourceKind.Instance,
+            name: read?.columnQuery,
+          } as never,
+          select: { _id: true, name: true } as never,
+          skip: 0,
+          limit: 100,
+          sort: { name: SortOrder.Ascending, _id: SortOrder.Ascending } as never,
+          props: { isRoot: true },
+        });
+      }, 1000);
+
+      expect(deepSeek.inMs).toBeLessThan(1000);
+      expect(deepSeek.measuredInMs).toBeLessThan(deepOffset.measuredInMs);
+
       const keyset: FastestRun<unknown> = await time(() => {
         return OpenStackResourceService.getRowsAfter({
           ...scope,
@@ -1294,6 +1811,8 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
         topologyRows: topology.result.rows.length,
         topologyBytes: Buffer.byteLength(JSON.stringify(topology.result.rows)),
         keysetPageMs: keyset.measuredInMs,
+        listDeepOffsetMs: deepOffset.measuredInMs,
+        listDeepSeekMs: deepSeek.measuredInMs,
         slowdowns: {
           summary: summary.slowdown,
           attention: attention.slowdown,

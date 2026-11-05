@@ -890,6 +890,66 @@ describe("collection slows itself down when an API's latency climbs", () => {
   }, 300000);
 });
 
+describe("what a collection's time allows, as the docs say it", () => {
+  /*
+   * Two hundred pages of instances, a page a hundred rows here rather than a thousand, because what
+   * this is about is how many pages fit in the time. The same arithmetic as 200,000 instances.
+   */
+  const counts: OpenStackCloudCounts = getOpenStackCountsOfSize({
+    hypervisors: 2,
+    instances: 20000,
+    projects: 10,
+  });
+
+  async function fullReadOfNova(data: {
+    secondsPerPage: number;
+    interval: number;
+  }): Promise<OpenStackServiceSummary | undefined> {
+    const scene: Scene = sceneOf(counts, {
+      clock: createEventClock(),
+      overrides: { pageSize: 100 },
+      job: { collectionIntervalInMinutes: data.interval },
+      latencyInMs: (
+        request: { url: string },
+        service: OpenStackServiceType,
+      ): number => {
+        return service === OpenStackServiceType.Compute &&
+          request.url.includes("/servers/detail")
+          ? data.secondsPerPage * 1000
+          : 0;
+      },
+    });
+
+    const report: OpenStackCollectionReport = await collect(scene);
+
+    return report.summary?.services.find(
+      (service: OpenStackServiceSummary): boolean => {
+        return service.service === OpenStackServiceType.Compute;
+      },
+    );
+  }
+
+  test("Nova's full read fits in two minutes at half a second a page", async () => {
+    expect(
+      (await fullReadOfNova({ secondsPerPage: 0.5, interval: 2 }))?.outcome,
+    ).toBe("Succeeded");
+  }, 300000);
+
+  test("at a second a page it does not, and says so, and every five minutes it does", async () => {
+    const tooOften: OpenStackServiceSummary | undefined = await fullReadOfNova({
+      secondsPerPage: 1,
+      interval: 2,
+    });
+
+    expect(tooOften?.outcome).not.toBe("Succeeded");
+    expect(tooOften?.errorMessage).toContain("ran out of time");
+
+    expect(
+      (await fullReadOfNova({ secondsPerPage: 1, interval: 5 }))?.outcome,
+    ).toBe("Succeeded");
+  }, 300000);
+});
+
 describe("the numbers the docs publish", () => {
   const PAGE: string = fs.readFileSync(
     path.resolve(

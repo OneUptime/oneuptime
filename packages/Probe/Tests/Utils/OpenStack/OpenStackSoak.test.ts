@@ -7,11 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { DataSource } from "typeorm";
 import Entities from "Common/Models/DatabaseModels/Index";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import OpenStackResourceService, {
+  OpenStackAttentionRows,
   OpenStackInventorySummary,
 } from "Common/Server/Services/OpenStackResourceService";
 import logger from "Common/Server/Utils/Logger";
@@ -31,6 +33,8 @@ import {
   OPENSTACK_MEDIUM_CLOUD,
   OPENSTACK_SMALL_CLOUD,
   OpenStackCloudCounts,
+  getOpenStackRollingDatapoints,
+  getOpenStackRollingTurns,
   simulateOpenStackProbeRequests,
 } from "Common/Types/OpenStack/OpenStackScale";
 import { FastestRun, fastestRunAsync } from "Common/Tests/Helpers/FastestRun";
@@ -101,6 +105,7 @@ const INSTANCES_CHANGED_PER_COLLECTION: number = Math.ceil(
 const INGEST_LAG_BUDGET_IN_MS: number = INTERVAL_IN_MS;
 const OVERVIEW_BUDGET_IN_MS: number = 6000;
 const LOCK_WAIT_BUDGET_IN_MS: number = 5000;
+const OVERVIEW_BYTES_BUDGET: number = 2 * 1024 * 1024;
 
 const TABLE: string = "OpenStackResource";
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -117,6 +122,19 @@ interface Round {
   datapoints: number;
   rowsWritten: number;
   heapUsedMb: number;
+  // How busy the machine was: the clock is real, and other work takes from it.
+  loadAverage: number;
+  // What this process itself took, which other work on the machine does not move.
+  cpuMs: number;
+}
+
+// As a list reads it: the middle one, and how far the worst went.
+function percentile(values: ReadonlyArray<number>, share: number): number {
+  const sorted: Array<number> = [...values].sort((a: number, b: number) => {
+    return a - b;
+  });
+
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * share))] ?? 0;
 }
 
 function sleep(milliseconds: number): Promise<void> {
@@ -206,16 +224,26 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         openStackCloudId: CLOUD_ID,
       };
 
-      const overviewRead: () => Promise<number> = async (): Promise<number> => {
-        const summary: OpenStackInventorySummary =
-          await OpenStackResourceService.getInventorySummary(scope);
+      let overviewBytes: number = 0;
 
-        await OpenStackResourceService.getAttentionRows({
-          ...scope,
-          now: new Date(),
-        });
-        await OpenStackResourceService.getRegionSummaries(scope);
-        await OpenStackResourceService.getTopConsumers(scope);
+      // What the Overview asks of this table when it opens, which it asks at once.
+      const overviewRead: () => Promise<number> = async (): Promise<number> => {
+        const [summary, attention]: [
+          OpenStackInventorySummary,
+          OpenStackAttentionRows,
+          unknown,
+          unknown,
+        ] = await Promise.all([
+          OpenStackResourceService.getInventorySummary(scope),
+          OpenStackResourceService.getAttentionRows({
+            ...scope,
+            now: new Date(),
+          }),
+          OpenStackResourceService.getRegionSummaries(scope),
+          OpenStackResourceService.getTopConsumers(scope),
+        ]);
+
+        overviewBytes = Buffer.byteLength(JSON.stringify(attention));
 
         return summary.instanceCount;
       };
@@ -226,6 +254,7 @@ describeSoak("the largest size, held for as long as it is asked", () => {
       const failures: Array<string> = [];
       let isRunning: boolean = true;
       let skipped: number = 0;
+      let rowsDeleted: number = 0;
 
       // Whoever is waiting on a lock on this table right now, once a second.
       const watchLocks: Promise<void> = (async (): Promise<void> => {
@@ -255,7 +284,8 @@ describeSoak("the largest size, held for as long as it is asked", () => {
           try {
             await overviewRead();
             overviewMs.push(Date.now() - startedAt);
-            await OpenStackResourceService.deleteStaleForCloud(scope);
+            rowsDeleted +=
+              await OpenStackResourceService.deleteStaleForCloud(scope);
           } catch (error) {
             failures.push(`The Overview's reads: ${String(error)}`);
           }
@@ -273,6 +303,7 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         index: number,
       ): Promise<void> => {
         const begun: number = Date.now();
+        const cpuBefore: NodeJS.CpuUsage = process.cpuUsage();
 
         // What changed since the last one, in Nova, and in Placement where it writes generations.
         const changing: Array<number> = [];
@@ -335,13 +366,18 @@ describeSoak("the largest size, held for as long as it is asked", () => {
           heapUsedMb: Math.round(
             process.memoryUsage().heapUsed / (1024 * 1024),
           ),
+          loadAverage: os.loadavg()[0] as number,
+          cpuMs: Math.round(
+            (process.cpuUsage(cpuBefore).user +
+              process.cpuUsage(cpuBefore).system) /
+              1000,
+          ),
         });
       };
 
       /*
-       * As the server hands out work: every two minutes, and never beside one still running. The
-       * first collection of a cold cloud is the expensive one, so a cloud that does not keep up
-       * shows as skipped rounds here rather than as anything stacked.
+       * As the server hands out work: every two minutes, and never beside one still running. A cloud
+       * that does not keep up shows as skipped rounds here rather than as anything stacked.
        */
       while (Date.now() < until) {
         const dueAt: number = startedAt + collection * INTERVAL_IN_MS;
@@ -397,10 +433,29 @@ describeSoak("the largest size, held for as long as it is asked", () => {
       ): number => {
         return values.length > 0 ? Math.max(...values) : 0;
       };
+      const cycleInMinutes: number =
+        getOpenStackRollingTurns(getOpenStackRollingDatapoints(COUNTS)) *
+        INTERVAL_IN_MINUTES;
+      const heldLongEnough: boolean =
+        COUNTS.instances <= 5000 || MINUTES > cycleInMinutes + INTERVAL_IN_MINUTES;
+      const minutesRan: number = (Date.now() - startedAt) / 60_000;
 
       const measures: JSONObject = {
-        ranOn: `${process.platform} ${process.arch}`,
+        ranOn: `${process.platform} ${process.arch}, ${os.cpus().length} cores`,
+        finishedAt: new Date().toISOString(),
         minutesAsked: MINUTES,
+        minutesRan: minutesRan,
+        loadAverageMedian: percentile(
+          rounds.map((round: Round) => {
+            return round.loadAverage;
+          }),
+          0.5,
+        ),
+        loadAverageWorst: worst(
+          rounds.map((round: Round) => {
+            return round.loadAverage;
+          }),
+        ),
         collections: rounds.length,
         skippedCollections: skipped,
         counts: COUNTS as unknown as JSONObject,
@@ -409,10 +464,60 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         requestsPerMinute: Object.fromEntries(
           Object.entries(cloud.countsByService()).map(
             ([service, count]: [string, number]): [string, number] => {
-              return [service, Math.round((count / MINUTES) * 10) / 10];
+              return [service, Math.round((count / minutesRan) * 10) / 10];
             },
           ),
         ),
+        medianCollectMs: percentile(
+          settled.map((round: Round) => {
+            return round.collectMs;
+          }),
+          0.5,
+        ),
+        medianWriteMs: percentile(
+          settled.map((round: Round) => {
+            return round.writeMs;
+          }),
+          0.5,
+        ),
+        medianLagMs: percentile(
+          settled.map((round: Round) => {
+            return round.lagMs;
+          }),
+          0.5,
+        ),
+        p95LagMs: percentile(
+          settled.map((round: Round) => {
+            return round.lagMs;
+          }),
+          0.95,
+        ),
+        medianPayloadBytes: percentile(
+          settled.map((round: Round) => {
+            return round.payloadBytes;
+          }),
+          0.5,
+        ),
+        medianDatapoints: percentile(
+          settled.map((round: Round) => {
+            return round.datapoints;
+          }),
+          0.5,
+        ),
+        medianRowsWritten: percentile(
+          settled.map((round: Round) => {
+            return round.rowsWritten;
+          }),
+          0.5,
+        ),
+        medianCpuMs: percentile(
+          settled.map((round: Round) => {
+            return round.cpuMs;
+          }),
+          0.5,
+        ),
+        overviewBytes: overviewBytes,
+        cycleInMinutes: cycleInMinutes,
         firstCollectMs: rounds[0]?.collectMs ?? 0,
         firstWriteMs: rounds[0]?.writeMs ?? 0,
         worstCollectMs: worst(
@@ -447,10 +552,13 @@ describeSoak("the largest size, held for as long as it is asked", () => {
             return round.heapUsedMb;
           }),
         ),
+        overviewMedianMs: percentile(overviewMs, 0.5),
+        overviewWorstMs: worst(overviewMs),
         overviewMsSamples: overviewMs,
         overviewFastestMs: overview.measuredInMs,
         overviewAdjustedMs: overview.inMs,
         overviewSlowdown: overview.slowdown,
+        rowsDeleted: rowsDeleted,
         lockSamples: lockWaits.length,
         lockSamplesWithAWaiter: lockWaits.filter(
           (sample: { count: number }) => {
@@ -485,9 +593,9 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         expect(round.lagMs).toBeLessThan(INGEST_LAG_BUDGET_IN_MS);
       }
 
-      // Every row is really there, and the Overview opens within its budget.
-      expect(overview.result).toBe(COUNTS.instances);
+      // The Overview opens within its budget, and brings what a page can hold.
       expect(overview.inMs).toBeLessThan(OVERVIEW_BUDGET_IN_MS);
+      expect(overviewBytes).toBeLessThan(OVERVIEW_BYTES_BUDGET);
 
       // No writer waited long on a lock on this table.
       expect(
@@ -498,7 +606,6 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         ),
       ).toBeLessThan(LOCK_WAIT_BUDGET_IN_MS);
 
-      // The kinds are all there in the end, which says the parts all arrived.
       const rows: Array<{ kind: string; count: string }> = await database.query(
         `SELECT "kind", COUNT(*)::text AS "count" FROM "${schema}"."${TABLE}" GROUP BY "kind"`,
       );
@@ -508,10 +615,28 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         }),
       );
 
+      if (file) {
+        fs.writeFileSync(
+          path.resolve(file),
+          JSON.stringify({ ...measures, rowsByKind: byKind }, null, 2),
+        );
+      }
+
       expect(byKind[OpenStackResourceKind.Hypervisor]).toBe(COUNTS.hypervisors);
-      expect(byKind[OpenStackResourceKind.Instance]).toBe(COUNTS.instances);
-      expect(byKind[OpenStackResourceKind.Volume]).toBe(COUNTS.volumes);
-      expect(byKind[OpenStackResourceKind.Project]).toBe(COUNTS.projects);
+
+      /*
+       * Once a whole cycle has gone by, the kinds sent in turns are all there, and were all there
+       * since: the sweep ran every thirty seconds throughout, and a part this cloud still holds is
+       * never deleted. So how many it deleted is exactly how many this soak's instances it removed.
+       */
+      if (heldLongEnough) {
+        expect(overview.result).toBe(COUNTS.instances);
+        expect(byKind[OpenStackResourceKind.Instance]).toBe(COUNTS.instances);
+        expect(byKind[OpenStackResourceKind.Volume]).toBe(COUNTS.volumes);
+        expect(byKind[OpenStackResourceKind.Project]).toBe(COUNTS.projects);
+      }
+
+      expect(rowsDeleted).toBe(0);
     },
     (MINUTES + 30) * 60_000,
   );

@@ -2,11 +2,11 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   OpenStackRegionSummary,
+  OpenStackRowsLeftOut,
   OpenStackTopConsumer,
   OpenStackTopConsumers,
 } from "Common/Types/OpenStack/OpenStackOverview";
@@ -27,6 +27,8 @@ export interface OpenStackAttentionAnswer {
   rows: Array<OpenStackResource>;
   // How many of each kind may need someone, which the rows can be fewer than.
   totalsByKind: Record<string, number>;
+  // On a very large cloud, the hosts and workers that were counted and not read.
+  leftOut: Array<OpenStackRowsLeftOut>;
 }
 
 async function postToCloud(data: {
@@ -94,6 +96,7 @@ export async function fetchOpenStackAttention(data: {
       toOpenStackAttentionRow,
     ),
     totalsByKind,
+    leftOut: (answer["leftOut"] as unknown as Array<OpenStackRowsLeftOut>) || [],
   };
 }
 
@@ -105,9 +108,16 @@ export function mergeOpenStackAttention(
   answers: Array<OpenStackAttentionAnswer>,
 ): OpenStackAttentionAnswer {
   const seen: Set<string> = new Set<string>();
-  const merged: OpenStackAttentionAnswer = { rows: [], totalsByKind: {} };
+  const merged: OpenStackAttentionAnswer = {
+    rows: [],
+    totalsByKind: {},
+    leftOut: [],
+  };
 
   for (const answer of answers) {
+    // Each region's own, and a project is no host or worker, so nothing here is counted twice.
+    merged.leftOut.push(...answer.leftOut);
+
     for (const row of answer.rows) {
       const key: string = `${row.kind}/${row.externalId}`;
       if (!seen.has(key)) {
@@ -165,10 +175,40 @@ export async function fetchOpenStackTopConsumers(data: {
  * all of them at once. A cloud with more than one read holds says so (isTruncated)
  * rather than reading as though that was all.
  */
+// Past this a cloud's workers are read the way a very large cloud's are.
+const OPENSTACK_WORKERS_READ_WHOLE: number = 1000;
+
 export interface OpenStackServiceRows {
   apis: Array<OpenStackResource>;
+  // All of them, or on a very large cloud those that may need someone.
   workers: Array<OpenStackResource>;
-  workerCount: number;
+  // The workers that were counted and not read.
+  leftOut: Array<OpenStackRowsLeftOut>;
+}
+
+/*
+ * What a very large cloud's read could not bring: only the workers that may need someone, and how
+ * many others there are. A search asks for what it finds, wherever that is.
+ */
+export async function fetchOpenStackWorkersOfLargeCloud(data: {
+  openStackCloudId: ObjectID;
+  search?: string | undefined;
+}): Promise<{
+  workers: Array<OpenStackResource>;
+  leftOut: Array<OpenStackRowsLeftOut>;
+}> {
+  const answer: JSONObject = await postToCloud({
+    path: "/openstack-resource/services/",
+    openStackCloudId: data.openStackCloudId,
+    body: data.search ? { search: data.search } : {},
+  });
+
+  return {
+    workers: ((answer["workers"] as Array<JSONObject>) || []).map(
+      toOpenStackAttentionRow,
+    ),
+    leftOut: (answer["leftOut"] as unknown as Array<OpenStackRowsLeftOut>) || [],
+  };
 }
 
 export async function fetchOpenStackServiceRows(
@@ -182,7 +222,7 @@ export async function fetchOpenStackServiceRows(
     return ModelAPI.getList<OpenStackResource>({
       modelType: OpenStackResource,
       query: { openStackCloudId: openStackCloudId, kind: kind },
-      limit: LIMIT_PER_PROJECT,
+      limit: OPENSTACK_WORKERS_READ_WHOLE,
       skip: 0,
       select: OPENSTACK_ROW_SELECT,
       sort: {},
@@ -195,9 +235,13 @@ export async function fetchOpenStackServiceRows(
     read(OpenStackResourceKind.Api),
     read(OpenStackResourceKind.Service),
   ]);
+
+  if (workers.count <= workers.data.length) {
+    return { apis: apis.data, workers: workers.data, leftOut: [] };
+  }
+
   return {
     apis: apis.data,
-    workers: workers.data,
-    workerCount: workers.count,
+    ...(await fetchOpenStackWorkersOfLargeCloud({ openStackCloudId })),
   };
 }

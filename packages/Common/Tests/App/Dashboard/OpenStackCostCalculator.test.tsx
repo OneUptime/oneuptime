@@ -17,6 +17,7 @@ import {
   OpenStackCloudCounts,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
   estimateOpenStackVolume,
+  getOpenStackExporterRequestsPerMinute,
   getOpenStackProbeRequestsPerMinute,
 } from "../../../Types/OpenStack/OpenStackScale";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
@@ -59,6 +60,9 @@ describe("the numbers behind the card", () => {
     expect(view.requestsPerMinute).toEqual(
       getOpenStackProbeRequestsPerMinute(counts),
     );
+    expect(view.exporterRequestsPerMinute).toEqual(
+      getOpenStackExporterRequestsPerMinute(counts),
+    );
     expect(view.everySeries).toEqual(estimateOpenStackVolume({ counts }));
     expect(view.isSummaryMode).toBe(
       counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
@@ -98,9 +102,15 @@ describe("the card", () => {
     expect(screen.getByTestId("openstack-cost-database-path")).toBeTruthy();
     expect(
       screen.getByTestId(
-        `openstack-cost-requests-${OpenStackServiceType.Placement}`,
+        `openstack-cost-probe-requests-${OpenStackServiceType.Placement}`,
       ).textContent,
-    ).toContain("1,001");
+    ).toBe("1,001");
+    expect(
+      screen.getByTestId(
+        `openstack-cost-agent-requests-${OpenStackServiceType.Placement}`,
+      ).textContent,
+    ).toBe("7,501");
+    expect(screen.getByTestId("openstack-cost-probe-volume")).toBeTruthy();
   });
 });
 
@@ -175,5 +185,24 @@ describe("what the Data Collection card says", () => {
       ),
     ).toContain("44");
     expect(getOpenStackSummaryModeLine(summary([]), translator)).toBeNull();
+  });
+
+  test("a new cloud in summary mode says its lists are still filling, and until when", () => {
+    const filling: string | null = getOpenStackSummaryModeLine(
+      summary([], {
+        isSummaryMode: true,
+        refreshCycleInMinutes: 44,
+        firstCycleEndsAt: new Date(Date.now() + 44 * 60_000).toISOString(),
+      }),
+      translator,
+    );
+
+    expect(filling).toContain("still filling");
+    expect(
+      getOpenStackSummaryModeLine(
+        summary([], { isSummaryMode: true, refreshCycleInMinutes: 44 }),
+        translator,
+      ),
+    ).not.toContain("still filling");
   });
 });

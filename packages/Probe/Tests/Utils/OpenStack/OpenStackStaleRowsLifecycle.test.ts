@@ -259,10 +259,11 @@ async function expectEverythingThere(scene: Scene): Promise<void> {
   }
 }
 
-const describeOnPostgres: typeof describe =
+const describeOnPostgres: typeof describe = (
   process.env["RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS"] === "true"
     ? describe
-    : describe.skip;
+    : describe.skip
+) as typeof describe;
 
 function lifecycleScenes(newInventory: () => OpenStackTestInventory): void {
   test("the first cycle fills the lists a share at a time, says so, and takes nothing", async () => {
@@ -529,6 +530,103 @@ function lifecycleScenes(newInventory: () => OpenStackTestInventory): void {
 
     await expectEverythingThere(scene);
     expect(scene.deleted).toBe(0);
+  });
+
+  test("a cloud read by two collectors, each with a share, holds each part once, and one stopping takes nothing of the other's", async () => {
+    const scene: Scene = sceneOf(newInventory(), {
+      job: {
+        options: { instanceSeriesMode: OpenStackInstanceMetricsMode.All },
+      },
+    });
+    const inFirstShare: (metric: JSONObject) => boolean = (
+      metric: JSONObject,
+    ): boolean => {
+      const name: string = metric["name"] as string;
+
+      return (
+        name.startsWith("openstack_nova_") ||
+        name.startsWith("openstack_placement_") ||
+        name.startsWith("openstack_identity_")
+      );
+    };
+    const land: (
+      report: OpenStackCollectionReport,
+      keep: (metric: JSONObject) => boolean,
+    ) => Promise<void> = async (
+      report: OpenStackCollectionReport,
+      keep: (metric: JSONObject) => boolean,
+    ): Promise<void> => {
+      const share: OpenStackCollectionReport = {
+        ...report,
+        resourceMetrics: (report.resourceMetrics as Array<JSONObject>).map(
+          (resource: JSONObject): JSONObject => {
+            return {
+              ...resource,
+              scopeMetrics: (
+                resource["scopeMetrics"] as Array<JSONObject>
+              ).map((scope: JSONObject): JSONObject => {
+                return {
+                  ...scope,
+                  metrics: (scope["metrics"] as Array<JSONObject>).filter(keep),
+                };
+              }),
+            };
+          },
+        ),
+      };
+
+      await scene.inventory.write(
+        foldOpenStackUpload(share).map(toOpenStackInventoryRow),
+      );
+      scene.deleted += await scene.inventory.sweep();
+    };
+    const collectOnly: () => Promise<OpenStackCollectionReport> =
+      async (): Promise<OpenStackCollectionReport> => {
+        const report: OpenStackCollectionReport =
+          await OpenStackCollector.collect(
+            scene.job,
+            createCollectorHarness({
+              transport: scene.cloud.transport,
+              clock: scene.clock,
+              memory: scene.memory,
+              overrides: { summaryModeInstanceLimit: SUMMARY_LIMIT },
+            }).dependencies,
+          );
+
+        scene.clock.advance(INTERVAL_IN_MINUTES * MINUTE_IN_MS);
+
+        return report;
+      };
+
+    // Both shares, for long enough that Keystone and Glance have had their turn.
+    for (let collection: number = 0; collection < 4; collection++) {
+      const report: OpenStackCollectionReport = await collectOnly();
+
+      await land(report, inFirstShare);
+      await land(report, (metric: JSONObject): boolean => {
+        return !inFirstShare(metric);
+      });
+    }
+
+    await expectEverythingThere(scene);
+
+    // The second collector stops, for longer than the window, and the first goes on.
+    for (let collection: number = 0; collection < 30; collection++) {
+      await land(await collectOnly(), inFirstShare);
+    }
+
+    await expectEverythingThere(scene);
+    expect(scene.deleted).toBe(0);
+
+    /*
+     * And one share sent by both, which is what the docs say not to do: a chart reads double, and
+     * the inventory still holds each part once.
+     */
+    const report: OpenStackCollectionReport = await collectOnly();
+
+    await land(report, inFirstShare);
+    await land(report, inFirstShare);
+    await expectEverythingThere(scene);
   });
 
   test("a cloud that keeps everything, and is small enough to, goes on as it always did", async () => {
