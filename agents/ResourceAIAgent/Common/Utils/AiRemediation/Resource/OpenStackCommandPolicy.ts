@@ -560,9 +560,7 @@ export const OPENSTACK_COMMAND_ROUTES: ReadonlyArray<OpenStackRoute> = [
     tier: READ,
     service: "dns",
     path: "/v2/zones/{zone}/recordsets",
-    positionals: [
-      { name: "zone", what: "the zone's ID", rule: UUID_RULE },
-    ],
+    positionals: [{ name: "zone", what: "the zone's ID", rule: UUID_RULE }],
     options: {
       "all-projects": DESIGNATE_ALL_PROJECTS_OPTION,
       status: valueOption(NAME_RULE, "status"),
