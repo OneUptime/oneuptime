@@ -64,6 +64,16 @@ READS = [
     ("orchestration", "services", "/services", "services", {}),
     ("container-infra", "clusters", "/clusters", "clusters", {"OpenStack-API-Version": "container-infra latest"}),
     ("container-infra", "services", "/mservices", "mservices", {"OpenStack-API-Version": "container-infra latest"}),
+    ("baremetal", "conductors", "/v1/conductors", "conductors", {"X-OpenStack-Ironic-API-Version": "1.82"}),
+    ("sharev2", "shares, all projects", "/shares/detail?all_tenants=1", "shares", {}),
+    ("sharev2", "services", "/services", "services", MANILA_VERSION),
+    ("sharev2", "pools", "/scheduler-stats/pools/detail", "pools", MANILA_VERSION),
+    ("dns", "zones, all projects", "/v2/zones", "zones", {"X-Auth-All-Projects": "true"}),
+    ("key-manager", "secrets", "/v1/secrets", "secrets", {}),
+    ("key-manager", "orders", "/v1/orders", "orders", {}),
+    ("object-store", "own account", "?limit=1000", "containers", {}),
+    ("database", "instances, all projects", "/mgmt/instances?include_clustered=False&deleted=False", "instances", {}),
+    ("metric", "status", "/v1/status?details=true", "storage", {}),
 ]
 
 # One call per thing, which a table of lists has no row for: whichever things this cloud has
@@ -135,27 +145,16 @@ def writes():
         ("metric", "create a metric", "POST", "/v1/metric", {"name": "ou-write-check"}, {}),
     ]
 
-# The rest of the services a cloud may not run, in the exporter's words where it has them,
-# because what the exporter gets is what the product shows. Apart from READS because only the
-# services-<group> recordings ask them for now: troubleshoot.sh asks exactly READS, and says
-# what goes without each, which has to come from what these find.
+# More of what the services-<group> recordings compare, in the exporter's words where it has them,
+# because what the exporter gets is what the product shows. Apart from READS because
+# troubleshoot.sh asks exactly READS, and a person needs only one line for each of these.
 OTHER_SERVICES_READS = [
     ("load-balancer", "pools", "/v2.0/lbaas/pools", "pools", {}),
     ("load-balancer", "load balancers, as the exporter asks", "/v2.0/lbaas/loadbalancers", "loadbalancers", {}),
     ("load-balancer", "amphorae, as the exporter asks", "/v2.0/octavia/amphorae", "amphorae", {}),
-    ("baremetal", "conductors", "/v1/conductors", "conductors", {"X-OpenStack-Ironic-API-Version": "1.82"}),
     ("orchestration", "stacks, all projects", "/stacks?global_tenant=true", "stacks", {}),
-    ("sharev2", "shares, all projects", "/shares/detail?all_tenants=1", "shares", {}),
-    ("sharev2", "services", "/services", "services", MANILA_VERSION),
-    ("sharev2", "pools", "/scheduler-stats/pools/detail", "pools", MANILA_VERSION),
-    ("dns", "zones, all projects", "/v2/zones", "zones", {"X-Auth-All-Projects": "true"}),
     ("dns", "zones, own project", "/v2/zones", "zones", {}),
-    ("key-manager", "secrets", "/v1/secrets", "secrets", {}),
-    ("key-manager", "orders", "/v1/orders", "orders", {}),
-    ("object-store", "own account", "", None, {}),
-    ("database", "instances, as the exporter asks", "/mgmt/instances?include_clustered=False&deleted=False", "instances", {}),
     ("database", "instances, own project", "/instances", "instances", {}),
-    ("metric", "status", "/v1/status?details=true", "storage", {}),
 ]
 
 

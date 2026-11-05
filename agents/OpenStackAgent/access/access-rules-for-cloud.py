@@ -59,6 +59,10 @@ def fitted(rules, prefixes):
         prefix = prefixes.get(rule["service"])
         if prefix:
             add(dict(rule, path=prefix + rule["path"]))
+            # A service's root, behind Apache: when PATH_INFO is /, mod_proxy_uwsgi leaves the
+            # whole path in SCRIPT_NAME, so GET /load-balancer/ reads as /load-balancer//.
+            if rule["path"] == "/":
+                add(dict(rule, path=prefix + "//"))
     return result
 
 
