@@ -91,12 +91,6 @@ export enum OpenStackLogSignal {
   RabbitMqConnectionLost = "rabbitmq-connection-lost",
   DatabaseConnectionLost = "database-connection-lost",
   TokenValidationFailing = "token-validation-failing",
-  /*
-   * Keystone itself refusing a token it cannot read with any key it has, which is what a
-   * controller whose Fernet keys differ from the others says. Apart from the rest of that
-   * failing, because it says which machine, and what to do about it.
-   */
-  FernetTokenNotRecognized = "fernet-token-not-recognized",
 }
 
 export const OPENSTACK_LOG_NOISE_HEALTH_CHECK: string = "health-check";
@@ -801,12 +795,9 @@ const SIGNAL_PHRASES: ReadonlyArray<{
     ],
   },
   {
-    signal: OpenStackLogSignal.FernetTokenNotRecognized,
-    phrases: ["not a recognized Fernet token"],
-  },
-  {
     signal: OpenStackLogSignal.TokenValidationFailing,
     phrases: [
+      "not a recognized Fernet token",
       // keystonemiddleware, in the service that was handed the token. What a real cloud logs.
       "Authorization failed for token",
       "Failed to validate token",

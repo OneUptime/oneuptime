@@ -1319,7 +1319,7 @@ const haProxyApi4xxRateHighTemplate: OpenStackAlertTemplate =
     id: "openstack-haproxy-api-4xx-rate-high",
     name: "API 4xx Rate High",
     summary: `Over ${OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT}% of an API's responses through HAProxy are 4xx for 5 minutes.`,
-    description: `Alert when more than ${OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT}% of a backend's responses are 4xx, in every minute for 5 minutes (haproxy_backend_http_responses_increase). HAProxy counts responses by class and no finer, so this is where a burst of 401s shows: the usual cause of this many is tokens nobody can validate, from Fernet keys that differ between controllers or a Keystone that lost its way. The line is higher than for 5xx because OpenStack's clients ask for what is not there as a matter of course. One incident per backend. Check \`openstack token issue\`, Fernet Key Rotation Out of Step, and that service's log.`,
+    description: `Alert when more than ${OPENSTACK_HAPROXY_CLIENT_ERROR_RESPONSES_WARNING_PERCENT}% of a backend's responses are 4xx, in every minute for 5 minutes (haproxy_backend_http_responses_increase). HAProxy counts responses by class and no finer, so this is where a burst of 401s shows: the usual cause of this many is tokens nobody can validate, from Fernet keys that differ between controllers or a Keystone that lost its way. The line is higher than for 5xx because OpenStack's clients ask for what is not there as a matter of course. One incident per backend. Check \`openstack token issue\`, Token Validation Failing, and that service's log.`,
     severity: "Warning",
     responsesAlias: "responses_4xx",
     percentAlias: "responses_4xx_percent",
@@ -1744,6 +1744,8 @@ const WORKER_TEMPLATE_IDS: ReadonlyArray<string> = [
   "openstack-every-scheduler-or-conductor-down",
   "openstack-network-agent-down",
   "openstack-block-storage-service-down",
+  "openstack-orchestration-engine-down",
+  "openstack-container-infra-conductor-down",
 ];
 
 const API_TEMPLATE_IDS: ReadonlyArray<string> = [
@@ -1753,6 +1755,9 @@ const API_TEMPLATE_IDS: ReadonlyArray<string> = [
   "openstack-block-storage-api-down",
   "openstack-image-api-down",
   "openstack-placement-api-down",
+  "openstack-orchestration-api-down",
+  "openstack-container-infra-api-down",
+  "openstack-bare-metal-api-down",
 ];
 
 const CHILDREN_OF_PARENT_TEMPLATE: Readonly<

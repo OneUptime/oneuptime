@@ -977,6 +977,9 @@ import OpenStackCloudService, {
 import OpenStackCloudConnectionTestService, {
   Service as OpenStackCloudConnectionTestServiceType,
 } from "Common/Server/Services/OpenStackCloudConnectionTestService";
+import OpenStackCloudCheckService, {
+  Service as OpenStackCloudCheckServiceType,
+} from "Common/Server/Services/OpenStackCloudCheckService";
 import VMwareVCenterService, {
   Service as VMwareVCenterServiceType,
 } from "Common/Server/Services/VMwareVCenterService";
@@ -1660,6 +1663,7 @@ import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
+import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -5796,6 +5800,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         OpenStackCloudConnectionTest,
         OpenStackCloudConnectionTestService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackCloudCheck, OpenStackCloudCheckServiceType>(
+        OpenStackCloudCheck,
+        OpenStackCloudCheckService,
       ).getRouter(),
     );
 

@@ -172,13 +172,18 @@ describe("what a cloud stands on: the rules every template keeps", () => {
         "libvirt Exporter Target Down",
       ]),
     );
+
+    /*
+     * "Fernet Key Rotation Out of Step" in the issue is Token Validation Failing: with its keys
+     * swapped a real Keystone writes what it writes for any refusal, so no line tells them apart.
+     */
     expect(
-      getAllOpenStackLogAlertTemplates().map(
-        (template: { name: string }): string => {
-          return template.name;
+      getAllOpenStackLogAlertTemplates().find(
+        (template: { name: string; description: string }): boolean => {
+          return template.name === "Token Validation Failing";
         },
-      ),
-    ).toContain("Fernet Key Rotation Out of Step");
+      )!.description,
+    ).toContain("Fernet keys differ");
   });
 
   test.each(CASES)(

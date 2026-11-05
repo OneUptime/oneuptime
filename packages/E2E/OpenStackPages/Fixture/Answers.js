@@ -40,6 +40,7 @@ import {
   buildOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../../Common/Types/OpenStack/OpenStackBlastRadius";
+import { getOpenStackStackNameOfServer } from "../../../Common/Types/OpenStack/OpenStackLinks";
 import { getOpenStackProjectQuotas } from "../../../Common/Types/OpenStack/OpenStackQuota";
 
 const ATTENTION_ROWS_PER_KIND = 100;
@@ -453,13 +454,57 @@ export function getBlastRadius(allRows, part) {
     return buildOpenStackBlastRadius({ counts, projectNames, isKnown });
   };
 
+  const ownerOf = (row) => {
+    return {
+      kind: row.kind,
+      externalId: row.externalId,
+      name: row.name || null,
+      status: row.status || null,
+    };
+  };
+
+  // The Magnum clusters these servers are part of, as readMagnumClustersOfServers reads them.
+  const magnumClustersOf = (serverNames) => {
+    const stackNames = serverNames
+      .map(getOpenStackStackNameOfServer)
+      .filter(Boolean);
+    const stackIds = ofKind(allRows, "Stack")
+      .filter((row) => {
+        return (
+          stackNames.includes(row.name) && row.regionName === part.regionName
+        );
+      })
+      .map((row) => {
+        return row.externalId;
+      });
+    return ofKind(allRows, "ContainerCluster")
+      .filter((row) => {
+        return (
+          stackIds.includes(row.facts?.stackId) &&
+          row.regionName === part.regionName
+        );
+      })
+      .map(ownerOf);
+  };
+
   if (part.kind === "Hypervisor") {
-    return finish([
-      {
-        count: "instanceCount",
-        byProject: countsByProject(instancesOn(part.hypervisorName)),
-      },
-    ]);
+    return {
+      ...finish([
+        {
+          count: "instanceCount",
+          byProject: countsByProject(instancesOn(part.hypervisorName)),
+        },
+      ]),
+      magnumClusters: magnumClustersOf(
+        instancesOn(part.hypervisorName).map((row) => {
+          return row.name;
+        }),
+      ),
+    };
+  }
+
+  if (part.kind === "Instance") {
+    return { ...finish([], false), belongsTo: magnumClustersOf([part.name]) };
   }
 
   if (part.kind === "Service" && part.name === "nova-compute") {
@@ -555,15 +600,6 @@ export function getBlastRadius(allRows, part) {
   }
 
   // As OpenStackResourceService says it: a stack and its Magnum cluster name each other.
-  const ownerOf = (row) => {
-    return {
-      kind: row.kind,
-      externalId: row.externalId,
-      name: row.name || null,
-      status: row.status || null,
-    };
-  };
-
   if (part.kind === "Stack") {
     const clusters = ofKind(allRows, "ContainerCluster").filter((row) => {
       return row.facts?.stackId === part.externalId;
