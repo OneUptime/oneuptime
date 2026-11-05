@@ -42,6 +42,7 @@ import {
   OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+  OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
   OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
@@ -55,6 +56,7 @@ import {
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import {
+  OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
@@ -387,6 +389,7 @@ const THRESHOLDS: Readonly<
     value: 0,
   },
   "openstack-volume-stuck": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-image-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-project-quota-nearly-reached": {
     filterType: FilterType.GreaterThanOrEqualTo,
     value: OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
@@ -596,6 +599,11 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { can_lose_a_host: 0 },
     healthy: { can_lose_a_host: 1 },
   },
+  "openstack-image-stuck": {
+    // When it was created, as a Unix time, which only says the row is there.
+    breached: { in_queued: 1793795520 },
+    healthy: { in_queued: 0 },
+  },
   "openstack-project-quota-nearly-reached": {
     breached: { vcpus_used: 95, vcpus_limit: 100 },
     healthy: { vcpus_used: 10, vcpus_limit: 100 },
@@ -758,6 +766,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Storage Pool Critical",
         "Volumes in Error",
         "Volume Stuck",
+        "Image Stuck",
         "Project Quota Nearly Reached",
         "Flavor Can No Longer Be Placed",
         `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
@@ -1406,6 +1415,11 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         OPENSTACK_VOLUME_STUCK_MINUTES,
         RollingTime.Past30Minutes,
       ],
+      [
+        "openstack-image-stuck",
+        OPENSTACK_IMAGE_STUCK_MINUTES,
+        RollingTime.Past1Hour,
+      ],
     ])(
       "%s waits the health rules' %d minutes",
       (id: string, minutes: number, rollingTime: RollingTime) => {
@@ -1651,6 +1665,31 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           expect(OPENSTACK_EXPORTER_VOLUME_STATUSES).toContain(status);
         }
       }
+    });
+
+    test("Image Stuck reads every word the health rules call on its way, and names the image", () => {
+      expect(statusesOf("openstack-image-stuck").sort()).toEqual(
+        Array.from(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES).sort(),
+      );
+
+      const step: MonitorStep = stepOf(
+        getOpenStackAlertTemplateById("openstack-image-stuck")!,
+      );
+
+      expect(MonitorStep.getGroupByAttributeKeys(step)).toEqual(
+        expect.arrayContaining(["id", "name"]),
+      );
+
+      // On the one series of an image that names its status, which is the exporter's.
+      for (const query of queriesOf(step)) {
+        if (aliasOf(query) !== OPENSTACK_ANCHOR_METRIC_ALIAS) {
+          expect(metricNameOf(query)).toBe("openstack_glance_image_created_at");
+          expect(aggregationOf(query)).toBe(MetricsAggregationType.Max);
+        }
+      }
+      expect(
+        OPENSTACK_EXPORTER_SERIES["openstack_glance_image_created_at"]!.labels,
+      ).toEqual(expect.arrayContaining(["id", "name", "status"]));
     });
 
     test("an instance or a volume stuck is judged on its own, not on a stream of them", () => {

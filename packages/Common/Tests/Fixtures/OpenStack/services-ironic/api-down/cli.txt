@@ -1,0 +1,11 @@
+$ openstack hypervisor list
+
+$ openstack baremetal node list --fields name provision_state power_state maintenance maintenance_reason resource_class last_error
+Error contacting Ironic server: Service Unavailable (HTTP 503). Attempt 6 of 6
+Service Unavailable (HTTP 503)
+$ openstack baremetal conductor list
+Error contacting Ironic server: Service Unavailable (HTTP 503). Attempt 6 of 6
+Service Unavailable (HTTP 503)
+$ openstack baremetal driver list
+Error contacting Ironic server: Service Unavailable (HTTP 503). Attempt 6 of 6
+Service Unavailable (HTTP 503)

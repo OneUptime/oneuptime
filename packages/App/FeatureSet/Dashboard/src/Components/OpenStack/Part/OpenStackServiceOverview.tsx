@@ -291,8 +291,13 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
   // A host the Hosts product hears from under the same name.
   const machine: string = isApi ? "" : getOpenStackWorkerMachine(row);
   const host: OpenStackRead<Host | null> = useOpenStackRead<Host | null>(() => {
-    return machine ? fetchOpenStackHostOf(machine) : Promise.resolve(null);
-  }, [machine]);
+    return machine
+      ? fetchOpenStackHostOf({
+          openStackCloudId: part.openStackCloudId,
+          machineName: machine,
+        })
+      : Promise.resolve(null);
+  }, [part.openStackCloudId.toString(), machine]);
 
   const rows: Array<OpenStackResource> = attention.data?.rows || [];
   const workers: Array<OpenStackResource> = rows.filter(

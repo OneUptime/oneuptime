@@ -4,7 +4,7 @@ An OpenStack monitor watches one cloud - its APIs, the workers behind them, hype
 
 :::cards
 - [Create the monitor](#create-an-openstack-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Thirty-seven ready-made alerts, one incident per worker, instance, network or region.
+- [Templates](#pre-built-alert-templates): Thirty-eight ready-made alerts, one incident per worker, instance, network or region.
 - [Identity attributes](#identity-attributes): How to target one region, host or project.
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
 :::
@@ -105,7 +105,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 37 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 38 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -144,6 +144,7 @@ Every template reads at least three collections of what it watches, and fires on
 | Storage Pool Critical | Storage | Critical | The same | Above 95% | At or below 85.5% |
 | Volumes in Error | Storage | Warning | `openstack_cinder_volume_status_counter` for each error word, Max per region and word, **past 10 minutes** | Above 0 | At 0 |
 | Volume Stuck | Storage | Warning | `openstack_cinder_volume_gb` for each passing status word, Max per volume, **past 30 minutes** | In that status at every collection for 30 minutes | Left it |
+| Image Stuck | Storage | Warning | `openstack_glance_image_created_at` for each passing status word, Max per image, **past 1 hour** | In that status at every collection for an hour | Left it, or was deleted |
 | Project Quota Nearly Reached | Projects | Warning | `openstack_nova_limits_*` and `openstack_cinder_limits_volume_*`, used / max per project, **past 10 minutes** | Above 90% of its vCPU, memory, instance or volume quota. Needs the [limits series on](#turn-on-the-limits-series) | At or below 81% |
 | Flavor Can No Longer Be Placed | Capacity | Warning | `openstack_capacity_flavor_fits`, **per flavor per region** | No host has room for one more, for 10 minutes. Only flavors someone can ask for, and never one too large for every host, or whose only room is on a host someone disabled | A host has room, or the flavor is no longer watched |
 | Capacity Forecast Under 14 Days | Capacity | Warning | `openstack_capacity_days_until_full`, **per zone and resource class, external network or storage pool** | Under 14 days until full at its growth over the last week, for 10 minutes. Quiet with under a day of history, or when it isn't growing | Over 15.4 days, or no forecast any more |
@@ -165,10 +166,10 @@ Seven more templates read a cloud's logs rather than its metrics, so they are Lo
 | Template | Category | Severity | Reads | Fires when | Recovers when |
 | --- | --- | --- | --- | --- | --- |
 | No Valid Host | Service Logs | Warning | Lines a service wrote at `WARNING` or worse holding `No valid host was found`, **past 15 minutes** | One or more | None left in the window |
-| RabbitMQ Connection Lost | Service Logs | Critical | `AMQP server on <host> is unreachable` or `MessagingTimeout`, **past 5 minutes** | 5 or more | Fewer than 5 |
-| Database Connection Lost | Service Logs | Critical | `DBConnectionError`, or MySQL's `Lost connection` and `Can't connect`, **past 5 minutes** | 5 or more | Fewer than 5 |
+| RabbitMQ Connection Lost | Service Logs | Critical | `AMQP server on <host> is unreachable`, `Unable to connect to AMQP server`, oslo.messaging's `Connection failed` or `MessagingTimeout`, **past 5 minutes** | 5 or more | Fewer than 5 |
+| Database Connection Lost | Service Logs | Critical | `DBConnectionError`, `SQL connection failed`, or MySQL's `Lost connection` and `Can't connect`, **past 5 minutes** | 5 or more | Fewer than 5 |
 | Too Many Errors from a Service | Service Logs | Warning | `ERROR` and `CRITICAL` lines, per service and machine, **past 5 minutes** | 50 or more | Fewer than 50 |
-| Token Validation Failing | Service Logs | Critical | Tokens a service or Keystone cannot validate, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
+| Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token` and Keystone's `not a recognized Fernet token`, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
 | Instance Action Failed | Events | Warning | `compute.exception` and any `instance.*.error`, per instance, event and reason, **past 15 minutes**. Needs [notifications](/docs/telemetry/openstack#turn-on-notifications) or a probe | One or more | None left in the window |
 | Scheduling Failed | Events | Warning | `scheduler.select_destinations.error`, or a compute task's error naming `NoValidHost`, per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
 

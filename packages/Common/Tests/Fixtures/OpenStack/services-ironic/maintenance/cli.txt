@@ -1,0 +1,14 @@
+$ openstack hypervisor list
+
+$ openstack baremetal node list --fields name provision_state power_state maintenance maintenance_reason resource_class last_error
++---------------------+-----------------+-------------+-------------+---------------------------------------+----------------+------------+
+| name                | provision_state | power_state | maintenance | maintenance_reason                    | resource_class | last_error |
++---------------------+-----------------+-------------+-------------+---------------------------------------+----------------+------------+
+| ou-node-available   | available       | None        | False       | None                                  | baremetal      | None       |
+| ou-node-half        | enroll          | None        | False       | None                                  | None           | None       |
+| ou-node-maintenance | available       | None        | True        | OneUptime drill: a disk being swapped | baremetal      | None       |
++---------------------+-----------------+-------------+-------------+---------------------------------------+----------------+------------+
+$ openstack baremetal conductor list
+Access was denied to the following resource: baremetal:conductor:get (HTTP 403) (Request-ID: req-5530ea4f-6741-4c5d-b4a4-c3dd2b6ec057)
+$ openstack baremetal driver list
+"baremetal:driver:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role" requires a scope of ['system'], request was made with project scope. (HTTP 500) (Request-ID: req-281f402f-afcb-4f17-9980-38a20cffecf0)

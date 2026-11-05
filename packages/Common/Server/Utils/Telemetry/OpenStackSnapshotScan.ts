@@ -505,6 +505,11 @@ function foldApiUp(data: {
    * summary mode stops waiting.
    */
   refreshCycleMinutes?: number | null | undefined;
+  /*
+   * False when this read held back rows it cannot speak for, because they have not all come round
+   * yet or did not fit. The stale-row rule goes on measuring from the last read that could.
+   */
+  vouchesForRows?: boolean | undefined;
 }): void {
   const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
     buffer: data.buffer,
@@ -531,6 +536,15 @@ function foldApiUp(data: {
     data.isUp ? OPENSTACK_SERVICE_STATUS_UP : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
+
+  /*
+   * A read that cannot speak for what it held back leaves the rule's two numbers as they stand, and
+   * they go on applying to the rows they were written about.
+   */
+  if (data.vouchesForRows === false) {
+    return;
+  }
+
   entry.facts["refreshCycleMinutes"] = data.refreshCycleMinutes ?? null;
   /*
    * The time of the last good read, which the stale-row rule measures from: a part
@@ -1592,6 +1606,7 @@ export function bufferOpenStackSnapshotMetric(data: {
       refreshCycleMinutes: toNumberOrNull(
         getLabel(attributes, "refresh_cycle_minutes"),
       ),
+      vouchesForRows: getLabel(attributes, "vouches_for_rows") !== "false",
     });
     return;
   }

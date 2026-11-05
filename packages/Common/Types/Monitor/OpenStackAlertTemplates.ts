@@ -23,6 +23,7 @@ import {
   OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+  OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
   OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
@@ -49,6 +50,7 @@ import {
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
 import {
+  OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
@@ -172,6 +174,7 @@ const API_GROUP: Array<string> = [REGION, SERVICE_JOB];
 const HYPERVISOR_GROUP: Array<string> = [REGION, "hostname"];
 const INSTANCE_GROUP: Array<string> = [REGION, "uuid", "name"];
 const VOLUME_GROUP: Array<string> = [REGION, "id", "name", "volume_type"];
+const IMAGE_GROUP: Array<string> = [REGION, "id", "name"];
 const STORAGE_POOL_GROUP: Array<string> = [
   REGION,
   "name",
@@ -1856,6 +1859,51 @@ const volumeStuckTemplate: OpenStackAlertTemplate = {
   },
 };
 
+/*
+ * Per image, from the one series of an image that names its status. Its value is when it was
+ * created, never 0, so it says the row is there. Glance is read every five minutes, so the hour the
+ * pages call stuck holds twelve collections. A status series exists only while an image is in that
+ * status, so one uploaded at last, or deleted, recovers by going away.
+ */
+const imageStuckTemplate: OpenStackAlertTemplate = {
+  id: "openstack-image-stuck",
+  name: "Image Stuck",
+  summary: `An image stays in a passing state for ${OPENSTACK_IMAGE_STUCK_MINUTES} minutes.`,
+  description: `Alert when an image stays in one of ${Array.from(OPENSTACK_IMAGE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_IMAGE_STUCK_MINUTES} minutes (openstack_glance_image_created_at filtered to that status label, in every collection of the window). One incident per image. An image left in queued is what a failed upload looks like, and nothing moves it on. Check \`openstack image show <image>\`, then glance-api's log. A very large import can honestly take this long.`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = Array.from(
+      OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
+    ).map((status: string): OpenStackQuery => {
+      return {
+        alias: statusAlias(status),
+        metricName: "openstack_glance_image_created_at",
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { status },
+      };
+    });
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Image,
+      rollingTime: windowHolding(OPENSTACK_IMAGE_STUCK_MINUTES),
+      groupByAttributeKeys: IMAGE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Image Stuck",
+        incidentDescription: `This image has held one status on the way to another for ${OPENSTACK_IMAGE_STUCK_MINUTES} minutes. An image left in queued is what a failed upload looks like: nothing moves it on, and an instance asking for it fails. Check openstack image show for the image named above, then glance-api's log. Upload it again, or delete it with openstack image delete. The incident resolves on its own once it reaches its next status or is deleted.`,
+        criteriaName: `Image Stuck - same status for ${OPENSTACK_IMAGE_STUCK_MINUTES} minutes`,
+        criteriaDescription: `Triggers when an image holds the status for the whole ${OPENSTACK_IMAGE_STUCK_MINUTES}-minute window.`,
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -2111,6 +2159,7 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     storagePoolCriticalTemplate,
     volumesInErrorTemplate,
     volumeStuckTemplate,
+    imageStuckTemplate,
     projectQuotaNearlyReachedTemplate,
     flavorCannotBePlacedTemplate,
     capacityForecastUnderDaysTemplate,

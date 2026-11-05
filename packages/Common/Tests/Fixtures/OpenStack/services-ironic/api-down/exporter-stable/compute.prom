@@ -1,0 +1,105 @@
+# HELP openstack_nova_agent_state agent_state
+# TYPE openstack_nova_agent_state counter
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="49ca982c-158e-4d01-afda-003276446a96",service="nova-compute",zone="nova"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="79fc4e25-d324-42c0-b43d-856850492549",service="nova-conductor",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="b3ea2875-4fb1-4f7d-b52b-a8302f5e0124",service="nova-conductor",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",id="f15f2369-5f06-4a76-98c9-f4da70202d3a",service="nova-scheduler",zone="internal"} 1
+# HELP openstack_nova_availability_zones availability_zones
+# TYPE openstack_nova_availability_zones gauge
+openstack_nova_availability_zones 1
+# HELP openstack_nova_flavor flavor
+# TYPE openstack_nova_flavor gauge
+openstack_nova_flavor{disk="1",id="1",is_public="true",name="m1.tiny",ram="512",vcpus="1"} 1
+openstack_nova_flavor{disk="1",id="3416cb15-2eb9-434e-9e69-e146feea238d",is_public="true",name="ou.impossible",ram="1048576",vcpus="1"} 1
+openstack_nova_flavor{disk="1",id="c1",is_public="true",name="cirros256",ram="256",vcpus="1"} 1
+openstack_nova_flavor{disk="1",id="cd71c276-7945-4aca-9aef-717dd208821a",is_public="true",name="ou.tiny",ram="128",vcpus="1"} 1
+openstack_nova_flavor{disk="10",id="d2",is_public="true",name="ds1G",ram="1024",vcpus="1"} 1
+openstack_nova_flavor{disk="10",id="d3",is_public="true",name="ds2G",ram="2048",vcpus="2"} 1
+openstack_nova_flavor{disk="160",id="5",is_public="true",name="m1.xlarge",ram="16384",vcpus="8"} 1
+openstack_nova_flavor{disk="20",id="2",is_public="true",name="m1.small",ram="2048",vcpus="1"} 1
+openstack_nova_flavor{disk="20",id="d4",is_public="true",name="ds4G",ram="4096",vcpus="4"} 1
+openstack_nova_flavor{disk="40",id="3",is_public="true",name="m1.medium",ram="4096",vcpus="2"} 1
+openstack_nova_flavor{disk="5",id="d1",is_public="true",name="ds512M",ram="512",vcpus="1"} 1
+openstack_nova_flavor{disk="80",id="4",is_public="true",name="m1.large",ram="8192",vcpus="4"} 1
+openstack_nova_flavor{disk="9",id="33f82db9-9d56-4548-b59a-5ba193bae1e0",is_public="true",name="baremetal",ram="1024",vcpus="1"} 1
+# HELP openstack_nova_flavors flavors
+# TYPE openstack_nova_flavors gauge
+openstack_nova_flavors 13
+# HELP openstack_nova_limits_instances_max limits_instances_max
+# TYPE openstack_nova_limits_instances_max gauge
+openstack_nova_limits_instances_max{tenant="admin",tenant_id="cc8bdebd938940c0a22ed92aab43840c"} 10
+openstack_nova_limits_instances_max{tenant="alt_demo",tenant_id="8884da1c09204fc2b10d9a24a6fd08cb"} 10
+openstack_nova_limits_instances_max{tenant="demo",tenant_id="9d899034e7a94dd89e2700fac60257ca"} 10
+openstack_nova_limits_instances_max{tenant="invisible_to_admin",tenant_id="22c5955b26df463a99768caf850511b4"} 10
+openstack_nova_limits_instances_max{tenant="ou-payments",tenant_id="b7d4e9e5b62142e684410f6dbf03ac26"} 20
+openstack_nova_limits_instances_max{tenant="ou-research",tenant_id="e400ea7e03b04635accd8ca4c75e5529"} 10
+openstack_nova_limits_instances_max{tenant="service",tenant_id="76ad21e486904905bd7341857920e4f2"} 10
+openstack_nova_limits_instances_max{tenant="swiftprojecttest1",tenant_id="2dd7581d5d12478e9fcddad37a830abb"} 10
+openstack_nova_limits_instances_max{tenant="swiftprojecttest2",tenant_id="ba86a3e621a047dc8f471c1382dc12be"} 10
+openstack_nova_limits_instances_max{tenant="swiftprojecttest4",tenant_id="65396b412eaf484386617ace4b3772c9"} 10
+# HELP openstack_nova_limits_instances_used limits_instances_used
+# TYPE openstack_nova_limits_instances_used gauge
+openstack_nova_limits_instances_used{tenant="admin",tenant_id="cc8bdebd938940c0a22ed92aab43840c"} 0
+openstack_nova_limits_instances_used{tenant="alt_demo",tenant_id="8884da1c09204fc2b10d9a24a6fd08cb"} 0
+openstack_nova_limits_instances_used{tenant="demo",tenant_id="9d899034e7a94dd89e2700fac60257ca"} 0
+openstack_nova_limits_instances_used{tenant="invisible_to_admin",tenant_id="22c5955b26df463a99768caf850511b4"} 0
+openstack_nova_limits_instances_used{tenant="ou-payments",tenant_id="b7d4e9e5b62142e684410f6dbf03ac26"} 0
+openstack_nova_limits_instances_used{tenant="ou-research",tenant_id="e400ea7e03b04635accd8ca4c75e5529"} 0
+openstack_nova_limits_instances_used{tenant="service",tenant_id="76ad21e486904905bd7341857920e4f2"} 0
+openstack_nova_limits_instances_used{tenant="swiftprojecttest1",tenant_id="2dd7581d5d12478e9fcddad37a830abb"} 0
+openstack_nova_limits_instances_used{tenant="swiftprojecttest2",tenant_id="ba86a3e621a047dc8f471c1382dc12be"} 0
+openstack_nova_limits_instances_used{tenant="swiftprojecttest4",tenant_id="65396b412eaf484386617ace4b3772c9"} 0
+# HELP openstack_nova_limits_memory_max limits_memory_max
+# TYPE openstack_nova_limits_memory_max gauge
+openstack_nova_limits_memory_max{tenant="admin",tenant_id="cc8bdebd938940c0a22ed92aab43840c"} 51200
+openstack_nova_limits_memory_max{tenant="alt_demo",tenant_id="8884da1c09204fc2b10d9a24a6fd08cb"} 51200
+openstack_nova_limits_memory_max{tenant="demo",tenant_id="9d899034e7a94dd89e2700fac60257ca"} 51200
+openstack_nova_limits_memory_max{tenant="invisible_to_admin",tenant_id="22c5955b26df463a99768caf850511b4"} 51200
+openstack_nova_limits_memory_max{tenant="ou-payments",tenant_id="b7d4e9e5b62142e684410f6dbf03ac26"} 2.097152e+06
+openstack_nova_limits_memory_max{tenant="ou-research",tenant_id="e400ea7e03b04635accd8ca4c75e5529"} 51200
+openstack_nova_limits_memory_max{tenant="service",tenant_id="76ad21e486904905bd7341857920e4f2"} 51200
+openstack_nova_limits_memory_max{tenant="swiftprojecttest1",tenant_id="2dd7581d5d12478e9fcddad37a830abb"} 51200
+openstack_nova_limits_memory_max{tenant="swiftprojecttest2",tenant_id="ba86a3e621a047dc8f471c1382dc12be"} 51200
+openstack_nova_limits_memory_max{tenant="swiftprojecttest4",tenant_id="65396b412eaf484386617ace4b3772c9"} 51200
+# HELP openstack_nova_limits_memory_used limits_memory_used
+# TYPE openstack_nova_limits_memory_used gauge
+openstack_nova_limits_memory_used{tenant="admin",tenant_id="cc8bdebd938940c0a22ed92aab43840c"} 0
+openstack_nova_limits_memory_used{tenant="alt_demo",tenant_id="8884da1c09204fc2b10d9a24a6fd08cb"} 0
+openstack_nova_limits_memory_used{tenant="demo",tenant_id="9d899034e7a94dd89e2700fac60257ca"} 0
+openstack_nova_limits_memory_used{tenant="invisible_to_admin",tenant_id="22c5955b26df463a99768caf850511b4"} 0
+openstack_nova_limits_memory_used{tenant="ou-payments",tenant_id="b7d4e9e5b62142e684410f6dbf03ac26"} 0
+openstack_nova_limits_memory_used{tenant="ou-research",tenant_id="e400ea7e03b04635accd8ca4c75e5529"} 0
+openstack_nova_limits_memory_used{tenant="service",tenant_id="76ad21e486904905bd7341857920e4f2"} 0
+openstack_nova_limits_memory_used{tenant="swiftprojecttest1",tenant_id="2dd7581d5d12478e9fcddad37a830abb"} 0
+openstack_nova_limits_memory_used{tenant="swiftprojecttest2",tenant_id="ba86a3e621a047dc8f471c1382dc12be"} 0
+openstack_nova_limits_memory_used{tenant="swiftprojecttest4",tenant_id="65396b412eaf484386617ace4b3772c9"} 0
+# HELP openstack_nova_limits_vcpus_max limits_vcpus_max
+# TYPE openstack_nova_limits_vcpus_max gauge
+openstack_nova_limits_vcpus_max{tenant="admin",tenant_id="cc8bdebd938940c0a22ed92aab43840c"} 20
+openstack_nova_limits_vcpus_max{tenant="alt_demo",tenant_id="8884da1c09204fc2b10d9a24a6fd08cb"} 20
+openstack_nova_limits_vcpus_max{tenant="demo",tenant_id="9d899034e7a94dd89e2700fac60257ca"} 20
+openstack_nova_limits_vcpus_max{tenant="invisible_to_admin",tenant_id="22c5955b26df463a99768caf850511b4"} 20
+openstack_nova_limits_vcpus_max{tenant="ou-payments",tenant_id="b7d4e9e5b62142e684410f6dbf03ac26"} 40
+openstack_nova_limits_vcpus_max{tenant="ou-research",tenant_id="e400ea7e03b04635accd8ca4c75e5529"} 20
+openstack_nova_limits_vcpus_max{tenant="service",tenant_id="76ad21e486904905bd7341857920e4f2"} 20
+openstack_nova_limits_vcpus_max{tenant="swiftprojecttest1",tenant_id="2dd7581d5d12478e9fcddad37a830abb"} 20
+openstack_nova_limits_vcpus_max{tenant="swiftprojecttest2",tenant_id="ba86a3e621a047dc8f471c1382dc12be"} 20
+openstack_nova_limits_vcpus_max{tenant="swiftprojecttest4",tenant_id="65396b412eaf484386617ace4b3772c9"} 20
+# HELP openstack_nova_limits_vcpus_used limits_vcpus_used
+# TYPE openstack_nova_limits_vcpus_used gauge
+openstack_nova_limits_vcpus_used{tenant="admin",tenant_id="cc8bdebd938940c0a22ed92aab43840c"} 0
+openstack_nova_limits_vcpus_used{tenant="alt_demo",tenant_id="8884da1c09204fc2b10d9a24a6fd08cb"} 0
+openstack_nova_limits_vcpus_used{tenant="demo",tenant_id="9d899034e7a94dd89e2700fac60257ca"} 0
+openstack_nova_limits_vcpus_used{tenant="invisible_to_admin",tenant_id="22c5955b26df463a99768caf850511b4"} 0
+openstack_nova_limits_vcpus_used{tenant="ou-payments",tenant_id="b7d4e9e5b62142e684410f6dbf03ac26"} 0
+openstack_nova_limits_vcpus_used{tenant="ou-research",tenant_id="e400ea7e03b04635accd8ca4c75e5529"} 0
+openstack_nova_limits_vcpus_used{tenant="service",tenant_id="76ad21e486904905bd7341857920e4f2"} 0
+openstack_nova_limits_vcpus_used{tenant="swiftprojecttest1",tenant_id="2dd7581d5d12478e9fcddad37a830abb"} 0
+openstack_nova_limits_vcpus_used{tenant="swiftprojecttest2",tenant_id="ba86a3e621a047dc8f471c1382dc12be"} 0
+openstack_nova_limits_vcpus_used{tenant="swiftprojecttest4",tenant_id="65396b412eaf484386617ace4b3772c9"} 0
+# HELP openstack_nova_total_vms total_vms
+# TYPE openstack_nova_total_vms gauge
+openstack_nova_total_vms 0
+# HELP openstack_nova_up up
+# TYPE openstack_nova_up gauge
+openstack_nova_up 1

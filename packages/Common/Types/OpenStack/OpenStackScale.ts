@@ -112,10 +112,9 @@ export const OPENSTACK_LARGE_CLOUD: OpenStackCloudCounts =
  * ---------------------------------------------------------------------------
  *
  * Past this many instances a cloud keeps counts and rows, and no series per instance or per
- * volume. Where it sits: a cloud this size sends about 14 GB a day of per-instance series and
- * about 7 GB a day of everything else (getOpenStackSeriesCounts, at the bill's row size), so from
+ * volume. Where it sits: a cloud this size sends about 17 GB a day of per-instance series and
+ * about 4 GB a day of everything else (getOpenStackSeriesCounts, at the bill's row size), so from
  * here those series are most of the bill, and they say what the rows and the counts already say.
- * Far below it they cost less than the cloud's other parts do.
  */
 export const OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT: number = 5000;
 
@@ -149,10 +148,13 @@ const SETTLED_STATUSES: Readonly<Record<string, ReadonlySet<string>>> = {
 export function isOpenStackSummaryMode(data: {
   options: Pick<OpenStackInstanceMetricsOptions, "mode">;
   instanceCount: number | null | undefined;
+  // For tests, so a scene with a few hundred instances can stand for a cloud past the line.
+  instanceLimit?: number | undefined;
 }): boolean {
   return (
     data.options.mode !== OpenStackInstanceMetricsMode.All &&
-    (data.instanceCount || 0) > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT
+    (data.instanceCount || 0) >
+      (data.instanceLimit ?? OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT)
   );
 }
 
@@ -201,14 +203,17 @@ export const OPENSTACK_MAX_ROLLING_TURNS: number = 30;
  */
 export const OPENSTACK_ROLLING_BYTES_PER_DATAPOINT: number = 1100;
 
-export function getOpenStackRollingTurns(rollingDatapoints: number): number {
+export function getOpenStackRollingTurns(
+  rollingDatapoints: number,
+  targetBytesPerCollection: number = OPENSTACK_ROLLING_TARGET_BYTES_PER_COLLECTION,
+): number {
   return Math.min(
     OPENSTACK_MAX_ROLLING_TURNS,
     Math.max(
       1,
       Math.ceil(
         (rollingDatapoints * OPENSTACK_ROLLING_BYTES_PER_DATAPOINT) /
-          OPENSTACK_ROLLING_TARGET_BYTES_PER_COLLECTION,
+          targetBytesPerCollection,
       ),
     ),
   );
@@ -278,7 +283,8 @@ export const OPENSTACK_NEUTRON_EXTENSIONS_EVERY_MINUTES: number = 60;
  * router's agents, a project's quotas. Past this a cloud's lists are read in turns rather than
  * all at once. What was not read this time is sent as last read, so no series has a gap, and the
  * load stays where it is however many more of them the cloud grows: only how fresh they are
- * moves. At a thousand a minute this is about 3 calls a second on each of those services.
+ * moves. Every two minutes that is about 17 calls a second on each of those services, four at a
+ * time at most.
  */
 export const OPENSTACK_PER_PART_READS_PER_COLLECTION: number = 2000;
 
@@ -301,6 +307,13 @@ export const OPENSTACK_CANDIDATE_READS_PER_COLLECTION: number = 4;
  * a floor, and its page says so. Zero is exact either way, which is what an alert reads.
  */
 export const OPENSTACK_CANDIDATE_RESULT_LIMIT: number = 1000;
+
+/*
+ * What happened to an instance that changed, which only Nova's own record says. A call per
+ * instance, this many a collection, and what is left waits for the next.
+ */
+export const OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION: number = 25;
+export const OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER: number = 500;
 
 /*
  * Which networks a DHCP agent serves. Neutron answers with each of them in full, and takes no
@@ -391,6 +404,7 @@ export function simulateOpenStackProbeRequests(data: {
 
   let tokenValidUntil: number = -1;
   let extensionsReadAt: number = -Infinity;
+  let actionReadsWaiting: number = 0;
   let dhcpAgentsReadAt: number = -Infinity;
 
   for (let minute: number = 0; minute < data.toMinute; minute += interval) {
@@ -431,6 +445,19 @@ export function simulateOpenStackProbeRequests(data: {
         getOpenStackListRequests(counts.flavors) +
         getOpenStackListRequests(isFullRead ? counts.instances : changed),
     );
+
+    actionReadsWaiting += changed;
+
+    const actionReads: number = Math.min(
+      actionReadsWaiting,
+      OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION,
+    );
+
+    actionReadsWaiting = Math.min(
+      actionReadsWaiting - actionReads,
+      OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER,
+    );
+    count(OpenStackServiceType.Compute, actionReads);
 
     const perPartReads: number = Math.min(
       counts.hypervisors,
@@ -488,7 +515,8 @@ export function simulateOpenStackProbeRequests(data: {
     if (
       isOvs &&
       !isSummary &&
-      minute - dhcpAgentsReadAt >= OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES - 0.5
+      minute - dhcpAgentsReadAt >=
+        OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES - 0.5
     ) {
       dhcpAgentsReadAt = minute;
       network += Math.min(
@@ -551,8 +579,8 @@ export function getOpenStackProbeRequestsPerMinute(
 /*
  * What the agent's exporter asks for on one scrape of a service, per region, counted from its
  * source rather than measured: the exporter is not in these tests, and its own numbers wait for
- * the rig. Every scrape logs in again. It never reads what changed: every list is read whole.
- * Placement is three calls per hypervisor, one at a time.
+ * the rig. Every scrape logs in again, which is the first request here of each. It never reads
+ * what changed: every list is read whole. Placement is three calls per hypervisor, one at a time.
  */
 export function getOpenStackExporterRequestsPerScrape(
   counts: OpenStackCloudCounts,
@@ -589,6 +617,44 @@ export function getOpenStackExporterRequestsPerScrape(
 }
 
 /*
+ * The same, a minute at a time, at the agent's own intervals: two minutes for most, five for
+ * Keystone and Glance. Each login is a request of Keystone's, whichever service it is for.
+ */
+export function getOpenStackExporterRequestsPerMinute(
+  counts: OpenStackCloudCounts,
+): OpenStackRequestsByService {
+  const scrape: OpenStackRequestsByService =
+    getOpenStackExporterRequestsPerScrape(counts);
+  const perMinute: OpenStackRequestsByService = noRequests();
+  const FAST: number = 720 / (24 * 60);
+  const SLOW: number = 288 / (24 * 60);
+
+  perMinute[OpenStackServiceType.Identity] =
+    scrape[OpenStackServiceType.Identity] * SLOW;
+
+  for (const service of [
+    OpenStackServiceType.Compute,
+    OpenStackServiceType.Placement,
+    OpenStackServiceType.Network,
+    OpenStackServiceType.Volume,
+  ]) {
+    perMinute[service] = (scrape[service] - 1) * FAST;
+    perMinute[OpenStackServiceType.Identity] += FAST;
+  }
+
+  perMinute[OpenStackServiceType.Image] =
+    (scrape[OpenStackServiceType.Image] - 1) * SLOW;
+  perMinute[OpenStackServiceType.Identity] += SLOW;
+
+  for (const service of Object.keys(perMinute) as Array<OpenStackServiceType>) {
+    perMinute[service] *=
+      service === OpenStackServiceType.Identity ? 1 : counts.regions;
+  }
+
+  return perMinute;
+}
+
+/*
  * ---------------------------------------------------------------------------
  * The volume of data
  * ---------------------------------------------------------------------------
@@ -618,6 +684,12 @@ export interface OpenStackSeriesCounts {
   slow: number;
   // What goes away in summary mode: an instance's status and three allocations, a volume's two.
   perInstance: number;
+  /*
+   * Of the rest, what a probe sends in turns past the summary size, of those read every collection
+   * and those read about every five minutes. The agent's exporter sends these every scrape.
+   */
+  inTurnsFast: number;
+  inTurnsSlow: number;
 }
 
 /*
@@ -708,6 +780,15 @@ export function getOpenStackSeriesCounts(data: {
       summaryCounts * counts.regions,
     slow: identity * counts.regions + image * counts.regions,
     perInstance: perInstance,
+    inTurnsFast:
+      (counts.networks +
+        counts.subnets +
+        counts.routers +
+        counts.floatingIps +
+        counts.snapshots +
+        counts.backups) *
+      counts.regions,
+    inTurnsSlow: (counts.projects + counts.images * 2) * counts.regions,
   };
 }
 
@@ -750,18 +831,35 @@ export function estimateOpenStackVolume(data: {
   fastCollectionsPerDay?: number | undefined;
   slowCollectionsPerDay?: number | undefined;
   averageRowSizeInBytes?: number | undefined;
+  /*
+   * A probe rather than the agent's exporter: past the summary size it sends what has not changed
+   * once a cycle rather than every collection. How often it collects is its own setting.
+   */
+  collectionIntervalInMinutes?: number | undefined;
 }): OpenStackVolumeEstimate {
   const series: OpenStackSeriesCounts = getOpenStackSeriesCounts(data);
+  const probeInterval: number | undefined = data.collectionIntervalInMinutes;
   const fastPerDay: number =
-    data.fastCollectionsPerDay ?? OPENSTACK_AGENT_FAST_SCRAPES_PER_DAY;
+    probeInterval !== undefined
+      ? (24 * 60) / probeInterval
+      : data.fastCollectionsPerDay ?? OPENSTACK_AGENT_FAST_SCRAPES_PER_DAY;
   const slowPerDay: number =
-    data.slowCollectionsPerDay ?? OPENSTACK_AGENT_SLOW_SCRAPES_PER_DAY;
+    probeInterval !== undefined
+      ? (24 * 60) / getOpenStackSlowServiceEveryMinutes(probeInterval)
+      : data.slowCollectionsPerDay ?? OPENSTACK_AGENT_SLOW_SCRAPES_PER_DAY;
   const rowSize: number =
     data.averageRowSizeInBytes ?? OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES;
   const retention: number = data.retentionInDays ?? 15;
+  const turns: number =
+    probeInterval !== undefined && data.isSummaryMode
+      ? getOpenStackRollingTurns(getOpenStackRollingDatapoints(data.counts))
+      : 1;
 
   const datapointsPerDay: number =
-    series.fast * fastPerDay + series.slow * slowPerDay;
+    (series.fast - series.inTurnsFast + series.inTurnsFast / turns) *
+      fastPerDay +
+    (series.slow - series.inTurnsSlow + series.inTurnsSlow / turns) *
+      slowPerDay;
   const bytesPerDay: number = datapointsPerDay * rowSize;
   const gigabytesPerDay: number = bytesPerDay / BYTES_PER_GIB;
 

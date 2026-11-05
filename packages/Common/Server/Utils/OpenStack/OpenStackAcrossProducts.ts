@@ -1,6 +1,7 @@
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import CephResource from "../../../Models/DatabaseModels/CephResource";
 import Host from "../../../Models/DatabaseModels/Host";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import Service from "../../../Models/DatabaseModels/Service";
@@ -10,15 +11,22 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_CEPH_STATUS_FACT,
   OPENSTACK_REACH_LIST_LIMIT,
+  OPENSTACK_SERVICE_PLACEMENT_LIMIT,
   OPENSTACK_STORAGE_POOL_CEPH_LINK_FACT,
   OpenStackCephClusterCandidate,
+  OpenStackHostNameForms,
   OpenStackLinkedHost,
+  OpenStackLinkedInstance,
   OpenStackLinkedKubernetesNode,
   OpenStackLinkedService,
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
+  OpenStackServicePlacement,
   OpenStackStoragePoolCephLink,
+  OpenStackStoragePoolOfProject,
   getOnlyOpenStackMatch,
+  getOpenStackCephHealthNow,
+  getOpenStackHostNameForms,
   getOpenStackStoragePoolCephLink,
   isOpenStackHostNameMatch,
   isOpenStackStoragePoolCephLinked,
@@ -28,14 +36,17 @@ import {
   isOpenStackInstanceId,
 } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
-import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
 import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipType";
 import EntityType from "../../../Types/Telemetry/EntityType";
-import { keyForHost } from "../../../Utils/Telemetry/EntityKey";
+import {
+  keyForHost,
+  keyForKubernetesNode,
+} from "../../../Utils/Telemetry/EntityKey";
 import CephClusterService from "../../Services/CephClusterService";
 import CephResourceService from "../../Services/CephResourceService";
 import HostService from "../../Services/HostService";
 import KubernetesResourceService from "../../Services/KubernetesResourceService";
+import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import OpenStackResourceService from "../../Services/OpenStackResourceService";
 import ServiceService from "../../Services/ServiceService";
@@ -53,10 +64,23 @@ import { reconcileEntityRegistryThrottled } from "../Telemetry/EntityRegistry";
 
 // A hypervisor holds a few hundred instances at most. This keeps a mistaken name harmless.
 const INSTANCES_PER_REACH: number = 5000;
-// How many Kubernetes nodes one project's clouds can hold before a blast radius stops at them.
+// A project's Cinder pools across its clouds, for what else could answer to a Ceph pool's name.
+const STORAGE_POOLS_READ: number = 1000;
+// How many Kubernetes nodes one read holds before a blast radius stops at them.
 const OPENSTACK_KUBERNETES_NODES_READ: number = 20000;
 // A service is on a host for this long after it last said so. Long enough for one that is slow.
 const SERVICE_PLACEMENT_FRESH_DAYS: number = 1;
+// A pod moves between nodes on any day, so where it was yesterday says little about today.
+const SERVICE_ON_POD_FRESH_HOURS: number = 1;
+// Two hypervisors of a name is already no answer, so a read never needs to hold a third.
+const HYPERVISOR_NAME_MATCHES_READ: number = 3;
+/*
+ * Hosts are read past that, because a guest whose own ID says what it is, or a host someone
+ * put in another cloud, doesn't count as a match. A name this many hosts share says nothing.
+ */
+const HOST_NAME_MATCHES_READ: number = 50;
+// A service runs on more hosts than this and its page is no place to list them.
+const SERVICE_MACHINES_READ: number = OPENSTACK_SERVICE_PLACEMENT_LIMIT * 2;
 
 const PLACEMENT_SELECT: {
   kind: true;
@@ -84,13 +108,28 @@ function escapeLike(text: string): string {
   return text.replace(/[\\%_]/g, "\\$&");
 }
 
+export interface OpenStackKubernetesNodeRead
+  extends OpenStackLinkedKubernetesNode {
+  // What the cluster reports itself as: what its telemetry's entities are keyed on.
+  clusterIdentifier: string | null;
+}
+
+interface ServiceEntityRead {
+  name: string | null;
+  namespace: string | null;
+}
+
 export default class OpenStackAcrossProducts {
-  // The clouds a project has: what makes a read by instance UUID a read of a few index probes.
+  /*
+   * The clouds a project has: what makes a read by instance UUID a read of a few index probes.
+   * Someone who archived a cloud has said it is no longer where anything runs, so its restored
+   * copy's instances are not two of anything.
+   */
   private static async readCloudsOfProject(
     projectId: ObjectID,
   ): Promise<Array<OpenStackCloud>> {
     return await OpenStackCloudService.findBy({
-      query: { projectId },
+      query: { projectId, isArchived: false },
       select: { _id: true, name: true },
       limit: 200,
       skip: 0,
@@ -98,28 +137,38 @@ export default class OpenStackAcrossProducts {
     });
   }
 
+  private static async readCloudIdsToSearch(data: {
+    projectId: ObjectID;
+    openStackCloudId?: ObjectID | null | undefined;
+  }): Promise<Array<ObjectID>> {
+    if (data.openStackCloudId) {
+      return [data.openStackCloudId];
+    }
+    return (await this.readCloudsOfProject(data.projectId)).map(
+      (cloud: OpenStackCloud): ObjectID => {
+        return cloud.id!;
+      },
+    );
+  }
+
   /*
-   * The instances with this UUID in any of the project's clouds. Two clouds holding one
-   * UUID is a restored copy of a cloud, and whichever they are, neither can be chosen.
+   * The instances with this UUID, in the host's own cloud when it has one, or in any of the
+   * project's. Two clouds holding one UUID is a restored copy of a cloud, and whichever they
+   * are, neither can be chosen.
    */
   private static async readInstancesById(data: {
     projectId: ObjectID;
     instanceId: string;
+    openStackCloudId?: ObjectID | null | undefined;
   }): Promise<Array<OpenStackResource>> {
-    const clouds: Array<OpenStackCloud> = await this.readCloudsOfProject(
-      data.projectId,
-    );
-    if (clouds.length === 0) {
+    const cloudIds: Array<ObjectID> = await this.readCloudIdsToSearch(data);
+    if (cloudIds.length === 0) {
       return [];
     }
     return await OpenStackResourceService.findBy({
       query: {
         projectId: data.projectId,
-        openStackCloudId: QueryHelper.any(
-          clouds.map((cloud: OpenStackCloud): ObjectID => {
-            return cloud.id!;
-          }),
-        ),
+        openStackCloudId: QueryHelper.any(cloudIds),
         kind: OpenStackResourceKind.Instance,
         externalId: data.instanceId,
       },
@@ -130,14 +179,74 @@ export default class OpenStackAcrossProducts {
     });
   }
 
+  // Which of these UUIDs are instances in the clouds asked about, in one statement.
+  private static async readInstanceIdsAmong(data: {
+    projectId: ObjectID;
+    cloudIds: Array<ObjectID>;
+    instanceIds: Array<string>;
+  }): Promise<Set<string>> {
+    if (data.instanceIds.length === 0 || data.cloudIds.length === 0) {
+      return new Set();
+    }
+    const rows: Array<{ externalId: string }> =
+      await OpenStackResourceService.getRepository().manager.query(
+        `SELECT DISTINCT "externalId" FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = ANY($2::uuid[])
+           AND "kind" = '${OpenStackResourceKind.Instance}' AND "deletedAt" IS NULL
+           AND "externalId" = ANY($3::text[])`,
+        [
+          data.projectId.toString(),
+          data.cloudIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+          data.instanceIds,
+        ],
+      );
+    return new Set(
+      rows.map((row: { externalId: string }): string => {
+        return row.externalId;
+      }),
+    );
+  }
+
+  /*
+   * Of an instance's or a hypervisor's instances, those another cloud holds too. Whichever
+   * cloud such a UUID is really in can't be told, so a Kubernetes node that names it is on
+   * neither, in this direction as in the other.
+   */
+  private static async readInstanceIdsInAnotherCloud(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    instanceIds: Array<string>;
+  }): Promise<Set<string>> {
+    if (data.instanceIds.length === 0) {
+      return new Set();
+    }
+    const others: Array<ObjectID> = (
+      await this.readCloudIdsToSearch({ projectId: data.projectId })
+    ).filter((id: ObjectID): boolean => {
+      return id.toString() !== data.openStackCloudId.toString();
+    });
+    return await this.readInstanceIdsAmong({
+      projectId: data.projectId,
+      cloudIds: others,
+      instanceIds: data.instanceIds,
+    });
+  }
+
   private static async readHypervisorsByHostName(data: {
     projectId: ObjectID;
     hostName: string;
-    openStackCloudId?: ObjectID | undefined;
+    openStackCloudId?: ObjectID | null | undefined;
   }): Promise<Array<OpenStackResource>> {
-    const lower: string = data.hostName.trim().toLowerCase();
-    const short: string = getOpenStackShortHostName(lower);
-    if (!lower) {
+    const forms: OpenStackHostNameForms = getOpenStackHostNameForms(
+      data.hostName,
+    );
+    if (forms.names.length === 0) {
+      return [];
+    }
+    const cloudIds: Array<ObjectID> = await this.readCloudIdsToSearch(data);
+    if (cloudIds.length === 0) {
       return [];
     }
     const rows: Array<{
@@ -146,17 +255,18 @@ export default class OpenStackAcrossProducts {
       `SELECT "_id" FROM "OpenStackResource"
        WHERE "projectId" = $1 AND "kind" = '${OpenStackResourceKind.Hypervisor}'
          AND "deletedAt" IS NULL
-         AND ($2::uuid IS NULL OR "openStackCloudId" = $2)
-         AND (LOWER("hypervisorName") = $3
-           OR LOWER("hypervisorName") = $4
-           OR LOWER("hypervisorName") LIKE $5)
-       LIMIT 20`,
+         AND "openStackCloudId" = ANY($2::uuid[])
+         AND (LOWER("hypervisorName") = ANY($3::text[])
+           OR LOWER("hypervisorName") LIKE $4)
+       LIMIT ${HYPERVISOR_NAME_MATCHES_READ}`,
       [
         data.projectId.toString(),
-        data.openStackCloudId?.toString() || null,
-        lower,
-        short,
-        `${escapeLike(short)}.%`,
+        cloudIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+        forms.names,
+        // A pattern nothing can match when no domain is on offer: `LIKE NULL` is never true.
+        forms.anyDomainOf ? `${escapeLike(forms.anyDomainOf)}.%` : null,
       ],
     );
     if (rows.length === 0) {
@@ -219,6 +329,8 @@ export default class OpenStackAcrossProducts {
             openStackCloudId: row.openStackCloudId,
             kind: OpenStackResourceKind.Hypervisor,
             hypervisorName: row.hypervisorName,
+            // Two regions can each have a compute-01.
+            ...(row.regionName ? { regionName: row.regionName } : {}),
           },
           select: { externalId: true },
           props: { isRoot: true },
@@ -249,12 +361,16 @@ export default class OpenStackAcrossProducts {
    * Which part of which cloud a host's own words make it: the instance its `host.id` names,
    * or else the hypervisor its name matches. Instance first, because a UUID can't match by
    * chance, and a guest can be called anything, a hypervisor's name included.
+   *
+   * A host's cloud, once it has one, is the only one it is looked for in: that link is an
+   * earlier answer or someone's own choice, and it is what says which of two clouds' parts
+   * of the same name this is.
    */
   private static async findPartOfHost(data: {
     projectId: ObjectID;
     hostIdAttribute: string | null | undefined;
     hostIdentifier: string | null | undefined;
-    openStackCloudId?: ObjectID | undefined;
+    openStackCloudId?: ObjectID | null | undefined;
   }): Promise<OpenStackResource | null> {
     const instanceId: string | null = isOpenStackInstanceId(
       data.hostIdAttribute,
@@ -262,26 +378,60 @@ export default class OpenStackAcrossProducts {
       ? (data.hostIdAttribute as string).toLowerCase()
       : null;
     if (instanceId) {
-      const instance: OpenStackResource | null = getOnlyOpenStackMatch(
-        await this.readInstancesById({
-          projectId: data.projectId,
-          instanceId,
-        }),
-      );
-      if (instance) {
-        return instance;
+      const instances: Array<OpenStackResource> = await this.readInstancesById({
+        projectId: data.projectId,
+        instanceId,
+        openStackCloudId: data.openStackCloudId,
+      });
+      /*
+       * A UUID two clouds hold still says this is an instance, only not which one. A name
+       * can't settle that, however well it fits a hypervisor.
+       */
+      if (instances.length > 0) {
+        return getOnlyOpenStackMatch(instances);
       }
     }
     if (!data.hostIdentifier) {
       return null;
     }
-    return getOnlyOpenStackMatch(
+    return await this.findHypervisorOfHost({
+      projectId: data.projectId,
+      hostIdentifier: data.hostIdentifier,
+      openStackCloudId: data.openStackCloudId,
+    });
+  }
+
+  /*
+   * A hypervisor and a host are one machine when each is the only thing the other could be.
+   * That is asked from both ends, here and in getHostOfMachine, or one page would link to a
+   * host whose own page says nothing, or says something else.
+   */
+  private static async findHypervisorOfHost(data: {
+    projectId: ObjectID;
+    hostIdentifier: string;
+    openStackCloudId?: ObjectID | null | undefined;
+  }): Promise<OpenStackResource | null> {
+    const hypervisor: OpenStackResource | null = getOnlyOpenStackMatch(
       await this.readHypervisorsByHostName({
         projectId: data.projectId,
         hostName: data.hostIdentifier,
         openStackCloudId: data.openStackCloudId,
       }),
     );
+    if (!hypervisor?.hypervisorName) {
+      return null;
+    }
+    const machines: Array<Host> = await this.readMachinesNamed({
+      projectId: data.projectId,
+      hostName: hypervisor.hypervisorName,
+      openStackCloudId: hypervisor.openStackCloudId,
+    });
+    const self: string = data.hostIdentifier.trim().toLowerCase();
+    return machines.every((machine: Host): boolean => {
+      return (machine.hostIdentifier || "").trim().toLowerCase() === self;
+    })
+      ? hypervisor
+      : null;
   }
 
   /*
@@ -354,19 +504,25 @@ export default class OpenStackAcrossProducts {
 
   /*
    * Where a service runs: each host its telemetry names (the entity graph's hosted-on, from
-   * what its own resource said), and each of those that is a part of a cloud. A service on
-   * several hosts has several placements, and that is an answer rather than a guess.
+   * what its own resource said) and each Kubernetes node its pods are on, and each of those
+   * that is a part of a cloud. A service on several machines has several placements, and that
+   * is an answer rather than a guess.
    */
   public static async getPlacementsOfService(data: {
     projectId: ObjectID;
     serviceName: string;
-  }): Promise<
-    Array<{
-      hostName: string;
-      hostId: string | null;
-      placement: OpenStackPlacement;
-    }>
-  > {
+  }): Promise<Array<OpenStackServicePlacement>> {
+    const placements: Array<OpenStackServicePlacement> = [
+      ...(await this.readPlacementsThroughHosts(data)),
+      ...(await this.readPlacementsThroughKubernetesNodes(data)),
+    ];
+    return placements.slice(0, OPENSTACK_SERVICE_PLACEMENT_LIMIT);
+  }
+
+  private static async readPlacementsThroughHosts(data: {
+    projectId: ObjectID;
+    serviceName: string;
+  }): Promise<Array<OpenStackServicePlacement>> {
     const rows: Array<{ hostName: string | null; instanceId: string | null }> =
       await HostService.getRepository().manager.query(
         `SELECT DISTINCT host."identifyingAttributes"->>'host.name' AS "hostName",
@@ -387,7 +543,7 @@ export default class OpenStackAcrossProducts {
            AND service."entityType" = '${EntityType.Service}'
            AND service."identifyingAttributes"->>'service.name' = $2
            AND service."deletedAt" IS NULL
-         LIMIT 20`,
+         LIMIT ${SERVICE_MACHINES_READ}`,
         [
           data.projectId.toString(),
           data.serviceName,
@@ -398,11 +554,7 @@ export default class OpenStackAcrossProducts {
         ],
       );
 
-    const placements: Array<{
-      hostName: string;
-      hostId: string | null;
-      placement: OpenStackPlacement;
-    }> = [];
+    const placements: Array<OpenStackServicePlacement> = [];
     for (const row of rows) {
       if (!row.hostName) {
         continue;
@@ -412,18 +564,25 @@ export default class OpenStackAcrossProducts {
           projectId: data.projectId,
           hostIdentifier: QueryHelper.findWithSameText(row.hostName),
         },
-        select: { _id: true, hostId: true, hostIdentifier: true },
+        select: {
+          _id: true,
+          hostId: true,
+          hostIdentifier: true,
+          openStackCloudId: true,
+        },
         props: { isRoot: true },
       });
       const part: OpenStackResource | null = await this.findPartOfHost({
         projectId: data.projectId,
         hostIdAttribute: host?.hostId || row.instanceId,
         hostIdentifier: row.hostName,
+        openStackCloudId: host?.openStackCloudId,
       });
       if (part) {
         placements.push({
           hostName: row.hostName,
           hostId: host?.id?.toString() || null,
+          kubernetesClusterId: null,
           placement: await this.toPlacement(part),
         });
       }
@@ -432,57 +591,181 @@ export default class OpenStackAcrossProducts {
   }
 
   /*
-   * The nodes of every Kubernetes cluster in a project that are OpenStack instances, or only
-   * the one that is this instance: an instance's page has no reason to read the whole estate.
+   * A service in Kubernetes names no host: its pod's own hostname is no machine. Its pods say
+   * which node they are on, and a node's spec.providerID says which instance that is.
    */
-  public static async readOpenStackKubernetesNodes(
-    projectId: ObjectID,
-    instanceId?: string | undefined,
-  ): Promise<
-    Array<{
-      clusterId: string;
-      clusterName: string;
-      nodeName: string;
-      instanceId: string;
-    }>
-  > {
+  private static async readPlacementsThroughKubernetesNodes(data: {
+    projectId: ObjectID;
+    serviceName: string;
+  }): Promise<Array<OpenStackServicePlacement>> {
+    const rows: Array<{
+      clusterIdentifier: string | null;
+      nodeName: string | null;
+    }> = await HostService.getRepository().manager.query(
+      `SELECT DISTINCT node."identifyingAttributes"->>'k8s.cluster.name' AS "clusterIdentifier",
+              node."identifyingAttributes"->>'k8s.node.name' AS "nodeName"
+       FROM "InventoryItem" AS service
+       JOIN "InventoryItemRelationship" AS "onPod"
+         ON "onPod"."projectId" = service."projectId"
+        AND "onPod"."fromEntityKey" = service."entityKey"
+        AND "onPod"."relationshipType" = '${EntityRelationshipType.RunsOn}'
+        AND "onPod"."lastSeenAt" >= $3
+        AND "onPod"."deletedAt" IS NULL
+       JOIN "InventoryItem" AS pod
+         ON pod."projectId" = "onPod"."projectId"
+        AND pod."entityKey" = "onPod"."toEntityKey"
+        AND pod."entityType" = '${EntityType.KubernetesPod}'
+        AND pod."deletedAt" IS NULL
+       JOIN "InventoryItemRelationship" AS "onNode"
+         ON "onNode"."projectId" = pod."projectId"
+        AND "onNode"."fromEntityKey" = pod."entityKey"
+        AND "onNode"."relationshipType" = '${EntityRelationshipType.RunsOn}'
+        AND "onNode"."lastSeenAt" >= $3
+        AND "onNode"."deletedAt" IS NULL
+       JOIN "InventoryItem" AS node
+         ON node."projectId" = "onNode"."projectId"
+        AND node."entityKey" = "onNode"."toEntityKey"
+        AND node."entityType" = '${EntityType.KubernetesNode}'
+        AND node."deletedAt" IS NULL
+       WHERE service."projectId" = $1
+         AND service."entityType" = '${EntityType.Service}'
+         AND service."identifyingAttributes"->>'service.name' = $2
+         AND service."deletedAt" IS NULL
+       LIMIT ${SERVICE_MACHINES_READ}`,
+      [
+        data.projectId.toString(),
+        data.serviceName,
+        OneUptimeDate.addRemoveHours(
+          OneUptimeDate.getCurrentDate(),
+          -SERVICE_ON_POD_FRESH_HOURS,
+        ),
+      ],
+    );
+
+    const identifiers: Array<string> = Array.from(
+      new Set(
+        rows
+          .map((row: { clusterIdentifier: string | null }): string => {
+            return row.clusterIdentifier || "";
+          })
+          .filter((identifier: string): boolean => {
+            return Boolean(identifier);
+          }),
+      ),
+    );
+    if (identifiers.length === 0) {
+      return [];
+    }
+    const clusters: Array<KubernetesCluster> =
+      await KubernetesClusterService.findBy({
+        query: {
+          projectId: data.projectId,
+          clusterIdentifier: QueryHelper.findWithSameTextAnyOf(identifiers),
+        },
+        select: { _id: true, clusterIdentifier: true },
+        limit: identifiers.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const placements: Array<OpenStackServicePlacement> = [];
+    for (const row of rows) {
+      const cluster: KubernetesCluster | undefined = clusters.find(
+        (candidate: KubernetesCluster): boolean => {
+          return (
+            (candidate.clusterIdentifier || "").toLowerCase() ===
+            (row.clusterIdentifier || "").toLowerCase()
+          );
+        },
+      );
+      if (!cluster?.id || !row.nodeName) {
+        continue;
+      }
+      const placement: OpenStackPlacement | null =
+        await this.getPlacementOfKubernetesNode({
+          projectId: data.projectId,
+          kubernetesClusterId: cluster.id,
+          nodeName: row.nodeName,
+        });
+      if (placement) {
+        placements.push({
+          hostName: row.nodeName,
+          hostId: null,
+          kubernetesClusterId: cluster.id.toString(),
+          placement,
+        });
+      }
+    }
+    return placements;
+  }
+
+  /*
+   * The Kubernetes nodes that are these instances, or that are in this cluster, read in one
+   * statement. Starts from the project's clusters, which is what lets it use the index that
+   * holds a cluster's nodes rather than walk every pod in the project.
+   */
+  public static async readOpenStackKubernetesNodes(data: {
+    projectId: ObjectID;
+    instanceIds?: Array<string> | undefined;
+    kubernetesClusterId?: ObjectID | undefined;
+    limit?: number | undefined;
+  }): Promise<Array<OpenStackKubernetesNodeRead>> {
+    if (data.instanceIds && data.instanceIds.length === 0) {
+      return [];
+    }
     const rows: Array<{
       clusterId: string;
       clusterName: string | null;
+      clusterIdentifier: string | null;
       nodeName: string;
       providerId: string | null;
     }> = await KubernetesResourceService.getRepository().manager.query(
       `SELECT node."kubernetesClusterId" AS "clusterId",
               cluster."name" AS "clusterName",
+              cluster."clusterIdentifier" AS "clusterIdentifier",
               node."name" AS "nodeName",
               node."spec"->>'providerID' AS "providerId"
-       FROM "KubernetesResource" AS node
-       JOIN "KubernetesCluster" AS cluster ON cluster."_id" = node."kubernetesClusterId"
-       WHERE node."projectId" = $1 AND node."kind" = 'Node'
-         AND node."deletedAt" IS NULL
-         AND node."spec"->>'providerID' LIKE $2
-       LIMIT ${OPENSTACK_KUBERNETES_NODES_READ}`,
+       FROM "KubernetesCluster" AS cluster
+       JOIN "KubernetesResource" AS node
+         ON node."projectId" = cluster."projectId"
+        AND node."kubernetesClusterId" = cluster."_id"
+        AND node."kind" = 'Node'
+        AND node."deletedAt" IS NULL
+       WHERE cluster."projectId" = $1
+         AND cluster."deletedAt" IS NULL
+         AND ($2::uuid IS NULL OR cluster."_id" = $2)
+         AND node."spec"->>'providerID' LIKE 'openstack://%'
+         AND ($3::text[] IS NULL
+           OR LOWER(RIGHT(TRIM(node."spec"->>'providerID'), 36)) = ANY($3::text[]))
+       LIMIT ${data.limit || OPENSTACK_KUBERNETES_NODES_READ}`,
       [
-        projectId.toString(),
-        instanceId
-          ? `openstack://%/${escapeLike(instanceId)}`
-          : "openstack://%",
+        data.projectId.toString(),
+        data.kubernetesClusterId?.toString() || null,
+        data.instanceIds
+          ? data.instanceIds.map((id: string): string => {
+              return id.toLowerCase();
+            })
+          : null,
       ],
     );
-    const nodes: Array<{
-      clusterId: string;
-      clusterName: string;
-      nodeName: string;
-      instanceId: string;
-    }> = [];
+    const wanted: Set<string> | null = data.instanceIds
+      ? new Set(
+          data.instanceIds.map((id: string): string => {
+            return id.toLowerCase();
+          }),
+        )
+      : null;
+    const nodes: Array<OpenStackKubernetesNodeRead> = [];
     for (const row of rows) {
+      // The statement narrows by what a provider ID ends with. This says what it is.
       const instanceId: string | null = getOpenStackInstanceIdOfProviderId(
         row.providerId,
       );
-      if (instanceId) {
+      if (instanceId && (!wanted || wanted.has(instanceId))) {
         nodes.push({
           clusterId: row.clusterId,
           clusterName: row.clusterName || row.clusterId,
+          clusterIdentifier: row.clusterIdentifier || null,
           nodeName: row.nodeName,
           instanceId,
         });
@@ -496,42 +779,120 @@ export default class OpenStackAcrossProducts {
     projectId: ObjectID;
     hostIdentifiers: Array<string>;
   }): Promise<Array<OpenStackLinkedService>> {
+    return await this.toLinkedServices({
+      projectId: data.projectId,
+      entities: await this.readServiceEntitiesOnHosts(data),
+    });
+  }
+
+  private static async readServiceEntitiesOnHosts(data: {
+    projectId: ObjectID;
+    hostIdentifiers: Array<string>;
+  }): Promise<Array<ServiceEntityRead>> {
     if (data.hostIdentifiers.length === 0) {
       return [];
     }
-    const rows: Array<{ name: string | null }> =
+    return await HostService.getRepository().manager.query(
+      `SELECT DISTINCT service."identifyingAttributes"->>'service.name' AS "name",
+              service."identifyingAttributes"->>'service.namespace' AS "namespace"
+       FROM "InventoryItemRelationship" AS rel
+       JOIN "InventoryItem" AS service
+         ON service."projectId" = rel."projectId"
+        AND service."entityKey" = rel."fromEntityKey"
+        AND service."entityType" = '${EntityType.Service}'
+        AND service."deletedAt" IS NULL
+       WHERE rel."projectId" = $1
+         AND rel."relationshipType" = '${EntityRelationshipType.HostedOn}'
+         AND rel."toEntityKey" = ANY($2::text[])
+         AND rel."lastSeenAt" >= $3
+         AND rel."deletedAt" IS NULL
+       LIMIT 500`,
+      [
+        data.projectId.toString(),
+        data.hostIdentifiers.map((identifier: string): string => {
+          return keyForHost(data.projectId.toString(), identifier);
+        }),
+        OneUptimeDate.addRemoveDays(
+          OneUptimeDate.getCurrentDate(),
+          -SERVICE_PLACEMENT_FRESH_DAYS,
+        ),
+      ],
+    );
+  }
+
+  /*
+   * The services on a set of Kubernetes nodes, through the pods each says it is on. A pod's
+   * own hostname says nothing of a machine, so this is the only way to them.
+   */
+  public static async readServicesOnKubernetesNodes(data: {
+    projectId: ObjectID;
+    nodes: Array<OpenStackKubernetesNodeRead>;
+  }): Promise<Array<OpenStackLinkedService>> {
+    if (data.nodes.length === 0) {
+      return [];
+    }
+    const entities: Array<ServiceEntityRead> =
       await HostService.getRepository().manager.query(
-        `SELECT DISTINCT service."identifyingAttributes"->>'service.name' AS "name"
-         FROM "InventoryItemRelationship" AS rel
+        `SELECT DISTINCT service."identifyingAttributes"->>'service.name' AS "name",
+                service."identifyingAttributes"->>'service.namespace' AS "namespace"
+         FROM "InventoryItemRelationship" AS "onNode"
+         JOIN "InventoryItem" AS pod
+           ON pod."projectId" = "onNode"."projectId"
+          AND pod."entityKey" = "onNode"."fromEntityKey"
+          AND pod."entityType" = '${EntityType.KubernetesPod}'
+          AND pod."deletedAt" IS NULL
+         JOIN "InventoryItemRelationship" AS "onPod"
+           ON "onPod"."projectId" = pod."projectId"
+          AND "onPod"."toEntityKey" = pod."entityKey"
+          AND "onPod"."relationshipType" = '${EntityRelationshipType.RunsOn}'
+          AND "onPod"."lastSeenAt" >= $3
+          AND "onPod"."deletedAt" IS NULL
          JOIN "InventoryItem" AS service
-           ON service."projectId" = rel."projectId"
-          AND service."entityKey" = rel."fromEntityKey"
+           ON service."projectId" = "onPod"."projectId"
+          AND service."entityKey" = "onPod"."fromEntityKey"
           AND service."entityType" = '${EntityType.Service}'
           AND service."deletedAt" IS NULL
-         WHERE rel."projectId" = $1
-           AND rel."relationshipType" = '${EntityRelationshipType.HostedOn}'
-           AND rel."toEntityKey" = ANY($2::text[])
-           AND rel."lastSeenAt" >= $3
-           AND rel."deletedAt" IS NULL
+         WHERE "onNode"."projectId" = $1
+           AND "onNode"."relationshipType" = '${EntityRelationshipType.RunsOn}'
+           AND "onNode"."toEntityKey" = ANY($2::text[])
+           AND "onNode"."lastSeenAt" >= $3
+           AND "onNode"."deletedAt" IS NULL
          LIMIT 500`,
         [
           data.projectId.toString(),
-          data.hostIdentifiers.map((identifier: string): string => {
-            return keyForHost(data.projectId.toString(), identifier);
+          data.nodes.map((node: OpenStackKubernetesNodeRead): string => {
+            return keyForKubernetesNode(data.projectId.toString(), {
+              clusterName: node.clusterIdentifier,
+              nodeName: node.nodeName,
+            });
           }),
-          OneUptimeDate.addRemoveDays(
+          OneUptimeDate.addRemoveHours(
             OneUptimeDate.getCurrentDate(),
-            -SERVICE_PLACEMENT_FRESH_DAYS,
+            -SERVICE_ON_POD_FRESH_HOURS,
           ),
         ],
       );
-    const names: Array<string> = rows
-      .map((row: { name: string | null }): string => {
-        return row.name || "";
-      })
-      .filter((name: string): boolean => {
-        return Boolean(name);
-      });
+    return await this.toLinkedServices({
+      projectId: data.projectId,
+      entities,
+    });
+  }
+
+  private static async toLinkedServices(data: {
+    projectId: ObjectID;
+    entities: Array<ServiceEntityRead>;
+  }): Promise<Array<OpenStackLinkedService>> {
+    const names: Array<string> = Array.from(
+      new Set(
+        data.entities
+          .map((entity: ServiceEntityRead): string => {
+            return entity.name || "";
+          })
+          .filter((name: string): boolean => {
+            return Boolean(name);
+          }),
+      ),
+    );
     if (names.length === 0) {
       return [];
     }
@@ -559,13 +920,89 @@ export default class OpenStackAcrossProducts {
       query: {
         projectId: data.projectId,
         openStackCloudId: data.openStackCloudId,
-        hostId: QueryHelper.any(data.instanceIds),
+        // An agent can report its UUID in capitals, and that is still the same instance.
+        hostId: QueryHelper.findWithSameTextAnyOf(data.instanceIds),
         isArchived: false,
       },
       select: { _id: true, name: true, hostIdentifier: true },
-      limit: Math.min(data.instanceIds.length, INSTANCES_PER_REACH),
+      limit: INSTANCES_PER_REACH,
       skip: 0,
       props: { isRoot: true },
+    });
+  }
+
+  // Its instances, the machine itself, the hosts and nodes those are, and what runs on them.
+  private static async readReach(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    instances: Array<OpenStackLinkedInstance>;
+    hypervisorHost: Host | null;
+    instanceCount?: number | undefined;
+  }): Promise<OpenStackReachAcrossProducts> {
+    const instanceIds: Array<string> = data.instances.map(
+      (instance: OpenStackLinkedInstance): string => {
+        return instance.id;
+      },
+    );
+    const [guestHosts, nodesOfInstances, inAnotherCloud]: [
+      Array<Host>,
+      Array<OpenStackKubernetesNodeRead>,
+      Set<string>,
+    ] = await Promise.all([
+      this.readHostsOfInstances({
+        projectId: data.projectId,
+        openStackCloudId: data.openStackCloudId,
+        instanceIds,
+      }),
+      this.readOpenStackKubernetesNodes({
+        projectId: data.projectId,
+        instanceIds,
+      }),
+      this.readInstanceIdsInAnotherCloud({
+        projectId: data.projectId,
+        openStackCloudId: data.openStackCloudId,
+        instanceIds,
+      }),
+    ]);
+    const kubernetesNodes: Array<OpenStackKubernetesNodeRead> =
+      nodesOfInstances.filter((node: OpenStackKubernetesNodeRead): boolean => {
+        return !inAnotherCloud.has(node.instanceId);
+      });
+
+    const [servicesOnHosts, servicesOnNodes]: [
+      Array<OpenStackLinkedService>,
+      Array<OpenStackLinkedService>,
+    ] = await Promise.all([
+      this.readServicesOnHosts({
+        projectId: data.projectId,
+        hostIdentifiers: [
+          ...(data.hypervisorHost ? [data.hypervisorHost] : []),
+          ...guestHosts,
+        ]
+          .map((host: Host): string => {
+            return host.hostIdentifier || "";
+          })
+          .filter((identifier: string): boolean => {
+            return Boolean(identifier);
+          }),
+      }),
+      this.readServicesOnKubernetesNodes({
+        projectId: data.projectId,
+        nodes: kubernetesNodes,
+      }),
+    ]);
+    const services: Map<string, OpenStackLinkedService> = new Map();
+    for (const service of [...servicesOnHosts, ...servicesOnNodes]) {
+      services.set(service.id, service);
+    }
+
+    return this.buildReach({
+      hypervisorHost: data.hypervisorHost,
+      guestHosts,
+      kubernetesNodes,
+      services: Array.from(services.values()),
+      instances: data.instances,
+      instanceCount: data.instanceCount,
     });
   }
 
@@ -580,12 +1017,13 @@ export default class OpenStackAcrossProducts {
     hypervisorName: string;
     regionName?: string | null | undefined;
   }): Promise<OpenStackReachAcrossProducts> {
-    const instances: Array<{ externalId: string }> =
+    const instances: Array<{ externalId: string; name: string | null }> =
       await OpenStackResourceService.getRepository().manager.query(
-        `SELECT "externalId" FROM "OpenStackResource"
+        `SELECT "externalId", "name" FROM "OpenStackResource"
          WHERE "projectId" = $1 AND "openStackCloudId" = $2
            AND "kind" = '${OpenStackResourceKind.Instance}' AND "deletedAt" IS NULL
            AND "hypervisorName" = $3 AND "regionName" IS NOT DISTINCT FROM $4
+         ORDER BY "name", "externalId"
          LIMIT ${INSTANCES_PER_REACH}`,
         [
           data.projectId.toString(),
@@ -594,51 +1032,23 @@ export default class OpenStackAcrossProducts {
           data.regionName ?? null,
         ],
       );
-    const instanceIds: Array<string> = instances.map(
-      (row: { externalId: string }): string => {
-        return row.externalId;
-      },
-    );
 
-    const [hypervisorHost, guestHosts, kubernetesNodes]: [
-      Host | null,
-      Array<Host>,
-      Awaited<
-        ReturnType<typeof OpenStackAcrossProducts.readOpenStackKubernetesNodes>
-      >,
-    ] = await Promise.all([
-      this.getHostOfMachine({
-        projectId: data.projectId,
-        machineName: data.hypervisorName,
-      }),
-      this.readHostsOfInstances({
-        projectId: data.projectId,
-        openStackCloudId: data.openStackCloudId,
-        instanceIds,
-      }),
-      this.readOpenStackKubernetesNodes(data.projectId),
-    ]);
-
-    return this.buildReach({
-      hypervisorHost,
-      guestHosts,
-      kubernetesNodes: kubernetesNodes.filter(
-        (node: { instanceId: string }): boolean => {
-          return instanceIds.includes(node.instanceId);
+    return await this.readReach({
+      projectId: data.projectId,
+      openStackCloudId: data.openStackCloudId,
+      instances: instances.map(
+        (row: {
+          externalId: string;
+          name: string | null;
+        }): OpenStackLinkedInstance => {
+          return { id: row.externalId, name: row.name || null };
         },
       ),
-      services: await this.readServicesOnHosts({
+      instanceCount: instances.length,
+      hypervisorHost: await this.getHostOfMachine({
         projectId: data.projectId,
-        hostIdentifiers: [
-          ...(hypervisorHost ? [hypervisorHost] : []),
-          ...guestHosts,
-        ]
-          .map((host: Host): string => {
-            return host.hostIdentifier || "";
-          })
-          .filter((identifier: string): boolean => {
-            return Boolean(identifier);
-          }),
+        machineName: data.hypervisorName,
+        openStackCloudId: data.openStackCloudId,
       }),
     });
   }
@@ -699,41 +1109,11 @@ export default class OpenStackAcrossProducts {
     openStackCloudId: ObjectID;
     instanceId: string;
   }): Promise<OpenStackReachAcrossProducts> {
-    const [hosts, kubernetesNodes]: [
-      Array<Host>,
-      Awaited<
-        ReturnType<typeof OpenStackAcrossProducts.readOpenStackKubernetesNodes>
-      >,
-    ] = await Promise.all([
-      this.readHostsOfInstances({
-        projectId: data.projectId,
-        openStackCloudId: data.openStackCloudId,
-        instanceIds: [data.instanceId.toLowerCase()],
-      }),
-      this.readOpenStackKubernetesNodes(
-        data.projectId,
-        data.instanceId.toLowerCase(),
-      ),
-    ]);
-
-    return this.buildReach({
+    return await this.readReach({
+      projectId: data.projectId,
+      openStackCloudId: data.openStackCloudId,
+      instances: [{ id: data.instanceId.toLowerCase(), name: null }],
       hypervisorHost: null,
-      guestHosts: hosts,
-      kubernetesNodes: kubernetesNodes.filter(
-        (node: { instanceId: string }): boolean => {
-          return node.instanceId === data.instanceId.toLowerCase();
-        },
-      ),
-      services: await this.readServicesOnHosts({
-        projectId: data.projectId,
-        hostIdentifiers: hosts
-          .map((host: Host): string => {
-            return host.hostIdentifier || "";
-          })
-          .filter((identifier: string): boolean => {
-            return Boolean(identifier);
-          }),
-      }),
     });
   }
 
@@ -746,11 +1126,12 @@ export default class OpenStackAcrossProducts {
     projectId: ObjectID;
     hostName: string;
   }): Promise<Array<Host>> {
-    const lower: string = data.hostName.trim().toLowerCase();
-    if (!lower) {
+    const forms: OpenStackHostNameForms = getOpenStackHostNameForms(
+      data.hostName,
+    );
+    if (forms.names.length === 0) {
       return [];
     }
-    const short: string = getOpenStackShortHostName(lower);
     type HostIdentifierQuery = ReturnType<
       typeof QueryHelper.findWithSameTextAnyOf
     >;
@@ -765,19 +1146,23 @@ export default class OpenStackAcrossProducts {
           hostIdentifier,
           isArchived: false,
         },
-        select: { _id: true, name: true, hostIdentifier: true },
-        limit: 10,
+        select: {
+          _id: true,
+          name: true,
+          hostIdentifier: true,
+          hostId: true,
+          openStackCloudId: true,
+        },
+        limit: HOST_NAME_MATCHES_READ,
         skip: 0,
         props: { isRoot: true },
       });
     };
     const [named, withDomain]: [Array<Host>, Array<Host>] = await Promise.all([
-      read(
-        QueryHelper.findWithSameTextAnyOf(
-          short === lower ? [short] : [short, lower],
-        ),
-      ),
-      read(QueryHelper.startsWithAnyOf([`${short}.`])),
+      read(QueryHelper.findWithSameTextAnyOf(forms.names)),
+      forms.anyDomainOf
+        ? read(QueryHelper.startsWithAnyOf([`${forms.anyDomainOf}.`]))
+        : Promise.resolve([]),
     ]);
     const byIdentifier: Map<string, Host> = new Map();
     for (const host of [...named, ...withDomain]) {
@@ -789,18 +1174,66 @@ export default class OpenStackAcrossProducts {
   }
 
   /*
+   * The hosts that could be a machine of this name in this cloud. A host whose own host.id
+   * says it is an instance is not a machine anyone can mistake it for, and neither is a host
+   * already linked to another cloud.
+   */
+  private static async readMachinesNamed(data: {
+    projectId: ObjectID;
+    hostName: string;
+    openStackCloudId?: ObjectID | null | undefined;
+  }): Promise<Array<Host>> {
+    const allNamed: Array<Host> = await this.readHostsNamed({
+      projectId: data.projectId,
+      hostName: data.hostName,
+    });
+    // More than a read holds: whoever was left out could be a rival, so all of them are.
+    if (allNamed.length >= HOST_NAME_MATCHES_READ) {
+      return allNamed;
+    }
+    const named: Array<Host> = allNamed.filter((host: Host): boolean => {
+      return (
+        !data.openStackCloudId ||
+        !host.openStackCloudId ||
+        host.openStackCloudId.toString() === data.openStackCloudId.toString()
+      );
+    });
+    const claimed: Array<string> = named
+      .map((host: Host): string => {
+        return (host.hostId || "").toLowerCase();
+      })
+      .filter((id: string): boolean => {
+        return isOpenStackInstanceId(id);
+      });
+    if (claimed.length === 0) {
+      return named;
+    }
+    const instances: Set<string> = await this.readInstanceIdsAmong({
+      projectId: data.projectId,
+      cloudIds: await this.readCloudIdsToSearch({ projectId: data.projectId }),
+      instanceIds: claimed,
+    });
+    return named.filter((host: Host): boolean => {
+      return !instances.has((host.hostId || "").toLowerCase());
+    });
+  }
+
+  /*
    * The host that is this machine, with no link on a guess in either direction. A name two
    * hosts could be is neither of them, and a host two hypervisors could both be belongs to
    * neither: `compute-01` says nothing about which of compute-01.a and compute-01.b it is.
+   * A machine no hypervisor is, which is a controller, still has its host.
    */
   public static async getHostOfMachine(data: {
     projectId: ObjectID;
     machineName: string;
+    openStackCloudId: ObjectID;
   }): Promise<Host | null> {
     const host: Host | null = getOnlyOpenStackMatch(
-      await this.readHostsNamed({
+      await this.readMachinesNamed({
         projectId: data.projectId,
         hostName: data.machineName,
+        openStackCloudId: data.openStackCloudId,
       }),
     );
     if (!host?.hostIdentifier) {
@@ -810,8 +1243,22 @@ export default class OpenStackAcrossProducts {
       await this.readHypervisorsByHostName({
         projectId: data.projectId,
         hostName: host.hostIdentifier,
+        openStackCloudId: host.openStackCloudId,
       });
-    return hypervisors.length > 1 ? null : host;
+    if (hypervisors.length > 1) {
+      return null;
+    }
+    const hypervisor: OpenStackResource | undefined = hypervisors[0];
+    /*
+     * The one hypervisor this host could be has to be this machine, in this cloud: a host
+     * called compute-01.b is not another cloud's compute-01 because the two short names agree.
+     */
+    return !hypervisor ||
+      (isOpenStackHostNameMatch(data.machineName, hypervisor.hypervisorName) &&
+        hypervisor.openStackCloudId?.toString() ===
+          data.openStackCloudId.toString())
+      ? host
+      : null;
   }
 
   private static buildReach(data: {
@@ -819,6 +1266,8 @@ export default class OpenStackAcrossProducts {
     guestHosts: Array<Host>;
     kubernetesNodes: Array<OpenStackLinkedKubernetesNode>;
     services: Array<OpenStackLinkedService>;
+    instances: Array<OpenStackLinkedInstance>;
+    instanceCount?: number | undefined;
   }): OpenStackReachAcrossProducts {
     const hosts: Array<OpenStackLinkedHost> = [
       ...(data.hypervisorHost
@@ -845,6 +1294,12 @@ export default class OpenStackAcrossProducts {
     }
 
     return {
+      ...(data.instanceCount === undefined
+        ? {}
+        : {
+            instanceCount: data.instanceCount,
+            instances: data.instances.slice(0, OPENSTACK_REACH_LIST_LIMIT),
+          }),
       hostCount: hosts.length,
       hosts: hosts.slice(0, OPENSTACK_REACH_LIST_LIMIT),
       kubernetesNodeCount: data.kubernetesNodes.length,
@@ -953,7 +1408,7 @@ export default class OpenStackAcrossProducts {
           kind: OpenStackResourceKind.StoragePool,
           externalId: data.externalId,
         },
-        select: { name: true, facts: true },
+        select: { _id: true, name: true, facts: true },
         props: { isRoot: true },
       });
     if (!pool) {
@@ -965,11 +1420,23 @@ export default class OpenStackAcrossProducts {
       poolName: pool.name,
       facts: pool.facts as JSONObject | undefined,
       clusters,
+      // Only a name needs these, and there is nothing to suggest with no clusters to name.
+      otherPools:
+        clusters.length > 0
+          ? await this.readOtherStoragePools({
+              projectId: data.projectId,
+              pool,
+            })
+          : [],
     });
     const cluster: CephCluster | null = link.clusterId
       ? await CephClusterService.findOneById({
           id: new ObjectID(link.clusterId),
-          select: { healthStatus: true, capacityUsedPercent: true },
+          select: {
+            healthStatus: true,
+            capacityUsedPercent: true,
+            lastSeenAt: true,
+          },
           props: { isRoot: true },
         })
       : null;
@@ -985,9 +1452,48 @@ export default class OpenStackAcrossProducts {
           return { id: candidate.id, name: candidate.name };
         },
       ),
-      health: cluster?.healthStatus ?? null,
+      health: getOpenStackCephHealthNow({
+        healthStatus: cluster?.healthStatus,
+        lastSeenAt: cluster?.lastSeenAt,
+        now: OneUptimeDate.getCurrentDate(),
+      }),
       capacityUsedPercent: cluster?.capacityUsedPercent ?? null,
     };
+  }
+
+  // Every other Cinder pool in the project, in any of its clouds.
+  private static async readOtherStoragePools(data: {
+    projectId: ObjectID;
+    pool: OpenStackResource;
+  }): Promise<Array<OpenStackStoragePoolOfProject>> {
+    const cloudIds: Array<ObjectID> = await this.readCloudIdsToSearch({
+      projectId: data.projectId,
+    });
+    if (cloudIds.length === 0) {
+      return [];
+    }
+    const pools: Array<OpenStackResource> =
+      await OpenStackResourceService.findBy({
+        query: {
+          projectId: data.projectId,
+          openStackCloudId: QueryHelper.any(cloudIds),
+          kind: OpenStackResourceKind.StoragePool,
+        },
+        select: { _id: true, name: true, facts: true },
+        limit: STORAGE_POOLS_READ,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    return pools
+      .filter((other: OpenStackResource): boolean => {
+        return other.id?.toString() !== data.pool.id?.toString();
+      })
+      .map((other: OpenStackResource): OpenStackStoragePoolOfProject => {
+        return {
+          poolName: other.name,
+          facts: other.facts as JSONObject | undefined,
+        };
+      });
   }
 
   /*
@@ -1036,7 +1542,30 @@ export default class OpenStackAcrossProducts {
           JSON.stringify(answer),
         ],
       );
-    return (updated[0] as Array<unknown> | undefined)?.length !== 0;
+    return ((updated[0] as Array<unknown> | undefined)?.length || 0) > 0;
+  }
+
+  // Taking an answer back, so the pool asks again and whatever the driver says counts again.
+  public static async forgetStoragePoolCephLink(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    externalId: string;
+  }): Promise<boolean> {
+    const updated: Array<unknown> =
+      await OpenStackResourceService.getRepository().manager.query(
+        `UPDATE "OpenStackResource"
+         SET "facts" = COALESCE("facts", '{}'::jsonb) - '${OPENSTACK_STORAGE_POOL_CEPH_LINK_FACT}'
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.StoragePool}'
+           AND "externalId" = $3 AND "deletedAt" IS NULL
+         RETURNING "_id"`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          data.externalId,
+        ],
+      );
+    return ((updated[0] as Array<unknown> | undefined)?.length || 0) > 0;
   }
 
   /*
@@ -1071,7 +1600,7 @@ export default class OpenStackAcrossProducts {
           }),
         ) as never,
       },
-      select: { _id: true, healthStatus: true },
+      select: { _id: true, healthStatus: true, lastSeenAt: true },
       limit: clusters.length,
       skip: 0,
       props: { isRoot: true },
@@ -1097,7 +1626,11 @@ export default class OpenStackAcrossProducts {
         [OPENSTACK_CEPH_STATUS_FACT]: {
           clusterId: link.clusterId,
           clusterName: link.clusterName || "",
-          healthStatus: cluster?.healthStatus ?? null,
+          healthStatus: getOpenStackCephHealthNow({
+            healthStatus: cluster?.healthStatus,
+            lastSeenAt: cluster?.lastSeenAt,
+            now: OneUptimeDate.getCurrentDate(),
+          }),
         },
       };
     }
@@ -1119,12 +1652,15 @@ export default class OpenStackAcrossProducts {
   public static getPlacementEntities(data: {
     projectId: ObjectID;
     placement: OpenStackPlacement;
-    serviceName?: string | undefined;
+    serviceName?: string | null | undefined;
+    serviceNamespace?: string | null | undefined;
   }): Array<ExtractedEntity> {
     const attributes: Record<string, string> = {};
-    if (data.placement.cloudName) {
-      attributes["openstack.cloud.name"] = data.placement.cloudName;
+    // Every part's identity starts with its cloud's name: without one it would be another part.
+    if (!data.placement.cloudName) {
+      return [];
     }
+    attributes["openstack.cloud.name"] = data.placement.cloudName;
     if (data.placement.hypervisorName) {
       attributes["openstack.hypervisor.name"] = data.placement.hypervisorName;
     }
@@ -1136,10 +1672,45 @@ export default class OpenStackAcrossProducts {
     }
     if (data.serviceName) {
       attributes["service.name"] = data.serviceName;
+      // A namespace is part of a service's identity: leaving it out would draw a second one.
+      if (data.serviceNamespace) {
+        attributes["service.namespace"] = data.serviceNamespace;
+      }
     }
     return InventoryItem.extractEntities({
       projectId: data.projectId.toString(),
       attributes,
+    });
+  }
+
+  /*
+   * A service whose own telemetry says which instance it is on: its `host.id` is that
+   * instance's UUID. Nothing else has to report for Topology to draw it there, least of all
+   * OneUptime's agent. A UUID two clouds hold draws neither.
+   */
+  public static async reconcileServiceOnInstance(data: {
+    projectId: ObjectID;
+    instanceId: string;
+    serviceName: string;
+    serviceNamespace?: string | null | undefined;
+  }): Promise<void> {
+    const instance: OpenStackResource | null = getOnlyOpenStackMatch(
+      await this.readInstancesById({
+        projectId: data.projectId,
+        instanceId: data.instanceId.toLowerCase(),
+      }),
+    );
+    if (!instance) {
+      return;
+    }
+    await reconcileEntityRegistryThrottled({
+      projectId: data.projectId,
+      entities: this.getPlacementEntities({
+        projectId: data.projectId,
+        placement: await this.toPlacement(instance),
+        serviceName: data.serviceName,
+        serviceNamespace: data.serviceNamespace,
+      }),
     });
   }
 
@@ -1148,24 +1719,21 @@ export default class OpenStackAcrossProducts {
     host: { hostIdentifier: string };
     placement: OpenStackPlacement;
   }): Promise<void> {
-    const services: Array<OpenStackLinkedService> =
-      await this.readServicesOnHosts({
+    const services: Array<ServiceEntityRead> =
+      await this.readServiceEntitiesOnHosts({
         projectId: data.projectId,
         hostIdentifiers: [data.host.hostIdentifier],
       });
-    const names: Array<string | undefined> =
-      services.length > 0
-        ? services.map((service: OpenStackLinkedService): string => {
-            return service.name;
-          })
-        : [undefined];
-    for (const serviceName of names) {
+    for (const service of services.length > 0
+      ? services
+      : [{ name: null, namespace: null }]) {
       await reconcileEntityRegistryThrottled({
         projectId: data.projectId,
         entities: this.getPlacementEntities({
           projectId: data.projectId,
           placement: data.placement,
-          serviceName,
+          serviceName: service.name,
+          serviceNamespace: service.namespace,
         }),
       });
     }

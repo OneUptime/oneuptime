@@ -1,0 +1,7 @@
+200 swift-account
+200 swift-info
+204 swift-account-own
+403 swift-account-ou-payments-as-admin
+403 swift-account-ou-payments-as-admin
+200 swift-account-ou-payments
+204 swift-account-ou-payments

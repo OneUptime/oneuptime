@@ -1,0 +1,2 @@
+A database instance in BUILD.
+On its own: an instance on its way.

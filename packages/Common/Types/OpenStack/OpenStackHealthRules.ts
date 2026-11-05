@@ -39,11 +39,7 @@ export const OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT: number = 90;
 // How long a part may sit in a state on the way to something else.
 export const OPENSTACK_INSTANCE_STUCK_MINUTES: number = 60;
 export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
-/*
- * No alert template draws this one yet, so it is the one line here with nothing to
- * agree with. An image left in queued is what a failed upload looks like: nothing ever
- * moves it on, and instances that ask for it fail.
- */
+// An image left in queued is what a failed upload looks like: nothing ever moves it on.
 export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 
 /*
@@ -90,6 +86,15 @@ export const OPENSTACK_ALLOCATION_MISMATCH_MINUTES: number = 30;
  * What an operator set: Nova and Cinder say enabled or disabled, Neutron says up or
  * down. Nothing here is a failure, whichever word it is in.
  */
+/*
+ * Workers where one down of several is a warning, because the others carry on. All of them down is a
+ * control-plane outage. There are a few of these in a region however large it is.
+ */
+export const OPENSTACK_REDUNDANT_WORKERS: ReadonlySet<string> = new Set([
+  "nova-scheduler",
+  "nova-conductor",
+]);
+
 export function isOpenStackAdminDisabled(
   adminState: string | null | undefined,
 ): boolean {

@@ -1,8 +1,5 @@
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
@@ -12,7 +9,6 @@ import Query from "Common/Types/BaseDatabase/Query";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
@@ -28,14 +24,6 @@ import {
   mergeOpenStackInstanceUsage,
   normalizeOpenStackInstanceMetricsOptions,
 } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
-import {
-  OpenStackPlacement,
-  OpenStackReachAcrossProducts,
-  OpenStackStoragePoolCephLink,
-  getEmptyOpenStackReachAcrossProducts,
-} from "Common/Types/OpenStack/OpenStackLinks";
-import { APP_API_URL } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -46,9 +34,8 @@ import {
 } from "./OpenStackUsage";
 
 /*
- * What is really busy, as apart from what is promised, and what in the rest of OneUptime is
- * which part of a cloud. Every read here is one bounded question: a few series over a quarter
- * of an hour, or one of the server's joins.
+ * What is really busy, as apart from what is promised. Every read here is one bounded
+ * question: a few series over a quarter of an hour.
  */
 
 const CLOUD_ATTRIBUTE: string = "resource.openstack.cloud.name";
@@ -431,102 +418,4 @@ export async function fetchOpenStackInstanceMetricsChoice(
         .options || getDefaultOpenStackInstanceMetricsOptions(),
     instanceCount: cloud?.instanceCount || 0,
   };
-}
-
-async function post(
-  path: string,
-  id: ObjectID,
-  body?: JSONObject,
-): Promise<JSONObject> {
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
-    {
-      url: URL.fromString(APP_API_URL.toString())
-        .addRoute(`/openstack-resource/${path}/`)
-        .addRoute(id.toString()),
-      data: body || {},
-      headers: { ...ModelAPI.getCommonHeaders() },
-    },
-  );
-  if (response instanceof HTTPErrorResponse) {
-    throw response;
-  }
-  return response.data;
-}
-
-export async function fetchOpenStackPlacementOfHost(
-  hostId: ObjectID,
-): Promise<OpenStackPlacement | null> {
-  const answer: JSONObject = await post("placement-of-host", hostId);
-  return (answer["placement"] as unknown as OpenStackPlacement) || null;
-}
-
-export async function fetchOpenStackPlacementOfKubernetesNode(data: {
-  clusterId: ObjectID;
-  nodeName: string;
-}): Promise<OpenStackPlacement | null> {
-  const answer: JSONObject = await post(
-    "placement-of-kubernetes-node",
-    data.clusterId,
-    { nodeName: data.nodeName },
-  );
-  return (answer["placement"] as unknown as OpenStackPlacement) || null;
-}
-
-export interface OpenStackServicePlacement {
-  hostName: string;
-  hostId: string | null;
-  placement: OpenStackPlacement;
-}
-
-export async function fetchOpenStackPlacementsOfService(
-  serviceId: ObjectID,
-): Promise<Array<OpenStackServicePlacement>> {
-  const answer: JSONObject = await post("placement-of-service", serviceId);
-  return (
-    (answer["placements"] as unknown as Array<OpenStackServicePlacement>) || []
-  );
-}
-
-export async function fetchOpenStackReachOfInstance(data: {
-  openStackCloudId: ObjectID;
-  instanceId: string;
-}): Promise<OpenStackReachAcrossProducts> {
-  const answer: JSONObject = await post(
-    "reach-of-instance",
-    data.openStackCloudId,
-    { instanceId: data.instanceId },
-  );
-  return {
-    ...getEmptyOpenStackReachAcrossProducts(),
-    ...(answer as unknown as OpenStackReachAcrossProducts),
-  };
-}
-
-export interface OpenStackStoragePoolCephRead {
-  link: OpenStackStoragePoolCephLink;
-  clusters: Array<{ id: string; name: string }>;
-  health: number | null;
-  capacityUsedPercent: number | null;
-}
-
-export async function fetchOpenStackStoragePoolCeph(data: {
-  openStackCloudId: ObjectID;
-  externalId: string;
-}): Promise<OpenStackStoragePoolCephRead> {
-  return (await post("storage-pool-ceph", data.openStackCloudId, {
-    externalId: data.externalId,
-  })) as unknown as OpenStackStoragePoolCephRead;
-}
-
-export async function confirmOpenStackStoragePoolCeph(data: {
-  openStackCloudId: ObjectID;
-  externalId: string;
-  cephClusterId?: string | undefined;
-  isNotCeph?: boolean | undefined;
-}): Promise<void> {
-  await post("storage-pool-ceph-confirm", data.openStackCloudId, {
-    externalId: data.externalId,
-    ...(data.cephClusterId ? { cephClusterId: data.cephClusterId } : {}),
-    ...(data.isNotCeph ? { isNotCeph: true } : {}),
-  });
 }
