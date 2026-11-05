@@ -44,7 +44,9 @@ export function toOpenStackListSeekValue(
   return undefined;
 }
 
-export function isOpenStackListSeek(value: unknown): value is OpenStackListSeek {
+export function isOpenStackListSeek(
+  value: unknown,
+): value is OpenStackListSeek {
   const seek: Partial<OpenStackListSeek> | null =
     value && typeof value === "object"
       ? (value as Partial<OpenStackListSeek>)

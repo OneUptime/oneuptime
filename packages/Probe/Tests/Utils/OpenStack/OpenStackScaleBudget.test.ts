@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { OpenStackInstanceMetricsMode } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
 import {
   OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES,
+  OPENSTACK_COLLECTION_MAX_TOTAL_PAYLOAD_BYTES,
   OpenStackCollectionJob,
   OpenStackCollectionReport,
   OpenStackServiceSummary,
@@ -15,12 +16,15 @@ import {
   OPENSTACK_MEDIUM_CLOUD,
   OPENSTACK_PER_PART_READS_PER_COLLECTION,
   OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
+  OPENSTACK_ROLLING_BYTES_PER_DATAPOINT,
   OPENSTACK_SMALL_CLOUD,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
   OpenStackCloudCounts,
   OpenStackRequestsByService,
   getOpenStackCountsOfSize,
   getOpenStackProbeRequestsPerMinute,
+  getOpenStackRollingDatapoints,
+  getOpenStackRollingTurns,
   getOpenStackSeriesCounts,
   simulateOpenStackProbeRequests,
 } from "Common/Types/OpenStack/OpenStackScale";
@@ -28,7 +32,6 @@ import OpenStackCollector, {
   OpenStackCollectorDependencies,
 } from "../../../Utils/OpenStack/OpenStackCollector";
 import { splitOpenStackReport } from "../../../Utils/OpenStack/OpenStackReportParts";
-import { OPENSTACK_ROLLING_SERIES } from "../../../Utils/OpenStack/OpenStackRollingSend";
 import {
   CollectorHarness,
   FakeClock,
@@ -56,7 +59,8 @@ import MockOpenStackCloud, {
  * A collection of the largest size takes seconds of real work, and two hours of them is an hour on
  * a shared machine. It would say nothing more than the collections below already do: what a
  * collection asks follows from the time on the clock, and these are the ones where something
- * different falls due. Each is asserted exactly, on its own. To walk all of it too:
+ * different falls due. Each is asserted exactly, on its own. So the smallest size walks every
+ * collection of two hours, and each size walks those. To walk all of the largest too:
  *
  *   OPENSTACK_SCALE_FULL_WALK=true node_modules/.bin/jest \
  *     Tests/Utils/OpenStack/OpenStackScaleBudget.test.ts
@@ -75,6 +79,7 @@ interface Scene {
   harness: CollectorHarness;
   job: OpenStackCollectionJob;
   startedAt: number;
+  lastReport?: OpenStackCollectionReport | undefined;
 }
 
 function sceneOf(
@@ -121,6 +126,8 @@ async function collect(scene: Scene): Promise<OpenStackCollectionReport> {
     scene.job,
     scene.harness.dependencies,
   );
+
+  scene.lastReport = report;
 
   // Collections start every two minutes, whatever this one took.
   scene.clock.advance(
@@ -194,12 +201,12 @@ const expectedAt: (
 
 /*
  * The minutes where something different falls due: a cold start, a settled collection, Keystone and
- * Glance's turn, a token that needs renewing, a full read of Nova's instances, and Neutron's
- * extensions, read once an hour. Runs of consecutive minutes, on the four-minute turn the slow
- * services keep.
+ * Glance's turn, a full read of Nova's instances, a token that needs renewing, and Neutron's
+ * extensions, read once an hour. Each on the four-minute turn the slow services keep, so the
+ * collection before each is the one the schedule says it is.
  */
 const COLLECTIONS_WHERE_SOMETHING_FALLS_DUE: ReadonlyArray<number> = [
-  0, 2, 4, 6, 28, 30, 32, 56, 58, 60, 62, 64,
+  0, 2, 4, 28, 30, 56, 60, 62,
 ];
 
 async function collectAt(scene: Scene, minute: number): Promise<void> {
@@ -210,46 +217,134 @@ async function collectAt(scene: Scene, minute: number): Promise<void> {
   await collect(scene);
 }
 
-describe("what each size asks of its control plane", () => {
-  test.each([SMALL, MEDIUM])(
-    "a cloud of $name asks exactly what the docs say, collection by collection, for two hours",
-    async ({ name, counts }: { name: string; counts: OpenStackCloudCounts }) => {
+describe("what each size asks of its control plane, and sends", () => {
+  test(
+    "a cloud of 10 hypervisors, 100 instances asks exactly what the docs say, collection by collection, for two hours",
+    async () => {
+      const counts: OpenStackCloudCounts = SMALL.counts;
       const scene: Scene = sceneOf(counts);
 
-      for (let minute: number = 0; minute < 120; minute += INTERVAL_IN_MINUTES) {
+      for (
+        let minute: number = 0;
+        minute < 120;
+        minute += INTERVAL_IN_MINUTES
+      ) {
         await collectAt(scene, minute);
         expect({ minute, requests: scene.cloud.countsByService() }).toEqual({
           minute,
           requests: expectedAt(counts, minute),
         });
       }
-
-      measure(name, {
-        requestsPerMinuteSettled: getOpenStackProbeRequestsPerMinute(counts),
-      } as JSONObject);
     },
     SLOW_TEST_IN_MS,
   );
 
+  /*
+   * One walk per size, the same collections asked of each, so a test of what is sent costs nothing
+   * more than the collections this has to make anyway.
+   */
   test.each(SIZES)(
-    "a cloud of $name asks exactly what the docs say, wherever something different falls due",
-    async ({ name, counts }: { name: string; counts: OpenStackCloudCounts }) => {
+    "a cloud of $name asks exactly what the docs say, wherever something different falls due, and each collection fits its uploads",
+    async ({
+      name,
+      counts,
+    }: {
+      name: string;
+      counts: OpenStackCloudCounts;
+    }) => {
       const scene: Scene = sceneOf(counts);
+      const isSummary: boolean =
+        counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT;
 
       for (const minute of COLLECTIONS_WHERE_SOMETHING_FALLS_DUE) {
         await collectAt(scene, minute);
+
         expect({ minute, requests: scene.cloud.countsByService() }).toEqual({
           minute,
           requests: expectedAt(counts, minute),
         });
-      }
 
-      measure(name, {
-        requestsPerMinuteSettled: getOpenStackProbeRequestsPerMinute(counts),
-      } as JSONObject);
+        const report: OpenStackCollectionReport = scene.lastReport as never;
+
+        /*
+         * Whatever falls due. The first of these at the largest size used to try to hold half a
+         * gigabyte of JSON as one string, which a process cannot, and every restart of a probe
+         * would have hit that.
+         */
+        expect({ minute, status: report.status }).toEqual({
+          minute,
+          status: "Succeeded",
+        });
+
+        for (const part of splitOpenStackReport(report)) {
+          expect(
+            Buffer.byteLength(JSON.stringify(part.resourceMetrics)),
+          ).toBeLessThanOrEqual(OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES);
+        }
+
+        if (minute === 0) {
+          expect(report.summary?.hypervisorCount).toBe(counts.hypervisors);
+          expect(report.summary?.instanceCount).toBe(counts.instances);
+          expect(report.summary?.volumeCount).toBe(counts.volumes);
+          expect(report.summary?.projectCount).toBe(counts.projects);
+
+          if (isSummary) {
+            // Only its share of what goes in turns, and no more uploads than a settled collection.
+            expect(report.summary?.isSummaryMode).toBe(true);
+            expect(
+              datapointsOf(report.resourceMetrics).filter(
+                (point: ReportedDatapoint): boolean => {
+                  return (
+                    point.metric ===
+                    "openstack_placement_resource_provider_allocations"
+                  );
+                },
+              ),
+            ).toHaveLength(0);
+          } else {
+            const series: { fast: number; slow: number } =
+              getOpenStackSeriesCounts({ counts: counts });
+
+            expect(report.summary?.datapointCount).toBe(
+              series.fast + series.slow,
+            );
+          }
+
+          measure(name, {
+            firstCollectionPayloadBytes: Buffer.byteLength(
+              JSON.stringify(report.resourceMetrics),
+            ),
+            firstCollectionUploads: splitOpenStackReport(report).length,
+            firstCollectionDatapoints: report.summary?.datapointCount as number,
+            refreshCycleInMinutes: report.summary
+              ?.refreshCycleInMinutes as number,
+          });
+        }
+
+        if (minute === 2) {
+          measure(name, {
+            settledCollectionDatapoints: report.summary
+              ?.datapointCount as number,
+            settledCollectionPayloadBytes: Buffer.byteLength(
+              JSON.stringify(report.resourceMetrics),
+            ),
+            requestsPerMinuteSettled: getOpenStackProbeRequestsPerMinute(
+              counts,
+            ) as never,
+          });
+        }
+      }
     },
     SLOW_TEST_IN_MS,
   );
+
+  test("the largest size's cycle is what the docs say", () => {
+    expect(
+      getOpenStackRollingTurns(
+        getOpenStackRollingDatapoints(OPENSTACK_LARGE_CLOUD),
+      ) * INTERVAL_IN_MINUTES,
+    ).toBe(44);
+  });
 
   (process.env["OPENSTACK_SCALE_FULL_WALK"] === "true" ? test : test.skip)(
     "a cloud of 5,000 hypervisors asks exactly what the docs say over two whole hours",
@@ -287,132 +382,24 @@ describe("what each size asks of its control plane", () => {
   );
 });
 
-describe("what each size sends", () => {
-  /*
-   * A series no part's turn holds back goes every time, so its count is exact at every size. The
-   * rest is sized by the collection's target, and the first collection holds as much of it as any.
-   */
-  function perCollection(report: OpenStackCollectionReport): {
-    everyTime: number;
-    inTurns: number;
-  } {
-    let everyTime: number = 0;
-    let inTurns: number = 0;
-
-    for (const point of datapointsOf(report.resourceMetrics)) {
-      if (OPENSTACK_ROLLING_SERIES.has(point.metric)) {
-        inTurns++;
-      } else if (point.metric.startsWith("openstack_")) {
-        everyTime++;
-      }
-    }
-
-    return { everyTime, inTurns };
-  }
-
-  test.each([SMALL, MEDIUM])(
-    "below or past the summary size, $name sends what the series count says, within its uploads",
-    async ({ name, counts }: { name: string; counts: OpenStackCloudCounts }) => {
-      const scene: Scene = sceneOf(counts);
-
-      const report: OpenStackCollectionReport = await collect(scene);
-
-      expect(report.status).toBe("Succeeded");
-      expect(report.summary?.hypervisorCount).toBe(counts.hypervisors);
-      expect(report.summary?.instanceCount).toBe(counts.instances);
-      expect(report.summary?.volumeCount).toBe(counts.volumes);
-      expect(report.summary?.projectCount).toBe(counts.projects);
-
-      if (counts.instances <= OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT) {
-        const series: { fast: number; slow: number } = getOpenStackSeriesCounts(
-          { counts: counts },
-        );
-
-        expect(report.summary?.datapointCount).toBe(series.fast + series.slow);
-      }
-
-      const parts: Array<OpenStackCollectionReport> =
-        splitOpenStackReport(report);
-
-      for (const part of parts) {
-        expect(
-          Buffer.byteLength(JSON.stringify(part.resourceMetrics)),
-        ).toBeLessThanOrEqual(OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES);
-      }
-
-      measure(name, {
-        firstCollectionPayloadBytes: Buffer.byteLength(
-          JSON.stringify(report.resourceMetrics),
-        ),
-        firstCollectionUploads: parts.length,
-        firstCollectionDatapoints: report.summary?.datapointCount as number,
-      });
-    },
-    SLOW_TEST_IN_MS,
-  );
-
-  test(
-    "a cloud of 5,000 hypervisors holds its first collection to a share of its parts, and fits its uploads",
-    async () => {
-      const counts: OpenStackCloudCounts = LARGE.counts;
-      const scene: Scene = sceneOf(counts);
-
-      const first: OpenStackCollectionReport = await collect(scene);
-
-      /*
-       * Not a failure at the largest size any more: this used to try to hold half a gigabyte of JSON
-       * as one string, which a process cannot, and every restart of a probe would hit it.
-       */
-      expect(first.status).toBe("Succeeded");
-      expect(first.summary?.hypervisorCount).toBe(counts.hypervisors);
-      expect(first.summary?.instanceCount).toBe(counts.instances);
-      expect(first.summary?.volumeCount).toBe(counts.volumes);
-      expect(first.summary?.projectCount).toBe(counts.projects);
-      expect(first.summary?.isSummaryMode).toBe(true);
-
-      // Twenty-two turns of two minutes: the first turn's share, and the same again each after.
-      expect(first.summary?.refreshCycleInMinutes).toBe(44);
-
-      const sizes: { everyTime: number; inTurns: number } = perCollection(first);
-      const bytes: number = Buffer.byteLength(
-        JSON.stringify(first.resourceMetrics),
-      );
-      const parts: Array<OpenStackCollectionReport> =
-        splitOpenStackReport(first);
-
-      expect(sizes.inTurns).toBeLessThan(40000);
-
-      for (const part of parts) {
-        expect(
-          Buffer.byteLength(JSON.stringify(part.resourceMetrics)),
-        ).toBeLessThanOrEqual(OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES);
-      }
-
-      const second: OpenStackCollectionReport = await collect(scene);
-
-      expect(second.status).toBe("Succeeded");
-
-      measure(LARGE.name, {
-        firstCollectionPayloadBytes: bytes,
-        firstCollectionUploads: parts.length,
-        firstCollectionDatapoints: first.summary?.datapointCount as number,
-        settledCollectionDatapoints: second.summary?.datapointCount as number,
-        settledCollectionPayloadBytes: Buffer.byteLength(
-          JSON.stringify(second.resourceMetrics),
-        ),
-      });
-    },
-    SLOW_TEST_IN_MS,
-  );
-});
-
 describe("summary mode, on the probe", () => {
+  /*
+   * Past the line, in several turns, with a few hundred instances: how many there are only moves
+   * how long these take. The walks above hold the real sizes.
+   */
   const counts: OpenStackCloudCounts = getOpenStackCountsOfSize({
-    hypervisors: 20,
-    instances: OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT + 1000,
-    projects: 100,
+    hypervisors: 5,
+    instances: 400,
+    projects: 8,
   });
-  const ONE_TURN_AT_THIS_SIZE: number = 1;
+  const TURNS: number = 4;
+  const PAST_THE_LINE: Partial<OpenStackCollectorDependencies> = {
+    summaryModeInstanceLimit: 100,
+    rollingBytesPerCollection:
+      (getOpenStackRollingDatapoints(counts) *
+        OPENSTACK_ROLLING_BYTES_PER_DATAPOINT) /
+      TURNS,
+  };
 
   function serverPoints(
     report: OpenStackCollectionReport,
@@ -424,16 +411,29 @@ describe("summary mode, on the probe", () => {
     );
   }
 
-  test("past the size, its one turn at this size sends every part, and the totals whole", async () => {
-    const scene: Scene = sceneOf(counts);
+  function upOf(
+    report: OpenStackCollectionReport,
+  ): ReportedDatapoint | undefined {
+    return datapointsOf(report.resourceMetrics).find(
+      (point: ReportedDatapoint): boolean => {
+        return point.metric === "openstack_nova_up";
+      },
+    );
+  }
+
+  test("just past the size, one turn sends every part, and the totals whole", async () => {
+    const justPast: OpenStackCloudCounts = getOpenStackCountsOfSize({
+      hypervisors: 5,
+      instances: OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT + 1000,
+      projects: 20,
+    });
+    const scene: Scene = sceneOf(justPast);
 
     const first: OpenStackCollectionReport = await collect(scene);
 
     expect(first.summary?.isSummaryMode).toBe(true);
-    expect(first.summary?.refreshCycleInMinutes).toBe(
-      ONE_TURN_AT_THIS_SIZE * INTERVAL_IN_MINUTES,
-    );
-    expect(serverPoints(first)).toHaveLength(counts.instances);
+    expect(first.summary?.refreshCycleInMinutes).toBe(INTERVAL_IN_MINUTES);
+    expect(serverPoints(first)).toHaveLength(justPast.instances);
 
     const second: OpenStackCollectionReport = await collect(scene);
 
@@ -444,12 +444,11 @@ describe("summary mode, on the probe", () => {
           return point.metric === "openstack_nova_total_vms";
         },
       )?.value,
-    ).toBe(counts.instances);
+    ).toBe(justPast.instances);
   }, 600000);
 
   test("an instance that changes goes at once, and one in a bad state goes every time", async () => {
-    const large: OpenStackCloudCounts = OPENSTACK_MEDIUM_CLOUD;
-    const scene: Scene = sceneOf(large);
+    const scene: Scene = sceneOf(counts, { overrides: PAST_THE_LINE });
 
     await collect(scene);
     await collect(scene);
@@ -457,10 +456,10 @@ describe("summary mode, on the probe", () => {
     scene.cloud.changeInstances([11, 12], "ERROR");
 
     const report: OpenStackCollectionReport = await collect(scene);
-    const turns: number =
-      (report.summary?.refreshCycleInMinutes as number) / INTERVAL_IN_MINUTES;
 
-    expect(turns).toBeGreaterThan(1);
+    expect(report.summary?.refreshCycleInMinutes).toBe(
+      TURNS * INTERVAL_IN_MINUTES,
+    );
 
     const points: Array<ReportedDatapoint> = serverPoints(report);
     const inError: Array<ReportedDatapoint> = points.filter(
@@ -471,7 +470,7 @@ describe("summary mode, on the probe", () => {
 
     expect(inError).toHaveLength(2);
     // Only a share of the rest.
-    expect(points.length).toBeLessThan(large.instances);
+    expect(points.length).toBeLessThan(counts.instances);
     expect(points.length).toBeGreaterThan(2);
 
     const again: OpenStackCollectionReport = await collect(scene);
@@ -481,15 +480,13 @@ describe("summary mode, on the probe", () => {
         return point.labels["status"] === "ERROR";
       }),
     ).toHaveLength(2);
-  }, 900000);
+  }, 600000);
 
   test("every instance comes round within the stated cycle, and the stale-row rule is told how long that is", async () => {
-    const large: OpenStackCloudCounts = OPENSTACK_MEDIUM_CLOUD;
-    const scene: Scene = sceneOf(large);
+    const scene: Scene = sceneOf(counts, { overrides: PAST_THE_LINE });
 
     const first: OpenStackCollectionReport = await collect(scene);
     const cycle: number = first.summary?.refreshCycleInMinutes as number;
-    const turns: number = cycle / INTERVAL_IN_MINUTES;
     const seen: Set<string> = new Set();
 
     for (const point of serverPoints(first)) {
@@ -497,41 +494,28 @@ describe("summary mode, on the probe", () => {
     }
 
     // Not everything has gone yet, so this read does not speak for what it held back.
-    const upOfFirst: ReportedDatapoint | undefined = datapointsOf(
-      first.resourceMetrics,
-    ).find((point: ReportedDatapoint): boolean => {
-      return point.metric === "openstack_nova_up";
-    });
+    expect(upOf(first)?.labels["refresh_cycle_minutes"]).toBe(String(cycle));
+    expect(upOf(first)?.labels["vouches_for_rows"]).toBe("false");
 
-    expect(upOfFirst?.labels["refresh_cycle_minutes"]).toBe(String(cycle));
-    expect(upOfFirst?.labels["vouches_for_rows"]).toBe("false");
-
-    for (let turn: number = 1; turn < turns; turn++) {
-      const report: OpenStackCollectionReport = await collect(scene);
-
-      for (const point of serverPoints(report)) {
+    for (let turn: number = 1; turn < TURNS; turn++) {
+      for (const point of serverPoints(await collect(scene))) {
         seen.add(point.labels["id"] as string);
       }
     }
 
-    expect(seen.size).toBe(large.instances);
+    expect(seen.size).toBe(counts.instances);
 
     // Now it does.
     const after: OpenStackCollectionReport = await collect(scene);
-    const upAfter: ReportedDatapoint | undefined = datapointsOf(
-      after.resourceMetrics,
-    ).find((point: ReportedDatapoint): boolean => {
-      return point.metric === "openstack_nova_up";
-    });
 
-    expect(upAfter?.labels["refresh_cycle_minutes"]).toBe(String(cycle));
-    expect(upAfter?.labels["vouches_for_rows"]).toBeUndefined();
-  }, 1200000);
+    expect(upOf(after)?.labels["refresh_cycle_minutes"]).toBe(String(cycle));
+    expect(upOf(after)?.labels["vouches_for_rows"]).toBeUndefined();
+  }, 600000);
 
   test("a project someone chose keeps every instance's series, every collection", async () => {
-    const large: OpenStackCloudCounts = OPENSTACK_MEDIUM_CLOUD;
     const chosen: string = String(3).padStart(32, "0");
-    const scene: Scene = sceneOf(large, {
+    const scene: Scene = sceneOf(counts, {
+      overrides: PAST_THE_LINE,
       job: {
         options: {
           instanceSeriesMode: OpenStackInstanceMetricsMode.Selected,
@@ -550,11 +534,12 @@ describe("summary mode, on the probe", () => {
       },
     );
 
-    expect(ofChosen).toHaveLength(large.instances / large.projects);
-  }, 900000);
+    expect(ofChosen).toHaveLength(counts.instances / counts.projects);
+  }, 600000);
 
   test("a cloud set to keep everything is never summarized", async () => {
     const scene: Scene = sceneOf(counts, {
+      overrides: PAST_THE_LINE,
       job: {
         options: { instanceSeriesMode: OpenStackInstanceMetricsMode.All },
       },
@@ -569,7 +554,7 @@ describe("summary mode, on the probe", () => {
   }, 600000);
 
   test("past the size it does not ask Placement for allocations, which only series per instance use", async () => {
-    const scene: Scene = sceneOf(counts);
+    const scene: Scene = sceneOf(counts, { overrides: PAST_THE_LINE });
 
     await collect(scene);
     scene.cloud.resetCounts();
@@ -591,8 +576,15 @@ describe("summary mode, on the probe", () => {
     ).toHaveLength(0);
   }, 600000);
 
-  test("a cloud of 200,000 instances that keeps everything says it is too large rather than holding it all in memory", async () => {
-    const scene: Scene = sceneOf(OPENSTACK_LARGE_CLOUD, {
+  test("a cloud of 200,000 instances set to keep everything is past what a probe holds in memory, and says so rather than trying", async () => {
+    expect(
+      getOpenStackRollingDatapoints(OPENSTACK_LARGE_CLOUD) *
+        OPENSTACK_ROLLING_BYTES_PER_DATAPOINT,
+    ).toBeGreaterThan(OPENSTACK_COLLECTION_MAX_TOTAL_PAYLOAD_BYTES);
+
+    // The same decision, on a cloud small enough to read here.
+    const scene: Scene = sceneOf(counts, {
+      overrides: { summaryModeInstanceLimit: 100, maxPayloadBytes: 1000 },
       job: {
         options: { instanceSeriesMode: OpenStackInstanceMetricsMode.All },
       },
@@ -603,16 +595,10 @@ describe("summary mode, on the probe", () => {
     expect(report.status).toBe("Failed");
     expect(report.errorMessage).toContain("Use the OpenStack agent");
 
-    const up: ReportedDatapoint | undefined = datapointsOf(
-      report.resourceMetrics,
-    ).find((point: ReportedDatapoint): boolean => {
-      return point.metric === "openstack_nova_up";
-    });
-
     // The API answered, and that says nothing about the rows that did not fit.
-    expect(up?.value).toBe(1);
-    expect(up?.labels["vouches_for_rows"]).toBe("false");
-  }, SLOW_TEST_IN_MS);
+    expect(upOf(report)?.value).toBe(1);
+    expect(upOf(report)?.labels["vouches_for_rows"]).toBe("false");
+  }, 600000);
 });
 
 describe("Placement, the service a large cloud leans on hardest", () => {

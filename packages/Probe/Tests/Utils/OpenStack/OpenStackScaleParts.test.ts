@@ -198,6 +198,18 @@ describe("what goes in an upload, past the summary size", () => {
     ).toBe(true);
   });
 
+  test("what only a series per instance is for never goes, whatever a first collection has read", () => {
+    const send: OpenStackRollingSend = collections().next();
+
+    expect(
+      send.shouldSend(
+        "openstack_placement_resource_provider_allocations",
+        { consumer_id: "c-1", resource_class: "VCPU" },
+        2,
+      ),
+    ).toBe(false);
+  });
+
   test("the first cycle sends each part once, at its own moment, a share each time", () => {
     const cloud: Collections = collections(7);
     const seen: Map<string, number> = new Map();
@@ -214,9 +226,11 @@ describe("what goes in an upload, past the summary size", () => {
     }
 
     expect(seen.size).toBe(IDS.length);
-    expect(Array.from(seen.values()).every((times: number) => times === 1)).toBe(
-      true,
-    );
+    expect(
+      Array.from(seen.values()).every((times: number) => {
+        return times === 1;
+      }),
+    ).toBe(true);
     // About a seventh each, the first collection included.
     expect(largest).toBeLessThan((IDS.length / 7) * 1.5);
   });

@@ -96,7 +96,8 @@ export async function fetchOpenStackAttention(data: {
       toOpenStackAttentionRow,
     ),
     totalsByKind,
-    leftOut: (answer["leftOut"] as unknown as Array<OpenStackRowsLeftOut>) || [],
+    leftOut:
+      (answer["leftOut"] as unknown as Array<OpenStackRowsLeftOut>) || [],
   };
 }
 
@@ -207,7 +208,8 @@ export async function fetchOpenStackWorkersOfLargeCloud(data: {
     workers: ((answer["workers"] as Array<JSONObject>) || []).map(
       toOpenStackAttentionRow,
     ),
-    leftOut: (answer["leftOut"] as unknown as Array<OpenStackRowsLeftOut>) || [],
+    leftOut:
+      (answer["leftOut"] as unknown as Array<OpenStackRowsLeftOut>) || [],
   };
 }
 

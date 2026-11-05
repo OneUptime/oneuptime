@@ -285,6 +285,13 @@ export const OPENSTACK_PER_PART_READS_PER_COLLECTION: number = 2000;
 // A project's quotas are four calls, and change on a person's timescale.
 export const OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION: number = 250;
 
+/*
+ * What happened to an instance that changed, which only Nova's own record says. A call per
+ * instance, this many a collection, and what is left waits for the next.
+ */
+export const OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION: number = 25;
+export const OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER: number = 500;
+
 export type OpenStackNetworkBackend = "ovn" | "ovs";
 
 export interface OpenStackProbeLoadOptions {
@@ -364,6 +371,7 @@ export function simulateOpenStackProbeRequests(data: {
 
   let tokenValidUntil: number = -1;
   let extensionsReadAt: number = -Infinity;
+  let actionReadsWaiting: number = 0;
 
   for (let minute: number = 0; minute < data.toMinute; minute += interval) {
     const isCounted: boolean = minute >= data.fromMinute;
@@ -403,6 +411,19 @@ export function simulateOpenStackProbeRequests(data: {
         getOpenStackListRequests(counts.flavors) +
         getOpenStackListRequests(isFullRead ? counts.instances : changed),
     );
+
+    actionReadsWaiting += changed;
+
+    const actionReads: number = Math.min(
+      actionReadsWaiting,
+      OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION,
+    );
+
+    actionReadsWaiting = Math.min(
+      actionReadsWaiting - actionReads,
+      OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER,
+    );
+    count(OpenStackServiceType.Compute, actionReads);
 
     const perPartReads: number = Math.min(
       counts.hypervisors,
@@ -575,9 +596,7 @@ export function getOpenStackExporterRequestsPerMinute(
     (scrape[OpenStackServiceType.Image] - 1) * SLOW;
   perMinute[OpenStackServiceType.Identity] += SLOW;
 
-  for (const service of Object.keys(
-    perMinute,
-  ) as Array<OpenStackServiceType>) {
+  for (const service of Object.keys(perMinute) as Array<OpenStackServiceType>) {
     perMinute[service] *=
       service === OpenStackServiceType.Identity ? 1 : counts.regions;
   }

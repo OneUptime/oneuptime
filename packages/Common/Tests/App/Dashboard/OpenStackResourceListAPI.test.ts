@@ -95,9 +95,9 @@ describe("how a list moves from page to page", () => {
   test("a list sorted by nothing, or by several things, is left as it asked", () => {
     const pages: OpenStackListPages = new OpenStackListPages();
 
-    expect(
-      pages.plan({ query: QUERY, sort: {}, limit: 10, skip: 10 }),
-    ).toEqual({ sort: {} });
+    expect(pages.plan({ query: QUERY, sort: {}, limit: 10, skip: 10 })).toEqual(
+      { sort: {} },
+    );
 
     const several: Record<string, unknown> = {
       name: SortOrder.Ascending,

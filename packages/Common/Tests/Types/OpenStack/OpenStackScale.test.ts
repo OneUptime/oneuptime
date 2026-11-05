@@ -502,6 +502,8 @@ describe("what the docs publish", () => {
 });
 
 describe("what the docs tell people to set, to share a cloud between agents", () => {
+  const REGIONS_LINE: RegExp = /OPENSTACK_EXPORTER_CLOUDS=\[([^\]]*)\]/;
+  const SERVICES_LINE: RegExp = /OPENSTACK_AGENT_SERVICES=(\S+)/;
   const PAGE: string = fs.readFileSync(
     path.resolve(
       __dirname,
@@ -523,32 +525,28 @@ describe("what the docs tell people to set, to share a cloud between agents", ()
     regions: Array<string>;
     services: Array<OpenStackServiceType>;
   }> {
-    return block
-      .split("\n\n")
-      .map(
-        (
-          shard: string,
-          index: number,
-        ): {
-          name: string;
-          regions: Array<string>;
-          services: Array<OpenStackServiceType>;
-        } => {
-          const regions: string | undefined =
-            /OPENSTACK_EXPORTER_CLOUDS=\[([^\]]*)\]/.exec(shard)?.[1];
-          const services: string | undefined =
-            /OPENSTACK_AGENT_SERVICES=(\S+)/.exec(shard)?.[1];
+    return block.split("\n\n").map(
+      (
+        shard: string,
+        index: number,
+      ): {
+        name: string;
+        regions: Array<string>;
+        services: Array<OpenStackServiceType>;
+      } => {
+        const regions: string | undefined = REGIONS_LINE.exec(shard)?.[1];
+        const services: string | undefined = SERVICES_LINE.exec(shard)?.[1];
 
-          return {
-            name: `agent ${index}`,
-            regions: regions ? regions.split(",") : ["RegionOne"],
-            // An agent not told reads everything.
-            services: services
-              ? (services.split("|") as Array<OpenStackServiceType>)
-              : EVERY_SERVICE,
-          };
-        },
-      );
+        return {
+          name: `agent ${index}`,
+          regions: regions ? regions.split(",") : ["RegionOne"],
+          // An agent not told reads everything.
+          services: services
+            ? (services.split("|") as Array<OpenStackServiceType>)
+            : EVERY_SERVICE,
+        };
+      },
+    );
   }
 
   function blockAfter(heading: string): string {

@@ -1758,7 +1758,10 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
           select: { _id: true, name: true } as never,
           skip: OPENSTACK_LARGE_CLOUD.instances - 100,
           limit: 100,
-          sort: { name: SortOrder.Ascending, _id: SortOrder.Ascending } as never,
+          sort: {
+            name: SortOrder.Ascending,
+            _id: SortOrder.Ascending,
+          } as never,
           props: { isRoot: true },
         });
       }, 60000);
@@ -1778,7 +1781,10 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
           select: { _id: true, name: true } as never,
           skip: 0,
           limit: 100,
-          sort: { name: SortOrder.Ascending, _id: SortOrder.Ascending } as never,
+          sort: {
+            name: SortOrder.Ascending,
+            _id: SortOrder.Ascending,
+          } as never,
           props: { isRoot: true },
         });
       }, 1000);

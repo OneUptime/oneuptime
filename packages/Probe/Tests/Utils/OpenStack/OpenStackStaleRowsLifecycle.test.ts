@@ -197,7 +197,9 @@ function sceneOf(
   };
 }
 
-async function collectAndLand(scene: Scene): Promise<OpenStackCollectionReport> {
+async function collectAndLand(
+  scene: Scene,
+): Promise<OpenStackCollectionReport> {
   const startedAt: number = scene.clock.now();
   const report: OpenStackCollectionReport = await OpenStackCollector.collect(
     scene.job,
@@ -562,14 +564,16 @@ function lifecycleScenes(newInventory: () => OpenStackTestInventory): void {
           (resource: JSONObject): JSONObject => {
             return {
               ...resource,
-              scopeMetrics: (
-                resource["scopeMetrics"] as Array<JSONObject>
-              ).map((scope: JSONObject): JSONObject => {
-                return {
-                  ...scope,
-                  metrics: (scope["metrics"] as Array<JSONObject>).filter(keep),
-                };
-              }),
+              scopeMetrics: (resource["scopeMetrics"] as Array<JSONObject>).map(
+                (scope: JSONObject): JSONObject => {
+                  return {
+                    ...scope,
+                    metrics: (scope["metrics"] as Array<JSONObject>).filter(
+                      keep,
+                    ),
+                  };
+                },
+              ),
             };
           },
         ),

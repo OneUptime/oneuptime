@@ -293,6 +293,16 @@ export default class OpenStackRollingSend implements OpenStackSendGate {
       OPENSTACK_ROLLING_SERIES.get(metricName);
 
     if (!series) {
+      /*
+       * What only a series per instance is for, and ingest would drop: an allocation, which names
+       * neither a project nor a state. A first collection has already read a turn of them, before
+       * it knew the size of the cloud, and they are half its upload.
+       */
+      if (OPENSTACK_SUMMARY_MODE_SERIES.has(metricName)) {
+        this.heldBack++;
+        return false;
+      }
+
       return true;
     }
 

@@ -1422,12 +1422,13 @@ export default class OpenStackCollector {
         !run.mustBackOff() &&
         run.isApiUp()
       ) {
+        // From when it was read, not when it finished: how long a collection took moves nothing.
         memory.remember(
           run.service === OpenStackServiceType.Identity
             ? `${credentialKey}/identity/cadence`
             : `${credentialKey}/${run.regionName}/${run.service}/cadence`,
           true,
-          clock.now(),
+          now,
         );
       }
 

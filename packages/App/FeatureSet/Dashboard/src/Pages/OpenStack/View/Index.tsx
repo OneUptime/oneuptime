@@ -809,11 +809,11 @@ const OpenStackCloudOverview: FunctionComponent<
     },
   );
 
-  const leftOut: Array<OpenStackRowsLeftOut> = (attention?.leftOut || []).filter(
-    (group: OpenStackRowsLeftOut): boolean => {
-      return !region || !group.regionName || group.regionName === region;
-    },
-  );
+  const leftOut: Array<OpenStackRowsLeftOut> = (
+    attention?.leftOut || []
+  ).filter((group: OpenStackRowsLeftOut): boolean => {
+    return !region || !group.regionName || group.regionName === region;
+  });
 
   const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: rows,

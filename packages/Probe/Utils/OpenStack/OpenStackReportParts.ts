@@ -80,6 +80,17 @@ function kindOf(metric: JSONObject): "gauge" | "sum" | null {
   return metric["gauge"] ? "gauge" : metric["sum"] ? "sum" : null;
 }
 
+// What a resource's own lines come to around its metrics, beyond what it names.
+const RESOURCE_WRAPPING_BYTES: number = 64;
+
+function sizeOfWrapping(resource: JSONObject, scope: JSONObject): number {
+  return (
+    sizeOf(resource["resource"] ?? null) +
+    sizeOf(scope["scope"] ?? null) +
+    RESOURCE_WRAPPING_BYTES
+  );
+}
+
 class ReportPart {
   public readonly resources: Array<JSONObject> = [];
   public bytes: number = 0;
@@ -102,6 +113,7 @@ class ReportPart {
         scopeMetrics: [{ scope: scope["scope"], metrics: [] }],
       };
       this.resources.push(entry);
+      this.bytes += sizeOfWrapping(resource, scope);
     }
 
     (
@@ -125,11 +137,14 @@ export function splitOpenStackResourceMetrics(
 
   for (const resource of resourceMetrics as Array<JSONObject>) {
     for (const scope of (resource["scopeMetrics"] || []) as Array<JSONObject>) {
-      for (const metric of (scope["metrics"] || []) as Array<JSONObject>) {
-        const bytes: number = sizeOfMetric(metric);
+      const wrapping: number = sizeOfWrapping(resource, scope);
 
-        if (bytes <= maxBytes) {
-          if (current().bytes + bytes > maxBytes) {
+      for (const metric of (scope["metrics"] || []) as Array<JSONObject>) {
+        // And the comma between it and the next.
+        const bytes: number = sizeOfMetric(metric) + 1;
+
+        if (bytes + wrapping <= maxBytes) {
+          if (current().bytes + bytes + wrapping > maxBytes) {
             parts.push(new ReportPart());
           }
 
@@ -146,8 +161,15 @@ export function splitOpenStackResourceMetrics(
           continue;
         }
 
+        // The metric's own words go with each piece of it.
+        const shellBytes: number =
+          sizeOf({
+            ...metric,
+            [kind]: { ...(metric[kind] as JSONObject), dataPoints: [] },
+          }) + wrapping;
+
         let piece: Array<JSONObject> = [];
-        let pieceBytes: number = 0;
+        let pieceBytes: number = shellBytes;
 
         const flush: () => void = (): void => {
           if (piece.length === 0) {
@@ -163,15 +185,15 @@ export function splitOpenStackResourceMetrics(
             parts.push(new ReportPart());
           }
 
-          current().add(resource, scope, cut, pieceBytes);
+          current().add(resource, scope, cut, pieceBytes - wrapping);
           piece = [];
-          pieceBytes = 0;
+          pieceBytes = shellBytes;
         };
 
         for (const point of (metric[kind] as JSONObject)[
           "dataPoints"
         ] as Array<JSONObject>) {
-          const pointBytes: number = sizeOf(point);
+          const pointBytes: number = sizeOf(point) + 1;
 
           if (pieceBytes + pointBytes > maxBytes) {
             flush();

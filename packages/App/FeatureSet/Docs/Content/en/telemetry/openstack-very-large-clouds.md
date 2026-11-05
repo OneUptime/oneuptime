@@ -32,6 +32,7 @@ What each size holds besides its hypervisors, instances and projects is assumed,
 | --- | --- |
 | The first collection after a probe starts | One call for each hypervisor's inventories and one for its usages, however many there are |
 | ML2/OVS rather than OVN | One call per router to ask which L3 agents hold it, at most 2,000 a collection |
+| Instances changing | One call per instance that changed, to Nova, to read what happened to it, at most 25 a collection |
 | [Project limits](/docs/telemetry/openstack-agentless#what-it-costs-your-cloud) turned on | Four calls per project, at most 250 projects a collection, so a cloud of 10,000 takes 80 minutes to come round |
 | Collecting less often | **Collect every** on the cloud's **Settings** page. Twice as long is half the calls |
 | More regions | Everything but Keystone again, per region |
@@ -135,7 +136,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
-Set `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` on an agent that holds a large share: it holds a scrape in memory on its way out, and the default is 512 MiB. A row is vouched for by its own service in its own region, so an agent that stops takes nothing of what another agent reads. Name [what a cloud stands on](/docs/monitor/openstack-monitor#what-the-cloud-stands-on) on one agent only. If that agent stops while the others go on, those machines leave the pages after 15 minutes, and come back when it does.
+Set `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` on an agent that holds a large share: it holds a scrape in memory on its way out, and the default is 512 MiB. A row is vouched for by its own service in its own region, so an agent that stops takes nothing of what another agent reads. Name what a cloud stands on, the `OPENSTACK_RABBITMQ_TARGETS` and the [others like it](/docs/telemetry/openstack#environment-variables), on one agent only. If that agent stops while the others go on, those machines leave the pages after 15 minutes, and come back when it does.
 
 **With probes**, a cloud has one probe. Give a region a probe of its own by connecting it as a cloud of its own, with only that region picked: nothing is counted twice, because each reads only its own region, and each reads Keystone for itself. Each is then a cloud of its own in OneUptime, with its own pages and its own alerts.
 

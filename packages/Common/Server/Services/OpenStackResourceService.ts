@@ -1389,8 +1389,8 @@ export class Service extends DatabaseService<Model> {
         WHEN "status" = '${OPENSTACK_SERVICE_STATUS_DOWN}' THEN 'down'
         ELSE 'up'
       END`;
-    const nameOf: string = isHost ? "NULL" : `"name"`;
-    const familyOf: string = isHost ? "NULL" : `"facts"->>'family'`;
+    const nameOf: string = isHost ? "NULL::text" : `"name"`;
+    const familyOf: string = isHost ? "NULL::text" : `"facts"->>'family'`;
 
     const counted: Array<{
       regionName: string | null;
@@ -1402,7 +1402,7 @@ export class Service extends DatabaseService<Model> {
       `SELECT "regionName", ${nameOf} AS "name", ${familyOf} AS "family",
               ${stateOf} AS "state", COUNT(*)::text AS "count"
        FROM ${table}
-       GROUP BY "regionName", ${nameOf}, ${familyOf}, ${stateOf}`,
+       GROUP BY 1, 2, 3, 4`,
       params,
     );
 
@@ -1433,8 +1433,8 @@ export class Service extends DatabaseService<Model> {
       const facts: JSONObject = (row["facts"] as JSONObject) || {};
       const key: string = keyOf({
         regionName: (row["regionName"] as string | null) ?? null,
-        name: isHost ? null : ((row["name"] as string | null) ?? null),
-        family: isHost ? null : ((facts["family"] as string | null) ?? null),
+        name: isHost ? null : (row["name"] as string | null) ?? null,
+        family: isHost ? null : (facts["family"] as string | null) ?? null,
         state:
           adminState === "disabled" || adminState === "down"
             ? "disabled"

@@ -134,7 +134,9 @@ function percentile(values: ReadonlyArray<number>, share: number): number {
     return a - b;
   });
 
-  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * share))] ?? 0;
+  return (
+    sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * share))] ?? 0
+  );
 }
 
 function sleep(milliseconds: number): Promise<void> {
@@ -253,6 +255,7 @@ describeSoak("the largest size, held for as long as it is asked", () => {
       const lockWaits: Array<{ count: number; longestMs: number }> = [];
       const failures: Array<string> = [];
       let isRunning: boolean = true;
+      let isCollecting: boolean = false;
       let skipped: number = 0;
       let rowsDeleted: number = 0;
 
@@ -276,9 +279,18 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         }
       })();
 
-      // The Overview, opened now and then, and the sweep, as the worker runs it.
+      /*
+       * The Overview, opened now and then, and the sweep, as the worker runs it. Beside the writes,
+       * which is what could hold it up, and not while a collection is being built: in life a probe
+       * does that in a process of its own, and here it would only time this one's event loop.
+       */
       const reads: Promise<void> = (async (): Promise<void> => {
         while (isRunning) {
+          if (isCollecting) {
+            await sleep(1000);
+            continue;
+          }
+
           const startedAt: number = Date.now();
 
           try {
@@ -321,8 +333,12 @@ describeSoak("the largest size, held for as long as it is asked", () => {
 
         cloud.changeInstances(changing, index % 2 === 0 ? "SHUTOFF" : "ACTIVE");
 
+        isCollecting = true;
+
         const report: OpenStackCollectionReport =
           await OpenStackCollector.collect(job, harness.dependencies);
+
+        isCollecting = false;
 
         if (report.status !== "Succeeded") {
           failures.push(
@@ -437,7 +453,8 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         getOpenStackRollingTurns(getOpenStackRollingDatapoints(COUNTS)) *
         INTERVAL_IN_MINUTES;
       const heldLongEnough: boolean =
-        COUNTS.instances <= 5000 || MINUTES > cycleInMinutes + INTERVAL_IN_MINUTES;
+        COUNTS.instances <= 5000 ||
+        MINUTES > cycleInMinutes + INTERVAL_IN_MINUTES;
       const minutesRan: number = (Date.now() - startedAt) / 60_000;
 
       const measures: JSONObject = {

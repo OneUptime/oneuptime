@@ -18,9 +18,11 @@ export interface OpenStackListSeekRead {
   isByIdOnly: boolean;
 }
 
+// The same table's `_id`, as whatever spelled that column spells it.
 function idColumnOf(alias: string): string {
-  // The column as the query builder spells it, on the same table.
-  return alias.replace(/"[^"]*"$/, '"_id"');
+  const table: string = alias.substring(0, alias.lastIndexOf(".") + 1);
+
+  return alias.endsWith('"') ? `${table}"_id"` : `${table}_id`;
 }
 
 function hasNoValueAfter(id: string): FindOperator<unknown> {
