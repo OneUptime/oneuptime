@@ -14,6 +14,13 @@ HTTP API, as a person's browser and a real Alertmanager would reach it.
 Then it reads the incident back from the API, as the cloud's own Incidents page asks for it, and
 says whether it is on the right cloud, on no other, and resolved by the recovery.
 
+And what a real cloud said with one thing stopped on it, in real time, a collection a minute, each
+drill on a cloud of its own with a monitor from each template that could fire: RabbitMQ on OVN and
+on ML2/OVS, MariaDB and ovn-controller. Each has to open exactly one incident, naming what it takes
+down, and the first good collection has to resolve it. What a person would otherwise read on the
+cloud's Incidents page is read back through the API. The drills lasted 3 to 5 minutes and a window
+is 5 to 10, so a drill's last minute is held, which nobody recorded.
+
     ONEUPTIME_URL=http://localhost OUTPUT_DIR=out python3 -I live-oneuptime.py
 
 Only standard library, because this runs on a bare runner.
@@ -22,6 +29,7 @@ import copy
 import http.cookiejar
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -323,6 +331,341 @@ def alertmanager_recordings():
     ]
 
 
+# ----------------------------------------------------------------------------
+# What a real cloud said with one thing stopped on it, through the running stack
+# ----------------------------------------------------------------------------
+CONTROL_PLANE = os.path.join(FIXTURES, "control-plane")
+
+# As long as the worker needs to have read a healthy cloud, and nothing has any reason to fire.
+HEALTHY_MINUTES = 7
+# Past the 10 minutes what waits for what stopped reads, so it would have opened by then.
+OUTAGE_MINUTES = 14
+# The agent reads workers every 2 to 5 minutes, so theirs go on reading as they were.
+EXPORTER_LAG_MINUTES = 3
+# Past the 10 minutes what waits holds back after what it waits for comes back.
+MINUTES_AFTER = 14
+# A reading goes through a queue and the worker reads each monitor once a minute, on a small runner.
+RESOLVES_WITHIN_SECONDS = 240
+
+DRILLS = (
+    {
+        "release": "gazpacho-ovn",
+        "drill": "rabbitmq-down",
+        "cloud": "live-rabbitmq-on-ovn",
+        "template": "openstack-rabbitmq-down",
+        "title": "[OpenStack] RabbitMQ Down",
+        "takes_down": ["nova-compute stops reporting", "Instances that are already running carry on"],
+        "worker": "openstack-compute-service-down",
+    },
+    {
+        "release": "gazpacho-ovs",
+        "drill": "rabbitmq-down",
+        "cloud": "live-rabbitmq-on-ml2-ovs",
+        "template": "openstack-rabbitmq-down",
+        "title": "[OpenStack] RabbitMQ Down",
+        "takes_down": ["nova-compute stops reporting", "Neutron's agents do too"],
+        "worker": "openstack-network-agent-down",
+    },
+    {
+        "release": "gazpacho-ovn",
+        "drill": "mariadb-down",
+        "cloud": "live-mariadb",
+        "template": "openstack-mariadb-cluster-down",
+        "title": "[OpenStack] MariaDB Cluster Down",
+        "takes_down": ["Every API keeps its state in MariaDB", "Instances that are already running carry on"],
+        "worker": None,
+    },
+    {
+        "release": "gazpacho-ovn",
+        "drill": "ovn-controller-down",
+        "cloud": "live-ovn-controller",
+        "template": "openstack-ovn-controller-not-running",
+        "title": "[OpenStack] OVN Controller Not Running",
+        "takes_down": ["new ports do not come up", "neutron-ovn-agent"],
+        "worker": "openstack-network-agent-down",
+    },
+)
+
+SERIES_LINE = re.compile(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{(.*)\})?\s+(\S+)")
+LABEL = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*)="((?:[^"\\]|\\.)*)"')
+
+# The word the agent's job stamps on each endpoint's series. The exporter's own are about the cloud.
+DEPENDENCY_OF_ENDPOINT = {
+    "rabbitmq": "rabbitmq",
+    "mysqld": "mariadb",
+    "memcached": "memcached",
+    "network": "network",
+    "libvirt": "libvirt",
+}
+EXPORTER_ENDPOINT = "single-cloud"
+REGION = "RegionOne"
+# A DevStack is one machine of everything, and the rig reached each exporter on localhost.
+MACHINE = "127.0.0.1"
+
+
+def read_reading(folder):
+    endpoints = {}
+    with open(os.path.join(folder, "status.txt"), encoding="utf-8") as handle:
+        for line in handle:
+            parts = line.split()
+            if len(parts) >= 2:
+                endpoints[parts[1]] = {"answered": parts[0] == "200", "series": []}
+    for name, endpoint in endpoints.items():
+        path = os.path.join(folder, f"{name}.prom")
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                match = SERIES_LINE.match(line)
+                if match:
+                    labels = dict(LABEL.findall(match.group(2) or ""))
+                    endpoint["series"].append((match.group(1), labels, float(match.group(3))))
+    return endpoints
+
+
+def read_drill(release, drill):
+    folder = os.path.join(CONTROL_PLANE, f"cloud-{release}", drill)
+    minutes = sorted(
+        (name for name in os.listdir(folder) if name.startswith("minute-")),
+        key=lambda name: int(name.split("-")[1]),
+    )
+    return {
+        "before": read_reading(os.path.join(folder, "before")),
+        "minutes": [read_reading(os.path.join(folder, name)) for name in minutes],
+        "recovered": read_reading(os.path.join(folder, "recovered")),
+    }
+
+
+def with_exporter_of(reading, other):
+    return {**reading, EXPORTER_ENDPOINT: other[EXPORTER_ENDPOINT]}
+
+
+# One collection of one reading, as the agent's collector sends it (OpenStackControlPlaneScenes.ts).
+def reading_as_export(reading, cloud_name):
+    now = str(time.time_ns())
+    metrics = {}
+
+    def add(name, labels, value, endpoint_name):
+        attributes = dict(labels)
+        attributes["openstack.region.name"] = REGION
+        if endpoint_name in DEPENDENCY_OF_ENDPOINT:
+            attributes["openstack_dependency"] = DEPENDENCY_OF_ENDPOINT[endpoint_name]
+            attributes["openstack_exporter_host"] = MACHINE
+        metrics.setdefault(name, []).append(
+            {
+                "attributes": [{"key": key, "value": {"stringValue": text}} for key, text in attributes.items()],
+                "timeUnixNano": now,
+                "asDouble": value,
+            }
+        )
+
+    for endpoint_name, endpoint in reading.items():
+        add("up", {}, 1 if endpoint["answered"] else 0, endpoint_name)
+        for name, labels, value in endpoint["series"]:
+            add(name, labels, value, endpoint_name)
+
+    return {
+        "resourceMetrics": [
+            {
+                "resource": {
+                    "attributes": [
+                        {"key": "openstack.cloud.name", "value": {"stringValue": cloud_name}},
+                        {"key": "oneuptime.agent.version", "value": {"stringValue": "0.161.3"}},
+                    ]
+                },
+                "scopeMetrics": [
+                    {
+                        "scope": {"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"},
+                        "metrics": [{"name": name, "gauge": {"dataPoints": points}} for name, points in metrics.items()],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def send_reading(plan, reading, token):
+    status, parsed = request(
+        "POST",
+        "/otlp/v1/metrics",
+        raw=json.dumps(reading_as_export(reading, plan["cloud"])).encode(),
+        headers={"x-oneuptime-token": token},
+    )
+    if status >= 300:
+        raise RuntimeError(f"OTLP answered {status}: {json.dumps(parsed)[:800]}")
+
+
+# What a cloud's Recommendations page makes from a template, from what the template builds.
+def make_template_monitor(template_id, template, placeholders, plan, ids):
+    monitor_name = f"{template['name']} on {plan['cloud']}"
+    text = json.dumps(template["monitorSteps"])
+    text = text.replace(placeholders["online"], ids["online"])
+    text = text.replace(placeholders["offline"], ids["offline"])
+    text = text.replace(placeholders["incidentSeverity"], ids["incident_severity"])
+    text = text.replace(placeholders["alertSeverity"], ids["alert_severity"])
+    text = text.replace("__CLOUD__", plan["cloud"]).replace("__MONITOR__", monitor_name)
+    made_up = {}
+    text = re.sub(r"__ID_\d+__", lambda match: made_up.setdefault(match.group(0), str(uuid.uuid4())), text)
+    created = api("POST", "/monitor", {"data": {"name": monitor_name, "monitorType": "OpenStack", "monitorSteps": json.loads(text)}})
+    return created.get("_id") or created["data"]["_id"]
+
+
+def incidents_of(plan):
+    return rows(
+        "/incident",
+        {"projectId": PROJECT_ID, "monitors": {"_type": "Includes", "value": list(plan["monitors"].values())}},
+        {
+            "_id": True,
+            "title": True,
+            "description": True,
+            "createdAt": True,
+            "currentIncidentState": {"name": True, "isResolvedState": True},
+            "openStackClouds": {"_id": True, "name": True},
+        },
+        limit=200,
+    )
+
+
+def titles_of(incidents):
+    return [incident.get("title") for incident in incidents]
+
+
+def is_resolved(incident):
+    return bool((incident.get("currentIncidentState") or {}).get("isResolvedState"))
+
+
+def is_offline(monitor_id):
+    item = api("POST", f"/monitor/{monitor_id}/get-item", {"select": {"currentMonitorStatus": {"isOfflineState": True, "name": True}}})
+    status = item.get("currentMonitorStatus") or (item.get("data") or {}).get("currentMonitorStatus") or {}
+    return bool(status.get("isOfflineState"))
+
+
+def parents_of(monitor_id):
+    item = api("POST", f"/monitor/{monitor_id}/get-item", {"select": {"dependsOnMonitors": {"_id": True}}})
+    parents = item.get("dependsOnMonitors") or (item.get("data") or {}).get("dependsOnMonitors") or []
+    return sorted(parent["_id"] for parent in parents)
+
+
+class Minute:
+    """One collection a minute, whatever the sending and reading in between cost."""
+
+    def __init__(self):
+        self.started = time.monotonic()
+
+    def wait(self, gap=60):
+        left = gap - (time.monotonic() - self.started)
+        if left > 0:
+            time.sleep(left)
+        self.started = time.monotonic()
+
+
+def control_plane_drills(token, online, offline, incident_severity):
+    fixture = json.loads(read_json(CONTROL_PLANE, "live-monitors.json"))
+    ids = {
+        "online": online,
+        "offline": offline,
+        "incident_severity": incident_severity,
+        "alert_severity": rows("/alert-severity", {"projectId": PROJECT_ID}, {"_id": True, "order": True})[0]["_id"],
+    }
+    plans = [{**drill, "readings": read_drill(drill["release"], drill["drill"])} for drill in DRILLS]
+
+    say("\nWhat a real cloud said with one thing stopped on it, in real time")
+    for plan in plans:
+        send_reading(plan, plan["readings"]["before"], token)
+    for plan in plans:
+        plan["cloud_row"] = wait_for_cloud(plan["cloud"])
+        plan["monitors"] = {
+            template_id: make_template_monitor(template_id, template, fixture["placeholders"], plan, ids)
+            for template_id, template in fixture["monitors"].items()
+        }
+    say(f"{len(plans)} clouds, each with {len(fixture['monitors'])} monitors from what the templates build")
+
+    # Linked as they were made, by the product and nothing here.
+    for plan in plans:
+        for template_id, template in fixture["monitors"].items():
+            wanted = sorted(plan["monitors"][parent] for parent in template["parents"])
+            found = parents_of(plan["monitors"][template_id])
+            if found != wanted:
+                check(f"{plan['cloud']}: {template_id} waits for what its template says", False, f"{found} and not {wanted}")
+                break
+        else:
+            check(f"{plan['cloud']}: every monitor waits for what its template says", True)
+
+    minute = Minute()
+    for number in range(HEALTHY_MINUTES):
+        for plan in plans:
+            send_reading(plan, plan["readings"]["before"], token)
+        say(f"healthy, minute {number + 1} of {HEALTHY_MINUTES}")
+        minute.wait()
+    for plan in plans:
+        found = incidents_of(plan)
+        check(f"{plan['cloud']}: a healthy cloud opens nothing", found == [], titles_of(found))
+
+    for number in range(OUTAGE_MINUTES):
+        for plan in plans:
+            recorded = plan["readings"]["minutes"]
+            send_reading(plan, recorded[min(number, len(recorded) - 1)], token)
+        say(f"stopped, minute {number + 1} of {OUTAGE_MINUTES}")
+        minute.wait()
+
+    for plan in plans:
+        found = incidents_of(plan)
+        name = f"{plan['drill']} on {plan['release']}"
+        check(f"{name}: exactly one incident", len(found) == 1, titles_of(found))
+        result = {"drill": name, "cloud": plan["cloud"], "whileStopped": titles_of(found)}
+        RESULTS.setdefault("drills", []).append(result)
+        plan["result"] = result
+        matching = [incident for incident in found if plan["title"] in (incident.get("title") or "")]
+        check(f"{name}: it is {plan['title']}", len(matching) == 1, titles_of(found))
+        if not matching:
+            continue
+        incident = matching[0]
+        plan["incident_id"] = incident["_id"]
+        check(f"{name}: it is still open", not is_resolved(incident), (incident.get("currentIncidentState") or {}).get("name"))
+        for words in plan["takes_down"]:
+            check(f"{name}: it names what it takes down: {words}", words in (incident.get("description") or ""))
+        check(
+            f"{name}: it is on its cloud",
+            [cloud.get("_id") for cloud in incident.get("openStackClouds") or []] == [plan["cloud_row"]["_id"]],
+            [cloud.get("name") for cloud in incident.get("openStackClouds") or []],
+        )
+        result["incident"] = {key: incident.get(key) for key in ("title", "description", "createdAt")}
+        if plan["worker"]:
+            check(f"{name}: what it took down reads as down on its own page, and opened nothing", is_offline(plan["monitors"][plan["worker"]]))
+
+    recovered_at = time.monotonic()
+    waiting = [plan for plan in plans if plan.get("incident_id")]
+    for number in range(MINUTES_AFTER):
+        for plan in plans:
+            reading = plan["readings"]["recovered"]
+            if number < EXPORTER_LAG_MINUTES:
+                reading = with_exporter_of(reading, plan["readings"]["minutes"][-1])
+            send_reading(plan, reading, token)
+        say(f"started again, minute {number + 1} of {MINUTES_AFTER}")
+        # Soon enough to say how soon, and no more often than that once none is left to wait for.
+        for _ in range(4):
+            if waiting:
+                for plan in list(waiting):
+                    settled = [i for i in incidents_of(plan) if i["_id"] == plan["incident_id"] and is_resolved(i)]
+                    if settled:
+                        plan["result"]["resolvedAfterSeconds"] = round(time.monotonic() - recovered_at)
+                        waiting.remove(plan)
+            minute.wait(15)
+
+    for plan in plans:
+        name = f"{plan['drill']} on {plan['release']}"
+        found = incidents_of(plan)
+        plan["result"]["atTheEnd"] = titles_of(found)
+        if plan.get("incident_id"):
+            seconds = plan["result"].get("resolvedAfterSeconds")
+            check(
+                f"{name}: the first good collection resolves it",
+                seconds is not None and seconds <= RESOLVES_WITHIN_SECONDS,
+                f"{seconds} seconds after the first good collection, within {RESOLVES_WITHIN_SECONDS}",
+            )
+        check(f"{name}: and nothing opens after it, once what waited has settled", len(found) == 1, titles_of(found))
+
+
 def main():
     sign_in()
     online, offline, severity = statuses_and_severity()
@@ -389,6 +732,8 @@ def main():
         )
         check("the resolved webhook resolves it", len(settled) == 1, settled[0]["currentIncidentState"].get("name"))
         RESULTS.setdefault("incidents", []).append({"recording": recording, "title": title})
+
+    control_plane_drills(token, online, offline, severity)
 
 
 if __name__ == "__main__":
