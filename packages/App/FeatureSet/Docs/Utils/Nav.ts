@@ -816,6 +816,10 @@ const DocsNav: NavGroup[] = [
         title: "OpenStack by Deployment Tool",
         url: "/docs/telemetry/openstack-deployment-tools",
       },
+      {
+        title: "Very Large OpenStack Clouds",
+        url: "/docs/telemetry/openstack-very-large-clouds",
+      },
     ],
   },
   /*

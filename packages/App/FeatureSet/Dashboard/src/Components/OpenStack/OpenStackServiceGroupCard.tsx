@@ -298,6 +298,23 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
               />
             );
           })}
+          {group.notListedCount > 0 ? (
+            <li
+              className="px-5 py-3 text-sm text-gray-500 md:px-6"
+              data-testid="openstack-service-group-not-listed"
+            >
+              {translator.translatePlural(
+                {
+                  one: "{{count}} more that needs nobody is not listed. A search finds it.",
+                  other:
+                    "{{count}} more that need nobody are not listed. A search finds any of them.",
+                },
+                group.notListedCount,
+              )}
+            </li>
+          ) : (
+            <></>
+          )}
           {group.workers.length > OPENSTACK_SERVICE_GROUP_WORKERS_SHOWN ? (
             <li className="px-5 py-3 md:px-6">
               <button

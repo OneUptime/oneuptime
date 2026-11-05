@@ -198,6 +198,11 @@ export interface OpenStackServiceReading {
    * being sent. openstack_<service>_up says so, because it is what vouches for those rows.
    */
   refreshCycleInMinutes?: number | undefined;
+  /*
+   * This read says nothing about the rows it did not send: they have not all come round yet, or
+   * did not fit. The stale-row rule goes on measuring from the last read that did.
+   */
+  doesNotVouchForRows?: boolean | undefined;
 }
 
 interface MetricBeingBuilt {
@@ -1233,7 +1238,10 @@ export default class OpenStackOtlpBuilder {
       if (reading.apiUp !== null) {
         writer.add(
           "up",
-          { refresh_cycle_minutes: reading.refreshCycleInMinutes },
+          {
+            refresh_cycle_minutes: reading.refreshCycleInMinutes,
+            vouches_for_rows: reading.doesNotVouchForRows ? "false" : undefined,
+          },
           reading.apiUp ? 1 : 0,
         );
       }

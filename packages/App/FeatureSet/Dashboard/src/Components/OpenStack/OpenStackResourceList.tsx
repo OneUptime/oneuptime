@@ -74,6 +74,7 @@ import {
   OpenStackRegionState,
   useOpenStackRegion,
 } from "./OpenStackRegionContext";
+import OpenStackResourceListAPI from "./OpenStackResourceListAPI";
 import { OPENSTACK_STATUS_WORDS } from "./OpenStackStatus";
 import useOpenStackDomainFilter, {
   OPENSTACK_PROJECT_OWNED_KINDS,
@@ -1138,6 +1139,7 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
   return (
     <ModelTable<OpenStackResource>
       modelType={OpenStackResource}
+      modelAPI={OpenStackResourceListAPI}
       id={props.tableId}
       userPreferencesKey={props.tableId}
       name={props.title}
