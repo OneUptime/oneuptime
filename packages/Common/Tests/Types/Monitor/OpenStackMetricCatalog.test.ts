@@ -13,6 +13,7 @@ import MonitorStepOpenStackMonitor, {
 } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
+  OPENSTACK_QUOTA_EXPORTER_READS,
   OpenStackMetricDefinition,
   getAllOpenStackMetricCategories,
   getAllOpenStackMetrics,
@@ -75,12 +76,13 @@ const DOCS: string = readRepoFile(
   "openstack-monitor.md",
 );
 
-// The exporter it runs by default: the database path's other one turns off almost everything.
+// The exporter it runs by default: the others start with nearly every read turned off.
+const MAIN_EXPORTER: string = COMPOSE.match(
+  /^ {2}openstack-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m,
+)![1]!;
+
 const DISABLED_METRICS: Array<string> = Array.from(
-  COMPOSE.slice(
-    COMPOSE.indexOf("\n  openstack-exporter:"),
-    COMPOSE.indexOf("\n  openstack-worker-state-exporter:"),
-  ).matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
+  MAIN_EXPORTER.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
 ).map((match: RegExpMatchArray): string => {
   return match[1]!;
 });
@@ -493,13 +495,33 @@ describe("OpenStackMetricCatalog", () => {
         return Boolean(metricCase[1].offByDefault);
       }),
     )(
-      "%s, off by default, names the line the agent has and says to delete it",
+      "%s, off by default, says how to turn it on",
       (_name: string, metric: OpenStackMetricDefinition) => {
         expect(DISABLED_METRICS).toContain(metric.offByDefault);
-        expect(metric.description).toContain(
-          `--disable-metric=${metric.offByDefault}`,
-        );
         expect(metric.description).not.toContain("--disable-slow-metrics");
+
+        if (metric.fromQuotaExporter) {
+          // Not by deleting the line, which would read it every two minutes as well.
+          expect(metric.description).toContain("OPENSTACK_COLLECT_QUOTAS=true");
+          expect(metric.description).not.toContain("--disable-metric");
+        } else {
+          expect(metric.description).toContain(
+            `--disable-metric=${metric.offByDefault}`,
+          );
+        }
+      },
+    );
+
+    test.each(OPENSTACK_QUOTA_EXPORTER_READS)(
+      "the quota exporter reads what --disable-metric=%s leaves out of the main one, and turns off the rest",
+      (disabled: string) => {
+        const quotaExporter: string = COMPOSE.match(
+          /^ {2}openstack-quota-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m,
+        )![1]!;
+
+        expect(quotaExporter).toContain("--disable-metric=nova-flavors");
+        expect(DISABLED_METRICS).toContain(disabled);
+        expect(quotaExporter).not.toContain(`- --disable-metric=${disabled}\n`);
       },
     );
 

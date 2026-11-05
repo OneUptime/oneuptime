@@ -32,6 +32,8 @@ services:
       - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
       # The name this cloud has in OneUptime: the one its agent reports under.
       - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
+      # The region this machine serves, which a cloud's Logs page narrows by.
+      - OPENSTACK_REGION_NAME=${OPENSTACK_REGION_NAME:-RegionOne}
       # This machine's name, which a hypervisor's and a service's pages read logs by.
       - OPENSTACK_NODE_NAME=${OPENSTACK_NODE_NAME}
       # The zone oslo.log writes its times in: the zone of Kolla's containers.

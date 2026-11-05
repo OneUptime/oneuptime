@@ -805,7 +805,8 @@ function getCollectedDataTopic(): SetupGuideTopic {
 
 - Each service is read on its own, so a failing Nova costs only Nova's numbers, and the rest keep reporting.
 - A read never outlasts its interval, so a slow one never stacks on the next.
-- Quotas and limits per project, and usage per server, are off. To turn one on, delete its \`--disable-metric\` line from the exporter's \`command\` in \`docker-compose.yml\`. The cost is one call per project per scrape. Neutron's quotas answer only **Full view**.
+- Each project's quotas are off. To turn them on, run the installer again with \`OPENSTACK_COLLECT_QUOTAS=true\`: a second exporter reads them once an hour, at four calls per project per region. Neutron's quotas answer only **Full view**.
+- Nova's own quota lists and usage per server are off. To turn one on, delete its \`--disable-metric\` line from the exporter's \`command\` in \`docker-compose.yml\`. The cost is one call per project per scrape.
 - The per-port series are off: listing every port with an admin credential can saturate Neutron on a large cloud.`,
   };
 }

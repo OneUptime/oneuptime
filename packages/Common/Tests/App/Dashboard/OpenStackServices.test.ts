@@ -61,8 +61,15 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackOverviewReads";
 import {
   getOpenStackRegionFromSearch,
+  getOpenStackRegionIssueQuery,
+  getOpenStackRegionMetricFilters,
   getOpenStackRegionRoute,
+  isOpenStackIssueInRegion,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackRegion";
+import { OPENSTACK_REGION_PAGES } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackRegionBar";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
+import JSONFunctions from "../../../Types/JSONFunctions";
 
 /*
  * What the Overview's cards and the Services page read: how a cloud's APIs and workers
@@ -1296,5 +1303,125 @@ describe("the region in the address", () => {
       "/dashboard/p/openstack/c?region=eu%20west%2F2",
     );
     expect(route.toString()).toBe("/dashboard/p/openstack/c");
+  });
+});
+
+describe("what a region narrows, on each signal", () => {
+  test("a metric's datapoint says it, and the whole cloud asks for none", () => {
+    expect(getOpenStackRegionMetricFilters("RegionTwo")).toEqual({
+      "openstack.region.name": "RegionTwo",
+    });
+    expect(getOpenStackRegionMetricFilters(null)).toEqual({});
+  });
+
+  test("an incident or alert of the region, or one that names none", () => {
+    const query: JSONObject = getOpenStackRegionIssueQuery("RegionTwo");
+    const wanted: unknown = query["openstack.region.name"];
+
+    expect(wanted).toBeInstanceOf(EqualToOrNull);
+    expect((wanted as EqualToOrNull<string>).value).toBe("RegionTwo");
+  });
+
+  test("survives the trip to the API, which reads it back as the same filter", () => {
+    const sent: JSONObject = JSONFunctions.deserialize(
+      JSON.parse(
+        JSON.stringify(
+          JSONFunctions.serialize(getOpenStackRegionIssueQuery("RegionTwo")),
+        ),
+      ),
+    );
+
+    expect(sent["openstack.region.name"]).toBeInstanceOf(EqualToOrNull);
+  });
+
+  test.each<[string, JSONObject | null | undefined, string | null, boolean]>([
+    ["the whole cloud reads everything", { a: "b" }, null, true],
+    [
+      "the whole cloud reads another region's",
+      { "openstack.region.name": "RegionTwo" },
+      null,
+      true,
+    ],
+    [
+      "its own region",
+      { "openstack.region.name": "RegionTwo" },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "as ingest writes a resource's attribute",
+      { "resource.openstack.region.name": "RegionTwo" },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "not another region's",
+      { "openstack.region.name": "RegionOne" },
+      "RegionTwo",
+      false,
+    ],
+    ["a series that names none is the whole cloud's", {}, "RegionTwo", true],
+    ["declared by hand, with no series", null, "RegionTwo", true],
+    ["no labels read at all", undefined, "RegionTwo", true],
+    [
+      "a blank name is no name",
+      { "openstack.region.name": "  " },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "spaces around a name are not part of it",
+      { "openstack.region.name": " RegionTwo " },
+      "RegionTwo",
+      true,
+    ],
+    [
+      "a name is matched as written, not by what it begins with",
+      { "openstack.region.name": "RegionTwoWest" },
+      "RegionTwo",
+      false,
+    ],
+    [
+      "a label that is not a name says nothing",
+      { "openstack.region.name": 7 as unknown as string },
+      "RegionTwo",
+      true,
+    ],
+  ])(
+    "what is open: %s",
+    (
+      _name: string,
+      labels: JSONObject | null | undefined,
+      region: string | null,
+      expected: boolean,
+    ) => {
+      expect(isOpenStackIssueInRegion(labels, region)).toBe(expected);
+    },
+  );
+});
+
+describe("the pages a region can be chosen on", () => {
+  const pages: ReadonlyArray<PageMap> = OPENSTACK_REGION_PAGES;
+
+  test.each<[string, PageMap]>([
+    ["the map", PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY],
+    ["what the cloud stands on", PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE],
+    ["metrics", PageMap.OPENSTACK_CLOUD_VIEW_METRICS],
+    ["logs", PageMap.OPENSTACK_CLOUD_VIEW_LOGS],
+    ["traces", PageMap.OPENSTACK_CLOUD_VIEW_TRACES],
+    ["incidents", PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS],
+    ["alerts", PageMap.OPENSTACK_CLOUD_VIEW_ALERTS],
+    ["maintenance", PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE],
+  ])("%s", (_name: string, page: PageMap) => {
+    expect(pages).toContain(page);
+  });
+
+  test.each<[string, PageMap]>([
+    ["a cloud's settings", PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS],
+    ["its owners", PageMap.OPENSTACK_CLOUD_VIEW_OWNERS],
+    ["Keystone's projects", PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS],
+    ["Keystone's domains", PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS],
+  ])("not %s, where a region means nothing", (_name: string, page: PageMap) => {
+    expect(pages).not.toContain(page);
   });
 });

@@ -2630,6 +2630,97 @@ describe("the exporter", () => {
 
 /* ------------------------------------------------------------------- the rest */
 
+describe("each project's quotas", () => {
+  test("off says so, and asks the exporter nothing about them", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Project quotas are off, so a project's page shows none.",
+    );
+    expect(
+      cloud.requests.filter((request) => {
+        return (
+          request.path === "/probe" &&
+          request.query.get("include_services") === "compute"
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("on, says how many projects' limits its exporter reads", async () => {
+    const cloud = await startCloud({
+      probe: (url) => {
+        return url.searchParams.get("include_services") === "compute"
+          ? 'openstack_nova_limits_vcpus_max{tenant="a",tenant_id="1"} 8\nopenstack_nova_limits_vcpus_max{tenant="b",tenant_id="2"} 20\n'
+          : "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Quota exporter 'oneuptime-openstack-quota-exporter' is running",
+    );
+    expect(run.output).toContain(
+      "Region RegionOne: the quota exporter reads the limits of 2 projects.",
+    );
+  });
+
+  test("on, with an exporter that reads none, says where to look", async () => {
+    const cloud = await startCloud({
+      probe: () => {
+        return "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Region RegionOne: the quota exporter answers, with no project's limits.",
+    );
+  });
+
+  test("on, without Docker, it looks at its service", async () => {
+    const cloud = await startCloud({
+      probe: (url) => {
+        return url.searchParams.get("include_services") === "compute"
+          ? 'openstack_nova_limits_vcpus_max{tenant="a",tenant_id="1"} 8\n'
+          : "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      native: true,
+      args: ["--skip-access"],
+      env: { OPENSTACK_QUOTA_CLOUDS: "[RegionOne]" },
+      files: { "oneuptime-openstack-quota-exporter.inactive": "" },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Service 'oneuptime-openstack-quota-exporter' is NOT active",
+    );
+    expect(run.output).toContain(
+      "journalctl -u oneuptime-openstack-quota-exporter",
+    );
+  });
+});
+
 describe("the rest of the chain", () => {
   test("--skip-access asks nothing of the services, and --help prints the usage", async () => {
     const cloud = await startCloud();

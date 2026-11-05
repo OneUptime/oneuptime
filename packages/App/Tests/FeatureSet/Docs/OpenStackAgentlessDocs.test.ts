@@ -1,3 +1,4 @@
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCollectionErrorCode, {
   OpenStackCollectionErrorUtil,
 } from "Common/Types/OpenStack/OpenStackCollectionError";
@@ -11,6 +12,15 @@ import {
   OPENSTACK_PROBE_COLLECTION_CONCURRENCY,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import {
+  OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION,
+  OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
+} from "Common/Types/OpenStack/OpenStackScale";
+import {
+  TerraformAttributeDescriptor,
+  getTerraformAttributes,
+  getTerraformTypeName,
+} from "Common/Utils/DeveloperDocs/TerraformSchema";
+import {
   DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
   MAX_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
   MAX_OPENSTACK_TRUSTED_CERTIFICATES,
@@ -19,6 +29,7 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS } from "../../../FeatureSet/Dashboard/src/Components/OpenStack/OpenStackProbeCollectionView";
 
 /*
  * telemetry/openstack-agentless.md, in English for now, against the product: the limits the
@@ -90,8 +101,8 @@ describe("the reference table", () => {
     const mebibytes: number =
       OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES / (1024 * 1024);
 
-    expect(row("Largest collection")).toContain(`About ${mebibytes} MiB`);
-    expect(PAGE).toContain(`About ${mebibytes} MiB of metrics per collection`);
+    expect(row("Largest upload")).toContain(`${mebibytes} MiB`);
+    expect(row("Largest cloud")).toContain(`uploads of ${mebibytes} MiB`);
   });
 
   it("says how long a test has", () => {
@@ -336,15 +347,148 @@ describe("plain HTTP", () => {
   });
 });
 
+describe("from the API and Terraform", () => {
+  const ATTRIBUTES: Array<TerraformAttributeDescriptor> =
+    getTerraformAttributes(OpenStackCloud);
+
+  function attribute(name: string): TerraformAttributeDescriptor | undefined {
+    return ATTRIBUTES.find(
+      (descriptor: TerraformAttributeDescriptor): boolean => {
+        return descriptor.attributeName === name;
+      },
+    );
+  }
+
+  const EXAMPLE: string = PAGE.split("```hcl")[1]?.split("```")[0] || "";
+
+  it("names the resource as the provider does, and links its page in the API reference", () => {
+    expect(EXAMPLE).toContain(
+      `resource "${getTerraformTypeName(OpenStackCloud)}"`,
+    );
+    expect(PAGE).toContain(
+      `(/reference/${new OpenStackCloud().getAPIDocumentationPath()})`,
+    );
+    expect(PAGE).toContain(
+      `/api${new OpenStackCloud().crudApiPath?.toString()}`,
+    );
+  });
+
+  it("sets only what a configuration can set, and every attribute it names exists", () => {
+    const names: Array<string> = Array.from(
+      EXAMPLE.matchAll(/^\s*([a-z_]+)\s*=/gm),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(names.length).toBeGreaterThan(5);
+
+    for (const name of names) {
+      expect({
+        name,
+        isWritable: Boolean(
+          attribute(name)?.inCreateSchema && attribute(name)?.inUpdateSchema,
+        ),
+      }).toEqual({ name, isWritable: true });
+    }
+  });
+
+  it("names, in words, only attributes that exist, and what the probe reports as what it is", () => {
+    const section: string =
+      PAGE.split("## Connect a cloud from the API or Terraform")[1]?.split(
+        "\n## ",
+      )[0] || "";
+    const words: Array<string> = Array.from(
+      section
+        .split("```hcl")[0]!
+        .concat(section.split("```")[2] || "")
+        .matchAll(/`([a-z]+(?:_[a-z0-9]+)+)`/g),
+    )
+      .map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      })
+      .filter((word: string): boolean => {
+        return word !== "oneuptime_openstack_cloud";
+      });
+
+    // A configuration reads these, and getTerraformAttributes only lists what it can set.
+    const REPORTED: Record<string, string> = {
+      collection_status: "collectionStatus",
+      collection_error: "collectionError",
+      presented_certificate: "presentedCertificate",
+    };
+
+    expect(words).toEqual(
+      expect.arrayContaining([
+        "credential_secret",
+        "keystone_username",
+        "project_name",
+        ...Object.keys(REPORTED),
+      ]),
+    );
+
+    for (const word of words) {
+      if (REPORTED[word]) {
+        continue;
+      }
+
+      expect({ word, isAttribute: Boolean(attribute(word)) }).toEqual({
+        word,
+        isAttribute: true,
+      });
+    }
+
+    for (const word of Object.keys(REPORTED)) {
+      const access: ReturnType<OpenStackCloud["getColumnAccessControlFor"]> =
+        new OpenStackCloud().getColumnAccessControlFor(
+          REPORTED[word] as string,
+        );
+
+      expect({
+        word,
+        create: access?.create,
+        update: access?.update,
+        isRead: (access?.read?.length || 0) > 0,
+      }).toEqual({ word, create: [], update: [], isRead: true });
+    }
+
+    expect(attribute("credential_secret")?.readPermissions).toEqual([]);
+  });
+});
+
+describe("what it says about how a collection stands", () => {
+  it("says when a probe that stopped coming is said to have, from the page's own line", () => {
+    const minutes: number = OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS / 60_000;
+
+    expect(PAGE).toContain(
+      `If no probe comes for the cloud for ${minutes} minutes`,
+    );
+    expect(PAGE).toContain(`once a collection is ${minutes} minutes overdue`);
+    expect(PAGE).toContain("**Not collecting**");
+  });
+
+  it("says where a large cloud starts keeping less", () => {
+    expect(PAGE).toContain(
+      `Past ${OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT.toLocaleString("en-US")} instances`,
+    );
+  });
+
+  it("says how many instances' histories one collection reads", () => {
+    expect(OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION).toBe(25);
+    expect(PAGE).toContain("at most 25 are read in a collection");
+  });
+});
+
 describe("which to pick", () => {
   it("says the agent, for what a probe does not do", () => {
     const line: string | undefined = PAGE.split("\n").find((text: string) => {
       return text.startsWith("Pick the agent");
     });
 
-    expect(line).toContain("payload cap");
+    expect(line).toContain("read from its databases");
     expect(line).toContain("service logs");
     expect(line).toContain("the AI agent");
+    expect(line).toContain("what the cloud stands on");
+    expect(line).toContain("each instance's real usage");
     expect(line).toContain("plain HTTP");
   });
 

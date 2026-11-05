@@ -69,6 +69,7 @@ import {
   getOpenStackPartRoutes,
   openStackIdFromRouteParam,
 } from "./OpenStackPartRoutes";
+import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
 /*
@@ -240,6 +241,8 @@ export const OpenStackHostGroupList: FunctionComponent<{
 }> = (props: { kind: OpenStackHostGroupKind }): ReactElement => {
   const translator: Translator = useTranslator();
   const openStackCloudId: ObjectID = getCloudIdFromAddress(1);
+  const isProbeCollected: boolean =
+    useIsOpenStackProbeCollected(openStackCloudId);
   const words: HostGroupWords = WORDS[props.kind];
 
   const routes: OpenStackPartRoutes = useMemo(() => {
@@ -355,6 +358,7 @@ export const OpenStackHostGroupList: FunctionComponent<{
     : getOpenStackEmptyWords({
         kind: OpenStackResourceKind.Hypervisor,
         api: (service && api.data?.[service]) || "not-reported",
+        isProbeCollected: isProbeCollected,
       });
 
   return (
