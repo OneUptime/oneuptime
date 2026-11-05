@@ -136,7 +136,9 @@ deploy() {
   logged bootstrap-servers kolla-ansible bootstrap-servers -i "$KOLLA_INVENTORY"
   # That page again: every command after bootstrap-servers runs on what it made.
   printf 'ansible_python_interpreter: %s/bin/python\n' "$KOLLA_RUNTIME_VENV" >/etc/kolla/globals.d/rig-python.yml
-  logged prechecks kolla-ansible prechecks -i "$KOLLA_INVENTORY"
+  # The images its quick start deploys, from quay.io. Prechecks refuses them unless told they
+  # are meant, since the project calls them test images, and a runner cannot build its own.
+  logged prechecks kolla-ansible prechecks -i "$KOLLA_INVENTORY" --use-test-images
   logged pull kolla-ansible pull -i "$KOLLA_INVENTORY"
   logged deploy kolla-ansible deploy -i "$KOLLA_INVENTORY"
   logged post-deploy kolla-ansible post-deploy -i "$KOLLA_INVENTORY"

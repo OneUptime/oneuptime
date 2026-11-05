@@ -39,8 +39,9 @@ logged() {
     tee -a "$OSA_RECORDING/timings.txt"
   if [ "$status" != 0 ]; then
     tail -n 150 "$file"
-    # What the LXC base image's build said, which Ansible only reports the exit code of.
-    sudo tail -n 60 /var/lib/machines/ubuntu-24-amd64/var/log/lxc-cache-prep-commands.log 2>/dev/null \
+    # What the LXC base image's build said, which Ansible only reports the exit code of. It
+    # runs in a chroot and the host's shell redirects it, so this is the host's own /var/log.
+    sudo tail -n 60 /var/log/lxc-cache-prep-commands.log 2>/dev/null \
       | tee "$OSA_RECORDING/lxc-cache-prep.log" || true
   fi
   df -h / | tail -n 1
@@ -78,6 +79,11 @@ prepare_host() {
   # machine's, without their keys, so its first apt-get fails. A real host has its distribution's.
   log "Only the distribution's own package sources"
   sudo find /etc/apt/sources.list.d -type f ! -name 'ubuntu.sources' -print -delete
+  # And a runner's image points those at a mirror list in /etc/apt/apt-mirrors.txt, which the base
+  # image is not given, so its first apt-get ends at once with 100. A real host names a mirror.
+  sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://azure.archive.ubuntu.com/ubuntu/|' \
+    /etc/apt/sources.list.d/ubuntu.sources
+  grep -h '^URIs:' /etc/apt/sources.list.d/ubuntu.sources || true
 
   log "What the playbooks log in to this machine with"
   sudo systemctl start ssh.socket ssh 2>/dev/null || sudo systemctl start ssh

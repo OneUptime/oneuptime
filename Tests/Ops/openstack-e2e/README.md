@@ -30,7 +30,7 @@ The rest of this page is about DevStack. These deploy what customers run, and fo
 | `kolla-guide.sh`, `osa-guide.sh` | Follow its guide, one part at a time. Every block after `follow` is the guide's own text: `OpenStackDeploymentGuides.test.ts` fails when one and the guide differ. |
 | `guide-follow.sh` | What following any guide takes: running a block with its placeholders filled in and a person's answers on its standard input. |
 | `fake-oneuptime.py`, `collector-sink.yaml` | The OneUptime those commands name: it serves the install scripts from this checkout, hands OTLP to a real collector that decodes and keeps it, and keeps each webhook. It proves what reaches OneUptime, not what OneUptime does with it. |
-| `live-oneuptime.py` | That part, with `-f live_oneuptime=true`: a real OneUptime started from its test images, sent what a real agent and a real Alertmanager sent, and read back through its API. |
+| `live-oneuptime.py` | That part, with `-f live_oneuptime=true`: a real OneUptime, its app built from the branch and the rest from its test images, sent what a real agent and a real Alertmanager sent, and read back through its API. |
 
 The artifact is `openstack-recording-kolla-aio` or `openstack-recording-osa-aio`:
 
