@@ -67,14 +67,20 @@ import {
  * the join and the criteria are the real code, reading what was recorded.
  */
 
-const ANSI: RegExp = /\u001b\[/;
+const ESCAPE: string = String.fromCharCode(27);
+const COLOUR: RegExp = new RegExp(`${ESCAPE}\\[[0-9;]*m`, "g");
 const UUID: string =
   "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const REQUEST: RegExp = new RegExp(`req-${UUID}`);
+// A line's own request, in the context after its logger: a message can name another's.
+const REQUEST_IN_CONTEXT: RegExp = new RegExp(
+  `^(?:DEBUG|INFO|WARNING|ERROR|CRITICAL) \\S+ \\[(?:None |req-${UUID} )?(req-${UUID})`,
+);
 const INSTANCE_PREFIX: RegExp = new RegExp(`\\[instance: (${UUID})\\]`);
 const LEVEL_AT_START: RegExp =
   /^(?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \d+ )?(DEBUG|INFO|WARNING|ERROR|CRITICAL) /;
 const PLANTED: string = "planted-secret-9f8e7d6c";
+const MASKED_PASSWORD: RegExp = /password\s*=\s*\*{3,}/;
 
 const DROP_FILTERS: Array<{ name: string; compiled: CompiledFilter }> =
   OPENSTACK_DEFAULT_DROP_FILTERS.map(
@@ -160,7 +166,7 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
         );
       }
 
-      expect(stamp.body).not.toMatch(ANSI);
+      expect(stamp.body).not.toContain(`${ESCAPE}[`);
       expect(stamp.attributes[OpenStackLogAttribute.Service]).toBeTruthy();
     }
 
@@ -173,7 +179,10 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
         (entry: RecordedJournalEntry): OpenStackLogStamp => {
           const row: StoredLogRow = storedRowOf(entry);
 
-          expectItsOwnWords(entry.MESSAGE.replace(/\u001b\[[0-9;]*m/g, ""), row.stamp);
+          expectItsOwnWords(
+            entry.MESSAGE.replace(COLOUR, ""),
+            row.stamp,
+          );
 
           return row.stamp;
         },
@@ -192,7 +201,7 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
       // A line with a request in its context says which, and what it has in common.
       const withRequest: Array<OpenStackLogStamp> = read.filter(
         (stamp: OpenStackLogStamp): boolean => {
-          return REQUEST.test(stamp.body.slice(0, 200));
+          return REQUEST_IN_CONTEXT.test(stamp.body.slice(0, 200));
         },
       );
 
@@ -268,8 +277,11 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
         expect(stamp.attributes[OpenStackLogAttribute.Logger]).toBe(
           written["name"],
         );
-        expect(stamp.time?.getTime()).toBe(
-          new Date(`${String(written["asctime"]).replace(" ", "T")}Z`).getTime(),
+        // Its asctime holds no fraction of a second, and its msecs do.
+        expect(Math.floor((stamp.time?.getTime() || 0) / 1000) * 1000).toBe(
+          new Date(
+            `${String(written["asctime"]).replace(" ", "T")}Z`,
+          ).getTime(),
         );
 
         if (context["request_id"]) {
@@ -343,8 +355,16 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
       for (const entry of entries) {
         const row: StoredLogRow = storedRowOf(entry);
 
-        expect(row.body.split("Traceback (most recent call last)").length).toBe(
-          2,
+        // A chained exception holds several of its own, and each is there once.
+        const tracebacksIn: (text: string) => number = (
+          text: string,
+        ): number => {
+          return text.split("Traceback (most recent call last)").length - 1;
+        };
+
+        expect(tracebacksIn(row.body)).toBe(
+          tracebacksIn(entry.MESSAGE) ||
+            tracebacksIn(entry.EXCEPTION_INFO as string),
         );
         expect(row.stamp.removedAttributes).toContain(
           "journald.exception_info",
@@ -381,7 +401,11 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
       }
 
       for (const body of bodies) {
-        if (body.indexOf("Traceback (most recent call last)") !== -1) {
+        // A notification holds a failure's traceback in its JSON, on its one line.
+        if (
+          body.indexOf("Traceback (most recent call last)") !== -1 &&
+          body.indexOf("oslo.messaging.notification.") === -1
+        ) {
           expect(body).toContain("\n");
           expect(body).toMatch(/File "/);
         }
@@ -540,7 +564,10 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
       };
     }
 
-    function matches(logMonitor: MonitorStepLogMonitor, row: TimedRow): boolean {
+    function matches(
+      logMonitor: MonitorStepLogMonitor,
+      row: TimedRow,
+    ): boolean {
       const severities: Array<LogSeverity> = logMonitor.severityTexts || [];
 
       return (
@@ -727,7 +754,9 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
 
         for (const value of found) {
           if (stored.indexOf(value) !== -1) {
-            left.push(`${value.slice(0, 40)} in ${entry.MESSAGE.slice(0, 120)}`);
+            left.push(
+              `${value.slice(0, 40)} in ${entry.MESSAGE.slice(0, 120)}`,
+            );
           }
         }
       }
@@ -766,7 +795,7 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
     test("what is taken out says so", () => {
       const line: RecordedJournalEntry | undefined = entriesOf().find(
         (entry: RecordedJournalEntry): boolean => {
-          return /password\s*=\s*\*{3,}/.test(entry.MESSAGE);
+          return MASKED_PASSWORD.test(entry.MESSAGE);
         },
       );
 
@@ -774,10 +803,7 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
         expect(
           storedText(
             line,
-            line.MESSAGE.replace(
-              /(password\s*=\s*)\*{3,}/,
-              `$1${PLANTED}`,
-            ),
+            line.MESSAGE.replace(/(password\s*=\s*)\*{3,}/, `$1${PLANTED}`),
           ),
         ).toContain(OPENSTACK_SCRUBBED_VALUE);
       }

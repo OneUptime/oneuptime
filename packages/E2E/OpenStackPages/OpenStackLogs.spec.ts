@@ -61,13 +61,10 @@ test.describe("a cloud's service logs and events", () => {
       // One: its Logs.
       await page.getByRole("tab", { name: "Logs" }).click();
 
-      const requests: Locator = page.getByTestId(
-        "openstack-instance-requests",
-      );
+      const requests: Locator = page.getByTestId("openstack-instance-requests");
       const failed: Locator = requests.locator("li").first();
 
       await expect(failed).toContainText("Failed");
-      await expect(failed).toContainText("nova-scheduler");
 
       // Two: the request that failed.
       await failed.getByRole("link").click();
@@ -133,6 +130,7 @@ test.describe("a cloud's service logs and events", () => {
       await expect(feed).toContainText("created");
       await expect(feed).toContainText("resize confirmed");
       await expect(feed).toContainText("volume attached");
+      await expect(feed).toContainText("migration failed");
       await screenshot(page, `openstack-feed-${release}-instance`);
     });
 
@@ -155,7 +153,7 @@ test.describe("a cloud's service logs and events", () => {
       await screenshot(page, `openstack-feed-${release}-failed-build`);
     });
 
-    test(`${release}: a volume's Feed says it is being attached`, async ({
+    test(`${release}: a volume's Feed says it was attached`, async ({
       page,
     }: {
       page: Page;
@@ -168,7 +166,7 @@ test.describe("a cloud's service logs and events", () => {
       );
       await page.getByRole("tab", { name: "Feed" }).click();
       await expect(page.getByTestId("openstack-part-feed")).toContainText(
-        "being attached",
+        "attached",
       );
     });
 

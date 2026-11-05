@@ -28,7 +28,7 @@ import { generatedTexts } from "../../Helpers/GeneratedTexts";
  * Reading a line of a cloud's logs, whoever configured it.
  *
  * HAND-WRITTEN FIXTURES. The lines in this file are written from oslo.log's source and format
- * strings. What the services really write, on five releases of DevStack, is held in
+ * strings. What the services really write, on three releases of DevStack, is held in
  * OpenStackRecordedLogs.test.ts, which reads what the rig records. So this file says what each
  * format means and that nothing long or strange breaks it, and that one says the formats are
  * what real services write.
@@ -47,6 +47,20 @@ function lineOf(text: string): OpenStackLogLine {
 
   return line as OpenStackLogLine;
 }
+
+describe("a logger's name", () => {
+  test("may hold a colon, as a Keystone extension's notification does", () => {
+    expect(
+      lineOf(
+        `INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [None ${REQUEST} admin admin] {}`,
+      ).logger,
+    ).toBe("oslo.messaging.notification.identity.OS-TRUST:trust.created");
+  });
+
+  test("does not end in one: that is a sentence", () => {
+    expect(readOpenStackLogLine("ERROR something: went wrong")).toBeNull();
+  });
+});
 
 describe("a line in oslo.log's default format", () => {
   test("holds every field its format string names", () => {

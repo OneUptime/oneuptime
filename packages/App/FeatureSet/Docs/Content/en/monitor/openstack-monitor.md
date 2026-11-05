@@ -172,7 +172,7 @@ Seven more templates read a cloud's logs rather than its metrics, so they are Lo
 | Too Many Errors from a Service | Service Logs | Warning | `ERROR` and `CRITICAL` lines, per service and machine, **past 5 minutes** | 50 or more | Fewer than 50 |
 | Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token` and Keystone's `not a recognized Fernet token`, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
 | Instance Action Failed | Events | Warning | `compute.exception` and any `instance.*.error`, per instance, event and reason, **past 15 minutes**. Needs [notifications](/docs/telemetry/openstack#turn-on-notifications) or a probe | One or more | None left in the window |
-| Scheduling Failed | Events | Warning | `scheduler.select_destinations.error`, or a compute task's error naming `NoValidHost`, per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
+| Scheduling Failed | Events | Warning | A compute task's error naming `NoValidHost`, such as `compute_task.build_instances.error`, which is what Nova sends. Cinder's `scheduler.create_volume` too, and `scheduler.select_destinations.error`, which Nova's documentation names and our test clouds never sent. Per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
 
 ### Turn on the limits series
 

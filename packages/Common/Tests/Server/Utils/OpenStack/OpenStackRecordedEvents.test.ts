@@ -30,6 +30,7 @@ import {
   OpenStackLogAttribute,
 } from "../../../../Utils/OpenStack/OpenStackLogs";
 import {
+  OPENSTACK_MAX_EVENT_REASON_LENGTH,
   OpenStackEvent,
   OpenStackEventAttribute,
   OpenStackEventFailure,
@@ -348,23 +349,30 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
       );
 
       expectOnItsPart(recorded, instance);
-      expect(isFoundBy(entryOf(recorded), feedQueryOf(instanceFacts(instance)))).toBe(true);
+      expect(
+        isFoundBy(entryOf(recorded), feedQueryOf(instanceFacts(instance))),
+      ).toBe(true);
     });
 
+    /*
+     * A cold or a live migration has nowhere to go on one machine, so it can't succeed here: a
+     * resize goes through what a cold migration does, above. What the recording holds of one is
+     * the cloud refusing it, with Nova's reason.
+     */
     test("a migration the cloud refused says why, on its instance", () => {
-      const refused: OpenStackRecordedEvent | undefined = events.find(
-        (recorded: OpenStackRecordedEvent): boolean => {
-          return (
-            recorded.event.type === "compute_task.migrate_server.error" ||
-            recorded.event.type === "compute.exception"
-          );
-        },
+      const recorded: OpenStackRecordedEvent = find(
+        "compute_task.migrate_server.error",
+        instance,
       );
 
-      if (refused) {
-        expect(refused.event.outcome).toBe(OpenStackEventOutcome.Failed);
-        expect(refused.event.reason).toBeTruthy();
-      }
+      expect(recorded.event.outcome).toBe(OpenStackEventOutcome.Failed);
+      expect(recorded.event.failure).toBe(OpenStackEventFailure.Scheduling);
+      expect(recorded.event.reason).toMatch(/valid host/i);
+      expect(recorded.event.title).toContain("migration failed");
+      expect(
+        isFoundBy(entryOf(recorded), feedQueryOf(instanceFacts(instance))),
+      ).toBe(true);
+      expectOnItsPart(recorded, instance);
     });
   });
 
@@ -435,8 +443,9 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
         },
       });
 
+      // A long reason keeps its end, which is where the numbers that differ are.
       expect(title).toContain(failedBuild);
-      expect(title).toContain(recorded.event.reason.slice(0, 30));
+      expect(title).toContain(recorded.event.reason.slice(-30));
     });
   });
 
@@ -447,7 +456,7 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
           return (
             candidate.event.type === "service.update" &&
             candidate.event.part?.binary === "nova-compute" &&
-            /disabled/i.test(candidate.event.title)
+            candidate.event.title.includes("disabled")
           );
         },
       );
@@ -470,9 +479,9 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
           }),
         ),
       ).toBe(true);
-      expect(
-        isOnChart(entry, { [OPENSTACK_CHART_HOST_ATTRIBUTE]: host }),
-      ).toBe(true);
+      expect(isOnChart(entry, { [OPENSTACK_CHART_HOST_ATTRIBUTE]: host })).toBe(
+        true,
+      );
       expect(toOpenStackStateChanges([recorded!])[0]).toMatchObject({
         kind: OpenStackResourceKind.Service,
         binary: "nova-compute",
@@ -488,20 +497,13 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
   describe("a volume attached", () => {
     const volume: string = devstackIds["volume_attached"] || "";
 
-    test("Cinder's only word of it, on the volume's feed, its charts and as a suspect", () => {
+    test("Cinder's own event, on the volume's feed, its charts and as a suspect", () => {
       const recorded: OpenStackRecordedEvent = find(
-        "volume.attach.start",
+        "volume.attach.end",
         volume,
       );
 
-      // A real cloud sends no volume.attach.end for what Nova attaches.
-      expect(
-        events.some((candidate: OpenStackRecordedEvent): boolean => {
-          return candidate.event.type === "volume.attach.end";
-        }),
-      ).toBe(false);
-      expect(recorded.event.title).toBe("Volume ou-log-vol: being attached");
-
+      expect(recorded.event.title).toBe("Volume ou-log-vol: attached");
       expect(recorded.event.part?.kind).toBe(OpenStackResourceKind.Volume);
       expect(
         isFoundBy(
@@ -562,7 +564,9 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
       for (const recorded of events) {
         if (recorded.event.importance === OpenStackEventImportance.Change) {
           expect(recorded.event.title).toBeTruthy();
-          expect(recorded.event.title.length).toBeLessThan(400);
+          expect(recorded.event.title.length).toBeLessThan(
+            OPENSTACK_MAX_EVENT_REASON_LENGTH + 300,
+          );
         }
       }
     });

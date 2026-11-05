@@ -670,11 +670,11 @@ The cloud's **Recommendations** page offers these beside the other [alert templa
 
 A cloud writes a great deal nobody reads. The first time a project's OpenStack logs arrive, it gets these as [drop filters](/docs/telemetry/drop-filters-and-scrub-rules), where they can be counted, changed or turned off. Turned off, they stay off, and so does one you delete while either of the others is left. Delete all three and the next logs bring all three back, so turn off what you don't want.
 
-| Filter | What it drops | What it costs you |
-| --- | --- | --- |
-| **OpenStack: DEBUG lines** | Every `DEBUG` line. On a cloud with `debug = True` that is most of what it writes, and it is where its secrets have leaked | The detail you turn `debug` on to read. Turn this off while you debug a service |
-| **OpenStack: health checks** | A load balancer asking each API for `/` or `/healthcheck`: a line every few seconds, per API, per controller | Nothing a person reads. The same line from a person looks the same |
-| **OpenStack: routine notifications** | `metrics.update`, and every `*.exists` and `*.usage`. See [Lifecycle events](#lifecycle-events) | Nothing that says anything changed. Turn this off to keep every notification |
+| Filter | What it drops | What it saves | What it costs you |
+| --- | --- | --- | --- |
+| **OpenStack: DEBUG lines** | Every `DEBUG` line. It is where a cloud's secrets have leaked | With `debug = True`, most of what a cloud writes: 85 to 87% of lines and 70 to 76% of bytes on our test clouds, across three releases. Nothing with `debug = False` | The detail you turn `debug` on to read. Turn this off while you debug a service |
+| **OpenStack: health checks** | A load balancer asking each API for `/` or `/healthcheck`: a line every few seconds, per API, per controller | At one check every 2 seconds, 43,200 lines a day for each API on each controller. At the 220 to 490 bytes these lines were on our test clouds, that's 10 to 21 MB a day. This is arithmetic from the size of a line: our test clouds have no load balancer | Nothing a person reads. The same line from a person looks the same |
+| **OpenStack: routine notifications** | `metrics.update`, and every `*.exists` and `*.usage`. See [Lifecycle events](#lifecycle-events) | Not measured: our recordings are too short to hold many. It grows with the number of instances | Nothing that says anything changed. Turn this off to keep every notification |
 
 These filters match only what OneUptime read from a cloud's logs, so nothing else in a project is touched.
 
@@ -727,6 +727,8 @@ A cloud whose configuration isn't yours to change can still have failed actions.
 
 Nova keeps these only per instance, and with no record that changed nothing brings one up. A failed volume attach can leave its instance as it was, so a probe can't see it. Notifications can.
 
+Nova can also write off a build with nothing on its action: on our test clouds, a build that failed on its compute host left the action looking fine and the reason in the instance's fault. So the newest action of an instance in `ERROR` counts as failed, with that fault as the reason.
+
 ### What is kept
 
 Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them:
@@ -736,8 +738,6 @@ Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them
 | Routine | `metrics.update`, `*.exists` and `*.usage`, which say nothing happened | Dropped, one setting away from kept. Kept, they are logs and go nowhere else |
 | Trail | Steps on the way: `*.start`, a port updated while an instance boots, `instance.update` | Logs, to follow a request by |
 | Change | Something happened | Logs, the feed, chart markers and OneUptime AI |
-
-Cinder's `volume.attach.start` counts as a change, because Cinder says nothing more about a volume Nova attaches. Nova's `instance.volume_attach.end` says when it finished, on the instance.
 
 ## Who did what
 

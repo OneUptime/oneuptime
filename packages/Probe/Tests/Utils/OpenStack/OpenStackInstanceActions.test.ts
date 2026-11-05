@@ -24,7 +24,6 @@ import {
   FIRST_READ_LOOKBACK_IN_MS,
   MAX_ACTIONS_READ_PER_SERVER,
   MAX_SERVERS_READ_PER_COLLECTION,
-  NovaInstanceActionRecord,
   OpenStackInstanceActionRead,
   buildOpenStackInstanceActionLogs,
   chooseServersToRead,
@@ -525,6 +524,88 @@ describe("reading what happened", () => {
     expect(JSON.stringify(read.notifications)).not.toContain("SECRET");
   });
 
+  test("an instance in ERROR has failed its newest action, even when that action says nothing did", async () => {
+    const cloud: Nova = nova();
+
+    cloud.answer((): OpenStackHttpResponse => {
+      return json({
+        instanceActions: [
+          action({
+            action: "create",
+            request_id: "req-create",
+            message: null,
+          }),
+        ],
+      });
+    });
+
+    const read: OpenStackInstanceActionRead = await cloud.read([
+      server({
+        status: "ERROR",
+        faultMessage: "Build of instance aborted: the disk is too small.",
+      }),
+    ]);
+
+    // The action names no step that failed, so there is nothing more to ask.
+    expect(cloud.requests).toHaveLength(1);
+    expect(read.notifications).toHaveLength(1);
+
+    const event: OpenStackEvent | null = readOpenStackNotification({
+      message: read.notifications[0],
+    });
+
+    expect(event?.type).toBe("instance.create.error");
+    expect(event?.outcome).toBe(OpenStackEventOutcome.Failed);
+    expect(event?.reason).toBe(
+      "Build of instance aborted: the disk is too small.",
+    );
+  });
+
+  test("an instance in ERROR that is still busy has failed nothing yet", async () => {
+    const cloud: Nova = nova();
+
+    cloud.answer((): OpenStackHttpResponse => {
+      return json({ instanceActions: [action({ message: null })] });
+    });
+
+    const read: OpenStackInstanceActionRead = await cloud.read([
+      server({ status: "ERROR", taskState: "rebooting" }),
+    ]);
+
+    expect(read.notifications).toEqual([]);
+  });
+
+  test("only the newest: an older action of an instance in ERROR went as it says", async () => {
+    const cloud: Nova = nova();
+
+    cloud.answer((): OpenStackHttpResponse => {
+      return json({
+        instanceActions: [
+          action({
+            action: "create",
+            request_id: "req-create",
+            updated_at: "2026-11-04T11:40:00.000000",
+          }),
+          action({
+            action: "reboot",
+            request_id: "req-reboot",
+            updated_at: "2026-11-04T11:49:30.000000",
+          }),
+        ],
+      });
+    });
+
+    const read: OpenStackInstanceActionRead = await cloud.read([
+      server({ status: "ERROR", faultMessage: "It broke." }),
+    ]);
+
+    expect(
+      read.notifications.map((notification: JSONObject): unknown => {
+        return notification["event_type"];
+      }),
+    ).toEqual(["instance.create.end", "instance.reboot.error"]);
+  });
+
   test("the instance's fault goes with its newest failure, and no older one", async () => {
     const cloud: Nova = nova();
 
@@ -868,158 +949,174 @@ function recordedAnswer(release: string, name: string): JSONObject | null {
     : null;
 }
 
-describe.each(fs.readdirSync(SERVICE_LOGS))(
+const RECORDED_RELEASES: Array<string> = fs
+  .readdirSync(SERVICE_LOGS)
+  .filter((release: string): boolean => {
+    return fs.existsSync(path.join(SERVICE_LOGS, release, "ids.json"));
+  });
+
+describe.each(RECORDED_RELEASES)(
   "%s: what Nova really answered",
   (release: string) => {
-    function readInstance(key: string): {
-      server: NovaServerRecord;
-      actions: Array<NovaInstanceActionRecord>;
-    } {
-      const server: NovaServerRecord | null = toNovaServer(
+    function serverOf(key: string): NovaServerRecord {
+      const found: NovaServerRecord | null = toNovaServer(
         recordedAnswer(release, `${key}-server`)?.["server"] as JSONObject,
       );
 
-      expect(server).not.toBeNull();
+      expect(found).not.toBeNull();
 
-      return {
-        server: server as NovaServerRecord,
-        actions: (
-          recordedAnswer(release, `${key}-actions`)?.[
-            "instanceActions"
-          ] as Array<JSONObject>
-        ).map((item: JSONObject): NovaInstanceActionRecord => {
-          return toNovaInstanceAction(item) as NovaInstanceActionRecord;
-        }),
-      };
+      return found as NovaServerRecord;
     }
 
-    function failureOf(key: string): {
-      event: OpenStackEvent;
-      notification: JSONObject;
-      server: NovaServerRecord;
-    } {
-      const { server, actions } = readInstance(key);
-      const failed: NovaInstanceActionRecord | undefined = actions.find(
-        (action: NovaInstanceActionRecord): boolean => {
-          return Boolean(action.message);
+    // What a probe with this answer to each call would say, through the real read.
+    async function eventsOf(key: string): Promise<Array<OpenStackEvent>> {
+      const cloud: Nova = nova();
+
+      cloud.answer((url: globalThis.URL): OpenStackHttpResponse => {
+        return json(
+          recordedAnswer(
+            release,
+            isDetail(url) ? `${key}-action-detail` : `${key}-actions`,
+          ) as JSONObject,
+        );
+      });
+
+      const read: OpenStackInstanceActionRead = await cloud.read([
+        serverOf(key),
+      ]);
+
+      return read.notifications.map((message: JSONObject): OpenStackEvent => {
+        return readOpenStackNotification({ message }) as OpenStackEvent;
+      });
+    }
+
+    function failureIn(events: Array<OpenStackEvent>): OpenStackEvent {
+      const failed: Array<OpenStackEvent> = events.filter(
+        (event: OpenStackEvent): boolean => {
+          return event.outcome === OpenStackEventOutcome.Failed;
         },
       );
 
-      expect(failed).toBeDefined();
+      expect(failed).toHaveLength(1);
 
-      const notification: JSONObject = toInstanceActionNotification({
-        server,
-        action: failed as NovaInstanceActionRecord,
-        failedStep: toNovaFailedStep(
-          recordedAnswer(release, `${key}-action-detail`) as JSONObject,
-        ),
-        faultMessage: server.faultMessage,
-      });
-
-      return {
-        event: readOpenStackNotification({
-          message: notification,
-        }) as OpenStackEvent,
-        notification,
-        server,
-      };
+      return failed[0] as OpenStackEvent;
     }
 
-    test("a build no host could take says so, on its instance", () => {
-      const { event, server } = failureOf("instance_no_valid_host");
+    test("a build no host could take says so, on its instance", async () => {
+      const event: OpenStackEvent = failureIn(
+        await eventsOf("instance_no_valid_host"),
+      );
 
-      expect(server.status).toBe("ERROR");
       expect(event.type).toBe("instance.create.error");
-      expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
-      expect(event.part?.id).toBe(server.id);
+      expect(event.part?.id).toBe(serverOf("instance_no_valid_host").id);
       expect(event.reason).toMatch(/valid host/i);
       expect(event.failure).toBe(OpenStackEventFailure.Scheduling);
     });
 
-    test("a build that failed on its compute host says why, on its instance", () => {
-      const { event, server } = failureOf("instance_spawn_failed");
+    test("a build that failed on its compute host, whose action says nothing failed", async () => {
+      const answer: JSONObject = recordedAnswer(
+        release,
+        "instance_spawn_failed-actions",
+      ) as JSONObject;
 
-      expect(server.status).toBe("ERROR");
+      // What makes this worth holding to: Nova's own record of the action reads as fine.
+      expect(
+        (answer["instanceActions"] as Array<JSONObject>)[0]?.["message"],
+      ).toBeNull();
+
+      const event: OpenStackEvent = failureIn(
+        await eventsOf("instance_spawn_failed"),
+      );
+
+      expect(serverOf("instance_spawn_failed").status).toBe("ERROR");
       expect(event.type).toBe("instance.create.error");
-      expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
       expect(event.failure).toBe(OpenStackEventFailure.Action);
-      expect(event.reason).toBeTruthy();
+      expect(event.reason).toContain("disk is too small");
     });
 
-    test("a rebuild that failed says so, as itself and not as the create before it", () => {
-      const { event, server } = failureOf("instance_rebuild_failed");
+    test("a rebuild that failed says so, as itself and not as the create before it", async () => {
+      const events: Array<OpenStackEvent> = await eventsOf(
+        "instance_rebuild_failed",
+      );
+      const event: OpenStackEvent = failureIn(events);
 
       expect(event.type).toBe("instance.rebuild.error");
-      expect(event.part?.id).toBe(server.id);
-      expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
+      expect(event.part?.id).toBe(serverOf("instance_rebuild_failed").id);
       expect(event.reason).toBeTruthy();
+      expect(
+        events.map((one: OpenStackEvent): string => {
+          return one.type;
+        }),
+      ).toEqual(["instance.create.end", "instance.rebuild.error"]);
     });
 
     test("what an admin may read of a step's traceback is never read", () => {
-      for (const key of [
-        "instance_no_valid_host",
-        "instance_spawn_failed",
-        "instance_rebuild_failed",
-      ]) {
-        const admin: JSONObject | null = recordedAnswer(
+      for (const key of ["instance_no_valid_host", "instance_rebuild_failed"]) {
+        const admin: JSONObject = recordedAnswer(
           release,
           `${key}-action-detail-admin`,
-        );
-        const said: string = JSON.stringify(
-          toNovaFailedStep(admin as JSONObject),
-        );
+        ) as JSONObject;
+
+        // It is there to be read, for an admin's token.
+        expect(JSON.stringify(admin)).toContain("traceback");
+
+        const said: string = JSON.stringify(toNovaFailedStep(admin));
 
         expect(said).not.toContain("/opt/stack");
         expect(said).not.toContain("traceback");
       }
     });
 
-    test("the ingest reads it as Nova's API saying so", () => {
-      const { notification, server } = failureOf("instance_spawn_failed");
+    test("the ingest reads it as Nova's API saying so", async () => {
+      const cloud: Nova = nova();
+
+      cloud.answer((): OpenStackHttpResponse => {
+        return json(
+          recordedAnswer(
+            release,
+            "instance_spawn_failed-actions",
+          ) as JSONObject,
+        );
+      });
+
+      const read: OpenStackInstanceActionRead = await cloud.read([
+        serverOf("instance_spawn_failed"),
+      ]);
       const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
         attributes: {},
-        body: JSON.stringify(notification),
+        body: JSON.stringify(read.notifications[0]),
         severityNumber: 17,
       });
 
       expect(stamp.event?.outcome).toBe(OpenStackEventOutcome.Failed);
       expect(stamp.attributes[OpenStackLogAttribute.Service]).toBe("nova-api");
       expect(stamp.attributes[OpenStackLogAttribute.InstanceId]).toBe(
-        server.id,
+        serverOf("instance_spawn_failed").id,
       );
     });
 
-    test("an instance's whole life reads, its failures none", () => {
-      const { server, actions } = readInstance("instance_ok");
+    test("an instance's whole life reads, its failures none", async () => {
+      const events: Array<OpenStackEvent> = await eventsOf("instance_ok");
 
-      expect(actions.length).toBeGreaterThan(3);
+      expect(events.length).toBeGreaterThan(3);
 
-      for (const action of actions) {
-        const event: OpenStackEvent | null = readOpenStackNotification({
-          message: toInstanceActionNotification({
-            server,
-            action,
-            failedStep: null,
-            faultMessage: null,
-          }),
-        });
-
-        expect(event?.outcome).not.toBe(OpenStackEventOutcome.Failed);
-        expect(event?.part?.id).toBe(server.id);
-        expect(event?.type).toMatch(/^instance\..*\.end$/);
+      for (const event of events) {
+        expect(event.outcome).not.toBe(OpenStackEventOutcome.Failed);
+        expect(event.part?.id).toBe(serverOf("instance_ok").id);
+        expect(event.type).toMatch(/^instance\..*\.end$/);
       }
     });
 
-    test("every microversion a cloud may offer reads the same actions", () => {
+    test("every microversion a cloud may offer lists the same actions", () => {
       for (const key of ["instance_ok", "instance_spawn_failed"]) {
-        const newest: Array<unknown> = (
+        const newer: Array<unknown> = (
           recordedAnswer(release, `${key}-actions`)?.[
             "instanceActions"
           ] as Array<JSONObject>
         ).map((item: JSONObject): unknown => {
           return toNovaInstanceAction(item)?.requestId;
         });
-        const oldest: Array<unknown> = (
+        const older: Array<unknown> = (
           recordedAnswer(release, `${key}-actions-2-1`)?.[
             "instanceActions"
           ] as Array<JSONObject>
@@ -1027,7 +1124,7 @@ describe.each(fs.readdirSync(SERVICE_LOGS))(
           return toNovaInstanceAction(item)?.requestId;
         });
 
-        expect(oldest).toEqual(newest);
+        expect(older).toEqual(newer);
       }
     });
   },
