@@ -14,8 +14,10 @@ ini-set keeps everything else in the file exactly as it is: a service's config h
 values with % and = in them, and repeated keys, which configparser would refuse or
 rewrite.
 
-paste-audit puts keystonemiddleware's audit filter into a service's paste pipelines,
-after auth_token as its documentation asks, right before the application at the end.
+paste-audit puts keystonemiddleware's audit filter into a service's paste pipelines, after
+auth_token and the context filter that follows it. Not at the end: Neutron's routers and security
+groups are answered by its extensions filter, and a call that stops there never reaches anything
+after it.
 
 paste-otel puts oslo.middleware's tracing filter into them, just before osprofiler, which is
 where Nova's and Neutron's own pipelines put it on the branches that ship it.
@@ -34,6 +36,7 @@ import json
 import sys
 
 AUDIT_FILTER = "audit"
+CONTEXT_FILTERS = ("keystonecontext", "context")
 OTEL_FILTER = "otel_tracing"
 OTEL_FILTER_NEIGHBOUR = "osprofiler"
 
@@ -133,7 +136,10 @@ def paste_audit(path, map_file):
         words = value.split()
         if "authtoken" not in words or AUDIT_FILTER in words or len(words) < 2:
             continue
-        words.insert(len(words) - 1, AUDIT_FILTER)
+        after = words.index("authtoken")
+        if words[after + 1] in CONTEXT_FILTERS:
+            after += 1
+        words.insert(after + 1, AUDIT_FILTER)
         lines[index] = f"{name.rstrip()} = {' '.join(words)}"
         changed += 1
     if changed and not any(section_header(line) == "filter:audit" for line in lines):

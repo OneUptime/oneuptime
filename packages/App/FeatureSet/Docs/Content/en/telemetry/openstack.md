@@ -687,28 +687,29 @@ Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them
 
 Security teams need to know who changed what in a cloud: role grants, failed logins and admin actions. OpenStack can write all of it, and it goes the same way as everything above: to the logs, with no bus. OneUptime reads it as a source of [Security Events](/docs/telemetry/security-events).
 
+Whichever you turn on, OneUptime reads it once **Find security events in your logs** is on, under **Security Events → Connections**. [Each tool's guide](/docs/telemetry/openstack-deployment-tools) says where these settings go on it.
+
 ### Turn on Keystone's audit trail
 
 ```ini title="keystone.conf"
 [DEFAULT]
 notification_format = cadf
-notification_opt_out = identity.authenticate.success
 notification_opt_out = identity.authenticate.pending
 
 [oslo_messaging_notifications]
 driver = log
 ```
 
-Name `notification_opt_out` yourself. Keystone's documentation says failed logins are left out by default, and its code's default leaves them in. Naming the two above sends failed logins, and not one line per token, whichever a release does.
+Name `notification_opt_out` yourself. Keystone's documentation says logins are left out by default, and its own default names only those that worked and those still pending. Naming `pending` alone sends a line for each login, failed or not, whichever a release does. **OpenStack admin credential used from a new address** reads the ones that worked. To send failed logins only, add `identity.authenticate.success`, and that detection then reads what the audit filter saw.
 
 ### Turn on the audit filter
 
-Keystone's notifications cover identity. For who did what through Nova, Neutron, Cinder and Glance, keystonemiddleware's audit filter records each call. It goes in the service's paste file, after `authtoken` and its context in each pipeline, with a map file from pyCADF's `etc/pycadf`:
+Keystone's notifications cover identity. For who did what through Nova, Neutron, Cinder and Glance, keystonemiddleware's audit filter records each call. It goes in the service's paste file, with a map file from pyCADF, in `etc/pycadf` under the Python environment the service runs in:
 
 ```ini title="api-paste.ini"
 [filter:audit]
 paste.filter_factory = keystonemiddleware.audit:filter_factory
-audit_map_file = /etc/nova/nova_api_audit_map.conf
+audit_map_file = /path/to/venv/etc/pycadf/nova_api_audit_map.conf
 ```
 
 ```ini title="nova.conf"
@@ -716,13 +717,9 @@ audit_map_file = /etc/nova/nova_api_audit_map.conf
 driver = log
 ```
 
-| Deployed with | Where it goes |
-| --- | --- |
-| Kolla-Ansible | Its config tasks copy `keystone-paste.ini` from `/etc/kolla/config/keystone/`, and no other service's paste file. For the others, mount your file over the one in the image with `nova_api_extra_volumes` and its like. Keystone's own [notifications](#turn-on-keystones-audit-trail) need none of this |
-| OpenStack-Ansible | `nova_api_paste_ini_overrides`, `neutron_api_paste_ini_overrides`, `cinder_api_paste_ini_overrides` and `glance_glance_api_paste_ini_overrides` in `user_variables.yml`, with the `audit_middleware_notifications` section in each service's conf overrides |
-| OpenStack-Helm | `conf.paste` in each chart's values, with `conf.<service>.audit_middleware_notifications.driver` |
+In each pipeline, `audit` goes right after `authtoken` and the context filter that follows it. Not at the end: Neutron's `extensions` filter answers its routers and security groups, and a filter after it never sees them.
 
-An audit log is mostly reads, and a read says nothing unless it was refused. So OneUptime keeps what changed something, and what was refused, which is what someone probing a cloud looks like.
+The filter writes two lines for each call, and most calls are reads. A read says nothing unless it was refused, so OneUptime keeps what changed something, and what was refused, which is what someone probing a cloud looks like. `ignore_req_list = GET, HEAD` in the filter's section leaves reads out of the logs too, and refused reads with them.
 
 ### What reaches Security Events
 
@@ -731,11 +728,11 @@ An audit log is mostly reads, and a read says nothing unless it was refused. So 
 | A login, failed or not | Who, from which address, against Keystone |
 | A role granted or taken | Who, which role, to whom, on which project or domain |
 | A change to Keystone's records | Who, which change, and which project, user or application credential |
-| A call through the audit filter | Who, which action, on what, and whether it was refused |
+| A call through the audit filter | Who, which action, on which part, and whether it was refused |
 | A security group opened to the world | Who, which group, which project, and the sensitive port it opened |
 | An image made public | Who, which image, and whose it was |
 
-A project is named from the cloud's inventory where OneUptime knows it, so a case reads `project payments` and not an ID. Keystone's users aren't in the inventory, because the access the agent asks for leaves them out on purpose. A user is named when the event itself names them, and by ID otherwise.
+A project and a part are named from the cloud's inventory where OneUptime knows them, so a case reads `project payments` and `instance web-1` and not their IDs. A part's project is the one its row says, whichever project the token that touched it was for. Keystone's users aren't in the inventory, because the access the agent asks for leaves them out on purpose. A user is named once one of the cloud's events has said their name, and by ID until then. A role is named by ID, because no event says its name.
 
 The cloud's page says what Security Events found about it, a case names the cloud, and each part's page has **Who changed this**: who did what around the moment its state last changed. It reads the audit trail, and a notification's own actor without one, and it isn't there when neither says anything.
 
@@ -745,10 +742,10 @@ These six [detections](/docs/telemetry/security-events) come from the rule libra
 | --- | --- |
 | **OpenStack failed logins burst** | Ten or more failed sign-ins from one address in five minutes |
 | **OpenStack role granted on a protected project** | A role given on `admin` or `service`. Add your own projects to the rule's list. It reads a project's name, so it needs the cloud's inventory |
-| **OpenStack admin credential used from a new address** | The `admin` account signing in from an address it has not used in thirty days |
-| **OpenStack application credential created** | One was made. Keystone's notification holds only its ID, so whether it is unrestricted can't be told from here, and this fires on every one and says so. `openstack application credential show` says |
+| **OpenStack admin credential used from a new address** | The `admin` account used from an address it has not used in thirty days: a sign-in, a change or a call through the audit filter. Behind a load balancer that doesn't pass on the client's address, every address is the load balancer's |
+| **OpenStack application credential created** | One was made. Keystone's notification reads the same for one that is unrestricted, so this fires on every one and says so. `openstack application credential show` says which it was |
 | **OpenStack security group opened to the world** | `0.0.0.0/0`, `::/0` or no address at all, inbound, on a sensitive port or every port |
-| **OpenStack public image published** | An image made public |
+| **OpenStack public image published** | An image seen public for the first time in thirty days. An edit to one already known stays quiet, because Glance says what an image is and not what it was. So one made private and public again within those thirty days isn't said twice |
 
 ### What is never stored
 
