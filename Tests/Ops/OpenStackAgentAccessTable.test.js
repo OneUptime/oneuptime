@@ -662,10 +662,13 @@ describe("what the recordings show, as the pages say it", () => {
       "orchestration: services",
       "container-infra: clusters",
       "container-infra: services",
+      "sharev2: shares, all projects",
+      "sharev2: services",
+      "sharev2: pools",
     ]);
     for (const file of [README, DOCS_PAGE]) {
       expect(read(file)).toContain(
-        "Octavia, Ironic, Heat and Magnum are not here because those clouds do not run them.",
+        "Octavia, Ironic, Heat, Magnum and Manila are not here because those clouds do not run them.",
       );
     }
   });

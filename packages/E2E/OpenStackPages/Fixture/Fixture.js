@@ -118,6 +118,8 @@ import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
 import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
 import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudShares from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Shares";
+import CloudShareDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ShareDetail";
 import CloudContainerClusters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
 import CloudContainerClusterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusterDetail";
 import CloudProjects from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Projects";
@@ -142,6 +144,7 @@ import CloudFeed from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Vie
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
 import {
   OpenStackPlacementOfHost,
+  OpenStackPlacementOfKubernetesCluster,
   OpenStackPlacementOfKubernetesNode,
   OpenStackPlacementOfService,
 } from "../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementOfHost";
@@ -213,6 +216,8 @@ import {
   answerStoragePoolCeph,
   getHostOfMachine,
   getPlacementOfHost,
+  getKubernetesClusterOfMagnumCluster,
+  getMagnumClusterOfKubernetesCluster,
   getPlacementOfKubernetesNode,
   getPlacementsOfService,
   getReachOfInstance,
@@ -2182,6 +2187,34 @@ async function handleApi(method, options) {
         ),
       });
     }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/magnum-cluster-of-kubernetes-cluster/",
+      )
+    ) {
+      return ok({
+        link: getMagnumClusterOfKubernetesCluster(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+        ),
+      });
+    }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/kubernetes-cluster-of-magnum-cluster/",
+      )
+    ) {
+      return ok({
+        link: getKubernetesClusterOfMagnumCluster(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          body.externalId,
+        ),
+      });
+    }
     if (parsed.pathname.includes("/openstack-resource/placement-of-service/")) {
       return ok({
         placements: getPlacementsOfService(
@@ -2400,6 +2433,8 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARES, CloudShares],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, CloudShareDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACKS, CloudStacks],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL, CloudStackDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS, CloudContainerClusters],
@@ -2489,6 +2524,16 @@ const OTHER_PRODUCT_PAGES = [
       return (
         <OpenStackPlacementOfService
           serviceId={new ObjectID(path[path.length - 1])}
+        />
+      );
+    }),
+  ],
+  [
+    PageMap.KUBERNETES_CLUSTER_VIEW,
+    otherProductPage("other-product-kubernetes-cluster", (path) => {
+      return (
+        <OpenStackPlacementOfKubernetesCluster
+          clusterId={new ObjectID(path[path.length - 1])}
         />
       );
     }),

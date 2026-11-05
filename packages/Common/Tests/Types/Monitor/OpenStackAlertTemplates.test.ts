@@ -550,6 +550,16 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-shared-file-systems-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-share-service-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-share-in-error": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-share-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-stack-failed": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-stack-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-container-cluster-failed": {
@@ -827,6 +837,23 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { magnum_conductor_up: 0 },
     healthy: { magnum_conductor_up: 1 },
   },
+  "openstack-shared-file-systems-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-share-service-down": {
+    breached: { manila_service_up: 0 },
+    healthy: { manila_service_up: 1 },
+  },
+  // A share's size, which is what its _share_gb series reads, whatever its status.
+  "openstack-share-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-share-stuck": {
+    breached: { in_creating: 1 },
+    healthy: { in_creating: 0 },
+  },
   // Each word's code as it was recorded, which only says the row is there.
   "openstack-stack-failed": {
     breached: { in_create_failed: 4, in_update_failed: 10 },
@@ -972,6 +999,10 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Stack Stuck In Progress",
         "Kubernetes Cluster Failed",
         "Kubernetes Cluster Stuck",
+        "Shared File Systems API Down",
+        "Manila Service Down",
+        "Share in Error",
+        "Share Stuck",
         "Compute Service Down",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
@@ -1912,6 +1943,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       expect(probeOnly.sort()).toEqual([
         "openstack-container-infra-conductor-down",
         "openstack-orchestration-engine-down",
+        "openstack-share-service-down",
       ]);
       for (const id of probeOnly) {
         const template: OpenStackAlertTemplate =
@@ -1969,6 +2001,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-stack-stuck", ["id", "name"]],
       ["openstack-container-cluster-failed", ["uuid", "name"]],
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
+      ["openstack-share-in-error", ["id", "name"]],
+      ["openstack-share-stuck", ["id", "name"]],
     ])("%s names what it is about", (id: string, keys: Array<string>) => {
       const groupBy: Array<string> = MonitorStep.getGroupByAttributeKeys(
         stepOf(getOpenStackAlertTemplateById(id)!),

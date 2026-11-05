@@ -141,7 +141,7 @@ A scene is never called `healthy`, and a group's access recording goes in `acces
 
 `-f agent_install_only=true` runs this alone, on one DevStack, in about an hour and a half. It also runs on the weekly run and on a pull request that changes the agent. `results.txt` in the `openstack-agent-install` artifact says how each check went, `oneuptime/bodies/` holds what the agent really sent, and each phase's folder holds what was run, with no secret in it (the last check looks).
 
-It has not met a real OneUptime: what comes in is held to what ingest needs, and `OpenStackSnapshotScanRecordings.test.ts` puts recordings through the real scan.
+Run 41966979667 passed all 343 checks. This job has not met a real OneUptime: what comes in is held to what ingest needs, and `OpenStackSnapshotScanRecordings.test.ts` puts recordings through the real scan. The `whole_path` job installs the agent against a live stack.
 
 ## Using a recording
 

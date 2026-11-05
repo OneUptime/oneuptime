@@ -64,6 +64,9 @@ READS = [
     ("orchestration", "services", "/services", "services", {}),
     ("container-infra", "clusters", "/clusters", "clusters", {"OpenStack-API-Version": "container-infra latest"}),
     ("container-infra", "services", "/mservices", "mservices", {"OpenStack-API-Version": "container-infra latest"}),
+    ("sharev2", "shares, all projects", "/shares/detail?all_tenants=1", "shares", {}),
+    ("sharev2", "services", "/services", "services", MANILA_VERSION),
+    ("sharev2", "pools", "/scheduler-stats/pools/detail", "pools", MANILA_VERSION),
 ]
 
 # One call per thing, which a table of lists has no row for: whichever things this cloud has
@@ -145,9 +148,6 @@ OTHER_SERVICES_READS = [
     ("load-balancer", "amphorae, as the exporter asks", "/v2.0/octavia/amphorae", "amphorae", {}),
     ("baremetal", "conductors", "/v1/conductors", "conductors", {"X-OpenStack-Ironic-API-Version": "1.82"}),
     ("orchestration", "stacks, all projects", "/stacks?global_tenant=true", "stacks", {}),
-    ("sharev2", "shares, all projects", "/shares/detail?all_tenants=1", "shares", {}),
-    ("sharev2", "services", "/services", "services", MANILA_VERSION),
-    ("sharev2", "pools", "/scheduler-stats/pools/detail", "pools", MANILA_VERSION),
     ("dns", "zones, all projects", "/v2/zones", "zones", {"X-Auth-All-Projects": "true"}),
     ("dns", "zones, own project", "/v2/zones", "zones", {}),
     ("key-manager", "secrets", "/v1/secrets", "secrets", {}),

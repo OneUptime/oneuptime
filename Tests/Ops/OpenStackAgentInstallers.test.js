@@ -2918,6 +2918,20 @@ describe("with the real curl, against a server that answers as OneUptime and Key
   });
 });
 
+describe("the folder root runs the agent from", () => {
+  // A GitHub runner's /opt gave a new folder 777, under a umask of 077 (run 41966979667).
+  test("is nobody else's to change, however it arrived", () => {
+    const dir = scratch();
+    const installDir = path.join(dir, "agent");
+    fs.mkdirSync(installDir);
+    fs.chmodSync(installDir, 0o777);
+
+    expect(install(dir, { input: FRESH }).status).toBe(0);
+
+    expect(mode(installDir) & 0o022).toBe(0);
+  });
+});
+
 describe("an application credential Keystone no longer has", () => {
   // What a deleted credential's login answered on a real cloud (run 41953871058): a 404, not a 401.
   test("is called that, and never a wrong address", () => {

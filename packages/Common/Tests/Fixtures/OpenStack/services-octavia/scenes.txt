@@ -5,7 +5,7 @@ ovn-provider recorded
 pool-members-down recorded
 pending-update recorded
 pending-create recorded
-lb-error FAILED: line 355: openstack quota set --instances 0 "$AMPHORA_PROJECT" 
+lb-error recorded
 amphora-near-expiry recorded
 two-masters recorded
 amphora-error recorded
