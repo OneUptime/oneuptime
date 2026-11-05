@@ -361,8 +361,7 @@ const OpenStackCloudServices: FunctionComponent<
               className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-500 shadow-sm"
               data-testid="openstack-services-no-match"
             >
-              {translator.translateText("No service or host matches this.") ||
-                "No service or host matches this."}
+              {translator.translateText("No service or host matches this.")}
             </p>
           ) : (
             <></>

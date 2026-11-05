@@ -1114,7 +1114,7 @@ const OpenStackCloudOverview: FunctionComponent<
                   to={documentationRoute}
                   className="text-sm font-medium text-indigo-600 hover:underline"
                 >
-                  {translator.translateText("Setup guide") || "Setup guide"}
+                  {translator.translateText("Setup guide")}
                 </Link>
               )}
             </div>
@@ -1241,7 +1241,7 @@ const OpenStackCloudOverview: FunctionComponent<
                   )}
                   className="font-medium text-indigo-600 hover:underline"
                 >
-                  {translator.translateText("See them all") || "See them all"}
+                  {translator.translateText("See them all")}
                 </Link>
               </li>
             );

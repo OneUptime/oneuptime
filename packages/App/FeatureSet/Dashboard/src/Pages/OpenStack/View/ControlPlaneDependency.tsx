@@ -409,8 +409,7 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
               openInNewTab={true}
               className="underline"
             >
-              {translator.translateText("Each deployment tool's steps") ||
-                "Each deployment tool's steps"}
+              {translator.translateText("Each deployment tool's steps")}
             </Link>
           </span>
         </OpenStackPartNotice>
