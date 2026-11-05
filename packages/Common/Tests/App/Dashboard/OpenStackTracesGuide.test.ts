@@ -61,11 +61,11 @@ function topicTitled(
   tool: OpenStackDeploymentTool,
   title: string,
 ): SetupGuideTopic {
-  const topic: SetupGuideTopic | undefined = (guideOf(tool).advanced || []).find(
-    (candidate: SetupGuideTopic): boolean => {
-      return candidate.title === title;
-    },
-  );
+  const topic: SetupGuideTopic | undefined = (
+    guideOf(tool).advanced || []
+  ).find((candidate: SetupGuideTopic): boolean => {
+    return candidate.title === title;
+  });
 
   if (!topic) {
     throw new Error(`No topic ${title} on ${tool}`);

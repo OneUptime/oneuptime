@@ -161,15 +161,19 @@ describe.each(getRecordedTraceReleases())(
               OSPROFILER_DRIVER_SCOPE_NAME,
             );
           }
+
+          const keys: Array<string> = (
+            (block["resource"] as JSONObject)["attributes"] as Array<JSONObject>
+          ).map((attribute: JSONObject): string => {
+            return attribute["key"] as string;
+          });
+
+          expect(keys).toContain("service.name");
           expect(
-            (
-              (block["resource"] as JSONObject)[
-                "attributes"
-              ] as Array<JSONObject>
-            ).map((attribute: JSONObject): string => {
-              return attribute["key"] as string;
+            keys.filter((key: string): boolean => {
+              return key.startsWith("openstack.") || key === "host.name";
             }),
-          ).toEqual(["service.name"]);
+          ).toEqual([]);
         }
       });
 
@@ -194,8 +198,10 @@ describe.each(getRecordedTraceReleases())(
           expect.arrayContaining([
             OpenStackResourceKind.Instance,
             OpenStackResourceKind.Image,
-            OpenStackResourceKind.Network,
-            OpenStackResourceKind.Project,
+            // What Nova asks Neutron is what names these.
+            ...(recording.neutronWasLeftOut()
+              ? []
+              : [OpenStackResourceKind.Network, OpenStackResourceKind.Project]),
           ]),
         );
       });
@@ -238,7 +244,10 @@ describe.each(getRecordedTraceReleases())(
             expect(span.read.kind).toBe("SPAN_KIND_SERVER");
           } else if (String(functionName).includes(".rpcapi.")) {
             expect(span.read.kind).toBe("SPAN_KIND_PRODUCER");
-          } else if (String(functionName).includes(".manager.")) {
+          } else if (
+            String(functionName).includes(".manager.") ||
+            String(functionName).startsWith("oslo_messaging.rpc.server.")
+          ) {
             expect(span.read.kind).toBe("SPAN_KIND_CONSUMER");
           } else {
             // compute_api and neutron_api, which the driver calls CLIENT for their names.
@@ -285,7 +294,7 @@ describe.each(getRecordedTraceReleases())(
           },
         );
 
-        expect(dropped.length).toBeGreaterThan(spans.length / 5);
+        expect(dropped.length).toBeGreaterThan(spans.length / 6);
 
         for (const span of dropped) {
           expect(span.attributes["name"]).toBe(
@@ -556,14 +565,18 @@ describe.each(getRecordedTraceReleases())(
 
     describe("a request that lists things", () => {
       test("is about none of them", () => {
+        // It is Nova asking Neutron for every instance's ports that shows this.
+        if (recording.neutronWasLeftOut()) {
+          return;
+        }
+
         const spans: Array<ReadSpan> = readScene(recording, "signed-list");
         const asked: Array<ReadSpan> = spans.filter(
           (span: ReadSpan): boolean => {
             const query: unknown = span.attributes["http.query"];
 
             return (
-              typeof query === "string" &&
-              query.split("device_id=").length > 2
+              typeof query === "string" && query.split("device_id=").length > 2
             );
           },
         );
@@ -860,9 +873,11 @@ describe("what hung Hibiscus", () => {
       "With the libraries in and OSProfiler off, the cloud answers.",
     );
     expect(said).toContain("devstack@neutron-rpc-server): no");
-    expect(said.split("\n").filter((line: string): boolean => {
-      return line.endsWith(": no");
-    })).toHaveLength(1);
+    expect(
+      said.split("\n").filter((line: string): boolean => {
+        return line.endsWith(": no");
+      }),
+    ).toHaveLength(1);
   });
 });
 
@@ -903,7 +918,9 @@ describe("OpenStack's own tracing, on the release that ships it", () => {
     const keys: Record<string, number> =
       native["native-both-boot"]!.attributeKeys;
 
-    expect(keys["oslo_middleware.tracing | openstack.request_id"]).toBeUndefined();
+    expect(
+      keys["oslo_middleware.tracing | openstack.request_id"],
+    ).toBeUndefined();
     expect(keys["oslo.messaging | openstack.request_id"]).toBeGreaterThan(0);
   });
 

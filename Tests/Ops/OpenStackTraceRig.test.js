@@ -119,12 +119,17 @@ describe("putting oslo.middleware's tracing filter into a pipeline", () => {
   test("a release whose pipelines already name it keeps what it has", () => {
     const file = write(
       "api-paste.ini",
-      NOVA_PASTE.replace("sizelimit osprofiler", "sizelimit otel_tracing osprofiler"),
+      NOVA_PASTE.replace(
+        "sizelimit osprofiler",
+        "sizelimit otel_tracing osprofiler",
+      ),
     );
     const result = python(CONFIGURE, ["paste-otel", file]);
 
     expect(result.stdout.trim()).toBe("0");
-    expect(fs.readFileSync(file, "utf8")).not.toContain("[filter:otel_tracing]");
+    expect(fs.readFileSync(file, "utf8")).not.toContain(
+      "[filter:otel_tracing]",
+    );
   });
 });
 
@@ -197,9 +202,13 @@ describe("Placement's one line", () => {
 
 describe("signing by hand", () => {
   test("is what OpenStackTraceSigning.ts writes, byte for byte", () => {
-    const result = python(READ, ["sign", "4e3e0ec6-2938-40b1-8504-09eb1d4b0dee"], {
-      OU_TRACES_KEY: "sekret",
-    });
+    const result = python(
+      READ,
+      ["sign", "4e3e0ec6-2938-40b1-8504-09eb1d4b0dee"],
+      {
+        OU_TRACES_KEY: "sekret",
+      },
+    );
 
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe(
@@ -314,7 +323,10 @@ describe("what a run is held to", () => {
     const other = "aaaaaaaabbbbbbbbccccccccdddddddd";
 
     recording(STOCK, {
-      "signed-boot-placement": { trace: other, services: ["nova-nova-compute"] },
+      "signed-boot-placement": {
+        trace: other,
+        services: ["nova-nova-compute"],
+      },
     });
 
     const { status, text } = check();
@@ -430,7 +442,12 @@ describe("what the scenes with nothing signed made", () => {
 describe("a hang costs its step alone", () => {
   const PUT_BACK = path.join(RIG, "traces-put-back.sh");
   const workflow = fs.readFileSync(
-    path.resolve(__dirname, "..", "..", ".github/workflows/test.openstack-e2e.yaml"),
+    path.resolve(
+      __dirname,
+      "..",
+      "..",
+      ".github/workflows/test.openstack-e2e.yaml",
+    ),
     "utf8",
   );
   const script = fs.readFileSync(RECORD, "utf8");
@@ -498,7 +515,9 @@ describe("a hang costs its step alone", () => {
   });
 
   test("the workflow runs it whatever became of the step, and before the logs", () => {
-    const putBackStep = workflow.indexOf("Put back whatever the traces step left");
+    const putBackStep = workflow.indexOf(
+      "Put back whatever the traces step left",
+    );
     const logsStep = workflow.indexOf(
       "Record service logs, notifications and audit events",
     );
@@ -525,9 +544,9 @@ describe("a hang costs its step alone", () => {
     expect(scenesWithin).toBeLessThan(stopsAfter);
     expect(script).toContain("watch_the_clock");
     // It only removes what the put-back needs once the cloud has been put back.
-    expect(script.indexOf('sudo rm -rf "$SAVED_DIR"\n\n  log "What was recorded"')).toBeGreaterThan(
-      script.indexOf("restart_services\n  # Only now"),
-    );
+    expect(
+      script.indexOf('sudo rm -rf "$SAVED_DIR"\n\n  log "What was recorded"'),
+    ).toBeGreaterThan(script.indexOf("restart_services\n  # Only now"));
   });
 
   test("nothing that restarts the cloud can wait for ever", () => {

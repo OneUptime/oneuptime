@@ -338,7 +338,7 @@ restart_services() {
 
 # Only what a patch to Placement changed, which takes seconds rather than a whole cloud.
 restart_placement() {
-  sudo systemctl restart devstack@placement-api || true
+  sudo timeout 120 systemctl restart devstack@placement-api || true
   sleep 15
 }
 

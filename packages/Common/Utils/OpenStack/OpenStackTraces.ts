@@ -1246,7 +1246,9 @@ const OPENSTACK_TRACE_GAPS: ReadonlyMap<string, OpenStackTraceGap> = new Map<
   ["cinder-volume", OpenStackTraceGap.AlwaysForks],
 ]);
 
-export function getOpenStackTraceGap(service: string): OpenStackTraceGap | null {
+export function getOpenStackTraceGap(
+  service: string,
+): OpenStackTraceGap | null {
   return OPENSTACK_TRACE_GAPS.get(service) || null;
 }
 

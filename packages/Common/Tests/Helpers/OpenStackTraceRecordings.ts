@@ -155,9 +155,7 @@ function readValue(value: JSONObject | undefined): JSONValue {
   return null;
 }
 
-export function readRecordedAttributes(
-  attributes: unknown,
-): JSONObject {
+export function readRecordedAttributes(attributes: unknown): JSONObject {
   const out: JSONObject = {};
 
   if (Array.isArray(attributes)) {
