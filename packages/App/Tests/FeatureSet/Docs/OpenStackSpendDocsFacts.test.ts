@@ -76,6 +76,6 @@ describe("what the docs say of a cloud's Spend page", () => {
     expect(SPEND).toContain("OneUptime doesn't invoice anyone");
     expect(SPEND).toContain("OneUptime never removes anything");
     expect(SPEND).toContain("A price of zero means no price, not a free cloud");
-    expect(SPEND).toContain("no real CloudKitty has answered it yet");
+    expect(SPEND).toContain("A real CloudKitty has answered this");
   });
 });

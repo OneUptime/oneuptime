@@ -183,6 +183,7 @@ service_type = compute
 | `barbican.conf` | `key-manager` |
 | `trove.conf` | `database` |
 | `gnocchi.conf` | `metric` |
+| `cloudkitty.conf` | `rating` |
 | `proxy-server.conf`, under `[filter:authtoken]` | `object-store`, and `include_service_catalog = True` beside it. keystonemiddleware checks the rules against the token's catalog, so with `False`, which DevStack sets, Swift answers the credential `500` |
 
 Only the services your cloud runs need a line.
@@ -577,12 +578,12 @@ A price of zero means no price, not a free cloud. What has no price is said to h
 If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it rated replaces the calculation, project by project, and the page says which it used. A probe asks once an hour, for this month and last, and it's asked of `GET /v2/summary`, or `GET /v1/report/summary` on a CloudKitty too old for it. That's at most two requests per 1,000 projects an hour, plus a request for its version each time it's read.
 
 - **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
-- **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **What it sees is what the credential may see.** CloudKitty's own policy shows an admin's credential every project, with access rules or without, and anything less only its own. The projects it doesn't rate go on being worked out from your prices.
 - **A CloudKitty per region adds up.** Each one is read in its own time, and a project's figure is what they rated between them. One CloudKitty the catalog lists for several regions is asked once.
 - **Its figures are the one part of this that's telemetry.** They reach OneUptime as `openstack_cloudkitty_rated`, one datapoint per project and month, once an hour: 20,000 an hour at 10,000 projects, which is next to nothing beside the rest of a cloud that size.
 - **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
 - **If it stops answering,** what each project was rated stays where it was, and the page says when it was last read. **Rating API Down** alerts on that.
-- **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
+- **A real CloudKitty has answered this,** on `stable/2026.1`, with InfluxDB behind it, rating what Ceilometer wrote to Gnocchi. That's the only setup it has been read on. With no rule enabled it rates each project `0`, and with nothing rated yet it answers with no rows. Either way, those projects go on being worked out from your prices.
 
 ### Budgets
 

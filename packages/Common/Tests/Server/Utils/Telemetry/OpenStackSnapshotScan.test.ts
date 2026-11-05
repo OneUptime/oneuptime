@@ -962,8 +962,9 @@ describe("storage", () => {
   });
 
   /*
-   * HAND-CHECKED AGAINST CLOUDKITTY'S API REFERENCE: nothing has recorded a real one. What the probe
-   * makes of its answers goes on each project's row, which Keystone answers for.
+   * What the probe makes of CloudKitty's answers goes on each project's row, which Keystone answers
+   * for. These are written by hand. A real one's answers reach a row in the probe's
+   * OpenStackRatingCollection.test.ts.
    */
   test("what CloudKitty rated goes on the project's row, by month, and each region is its own fact", () => {
     const buffer: Buffer = new Map();
