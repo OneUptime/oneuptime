@@ -815,11 +815,14 @@ describe("an OpenStack cloud's own event", () => {
       }),
       INSTANCE,
     ],
-  ])("is none when it is %s", (_what: string, one: RecentChange, part: string | null) => {
-    expect(
-      assessOpenStackChange({ change: one, subjectPartId: part }),
-    ).toBeNull();
-  });
+  ])(
+    "is none when it is %s",
+    (_what: string, one: RecentChange, part: string | null) => {
+      expect(
+        assessOpenStackChange({ change: one, subjectPartId: part }),
+      ).toBeNull();
+    },
+  );
 
   test("what it is called changes nothing", () => {
     expect(

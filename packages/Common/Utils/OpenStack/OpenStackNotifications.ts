@@ -246,10 +246,21 @@ const IMAGE_STATUSES_ON_THE_WAY: ReadonlySet<string> = new Set([
   "importing",
 ]);
 
+/*
+ * All Cinder says of an attach made through its attachments API, which is how Nova attaches a
+ * volume: a real cloud sends this, and no volume.attach.end follows. So on a volume's own feed,
+ * and for when its state moved, this is the word that it happened.
+ */
+const VOLUME_ATTACH_START: string = "volume.attach.start";
+
 function isTrailEvent(
   type: string,
   fields: Record<string, unknown> | null,
 ): boolean {
+  if (type === VOLUME_ATTACH_START) {
+    return false;
+  }
+
   return (
     endsWith(type, ".start") ||
     endsWith(type, "_scheduled") ||
@@ -423,6 +434,34 @@ function readFamily(type: string): string {
   return dot === -1 ? type : type.slice(0, dot);
 }
 
+interface VolumeOfRequest {
+  id: string;
+  name: string;
+  projectId: string;
+  userId: string;
+}
+
+function readVolumeOfRequest(
+  payload: Record<string, unknown>,
+): VolumeOfRequest | null {
+  const request: Record<string, unknown> | null = asObject(
+    payload["request_spec"],
+  );
+  const volume: Record<string, unknown> | null = request
+    ? asObject(request["volume"])
+    : null;
+  const id: string = readText(request, "volume_id") || readText(volume, "id");
+
+  return id
+    ? {
+        id,
+        name: readText(volume, "display_name"),
+        projectId: readText(volume, "project_id"),
+        userId: readText(volume, "user_id"),
+      }
+    : null;
+}
+
 function readPart(data: {
   family: string;
   payload: Record<string, unknown>;
@@ -452,11 +491,23 @@ function readPart(data: {
       const id: string =
         readText(fields, "instance_uuid", "uuid") || data.instanceFromLine;
 
-      return id
+      if (id) {
+        return {
+          kind: OpenStackResourceKind.Instance,
+          id,
+          name: "",
+          binary: "",
+        };
+      }
+
+      // Cinder's scheduler: what it could not place is in the request it was given.
+      const volume: VolumeOfRequest | null = readVolumeOfRequest(payload);
+
+      return volume
         ? {
-            kind: OpenStackResourceKind.Instance,
-            id,
-            name: "",
+            kind: OpenStackResourceKind.Volume,
+            id: volume.id,
+            name: volume.name,
             binary: "",
           }
         : null;
@@ -628,6 +679,7 @@ const FAILED_STEP_WORDS: ReadonlyMap<string, string> = new Map<string, string>([
   ["rebuild_server", "rebuild"],
   ["unshelve_instance", "unshelve"],
   ["select_destinations", "scheduling"],
+  ["create_volume", "create"],
   ["live_migration", "live migration"],
   ["live_migration_pre", "live migration"],
   ["live_migration_post", "live migration"],
@@ -728,9 +780,12 @@ function buildTitle(data: {
 
   if (outcome === OpenStackEventOutcome.Failed) {
     if (type === "compute.exception") {
+      // Nova's versioned form names no instance, so what it says is about the machine.
+      const about: string = part || !data.host ? subject : `Host ${data.host}`;
+
       return reason
-        ? `${subject}: compute failed: ${reason}`
-        : `${subject}: compute failed`;
+        ? `${about}: compute failed: ${reason}`
+        : `${about}: compute failed`;
     }
 
     const step: string = FAILED_STEP_WORDS.get(action) || action;
@@ -738,6 +793,10 @@ function buildTitle(data: {
     return reason
       ? `${subject}: ${step} failed: ${reason}`
       : `${subject}: ${step} failed`;
+  }
+
+  if (type === VOLUME_ATTACH_START) {
+    return `${subject}: being attached`;
   }
 
   // Only a change is drawn anywhere, and what has only started has not done anything yet.
@@ -812,7 +871,8 @@ function readMovesState(data: {
 
   if (
     !part ||
-    outcome === OpenStackEventOutcome.Started ||
+    (outcome === OpenStackEventOutcome.Started &&
+      data.type !== VOLUME_ATTACH_START) ||
     data.type.indexOf(".delete") !== -1
   ) {
     return false;
@@ -960,6 +1020,7 @@ export function readOpenStackNotification(data: {
   }
 
   const movesState: boolean = readMovesState({ type, part, outcome, fields });
+  const volumeOfRequest: VolumeOfRequest | null = readVolumeOfRequest(payload);
 
   return {
     type,
@@ -1000,10 +1061,14 @@ export function readOpenStackNotification(data: {
         "project_id",
         "tenant_id",
       ) ||
+      (volumeOfRequest ? volumeOfRequest.projectId : "") ||
       data.projectId ||
       "",
     userId:
-      readText(fields, "action_initiator_user", "user_id") || data.userId || "",
+      readText(fields, "action_initiator_user", "user_id") ||
+      (volumeOfRequest ? volumeOfRequest.userId : "") ||
+      data.userId ||
+      "",
     requestId: readText(fields, "request_id") || data.requestId || "",
     instanceId:
       part && part.kind === OpenStackResourceKind.Instance

@@ -202,8 +202,9 @@ describe("what a project's save would say of each", () => {
   )(
     "%s is one the scrub rule form would take",
     (_name: string, rule: OpenStackDefaultScrubRule) => {
-      const check: ScrubRuleCustomRegexCheck | null =
-        checkScrubRuleCustomRegex(rule.customRegex);
+      const check: ScrubRuleCustomRegexCheck | null = checkScrubRuleCustomRegex(
+        rule.customRegex,
+      );
 
       // Null says nothing is wrong with it: not missing, invalid, unrunnable or empty-matching.
       expect(check).toBeNull();
@@ -241,9 +242,12 @@ describe("the scrub rules", () => {
     OPENSTACK_DEFAULT_SCRUB_RULES.map((rule: OpenStackDefaultScrubRule) => {
       return [rule.name, rule] as const;
     }),
-  )("%s compiles, as a project's own pattern must", (_name: string, rule: OpenStackDefaultScrubRule) => {
-    expect(compileScrubRuleCustomRegex(rule.customRegex)).not.toBeNull();
-  });
+  )(
+    "%s compiles, as a project's own pattern must",
+    (_name: string, rule: OpenStackDefaultScrubRule) => {
+      expect(compileScrubRuleCustomRegex(rule.customRegex)).not.toBeNull();
+    },
+  );
 
   test("a Fernet token goes wherever it stands", () => {
     const token: string = `gAAAAABp${"AbC123_-".repeat(10)}`;
@@ -440,11 +444,14 @@ describe("adding them to a project", () => {
 
   test("a database that cannot answer costs the logs nothing, and the next batch asks again", async () => {
     mockServices({});
-    const forgotten: jest.SpiedFunction<typeof GlobalCache.deleteKey> = jest
-      .spyOn(GlobalCache, "deleteKey")
-      .mockImplementation((async () => {
-        return undefined;
-      }) as never);
+    const forgotten: Array<string> = [];
+
+    jest.spyOn(GlobalCache, "deleteKey").mockImplementation((async (
+      _namespace: string,
+      key: string,
+    ) => {
+      forgotten.push(key);
+    }) as never);
     jest.spyOn(LogDropFilterService, "findBy").mockImplementation((async () => {
       throw new Error("Postgres is down");
     }) as never);
@@ -453,8 +460,7 @@ describe("adding them to a project", () => {
       OpenStackLogDefaults.ensureForProject(PROJECT_ID),
     ).resolves.toBeUndefined();
 
-    expect(forgotten).toHaveBeenCalledTimes(1);
-    expect(forgotten.mock.calls[0]?.[1]).toBe(PROJECT_ID.toString());
+    expect(forgotten).toEqual([PROJECT_ID.toString()]);
   });
 
   test("a cache that cannot answer costs the logs nothing either", async () => {

@@ -108,8 +108,7 @@ function isUnversionedNotification(recorded: OpenStackRecordedEvent): boolean {
 
 function isVersionedNotification(recorded: OpenStackRecordedEvent): boolean {
   return (
-    isNovaInstanceNotification(recorded) &&
-    !isUnversionedNotification(recorded)
+    isNovaInstanceNotification(recorded) && !isUnversionedNotification(recorded)
   );
 }
 

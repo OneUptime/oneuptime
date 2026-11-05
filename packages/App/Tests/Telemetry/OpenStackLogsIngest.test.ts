@@ -23,6 +23,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { OpenStackRecordedEvent } from "Common/Server/Utils/OpenStack/OpenStackEventEntries";
 import OpenStackEventRecorder, {
   OpenStackEventBufferEntry,
 } from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
@@ -203,11 +204,11 @@ function setup(data?: {
   ) => {
     harness.recorded.push(recorded);
   }) as never);
-  jest.spyOn(OpenStackLogDefaults, "ensureForProject").mockImplementation((async (
-    projectId: ObjectID,
-  ) => {
-    harness.ensured.push(projectId);
-  }) as never);
+  jest
+    .spyOn(OpenStackLogDefaults, "ensureForProject")
+    .mockImplementation((async (projectId: ObjectID) => {
+      harness.ensured.push(projectId);
+    }) as never);
 
   return harness;
 }
@@ -511,9 +512,11 @@ describe("a notification", () => {
 
     expect(harness.recorded).toHaveLength(1);
     expect(
-      harness.recorded[0]?.entry.events.map((recorded) => {
-        return recorded.event.type;
-      }),
+      harness.recorded[0]?.entry.events.map(
+        (recorded: OpenStackRecordedEvent): string => {
+          return recorded.event.type;
+        },
+      ),
     ).toEqual(["instance.create.start", "instance.create.end"]);
   });
 

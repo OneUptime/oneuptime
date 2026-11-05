@@ -153,16 +153,28 @@ describe("a value named as a secret", () => {
     });
 
     test.each([
-      ["password=abc,user=bob after", `password=${OPENSTACK_SCRUBBED_VALUE},user=bob after`],
-      ["?password=abc&limit=1 HTTP/1.1", `?password=${OPENSTACK_SCRUBBED_VALUE}&limit=1 HTTP/1.1`],
-      ["Password=abc;Server=db after", `Password=${OPENSTACK_SCRUBBED_VALUE};Server=db after`],
+      [
+        "password=abc,user=bob after",
+        `password=${OPENSTACK_SCRUBBED_VALUE},user=bob after`,
+      ],
+      [
+        "?password=abc&limit=1 HTTP/1.1",
+        `?password=${OPENSTACK_SCRUBBED_VALUE}&limit=1 HTTP/1.1`,
+      ],
+      [
+        "Password=abc;Server=db after",
+        `Password=${OPENSTACK_SCRUBBED_VALUE};Server=db after`,
+      ],
       [
         "encryption_secret_uuid=<?>,guest_format=None,id=<?>",
         `encryption_secret_uuid=${OPENSTACK_SCRUBBED_VALUE},guest_format=None,id=<?>`,
       ],
-    ])("the next name after a comma stays, as Python writes an object: %s", (text: string, expected: string) => {
-      expect(kept(text)).toBe(expected);
-    });
+    ])(
+      "the next name after a comma stays, as Python writes an object: %s",
+      (text: string, expected: string) => {
+        expect(kept(text)).toBe(expected);
+      },
+    );
 
     test("a word after the comma that names nothing stays in the value", () => {
       expect(kept("password=abc,def,ghi after")).toBe(
@@ -170,17 +182,14 @@ describe("a value named as a secret", () => {
       );
     });
 
-    test.each([
-      "{abc}",
-      "{SHA256}5e8f0a",
-      "[abc]",
-      "{ab}cd",
-      "[ab]cd",
-    ])("a value that starts with a bracket, %s, is a value", (value: string) => {
-      expect(kept(`password=${value} after`)).toBe(
-        `password=${OPENSTACK_SCRUBBED_VALUE} after`,
-      );
-    });
+    test.each(["{abc}", "{SHA256}5e8f0a", "[abc]", "{ab}cd", "[ab]cd"])(
+      "a value that starts with a bracket, %s, is a value",
+      (value: string) => {
+        expect(kept(`password=${value} after`)).toBe(
+          `password=${OPENSTACK_SCRUBBED_VALUE} after`,
+        );
+      },
+    );
 
     test.each([
       '"password": {"user": {"name": "admin", "password": "s3cr3t"}}',
@@ -188,13 +197,16 @@ describe("a value named as a secret", () => {
       '"secret": ["a", {"password": "s3cr3t"}]',
       "'secret': {u'password': u's3cr3t'}",
       '"token": { "password": "s3cr3t" }',
-    ])("an object or a list stays, and what is secret in it goes: %s", (text: string) => {
-      const result: string = kept(text);
+    ])(
+      "an object or a list stays, and what is secret in it goes: %s",
+      (text: string) => {
+        const result: string = kept(text);
 
-      expect(result).not.toContain("s3cr3t");
-      expect(result).toContain(OPENSTACK_SCRUBBED_VALUE);
-      expect(result.startsWith(text.slice(0, 12))).toBe(true);
-    });
+        expect(result).not.toContain("s3cr3t");
+        expect(result).toContain(OPENSTACK_SCRUBBED_VALUE);
+        expect(result.startsWith(text.slice(0, 12))).toBe(true);
+      },
+    );
   });
 
   describe("names it used to miss", () => {
@@ -245,8 +257,14 @@ describe("a value named as a secret", () => {
 
   describe("named in the other ways a service writes it", () => {
     test.each([
-      [`('password', '${SECRET}')`, `('password', '${OPENSTACK_SCRUBBED_VALUE}')`],
-      [`["X-Auth-Token", "${SECRET}"]`, `["X-Auth-Token", "${OPENSTACK_SCRUBBED_VALUE}"]`],
+      [
+        `('password', '${SECRET}')`,
+        `('password', '${OPENSTACK_SCRUBBED_VALUE}')`,
+      ],
+      [
+        `["X-Auth-Token", "${SECRET}"]`,
+        `["X-Auth-Token", "${OPENSTACK_SCRUBBED_VALUE}"]`,
+      ],
       [`password\t=\t${SECRET}`, `password\t=\t${OPENSTACK_SCRUBBED_VALUE}`],
       [`password=b'${SECRET}'`, `password=b'${OPENSTACK_SCRUBBED_VALUE}'`],
       [`password=r'${SECRET}'`, `password=r'${OPENSTACK_SCRUBBED_VALUE}'`],
@@ -272,7 +290,10 @@ describe("a value named as a secret", () => {
   describe("JSON inside JSON, however deep", () => {
     const DEEP: Array<[string, Record<string, unknown>]> = [
       ["one level", { password: SECRET, name: "demo" }],
-      ["two levels", { body: JSON.stringify({ password: SECRET, name: "demo" }) }],
+      [
+        "two levels",
+        { body: JSON.stringify({ password: SECRET, name: "demo" }) },
+      ],
       [
         "three levels",
         {
@@ -320,7 +341,9 @@ describe("a value named as a secret", () => {
 
     test("an unquoted value inside a string of JSON leaves the string closed", () => {
       const result: string = kept(
-        JSON.stringify({ body: JSON.stringify({ url: `http://x?token=${SECRET}`, n: 1 }) }),
+        JSON.stringify({
+          body: JSON.stringify({ url: `http://x?token=${SECRET}`, n: 1 }),
+        }),
       );
 
       expect(result).not.toContain(SECRET);
@@ -537,9 +560,9 @@ describe("the password in a URL", () => {
 
   describe("in a text cut short", () => {
     test("ends inside its password, with no @ left to say so", () => {
-      expect(
-        scrubOpenStackSecrets("rabbit://u:PASSWO", { wasCut: true }),
-      ).toBe(`rabbit://u:${OPENSTACK_SCRUBBED_VALUE}`);
+      expect(scrubOpenStackSecrets("rabbit://u:PASSWO", { wasCut: true })).toBe(
+        `rabbit://u:${OPENSTACK_SCRUBBED_VALUE}`,
+      );
     });
 
     test("a port and a host at the cut are left", () => {
@@ -766,19 +789,22 @@ describe("whatever arrives, nothing named as a secret survives", () => {
         return [index, text];
       },
     ),
-  )("generated text %i, with a marked secret on the end", (_index: number, text: string) => {
-    const result: string = kept(`${text} password="MARKED-SECRET"`);
+  )(
+    "generated text %i, with a marked secret on the end",
+    (_index: number, text: string) => {
+      const result: string = kept(`${text} password="MARKED-SECRET"`);
 
-    expect(typeof result).toBe("string");
-    /*
-     * A generated quote can open a value before the marked one and take it along, or leave it
-     * in a value the scrub read as something else. Whatever it did, it never makes a longer
-     * text, nor throws.
-     */
-    expect(result.length).toBeLessThanOrEqual(
-      text.length + 40 + OPENSTACK_SCRUBBED_VALUE.length * 40,
-    );
-  });
+      expect(typeof result).toBe("string");
+      /*
+       * A generated quote can open a value before the marked one and take it along, or leave it
+       * in a value the scrub read as something else. Whatever it did, it never makes a longer
+       * text, nor throws.
+       */
+      expect(result.length).toBeLessThanOrEqual(
+        text.length + 40 + OPENSTACK_SCRUBBED_VALUE.length * 40,
+      );
+    },
+  );
 
   test("the secret on its own line is always found", () => {
     for (const text of generatedTexts(2000, 5739, ALPHABET)) {

@@ -511,7 +511,9 @@ describe("an instance named in a line that has no prefix for it", () => {
     [`{'instance_id': '${INSTANCE}'}`],
     [`Instance ${INSTANCE} is gone`],
     // Read off a real recording: how Neutron and Placement say it.
-    [`Sending events: [{'server_uuid': '${INSTANCE}', 'name': 'network-vif-plugged'}]`],
+    [
+      `Sending events: [{'server_uuid': '${INSTANCE}', 'name': 'network-vif-plugged'}]`,
+    ],
     [`Port updated, device_id=${INSTANCE}`],
     [`Allocations for consumer ${INSTANCE} deleted`],
     [`Starting to schedule for instances: ['${INSTANCE}']`],
@@ -870,21 +872,30 @@ describe("a notification in a log line", () => {
    * logged it to a DEBUG line. Either can hold a brace of its own.
    */
   test.each([
-    [": nova.exception.FlavorDiskSmallerThanImage: Flavor's disk is too small for requested image."],
+    [
+      ": nova.exception.FlavorDiskSmallerThanImage: Flavor's disk is too small for requested image.",
+    ],
     [": nova.exception.Foo: {'a': {'b': 1}}"],
-    [" {{(pid=86917) notify /opt/stack/oslo_messaging/notify/_impl_log.py:43}}"],
+    [
+      " {{(pid=86917) notify /opt/stack/oslo_messaging/notify/_impl_log.py:43}}",
+    ],
     [" log_notify /opt/stack/oslo_messaging/notify/_impl_log.py:43"],
-  ])("what follows the JSON, %s, leaves it readable and stays", (rest: string) => {
-    const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
-      attributes: {},
-      body: `${asLine}${rest}`,
-      severityNumber: 0,
-    });
+  ])(
+    "what follows the JSON, %s, leaves it readable and stays",
+    (rest: string) => {
+      const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
+        attributes: {},
+        body: `${asLine}${rest}`,
+        severityNumber: 0,
+      });
 
-    expect(stamp.event?.type).toBe("instance.power_off.end");
-    expect(stamp.body.endsWith(rest)).toBe(true);
-    expect(stamp.attributes[OpenStackLogAttribute.RequestRootId]).toBe(GLOBAL);
-  });
+      expect(stamp.event?.type).toBe("instance.power_off.end");
+      expect(stamp.body.endsWith(rest)).toBe(true);
+      expect(stamp.attributes[OpenStackLogAttribute.RequestRootId]).toBe(
+        GLOBAL,
+      );
+    },
+  );
 
   test("a brace inside the JSON's own strings changes nothing", () => {
     const braces: Record<string, unknown> = {
@@ -1027,9 +1038,18 @@ describe("how long a record may be", () => {
   // Its note is written last, so that nothing reading a value can take it for one.
   test.each([
     ["no secret", "x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)],
-    ["a value that never ends", `password=${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`],
-    ["a quote that never closes", `password='${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`],
-    ["a key that never ends", `-----BEGIN PRIVATE KEY-----\n${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`],
+    [
+      "a value that never ends",
+      `password=${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`,
+    ],
+    [
+      "a quote that never closes",
+      `password='${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`,
+    ],
+    [
+      "a key that never ends",
+      `-----BEGIN PRIVATE KEY-----\n${"x".repeat(MAX_OPENSTACK_LOG_BODY_LENGTH + 100)}`,
+    ],
   ])("says so, whatever it holds: %s", (_what: string, body: string) => {
     const stamp: OpenStackLogStamp = stampOpenStackLogRecord({
       attributes: {},

@@ -679,10 +679,11 @@ stop_files_profile() {
 # needs before it starts a scene.
 take_off_what_a_step_left() {
   local key found=""
+  # Only hmac_keys says so: "enabled" is also a key of [vnc], and would restart everything every run.
+  if sudo grep -qs "^hmac_keys[[:space:]]*=" /etc/nova/nova.conf /etc/neutron/neutron.conf; then
+    found=yes
+  fi
   for key in enabled hmac_keys connection_string trace_sqlalchemy trace_requests; do
-    if sudo grep -qs "^$key[[:space:]]*=" /etc/nova/nova.conf /etc/neutron/neutron.conf; then
-      found=yes
-    fi
     delete_on_all profiler "$key"
   done
   if [ -n "$found" ]; then

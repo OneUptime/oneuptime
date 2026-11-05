@@ -79,7 +79,10 @@ const KEY_WORD_GROUPS: ReadonlyArray<{
   { holds: "sig", words: ["temp_url_sig", "signature"] },
   { holds: "token", words: ["token", "token_id"] },
   { holds: "authorization", words: ["authorization"] },
-  { holds: "credential", words: ["credential", "credentials", "credential_blob"] },
+  {
+    holds: "credential",
+    words: ["credential", "credentials", "credential_blob"],
+  },
   { holds: "blob", words: ["blob"] },
   { holds: "configdrive", words: ["configdrive"] },
   { holds: "cookie", words: ["cookie"] },
@@ -138,11 +141,15 @@ function isAsciiLetterOrDigit(code: number): boolean {
 
 function isKeyCharacter(code: number): boolean {
   // A word goes on through these: password_expires_at, token-type, secret.ref.
-  return isAsciiLetterOrDigit(code) || code === 95 || code === 45 || code === 46;
+  return (
+    isAsciiLetterOrDigit(code) || code === 95 || code === 45 || code === 46
+  );
 }
 
 function isBase64UrlCharacter(code: number): boolean {
-  return isAsciiLetterOrDigit(code) || code === 95 || code === 45 || code === 61;
+  return (
+    isAsciiLetterOrDigit(code) || code === 95 || code === 45 || code === 61
+  );
 }
 
 function isWhitespace(code: number): boolean {
@@ -554,7 +561,11 @@ function readNamedValue(data: {
     if (!isQuote(text.charCodeAt(quoteAt))) {
       return { range: null, resumeAt: wordEnd };
     }
-  } else if (spaces > 0 && wordStart > 0 && text.charAt(wordStart - 1) === "-") {
+  } else if (
+    spaces > 0 &&
+    wordStart > 0 &&
+    text.charAt(wordStart - 1) === "-"
+  ) {
     // --password value, on a command a service logged.
     valueStart = position;
   } else {

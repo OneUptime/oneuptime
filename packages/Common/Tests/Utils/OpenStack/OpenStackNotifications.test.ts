@@ -318,6 +318,67 @@ describe("what failed, and why", () => {
     expect(event.part?.kind).toBe(OpenStackResourceKind.Instance);
   });
 
+  test("a compute.exception that names no instance, as Nova's versioned one does, names its machine", () => {
+    const event: OpenStackEvent = eventOf({
+      event_type: "compute.exception",
+      publisher_id: "compute.compute-01",
+      priority: "ERROR",
+      payload: {
+        "nova_object.data": {
+          exception: "FlavorDiskSmallerThanImage",
+          exception_message: "Flavor's disk is too small for requested image.",
+          function_name: "rebuild_instance",
+          module_name: "nova.compute.manager",
+        },
+      },
+    });
+
+    expect(event.part).toBeNull();
+    expect(event.failure).toBe(OpenStackEventFailure.Action);
+    expect(event.title).toBe(
+      "Host compute-01: compute failed: Flavor's disk is too small for requested image.",
+    );
+    expect(event.host).toBe("compute-01");
+  });
+
+  test("Cinder's scheduler, which could not place a volume, names it from the request", () => {
+    const event: OpenStackEvent = eventOf({
+      event_type: "scheduler.create_volume",
+      publisher_id: "scheduler.compute-01",
+      priority: "ERROR",
+      payload: {
+        request_spec: {
+          volume_id: "vol-1",
+          volume: {
+            id: "vol-1",
+            display_name: "data",
+            project_id: "project-1",
+            user_id: "user-1",
+            status: "creating",
+          },
+        },
+        state: "error",
+        method: "create_volume",
+        reason: "NoValidBackend('No valid backend was found.')",
+      },
+    });
+
+    expect(event.part).toEqual({
+      kind: OpenStackResourceKind.Volume,
+      id: "vol-1",
+      name: "data",
+      binary: "",
+    });
+    expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
+    expect(event.importance).toBe(OpenStackEventImportance.Change);
+    expect(event.failure).toBe(OpenStackEventFailure.Scheduling);
+    expect(event.title).toBe(
+      "Volume data: create failed: NoValidBackend('No valid backend was found.')",
+    );
+    expect(event.projectId).toBe("project-1");
+    expect(event.userId).toBe("user-1");
+  });
+
   test("the scheduling failure Nova's documentation names", () => {
     const event: OpenStackEvent = eventOf(
       notification(
@@ -545,17 +606,42 @@ describe("Neutron's, Cinder's and Glance's", () => {
       eventOf({
         event_type: "network.create.end",
         payload: {
-          network: { id: "abc", name: "n", project_id: PROJECT, tenant_id: "x" },
+          network: {
+            id: "abc",
+            name: "n",
+            project_id: PROJECT,
+            tenant_id: "x",
+          },
         },
       }).projectId,
     ).toBe(PROJECT);
   });
 
   test.each([
-    ["security_group.create.end", "security_group", { name: "web" }, "Security group web: created"],
-    ["security_group.delete.end", "security_group", {}, "Security group: deleted"],
-    ["security_group_rule.create.end", "security_group_rule", {}, "Security group rule: created"],
-    ["subnetpool.update.end", "subnetpool", { name: "pool" }, "Subnet pool pool: updated"],
+    [
+      "security_group.create.end",
+      "security_group",
+      { name: "web" },
+      "Security group web: created",
+    ],
+    [
+      "security_group.delete.end",
+      "security_group",
+      {},
+      "Security group: deleted",
+    ],
+    [
+      "security_group_rule.create.end",
+      "security_group_rule",
+      {},
+      "Security group rule: created",
+    ],
+    [
+      "subnetpool.update.end",
+      "subnetpool",
+      { name: "pool" },
+      "Subnet pool pool: updated",
+    ],
     ["trunk.create.end", "trunk", { name: "t" }, "Trunk t: created"],
   ])(
     "%s has no page, and still reads as what it is",
@@ -630,6 +716,31 @@ describe("Neutron's, Cinder's and Glance's", () => {
     ).toBeNull();
   });
 
+  test("Cinder's only word of an attach is that it started, so that one counts", () => {
+    const event: OpenStackEvent = eventOf({
+      event_type: "volume.attach.start",
+      publisher_id: "volume.compute-01@lvm",
+      payload: { volume_id: "vol-1", display_name: "data", status: "reserved" },
+    });
+
+    expect(event.importance).toBe(OpenStackEventImportance.Change);
+    expect(event.outcome).toBe(OpenStackEventOutcome.Started);
+    expect(event.part?.kind).toBe(OpenStackResourceKind.Volume);
+    expect(event.title).toBe("Volume data: being attached");
+    expect(event.movesState).toBe(true);
+  });
+
+  test("any other start stays a step on the way", () => {
+    const event: OpenStackEvent = eventOf({
+      event_type: "volume.detach.start",
+      publisher_id: "volume.compute-01@lvm",
+      payload: { volume_id: "vol-1", display_name: "data" },
+    });
+
+    expect(event.importance).toBe(OpenStackEventImportance.Trail);
+    expect(event.movesState).toBe(false);
+  });
+
   test.each([
     ["volume.attach.end", OpenStackResourceKind.Volume, "volume_id", true],
     ["volume.detach.end", OpenStackResourceKind.Volume, "volume_id", true],
@@ -684,8 +795,18 @@ describe("Neutron's, Cinder's and Glance's", () => {
    * localhost wherever it runs. Neither is what the machine is called.
    */
   test.each([
-    ["volume.create.end", { volume_id: "abc", host: "controller@lvm#pool" }, "volume.controller@lvm", "controller"],
-    ["snapshot.create.end", { snapshot_id: "abc" }, "snapshot.controller@lvm", "controller"],
+    [
+      "volume.create.end",
+      { volume_id: "abc", host: "controller@lvm#pool" },
+      "volume.controller@lvm",
+      "controller",
+    ],
+    [
+      "snapshot.create.end",
+      { snapshot_id: "abc" },
+      "snapshot.controller@lvm",
+      "controller",
+    ],
     ["image.activate", { id: "abc" }, "image.localhost", ""],
     ["image.activate", { id: "abc" }, "image.controller", "controller"],
   ])(
@@ -726,7 +847,8 @@ describe("Neutron's, Cinder's and Glance's", () => {
 
   test("its upload is a step of being activated", () => {
     expect(
-      eventOf({ event_type: "image.upload", payload: { id: "abc" } }).importance,
+      eventOf({ event_type: "image.upload", payload: { id: "abc" } })
+        .importance,
     ).toBe(OpenStackEventImportance.Trail);
   });
 

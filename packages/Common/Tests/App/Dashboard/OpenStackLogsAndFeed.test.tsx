@@ -438,8 +438,14 @@ describe("a line's way to its request", () => {
   test.each([
     ["no attributes at all", null],
     ["a line of anything else", { "resource.service.name": "api" }],
-    ["a cloud's line with no request", { [OPENSTACK_CLOUD_LOG_ATTRIBUTE]: CLOUD_NAME }],
-    ["a request with no cloud", { [OpenStackLogAttribute.RequestRootId]: REQUEST }],
+    [
+      "a cloud's line with no request",
+      { [OPENSTACK_CLOUD_LOG_ATTRIBUTE]: CLOUD_NAME },
+    ],
+    [
+      "a request with no cloud",
+      { [OpenStackLogAttribute.RequestRootId]: REQUEST },
+    ],
     [
       "values that are not text",
       {
@@ -593,7 +599,9 @@ describe("a request, followed across every service", () => {
     });
     expect(reads[0]?.sort).toEqual({ time: SortOrder.Ascending });
 
-    const around: InBetween<Date> = reads[0]?.query["time"] as unknown as InBetween<Date>;
+    const around: InBetween<Date> = reads[0]?.query[
+      "time"
+    ] as unknown as InBetween<Date>;
 
     // Longer than any build takes, either side of the line it was opened from.
     expect(new Date(around.startValue).getTime()).toBe(
@@ -607,7 +615,9 @@ describe("a request, followed across every service", () => {
       [OPENSTACK_CLOUD_LOG_ATTRIBUTE]: CLOUD_NAME,
     });
 
-    const moments: InBetween<Date> = reads[1]?.query["time"] as unknown as InBetween<Date>;
+    const moments: InBetween<Date> = reads[1]?.query[
+      "time"
+    ] as unknown as InBetween<Date>;
 
     expect(new Date(moments.startValue).getTime()).toBe(NOW - 100_000 - 30_000);
     expect(new Date(moments.endValue).getTime()).toBe(NOW - 50_000 + 30_000);
@@ -644,7 +654,9 @@ describe("a request, followed across every service", () => {
 
     await screen.findByTestId("openstack-request-joined");
 
-    const around: InBetween<Date> = callsOf("Log")[0]?.query["time"] as unknown as InBetween<Date>;
+    const around: InBetween<Date> = callsOf("Log")[0]?.query[
+      "time"
+    ] as unknown as InBetween<Date>;
 
     expect(
       new Date(around.endValue).getTime() -
@@ -709,7 +721,9 @@ describe("the cloud's Logs page", () => {
 
     await screen.findByTestId("openstack-request-joined");
 
-    const around: InBetween<Date> = callsOf("Log")[0]?.query["time"] as unknown as InBetween<Date>;
+    const around: InBetween<Date> = callsOf("Log")[0]?.query[
+      "time"
+    ] as unknown as InBetween<Date>;
 
     expect(new Date(around.startValue).toISOString()).toBe(
       "2026-10-30T04:00:00.000Z",
@@ -732,7 +746,9 @@ describe("the cloud's Logs page", () => {
     await screen.findByTestId("openstack-request-trail");
 
     expect(document.querySelector("img[src='x']")).toBeNull();
-    expect(screen.getByText(`Following request ${hostile}`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`Following request ${hostile}`),
+    ).toBeInTheDocument();
   });
 
   test("with none, shows the cloud's every log, live", async () => {
@@ -937,12 +953,12 @@ describe("from an instance's page to its scheduler line", () => {
       <OpenStackPartPage
         part={{ ...INSTANCE_PART, row: INSTANCE_ROW }}
         overview={() => {
-          return <p>The instance's overview</p>;
+          return <p>Overview of the instance</p>;
         }}
       />,
     );
 
-    expect(screen.getByText("The instance's overview")).toBeInTheDocument();
+    expect(screen.getByText("Overview of the instance")).toBeInTheDocument();
     expect(screen.queryByTestId("openstack-instance-requests")).toBeNull();
 
     // One.
@@ -971,7 +987,7 @@ describe("from an instance's page to its scheduler line", () => {
       <OpenStackPartPage
         part={INSTANCE_PART}
         overview={() => {
-          return <p>The instance's overview</p>;
+          return <p>Overview of the instance</p>;
         }}
       />,
     );
@@ -1076,7 +1092,9 @@ describe("a part's Feed", () => {
     expect(
       await screen.findByText("The feed could not be read."),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Nothing has been said about this yet.")).toBeNull();
+    expect(
+      screen.queryByText("Nothing has been said about this yet."),
+    ).toBeNull();
   });
 
   test("a title anyone could write is text", async () => {
@@ -1163,7 +1181,9 @@ describe("who changed a part", () => {
     expect(list).toHaveTextContent("Failed");
 
     const read: ListCall = callsOf("SecurityEvent")[0] as ListCall;
-    const around: InBetween<Date> = read.query["time"] as unknown as InBetween<Date>;
+    const around: InBetween<Date> = read.query[
+      "time"
+    ] as unknown as InBetween<Date>;
 
     expect(attributesOf(read)).toEqual({
       [OpenStackAuditAttribute.Cloud]: CLOUD_NAME,

@@ -161,7 +161,10 @@ function cut(value: string, limit: number = MAX_ATTRIBUTE_LENGTH): string {
 function cutWhole(value: string, limit: number): string {
   const lastKept: number = value.charCodeAt(limit - 1);
 
-  return value.slice(0, lastKept >= 0xd800 && lastKept <= 0xdbff ? limit - 1 : limit);
+  return value.slice(
+    0,
+    lastKept >= 0xd800 && lastKept <= 0xdbff ? limit - 1 : limit,
+  );
 }
 
 function readDigits(text: string, from: number, count: number): number | null {
@@ -307,10 +310,7 @@ function isAbsent(value: string | undefined): boolean {
  *   req-r user project - - -                       before global IDs, and OpenStack-Helm's
  *   None req-r project-name user-name              DevStack's own identity format
  */
-function readContext(
-  context: string,
-  line: OpenStackLogLine,
-): void {
+function readContext(context: string, line: OpenStackLogLine): void {
   const words: Array<string> = context.trim().split(" ");
   const first: string | undefined = words[0];
   const second: string | undefined = words[1];
@@ -721,7 +721,8 @@ export function getOpenStackServiceOfFile(path: string): string {
   }
 
   if (name.indexOf(" ") !== -1 || name.charAt(0) === "<") {
-    const folderSlash: number = slash > 0 ? path.lastIndexOf("/", slash - 1) : -1;
+    const folderSlash: number =
+      slash > 0 ? path.lastIndexOf("/", slash - 1) : -1;
 
     return slash > 0 ? path.slice(folderSlash + 1, slash) : "";
   }
@@ -778,6 +779,8 @@ const SIGNAL_PHRASES: ReadonlyArray<{
     signal: OpenStackLogSignal.TokenValidationFailing,
     phrases: [
       "not a recognized Fernet token",
+      // keystonemiddleware, in the service that was handed the token. What a real cloud logs.
+      "Authorization failed for token",
       "Failed to validate token",
       "Token validation failure",
       "Unable to validate token",
@@ -1068,8 +1071,7 @@ function readRecordHost(
       "resource.k8s.node.name",
       "resource.host.name",
       "host.name",
-    ) ||
-    (line ? line.hostname : "")
+    ) || (line ? line.hostname : "")
   );
 }
 
@@ -1085,7 +1087,8 @@ function fillFromJournal(
       MAX_LOGGER_LENGTH,
     );
   line.level =
-    line.level || cut(readRecordString(attributes, "journald.logger_level"), 16);
+    line.level ||
+    cut(readRecordString(attributes, "journald.logger_level"), 16);
   line.requestId =
     line.requestId || cut(readRecordString(attributes, "journald.request_id"));
   line.globalRequestId =
@@ -1409,7 +1412,9 @@ export function stampOpenStackLogRecord(data: {
      */
     if (known !== undefined) {
       severityNumber =
-        level === "TRACE" && !line.requestId && line.format === OpenStackLogFormat.Oslo
+        level === "TRACE" &&
+        !line.requestId &&
+        line.format === OpenStackLogFormat.Oslo
           ? 17
           : known;
     }

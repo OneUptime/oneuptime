@@ -274,6 +274,18 @@ function run(): ProcessReport {
             }
           }
 
+          // A slow reading is taken again before it counts, after a pause and more than once:
+          // real growth is there every time, and a moment when the machine was busy is not.
+          const pause = new Int32Array(new SharedArrayBuffer(4));
+
+          for (const result of results) {
+            for (let again = 0; again < 4 && result.long > 200 && result.long > result.short * 10; again++) {
+              Atomics.wait(pause, 0, 0, 1000);
+              const work = WORKERS[result.worker];
+              result.long = Math.min(result.long, timed(work, placed(SHAPES[result.shape], LONG)[result.place]));
+            }
+          }
+
           results.sort((a, b) => b.long / Math.max(b.short, 1) - a.long / Math.max(a.short, 1));
 
           const hugeStamp = lib.stampOpenStackLogRecord({

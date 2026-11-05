@@ -4,6 +4,9 @@ import {
   OpenStackLogStamp,
   stampOpenStackLogRecord,
 } from "../../Utils/OpenStack/OpenStackLogs";
+import { RecordedJournalEntry } from "./OpenStackJournalEntry";
+
+export * from "./OpenStackJournalEntry";
 
 /*
  * What real DevStacks' services wrote, as the rig recorded it and import-log-recording.py kept it:
@@ -31,26 +34,6 @@ export type OpenStackLogPhase =
   | "json"
   | "journal-native"
   | "keystone-defaults";
-
-// A record of the journal's, with what the agent's collector moves beside the line.
-export interface RecordedJournalEntry {
-  MESSAGE: string;
-  _SYSTEMD_UNIT?: string;
-  _HOSTNAME?: string;
-  _PID?: string;
-  PRIORITY?: string;
-  __REALTIME_TIMESTAMP?: string;
-  SYSLOG_IDENTIFIER?: string;
-  LOGGER_NAME?: string;
-  LOGGER_LEVEL?: string;
-  REQUEST_ID?: string;
-  GLOBAL_REQUEST_ID?: string;
-  PROJECT_ID?: string;
-  PROJECT_NAME?: string;
-  USER_ID?: string;
-  USER_NAME?: string;
-  EXCEPTION_INFO?: string;
-}
 
 // A line of a service's log file.
 export interface RecordedFileLine {
@@ -185,49 +168,6 @@ export function readRecordedApi(
     : undefined;
 }
 
-// As the agent's journal profile moves the journal's fields beside the line.
-export function journalAttributesOf(
-  entry: RecordedJournalEntry,
-): Record<string, unknown> {
-  const attributes: Record<string, unknown> = {
-    "resource.openstack.cloud.name": "devstack",
-  };
-  const moved: Array<[keyof RecordedJournalEntry, string]> = [
-    ["_SYSTEMD_UNIT", "journald.unit"],
-    ["_HOSTNAME", "journald.hostname"],
-    ["_PID", "process.pid"],
-    ["SYSLOG_IDENTIFIER", "journald.identifier"],
-    ["PRIORITY", "journald.priority"],
-    ["LOGGER_NAME", "journald.logger_name"],
-    ["LOGGER_LEVEL", "journald.logger_level"],
-    ["REQUEST_ID", "journald.request_id"],
-    ["GLOBAL_REQUEST_ID", "journald.global_request_id"],
-    ["PROJECT_ID", "journald.project_id"],
-    ["PROJECT_NAME", "journald.project_name"],
-    ["USER_ID", "journald.user_id"],
-    ["USER_NAME", "journald.user_name"],
-    ["EXCEPTION_INFO", "journald.exception_info"],
-  ];
-
-  for (const [from, to] of moved) {
-    if (entry[from] !== undefined) {
-      attributes[to] = entry[from];
-    }
-  }
-
-  return attributes;
-}
-
-export function stampJournalEntry(
-  entry: RecordedJournalEntry,
-): OpenStackLogStamp {
-  return stampOpenStackLogRecord({
-    attributes: journalAttributesOf(entry),
-    body: entry.MESSAGE,
-    severityNumber: 0,
-  });
-}
-
 // As the agent's files profile hands over a line, from Kolla-Ansible's folder.
 export function stampFileLine(line: RecordedFileLine): OpenStackLogStamp {
   return stampOpenStackLogRecord({
@@ -279,9 +219,4 @@ export function stampFailure(failure: RecordedFailure): OpenStackLogStamp {
 // When a failure's collector says it was written, in milliseconds.
 export function failureTime(failure: RecordedFailure): number {
   return Number(failure.time.slice(0, -6));
-}
-
-// When the journal says a line was written, in milliseconds.
-export function journalTime(entry: RecordedJournalEntry): number {
-  return Math.floor(Number(entry.__REALTIME_TIMESTAMP || 0) / 1000);
 }

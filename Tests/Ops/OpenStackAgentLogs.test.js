@@ -256,7 +256,7 @@ describe.each([
   const COLOUR = "\u001b[01;35m";
 
   test.each([
-    // Hand-written, from oslo.log's format. OpenStackRecordedLogs.test.ts reads real ones.
+    // Hand-written, from oslo.log's format. The describe below this one reads real ones.
     "2026-10-30 10:00:00.123 1234 INFO nova.compute.manager [req-g req-r 1a2b 3c4d - - default default] Started",
     "2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager [req-g req-r 1a2b 3c4d - - default default] [instance: 1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0] Failed to build",
     "2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager [-] Failed",
@@ -306,6 +306,86 @@ describe.each([
     isFirstEntry(long);
 
     expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+});
+
+/*
+ * The same rule on what real services wrote, from a recording's own lines: what comes after a
+ * line of oslo's at ERROR with no context of its own belongs to it, and everything else starts one.
+ */
+const SERVICE_LOGS = path.resolve(
+  __dirname,
+  "../../packages/Common/Tests/Fixtures/OpenStack/service-logs",
+);
+
+function recordedLines(release, ...parts) {
+  const file = path.join(SERVICE_LOGS, release, ...parts);
+
+  return fs.existsSync(file)
+    ? fs
+        .readFileSync(file, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          return JSON.parse(line);
+        })
+    : [];
+}
+
+function isPartOfTraceback(line) {
+  const plain = line.replace(/\u001b\[[0-9;]*m/g, "");
+
+  return (
+    /(?:ERROR|TRACE) \S+\s+File "/.test(plain) ||
+    /^\s+File "/.test(plain) ||
+    /^(?:\S+ \S+ \d+ )?(?:ERROR|TRACE) \S+ (?:\[instance: [0-9a-f-]+\] )?\s*Traceback \(most recent call last\)/.test(
+      plain,
+    ) ||
+    /^\s*Traceback \(most recent call last\)/.test(plain)
+  );
+}
+
+function hasALevelOfItsOwn(line) {
+  return /^(?:\S+ \S+ \d+ )?(?:DEBUG|INFO|AUDIT|WARNING) \S+/.test(
+    line.replace(/\u001b\[[0-9;]*m/g, ""),
+  );
+}
+
+describe.each(
+  fs.existsSync(SERVICE_LOGS) ? fs.readdirSync(SERVICE_LOGS) : ["no recording"],
+)("the recombine rule, on what %s's services wrote", (release) => {
+  const inFiles = recordedLines(release, "files", "oslo-default.jsonl").map(
+    (entry) => {
+      return entry.line;
+    },
+  );
+  const inJournal = recordedLines(release, "journal", "devstack.jsonl").map(
+    (entry) => {
+      return entry.MESSAGE;
+    },
+  );
+
+  test.each([
+    ["files", filesConfig, () => inFiles],
+    ["journal", journalConfig, () => inJournal],
+  ])("%s", (_name, config, linesOf) => {
+    const isFirstEntry = firstEntryOf(config);
+    const lines = linesOf();
+    const parts = lines.filter(isPartOfTraceback);
+    const starts = lines.filter(hasALevelOfItsOwn);
+
+    if (fs.existsSync(path.join(SERVICE_LOGS, release))) {
+      expect(lines.length).toBeGreaterThan(50);
+      expect(parts.length).toBeGreaterThan(5);
+      expect(starts.length).toBeGreaterThan(5);
+    }
+
+    expect(parts.filter(isFirstEntry)).toEqual([]);
+    expect(
+      starts.filter((line) => {
+        return !isFirstEntry(line);
+      }),
+    ).toEqual([]);
   });
 });
 
