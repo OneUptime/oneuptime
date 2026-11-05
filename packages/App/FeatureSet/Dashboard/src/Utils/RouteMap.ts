@@ -391,6 +391,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: `${RouteParams.ModelID}/checks`,
   [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -4921,6 +4922,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_TRACES]
+    }`,
+  ),
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]
     }`,
   ),
 

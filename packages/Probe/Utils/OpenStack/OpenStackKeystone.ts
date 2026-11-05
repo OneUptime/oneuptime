@@ -36,6 +36,11 @@ export interface OpenStackToken {
   roleNames: Array<string>;
   hasAccessRules: boolean;
   isUnrestricted: boolean;
+  /*
+   * Keystone says this is its admin project, which is the project policy treats as acting for
+   * the whole cloud. It only says so where an admin project is configured.
+   */
+  isAdminProject: boolean;
 }
 
 export function buildKeystoneAuthBody(
@@ -154,6 +159,7 @@ export function parseKeystoneToken(data: {
       Array.isArray(application["access_rules"]) &&
       (application["access_rules"] as Array<unknown>).length > 0,
     isUnrestricted: application["restricted"] === false,
+    isAdminProject: token["is_admin_project"] === true,
   };
 }
 
