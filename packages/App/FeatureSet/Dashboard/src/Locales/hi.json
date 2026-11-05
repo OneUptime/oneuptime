@@ -45210,5 +45210,9 @@
   "{{type}} volumes, per GB, per hour": "{{type}} volumes, per GB, per hour",
   "{{up}} of {{count}} answering": "{{up}} of {{count}} answering",
   "{{up}} of {{count}} answering_one": "{{up}} of {{count}} answering",
-  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain"
+  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain",
+  "Pick from the list": "सूची से चुनें",
+  "Pick from the list instead": "इसके बजाय सूची से चुनें",
+  "There is nothing to pick from yet.": "अभी चुनने के लिए कुछ नहीं है।",
+  "Use “{{value}}”": "“{{value}}” का उपयोग करें"
 }

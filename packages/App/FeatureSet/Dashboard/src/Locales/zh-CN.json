@@ -45210,5 +45210,9 @@
   "{{type}} volumes, per GB, per hour": "{{type}} volumes, per GB, per hour",
   "{{up}} of {{count}} answering": "{{up}} of {{count}} answering",
   "{{up}} of {{count}} answering_one": "{{up}} of {{count}} answering",
-  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain"
+  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain",
+  "Pick from the list": "从列表中选择",
+  "Pick from the list instead": "改为从列表中选择",
+  "There is nothing to pick from yet.": "还没有可选择的内容。",
+  "Use “{{value}}”": "使用“{{value}}”"
 }

@@ -45210,5 +45210,9 @@
   "{{type}} volumes, per GB, per hour": "{{type}} volumes, per GB, per hour",
   "{{up}} of {{count}} answering": "{{up}} of {{count}} answering",
   "{{up}} of {{count}} answering_one": "{{up}} of {{count}} answering",
-  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain"
+  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain",
+  "Pick from the list": "목록에서 선택",
+  "Pick from the list instead": "대신 목록에서 선택",
+  "There is nothing to pick from yet.": "아직 선택할 항목이 없습니다.",
+  "Use “{{value}}”": "“{{value}}” 사용"
 }

@@ -45210,5 +45210,9 @@
   "{{type}} volumes, per GB, per hour": "{{type}} volumes, per GB, per hour",
   "{{up}} of {{count}} answering": "{{up}} of {{count}} answering",
   "{{up}} of {{count}} answering_one": "{{up}} of {{count}} answering",
-  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain"
+  "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain": "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain",
+  "Pick from the list": "Vælg fra listen",
+  "Pick from the list instead": "Vælg i stedet fra listen",
+  "There is nothing to pick from yet.": "Der er endnu intet at vælge imellem.",
+  "Use “{{value}}”": "Brug “{{value}}”"
 }
