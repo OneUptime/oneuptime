@@ -14,19 +14,25 @@ import {
   OPENSTACK_SERVICE_PLACEMENT_LIMIT,
   OPENSTACK_STORAGE_POOL_CEPH_LINK_FACT,
   OpenStackCephClusterCandidate,
+  OpenStackContainerClusterLink,
   OpenStackHostNameForms,
   OpenStackLinkedHost,
   OpenStackLinkedInstance,
   OpenStackLinkedKubernetesNode,
   OpenStackLinkedService,
+  OpenStackMagnumClusterOfStack,
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
+  OpenStackServerOfNode,
   OpenStackServicePlacement,
   OpenStackStoragePoolCephLink,
   OpenStackStoragePoolOfProject,
   getOnlyOpenStackMatch,
   getOpenStackCephHealthNow,
   getOpenStackHostNameForms,
+  getOpenStackMagnumClusterOfServers,
+  getOpenStackServerNamesOfStack,
+  getOpenStackStackNameOfServer,
   getOpenStackStoragePoolCephLink,
   isOpenStackHostNameMatch,
   isOpenStackStoragePoolCephLinked,
@@ -79,6 +85,8 @@ const HYPERVISOR_NAME_MATCHES_READ: number = 3;
  * put in another cloud, doesn't count as a match. A name this many hosts share says nothing.
  */
 const HOST_NAME_MATCHES_READ: number = 50;
+// A cloud's own Magnum clusters are few. This keeps a mistaken read harmless.
+const MAGNUM_CLUSTERS_READ: number = 500;
 // A service runs on more hosts than this and its page is no place to list them.
 const SERVICE_MACHINES_READ: number = OPENSTACK_SERVICE_PLACEMENT_LIMIT * 2;
 
@@ -117,6 +125,14 @@ export interface OpenStackKubernetesNodeRead
 interface ServiceEntityRead {
   name: string | null;
   namespace: string | null;
+}
+
+// A Magnum cluster with what a read of its servers takes.
+interface MagnumClusterRead extends OpenStackMagnumClusterOfStack {
+  name: string | null;
+  status: string | null;
+  masterCount: number | null;
+  nodeCount: number | null;
 }
 
 export default class OpenStackAcrossProducts {
@@ -1332,6 +1348,273 @@ export default class OpenStackAcrossProducts {
       name: host.name || host.hostIdentifier || "",
       isHypervisor,
     };
+  }
+
+  /*
+   * ---------------------------------------------------------------------------
+   * A Magnum cluster and the Kubernetes cluster it is
+   * ---------------------------------------------------------------------------
+   */
+
+  private static async readMagnumClusters(data: {
+    projectId: ObjectID;
+    cloudIds: Array<ObjectID>;
+    // By the name of the stack that built them, or by Magnum's UUID.
+    stackNames?: Array<string> | undefined;
+    externalId?: string | undefined;
+  }): Promise<Array<MagnumClusterRead>> {
+    if (
+      data.cloudIds.length === 0 ||
+      (data.stackNames && data.stackNames.length === 0)
+    ) {
+      return [];
+    }
+    const rows: Array<{
+      openStackCloudId: string;
+      regionName: string | null;
+      externalId: string;
+      stackName: string;
+      name: string | null;
+      status: string | null;
+      masterCount: unknown;
+      nodeCount: unknown;
+    }> = await OpenStackResourceService.getRepository().manager.query(
+      `SELECT cluster."openStackCloudId" AS "openStackCloudId",
+              cluster."regionName" AS "regionName",
+              cluster."externalId" AS "externalId",
+              stack."name" AS "stackName",
+              cluster."name" AS "name",
+              cluster."status" AS "status",
+              cluster."facts"->'masterCount' AS "masterCount",
+              cluster."facts"->'nodeCount' AS "nodeCount"
+       FROM "OpenStackResource" AS cluster
+       JOIN "OpenStackResource" AS stack
+         ON stack."projectId" = cluster."projectId"
+        AND stack."openStackCloudId" = cluster."openStackCloudId"
+        AND stack."regionName" IS NOT DISTINCT FROM cluster."regionName"
+        AND stack."kind" = '${OpenStackResourceKind.Stack}'
+        AND stack."deletedAt" IS NULL
+        AND stack."externalId" = cluster."facts"->>'stackId'
+       WHERE cluster."projectId" = $1
+         AND cluster."openStackCloudId" = ANY($2::uuid[])
+         AND cluster."kind" = '${OpenStackResourceKind.ContainerCluster}'
+         AND cluster."deletedAt" IS NULL
+         AND ($3::text[] IS NULL OR stack."name" = ANY($3::text[]))
+         AND ($4::text IS NULL OR cluster."externalId" = $4)
+       LIMIT ${MAGNUM_CLUSTERS_READ}`,
+      [
+        data.projectId.toString(),
+        data.cloudIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+        data.stackNames || null,
+        data.externalId || null,
+      ],
+    );
+    return rows.map((row: (typeof rows)[number]): MagnumClusterRead => {
+      return {
+        openStackCloudId: row.openStackCloudId,
+        regionName: row.regionName,
+        externalId: row.externalId,
+        stackName: row.stackName,
+        name: row.name,
+        status: row.status,
+        masterCount:
+          typeof row.masterCount === "number" ? row.masterCount : null,
+        nodeCount: typeof row.nodeCount === "number" ? row.nodeCount : null,
+      };
+    });
+  }
+
+  // The Magnum cluster these Kubernetes nodes' servers say they are: see OpenStackLinks.
+  private static async readMagnumClusterOfNodes(data: {
+    projectId: ObjectID;
+    nodes: Array<OpenStackKubernetesNodeRead>;
+  }): Promise<MagnumClusterRead | null> {
+    // Most Kubernetes clusters are on no cloud, and this is on each of their pages.
+    if (data.nodes.length === 0) {
+      return null;
+    }
+    const cloudIds: Array<ObjectID> = await this.readCloudIdsToSearch({
+      projectId: data.projectId,
+    });
+    if (cloudIds.length === 0) {
+      return null;
+    }
+    const servers: Array<OpenStackServerOfNode> =
+      await OpenStackResourceService.getRepository().manager.query(
+        `SELECT "externalId" AS "instanceId", "openStackCloudId", "regionName", "name"
+         FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = ANY($2::uuid[])
+           AND "kind" = '${OpenStackResourceKind.Instance}' AND "deletedAt" IS NULL
+           AND "externalId" = ANY($3::text[])`,
+        [
+          data.projectId.toString(),
+          cloudIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+          data.nodes.map((node: OpenStackKubernetesNodeRead): string => {
+            return node.instanceId;
+          }),
+        ],
+      );
+    const stackNames: Array<string> = Array.from(
+      new Set(
+        servers
+          .map((server: OpenStackServerOfNode): string => {
+            return getOpenStackStackNameOfServer(server.name) || "";
+          })
+          .filter((name: string): boolean => {
+            return Boolean(name);
+          }),
+      ),
+    );
+    return getOpenStackMagnumClusterOfServers({
+      servers,
+      clusters: await this.readMagnumClusters({
+        projectId: data.projectId,
+        cloudIds,
+        stackNames,
+      }),
+    });
+  }
+
+  /*
+   * What makes it a link, whichever end asked: the Kubernetes nodes on this cluster's servers are all
+   * of one Kubernetes cluster, and that Kubernetes cluster's nodes say this is the Magnum cluster.
+   */
+  private static async readLinkOfMagnumCluster(data: {
+    projectId: ObjectID;
+    cluster: MagnumClusterRead;
+  }): Promise<OpenStackContainerClusterLink | null> {
+    const { cluster } = data;
+    const openStackCloudId: ObjectID = new ObjectID(cluster.openStackCloudId);
+    const servers: Array<{ externalId: string }> =
+      await OpenStackResourceService.getRepository().manager.query(
+        `SELECT "externalId" FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.Instance}' AND "deletedAt" IS NULL
+           AND "regionName" IS NOT DISTINCT FROM $3
+           AND "name" = ANY($4::text[])
+         LIMIT ${INSTANCES_PER_REACH}`,
+        [
+          data.projectId.toString(),
+          cluster.openStackCloudId,
+          cluster.regionName,
+          getOpenStackServerNamesOfStack({
+            stackName: cluster.stackName,
+            masterCount: cluster.masterCount,
+            nodeCount: cluster.nodeCount,
+          }),
+        ],
+      );
+    const instanceIds: Array<string> = servers.map(
+      (server: { externalId: string }): string => {
+        return server.externalId;
+      },
+    );
+    const inAnotherCloud: Set<string> =
+      await this.readInstanceIdsInAnotherCloud({
+        projectId: data.projectId,
+        openStackCloudId,
+        instanceIds,
+      });
+    const nodes: Array<OpenStackKubernetesNodeRead> = (
+      await this.readOpenStackKubernetesNodes({
+        projectId: data.projectId,
+        instanceIds,
+      })
+    ).filter((node: OpenStackKubernetesNodeRead): boolean => {
+      return !inAnotherCloud.has(node.instanceId);
+    });
+    const kubernetesClusterId: string | null = getOnlyOpenStackMatch(
+      Array.from(
+        new Set(
+          nodes.map((node: OpenStackKubernetesNodeRead): string => {
+            return node.clusterId;
+          }),
+        ),
+      ),
+    );
+    if (!kubernetesClusterId) {
+      return null;
+    }
+    const fromThere: MagnumClusterRead | null =
+      await this.readMagnumClusterOfNodes({
+        projectId: data.projectId,
+        nodes: await this.readOpenStackKubernetesNodes({
+          projectId: data.projectId,
+          kubernetesClusterId: new ObjectID(kubernetesClusterId),
+        }),
+      });
+    if (
+      fromThere?.externalId !== cluster.externalId ||
+      fromThere.openStackCloudId !== cluster.openStackCloudId
+    ) {
+      return null;
+    }
+    const cloud: OpenStackCloud | null =
+      await OpenStackCloudService.findOneById({
+        id: openStackCloudId,
+        select: { name: true },
+        props: { isRoot: true },
+      });
+    return {
+      openStackCloudId: cluster.openStackCloudId,
+      cloudName: cloud?.name || null,
+      regionName: cluster.regionName,
+      externalId: cluster.externalId,
+      name: cluster.name,
+      status: cluster.status,
+      kubernetesClusterId,
+      kubernetesClusterName: nodes[0]?.clusterName || kubernetesClusterId,
+      nodeCount: nodes.length,
+    };
+  }
+
+  // A Magnum cluster's page: the Kubernetes cluster OneUptime's agent reports from its servers.
+  public static async getKubernetesClusterOfMagnumCluster(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    externalId: string;
+  }): Promise<OpenStackContainerClusterLink | null> {
+    const cluster: MagnumClusterRead | null = getOnlyOpenStackMatch(
+      await this.readMagnumClusters({
+        projectId: data.projectId,
+        cloudIds: [data.openStackCloudId],
+        externalId: data.externalId,
+      }),
+    );
+    return cluster
+      ? await this.readLinkOfMagnumCluster({
+          projectId: data.projectId,
+          cluster,
+        })
+      : null;
+  }
+
+  // A Kubernetes cluster's page: the same answer from the other end, or none.
+  public static async getMagnumClusterOfKubernetesCluster(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+  }): Promise<OpenStackContainerClusterLink | null> {
+    const cluster: MagnumClusterRead | null =
+      await this.readMagnumClusterOfNodes({
+        projectId: data.projectId,
+        nodes: await this.readOpenStackKubernetesNodes({
+          projectId: data.projectId,
+          kubernetesClusterId: data.kubernetesClusterId,
+        }),
+      });
+    const link: OpenStackContainerClusterLink | null = cluster
+      ? await this.readLinkOfMagnumCluster({
+          projectId: data.projectId,
+          cluster,
+        })
+      : null;
+    return link?.kubernetesClusterId === data.kubernetesClusterId.toString()
+      ? link
+      : null;
   }
 
   /*

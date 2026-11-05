@@ -20,9 +20,11 @@ import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
  * above each guide says where. The rule for what a guide may claim:
  *
  *   howFarTested is said on screen, in plain words, for every tool. The epic asks for
- *   each guide to be followed end to end on a real deployment. None of these has been: the
- *   rig runs DevStack, with these exporters and Alertmanager beside it at the versions
- *   Kolla-Ansible pins. Say what each was checked against, and never more.
+ *   each guide to be followed end to end on a real deployment. Kolla-Ansible's has been, short
+ *   of an alert, and with a stand-in for OneUptime (Fixtures/OpenStack/kolla-aio). The rest have
+ *   not, though OpenStack-Ansible has been deployed for real (Fixtures/OpenStack/osa-aio). Say
+ *   what each was checked against, and never more: OpenStackDeploymentGuides.test.ts holds these
+ *   two to what those recordings say ran.
  *
  * Pure and React-free, as DocumentationMarkdown.ts is, so a test can read every word.
  * OpenStackDeploymentGuides.test.ts holds each one to the agent's files.
@@ -365,7 +367,7 @@ function kollaAnsible(
   return {
     alreadyRuns:
       "With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.",
-    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its exporters, at the versions Kolla-Ansible pins, were recorded on a test cloud, failing and recovering, with Alertmanager posting to OneUptime. ${TESTED_BY_RIG}`,
+    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one Kolla-Ansible (stable/2026.1, Open vSwitch) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on each credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the targets read from its real prometheus.yml, and the logs profile. One part did not hold: with Memcached and nova-compute stopped there, its Alertmanager posted nothing, so no alert has gone from a Kolla-Ansible stack to OneUptime. What Alertmanager posts at the version Kolla-Ansible pins, recorded in a test cluster, did open and resolve an incident on the right cloud on a running OneUptime.`,
     firstSteps: [
       {
         title: "Forward what is already firing",
@@ -505,10 +507,10 @@ function openStackAnsible(
   return {
     alreadyRuns:
       "OpenStack-Ansible keeps its services' logs in journald and runs no Prometheus of its own, so the agent is the way in, and the logs have a path of their own.",
-    howFarTested: `Its paths and variables were read from OpenStack-Ansible's own source and docs. The agent itself was recorded on a test cloud, but not one this tool deployed. ${TESTED_BY_RIG}`,
+    howFarTested: `Its paths and variables were read from OpenStack-Ansible's own source and docs. A real all-in-one (stable/2026.1, in LXC containers) was deployed on a CI runner, where this guide's RabbitMQ and HAProxy settings were applied with its commands and each exporter answered, and its logs profile read the journal. The agent itself was recorded on a test cloud, but not one this tool deployed. ${TESTED_BY_RIG}`,
     firstSteps: [],
     credentialNotes: [
-      "Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`.",
+      "Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`. It has no `curl`, which the commands below use, so run `apt-get install -y curl` there first.",
       "**Full view** needs no change to any service: OpenStack-Ansible's roles already set `service_type` under `[keystone_authtoken]`. Its Cinder says `volumev3`, which the access rules also carry.",
       "**Infrastructure only** takes its overrides as `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` and `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml`. Apply each with its own playbook and tag, such as `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Taking one out later leaves an empty file behind rather than none, so nothing fails.",
     ],

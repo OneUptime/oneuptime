@@ -448,6 +448,22 @@ wait_for_webhook() {
   return 1
 }
 
+# Its rules, what they found, where it sends them and its own log. Prometheus asks a password of
+# anyone but itself, which is in Kolla-Ansible's passwords, and none of this is kept with it.
+what_prometheus_says() {
+  local password call
+  password="$(sudo awk '/^prometheus_password:/ { print $2 }' /etc/kolla/passwords.yml)"
+  for call in rules alerts alertmanagers; do
+    curl -sS --max-time 20 -u "admin:$password" "http://$KOLLA_API_ADDRESS:9091/api/v1/$call" \
+      >"$OUTPUT_DIR/alertmanager/prometheus-$call.json" 2>&1 || true
+  done
+  curl -sS --max-time 20 "http://$KOLLA_API_ADDRESS:9150/metrics" 2>&1 | grep -E '^memcached_up' \
+    >"$OUTPUT_DIR/alertmanager/memcached-up-while-stopped.txt" || true
+  sudo docker ps -a --format '{{.Names}} {{.Status}}' | grep -E 'prometheus|memcached|nova_compute' \
+    >"$OUTPUT_DIR/alertmanager/containers.txt" || true
+  sudo docker logs --tail 200 prometheus_server >"$OUTPUT_DIR/alertmanager/prometheus-server.log" 2>&1 || true
+}
+
 drill() {
   local status=0
   log "Stop Memcached and nova-compute, as they stop in production"
@@ -455,6 +471,7 @@ drill() {
   wait_for_webhook firing 420 || status=$?
   # What Prometheus and Alertmanager say they did, whichever way that went.
   curl -sS --max-time 20 "http://$KOLLA_API_ADDRESS:9093/api/v2/alerts" >"$OUTPUT_DIR/alertmanager/alerts-while-firing.json" 2>&1 || true
+  what_prometheus_says
   sudo docker start memcached nova_compute
   wait_for_webhook resolved 600 || status=$?
   sudo docker logs prometheus_alertmanager >"$OUTPUT_DIR/alertmanager/alertmanager.log" 2>&1 || true

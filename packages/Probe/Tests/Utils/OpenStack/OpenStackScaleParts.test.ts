@@ -627,6 +627,7 @@ describe("what goes in an upload, past the summary size", () => {
             createdAt: null,
             visibility: "public",
             isHidden: false,
+            isProtected: false,
             status: "active",
             sizeBytes: 1,
           };

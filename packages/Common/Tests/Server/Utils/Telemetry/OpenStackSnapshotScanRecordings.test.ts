@@ -149,7 +149,8 @@ function hasScene(release: string, scene: string): boolean {
 const RELEASES: Array<string> = fs
   .readdirSync(FIXTURES)
   .filter((entry: string) => {
-    return hasScene(entry, "healthy");
+    // A deployment tool's recording is no DevStack: OpenStackKollaRecording.test.ts holds it.
+    return !entry.endsWith("-aio") && hasScene(entry, "healthy");
   })
   .sort();
 

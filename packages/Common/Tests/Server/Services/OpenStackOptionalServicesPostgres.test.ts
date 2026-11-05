@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { OpenStackBlastRadius } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
+  OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
@@ -153,6 +154,19 @@ function cluster(
     externalId: id,
     name: id,
     status: "CREATE_COMPLETE",
+    ...overrides,
+  });
+}
+
+function share(
+  id: string,
+  overrides: Partial<ParsedOpenStackResource> = {},
+): ParsedOpenStackResource {
+  return resource({
+    kind: OpenStackResourceKind.Share,
+    externalId: id,
+    name: id,
+    status: "available",
     ...overrides,
   });
 }
@@ -477,6 +491,55 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       expect(await rows(OpenStackResourceKind.Instance)).toHaveLength(1);
     });
 
+    test("Manila's shares and services go with it, as Heat's do", async () => {
+      await write([
+        api(OpenStackServiceType.Compute),
+        api(OpenStackServiceType.SharedFileSystems),
+        share("a"),
+        resource({
+          kind: OpenStackResourceKind.Service,
+          externalId: "RegionOne/sharev2/compute-01/manila-share",
+          name: "manila-share",
+          status: "up",
+          facts: { family: "sharev2" },
+        }),
+      ]);
+      await record([
+        scrape(OpenStackServiceType.SharedFileSystems, {
+          samples: 0,
+          observedAt: minutesAgo(16),
+        }),
+      ]);
+      await sweep();
+      expect(await rows(OpenStackResourceKind.Share)).toEqual([]);
+      expect(await rows(OpenStackResourceKind.Service)).toEqual([]);
+      expect(
+        (await rows(OpenStackResourceKind.Api)).map((row: Row): string => {
+          return row["name"];
+        }),
+      ).toEqual(["compute"]);
+    });
+
+    test("Manila stopped takes no shares: its _up reads 0, and that's no empty answer", async () => {
+      await write([
+        api(OpenStackServiceType.Compute),
+        api(OpenStackServiceType.SharedFileSystems, {
+          status: "down",
+          vouchedAt: minutesAgo(90),
+          lastSeenAt: NOW,
+        }),
+        share("a", { lastSeenAt: minutesAgo(90) }),
+      ]);
+      await record([
+        scrape(OpenStackServiceType.SharedFileSystems, {
+          samples: 1,
+          observedAt: minutesAgo(1),
+        }),
+      ]);
+      await sweep();
+      expect(await rows(OpenStackResourceKind.Share)).toHaveLength(1);
+    });
+
     test("waits while the rest of the cloud has answered for less than that", async () => {
       await estate();
       await record([
@@ -667,7 +730,7 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       );
       expect(row!["name"]).toBe("ou-cluster-real");
       expect(row!["openStackProjectId"]).toBe(
-        "4d0acfc18c9d4a0b994a7fe34516bf65",
+        "5d1838ef05294dd9a804e284b9f21617",
       );
     });
 
@@ -812,6 +875,24 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       ).toEqual(["failed", "stuck", "unhealthy"]);
     });
 
+    test("a share in error, and one stuck past the line, and none that is on its way or migrating", async () => {
+      const longAgo: Date = minutesAgo(OPENSTACK_SHARE_STUCK_MINUTES);
+      await write([
+        share("ok"),
+        share("in-error", { status: "error" }),
+        share("extend-failed", { status: "extending_error" }),
+        share("just-started", { status: "creating" }),
+        share("stuck", { status: "creating", lastSeenAt: longAgo }),
+        share("migrating", { status: "migrating", lastSeenAt: longAgo }),
+        share("off", { status: "inactive", lastSeenAt: longAgo }),
+      ]);
+      expect(namesOf(await attention(), OpenStackResourceKind.Share)).toEqual([
+        "extend-failed",
+        "in-error",
+        "stuck",
+      ]);
+    });
+
     test("a project's own page reads its stacks and clusters too", async () => {
       await write([
         stack("mine", { status: "CREATE_FAILED", openStackProjectId: "p1" }),
@@ -886,6 +967,54 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       ).toEqual([]);
     });
 
+    test("the summary counts Manila's shares, and a cloud without Manila reads 0", async () => {
+      await write([
+        api(OpenStackServiceType.SharedFileSystems),
+        share("one"),
+        share("two", { regionName: "RegionTwo" }),
+      ]);
+      const whole: OpenStackInventorySummary =
+        await OpenStackResourceService.getInventorySummary({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+        });
+      expect(whole.shareCount).toBe(2);
+      expect(await optionalServicesOf(CLOUD_ID)).toEqual([
+        OpenStackServiceType.SharedFileSystems,
+      ]);
+
+      const region: OpenStackInventorySummary =
+        await OpenStackResourceService.getInventorySummary({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          regionName: "RegionTwo",
+        });
+      expect(region.shareCount).toBe(1);
+
+      expect(
+        (
+          await OpenStackResourceService.getInventorySummary({
+            projectId: PROJECT_ID,
+            openStackCloudId: OTHER_CLOUD_ID,
+          })
+        ).shareCount,
+      ).toBe(0);
+    });
+
+    test("a project's summary counts its shares", async () => {
+      await write([
+        share("one", { openStackProjectId: "p1" }),
+        share("two", { openStackProjectId: "p1" }),
+        share("theirs", { openStackProjectId: "p2" }),
+      ]);
+      const [summary] = await OpenStackResourceService.getProjectSummaries({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        openStackProjectIds: ["p1"],
+      });
+      expect(summary).toMatchObject({ shareCount: 2 });
+    });
+
     test("a project's summary counts its stacks and clusters", async () => {
       await write([
         stack("one", { openStackProjectId: "p1" }),
@@ -937,6 +1066,25 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       expect(radius.projects[0]).toMatchObject({
         projectId: "p1",
         stackCount: 2,
+      });
+    });
+
+    test("Manila's API reaches its shares, by project, in its own region", async () => {
+      await write([
+        share("a", { openStackProjectId: "p1" }),
+        share("b", { openStackProjectId: "p1" }),
+        share("c", { openStackProjectId: "p2" }),
+        share("elsewhere", { regionName: "RegionTwo" }),
+      ]);
+      const radius: OpenStackBlastRadius = await radiusOf({
+        kind: OpenStackResourceKind.Api,
+        name: OpenStackServiceType.SharedFileSystems,
+      });
+      expect(radius.shareCount).toBe(3);
+      expect(radius.projectCount).toBe(2);
+      expect(radius.projects[0]).toMatchObject({
+        projectId: "p1",
+        shareCount: 2,
       });
     });
 

@@ -24,6 +24,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_CEPH_STATUS_FACT,
+  OpenStackContainerClusterLink,
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
 } from "../../../Types/OpenStack/OpenStackLinks";
@@ -43,6 +44,14 @@ interface LinksApi {
   getHostOfMachine: (req: unknown, res: unknown) => Promise<void>;
   getPlacementOfHost: (req: unknown, res: unknown) => Promise<void>;
   getReachOfInstance: (req: unknown, res: unknown) => Promise<void>;
+  getKubernetesClusterOfMagnumCluster: (
+    req: unknown,
+    res: unknown,
+  ) => Promise<void>;
+  getMagnumClusterOfKubernetesCluster: (
+    req: unknown,
+    res: unknown,
+  ) => Promise<void>;
   getStoragePoolCeph: (req: unknown, res: unknown) => Promise<void>;
   confirmStoragePoolCeph: (req: unknown, res: unknown) => Promise<void>;
   keepCephStatusCallerMayRead: (data: {
@@ -250,6 +259,146 @@ describe("where a host sits in a cloud", () => {
       NotFoundException,
     );
     expect(join).not.toHaveBeenCalled();
+  });
+});
+
+describe("a Magnum cluster and the Kubernetes cluster it is", () => {
+  const KUBERNETES_CLUSTER_ID: ObjectID = ObjectID.generate();
+  const LINK: OpenStackContainerClusterLink = {
+    openStackCloudId: CLOUD_ID.toString(),
+    cloudName: "prod",
+    regionName: "RegionOne",
+    externalId: "ece79e88-fe71-4268-8080-ed81e6887df4",
+    name: "ou-cluster",
+    status: "CREATE_COMPLETE",
+    kubernetesClusterId: KUBERNETES_CLUSTER_ID.toString(),
+    kubernetesClusterName: "from-magnum",
+    nodeCount: 3,
+  };
+
+  describe("from the Magnum cluster's page", () => {
+    const request: JSONObject = {
+      params: {},
+      body: { externalId: LINK.externalId },
+    };
+
+    beforeEach(() => {
+      jest
+        .spyOn(OpenStackAcrossProducts, "getKubernetesClusterOfMagnumCluster")
+        .mockResolvedValue(LINK as never);
+    });
+
+    test("is looked for in the cloud being read, and said to someone who can read that cluster", async () => {
+      const read: jest.SpiedFunction<() => Promise<unknown>> = idsReadBy(
+        KubernetesClusterService,
+        [KUBERNETES_CLUSTER_ID.toString()],
+      );
+      await api().getKubernetesClusterOfMagnumCluster(request, {});
+
+      expect(
+        OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster,
+      ).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        externalId: LINK.externalId,
+      });
+      // As the caller, which is the whole point of asking.
+      expect(read).toHaveBeenCalledWith(
+        expect.objectContaining({ props: PROPS }),
+      );
+      expect(sent[0]!["link"]).toEqual(LINK);
+    });
+
+    test("is no answer at all to someone who can read the cloud and not that cluster", async () => {
+      idsReadBy(KubernetesClusterService, []);
+      await api().getKubernetesClusterOfMagnumCluster(request, {});
+      expect(sent[0]).toEqual({ link: null });
+    });
+
+    test("is no answer either to someone Kubernetes refuses outright, and the card still answers", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findBy")
+        .mockRejectedValue(new NotAuthorizedException("No") as never);
+      await api().getKubernetesClusterOfMagnumCluster(request, {});
+      expect(sent[0]).toEqual({ link: null });
+    });
+
+    test("is none when the join found none, and asks Kubernetes nothing", async () => {
+      jest
+        .spyOn(OpenStackAcrossProducts, "getKubernetesClusterOfMagnumCluster")
+        .mockResolvedValue(null as never);
+      const read: jest.SpiedFunction<() => Promise<unknown>> = idsReadBy(
+        KubernetesClusterService,
+        [],
+      );
+      await api().getKubernetesClusterOfMagnumCluster(request, {});
+      expect(read).not.toHaveBeenCalled();
+      expect(sent[0]).toEqual({ link: null });
+    });
+
+    test("no cluster named is refused before anything is read", async () => {
+      await expect(
+        api().getKubernetesClusterOfMagnumCluster({ params: {}, body: {} }, {}),
+      ).rejects.toThrow(BadDataException);
+      expect(
+        OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("from the Kubernetes cluster's page", () => {
+    const request: JSONObject = {
+      params: { resourceId: KUBERNETES_CLUSTER_ID.toString() },
+    };
+
+    beforeEach(() => {
+      jest.spyOn(KubernetesClusterService, "findOneById").mockResolvedValue({
+        _id: KUBERNETES_CLUSTER_ID.toString(),
+        projectId: PROJECT_ID,
+      } as never);
+      jest
+        .spyOn(OpenStackAcrossProducts, "getMagnumClusterOfKubernetesCluster")
+        .mockResolvedValue(LINK as never);
+    });
+
+    test("is said to someone who can read the cloud", async () => {
+      idsReadBy(OpenStackCloudService, [CLOUD_ID.toString()]);
+      await api().getMagnumClusterOfKubernetesCluster(request, {});
+      expect(
+        OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster,
+      ).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: KUBERNETES_CLUSTER_ID,
+      });
+      expect(sent[0]!["link"]).toEqual(LINK);
+    });
+
+    test("reads as a cluster on no cloud to someone who can only read the cluster", async () => {
+      idsReadBy(OpenStackCloudService, []);
+      await api().getMagnumClusterOfKubernetesCluster(request, {});
+      expect(sent[0]).toEqual({ link: null });
+    });
+
+    test("a cluster the caller can't read is not found, whatever it is", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneById")
+        .mockResolvedValue(null as never);
+      await expect(
+        api().getMagnumClusterOfKubernetesCluster(request, {}),
+      ).rejects.toThrow(NotFoundException);
+      expect(
+        OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("something that is not an ID is refused", async () => {
+      await expect(
+        api().getMagnumClusterOfKubernetesCluster(
+          { params: { resourceId: "not-an-id" } },
+          {},
+        ),
+      ).rejects.toThrow(BadDataException);
+    });
   });
 });
 

@@ -1,3 +1,4 @@
+import { OpenStackBlastRadiusOwner } from "Common/Types/OpenStack/OpenStackBlastRadius";
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
@@ -32,7 +33,10 @@ import ResourcePartDetailsCard, {
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
-import { fetchOpenStackNames } from "../Utils/OpenStackPartData";
+import {
+  fetchOpenStackBlastRadius,
+  fetchOpenStackNames,
+} from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS,
   getOpenStackPartExplanation,
@@ -72,6 +76,20 @@ const VolumeOverview: FunctionComponent<{
       externalIds: attachedTo ? [attachedTo] : [],
     });
   }, [attachedTo, part.refreshToken]);
+
+  // The stack whose own read names this volume, which only a probe makes.
+  const owners: OpenStackRead<Array<OpenStackBlastRadiusOwner>> =
+    useOpenStackRead<Array<OpenStackBlastRadiusOwner>>(async () => {
+      return (
+        (
+          await fetchOpenStackBlastRadius({
+            openStackCloudId: part.openStackCloudId,
+            kind: OpenStackResourceKind.Volume,
+            externalId: part.externalId,
+          })
+        ).belongsTo || []
+      );
+    }, [part.externalId, part.refreshToken]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: [row],
@@ -123,6 +141,22 @@ const VolumeOverview: FunctionComponent<{
       translator.translateText("Nothing") || "Nothing"
     ),
   });
+  for (const owner of owners.data || []) {
+    detailRows.push({
+      key: `owner-${owner.externalId}`,
+      label: "Heat Stack",
+      value: (
+        <Link
+          to={part.routes.getPartRoute(owner.kind, owner.externalId)}
+          className="text-indigo-600 hover:text-indigo-700 hover:underline"
+        >
+          <bdi>{owner.name || owner.externalId}</bdi>
+        </Link>
+      ),
+      description:
+        "That stack says it owns this volume. What happens to the stack happens to this.",
+    });
+  }
   const poolName: string = getOpenStackFactText(row, "pool");
   detailRows.push({
     key: "pool",

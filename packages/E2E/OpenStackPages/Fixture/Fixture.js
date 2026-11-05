@@ -38,6 +38,8 @@
  *   ?probes=    many: a choice of probes, where a new cloud starts on none
  *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
  *               untrusted | plain-http | refused | not-found | no-probe
+ *   ?checks=    on | failed | refused | sweeping | waiting: what a cloud's check has come to,
+ *               with none until someone turns one on (Checks.js)
  *   ?aiAgent=   connected | unreachable: the OneUptime AI agent's state (AiAgent.js); none
  *               has connected by default
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
@@ -85,6 +87,7 @@ import {
   withAiAccessColumns,
 } from "./AiAgent";
 import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
+import CloudSpend from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Spend";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
 import CloudHypervisors from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Hypervisors";
@@ -104,6 +107,8 @@ import CloudSubnetDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenS
 import CloudRouters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Routers";
 import CloudRouterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/RouterDetail";
 import CloudFloatingIps from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIps";
+import CloudBareMetalNodes from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/BareMetalNodes";
+import CloudBareMetalNodeDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/BareMetalNodeDetail";
 import CloudFloatingIpDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIpDetail";
 import CloudNetworkAgents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/NetworkAgents";
 import CloudNetworkAgentDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/NetworkAgentDetail";
@@ -116,6 +121,8 @@ import CloudImages from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/V
 import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ImageDetail";
 import CloudStacks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Stacks";
 import CloudStackDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
+import CloudShares from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Shares";
+import CloudShareDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ShareDetail";
 import CloudContainerClusters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
 import CloudContainerClusterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusterDetail";
 import CloudProjects from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Projects";
@@ -127,6 +134,7 @@ import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack
 import CloudMetrics from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Metrics";
 import CloudLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Logs";
 import CloudTraces from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Traces";
+import CloudChecks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Checks";
 import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
 import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
 import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
@@ -139,6 +147,7 @@ import CloudFeed from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Vie
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
 import {
   OpenStackPlacementOfHost,
+  OpenStackPlacementOfKubernetesCluster,
   OpenStackPlacementOfKubernetesNode,
   OpenStackPlacementOfService,
 } from "../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementOfHost";
@@ -181,6 +190,7 @@ import {
   getAttentionRows,
   getBlastRadius,
   getCounts,
+  getBareMetalClasses,
   getInventorySummary,
   getRegionSummaries,
   getTopConsumers,
@@ -210,6 +220,8 @@ import {
   answerStoragePoolCeph,
   getHostOfMachine,
   getPlacementOfHost,
+  getKubernetesClusterOfMagnumCluster,
+  getMagnumClusterOfKubernetesCluster,
   getPlacementOfKubernetesNode,
   getPlacementsOfService,
   getReachOfInstance,
@@ -217,6 +229,7 @@ import {
   getStoragePoolCeph,
   otherProductsOf,
 } from "./Links";
+import { checkRowOf } from "./Checks";
 import {
   PROBES,
   SHARED_PROBES,
@@ -233,6 +246,7 @@ import {
 } from "./Recordings";
 import { answerRows, hasServiceLogs, readServiceLogs } from "./ServiceLogs";
 import { buildCapacitySnapshotOf } from "./Capacity";
+import { buildSpendOf } from "./Spend";
 import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
 /*
@@ -362,17 +376,16 @@ const estate = buildEstate(
     estate: ESTATE,
     recording: RECORDING,
     recordedRows: RECORDING
-      ? [RECORDING, ...(params.get("also") ? [params.get("also")] : [])].flatMap(
-          (name) => {
-            return rowsFromRecording(name, {
-              region: REGION_ONE,
-              loadedAt: IS_CONNECTED
-                ? LOADED_AT - MINUTE
-                : LOADED_AT - QUIET_FOR,
-              without: params.get("without") || "",
-            });
-          },
-        )
+      ? [
+          RECORDING,
+          ...(params.get("also") ? [params.get("also")] : []),
+        ].flatMap((name) => {
+          return rowsFromRecording(name, {
+            region: REGION_ONE,
+            loadedAt: IS_CONNECTED ? LOADED_AT - MINUTE : LOADED_AT - QUIET_FOR,
+            without: params.get("without") || "",
+          });
+        })
       : null,
     isConnected: IS_CONNECTED,
     quietFor: QUIET_FOR,
@@ -504,13 +517,10 @@ const alerts = [];
 const scheduledMaintenances = [];
 const LINKED = params.get("linked") === "1";
 if (LINKED) {
-  incidents.push(
-    openIncident(61, "Nova API errors in RegionOne", [], 45),
-    {
-      ...openIncident(62, "A payment provider is slow", [], 30),
-      openStackCloudIds: [],
-    },
-  );
+  incidents.push(openIncident(61, "Nova API errors in RegionOne", [], 45), {
+    ...openIncident(62, "A payment provider is slow", [], 30),
+    openStackCloudIds: [],
+  });
   alerts.push(openAlert(61, "Volume stuck in creating", [], 20), {
     ...openAlert(62, "A certificate expires soon", [], 10),
     openStackCloudIds: [],
@@ -897,6 +907,13 @@ const PRODUCTION_LABEL = {
   projectId: PROJECT_ID,
 };
 
+const checkRow = checkRowOf(
+  params.get("checks"),
+  estate.cloud._id,
+  PROJECT_ID,
+  LOADED_AT,
+);
+
 /*
  * What the worker would keep on the cloud, worked out from this estate's rows by the same code
  * (OpenStackCapacitySnapshot). ?capacity=none is a cloud no worker has been through yet.
@@ -913,18 +930,53 @@ function withCapacity(cloud) {
       };
 }
 
+/*
+ * What the worker would keep about the cloud's usage, by the same code (OpenStackSpendSnapshot).
+ * ?spend=none is a cloud no worker has been through yet.
+ */
+const SPEND =
+  params.get("spend") === "none"
+    ? { priceList: null, snapshot: null, usage: [] }
+    : buildSpendOf(estate.inventory, {
+        scenario: params.get("spend"),
+        waste: params.get("waste"),
+        openStackCloudId: estate.cloud._id,
+        loadedAt: LOADED_AT,
+        observedAt: LOADED_AT,
+      });
+
+function withSpend(cloud) {
+  return {
+    ...cloud,
+    spendSnapshot: SPEND.snapshot,
+    priceList: SPEND.priceList,
+  };
+}
+
 const store = {
+  OpenStackProjectUsage: SPEND.usage,
+  OpenStackBudget: [],
+  OpenStackCloudCheck: checkRow ? [checkRow] : [],
   // Every cloud's row has these, with these defaults, since its migration.
   OpenStackCloud: withAiAccessColumns(
     params.get("clouds") === "none"
       ? []
       : [
-          withCapacity(
-            params.get("collection") === "Probe"
-              ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
-              : params.get("collection")
-                ? { ...estate.cloud, collectionMethod: params.get("collection") }
-                : estate.cloud,
+          withSpend(
+            withCapacity(
+              params.get("collection") === "Probe"
+                ? probeCollectedCloud(
+                    estate.cloud,
+                    params.get("probe"),
+                    LOADED_AT,
+                  )
+                : params.get("collection")
+                  ? {
+                      ...estate.cloud,
+                      collectionMethod: params.get("collection"),
+                    }
+                  : estate.cloud,
+            ),
           ),
           ...(params.get("archived") === "1"
             ? [
@@ -1374,6 +1426,8 @@ function writeRow(modelName, id, data) {
 }
 
 const WRITABLE_TABLES = new Set([
+  "OpenStackBudget",
+  "OpenStackCloudCheck",
   "OpenStackCloudOwnerUser",
   "OpenStackCloudOwnerTeam",
   "OpenStackCloudOwnerRule",
@@ -1593,9 +1647,7 @@ function usageSeries(metricName, attributes) {
     if (devices) {
       for (const [device, readings] of Object.entries(devices[0])) {
         if (readings[devices[1]] !== undefined) {
-          out.push(
-            seriesFromRow({ ...labels, device }, readings[devices[1]]),
-          );
+          out.push(seriesFromRow({ ...labels, device }, readings[devices[1]]));
         }
       }
     }
@@ -2042,6 +2094,13 @@ async function handleApi(method, options) {
         ? failed()
         : ok(getInventorySummary(estate.inventory, regionOfBody(body)));
     }
+    if (parsed.pathname.includes("/openstack-resource/bare-metal-classes/")) {
+      return FAILS.has("inventory")
+        ? failed()
+        : ok({
+            classes: getBareMetalClasses(estate.inventory, regionOfBody(body)),
+          });
+    }
     if (parsed.pathname.includes("/openstack-resource/needs-attention/")) {
       if (FAILS.has("inventory") || FAILS.has("attention")) {
         return failed();
@@ -2169,6 +2228,34 @@ async function handleApi(method, options) {
         ),
       });
     }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/magnum-cluster-of-kubernetes-cluster/",
+      )
+    ) {
+      return ok({
+        link: getMagnumClusterOfKubernetesCluster(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+        ),
+      });
+    }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/kubernetes-cluster-of-magnum-cluster/",
+      )
+    ) {
+      return ok({
+        link: getKubernetesClusterOfMagnumCluster(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          body.externalId,
+        ),
+      });
+    }
     if (parsed.pathname.includes("/openstack-resource/placement-of-service/")) {
       return ok({
         placements: getPlacementsOfService(
@@ -2179,7 +2266,9 @@ async function handleApi(method, options) {
         ),
       });
     }
-    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")) {
+    if (
+      parsed.pathname.includes("/openstack-resource/storage-pool-ceph-confirm/")
+    ) {
       fixture.writeRequests.push({
         kind: "storage-pool-ceph-confirm",
         data: serialize(body),
@@ -2193,7 +2282,9 @@ async function handleApi(method, options) {
         ? ok({})
         : new HTTPErrorResponse(
             404,
-            { message: "That pool or that Ceph cluster is not in this project" },
+            {
+              message: "That pool or that Ceph cluster is not in this project",
+            },
             {},
           );
     }
@@ -2355,6 +2446,7 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS, CloudAiLogs],
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, CloudAiAgent],
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SPEND, CloudSpend],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS, CloudHypervisors],
@@ -2377,6 +2469,11 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS, CloudRouters],
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL, CloudRouterDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS, CloudFloatingIps],
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES, CloudBareMetalNodes],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+    CloudBareMetalNodeDetail,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL, CloudFloatingIpDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS, CloudNetworkAgents],
   [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL, CloudNetworkAgentDetail],
@@ -2387,6 +2484,8 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL, CloudStoragePoolDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES, CloudImages],
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL, CloudImageDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARES, CloudShares],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, CloudShareDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACKS, CloudStacks],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL, CloudStackDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS, CloudContainerClusters],
@@ -2406,6 +2505,7 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_METRICS, CloudMetrics],
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS, CloudLogs],
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES, CloudTraces],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS, CloudChecks],
   [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, CloudIncidents],
   [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS, CloudAlerts],
   [
@@ -2427,7 +2527,10 @@ const PAGES = [
 
 const FixtureLayout = withNavigation(CloudLayout, PageMap.OPENSTACK_CLOUD_VIEW);
 const FixtureCloudsList = withNavigation(CloudsList, PageMap.OPENSTACK_CLOUDS);
-const FixtureArchived = withNavigation(CloudsArchived, PageMap.OPENSTACK_ARCHIVED);
+const FixtureArchived = withNavigation(
+  CloudsArchived,
+  PageMap.OPENSTACK_ARCHIVED,
+);
 const FixtureOwnerRules = withNavigation(
   OwnerRules,
   PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
@@ -2465,7 +2568,9 @@ const OTHER_PRODUCT_PAGES = [
     PageMap.HOST_VIEW,
     otherProductPage("other-product-host", (path) => {
       return (
-        <OpenStackPlacementOfHost hostId={new ObjectID(path[path.length - 1])} />
+        <OpenStackPlacementOfHost
+          hostId={new ObjectID(path[path.length - 1])}
+        />
       );
     }),
   ],
@@ -2475,6 +2580,16 @@ const OTHER_PRODUCT_PAGES = [
       return (
         <OpenStackPlacementOfService
           serviceId={new ObjectID(path[path.length - 1])}
+        />
+      );
+    }),
+  ],
+  [
+    PageMap.KUBERNETES_CLUSTER_VIEW,
+    otherProductPage("other-product-kubernetes-cluster", (path) => {
+      return (
+        <OpenStackPlacementOfKubernetesCluster
+          clusterId={new ObjectID(path[path.length - 1])}
         />
       );
     }),

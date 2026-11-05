@@ -2,7 +2,10 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import { isOpenStackServiceForcedDown } from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  isOpenStackServiceForcedDown,
+  isOpenStackServiceQuiet,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackServiceFamily } from "Common/Types/OpenStack/OpenStackResourceKind";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
@@ -25,6 +28,7 @@ import {
   getOpenStackWorkerRank,
   isOpenStackApiScrapeFailed,
 } from "../../Pages/OpenStack/Utils/OpenStackServices";
+import { OPENSTACK_QUIET_LABEL } from "./OpenStackStatus";
 import OpenStackStatusCell from "./OpenStackStatusCell";
 
 /*
@@ -179,7 +183,9 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
             adminState={row.adminState}
             disabledReason={row.disabledReason}
             reasons={
-              isForcedDown ? [{ text: OPENSTACK_REASON_FORCED_DOWN }] : undefined
+              isForcedDown
+                ? [{ text: OPENSTACK_REASON_FORCED_DOWN }]
+                : undefined
             }
           />
         </div>
@@ -272,11 +278,26 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                     : ""}
                 </div>
                 <div className="min-w-0 sm:w-48">
-                  <OpenStackStatusCell
-                    kind={group.api.kind}
-                    status={group.api.status}
-                    isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
-                  />
+                  {group.api.status !== "down" &&
+                  isOpenStackServiceQuiet({
+                    service: group.api.name,
+                    lastSeenAt: group.api.lastSeenAt,
+                    now: props.now,
+                  }) ? (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      label={OPENSTACK_QUIET_LABEL}
+                      isOpenStackWord={false}
+                      tone="warning"
+                    />
+                  ) : (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
+                    />
+                  )}
                 </div>
               </ResourcePartRow>
             </li>

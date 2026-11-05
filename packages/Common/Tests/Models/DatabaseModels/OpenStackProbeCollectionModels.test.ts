@@ -4,6 +4,9 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import OpenStackCloud, {
   OPENSTACK_CLOUD_BOOKKEEPING_COLUMNS,
 } from "../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudCheck, {
+  OPENSTACK_CLOUD_CHECK_BOOKKEEPING_COLUMNS,
+} from "../../../Models/DatabaseModels/OpenStackCloudCheck";
 import OpenStackCloudConnectionTest from "../../../Models/DatabaseModels/OpenStackCloudConnectionTest";
 import {
   OPENSTACK_CONNECTION_SAVED_SELECT,
@@ -211,6 +214,64 @@ describe("OpenStackCloud's probe collection columns", () => {
       "collectionProbeId",
       "nextCollectionAt",
     ]);
+  });
+});
+
+describe("OpenStackCloudCheck", () => {
+  const check: OpenStackCloudCheck = new OpenStackCloudCheck();
+  const checkAccess: Dictionary<ColumnAccessControl> =
+    getColumnAccessControlForAllColumns(check);
+  const checkColumns: Dictionary<TableColumnMetadata> = getTableColumns(check);
+
+  test.each(["credentialSecret", "osProfilerKey"])(
+    "%s is write-only and encrypted at rest",
+    (column: string) => {
+      expect(checkAccess[column]!.read).toEqual([]);
+      expect(checkAccess[column]!.update).toEqual(
+        checkAccess["lifecycleProjectName"]!.update,
+      );
+      expect(checkColumns[column]!.encrypted).toBe(true);
+    },
+  );
+
+  test.each([
+    "isCredentialSet",
+    "isOsProfilerKeySet",
+    "credentialBinding",
+    "apiCheckResult",
+    "lifecycleRecords",
+    "pinnedLifecycleProjectId",
+    "nextApiCheckAt",
+    "nextLifecycleCheckAt",
+    "lastApiCheckAt",
+    "lastLifecycleCheckAt",
+    "isSweepPending",
+    "settingsVersion",
+    "checkError",
+  ])("%s is the server's to write, never a person's", (column: string) => {
+    expect(checkAccess[column]!.create).toEqual([]);
+    expect(checkAccess[column]!.update).toEqual([]);
+  });
+
+  test("the audit log records what people change, and none of a report's bookkeeping", () => {
+    expect(check.enableAuditLogOn).toMatchObject({
+      create: true,
+      update: true,
+      delete: true,
+    });
+    expect(check.enableAuditLogOn?.ignoreColumns).toEqual(
+      OPENSTACK_CLOUD_CHECK_BOOKKEEPING_COLUMNS,
+    );
+    expect(OPENSTACK_CLOUD_CHECK_BOOKKEEPING_COLUMNS).toEqual(
+      expect.arrayContaining(["apiCheckResult", "lifecycleRecords"]),
+    );
+    expect(OPENSTACK_CLOUD_CHECK_BOOKKEEPING_COLUMNS).not.toContain(
+      "isLifecycleCheckEnabled",
+    );
+  });
+
+  test("is registered, so the database and the API know the table", () => {
+    expect(AllModelTypes).toContain(OpenStackCloudCheck);
   });
 });
 

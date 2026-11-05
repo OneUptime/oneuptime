@@ -3,6 +3,7 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { OpenStackBlastRadiusOwner } from "Common/Types/OpenStack/OpenStackBlastRadius";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Link from "Common/UI/Components/Link/Link";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -37,6 +38,7 @@ import ResourcePartDetailsCard, {
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
 import {
   fetchOpenStackComputeServiceOf,
+  fetchOpenStackBlastRadius,
   fetchOpenStackRow,
 } from "../Utils/OpenStackPartData";
 import {
@@ -131,6 +133,20 @@ const InstanceOverview: FunctionComponent<{
           : Promise.resolve(null),
       ]);
       return { flavor, computeService, image: imageRow };
+    }, [part.externalId, part.refreshToken]);
+
+  // What it is part of: a Magnum cluster, from its name, and a stack, from that stack's own read.
+  const owners: OpenStackRead<Array<OpenStackBlastRadiusOwner>> =
+    useOpenStackRead<Array<OpenStackBlastRadiusOwner>>(async () => {
+      return (
+        (
+          await fetchOpenStackBlastRadius({
+            openStackCloudId: part.openStackCloudId,
+            kind: OpenStackResourceKind.Instance,
+            externalId: part.externalId,
+          })
+        ).belongsTo || []
+      );
     }, [part.externalId, part.refreshToken]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
@@ -299,6 +315,25 @@ const InstanceOverview: FunctionComponent<{
       value: facts["libvirtName"] as string,
       mono: true,
       copyText: facts["libvirtName"] as string,
+    });
+  }
+  for (const owner of owners.data || []) {
+    const isCluster: boolean =
+      owner.kind === OpenStackResourceKind.ContainerCluster;
+    detailRows.push({
+      key: `owner-${owner.externalId}`,
+      label: isCluster ? "Kubernetes Cluster" : "Heat Stack",
+      value: (
+        <Link
+          to={part.routes.getPartRoute(owner.kind, owner.externalId)}
+          className={LINK_CLASS_NAME}
+        >
+          <bdi>{owner.name || owner.externalId}</bdi>
+        </Link>
+      ),
+      description: isCluster
+        ? "Magnum built this server for that cluster, which is what its name says."
+        : "That stack says it owns this instance. What happens to the stack happens to this.",
     });
   }
   if (typeof facts["userId"] === "string") {

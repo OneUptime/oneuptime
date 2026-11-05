@@ -1,0 +1,31 @@
+$ openstack image list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "36b7d7be-a928-45ad-b8a2-0d9c2d7ef195",
+    "name": "ou-image-stuck",
+    "status": "queued",
+    "visibility": "public",
+    "disk_format": "qcow2",
+    "container_format": "bare",
+    "size": null,
+    "owner": "7d12d4f1273942508ecbab053dd52b4f",
+    "created_at": "2026-11-05T05:27:20Z",
+    "updated_at": "2026-11-05T05:27:20Z"
+  },
+  {
+    "id": "26d0ad3c-ceda-4a56-a37f-97c592896bdf",
+    "name": "cirros-0.6.3-x86_64-disk",
+    "status": "active",
+    "visibility": "public",
+    "disk_format": "qcow2",
+    "container_format": "bare",
+    "size": 21692416,
+    "owner": "7d12d4f1273942508ecbab053dd52b4f",
+    "created_at": "2026-11-05T05:26:48Z",
+    "updated_at": "2026-11-05T05:26:49Z"
+  }
+]

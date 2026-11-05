@@ -20,6 +20,8 @@ import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+  OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
   OPENSTACK_BARE_METAL_STUCK_MINUTES,
@@ -28,6 +30,7 @@ import {
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
   OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
@@ -37,6 +40,7 @@ import {
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
+  OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
 import {
@@ -55,6 +59,12 @@ import {
 } from "../OpenStack/OpenStackInstanceMetrics";
 import { getAllOpenStackControlPlaneAlertTemplates } from "./OpenStackControlPlaneAlertTemplates";
 import {
+  OpenStackCheckReportKind,
+  OpenStackLifecyclePhase,
+  OpenStackLifecycleStep,
+} from "../OpenStack/OpenStackCheck";
+import { OpenStackCheckMetric } from "../../Utils/OpenStack/OpenStackCheckMetrics";
+import {
   OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
   OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_BARE_METAL_ERROR_STATES,
@@ -63,6 +73,8 @@ import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackServiceType,
@@ -121,6 +133,11 @@ export interface OpenStackAlertTemplate {
    * the agent collects this could never fire either (OpenStackMetricCatalog's onlyFromProbe).
    */
   requiresProbe?: boolean | undefined;
+  /*
+   * Reads what a check from outside reports. With that check off nothing sends its series, so on
+   * such a cloud this could never fire either.
+   */
+  requiresCheck?: OpenStackCheckReportKind | undefined;
   getMonitorStep: (args: OpenStackAlertTemplateArgs) => MonitorStep;
 }
 
@@ -219,6 +236,7 @@ const NETWORK_GROUP: Array<string> = [REGION, "network_id", "network_name"];
 const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
 // A node's id is what it is, and its name what a person calls it, which Ironic does not require.
 const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
+const SHARE_GROUP: Array<string> = [REGION, "id", "name"];
 
 // The smallest window holding three collections of what a service's job collects.
 export const OPENSTACK_WINDOW_BY_SERVICE: Record<
@@ -235,6 +253,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.Orchestration]: RollingTime.Past15Minutes,
   [OpenStackServiceType.ContainerInfra]: RollingTime.Past15Minutes,
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
 };
 
 export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
@@ -250,6 +269,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.Orchestration]: "openstack_heat_up",
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra_up",
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
+  [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
 };
 
 /*
@@ -423,13 +443,21 @@ export function buildOpenStackSeriesConfig(args: {
    * the top of this file.
    */
   anchorService?: OpenStackServiceType | undefined;
+  // Or the series that does, for what is not collected from a service: see the checks below.
+  anchorMetricName?: string | undefined;
 }): MonitorStepOpenStackMonitor {
-  const queries: Array<OpenStackQuery> = args.anchorService
+  const anchorMetricName: string | undefined =
+    args.anchorMetricName ||
+    (args.anchorService
+      ? OPENSTACK_API_UP_METRIC_BY_SERVICE[args.anchorService]
+      : undefined);
+
+  const queries: Array<OpenStackQuery> = anchorMetricName
     ? [
         ...args.queries,
         {
           alias: OPENSTACK_ANCHOR_METRIC_ALIAS,
-          metricName: OPENSTACK_API_UP_METRIC_BY_SERVICE[args.anchorService],
+          metricName: anchorMetricName,
           aggregationType: MetricsAggregationType.Min,
         },
       ]
@@ -557,6 +585,8 @@ function buildFloorStep(data: {
   groupByAttributeKeys: Array<string>;
   // An API's own queries keep its window from being silent: it needs no anchor.
   hasOwnAnchor?: boolean | undefined;
+  rollingTime?: RollingTime | undefined;
+  anchorMetricName?: string | undefined;
   /*
    * The floor, where it isn't whether something reads 1. A number with room in it gets a dead band
    * to recover past, so it doesn't flap on its line. Whole series of 0 or 1 have nowhere to put one.
@@ -571,9 +601,11 @@ function buildFloorStep(data: {
     openstackMonitor: buildOpenStackSeriesConfig({
       cloudIdentifier: data.args.cloudIdentifier,
       queries: data.queries,
-      rollingTime: OPENSTACK_WINDOW_BY_SERVICE[data.service],
+      rollingTime:
+        data.rollingTime || OPENSTACK_WINDOW_BY_SERVICE[data.service],
       groupByAttributeKeys: data.groupByAttributeKeys,
       anchorService: data.hasOwnAnchor ? undefined : data.service,
+      anchorMetricName: data.hasOwnAnchor ? undefined : data.anchorMetricName,
     }),
     offlineCriteriaInstance: buildOfflineCriteria({
       notification: { args: data.args, ...data.words },
@@ -631,6 +663,7 @@ function buildCeilingStep(data: {
   value: number;
   // Where a whole-number count recovers, when a dead band would never be reached.
   recoveryValue?: number | undefined;
+  anchorMetricName?: string | undefined;
   words: IncidentWords;
 }): MonitorStep {
   const firingFilterType: FilterType =
@@ -652,6 +685,7 @@ function buildCeilingStep(data: {
         data.rollingTime || OPENSTACK_WINDOW_BY_SERVICE[data.service],
       groupByAttributeKeys: data.groupByAttributeKeys,
       anchorService: data.service,
+      anchorMetricName: data.anchorMetricName,
     }),
     offlineCriteriaInstance: buildOfflineCriteria({
       notification: { args: data.args, ...data.words },
@@ -2219,8 +2253,7 @@ const containerInfraConductorDownTemplate: OpenStackAlertTemplate = {
       words: {
         incidentTitle: "[OpenStack] Magnum Conductor Down",
         incidentDescription: `Magnum lists an enabled magnum-conductor as down. Its API carries on answering, so nothing else says this, but with none left no cluster can be created, resized or deleted, and clusters in progress stop moving. Check openstack coe service list, then magnum-conductor's service and logs on the host named above, and its route to RabbitMQ. The incident resolves on its own once it is up again, or disabled.`,
-        criteriaName:
-          "Magnum Conductor Down - enabled magnum-conductor < 1",
+        criteriaName: "Magnum Conductor Down - enabled magnum-conductor < 1",
         criteriaDescription:
           "Triggers when Magnum lists an enabled magnum-conductor as down for the whole window.",
       },
@@ -2441,6 +2474,146 @@ const bareMetalApiDownTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Shared file systems ---
+
+/*
+ * A share holding one of a set of words for the whole window, one query per word, because a monitor's
+ * attribute filter is equality. Per share rather than from the status counter: a count can't say which
+ * share, or tell one stuck from a stream of them passing through. Read from _share_gb and not
+ * _share_status, whose value is a code for the word, and creating's code is 0, recorded, so it would
+ * never read as anything. A share's size is never 0. Its series goes away with the word, so a share
+ * fixed, deleted or finished recovers by that.
+ */
+function shareStateQueries(
+  statuses: ReadonlySet<string>,
+): Array<OpenStackQuery> {
+  return Array.from(statuses).map((status: string): OpenStackQuery => {
+    return {
+      alias: statusAlias(status),
+      metricName: "openstack_sharev2_share_gb",
+      aggregationType: MetricsAggregationType.Max,
+      attributes: { status },
+    };
+  });
+}
+
+const shareInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-share-in-error",
+  name: "Share in Error",
+  forService: OpenStackServiceType.SharedFileSystems,
+  summary: "A Manila share is in an error state.",
+  description: `Alert when a share stays in one of ${Array.from(OPENSTACK_SHARE_ERROR_STATUSES).join(", ")} for 15 minutes (openstack_sharev2_share_gb filtered to that status label, in every collection of the window). One incident per share, in a region. Manila retries none of these by itself, so one stays until someone deals with it, and recovers when it is fixed or deleted. Check \`openstack share show <share>\`, then \`openstack share message list --resource-id <share>\`.`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = shareStateQueries(
+      OPENSTACK_SHARE_ERROR_STATUSES,
+    );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.SharedFileSystems,
+      groupByAttributeKeys: SHARE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Share in Error",
+        incidentDescription: `This share is in the error state named above, and whoever asked for it does not have what they asked for. Manila retries none of these by itself. Check openstack share show and openstack share message list for this share, then manila-share's log on its backend. A share that no backend could take has no zone, recorded, which is what a share type nothing matches looks like. The incident resolves on its own once it is fixed or deleted.`,
+        criteriaName: "Share in Error - an error state for the whole window",
+        criteriaDescription:
+          "Triggers when a share holds an error state for the whole window.",
+      },
+    });
+  },
+};
+
+const shareStuckTemplate: OpenStackAlertTemplate = {
+  id: "openstack-share-stuck",
+  name: "Share Stuck",
+  forService: OpenStackServiceType.SharedFileSystems,
+  summary: `A Manila share stays in a passing state for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes.`,
+  description: `Alert when a share stays in one of ${Array.from(OPENSTACK_SHARE_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes (openstack_sharev2_share_gb filtered to that status label, in every collection of the window). One incident per share, in a region. Manila has no timeout of its own for a slow backend, so a backend that hung reads the same as a slow one, and only time tells them apart. A share migrating or being backed up isn't watched: those last as long as its data takes to copy, because someone asked for that. Check \`openstack share service list\`, then manila-share's log on its backend.`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = shareStateQueries(
+      OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+    );
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.SharedFileSystems,
+      rollingTime: windowHolding(OPENSTACK_SHARE_STUCK_MINUTES),
+      groupByAttributeKeys: SHARE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Share Stuck",
+        incidentDescription: `This share has held the status named above for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes. Manila has no timeout of its own for this, so either its backend is very slow or nothing is working on it any more. Check openstack share service list, then manila-share's log on the backend that holds it. Only an admin can move it on, with openstack share set --status. The incident resolves on its own once it reaches its next status, or is deleted.`,
+        criteriaName: `Share Stuck - same status for ${OPENSTACK_SHARE_STUCK_MINUTES} minutes`,
+        criteriaDescription: `Triggers when a share holds a passing status for the whole ${OPENSTACK_SHARE_STUCK_MINUTES}-minute window.`,
+      },
+    });
+  },
+};
+
+const sharedFileSystemsApiDownTemplate: OpenStackAlertTemplate =
+  buildApiDownTemplate({
+    id: "openstack-shared-file-systems-api-down",
+    name: "Shared File Systems API Down",
+    summary: "Manila's API does not answer for 15 minutes.",
+    description:
+      "Alert when Manila's API does not answer for 15 minutes: every call the exporter made failed (openstack_sharev2_up reads 0), or the exporter did not answer that collection (up reads 0). One incident per region. Recorded on a stopped API, and every credential that can log in reads 1, so this can't be a credential being refused. Shares already mounted carry on, because their data doesn't go through this API. Check the manila-api service and its log, then `openstack share list`.",
+    service: OpenStackServiceType.SharedFileSystems,
+    collectionMetricName: "up",
+    incidentDescription: `Manila's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. Shares already mounted carry on, but none can be created, resized or given new access. Check the manila-api service and its log, then openstack share list with a credential that works. The incident resolves on its own once it answers again.`,
+  });
+
+/*
+ * Only a read of Manila's API lists its services: the exporter has no series for them, so this can
+ * only be set up on a cloud a probe collects. Stopped and down both read below 1. Someone who stopped
+ * one on purpose and means it to stay stopped has the cloud's maintenance windows for that.
+ */
+const shareServiceDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-share-service-down",
+  name: "Manila Service Down",
+  forService: OpenStackServiceType.SharedFileSystems,
+  requiresProbe: true,
+  summary: "A Manila service stops, on a cloud a probe collects.",
+  description:
+    "Alert when an enabled Manila service reads stopped or down for 15 minutes (openstack_sharev2_agent_state below 1, filtered to adminState enabled, which only a probe sends, because only a read of Manila's own API says so). One incident per host and service. Recorded: a service shut down cleanly reads stopped at once, and one that died reads down only once its heartbeat has grown old. Its API carries on answering either way, so nothing else says this, and without its scheduler Manila's pools read 500. Check `openstack share service list`, and the service's log on its host.",
+  category: "Control Plane",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.SharedFileSystems,
+      groupByAttributeKeys: WORKER_GROUP,
+      queries: [
+        {
+          alias: "manila_service_up",
+          metricName: "openstack_sharev2_agent_state",
+          aggregationType: MetricsAggregationType.Min,
+          attributes: { adminState: "enabled" },
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Manila Service Down",
+        incidentDescription: `Manila lists this service as stopped or down. Shares already mounted carry on, because their data doesn't go through it, but none on its backend can be created, resized or deleted. Check openstack share service list and the service's log on the host named above. The incident resolves on its own once it reads up, or someone disables it.`,
+        criteriaName: "Manila Service Down - enabled service < 1",
+        criteriaDescription:
+          "Triggers when Manila lists an enabled service as stopped or down for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -2537,6 +2710,308 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
         incidentDescription: `This project has used nearly all of a quota, so its next instance or volume is about to be refused. Check openstack limits show --absolute --project for the project named above, then raise the quota or ask its owner to free some. The incident resolves on its own once it falls back.`,
         criteriaName: `Project Quota - used >= ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}%`,
         criteriaDescription: `Triggers when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of a quota for the whole window.`,
+      },
+    });
+  },
+};
+
+// --- Checks from outside ---
+
+/*
+ * WHAT A PROBE FOUND FROM OUTSIDE THE CLOUD (Types/OpenStack/OpenStackCheck), BY THE SAME RULES.
+ *
+ * Each minute's API check says what it found and what the last lifecycle run found (see
+ * OpenStackCheckMetrics for why), so all of these read series that arrive once a minute and hold
+ * five collections in five minutes, as every other template holds at least three. A failed lifecycle
+ * run opens its incident within minutes of failing and closes it within minutes of the next run that
+ * passes, whatever the check's interval is, because what the alert reads is the last verdict.
+ *
+ * Their anchor is the check's own series, not a service's `_up`: these go on whichever way the cloud
+ * is collected, and stop when the probe does. Silence still is not recovery, so a dead probe leaves
+ * an open incident open.
+ *
+ * One incident per region: what a run met goes in the description, from what the run reported
+ * (OpenStackAlertContext), so a boot that fails in a different way next time does not open another.
+ */
+const CHECK_WINDOW: RollingTime = RollingTime.Past5Minutes;
+const REGION_GROUP: Array<string> = [REGION];
+
+const TURN_ON_API_CHECKS: string =
+  "Reads nothing until API checks are on, on the cloud's Checks page.";
+const TURN_ON_LIFECYCLE: string =
+  "Reads nothing until the lifecycle check is on, on the cloud's Checks page.";
+
+const tokenIssueFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-token-issue-failing",
+  name: "Token Issue Failing",
+  summary: "Keystone issues a probe outside the cloud no token for 5 minutes.",
+  description: `Alert when Keystone issues no token to the probe checking this cloud from outside, for 5 minutes: it answered with an error, refused the credential, or could not be reached. One incident per region. Nobody can start anything without a token, whatever the services themselves report. ${TURN_ON_API_CHECKS} Check keystone's service and logs, the load balancer in front of it and the database behind it, then run \`openstack token issue\`.`,
+  category: "Availability",
+  severity: "Critical",
+  requiresCheck: "api",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Identity,
+      hasOwnAnchor: true,
+      rollingTime: CHECK_WINDOW,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "token_issued",
+          metricName: OpenStackCheckMetric.TokenSuccess,
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Token Issue Failing",
+        incidentDescription: `A probe outside this cloud cannot get a token from Keystone, so nobody can start anything new here, whatever the services themselves report. Check keystone's service and logs on the controllers, the load balancer in front of it and the database behind it, then run openstack token issue. The incident resolves on its own once a token is issued again.`,
+        criteriaName: "Token Issue Failing - no token issued",
+        criteriaDescription:
+          "Triggers when Keystone issues the check no token for the whole window.",
+      },
+    });
+  },
+};
+
+const serviceApiCheckFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-service-api-check-failing",
+  name: "Service API Check Failing",
+  summary: "A service in the catalog does not answer a probe for 5 minutes.",
+  description: `Alert when a service the catalog names does not answer a one-row read from a probe outside the cloud, for 5 minutes: it failed, timed out, could not be reached, or refused a token Keystone just issued. One incident per region and service, for every service in the catalog, with no list to keep. One that refuses this credential is answering, so it does not fire. ${TURN_ON_API_CHECKS} Check that service's API and the load balancer in front of it, then run \`openstack endpoint list --interface public\`.`,
+  category: "Availability",
+  severity: "Critical",
+  requiresCheck: "api",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      anchorMetricName: OpenStackCheckMetric.TokenSuccess,
+      rollingTime: CHECK_WINDOW,
+      groupByAttributeKeys: [REGION, "service_type"],
+      queries: [
+        {
+          alias: "api_answered",
+          metricName: OpenStackCheckMetric.ApiSuccess,
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Service API Check Failing",
+        incidentDescription: `A service in this cloud's catalog is not answering a probe outside the cloud, as it would not answer anyone else. Check that service's API and logs, and the load balancer in front of it, then run openstack endpoint list --interface public to see where it should answer. The incident resolves on its own once it answers again.`,
+        criteriaName: "Service API Check Failing - not answering",
+        criteriaDescription:
+          "Triggers when a service in the catalog does not answer the check for the whole window.",
+      },
+    });
+  },
+};
+
+// Days left only go down, until someone renews it.
+function buildCertificateExpiringTemplate(data: {
+  id: string;
+  days: number;
+  severity: OpenStackAlertTemplateSeverity;
+  checkNext: string;
+}): OpenStackAlertTemplate {
+  const name: string = `Public Certificate Expiring in ${data.days} Days`;
+
+  return {
+    id: data.id,
+    name: name,
+    summary: `A public endpoint's certificate expires in under ${data.days} days.`,
+    description: `Alert when the certificate on an endpoint the catalog names expires in under ${data.days} days, as read by a probe outside the cloud off the connection it made. One incident per host and port, and it stays open past the expiry, when every user's connection starts failing. ${TURN_ON_API_CHECKS} Check \`openstack endpoint list --interface public\` for what is on that host, and ${data.checkNext}`,
+    category: "Availability",
+    severity: data.severity,
+    requiresCheck: "api",
+    getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+      return buildOpenStackMonitorStep({
+        openstackMonitor: buildOpenStackSeriesConfig({
+          cloudIdentifier: args.cloudIdentifier,
+          queries: [
+            {
+              alias: "days_left",
+              metricName: OpenStackCheckMetric.CertificateExpiry,
+              aggregationType: MetricsAggregationType.Min,
+            },
+          ],
+          rollingTime: CHECK_WINDOW,
+          groupByAttributeKeys: [REGION, "host", "port"],
+          anchorMetricName: OpenStackCheckMetric.TokenSuccess,
+        }),
+        offlineCriteriaInstance: buildOfflineCriteria({
+          notification: {
+            args,
+            incidentTitle: `[OpenStack] ${name}`,
+            incidentDescription: `The certificate on an endpoint this cloud's catalog names expires in under ${data.days} days. When it does, every connection to that API fails. Run openstack endpoint list --interface public to check what is on the host named above, and ${data.checkNext} The incident resolves on its own once the check sees a renewed one.`,
+            criteriaName: `${name} - under ${data.days} days left`,
+            criteriaDescription: `Triggers when the certificate on a public endpoint has under ${data.days} days left for the whole window.`,
+          },
+          metricAlias: "days_left",
+          filterType: FilterType.LessThan,
+          value: data.days,
+        }),
+        onlineCriteriaInstance: countGoneSeriesAsRecovered(
+          buildHealthyCriteriaInstance({
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            metricAlias: "days_left",
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: data.days,
+            filterCondition: FilterCondition.All,
+          }),
+        ),
+      });
+    },
+  };
+}
+
+const certificateExpiringIn30DaysTemplate: OpenStackAlertTemplate =
+  buildCertificateExpiringTemplate({
+    id: "openstack-public-certificate-expiring-30-days",
+    days: OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
+    severity: "Warning",
+    checkNext: "renew it while there is time to.",
+  });
+
+const certificateExpiringIn7DaysTemplate: OpenStackAlertTemplate =
+  buildCertificateExpiringTemplate({
+    id: "openstack-public-certificate-expiring-7-days",
+    days: OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+    severity: "Critical",
+    checkNext: "renew it now.",
+  });
+
+// One part of the lifecycle check, in one region, as its last run left it.
+function buildLifecyclePhaseFloorStep(data: {
+  args: OpenStackAlertTemplateArgs;
+  service: OpenStackServiceType;
+  alias: string;
+  phase: OpenStackLifecyclePhase;
+  words: IncidentWords;
+}): MonitorStep {
+  return buildFloorStep({
+    args: data.args,
+    service: data.service,
+    anchorMetricName: OpenStackCheckMetric.LifecycleSuccess,
+    rollingTime: CHECK_WINDOW,
+    groupByAttributeKeys: REGION_GROUP,
+    queries: [
+      {
+        alias: data.alias,
+        metricName: OpenStackCheckMetric.LifecyclePhaseSuccess,
+        aggregationType: MetricsAggregationType.Min,
+        attributes: { phase: data.phase },
+      },
+    ],
+    words: data.words,
+  });
+}
+
+const instanceBootFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-instance-boot-failing",
+  name: "Instance Boot Failing",
+  summary: "The last lifecycle run could not boot an instance in this region.",
+  description: `Alert when the last lifecycle run in a region could not boot an instance: Nova refused it, its server went to ERROR, or it never reached ACTIVE. Opens within minutes of the run and closes within minutes of the next run that boots. One incident per region, and it says the step and the fault Nova gave. Every service can read healthy while this fires, which is what this is for. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then the scheduler's and conductor's logs, and Placement.`,
+  category: "Compute",
+  severity: "Critical",
+  requiresCheck: "lifecycle",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildLifecyclePhaseFloorStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      alias: "boot_passed",
+      phase: OpenStackLifecyclePhase.Boot,
+      words: {
+        incidentTitle: "[OpenStack] Instance Boot Failing",
+        incidentDescription: `A probe outside this cloud tried to do what a user does, and could not boot an instance. New instances are probably failing for your users too, whatever each service reports. Check openstack compute service list, then the logs of nova-scheduler and nova-conductor, and Placement. The step that failed and the fault Nova gave are below. The incident resolves on its own once a run boots an instance again.`,
+        criteriaName: "Instance Boot Failing - the last run could not boot",
+        criteriaDescription:
+          "Triggers when the last lifecycle run in a region could not boot an instance.",
+      },
+    });
+  },
+};
+
+const instanceBootSlowTemplate: OpenStackAlertTemplate = {
+  id: "openstack-instance-boot-slow",
+  name: "Instance Boot Slow",
+  summary: `The last lifecycle run took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS / 60} minutes to reach ACTIVE.`,
+  description: `Alert when the last lifecycle run in a region took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to take a server from Nova accepting it to ACTIVE, which is how long OpenStack's own tests allow (Tempest's build_timeout). It boots the small flavor and image the check was given, so your own will take longer. One incident per region. With an OSProfiler key saved on the Checks page, the run has a trace. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then what the image and the network are doing on the compute hosts.`,
+  category: "Compute",
+  severity: "Warning",
+  requiresCheck: "lifecycle",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      rollingTime: CHECK_WINDOW,
+      anchorMetricName: OpenStackCheckMetric.LifecycleSuccess,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "boot_seconds",
+          metricName: OpenStackCheckMetric.LifecycleStepDuration,
+          aggregationType: MetricsAggregationType.Max,
+          attributes: { step: OpenStackLifecycleStep.ServerActive },
+        },
+      ],
+      aliases: ["boot_seconds"],
+      value: OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
+      words: {
+        incidentTitle: "[OpenStack] Instance Boot Slow",
+        incidentDescription: `The last lifecycle run took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to reach ACTIVE, with a small flavor and image, so your users' instances are probably slower still. Check openstack compute service list, then whether the compute hosts are copying images and how quickly ports are being wired. If an OSProfiler key is saved on the Checks page, the run below has a trace. The incident resolves on its own once a run boots faster.`,
+        criteriaName: `Instance Boot Slow - over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds`,
+        criteriaDescription: `Triggers when the last lifecycle run took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to reach ACTIVE.`,
+      },
+    });
+  },
+};
+
+const volumeAttachFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-volume-attach-failing",
+  name: "Volume Attach Failing",
+  summary: "The last lifecycle run could not create or attach a volume.",
+  description: `Alert when the last lifecycle run in a region could not create a volume or attach it to its server. One incident per region, and it says the step and what Cinder or Nova gave as the reason. ${TURN_ON_LIFECYCLE} It also needs the volume part of the check on. Check \`openstack volume service list\`, then cinder-volume's logs and the storage backend behind it.`,
+  category: "Storage",
+  severity: "Critical",
+  requiresCheck: "lifecycle",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildLifecyclePhaseFloorStep({
+      args,
+      service: OpenStackServiceType.Volume,
+      alias: "volume_passed",
+      phase: OpenStackLifecyclePhase.Volume,
+      words: {
+        incidentTitle: "[OpenStack] Volume Attach Failing",
+        incidentDescription: `A probe outside this cloud could not create a volume or attach it to a server it had just booted, so your users probably cannot either. Volumes already attached usually carry on. Check openstack volume service list, then cinder-volume's logs and the storage backend behind it. The step that failed and what the service gave as the reason are below. The incident resolves on its own once a run attaches a volume again.`,
+        criteriaName: "Volume Attach Failing - the last run could not attach",
+        criteriaDescription:
+          "Triggers when the last lifecycle run in a region could not create or attach a volume.",
+      },
+    });
+  },
+};
+
+const floatingIpUnreachableTemplate: OpenStackAlertTemplate = {
+  id: "openstack-floating-ip-unreachable",
+  name: "Floating IP Unreachable",
+  summary: "The last lifecycle run could not reach its server's floating IP.",
+  description: `Alert when the last lifecycle run in a region could not give its server a floating IP, or got no ping back from one. One incident per region, and it says the step and what Neutron gave as the reason. A probe with no route to the floating range reads the same, so run it from where your users are. ${TURN_ON_LIFECYCLE} It also needs the floating IP part of the check on. Check \`openstack network agent list\`, then the router and whatever carries the external network.`,
+  category: "Network",
+  severity: "Critical",
+  requiresCheck: "lifecycle",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildLifecyclePhaseFloorStep({
+      args,
+      service: OpenStackServiceType.Network,
+      alias: "floating_ip_passed",
+      phase: OpenStackLifecyclePhase.FloatingIp,
+      words: {
+        incidentTitle: "[OpenStack] Floating IP Unreachable",
+        incidentDescription: `A probe outside this cloud booted a server and could not reach it through a floating IP, so your users' new instances may be unreachable too. Addresses already in use may carry on. Check openstack network agent list, then the router and whatever carries the external network, and that the probe has a route to the floating range. The step that failed and what it met are below. The incident resolves on its own once a run reaches its server again.`,
+        criteriaName: "Floating IP Unreachable - the last run got no reply",
+        criteriaDescription:
+          "Triggers when the last lifecycle run in a region could not reach its server through a floating IP.",
       },
     });
   },
@@ -2672,6 +3147,14 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     blockStorageApiDownTemplate,
     imageApiDownTemplate,
     placementApiDownTemplate,
+    tokenIssueFailingTemplate,
+    serviceApiCheckFailingTemplate,
+    certificateExpiringIn30DaysTemplate,
+    certificateExpiringIn7DaysTemplate,
+    instanceBootFailingTemplate,
+    instanceBootSlowTemplate,
+    volumeAttachFailingTemplate,
+    floatingIpUnreachableTemplate,
     orchestrationApiDownTemplate,
     containerInfraApiDownTemplate,
     computeServiceDownTemplate,
@@ -2709,6 +3192,10 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     containerClusterFailedTemplate,
     containerClusterStuckTemplate,
     bareMetalApiDownTemplate,
+    sharedFileSystemsApiDownTemplate,
+    shareServiceDownTemplate,
+    shareInErrorTemplate,
+    shareStuckTemplate,
     bareMetalNodeInErrorTemplate,
     bareMetalNodeStuckTemplate,
     bareMetalNodeMaintenanceTooLongTemplate,
@@ -2727,10 +3214,21 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
 export function getOpenStackAlertTemplatesForCloud(cloud: {
   services?: ReadonlyArray<string> | null | undefined;
   isCollectedByProbe?: boolean | null | undefined;
+  isApiCheckOn?: boolean | null | undefined;
+  isLifecycleCheckOn?: boolean | null | undefined;
 }): Array<OpenStackAlertTemplate> {
   return getAllOpenStackAlertTemplates().filter(
     (template: OpenStackAlertTemplate): boolean => {
       if (template.requiresProbe && cloud.isCollectedByProbe !== true) {
+        return false;
+      }
+      if (template.requiresCheck === "api" && cloud.isApiCheckOn !== true) {
+        return false;
+      }
+      if (
+        template.requiresCheck === "lifecycle" &&
+        cloud.isLifecycleCheckOn !== true
+      ) {
         return false;
       }
       return (

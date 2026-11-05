@@ -1,0 +1,17 @@
+{
+    "command": "/opt/openstack-exporter/openstack-exporter --endpoint-type=internal --os-client-config=/etc/openstack/clouds.yml --web.listen-address=192.168.100.10:9198 default --disable-service.dns --disable-service.load-balancer --disable-metric=neutron-loadbalancers --disable-metric=neutron-loadbalancers_not_active",
+    "config_files": [
+        {
+            "source": "/var/lib/kolla/config_files/clouds.yml",
+            "dest": "/etc/openstack/clouds.yml",
+            "owner": "prometheus",
+            "perm": "0600"
+        }    ],
+    "permissions": [
+        {
+            "path": "/var/log/kolla/prometheus",
+            "owner": "prometheus:kolla",
+            "recurse": true
+        }
+    ]
+}

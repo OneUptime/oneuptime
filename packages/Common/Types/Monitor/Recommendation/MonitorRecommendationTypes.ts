@@ -175,6 +175,12 @@ export interface MonitorRecommendationContext {
    * agent's cloud a template over one would never fire. Anything but true withholds them.
    */
   openStackIsCollectedByProbe?: boolean | null | undefined;
+  /*
+   * Whether this cloud's checks from outside are on. What they report is sent by nothing else, so
+   * an alert on one would never fire with it off. Anything but true withholds them.
+   */
+  openStackIsApiCheckOn?: boolean | null | undefined;
+  openStackIsLifecycleCheckOn?: boolean | null | undefined;
 }
 
 /*

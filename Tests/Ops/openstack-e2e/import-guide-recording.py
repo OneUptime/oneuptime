@@ -156,16 +156,41 @@ def import_logs(folder, target, short, full):
         write_renamed(os.path.join(target, "logs", f"{part}.json"), text, short, full)
 
 
+def commands_alone(text):
+    """Each command a guide says and how it exited, without what it printed, which is half a megabyte."""
+    kept, inside = [], False
+    for line in text.split("\n"):
+        if line.startswith("$ "):
+            inside = True
+        if line.startswith("[exit "):
+            kept += [line, ""]
+            inside = False
+        elif inside and not line.strip():
+            # A command is its lines up to the first blank one, or to what it prints.
+            inside = False
+        elif inside and (line.startswith("$ ") or line.startswith((" ", "curl ", "openstack ", "sudo ", "kolla-ansible ", "docker ", "OPENSTACK_", "bash ", "cd ", "python3 "))):
+            kept.append(line)
+        else:
+            inside = False
+    return "\n".join(kept) + "\n"
+
+
 def import_deployment(folder, tool_folder, target, short, full):
     source = os.path.join(folder, tool_folder)
     for name in DEPLOYMENT_FILES:
         path = os.path.join(source, name)
         if os.path.isfile(path):
             copy_text(path, os.path.join(target, "deployment", name), short, full)
-    for name in ("commands.log", "problems.txt"):
-        path = os.path.join(folder, "guide", name)
-        if os.path.isfile(path):
-            copy_text(path, os.path.join(target, "deployment", name), short, full)
+    path = os.path.join(folder, "guide", "problems.txt")
+    if os.path.isfile(path):
+        copy_text(path, os.path.join(target, "deployment", "problems.txt"), short, full)
+    path = os.path.join(folder, "guide", "commands.log")
+    if os.path.isfile(path):
+        with open(path, errors="replace") as handle:
+            write_renamed(os.path.join(target, "deployment", "commands.log"), commands_alone(handle.read()), short, full)
+    path = os.path.join(folder, "control-plane", "status.txt")
+    if os.path.isfile(path):
+        copy_text(path, os.path.join(target, "deployment", "control-plane-status.txt"), short, full)
     for part_file in ("logs/reach.txt",):
         path = os.path.join(folder, "guide", part_file)
         if os.path.isfile(path):
@@ -198,8 +223,8 @@ def main():
     name, folder = sys.argv[1], sys.argv[2]
     tool_folder = "kolla" if name.startswith("kolla") else "osa"
     short, full = recording_tools.runner_names(folder)
-    if not short:
-        print(f"{name}: no scene with Nova's services in it", file=sys.stderr)
+    if not short and not os.path.isdir(os.path.join(folder, tool_folder)):
+        print(f"{name}: no scene with Nova's services in it, and nothing of the deployment", file=sys.stderr)
         sys.exit(1)
     target = os.path.join(FIXTURES, name)
     shutil.rmtree(target, ignore_errors=True)

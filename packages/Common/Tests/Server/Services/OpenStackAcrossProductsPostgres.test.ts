@@ -1,4 +1,5 @@
 import { DataSource } from "typeorm";
+import path from "path";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import Entities from "../../../Models/DatabaseModels/Index";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
@@ -28,6 +29,10 @@ import {
 } from "../../../Types/Kubernetes/KubernetesInventoryExtractor";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  OpenStackBlastRadius,
+  OpenStackBlastRadiusOwner,
+} from "../../../Types/OpenStack/OpenStackBlastRadius";
+import {
   OpenStackLinkedHost,
   OpenStackLinkedService,
   OpenStackPlacement,
@@ -41,7 +46,9 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackHealth";
 import { ResourceAttentionSeverity } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 import {
+  OPENSTACK_FIXTURES_FOLDER,
   readRecordedOpenStackResources,
+  readRecordedSeries,
   scanRecordedSeries,
   toParsedOpenStackResource,
 } from "../../Helpers/OpenStackRecordedRows";
@@ -671,6 +678,608 @@ describePostgres("the joins across products, on Postgres", () => {
         });
       expect(reach.kubernetesNodeCount).toBe(0);
     }, 120000);
+  });
+
+  /*
+   * A cluster that Magnum built with the Kubernetes agent on it, which no runner has reached. Most of
+   * this is made up, in the shape of what was recorded. The last test joins what a real cloud said of
+   * a cluster and its stack, because that is the half a recording can prove.
+   */
+  describe("a Magnum cluster and the Kubernetes cluster it is", () => {
+    const STACK: string = "ou-cluster-a1b2c3d4";
+    const uuidOf: (number: number) => string = (number: number): string => {
+      return `c1b2c3d4-0000-4000-8000-${String(number).padStart(12, "0")}`;
+    };
+
+    const setUp: () => Promise<{
+      projectId: ObjectID;
+      cloudId: ObjectID;
+      clusterId: ObjectID;
+      addNode: (
+        name: string,
+        instanceNumber: number,
+        cluster?: ObjectID,
+      ) => Promise<void>;
+      addKubernetesCluster: (name: string) => Promise<ObjectID>;
+      addServer: (name: string, number: number) => Promise<void>;
+      linkFromThere: (cluster?: ObjectID) => Promise<string | null>;
+      linkFromHere: (externalId?: string) => Promise<string | null>;
+    }> = async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const cloudId: ObjectID = await addCloud(projectId, "prod-eu");
+      const addServer: (name: string, number: number) => Promise<void> = async (
+        name: string,
+        number: number,
+      ): Promise<void> => {
+        await OpenStackResourceService.bulkUpsert({
+          projectId,
+          openStackCloudId: cloudId,
+          resources: [
+            resource({
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(number),
+              name,
+              hypervisorName: "compute-01",
+              regionName: "RegionOne",
+            }),
+          ],
+        });
+      };
+      await OpenStackResourceService.bulkUpsert({
+        projectId,
+        openStackCloudId: cloudId,
+        resources: [
+          resource({
+            kind: OpenStackResourceKind.Stack,
+            externalId: "stack-1",
+            name: STACK,
+            regionName: "RegionOne",
+            status: "CREATE_COMPLETE",
+          }),
+          resource({
+            kind: OpenStackResourceKind.ContainerCluster,
+            externalId: "magnum-1",
+            name: "ou-cluster",
+            regionName: "RegionOne",
+            status: "CREATE_COMPLETE",
+            facts: { stackId: "stack-1", masterCount: 1, nodeCount: 2 },
+          }),
+        ],
+      });
+      await addServer(`${STACK}-master-0`, 1);
+      await addServer(`${STACK}-node-0`, 2);
+      await addServer(`${STACK}-node-1`, 3);
+
+      const addKubernetesCluster: (name: string) => Promise<ObjectID> = async (
+        name: string,
+      ): Promise<ObjectID> => {
+        return await insert("KubernetesCluster", {
+          projectId: projectId.toString(),
+          name,
+          slug: `${name}-${ObjectID.generate().toString()}`,
+          clusterIdentifier: name,
+        });
+      };
+      const clusterId: ObjectID = await addKubernetesCluster("from-magnum");
+      return {
+        projectId,
+        cloudId,
+        clusterId,
+        addServer,
+        addKubernetesCluster,
+        addNode: async (
+          name: string,
+          instanceNumber: number,
+          cluster: ObjectID = clusterId,
+        ): Promise<void> => {
+          const record: ExtractedInventoryRecord | null =
+            extractInventoryResource({
+              resourceType: "nodes",
+              logBody: nodeLogBody({
+                name,
+                providerID: `openstack:///${uuidOf(instanceNumber)}`,
+              }),
+              lastSeenAt: new Date(),
+            });
+          await KubernetesResourceService.bulkUpsert({
+            projectId,
+            kubernetesClusterId: cluster,
+            resources: [record!.resource],
+          });
+        },
+        linkFromThere: async (
+          cluster: ObjectID = clusterId,
+        ): Promise<string | null> => {
+          return (
+            (
+              await OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster(
+                {
+                  projectId,
+                  kubernetesClusterId: cluster,
+                },
+              )
+            )?.externalId || null
+          );
+        },
+        linkFromHere: async (
+          externalId: string = "magnum-1",
+        ): Promise<string | null> => {
+          return (
+            (
+              await OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster(
+                {
+                  projectId,
+                  openStackCloudId: cloudId,
+                  externalId,
+                },
+              )
+            )?.kubernetesClusterId || null
+          );
+        },
+      };
+    };
+
+    test("links both ways, and says the same from each", async () => {
+      const {
+        projectId,
+        cloudId,
+        clusterId,
+        addNode,
+        linkFromHere,
+        linkFromThere,
+      } = await setUp();
+      await addNode("master-0", 1);
+      await addNode("node-0", 2);
+      await addNode("node-1", 3);
+
+      expect(await linkFromThere()).toBe("magnum-1");
+      expect(await linkFromHere()).toBe(clusterId.toString());
+
+      const fromThere: unknown =
+        await OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster({
+          projectId,
+          kubernetesClusterId: clusterId,
+        });
+      expect(fromThere).toEqual({
+        openStackCloudId: cloudId.toString(),
+        cloudName: "prod-eu",
+        regionName: "RegionOne",
+        externalId: "magnum-1",
+        name: "ou-cluster",
+        status: "CREATE_COMPLETE",
+        kubernetesClusterId: clusterId.toString(),
+        kubernetesClusterName: "from-magnum",
+        nodeCount: 3,
+      });
+      expect(
+        await OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster({
+          projectId,
+          openStackCloudId: cloudId,
+          externalId: "magnum-1",
+        }),
+      ).toEqual(fromThere);
+    });
+
+    test("a machine joined by hand says nothing against it", async () => {
+      const { addNode, addServer, linkFromHere, linkFromThere, clusterId } =
+        await setUp();
+      await addServer("by-hand", 9);
+      await addNode("master-0", 1);
+      await addNode("by-hand", 9);
+
+      expect(await linkFromThere()).toBe("magnum-1");
+      expect(await linkFromHere()).toBe(clusterId.toString());
+    });
+
+    test("a server scaled past what it was asked for is still one of its servers", async () => {
+      const { addNode, addServer, linkFromHere, clusterId } = await setUp();
+      await addServer(`${STACK}-node-15`, 16);
+      await addNode("node-15", 16);
+
+      expect(await linkFromHere()).toBe(clusterId.toString());
+    });
+
+    test("nothing on its servers: no link from either end, and no error", async () => {
+      const { linkFromHere, linkFromThere } = await setUp();
+      expect(await linkFromThere()).toBeNull();
+      expect(await linkFromHere()).toBeNull();
+    });
+
+    test("a Kubernetes cluster of ordinary instances is no Magnum cluster's", async () => {
+      const { addNode, addServer, linkFromThere } = await setUp();
+      await addServer("k8s-worker-1", 7);
+      await addNode("k8s-worker-1", 7);
+      expect(await linkFromThere()).toBeNull();
+    });
+
+    test("an agent installed twice under two names is neither, from either end", async () => {
+      const { addNode, addKubernetesCluster, linkFromHere, linkFromThere } =
+        await setUp();
+      const second: ObjectID = await addKubernetesCluster("from-magnum-again");
+      await addNode("master-0", 1);
+      await addNode("master-0", 1, second);
+
+      expect(await linkFromThere()).toBeNull();
+      expect(await linkFromThere(second)).toBeNull();
+      expect(await linkFromHere()).toBeNull();
+    });
+
+    test("servers of two Magnum clusters in one Kubernetes cluster is neither, from either end", async () => {
+      const {
+        projectId,
+        cloudId,
+        addNode,
+        addServer,
+        linkFromHere,
+        linkFromThere,
+      } = await setUp();
+      await OpenStackResourceService.bulkUpsert({
+        projectId,
+        openStackCloudId: cloudId,
+        resources: [
+          resource({
+            kind: OpenStackResourceKind.Stack,
+            externalId: "stack-2",
+            name: "other-e5f6",
+            regionName: "RegionOne",
+          }),
+          resource({
+            kind: OpenStackResourceKind.ContainerCluster,
+            externalId: "magnum-2",
+            name: "other",
+            regionName: "RegionOne",
+            facts: { stackId: "stack-2" },
+          }),
+        ],
+      });
+      await addServer("other-e5f6-node-0", 8);
+      await addNode("master-0", 1);
+      await addNode("other-node-0", 8);
+
+      expect(await linkFromThere()).toBeNull();
+      expect(await linkFromHere()).toBeNull();
+      expect(await linkFromHere("magnum-2")).toBeNull();
+    });
+
+    test("a stack it can't read leaves it unlinked, rather than guessed at", async () => {
+      const { projectId, cloudId, addNode, linkFromHere, linkFromThere } =
+        await setUp();
+      await addNode("master-0", 1);
+      await database.query(
+        `UPDATE "OpenStackResource" SET "deletedAt" = now()
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2 AND "kind" = 'Stack'`,
+        [projectId.toString(), cloudId.toString()],
+      );
+
+      expect(await linkFromThere()).toBeNull();
+      expect(await linkFromHere()).toBeNull();
+    });
+
+    test("a server whose UUID a restored copy of the cloud holds says nothing, from either end", async () => {
+      const { projectId, addNode, linkFromHere, linkFromThere } = await setUp();
+      const copy: ObjectID = await addCloud(projectId, "restored");
+      await OpenStackResourceService.bulkUpsert({
+        projectId,
+        openStackCloudId: copy,
+        resources: [
+          resource({
+            kind: OpenStackResourceKind.Instance,
+            externalId: uuidOf(1),
+            name: `${STACK}-master-0`,
+            regionName: "RegionOne",
+          }),
+        ],
+      });
+      await addNode("master-0", 1);
+
+      expect(await linkFromThere()).toBeNull();
+      expect(await linkFromHere()).toBeNull();
+    });
+
+    test("another project's clusters are never a match, however alike", async () => {
+      const { addNode, cloudId, linkFromHere } = await setUp();
+      await addNode("master-0", 1);
+      expect(
+        await OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster({
+          projectId: ObjectID.generate(),
+          openStackCloudId: cloudId,
+          externalId: "magnum-1",
+        }),
+      ).toBeNull();
+      expect(await linkFromHere("no-such-cluster")).toBeNull();
+    });
+
+    test("joins on what a real cloud said of a cluster, its stack and its server", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const cloudId: ObjectID = await addCloud(projectId, "devstack");
+      const recorded: Array<ParsedOpenStackResource> = scanRecordedSeries(
+        readRecordedSeries(
+          path.join(
+            OPENSTACK_FIXTURES_FOLDER,
+            "services-heat-magnum",
+            "magnum-real-image",
+            "exporter",
+          ),
+        ),
+        OBSERVED_AT_MS,
+      ).map(toParsedOpenStackResource);
+      const server: ParsedOpenStackResource | undefined = recorded.find(
+        (row: ParsedOpenStackResource): boolean => {
+          return (
+            row.kind === OpenStackResourceKind.Instance &&
+            /^ou-cluster-real-.+-master-0$/.test(row.name || "")
+          );
+        },
+      );
+      expect(server).toBeDefined();
+      await OpenStackResourceService.bulkUpsert({
+        projectId,
+        openStackCloudId: cloudId,
+        resources: recorded,
+      });
+      const clusterId: ObjectID = await insert("KubernetesCluster", {
+        projectId: projectId.toString(),
+        name: "real",
+        slug: `real-${ObjectID.generate().toString()}`,
+        clusterIdentifier: "real",
+      });
+      await KubernetesResourceService.bulkUpsert({
+        projectId,
+        kubernetesClusterId: clusterId,
+        resources: [
+          extractInventoryResource({
+            resourceType: "nodes",
+            logBody: nodeLogBody({
+              name: "master-0",
+              providerID: `openstack:///${server!.externalId}`,
+            }),
+            lastSeenAt: new Date(),
+          })!.resource,
+        ],
+      });
+
+      expect(
+        await OpenStackAcrossProducts.getMagnumClusterOfKubernetesCluster({
+          projectId,
+          kubernetesClusterId: clusterId,
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          name: "ou-cluster-real",
+          status: "CREATE_FAILED",
+          kubernetesClusterId: clusterId.toString(),
+        }),
+      );
+    });
+
+    describe("what a failed part says of it", () => {
+      test("an instance that is one of its servers names it", async () => {
+        const { projectId, cloudId } = await setUp();
+        const radius: OpenStackBlastRadius =
+          await OpenStackResourceService.getBlastRadius({
+            projectId,
+            openStackCloudId: cloudId,
+            part: {
+              kind: OpenStackResourceKind.Instance,
+              name: `${STACK}-node-1`,
+              regionName: "RegionOne",
+            },
+          });
+        expect(radius.belongsTo).toEqual([
+          {
+            kind: OpenStackResourceKind.ContainerCluster,
+            externalId: "magnum-1",
+            name: "ou-cluster",
+            status: "CREATE_COMPLETE",
+          },
+        ]);
+        // It still can't say what an instance holds, and doesn't pretend to.
+        expect(radius.isKnown).toBe(false);
+      });
+
+      test("an instance of another name names nothing", async () => {
+        const { projectId, cloudId } = await setUp();
+        const radius: OpenStackBlastRadius =
+          await OpenStackResourceService.getBlastRadius({
+            projectId,
+            openStackCloudId: cloudId,
+            part: {
+              kind: OpenStackResourceKind.Instance,
+              name: "web-1",
+              externalId: uuidOf(99),
+              regionName: "RegionOne",
+            },
+          });
+        expect(radius.belongsTo).toEqual([]);
+      });
+
+      describe("a stack's own read of what it owns", () => {
+        const ownerOf: (data: {
+          projectId: ObjectID;
+          cloudId: ObjectID;
+          kind: OpenStackResourceKind;
+          externalId: string;
+        }) => Promise<Array<string | null>> = async (data: {
+          projectId: ObjectID;
+          cloudId: ObjectID;
+          kind: OpenStackResourceKind;
+          externalId: string;
+        }): Promise<Array<string | null>> => {
+          const radius: OpenStackBlastRadius =
+            await OpenStackResourceService.getBlastRadius({
+              projectId: data.projectId,
+              openStackCloudId: data.cloudId,
+              part: {
+                kind: data.kind,
+                name: "web-1",
+                externalId: data.externalId,
+                regionName: "RegionOne",
+              },
+            });
+          expect(radius.isKnown).toBe(false);
+          return (radius.belongsTo || []).map(
+            (owner: OpenStackBlastRadiusOwner): string | null => {
+              return owner.name;
+            },
+          );
+        };
+
+        const withOwner: () => Promise<{
+          projectId: ObjectID;
+          cloudId: ObjectID;
+        }> = async () => {
+          const { projectId, cloudId } = await setUp();
+          await OpenStackResourceService.bulkUpsert({
+            projectId,
+            openStackCloudId: cloudId,
+            resources: [
+              resource({
+                kind: OpenStackResourceKind.Stack,
+                externalId: "stack-owner",
+                name: "owner",
+                regionName: "RegionOne",
+                status: "CREATE_FAILED",
+                facts: {
+                  ownedInstanceIds: [uuidOf(50)],
+                  ownedVolumeIds: ["a-volume"],
+                },
+              }),
+              // Nothing has read this one, which says nothing about anything.
+              resource({
+                kind: OpenStackResourceKind.Stack,
+                externalId: "stack-not-read",
+                name: "not-read",
+                regionName: "RegionOne",
+                facts: { ownedInstanceIds: null, ownedVolumeIds: null },
+              }),
+            ],
+          });
+          return { projectId, cloudId };
+        };
+
+        test("an instance it names names it", async () => {
+          expect(
+            await ownerOf({
+              ...(await withOwner()),
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(50),
+            }),
+          ).toEqual(["owner"]);
+        });
+
+        test("a volume it names names it, by what Cinder calls it", async () => {
+          expect(
+            await ownerOf({
+              ...(await withOwner()),
+              kind: OpenStackResourceKind.Volume,
+              externalId: "a-volume",
+            }),
+          ).toEqual(["owner"]);
+        });
+
+        test("what it doesn't name names nothing, and a volume's ID is no instance's", async () => {
+          const estate: { projectId: ObjectID; cloudId: ObjectID } =
+            await withOwner();
+          expect(
+            await ownerOf({
+              ...estate,
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(51),
+            }),
+          ).toEqual([]);
+          expect(
+            await ownerOf({
+              ...estate,
+              kind: OpenStackResourceKind.Instance,
+              externalId: "a-volume",
+            }),
+          ).toEqual([]);
+        });
+
+        test("another cloud's stack is nothing to do with it", async () => {
+          const { projectId } = await withOwner();
+          expect(
+            await ownerOf({
+              projectId,
+              cloudId: await addCloud(projectId, "another"),
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(50),
+            }),
+          ).toEqual([]);
+        });
+
+        test("a stack that has gone says nothing of what it owned", async () => {
+          const { projectId, cloudId } = await withOwner();
+          await database.query(
+            `UPDATE "OpenStackResource" SET "deletedAt" = now()
+             WHERE "projectId" = $1 AND "externalId" = 'stack-owner'`,
+            [projectId.toString()],
+          );
+          expect(
+            await ownerOf({
+              projectId,
+              cloudId,
+              kind: OpenStackResourceKind.Instance,
+              externalId: uuidOf(50),
+            }),
+          ).toEqual([]);
+        });
+      });
+
+      test("an instance in another region of the same name is not its server", async () => {
+        const { projectId, cloudId } = await setUp();
+        const radius: OpenStackBlastRadius =
+          await OpenStackResourceService.getBlastRadius({
+            projectId,
+            openStackCloudId: cloudId,
+            part: {
+              kind: OpenStackResourceKind.Instance,
+              name: `${STACK}-node-1`,
+              regionName: "RegionTwo",
+            },
+          });
+        expect(radius.belongsTo).toEqual([]);
+      });
+
+      test("a hypervisor names the clusters with a server on it, once each", async () => {
+        const { projectId, cloudId } = await setUp();
+        const radius: OpenStackBlastRadius =
+          await OpenStackResourceService.getBlastRadius({
+            projectId,
+            openStackCloudId: cloudId,
+            part: {
+              kind: OpenStackResourceKind.Hypervisor,
+              name: "compute-01",
+              hypervisorName: "compute-01",
+              regionName: "RegionOne",
+            },
+          });
+        expect(radius.instanceCount).toBe(3);
+        expect(
+          radius.magnumClusters?.map(
+            (owner: OpenStackBlastRadiusOwner): string => {
+              return owner.externalId;
+            },
+          ),
+        ).toEqual(["magnum-1"]);
+      });
+
+      test("a hypervisor with none of them on it names none", async () => {
+        const { projectId, cloudId } = await setUp();
+        const radius: OpenStackBlastRadius =
+          await OpenStackResourceService.getBlastRadius({
+            projectId,
+            openStackCloudId: cloudId,
+            part: {
+              kind: OpenStackResourceKind.Hypervisor,
+              name: "compute-02",
+              hypervisorName: "compute-02",
+              regionName: "RegionOne",
+            },
+          });
+        expect(radius.magnumClusters).toEqual([]);
+      });
+    });
   });
 
   describe("a pool and Ceph", () => {

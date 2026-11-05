@@ -32,6 +32,10 @@ import OpenStackCollector, {
 } from "../../../Utils/OpenStack/OpenStackCollector";
 import OpenStackCollectorMemory from "../../../Utils/OpenStack/OpenStackCollectorMemory";
 import {
+  CHANGES_SINCE_OVERLAP_IN_MS,
+  FULL_INSTANCE_READ_INTERVAL_IN_MS,
+} from "../../../Utils/OpenStack/OpenStackInstanceReader";
+import {
   OpenStackHttpRequest,
   OpenStackHttpResponse,
   OpenStackTransport,
@@ -56,10 +60,11 @@ const isLive: boolean =
   process.env["RUN_OPENSTACK_LIVE_CLOUD_TESTS"] === "true";
 const describeLive: typeof describe.skip = isLive ? describe : describe.skip;
 
+// Only a live run asks for these: an empty secret would pass for one that went unsent.
 function required(name: string): string {
-  const value: string | undefined = process.env[name];
+  const value: string = process.env[name] || "";
 
-  if (!value) {
+  if (isLive && !value) {
     throw new Error(
       `${name} is not set: see Tests/Ops/openstack-e2e/probe-live.sh`,
     );
@@ -173,28 +178,28 @@ function scanAsIngest(
 }
 
 describeLive("the probe against a real cloud, over real TLS", () => {
-  const authUrl: string = isLive ? required("OPENSTACK_LIVE_AUTH_URL") : "";
-  const host: string = isLive ? required("OPENSTACK_LIVE_HOST") : "";
-  const outputDir: string = isLive ? required("OPENSTACK_LIVE_OUTPUT_DIR") : "";
+  const authUrl: string = required("OPENSTACK_LIVE_AUTH_URL");
+  const host: string = required("OPENSTACK_LIVE_HOST");
+  const outputDir: string = required("OPENSTACK_LIVE_OUTPUT_DIR");
   const region: string = process.env["OPENSTACK_LIVE_REGION"] || "RegionOne";
 
   const admin: OpenStackCredential = {
     kind: "applicationCredential",
-    id: process.env["OPENSTACK_LIVE_ADMIN_CREDENTIAL_ID"] || "",
-    secret: process.env["OPENSTACK_LIVE_ADMIN_CREDENTIAL_SECRET"] || "",
+    id: required("OPENSTACK_LIVE_ADMIN_CREDENTIAL_ID"),
+    secret: required("OPENSTACK_LIVE_ADMIN_CREDENTIAL_SECRET"),
   };
   const reader: OpenStackCredential = {
     kind: "applicationCredential",
-    id: process.env["OPENSTACK_LIVE_READER_CREDENTIAL_ID"] || "",
-    secret: process.env["OPENSTACK_LIVE_READER_CREDENTIAL_SECRET"] || "",
+    id: required("OPENSTACK_LIVE_READER_CREDENTIAL_ID"),
+    secret: required("OPENSTACK_LIVE_READER_CREDENTIAL_SECRET"),
   };
   const password: (projectName: string) => OpenStackCredential = (
     projectName: string,
   ): OpenStackCredential => {
     return {
       kind: "password",
-      username: process.env["OPENSTACK_LIVE_USER"] || "",
-      password: process.env["OPENSTACK_LIVE_PASSWORD"] || "",
+      username: required("OPENSTACK_LIVE_USER"),
+      password: required("OPENSTACK_LIVE_PASSWORD"),
       userDomainName: "Default",
       projectName: projectName,
       projectDomainName: "Default",
@@ -240,7 +245,8 @@ describeLive("the probe against a real cloud, over real TLS", () => {
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(
       path.join(outputDir, `${name}.json`),
-      JSON.stringify(value, null, 2),
+      // A collection that failed has no summary, and that is worth keeping too.
+      JSON.stringify(value ?? null, null, 2),
     );
   }
 
@@ -607,10 +613,8 @@ describeLive("the probe against a real cloud, over real TLS", () => {
   });
 
   describe("what the issue promises when a service goes", () => {
-    const NEUTRON_UNIT: string =
-      process.env["OPENSTACK_LIVE_NEUTRON_UNIT"] || "";
-    const KEYSTONE_UNIT: string =
-      process.env["OPENSTACK_LIVE_KEYSTONE_UNIT"] || "";
+    const NEUTRON_UNIT: string = required("OPENSTACK_LIVE_NEUTRON_UNIT");
+    const KEYSTONE_UNIT: string = required("OPENSTACK_LIVE_KEYSTONE_UNIT");
 
     afterAll(() => {
       run(`sudo systemctl start ${NEUTRON_UNIT} ${KEYSTONE_UNIT}`);
@@ -619,13 +623,30 @@ describeLive("the probe against a real cloud, over real TLS", () => {
     test(
       "a failing Neutron leaves Nova's data intact",
       async () => {
+        /*
+         * A probe that has been collecting, on a cloud where nothing has changed lately, as most
+         * have when something goes wrong. It asks about what changed a little before it last
+         * asked, and estate.sh has only just finished, so this waits that long first.
+         */
+        await sleep(CHANGES_SINCE_OVERLAP_IN_MS + 30_000);
+
+        const live: LiveRun = liveRun();
+        const before: OpenStackCollectionReport =
+          await OpenStackCollector.collect(collectionJob(), live.dependencies);
+        const instances: number = points(
+          before,
+          "openstack_nova_server_status",
+        ).length;
+
+        expect(instances).toBeGreaterThan(0);
+
         run(`sudo systemctl stop ${NEUTRON_UNIT}`);
 
         try {
           const report: OpenStackCollectionReport =
             await OpenStackCollector.collect(
               collectionJob(),
-              liveRun().dependencies,
+              live.dependencies,
             );
 
           keep("collection-neutron-down", report.summary);
@@ -633,11 +654,52 @@ describeLive("the probe against a real cloud, over real TLS", () => {
           expect(report.status).toBe("PartiallySucceeded");
           expect(valueOf(report, "openstack_neutron_up")).toBe(0);
           expect(valueOf(report, "openstack_nova_up")).toBe(1);
-          expect(
-            points(report, "openstack_nova_server_status").length,
-          ).toBeGreaterThan(0);
+          expect(points(report, "openstack_nova_server_status").length).toBe(
+            instances,
+          );
           expect(
             points(report, "openstack_cinder_volume_gb").length,
+          ).toBeGreaterThan(0);
+
+          // A full read falling due: Nova can't list its instances, and nothing is lost.
+          live.advance(FULL_INSTANCE_READ_INTERVAL_IN_MS);
+
+          const fullReadDue: OpenStackCollectionReport =
+            await OpenStackCollector.collect(
+              collectionJob(),
+              live.dependencies,
+            );
+
+          keep("collection-neutron-down-full-read-due", {
+            summary: fullReadDue.summary,
+            requests: live.answered,
+          });
+
+          expect(valueOf(fullReadDue, "openstack_nova_up")).toBe(1);
+          expect(
+            points(fullReadDue, "openstack_nova_server_status").length,
+          ).toBe(instances);
+
+          /*
+           * A probe started now has nothing to keep, and Nova asks Neutron about every instance it
+           * lists: what Nova's list couldn't say goes unsaid, and the rest of Nova is read.
+           */
+          const fresh: OpenStackCollectionReport =
+            await OpenStackCollector.collect(
+              collectionJob(),
+              liveRun().dependencies,
+            );
+
+          keep("collection-neutron-down-new-probe", fresh.summary);
+
+          expect(fresh.status).toBe("PartiallySucceeded");
+          expect(valueOf(fresh, "openstack_nova_up")).toBe(0);
+          expect(points(fresh, "openstack_nova_server_status")).toEqual([]);
+          expect(
+            points(fresh, "openstack_nova_vcpus_available").length,
+          ).toBeGreaterThan(0);
+          expect(
+            points(fresh, "openstack_cinder_volume_gb").length,
           ).toBeGreaterThan(0);
         } finally {
           run(`sudo systemctl start ${NEUTRON_UNIT}`);

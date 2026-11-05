@@ -26,6 +26,7 @@ import {
   OPENSTACK_BARE_METAL_IN_SERVICE,
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_SERVICE_STATUS_UP,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
@@ -109,6 +110,13 @@ const PLACEMENT_RESOURCE_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_placement_resource_reserved",
   "openstack_placement_resource_allocation_ratio",
   "openstack_placement_resource_usage",
+]);
+
+// What Nova says a host holds, whatever the names say: these are before any allocation or ratio.
+const NOVA_HOST_HOLDS_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "openstack_nova_vcpus_available",
+  "openstack_nova_memory_available_bytes",
+  "openstack_nova_local_storage_available_bytes",
 ]);
 
 const CINDER_POOL_METRIC_NAMES: ReadonlySet<string> = new Set([
@@ -246,11 +254,14 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_heat_agent_state",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
+  "openstack_sharev2_share_gb",
+  "openstack_sharev2_share_status",
+  "openstack_sharev2_agent_state",
   "openstack_ironic_node",
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
   // Only a probe says this one: the exporter has nothing on Ironic's conductors.
-  "openstack_ironic_conductor_state",
+  "openstack_ironic_agent_state",
 ]);
 
 const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
@@ -668,7 +679,8 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
       "openstack_container_infra_agent_state",
       OpenStackServiceFamily.ContainerInfra,
     ],
-    ["openstack_ironic_conductor_state", OpenStackServiceFamily.BareMetal],
+    ["openstack_ironic_agent_state", OpenStackServiceFamily.BareMetal],
+    ["openstack_sharev2_agent_state", OpenStackServiceFamily.SharedFileSystems],
   ]);
 
 function foldServiceState(data: {
@@ -708,9 +720,11 @@ function foldServiceState(data: {
   const forcedDown: string | null = getLabel(data.attributes, "forced_down");
   setStatus(
     entry,
-    data.value > 0 && forcedDown !== "true"
-      ? OPENSTACK_SERVICE_STATUS_UP
-      : OPENSTACK_SERVICE_STATUS_DOWN,
+    getLabel(data.attributes, "state") === OPENSTACK_SERVICE_STATUS_STOPPED
+      ? OPENSTACK_SERVICE_STATUS_STOPPED
+      : data.value > 0 && forcedDown !== "true"
+        ? OPENSTACK_SERVICE_STATUS_UP
+        : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
   /*
@@ -800,12 +814,12 @@ function finishAgentRecords(entry: OpenStackResourceBufferEntry): void {
  *
  *  - Placement: a UUID holding a class of its own. A host called by a UUID holds VCPU and MEMORY_MB
  *    as well, and those stay its own.
- *  - Nova: a UUID with nothing to say. Its Ironic driver reports every number as 0 and has done for
- *    years, and a host really called by a UUID has more than that. Which a node's own running_vms
- *    breaks, so that one never counts as saying anything: the instance's own row says where it runs.
- *
- * Nothing recorded holds Nova's list with a node in it yet: DevStack mapped its host before any
- * node existed. So the Nova half is from its driver's source.
+ *  - Nova: a UUID that holds nothing. Its Ironic driver gives a node 0 vCPUs, memory and disk, and a
+ *    host really called by a UUID has more than that, so what a host holds is what tells them apart.
+ *    What is in use can't. A node reads the 512 MiB Nova keeps back for a host's own use
+ *    (services-ironic, every scene with Nova reading its nodes), and an instance would add to it. So
+ *    a host called by a UUID has only Placement to say what's in use, and an instance's own row says
+ *    where it runs.
  */
 function isBareMetalNodeReading(data: {
   metricName: string;
@@ -819,7 +833,7 @@ function isBareMetalNodeReading(data: {
   if (PLACEMENT_RESOURCE_METRIC_NAMES.has(data.metricName)) {
     return Boolean(data.resource?.startsWith("CUSTOM_"));
   }
-  return data.metricName === "openstack_nova_running_vms" || data.value <= 0;
+  return !NOVA_HOST_HOLDS_METRIC_NAMES.has(data.metricName) || data.value <= 0;
 }
 
 /*
@@ -1338,11 +1352,66 @@ function foldVolume(data: {
    */
   if (getLabel(data.attributes, "updated_at")) {
     entry.facts["pool"] = getLabel(data.attributes, "pool");
+    // None, from a probe, is a volume not made from an image. Nothing at all is the exporter's.
+    entry.facts["imageId"] = getLabel(data.attributes, "image_id");
   } else {
     setFact(entry, "pool", getLabel(data.attributes, "pool"));
   }
   setBooleanFact(entry, "isBootable", getLabel(data.attributes, "bootable"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
+}
+
+/*
+ * A share, from either of Manila's two series about it. Both say its status, in Manila's word, and
+ * whose it is. Only _share_gb says its zone, and only its value is its size, so its value is what is
+ * read and _share_status's, a code for the word, is not. share_type holds the type's name, recorded,
+ * and share_type_name is empty, because the exporter asks for no microversion.
+ */
+function foldShare(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+  metricName: string;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Share,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    availabilityZone: getLabel(data.attributes, "availability_zone"),
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  if (data.metricName === "openstack_sharev2_share_gb") {
+    entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
+  }
+  setFact(entry, "shareProtocol", getLabel(data.attributes, "share_proto"));
+  setFact(
+    entry,
+    "shareType",
+    getLabel(data.attributes, "share_type_name") ||
+      getLabel(data.attributes, "share_type"),
+  );
+  /*
+   * What only a probe says, which asks for a microversion. Facts merge key by key, so these are
+   * written whatever the collector knows: a cloud moved to the agent must not go on saying them.
+   * Null reads as not known.
+   */
+  entry.facts["accessRulesStatus"] = getLabel(
+    data.attributes,
+    "access_rules_status",
+  );
+  entry.facts["backendHost"] = getLabel(data.attributes, "host");
 }
 
 function foldSnapshot(data: {
@@ -1370,6 +1439,7 @@ function foldSnapshot(data: {
   setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
   entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
   setFact(entry, "volumeId", getLabel(data.attributes, "volume_id"));
+  setFact(entry, "createdAt", getLabel(data.attributes, "created_at"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
 }
 
@@ -1475,6 +1545,7 @@ function foldImage(data: {
     setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
     setFact(entry, "visibility", getLabel(data.attributes, "visibility"));
     setBooleanFact(entry, "isHidden", getLabel(data.attributes, "hidden"));
+    setBooleanFact(entry, "isProtected", getLabel(data.attributes, "protected"));
     setFact(entry, "createdAtSeconds", data.value);
   } else {
     entry.diskCapacityBytes = data.value;
@@ -1527,10 +1598,17 @@ function foldNetwork(data: {
     "dhcp_agent_ids",
   );
   entry.facts["dhcpAgentIds"] = dhcpAgentIds
-    ? dhcpAgentIds.split(",").filter((id: string): boolean => {
-        return Boolean(id) && !id.endsWith("…");
-      })
+    ? getIdListLabel(data.attributes, "dhcp_agent_ids")
     : null;
+}
+
+// A label holding IDs, which is cut at a length and then its last one is no ID.
+function getIdListLabel(attributes: JSONArray, name: string): Array<string> {
+  return (getLabel(attributes, name) || "")
+    .split(",")
+    .filter((id: string): boolean => {
+      return Boolean(id) && !id.endsWith("…");
+    });
 }
 
 /*
@@ -1777,6 +1855,24 @@ function foldStack(data: {
    */
   entry.facts["statusReason"] = getLabel(data.attributes, "status_reason");
   entry.facts["parentStackId"] = getLabel(data.attributes, "parent_id");
+  /*
+   * What it owns, which only a probe reads, and only once it has read this stack. An empty list here
+   * says it owns none, and null says nothing has read it. The IDs a label has room for, and how many
+   * there are, because a stack can own more than that.
+   */
+  const wasRead: boolean = getLabel(data.attributes, "resources_read") === "true";
+  entry.facts["ownedInstanceIds"] = wasRead
+    ? getIdListLabel(data.attributes, "owned_instance_ids")
+    : null;
+  entry.facts["ownedInstanceCount"] = wasRead
+    ? toNumberOrNull(getLabel(data.attributes, "owned_instance_count"))
+    : null;
+  entry.facts["ownedVolumeIds"] = wasRead
+    ? getIdListLabel(data.attributes, "owned_volume_ids")
+    : null;
+  entry.facts["ownedVolumeCount"] = wasRead
+    ? toNumberOrNull(getLabel(data.attributes, "owned_volume_count"))
+    : null;
 }
 
 /*
@@ -2171,6 +2267,10 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_container_infra_cluster_status":
       foldContainerCluster({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_sharev2_share_gb":
+    case "openstack_sharev2_share_status":
+      foldShare({ buffer, attributes, region, value, observedAt, metricName });
       return;
     case "openstack_ironic_node":
       foldBareMetalNode({ buffer, attributes, region, observedAt });

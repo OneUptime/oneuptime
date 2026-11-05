@@ -23,9 +23,9 @@ flowchart TB
 
 Every two minutes the probe reads each service of each region you picked, and sends what it found to OneUptime. It arrives exactly as the OpenStack Agent's does, so every OpenStack page, [OpenStack monitor](/docs/monitor/openstack-monitor) and alert template reads it the same way.
 
-Each service is read on its own and at the same time as the others. A Neutron that fails or hangs costs Neutron's series, and Nova's data arrives as usual.
+Each service is read on its own and at the same time as the others. A Neutron that fails or hangs costs Neutron's series, and Nova's data arrives as usual, with one catch Nova makes for itself: it asks Neutron about every instance it lists. So while Neutron is down, a probe keeps the instances it last read and asks only what changed. If an instance has changed, or the probe has only just started, Nova can't answer that list either: Nova reads as failing, its other series still arrive, and each instance stays on its page as it last was until Neutron is back.
 
-Heat and Magnum are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
+Heat, Magnum and Manila are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
 
 ## Probe or agent?
 
@@ -42,7 +42,7 @@ Heat and Magnum are read where Keystone's catalog names them. A cloud that runs 
 | Logins to Keystone | One for the life of a token, usually an hour | One per scrape |
 | A plain `reader` on one project | That project's instances, volumes and networks | That project's volumes and networks, and no instances |
 
-Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, the image it booted from, whether an operator forced a Nova service down, which networks a DHCP agent serves, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin. On a cloud that runs [Heat or Magnum](/docs/telemetry/openstack#heat-and-magnum), it also sends why a stack or a cluster failed, each cluster's project, template and Kubernetes version, and whether each of Heat's engines and Magnum's conductors is up.
+Both send the same series, so the pages and monitors work with either. A probe also sends what only a native client can read: an instance's addresses, task state and fault message, the image it booted from, whether an operator forced a Nova service down, which networks a DHCP agent serves, which pool holds a volume, when an instance, volume or image last changed, and the status of each volume snapshot and backup. Cinder only says which pool holds a volume to a credential it treats as an admin. On a cloud that runs [Heat or Magnum](/docs/telemetry/openstack#heat-and-magnum), it also sends why a stack or a cluster failed, which instances and volumes a stack owns, each cluster's project, template and Kubernetes version, and whether each of Heat's engines and Magnum's conductors is up.
 
 Pick the agent for service logs, for the AI agent, for what the cloud stands on and each instance's real usage, for a cloud whose APIs only speak plain HTTP, as DevStack and Kolla-Ansible do by default, or for a cloud so large it has to be [read from its databases](/docs/telemetry/openstack-very-large-clouds#the-database-path). Pick a probe for everything else: there is nothing to install, and it reads more of what Nova and Cinder say. [Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds) says what either costs at any size.
 
@@ -131,7 +131,7 @@ Monitoring must never be what takes a cloud down, so a collection is gentle by c
 
 On each collection, with the defaults, a region costs 7 calls to Nova, 7 to Neutron and 5 to Cinder, one call to Placement and two more per hypervisor, up to 4 more to ask Placement [how many of each flavor fit](/docs/telemetry/openstack#capacity), and, about every five minutes, 5 to Keystone and 1 to Glance. A hypervisor's inventory is read once, and again only when Placement says it changed. A list longer than a thousand rows takes a call per thousand. Each instance that changed takes one more call to Nova, to read what it went through, and at most 25 are read in a collection: a quiet cloud makes none. On ML2/OVS, Neutron takes one more call per router, to ask which L3 agents hold it, and every ten minutes a call per DHCP agent, at most 20, to ask which networks it serves. A cloud with more DHCP agents goes round them in turns, a cloud past the summary size leaves this out, and a slow Neutron is not asked at all. A cloud on OVN has none to ask about. [Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds#the-load-on-your-control-plane) has what that comes to in requests a minute, at each size.
 
-A cloud that runs Heat or Magnum pays, about every five minutes, 2 calls to Heat and 3 to Magnum. Magnum's list of clusters doesn't say whose each one is or why it failed, so the probe also reads a cluster on its own when its status has moved, at most 25 clusters a collection. A cloud with more goes on filling in over the next collections, and a cluster that sits still is never read twice.
+A cloud that runs Manila pays, about every five minutes, 2 calls to it. A cloud that runs Heat or Magnum pays, about every five minutes, 2 calls to Heat and 3 to Magnum. Neither list says everything: Magnum's doesn't say whose a cluster is or why it failed, and Heat's doesn't say what a stack owns. So the probe also reads a cluster or a stack on its own when its status has moved, at most 25 of each a collection. A cloud with more goes on filling in over the next collections, and one that sits still is never read twice.
 
 Two things are off unless you turn them on, under **What it reads beyond the defaults** in the **Data Collection** card on the cloud's **Settings** page, or under **More fields** as you connect it, because each costs your cloud more:
 
@@ -171,6 +171,14 @@ Open the cloud's **Settings** page. Its **Data Collection** card offers **Collec
 > Stop the OpenStack Agent once the first probe collection succeeds. While both run, every metric arrives twice.
 
 Past [5,000 instances](/docs/telemetry/openstack-very-large-clouds#summary-mode), a probe's first collection knows the whole cloud and sends a share of it, so a new cloud's lists fill over its first cycle, and the **Data Collection** card says when they will all be there.
+
+## Bare metal
+
+On a cloud whose catalog has Ironic, a probe reads its nodes, and asks for each field by name, so a node's `driver_info` is never read in a collection. It adds what the agent's exporter doesn't have: a node's driver, its conductor, its fault and why it failed. Ironic empties `last_error` within about a minute, so a page keeps the last one a collection saw, and says when.
+
+A probe reads the catalog first, so it can say Ironic's API is down, which the agent's exporter can't. A cloud without Ironic is asked nothing about it.
+
+Ironic shows a project only the nodes it owns, and refuses it the list of conductors. By Ironic's default policy only a system-scoped credential reads those, and a probe's credential can't be system-scoped, because it reads Nova's lists through the same one. So unless the cloud's policy gives its role `baremetal:node:list_all` and `baremetal:conductor:get`, a probe sees the nodes its project owns and no conductors, and the pages say so. [Bare metal](/docs/telemetry/openstack#bare-metal) has the rest.
 
 ## Reference
 
@@ -242,8 +250,8 @@ Pick from the regions the catalog names. The connection test lists them.
 Keystone answered with a server error. The probe waits longer between logins until it recovers, and nothing else can be read without a login. Check Keystone's service and the database behind it.
 :::
 
-:::details A service is too busy to answer
-It kept answering `429` or a server error, so the probe waits longer between collections until it recovers. Collect less often, or check its load.
+:::details A service is stopped or too busy to answer
+It kept answering `429` or a server error, so the probe waits longer between collections until it recovers. Check that it is running, then its load. Collecting less often helps a busy one.
 :::
 
 :::details Collecting took too long

@@ -2,6 +2,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusCount,
+  OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
   isOpenStackBlastRadiusEmpty,
 } from "Common/Types/OpenStack/OpenStackBlastRadius";
@@ -85,6 +86,11 @@ const COUNT_WORDS: ReadonlyArray<CountWords> = [
       one: "{{count}} Kubernetes cluster",
       other: "{{count}} Kubernetes clusters",
     },
+  },
+  {
+    count: "shareCount",
+    key: "shares",
+    words: { one: "{{count}} share", other: "{{count}} shares" },
   },
 ];
 
@@ -251,6 +257,46 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
+        )}
+        {data.magnumClusters && data.magnumClusters.length > 0 ? (
+          <div data-testid={`${props.testId}-magnum-clusters`}>
+            <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
+              {translator.translateText(
+                "Kubernetes clusters with a server here",
+              )}
+            </p>
+            <ul className={listClassName}>
+              {data.magnumClusters.map(
+                (owner: OpenStackBlastRadiusOwner): ReactElement => {
+                  return (
+                    <li
+                      key={owner.externalId}
+                      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
+                    >
+                      <Link
+                        to={props.routes.getPartRoute(
+                          OpenStackResourceKind.ContainerCluster,
+                          owner.externalId,
+                        )}
+                        className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                      >
+                        <bdi>{owner.name || owner.externalId}</bdi>
+                      </Link>
+                      {owner.status ? (
+                        <span className="text-xs text-gray-500">
+                          <bdi>{owner.status}</bdi>
+                        </span>
+                      ) : (
+                        <></>
+                      )}
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        ) : (
+          <></>
         )}
         {data.acrossProducts && !isOpenStackReachEmpty(data.acrossProducts) ? (
           <div data-testid={`${props.testId}-across-products`}>

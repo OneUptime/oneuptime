@@ -319,10 +319,16 @@ describe("MonitorRecommendationCatalog", () => {
       ["nothing known", undefined],
       ["no services said", {}],
       ["a read that failed", { openStackServices: null }],
-      ["a cloud without Ironic", { openStackServices: ["compute", "identity"] }],
+      [
+        "a cloud without Ironic",
+        { openStackServices: ["compute", "identity"] },
+      ],
     ])(
       "%s: not one bare metal alert",
-      (_name: string, context: { openStackServices?: null | Array<string> } | undefined) => {
+      (
+        _name: string,
+        context: { openStackServices?: null | Array<string> } | undefined,
+      ) => {
         for (const id of BARE_METAL_IDS) {
           expect(offered(context)).not.toContain(id);
         }
@@ -339,7 +345,9 @@ describe("MonitorRecommendationCatalog", () => {
 
       expect(list).toEqual(expect.arrayContaining(BARE_METAL_IDS));
       expect(list).toContain("openstack-compute-api-down");
-      expect(list.length).toBe(offered(undefined).length + BARE_METAL_IDS.length);
+      expect(list.length).toBe(
+        offered(undefined).length + BARE_METAL_IDS.length,
+      );
     });
 
     it("a cloud a probe collects, reporting every one of them, is offered everything", () => {
@@ -349,6 +357,8 @@ describe("MonitorRecommendationCatalog", () => {
           {
             openStackServices: Object.values(OpenStackServiceType),
             openStackIsCollectedByProbe: true,
+            openStackIsApiCheckOn: true,
+            openStackIsLifecycleCheckOn: true,
           },
         ).length,
       ).toBe(
@@ -1509,6 +1519,25 @@ describe("an OpenStack cloud's recommendations", () => {
         openStackIsCollectedByProbe: true,
       }),
     ).toContain("openstack-orchestration-engine-down");
+  });
+
+  test("Manila's go only to a cloud that runs it, and the one on its services only to a probe's", () => {
+    expect(idsOf()).not.toContain("openstack-share-in-error");
+    expect(idsOf({ openStackServices: ["orchestration"] })).not.toContain(
+      "openstack-share-in-error",
+    );
+
+    const ids: Array<string> = idsOf({ openStackServices: ["sharev2"] });
+    expect(ids).toContain("openstack-shared-file-systems-api-down");
+    expect(ids).toContain("openstack-share-in-error");
+    expect(ids).toContain("openstack-share-stuck");
+    expect(ids).not.toContain("openstack-share-service-down");
+    expect(
+      idsOf({
+        openStackServices: ["sharev2"],
+        openStackIsCollectedByProbe: true,
+      }),
+    ).toContain("openstack-share-service-down");
   });
 
   test("a monitor set up from one of them still resolves on a cloud that no longer runs it", () => {

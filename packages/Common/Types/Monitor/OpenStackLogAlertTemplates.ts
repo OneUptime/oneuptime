@@ -35,7 +35,6 @@ import {
  *   Failing are one alert for the cloud. When RabbitMQ goes, every service on every machine
  *   says so at once, and one incident is what is wanted.
  *   Too Many Errors from a Service is one alert per service per machine.
- *   Fernet Key Rotation Out of Step is one alert per machine: the one with the wrong keys.
  *   Instance Action Failed and Scheduling Failed are one alert per instance and reason:
  *   the reason is in the alert's own name (SeriesContextEnricher), which is the first
  *   thing anyone asks. They need notifications with driver = log, or a probe reading
@@ -55,8 +54,6 @@ export const OPENSTACK_TOO_MANY_ERRORS_TEMPLATE_ID: string =
   "openstack-too-many-errors-from-a-service";
 export const OPENSTACK_TOKEN_VALIDATION_FAILING_TEMPLATE_ID: string =
   "openstack-token-validation-failing";
-export const OPENSTACK_FERNET_KEYS_OUT_OF_STEP_TEMPLATE_ID: string =
-  "openstack-fernet-key-rotation-out-of-step";
 export const OPENSTACK_INSTANCE_ACTION_FAILED_TEMPLATE_ID: string =
   "openstack-instance-action-failed";
 export const OPENSTACK_SCHEDULING_FAILED_TEMPLATE_ID: string =
@@ -72,7 +69,9 @@ export const OPENSTACK_DATABASE_LOST_MIN_LINES: number = 5;
 
 /*
  * One expired token is someone's stale session. Many in five minutes is what a controller
- * whose Fernet keys differ from the others looks like.
+ * whose Fernet keys differ from the others looks like, and no line says more than that: with its
+ * keys swapped, a real Keystone on Epoxy, Flamingo and Hibiscus writes what it writes for any
+ * refusal, and never that it could not read a token (OpenStack's service-logs fixtures).
  */
 export const OPENSTACK_TOKEN_FAILING_MIN_LINES: number = 10;
 
@@ -415,39 +414,6 @@ const tokenFailingTemplate: OpenStackLogAlertTemplate = {
   },
 };
 
-const fernetKeysOutOfStepTemplate: OpenStackLogAlertTemplate = {
-  id: OPENSTACK_FERNET_KEYS_OUT_OF_STEP_TEMPLATE_ID,
-  name: "Fernet Key Rotation Out of Step",
-  summary: `Keystone logs ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more refusals of tokens it cannot read in 5 minutes.`,
-  description: `A Logs monitor that alerts when Keystone on a machine says ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more times in 5 minutes that a token is not a recognized Fernet token. It gave that token out, or another controller did, and it holds no key that opens it: a rotation that did not reach this controller, or a restore of an old key repository. Users get 401s for as long as requests land on it, so about one in as many as there are controllers. One incident per machine. A client sending the same garbage over and over reads the same, so check before you rotate: compare /etc/keystone/fernet-keys on each controller, which must be identical, and copy them from the one that last rotated.`,
-  category: "Service Logs",
-  severity: "Critical",
-  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
-    const title: string = `[OpenStack] Fernet Key Rotation Out of Step - ${args.monitorName}`;
-
-    return buildStep({
-      logMonitor: logMonitorOf({
-        cloudIdentifier: args.cloudIdentifier,
-        attributes: {
-          [OpenStackLogAttribute.Signal]:
-            OpenStackLogSignal.FernetTokenNotRecognized,
-        },
-        windowSeconds: OPENSTACK_LOG_CONNECTION_WINDOW_SECONDS,
-        groupBy: [OpenStackLogAttribute.Host],
-      }),
-      criteria: buildCriteria({
-        args,
-        title,
-        description: `Keystone on the machine of ${args.monitorName} named above keeps refusing tokens it cannot read with any key it has, so users get 401s for as long as requests land on it. Compare /etc/keystone/fernet-keys on each controller: they must be identical, and a rotation that did not reach one is the usual cause. Copy them from the one that last rotated (keystone-manage fernet_rotate writes them there). The incident resolves on its own once it stops.`,
-        criteriaName: `${args.monitorName} - Fernet keys out of step`,
-        criteriaDescription: `Keystone logged ${OPENSTACK_TOKEN_FAILING_MIN_LINES} or more refusals of tokens it cannot read in 5 minutes.`,
-        healthyDescription: `Keystone logged fewer than ${OPENSTACK_TOKEN_FAILING_MIN_LINES} such refusals in 5 minutes.`,
-        minimumLines: OPENSTACK_TOKEN_FAILING_MIN_LINES,
-      }),
-    });
-  },
-};
-
 const instanceActionFailedTemplate: OpenStackLogAlertTemplate = {
   id: OPENSTACK_INSTANCE_ACTION_FAILED_TEMPLATE_ID,
   name: "Instance Action Failed",
@@ -520,7 +486,6 @@ export function getAllOpenStackLogAlertTemplates(): Array<OpenStackLogAlertTempl
     databaseLostTemplate,
     tooManyErrorsTemplate,
     tokenFailingTemplate,
-    fernetKeysOutOfStepTemplate,
     instanceActionFailedTemplate,
     schedulingFailedTemplate,
   ];

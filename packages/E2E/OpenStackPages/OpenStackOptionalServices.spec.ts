@@ -25,8 +25,8 @@ const BOTH_ON_A_WHOLE_CLOUD: string =
   "recording=gazpacho-ovs/healthy&also=services-heat-magnum/access/admin";
 const REFUSED: string = "recording=services-heat-magnum/access/monitoring-role";
 
-const FAILED_STACK: string = "2931cfa5-85d1-43be-bd8f-8a3f9a22cfc3";
-const FAILED_CLUSTER: string = "9f6c221b-9ba3-4d20-ad26-e906bc1b3803";
+const FAILED_STACK: string = "b02c0588-9d8f-4ff3-b1a4-0bafc2274602";
+const FAILED_CLUSTER: string = "ba479656-39aa-4ab4-825f-e2b179837022";
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
   const overflow: number = await page.evaluate((): number => {
@@ -47,22 +47,24 @@ function needsAttention(page: Page): Locator {
 }
 
 test.describe("a cloud that runs neither", () => {
-  test("its menu says nothing of them", async ({ page }) => {
+  test("its menu says nothing of them", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", WITHOUT_EITHER);
     await expect(sideMenuLink(page, "Hypervisors").first()).toBeVisible();
-    await expect(page.getByText("Orchestration", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Orchestration", { exact: true })).toHaveCount(
+      0,
+    );
     await expect(sideMenuLink(page, "Stacks")).toHaveCount(0);
     await expect(sideMenuLink(page, "Kubernetes Clusters")).toHaveCount(0);
   });
 
-  test("nor does its Services page", async ({ page }) => {
+  test("nor does its Services page", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "services", WITHOUT_EITHER);
     await expect(page.getByText("Compute (Nova)").first()).toBeVisible();
     await expect(page.getByText("Orchestration (Heat)")).toHaveCount(0);
     await expect(page.getByText("Kubernetes Clusters (Magnum)")).toHaveCount(0);
   });
 
-  test("nor does what it is offered to alert on", async ({ page }) => {
+  test("nor does what it is offered to alert on", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "recommendations", WITHOUT_EITHER);
     await expect(page.getByText("Compute API Down").first()).toBeVisible();
     await expect(page.getByText("Stack Failed")).toHaveCount(0);
@@ -70,7 +72,7 @@ test.describe("a cloud that runs neither", () => {
     await expect(page.getByText("Orchestration API Down")).toHaveCount(0);
   });
 
-  test("an old link says it doesn't run it, and is no error", async ({ page }) => {
+  test("an old link says it doesn't run it, and is no error", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "stacks", WITHOUT_EITHER);
     await expect(
       page.getByText("This cloud doesn't run this service"),
@@ -79,25 +81,29 @@ test.describe("a cloud that runs neither", () => {
 });
 
 test.describe("a cloud that runs Heat", () => {
-  test("gets its stacks in the menu, and not a word of Magnum", async ({
-    page,
-  }) => {
+  test("gets its stacks in the menu, and not a word of Magnum", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", HEAT);
-    await expect(page.getByText("Orchestration", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Orchestration", { exact: true }),
+    ).toBeVisible();
     await expect(sideMenuLink(page, "Stacks").first()).toBeVisible();
     await expect(sideMenuLink(page, "Kubernetes Clusters")).toHaveCount(0);
   });
 
-  test("a failed stack reaches Needs attention by name, and lands on its page", async ({
-    page,
-  }) => {
+  test("a failed stack reaches Needs attention by name, and lands on its page", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", HEAT);
     const card: Locator = needsAttention(page);
-    await expect(card.getByText("ou-stack-failed")).toBeVisible();
+    await expect(
+      card.getByText("ou-stack-failed", { exact: true }),
+    ).toBeVisible();
     await expect(card.getByText("ou-stack-admin-failed")).toBeVisible();
     await expect(card.getByText("ou-stack-ok")).toHaveCount(0);
+    // The server Nova couldn't place for it reads on its own.
+    await expect(
+      card.getByText("ou-stack-failed-server-avtiunql57mh"),
+    ).toBeVisible();
 
-    await card.getByRole("link", { name: /ou-stack-failed/ }).click();
+    await card.getByRole("link", { name: /ou-stack-failed(?!-server)/ }).click();
     await expect(page.getByTestId("openstack-stack-overview")).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/stacks/${FAILED_STACK}`));
     await expect(page.getByTestId("openstack-stack-explanation")).toContainText(
@@ -106,9 +112,7 @@ test.describe("a cloud that runs Heat", () => {
     await screenshot(page, "stack-failed");
   });
 
-  test("the list holds every project's, each in Heat's word", async ({
-    page,
-  }) => {
+  test("the list holds every project's, each in Heat's word", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "stacks", HEAT);
     const row: Locator = page
       .locator("tr", { hasText: "ou-stack-failed" })
@@ -117,7 +121,7 @@ test.describe("a cloud that runs Heat", () => {
     await screenshot(page, "stacks");
   });
 
-  test("a stack's page says what the agent can't see", async ({ page }) => {
+  test("a stack's page says what the agent can't see", async ({ page }: { page: Page }) => {
     await page.goto(`${partPath("stacks", FAILED_STACK)}?${HEAT}`);
     await expect(
       page.getByTestId("openstack-stack-why-not-known"),
@@ -127,7 +131,7 @@ test.describe("a cloud that runs Heat", () => {
     ).toContainText("openstack stack resource list");
   });
 
-  test("its API stopped is what needs someone", async ({ page }) => {
+  test("its API stopped is what needs someone", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", HEAT_DOWN);
     await expect(
       needsAttention(page).getByText("Orchestration (Heat)"),
@@ -138,9 +142,7 @@ test.describe("a cloud that runs Heat", () => {
     ).toBeVisible();
   });
 
-  test("a credential Heat refuses says so, rather than reading as none", async ({
-    page,
-  }) => {
+  test("a credential Heat refuses says so, rather than reading as none", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "stacks", REFUSED);
     await expect(page.getByText("No stacks reported yet")).toBeVisible();
     await expect(
@@ -148,9 +150,7 @@ test.describe("a cloud that runs Heat", () => {
     ).toBeVisible();
   });
 
-  test("the Services page has its card, and says what the exporter doesn't read", async ({
-    page,
-  }) => {
+  test("the Services page has its card, and says what the exporter doesn't read", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "services", HEAT);
     await expect(page.getByText("Orchestration (Heat)").first()).toBeVisible();
     await expect(
@@ -158,9 +158,7 @@ test.describe("a cloud that runs Heat", () => {
     ).toContainText("doesn't read Heat's engines");
   });
 
-  test("it is offered Heat's alerts, and none only a probe could fire", async ({
-    page,
-  }) => {
+  test("it is offered Heat's alerts, and none only a probe could fire", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "recommendations", HEAT);
     await expect(page.getByText("Stack Failed").first()).toBeVisible();
     await expect(
@@ -172,17 +170,15 @@ test.describe("a cloud that runs Heat", () => {
 });
 
 test.describe("a cloud that runs Magnum", () => {
-  test("gets its clusters in the menu, and not a word of Heat's stacks", async ({
-    page,
-  }) => {
+  test("gets its clusters in the menu, and not a word of Heat's stacks", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", MAGNUM_FAILED);
-    await expect(sideMenuLink(page, "Kubernetes Clusters").first()).toBeVisible();
+    await expect(
+      sideMenuLink(page, "Kubernetes Clusters").first(),
+    ).toBeVisible();
     await expect(sideMenuLink(page, "Stacks")).toHaveCount(0);
   });
 
-  test("a failed cluster reaches Needs attention by name, and lands on its page", async ({
-    page,
-  }) => {
+  test("a failed cluster reaches Needs attention by name, and lands on its page", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", MAGNUM_FAILED);
     const card: Locator = needsAttention(page);
     await expect(card.getByText("ou-cluster-times-out")).toBeVisible();
@@ -198,7 +194,7 @@ test.describe("a cloud that runs Magnum", () => {
     await screenshot(page, "cluster-failed");
   });
 
-  test("the list says what each was asked for", async ({ page }) => {
+  test("the list says what each was asked for", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "kubernetes-clusters", MAGNUM_FAILED);
     const row: Locator = page
       .locator("tr", { hasText: "ou-cluster-times-out" })
@@ -208,9 +204,7 @@ test.describe("a cloud that runs Magnum", () => {
     await screenshot(page, "clusters");
   });
 
-  test("a cluster's page says it can't tell whose it is, without Heat to ask", async ({
-    page,
-  }) => {
+  test("a cluster's page says it can't tell whose it is, without Heat to ask", async ({ page }: { page: Page }) => {
     await page.goto(
       `${partPath("kubernetes-clusters", FAILED_CLUSTER)}?${MAGNUM_FAILED}`,
     );
@@ -222,16 +216,14 @@ test.describe("a cloud that runs Magnum", () => {
     ).toContainText("openstack coe cluster show");
   });
 
-  test("its API stopped is what needs someone", async ({ page }) => {
+  test("its API stopped is what needs someone", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", MAGNUM_DOWN);
     await expect(
       needsAttention(page).getByText("Kubernetes Clusters (Magnum)"),
     ).toBeVisible();
   });
 
-  test("the Services page says a stopped conductor shows nowhere here", async ({
-    page,
-  }) => {
+  test("the Services page says a stopped conductor shows nowhere here", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "services", MAGNUM_FAILED);
     await expect(
       page.getByTestId("openstack-service-group-workers-not-listed"),
@@ -240,17 +232,19 @@ test.describe("a cloud that runs Magnum", () => {
 });
 
 test.describe("a whole cloud that runs both", () => {
-  test("a failed cluster and its failed stack are one line, by the cluster's name", async ({
-    page,
-  }) => {
+  test("a failed cluster and its failed stack are one line, by the cluster's name", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", BOTH_ON_A_WHOLE_CLOUD);
     const card: Locator = needsAttention(page);
-    await expect(card.getByText("ou-cluster-real", { exact: true })).toBeVisible();
-    await expect(card.getByText("ou-cluster-real-rfhmez6mgxk3")).toHaveCount(0);
-    await expect(card.getByText("ou-stack-failed", { exact: true })).toBeVisible();
+    await expect(
+      card.getByText("ou-cluster-real", { exact: true }),
+    ).toBeVisible();
+    await expect(card.getByText("ou-cluster-real-6uc6ctkch4l4")).toHaveCount(0);
+    await expect(
+      card.getByText("ou-stack-failed", { exact: true }),
+    ).toBeVisible();
   });
 
-  test("each is one step from the other", async ({ page }) => {
+  test("each is one step from the other", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "kubernetes-clusters", BOTH_ON_A_WHOLE_CLOUD);
     await page
       .locator("tr", { hasText: "ou-cluster-real" })
@@ -261,7 +255,7 @@ test.describe("a whole cloud that runs both", () => {
     const toStack: Locator = page
       .getByTestId("openstack-container-cluster-details-stack")
       .getByRole("link");
-    await expect(toStack).toHaveText("ou-cluster-real-rfhmez6mgxk3");
+    await expect(toStack).toHaveText("ou-cluster-real-6uc6ctkch4l4");
     await toStack.click();
     await expect(page.getByTestId("openstack-stack-overview")).toBeVisible();
     await expect(
@@ -269,18 +263,135 @@ test.describe("a whole cloud that runs both", () => {
     ).toContainText("ou-cluster-real");
   });
 
-  test("the Overview counts them, and each count is a way in", async ({
-    page,
-  }) => {
+  test("the Overview counts them, and each count is a way in", async ({ page }: { page: Page }) => {
     await openCloudPage(page, "", BOTH_ON_A_WHOLE_CLOUD);
     await expect(page.getByText("8 stacks")).toBeVisible();
     await expect(page.getByText("1 Kubernetes cluster")).toBeVisible();
   });
 });
 
+/*
+ * What no runner has reached: a cluster Magnum finished, with OneUptime's Kubernetes agent on it. Made
+ * up (estate=magnum), and the links are the real rule: OpenStackLinks and its Postgres tests hold it.
+ */
+test.describe("a Magnum cluster with OneUptime's Kubernetes agent on it", () => {
+  const MAGNUM: string = "estate=magnum";
+  const CLUSTER: string = "ece79e88-fe71-4268-8080-ed81e6887df4";
+  const WITHOUT_AGENT: string = "ba479656-39aa-4ab4-825f-e2b179837022";
+  const KUBERNETES_CLUSTER: string = "76000000-0000-4000-8000-000000000002";
+
+  test("links to its Kubernetes cluster, and that page links back", async ({ page }: { page: Page }) => {
+    await page.goto(`${partPath("kubernetes-clusters", CLUSTER)}?${MAGNUM}`);
+    const links: Locator = page.getByTestId(
+      "openstack-container-cluster-links",
+    );
+    await expect(links).toContainText("from-magnum");
+    await expect(links).toContainText("2 nodes");
+    await screenshot(page, "magnum-cluster-with-agent");
+
+    await links.getByRole("link", { name: "from-magnum" }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/kubernetes/${KUBERNETES_CLUSTER}$`),
+    );
+
+    const back: Locator = page.getByTestId(
+      "kubernetes-cluster-openstack-placement",
+    );
+    await expect(back).toContainText("spec.providerID");
+    await expect(
+      back.getByTestId("openstack-placement-magnum-status"),
+    ).toContainText("CREATE_COMPLETE");
+    await screenshot(page, "kubernetes-cluster-from-magnum");
+
+    await back
+      .getByTestId("openstack-placement-magnum-cluster")
+      .getByRole("link")
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/kubernetes-clusters/${CLUSTER}`));
+    await expect(
+      page.getByTestId("openstack-container-cluster-overview"),
+    ).toBeVisible();
+  });
+
+  test("a cluster no agent reports from says nothing of one", async ({ page }: { page: Page }) => {
+    await page.goto(
+      `${partPath("kubernetes-clusters", WITHOUT_AGENT)}?${MAGNUM}`,
+    );
+    await expect(
+      page.getByTestId("openstack-container-cluster-overview"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("openstack-container-cluster-links"),
+    ).toHaveCount(0);
+  });
+
+  test("one of its servers names it, and a hypervisor names who has a server on it", async ({ page }: { page: Page }) => {
+    await openCloudPage(page, "instances", MAGNUM);
+    await page
+      .locator("tr", { hasText: "ou-cluster-real-6uc6ctkch4l4-node-0" })
+      .first()
+      .getByRole("button", { name: /view/i })
+      .first()
+      .click();
+    await expect(
+      page.locator('[data-testid^="openstack-instance-details-owner-"]').first(),
+    ).toContainText("ou-cluster-real");
+
+    await openCloudPage(page, "hypervisors", MAGNUM);
+    await page
+      .locator("tr", { hasText: "compute-01" })
+      .first()
+      .getByRole("button", { name: /view/i })
+      .first()
+      .click();
+    await expect(
+      page.locator('[data-testid$="-magnum-clusters"]'),
+    ).toContainText("ou-cluster-real");
+  });
+
+  test("an instance of any other name names no cluster", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "instances", MAGNUM);
+    await page
+      .locator("tr", { hasText: "web-1" })
+      .first()
+      .getByRole("button", { name: /view/i })
+      .first()
+      .click();
+    await expect(page.getByTestId("openstack-instance-overview")).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="openstack-instance-details-owner-"]'),
+    ).toHaveCount(0);
+  });
+
+  test("a stack a probe read lists what it owns, and each names it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${partPath("stacks", "483a2b85-e4e7-4cbc-9aec-2addd10fec70")}?${MAGNUM}`,
+    );
+    const owns: Locator = page.getByTestId("openstack-stack-owns");
+    await expect(owns).toContainText("ou-cluster-real-6uc6ctkch4l4-master-0");
+    await screenshot(page, "stack-owns");
+
+    await owns
+      .getByRole("link", { name: "ou-cluster-real-6uc6ctkch4l4-master-0" })
+      .click();
+    await expect(page.getByTestId("openstack-instance-overview")).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="openstack-instance-details-owner-"]'),
+    ).toHaveCount(2);
+  });
+});
+
 test.describe("at every width", () => {
   for (const viewport of VIEWPORTS) {
-    test(`every page fits at ${viewport.width}`, async ({ page }) => {
+    test(`every page fits at ${viewport.width}`, async ({ page }: { page: Page }) => {
       await page.setViewportSize({
         width: viewport.width,
         height: viewport.height,

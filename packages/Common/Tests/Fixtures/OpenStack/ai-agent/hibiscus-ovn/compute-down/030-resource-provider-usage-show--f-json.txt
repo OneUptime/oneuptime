@@ -1,0 +1,13 @@
+$ openstack resource provider usage show 758c3bf7-7336-465f-a997-618968d14595 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "resource_provider_generation": 9,
+  "usages": {
+    "VCPU": 5,
+    "MEMORY_MB": 640,
+    "DISK_GB": 4
+  }
+}

@@ -316,7 +316,7 @@ ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY DATABASE_SYSTEM \
 DATABASE_ENDPOINT DATABASE_ENDPOINT_HOST DATABASE_ENDPOINT_PORT \
 DATABASE_ORACLE_SERVICE DATABASE_SERVER_ADDRESS DATABASE_SERVER_PORT \
 DATABASE_USERNAME DATABASE_PASSWORD DATABASE_TLS_INSECURE \
-DATABASE_TLS_INSECURE_SKIP_VERIFY DATABASE_TLS_SSLMODE \
+DATABASE_TLS_INSECURE_SKIP_VERIFY DATABASE_TLS_SSLMODE DATABASE_TLS_MYSQL \
 DATABASE_COLLECTION_INTERVAL \
 DATABASE_QUERY_EVENTS DATABASE_SERVER_ID \
 ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES \
@@ -625,18 +625,22 @@ if ! [[ "$DATABASE_COLLECTION_INTERVAL" =~ ^[0-9]+(ms|s|m|h)$ ]]; then
 fi
 
 # The two TLS switches as libpq's sslmode, for the PostgreSQL config's SQL
-# checks (its sqlquery receiver takes no TLS block): no TLS, TLS without
+# checks, and as the MySQL driver's tls, for the MySQL config's readings of
+# Galera (their sqlquery receiver takes no TLS block): no TLS, TLS without
 # verifying the certificate, or TLS verified against the image's CAs - the
 # same three choices the receiver's own TLS settings make. Always worked out
 # again, so a changed switch in .env carries over on the next run.
 if [ "$DATABASE_TLS_INSECURE" = "false" ]; then
     if [ "$DATABASE_TLS_INSECURE_SKIP_VERIFY" = "true" ]; then
         DATABASE_TLS_SSLMODE="require"
+        DATABASE_TLS_MYSQL="skip-verify"
     else
         DATABASE_TLS_SSLMODE="verify-full"
+        DATABASE_TLS_MYSQL="true"
     fi
 else
     DATABASE_TLS_SSLMODE="disable"
+    DATABASE_TLS_MYSQL="false"
 fi
 
 # The SQL checks' receiver builds its connection address from the login and
@@ -831,6 +835,7 @@ DATABASE_PASSWORD=$(compose_env_quote "$(collector_env_escape "$DATABASE_PASSWOR
 DATABASE_TLS_INSECURE=$DATABASE_TLS_INSECURE
 DATABASE_TLS_INSECURE_SKIP_VERIFY=$DATABASE_TLS_INSECURE_SKIP_VERIFY
 DATABASE_TLS_SSLMODE=$DATABASE_TLS_SSLMODE
+DATABASE_TLS_MYSQL=$DATABASE_TLS_MYSQL
 DATABASE_COLLECTION_INTERVAL=$DATABASE_COLLECTION_INTERVAL
 DATABASE_QUERY_EVENTS=$DATABASE_QUERY_EVENTS
 DATABASE_SERVER_ID=$(compose_env_quote "$DATABASE_SERVER_ID")

@@ -1,0 +1,87 @@
+[
+  {
+    "runId": "20261105063524-fdadf1",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:35:24.819Z",
+    "finishedAt": "2026-11-05T06:36:33.575Z",
+    "status": "Failed",
+    "failedStep": "server_active",
+    "fault": {
+      "source": "nova",
+      "code": 500,
+      "message": "MessagingTimeout"
+    },
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 34
+      },
+      {
+        "step": "credential_check",
+        "status": "Passed",
+        "durationInMs": 63
+      },
+      {
+        "step": "prepare",
+        "status": "Passed",
+        "durationInMs": 333
+      },
+      {
+        "step": "janitor",
+        "status": "Passed",
+        "durationInMs": 0
+      },
+      {
+        "step": "security_group_create",
+        "status": "Passed",
+        "durationInMs": 228
+      },
+      {
+        "step": "server_create",
+        "status": "Passed",
+        "durationInMs": 477
+      },
+      {
+        "step": "server_active",
+        "status": "Failed",
+        "durationInMs": 66895,
+        "fault": {
+          "source": "nova",
+          "code": 500,
+          "message": "MessagingTimeout"
+        }
+      },
+      {
+        "step": "server_delete",
+        "status": "Passed",
+        "durationInMs": 390
+      },
+      {
+        "step": "security_group_delete",
+        "status": "Passed",
+        "durationInMs": 97
+      }
+    ],
+    "phases": {
+      "credential": "Passed",
+      "boot": "Failed",
+      "floating_ip": "NotReached",
+      "volume": "NotReached",
+      "cleanup": "Passed"
+    },
+    "janitor": {
+      "removed": [],
+      "remainingCount": 0,
+      "errors": []
+    },
+    "leftoverCount": 0,
+    "verifiedProjectId": "ba76c30648ee40d7a77b23b13d577e80",
+    "verifiedProjectName": "oneuptime-checks",
+    "requestCount": 32,
+    "writeCount": 5,
+    "warnings": [
+      "Project oneuptime-checks also holds 1 server and 2 volumes this check did not make, so it is not a project of its own. They are not touched, but they share its quota."
+    ]
+  }
+]

@@ -7,13 +7,21 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, configure, screen } from "@testing-library/react";
+import {
+  cleanup,
+  configure,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import * as React from "react";
 import path from "path";
-import {
-  OpenStackResourceBufferEntry,
-} from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import { OpenStackResourceBufferEntry } from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import ObjectID from "../../../Types/ObjectID";
+import { OpenStackContainerClusterLink } from "../../../Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
+import { OpenStackPlacementOfKubernetesCluster } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementOfHost";
 import OpenStackCloudContainerClusterDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusterDetail";
 import OpenStackCloudContainerClusters from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
 import OpenStackCloudStackDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/StackDetail";
@@ -208,12 +216,11 @@ describe("Stacks", () => {
   });
 
   test("an empty list with Heat up is what a limited credential sees too, so it says that", async () => {
-    server.rows = recorded(
-      "access-check",
-      "exporter/monitoring-role",
-    ).filter((row: Row): boolean => {
-      return row["kind"] === OpenStackResourceKind.Api;
-    });
+    server.rows = recorded("access-check", "exporter/monitoring-role").filter(
+      (row: Row): boolean => {
+        return row["kind"] === OpenStackResourceKind.Api;
+      },
+    );
 
     await renderPage(OpenStackCloudStacks, "/stacks");
 
@@ -221,7 +228,9 @@ describe("Stacks", () => {
       await screen.findByText("No stacks reported yet"),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(/Only the Full view credential sees every project/),
+      await screen.findByText(
+        /Only the Full view credential sees every project/,
+      ),
     ).toBeInTheDocument();
   });
 });
@@ -244,7 +253,7 @@ describe("a stack's page", () => {
     ).toHaveTextContent(/openstack stack failures list/);
     expect(
       screen.getByTestId("openstack-stack-details-project"),
-    ).toHaveTextContent("08945d5897854ec2a11d65d907ec6251");
+    ).toHaveTextContent("daee9bf6f10a4331bfb8fde2838235f6");
     expect(
       screen.getByTestId("openstack-stack-owns-not-known"),
     ).toHaveTextContent(/openstack stack resource list/);
@@ -318,7 +327,7 @@ describe("a stack's page", () => {
 
   test("a stack Magnum built names its cluster, on what a real cloud recorded", async () => {
     server.rows = recorded("access-check", "exporter/admin");
-    const stack: string = stackId(server.rows, "ou-cluster-real-rfhmez6mgxk3");
+    const stack: string = stackId(server.rows, "ou-cluster-real-6uc6ctkch4l4");
 
     await renderPage(OpenStackCloudStackDetail, partPath("stacks", stack));
 
@@ -327,6 +336,127 @@ describe("a stack's page", () => {
         `openstack-stack-details-belongs-to-${clusterId(server.rows, "ou-cluster-real")}`,
       ),
     ).toHaveTextContent("ou-cluster-real");
+  });
+
+  describe("what it owns", () => {
+    const INSTANCE: string = "7b71684d-4ba3-43c7-b534-ddcdab38dc75";
+    const VOLUME: string = "c28f6b54-de05-45da-814a-acc7cc46be99";
+
+    const stackOwning: (facts: Record<string, unknown>) => Row = (
+      facts: Record<string, unknown>,
+    ): Row => {
+      return {
+        kind: OpenStackResourceKind.Stack,
+        externalId: "owner",
+        name: "owner",
+        regionName: "RegionOne",
+        status: "CREATE_COMPLETE",
+        facts,
+      } as Row;
+    };
+
+    test("is listed by name, each a step away, where a probe read it", async () => {
+      server.rows = [
+        stackOwning({
+          ownedInstanceIds: [INSTANCE],
+          ownedInstanceCount: 1,
+          ownedVolumeIds: [VOLUME],
+          ownedVolumeCount: 1,
+        }),
+        {
+          kind: OpenStackResourceKind.Instance,
+          externalId: INSTANCE,
+          name: "owner-server-x",
+        } as Row,
+        {
+          kind: OpenStackResourceKind.Volume,
+          externalId: VOLUME,
+          name: "owner-volume-y",
+        } as Row,
+      ];
+
+      await renderPage(OpenStackCloudStackDetail, partPath("stacks", "owner"));
+
+      const card: HTMLElement = await screen.findByTestId(
+        "openstack-stack-owns",
+      );
+      expect(card).toHaveTextContent("owner-server-x");
+      expect(card).toHaveTextContent("owner-volume-y");
+      expect(
+        within(card).getByRole("link", { name: "owner-server-x" }),
+      ).toHaveAttribute(
+        "href",
+        expect.stringContaining(`/instances/${INSTANCE}`),
+      );
+      expect(
+        within(card).getByRole("link", { name: "owner-volume-y" }),
+      ).toHaveAttribute("href", expect.stringContaining(`/volumes/${VOLUME}`));
+      expect(
+        screen.queryByTestId("openstack-stack-owns-not-known"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("something gone since goes by its ID, and it doesn't pretend to know it", async () => {
+      server.rows = [
+        stackOwning({
+          ownedInstanceIds: [INSTANCE],
+          ownedInstanceCount: 1,
+          ownedVolumeIds: [],
+          ownedVolumeCount: 0,
+        }),
+      ];
+      await renderPage(OpenStackCloudStackDetail, partPath("stacks", "owner"));
+      expect(
+        await screen.findByTestId("openstack-stack-owns"),
+      ).toHaveTextContent(INSTANCE);
+    });
+
+    test("more than a label has room for says how many more", async () => {
+      server.rows = [
+        stackOwning({
+          ownedInstanceIds: [INSTANCE],
+          ownedInstanceCount: 40,
+          ownedVolumeIds: [],
+          ownedVolumeCount: 2,
+        }),
+      ];
+      await renderPage(OpenStackCloudStackDetail, partPath("stacks", "owner"));
+      expect(
+        await screen.findByTestId("openstack-stack-owns-more"),
+      ).toHaveTextContent("41");
+    });
+
+    test("owning nothing says so, which is not the same as nobody having read it", async () => {
+      server.rows = [
+        stackOwning({
+          ownedInstanceIds: [],
+          ownedInstanceCount: 0,
+          ownedVolumeIds: [],
+          ownedVolumeCount: 0,
+        }),
+      ];
+      await renderPage(OpenStackCloudStackDetail, partPath("stacks", "owner"));
+      expect(
+        await screen.findByTestId("openstack-stack-owns-nothing"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("openstack-stack-owns-not-known"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("nobody having read it says what to run, on what a real cloud said", async () => {
+      server.rows = recorded("heat-baseline");
+      await renderPage(
+        OpenStackCloudStackDetail,
+        partPath("stacks", stackId(server.rows, "ou-stack-ok")),
+      );
+      expect(
+        await screen.findByTestId("openstack-stack-owns-not-known"),
+      ).toHaveTextContent("openstack stack resource list");
+      expect(
+        screen.queryByTestId("openstack-stack-owns"),
+      ).not.toBeInTheDocument();
+    });
   });
 
   test("its alerts are the two that watch every stack", async () => {
@@ -360,9 +490,7 @@ describe("Kubernetes Clusters", () => {
 
     await renderPage(OpenStackCloudContainerClusters, "/kubernetes-clusters");
 
-    expect(
-      await screen.findByText("ou-cluster-times-out"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("ou-cluster-times-out")).toBeInTheDocument();
     expect(tableRow("ou-cluster-times-out")).toHaveTextContent("CREATE_FAILED");
     expect(tableRow("ou-cluster-times-out")).toHaveTextContent(
       "1 control plane, 1 worker",
@@ -422,7 +550,7 @@ describe("a Kubernetes cluster's page", () => {
 
     expect(
       await screen.findByTestId("openstack-container-cluster-details-stack"),
-    ).toHaveTextContent("ou-cluster-real-rfhmez6mgxk3");
+    ).toHaveTextContent("ou-cluster-real-6uc6ctkch4l4");
   });
 
   test("with its stack out of this credential's sight, it goes by the stack's ID", async () => {
@@ -436,7 +564,7 @@ describe("a Kubernetes cluster's page", () => {
 
     expect(
       await screen.findByTestId("openstack-container-cluster-details-stack"),
-    ).toHaveTextContent("66b02f15-9492-45b2-84aa-a82a4edf21f7");
+    ).toHaveTextContent("e2fc0fa8-a09b-45c5-b917-68d79adb0ec4");
   });
 
   test("a probe's own read of it says the rest", async () => {
@@ -448,9 +576,9 @@ describe("a Kubernetes cluster's page", () => {
     server.rows = [
       {
         ...cluster,
-        openStackProjectId: "4d0acfc18c9d4a0b994a7fe34516bf65",
+        openStackProjectId: "5d1838ef05294dd9a804e284b9f21617",
         facts: {
-          ...(cluster!["facts"] as object),
+          ...(cluster!["facts"] as Record<string, unknown>),
           statusReason: "default-master failed, default-worker failed",
           healthStatus: "UNKNOWN",
           clusterTemplateName: "ou-template",
@@ -478,7 +606,7 @@ describe("a Kubernetes cluster's page", () => {
     ).toHaveTextContent("UNKNOWN");
     expect(
       screen.getByTestId("openstack-container-cluster-details-project"),
-    ).toHaveTextContent("4d0acfc18c9d4a0b994a7fe34516bf65");
+    ).toHaveTextContent("5d1838ef05294dd9a804e284b9f21617");
     expect(
       screen.queryByTestId("openstack-container-cluster-why-not-known"),
     ).toBeNull();
@@ -501,10 +629,7 @@ describe("a Kubernetes cluster's page", () => {
 
     await renderPage(
       OpenStackCloudContainerClusterDetail,
-      partPath(
-        "kubernetes-clusters",
-        "11111111-2222-4333-8444-555555555555",
-      ),
+      partPath("kubernetes-clusters", "11111111-2222-4333-8444-555555555555"),
     );
 
     await screen.findByTestId("openstack-container-cluster-details");
@@ -514,6 +639,127 @@ describe("a Kubernetes cluster's page", () => {
     expect(attentionRowsOf("openstack-container-cluster-attention")).toEqual(
       [],
     );
+  });
+
+  describe("with OneUptime's Kubernetes agent on it", () => {
+    const LINK: OpenStackContainerClusterLink = {
+      openStackCloudId: "71000000-0000-4000-8000-000000000001",
+      cloudName: "devstack",
+      regionName: "RegionOne",
+      externalId: "x",
+      name: "ou-cluster-real",
+      status: "CREATE_FAILED",
+      kubernetesClusterId: "76000000-0000-4000-8000-000000000002",
+      kubernetesClusterName: "from-magnum",
+      nodeCount: 2,
+    };
+
+    test("names its Kubernetes cluster, one step away, and how many of its nodes are here", async () => {
+      server.rows = recorded("access-check", "exporter/admin");
+      server.magnumLink = LINK;
+
+      await renderPage(
+        OpenStackCloudContainerClusterDetail,
+        partPath(
+          "kubernetes-clusters",
+          clusterId(server.rows, "ou-cluster-real"),
+        ),
+      );
+
+      const card: HTMLElement = await screen.findByTestId(
+        "openstack-container-cluster-links",
+      );
+      expect(card).toHaveTextContent("from-magnum");
+      expect(card).toHaveTextContent("2 nodes");
+      expect(
+        within(card).getByRole("link", { name: "from-magnum" }),
+      ).toHaveAttribute(
+        "href",
+        expect.stringContaining(`/kubernetes/${LINK.kubernetesClusterId}`),
+      );
+    });
+
+    test("without one says nothing of one, and the read that said so was made", async () => {
+      server.rows = recorded("access-check", "exporter/admin");
+
+      await renderPage(
+        OpenStackCloudContainerClusterDetail,
+        partPath(
+          "kubernetes-clusters",
+          clusterId(server.rows, "ou-cluster-real"),
+        ),
+      );
+
+      await screen.findByTestId("openstack-container-cluster-overview");
+      await settle();
+      expect(
+        screen.queryByTestId("openstack-container-cluster-links"),
+      ).not.toBeInTheDocument();
+      expect(
+        server.postCalls.filter((call: { path: string }): boolean => {
+          return call.path.includes("kubernetes-cluster-of-magnum-cluster");
+        }).length,
+      ).toBe(1);
+    });
+
+    test("a read of it that failed leaves the page as it was, because it is one more thing to know", async () => {
+      server.rows = recorded("access-check", "exporter/admin");
+      server.failPosts.add("kubernetes-cluster-of-magnum-cluster");
+
+      await renderPage(
+        OpenStackCloudContainerClusterDetail,
+        partPath(
+          "kubernetes-clusters",
+          clusterId(server.rows, "ou-cluster-real"),
+        ),
+      );
+
+      expect(
+        await screen.findByTestId("openstack-container-cluster-details-stack"),
+      ).toHaveTextContent("ou-cluster-real-6uc6ctkch4l4");
+      await settle();
+      expect(
+        screen.queryByTestId("openstack-container-cluster-links"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("the Kubernetes cluster's page names it, and the cloud, and leads back", async () => {
+      server.magnumLink = LINK;
+
+      render(
+        <MemoryRouter>
+          <OpenStackPlacementOfKubernetesCluster
+            clusterId={new ObjectID(LINK.kubernetesClusterId)}
+          />
+        </MemoryRouter>,
+      );
+
+      const card: HTMLElement = await screen.findByTestId(
+        "kubernetes-cluster-openstack-placement",
+      );
+      expect(card).toHaveTextContent("spec.providerID");
+      expect(
+        within(card).getByTestId("openstack-placement-cloud"),
+      ).toHaveTextContent("devstack");
+      expect(
+        within(card).getByTestId("openstack-placement-magnum-cluster"),
+      ).toHaveTextContent("ou-cluster-real");
+      expect(
+        within(card).getByTestId("openstack-placement-magnum-status"),
+      ).toHaveTextContent("CREATE_FAILED");
+    });
+
+    test("a Kubernetes cluster on no Magnum cluster's servers has no card at all", async () => {
+      const { container } = render(
+        <MemoryRouter>
+          <OpenStackPlacementOfKubernetesCluster
+            clusterId={new ObjectID(LINK.kubernetesClusterId)}
+          />
+        </MemoryRouter>,
+      );
+      await settle();
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 
   test("its alerts are the two that watch every cluster", async () => {
@@ -527,6 +773,8 @@ describe("a Kubernetes cluster's page", () => {
 
     expect(
       await screen.findByTestId("openstack-container-cluster-alerts"),
-    ).toHaveTextContent(/Kubernetes Cluster Failed[\s\S]*Kubernetes Cluster Stuck/);
+    ).toHaveTextContent(
+      /Kubernetes Cluster Failed[\s\S]*Kubernetes Cluster Stuck/,
+    );
   });
 });

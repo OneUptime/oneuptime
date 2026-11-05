@@ -36,7 +36,7 @@ tell them apart:
   makes a recording's cloud one with no such service. A service a cloud may not run has a group of
   its own: `?recording=services-heat-magnum/magnum-failed` on its own, or
   `?recording=gazpacho-ovs/healthy&also=services-heat-magnum/access/admin` beside a whole cloud.
-- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|usage`
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|magnum|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
@@ -47,6 +47,8 @@ inventory summary, Needs attention and the blast radius from the rows the way
 estate has to say nothing beyond its rows. `Fixture/Links.js` answers what a cloud is elsewhere
 in OneUptime the same way, with the real matching rules, from what else the estate holds: its
 hosts, Kubernetes nodes, services and Ceph clusters (`OTHER_PRODUCTS` in `Fixture/Data.js`).
+
+A cloud's Spend page and Recommendations read what the worker keeps about its usage, so `Fixture/Spend.js` works that out from the estate's rows by the same code. A recording is one moment, so its hours are made up, as if each project had held what it holds now since the 1st. `?spend=none|priced|partial|zero|cloudkitty|gap` says what's priced, and `?waste=old` runs the waste rules 31 days after the recording.
 
 A cloud's Traces page reads spans, so it has a recording of its own: `?traces=flamingo-ovn/signed-boot`
 is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
@@ -102,7 +104,11 @@ the pages while working on them.
 
 ## What the walks hold
 
+`OpenStackBareMetal.spec.ts`: Ironic on a real DevStack with fake hardware: no trace of it on a cloud without it, its section and alerts on one with it, the Overview naming both failed nodes, the step from the menu to a node's page, a half-enrolled node, what the Services page says of conductors, and a phone. What only a probe reads, and an instance on a node, are in the jsdom suite on rows written by hand.
+
 `OpenStackOptionalServices.spec.ts`: a service a cloud may not run. A cloud without it shows no trace of it in the menu, on Services, on the Overview or in Recommendations, and an old link says so rather than breaking. A cloud with it gets its menu entries, its lists and its part's pages, a failed stack and a failed cluster reach Needs attention by name and land on their own pages, and each page says what the agent can't see, at every width.
+
+`OpenStackManila.spec.ts`: Manila, the same way: no trace on a cloud without it, its shares under Storage on one with it, a share in error from Needs attention to its own page, its API stopped, Topology, and every width.
 
 `DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
 

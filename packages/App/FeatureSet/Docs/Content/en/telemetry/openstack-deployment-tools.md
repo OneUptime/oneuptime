@@ -3,7 +3,7 @@
 Nobody runs "OpenStack". They run a tool that deploys it, and each tool has its own paths, its own logs and its own idea of what is already running. This page is what the setup guide in OneUptime says for each one: open **OpenStack → All Clouds**, connect a cloud, and answer **How do you deploy OpenStack?**
 
 :::cards
-- [How far each guide has been tested](#how-far-each-guide-has-been-tested): Read this first. None has been followed end to end on a real deployment.
+- [How far each guide has been tested](#how-far-each-guide-has-been-tested): Read this first. Kolla-Ansible's has been run on a real deployment, short of an alert. The others have not.
 - [Forward what is already firing](#forward-what-is-already-firing): Incidents from the first hour, with no agent.
 - [Kolla-Ansible](#kolla-ansible): Read the exporters it already runs.
 - [OpenStack-Ansible](#openstack-ansible): Journald logs, and overrides in `user_variables.yml`.
@@ -16,12 +16,12 @@ Nobody runs "OpenStack". They run a tool that deploys it, and each tool has its 
 
 ## How far each guide has been tested
 
-Every path, port and variable below was read from the tool's own source or docs. The rig that records OneUptime's fixtures deploys DevStack, not these tools, so no guide here has been followed end to end on a real deployment of its tool. What each has been checked against:
+Every path, port and variable below was read from the tool's own source or docs. The rig that records OneUptime's fixtures also deploys Kolla-Ansible and OpenStack-Ansible on a CI runner, and runs their guides' own commands there, with a stand-in for OneUptime that keeps what the agent sends. So no guide here has reported to a running OneUptime from a real deployment of its tool. What each has been checked against:
 
 | Tool | Read from | Run for real |
 | --- | --- | --- |
-| Kolla-Ansible | Its source, at master and `stable/2026.1` | Its exporters at the versions it pins, in real clusters and on a real cloud, failing and recovering, with Alertmanager posting to a webhook |
-| OpenStack-Ansible | Its source and docs | The agent and its logs profile, on a cloud this tool did not deploy |
+| Kolla-Ansible | Its source, at master and `stable/2026.1` | This guide's commands, on a real all-in-one at `stable/2026.1` with Open vSwitch: the agent on each credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the targets read from its real `prometheus.yml`, and the logs profile. One part did not hold: with Memcached and nova-compute stopped there, its Alertmanager posted nothing, so no alert has gone from a Kolla-Ansible stack to OneUptime. What Alertmanager posts at the version it pins, recorded in a test cluster, did open and resolve an incident on the right cloud on a running OneUptime |
+| OpenStack-Ansible | Its source and docs | A real all-in-one at `stable/2026.1`, in LXC containers, where this guide's RabbitMQ and HAProxy settings were applied with its commands and each exporter answered, and its logs profile read the journal. Its agent steps have not run on it: the agent and its logs profile were run on a cloud this tool did not deploy |
 | OpenStack-Helm | Its chart values | The probe and the Kubernetes agent, each on its own |
 | Atmosphere | Its docs and source | The probe and the Kubernetes agent, each on its own |
 | Canonical Sunbeam | Canonical's docs, and its charms' source | Nothing on Sunbeam. Sunbeam's own docs do not mention the exporter charm |
@@ -29,6 +29,8 @@ Every path, port and variable below was read from the tool's own source or docs.
 | Mirantis MOSK | Mirantis's docs, whose examples show other receivers rather than a webhook | Nothing on MOSK |
 
 What each guide's **Who did what** turns on was recorded on DevStack, on every release the rig runs, and on none of these tools. Where each tool takes it was read from that tool's source or docs.
+
+One part of this has run on a live OneUptime, started as Docker Compose starts it, with its app built from this code. It was sent what a real agent and a real Alertmanager had sent: each cloud registered from its first data and filled 60 rows of inventory across 14 kinds, the firing webhook opened one incident on the right cloud and on no other, the same webhook again opened nothing, and the resolved webhook resolved it. What it was sent was recorded on DevStack and in a test cluster, not on a cloud any of these tools deployed, and no guide's commands ran against it.
 
 ## Forward what is already firing
 
@@ -155,7 +157,7 @@ OpenStack-Ansible keeps its services' logs in journald and runs no Prometheus of
 
 ### The credential on OpenStack-Ansible
 
-Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`.
+Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`. It has no `curl`, which the commands below use, so run `apt-get install -y curl` there first.
 
 - **Full view** needs no change to any service: OpenStack-Ansible's roles already set `service_type` under `[keystone_authtoken]`. Its Cinder says `volumev3`, which the access rules also carry.
 - **Infrastructure only** takes its overrides as `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` and `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml`. Apply each with its own playbook and tag, such as `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Taking one out later leaves an empty file behind rather than none, so nothing fails.

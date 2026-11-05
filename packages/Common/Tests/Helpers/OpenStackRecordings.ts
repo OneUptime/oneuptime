@@ -9,6 +9,7 @@ import {
 } from "../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
+import { getRecordedScrapeFiles } from "./OpenStackRecordedRows";
 
 /*
  * What a real cloud's exporter said, as the rows the snapshot scan makes of it: what a
@@ -137,13 +138,15 @@ function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
 export class OpenStackRecording {
   public readonly rows: Array<OpenStackResource>;
 
-  public constructor(release: string, scene: string) {
+  // asCloud reads a service as another credential did, where the scene holds that as well.
+  public constructor(
+    release: string,
+    scene: string,
+    asCloud?: string | undefined,
+  ) {
     const folder: string = path.join(FIXTURES, release, scene, "exporter");
     const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-    for (const file of fs.readdirSync(folder).sort()) {
-      if (!file.endsWith(".prom")) {
-        continue;
-      }
+    for (const file of getRecordedScrapeFiles(folder, asCloud)) {
       for (const series of parsePrometheusText(
         fs.readFileSync(path.join(folder, file), "utf8"),
       )) {
@@ -185,15 +188,11 @@ export class OpenStackRecording {
 export function readOpenStackScene(
   release: string,
   scene: string,
+  asCloud?: string | undefined,
 ): Array<OpenStackRecordedSeries> {
   const folder: string = path.join(FIXTURES, release, scene, "exporter");
-  return fs
-    .readdirSync(folder)
-    .sort()
-    .filter((file: string): boolean => {
-      return file.endsWith(".prom");
-    })
-    .flatMap((file: string): Array<OpenStackRecordedSeries> => {
+  return getRecordedScrapeFiles(folder, asCloud).flatMap(
+    (file: string): Array<OpenStackRecordedSeries> => {
       return parsePrometheusText(
         fs.readFileSync(path.join(folder, file), "utf8"),
       ).map((series: OpenStackRecordedSeries): OpenStackRecordedSeries => {
@@ -206,14 +205,23 @@ export function readOpenStackScene(
           },
         };
       });
-    });
+    },
+  );
 }
 
+/*
+ * The releases DevStack was recorded on. A deployment tool's recording ("kolla-aio") is not one:
+ * its catalog, its defaults and what it runs are its own, which is what recording it was for, and
+ * OpenStackKollaRecording.test.ts holds it to those.
+ */
 export function getOpenStackReleases(): Array<string> {
   return fs
     .readdirSync(FIXTURES)
     .filter((entry: string): boolean => {
-      return fs.existsSync(path.join(FIXTURES, entry, "healthy", "exporter"));
+      return (
+        !entry.endsWith("-aio") &&
+        fs.existsSync(path.join(FIXTURES, entry, "healthy", "exporter"))
+      );
     })
     .sort();
 }
