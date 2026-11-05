@@ -1,0 +1,35 @@
+$ openstack ip availability list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "network_id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "network_name": "private",
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451",
+    "used_ips": 4,
+    "total_ips": 18446744073709552000
+  },
+  {
+    "network_id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "network_name": "public",
+    "project_id": "7d12d4f1273942508ecbab053dd52b4f",
+    "used_ips": 8,
+    "total_ips": 18446744073709552000
+  },
+  {
+    "network_id": "5f3755d2-bd6f-4696-bbd3-df5ea611d0e4",
+    "network_name": "ou-net",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372",
+    "used_ips": 4,
+    "total_ips": 253
+  },
+  {
+    "network_id": "cabef246-cc67-4c29-9b90-9d4273ad18f1",
+    "network_name": "ou-research-net",
+    "project_id": "b9e66b583ae5401b8ec2edf04f41c61a",
+    "used_ips": 4,
+    "total_ips": 253
+  }
+]
