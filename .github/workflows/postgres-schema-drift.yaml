@@ -1146,6 +1146,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OpenStackCapacityPostgres.test.ts --forceExit
 
+      # A reading of usage, on a real database: its grouped reads, a time counted once however
+      # many workers read it, and a whole cloud within budget at the largest size tested.
+      - name: Check OpenStack usage against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackUsagePostgres.test.ts --forceExit
+
       # Clones the migrated KubernetesResource table (with its unique identity
       # index and the partial index of what needs attention) into an isolated
       # schema and runs KubernetesResourceService's hand-written SQL against

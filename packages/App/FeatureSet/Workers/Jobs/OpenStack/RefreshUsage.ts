@@ -64,9 +64,7 @@ RunCron(
           await OpenStackUsageRefresh.refresh({
             projectId: cloud.projectId,
             openStackCloudId,
-            lastReadAt: cloud.usageReadAt
-              ? new Date(cloud.usageReadAt)
-              : null,
+            lastReadAt: cloud.usageReadAt ? new Date(cloud.usageReadAt) : null,
             previous: readOpenStackSpendSnapshot(cloud.spendSnapshot),
             priceList: readOpenStackPriceList(cloud.priceList),
             now,

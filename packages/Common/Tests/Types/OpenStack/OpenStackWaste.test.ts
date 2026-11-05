@@ -66,11 +66,7 @@ describe("a volume attached to nothing", () => {
 
   test.each([
     ["available and detached for over 30 days", volume({}), true],
-    [
-      "exactly 30 days",
-      volume({ stateChangedAt: daysAgo(30) }),
-      true,
-    ],
+    ["exactly 30 days", volume({ stateChangedAt: daysAgo(30) }), true],
     ["29 days is not yet", volume({ stateChangedAt: daysAgo(29) }), false],
     [
       "attached, whatever its status says",
@@ -161,11 +157,7 @@ describe("a floating IP nothing is using", () => {
       address({ facts: {} }),
       false,
     ],
-    [
-      "no date",
-      address({ stateChangedAt: null, createdAt: null }),
-      false,
-    ],
+    ["no date", address({ stateChangedAt: null, createdAt: null }), false],
   ])("%s", (_name: string, given: OpenStackWasteRow, expected: boolean) => {
     expect(isOpenStackFloatingIpWaste({ row: given, now: NOW })).toBe(expected);
   });
@@ -237,12 +229,7 @@ describe("an image nothing was booted from", () => {
       inUse,
       true,
     ],
-    [
-      "an instance runs on it",
-      image({ externalId: "used" }),
-      inUse,
-      false,
-    ],
+    ["an instance runs on it", image({ externalId: "used" }), inUse, false],
     [
       "public: what people boot from next",
       image({
@@ -332,8 +319,18 @@ describe("an image nothing was booted from", () => {
 
 describe("an old snapshot", () => {
   test.each([
-    ["by the cloud's clock, over 90 days", { createdAt: daysAgo(91) }, "available", true],
-    ["by the cloud's clock, 89 days", { createdAt: daysAgo(89) }, "available", false],
+    [
+      "by the cloud's clock, over 90 days",
+      { createdAt: daysAgo(91) },
+      "available",
+      true,
+    ],
+    [
+      "by the cloud's clock, 89 days",
+      { createdAt: daysAgo(89) },
+      "available",
+      false,
+    ],
     ["being made", { createdAt: daysAgo(91) }, "creating", false],
     ["being deleted", { createdAt: daysAgo(91) }, "deleting", false],
     ["in error", { createdAt: daysAgo(91) }, "error", false],
@@ -580,10 +577,7 @@ describe("a hypervisor that could be emptied", () => {
         host("quiet", 2),
       ],
     ],
-    [
-      "one host alone can't move anywhere",
-      [host("quiet", 2)],
-    ],
+    ["one host alone can't move anywhere", [host("quiet", 2)]],
     [
       "two hosts: the one left couldn't lose a host",
       [host("busy-1", 2), host("quiet", 1)],
@@ -745,12 +739,7 @@ describe("a hypervisor that could be emptied", () => {
 
     expect(
       getOpenStackMovableHosts({
-        hosts: [
-          big("a", 90),
-          big("b", 90),
-          big("c", 90),
-          big("quiet", 12),
-        ],
+        hosts: [big("a", 90), big("b", 90), big("c", 90), big("quiet", 12)],
         instancesOnHosts: [onHost("quiet", 1, 0, "wide")],
         flavors: [wide],
       }),

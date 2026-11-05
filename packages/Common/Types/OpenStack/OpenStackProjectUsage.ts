@@ -636,8 +636,10 @@ export function applyOpenStackUsageReading(data: {
     months.set(month, new Map(rows));
   }
 
-  const closedDays: Map<string, Map<string, OpenStackUsageQuantities>> =
-    new Map();
+  const closedDays: Map<
+    string,
+    Map<string, OpenStackUsageQuantities>
+  > = new Map();
   const countedHoursByMonth: Map<string, number> = new Map();
 
   if (data.interval.closesDay) {

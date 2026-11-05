@@ -768,6 +768,8 @@ export interface CinderVolumeRecord {
    * has none.
    */
   poolName: string | null;
+  // The image it was made from, which that image is in use for as long as this volume lasts.
+  imageId: string | null;
   sizeGb: number | null;
   updatedAt: string | null;
 }
@@ -788,6 +790,7 @@ export function toCinderVolume(item: JSONObject): CinderVolumeRecord {
     volumeType: text(item["volume_type"]),
     serverId: attachments[0] ? text(object(attachments[0])["server_id"]) : null,
     poolName: text(item["os-vol-host-attr:host"]),
+    imageId: text(object(item["volume_image_metadata"])["image_id"]),
     sizeGb: numeric(item["size"]),
     updatedAt: text(item["updated_at"]),
   };
@@ -800,6 +803,7 @@ export interface CinderSnapshotRecord {
   tenantId: string | null;
   volumeId: string | null;
   sizeGb: number | null;
+  createdAt: string | null;
   updatedAt: string | null;
 }
 
@@ -811,6 +815,7 @@ export function toCinderSnapshot(item: JSONObject): CinderSnapshotRecord {
     tenantId: text(item["os-extended-snapshot-attributes:project_id"]),
     volumeId: text(item["volume_id"]),
     sizeGb: numeric(item["size"]),
+    createdAt: text(item["created_at"]),
     updatedAt: text(item["updated_at"]),
   };
 }
@@ -861,6 +866,8 @@ export interface GlanceImageRecord {
   status: string | null;
   visibility: string | null;
   isHidden: boolean;
+  // Someone said to keep it, which a list of what could go has to respect.
+  isProtected: boolean;
   imageType: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -876,6 +883,7 @@ export function toGlanceImage(item: JSONObject): GlanceImageRecord {
     status: text(item["status"]),
     visibility: text(item["visibility"]),
     isHidden: item["os_hidden"] === true,
+    isProtected: item["protected"] === true,
     imageType: text(item["image_type"]),
     createdAt: text(item["created_at"]),
     updatedAt: text(item["updated_at"]),

@@ -24,7 +24,11 @@ import {
   OPENSTACK_WASTE_ROWS_READ,
   OpenStackWasteRow,
 } from "../../Types/OpenStack/OpenStackWaste";
-import { addUtcDays, addUtcMonths, startOfUtcMonth } from "../../Types/Cloud/CloudCost";
+import {
+  addUtcDays,
+  addUtcMonths,
+  startOfUtcMonth,
+} from "../../Types/Cloud/CloudCost";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 
@@ -143,13 +147,18 @@ export class Service extends DatabaseService<Model> {
       data.projectId.toString(),
       data.openStackCloudId.toString(),
     ];
-    const query: <T>(sql: string, extra?: Array<unknown>) => Promise<Array<T>> =
-      async <T>(sql: string, extra?: Array<unknown>): Promise<Array<T>> => {
-        return (await this.getRepository().manager.query(sql, [
-          ...params,
-          ...(extra || []),
-        ])) as Array<T>;
-      };
+    const query: <T>(
+      sql: string,
+      extra?: Array<unknown>,
+    ) => Promise<Array<T>> = async <T>(
+      sql: string,
+      extra?: Array<unknown>,
+    ): Promise<Array<T>> => {
+      return (await this.getRepository().manager.query(sql, [
+        ...params,
+        ...(extra || []),
+      ])) as Array<T>;
+    };
     const owned: (kind: OpenStackResourceKind) => string = (
       kind: OpenStackResourceKind,
     ): string => {
@@ -536,7 +545,7 @@ export class Service extends DatabaseService<Model> {
     const oldestMonth: string = toOpenStackUsageMonth(
       addUtcMonths(
         startOfUtcMonth(data.now),
-        -OPENSTACK_USAGE_MONTH_ROWS_KEPT_MONTHS,
+        -(OPENSTACK_USAGE_MONTH_ROWS_KEPT_MONTHS - 1),
       ),
     );
     let deleted: number = 0;
@@ -671,7 +680,8 @@ export class Service extends DatabaseService<Model> {
       instanceImageIds: idsOf(instanceImages),
       volumeImageIds: idsOf(volumeImages),
       instancesNotSaying: notSaying(instanceImages) + notSaying(volumeImages),
-      snapshotRowCount: Number.parseInt(snapshotCount[0]?.count || "0", 10) || 0,
+      snapshotRowCount:
+        Number.parseInt(snapshotCount[0]?.count || "0", 10) || 0,
     };
   }
 }

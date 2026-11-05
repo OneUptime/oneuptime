@@ -890,6 +890,70 @@ describe("storage", () => {
     expect(row.facts).toHaveProperty("attachedToInstance", null);
   });
 
+  /*
+   * What says an image is in use, and how old a snapshot is. A probe always writes the first, none
+   * included, so a row that doesn't have it at all is one nobody can tell about: the exporter's.
+   */
+  test("a probe's volume says which image it came from, and none when it came from none", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_cinder_volume_gb", {
+      value: 10,
+      labels: {
+        id: "from-image",
+        status: "in-use",
+        image_id: "image-1",
+        updated_at: "2026-11-04T10:58:17Z",
+      },
+    });
+    fold(buffer, "openstack_cinder_volume_gb", {
+      value: 10,
+      labels: {
+        id: "blank",
+        status: "in-use",
+        updated_at: "2026-11-04T10:58:17Z",
+      },
+    });
+    fold(buffer, "openstack_cinder_volume_gb", {
+      value: 10,
+      labels: { id: "exporters", status: "in-use" },
+    });
+
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Volume, "from-image").facts["imageId"],
+    ).toBe("image-1");
+    expect(rowOf(buffer, OpenStackResourceKind.Volume, "blank").facts).toHaveProperty(
+      "imageId",
+      null,
+    );
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Volume, "exporters").facts,
+    ).not.toHaveProperty("imageId");
+  });
+
+  test("a probe's snapshot says when it was made, and its image whether it's protected", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_cinder_snapshot_gb", {
+      value: 1,
+      labels: {
+        id: "snap",
+        status: "available",
+        created_at: "2026-08-01T00:00:00.000000",
+        updated_at: "2026-11-04T10:58:17Z",
+      },
+    });
+    fold(buffer, "openstack_glance_image_created_at", {
+      value: 1793795532,
+      labels: { id: "image", status: "active", protected: "true" },
+    });
+
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Snapshot, "snap").facts["createdAt"],
+    ).toBe("2026-08-01T00:00:00.000000");
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Image, "image").facts["isProtected"],
+    ).toBe(true);
+  });
+
   test("a backup is a row of its own, which only a probe sends", () => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_cinder_backup_gb", {

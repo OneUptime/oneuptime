@@ -63,7 +63,8 @@ const decimalTransformer: ValueTransformer = {
     if (value === null || value === undefined) {
       return null;
     }
-    const parsed: number = typeof value === "number" ? value : parseFloat(value);
+    const parsed: number =
+      typeof value === "number" ? value : parseFloat(value);
     return Number.isFinite(parsed) ? parsed : null;
   },
 };
@@ -89,7 +90,7 @@ const decimalTransformer: ValueTransformer = {
 })
 // A page of the largest first, and one project's history.
 @Index(["projectId", "openStackCloudId", "period", "sortValue"])
-@Index(["projectId", "openStackCloudId", "openStackProjectId", "period"])
+@Index(["openStackCloudId", "openStackProjectId", "period"])
 @Entity({
   name: "OpenStackProjectUsage",
 })
@@ -399,7 +400,8 @@ export default class OpenStackProjectUsage extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     title: "Last Month Cost",
-    description: "What last month came to, at today's prices. A month's row only.",
+    description:
+      "What last month came to, at today's prices. A month's row only.",
   })
   @Column({
     nullable: true,

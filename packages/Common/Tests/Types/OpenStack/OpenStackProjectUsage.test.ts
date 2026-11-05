@@ -619,7 +619,10 @@ describe("what each project holds, from the inventory's grouped rows", () => {
         ],
         instances: [
           instanceGroup("a", "small-id", "ACTIVE"),
-          { ...instanceGroup("a", "small-id", "ACTIVE"), regionName: "RegionTwo" },
+          {
+            ...instanceGroup("a", "small-id", "ACTIVE"),
+            regionName: "RegionTwo",
+          },
         ],
       });
 
@@ -777,10 +780,17 @@ describe("a price of zero is no price, not a free cloud", () => {
 
   test.each([
     ["no list at all", null],
-    ["a list of zeros", readOpenStackPriceList({ currency: "USD", vcpuHour: 0 })],
+    [
+      "a list of zeros",
+      readOpenStackPriceList({ currency: "USD", vcpuHour: 0 }),
+    ],
     [
       "a list of nonsense",
-      readOpenStackPriceList({ vcpuHour: -1, memoryGbHour: "abc", imageGbHour: null }),
+      readOpenStackPriceList({
+        vcpuHour: -1,
+        memoryGbHour: "abc",
+        imageGbHour: null,
+      }),
     ],
   ])("%s has no amount, and says what it used", (_name: string, list) => {
     expect(list).toBeNull();
@@ -836,9 +846,9 @@ describe("a price of zero is no price, not a free cloud", () => {
     })!;
 
     expect(list.flavorHour).toEqual({});
-    expect(
-      getOpenStackUsageCost({ quantities, priceList: list }).amount,
-    ).toBe(20);
+    expect(getOpenStackUsageCost({ quantities, priceList: list }).amount).toBe(
+      20,
+    );
 
     const unknown: OpenStackUsageCost = getOpenStackUsageCost({
       quantities: {

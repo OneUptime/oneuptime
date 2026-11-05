@@ -221,7 +221,9 @@ function noFrees(): OpenStackWasteFrees {
   };
 }
 
-function toTime(value: Date | string | number | null | undefined): number | null {
+function toTime(
+  value: Date | string | number | null | undefined,
+): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
   }
@@ -255,12 +257,15 @@ export function getOpenStackWasteSince(row: OpenStackWasteRow): number | null {
     return stateChangedAt ?? firstSeenAt;
   }
 
-  const isChangeSeenHere: boolean =
+  if (
     stateChangedAt !== null &&
     firstSeenAt !== null &&
-    stateChangedAt - firstSeenAt > FIRST_SIGHT_MS;
+    stateChangedAt - firstSeenAt > FIRST_SIGHT_MS
+  ) {
+    return Math.max(stateChangedAt, updatedAt);
+  }
 
-  return isChangeSeenHere ? Math.max(stateChangedAt, updatedAt) : updatedAt;
+  return updatedAt;
 }
 
 function isOlderThan(data: {
@@ -407,7 +412,9 @@ export function isOpenStackSnapshotWaste(data: {
   );
 }
 
-function getAllocatedPercent(inventory: OpenStackInventory | undefined): number {
+function getAllocatedPercent(
+  inventory: OpenStackInventory | undefined,
+): number {
   if (!inventory) {
     return 100;
   }
@@ -766,9 +773,7 @@ function toFinding(data: {
   rowsRead?: number | undefined;
   cannotTell?: OpenStackWasteCannotTell | undefined;
   // What holding one of these for a month comes to. Null when it has no price.
-  monthlyAmountOf?:
-    | ((item: OpenStackWasteItem) => number | null)
-    | undefined;
+  monthlyAmountOf?: ((item: OpenStackWasteItem) => number | null) | undefined;
 }): OpenStackWasteFinding {
   let frees: OpenStackWasteFrees = noFrees();
   let monthlyAmount: number | null = null;

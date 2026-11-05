@@ -1,4 +1,8 @@
-import { addUtcMonths, daysInUtcMonth, startOfUtcMonth } from "../Cloud/CloudCost";
+import {
+  addUtcMonths,
+  daysInUtcMonth,
+  startOfUtcMonth,
+} from "../Cloud/CloudCost";
 import {
   OpenStackCostLine,
   OpenStackCostLineKind,
@@ -416,7 +420,10 @@ export function getOpenStackSpendGrowers(
     .slice(0, OPENSTACK_SPEND_GROWERS_KEPT);
 }
 
-function addNullable(first: number | null, second: number | null): number | null {
+function addNullable(
+  first: number | null,
+  second: number | null,
+): number | null {
   if (first === null) {
     return second;
   }
@@ -551,14 +558,16 @@ export function getOpenStackSpendBreakdown(data: {
   return {
     flavorCount: flavors.length,
     byFlavor: flavors
-      .sort((first: OpenStackSpendFlavorRow, second: OpenStackSpendFlavorRow) => {
-        return (
-          compareNullableDescending(first.amount, second.amount) ||
-          second.vcpuHours - first.vcpuHours ||
-          second.instanceHours - first.instanceHours ||
-          (first.name || "").localeCompare(second.name || "")
-        );
-      })
+      .sort(
+        (first: OpenStackSpendFlavorRow, second: OpenStackSpendFlavorRow) => {
+          return (
+            compareNullableDescending(first.amount, second.amount) ||
+            second.vcpuHours - first.vcpuHours ||
+            second.instanceHours - first.instanceHours ||
+            (first.name || "").localeCompare(second.name || "")
+          );
+        },
+      )
       .slice(0, OPENSTACK_SPEND_FLAVORS_KEPT),
     volumeTypeCount: types.length,
     byVolumeType: types
@@ -588,10 +597,7 @@ export function getOpenStackPriceListKey(
 export function getOpenStackSameDayLastMonth(day: string): string {
   const date: Date = new Date(`${day}T00:00:00.000Z`);
   const lastMonth: Date = addUtcMonths(startOfUtcMonth(date), -1);
-  const number: number = Math.min(
-    date.getUTCDate(),
-    daysInUtcMonth(lastMonth),
-  );
+  const number: number = Math.min(date.getUTCDate(), daysInUtcMonth(lastMonth));
 
   return `${toOpenStackUsageMonth(lastMonth)}-${String(number).padStart(2, "0")}`;
 }
@@ -604,15 +610,38 @@ export function addOpenStackSpendCoverage(data: {
   coverage: OpenStackSpendCoverage | null;
   countedHours: number;
   notCountedHours: number;
-  now: Date;
+  // Where the hours being added begin, for a period counting its first.
+  countedFrom: Date;
 }): OpenStackSpendCoverage {
   return {
     firstReadAt:
       data.coverage?.firstReadAt ??
-      (data.countedHours > 0 ? data.now.toISOString() : null),
+      (data.countedHours > 0 ? data.countedFrom.toISOString() : null),
     countedHours: (data.coverage?.countedHours || 0) + data.countedHours,
     notCountedHours:
       (data.coverage?.notCountedHours || 0) + data.notCountedHours,
+  };
+}
+
+// The figures a finished day says, taken from its month as it stood at midnight, and the midnight before.
+export function getOpenStackSpendDay(data: {
+  day: string;
+  monthAtMidnight: OpenStackUsageTotals;
+  monthAtLastMidnight: OpenStackUsageTotals | null;
+}): OpenStackSpendDay {
+  const before: OpenStackUsageTotals | null = data.monthAtLastMidnight;
+  const since: (key: keyof OpenStackUsageTotals) => number = (
+    key: keyof OpenStackUsageTotals,
+  ): number => {
+    return Math.max(0, data.monthAtMidnight[key] - (before ? before[key] : 0));
+  };
+
+  return {
+    day: data.day,
+    vcpuHours: since("vcpuHours"),
+    memoryGbHours: since("memoryGbHours"),
+    volumeGbHours: since("volumeGbHours"),
+    floatingIpHours: since("floatingIpHours"),
   };
 }
 

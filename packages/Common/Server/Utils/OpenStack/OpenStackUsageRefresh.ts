@@ -1,4 +1,8 @@
-import { addUtcDays, addUtcMonths, startOfUtcMonth } from "../../../Types/Cloud/CloudCost";
+import {
+  addUtcDays,
+  addUtcMonths,
+  startOfUtcMonth,
+} from "../../../Types/Cloud/CloudCost";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -54,6 +58,7 @@ import {
   getOpenStackProjectGrowth,
   getOpenStackSameDayLastMonth,
   getOpenStackSpendBreakdown,
+  getOpenStackSpendDay,
   getOpenStackSpendDomains,
   getOpenStackSpendGrowers,
   getOpenStackSpendSource,
@@ -109,8 +114,7 @@ function isDue(
   }
   const last: number = new Date(lastAt).getTime();
   return (
-    !Number.isFinite(last) ||
-    now.getTime() - last >= everyMinutes * 60 * 1000
+    !Number.isFinite(last) || now.getTime() - last >= everyMinutes * 60 * 1000
   );
 }
 
@@ -126,28 +130,6 @@ function getCloudCost(
   }
 
   return total === null ? null : Math.round(total * 10000) / 10000;
-}
-
-// The figures a finished day says, taken from its month as it stood at midnight, and the midnight before.
-export function getOpenStackSpendDay(data: {
-  day: string;
-  monthAtMidnight: OpenStackUsageTotals;
-  monthAtLastMidnight: OpenStackUsageTotals | null;
-}): OpenStackSpendDay {
-  const before: OpenStackUsageTotals | null = data.monthAtLastMidnight;
-  const since: (key: keyof OpenStackUsageTotals) => number = (
-    key: keyof OpenStackUsageTotals,
-  ): number => {
-    return Math.max(0, data.monthAtMidnight[key] - (before ? before[key] : 0));
-  };
-
-  return {
-    day: data.day,
-    vcpuHours: since("vcpuHours"),
-    memoryGbHours: since("memoryGbHours"),
-    volumeGbHours: since("volumeGbHours"),
-    floatingIpHours: since("floatingIpHours"),
-  };
 }
 
 export interface OpenStackUsageRefreshResult {
@@ -181,7 +163,9 @@ export default class OpenStackUsageRefresh {
       getOpenStackProjectHoldings(usageRows);
     const holdingOf: Map<string, OpenStackProjectHolding> = new Map(
       holdings.map(
-        (holding: OpenStackProjectHolding): [string, OpenStackProjectHolding] => {
+        (
+          holding: OpenStackProjectHolding,
+        ): [string, OpenStackProjectHolding] => {
           return [holding.openStackProjectId, holding];
         },
       ),
@@ -240,7 +224,9 @@ export default class OpenStackUsageRefresh {
         month,
         new Map(
           rows.map(
-            (row: OpenStackUsagePeriodRow): [string, OpenStackUsagePeriodRow] => {
+            (
+              row: OpenStackUsagePeriodRow,
+            ): [string, OpenStackUsagePeriodRow] => {
               return [row.openStackProjectId, row];
             },
           ),
@@ -434,7 +420,8 @@ export default class OpenStackUsageRefresh {
       }
 
       for (const [id, quantities] of rows) {
-        const totals: OpenStackUsageTotals = getOpenStackUsageTotals(quantities);
+        const totals: OpenStackUsageTotals =
+          getOpenStackUsageTotals(quantities);
         const kept: OpenStackUsagePeriodRow | undefined = stored
           .get(month)
           ?.get(id);
@@ -473,7 +460,8 @@ export default class OpenStackUsageRefresh {
 
     for (const [day, rows] of applied.closedDays) {
       for (const [id, quantities] of rows) {
-        const totals: OpenStackUsageTotals = getOpenStackUsageTotals(quantities);
+        const totals: OpenStackUsageTotals =
+          getOpenStackUsageTotals(quantities);
         const names: {
           name: string | null;
           domainId: string | null;
@@ -537,6 +525,7 @@ export default class OpenStackUsageRefresh {
         interval,
         thisMonth,
         lastMonth,
+        lastReadAt,
         now,
       }),
       ...getOpenStackSpendBreakdown({
@@ -599,20 +588,26 @@ export default class OpenStackUsageRefresh {
     interval: OpenStackUsageInterval;
     thisMonth: string;
     lastMonth: string;
+    lastReadAt: Date | null;
     now: Date;
   }): {
     coverage: OpenStackSpendCoverage;
     lastMonthCoverage: OpenStackSpendCoverage | null;
   } {
-    const { previous, applied, interval, thisMonth, now } = data;
+    const { previous, applied, interval, thisMonth, lastReadAt, now } = data;
     const isSameMonth: boolean = previous?.month === thisMonth;
+    const monthStart: Date = startOfUtcMonth(now);
+    const countedFrom: Date =
+      lastReadAt && lastReadAt.getTime() > monthStart.getTime()
+        ? lastReadAt
+        : monthStart;
 
     return {
       coverage: addOpenStackSpendCoverage({
         coverage: isSameMonth ? previous!.coverage : null,
         countedHours: applied.countedHoursByMonth.get(thisMonth) || 0,
         notCountedHours: interval.notCountedHours,
-        now,
+        countedFrom,
       }),
       // A month that has just ended keeps what its last reading added to it.
       lastMonthCoverage: isSameMonth
@@ -623,7 +618,7 @@ export default class OpenStackUsageRefresh {
               countedHours:
                 applied.countedHoursByMonth.get(data.lastMonth) || 0,
               notCountedHours: 0,
-              now,
+              countedFrom: lastReadAt || monthStart,
             })
           : null,
     };

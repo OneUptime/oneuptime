@@ -86,22 +86,26 @@ export function getOpenStackBudgetFingerprint(data: {
   }`;
 }
 
+// CloudKitty doesn't say a currency, and a budget's figures aren't to be given one that nobody set.
+function formatAmount(amount: number, currency: string | null): string {
+  return currency
+    ? formatCloudBudgetAmount(amount, currency)
+    : (Math.round(amount * 100) / 100).toFixed(2);
+}
+
 export function describeOpenStackBudgetAlert(data: {
   budgetName: string;
   scope: string;
   amount: number;
-  currency: string;
+  currency: string | null;
   spent: number;
   projected: number;
   alert: CloudBudgetAlertKind;
   now: Date;
 }): { title: string; description: string } {
-  const amount: string = formatCloudBudgetAmount(data.amount, data.currency);
-  const spent: string = formatCloudBudgetAmount(data.spent, data.currency);
-  const projected: string = formatCloudBudgetAmount(
-    data.projected,
-    data.currency,
-  );
+  const amount: string = formatAmount(data.amount, data.currency);
+  const spent: string = formatAmount(data.spent, data.currency);
+  const projected: string = formatAmount(data.projected, data.currency);
   const percent: number =
     data.amount > 0 ? Math.round((data.spent / data.amount) * 100) : 0;
   const daysLeft: number = Math.max(
@@ -232,7 +236,7 @@ export default class OpenStackBudgetEvaluator {
           budget,
           scope: OpenStackBudgetEvaluator.getScope(data),
           amount,
-          currency: snapshot.currency || "USD",
+          currency: snapshot.currency,
           spent: asSpend.spent,
           projected: asSpend.projected,
           alert: kind,
@@ -308,7 +312,7 @@ export default class OpenStackBudgetEvaluator {
     budget: OpenStackBudget;
     scope: string;
     amount: number;
-    currency: string;
+    currency: string | null;
     spent: number;
     projected: number;
     alert: CloudBudgetAlertKind;

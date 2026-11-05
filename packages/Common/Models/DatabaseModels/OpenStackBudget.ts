@@ -50,7 +50,8 @@ const decimalTransformer: ValueTransformer = {
     if (value === null || value === undefined) {
       return null;
     }
-    const parsed: number = typeof value === "number" ? value : parseFloat(value);
+    const parsed: number =
+      typeof value === "number" ? value : parseFloat(value);
     return Number.isFinite(parsed) ? parsed : null;
   },
 };
@@ -445,8 +446,7 @@ export default class OpenStackBudget extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     title: "Projected This Month",
-    description:
-      "What this month is on course to come to, when last checked.",
+    description: "What this month is on course to come to, when last checked.",
   })
   @Column({
     nullable: true,
