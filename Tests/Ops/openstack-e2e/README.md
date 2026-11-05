@@ -98,7 +98,7 @@ Tokens are scrubbed and addresses replaced, although nothing here is a secret: i
 
 ## The services a cloud may not run
 
-Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove and Gnocchi are recorded by a job of their own, `record-services`, only when asked. Each group has a runner to itself, because a runner has 4 vCPUs and 16 GB:
+Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove, Gnocchi and CloudKitty are recorded by a job of their own, `record-services`, only when asked. Each group has a runner to itself, because a runner has 4 vCPUs and 16 GB:
 
 ```bash
 gh workflow run test.openstack-e2e.yaml --ref <branch> -f services_only=true
@@ -115,6 +115,7 @@ gh workflow run test.openstack-e2e.yaml --ref <branch> -f services_only=true -f 
 | `services-designate-barbican-swift` | Designate on bind9, Barbican and Swift | `services-designate-barbican-swift.sh` |
 | `services-trove` | Trove, with the guest image its plugin builds | `services-trove.sh` |
 | `services-gnocchi` | Gnocchi, deployed by Ceilometer's plugin, since its own repository no longer has one | `services-gnocchi.sh` |
+| `services-cloudkitty` | CloudKitty on InfluxDB, rating what Ceilometer wrote to Gnocchi, every five minutes | `services-cloudkitty.sh` |
 
 The configs start from what Gophercloud's own CI runs on this same action and branch. The top of each script says what its scenes are. `services-lib.sh` is what they share, and is why a scene going wrong never costs the scene after it: each scene is recorded whichever way it went, its `how.txt` says how the cloud got there, on its own or written into a row, and a `failed.txt` says why it never did. `scenes.txt` says what became of each.
 

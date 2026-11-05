@@ -294,6 +294,42 @@ record_gnocchi() {
   call gnocchi-metrics-some "$gnocchi/v1/metric?limit=5"
 }
 
+# A month as a probe asks CloudKitty about it: UTC, to the second, with no zone, percent-encoded.
+cloudkitty_period() {
+  python3 -I -c '
+import datetime, sys, urllib.parse
+now = datetime.datetime.now(datetime.timezone.utc)
+first = now.year * 12 + now.month - 1 - int(sys.argv[1])
+def month(index):
+    return urllib.parse.quote(datetime.datetime(index // 12, index % 12 + 1, 1).isoformat(), safe="")
+print(f"begin={month(first)}&end={month(first + 1)}")
+' "$1"
+}
+
+# What a probe reads of CloudKitty, as it reads it: its version document and what its API check
+# asks, then this month and last, summary first. Then as a project's member, which CloudKitty's
+# own policy narrows to that project.
+record_cloudkitty() {
+  local cloudkitty="$1" month="" period="" back=0 project="" token=""
+  call cloudkitty-versions "$cloudkitty/"
+  call cloudkitty-info-metrics "$cloudkitty/v1/info/metrics"
+  for month in this-month last-month; do
+    period="$(cloudkitty_period "$back")"
+    call "cloudkitty-summary-$month" "$cloudkitty/v2/summary?$period&groupby=project_id&limit=1000&offset=0"
+    call "cloudkitty-report-$month" "$cloudkitty/v1/report/summary?$period&groupby=tenant_id&all_tenants=true"
+    back=$((back + 1))
+  done
+  project="$(openstack project show ou-payments -f value -c id 2>/dev/null || true)"
+  [ -n "$project" ] || return 0
+  token="$(token_of_project_id "$project")"
+  [ -n "$token" ] || return 0
+  period="$(cloudkitty_period 0)"
+  CALL_TOKEN="$token" call cloudkitty-summary-this-month-ou-payments \
+    "$cloudkitty/v2/summary?$period&groupby=project_id&limit=1000&offset=0"
+  CALL_TOKEN="$token" call cloudkitty-report-this-month-ou-payments \
+    "$cloudkitty/v1/report/summary?$period&groupby=tenant_id&all_tenants=true"
+}
+
 record_api() {
   : >"$SCENE_DIR/api-status.txt"
   local nova neutron cinder glance placement keystone octavia ironic heat magnum designate manila swift trove
@@ -446,13 +482,15 @@ record_api() {
     record_trove "$trove"
   fi
 
-  # Neither has a line above: the exporter has no reader for Barbican, and Gnocchi's catalog
-  # type is not what its exporter is called.
-  local barbican gnocchi
+  # None has a line above: the exporter has no reader for Barbican or CloudKitty, and Gnocchi's
+  # catalog type is not what its exporter is called.
+  local barbican gnocchi cloudkitty
   barbican="$(endpoint_of key-manager)"
   [ -z "$barbican" ] || record_barbican "$barbican"
   gnocchi="$(endpoint_of metric)"
   [ -z "$gnocchi" ] || record_gnocchi "$gnocchi"
+  cloudkitty="$(endpoint_of rating)"
+  [ -z "$cloudkitty" ] || record_cloudkitty "$cloudkitty"
 
   record_recon
 }
@@ -568,6 +606,12 @@ record_cli_of_other_services() {
   fi
   if [ -n "$(endpoint_of metric)" ]; then
     cli_line gnocchi status
+  fi
+  if [ -n "$(endpoint_of rating)" ]; then
+    cli_line openstack rating module list
+    cli_line openstack rating info metric list
+    cli_line openstack rating hashmap service list
+    cli_line openstack rating summary get
   fi
 }
 

@@ -347,7 +347,8 @@ set_service_type /etc/placement/placement.conf placement
 # in the catalog, which is what its access rules name.
 for pair in octavia/octavia.conf:load-balancer ironic/ironic.conf:baremetal heat/heat.conf:orchestration \
   magnum/magnum.conf:container-infra manila/manila.conf:sharev2 designate/designate.conf:dns \
-  barbican/barbican.conf:key-manager trove/trove.conf:database gnocchi/gnocchi.conf:metric; do
+  barbican/barbican.conf:key-manager trove/trove.conf:database gnocchi/gnocchi.conf:metric \
+  cloudkitty/cloudkitty.conf:rating; do
   set_service_type "/etc/${pair%%:*}" "${pair##*:}"
 done
 # Swift keeps its keystonemiddleware's settings in a section of another name.
@@ -364,7 +365,7 @@ restart_units() {
     devstack@c-api.service devstack@g-api.service devstack@placement-api.service \
     devstack@o-api.service devstack@ir-api.service devstack@h-api.service devstack@magnum-api.service \
     devstack@m-api.service devstack@designate-api.service devstack@barbican-svc.service \
-    devstack@tr-api.service devstack@gnocchi-api.service devstack@s-proxy.service; do
+    devstack@tr-api.service devstack@gnocchi-api.service devstack@ck-api.service devstack@s-proxy.service; do
     if systemctl list-unit-files --no-legend "$unit" 2>/dev/null | grep -q .; then
       sudo systemctl restart "$unit"
     fi

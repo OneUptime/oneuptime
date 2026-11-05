@@ -1186,6 +1186,21 @@ jobs:
               enable_plugin ceilometer https://github.com/openstack/ceilometer stable/2026.1
               disable_service ceilometer-acentral ceilometer-anotification
               CEILOMETER_BACKENDS=gnocchi
+          # CloudKitty rates what Ceilometer wrote to Gnocchi, so it takes the polling agent on the
+          # compute node and the notification agent behind it, polling each minute so that a
+          # five-minute period has something in it. The exporter has no CloudKitty. It reads Gnocchi here.
+          - name: services-cloudkitty
+            exporter_services: gnocchi
+            enabled_services: "gnocchi-api,gnocchi-metricd,ceilometer-acompute,ceilometer-anotification,ck-api,ck-proc,openstack-cli-server"
+            conf_overrides: |
+              enable_plugin ceilometer https://github.com/openstack/ceilometer stable/2026.1
+              enable_plugin cloudkitty https://github.com/openstack/cloudkitty stable/2026.1
+              disable_service ceilometer-acentral
+              CEILOMETER_BACKENDS=gnocchi
+              CEILOMETER_PIPELINE_INTERVAL=60
+              CLOUDKITTY_BRANCH=stable/2026.1
+              CLOUDKITTYCLIENT_BRANCH=stable/2026.1
+              LIBVIRT_CPU_MODE=host-passthrough
     steps:
       - uses: actions/checkout@v4
         if: ${{ env.WANTED == 'true' }}
