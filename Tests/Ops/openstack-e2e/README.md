@@ -17,6 +17,8 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | `stop-agent.sh` | Stops the agent, keeps its logs, and fails if the collector exported nothing. |
 | `agent-install.sh` | In a job of its own, and only that with `-f agent_install_only=true`: installs the agent the way its docs say, with and without Docker, as a person with no rights and with `sudo`, on this runner and on machines with nothing on them. See below. |
 
+`capacity-record.sh` is a run of its own (`-f capacity_only=true`, and weekly). A DevStack's one host can't show what capacity is about, so it adds three hosts on Nova's fake driver with allocation ratios and reserved amounts that differ, fills them until memory is spread too thinly for a large flavor, loses one, disables one and leaves an allocation no instance owns. Nova and Placement are real throughout, and it asks Placement what `GET /allocation_candidates` says of every flavor (`capacity-placement.py`). `import-capacity-recording.py` copies what the tests read to `packages/Common/Tests/Fixtures/OpenStack/<release>/capacity/`.
+
 ## Real deployments, and the guides followed on them
 
 The rest of this page is about DevStack. These deploy what customers run, and follow the guide for it with the guide's own commands: `gh workflow run test.openstack-e2e.yaml --ref <branch> -f kolla_aio=true`, or `-f osa_aio=true`. Each takes hours and most of a runner, so neither runs on a schedule.

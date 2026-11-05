@@ -75,6 +75,18 @@ export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
 export const OPENSTACK_SERVICE_DISABLED_WARNING_DAYS: number = 7;
 
 /*
+ * What fills up within this many days is what Capacity Forecast Under N Days alerts on, and what
+ * the Capacity page marks. Two weeks: about what it takes to find a host a home, or to clean up.
+ */
+export const OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS: number = 14;
+
+/*
+ * A host's allocations and its instances can disagree for a moment whenever one is starting or
+ * going away. Disagreeing for this long is no moment.
+ */
+export const OPENSTACK_ALLOCATION_MISMATCH_MINUTES: number = 30;
+
+/*
  * What an operator set: Nova and Cinder say enabled or disabled, Neutron says up or
  * down. Nothing here is a failure, whichever word it is in.
  */
