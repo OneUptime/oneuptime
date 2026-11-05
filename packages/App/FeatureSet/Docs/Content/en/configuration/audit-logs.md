@@ -99,6 +99,7 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | Inventory items | `Inventory Item` |
 | Collector Configs | `Collector Config` |
 | vCenters | `vCenter` |
+| OpenStack clouds, and the checks that run against them | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Packet captures, and their downloads | `Packet Capture` |
 | Security cases and their priorities and statuses, playbooks and their runs, protected entities, entity criticality, and an entity's risk when someone resets it | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Rule exceptions | `Rule Exception` |

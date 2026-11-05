@@ -140,7 +140,7 @@ describe("Deploys and Changes, on a connected cloud account", () => {
           return `\`${source}\``;
         }),
     );
-    expect(rows.slice(-2)).toEqual([
+    expect(rows.slice(-3, -1)).toEqual([
       [
         "A cloud change",
         "A connected cloud account's activity log records a change: AWS CloudTrail, the Azure Activity Log or Google Cloud's Admin Activity audit log",
@@ -250,10 +250,10 @@ describe("Deploys and Changes, on a connected cloud account", () => {
       "if (Object.keys(query).length > 0) {\n    return query;\n  }",
     );
     expect(markers).toContain(
-      "[ChangeEventAttribute.Source]: new IncludesNone([\n        ChangeEventSource.Cloud,\n      ]),",
+      "[ChangeEventAttribute.Source]: new IncludesNone([\n        ChangeEventSource.Cloud,\n        ChangeEventSource.OpenStack,\n      ]),",
     );
     expect(english).toContain(
-      "Charts filtered to no resource leave a cloud account's activity log out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.",
+      "Charts filtered to no resource leave a cloud account's activity log and an OpenStack cloud's changes out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.",
     );
   });
 
