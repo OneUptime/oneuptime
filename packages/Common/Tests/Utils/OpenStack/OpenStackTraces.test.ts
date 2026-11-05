@@ -7,14 +7,18 @@ import {
   OpenStackDriverService,
   OpenStackDriverSpan,
   OpenStackTraceAttribute,
+  OpenStackTraceGap,
   OpenStackTraceResource,
   getOpenStackApiOfTracedService,
   getOpenStackPathInSpanName,
+  getOpenStackServicesLeftOutOfTraces,
+  getOpenStackTraceGap,
   getOpenStackTraceBootCommand,
   getOpenStackTraceDeleteCommand,
   getOpenStackTraceListCommand,
   getOpenStackTracedServiceName,
   getOpenStackTracedServiceOfApi,
+  hasOpenStackSpanMissingItsParent,
   isOSProfilerDriverScope,
   isOpenStackDashedUuid,
   normalizeOSProfilerResourceInPlace,
@@ -304,6 +308,29 @@ describe("what a request names", () => {
     ).toEqual([{ kind: OpenStackResourceKind.Project, id: PROJECT_HEX }]);
   });
 
+  test("the same parameter given several times is a list, and names none of it", () => {
+    expect(
+      readOpenStackRequestResources({
+        path: "/networking/v2.0/ports",
+        query: `device_id=${INSTANCE}&device_id=${VOLUME}&device_id=${NETWORK}`,
+      }),
+    ).toEqual([]);
+    expect(
+      readOpenStackRequestResources({
+        path: "/networking/v2.0/ports",
+        query: `tenant_id=${PROJECT_HEX}&device_id=${INSTANCE}&device_id=${VOLUME}`,
+      }),
+    ).toEqual([{ kind: OpenStackResourceKind.Project, id: PROJECT_HEX }]);
+  });
+
+  test("the same value said twice is still one", () => {
+    expect(
+      readOpenStackRequestResources({
+        query: `device_id=${INSTANCE}&device_id=${INSTANCE}`,
+      }),
+    ).toEqual([{ kind: OpenStackResourceKind.Instance, id: INSTANCE }]);
+  });
+
   test("a word in a path's place is not an id", () => {
     expect(
       readOpenStackRequestResources({ path: "/compute/v2.1/servers/detail" }),
@@ -429,13 +456,25 @@ describe("the name a span is stored under", () => {
     ).toBe("rpc ComputeManager.build_and_run_instance");
   });
 
-  test("what the driver's rstrip ate is put back", () => {
+  test.each([
+    ["schedule", "scheduler"],
+    ["vif_drive", "vif_driver"],
+    ["drive", "driver"],
+    ["l3-agen", "l3-agent"],
+    ["ovs_dvr_agen", "ovs_dvr_agent"],
+    // What it leaves alone comes through as it is.
+    ["compute_api", "compute_api"],
+    ["neutron_api", "neutron_api"],
+    ["volume_api", "volume_api"],
+    ["nova_image", "nova_image"],
+    ["rpc", "rpc"],
+  ])("what the driver's rstrip ate is put back: %s", (name: string, word: string) => {
     expect(
       readOpenStackDriverSpanName({
-        name: "schedule",
+        name: name,
         attributes: { name: "nova.scheduler.manager.SchedulerManager.select" },
       }),
-    ).toBe("scheduler SchedulerManager.select");
+    ).toBe(`${word} SchedulerManager.select`);
   });
 
   test("a word with nothing to go with it stays", () => {
@@ -477,14 +516,41 @@ describe("the kind a span is stored with", () => {
     ).toBe("SPAN_KIND_SERVER");
   });
 
-  test("what the driver called anything else stands", () => {
+  test.each([
+    ["neutron_api", "nova.network.neutron.ClientWrapper.proxy"],
+    ["compute_api", "nova.compute.api.API.create"],
+    ["volume_api", "nova.virt.libvirt.volume.volume.LibvirtBaseVolumeDriver.get_config"],
+  ])(
+    "a function the driver called a client for its name, %s, stays inside its service",
+    (name: string, functionName: string) => {
+      expect(
+        readOpenStackDriverSpanKind({
+          kind: "SPAN_KIND_CLIENT",
+          name: name,
+          attributes: { name: functionName },
+        }),
+      ).toBe("SPAN_KIND_INTERNAL");
+    },
+  );
+
+  test("a statement and a call that leaves a service stay what they came as", () => {
     expect(
       readOpenStackDriverSpanKind({
         kind: "SPAN_KIND_CLIENT",
-        name: "neutron_api",
-        attributes: { name: "nova.network.neutron.API.allocate_for_instance" },
+        name: "SQL_SELECT",
+        attributes: { "db.statement": "SELECT 1" },
       }),
     ).toBe("SPAN_KIND_CLIENT");
+    expect(
+      readOpenStackDriverSpanKind({
+        kind: "SPAN_KIND_CLIENT",
+        name: "REQUESTS_GET_10.0.0.1",
+        attributes: { "http.path": "/placement/allocations" },
+      }),
+    ).toBe("SPAN_KIND_CLIENT");
+  });
+
+  test("with nothing to go on, what the driver said stands", () => {
     expect(
       readOpenStackDriverSpanKind({
         kind: "SPAN_KIND_INTERNAL",
@@ -714,11 +780,120 @@ describe("one span, read as it arrives", () => {
     );
   });
 
+  test.each([
+    ["nova.exception.InstanceNotFound", false],
+    ["nova.exception.FlavorNotFound", false],
+    ["cinder.exception.VolumeNotFound", false],
+    ["neutron_lib.exceptions.NetworkNotFound", false],
+    // The ones that say something really went wrong.
+    ["nova.exception.NoValidHost", true],
+    ["nova.exception.TooManyInstances", true],
+    ["nova.exception.NotFoundOrWorse", true],
+  ])(
+    "%s failed: %s",
+    (kind: string, isFailed: boolean) => {
+      const { span } = read({
+        attributes: { error: true },
+        events: [
+          {
+            name: "log",
+            attributes: [
+              { key: "error.kind", value: { stringValue: kind } },
+              { key: "message", value: { stringValue: "It says so." } },
+            ],
+          },
+        ],
+      });
+
+      expect(span.isFailed).toBe(isFailed);
+      expect(span.statusMessage).toBe(isFailed ? `${kind}: It says so.` : "");
+    },
+  );
+
+  test("a call that only finds a method says nothing, unless it failed", () => {
+    expect(
+      read({
+        attributes: { name: "nova.network.neutron.ClientWrapper.proxy" },
+      }).span.saysNothing,
+    ).toBe(true);
+    expect(
+      read({
+        attributes: {
+          name: "nova.network.neutron.ClientWrapper.proxy",
+          error: true,
+        },
+      }).span.saysNothing,
+    ).toBe(false);
+    expect(
+      read({ attributes: { name: "nova.compute.api.API.create" } }).span
+        .saysNothing,
+    ).toBe(false);
+  });
+
+  test("a span that says it failed and not how still failed", () => {
+    expect(read({ attributes: { error: true } }).span.isFailed).toBe(true);
+  });
+
   test("events that are not what the driver writes are left alone", () => {
     expect(read({ events: "not a list" }).span.isFailed).toBe(false);
     expect(read({ events: [null, { attributes: "no" }] }).span.isFailed).toBe(
       false,
     );
+  });
+});
+
+describe("what a trace cannot show", () => {
+  test.each([
+    ["placement-api", OpenStackTraceGap.DriverCannotStart],
+    ["nova-conductor", OpenStackTraceGap.ForkedWorkers],
+    ["nova-scheduler", OpenStackTraceGap.ForkedWorkers],
+    ["cinder-volume", OpenStackTraceGap.AlwaysForks],
+  ])("%s sends nothing as shipped", (service: string, gap: OpenStackTraceGap) => {
+    expect(getOpenStackTraceGap(service)).toBe(gap);
+  });
+
+  test.each([
+    ["nova-api"],
+    ["nova-compute"],
+    ["neutron-server"],
+    ["keystone"],
+    ["glance-api"],
+    ["cinder-api"],
+    ["cinder-scheduler"],
+    ["not-a-service"],
+  ])("%s has no such reason", (service: string) => {
+    expect(getOpenStackTraceGap(service)).toBeNull();
+  });
+
+  test("a service a cloud has shown it can send is not left out on that cloud", () => {
+    expect(getOpenStackServicesLeftOutOfTraces([])).toEqual([
+      "cinder-volume",
+      "nova-conductor",
+      "nova-scheduler",
+      "placement-api",
+    ]);
+    expect(
+      getOpenStackServicesLeftOutOfTraces(["placement-api", "nova-api"]),
+    ).toEqual(["cinder-volume", "nova-conductor", "nova-scheduler"]);
+  });
+
+  test("a span's parent that never arrived is seen, and a root is not one", () => {
+    expect(
+      hasOpenStackSpanMissingItsParent([
+        { spanId: "a", parentSpanId: "" },
+        { spanId: "b", parentSpanId: "a" },
+      ]),
+    ).toBe(false);
+    expect(
+      hasOpenStackSpanMissingItsParent([
+        { spanId: "a", parentSpanId: "" },
+        { spanId: "b", parentSpanId: "never-sent" },
+      ]),
+    ).toBe(true);
+    expect(hasOpenStackSpanMissingItsParent([])).toBe(false);
+    expect(
+      hasOpenStackSpanMissingItsParent([{ spanId: null, parentSpanId: null }]),
+    ).toBe(false);
   });
 });
 

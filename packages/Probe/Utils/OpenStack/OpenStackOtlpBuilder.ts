@@ -540,6 +540,7 @@ function writeCompute(
           adminState: service.status,
           zone: service.zone,
           disabledReason: service.disabledReason,
+          forced_down: service.forcedDown,
         },
         service.state === "up" ? 1 : 0,
       );
@@ -606,8 +607,8 @@ function writeCompute(
           name: server.name,
           tenant_id: server.tenantId,
           user_id: server.userId,
-          address_ipv4: server.accessIpv4,
-          address_ipv6: server.accessIpv6,
+          address_ipv4: server.addressIpv4,
+          address_ipv6: server.addressIpv6,
           host_id: server.hostId,
           hypervisor_hostname: server.hypervisorHostname,
           uuid: server.id,
@@ -616,6 +617,7 @@ function writeCompute(
             server.flavorId ??
             (server.flavorName ? flavorIdByName.get(server.flavorName) : null),
           instance_libvirt: server.instanceName,
+          image_id: server.imageId,
           task_state: server.taskState,
           updated_at: server.updatedAt,
           fault_message: server.faultMessage,
@@ -743,6 +745,23 @@ function writeNetwork(
   writer: SeriesWriter,
   inventory: OpenStackNetworkInventory,
 ): void {
+  /*
+   * Which DHCP agents serve each network, and how many each serves, on series that already exist:
+   * a large cloud pays for this in calls to Neutron and not again in datapoints.
+   */
+  const networksOfDhcpAgent: Map<string, number> = new Map();
+  const dhcpAgentsOfNetwork: Map<string, Array<string>> = new Map();
+
+  for (const record of inventory.dhcpAgentNetworks || []) {
+    networksOfDhcpAgent.set(record.agentId, record.networkIds.length);
+
+    for (const networkId of record.networkIds) {
+      const agentIds: Array<string> = dhcpAgentsOfNetwork.get(networkId) || [];
+      agentIds.push(record.agentId);
+      dhcpAgentsOfNetwork.set(networkId, agentIds);
+    }
+  }
+
   for (const agent of inventory.agents || []) {
     writer.add(
       "agent_state",
@@ -752,6 +771,9 @@ function writeNetwork(
         service: agent.binary,
         adminState: agent.isAdminUp ? "up" : "down",
         availability_zone: agent.availabilityZone,
+        dhcp_network_count: agent.id
+          ? networksOfDhcpAgent.get(agent.id)
+          : undefined,
       },
       agent.isAlive ? 1 : 0,
     );
@@ -776,6 +798,9 @@ function writeNetwork(
           subnets: network.subnets.join(","),
           tags: network.tags.join(","),
           mtu: network.mtu,
+          dhcp_agent_ids: network.id
+            ? [...(dhcpAgentsOfNetwork.get(network.id) || [])].sort().join(",")
+            : undefined,
         },
         network.status ? NETWORK_STATUS_CODES[network.status] ?? -1 : -1,
       );
@@ -1076,6 +1101,7 @@ function writeVolume(
           user_id: volume.userId,
           volume_type: volume.volumeType,
           server_id: volume.serverId,
+          pool: volume.poolName,
           updated_at: volume.updatedAt,
         },
         volume.sizeGb,

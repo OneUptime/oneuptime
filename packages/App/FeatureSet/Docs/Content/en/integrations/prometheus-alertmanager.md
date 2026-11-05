@@ -170,7 +170,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-Two incidents open, one per `fingerprint`, each titled `DiskFull on web-1`. Send the same request with every `status` set to `resolved`, and both are resolved.
+Two incidents open, one per `fingerprint`, each titled `DiskFull on web-1` and then what tells them apart, as in `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Send the same request with every `status` set to `resolved`, and both are resolved.
 
 To test the whole path from Alertmanager, fire an alert with `amtool`. Alertmanager sends it after `group_wait`, and sends its recovery when the alert expires a few minutes later:
 

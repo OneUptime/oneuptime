@@ -182,7 +182,7 @@ const OpenStackCloudFlavorDetail: FunctionComponent<
                 title="Instances of this flavor"
                 description="Every instance of this flavor this credential can see, a page at a time."
                 emptyTitle="No instances of this flavor"
-                emptyDescription="Nothing uses this flavor, or this credential can't see what does. Only the Full view credential sees every project's."
+                emptyDescription="Nothing uses this flavor, or this credential can't see what does. The Full view and Infrastructure only credentials see every project's."
               />
             ),
           },

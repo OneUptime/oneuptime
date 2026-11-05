@@ -3,6 +3,8 @@
 
     python3 -I import-log-recording.py <release> <recording folder> [<fixtures root>]
 
+    python3 -I import-log-recording.py --audit-only <release> <recording folder> [<fixtures root>]
+
 <recording folder> is an artifact's service-logs folder. What lands, in
 packages/Common/Tests/Fixtures/OpenStack/service-logs/<release>/, is a folder of its own
 because import-recording.py rewrites <release>/ whole:
@@ -14,6 +16,10 @@ because import-recording.py rewrites <release>/ whole:
     api/                         Nova's instance actions as the API answered them
     audit-filter.txt             the keystonemiddleware filter as a real service loaded it
     ids.json                     which instance is which, with no secret in it
+    audit/<phase>.jsonl          every line an audit trail is read from, and a few it is not
+    audit/ids.json               what those phases' scenes made, and how each scene went
+
+--audit-only writes the audit folder and nothing else, for a run that is only about that.
 
 Nothing goes in unread. A recording is what a real cloud wrote, passwords and tokens included
 (logs-record.sh scrubs nothing, on purpose), and a fixture lives in a public repository. So every
@@ -37,6 +43,8 @@ RIG_SECRETS = {
     "ou-log-admin-password": "fake-admin-password",
     "ou-log-user-password": "fake-user-password",
     "ou-wrong-password": "fake-wrong-password",
+    "ou-log-credential-blob": "fake-credential-blob",
+    "ou-log-hash-secret": "fake-hash-secret",
     "secretadmin": "fakeadmin00",
     "secretdatabase": "fakedatabase00",
     "secretrabbit": "fakerabbit00",
@@ -58,7 +66,9 @@ NAMED = re.compile(
     """
 )
 FAKE_FERNET_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
-PRIVATE_IP = re.compile(r"\b(?:(?:10|127)\.\d{1,3}|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b|\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
+# An address, and not a range: 0.0.0.0/0 and 10.0.0.0/8 say nothing of a runner, and are what a
+# security group's rule is about.
+PRIVATE_IP = re.compile(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b(?!/\d)")
 HOSTNAME_IN_RUNNER = re.compile(r"\b(?:fv-az|runner-|ip-\d)[A-Za-z0-9\-]{0,64}\b")
 
 # What stays that looks like a secret and is not: the masking itself, and words about them.
@@ -275,6 +285,94 @@ def import_files(phase_dir, phase, out):
     return len(kept)
 
 
+# How many of a kind of line the audit folder keeps. What makes an event is all kept, and
+# what does not is what proves nothing is made of it, so a few of each are enough.
+AUDIT_KEEP = {
+    "sign-in": 10,
+    "read": 10,
+    "request": 3,
+    "other-notification": 3,
+    "other": 10,
+}
+EVENT_TYPE = re.compile(r'event_type\\?":\s*\\?"([^"\\]{1,128})')
+OUTCOME = re.compile(r'outcome\\?":\s*\\?"([^"\\]{1,32})')
+ACTION = re.compile(r'action\\?":\s*\\?"([^"\\]{1,128})')
+REASON_CODE = re.compile(r'reasonCode\\?":\s*\\?"([^"\\]{1,8})')
+
+
+def audit_kind(message):
+    """Which allowance a line counts against, or None when it is always kept."""
+    found = EVENT_TYPE.search(message)
+    if not found:
+        return "other"
+    event_type = found.group(1)
+    if event_type == "identity.authenticate":
+        outcome = OUTCOME.search(message)
+        return "sign-in" if outcome and outcome.group(1) == "success" else None
+    if event_type.startswith("identity.") or event_type.startswith("security_group"):
+        return None
+    if event_type.startswith("image."):
+        return None
+    if event_type == "audit.http.request":
+        return "request"
+    if event_type == "audit.http.response":
+        action = ACTION.search(message)
+        code = REASON_CODE.search(message)
+        is_read = action and action.group(1).startswith("read")
+        is_refused = code and code.group(1) in ("401", "403")
+        return "read" if is_read and not is_refused else None
+    return "other-notification"
+
+
+def import_audit(phase_dir, phase, out):
+    kept = []
+    counts = {}
+
+    def keep(kind):
+        if kind is None:
+            return True
+        counts[kind] = counts.get(kind, 0) + 1
+        return counts[kind] <= AUDIT_KEEP[kind]
+
+    source = os.path.join(phase_dir, "journal.jsonl.gz")
+    if os.path.isfile(source):
+        for entry in read_jsonl_gz(source):
+            message = message_of(entry)
+            if not message or not keep(audit_kind(message)):
+                continue
+            clean = replace_secrets(message)
+            assert_clean(clean, f"{phase} journal, audit")
+            fields = {
+                key: replace_secrets(str(entry[key]))
+                for key in JOURNAL_FIELDS
+                if key in entry and isinstance(entry[key], (str, int))
+            }
+            fields["MESSAGE"] = clean
+            kept.append(json.dumps(fields, sort_keys=True))
+
+    root = os.path.join(phase_dir, "files")
+    if os.path.isdir(root):
+        for folder, _sub, names in sorted(os.walk(root)):
+            for name in sorted(names):
+                if not name.endswith(".gz"):
+                    continue
+                service = os.path.relpath(os.path.join(folder, name), root)
+                with gzip.open(
+                    os.path.join(folder, name), "rt", encoding="utf-8", errors="replace"
+                ) as handle:
+                    for raw in handle:
+                        line = raw.rstrip("\n")
+                        if not line or not keep(audit_kind(line)):
+                            continue
+                        clean = replace_secrets(line)
+                        assert_clean(clean, f"{phase} {service}, audit")
+                        kept.append(json.dumps({"file": service[: -len(".gz")], "MESSAGE": clean}, sort_keys=True))
+
+    if kept:
+        write_lines(os.path.join(out, "audit", f"{phase}.jsonl"), kept)
+    return len(kept)
+
+
 def import_otlp(phase_dir, phase, out):
     """What a real collector sent: cut, because a test reads its shape and not its volume."""
     source = os.path.join(phase_dir, "otlp-logs.json")
@@ -367,6 +465,10 @@ def read_scenes(phase_dir):
 
 
 def main(arguments):
+    audit_only = bool(arguments) and arguments[0] == "--audit-only"
+    if audit_only:
+        arguments = arguments[1:]
+
     if len(arguments) < 2:
         sys.exit(__doc__)
 
@@ -400,15 +502,28 @@ def main(arguments):
         phase_dir = os.path.join(recording, phase)
         if not os.path.isdir(phase_dir):
             continue
-        counts = {
-            "journal": import_journal(phase_dir, phase, out),
-            "files": import_files(phase_dir, phase, out),
-            "otlp": import_otlp(phase_dir, phase, out),
-            "api": import_api(phase_dir, phase, out),
-        }
+        counts = {"audit": import_audit(phase_dir, phase, out)}
+        if not audit_only:
+            counts.update(
+                {
+                    "journal": import_journal(phase_dir, phase, out),
+                    "files": import_files(phase_dir, phase, out),
+                    "otlp": import_otlp(phase_dir, phase, out),
+                    "api": import_api(phase_dir, phase, out),
+                }
+            )
         summary[phase] = counts
         ids[phase] = read_ids(phase_dir)
         scenes[phase] = read_scenes(phase_dir)
+
+    os.makedirs(os.path.join(out, "audit"), exist_ok=True)
+    with open(os.path.join(out, "audit", "ids.json"), "w", encoding="utf-8") as handle:
+        json.dump({"ids": ids, "scenes": scenes}, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    if audit_only:
+        print(json.dumps({"release": release, "out": out, "phases": summary}, indent=2))
+        return
 
     audit = os.path.join(recording, "audit-filter.txt")
     if os.path.isfile(audit):

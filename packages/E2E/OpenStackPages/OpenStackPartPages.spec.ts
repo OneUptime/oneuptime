@@ -223,6 +223,10 @@ test.describe("compute", () => {
     page: Page;
   }) => {
     await openCloudPage(page, "instances", PARTS);
+    // The image it booted from, where a probe says, by its name.
+    await expect(rowOf(page, "batch-worker-7")).toContainText(
+      "windows-2022-import",
+    );
     await expect(rowOf(page, "batch-worker-7")).toContainText("10.77.0.12");
   });
 
@@ -235,6 +239,21 @@ test.describe("compute", () => {
     await expect(
       page.getByTestId("openstack-instance-attention"),
     ).toContainText("No valid host was found");
+  });
+
+  test("a probe that found no address says None, where the agent's cloud says nobody collected it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPart(page, "instances", FAILED_INSTANCE, PARTS);
+
+    const addresses: Locator = page.getByTestId(
+      "openstack-instance-details-addresses",
+    );
+
+    await expect(addresses).toContainText("None");
+    await expect(addresses).not.toContainText("Not collected");
   });
 
   test("availability zones: each one's hosts and what they can give, with Nova's own left out, and a page for each", async ({
@@ -360,6 +379,29 @@ test.describe("network", () => {
     await expect(
       page.getByTestId("openstack-network-attention-item"),
     ).toHaveCount(0);
+  });
+
+  test("a DHCP agent a probe asked lists what it serves, and the network names it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "network-agents", PARTS);
+    await openRow(page, "neutron-dhcp-agent");
+    await expect(
+      page.getByTestId("openstack-network-agent-details-dhcp-networks"),
+    ).toContainText("1");
+
+    await page.getByRole("tab", { name: "Networks" }).click();
+    await expect(rowOf(page, "research-net")).toBeVisible();
+    await expect(
+      page.locator("tr").filter({ hasText: "web-net" }),
+    ).toHaveCount(0);
+
+    await openRow(page, "research-net");
+    await expect(
+      page.getByTestId("openstack-network-details-dhcp-agents"),
+    ).toContainText("ctl-01");
   });
 
   test("an external pool filling up says when it runs out, from its own last day", async ({
@@ -529,6 +571,47 @@ test.describe("storage", () => {
     await expect(
       page.getByTestId("openstack-instance-hero-name"),
     ).toContainText("ou-running");
+  });
+
+  test("a volume a probe read names its pool, one step away, and the pool says what is on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "volumes", PARTS);
+    await openRow(page, "payments-db-data");
+
+    const pool: Locator = page.getByTestId("openstack-volume-details-pool");
+    await expect(pool).toContainText("ctl-02@ceph#rbd-fast");
+    await pool.getByRole("link").click();
+
+    await expect(page).toHaveURL(/\/storage-pools\/[^/]+/);
+    await expect(
+      page.getByTestId("openstack-storage-pool-tiles"),
+    ).toBeVisible();
+
+    const blast: Locator = page.getByTestId("openstack-storage-pool-blast");
+    await expect(blast).toContainText("2 volumes");
+    await expect(blast).toContainText("in 2 projects");
+    await expect(blast).not.toContainText("Nothing collected says which pool");
+    await screenshot(page, "openstack-storage-pool-knows-its-volumes");
+  });
+
+  test("a pool no volume names holds nothing, when the others name theirs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPart(
+      page,
+      "storage-pools",
+      "RegionOne/ctl-02@ceph#rbd-slow",
+      PARTS,
+    );
+
+    const blast: Locator = page.getByTestId("openstack-storage-pool-blast");
+    await expect(blast).toContainText("Nothing depends on it right now.");
+    await expect(blast).not.toContainText("Nothing collected says which pool");
   });
 
   test("an almost full pool says so, and that it can't list its volumes, never 0", async ({

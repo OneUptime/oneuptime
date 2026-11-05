@@ -4,8 +4,11 @@ import {
   TELEMETRY_PRICE_RETENTION_IN_DAYS,
 } from "../Billing/PayAsYouGoPricing";
 import {
+  OpenStackInstanceMetricSource,
   OpenStackInstanceMetricsMode,
   OpenStackInstanceMetricsOptions,
+  OpenStackInstanceMetricsVolume,
+  estimateOpenStackInstanceMetricsVolume,
 } from "./OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "./OpenStackResourceKind";
 
@@ -43,6 +46,8 @@ export interface OpenStackCloudCounts {
   novaControlServices: number;
   // Neutron's agents, however many a hypervisor runs.
   networkAgents: number;
+  // Those that are DHCP agents, which ML2/OVS runs on its network nodes, and OVN has none of.
+  dhcpAgents: number;
   cinderServices: number;
   storagePools: number;
 }
@@ -80,6 +85,7 @@ export function getOpenStackCountsOfSize(data: {
     novaControlServices: 6,
     // OVN's controller and metadata agent on every hypervisor.
     networkAgents: data.hypervisors * 2,
+    dhcpAgents: 3,
     cinderServices: 6,
     storagePools: Math.max(1, Math.ceil(data.hypervisors / 250)),
   };
@@ -296,6 +302,16 @@ export const OPENSTACK_CANDIDATE_READS_PER_COLLECTION: number = 4;
  */
 export const OPENSTACK_CANDIDATE_RESULT_LIMIT: number = 1000;
 
+/*
+ * Which networks a DHCP agent serves. Neutron answers with each of them in full, and takes no
+ * field list on that route, so one agent's answer costs Neutron what listing its networks does.
+ * And what it says hardly moves: a network gets its agents when its subnet is made, and changes
+ * them when an agent dies. So this is far gentler than the other calls per thing: a few at a
+ * time, and not on every collection. A cloud with more agents than that goes round them in turns.
+ */
+export const OPENSTACK_DHCP_AGENT_READS_PER_ROUND: number = 20;
+export const OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES: number = 10;
+
 export type OpenStackNetworkBackend = "ovn" | "ovs";
 
 export interface OpenStackProbeLoadOptions {
@@ -375,6 +391,7 @@ export function simulateOpenStackProbeRequests(data: {
 
   let tokenValidUntil: number = -1;
   let extensionsReadAt: number = -Infinity;
+  let dhcpAgentsReadAt: number = -Infinity;
 
   for (let minute: number = 0; minute < data.toMinute; minute += interval) {
     const isCounted: boolean = minute >= data.fromMinute;
@@ -464,6 +481,19 @@ export function simulateOpenStackProbeRequests(data: {
       network += Math.min(
         counts.routers,
         OPENSTACK_PER_PART_READS_PER_COLLECTION,
+      );
+    }
+
+    // Half a minute under, as the collector keeps it, so a round isn't missed by being early.
+    if (
+      isOvs &&
+      !isSummary &&
+      minute - dhcpAgentsReadAt >= OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES - 0.5
+    ) {
+      dhcpAgentsReadAt = minute;
+      network += Math.min(
+        counts.dhcpAgents,
+        OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
       );
     }
 
@@ -692,6 +722,25 @@ export interface OpenStackVolumeEstimate {
   perInstanceShare: number;
 }
 
+/*
+ * TelemetryMeteredPlan.getTotalCostInUSD: a GB times the days it is kept, billed for at least the
+ * minimum, at the advertised price for fifteen days.
+ */
+function getOpenStackTelemetryCostPerMonth(data: {
+  gigabytesPerDay: number;
+  retentionInDays: number;
+}): number {
+  return (
+    data.gigabytesPerDay *
+    Math.max(
+      data.retentionInDays,
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
+    ) *
+    (TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS) *
+    30
+  );
+}
+
 export function estimateOpenStackVolume(data: {
   counts: OpenStackCloudCounts;
   isSummaryMode?: boolean | undefined;
@@ -716,25 +765,61 @@ export function estimateOpenStackVolume(data: {
   const bytesPerDay: number = datapointsPerDay * rowSize;
   const gigabytesPerDay: number = bytesPerDay / BYTES_PER_GIB;
 
-  /*
-   * TelemetryMeteredPlan.getTotalCostInUSD: a GB times the days it is kept, billed for at least
-   * the minimum, at the advertised price for fifteen days.
-   */
-  const costPerDay: number =
-    gigabytesPerDay *
-    Math.max(retention, TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS) *
-    (TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS);
-
   return {
     series: series.fast + series.slow,
     datapointsPerDay: datapointsPerDay,
     bytesPerDay: bytesPerDay,
     gigabytesPerDay: gigabytesPerDay,
-    costInUSDPerMonth: costPerDay * 30,
+    costInUSDPerMonth: getOpenStackTelemetryCostPerMonth({
+      gigabytesPerDay,
+      retentionInDays: retention,
+    }),
     perInstanceShare:
       datapointsPerDay === 0
         ? 0
         : (series.perInstance * fastPerDay) / datapointsPerDay,
+  };
+}
+
+/*
+ * What each instance keeping real usage of its own adds on top of that, from either exporter. The
+ * same row size and the same price, so the calculator can put the two side by side. An upper bound
+ * for Ceilometer's: a disk with no requests has no latency, and so no such row.
+ */
+export interface OpenStackInstanceMetricsCost {
+  source: OpenStackInstanceMetricSource;
+  series: number;
+  rowsPerHour: number;
+  gigabytesPerDay: number;
+  costInUSDPerMonth: number;
+}
+
+export function estimateOpenStackInstanceMetricsCost(data: {
+  source: OpenStackInstanceMetricSource;
+  instances: number;
+  retentionInDays?: number | undefined;
+  averageRowSizeInBytes?: number | undefined;
+}): OpenStackInstanceMetricsCost {
+  const volume: OpenStackInstanceMetricsVolume =
+    estimateOpenStackInstanceMetricsVolume({
+      source: data.source,
+      instances: data.instances,
+    });
+  const gigabytesPerDay: number =
+    (volume.rowsPerHour *
+      24 *
+      (data.averageRowSizeInBytes ??
+        OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES)) /
+    BYTES_PER_GIB;
+  return {
+    source: data.source,
+    series: volume.series,
+    rowsPerHour: volume.rowsPerHour,
+    gigabytesPerDay,
+    costInUSDPerMonth: getOpenStackTelemetryCostPerMonth({
+      gigabytesPerDay,
+      retentionInDays: data.retentionInDays ?? 15,
+    }),
   };
 }
 

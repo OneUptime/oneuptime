@@ -374,7 +374,7 @@ describe("which changes are a part's", () => {
     ).toEqual({ "cloud.resource_id": "abc" });
     expect(
       getOpenStackPartAuditAttributes({ kind, externalId: "abc" }),
-    ).toEqual({ "openstack.audit.target_id": "abc" });
+    ).toEqual({ "openstack.audit.part_id": "abc" });
   });
 
   test("a hypervisor's are all that happened on the machine", () => {

@@ -651,6 +651,8 @@ describe("what the recordings show, as the pages say it", () => {
     };
     expect(paths("block-storage").length).toBeGreaterThan(0);
     expect(paths("volumev3")).toEqual(paths("block-storage"));
+    // What Kolla-Ansible 2026.1 has Cinder say, where its catalog says block-storage.
+    expect(paths("volume")).toEqual(paths("block-storage"));
     expect(paths("identity")).not.toContain("/v3/users");
     expect(paths("identity")).not.toContain("/v3/groups");
   });
@@ -855,8 +857,13 @@ describe("the docs page", () => {
 
   test("says the same as the README of what the agent turns off", () => {
     const readme = read(README);
+    // The exporter it runs by default: the database path's other one reads almost nothing.
     const compose = read(path.join(AGENT_DIR, "docker-compose.yml"));
-    const flags = Array.from(compose.matchAll(/- (--disable-metric=\S+)/g)).map(
+    const exporter = compose.slice(
+      compose.indexOf("\n  openstack-exporter:"),
+      compose.indexOf("\n  openstack-worker-state-exporter:"),
+    );
+    const flags = Array.from(exporter.matchAll(/- (--disable-metric=\S+)/g)).map(
       (match) => {
         return match[1];
       },
