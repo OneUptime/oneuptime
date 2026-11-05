@@ -1,0 +1,18 @@
+$ openstack volume snapshot list --all-projects --limit 50 -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "0697404c-4973-4a8c-ba25-521ae59403d7",
+    "name": "ou-snap",
+    "volume_id": "6ac48b18-5dc7-4025-be21-2805d6d63baf",
+    "status": "available",
+    "size": 1,
+    "created_at": "2026-11-05T05:28:38.000000",
+    "updated_at": "2026-11-05T05:28:38.000000",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372",
+    "progress": "100%"
+  }
+]

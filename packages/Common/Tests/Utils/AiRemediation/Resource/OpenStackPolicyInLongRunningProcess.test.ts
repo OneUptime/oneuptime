@@ -17,7 +17,7 @@ import path from "path";
  * so a failure never prints megabytes.
  *
  * Two things are held. Nothing throws, on sixteen megabytes in each place the policy and
- * OpenStack's own redaction read. And the time grows with the length: each shape is read
+ * OpenStack's own redaction read, and where a change's words and what it touches are read. And the time grows with the length: each shape is read
  * at two lengths, and four times the text may cost at most ten times the time, with room
  * left for a loaded machine. The generic redactor under OpenStack's rules has its own
  * long-input tests (AGENTS.md), so it runs here only on the shapes OpenStack adds, at a
@@ -48,6 +48,7 @@ const SCRIPT: string = String.raw`
         'export { default as OpenStackCommandPolicy, parseOpenStackCommand } from "./Utils/AiRemediation/Resource/OpenStackCommandPolicy";',
         'export { default as ResourceCommandPolicy } from "./Utils/AiRemediation/Resource/ResourceCommandPolicy";',
         'export { getResourceOutputRedactionHooks, redactResourceCommandOutput } from "./Utils/AiRemediation/Resource/ResourceOutputRedactor";',
+        'export { readOpenStackChangeReach, renderOpenStackChangeReach, buildOpenStackChangeReach } from "./Utils/AiRemediation/Resource/OpenStackChangeReach";',
       ].join("\n"),
       resolveDir: process.cwd(),
       loader: "ts",
@@ -120,6 +121,11 @@ const SCRIPT: string = String.raw`
     "the policy, an option": (text) => lib.OpenStackCommandPolicy.evaluateArgv(["openstack", "server", "list", "--" + text]),
     "the policy, a value": (text) => lib.OpenStackCommandPolicy.evaluateArgv(["openstack", "server", "list", "--host", text]),
     "the translation": (text) => lib.parseOpenStackCommand(["openstack", "server", "show", text]),
+    "a change, its instance": (text) => lib.parseOpenStackCommand(["openstack", "server", "evacuate", text, text]),
+    "a change, its reason": (text) => lib.OpenStackCommandPolicy.evaluateArgv(["openstack", "compute", "service", "set", "--disable", "--disable-reason", text, "compute-01", "nova-compute"]),
+    "a dry run": (text) => lib.OpenStackCommandPolicy.evaluateArgv(["openstack", "dry-run", "server", "start", text]),
+    "what a change touches, read back": (text) => lib.readOpenStackChangeReach("oneuptime-openstack-reach route server start\noneuptime-openstack-reach kind changes\noneuptime-openstack-reach instance x - - - - " + text),
+    "what a change touches, rendered": (text) => lib.renderOpenStackChangeReach(lib.buildOpenStackChangeReach({ route: "server start", kind: "changes", instances: [{ id: "x", name: text, projectId: null, projectName: text, host: null, status: null }], projectNames: new Map(), hosts: [], leftBehind: [], isComplete: true, problems: [text], wouldBeRefused: text })),
     "the dispatcher, an argv": (text) => lib.ResourceCommandPolicy.evaluateArgv({ resourceType: "OpenStackCloud", argv: ["openstack", text] }),
     "the dispatcher, a line": (text) => lib.ResourceCommandPolicy.evaluateCommand({ resourceType: "OpenStackCloud", command: "openstack " + text }),
     "OpenStack's redaction": hook,

@@ -2,18 +2,42 @@ import { describe, expect, test } from "@jest/globals";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
+import { OPENSTACK_CEPH_STATUS_FACT } from "../../../Types/OpenStack/OpenStackLinks";
 import {
+  OpenStackQuotaResource,
+  getOpenStackQuotaFactKey,
+} from "../../../Types/OpenStack/OpenStackQuota";
+import {
+  OPENSTACK_ALLOCATION_MISMATCH_MINUTES,
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
+  OPENSTACK_BARE_METAL_STUCK_MINUTES,
+  OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+  OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
+  OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+  OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
+  OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT,
+  OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
+  OPENSTACK_QUIET_SERVICE_MINUTES,
+  OPENSTACK_ROUTER_MAX_ACTIVE_AGENTS,
   OPENSTACK_SERVICE_DISABLED_WARNING_DAYS,
+  OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
+  OpenStackL3AgentFact,
+  getOpenStackRouterAgents,
   getOpenStackShortHostName,
+  isOpenStackQuotaAtLine,
   isOpenStackServiceDown,
+  isOpenStackServiceQuiet,
   isOpenStackServiceForcedDown,
   isSameOpenStackHost,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
@@ -27,17 +51,23 @@ import {
 import {
   OpenStackAssessment,
   assessOpenStackApi,
+  assessOpenStackBareMetalNode,
   assessOpenStackFloatingIp,
   assessOpenStackHypervisor,
   assessOpenStackImage,
   assessOpenStackInstance,
+  assessOpenStackInstanceOnHost,
   assessOpenStackNetwork,
+  assessOpenStackProject,
   assessOpenStackResource,
   assessOpenStackRouter,
   assessOpenStackService,
   assessOpenStackStoragePool,
   assessOpenStackVolume,
+  formatOpenStackDuration,
   getOpenStackAttentionItems,
+  getOpenStackBareMetalPowerState,
+  getOpenStackBareMetalProvisionUpdatedAt,
   getOpenStackDisplayName,
   getOpenStackHealth,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackHealth";
@@ -105,6 +135,69 @@ describe("the lines", () => {
       "a service disabled is probably forgotten after",
       OPENSTACK_SERVICE_DISABLED_WARNING_DAYS,
       7,
+    ],
+    ["an external network is out at", OPENSTACK_IP_POOL_EXHAUSTED_PERCENT, 100],
+    [
+      "a router is split past this many active agents:",
+      OPENSTACK_ROUTER_MAX_ACTIVE_AGENTS,
+      1,
+    ],
+    ["a stack is stuck after", OPENSTACK_STACK_STUCK_MINUTES, 120],
+    [
+      "a Kubernetes cluster is stuck after",
+      OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
+      120,
+    ],
+    [
+      "a bare metal node is stuck after",
+      OPENSTACK_BARE_METAL_STUCK_MINUTES,
+      120,
+    ],
+    [
+      "a hypervisor's CPU is saturated past",
+      OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+      90,
+    ],
+    [
+      "a hypervisor's memory is under pressure past",
+      OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+      90,
+    ],
+    [
+      "an instance's CPU is saturated past",
+      OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+      95,
+    ],
+    [
+      "an instance's disk is slow past, in ms,",
+      OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
+      50,
+    ],
+    [
+      "an instance waits on its neighbours past",
+      OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT,
+      10,
+    ],
+    [
+      "a node in maintenance is probably forgotten after",
+      OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
+      7,
+    ],
+    [
+      "running out of capacity warns within, in days,",
+      OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+      14,
+    ],
+    [
+      "a usage record out of step counts after",
+      OPENSTACK_ALLOCATION_MISMATCH_MINUTES,
+      30,
+    ],
+    ["a service is quiet after", OPENSTACK_QUIET_SERVICE_MINUTES, 20],
+    [
+      "a quiet service is forgotten after, in days,",
+      OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
+      14,
     ],
   ])("%s %d", (_what: string, line: number, expected: number) => {
     expect(line).toBe(expected);
@@ -250,7 +343,11 @@ describe("a service", () => {
 
     test.each<[string, Partial<OpenStackResource>, JSONObject | undefined]>([
       ["it says it isn't", { status: "down" }, { forcedDown: false }],
-      ["nothing says, as on the agent", { status: "down" }, { forcedDown: null }],
+      [
+        "nothing says, as on the agent",
+        { status: "down" },
+        { forcedDown: null },
+      ],
       ["nothing has ever said", { status: "down" }, undefined],
     ])(
       "a stopped one reads plainly down when %s",
@@ -1249,5 +1346,349 @@ describe("a part's name", () => {
         row(OpenStackResourceKind.Instance, { externalId: "uuid-1" }),
       ),
     ).toBe("uuid-1");
+  });
+});
+
+/*
+ * What breaking each rule on its own found nothing holding (mutation checks, as #5723 asks):
+ * a line's other side, a word in a reason, and which sentence a reason takes.
+ */
+describe("on the line, and in the words that say so", () => {
+  test.each<[number, string]>([
+    [119, "119m"],
+    [120, "2h"],
+    [48 * 60 - 1, "48h"],
+    [48 * 60, "2d"],
+  ])("%d minutes read as %s", (minutes: number, expected: string) => {
+    expect(formatOpenStackDuration(minutes)).toBe(expected);
+  });
+
+  test("a host's name is what comes before its first dot, if anything does", () => {
+    expect(getOpenStackShortHostName("compute-1.example.org")).toBe(
+      "compute-1",
+    );
+    expect(getOpenStackShortHostName(".local")).toBe(".local");
+  });
+
+  test("a service a cloud may not run is quiet from the minute it reaches the line", () => {
+    const quiet: (minutes: number) => boolean = (minutes: number): boolean => {
+      return isOpenStackServiceQuiet({
+        service: "baremetal",
+        lastSeenAt: ago(minutes),
+        now: NOW,
+      });
+    };
+
+    expect(quiet(OPENSTACK_QUIET_SERVICE_MINUTES - 1)).toBe(false);
+    expect(quiet(OPENSTACK_QUIET_SERVICE_MINUTES)).toBe(true);
+    expect(isOpenStackServiceQuiet({ lastSeenAt: ago(600), now: NOW })).toBe(
+      false,
+    );
+    // Every cloud has Nova, so one gone quiet is a whole cloud gone quiet, said elsewhere.
+    expect(
+      isOpenStackServiceQuiet({
+        service: "compute",
+        lastSeenAt: ago(600),
+        now: NOW,
+      }),
+    ).toBe(false);
+  });
+
+  test("and says for how long", () => {
+    const assessment: OpenStackAssessment = assessOpenStackApi(
+      row(OpenStackResourceKind.Api, {
+        name: "baremetal",
+        status: "up",
+        lastSeenAt: ago(25),
+      }),
+      NOW,
+    );
+
+    expect(assessment.severity).toBe(WARNING);
+    expect(assessment.reasons[0]?.values).toEqual({ duration: "25m" });
+  });
+
+  test("a quota is at its line at exactly 90%, and a limit of nothing is no line", () => {
+    expect(isOpenStackQuotaAtLine({ used: 9, limit: 10 })).toBe(true);
+    expect(isOpenStackQuotaAtLine({ used: 899, limit: 1000 })).toBe(false);
+    expect(isOpenStackQuotaAtLine({ used: 0, limit: 0 })).toBe(false);
+    expect(isOpenStackQuotaAtLine({ used: 5, limit: -1 })).toBe(false);
+  });
+
+  test("a project at its line says the numbers, and its region only when it has several", () => {
+    const quota: (region: string) => JSONObject = (
+      region: string,
+    ): JSONObject => {
+      return {
+        [getOpenStackQuotaFactKey(OpenStackQuotaResource.Instances, region)]: {
+          used: 9,
+          limit: 10,
+          observedAt: NOW.toISOString(),
+        },
+      };
+    };
+
+    const oneRegion: OpenStackAssessment = assessOpenStackProject({
+      row: row(OpenStackResourceKind.Project, {
+        facts: quota("RegionOne"),
+      }),
+      now: NOW,
+    });
+
+    expect(oneRegion.severity).toBe(WARNING);
+    expect(oneRegion.reasons[0]).toEqual({
+      text: "{{used}} of {{limit}} instances used ({{percent}})",
+      values: { used: "9", limit: "10", percent: "90%" },
+    });
+
+    const twoRegions: OpenStackAssessment = assessOpenStackProject({
+      row: row(OpenStackResourceKind.Project, {
+        facts: {
+          ...quota("RegionOne"),
+          [getOpenStackQuotaFactKey(
+            OpenStackQuotaResource.Instances,
+            "RegionTwo",
+          )]: { used: 1, limit: 10, observedAt: NOW.toISOString() },
+        },
+      }),
+      now: NOW,
+    });
+
+    expect(twoRegions.reasons).toEqual([
+      {
+        text: "{{used}} of {{limit}} instances used in {{region}} ({{percent}})",
+        values: {
+          used: "9",
+          limit: "10",
+          percent: "90%",
+          region: "RegionOne",
+        },
+      },
+    ]);
+  });
+
+  test("a router's agents, whatever a fact holds", () => {
+    expect(getOpenStackRouterAgents(undefined)).toEqual([]);
+    expect(getOpenStackRouterAgents({ l3Agents: "a word" })).toEqual([]);
+    expect(getOpenStackRouterAgents({ l3Agents: ["a list"] })).toEqual([]);
+
+    const agents: Array<OpenStackL3AgentFact> = getOpenStackRouterAgents({
+      l3Agents: {
+        one: {
+          host: "net-1",
+          isAlive: true,
+          isAdminUp: true,
+          haState: "active",
+        },
+        two: { host: "", haState: "" },
+      },
+    });
+
+    expect(agents).toEqual([
+      { host: "net-1", isAlive: true, isAdminUp: true, haState: "active" },
+      { host: null, isAlive: false, isAdminUp: false, haState: null },
+    ]);
+  });
+
+  test("an instance on a stopped host: what it takes with it, unless someone stopped it first", () => {
+    const on: (status: string) => OpenStackAssessment = (
+      status: string,
+    ): OpenStackAssessment => {
+      return assessOpenStackInstanceOnHost({
+        row: row(OpenStackResourceKind.Instance, { status }),
+        now: NOW,
+        isHostDown: true,
+      });
+    };
+
+    expect(on("ACTIVE").severity).toBe(WARNING);
+    expect(reasonOf(on("ACTIVE"))).toBe("Its hypervisor is down");
+    expect(on("SHUTOFF").severity).toBeNull();
+    expect(
+      assessOpenStackInstanceOnHost({
+        row: row(OpenStackResourceKind.Instance, { status: "ACTIVE" }),
+        now: NOW,
+        isHostDown: false,
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("something stuck says its status and for how long", () => {
+    const assessment: OpenStackAssessment = assessOpenStackInstance({
+      row: row(OpenStackResourceKind.Instance, {
+        status: "BUILD",
+        stateChangedAt: ago(OPENSTACK_INSTANCE_STUCK_MINUTES + 30),
+      }),
+      now: NOW,
+    });
+
+    expect(assessment.reasons[0]?.values).toEqual({
+      status: "BUILD",
+      duration: "90m",
+    });
+  });
+
+  test.each<[string, number | null, ResourceAttentionSeverity | null]>([
+    ["HEALTH_OK says nothing", 0, null],
+    ["HEALTH_WARN is often a rebalance", 1, WARNING],
+    ["HEALTH_ERR is Ceph refusing something", 2, CRITICAL],
+    ["and no reading says nothing", null, null],
+  ])(
+    "a half empty pool, with Ceph behind it: %s",
+    (
+      _what: string,
+      healthStatus: number | null,
+      severity: ResourceAttentionSeverity | null,
+    ) => {
+      const assessment: OpenStackAssessment = assessOpenStackStoragePool(
+        row(OpenStackResourceKind.StoragePool, {
+          diskAllocatedBytes: 50,
+          diskCapacityBytes: 100,
+          facts: {
+            [OPENSTACK_CEPH_STATUS_FACT]: {
+              clusterId: "c-1",
+              clusterName: "ceph-eu",
+              healthStatus,
+            },
+          },
+        }),
+      );
+
+      expect(assessment.severity).toBe(severity);
+      expect(assessment.reasons).toHaveLength(severity ? 1 : 0);
+      if (severity) {
+        expect(assessment.reasons[0]?.values).toEqual({ cluster: "ceph-eu" });
+      }
+    },
+  );
+
+  test("a bare metal node's facts, whatever they hold", () => {
+    const node: (facts: JSONObject) => OpenStackResource = (
+      facts: JSONObject,
+    ): OpenStackResource => {
+      return row(OpenStackResourceKind.BareMetalNode, { facts });
+    };
+
+    expect(
+      getOpenStackBareMetalProvisionUpdatedAt(
+        node({ provisionUpdatedAt: "2026-11-04T11:00:00Z" }),
+      ),
+    ).toBe("2026-11-04T11:00:00Z");
+    expect(
+      getOpenStackBareMetalProvisionUpdatedAt(node({ provisionUpdatedAt: 7 })),
+    ).toBeUndefined();
+    expect(
+      getOpenStackBareMetalPowerState(node({ powerState: "power on" })),
+    ).toBe("power on");
+    expect(getOpenStackBareMetalPowerState(node({ powerState: 1 }))).toBeNull();
+  });
+
+  test("a bare metal node stuck says since its provision state last moved, not since the row did", () => {
+    const assessment: OpenStackAssessment = assessOpenStackBareMetalNode({
+      row: row(OpenStackResourceKind.BareMetalNode, {
+        status: "deploying",
+        stateChangedAt: ago(5),
+        facts: {
+          provisionUpdatedAt: ago(
+            OPENSTACK_BARE_METAL_STUCK_MINUTES + 60,
+          ).toISOString(),
+        },
+      }),
+      now: NOW,
+    });
+
+    expect(assessment.severity).toBe(WARNING);
+    expect(assessment.reasons[0]?.values).toEqual({
+      status: "deploying",
+      duration: "3h",
+    });
+  });
+
+  test("a healthy bare metal node asks nobody for anything", () => {
+    expect(
+      assessOpenStackBareMetalNode({
+        row: row(OpenStackResourceKind.BareMetalNode, {
+          status: "active",
+          facts: { powerState: "power on" },
+        }),
+        now: NOW,
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("an item names what it is and where it sits, in the words of what it sits on", () => {
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [
+        row(OpenStackResourceKind.Instance, {
+          externalId: "i-1",
+          name: "web-01",
+          status: "ERROR",
+          hypervisorName: "compute-1",
+        }),
+        row(OpenStackResourceKind.Instance, {
+          externalId: "i-2",
+          name: "web-02",
+          status: "ERROR",
+          regionName: "RegionTwo",
+        }),
+        row(OpenStackResourceKind.StoragePool, {
+          externalId: "p-1",
+          name: "pool-1",
+          diskAllocatedBytes: 99,
+          diskCapacityBytes: 100,
+        }),
+        row(OpenStackResourceKind.Api, {
+          externalId: "a-1",
+          name: "compute",
+          status: "down",
+        }),
+      ],
+      now: NOW,
+    });
+
+    const named: (name: string) => ResourceAttentionItem = (
+      name: string,
+    ): ResourceAttentionItem => {
+      return items.find((item: ResourceAttentionItem): boolean => {
+        return item.name === name;
+      })!;
+    };
+
+    expect(named("web-01").detail).toBe("compute-1");
+    expect(named("web-02").detail).toBe("RegionTwo");
+    expect(named("pool-1").detail).toBe("RegionOne");
+    expect(named("pool-1").kind).toBe("Storage pool");
+    expect(named("compute").detail).toBe("RegionOne");
+  });
+
+  test("a bare metal node's own reason for its maintenance is what an item says, and nothing else's is", () => {
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [
+        row(OpenStackResourceKind.BareMetalNode, {
+          externalId: "n-1",
+          name: "node-1",
+          status: "deploy failed",
+          disabledReason: "Replacing a disk",
+        }),
+        row(OpenStackResourceKind.Instance, {
+          externalId: "i-1",
+          name: "web-01",
+          status: "ERROR",
+          disabledReason: "Not what an instance says",
+        }),
+      ],
+      now: NOW,
+    });
+
+    expect(
+      items.find((item: ResourceAttentionItem): boolean => {
+        return item.name === "node-1";
+      })?.message,
+    ).toBe("Replacing a disk");
+    expect(
+      items.find((item: ResourceAttentionItem): boolean => {
+        return item.name === "web-01";
+      })?.message,
+    ).toBeUndefined();
   });
 });

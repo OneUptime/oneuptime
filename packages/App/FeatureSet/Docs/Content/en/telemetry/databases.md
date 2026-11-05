@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -378,6 +379,7 @@ After the first collection the database appears under **Databases** — or, if O
 | `DATABASE_TLS_INSECURE` | No | `true` (default) connects without TLS; `false` turns TLS on |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accepts a certificate the collector image does not trust (self-signed, private CA). Defaults to `false` |
 | `DATABASE_TLS_SSLMODE` | No | PostgreSQL: the two settings above as libpq's `sslmode`, for the config's own SQL checks — `disable` while `DATABASE_TLS_INSECURE` is `true`, `require` when `DATABASE_TLS_INSECURE_SKIP_VERIFY` is `true`, `verify-full` otherwise. `install.sh` writes it. Defaults to `disable` |
+| `DATABASE_TLS_MYSQL` | No | MySQL and MariaDB: the same two settings as the driver's `tls`, for the config's readings of Galera — `false` while `DATABASE_TLS_INSECURE` is `true`, `skip-verify` when `DATABASE_TLS_INSECURE_SKIP_VERIFY` is `true`, `true` otherwise. `install.sh` works it out; set it yourself in a manifest. Defaults to `false` |
 | `DATABASE_COLLECTION_INTERVAL` | No | How often the engine's statistics are read. Defaults to `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB, SQL Server and Oracle). They contain query text. Defaults to `false` |
 | `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its **Documentation** tab has it, prefilled). The data then joins that database directly and shows on its pages, whatever address it reports (or none) — the way to go in Kubernetes and for private IPs. It must be a database in the project the ingestion key belongs to |
@@ -398,6 +400,8 @@ After the first collection the database appears under **Databases** — or, if O
 The PostgreSQL receiver's `postgresqlreceiver.preciselagmetrics` feature gate, on by default, records the replication time lag as `postgresql.wal.delay` instead of `postgresql.wal.lag`, and that metric is off upstream — which is why the agent switches it on. Each config lists further optional metrics in a comment; enable any of them the same way. The **Engine metrics** section of a database's Overview charts a curated set for every engine in this table — for Elasticsearch / OpenSearch cluster health, nodes, unassigned shards, pending tasks, JVM heap, free disk, searches and indexing; for Memcached connections, memory, items, get hits and misses, commands and evictions — and the **Metrics** tab has everything. There, a metric the Overview charts shows the Overview's value — its series combined the same way, a counter as a per-second rate — with a caption saying how (_total of series_, _per second, all series_); every other row shows the average of its series, and so does every row while you filter the list by an attribute. MariaDB reports `mysql.buffer_pool.limit` as the buffer pool's page count rather than the bytes the receiver declares, so on a MariaDB database that row and its chart read in pages. MariaDB has no `Innodb_rows_*` status counters, so the receiver sends no `mysql.row_operations` for it and a MariaDB Overview has no **Row operations** chart; **Handler operations** shows its row reads and writes.
 
 The PostgreSQL config also asks the server four things of its own, with the collector's `sqlquery` receiver at the same interval: how long it has been up (`postgresql.uptime`, from `pg_postmaster_start_time()`), the age of its oldest transaction ID (`postgresql.xid.oldest_age`, the largest `age(datfrozenxid)` in `pg_database`), how long its oldest open transaction has been open (`postgresql.transaction.longest_duration`) and how many sessions wait on a lock (`postgresql.sessions.waiting_on_lock`), the last two from `pg_stat_activity`. The `postgresql` receiver reports none of them, and they are what shows a restart, a transaction left open, a queue of lock waits and transaction ID wraparound coming: PostgreSQL stops accepting writes near an age of 2.1 billion, so its health needs a look from 1 billion and is critical from 1.5 billion. `pg_monitor` covers them. The query connects with `DATABASE_TLS_SSLMODE`, and cannot log in with a password that contains a space (it sends it as `+`), which `install.sh` warns about. With a collector of your own, copy the `sqlquery/oneuptime` receiver from `configs/postgresql.yaml` into its `metrics` pipeline.
+
+The MySQL config also reads where a server stands in a Galera cluster, with the same `sqlquery` receiver at the same interval, because the `mysql` receiver reports none of it: how many nodes the cluster has (`mysql.wsrep.cluster_size`), this node's state (`mysql.wsrep.local_state`, where 4 is Synced), how many times it was asked to fall out of step on purpose (`mysql.wsrep.desync_count`), how much replication has paused for it (`mysql.wsrep.flow_control_paused`) and how many writesets wait to be applied (`mysql.wsrep.local_recv_queue`). It needs nothing beyond the login above, because it reads `SHOW GLOBAL STATUS`, and it connects the way `DATABASE_TLS_MYSQL` says. A server in no cluster sends none of these, and nothing says it is unwell. **Galera Node Out of Sync** reads these, and a node someone took out for a backup with `wsrep_desync` does not fire it.
 
 The database's **Version** comes from the receiver where it reports one: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) and `elasticsearch.node.version` (Elasticsearch / OpenSearch). The PostgreSQL, SQL Server and Memcached receivers report none, so under the agent alone those databases show no version; one that also runs in Kubernetes, Docker or Podman shows its container image's.
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ The lines are the [recommended monitors](#recommended-monitors)' own — each on
 | Engine | Unhealthy | Degraded |
 | --- | --- | --- |
 | PostgreSQL | Connections at 95% of `max_connections`; transaction IDs close to wraparound | Connections at 80% of `max_connections`; transaction IDs aging toward wraparound; a replica 30 seconds behind on replay; a replica 1 GB of WAL behind; a restart; a transaction open for an hour; a session waiting on a lock; a database of 500 GB or more |
-| MySQL / MariaDB | — | 136 connections; 50 threads running; 75% of the buffer pool dirty; a replica 30 seconds behind; a restart |
+| MySQL / MariaDB | — | 136 connections; 50 threads running; 75% of the buffer pool dirty; a replica 30 seconds behind; a restart; a Galera node out of step with nobody having asked |
 | SQL Server | — | A buffer cache hit ratio under 90%; a page life expectancy under 300 seconds; a blocked session; a query waiting for memory |
 | Oracle | A tablespace 90% full | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | Memory at 90% of `maxmemory`; a fragmentation ratio of 1.5 with 256 MB used; 9,000 clients; a restart |

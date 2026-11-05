@@ -475,6 +475,12 @@ Each service also reports `openstack_<service>_up` (`openstack_nova_up`, `openst
 
 Do not remove the `transform/openstack-identity` processor, or the two deletes of `service.name` and `service.instance.id` in the `resource` processor: monitor filters match on equality, and without the deletes the data would register a phantom Service instead of reaching the cloud.
 
+## Bare metal
+
+The `oneuptime-openstack-baremetal` job reads Ironic where the cloud runs it. Ironic shows a project only the nodes it owns (recorded on DevStack), and by its default policy only a system-scoped credential reads them all, or one whose role has `baremetal:node:list_all`. This agent uses one credential for every service, and Nova's lists refuse system scope, so out of the box it reads what the credential's project owns. The Bare Metal page compares that with what Placement holds, and says when the list isn't the whole cloud's.
+
+The exporter has no series for Ironic's conductors, a node's driver, or why a node failed. A probe reads those from Ironic's API, where its credential may. Stopped, Ironic gives the exporter an empty 200, the same as a cloud without it, so the pages say only that it has gone quiet.
+
 ## What it costs
 
 Monitoring must never be what takes a cloud down, so the defaults are gentle. Each scrape logs in to Keystone again and makes real API calls. Each of these is changed in one place:

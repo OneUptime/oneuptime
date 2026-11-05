@@ -355,6 +355,8 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS]: `${RouteParams.ModelID}/routers`,
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL]: `${RouteParams.ModelID}/routers/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS]: `${RouteParams.ModelID}/floating-ips`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES]: `${RouteParams.ModelID}/bare-metal`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL]: `${RouteParams.ModelID}/bare-metal/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
   [PageMap.OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL]: `${RouteParams.ModelID}/volumes/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOLS]: `${RouteParams.ModelID}/storage-pools`,
@@ -4703,6 +4705,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL]
     }`,
   ),
 

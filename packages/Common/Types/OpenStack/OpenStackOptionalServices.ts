@@ -61,6 +61,7 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       service: OpenStackServiceType.BareMetal,
       upMetricName: "openstack_ironic_up",
       isEmptyWhenStopped: true,
+      isReadByProbe: true,
     },
     {
       service: OpenStackServiceType.Orchestration,
@@ -75,6 +76,7 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
     {
       service: OpenStackServiceType.SharedFileSystems,
       upMetricName: "openstack_sharev2_up",
+      isReadByProbe: true,
     },
   ];
 

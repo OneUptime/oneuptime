@@ -112,6 +112,13 @@ const PLACEMENT_RESOURCE_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_placement_resource_usage",
 ]);
 
+// What Nova says a host holds, whatever the names say: these are before any allocation or ratio.
+const NOVA_HOST_HOLDS_METRIC_NAMES: ReadonlySet<string> = new Set([
+  "openstack_nova_vcpus_available",
+  "openstack_nova_memory_available_bytes",
+  "openstack_nova_local_storage_available_bytes",
+]);
+
 const CINDER_POOL_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_cinder_pool_capacity_total_gb",
   "openstack_cinder_pool_capacity_free_gb",
@@ -254,7 +261,7 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_ironic_node_provision_updated_at",
   "openstack_ironic_node_updated_at",
   // Only a probe says this one: the exporter has nothing on Ironic's conductors.
-  "openstack_ironic_conductor_state",
+  "openstack_ironic_agent_state",
 ]);
 
 const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
@@ -672,7 +679,7 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
       "openstack_container_infra_agent_state",
       OpenStackServiceFamily.ContainerInfra,
     ],
-    ["openstack_ironic_conductor_state", OpenStackServiceFamily.BareMetal],
+    ["openstack_ironic_agent_state", OpenStackServiceFamily.BareMetal],
     ["openstack_sharev2_agent_state", OpenStackServiceFamily.SharedFileSystems],
   ]);
 
@@ -807,12 +814,12 @@ function finishAgentRecords(entry: OpenStackResourceBufferEntry): void {
  *
  *  - Placement: a UUID holding a class of its own. A host called by a UUID holds VCPU and MEMORY_MB
  *    as well, and those stay its own.
- *  - Nova: a UUID with nothing to say. Its Ironic driver reports every number as 0 and has done for
- *    years, and a host really called by a UUID has more than that. Which a node's own running_vms
- *    breaks, so that one never counts as saying anything: the instance's own row says where it runs.
- *
- * Nothing recorded holds Nova's list with a node in it yet: DevStack mapped its host before any
- * node existed. So the Nova half is from its driver's source.
+ *  - Nova: a UUID that holds nothing. Its Ironic driver gives a node 0 vCPUs, memory and disk, and a
+ *    host really called by a UUID has more than that, so what a host holds is what tells them apart.
+ *    What is in use can't. A node reads the 512 MiB Nova keeps back for a host's own use
+ *    (services-ironic, every scene with Nova reading its nodes), and an instance would add to it. So
+ *    a host called by a UUID has only Placement to say what's in use, and an instance's own row says
+ *    where it runs.
  */
 function isBareMetalNodeReading(data: {
   metricName: string;
@@ -826,7 +833,7 @@ function isBareMetalNodeReading(data: {
   if (PLACEMENT_RESOURCE_METRIC_NAMES.has(data.metricName)) {
     return Boolean(data.resource?.startsWith("CUSTOM_"));
   }
-  return data.metricName === "openstack_nova_running_vms" || data.value <= 0;
+  return !NOVA_HOST_HOLDS_METRIC_NAMES.has(data.metricName) || data.value <= 0;
 }
 
 /*
@@ -1345,6 +1352,8 @@ function foldVolume(data: {
    */
   if (getLabel(data.attributes, "updated_at")) {
     entry.facts["pool"] = getLabel(data.attributes, "pool");
+    // None, from a probe, is a volume not made from an image. Nothing at all is the exporter's.
+    entry.facts["imageId"] = getLabel(data.attributes, "image_id");
   } else {
     setFact(entry, "pool", getLabel(data.attributes, "pool"));
   }
@@ -1430,6 +1439,7 @@ function foldSnapshot(data: {
   setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
   entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
   setFact(entry, "volumeId", getLabel(data.attributes, "volume_id"));
+  setFact(entry, "createdAt", getLabel(data.attributes, "created_at"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
 }
 
@@ -1535,6 +1545,7 @@ function foldImage(data: {
     setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
     setFact(entry, "visibility", getLabel(data.attributes, "visibility"));
     setBooleanFact(entry, "isHidden", getLabel(data.attributes, "hidden"));
+    setBooleanFact(entry, "isProtected", getLabel(data.attributes, "protected"));
     setFact(entry, "createdAtSeconds", data.value);
   } else {
     entry.diskCapacityBytes = data.value;

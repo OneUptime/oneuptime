@@ -1,0 +1,7 @@
+$ openstack resource provider list
+success: true
+exit code: 0
+
+[stdout]
+id                                    name                                                               generation  parent_provider_uuid  root_provider_uuid
+758c3bf7-7336-465f-a997-618968d14595  compute-01.example.internal  9                                 758c3bf7-7336-465f-a997-618968d14595

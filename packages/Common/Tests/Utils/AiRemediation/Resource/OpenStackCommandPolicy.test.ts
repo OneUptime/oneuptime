@@ -32,14 +32,14 @@ import {
 /*
  * The policy that stands between a language model and a customer's cloud.
  *
- * Contract under test: a closed allowlist of reads, and everything else
- * refused. Every command of the allowlist is read here with its one call, and
- * every option of every command. A broad set of refused commands is pinned:
- * other flags, write verbs, Keystone's identity reads, unbounded lists and
- * grammar tricks. parseOpenStackCommand gives a request for a command exactly
- * when evaluateArgv does not deny it, so the words judged are the words acted
- * on. Nothing the policy allows can change a cloud: every route is a Read, every
- * request a GET.
+ * Contract under test: a closed allowlist of reads, the ten changes
+ * OpenStackCommandPolicyChanges.test.ts pins, and everything else refused. Every
+ * command of the allowlist is read here with its one call, and every option of
+ * every command. A broad set of refused commands is pinned: other flags, other
+ * changes, Keystone's identity reads, unbounded lists and grammar tricks.
+ * parseOpenStackCommand gives a request for a command exactly when evaluateArgv
+ * does not deny it, so the words judged are the words acted on. Every read route
+ * is a Read, and every read's request a GET.
  */
 
 const SERVER: string = "358ee736-ba74-40ba-a354-7ead413c5df6";
@@ -981,11 +981,23 @@ describe("refused: anything that changes a cloud", () => {
     "failover",
   ];
 
+  // The three of these words the changes spell this way: the other file pins them.
+  const SPELLED_AS_CHANGES: ReadonlyArray<string> = [
+    `openstack server start ${SERVER}`,
+    `openstack server migrate ${SERVER}`,
+    `openstack server evacuate ${SERVER}`,
+  ];
+
   test("every noun with every verb", () => {
     for (const noun of nouns) {
       for (const verb of verbs) {
         for (const id of ["", ` ${SERVER}`]) {
           const command: string = `openstack ${noun} ${verb}${id}`;
+
+          if (SPELLED_AS_CHANGES.includes(command)) {
+            continue;
+          }
+
           const result: ResourceCommandPolicyResult = policyOf(command);
 
           expect({ command, tier: result.tier }).toEqual({
@@ -1000,12 +1012,9 @@ describe("refused: anything that changes a cloud", () => {
 
   test.each([
     [`openstack server stop ${SERVER}`],
-    [`openstack server start ${SERVER}`],
-    [`openstack server reboot --hard ${SERVER}`],
     [`openstack server delete ${SERVER}`],
     ["openstack server create --flavor m1.tiny --image cirros web-1"],
     [`openstack server migrate --live-migration ${SERVER}`],
-    [`openstack server evacuate ${SERVER}`],
     [`openstack server set --state error ${SERVER}`],
     [`openstack server add floating ip ${SERVER} 1.2.3.4`],
     [`openstack server add volume ${SERVER} ${OTHER}`],
@@ -1015,7 +1024,6 @@ describe("refused: anything that changes a cloud", () => {
     ["openstack compute service set --disable compute-01 nova-compute"],
     ["openstack compute service set --down compute-01 nova-compute"],
     ["openstack compute service delete 1"],
-    [`openstack network agent set --disable ${SERVER}`],
     [`openstack network agent delete ${SERVER}`],
     [`openstack network agent add router ${SERVER} ${OTHER}`],
     [`openstack volume delete ${SERVER}`],
@@ -1041,7 +1049,7 @@ describe("refused: anything that changes a cloud", () => {
 
   test("the reason says it would change the cloud, for a person to do", () => {
     expectDenied(
-      `openstack server reboot ${SERVER}`,
+      `openstack server stop ${SERVER}`,
       /would change the cloud.*for a person/,
     );
   });
@@ -1645,7 +1653,7 @@ describe("the policy and the request are one reading", () => {
   });
 });
 
-describe("nothing here changes a cloud", () => {
+describe("no read changes a cloud", () => {
   test("every route is a Read, and carries no target", () => {
     for (const route of OPENSTACK_COMMAND_ROUTES) {
       expect(route.tier).toBe(ResourceCommandTier.Read);
@@ -1671,8 +1679,7 @@ describe("nothing here changes a cloud", () => {
     }
   });
 
-  test("the write guide offers nothing, and the read guide no change", () => {
-    expect(OpenStackCommandPolicy.writeCommandGuide).toMatch(/^- None/);
+  test("the read guide offers no change", () => {
     expect(
       ResourceCommandPolicy.getWriteCommandGuide(AiResourceType.OpenStackCloud),
     ).toBe(OpenStackCommandPolicy.writeCommandGuide);
@@ -1687,7 +1694,7 @@ describe("nothing here changes a cloud", () => {
     }
   });
 
-  test("no allowlist entry could ever pre-approve anything here", () => {
+  test("no allowlist entry for a read or a command nobody listed pre-approves anything", () => {
     for (const pattern of [
       "openstack server stop *",
       "openstack server list",

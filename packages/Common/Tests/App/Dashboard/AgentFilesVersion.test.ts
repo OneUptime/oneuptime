@@ -74,8 +74,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     kind: AgentKind.DatabaseAgent,
     directory: "DatabaseAgent",
     files: ["docker-compose.yml", "configs"],
-    version: "0.161.1",
-    digest: "03a336458eab1688ffa833d375092de98694da046ccc09314857c72ea71acbcc",
+    version: "0.161.2",
+    digest: "7092bff211afc6146a7b3456dcead9b879d06cc29ac841246a1d209b047aae26",
   },
   {
     kind: AgentKind.ProxmoxAgent,
@@ -88,8 +88,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     kind: AgentKind.OpenStackAgent,
     directory: "OpenStackAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
-    version: "0.161.2",
-    digest: "ebb6a5af871ce565ab7ba3d64e9de435501949ddf5d5362e05fddb7b5e14ac8e",
+    version: "0.161.3",
+    digest: "e4180f048378b66e8d44b7f9e88dfa5ae1e413a00966747588eda16bf1130c63",
   },
   {
     kind: AgentKind.CephAgent,
@@ -380,9 +380,9 @@ describe("the Proxmox agent after #5428 read every node", () => {
  * must show a sign (0.161.1). Every engine's config stamps the agent's one
  * version.
  */
-describe("the Database agent after its PostgreSQL SQL checks", () => {
-  test("its files report 0.161.1 and still run collector 0.161.0", () => {
-    expect(DATABASE_AGENT_VERSION).toBe("0.161.1");
+describe("the Database agent after its readings of Galera", () => {
+  test("its files report 0.161.2 and still run collector 0.161.0", () => {
+    expect(DATABASE_AGENT_VERSION).toBe("0.161.2");
     expect(AGENT_KINDS[AgentKind.DatabaseAgent].collectorVersion).toBe(
       "0.161.0",
     );
@@ -394,16 +394,16 @@ describe("the Database agent after its PostgreSQL SQL checks", () => {
     ).toContain("image: otel/opentelemetry-collector-contrib:0.161.0");
   });
 
-  test("an agent on the older files - 0.161.0 - is told to upgrade", () => {
+  test("an agent on the older files - 0.161.1 - is told to upgrade", () => {
     expect(
       getAgentVersionState({
         kind: AgentKind.DatabaseAgent,
-        agentVersion: "0.161.0",
+        agentVersion: "0.161.1",
         serverVersion: "14.0.105",
       }),
     ).toEqual({
       status: AgentVersionStatus.Outdated,
-      latestVersion: "0.161.1",
+      latestVersion: "0.161.2",
     });
   });
 
@@ -412,7 +412,7 @@ describe("the Database agent after its PostgreSQL SQL checks", () => {
       expect(
         getAgentVersionState({
           kind: AgentKind.DatabaseAgent,
-          agentVersion: "0.161.1",
+          agentVersion: "0.161.2",
           serverVersion: serverVersion,
         }).status,
       ).toBe(AgentVersionStatus.UpToDate);
