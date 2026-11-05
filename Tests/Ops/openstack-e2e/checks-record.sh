@@ -129,7 +129,7 @@ as_victim() {
 as_victim openstack network create ou-victim-net >/dev/null
 as_victim openstack subnet create --network ou-victim-net --subnet-range 10.79.0.0/24 ou-victim-subnet >/dev/null
 as_victim openstack security group create ou-victim-sg >/dev/null
-as_victim openstack server create --flavor m1.nano --image "$IMAGE" --network ou-victim-net --wait ou-victim-server >/dev/null
+as_victim openstack server create --flavor cirros256 --image "$IMAGE" --network ou-victim-net --wait ou-victim-server >/dev/null
 as_victim openstack volume create --size 1 ou-victim-volume >/dev/null
 VICTIM_FIP_ID="$(as_victim openstack floating ip create public -f value -c id)"
 python3 -I - >"$SECRETS_DIR/victim.json" <<VICTIM_JSON
@@ -165,7 +165,7 @@ LOOKALIKE_SERVER="oneuptime-check-$KEY-$OLD_STAMP-abcdef-server-old"
 LOOKALIKE_OTHER_KEY="oneuptime-check-ffffffffffff-$OLD_STAMP-abcdef-volume"
 LOOKALIKE_VOLUME="oneuptime-check-$KEY-$OLD_STAMP-abcdef-server"
 LOOKALIKE_SG="oneuptime-check-web"
-as_check_user openstack server create --flavor m1.nano --image "$IMAGE" --network oneuptime-check-net --wait "$LOOKALIKE_SERVER" >/dev/null
+as_check_user openstack server create --flavor cirros256 --image "$IMAGE" --network oneuptime-check-net --wait "$LOOKALIKE_SERVER" >/dev/null
 as_check_user openstack volume create --size 1 "$LOOKALIKE_VOLUME" >/dev/null
 as_check_user openstack volume create --size 1 "$LOOKALIKE_OTHER_KEY" >/dev/null
 as_check_user openstack security group create "$LOOKALIKE_SG" >/dev/null

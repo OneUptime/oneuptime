@@ -731,7 +731,7 @@ describe("certificates", () => {
   test("each host's certificate, and what goes with it", async () => {
     const harness: Harness = createHarness({
       answer: (
-        request: OpenStackHttpRequest,
+        _request: OpenStackHttpRequest,
         report: (certificate: OpenStackPresentedCertificate) => void,
       ) => {
         // Told as a connection opens, as the real transport does.
