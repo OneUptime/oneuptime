@@ -41,7 +41,7 @@ Elke tool met een Alertmanager kan vandaag incidenten krijgen: een alert die afg
 :::steps
 ### De monitor maken
 
-Maak een monitor van het type Incoming Request zoals [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#waarschuwingen-ontvangen-met-een-monitor) beschrijft, en kopieer zijn **Heartbeat-URL**. Dat is het adres `<secret key>` in de receiver van elke tool hieronder.
+Maak een monitor van het type Incoming Request zoals [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#waarschuwingen-ontvangen-met-een-monitor) beschrijft, en kopieer zijn **Heartbeat URL**. Dat is het adres `<secret key>` in de receiver van elke tool hieronder.
 
 ### Aan de cloud koppelen
 

@@ -412,7 +412,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne
 | `OPENSTACK_NETWORK_EXPORTER_TARGETS` | 每台擁有 Open vSwitch 或 OVN 資料庫的機器上的 openstack-network-exporter | 它的預設收集器。一台機器會回報它所執行的內容 |
 | `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | 每個運算節點上的 prometheus-libvirt-exporter，且只讀取 libvirt 是否有回應 | 除了匯出器本身外不需要任何東西 |
 
-接著，雲端的**控制平面**卡片會為每一個顯示一行，並為每個相依項目提供一個頁面，每台機器一行。該卡片上的**未監看**表示你還沒有指名它：它永遠不會顯示為健康。那裡的問題會進入雲端的**需要注意**。雲端的**建議**頁面提供[警示範本](/docs/monitor/openstack-monitor#雲端所依賴的基礎)，而 `troubleshoot.sh` 會檢查每個目標是否有回應，以及它是否就是你所說的那個。
+接著，雲端的**控制平面**卡片會為每一個顯示一行，並為每個相依項目提供一個頁面，每台機器一行。該卡片上的**未監看**表示你還沒有指名它：它永遠不會顯示為健康。那裡的問題會進入雲端的**需要注意**。雲端的**Suggest**頁面提供[警示範本](/docs/monitor/openstack-monitor#雲端所依賴的基礎)，而 `troubleshoot.sh` 會檢查每個目標是否有回應，以及它是否就是你所說的那個。
 
 如果你需要比雲端健康所需更多的 RabbitMQ 或資料庫資訊，[佇列](/docs/telemetry/queues)與[資料庫](/docs/telemetry/databases)產品會透過它們自己的代理程式讀取它們，資料量比這裡多，條件也各自不同。控制平面頁面有連結指向它們。安裝那些是另外的事，因為那些產品讀取的是那些代理程式的序列，而不是這裡的。
 
@@ -556,7 +556,7 @@ nova-manage placement audit --verbose
 nova-manage placement audit --verbose --delete
 ```
 
-**警示。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 與 **Reserved Headroom Gone** 讀取的是 OneUptime 從同一份摘要寫入的序列。它們位於[監測器的範本](/docs/monitor/openstack-monitor#預先建立的警示範本)中，也在雲端的**建議**頁面上。
+**警示。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 與 **Reserved Headroom Gone** 讀取的是 OneUptime 從同一份摘要寫入的序列。它們位於[監測器的範本](/docs/monitor/openstack-monitor#預先建立的警示範本)中，也在雲端的**Suggest**頁面上。
 
 **成本。** 在代理程式上沒有成本。探測器則會增加上述的呼叫。OneUptime 每兩分鐘為每個可用區域的資源類別、外部網路與儲存池寫入約 2 個序列，並為每個人們可以要求的規格寫入一個，與其他指標一樣計費。
 
@@ -603,7 +603,7 @@ nova-manage placement audit --verbose --delete
 
 ### 哪些可以回收
 
-雲端的**建議**頁面每小時列出一次被閒置的項目、各自能釋出什麼，以及列出它們的命令。OneUptime 絕不會移除任何東西，這些項目每一個都是要問擁有它的人的問題。
+雲端的**Suggest**頁面每小時列出一次被閒置的項目、各自能釋出什麼，以及列出它們的命令。OneUptime 絕不會移除任何東西，這些項目每一個都是要問擁有它的人的問題。
 
 | 項目 | 何時被指出 | 釋出什麼 | 列出它們的命令 |
 |---|---|---|---|
@@ -1049,7 +1049,7 @@ OneUptime 讀取的每一行都有其等級、服務、機器、請求、使用�
 
 ### 日誌警示
 
-雲端的**建議**頁面在其他[警示範本](/docs/monitor/openstack-monitor#服務怎麼說)旁邊提供這些：
+雲端的**Suggest**頁面在其他[警示範本](/docs/monitor/openstack-monitor#服務怎麼說)旁邊提供這些：
 
 | 警示 | 觸發於 |
 | --- | --- |

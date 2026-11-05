@@ -41,7 +41,7 @@ Alertmanager वाला कोई भी टूल आज ही घटना�
 :::steps
 ### मॉनिटर बनाएँ
 
-[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#मॉनिटर-से-अलर्ट-पाएं) जैसा कहता है वैसा Incoming Request मॉनिटर बनाएँ, और उसका **हार्टबीट URL** कॉपी करें। नीचे हर टूल के रिसीवर में वही `<secret key>` वाला पता है।
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#मॉनिटर-से-अलर्ट-पाएं) जैसा कहता है वैसा Incoming Request मॉनिटर बनाएँ, और उसका **Heartbeat URL** कॉपी करें। नीचे हर टूल के रिसीवर में वही `<secret key>` वाला पता है।
 
 ### इसे क्लाउड पर रखें
 

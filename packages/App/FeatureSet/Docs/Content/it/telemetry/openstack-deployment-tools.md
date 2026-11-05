@@ -41,7 +41,7 @@ Qualsiasi strumento con un Alertmanager può avere incidenti da subito: un avvis
 :::steps
 ### Crea il monitor
 
-Crea un monitor Incoming Request come indica [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ricevere-gli-avvisi-con-un-monitor), e copia il suo **URL heartbeat**. È l'indirizzo `<secret key>` nel receiver di ogni strumento qui sotto.
+Crea un monitor Incoming Request come indica [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ricevere-gli-avvisi-con-un-monitor), e copia il suo **Heartbeat URL**. È l'indirizzo `<secret key>` nel receiver di ogni strumento qui sotto.
 
 ### Collegalo al cloud
 

@@ -41,7 +41,7 @@
 :::steps
 ### Создайте монитор
 
-Создайте монитор Incoming Request так, как описано в [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#приём-оповещений-монитором), и скопируйте его **URL heartbeat**. Это адрес `<secret key>` в получателе каждого инструмента ниже.
+Создайте монитор Incoming Request так, как описано в [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#приём-оповещений-монитором), и скопируйте его **Heartbeat URL**. Это адрес `<secret key>` в получателе каждого инструмента ниже.
 
 ### Привяжите его к облаку
 

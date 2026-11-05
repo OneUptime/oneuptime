@@ -41,7 +41,7 @@ Ethvert verktøy med en Alertmanager kan ha hendelser i dag: et varsel som utlø
 :::steps
 ### Lag overvåkeren
 
-Lag en Incoming Request-overvåker slik [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#motta-varsler-med-en-monitor) sier, og kopier dens **URL for hjerteslag**. Det er `<secret key>`-adressen i hvert verktøys mottaker nedenfor.
+Lag en Incoming Request-overvåker slik [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#motta-varsler-med-en-monitor) sier, og kopier dens **Heartbeat URL**. Det er `<secret key>`-adressen i hvert verktøys mottaker nedenfor.
 
 ### Legg den på skyen
 

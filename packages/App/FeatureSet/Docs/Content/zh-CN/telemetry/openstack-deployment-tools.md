@@ -41,7 +41,7 @@
 :::steps
 ### 创建监控器
 
-按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收告警) 的说明创建一个 Incoming Request 监控器，并复制它的 **心跳 URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
+按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收告警) 的说明创建一个 Incoming Request 监控器，并复制它的 **Heartbeat URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
 
 ### 将它关联到云
 

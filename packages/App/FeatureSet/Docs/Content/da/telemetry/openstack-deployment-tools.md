@@ -41,7 +41,7 @@ Ethvert værktøj med en Alertmanager kan få hændelser i dag: en advarsel, der
 :::steps
 ### Opret monitoren
 
-Opret en Incoming Request-monitor, som [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#modtag-advarsler-med-en-monitor) beskriver, og kopiér dens **Heartbeat-URL**. Det er adressen `<secret key>` i hvert værktøjs modtager nedenfor.
+Opret en Incoming Request-monitor, som [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#modtag-advarsler-med-en-monitor) beskriver, og kopiér dens **Heartbeat URL**. Det er adressen `<secret key>` i hvert værktøjs modtager nedenfor.
 
 ### Sæt den på clouden
 

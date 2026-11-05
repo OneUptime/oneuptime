@@ -65,7 +65,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 若要一次设置多个模板，请从 **Products → 基础设施 → OpenStack** 打开云，进入**建议**。选择你想要的模板，指定通知谁，OneUptime 会为每个模板创建一个监视器。
+> 若要一次设置多个模板，请从 **Products → 基础设施 → OpenStack** 打开云，进入**Suggest**。选择你想要的模板，指定通知谁，OneUptime 会为每个模板创建一个监视器。
 
 ## 监视器设置
 

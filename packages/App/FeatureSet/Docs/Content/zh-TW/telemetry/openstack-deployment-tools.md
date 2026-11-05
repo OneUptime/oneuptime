@@ -41,7 +41,7 @@
 :::steps
 ### 建立監控
 
-依照 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用監測器接收警示) 的說明建立一個 Incoming Request 監控，並複製它的 **心跳 URL**。這就是下面各工具的接收器中 `<secret key>` 所在的位址。
+依照 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用監測器接收警示) 的說明建立一個 Incoming Request 監控，並複製它的 **Heartbeat URL**。這就是下面各工具的接收器中 `<secret key>` 所在的位址。
 
 ### 放到雲端上
 

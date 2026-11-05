@@ -41,7 +41,7 @@ Varje verktyg med en Alertmanager kan få incidenter redan i dag: ett larm som u
 :::steps
 ### Skapa monitorn
 
-Skapa en monitor av typen Incoming Request enligt [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ta-emot-larm-med-en-monitor) och kopiera dess **Heartbeat-URL**. Det är adressen `<secret key>` i varje verktygs mottagare nedan.
+Skapa en monitor av typen Incoming Request enligt [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ta-emot-larm-med-en-monitor) och kopiera dess **Heartbeat URL**. Det är adressen `<secret key>` i varje verktygs mottagare nedan.
 
 ### Lägg den på molnet
 

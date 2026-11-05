@@ -51,7 +51,7 @@ In **OpenStack Monitor Configuration**, scegli il cloud da **Cloud OpenStack**. 
 
 Un nuovo monitor parte da **Cloud Stopped Reporting**, sotto **Su cosa avvisare**. Per controllare altro:
 
-- **Cambia** - scegli un altro [template](#template-di-avviso-predefiniti). Imposta la metrica, i filtri sugli attributi, l'aggregazione, l'intervallo di tempo, il raggruppamento e le soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
+- **Switch** - scegli un altro [template](#template-di-avviso-predefiniti). Imposta la metrica, i filtri sugli attributi, l'aggregazione, l'intervallo di tempo, il raggruppamento e le soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
 - **Metrica personalizzata** (sotto **Altri campi**) - scegli una metrica da **Metrica OpenStack**, poi imposta **Aggregazione** e **Intervallo di tempo**, e restringi con i [filtri](#impostazioni-del-monitor).
 - **Avanzato** (sotto **Altri campi**) - costruisci tu stesso query e formule in **Seleziona metriche**, con filtri su attributi come `status`, `adminState` o `resourcetype`. Usa **Raggruppa per** un [attributo di identità](#attributi-di-identità) per valutare ogni parte separatamente.
 

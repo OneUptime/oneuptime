@@ -412,7 +412,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne
 | `OPENSTACK_NETWORK_EXPORTER_TARGETS` | 每台运行 Open vSwitch 或 OVN 数据库的机器上的 openstack-network-exporter | 使用它的默认收集器。机器会报告它所运行的内容 |
 | `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | 每个计算节点上的 prometheus-libvirt-exporter，且只读取 libvirt 是否有响应 | 除 exporter 外无需其他设置 |
 
-之后，云的 **控制平面** 卡片会为每一项显示一行，并为每个依赖项提供一个页面，每台机器一行。该卡片上的 **未监控** 表示你还没有指明它：它绝不会显示为健康。那里的问题会进入云的 **需要关注**。云的 **建议** 页面会提供[警报模板](/docs/monitor/openstack-monitor#云所依赖的底层组件)，而 `troubleshoot.sh` 会检查每个目标是否有响应，以及它是否就是你所说的那个组件。
+之后，云的 **控制平面** 卡片会为每一项显示一行，并为每个依赖项提供一个页面，每台机器一行。该卡片上的 **未监控** 表示你还没有指明它：它绝不会显示为健康。那里的问题会进入云的 **需要关注**。云的 **Suggest** 页面会提供[警报模板](/docs/monitor/openstack-monitor#云所依赖的底层组件)，而 `troubleshoot.sh` 会检查每个目标是否有响应，以及它是否就是你所说的那个组件。
 
 如果你需要比云的健康状况所需更多的 RabbitMQ 或数据库信息，[队列](/docs/telemetry/queues)和[数据库](/docs/telemetry/databases)产品通过各自的代理读取它们，数据量比这里更多，并且有自己的规则。控制平面页面链接到它们。安装它们是另一回事，因为这些产品读取的是那些代理的序列，而不是这里的序列。
 
@@ -556,7 +556,7 @@ nova-manage placement audit --verbose
 nova-manage placement audit --verbose --delete
 ```
 
-**警报。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 和 **Reserved Headroom Gone** 读取 OneUptime 根据同一份摘要写入的序列。它们位于[监控器的模板](/docs/monitor/openstack-monitor#预置警报模板)中，也在云的 **建议** 页面上。
+**警报。** **Flavor Can No Longer Be Placed**、**Capacity Forecast Under 14 Days** 和 **Reserved Headroom Gone** 读取 OneUptime 根据同一份摘要写入的序列。它们位于[监控器的模板](/docs/monitor/openstack-monitor#预置警报模板)中，也在云的 **Suggest** 页面上。
 
 **成本。** 代理上没有任何成本。探针会增加上面所述的调用。OneUptime 每两分钟为每个可用区的资源类、外部网络和存储池大约写入 2 个序列，并为人们可以请求的每种规格写入一个，与其他指标一样计费。
 
@@ -603,7 +603,7 @@ nova-manage placement audit --verbose --delete
 
 ### 哪些可以回收
 
-云的 **建议** 页面每小时列出一次被闲置的内容、每项能释放什么，以及列出它的命令。OneUptime 绝不会移除任何东西，这每一项都是需要询问其所有者的问题。
+云的 **Suggest** 页面每小时列出一次被闲置的内容、每项能释放什么，以及列出它的命令。OneUptime 绝不会移除任何东西，这每一项都是需要询问其所有者的问题。
 
 | 内容 | 何时被点名 | 能释放什么 | 列出它们的命令 |
 |---|---|---|---|
@@ -1049,7 +1049,7 @@ OneUptime 读取的每一行都带有级别、服务、机器、请求、用户�
 
 ### 日志警报
 
-云的 **建议** 页面在其他[警报模板](/docs/monitor/openstack-monitor#服务日志反映的内容)旁边提供这些：
+云的 **Suggest** 页面在其他[警报模板](/docs/monitor/openstack-monitor#服务日志反映的内容)旁边提供这些：
 
 | 警报 | 触发条件 |
 | --- | --- |

@@ -29,7 +29,7 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 
 ## Før du begynner
 
-- En **sonde** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
+- En **probe** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
 - For å kalle en privat adresse (som `10.0.0.5`) må sonden tillate det: sett `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonden. Loopback-, link-local- og skymetadata-adresser avvises alltid. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
 - Alle passord, API-nøkler og tokener skriptet trenger, lagret som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
 

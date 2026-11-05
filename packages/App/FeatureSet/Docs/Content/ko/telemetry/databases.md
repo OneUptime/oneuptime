@@ -372,7 +372,7 @@ docker compose up -d
 | `DATABASE_ENDPOINT_HOST` | SQL Server | `DATABASE_ENDPOINT`의 호스트만. SQL Server 리시버는 호스트와 포트를 따로 받습니다. `install.sh`가 씁니다 |
 | `DATABASE_ENDPOINT_PORT` | SQL Server | `DATABASE_ENDPOINT`의 포트만. `install.sh`가 씁니다 |
 | `DATABASE_ORACLE_SERVICE` | Oracle | 연결할 Oracle 서비스. 예: `FREEPDB1` 또는 `ORCLPDB1` |
-| `DATABASE_SERVER_ADDRESS` | 예 | 데이터베이스의 ID이며 `server.address`로 붙습니다. **애플리케이션**이 데이터베이스에 접근할 때 사용하는 호스트 이름입니다. `localhost`는 절대 쓰지 마세요. OneUptime은 한 머신에서만 의미가 있는 주소를 무시합니다. 한 네트워크 안에서만 확인되는 이름(사설 IP, 단일 레이블 이름, 클러스터 로컬 이름, `.internal`이나 `.local` 이름)은 그 이름을 이미 엔드포인트로 가진 데이터베이스에만 들어갑니다. 바꾸지 마세요. 바꾸면 두 번째 데이터베이스가 등록됩니다 |
+| `DATABASE_SERVER_ADDRESS` | 예 | 데이터베이스의 ID이며 `server.address`로 붙습니다. **application**이 데이터베이스에 접근할 때 사용하는 호스트 이름입니다. `localhost`는 절대 쓰지 마세요. OneUptime은 한 머신에서만 의미가 있는 주소를 무시합니다. 한 네트워크 안에서만 확인되는 이름(사설 IP, 단일 레이블 이름, 클러스터 로컬 이름, `.internal`이나 `.local` 이름)은 그 이름을 이미 엔드포인트로 가진 데이터베이스에만 들어갑니다. 바꾸지 마세요. 바꾸면 두 번째 데이터베이스가 등록됩니다 |
 | `DATABASE_SERVER_PORT` | 예 | 애플리케이션이 사용하는 포트이며 `server.port`로 붙습니다 |
 | `DATABASE_USERNAME` | PostgreSQL, MySQL, SQL Server, Oracle | 모니터링 사용자. 인증이 없는 Redis, MongoDB, Elasticsearch 서버에서는 선택 사항이고, Memcached에서는 사용하지 않습니다 |
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | 그 비밀번호. `.env`에서는 작은따옴표로 감싸고 모든 `$`를 `$$`로 씁니다(`install.sh`가 둘 다 해 줍니다) |
@@ -636,7 +636,7 @@ processors:
 | Memcached | — | 연결 900개 |
 | CouchDB | — | 평균 1,000 ms인 요청 |
 
-데이터베이스의 **개요**도 같은 내용을 보여 줍니다. 헤더에 상태가 표시되고(엔진 메트릭이 멈춘 동안은 _상태: 알 수 없음_, 아직 아무것도 들어오지 않았으면 표시 없음), 이어서 **확인 필요**에 넘은 임계값 종류마다 한 행(**연결**, **복제**, **메모리** 등)이 나옵니다. 각 행은 **메트릭** 탭을 열고, 엔진 메트릭이 멈췄다면 설정 가이드와 진단 스크립트가 있는 **문서** 탭을 엽니다. **데이터베이스 알림**에는 엔진의 권장 알림 중 이 데이터베이스를 감시하는 것이 표시되며, 그 버튼을 누르면 나머지가 선택된 상태로 **권장 사항**이 열립니다.
+데이터베이스의 **개요**도 같은 내용을 보여 줍니다. 헤더에 상태가 표시되고(엔진 메트릭이 멈춘 동안은 _상태: 알 수 없음_, 아직 아무것도 들어오지 않았으면 표시 없음), 이어서 **확인 필요**에 넘은 임계값 종류마다 한 행(**Attach**, **복제**, **메모리** 등)이 나옵니다. 각 행은 **메트릭** 탭을 열고, 엔진 메트릭이 멈췄다면 설정 가이드와 진단 스크립트가 있는 **문서** 탭을 엽니다. **데이터베이스 알림**에는 엔진의 권장 알림 중 이 데이터베이스를 감시하는 것이 표시되며, 그 버튼을 누르면 나머지가 선택된 상태로 **권장 사항**이 열립니다.
 
 ## 데이터베이스의 알림
 

@@ -159,7 +159,7 @@ En AWS-konto, et Azure-abonnement eller et Google Cloud-projekt har ingen collec
 
 Kommandoen virker kun i den konto, den blev skrevet til: på AWS opretter den intet i en shell, der er logget ind på en anden konto, og kommandoerne til Azure og Google Cloud nævner deres abonnement eller projekt i hvert kald. Den sætter `ONEUPTIME_AI_INVESTIGATION=true`, `ONEUPTIME_AI_FIXES` ud fra dit svar, `ONEUPTIME_AI_ALLOW_WRITES=true` og `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` til den konto, den blev skrevet til. Agenten registrerer sig som den konto, dens cloud siger, den er i, og føjer aldrig en konto til OneUptime: startet i en anden konto end kommandoens bliver den afvist, og den konto, kommandoen blev skrevet til, siger hvorfor på sin side; startet i en konto, som ingen af projektets forbindelser læser, bliver den også afvist, og dens log siger det.
 
-Kør kommandoen igen for at ændre noget: åbn **Lad AI rette problemer** igen, eller vælg **Skift** på kontoens side **AI-agent**, og kør den kommando, den skriver. Rollen har altid kun de ændringer, der er slået til. En cloudkontos **AI**-sektion har to sider, **Protokoller** og **AI-agent**, og hvad agenten koster, står på [Forbind en cloudkonto](/docs/telemetry/cloud-accounts#lad-ai-rette-problemer). Under **Aktivitet** registrerer kontoens **Feed**, hvornår agenten opretter forbindelse eller nulstilles, og hver ændring af, hvad OneUptime AI må gøre der, med hvem der lavede den.
+Kør kommandoen igen for at ændre noget: åbn **Lad AI rette problemer** igen, eller vælg **Switch** på kontoens side **AI-agent**, og kør den kommando, den skriver. Rollen har altid kun de ændringer, der er slået til. En cloudkontos **AI**-sektion har to sider, **Protokoller** og **AI-agent**, og hvad agenten koster, står på [Forbind en cloudkonto](/docs/telemetry/cloud-accounts#lad-ai-rette-problemer). Under **Aktivitet** registrerer kontoens **Feed**, hvornår agenten opretter forbindelse eller nulstilles, og hver ændring af, hvad OneUptime AI må gøre der, med hvem der lavede den.
 
 ### Forbind til OneUptime
 
@@ -190,7 +190,7 @@ ONEUPTIME_AI_FIXES=ask-for-approval
 ONEUPTIME_AI_ALLOW_WRITES=true
 ```
 
-Genstart derefter agenten (`docker compose up -d`, eller kør collectorens `install.sh` igen med dem sat for en Docker- eller Podman-vært). Agenten rapporterer begge, når den registrerer sig, og ved hvert heartbeat, og OneUptime anvender dem på ressourcen med det samme. Ressourcens AI-agent-side viser dem så skrivebeskyttet: **Skift** viser disse linjer for den mulighed, du vælger, i stedet for at gemme noget, og OneUptime afviser en ændring, der foretages andre steder (API'et, Terraform, en master-administrator), så længe agenten sætter dem. Listen over tilladte kommandoer bliver på siden. En værdi, agenten ikke kan læse, holder den indstilling slået fra, og agenten logger hvilken.
+Genstart derefter agenten (`docker compose up -d`, eller kør collectorens `install.sh` igen med dem sat for en Docker- eller Podman-vært). Agenten rapporterer begge, når den registrerer sig, og ved hvert heartbeat, og OneUptime anvender dem på ressourcen med det samme. Ressourcens AI-agent-side viser dem så skrivebeskyttet: **Switch** viser disse linjer for den mulighed, du vælger, i stedet for at gemme noget, og OneUptime afviser en ændring, der foretages andre steder (API'et, Terraform, en master-administrator), så længe agenten sætter dem. Listen over tilladte kommandoer bliver på siden. En værdi, agenten ikke kan læse, holder den indstilling slået fra, og agenten logger hvilken.
 
 ## Hvad en undersøgelse må køre
 
@@ -583,7 +583,7 @@ En manglende indstilling får ikke agenten til at gå ned: den forbliver kørend
 | `Refused by the …: … this agent is read-only` | Sæt `ONEUPTIME_AI_ALLOW_WRITES=true` og `ONEUPTIME_AI_FIXES` til en anden tilstand end `off`, og genstart agenten. |
 | `ONEUPTIME_AI_FIXES="…" is not one of …, so AI fixes stay off` | Brug `off`, `ask-for-approval`, `automatic` eller `bypass-approval` (og `true` eller `false` til `ONEUPTIME_AI_INVESTIGATION`); indtil da forbliver den indstilling slået fra. |
 | `ONEUPTIME_AI_FIXES=…, but … is not "true": the agent stays read-only` | Sæt også `ONEUPTIME_AI_ALLOW_WRITES=true`, eller `ONEUPTIME_AI_FIXES=off`. |
-| En gemning, der blev afvist, fordi det, OneUptime AI må gøre, sættes af agenten | Agenten sætter undersøgelse og rettelser: ændr dem der, hvor den kører. **Skift** på AI-agentens side viser linjerne for hver mulighed. |
+| En gemning, der blev afvist, fordi det, OneUptime AI må gøre, sættes af agenten | Agenten sætter undersøgelse og rettelser: ændr dem der, hvor den kører. **Switch** på AI-agentens side viser linjerne for hver mulighed. |
 | En rettelse, der blev afvist som `outside the targets`, eller fordi agenten beskytter et mål (`protects`) | Justér `ONEUPTIME_AI_WRITE_TARGETS` eller `ONEUPTIME_AI_PROTECTED_TARGETS`, eller overlad den ændring til et menneske. |
 | `OneUptime sent … as …, but this agent's policy reads it as …` | Agenten og OneUptime kører forskellige versioner: kør den version af agentens image, der passer til din server. |
 | `pipes and redirects are not supported; run one command` | Forventet: kommandoer kører aldrig gennem en shell. Afvisningen beder OneUptime AI køre én kommando ad gangen. |

@@ -51,7 +51,7 @@ Under **OpenStack Monitor Configuration** vælger du cloudet i **OpenStack-cloud
 
 En ny monitor starter på **Cloud holdt op med at rapportere** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, gruppering og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Switch** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, gruppering og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) - vælg én metrik i **OpenStack-metrik**, indstil derefter **Aggregering** og **Tidsinterval**, og afgræns med [filtrene](#monitorindstillinger).
 - **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `status`, `adminState` eller `resourcetype`. Brug **Gruppér efter** en [identitetsattribut](#identitetsattributter) for at bedømme hver del for sig.
 

@@ -41,7 +41,7 @@ Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있
 :::steps
 ### 모니터 만들기
 
-[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-알림-받기)의 안내대로 Incoming Request 모니터를 만들고 **하트비트 URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-알림-받기)의 안내대로 Incoming Request 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
 
 ### 클라우드에 연결하기
 

@@ -29,7 +29,7 @@ Sandlådan är inte Node.js: det finns ingen `require`, `process`, `fetch` eller
 
 ## Innan du börjar
 
-- En **sond** som når alla slutpunkter som skriptet anropar. Använd en [anpassad sond](/docs/probe/custom-probe) för slutpunkter i ditt nätverk.
+- En **probe** som når alla slutpunkter som skriptet anropar. Använd en [anpassad sond](/docs/probe/custom-probe) för slutpunkter i ditt nätverk.
 - För att anropa en privat adress (som `10.0.0.5`) måste sonden tillåta det: ange `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonden. Loopback-, link-local- och molnmetadataadresser avvisas alltid. Se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 - Alla lösenord, API-nycklar och token som skriptet behöver, sparade som [övervakningshemligheter](/docs/monitor/monitor-secrets).
 
