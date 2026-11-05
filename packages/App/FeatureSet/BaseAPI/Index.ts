@@ -199,6 +199,7 @@ import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiA
 import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
 import OpenStackResourceAPI from "Common/Server/API/OpenStackResourceAPI";
+import OpenStackProjectNoticeAPI from "Common/Server/API/OpenStackProjectNoticeAPI";
 import HostAPI from "Common/Server/API/HostAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
@@ -983,6 +984,12 @@ import OpenStackProjectUsageService, {
 import OpenStackBudgetService, {
   Service as OpenStackBudgetServiceType,
 } from "Common/Server/Services/OpenStackBudgetService";
+import OpenStackProjectNoticeDeliveryService, {
+  Service as OpenStackProjectNoticeDeliveryServiceType,
+} from "Common/Server/Services/OpenStackProjectNoticeDeliveryService";
+import OpenStackProjectStatusPageService, {
+  Service as OpenStackProjectStatusPageServiceType,
+} from "Common/Server/Services/OpenStackProjectStatusPageService";
 import OpenStackCloudCheckService, {
   Service as OpenStackCloudCheckServiceType,
 } from "Common/Server/Services/OpenStackCloudCheckService";
@@ -1671,6 +1678,8 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
+import OpenStackProjectNoticeDelivery from "Common/Models/DatabaseModels/OpenStackProjectNoticeDelivery";
+import OpenStackProjectStatusPage from "Common/Models/DatabaseModels/OpenStackProjectStatusPage";
 import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
@@ -5816,6 +5825,33 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<OpenStackProjectUsage, OpenStackProjectUsageServiceType>(
         OpenStackProjectUsage,
         OpenStackProjectUsageService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new OpenStackProjectNoticeAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OpenStackProjectNoticeDelivery,
+        OpenStackProjectNoticeDeliveryServiceType
+      >(
+        OpenStackProjectNoticeDelivery,
+        OpenStackProjectNoticeDeliveryService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OpenStackProjectStatusPage,
+        OpenStackProjectStatusPageServiceType
+      >(
+        OpenStackProjectStatusPage,
+        OpenStackProjectStatusPageService,
       ).getRouter(),
     );
 

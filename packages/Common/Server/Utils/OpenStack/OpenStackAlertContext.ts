@@ -9,6 +9,7 @@ import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
+  OPENSTACK_REACH_HEADING,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
   isOpenStackBlastRadiusEmpty,
@@ -298,6 +299,9 @@ export interface OpenStackAlertContextResult {
   partKind: OpenStackResourceKind | null;
   // Its row's id, when the series names a part with a row.
   partExternalId?: string | undefined;
+  // What the row calls it and where, for what is said about it outside the team.
+  partName?: string | undefined;
+  partRegionName?: string | undefined;
   // Set when the part is a whole region's API, which is what the radius then reads.
   regionWide?: OpenStackRegionWide | undefined;
   /*
@@ -355,6 +359,8 @@ export interface OpenStackSeriesDescription {
   description: string | undefined;
   reached: Array<OpenStackReachedProject>;
   openStackCloudId: ObjectID | null;
+  // What was read, for whatever the opening goes on to do with it: the notices read it.
+  context?: OpenStackAlertContextResult | undefined;
 }
 
 // One of a hypervisor's instances, by the name people know it by.
@@ -442,6 +448,12 @@ export default class OpenStackAlertContext {
 
       result.partKind = candidate.kind;
       result.partExternalId = candidate.externalId;
+      if (part.name) {
+        result.partName = part.name;
+      }
+      if (part.regionName) {
+        result.partRegionName = part.regionName;
+      }
       result.projectId = result.projectId || part.openStackProjectId || null;
       const workerHost: unknown = (part.facts as JSONObject | undefined)?.[
         "host"
@@ -961,10 +973,11 @@ export default class OpenStackAlertContext {
         description: !lines
           ? data.description
           : data.description
-            ? `${data.description}\n\n${lines}`
-            : lines,
+            ? `${data.description}\n\n${OPENSTACK_REACH_HEADING}\n\n${lines}`
+            : `${OPENSTACK_REACH_HEADING}\n\n${lines}`,
         reached: getOpenStackProjectsReached(context),
         openStackCloudId: cloudId,
+        context,
       };
     } catch (error) {
       logger.error(

@@ -56,6 +56,9 @@ import ProxmoxResource from "./ProxmoxResource";
 import OpenStackResource from "./OpenStackResource";
 import OpenStackProjectUsage from "./OpenStackProjectUsage";
 import OpenStackBudget from "./OpenStackBudget";
+import OpenStackProjectNotice from "./OpenStackProjectNotice";
+import OpenStackProjectNoticeDelivery from "./OpenStackProjectNoticeDelivery";
+import OpenStackProjectStatusPage from "./OpenStackProjectStatusPage";
 import DockerSwarmResource from "./DockerSwarmResource";
 import IoTFleet from "./IoTFleet";
 import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
@@ -1213,6 +1216,9 @@ const AllModelTypes: Array<{
   OpenStackResource,
   OpenStackProjectUsage,
   OpenStackBudget,
+  OpenStackProjectNotice,
+  OpenStackProjectNoticeDelivery,
+  OpenStackProjectStatusPage,
   DockerSwarmResource,
   IoTFleet,
   IoTFleetOwnerTeam,

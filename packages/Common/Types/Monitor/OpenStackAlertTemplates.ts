@@ -154,8 +154,10 @@ export interface OpenStackAlertTemplate {
  *     also grades one Cinder service a Warning, until half are down. Here it stays
  *     Critical: no Outage template stands behind it, and a backend's one
  *     cinder-volume going down is that backend's outage.
- *   - Disabled: MOSK pages when a binary is disabled on every host. Here that never
- *     fires, as planned work; the pages warn once it has lasted a week.
+ *   - Disabled: MOSK pages when a binary is disabled on every host. Here a worker's
+ *     own template never fires on one someone disabled. Whether that was planned is
+ *     Compute Service Disabled's to say: a maintenance event on the host quiets it,
+ *     and without one it pages. The pages warn once a disable has lasted a week.
  *   - Instance in error: Atmosphere waits 24 hours per instance, because a failed
  *     boot is often a project's own. Here one incident per region, after 10 minutes.
  *   - Stuck: Atmosphere's task state and build request series are not series this
@@ -186,7 +188,8 @@ export interface OpenStackAlertTemplate {
  * carry a numeric code (ERROR is 4), so a template filters on the `status` word.
  *
  * Never fires on what someone disabled. A worker's template filters on adminState:
- * enabled on Nova and Cinder, up on Neutron.
+ * enabled on Nova and Cinder, up on Neutron. Only Compute Service Disabled reads the
+ * other side, and it asks whether anyone planned it.
  *
  * Never adds up. Up, alive and state series read Min (any one down reads 0), counts
  * read Max, and Count only counts rows where a scrape writes one row per thing
@@ -968,6 +971,50 @@ const computeServiceDownTemplate: OpenStackAlertTemplate = {
         criteriaName: "Compute Service Down - enabled nova-compute < 1",
         criteriaDescription:
           "Triggers when an enabled nova-compute reports down for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * A disabled nova-compute, up or down. Its series says which by its value, and that it is disabled by
+ * its label, so its rows are the whole of the question. One a maintenance event covers is suppressed
+ * per series like everything else on that host (MonitorMaintenanceSuppression), which is the only
+ * difference between planned work and someone taking a host out by hand.
+ */
+const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
+  id: "openstack-compute-service-disabled",
+  name: "Compute Service Disabled",
+  summary:
+    "A nova-compute is disabled with no maintenance event covering its host.",
+  description:
+    "Alert when a nova-compute stays disabled for 10 minutes (openstack_nova_agent_state filtered to adminState disabled, whose rows say it is there whether it is up or down) and no maintenance event in progress covers its host, its availability zone or the whole cloud. One incident per host. During an event on the host a disable is expected and this stays quiet, so `openstack compute service set --disable` as part of planned work says nothing. Outside one, nothing new can be scheduled there and nobody said why: check `openstack compute service list --long` for the reason someone gave.",
+  category: "Control Plane",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "compute_service_disabled";
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      groupByAttributeKeys: WORKER_GROUP,
+      queries: [
+        {
+          alias: metricAlias,
+          metricName: NOVA_AGENT_STATE,
+          // One row per worker per collection: it only has to tell none from some.
+          aggregationType: MetricsAggregationType.Count,
+          attributes: { service: "nova-compute", adminState: "disabled" },
+        },
+      ],
+      aliases: [metricAlias],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Compute Service Disabled",
+        incidentDescription: `A nova-compute was disabled with no maintenance event in progress covering its host, so nothing new can be scheduled there and nobody has said why. Check openstack compute service list --long for the reason someone gave. If this is planned work, put a maintenance event on the host, and this stays quiet for as long as it is on. If it is not, openstack compute service set --enable puts the host back. The incident resolves on its own once it is enabled again, or an event covers it.`,
+        criteriaName: "Compute Service Disabled - no maintenance event",
+        criteriaDescription:
+          "Triggers when a nova-compute stays disabled for the whole window.",
       },
     });
   },
@@ -3158,6 +3205,7 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     orchestrationApiDownTemplate,
     containerInfraApiDownTemplate,
     computeServiceDownTemplate,
+    computeServiceDisabledTemplate,
     schedulerOrConductorDownTemplate,
     everySchedulerOrConductorDownTemplate,
     networkAgentDownTemplate,
