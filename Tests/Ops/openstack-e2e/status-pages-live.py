@@ -193,7 +193,6 @@ def part_notices():
         {
             "data": {
                 "projectId": live.PROJECT_ID,
-                "openStackCloudId": whole.typed_id(cloud_id),
                 "name": f"{PAID} owners",
                 "openStackProjectId": paid["externalId"],
                 "ownerTeams": [{"_id": STATE["team"]}],
@@ -206,7 +205,6 @@ def part_notices():
         {
             "data": {
                 "projectId": live.PROJECT_ID,
-                "openStackCloudId": whole.typed_id(cloud_id),
                 "name": "A rule on a project nobody has",
                 "openStackProjectId": "no-such-project",
                 "ownerTeams": [{"_id": STATE["team"]}],
@@ -282,7 +280,7 @@ def part_break():
                 return rows or None
 
             added, _ = wait_for(owners, 120, gap=10)
-            check("and adds the team that owns the project", bool(added) and len(added) == 1 and added[0].get("teamId") == STATE["team"], added)
+            check("and adds the team that owns the project", bool(added) and len(added) == 1 and live.value_of(added[0].get("teamId")) == STATE["team"], added)
 
             status, shown = live.request("POST", f"/api/status-page/overview/{STATE['public page']}", {})
             found("the public page, while it is down", shown)
@@ -301,7 +299,8 @@ def part_break():
             check("and nothing of the other project", OTHER not in text and STATE["other project"] not in text, text[:800])
             check("and no host's name", STATE["host"] not in text, text[:800])
             delivered = [item for item in RECEIVED if item["path"] == "/paid"]
-            check("with an id a receiver can act on once", delivered[0]["headers"].get("Idempotency-Key") == notice.get("id"), delivered[0]["headers"])
+            sent_with = {key.lower(): value for key, value in delivered[0]["headers"].items()}
+            check("with an id a receiver can act on once", sent_with.get("idempotency-key") == notice.get("id"), sent_with)
         # Long enough for the incident to be seen again and again by the monitor and the job.
         time.sleep(300)
         check("told once, however long it lasts", len(bodies("/paid")) == 1, len(bodies("/paid")))
