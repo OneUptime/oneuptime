@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import OpenStackProbeMetrics from "Common/Server/Utils/OpenStack/OpenStackProbeMetrics";
 import {
@@ -18,7 +20,10 @@ import {
   getOpenStackWasteFindings,
 } from "Common/Types/OpenStack/OpenStackWaste";
 import OpenStackCollector from "../../../Utils/OpenStack/OpenStackCollector";
-import { collectionJob, createCollectorHarness } from "./Helpers/CollectorHarness";
+import {
+  collectionJob,
+  createCollectorHarness,
+} from "./Helpers/CollectorHarness";
 import {
   RecordedScene,
   createRecordedCloud,
@@ -34,8 +39,8 @@ import {
  * cloud's APIs answered, through the real collector and the real scan.
  *
  * Every recording's image is the public cirros everything boots from, so the unused image rule finds
- * nothing here, by being public and by being in use. Its deliberately wasted image is on the rig's
- * usage run: until that's imported, what it finds is proven only on made-up rows (OpenStackWaste.test).
+ * nothing on those, by being public and by being in use. Its deliberately wasted image is on the rig's
+ * usage run, at the end of this file.
  */
 
 const RELEASES: ReadonlyArray<string> = [
@@ -86,109 +91,113 @@ async function rowsOf(
   );
 }
 
-describe.each(RELEASES)("a probe's %s", (release: string) => {
-  async function findingsAt(
-    now: Date,
-  ): Promise<{
-    findings: Array<OpenStackWasteFinding>;
-    instances: Array<OpenStackResourceBufferEntry>;
-  }> {
-    const rows: Array<OpenStackResourceBufferEntry> = await rowsOf(
-      loadScene(release, "healthy"),
-    );
-    const ofKind: (kind: OpenStackResourceKind) => Array<OpenStackWasteRow> = (
-      kind: OpenStackResourceKind,
-    ): Array<OpenStackWasteRow> => {
-      return rows
-        .filter((row: OpenStackResourceBufferEntry): boolean => {
-          return row.kind === kind;
-        })
-        .map((row: OpenStackResourceBufferEntry): OpenStackWasteRow => {
-          return {
-            externalId: row.externalId,
-            name: row.name,
-            regionName: row.regionName,
-            openStackProjectId: row.openStackProjectId,
-            status: row.status,
-            // OneUptime has only just connected: all it knows of time is what the cloud says.
-            stateChangedAt: now,
-            createdAt: now,
-            diskCapacityBytes: row.diskCapacityBytes,
-            facts: row.facts as JSONObject,
-          };
-        });
-    };
-    const instances: Array<OpenStackResourceBufferEntry> = rows.filter(
-      (row: OpenStackResourceBufferEntry): boolean => {
-        return row.kind === OpenStackResourceKind.Instance;
-      },
-    );
+async function findingsOf(
+  scene: RecordedScene,
+  now: Date,
+  // When OneUptime first saw it all. By default just now: all it knows of time is what the cloud says.
+  firstSeenAt: Date = now,
+): Promise<{
+  findings: Array<OpenStackWasteFinding>;
+  instances: Array<OpenStackResourceBufferEntry>;
+}> {
+  const rows: Array<OpenStackResourceBufferEntry> = await rowsOf(scene);
+  const ofKind: (kind: OpenStackResourceKind) => Array<OpenStackWasteRow> = (
+    kind: OpenStackResourceKind,
+  ): Array<OpenStackWasteRow> => {
+    return rows
+      .filter((row: OpenStackResourceBufferEntry): boolean => {
+        return row.kind === kind;
+      })
+      .map((row: OpenStackResourceBufferEntry): OpenStackWasteRow => {
+        return {
+          externalId: row.externalId,
+          name: row.name,
+          regionName: row.regionName,
+          openStackProjectId: row.openStackProjectId,
+          status: row.status,
+          stateChangedAt: firstSeenAt,
+          createdAt: firstSeenAt,
+          diskCapacityBytes: row.diskCapacityBytes,
+          facts: row.facts as JSONObject,
+        };
+      });
+  };
+  const instances: Array<OpenStackResourceBufferEntry> = rows.filter(
+    (row: OpenStackResourceBufferEntry): boolean => {
+      return row.kind === OpenStackResourceKind.Instance;
+    },
+  );
 
-    return {
-      instances,
-      findings: getOpenStackWasteFindings({
-        volumes: ofKind(OpenStackResourceKind.Volume).filter(
-          (row: OpenStackWasteRow): boolean => {
-            return row.status === "available";
-          },
-        ),
-        floatingIps: ofKind(OpenStackResourceKind.FloatingIp),
-        instances: ofKind(OpenStackResourceKind.Instance).filter(
-          (row: OpenStackWasteRow): boolean => {
-            return row.status === "SHUTOFF";
-          },
-        ),
-        images: ofKind(OpenStackResourceKind.Image).filter(
-          (row: OpenStackWasteRow): boolean => {
-            return row.status === "active";
-          },
-        ),
-        snapshots: ofKind(OpenStackResourceKind.Snapshot).filter(
-          (row: OpenStackWasteRow): boolean => {
-            return row.status === "available";
-          },
-        ),
-        flavorOf: () => {
-          return null;
+  return {
+    instances,
+    findings: getOpenStackWasteFindings({
+      volumes: ofKind(OpenStackResourceKind.Volume).filter(
+        (row: OpenStackWasteRow): boolean => {
+          return row.status === "available";
         },
-        imagesInUse: getOpenStackImagesInUse({
-          instanceImageIds: instances.map(
-            (row: OpenStackResourceBufferEntry): string | null => {
-              return (row.facts["imageId"] as string | null) ?? null;
-            },
-          ),
-          volumeImageIds: ofKind(OpenStackResourceKind.Volume).map(
-            (row: OpenStackWasteRow): string | null => {
-              return (row.facts?.["imageId"] as string | null) ?? null;
-            },
-          ),
-          instancesNotSaying: instances.filter(
-            (row: OpenStackResourceBufferEntry): boolean => {
-              return !("imageId" in row.facts);
-            },
-          ).length,
-        }),
-        snapshotsAreReported: ofKind(OpenStackResourceKind.Snapshot).length > 0,
-        movableHosts: [],
-        priceList: null,
-        now,
+      ),
+      floatingIps: ofKind(OpenStackResourceKind.FloatingIp),
+      instances: ofKind(OpenStackResourceKind.Instance).filter(
+        (row: OpenStackWasteRow): boolean => {
+          return row.status === "SHUTOFF";
+        },
+      ),
+      images: ofKind(OpenStackResourceKind.Image).filter(
+        (row: OpenStackWasteRow): boolean => {
+          return row.status === "active";
+        },
+      ),
+      snapshots: ofKind(OpenStackResourceKind.Snapshot).filter(
+        (row: OpenStackWasteRow): boolean => {
+          return row.status === "available";
+        },
+      ),
+      flavorOf: () => {
+        return null;
+      },
+      imagesInUse: getOpenStackImagesInUse({
+        instanceImageIds: instances.map(
+          (row: OpenStackResourceBufferEntry): string | null => {
+            return (row.facts["imageId"] as string | null) ?? null;
+          },
+        ),
+        volumeImageIds: ofKind(OpenStackResourceKind.Volume).map(
+          (row: OpenStackWasteRow): string | null => {
+            return (row.facts?.["imageId"] as string | null) ?? null;
+          },
+        ),
+        instancesNotSaying: instances.filter(
+          (row: OpenStackResourceBufferEntry): boolean => {
+            return !("imageId" in row.facts);
+          },
+        ).length,
       }),
-    };
-  }
+      snapshotsAreReported: ofKind(OpenStackResourceKind.Snapshot).length > 0,
+      movableHosts: [],
+      priceList: null,
+      now,
+    }),
+  };
+}
 
-  function ruleOf(
-    findings: Array<OpenStackWasteFinding>,
-    rule: OpenStackWasteRuleId,
-  ): OpenStackWasteFinding {
-    return findings.find((finding: OpenStackWasteFinding): boolean => {
-      return finding.rule === rule;
-    })!;
-  }
+function ruleOf(
+  findings: Array<OpenStackWasteFinding>,
+  rule: OpenStackWasteRuleId,
+): OpenStackWasteFinding {
+  return findings.find((finding: OpenStackWasteFinding): boolean => {
+    return finding.rule === rule;
+  })!;
+}
 
-  function namesOf(finding: OpenStackWasteFinding): Array<string | null> {
-    return finding.items.map((item: OpenStackWasteItem): string | null => {
-      return item.name;
-    });
+function namesOf(finding: OpenStackWasteFinding): Array<string | null> {
+  return finding.items.map((item: OpenStackWasteItem): string | null => {
+    return item.name;
+  });
+}
+
+describe.each(RELEASES)("a probe's %s", (release: string) => {
+  function findingsAt(now: Date): ReturnType<typeof findingsOf> {
+    return findingsOf(loadScene(release, "healthy"), now);
   }
 
   test("91 days after it was made, ou-snap is an old snapshot, by the cloud's own clock", async () => {
@@ -249,5 +258,99 @@ describe.each(RELEASES)("a probe's %s", (release: string) => {
     expect(namesOf(volumes)).toContain("ou-vol-free");
     expect(namesOf(volumes)).not.toContain("ou-vol-used");
     expect(namesOf(volumes)).not.toContain("ou-vol-bad");
+  });
+});
+
+/*
+ * WHAT THE RIG LEFT ON PURPOSE, THROUGH A PROBE'S REAL READ.
+ *
+ * Tests/Ops/openstack-e2e/usage-record.sh on Hibiscus with OVN, in rig run 41987501921, where each
+ * of these was left beside something in use that no rule may name:
+ *
+ *   ou-image-unused          private, and nothing has ever booted from it. The one to find
+ *   ou-image-used            ou-usage-on-image runs on it
+ *   ou-image-behind-volume   ou-vol-from-image was made from it
+ *   ou-image-protected       someone said to keep it
+ *   ou-image-stuck           no file ever arrived, so it holds nothing
+ *   cirros                   public, for anyone to boot from
+ */
+describe("what the rig left, as a probe reads it", () => {
+  const scene: RecordedScene = loadScene("hibiscus-ovn", "usage/usage-end");
+  const leftAt: number = Date.parse(
+    fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "../../../../Common/Tests/Fixtures/OpenStack/hibiscus-ovn/usage/usage-end/recorded-at.txt",
+        ),
+        "utf8",
+      )
+      .trim(),
+  );
+  const daysOn: (days: number) => Date = (days: number): Date => {
+    return new Date(leftAt + days * DAY_MS);
+  };
+
+  test("31 days on, the image nothing came from, and none of the others", async () => {
+    const images: OpenStackWasteFinding = ruleOf(
+      (await findingsOf(scene, daysOn(31))).findings,
+      OpenStackWasteRuleId.UnusedImage,
+    );
+
+    expect(images.cannotTell).toBeNull();
+    expect(namesOf(images)).toEqual(["ou-image-unused"]);
+    // 1 MiB, of which there's about a thousandth of a GB.
+    expect(images.frees.storageGb).toBeCloseTo(1 / 1024, 3);
+  });
+
+  test("and 29 days on it's not old enough", async () => {
+    expect(
+      namesOf(
+        ruleOf(
+          (await findingsOf(scene, daysOn(29))).findings,
+          OpenStackWasteRuleId.UnusedImage,
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("91 days on, the old snapshot, by when the cloud says it was made", async () => {
+    const snapshots: OpenStackWasteFinding = ruleOf(
+      (await findingsOf(scene, daysOn(91))).findings,
+      OpenStackWasteRuleId.OldSnapshot,
+    );
+
+    expect(snapshots.cannotTell).toBeNull();
+    expect(namesOf(snapshots)).toEqual(["ou-snap"]);
+  });
+
+  test("what's in use, in error, on its way or Cinder's own isn't named by the other rules", async () => {
+    const { findings } = await findingsOf(scene, daysOn(31));
+
+    expect(
+      namesOf(ruleOf(findings, OpenStackWasteRuleId.UnattachedVolume)).sort(),
+    ).toEqual(["ou-vol-free", "ou-vol-from-image"]);
+    expect(
+      namesOf(ruleOf(findings, OpenStackWasteRuleId.ShutOffInstance)),
+    ).toEqual(["ou-stopped"]);
+  });
+
+  test("a floating IP has no clock of the cloud's here, so it's named once OneUptime has seen it spare", async () => {
+    expect(
+      namesOf(
+        ruleOf(
+          (await findingsOf(scene, daysOn(31))).findings,
+          OpenStackWasteRuleId.SpareFloatingIp,
+        ),
+      ),
+    ).toEqual([]);
+    expect(
+      namesOf(
+        ruleOf(
+          (await findingsOf(scene, daysOn(31), new Date(leftAt))).findings,
+          OpenStackWasteRuleId.SpareFloatingIp,
+        ),
+      ),
+    ).toEqual(["172.24.4.67"]);
   });
 });

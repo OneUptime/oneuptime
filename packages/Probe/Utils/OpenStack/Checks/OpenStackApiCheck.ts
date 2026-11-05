@@ -125,6 +125,8 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
   },
   [OpenStackServiceType.Metric]: { path: "/v1/metric", query: "limit=1" },
   [OpenStackServiceType.Dns]: { path: "/v2/zones", query: "limit=1" },
+  // What it can rate, which comes from its own config: a summary would go through rated data.
+  [OpenStackServiceType.Rating]: { path: "/v1/info/metrics" },
 };
 
 const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {

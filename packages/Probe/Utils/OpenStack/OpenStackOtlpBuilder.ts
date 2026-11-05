@@ -11,6 +11,7 @@ import {
   OpenStackObjectStoreInventory,
   OpenStackDnsInventory,
   OpenStackMetricInventory,
+  OpenStackRatingInventory,
   OpenStackPlacementInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
@@ -76,6 +77,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.Image]: "openstack_glance",
   [OpenStackServiceType.Orchestration]: "openstack_heat",
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
+  [OpenStackServiceType.Rating]: "openstack_cloudkitty",
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
   [OpenStackServiceType.Database]: "openstack_trove",
@@ -315,6 +317,7 @@ export interface OpenStackServiceReading {
     | OpenStackBareMetalInventory
     | OpenStackOrchestrationInventory
     | OpenStackContainerInfraInventory
+    | OpenStackRatingInventory
     | OpenStackSharedFileSystemsInventory
     | OpenStackDatabaseInventory
     | OpenStackKeyManagerInventory
@@ -1447,6 +1450,20 @@ function writeBareMetal(
  * label, so anything less sends none: the exporter's series read the same. What it never asks for,
  * its status reason and parent, are marked in the catalogue.
  */
+// What CloudKitty rated, only when it was read: the figures stay on each project's row between reads.
+function writeRating(
+  writer: SeriesWriter,
+  inventory: OpenStackRatingInventory,
+): void {
+  for (const rated of inventory.rated || []) {
+    writer.add(
+      "rated",
+      { project_id: rated.projectId, period: rated.period },
+      rated.rate,
+    );
+  }
+}
+
 function writeOrchestration(
   writer: SeriesWriter,
   inventory: OpenStackOrchestrationInventory,
@@ -1860,6 +1877,9 @@ function writeInventory(
       return;
     case OpenStackServiceType.Metric:
       writeMetric(writer, reading.inventory as OpenStackMetricInventory);
+      return;
+    case OpenStackServiceType.Rating:
+      writeRating(writer, reading.inventory as OpenStackRatingInventory);
       return;
     case OpenStackServiceType.SharedFileSystems:
       writeSharedFileSystems(

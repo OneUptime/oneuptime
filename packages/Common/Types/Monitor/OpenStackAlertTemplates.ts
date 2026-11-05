@@ -282,6 +282,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   // The agent asks about the services a cloud may not run every five minutes.
   [OpenStackServiceType.Orchestration]: RollingTime.Past15Minutes,
   [OpenStackServiceType.ContainerInfra]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.Rating]: RollingTime.Past15Minutes,
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
@@ -303,6 +304,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.Image]: "openstack_glance_up",
   [OpenStackServiceType.Orchestration]: "openstack_heat_up",
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra_up",
+  [OpenStackServiceType.Rating]: "openstack_cloudkitty_up",
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
   [OpenStackServiceType.Database]: "openstack_trove_up",
@@ -1019,6 +1021,21 @@ const orchestrationApiDownTemplate: OpenStackAlertTemplate =
     collectionMetricName: "up",
     incidentDescription: `Heat's API is not answering: every call the exporter made failed, or the exporter did not answer that collection. Heat's API asks an engine for its lists, so this is also what a stopped heat-engine looks like. What Heat already built carries on, but no stack can be created, changed or deleted, and Magnum builds its clusters with Heat. Check openstack orchestration service list, then heat-api's and heat-engine's services and logs, and RabbitMQ. The incident resolves on its own once it answers again.`,
   });
+
+const ratingApiDownTemplate: OpenStackAlertTemplate = {
+  ...buildApiDownTemplate({
+    id: "openstack-rating-api-down",
+    name: "Rating API Down",
+    summary: "CloudKitty's API does not answer for 15 minutes.",
+    description:
+      "Alert when CloudKitty's API does not answer for 15 minutes (openstack_cloudkitty_up reads 0, which only a probe sends, because the agent's exporter has no series for it), or that collection did not answer (up reads 0). One incident per region. What a project was rated stops moving until it answers again, and the Spend page says when it was last read. Check `openstack catalog show rating`, then cloudkitty-api's service and logs.",
+    service: OpenStackServiceType.Rating,
+    collectionMetricName: "up",
+    incidentDescription: `CloudKitty's API is not answering, so what each project was rated has stopped moving. Instances, volumes and everything else carry on, and usage goes on being counted from the inventory. Check openstack catalog show rating, then cloudkitty-api's service and logs, and the database behind it. The incident resolves on its own once it answers again.`,
+  }),
+  // The agent's exporter has no series for it.
+  requiresProbe: true,
+};
 
 const containerInfraApiDownTemplate: OpenStackAlertTemplate =
   buildApiDownTemplate({
@@ -3772,6 +3789,7 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     floatingIpUnreachableTemplate,
     orchestrationApiDownTemplate,
     containerInfraApiDownTemplate,
+    ratingApiDownTemplate,
     computeServiceDownTemplate,
     schedulerOrConductorDownTemplate,
     everySchedulerOrConductorDownTemplate,

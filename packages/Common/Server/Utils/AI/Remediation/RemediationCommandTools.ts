@@ -332,6 +332,9 @@ export type RemediationCommandMode = "Suggest" | "FullAuto";
  */
 export const ROLL_BACK_CHANGE_TOOL_NAME: string = "roll_back_change";
 
+// What a model can do about an evacuation the agent couldn't read in full. A workflow can't.
+const READ_THE_REACH_YOURSELF: string = ` Read them with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and say what you found.`;
+
 /*
  * Verbs that never run on their own in any mode, whatever the allowlist
  * says. A patch of a Node never does either; the policy marks all three
@@ -475,6 +478,9 @@ interface CommandArgsParseResult {
 }
 
 export default class RemediationCommandToolkit {
+  // Why the last proposal was refused, command by command.
+  private lastProposalProblems: Array<string> = [];
+
   private options: RemediationCommandToolkitOptions;
   private executedCommands: Array<AiRemediationCommand> = [];
   private proposedPlan: AiRemediationCommandPlan | null = null;
@@ -3030,7 +3036,7 @@ export default class RemediationCommandToolkit {
         AI_RESOURCE_TYPE_INFO[command.resourceType].agentDisplayName
       } could not read them all: ${
         reach ? reach.problems[0] || "some did not answer" : problem
-      }. Nothing was proposed. Read them with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and say what you found.`;
+      }. Nothing was proposed.${READ_THE_REACH_YOURSELF}`;
     }
 
     return null;
@@ -3742,6 +3748,27 @@ export default class RemediationCommandToolkit {
     };
   }
 
+  /*
+   * One change, proposed by something that isn't a model: a workflow's step
+   * (OpenStackWorkflowFix). The road a model's proposal takes, to the same plan, and what
+   * was refused in words for a person, or null once it is the plan.
+   */
+  public async proposeOneCommand(command: JSONObject): Promise<string | null> {
+    const outcome: ToolCallOutcome = await this.proposeCommands({
+      commands: [command],
+    });
+
+    if (outcome.success) {
+      return null;
+    }
+
+    const problem: string = this.lastProposalProblems[0] || outcome.textForLlm;
+
+    return problem
+      .replace(/^Command 1: /, "")
+      .replace(READ_THE_REACH_YOURSELF, "");
+  }
+
   private async proposeCommands(args: JSONObject): Promise<ToolCallOutcome> {
     const commandsRaw: unknown = args["commands"];
 
@@ -3846,6 +3873,8 @@ export default class RemediationCommandToolkit {
 
       commands.push(parsed.command);
     }
+
+    this.lastProposalProblems = problems;
 
     if (problems.length > 0) {
       return this.failure(

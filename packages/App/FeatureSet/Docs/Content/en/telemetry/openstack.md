@@ -577,7 +577,10 @@ If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it
 
 - **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
 - **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **A CloudKitty per region adds up.** Each one is read in its own time, and a project's figure is what they rated between them. One CloudKitty the catalog lists for several regions is asked once.
+- **Its figures are the one part of this that's telemetry.** They reach OneUptime as `openstack_cloudkitty_rated`, one datapoint per project and month, once an hour: 20,000 an hour at 10,000 projects, which is next to nothing beside the rest of a cloud that size.
 - **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
+- **If it stops answering,** what each project was rated stays where it was, and the page says when it was last read. **Rating API Down** alerts on that.
 - **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
 
 ### Budgets
@@ -592,7 +595,7 @@ The cloud's **Recommendations** page lists what's been left unused, what each wo
 |---|---|---|---|
 | Hypervisors that could be emptied | 20% or less of its vCPUs and memory are allocated, everything on it fits on the other hosts in its zone and aggregates, and the zone could still lose a host afterwards | The whole host | `openstack hypervisor list --long` |
 | Instances shut off for a long time | Shut off for 30 days | Their vCPUs, memory and local disk | `openstack server list --all-projects --status SHUTOFF --long` |
-| Volumes attached to nothing | Available for 30 days, attached to nothing | Their storage | `openstack volume list --all-projects --status available --long` |
+| Volumes attached to nothing | Available for 30 days, attached to nothing, and not one of Cinder's own `image-<id>` volumes, which the command also lists | Their storage | `openstack volume list --all-projects --status available --long` |
 | Old volume snapshots | Made 90 days ago. Probe only | Their storage | `openstack volume snapshot list --all-projects --long` |
 | Images nothing was booted from | Private or shared, 30 days old, not protected, and no instance or volume came from it. Probe only | Their storage | `openstack image list --long` |
 | Floating IPs nothing is using | Unassociated for 7 days | An address | `openstack floating ip list --status DOWN --long` |
@@ -1497,6 +1500,10 @@ The cloud's **AI agent** page offers a runbook for each of these, to add and mak
 | Router without an agent | Safe: enable the agent. Riskier: disable it |
 | RabbitMQ partition | By hand, on the machines: RabbitMQ is below OpenStack, and no command OneUptime AI has reaches it |
 | Galera lost quorum | By hand, on the machines, from the node with the highest `wsrep_last_committed` |
+
+### Fixes from a workflow
+
+A workflow can start from an OpenStack alert and propose a fix: the **Propose an OpenStack fix** step takes the alert or incident, and the command. It goes through the same policy, the same write scope and the same read of what a change touches as a fix OneUptime AI proposes, it needs no AI model, and a person approves it on the alert. A workflow can't make the change itself or approve what it proposes, whatever the cloud's fix mode is. The **Propose taking a failing OpenStack compute service out of scheduling** template is a place to start.
 
 ## Run as a systemd service
 

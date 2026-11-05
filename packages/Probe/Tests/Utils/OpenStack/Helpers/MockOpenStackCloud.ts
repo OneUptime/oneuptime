@@ -114,6 +114,7 @@ export default class MockOpenStackCloud {
     [OpenStackServiceType.ObjectStore]: 0,
     [OpenStackServiceType.Metric]: 0,
     [OpenStackServiceType.Dns]: 0,
+    [OpenStackServiceType.Rating]: 0,
   };
   // How many times each kind of read was made, to say which one a budget went on.
   public readonly requestsByRoute: Map<string, number> = new Map();

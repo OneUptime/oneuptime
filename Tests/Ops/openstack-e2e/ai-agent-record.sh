@@ -176,9 +176,10 @@ CREDENTIAL="$(as_write_account application credential create oneuptime-agent-fix
   --role admin --role oneuptime_remediation \
   --access-rules "$(cat "$RULES_FILE")" -f json)"
 export ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID
-ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID="$(printf '%s' "$CREDENTIAL" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+# The client's words differ by release, as they do in access-matrix.sh.
+ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID="$(printf '%s' "$CREDENTIAL" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); print(c.get("id") or c["ID"])')"
 export ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET
-ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET="$(printf '%s' "$CREDENTIAL" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["secret"])')"
+ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET="$(printf '%s' "$CREDENTIAL" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); print(c.get("secret") or c["Secret"])')"
 export OPENSTACK_AUTH_URL="$AUTH_URL"
 export ONEUPTIME_AI_ALLOW_WRITES=true
 export ONEUPTIME_AI_FIXES=ask-for-approval

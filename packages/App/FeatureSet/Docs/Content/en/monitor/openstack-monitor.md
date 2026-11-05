@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 109 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove or Designate to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 110 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum, Ironic, Manila, Trove, Designate, Gnocchi or Swift to a cloud that runs it, one over a series only a probe sends to a cloud a probe collects, and one over a [check from outside](#checks-from-outside) to a cloud with that check on: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -148,6 +148,7 @@ Every template reads at least three collections of what it watches, and fires on
 | Image Stuck | Storage | Warning | `openstack_glance_image_created_at` for each passing status word, Max per image, **past 1 hour** | In that status at every collection for an hour | Left it, or was deleted |
 | Orchestration API Down | Availability | Critical | `openstack_heat_up` and `up` for `orchestration`, Min per region, **past 15 minutes** | Every call failed, which is what a stopped `heat-engine` reads as too, or the exporter did not answer | Both read 1 |
 | Kubernetes Clusters API Down | Availability | Critical | `openstack_container_infra_up` and `up` for `container-infra`, Min per region, **past 15 minutes** | Every call failed, or the exporter did not answer | Both read 1 |
+| Rating API Down | Availability | Critical | `openstack_cloudkitty_up` and `up` for `rating`, Min per region, **past 15 minutes**. Only a probe sends this | CloudKitty's API does not answer, so what each project was rated stops moving | Both read 1 |
 | Heat Engine Down | Control Plane | Warning | `openstack_heat_agent_state`, Min per host, **past 15 minutes**. Only a probe sends this | Heat lists a `heat-engine` as down. With every engine stopped Heat can't list them, and Orchestration API Down fires instead | It reads 1, or Heat drops its record |
 | Magnum Conductor Down | Control Plane | Critical | `openstack_container_infra_agent_state` with `adminState=enabled`, Min per host, **past 15 minutes**. Only a probe sends this | Magnum lists an enabled `magnum-conductor` as down. Magnum's API carries on answering, so nothing else says this | It reads 1, or someone disables it |
 | Stack Failed | Orchestration | Warning | `openstack_heat_stack_status` with each `*_FAILED` status, per stack, **past 15 minutes** | A stack holds a failed status for the whole window | It is updated or deleted |
@@ -518,6 +519,8 @@ A cloud that runs Heat or Magnum has these. A cloud that doesn't has none of the
 | `openstack_heat_stack_status_counter` | `count` | Max | How many stacks hold each status, per region. |
 | `openstack_heat_agent_state` | | Min | Whether Heat lists each `heat-engine` as up. Only a probe sends this. |
 | `openstack_container_infra_up` | | Min | Whether Magnum's API answered. A stopped `magnum-conductor` leaves it at 1. |
+| `openstack_cloudkitty_up` | | Min | Whether CloudKitty's API answered, on a cloud that runs it. Only a probe sends this. |
+| `openstack_cloudkitty_rated` | | Max | What CloudKitty rated a project for a month, once an hour, by project and month. A number, in whatever its rates are in. Only a probe sends this. |
 | `openstack_container_infra_total_clusters` | `count` | Max | How many clusters Magnum listed for this credential. |
 | `openstack_container_infra_cluster_status` | | Max | One series per cluster, with `uuid`, `name`, `stack_id`, `status`, `node_count`, `master_count` and `project_id`. Its value is a code, so read its `status` label. `project_id` is empty from the exporter. |
 | `openstack_container_infra_cluster_masters` | `count` | Max | How many control plane nodes each cluster was asked for. |

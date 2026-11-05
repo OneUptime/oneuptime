@@ -95,6 +95,7 @@ export enum OpenStackServiceType {
    */
   Orchestration = "orchestration",
   ContainerInfra = "container-infra",
+  Rating = "rating",
   // A service a cloud may not run: see OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
@@ -138,6 +139,7 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.Image]: "Images (Glance)",
   [OpenStackServiceType.Orchestration]: "Orchestration (Heat)",
   [OpenStackServiceType.ContainerInfra]: "Kubernetes Clusters (Magnum)",
+  [OpenStackServiceType.Rating]: "Rating (CloudKitty)",
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
   [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
   [OpenStackServiceType.Database]: "Databases (Trove)",
@@ -183,6 +185,8 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
   ],
   [OpenStackServiceType.Image]: [OpenStackResourceKind.Image],
   [OpenStackServiceType.Orchestration]: [OpenStackResourceKind.Stack],
+  // What it rates goes on each project's row, which Keystone answers for.
+  [OpenStackServiceType.Rating]: [],
   [OpenStackServiceType.ContainerInfra]: [
     OpenStackResourceKind.ContainerCluster,
   ],

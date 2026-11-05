@@ -120,6 +120,9 @@ function metricNames(): Array<string> {
  * is 0 or 1, and Placement's resource series change unit with their resourcetype.
  */
 const NO_UNIT_SERIES: ReadonlyArray<string> = [
+  // Whether CloudKitty answered, and a rate, which is a number in whatever its rates are in.
+  "openstack_cloudkitty_rated",
+  "openstack_cloudkitty_up",
   // What the cloud stands on says 0 or 1, or a state's code.
   "erlang_vm_dist_node_state",
   "haproxy_backend_status",
@@ -251,6 +254,8 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_barbican_up",
         "openstack_cinder_backup_gb",
         "openstack_cinder_snapshot_gb",
+        "openstack_cloudkitty_rated",
+        "openstack_cloudkitty_up",
         "openstack_container_infra_agent_state",
         "openstack_designate_agent_state",
         "openstack_heat_agent_state",
@@ -283,6 +288,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_pool_capacity_total_gb",
         "openstack_cinder_up",
         "openstack_cinder_volume_gb",
+        "openstack_cloudkitty_up",
         "openstack_container_infra_cluster_status",
         "openstack_container_infra_up",
         "openstack_designate_zone_status",
@@ -312,8 +318,9 @@ describe("OpenStackMetricCatalog", () => {
       for (const metric of marked) {
         for (const label of metric.probeOnlyAttributes || []) {
           expect(metric.identityAttributes).not.toContain(label);
+          // A series only a probe sends isn't one of the exporter's at all.
           expect(
-            OPENSTACK_EXPORTER_SERIES[metric.metricName]!.labels,
+            OPENSTACK_EXPORTER_SERIES[metric.metricName]?.labels || [],
           ).not.toContain(label);
         }
       }
@@ -692,11 +699,13 @@ describe("OpenStackMetricCatalog", () => {
 
     test("every service has a scrape job under the name the series say", () => {
       for (const service of Object.values(OpenStackServiceType)) {
-        // The exporter has no reader for Barbican, recorded: asking for it is a 400.
-        if (service === OpenStackServiceType.KeyManager) {
-          continue;
+        // The exporter has no reader for Barbican, recorded, and no series for CloudKitty.
+        if (
+          service !== OpenStackServiceType.KeyManager &&
+          service !== OpenStackServiceType.Rating
+        ) {
+          expect(COLLECTOR_CONFIG).toContain(`openstack_service: ${service}`);
         }
-        expect(COLLECTOR_CONFIG).toContain(`openstack_service: ${service}`);
       }
     });
 

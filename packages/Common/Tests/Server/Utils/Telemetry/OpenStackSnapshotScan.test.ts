@@ -20,6 +20,7 @@ import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import { readOpenStackRatedByPeriod } from "../../../../Types/OpenStack/OpenStackSpendSnapshot";
 
 /*
  * The OpenStack snapshot scan, fed with OTLP datapoints in the exact JSON shape
@@ -924,12 +925,13 @@ describe("storage", () => {
     });
 
     expect(
-      rowOf(buffer, OpenStackResourceKind.Volume, "from-image").facts["imageId"],
+      rowOf(buffer, OpenStackResourceKind.Volume, "from-image").facts[
+        "imageId"
+      ],
     ).toBe("image-1");
-    expect(rowOf(buffer, OpenStackResourceKind.Volume, "blank").facts).toHaveProperty(
-      "imageId",
-      null,
-    );
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Volume, "blank").facts,
+    ).toHaveProperty("imageId", null);
     expect(
       rowOf(buffer, OpenStackResourceKind.Volume, "exporters").facts,
     ).not.toHaveProperty("imageId");
@@ -957,6 +959,89 @@ describe("storage", () => {
     expect(
       rowOf(buffer, OpenStackResourceKind.Image, "image").facts["isProtected"],
     ).toBe(true);
+  });
+
+  /*
+   * HAND-CHECKED AGAINST CLOUDKITTY'S API REFERENCE: nothing has recorded a real one. What the probe
+   * makes of its answers goes on each project's row, which Keystone answers for.
+   */
+  test("what CloudKitty rated goes on the project's row, by month, and each region is its own fact", () => {
+    const buffer: Buffer = new Map();
+
+    for (const [region, rate] of [
+      ["RegionOne", 2.5],
+      ["RegionTwo", 1],
+    ] as Array<[string, number]>) {
+      fold(buffer, "openstack_cloudkitty_rated", {
+        value: rate,
+        region,
+        labels: { project_id: "payments", period: "2026-11" },
+      });
+    }
+    fold(buffer, "openstack_cloudkitty_rated", {
+      value: 40,
+      region: "RegionOne",
+      labels: { project_id: "payments", period: "2026-10" },
+    });
+
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Project,
+      "payments",
+    );
+    const one: JSONObject = row.facts["rated:RegionOne"] as JSONObject;
+    const two: JSONObject = row.facts["rated:RegionTwo"] as JSONObject;
+
+    expect(row.openStackProjectId).toBe("payments");
+    expect((one["2026-11"] as JSONObject)["total"]).toBe(2.5);
+    expect((one["2026-10"] as JSONObject)["total"]).toBe(40);
+    expect((two["2026-11"] as JSONObject)["total"]).toBe(1);
+    expect(two["2026-10"]).toBeUndefined();
+
+    // What the page is worked out from: a project's regions added up.
+    expect(readOpenStackRatedByPeriod(row.facts)["2026-11"]?.total).toBe(3.5);
+  });
+
+  test("a region's next read replaces its own figures and leaves the other's", () => {
+    const first: Buffer = new Map();
+    fold(first, "openstack_cloudkitty_rated", {
+      value: 2.5,
+      region: "RegionOne",
+      labels: { project_id: "payments", period: "2026-11" },
+    });
+    const second: Buffer = new Map();
+    fold(second, "openstack_cloudkitty_rated", {
+      value: 1,
+      region: "RegionTwo",
+      labels: { project_id: "payments", period: "2026-11" },
+    });
+
+    // As a row is written: a batch's facts over the row's, each one replaced whole.
+    const merged: JSONObject = {
+      ...rowOf(first, OpenStackResourceKind.Project, "payments").facts,
+      ...rowOf(second, OpenStackResourceKind.Project, "payments").facts,
+    };
+
+    expect(readOpenStackRatedByPeriod(merged)["2026-11"]?.total).toBe(3.5);
+  });
+
+  test("a rate of nothing, or one that names no project or month, writes nothing", () => {
+    const buffer: Buffer = new Map();
+
+    fold(buffer, "openstack_cloudkitty_rated", {
+      value: 0,
+      labels: { project_id: "a", period: "2026-11" },
+    });
+    fold(buffer, "openstack_cloudkitty_rated", {
+      value: 1,
+      labels: { period: "2026-11" },
+    });
+    fold(buffer, "openstack_cloudkitty_rated", {
+      value: 1,
+      labels: { project_id: "a" },
+    });
+
+    expect(buffer.size).toBe(0);
   });
 
   test("a backup is a row of its own, which only a probe sends", () => {
