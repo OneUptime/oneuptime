@@ -576,6 +576,7 @@ describe("install.sh --without-docker", () => {
       OPENSTACK_EXPORTER_USER: "",
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "",
+      // The region of a target that does not say its own, and the lists nobody named yet.
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
       OPENSTACK_RABBITMQ_TARGETS: "[]",
@@ -1109,8 +1110,11 @@ describe("the README", () => {
     fs.mkdirSync(path.join(env.dir, "something-else"));
     fs.rmSync(path.join(env.dir, "systemctl.log"));
 
+    // The other block starting so takes away the Docker install's unit, and only that.
     const uninstall = bashBlocks(section("## Uninstalling")).find((block) => {
-      return block.startsWith("sudo systemctl disable");
+      return block.startsWith(
+        `sudo systemctl disable --now ${COLLECTOR_SERVICE} ${EXPORTER_SERVICE}`,
+      );
     });
     expect(uninstall).toBeDefined();
     const result = spawnSync(
@@ -1311,7 +1315,7 @@ describe("the README", () => {
     expect(text).toContain("except Keystone's users and groups, on purpose");
     expect(text).toContain("Keystone needs nothing.");
     expect(text).toContain(
-      "The rules also carry `volumev3`, for a Cinder configured that way.",
+      "The rules also carry `volume` and `volumev3`, for a Cinder configured that way.",
     );
   });
 

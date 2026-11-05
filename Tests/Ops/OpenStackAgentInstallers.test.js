@@ -460,8 +460,10 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
       COMPOSE_PROFILES: "'openstack-exporter'",
+      // The first region named, for a target that does not say its own.
       OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
+      // Never asked for: whoever knows where these run names them by hand.
       OPENSTACK_RABBITMQ_TARGETS: "'[]'",
       OPENSTACK_MARIADB_TARGETS: "'[]'",
       OPENSTACK_MEMCACHED_TARGETS: "'[]'",
@@ -2261,7 +2263,7 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
 
   test("installs where the systemd unit and the doctor script look", () => {
     const installDir = "/opt/oneuptime-openstack-agent";
-    expect(script).toContain(`INSTALL_DIR="\${INSTALL_DIR:-${installDir}}"`);
+    expect(script).toContain(`DEFAULT_INSTALL_DIR="${installDir}"`);
     expect(agentFile("systemd/oneuptime-openstack-agent.service")).toContain(
       `WorkingDirectory=${installDir}\n`,
     );
@@ -2738,4 +2740,103 @@ describe("with the real curl, against a server that answers as OneUptime and Key
     expect(run.output).toContain("this machine could not connect to");
     expect(run.output).toContain("Nothing was installed or changed.");
   });
+});
+
+describe("a person with the docker group and no rights on /opt", () => {
+  // What these are about can only be seen where /opt is closed to this user, as it is to most.
+  let optIsClosed = !fs.existsSync("/opt/oneuptime-openstack-agent");
+  try {
+    fs.accessSync("/opt", fs.constants.W_OK);
+    optIsClosed = false;
+  } catch {
+    // Closed, as hoped.
+  }
+  const whereOptIsClosed = optIsClosed ? test : test.skip;
+  const inHome = (dir) => {
+    return path.join(dir, "oneuptime-openstack-agent");
+  };
+  const fromHome = (dir, options = {}) => {
+    return install(dir, { ...options, env: { INSTALL_DIR: "", ...options.env } });
+  };
+
+  whereOptIsClosed(
+    "gets a folder in their home, told so, and an exporter that runs as them",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH });
+
+      expect(run.status).toBe(0);
+      expect(run.output).toContain(`Installing to: ${inHome(dir)}\n`);
+      expect(run.output).toContain(
+        "This user has no rights on /opt, so the agent goes in its home folder.",
+      );
+      expect(fs.existsSync(path.join(inHome(dir), "docker-compose.yml"))).toBe(
+        true,
+      );
+      const env = readIfExists(path.join(inHome(dir), ".env"));
+      expect(env).toContain("OPENSTACK_EXPORTER_USER=1000:1000\n");
+      expect(mode(path.join(inHome(dir), ".env"))).toBe(0o600);
+      expect(mode(path.join(inHome(dir), "clouds.yaml"))).toBe(0o600);
+      // Nothing to give away: the file is already the exporter's user's.
+      expect(run.chownLog).toBe("");
+    },
+  );
+
+  whereOptIsClosed(
+    "the doctor's line says which folder, because it would look in /opt",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH });
+
+      expect(run.output).toContain(`| bash -s -- -d ${inHome(dir)}\n`);
+    },
+  );
+
+  whereOptIsClosed("a re-run finds it there, and asks nothing", () => {
+    const dir = scratch();
+    fromHome(dir, { input: FRESH });
+    const again = fromHome(dir);
+
+    expect(again.status).toBe(0);
+    expect(again.output).toContain(`Found an existing configuration in ${inHome(dir)}/.env`);
+    expect(again.output).toContain(`Installing to: ${inHome(dir)}\n`);
+  });
+
+  whereOptIsClosed("a folder they name is the folder, and no more is said", () => {
+    const dir = scratch();
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain(`Installing to: ${path.join(dir, "agent")}\n`);
+    expect(run.output).not.toContain("home folder");
+  });
+
+  whereOptIsClosed(
+    "an install without Docker still asks for root, with no home folder on offer",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH, args: ["--without-docker"] });
+
+      expect(run.status).toBe(1);
+      // Wherever this runs, one of the two stops it: this user is not root, and it may not be Linux.
+      expect(run.output).toMatch(/so it needs (root|Linux)/);
+      expect(fs.existsSync(inHome(dir))).toBe(false);
+    },
+  );
+
+  whereOptIsClosed(
+    "a machine that says root and still cannot write there is told what to do, after nothing has changed",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH, env: { FAKE_UID: "0" } });
+
+      expect(run.status).toBe(1);
+      expect(run.output).toContain(
+        "Error: could not create /opt/oneuptime-openstack-agent. Nothing was installed or changed.",
+      );
+      expect(run.output).toContain("INSTALL_DIR=$HOME/oneuptime-openstack-agent bash install.sh");
+      expect(fs.existsSync(inHome(dir))).toBe(false);
+      expect(composeCalls(run.docker)).toEqual([]);
+    },
+  );
 });

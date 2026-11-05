@@ -691,8 +691,9 @@ describe("a failing Neutron leaves Nova's data intact", () => {
       overrides: { collectionTimeoutInMs: 20 },
     });
 
+    // A global Node 24 made read-only, and nothing here reads it.
     jest.useFakeTimers({
-      doNotFake: ["setImmediate", "nextTick", "queueMicrotask"],
+      doNotFake: ["setImmediate", "nextTick", "queueMicrotask", "performance"],
     });
 
     try {

@@ -147,7 +147,8 @@ start_phase() {
 # What each unit wrote since the phase began, keeping the fields a recording reads.
 end_phase() {
   local journal="$PHASE_DIR/journal.jsonl.gz"
-  sudo journalctl --no-pager -o json --since "$PHASE_STARTED UTC" -u 'devstack@*' \
+  # --all, or journalctl writes a line over 4096 bytes as null and the recording never has it.
+  sudo journalctl --no-pager --all -o json --since "$PHASE_STARTED UTC" -u 'devstack@*' \
     | python3 -I "$CONFIGURE" journal-lines \
     | gzip -9 >"$journal"
   sudo chown -R "$(id -u)" "$PHASE_DIR"

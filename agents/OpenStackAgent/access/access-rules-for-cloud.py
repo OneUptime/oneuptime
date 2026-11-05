@@ -37,11 +37,13 @@ def prefixes_of(catalog):
 
 
 def fitted(rules, prefixes):
-    # Cinder's type depends on the cloud's age, and a rule can only name one.
-    if "block-storage" in prefixes:
-        prefixes.setdefault("volumev3", prefixes["block-storage"])
-    if "volumev3" in prefixes:
-        prefixes.setdefault("block-storage", prefixes["volumev3"])
+    # Cinder's type depends on the cloud's age and on what deployed it, and a rule can only
+    # name one: Kolla-Ansible 2026.1 registers block-storage and has Cinder itself say volume.
+    for name in ("block-storage", "volumev3", "volume"):
+        if name in prefixes:
+            for other in ("block-storage", "volumev3", "volume"):
+                prefixes.setdefault(other, prefixes[name])
+            break
 
     result = []
     seen = set()

@@ -28,10 +28,13 @@ import {
   describeOpenStackBlastRadiusCounts,
   isOpenStackBlastRadiusEmpty,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
+import { OPENSTACK_SERVICE_TITLES } from "../../../../Types/OpenStack/OpenStackResourceKind";
 import OpenStackAcrossProducts from "../../OpenStack/OpenStackAcrossProducts";
 import OpenStackAlertContext, {
   OpenStackAlertContextResult,
   OpenStackBusyInstance,
+  OpenStackRegionWide,
+  getOpenStackMetricNamesOfMonitor,
 } from "../../OpenStack/OpenStackAlertContext";
 import {
   OpenStackPlacement,
@@ -417,9 +420,15 @@ export default class LinkedInfrastructureContext {
     const incident: {
       createdAt?: Date | undefined;
       seriesLabels?: JSONObject | undefined;
+      monitors?: Array<{ monitorSteps?: unknown }> | undefined;
     } | null = await IncidentService.findOneBy({
       query: { _id: data.incidentId.toString(), projectId: data.projectId },
-      select: { _id: true, createdAt: true, seriesLabels: true },
+      select: {
+        _id: true,
+        createdAt: true,
+        seriesLabels: true,
+        monitors: { _id: true, monitorSteps: true },
+      },
       props: { isRoot: true },
     });
 
@@ -447,6 +456,7 @@ export default class LinkedInfrastructureContext {
         projectId: data.projectId,
         resources,
         seriesLabels: incident.seriesLabels,
+        monitors: incident.monitors,
       }),
       openStackPlacements:
         await LinkedInfrastructureContext.readOpenStackPlacements({
@@ -464,7 +474,12 @@ export default class LinkedInfrastructureContext {
   }): Promise<LinkedInfrastructure | null> {
     const alert: Alert | null = await AlertService.findOneBy({
       query: { _id: data.alertId.toString(), projectId: data.projectId },
-      select: { _id: true, createdAt: true, seriesLabels: true },
+      select: {
+        _id: true,
+        createdAt: true,
+        seriesLabels: true,
+        monitor: { _id: true, monitorSteps: true },
+      },
       props: { isRoot: true },
     });
 
@@ -493,6 +508,7 @@ export default class LinkedInfrastructureContext {
         projectId: data.projectId,
         resources,
         seriesLabels: alert.seriesLabels as JSONObject | undefined,
+        monitors: alert.monitor ? [alert.monitor] : undefined,
       }),
       openStackPlacements:
         await LinkedInfrastructureContext.readOpenStackPlacements({
@@ -600,11 +616,15 @@ export default class LinkedInfrastructureContext {
    * What the series a subject is about takes with it on the OpenStack cloud it is linked
    * to. A read that fails leaves the rest of the context as it is: this is one more thing
    * to know, not the thing an investigation stands on.
+   *
+   * The series a region's API opens on names only the region, so which API it is comes from
+   * what its monitor reads, as it does for the description written when the subject opened.
    */
   private static async readOpenStack(data: {
     projectId: ObjectID;
     resources: Array<LinkedInfrastructureResource>;
     seriesLabels: JSONObject | undefined;
+    monitors?: Array<{ monitorSteps?: unknown }> | undefined;
   }): Promise<OpenStackAlertContextResult | undefined> {
     const cloud: LinkedInfrastructureResource | undefined = data.resources.find(
       (resource: LinkedInfrastructureResource): boolean => {
@@ -621,6 +641,11 @@ export default class LinkedInfrastructureContext {
         projectId: data.projectId,
         openStackCloudId: new ObjectID(cloud.id),
         seriesLabels: data.seriesLabels,
+        metricNames: (data.monitors || []).flatMap(
+          (monitor: { monitorSteps?: unknown }): Array<string> => {
+            return getOpenStackMetricNamesOfMonitor(monitor.monitorSteps);
+          },
+        ),
       });
     } catch {
       return undefined;
@@ -823,13 +848,21 @@ export default class LinkedInfrastructureContext {
       );
     }
 
+    const regionWide: OpenStackRegionWide | undefined = context.regionWide;
+
+    if (regionWide) {
+      lines.push(LinkedInfrastructureContext.describeRegionWide(regionWide));
+    }
+
     if (context.radius && !context.radius.isKnown) {
       lines.push(
         "What was collected from this cloud does not say what this part holds, so do not read that as nothing.",
       );
     } else if (context.radius && !isOpenStackBlastRadiusEmpty(context.radius)) {
       lines.push(
-        `What this part takes with it: ${describeOpenStackBlastRadius(context.radius)}.`,
+        regionWide
+          ? `What it takes with it, every project there with anything on it: ${describeOpenStackBlastRadius(context.radius)}.`
+          : `What this part takes with it: ${describeOpenStackBlastRadius(context.radius)}.`,
       );
       for (const project of context.radius.projects) {
         lines.push(
@@ -871,6 +904,19 @@ export default class LinkedInfrastructureContext {
     }
 
     return lines.length > 0 ? ["", ...lines] : lines;
+  }
+
+  // A region's name is whatever its operator called it, so it goes in as a field.
+  private static describeRegionWide(regionWide: OpenStackRegionWide): string {
+    const title: string = OPENSTACK_SERVICE_TITLES[regionWide.service];
+
+    if (regionWide.isWholeCloud) {
+      return `This is about the whole cloud, not one part of it: the ${title} API, which every region depends on.`;
+    }
+
+    return regionWide.regionName
+      ? `This is about a whole region, not one part of it: the ${title} API of region ${JSON.stringify(PromptText.field(regionWide.regionName, { maxLength: 200 }))}.`
+      : `This is about a whole region, not one part of it: the ${title} API.`;
   }
 
   private static describeBusyInstance(instance: OpenStackBusyInstance): string {
