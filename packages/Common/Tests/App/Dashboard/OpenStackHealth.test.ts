@@ -35,13 +35,18 @@ import {
   OpenStackL3AgentFact,
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
+  isOpenStackContainerClusterFailed,
+  isOpenStackContainerClusterStuck,
   isOpenStackQuotaAtLine,
   isOpenStackServiceDown,
   isOpenStackServiceQuiet,
+  isOpenStackStackFailed,
+  isOpenStackStackStuck,
   isOpenStackServiceForcedDown,
   isSameOpenStackHost,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OpenStackResourceKind,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
@@ -52,6 +57,7 @@ import {
   OpenStackAssessment,
   assessOpenStackApi,
   assessOpenStackBareMetalNode,
+  assessOpenStackContainerCluster,
   assessOpenStackFloatingIp,
   assessOpenStackHypervisor,
   assessOpenStackImage,
@@ -1528,17 +1534,30 @@ describe("on the line, and in the words that say so", () => {
     });
   });
 
-  test.each<[string, number | null, ResourceAttentionSeverity | null]>([
-    ["HEALTH_OK says nothing", 0, null],
-    ["HEALTH_WARN is often a rebalance", 1, WARNING],
-    ["HEALTH_ERR is Ceph refusing something", 2, CRITICAL],
-    ["and no reading says nothing", null, null],
+  test.each<
+    [string, number | null, ResourceAttentionSeverity | null, string | null]
+  >([
+    ["HEALTH_OK says nothing", 0, null, null],
+    [
+      "HEALTH_WARN is often a rebalance",
+      1,
+      WARNING,
+      "Its Ceph cluster {{cluster}} reads HEALTH_WARN",
+    ],
+    [
+      "HEALTH_ERR is Ceph refusing something",
+      2,
+      CRITICAL,
+      "Its Ceph cluster {{cluster}} reads HEALTH_ERR",
+    ],
+    ["and no reading says nothing", null, null, null],
   ])(
     "a half empty pool, with Ceph behind it: %s",
     (
       _what: string,
       healthStatus: number | null,
       severity: ResourceAttentionSeverity | null,
+      reason: string | null,
     ) => {
       const assessment: OpenStackAssessment = assessOpenStackStoragePool(
         row(OpenStackResourceKind.StoragePool, {
@@ -1557,10 +1576,154 @@ describe("on the line, and in the words that say so", () => {
       expect(assessment.severity).toBe(severity);
       expect(assessment.reasons).toHaveLength(severity ? 1 : 0);
       if (severity) {
-        expect(assessment.reasons[0]?.values).toEqual({ cluster: "ceph-eu" });
+        expect(assessment.reasons[0]).toEqual({
+          text: reason,
+          values: { cluster: "ceph-eu" },
+        });
       }
     },
   );
+
+  test.each<
+    [
+      string,
+      (status: string | null | undefined) => boolean,
+      (data: {
+        status?: string | null | undefined;
+        stateChangedAt?: Date | string | null | undefined;
+        now: Date;
+      }) => boolean,
+      number,
+    ]
+  >([
+    [
+      "a stack",
+      isOpenStackStackFailed,
+      isOpenStackStackStuck,
+      OPENSTACK_STACK_STUCK_MINUTES,
+    ],
+    [
+      "a Kubernetes cluster",
+      isOpenStackContainerClusterFailed,
+      isOpenStackContainerClusterStuck,
+      OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
+    ],
+  ])(
+    "%s has failed in those words, and is stuck from the minute it reaches the line",
+    (
+      _what: string,
+      isFailed: (status: string | null | undefined) => boolean,
+      isStuck: (data: {
+        status?: string | null | undefined;
+        stateChangedAt?: Date | string | null | undefined;
+        now: Date;
+      }) => boolean,
+      line: number,
+    ) => {
+      expect(isFailed("CREATE_FAILED")).toBe(true);
+      expect(isFailed("CREATE_COMPLETE")).toBe(false);
+      expect(isFailed("")).toBe(false);
+      expect(isFailed(null)).toBe(false);
+
+      const stuck: (status: string | null, minutes: number) => boolean = (
+        status: string | null,
+        minutes: number,
+      ): boolean => {
+        return isStuck({ status, stateChangedAt: ago(minutes), now: NOW });
+      };
+
+      expect(stuck("CREATE_IN_PROGRESS", line - 1)).toBe(false);
+      expect(stuck("CREATE_IN_PROGRESS", line)).toBe(true);
+      expect(stuck("CREATE_COMPLETE", line * 10)).toBe(false);
+      expect(stuck(null, line * 10)).toBe(false);
+    },
+  );
+
+  test("a Kubernetes cluster that Magnum says is unhealthy, and nothing else it says", () => {
+    const withHealth: (healthStatus: string) => OpenStackAssessment = (
+      healthStatus: string,
+    ): OpenStackAssessment => {
+      return assessOpenStackContainerCluster({
+        row: row(OpenStackResourceKind.ContainerCluster, {
+          status: "CREATE_COMPLETE",
+          facts: { healthStatus },
+        }),
+        now: NOW,
+      });
+    };
+
+    expect(withHealth(OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY).severity).toBe(
+      WARNING,
+    );
+    expect(withHealth("HEALTHY").severity).toBeNull();
+    // What Magnum says of any cluster it cannot reach, recorded on every scene.
+    expect(withHealth("UNKNOWN").severity).toBeNull();
+  });
+
+  test("a failed cluster is said once, by its name, and a stack with no such cluster still is", () => {
+    const failedStack: (id: string) => OpenStackResource = (
+      id: string,
+    ): OpenStackResource => {
+      return row(OpenStackResourceKind.Stack, {
+        externalId: id,
+        name: `stack-${id}`,
+        status: "CREATE_FAILED",
+      });
+    };
+
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [
+        row(OpenStackResourceKind.ContainerCluster, {
+          externalId: "c-1",
+          name: "cluster-failed",
+          status: "CREATE_FAILED",
+          facts: { stackId: "s-1" },
+        }),
+        failedStack("s-1"),
+        // Its cluster is fine, so nothing else says this stack failed.
+        row(OpenStackResourceKind.ContainerCluster, {
+          externalId: "c-2",
+          name: "cluster-fine",
+          status: "CREATE_COMPLETE",
+          facts: { stackId: "s-2" },
+        }),
+        failedStack("s-2"),
+        // A stack nobody's cluster is built on.
+        failedStack("s-3"),
+        // Sharing an ID with such a stack does not make something that stack.
+        row(OpenStackResourceKind.Instance, {
+          externalId: "s-1",
+          name: "instance-failed",
+          status: "ERROR",
+        }),
+      ],
+      now: NOW,
+    });
+
+    expect(
+      items
+        .map((item: ResourceAttentionItem): string => {
+          return item.name;
+        })
+        .sort(),
+    ).toEqual([
+      "cluster-failed",
+      "instance-failed",
+      "stack-s-2",
+      "stack-s-3",
+    ]);
+  });
+
+  test("a bare metal node that failed says so in Ironic's words", () => {
+    expect(
+      assessOpenStackBareMetalNode({
+        row: row(OpenStackResourceKind.BareMetalNode, {
+          status: "deploy failed",
+        }),
+        now: NOW,
+      }).reasons[0]?.values,
+    ).toEqual({ status: "deploy failed" });
+  });
 
   test("a bare metal node's facts, whatever they hold", () => {
     const node: (facts: JSONObject) => OpenStackResource = (
