@@ -2437,6 +2437,47 @@ describe("the exporter", () => {
     expect(run.status).toBe(1);
   });
 
+  test("a failed login is explained from the exporter's log, past the services this cloud does not run", async () => {
+    // A line for each of them on every scrape, which would otherwise crowd out the reason.
+    const noEndpoint = (service) => {
+      return `level=ERROR msg="Enabling exporter for service failed" service=${service} error="No suitable endpoint could be found in the service catalog."`;
+    };
+    const cloud = await startCloud({
+      probe: () => {
+        return "";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      files: {
+        "collector.log": `${[
+          `level=ERROR msg="Enabling exporter for service failed" service=identity error="Authentication failed: 401 Unauthorized"`,
+          ...[
+            "load-balancer",
+            "baremetal",
+            "orchestration",
+            "container-infra",
+            "sharev2",
+            "dns",
+            "object-store",
+            "database",
+            "gnocchi",
+          ].map(noEndpoint),
+        ].join("\n")}\n`,
+      },
+    });
+    await cloud.close();
+
+    // The stub answers every container's log with this file, so only section 2 is the exporter's.
+    const section = run.output.slice(
+      run.output.indexOf("── 2."),
+      run.output.indexOf("── 3."),
+    );
+    expect(section).toContain("The exporter's log shows:");
+    expect(section).toContain("Authentication failed: 401 Unauthorized");
+    expect(section).not.toContain("No suitable endpoint");
+  });
+
   test("an exporter that cannot be reached says so", async () => {
     const cloud = await startCloud();
     const run = await runDoctor(cloud, {

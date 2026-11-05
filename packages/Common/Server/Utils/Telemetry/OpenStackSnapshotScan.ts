@@ -1,4 +1,3 @@
-import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
@@ -71,6 +70,28 @@ export const OPENSTACK_SCRAPE_UP_METRIC_NAME: string = "up";
 export const OPENSTACK_SCRAPE_DURATION_METRIC_NAME: string =
   "scrape_duration_seconds";
 export const OPENSTACK_SERVICE_LABEL: string = "openstack_service";
+
+/*
+ * The services a scrape's own series can speak for, because every cloud runs them. The
+ * agent also asks the exporter for services a cloud may not run, such as load-balancer and
+ * baremetal, and for one that is not in the catalog the exporter answers 200 with nothing.
+ * `up` reads 1 for that scrape, and 0 for all of them when the exporter is down, on a cloud
+ * that has never had the service. So these series never make a row for one of those: only
+ * what the exporter says about the service itself can, which it says only if the catalog
+ * has it. This is written out rather than read from OpenStackServiceType, so that adding a
+ * service there does not start giving every cloud a row for it. So are the agent's VM
+ * metric jobs left out, which read compute nodes rather than an API to list.
+ */
+export const OPENSTACK_SERVICES_EVERY_CLOUD_RUNS: ReadonlySet<string> = new Set(
+  [
+    OpenStackServiceType.Identity,
+    OpenStackServiceType.Compute,
+    OpenStackServiceType.Placement,
+    OpenStackServiceType.Network,
+    OpenStackServiceType.Volume,
+    OpenStackServiceType.Image,
+  ],
+);
 
 /*
  * The exporter's series do not say which region they are from. The agent reads
@@ -238,8 +259,7 @@ export function isOpenStackSnapshotDatapoint(data: {
       attributes,
       OPENSTACK_SERVICE_LABEL,
     );
-    // The agent's VM metric jobs read compute nodes: they are no OpenStack API to list.
-    return service !== null && !OPENSTACK_INSTANCE_METRIC_JOBS.has(service);
+    return service !== null && OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(service);
   }
   return OPENSTACK_SNAPSHOT_METRIC_NAMES.has(data.metricName);
 }
