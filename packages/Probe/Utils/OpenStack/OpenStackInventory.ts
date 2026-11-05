@@ -1001,6 +1001,58 @@ export function toMagnumConductor(item: JSONObject): MagnumConductorRecord {
 }
 
 /*
+ * A share as Manila's list says it at the microversion it is asked at. Its type's name and its access
+ * rules' status are only there at one, and its backend's host only for an admin. A share nothing placed
+ * has no zone and no host, recorded.
+ */
+export interface ManilaShareRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  sizeGb: number | null;
+  availabilityZone: string | null;
+  protocol: string | null;
+  shareTypeName: string | null;
+  accessRulesStatus: string | null;
+  host: string | null;
+}
+
+export function toManilaShare(item: JSONObject): ManilaShareRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["project_id"]),
+    status: text(item["status"]),
+    sizeGb: numeric(item["size"]),
+    availabilityZone: text(item["availability_zone"]),
+    protocol: text(item["share_proto"]),
+    shareTypeName: text(item["share_type_name"]),
+    accessRulesStatus: text(item["access_rules_status"]),
+    host: text(item["host"]),
+  };
+}
+
+// One Manila service, one to each of a host's backends. Its state is Manila's own word for it.
+export interface ManilaServiceRecord {
+  host: string | null;
+  binary: string | null;
+  zone: string | null;
+  state: string | null;
+  isDisabled: boolean;
+}
+
+export function toManilaService(item: JSONObject): ManilaServiceRecord {
+  return {
+    host: text(item["host"]),
+    binary: text(item["binary"]),
+    zone: text(item["zone"]),
+    state: text(item["state"]),
+    isDisabled: text(item["status"]) === "disabled",
+  };
+}
+
+/*
  * One region's reading of each service. A field left undefined was not read, or could
  * not be, and its series are left out: never reported as zero, because zero is an
  * answer and a failed read is not.
@@ -1085,6 +1137,11 @@ export interface OpenStackContainerInfraInventory {
   conductors?: Array<MagnumConductorRecord> | undefined;
 }
 
+export interface OpenStackSharedFileSystemsInventory {
+  shares?: Array<ManilaShareRecord> | undefined;
+  services?: Array<ManilaServiceRecord> | undefined;
+}
+
 export interface OpenStackInventoryByService {
   identity?: OpenStackIdentityInventory | undefined;
   compute?: OpenStackComputeInventory | undefined;
@@ -1095,4 +1152,5 @@ export interface OpenStackInventoryByService {
   // Keyed by what each service is called, so a reading finds its own by that.
   orchestration?: OpenStackOrchestrationInventory | undefined;
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
+  sharev2?: OpenStackSharedFileSystemsInventory | undefined;
 }

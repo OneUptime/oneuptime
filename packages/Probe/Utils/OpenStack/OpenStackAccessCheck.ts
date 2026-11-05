@@ -355,6 +355,29 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       tells: "adminOnly",
     },
     {
+      service: OpenStackServiceType.SharedFileSystems,
+      read: "shares, all projects",
+      path: "/shares/detail",
+      query: { all_tenants: "1" },
+      key: "shares",
+      projectField: "project_id",
+      goesWithout:
+        "other projects' shares. Manila shows anything less its own project's, or none, and no error.",
+      fix: `To read every project's: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
+      service: OpenStackServiceType.SharedFileSystems,
+      read: "services",
+      path: "/services",
+      key: "services",
+      projectField: "-",
+      goesWithout:
+        "Manila's services on the Services page, so a stopped one isn't shown anywhere: Manila's API carries on answering without it.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
       service: OpenStackServiceType.ContainerInfra,
       read: "clusters",
       path: "/clusters",
