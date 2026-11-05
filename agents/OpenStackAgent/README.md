@@ -4,7 +4,7 @@ Monitor an OpenStack cloud with OneUptime: its services and agents, hypervisors,
 
 The agent is two pinned upstream programs and their configuration. [openstack-exporter](https://github.com/openstack-exporter/openstack-exporter) reads the cloud's APIs and turns them into `openstack_*` series. A stock OpenTelemetry Collector asks it for one OpenStack service at a time, stamps every series with the cloud and region it came from, and ships them to OneUptime over OTLP. The OpenTelemetry Collector has no OpenStack receiver of its own, and the exporter is what operators already know: Kolla-Ansible ships it.
 
-One agent watches one cloud: one Keystone, with one region or several. It only ever reads, and nothing in it runs on your controllers or compute nodes.
+One agent watches one cloud: one Keystone, with one region or several. It only reads, unless you opt in to the [AI agent's fixes](#fixes), and nothing in it runs on your controllers or compute nodes.
 
 ## Prerequisites
 
@@ -392,7 +392,7 @@ Nothing arrives until a request is signed with that key: only a signed request i
 
 `docker-compose.yml` also has `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`, profile `openstack-ai-agent`). With it, OneUptime AI reads the cloud while it investigates an incident or alert, and cites what it ran. It shares this folder's `.env`, and registers under the same `OPENSTACK_CLOUD_NAME` the collector reports.
 
-It reads, unless you give it what it needs to change something ([Fixes](#fixes)). It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each read becomes one `GET` to the service that answers it. Its policy has no command that changes a cloud, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
+It reads, unless you give it what it needs to change something ([Fixes](#fixes)). It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each read becomes one `GET` to the service that answers it. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
 
 `install.sh` starts it beside the exporter it bundles (`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`). To start it yourself:
 

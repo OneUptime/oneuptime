@@ -63,7 +63,8 @@ services:
   # openstack-exporter, pinned. COMPOSE_PROFILES=openstack-exporter in .env starts
   # it, which is what install.sh writes. Leave the profile off and set
   # OPENSTACK_EXPORTER_ADDRESS when you already run the exporter in --multi-cloud
-  # mode, for example the one Kolla-Ansible deploys.
+  # mode. Kolla-Ansible deploys its own without that flag, so it has no /probe: set
+  # OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS for that one instead.
   #
   # Gentle by default, because monitoring must never be what takes a cloud down:
   #  - the slow metrics (quotas and limits per project, usage per server) are off, and
@@ -189,7 +190,7 @@ services:
         max-file: "3"
 
   # The largest clouds' path, offered past 1,500 hypervisors or 100,000 instances, where the APIs
-  # cannot be scraped in time. COMPOSE_PROFILES=openstack-database-exporter starts it. It reads
+  # cannot be scraped in time. The openstack-database-exporter profile starts it. It reads
   # each service's database with a read-only account, and has no credential for any API. Each
   # URL is oslo.db's form, such as mysql+pymysql://oneuptime:secret@db.example:3306/nova, and
   # one left empty is a service it leaves alone. It has no secret on a command line, and its
@@ -264,14 +265,15 @@ services:
         max-file: "3"
 
   # The OpenStack AI agent: runs the `openstack` commands OneUptime AI asks for while it
-  # investigates an incident or alert on this cloud. It only ever reads: there is no write
-  # command for it to run, whatever is set here. There is no openstack client in it: each
-  # command becomes one read of the cloud's API, with the credential in clouds.yaml
-  # (OneUptime never sends it any), so that credential's roles and access rules are the hard
-  # limit. It registers as the cloud named OPENSTACK_CLOUD_NAME, exactly like the collector
-  # above, and shows up on that cloud's AI -> AI agent page. COMPOSE_PROFILES in .env starts
-  # it, which is what install.sh writes when it writes clouds.yaml. See README.md
-  # ("OneUptime AI agent").
+  # investigates an incident or alert on this cloud. It reads until you opt in twice to fixes:
+  # ONEUPTIME_AI_ALLOW_WRITES=true with a credential for changes, and a mode other than off.
+  # Then it can make the ten changes README.md lists, each with a person's approval unless the
+  # mode says otherwise. There is no openstack client in it: each read becomes one GET to the
+  # cloud's API, with the credential in clouds.yaml (OneUptime never sends it any), so the roles
+  # and access rules of its credentials are the hard limit. It registers as the cloud named
+  # OPENSTACK_CLOUD_NAME, exactly like the collector above, and shows up on that cloud's
+  # AI -> AI agent page. COMPOSE_PROFILES in .env starts it, which is what install.sh writes
+  # when it writes clouds.yaml. See README.md ("OneUptime AI agent").
   oneuptime-openstack-ai-agent:
     image: oneuptime/resource-ai-agent:release
     container_name: oneuptime-openstack-ai-agent
@@ -298,7 +300,7 @@ services:
       - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=openstack
       # Must match the collector's, so the agent serves the same cloud.
       - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
-      # Which entry of clouds.yaml to use: the first of these it holds.
+      # Which entry of clouds.yaml to use: the first of these it holds, or else the file's first.
       - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[RegionOne]}
       # The Keystone a credential of the agent's own logs in to. clouds.yaml says its own.
       - OPENSTACK_AUTH_URL=${OPENSTACK_AUTH_URL:-}
