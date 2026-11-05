@@ -135,7 +135,10 @@ describe("the probe's half of the checks", () => {
           answers.shift();
 
         if (answer instanceof HTTPErrorResponse || answer instanceof Error) {
-          if (answer instanceof Error && !(answer instanceof HTTPErrorResponse)) {
+          if (
+            answer instanceof Error &&
+            !(answer instanceof HTTPErrorResponse)
+          ) {
             throw answer;
           }
 
@@ -198,9 +201,7 @@ describe("the probe's half of the checks", () => {
   });
 
   test("a report holds no secret", async () => {
-    answers = [
-      { apiChecks: [apiJob()] as unknown as JSONObject["apiChecks"] },
-    ];
+    answers = [{ apiChecks: [apiJob()] as unknown as JSONObject["apiChecks"] }];
 
     await runOpenStackChecksTick(dependencies());
     await waitForRunningOpenStackChecks();

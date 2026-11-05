@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { JSONObject } from "Common/Types/JSON";
 import {
   OpenStackLifecycleCheckJob,
   OpenStackLifecyclePhase,
@@ -7,6 +8,7 @@ import {
   OpenStackLifecycleStepResult,
   getOpenStackJanitorAgeInMs,
   getOpenStackLifecycleRunBudgetInMs,
+  OpenStackCheckRemovedResource,
 } from "Common/Types/OpenStack/OpenStackCheck";
 import {
   buildOpenStackCheckName,
@@ -42,10 +44,7 @@ import MockLifecycleCloud, {
   MockLifecycleOptions,
   OTHER_PROJECT_ID,
 } from "../Helpers/MockLifecycleCloud";
-import {
-  RECORDED_AUTH_URL,
-  RECORDED_REGION,
-} from "../Helpers/RecordedCloud";
+import { RECORDED_AUTH_URL, RECORDED_REGION } from "../Helpers/RecordedCloud";
 
 /*
  * THE MOST DANGEROUS CODE IN THE OPENSTACK PRODUCT, BECAUSE IT WRITES TO A CUSTOMER'S CLOUD.
@@ -1075,12 +1074,13 @@ describe("the janitor", () => {
 
     expect(run.status).toBe("Succeeded");
     expect(harness.cloud.everythingLeft()).toEqual([]);
-    expect(run.janitor?.removed.map((one) => one.id).sort()).toEqual([
-      "old-fip",
-      "old-server",
-      "old-sg",
-      "old-volume",
-    ]);
+    expect(
+      run.janitor?.removed
+        .map((one: OpenStackCheckRemovedResource) => {
+          return one.id;
+        })
+        .sort(),
+    ).toEqual(["old-fip", "old-server", "old-sg", "old-volume"]);
     expect(run.janitor?.remainingCount).toBe(0);
 
     // An address first, then its server, then what its server held.
@@ -1191,9 +1191,7 @@ describe("the janitor", () => {
       expect(harness.cloud.everythingLeft()).toContain(lookalike);
     }
 
-    expect(harness.cloud.everythingLeft()).toHaveLength(
-      lookalikes.length + 6,
-    );
+    expect(harness.cloud.everythingLeft()).toHaveLength(lookalikes.length + 6);
     expect(run.warnings.join(" ")).toContain("not a project of its own");
   });
 
@@ -1352,10 +1350,7 @@ describe("the janitor", () => {
   test("a delete a service refuses is a failed step, and the boot is still judged on its own", async () => {
     const harness: Harness = createHarness({
       answer: (request: OpenStackHttpRequest) => {
-        if (
-          request.method === "DELETE" &&
-          request.url.includes("old-server")
-        ) {
+        if (request.method === "DELETE" && request.url.includes("old-server")) {
           return {
             status: 500,
             headers: {},
@@ -1451,7 +1446,8 @@ describe("a run killed part way", () => {
     request: OpenStackHttpRequest,
   ): boolean => {
     return (
-      request.method === "POST" && request.url.endsWith("/os-volume_attachments")
+      request.method === "POST" &&
+      request.url.endsWith("/os-volume_attachments")
     );
   };
 
@@ -1533,7 +1529,13 @@ describe("a run killed part way", () => {
     );
 
     expect(third.status).toBe("Succeeded");
-    expect(third.janitor?.removed.map((one) => one.name).sort()).toEqual(left);
+    expect(
+      third.janitor?.removed
+        .map((one: OpenStackCheckRemovedResource) => {
+          return one.name;
+        })
+        .sort(),
+    ).toEqual(left);
     expect(third.janitor?.remainingCount).toBe(0);
     expect(harness.cloud.everythingLeft()).toEqual([]);
   });
@@ -1614,7 +1616,11 @@ describe("when the check is turned off, it only sweeps", () => {
     );
 
     expect(run.status).toBe("Swept");
-    expect(run.janitor?.removed.map((one) => one.id)).toEqual(["old-server"]);
+    expect(
+      run.janitor?.removed.map((one: OpenStackCheckRemovedResource) => {
+        return one.id;
+      }),
+    ).toEqual(["old-server"]);
     expect(run.janitor?.remainingCount).toBe(1);
     expect(harness.cloud.everythingLeft()).toEqual([young]);
     expect(harness.cloud.writes()).toEqual([
@@ -1667,7 +1673,11 @@ describe("what it boots", () => {
     });
   });
 
-  type PrepareCase = [string, () => Partial<OpenStackLifecycleCheckJob>, string];
+  type PrepareCase = [
+    string,
+    () => Partial<OpenStackLifecycleCheckJob>,
+    string,
+  ];
 
   const PREPARE_CASES: Array<PrepareCase> = [
     [
@@ -1740,11 +1750,17 @@ describe("what it boots", () => {
   });
 
   test("the smallest flavor that fits the image, passing over one that is too small or disabled", () => {
-    const image = { min_ram: 256, min_disk: 2, size: 1024 };
-    const flavors = [
+    const image: JSONObject = { min_ram: 256, min_disk: 2, size: 1024 };
+    const flavors: Array<JSONObject> = [
       { id: "too-small", ram: 128, disk: 10, vcpus: 1 },
       { id: "no-disk", ram: 512, disk: 0, vcpus: 1 },
-      { id: "disabled", ram: 256, disk: 2, vcpus: 1, "OS-FLV-DISABLED:disabled": true },
+      {
+        id: "disabled",
+        ram: 256,
+        disk: 2,
+        vcpus: 1,
+        "OS-FLV-DISABLED:disabled": true,
+      },
       { id: "fits-but-bigger", ram: 1024, disk: 20, vcpus: 2 },
       { id: "fits", ram: 512, disk: 2, vcpus: 1 },
     ];
@@ -1755,7 +1771,7 @@ describe("what it boots", () => {
   });
 
   test("a flavor must hold the image's own size, whatever min_disk says", () => {
-    const flavors = [
+    const flavors: Array<JSONObject> = [
       { id: "one", ram: 512, disk: 1, vcpus: 1 },
       { id: "ten", ram: 512, disk: 10, vcpus: 1 },
     ];
@@ -1766,9 +1782,7 @@ describe("what it boots", () => {
         image: { size: 5 * 1024 * 1024 * 1024, min_disk: 0, min_ram: 0 },
       })?.["id"],
     ).toBe("ten");
-    expect(
-      chooseOpenStackCheckFlavor({ flavors: [], image: {} }),
-    ).toBeNull();
+    expect(chooseOpenStackCheckFlavor({ flavors: [], image: {} })).toBeNull();
   });
 
   test("cirros if there is one, or the smallest image", () => {
@@ -1789,32 +1803,36 @@ describe("what it boots", () => {
   });
 
   test("the project's own network; a shared one if it has none; and it never guesses between several", () => {
-    const own = {
+    const own: Record<string, unknown> = {
       id: "own",
       name: "own",
       project_id: CHECK_PROJECT_ID,
       subnets: ["s"],
     };
-    const shared = {
+    const shared: Record<string, unknown> = {
       id: "shared",
       name: "shared",
       project_id: OTHER_PROJECT_ID,
       subnets: ["s"],
     };
-    const external = {
+    const external: Record<string, unknown> = {
       id: "external",
       name: "public",
       "router:external": true,
       subnets: ["s"],
     };
-    const noSubnet = {
+    const noSubnet: Record<string, unknown> = {
       id: "empty",
       name: "empty",
       project_id: CHECK_PROJECT_ID,
       subnets: [],
     };
 
-    const choose = (networks: Array<Record<string, unknown>>) => {
+    const choose: (
+      networks: Array<Record<string, unknown>>,
+    ) => ReturnType<typeof chooseOpenStackCheckNetwork> = (
+      networks: Array<Record<string, unknown>>,
+    ): ReturnType<typeof chooseOpenStackCheckNetwork> => {
       return chooseOpenStackCheckNetwork({
         networks: networks as never,
         projectId: CHECK_PROJECT_ID,
@@ -1825,13 +1843,16 @@ describe("what it boots", () => {
     expect(choose([shared, external])).toEqual({ network: shared });
     expect(choose([external, noSubnet])).toHaveProperty("error");
     expect(
-      (choose([own, { ...own, id: "own-2", name: "own-2" }]) as { error: string })
-        .error,
+      (
+        choose([own, { ...own, id: "own-2", name: "own-2" }]) as {
+          error: string;
+        }
+      ).error,
     ).toContain("own, own-2");
   });
 
   test("a name two things share is not a name", () => {
-    const rows = [
+    const rows: Array<JSONObject> = [
       { id: "1", name: "same" },
       { id: "2", name: "same" },
       { id: "3", name: "other" },

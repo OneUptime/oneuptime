@@ -59,7 +59,9 @@ export interface FetchOpenStackChecksDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: FetchOpenStackChecksDependencies = {
-  runApiCheck: (job: OpenStackApiCheckJob): Promise<OpenStackApiCheckResult> => {
+  runApiCheck: (
+    job: OpenStackApiCheckJob,
+  ): Promise<OpenStackApiCheckResult> => {
     return OpenStackApiCheck.run(job);
   },
   runLifecycleCheck: (

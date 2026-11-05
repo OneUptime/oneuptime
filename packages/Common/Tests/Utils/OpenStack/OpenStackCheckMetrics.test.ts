@@ -206,9 +206,11 @@ describe("the API checks' series", () => {
     });
 
     expect(
-      valuesOf(points, OpenStackCheckMetric.TokenSuccess).map((one: ReturnType<typeof valuesOf>[number]) => {
-        return one.value;
-      }),
+      valuesOf(points, OpenStackCheckMetric.TokenSuccess).map(
+        (one: ReturnType<typeof valuesOf>[number]) => {
+          return one.value;
+        },
+      ),
     ).toEqual([0, 0]);
     expect(valuesOf(points, OpenStackCheckMetric.TokenDuration)[0]?.value).toBe(
       15,
@@ -303,9 +305,11 @@ describe("the API checks' series", () => {
     });
 
     expect(
-      valuesOf(points, OpenStackCheckMetric.CertificateExpiry).map((one: ReturnType<typeof valuesOf>[number]) => {
-        return [one.labels[OPENSTACK_REGION_ATTRIBUTE], one.value];
-      }),
+      valuesOf(points, OpenStackCheckMetric.CertificateExpiry).map(
+        (one: ReturnType<typeof valuesOf>[number]) => {
+          return [one.labels[OPENSTACK_REGION_ATTRIBUTE], one.value];
+        },
+      ),
     ).toEqual([
       ["one", -1.5],
       ["two", -1.5],

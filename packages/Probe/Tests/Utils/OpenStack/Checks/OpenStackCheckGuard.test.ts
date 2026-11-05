@@ -99,12 +99,7 @@ describe("what a token may write with", () => {
       "admin role",
     ],
     ["its admin project", { isAdminProject: true }, undefined, "admin project"],
-    [
-      "unrestricted",
-      { isUnrestricted: true },
-      undefined,
-      "--unrestricted",
-    ],
+    ["unrestricted", { isUnrestricted: true }, undefined, "--unrestricted"],
   ];
 
   test.each(ROWS)(
@@ -131,9 +126,9 @@ describe("what a token may write with", () => {
 
   test("the cloud's own projects are refused by name, even with the right token", () => {
     for (const name of ["admin", "Admin", "service", "SERVICE"]) {
-      expect(
-        refusalOf({ projectName: name }, { expected: name }),
-      ).toContain("the cloud's own");
+      expect(refusalOf({ projectName: name }, { expected: name })).toContain(
+        "the cloud's own",
+      );
     }
   });
 
@@ -206,17 +201,20 @@ describe("the reads only an admin gets rows from, on every recording", () => {
       );
 
       for (const read of OPENSTACK_CHECK_ADMIN_ONLY_READS) {
-        const row = matrix.reads.find((candidate) => {
-          return (
-            candidate.service === read.service &&
-            candidate.read === READ_NAMES[read.service]
-          );
-        });
+        const row: (typeof matrix.reads)[number] | undefined =
+          matrix.reads.find((candidate: (typeof matrix.reads)[number]) => {
+            return (
+              candidate.service === read.service &&
+              candidate.read === READ_NAMES[read.service]
+            );
+          });
 
         expect(row).toBeDefined();
 
-        const reader = row?.results["reader"];
-        const admin = row?.results["admin"];
+        const reader: { status: number; count: number | null } | undefined =
+          row?.results["reader"];
+        const admin: { status: number; count: number | null } | undefined =
+          row?.results["admin"];
 
         // Refused, or answered with nothing: either way, no rows.
         expect(reader?.count ?? 0).toBe(0);

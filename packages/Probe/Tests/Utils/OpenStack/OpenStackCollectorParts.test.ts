@@ -307,9 +307,12 @@ describe("what a record keeps of an answer", () => {
     ["nothing, on an answer with no such field", undefined, null],
     ["nothing, on an answer that says null", null, null],
     ["nothing, on an image with no id", { links: [] }, null],
-  ])("%s", (_name: string, image: JSONValue | undefined, imageId: string | null) => {
-    expect(toNovaServer({ id: "s1", image: image })?.imageId).toBe(imageId);
-  });
+  ])(
+    "%s",
+    (_name: string, image: JSONValue | undefined, imageId: string | null) => {
+      expect(toNovaServer({ id: "s1", image: image })?.imageId).toBe(imageId);
+    },
+  );
 
   test("a fault's traceback stays with Nova", () => {
     expect(
@@ -435,7 +438,11 @@ describe("what a record keeps of an answer", () => {
     },
   ])(
     "its addresses: $why",
-    (data: { server: JSONObject; ipv4: string | null; ipv6: string | null }) => {
+    (data: {
+      server: JSONObject;
+      ipv4: string | null;
+      ipv6: string | null;
+    }) => {
       expect(toNovaServer({ id: "s1", ...data.server })).toMatchObject({
         addressIpv4: data.ipv4,
         addressIpv6: data.ipv6,

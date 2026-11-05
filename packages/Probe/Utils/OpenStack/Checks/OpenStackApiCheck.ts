@@ -222,14 +222,13 @@ export function planOpenStackApiCheckReads(data: {
    * Asked once, at the address this credential logs in to, and each region says the same of it, as
    * the collector's series do, so a monitor narrowed to a region finds it.
    */
-  const identityService: OpenStackCatalogService | undefined = data.catalog.find(
-    (service: OpenStackCatalogService): boolean => {
+  const identityService: OpenStackCatalogService | undefined =
+    data.catalog.find((service: OpenStackCatalogService): boolean => {
       return (
         getOpenStackServiceOfCatalogType(service.type) ===
         OpenStackServiceType.Identity
       );
-    },
-  );
+    });
 
   const identity: OpenStackCheckRead =
     READS_OF_SERVICES_COLLECTED[OpenStackServiceType.Identity];
@@ -423,7 +422,9 @@ function getCertificateResults(data: {
   }
 
   for (const planned of data.planned) {
-    const where: { host: string; port: number } | null = hostPortOf(planned.url);
+    const where: { host: string; port: number } | null = hostPortOf(
+      planned.url,
+    );
     const result: OpenStackCertificateResult | undefined = where
       ? byHost.get(`${where.host}:${where.port}`)
       : undefined;
@@ -570,7 +571,9 @@ export default class OpenStackApiCheck {
       result.token.status = "Passed";
       result.token.durationInMs = Math.max(0, clock.now() - startedAt);
 
-      const inCatalog: Array<string> = getOpenStackCatalogRegions(token.catalog);
+      const inCatalog: Array<string> = getOpenStackCatalogRegions(
+        token.catalog,
+      );
       const regions: Array<string> =
         job.regions.length > 0
           ? job.regions.filter((region: string): boolean => {
@@ -626,7 +629,10 @@ export default class OpenStackApiCheck {
       }
 
       result.services.sort(
-        (a: OpenStackApiServiceResult, b: OpenStackApiServiceResult): number => {
+        (
+          a: OpenStackApiServiceResult,
+          b: OpenStackApiServiceResult,
+        ): number => {
           return (
             a.regionName.localeCompare(b.regionName) ||
             a.serviceType.localeCompare(b.serviceType)

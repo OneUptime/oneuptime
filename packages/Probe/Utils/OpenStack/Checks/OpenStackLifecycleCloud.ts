@@ -93,7 +93,9 @@ function text(value: JSONValue | undefined): string {
  * differently, and Cinder's has no zone: "2026-11-04T12:33:57.000000" is UTC, and Date.parse would
  * read it as this machine's local time.
  */
-export function readOpenStackCreatedAt(value: JSONValue | undefined): number | null {
+export function readOpenStackCreatedAt(
+  value: JSONValue | undefined,
+): number | null {
   const created: string = text(value).trim();
 
   if (!created) {
@@ -377,15 +379,15 @@ export default class OpenStackLifecycleCloud {
     query?: Record<string, string> | undefined;
   }): Promise<Array<JSONObject>> {
     try {
-      const answer: OpenStackListAnswer = await this.clientOf(data.service).list(
-        {
-          read: data.read,
-          path: data.path,
-          key: data.key,
-          paging: data.paging,
-          query: data.query,
-        },
-      );
+      const answer: OpenStackListAnswer = await this.clientOf(
+        data.service,
+      ).list({
+        read: data.read,
+        path: data.path,
+        key: data.key,
+        paging: data.paging,
+        query: data.query,
+      });
 
       return answer.items;
     } catch (error) {
@@ -409,11 +411,13 @@ export default class OpenStackLifecycleCloud {
     query?: Record<string, string> | undefined;
   }): Promise<boolean> {
     try {
-      const answer: OpenStackJsonAnswer = await this.clientOf(data.service).get({
-        read: data.read,
-        path: data.path,
-        query: data.query,
-      });
+      const answer: OpenStackJsonAnswer = await this.clientOf(data.service).get(
+        {
+          read: data.read,
+          path: data.path,
+          query: data.query,
+        },
+      );
       const rows: JSONValue | undefined = answer.body[data.key];
 
       return Array.isArray(rows) && rows.length > 0;
@@ -597,7 +601,9 @@ export default class OpenStackLifecycleCloud {
   }
 
   // What Nova says became of its attempts to attach a volume to a server, newest first.
-  public async getAttachActionMessage(serverId: string): Promise<string | null> {
+  public async getAttachActionMessage(
+    serverId: string,
+  ): Promise<string | null> {
     const actions: Array<JSONObject> = await this.listOf({
       service: OpenStackServiceType.Compute,
       read: "what Nova did to the server",
@@ -608,7 +614,9 @@ export default class OpenStackLifecycleCloud {
 
     const attach: JSONObject | undefined = actions.find(
       (action: JSONObject): boolean => {
-        return action["action"] === "attach_volume" && Boolean(action["message"]);
+        return (
+          action["action"] === "attach_volume" && Boolean(action["message"])
+        );
       },
     );
 
@@ -748,7 +756,11 @@ export default class OpenStackLifecycleCloud {
       },
     });
 
-    const row: JSONObject = this.readBody(response, "security_group", "neutron");
+    const row: JSONObject = this.readBody(
+      response,
+      "security_group",
+      "neutron",
+    );
 
     return OpenStackOwnedResource.fromCreate({
       kind: "security_group",

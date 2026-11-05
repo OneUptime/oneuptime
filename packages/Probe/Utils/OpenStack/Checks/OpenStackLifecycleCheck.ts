@@ -765,40 +765,39 @@ class OpenStackLifecycleRegionRun {
   }
 
   private async sweep(listing: OpenStackOwnedListing): Promise<void> {
-    const limit: number = getOpenStackJanitorAgeInMs(this.job.intervalInMinutes);
+    const limit: number = getOpenStackJanitorAgeInMs(
+      this.job.intervalInMinutes,
+    );
     const old: Array<OpenStackOwnedResource> = listing.owned.filter(
       (resource: OpenStackOwnedResource): boolean => {
         return resource.ageInMs > limit;
       },
     );
 
-    await this.step(
-      OpenStackLifecycleStep.Janitor,
-      async (): Promise<void> => {
-        const result: OpenStackLifecycleJanitorResult =
-          await removeOwnedResources({
-            cloud: this.cloud,
-            clock: this.deps.clock,
-            resources: old,
-            allOwned: listing.owned,
-          });
+    await this.step(OpenStackLifecycleStep.Janitor, async (): Promise<void> => {
+      const result: OpenStackLifecycleJanitorResult =
+        await removeOwnedResources({
+          cloud: this.cloud,
+          clock: this.deps.clock,
+          resources: old,
+          allOwned: listing.owned,
+        });
 
-        this.janitor = {
-          removed: result.removed,
-          remainingCount:
-            result.remainingCount + (listing.owned.length - old.length),
-          errors: result.errors,
-        };
+      this.janitor = {
+        removed: result.removed,
+        remainingCount:
+          result.remainingCount + (listing.owned.length - old.length),
+        errors: result.errors,
+      };
 
-        for (const error of result.errors) {
-          this.warnings.push(error);
-        }
+      for (const error of result.errors) {
+        this.warnings.push(error);
+      }
 
-        if (result.errors.length > 0) {
-          throw fault("probe", result.errors[0] as string);
-        }
-      },
-    );
+      if (result.errors.length > 0) {
+        throw fault("probe", result.errors[0] as string);
+      }
+    });
   }
 
   private async prepare(): Promise<PreparedRun> {
@@ -999,7 +998,11 @@ class OpenStackLifecycleRegionRun {
         const row: JSONObject | null = await this.cloud.getServer(server.id);
 
         if (!row) {
-          throw fault("nova", "The server is gone: Nova no longer has it.", 404);
+          throw fault(
+            "nova",
+            "The server is gone: Nova no longer has it.",
+            404,
+          );
         }
 
         const status: string = text(row["status"]);
@@ -1102,7 +1105,10 @@ class OpenStackLifecycleRegionRun {
    * could take for an option, and never one a probe does not connect to.
    */
   private async pingUntilAnswered(address: string): Promise<void> {
-    if (net.isIP(address) === 0 || VMwareVCenterAddress.isForbiddenHost(address)) {
+    if (
+      net.isIP(address) === 0 ||
+      VMwareVCenterAddress.isForbiddenHost(address)
+    ) {
       throw fault(
         "neutron",
         `Neutron gave this floating IP the address ${address}, which a probe does not ping.`,
@@ -1182,7 +1188,9 @@ class OpenStackLifecycleRegionRun {
     );
   }
 
-  private waitForVolumeAvailable(volume: OpenStackOwnedResource): Promise<void> {
+  private waitForVolumeAvailable(
+    volume: OpenStackOwnedResource,
+  ): Promise<void> {
     return this.waitFor<void>({
       timeoutInMs: this.forwardTime(VOLUME_AVAILABLE_TIMEOUT_IN_MS),
       source: "cinder",
@@ -1191,7 +1199,11 @@ class OpenStackLifecycleRegionRun {
         const row: JSONObject | null = await this.cloud.getVolume(volume.id);
 
         if (!row) {
-          throw fault("cinder", "The volume is gone: Cinder no longer has it.", 404);
+          throw fault(
+            "cinder",
+            "The volume is gone: Cinder no longer has it.",
+            404,
+          );
         }
 
         const status: string = text(row["status"]);
@@ -1225,7 +1237,11 @@ class OpenStackLifecycleRegionRun {
         const row: JSONObject | null = await this.cloud.getVolume(volume.id);
 
         if (!row) {
-          throw fault("cinder", "The volume is gone: Cinder no longer has it.", 404);
+          throw fault(
+            "cinder",
+            "The volume is gone: Cinder no longer has it.",
+            404,
+          );
         }
 
         const status: string = text(row["status"]);
@@ -1370,7 +1386,9 @@ class OpenStackLifecycleRegionRun {
           source: "cinder",
           what: "The volume was not gone",
           poll: async (): Promise<WaitResult<void>> => {
-            const row: JSONObject | null = await this.cloud.getVolume(volume.id);
+            const row: JSONObject | null = await this.cloud.getVolume(
+              volume.id,
+            );
 
             if (!row) {
               return { done: true };
@@ -1485,12 +1503,13 @@ class OpenStackLifecycleRegionRun {
         return;
       }
 
-      const result: OpenStackLifecycleJanitorResult = await removeOwnedResources({
-        cloud: this.cloud,
-        clock: this.deps.clock,
-        resources: mine,
-        allOwned: listing.owned,
-      });
+      const result: OpenStackLifecycleJanitorResult =
+        await removeOwnedResources({
+          cloud: this.cloud,
+          clock: this.deps.clock,
+          resources: mine,
+          allOwned: listing.owned,
+        });
 
       // What took a second try, or is still there, the janitor's next run looks at again.
       this.leftoverCount = mine.length - result.removed.length;
@@ -1527,16 +1546,17 @@ class OpenStackLifecycleRegionRun {
   private getPhases(): Partial<
     Record<OpenStackLifecyclePhase, OpenStackLifecyclePhaseVerdict>
   > {
-    const ran: (phase: OpenStackLifecyclePhase) => Array<OpenStackLifecycleStepResult> =
-      (
-        phase: OpenStackLifecyclePhase,
-      ): Array<OpenStackLifecycleStepResult> => {
-        return this.steps.filter(
-          (step: OpenStackLifecycleStepResult): boolean => {
-            return OPENSTACK_LIFECYCLE_STEP_PHASE[step.step] === phase;
-          },
-        );
-      };
+    const ran: (
+      phase: OpenStackLifecyclePhase,
+    ) => Array<OpenStackLifecycleStepResult> = (
+      phase: OpenStackLifecyclePhase,
+    ): Array<OpenStackLifecycleStepResult> => {
+      return this.steps.filter(
+        (step: OpenStackLifecycleStepResult): boolean => {
+          return OPENSTACK_LIFECYCLE_STEP_PHASE[step.step] === phase;
+        },
+      );
+    };
 
     const failed: (phase: OpenStackLifecyclePhase) => boolean = (
       phase: OpenStackLifecyclePhase,

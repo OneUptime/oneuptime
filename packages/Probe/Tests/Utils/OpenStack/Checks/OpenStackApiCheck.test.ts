@@ -135,9 +135,7 @@ function createHarness(data?: {
       return {
         status: 201,
         headers: { "x-subject-token": "a-check-token" },
-        body: JSON.stringify(
-          recordedTokenBody(scene, data?.tokenOverrides),
-        ),
+        body: JSON.stringify(recordedTokenBody(scene, data?.tokenOverrides)),
       };
     }
 
@@ -424,7 +422,11 @@ describe("the plan: whatever the catalog names, with no list to keep", () => {
       type: "block-storage",
       name: "cinder",
       endpoints: [
-        { url: `${HOST}/volume/v3`, interfaceName: "public", regionName: "one" },
+        {
+          url: `${HOST}/volume/v3`,
+          interfaceName: "public",
+          regionName: "one",
+        },
         {
           url: `https://internal.example/volume/v3`,
           interfaceName: "internal",
@@ -437,7 +439,11 @@ describe("the plan: whatever the catalog names, with no list to keep", () => {
       type: "volumev3",
       name: "cinderv3",
       endpoints: [
-        { url: `${HOST}/volume/v3`, interfaceName: "public", regionName: "one" },
+        {
+          url: `${HOST}/volume/v3`,
+          interfaceName: "public",
+          regionName: "one",
+        },
       ],
     },
     {
@@ -573,7 +579,11 @@ describe("when something is wrong", () => {
   });
 
   test("access rules make a 401 a refusal, and without them it is a service that cannot check a token", async () => {
-    const answer = (request: OpenStackHttpRequest) => {
+    const answer: (
+      request: OpenStackHttpRequest,
+    ) => OpenStackHttpResponse | undefined = (
+      request: OpenStackHttpRequest,
+    ): OpenStackHttpResponse | undefined => {
       return request.url.includes("/image/")
         ? json(401, { error: { message: "The request requires a login." } })
         : undefined;

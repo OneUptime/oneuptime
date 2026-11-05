@@ -136,9 +136,12 @@ function firstOf(
   const rows: Array<JSONObject> = (recordedJson(scene, file)?.[key] ||
     []) as Array<JSONObject>;
 
-  return (rows.find(matches || ((): boolean => {
-    return true;
-  })) || {}) as JSONObject;
+  return (rows.find(
+    matches ||
+      ((): boolean => {
+        return true;
+      }),
+  ) || {}) as JSONObject;
 }
 
 export default class MockLifecycleCloud {
@@ -530,17 +533,14 @@ export default class MockLifecycleCloud {
     return response(404, { itemNotFound: { code: 404 } }, this.now());
   }
 
-  private answerToken(
-    request: OpenStackHttpRequest,
-  ): OpenStackHttpResponse {
+  private answerToken(request: OpenStackHttpRequest): OpenStackHttpResponse {
     if (request.method === "DELETE") {
       return { status: 204, headers: {}, body: "" };
     }
 
     this.base.logins += 1;
 
-    const life: number =
-      (this.options.tokenLifeInMinutes ?? 60) * 60_000;
+    const life: number = (this.options.tokenLifeInMinutes ?? 60) * 60_000;
     const project: { id: string; name: string } | null =
       this.options.project === null
         ? null
@@ -717,7 +717,9 @@ export default class MockLifecycleCloud {
     if (!server) {
       return response(
         404,
-        { itemNotFound: { code: 404, message: "Instance could not be found." } },
+        {
+          itemNotFound: { code: 404, message: "Instance could not be found." },
+        },
         now,
       );
     }
@@ -828,9 +830,7 @@ export default class MockLifecycleCloud {
       return response(202, { volume: { id: id } }, now);
     }
 
-    const id: string = decodeURIComponent(
-      rest.substring("/volumes/".length),
-    );
+    const id: string = decodeURIComponent(rest.substring("/volumes/".length));
     const volume: MockVolume | undefined = this.volumes.get(id);
 
     if (!volume) {
@@ -938,11 +938,7 @@ export default class MockLifecycleCloud {
             ports: url.searchParams.get("device_id")
               ? [
                   {
-                    ...firstOf(
-                      this.scene,
-                      "neutron-ports-limited",
-                      "ports",
-                    ),
+                    ...firstOf(this.scene, "neutron-ports-limited", "ports"),
                     id: "ffffffff-0000-4000-8000-000000000001",
                     device_id: url.searchParams.get("device_id"),
                   },
@@ -970,11 +966,7 @@ export default class MockLifecycleCloud {
           now,
         );
       case "/security-group-rules":
-        return response(
-          201,
-          { security_group_rule: { id: "a-rule" } },
-          now,
-        );
+        return response(201, { security_group_rule: { id: "a-rule" } }, now);
       default:
         break;
     }
@@ -1011,8 +1003,7 @@ export default class MockLifecycleCloud {
 
       if (
         isHeld ||
-        this.securityGroupRefusals <
-          (this.options.securityGroupInUseCount ?? 0)
+        this.securityGroupRefusals < (this.options.securityGroupInUseCount ?? 0)
       ) {
         this.securityGroupRefusals += 1;
 
@@ -1054,9 +1045,7 @@ export default class MockLifecycleCloud {
       status: "ACTIVE",
       project_id: this.projectId(),
       tenant_id: this.projectId(),
-      created_at: new Date(this.now())
-        .toISOString()
-        .replace(/\.\d{3}Z/, "Z"),
+      created_at: new Date(this.now()).toISOString().replace(/\.\d{3}Z/, "Z"),
     };
 
     this.floatingIps.set(id, row);
@@ -1078,9 +1067,7 @@ export default class MockLifecycleCloud {
       name: body["name"] as string,
       project_id: this.projectId(),
       tenant_id: this.projectId(),
-      created_at: new Date(this.now())
-        .toISOString()
-        .replace(/\.\d{3}Z/, "Z"),
+      created_at: new Date(this.now()).toISOString().replace(/\.\d{3}Z/, "Z"),
     };
 
     this.securityGroups.set(id, row);

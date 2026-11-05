@@ -897,21 +897,21 @@ describe("what a report may hold, whatever a probe sent", () => {
 
     const result: OpenStackApiCheckResult | null =
       sanitizeOpenStackApiCheckResult({
-      startedAt: NOW.toISOString(),
-      durationInMs: 5,
-      regionNames: ["One", 1],
-      token: { status: "Lovely", errorCode: "Not a code", message: "Hello" },
-      services: [
-        { serviceType: "compute", outcome: "Answered", durationInMs: 1 },
-        { serviceType: "image", outcome: "Great" },
-        { outcome: "Answered" },
-      ],
-      certificates: [
-        { host: "a", port: 443, validTo: NOW.toISOString() },
-        { host: "b", port: 70000, validTo: NOW.toISOString() },
-        { host: "c", port: 443, validTo: "not a date" },
-      ],
-    });
+        startedAt: NOW.toISOString(),
+        durationInMs: 5,
+        regionNames: ["One", 1],
+        token: { status: "Lovely", errorCode: "Not a code", message: "Hello" },
+        services: [
+          { serviceType: "compute", outcome: "Answered", durationInMs: 1 },
+          { serviceType: "image", outcome: "Great" },
+          { outcome: "Answered" },
+        ],
+        certificates: [
+          { host: "a", port: 443, validTo: NOW.toISOString() },
+          { host: "b", port: 70000, validTo: NOW.toISOString() },
+          { host: "c", port: 443, validTo: "not a date" },
+        ],
+      });
 
     expect(result?.regionNames).toEqual(["One"]);
     expect(result?.token).toEqual({
