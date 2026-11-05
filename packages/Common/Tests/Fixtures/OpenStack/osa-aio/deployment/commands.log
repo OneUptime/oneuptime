@@ -1,6 +1,12 @@
+$ openstack-ansible openstack.osa.cinder --tags cinder-config
+[exit 0]
+
 $ openstack project create --domain default oneuptime-monitoring
 openstack user create --domain default --password <password> oneuptime-monitoring
 openstack role add --project oneuptime-monitoring --user oneuptime-monitoring admin
+[exit 0]
+
+$ apt-get install -y curl
 [exit 0]
 
 $ curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/access/application-credential-access-rules.json
@@ -10,8 +16,16 @@ openstack catalog list -f json | python3 access-rules-for-cloud.py \
 openstack application credential create oneuptime-agent \
   --role admin \
   --access-rules "$(cat access-rules-for-this-cloud.json)" \
-  --expiration 2027-11-05T05:46:34
-[exit 127]
+  --expiration 2027-11-05T13:30:56
+[exit 0]
+
+$ curl -fsSL http://172.29.236.100:8099/install/openstack-agent -o install.sh && bash install.sh
+[exit 0]
+
+$ cd /opt/oneuptime-openstack-agent
+docker compose ps
+docker compose logs -f oneuptime-openstack-agent
+[exit 124]
 
 $ openstack-ansible openstack.osa.rabbitmq_server --tags rabbitmq-config
 [exit 0]
@@ -46,6 +60,6 @@ $ openstack-ansible openstack.osa.nova --tags nova-policy-override
 [exit 0]
 
 $ openstack application credential create oneuptime-agent \
-  --expiration 2027-11-05T05:53:17
-[exit 1]
+  --expiration 2027-11-05T13:45:45
+[exit 0]
 

@@ -1,6 +1,6 @@
-kolla-ansible: stable/2026.1 at 008dc89c387c8c90122e8d6dee1ae2567a92b8b2
+kolla-ansible: stable/2026.1 at a9378109a34d5f87254bae5f5212a963b6e3f2c4
 ansible-core           2.20.11
-kolla-ansible          22.2.1.dev30
+kolla-ansible          22.2.1.dev31
 kernel: 7.0.0-1017-azure
 docker: 28.0.4
 --- containers

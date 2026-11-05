@@ -1,14 +1,13 @@
-import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import { OpenStackResourceBufferEntry } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import {
-  OpenStackResourceBufferEntry,
-  bufferOpenStackSnapshotMetric,
-  finishOpenStackBatch,
-  isOpenStackSnapshotDatapoint,
-} from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+  ESTATE_INSTANCES,
+  ESTATE_VOLUMES,
+  namesOf,
+  rowsOfPart,
+  statusByName,
+} from "../../../Helpers/OpenStackToolRecordings";
 import { describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 
 /*
  * What the agent really sent from a real Kolla-Ansible all-in-one, each way the guide runs it,
@@ -21,89 +20,22 @@ import path from "path";
  * which is why a part is only held to the kinds its own scrapes reach.
  */
 
-const RECORDING: string = path.join(
-  __dirname,
-  "../../../Fixtures/OpenStack/kolla-aio/otlp",
-);
-
-// estate.sh's names, and the status it leaves each in.
-const INSTANCES: Record<string, string> = {
-  "ou-running": "ACTIVE",
-  "ou-stopped": "SHUTOFF",
-  "ou-failed": "ERROR",
-  "ou-research-1": "ACTIVE",
-};
-const VOLUMES: Record<string, string> = {
-  "ou-vol-free": "available",
-  "ou-vol-used": "in-use",
-  "ou-vol-bad": "error",
-  "ou-vol-stuck": "attaching",
-};
-
-function rowsOfPart(part: string): Array<OpenStackResourceBufferEntry> {
-  const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-  const exported: JSONObject = JSON.parse(
-    fs.readFileSync(path.join(RECORDING, `${part}.json`), "utf8"),
-  ) as JSONObject;
-
-  for (const resource of exported["resourceMetrics"] as JSONArray) {
-    for (const scope of (resource as JSONObject)["scopeMetrics"] as JSONArray) {
-      for (const metric of (scope as JSONObject)["metrics"] as JSONArray) {
-        const named: JSONObject = metric as JSONObject;
-        const body: JSONObject = (named["gauge"] || named["sum"]) as JSONObject;
-
-        for (const datapoint of body["dataPoints"] as JSONArray) {
-          const point: {
-            metricName: string;
-            datapoint: JSONObject;
-          } = {
-            metricName: named["name"] as string,
-            datapoint: datapoint as JSONObject,
-          };
-
-          if (isOpenStackSnapshotDatapoint(point)) {
-            bufferOpenStackSnapshotMetric({ ...point, buffer });
-          }
-        }
-      }
-    }
-  }
-
-  return finishOpenStackBatch(buffer.values());
+function kollaRows(part: string): Array<OpenStackResourceBufferEntry> {
+  return rowsOfPart("kolla-aio", part);
 }
 
-function statusByName(
-  rows: Array<OpenStackResourceBufferEntry>,
-  kind: OpenStackResourceKind,
-): Record<string, string | null> {
-  const found: Record<string, string | null> = {};
-
-  for (const row of rows) {
-    if (row.kind === kind && row.name) {
-      found[row.name] = row.status;
-    }
-  }
-
-  return found;
-}
-
-function namesOf(
-  rows: Array<OpenStackResourceBufferEntry>,
-  kind: OpenStackResourceKind,
-): Array<string> {
-  return Object.keys(statusByName(rows, kind)).sort();
-}
+const INSTANCES: Record<string, string> = ESTATE_INSTANCES;
+const VOLUMES: Record<string, string> = ESTATE_VOLUMES;
 
 describe("what the agent sent from a real Kolla-Ansible", () => {
-  const pinned: Array<OpenStackResourceBufferEntry> =
-    rowsOfPart("own-exporter");
+  const pinned: Array<OpenStackResourceBufferEntry> = kollaRows("own-exporter");
   const stable: Array<OpenStackResourceBufferEntry> =
-    rowsOfPart("own-exporter-170");
+    kollaRows("own-exporter-170");
   const kollas: Array<OpenStackResourceBufferEntry> =
-    rowsOfPart("kolla-exporter");
-  const fullView: Array<OpenStackResourceBufferEntry> = rowsOfPart("full-view");
+    kollaRows("kolla-exporter");
+  const fullView: Array<OpenStackResourceBufferEntry> = kollaRows("full-view");
   const withoutDocker: Array<OpenStackResourceBufferEntry> =
-    rowsOfPart("without-docker");
+    kollaRows("without-docker");
 
   test.each([
     ["the agent's own exporter, on the first credential", "full-view"],
@@ -115,7 +47,7 @@ describe("what the agent sent from a real Kolla-Ansible", () => {
     "%s names each instance estate.sh made, with its status",
     (_: string, part: string) => {
       const instances: Record<string, string | null> = statusByName(
-        rowsOfPart(part),
+        kollaRows(part),
         OpenStackResourceKind.Instance,
       );
 
@@ -125,14 +57,16 @@ describe("what the agent sent from a real Kolla-Ansible", () => {
     },
   );
 
-  test("the version the agent pins names each volume, with its status", () => {
-    const volumes: Record<string, string | null> = statusByName(
-      pinned,
-      OpenStackResourceKind.Volume,
-    );
+  test("the version the agent pins names each volume, with its status, on the first credential too", () => {
+    for (const rows of [pinned, fullView]) {
+      const volumes: Record<string, string | null> = statusByName(
+        rows,
+        OpenStackResourceKind.Volume,
+      );
 
-    for (const [name, status] of Object.entries(VOLUMES)) {
-      expect({ name, status: volumes[name] }).toEqual({ name, status });
+      for (const [name, status] of Object.entries(VOLUMES)) {
+        expect({ name, status: volumes[name] }).toEqual({ name, status });
+      }
     }
   });
 

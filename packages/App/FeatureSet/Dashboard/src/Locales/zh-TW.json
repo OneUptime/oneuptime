@@ -45228,5 +45228,9 @@
   "Traffic comes from Octavia's own API, which only a probe reads: the exporter the agent runs has no series for it. Collect this cloud with a probe to chart connections, bytes and request errors here.": "流量來自 Octavia 自身的 API，只有探測器才能讀取：代理程式執行的匯出器沒有它的序列。請用探測器收集此雲端，以便在此繪製連線數、位元組數和請求錯誤。",
   "What listens in front of it. Only a probe reads listeners: the exporter has no series for them, so on a cloud the agent collects this stays empty.": "在它前面偵聽的內容。只有探測器才能讀取偵聽器：匯出器沒有它們的序列，因此在由代理程式收集的雲端上，此處會保持為空。",
   "AI Fix": "AI 修復",
-  "Lifecycle Event": "生命週期事件"
+  "Lifecycle Event": "生命週期事件",
+  "Pick from the list": "從清單中選擇",
+  "Pick from the list instead": "改為從清單中選擇",
+  "There is nothing to pick from yet.": "還沒有可選擇的內容。",
+  "Use “{{value}}”": "使用「{{value}}」"
 }

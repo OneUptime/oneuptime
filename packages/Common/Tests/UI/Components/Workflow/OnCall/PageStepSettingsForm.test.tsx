@@ -400,10 +400,17 @@ describe("choosing what the page is about", () => {
         screen.getByText(/^Required\. The incident to page about\./),
       ).toBeInTheDocument();
     });
-    expect(textbox("Incident ID")).toHaveAttribute(
-      "aria-placeholder",
-      "Pick a value with { } or paste an ID",
-    );
+    /*
+     * Incidents are listed by name where they can be read
+     * (LinkedRecordInput). This suite stands in for no model, so they cannot
+     * be, and the setting is the box it always was, saying what it takes.
+     */
+    await waitFor(() => {
+      expect(textbox("Incident ID")).toHaveAttribute(
+        "aria-placeholder",
+        "Pick a value with { } or paste an ID",
+      );
+    });
   });
 
   test("An alert: Alert ID instead", async () => {

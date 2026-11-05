@@ -105,6 +105,16 @@ full_view() {
   log "The guide's first credential, and the agent's own exporter"
   remove_agent
 
+  log "What Cinder needs, for a credential limited by access rules"
+  sudo tee -a /etc/openstack_deploy/user_variables.yml >/dev/null <<'GUIDE'
+cinder_cinder_conf_overrides:
+  keystone_authtoken:
+    service_type: block-storage
+GUIDE
+  FOLLOW_AS="$AS_DEPLOYER" GUIDE_DIR=/opt/openstack-ansible follow <<'GUIDE' || status=$?
+openstack-ansible openstack.osa.cinder --tags cinder-config
+GUIDE
+
   FOLLOW_AS="$(utility_runs)" FOLLOW_LOGIN="$LOGGED_IN_AS_ADMIN" GUIDE_DIR=/tmp follow <<'GUIDE' || status=$?
 openstack project create --domain default oneuptime-monitoring
 openstack user create --domain default --password-prompt oneuptime-monitoring

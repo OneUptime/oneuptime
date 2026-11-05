@@ -155,6 +155,20 @@ export interface ComponentProps {
   // The row that adds what was typed, in the reader's language.
   formatCreateLabel?: ((inputValue: string) => string) | undefined;
   /*
+   * Which typed text may be added at all, beyond not being an option already:
+   * a list of records takes an ID or a reference pasted in, and no other words.
+   * Left out, any text may be.
+   */
+  isCreatableText?: ((inputValue: string) => boolean) | undefined;
+  /*
+   * What is typed into the search box, as it is typed: for a list too long to
+   * hold whole, which asks the server for what matches. The menu still filters
+   * what it holds as it always does.
+   */
+  onSearchTextChange?: ((inputValue: string) => void) | undefined;
+  // Take the focus as it appears, as a text box added to a form does.
+  autoFocus?: boolean | undefined;
+  /*
    * The options are on their way: the control shows a spinner and the open
    * menu says loadingMessage (in the reader's language).
    */
@@ -978,6 +992,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         ): boolean => {
           return (
             inputValue.trim().length > 0 &&
+            (!props.isCreatableText || props.isCreatableText(inputValue)) &&
             !namesAnOption(inputValue, selectValue) &&
             !namesAnOption(
               inputValue,
@@ -1256,6 +1271,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         menuPosition="fixed"
         isClearable={props.isClearable ?? true}
         isSearchable={true}
+        autoFocus={Boolean(props.autoFocus)}
         isLoading={Boolean(props.isLoading)}
         closeMenuOnSelect={props.closeMenuOnSelect ?? true}
         {...menuMessageProps}
@@ -1264,6 +1280,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }}
         onMenuClose={() => {
           props.onMenuClose?.();
+        }}
+        onInputChange={(inputValue: string) => {
+          props.onSearchTextChange?.(inputValue);
         }}
         filterOption={filterOption}
         placeholder={tx(props.placeholder) ?? props.placeholder}

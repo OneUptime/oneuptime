@@ -20,7 +20,11 @@ import Dropdown, {
 } from "../../Dropdown/Dropdown";
 import AutocompleteTextInput from "../../AutocompleteTextInput/AutocompleteTextInput";
 import { ModelSchemaColumn } from "../ModelSchema";
-import { columnTypeLabel, controlForColumn } from "./ColumnControl";
+import {
+  columnPickLabel,
+  controlForColumn,
+  getColumnTitle,
+} from "./ColumnControl";
 import { operatorLabelFor, operatorsForControl } from "./ColumnOperators";
 import {
   isColumnDescriptionInformative,
@@ -96,7 +100,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
     (column: ModelSchemaColumn) => {
       return {
         value: column.id,
-        label: column.title,
+        label: getColumnTitle(column) || column.id,
         description: [
           isColumnKeyInformative(column) ? column.id : "",
           (isColumnDescriptionInformative(column)
@@ -104,7 +108,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
                 translator.translateText(column.description),
                 70,
               )
-            : "") || columnTypeLabel(column),
+            : "") || columnPickLabel(column),
         ]
           .filter((part: string) => {
             return part !== "";
@@ -130,7 +134,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
   ) {
     columnOptions.unshift({
       value: props.row.columnId,
-      label: props.column?.title || props.row.columnId,
+      label: getColumnTitle(props.column) || props.row.columnId,
       description: isUnknownColumn
         ? translator.translateText("Not a column on this model") || ""
         : translator.translateTemplate(
@@ -249,6 +253,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           text={props.row.text}
           values={props.row.values}
           operatorOption={operatorOption}
+          linkedTableName={props.column?.linkedTableName}
           placeholder={props.column?.example || props.column?.placeholder}
           autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}

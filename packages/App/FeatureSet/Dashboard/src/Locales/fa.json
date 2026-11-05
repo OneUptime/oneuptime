@@ -45228,5 +45228,9 @@
   "Traffic comes from Octavia's own API, which only a probe reads: the exporter the agent runs has no series for it. Collect this cloud with a probe to chart connections, bytes and request errors here.": "ترافیک از API خود Octavia می‌آید که فقط یک پراب آن را می‌خواند: exporter که عامل اجرا می‌کند برای آن سری ندارد. برای نمایش اتصال‌ها، بایت‌ها و خطاهای درخواست در اینجا، این ابر را با یک پراب جمع‌آوری کنید.",
   "What listens in front of it. Only a probe reads listeners: the exporter has no series for them, so on a cloud the agent collects this stays empty.": "آنچه جلوی آن گوش می‌دهد. فقط یک پراب Listenerها را می‌خواند: exporter برای آن‌ها سری ندارد، پس در ابری که عامل جمع‌آوری می‌کند این خالی می‌ماند.",
   "AI Fix": "رفع با هوش مصنوعی",
-  "Lifecycle Event": "رویداد چرخه عمر"
+  "Lifecycle Event": "رویداد چرخه عمر",
+  "Pick from the list": "از فهرست انتخاب کنید",
+  "Pick from the list instead": "به جای آن از فهرست انتخاب کنید",
+  "There is nothing to pick from yet.": "هنوز چیزی برای انتخاب وجود ندارد.",
+  "Use “{{value}}”": "استفاده از «{{value}}»"
 }

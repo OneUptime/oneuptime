@@ -473,6 +473,8 @@ export const FROM_ANOTHER_TOOL_RETURN_VALUE_IDS: {
 export interface FromAnotherToolKind {
   componentId: ComponentID;
   tableName: string;
+  // The table of the severities a new record of this kind can take.
+  severityTableName: string;
   noun: string;
   Noun: string;
   // "opens" / "creates", "Open" / "Create", "Opened" / "Created".
@@ -486,6 +488,7 @@ export interface FromAnotherToolKind {
 export const INCIDENT_FROM_ANOTHER_TOOL: FromAnotherToolKind = {
   componentId: ComponentID.IncidentFromAnotherTool,
   tableName: "Incident",
+  severityTableName: "IncidentSeverity",
   noun: "incident",
   Noun: "Incident",
   opens: "opens",
@@ -498,6 +501,7 @@ export const INCIDENT_FROM_ANOTHER_TOOL: FromAnotherToolKind = {
 export const ALERT_FROM_ANOTHER_TOOL: FromAnotherToolKind = {
   componentId: ComponentID.AlertFromAnotherTool,
   tableName: "Alert",
+  severityTableName: "AlertSeverity",
   noun: "alert",
   Noun: "Alert",
   opens: "creates",
@@ -566,6 +570,9 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
       type: ComponentInputType.Text,
       required: false,
       placeholder: kind.hasStatusPages ? "Critical Incident" : "High",
+      // Picked from the project's, or written as what another tool sends.
+      linkedTable: kind.severityTableName,
+      linkedAllowsAnyText: true,
     },
     {
       id: ids.note,
@@ -589,6 +596,7 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
       type: ComponentInputType.Text,
       required: false,
       isAdvanced: true,
+      linkedTable: kind.tableName,
     },
     {
       id: ids.outsideIdField,
@@ -616,6 +624,8 @@ const fromAnotherToolMetadata: FromAnotherToolMetadataFunction = (
       type: ComponentInputType.Text,
       required: false,
       isAdvanced: true,
+      linkedTable: "Label",
+      isLinkedList: true,
     },
     ...(kind.hasStatusPages
       ? [

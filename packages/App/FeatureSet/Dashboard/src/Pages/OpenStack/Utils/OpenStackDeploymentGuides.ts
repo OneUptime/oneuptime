@@ -21,10 +21,10 @@ import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
  *
  *   howFarTested is said on screen, in plain words, for every tool. The epic asks for
  *   each guide to be followed end to end on a real deployment. Kolla-Ansible's has been, short
- *   of an alert, and with a stand-in for OneUptime (Fixtures/OpenStack/kolla-aio). The rest have
- *   not, though OpenStack-Ansible has been deployed for real (Fixtures/OpenStack/osa-aio). Say
- *   what each was checked against, and never more: OpenStackDeploymentGuides.test.ts holds these
- *   two to what those recordings say ran.
+ *   of an alert, and OpenStack-Ansible's too, each with a stand-in for OneUptime
+ *   (Fixtures/OpenStack/kolla-aio and osa-aio). The rest have not. Say what each was checked
+ *   against, and never more: OpenStackDeploymentGuides.test.ts holds these two to what those
+ *   recordings say ran.
  *
  * Pure and React-free, as DocumentationMarkdown.ts is, so a test can read every word.
  * OpenStackDeploymentGuides.test.ts holds each one to the agent's files.
@@ -370,7 +370,7 @@ function kollaAnsible(
   return {
     alreadyRuns:
       "With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.",
-    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one Kolla-Ansible (stable/2026.1, Open vSwitch) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on each credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the targets read from its real prometheus.yml, and the logs profile. One part did not hold: with Memcached and nova-compute stopped there, its Alertmanager posted nothing, so no alert has gone from a Kolla-Ansible stack to OneUptime. What Alertmanager posts at the version Kolla-Ansible pins, recorded in a test cluster, did open and resolve an incident on the right cloud on a running OneUptime. ${WHOLE_PATH}`,
+    howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its commands were then run on a real all-in-one Kolla-Ansible (stable/2026.1, Open vSwitch) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on the first credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the exporter on the second credential, the targets read from its real prometheus.yml, and the logs profile. With Memcached really stopped there, its Alertmanager posted a firing webhook and then a resolved one, and what it posted opens and resolves one incident on the right cloud in the real evaluator. ${WHOLE_PATH}`,
     firstSteps: [
       {
         title: "Forward what is already firing",
@@ -401,7 +401,7 @@ ${codeBlock("bash", "kolla-ansible reconfigure -i <inventory> --tags prometheus"
     ],
     credentialNotes: [
       "Log in as an admin with `source /etc/kolla/admin-openrc.sh`, which `kolla-ansible post-deploy` writes.",
-      "**Full view** needs no change to any service: Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Cinder, Glance and Placement. Its Cinder says `volume`, which the access rules also carry.",
+      "**Full view** needs one change, to Cinder. Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Glance and Placement, but its Cinder says `volume` and its catalog says `block-storage`, and keystonemiddleware refuses a credential limited by access rules with a `401` unless the two agree. Add `service_type = block-storage` under `[keystone_authtoken]` in `/etc/kolla/config/cinder.conf`, then run `kolla-ansible reconfigure -i <inventory> --tags cinder`.",
       "**Infrastructure only** takes its overrides at `/etc/kolla/config/nova/policy.yaml`, and the same for `neutron`, `keystone` and `placement`, merged with anything already there. Apply them with `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.",
     ],
     credentialVariants: [
@@ -510,11 +510,11 @@ function openStackAnsible(
   return {
     alreadyRuns:
       "OpenStack-Ansible keeps its services' logs in journald and runs no Prometheus of its own, so the agent is the way in, and the logs have a path of their own.",
-    howFarTested: `Its paths and variables were read from OpenStack-Ansible's own source and docs. A real all-in-one (stable/2026.1, in LXC containers) was deployed on a CI runner, where this guide's RabbitMQ and HAProxy settings were applied with its commands and each exporter answered, and its logs profile read the journal. The agent itself was recorded on a test cloud, but not one this tool deployed. ${TESTED_BY_RIG}`,
+    howFarTested: `Its paths and variables were read from OpenStack-Ansible's own source and docs. Its commands were then run on a real all-in-one OpenStack-Ansible (stable/2026.1, in LXC containers) on a CI runner, reporting to a stand-in for OneUptime that kept what the agent sent: the agent on the first credential, the exporter on the second with its policy overrides, the RabbitMQ and HAProxy settings with the agent reading each, and the logs profile on the journal. ${WHOLE_PATH}`,
     firstSteps: [],
     credentialNotes: [
       "Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`. It has no `curl`, which the commands below use, so run `apt-get install -y curl` there first.",
-      "**Full view** needs no change to any service: OpenStack-Ansible's roles already set `service_type` under `[keystone_authtoken]`. Its Cinder says `volumev3`, which the access rules also carry.",
+      "**Full view** needs one change, to Cinder. OpenStack-Ansible's roles already set `service_type` under `[keystone_authtoken]`, but its Cinder says `volumev3` and its catalog says `block-storage`, and keystonemiddleware refuses a credential limited by access rules with a `401` unless the two agree. Set `service_type: block-storage` under `keystone_authtoken` in `cinder_cinder_conf_overrides` in `/etc/openstack_deploy/user_variables.yml`, then run `openstack-ansible openstack.osa.cinder --tags cinder-config`.",
       "**Infrastructure only** takes its overrides as `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` and `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml`. Apply each with its own playbook and tag, such as `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Taking one out later leaves an empty file behind rather than none, so nothing fails.",
     ],
     credentialVariants: [],

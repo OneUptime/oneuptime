@@ -34,7 +34,11 @@ import {
   requiredWritableColumns,
   useModelSchema,
 } from "./ModelSchema";
-import { ModelColumnRow } from "./ColumnEditor/ColumnRow";
+import { ModelColumnControl, ModelColumnRow } from "./ColumnEditor/ColumnRow";
+import {
+  controlForColumn,
+  literalFitsControl,
+} from "./ColumnEditor/ColumnControl";
 import {
   rowsFromParsedValue,
   seedRequiredRows,
@@ -277,6 +281,19 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
     }
 
     if (Array.isArray(value)) {
+      /*
+       * A record's list of related records is a row of its own, when it is the
+       * list a step writes and nothing more (Types/Workflow/LinkedRecord).
+       */
+      if (
+        mode === ModelColumnEditorMode.Record &&
+        controlForColumn(findColumn(columns, key)) ===
+          ModelColumnControl.RecordList &&
+        literalFitsControl(ModelColumnControl.RecordList, value)
+      ) {
+        continue;
+      }
+
       /*
        * The "is any of" advice is Query-only: Record mode renders with
        * enableOperators={false}, so it was telling half its readers to reach

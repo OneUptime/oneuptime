@@ -1139,7 +1139,7 @@ const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] Compute Service Disabled",
-        incidentDescription: `A nova-compute was disabled with no maintenance event in progress covering its host, so nothing new can be scheduled there. The reason it gives is named above, if it gives one, and a reason starting AUTO: means Nova disabled it itself, so check libvirt on that host. If this is planned work, put a maintenance event on the host, and this stays quiet for as long as it is on. If it is not, openstack compute service set --enable puts the host back. The incident resolves on its own once it is enabled again, or an event covers it.`,
+        incidentDescription: `A nova-compute was disabled with no maintenance event in progress covering its host, so nothing new can be scheduled there. The reason it gives, if it gives one, is under Affected resource, and a reason starting AUTO: means Nova disabled it itself, so check libvirt on that host. If this is planned work, put a maintenance event on the host, and this stays quiet for as long as it is on. If it is not, openstack compute service set --enable puts the host back. The incident resolves on its own once it is enabled again, or an event covers it.`,
         criteriaName: "Compute Service Disabled - no maintenance event",
         criteriaDescription:
           "Triggers when a nova-compute stays disabled for the whole window.",

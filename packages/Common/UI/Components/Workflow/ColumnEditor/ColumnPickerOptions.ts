@@ -24,7 +24,7 @@
  */
 
 import { ModelSchemaColumn } from "../ModelSchema";
-import { columnTypeLabel } from "./ColumnControl";
+import { columnPickLabel } from "./ColumnControl";
 import { ColumnUse, isSystemColumn } from "./ColumnUse";
 import { translationKey } from "../../../Utils/TranslateTemplate";
 
@@ -296,7 +296,7 @@ const scoreColumn: ScoreColumnFunction = (
       column.title || "",
       column.id,
       column.description || "",
-      columnTypeLabel(column),
+      columnPickLabel(column),
     ].join(" "),
   );
 

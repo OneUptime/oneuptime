@@ -45228,5 +45228,9 @@
   "Traffic comes from Octavia's own API, which only a probe reads: the exporter the agent runs has no series for it. Collect this cloud with a probe to chart connections, bytes and request errors here.": "Le trafic provient de l'API propre à Octavia, que seule une sonde lit : l'exporteur exécuté par l'agent n'a aucune série pour elle. Collectez ce cloud avec une sonde pour afficher ici les connexions, les octets et les erreurs de requête.",
   "What listens in front of it. Only a probe reads listeners: the exporter has no series for them, so on a cloud the agent collects this stays empty.": "Ce qui écoute en amont. Seule une sonde lit les listeners : l'exporteur n'a aucune série pour eux, donc sur un cloud collecté par l'agent, cela reste vide.",
   "AI Fix": "Correction par IA",
-  "Lifecycle Event": "Événement de cycle de vie"
+  "Lifecycle Event": "Événement de cycle de vie",
+  "Pick from the list": "Choisir dans la liste",
+  "Pick from the list instead": "Choisir plutôt dans la liste",
+  "There is nothing to pick from yet.": "Il n'y a encore rien à choisir.",
+  "Use “{{value}}”": "Utiliser « {{value}} »"
 }

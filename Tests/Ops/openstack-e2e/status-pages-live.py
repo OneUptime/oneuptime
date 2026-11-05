@@ -9,9 +9,12 @@ server here that keeps what it is sent:
              key is refused. The right one makes a page: a group for the region, a row per service.
   notices    Two projects with a notice. One is turned on from its preview, and turning on without one
              is refused. The other stays off.
+  objectives One objective per row, from the same monitors, made once however often it is asked.
+  private    One project's own page, made in one step, which a session on the dashboard doesn't read.
   break      nova-compute really stopped. One incident opens, naming both projects, and the one notice
              turned on is told, once, about its own instances and nobody else's, with no host's name
              in it. Started again: it is told once that it is over, and the other project never hears.
+  afterwards What the outage did to the project's own page and to Compute's objective, and not to Images'.
   planned    A maintenance event on that host names who it reaches and tells the project once. While it
              is on, nova-compute stopped opens nothing and moves no status, and a disable reads as
              expected. Ended, the same disable pages, and tells no project.
@@ -61,6 +64,15 @@ OTHER = "ou-research"
 COMPUTE_UNIT = whole.COMPUTE_UNIT
 # The longest a template's window and a collection can take to say something happened, or didn't.
 QUIET_FOR_SECONDS = 900
+PART_PAGES = {
+    "Hypervisor": "hypervisors",
+    "Instance": "instances",
+    "Flavor": "flavors",
+    "Network": "networks",
+    "Router": "routers",
+    "Volume": "volumes",
+    "Image": "images",
+}
 
 
 class Sink(http.server.BaseHTTPRequestHandler):
@@ -115,13 +127,27 @@ def part_of_cloud(cloud_id, kind, external_id):
     return whole.cloud_path(cloud_id, f"{kind}/{urllib.parse.quote(external_id, safe='')}")
 
 
+def part_pages(cloud_id):
+    """A part of each kind the estate holds, by its own page's address: what a row in a list opens."""
+    pages = []
+    for kind, path in PART_PAGES.items():
+        named = [row for row in whole.rows_of(cloud_id, kind) if row.get("name")]
+        if named:
+            pages.append(page_of(f"A part's page: {kind}", f"part-{path}.png", part_of_cloud(cloud_id, path, named[0]["externalId"]), named[0]["name"]))
+    check("the estate has a part of each kind to open", len(pages) == len(PART_PAGES), [page["name"] for page in pages])
+    return pages
+
+
 def part_page():
     cloud_id = STATE["agent cloud"]
     STATE["cloud"] = cloud_id
     before = monitor_count()
     whole.look_at(
         "the-page-before-making",
-        [page_of("The cloud's Status Pages page", "before-making.png", whole.cloud_path(cloud_id, "status-pages"), "Create Status Page")],
+        [
+            page_of("The cloud's Status Pages page", "before-making.png", whole.cloud_path(cloud_id, "status-pages"), "Create Status Page"),
+            *part_pages(cloud_id),
+        ],
     )
     answer = post(f"{NOTICE_API}/status-page-plan/{cloud_id}")
     plan, key = answer["plan"], answer["planKey"]
@@ -249,6 +275,100 @@ def part_notices():
             page_of("A project's page, with its notice", "project.png", part_of_cloud(cloud_id, "projects", paid["externalId"]), f"{url}/paid", "Create Private Page"),
         ],
     )
+
+
+def part_objectives():
+    cloud_id = STATE["cloud"]
+    answer = post(f"{NOTICE_API}/status-page-plan/{cloud_id}")
+    rows = [row for group in answer["plan"].get("groups", []) for row in group.get("rows", [])]
+    made = post(f"{NOTICE_API}/make-objectives/{cloud_id}", {"planKey": answer["planKey"]})
+    found("what it made", made)
+    check("one objective per row", made.get("objectivesMade") == len(rows), made)
+    check("from the monitors already there", made.get("monitorsMade") == 0, made)
+
+    answer = post(f"{NOTICE_API}/status-page-plan/{cloud_id}")
+    again = post(f"{NOTICE_API}/make-objectives/{cloud_id}", {"planKey": answer["planKey"]})
+    check("asked again, it leaves them as they are", again.get("objectivesMade") == 0 and again.get("objectivesLeft") == len(rows), again)
+
+
+def part_private():
+    cloud_id = STATE["cloud"]
+    plan = post(f"{NOTICE_API}/project-page-plan/{cloud_id}", {"openStackProjectId": STATE["paid project"]})
+    found("its plan", plan)
+    services = [row.get("service") for row in plan.get("rows", [])]
+    check("it would have a row for what the project holds", "Compute" in services, services)
+
+    made = post(f"{NOTICE_API}/make-project-page/{cloud_id}", {"openStackProjectId": STATE["paid project"]})
+    found("what it made", made)
+    page_id = made.get("statusPageId")
+    STATE["private page"] = page_id
+    check("one step makes the project's own page", bool(page_id), made)
+    status, _ = live.request("POST", f"/api/status-page/overview/{page_id}", {})
+    check("a session on the dashboard doesn't read it", status >= 400, status)
+
+
+def part_private_afterwards():
+    announcements = live.rows(
+        "/status-page-announcement",
+        {"projectId": live.PROJECT_ID},
+        {"title": True, "description": True, "endAnnouncementAt": True},
+        limit=50,
+    )
+    mine = [row for row in announcements if PAID in (row.get("title") or "")]
+    found("what it announced", mine)
+    check("the project's own page was told of the failure, once", len(mine) == 1, [row.get("title") for row in announcements])
+    if mine:
+        text = json.dumps(mine[0])
+        check("about nobody else, and no host", OTHER not in text and STATE["other project"] not in text and STATE["host"] not in text, text[:800])
+        check("and has ended it", bool(mine[0].get("endAnnouncementAt")), mine[0].get("endAnnouncementAt"))
+
+    resources = live.rows(
+        "/status-page-resource",
+        {"statusPageId": whole.typed_id(STATE["private page"])},
+        {"displayName": True, "monitorId": True},
+        limit=20,
+    )
+    found("its rows", resources)
+    compute = next((row for row in resources if row.get("displayName") == "Compute"), None)
+    check("it has a row for Compute", bool(compute), resources)
+    if compute:
+        timeline = live.rows(
+            "/monitor-status-timeline",
+            {"monitorId": whole.typed_id(live.value_of(compute.get("monitorId")))},
+            {"createdAt": True, "monitorStatus": {"name": True, "isOfflineState": True}},
+            limit=20,
+        )
+        found("that row's timeline", timeline)
+        check("which went red while it lasted", any((row.get("monitorStatus") or {}).get("isOfflineState") for row in timeline), timeline)
+
+
+def objective_readings():
+    rows = live.rows(
+        "/service-level-objective",
+        {"projectId": live.PROJECT_ID},
+        {"name": True, "sloStatus": True, "currentSliPercentage": True, "lastEvaluatedAt": True},
+        limit=50,
+    )
+    return {row.get("name"): row for row in rows}
+
+
+def reading_of(readings, service):
+    row = next((row for name, row in readings.items() if f" - {service} " in (name or "")), None)
+    value = live.value_of(row.get("currentSliPercentage")) if row else None
+    return None if value is None else float(value)
+
+
+def part_objectives_afterwards():
+    def counted():
+        readings = objective_readings()
+        value = reading_of(readings, "Compute")
+        return readings if value is not None and value < 100 else None
+
+    readings, waited = wait_for(counted, 1200, gap=30)
+    found("the objectives after the outage", readings or objective_readings())
+    check("Compute's objective counts the outage", bool(readings), f"after {waited}s")
+    if readings:
+        check("and Images' doesn't", reading_of(readings, "Images") == 100, reading_of(readings, "Images"))
 
 
 def incidents_about(words):
@@ -504,7 +624,12 @@ def main():
     whole.part("agent", "the agent, installed as the docs say", whole.part_agent, needs=["oneuptime"])
     whole.part("page", "a status page for the cloud, in one step", part_page, needs=["agent"])
     whole.part("notices", "a notice on one project, off on another", part_notices, needs=["page"])
+    # Neither of these holds anything else up: what they find is their own.
+    whole.part("objectives", "an objective per row, from the same monitors", part_objectives, needs=["page"])
+    whole.part("private", "one project's own page", part_private, needs=["notices"])
     whole.part("break", "nova-compute really stopped, and who hears", part_break, needs=["notices"])
+    whole.part("private afterwards", "what the project's own page heard", part_private_afterwards, needs=["private", "break"])
+    whole.part("objectives afterwards", "what the outage did to the objectives", part_objectives_afterwards, needs=["objectives", "break"])
     whole.part("planned", "a maintenance event on the host, and a disable", part_planned, needs=["break"])
 
     found("everything the webhook received", RECEIVED)
