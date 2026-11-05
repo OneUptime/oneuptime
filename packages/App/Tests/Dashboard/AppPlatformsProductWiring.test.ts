@@ -355,7 +355,8 @@ describe("old Cloud addresses still arrive", () => {
     ]) {
       const code: string = readCode(layout);
 
-      expect(code).toContain("select: { cloudResourceKind: true, }");
+      // Cloud's page reads a little more, for the tabs it draws.
+      expect(code).toMatch(/select: \{ cloudResourceKind: true, /);
       expect(code).toContain(
         "<Navigate replace={true} to={getCloudResourceForwardRoute({",
       );

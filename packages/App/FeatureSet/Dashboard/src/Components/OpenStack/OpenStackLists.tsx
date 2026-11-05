@@ -410,7 +410,7 @@ export const OpenStackFlavorList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No flavors reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Nova. A credential that can reach Nova lists the flavors it may use, so check that the agent or probe collecting this cloud is running and can read the Compute API."
+        "These come from Nova. A credential that can reach Nova lists the flavors it may use, so check that the agent or probe is running and can read Compute."
       }
       columns={columns}
       filters={[]}
@@ -542,7 +542,7 @@ export const OpenStackNetworkList: FunctionComponent<
       emptyTitle={props.emptyTitle || "No networks reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Neutron. Only the Full view credential sees every project's: Neutron answers any other with its own project, and no error. Addresses used need Full view or Infrastructure only."
+        "These come from Neutron. Only Full view sees every project's, any other its own, with no error. Addresses used need Full view or Infrastructure only."
       }
       columns={columns}
       filters={[]}
@@ -1314,7 +1314,7 @@ export const OpenStackImageList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No images reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Glance. A credential lists the public images and its own project's, so check that the agent or probe collecting this cloud is running and can read the Image API."
+        "These come from Glance. A credential lists the public images and its own project's, so check that the agent or probe is running and can read Image."
       }
       columns={IMAGE_COLUMNS}
       filters={[]}
@@ -1519,7 +1519,7 @@ export const OpenStackStackList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No stacks reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Heat. Only the Full view credential sees every project's: Heat shows anything less its own project's stacks or none, and no error says so."
+        "These come from Heat. Only the Full view credential sees every project's: anything less sees its own project's stacks or none, and no error says so."
       }
       columns={STACK_COLUMNS}
       filters={[]}
@@ -1693,7 +1693,7 @@ export const OpenStackShareList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No shares reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Manila. Only the Full view credential sees every project's: Manila shows anything less its own project's or none, and no error says so."
+        "These come from Manila. Only the Full view credential sees every project's: anything less sees its own project's or none, and no error says so."
       }
       columns={SHARE_COLUMNS}
       filters={[]}
@@ -1782,7 +1782,7 @@ export const OpenStackLoadBalancerList: FunctionComponent<
       emptyTitle={props.emptyTitle || "No load balancers reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Octavia. Only the Full view credential sees every project's: Octavia shows anything less its own project's, and the monitoring role none, and no error says so."
+        "These come from Octavia. Only the Full view credential sees every project's: less sees its own project's, the monitoring role none, with no error."
       }
       columns={LOAD_BALANCER_COLUMNS}
       filters={[]}

@@ -1021,7 +1021,7 @@ export default class Host extends BaseModel {
     modelType: OpenStackCloud,
     title: "OpenStack Cloud",
     description:
-      "Optional link to the OpenStack cloud this host belongs to: it is one of the cloud's hypervisors, or it runs inside one of its instances. Linked at ingest when exactly one part of a cloud in the same project matches, or chosen by someone when more than one could. Best effort, and never overwrites a value already set.",
+      "The OpenStack cloud this host belongs to, as one of its hypervisors or inside one of its instances. Linked at ingest when exactly one part matches.",
   })
   @ManyToOne(
     () => {

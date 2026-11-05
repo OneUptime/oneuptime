@@ -224,7 +224,7 @@ test.describe("the signals", () => {
   }) => {
     await openCloudPage(page, "logs", "estate=multi-region");
 
-    await expect(page.getByText(/No logs from this cloud yet/)).toBeVisible();
+    await expect(page.getByText(/A cloud's logs appear once/)).toBeVisible();
 
     const record: FixtureRecord = await fixtureRecord(page);
     const asked: Array<Record<string, unknown>> = attributesAskedOf(

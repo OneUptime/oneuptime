@@ -7,12 +7,10 @@ import {
   test,
 } from "@jest/globals";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import OpenStackProjectNotice from "../../../../Models/DatabaseModels/OpenStackProjectNotice";
 import OpenStackProjectNoticeDelivery from "../../../../Models/DatabaseModels/OpenStackProjectNoticeDelivery";
 import OpenStackResource from "../../../../Models/DatabaseModels/OpenStackResource";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
-import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
@@ -36,6 +34,8 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import OpenStackProjectNoticeSender from "../../../../Server/Utils/OpenStack/OpenStackProjectNoticeSender";
 import SSRFProtection from "../../../../Server/Utils/SSRFProtection";
+import IncidentStateService from "../../../../Server/Services/IncidentStateService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 
 /*
  * WHAT GOES OUT, AND WHAT DOESN'T, ON THE WAY OUT.
@@ -53,7 +53,12 @@ const EMAIL: string = "ops@example.com";
 
 type Row = OpenStackProjectNoticeDelivery;
 
-function rowOf(overrides: Partial<Row> = {}): Row {
+// Partial, but a field can be named as undefined: a delivery for no incident.
+type RowOverrides = {
+  [Key in keyof Row]?: Row[Key] | undefined;
+};
+
+function rowOf(overrides: RowOverrides = {}): Row {
   const row: OpenStackProjectNoticeDelivery =
     new OpenStackProjectNoticeDelivery();
   row._id = ObjectID.generate().toString();
@@ -100,7 +105,7 @@ function webhookNotice(
   url: string = "https://example.com/hook",
 ): OpenStackProjectNotice {
   const notice: OpenStackProjectNotice = noticeOf();
-  notice.email = undefined;
+  delete notice.email;
   notice.webhookUrl = URL.fromString(url);
   notice.previewedRecipient = `webhook:${URL.fromString(url).toString()}`;
   return notice;
@@ -431,13 +436,28 @@ describe("what is over", () => {
   let closed: Array<string>;
   let recorded: Array<OpenStackProjectNoticeDeliveryToRecord>;
 
+  const OWNER_PROJECT_ID: ObjectID = ObjectID.generate();
+  const RESOLVED_STATE_ID: ObjectID = ObjectID.generate();
+  const OPEN_STATE_ID: ObjectID = ObjectID.generate();
+  const ENDED_STATE_ID: ObjectID = ObjectID.generate();
+  const ONGOING_STATE_ID: ObjectID = ObjectID.generate();
+
   function incidentWithState(id: ObjectID, isResolved: boolean): Incident {
     const incident: Incident = new Incident();
     incident._id = id.toString();
-    const state: IncidentState = new IncidentState();
-    state.isResolvedState = isResolved;
-    incident.currentIncidentState = state;
+    incident.projectId = OWNER_PROJECT_ID;
+    incident.currentIncidentStateId = isResolved
+      ? RESOLVED_STATE_ID
+      : OPEN_STATE_ID;
     return incident;
+  }
+
+  function eventInState(id: ObjectID, stateId: ObjectID): ScheduledMaintenance {
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event._id = id.toString();
+    event.projectId = OWNER_PROJECT_ID;
+    event.currentScheduledMaintenanceStateId = stateId;
+    return event;
   }
 
   beforeEach(() => {
@@ -447,6 +467,15 @@ describe("what is over", () => {
     closed = [];
     recorded = [];
 
+    jest
+      .spyOn(IncidentStateService, "getResolvedIncidentStateIds")
+      .mockResolvedValue([RESOLVED_STATE_ID]);
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getIncompleteScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([ONGOING_STATE_ID]);
     jest
       .spyOn(OpenStackProjectNoticeDeliveryService, "findBy")
       .mockImplementation((async () => {
@@ -614,11 +643,7 @@ describe("what is over", () => {
       dedupeKey: `maintenance:${eventId.toString()}:planned`,
     });
 
-    const event: ScheduledMaintenance = new ScheduledMaintenance();
-    event._id = eventId.toString();
-    const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
-    state.isEndedState = true;
-    event.currentScheduledMaintenanceState = state;
+    const event: ScheduledMaintenance = eventInState(eventId, ENDED_STATE_ID);
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
       .mockResolvedValue([event]);
@@ -641,11 +666,7 @@ describe("what is over", () => {
       }),
     ];
 
-    const event: ScheduledMaintenance = new ScheduledMaintenance();
-    event._id = eventId.toString();
-    const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
-    state.isOngoingState = true;
-    event.currentScheduledMaintenanceState = state;
+    const event: ScheduledMaintenance = eventInState(eventId, ONGOING_STATE_ID);
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
       .mockResolvedValue([event]);

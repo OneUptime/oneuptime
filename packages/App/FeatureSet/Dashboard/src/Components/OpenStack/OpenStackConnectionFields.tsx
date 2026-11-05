@@ -150,7 +150,7 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
       <Toggle
         title={translator.translateText("Ports")}
         description={translator.translateText(
-          "One series per port, and how many have no address or a load balancer that is down. Costs one paged list per network or project you name, or of every port if you name none. An unscoped list of ports can saturate Neutron on a large cloud.",
+          "One series per port, and how many have no address or a load balancer that is down. Name networks or projects: listing every port can saturate Neutron.",
         )}
         value={Boolean(options.collectPorts)}
         disabled={props.disabled}

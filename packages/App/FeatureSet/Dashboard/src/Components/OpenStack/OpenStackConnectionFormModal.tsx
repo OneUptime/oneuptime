@@ -193,7 +193,7 @@ const OpenStackConnectionFormModal: FunctionComponent<
       title={title}
       description={
         isSwitch
-          ? "Enter Keystone's address, a read-only credential and a probe that reaches the cloud. Stop the OpenStack agent after the first collection, or every metric arrives twice."
+          ? "Enter Keystone's address, a read-only credential and a probe that reaches it. Stop the OpenStack agent after its first collection, or metrics double."
           : "Changing the address or the probe, or trusting another certificate, needs the secret again: a saved credential is only sent where it was entered for."
       }
       modalWidth={ModalWidth.Medium}
