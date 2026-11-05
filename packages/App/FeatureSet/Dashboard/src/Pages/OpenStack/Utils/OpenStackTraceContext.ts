@@ -24,8 +24,11 @@ import {
 import {
   OPENSTACK_CLOUD_SPAN_ATTRIBUTE,
   OPENSTACK_NODE_SPAN_ATTRIBUTE,
-  OSPROFILER_DRIVER_SCOPE_NAME,
+  OPENSTACK_TRACE_SCOPE_NAMES,
   OSPROFILER_SCOPE_SPAN_ATTRIBUTE,
+  OpenStackTraceSource,
+  getOpenStackTraceSource,
+  isOpenStackTraceCarriedOverHttp,
   OpenStackTraceAttribute,
   OpenStackTraceResource,
   getOpenStackApiOfTracedService,
@@ -71,6 +74,9 @@ export interface OpenStackTraceContext {
    * sent nothing, which the waterfall below reports as a missing parent. Empty otherwise.
    */
   leftOut: Array<string>;
+  // Who sent this trace, and for oslo's, whether it went on across an HTTP call.
+  sources: Array<OpenStackTraceSource>;
+  carriedOverHttp: boolean;
 }
 
 function readText(attributes: JSONObject, key: string): string {
@@ -129,14 +135,31 @@ export function readOpenStackTraceSpans(spans: ReadonlyArray<Span>): {
   resources: Array<OpenStackTraceResource>;
   forLogs: Array<OpenStackTraceSpanForLogs>;
   leftOut: Array<string>;
+  sources: Array<OpenStackTraceSource>;
+  carriedOverHttp: boolean;
 } {
   let cloudName: string = "";
   const services: Map<string, { service: string; host: string }> = new Map();
   const resources: Map<string, OpenStackTraceResource> = new Map();
   const forLogs: Array<OpenStackTraceSpanForLogs> = [];
+  const sources: Set<OpenStackTraceSource> = new Set<OpenStackTraceSource>();
+  let carriedOverHttp: boolean = false;
 
   for (const span of spans) {
     const attributes: JSONObject = (span.attributes as JSONObject) || {};
+    const source: OpenStackTraceSource | null =
+      getOpenStackTraceSource(attributes);
+
+    if (source) {
+      sources.add(source);
+    }
+
+    carriedOverHttp =
+      carriedOverHttp ||
+      isOpenStackTraceCarriedOverHttp({
+        parentSpanId: span.parentSpanId?.toString(),
+        attributes: attributes,
+      });
 
     cloudName =
       cloudName || readText(attributes, OPENSTACK_CLOUD_SPAN_ATTRIBUTE);
@@ -195,6 +218,8 @@ export function readOpenStackTraceSpans(spans: ReadonlyArray<Span>): {
           ),
         )
       : [],
+    sources: Array.from(sources).sort(),
+    carriedOverHttp: carriedOverHttp,
   };
 }
 
@@ -257,33 +282,47 @@ async function fetchRequestsOfTrace(data: {
 export async function fetchOpenStackTraceContext(
   traceId: string,
 ): Promise<OpenStackTraceContext | null> {
-  const spanRows: AnalyticsListResult<Span> =
-    await AnalyticsModelAPI.getList<Span>({
-      modelType: Span,
-      query: {
-        traceId: traceId,
-        attributes: {
-          [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSPROFILER_DRIVER_SCOPE_NAME,
-        },
-      } as unknown as Query<Span>,
-      select: {
-        spanId: true,
-        parentSpanId: true,
-        startTime: true,
-        endTime: true,
-        attributes: true,
+  /*
+   * One read for each scope, because an attribute is matched by one value: a look at anyone
+   * else's trace costs an empty answer from each, and OSProfiler's and oslo's rarely share one.
+   */
+  const scopeRows: Array<AnalyticsListResult<Span>> = await Promise.all(
+    OPENSTACK_TRACE_SCOPE_NAMES.map(
+      (scopeName: string): Promise<AnalyticsListResult<Span>> => {
+        return AnalyticsModelAPI.getList<Span>({
+          modelType: Span,
+          query: {
+            traceId: traceId,
+            attributes: {
+              [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: scopeName,
+            },
+          } as unknown as Query<Span>,
+          select: {
+            spanId: true,
+            parentSpanId: true,
+            startTime: true,
+            endTime: true,
+            attributes: true,
+          },
+          sort: { startTime: SortOrder.Ascending },
+          limit: SPANS_READ,
+          skip: 0,
+        });
       },
-      sort: { startTime: SortOrder.Ascending },
-      limit: SPANS_READ,
-      skip: 0,
-    });
+    ),
+  );
+  const openStackSpans: Array<Span> = scopeRows.flatMap(
+    (rows: AnalyticsListResult<Span>): Array<Span> => {
+      return rows.data;
+    },
+  );
 
-  if (spanRows.data.length === 0) {
+  if (openStackSpans.length === 0) {
     return null;
   }
 
   const read: ReturnType<typeof readOpenStackTraceSpans> =
-    readOpenStackTraceSpans(spanRows.data);
+    readOpenStackTraceSpans(openStackSpans);
 
   if (!read.cloudName) {
     return {
@@ -301,6 +340,8 @@ export async function fetchOpenStackTraceContext(
       ),
       requests: [],
       leftOut: read.leftOut,
+      sources: read.sources,
+      carriedOverHttp: read.carriedOverHttp,
     };
   }
 
@@ -392,5 +433,7 @@ export async function fetchOpenStackTraceContext(
     ),
     requests: requests,
     leftOut: read.leftOut,
+    sources: read.sources,
+    carriedOverHttp: read.carriedOverHttp,
   };
 }

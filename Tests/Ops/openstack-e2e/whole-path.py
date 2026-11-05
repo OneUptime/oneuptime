@@ -73,6 +73,17 @@ VENV = os.environ.get("DEVSTACK_VENV", "/opt/stack/data/venv")
 PLAYWRIGHT_IMAGE = os.environ.get("PLAYWRIGHT_IMAGE", "")
 SCREENSHOTS = os.path.join(OUTPUT_DIR, "screenshots")
 PROJECTS_ON_THE_HOST = ("ou-payments", "ou-research")
+# Which parts a dispatch asked for, by name, when it did not want them all: what each needs too.
+WANTED_PARTS = os.environ.get("WHOLE_PATH_PARTS", "").split()
+TRACED_CONFS = (
+    "/etc/nova/nova.conf",
+    "/etc/nova/nova_cell1.conf",
+    "/etc/nova/nova-cpu.conf",
+    "/etc/neutron/neutron.conf",
+    "/etc/cinder/cinder.conf",
+    "/etc/glance/glance-api.conf",
+    "/etc/keystone/keystone.conf",
+)
 # Every page of a cloud with no id of its own in its address, for what a browser says of each.
 CLOUD_PAGES = (
     "networks routers floating-ips bare-metal volumes storage-pools images flavors availability-zones aggregates "
@@ -244,6 +255,9 @@ def memory(note):
 def part(name, about, body, needs=()):
     global PART
     PART = name
+    if WANTED_PARTS and name not in WANTED_PARTS:
+        say(f"\n======== {name}: not asked for on this dispatch")
+        return
     say(f"\n======== {name}: {about}")
     started = time.time()
     missing = [wanted for wanted in needs if wanted not in DONE]
@@ -1203,15 +1217,7 @@ def part_traces():
     must("traces-libraries", f"sudo {VENV}/bin/pip install 'opentelemetry-sdk<1.44' 'opentelemetry-exporter-otlp<1.44'", timeout=300)
     configure = os.path.join(HERE, "logs-configure.py")
     # Placement stays out, as the installer says: as OpenStack ships it, the driver cannot start there.
-    for conf in (
-        "/etc/nova/nova.conf",
-        "/etc/nova/nova_cell1.conf",
-        "/etc/nova/nova-cpu.conf",
-        "/etc/neutron/neutron.conf",
-        "/etc/cinder/cinder.conf",
-        "/etc/glance/glance-api.conf",
-        "/etc/keystone/keystone.conf",
-    ):
+    for conf in TRACED_CONFS:
         for name, value in (
             ("enabled", "True"),
             ("hmac_keys", key),
@@ -1297,6 +1303,125 @@ def part_traces():
     )
 
 
+# OpenStack's own tracing
+# ----------------------------------------------------------------------------------------------
+def part_native():
+    """The docs' "OpenStack's own tracing" on the cloud part_traces left OSProfiler on, with nothing signed."""
+    configure = shlex.quote(os.path.join(HERE, "logs-configure.py"))
+    with open(DOCS_PAGE, encoding="utf-8") as handle:
+        page = handle.read()
+    line = re.search(r"^(sed -i '/headers\\\.update\(osprofiler_web[^\n]*)$", page, re.M)
+    if not line:
+        raise RuntimeError("telemetry/openstack.md no longer holds the line for keystoneauth")
+    for conf in TRACED_CONFS:
+        must("native-config", f"! sudo test -f {conf} || sudo python3 -I {configure} ini-set {conf} oslo_messaging_tracing tracing_enabled True")
+    for conf, service in (
+        ("/etc/nova/nova.conf", "nova-api"),
+        ("/etc/neutron/neutron.conf", "neutron-server"),
+        ("/etc/cinder/cinder.conf", "cinder-api"),
+        ("/etc/glance/glance-api.conf", "glance-api"),
+    ):
+        for name, value in (("enabled", "True"), ("otlp_endpoint", "http://127.0.0.1:4318"), ("service_name", service)):
+            must("native-config", f"! sudo test -f {conf} || sudo python3 -I {configure} ini-set {conf} oslo_middleware_tracing {name} {value}")
+    for paste in ("/etc/nova/api-paste.ini", "/etc/neutron/api-paste.ini", "/etc/cinder/api-paste.ini", "/etc/glance/glance-api-paste.ini"):
+        must("native-config", f"! sudo test -f {paste} || sudo python3 -I {configure} paste-otel {paste}")
+    must("native-keystoneauth", "sudo " + line.group(1).replace("python3 -c", f"{VENV}/bin/python3 -c"))
+    run("native-restart", "sudo timeout 240 systemctl restart 'devstack@*'", timeout=300)
+
+    def answers():
+        return bool(run("native-restart", "timeout 30 openstack compute service list && timeout 30 openstack network list", timeout=70))
+
+    back, waited = wait_for(answers, 300, gap=10)
+    check("the cloud comes back with OpenStack's own tracing on", bool(back), f"after {waited}s")
+    if not back:
+        return
+    # A service that has just come back can still be registering itself.
+    time.sleep(30)
+
+    names = must("native-boot", "openstack image list --status active -f value -c Name").out.split("\n")
+    image = next(name.strip() for name in names if "cirros" in name.lower())
+    booted = run(
+        "native-boot",
+        f"timeout 400 openstack server create --wait --flavor ou.tiny --image {shlex.quote(image)} --network ou-net -f json ou-native-vm",
+        env={"OS_PROJECT_NAME": "ou-payments"},
+        timeout=420,
+    )
+    check("a boot with nothing signed works", booted.status == 0, f"exit {booted.status}: {booted.text[-800:] if booted.status else ''}")
+    if booted.status:
+        return
+
+    def boot_rows():
+        answer = live.api(
+            "POST",
+            "/span/get-list?limit=5&skip=0",
+            {
+                # oslo's: a signed boot's OSProfiler span has this name too.
+                "query": {"projectId": live.PROJECT_ID, "name": "POST /compute/v2.1/servers", "attributes": {"scope.name": "oslo_middleware.tracing"}},
+                "select": {"traceId": True, "startTime": True, "attributes": True},
+                "sort": {"startTime": "DESC"},
+            },
+        )
+        return answer.get("data") or []
+
+    rows, waited = wait_for(boot_rows, 300, gap=15)
+    check("the boot's request reaches this OneUptime, by the name a person reads", bool(rows), f"after {waited}s; {STATE.get('last error', '')}")
+    if not rows:
+        return
+    trace_id = rows[0].get("traceId")
+    found("the boot's trace", trace_id)
+    # Spans keep arriving from a boot's slower services for a while.
+    time.sleep(60)
+    spans = (
+        live.api(
+            "POST",
+            "/span/get-list?limit=500&skip=0",
+            {
+                "query": {"projectId": live.PROJECT_ID, "traceId": trace_id},
+                "select": {"traceId": True, "spanId": True, "parentSpanId": True, "name": True, "startTime": True, "attributes": True},
+            },
+        ).get("data")
+        or []
+    )
+    attributes = [row.get("attributes") or {} for row in spans]
+    services = sorted({str(item.get("openstack.service")) for item in attributes})
+    scopes = sorted({str(item.get("scope.name")) for item in attributes})
+    found("the boot's spans", {"count": len(spans), "services": services, "scopes": scopes, "names": sorted({str(row.get("name")) for row in spans})[:60]})
+    check("they are oslo's alone, because nothing was signed", all(scope in ("oslo.messaging", "oslo_middleware.tracing") for scope in scopes), scopes)
+    check(
+        "one trace crosses Nova's API, conductor, scheduler and compute",
+        all(wanted in services for wanted in ("nova-api", "nova-conductor", "nova-scheduler", "nova-compute")),
+        services,
+    )
+    check("and Neutron, over the docs' line in keystoneauth", "neutron-server" in services, services)
+    clouds = sorted({str(item.get("resource.openstack.cloud.name")) for item in attributes})
+    check("they say which cloud they are from", clouds == [AGENT_CLOUD], clouds)
+
+    events = cloud_json("server event list ou-native-vm", env={"OS_PROJECT_NAME": "ou-payments"}) or []
+    asked = {str(event.get("Request ID")) for event in events if str(event.get("Action")).lower() == "create"}
+    named = {str(item.get("openstack.request_id")) for item in attributes if item.get("openstack.request_id")}
+    found("the request Nova says made it, and those its spans name", {"nova": sorted(asked), "spans": sorted(named)})
+    check("its spans hold the request Nova says made the instance", bool(asked & named), {"nova": sorted(asked), "spans": sorted(named)})
+
+    run("native-boot", "timeout 300 openstack server delete --wait ou-native-vm", env={"OS_PROJECT_NAME": "ou-payments"}, timeout=320)
+    look_at(
+        "native",
+        [
+            named_page(
+                "Traces, with OpenStack's own tracing on",
+                "OpenStackTracesNative.png",
+                cloud_path(STATE["agent cloud"], "traces"),
+                marks=[{"selector": '[data-testid="openstack-traces-native"]'}],
+            ),
+            named_page(
+                "The boot's trace",
+                "OpenStackTraceNative.png",
+                f"/dashboard/{live.PROJECT_ID}/traces/view/{trace_id}",
+                marks=[{"selector": '[data-testid="openstack-trace-source"]'}],
+            ),
+        ],
+    )
+
+
 def main():
     os.makedirs(LOGS, exist_ok=True)
     RESULTS["started"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1306,6 +1431,7 @@ def main():
     part("break", "nova-compute really stopped, and a monitor from the real template", part_break, needs=["agent"])
     part("probe", "the same cloud, through a project's own probe", part_probe, needs=["oneuptime"])
     part("traces", "a signed boot, through the agent's traces profile", part_traces, needs=["agent"])
+    part("native", "a boot with nothing signed, through OpenStack's own tracing", part_native, needs=["traces"])
     RESULTS["finished"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     save()
 

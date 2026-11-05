@@ -49,6 +49,14 @@ import {
 
 // The scope the driver's tracer is created under: `get_tracer(__name__)`.
 export const OSPROFILER_DRIVER_SCOPE_NAME: string = "osprofiler.drivers.otlp";
+// OpenStack's own tracing, on the releases that ship it: readOpenStackNativeSpanInPlace.
+export const OSLO_MESSAGING_SCOPE_NAME: string = "oslo.messaging";
+export const OSLO_MIDDLEWARE_SCOPE_NAME: string = "oslo_middleware.tracing";
+export const OPENSTACK_TRACE_SCOPE_NAMES: ReadonlyArray<string> = [
+  OSPROFILER_DRIVER_SCOPE_NAME,
+  OSLO_MIDDLEWARE_SCOPE_NAME,
+  OSLO_MESSAGING_SCOPE_NAME,
+];
 
 export const OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE: string =
   "openstack.cloud.name";
@@ -64,6 +72,11 @@ export const OPENSTACK_NODE_SPAN_ATTRIBUTE: string =
 export const OPENSTACK_REGION_SPAN_ATTRIBUTE: string =
   "resource.openstack.region.name";
 export const OSPROFILER_SCOPE_SPAN_ATTRIBUTE: string = "scope.name";
+// What oslo.messaging writes on a span: the same request ID a service's log lines hold.
+export const OPENSTACK_REQUEST_ID_SPAN_ATTRIBUTE: string =
+  "openstack.request_id";
+export const OPENSTACK_GLOBAL_REQUEST_ID_SPAN_ATTRIBUTE: string =
+  "openstack.global_request_id";
 
 export enum OpenStackTraceAttribute {
   // The same keys logs hold, so a trace and a log line say the same thing.
@@ -115,6 +128,9 @@ const HTTP_PATH_ATTRIBUTE: string = "http.path";
 const HTTP_QUERY_ATTRIBUTE: string = "http.query";
 const HTTP_METHOD_ATTRIBUTE: string = "http.method";
 const HTTP_HOSTNAME_ATTRIBUTE: string = "http.hostname";
+const HTTP_URL_ATTRIBUTE: string = "http.url";
+const HTTP_ROUTE_ATTRIBUTE: string = "http.route";
+const HTTP_STATUS_CODE_ATTRIBUTE: string = "http.status_code";
 const STATUS_CODE_ATTRIBUTE: string = "status_code";
 const ERROR_ATTRIBUTE: string = "error";
 const DB_STATEMENT_ATTRIBUTE: string = "db.statement";
@@ -354,7 +370,23 @@ export function isOSProfilerDriverScope(scope: unknown): boolean {
   );
 }
 
-// Whether a block of OTLP holds the driver's spans: its scope is the one thing that says so.
+export function isOpenStackNativeScope(scope: unknown): boolean {
+  if (!scope || typeof scope !== "object") {
+    return false;
+  }
+
+  const name: unknown = (scope as JSONObject)["name"];
+
+  return (
+    name === OSLO_MESSAGING_SCOPE_NAME || name === OSLO_MIDDLEWARE_SCOPE_NAME
+  );
+}
+
+/*
+ * Whether a block of OTLP holds OpenStack's spans: its scope is the one thing that says so. On a
+ * cloud with OSProfiler on, oslo's spans leave through OSProfiler's driver, so a block with nothing
+ * signed holds only theirs, under the same service.name.
+ */
 function holdsDriverSpans(resourceSpans: JSONObject): boolean {
   const scopeSpans: unknown = resourceSpans["scopeSpans"];
 
@@ -363,7 +395,9 @@ function holdsDriverSpans(resourceSpans: JSONObject): boolean {
   }
 
   for (const scopeSpan of scopeSpans) {
-    if (isOSProfilerDriverScope((scopeSpan as JSONObject)?.["scope"])) {
+    const scope: unknown = (scopeSpan as JSONObject)?.["scope"];
+
+    if (isOSProfilerDriverScope(scope) || isOpenStackNativeScope(scope)) {
       return true;
     }
   }
@@ -884,6 +918,27 @@ const FUNCTIONS_THAT_SAY_NOTHING: ReadonlySet<string> = new Set<string>([
   "nova.network.neutron.ClientWrapper.proxy",
 ]);
 
+// What a request's path and query name, each under its own attribute, for its part's page.
+function writeRequestResources(attributes: JSONObject): void {
+  const resources: Array<OpenStackTraceResource> =
+    readOpenStackRequestResources({
+      path: attributes[HTTP_PATH_ATTRIBUTE] as string | undefined,
+      query: attributes[HTTP_QUERY_ATTRIBUTE] as string | undefined,
+    });
+
+  for (const { kind, attribute } of OPENSTACK_TRACE_RESOURCE_ATTRIBUTES) {
+    const resource: OpenStackTraceResource | undefined = resources.find(
+      (candidate: OpenStackTraceResource): boolean => {
+        return candidate.kind === kind;
+      },
+    );
+
+    if (resource) {
+      attributes[attribute] = resource.id;
+    }
+  }
+}
+
 export interface OpenStackDriverSpan {
   name: string;
   kind: OpenStackStoredSpanKind;
@@ -948,23 +1003,7 @@ export function readOSProfilerSpanInPlace(data: {
     attributes[OpenStackTraceAttribute.Component] = data.service.component;
   }
 
-  const resources: Array<OpenStackTraceResource> =
-    readOpenStackRequestResources({
-      path: attributes[HTTP_PATH_ATTRIBUTE] as string | undefined,
-      query: attributes[HTTP_QUERY_ATTRIBUTE] as string | undefined,
-    });
-
-  for (const { kind, attribute } of OPENSTACK_TRACE_RESOURCE_ATTRIBUTES) {
-    const resource: OpenStackTraceResource | undefined = resources.find(
-      (candidate: OpenStackTraceResource): boolean => {
-        return candidate.kind === kind;
-      },
-    );
-
-    if (resource) {
-      attributes[attribute] = resource.id;
-    }
-  }
+  writeRequestResources(attributes);
 
   const statusCode: number = Number(attributes[STATUS_CODE_ATTRIBUTE]);
   const isFailed: boolean =
@@ -992,6 +1031,150 @@ export function readOSProfilerSpanInPlace(data: {
       FUNCTIONS_THAT_SAY_NOTHING.has(
         String(attributes[OpenStackTraceAttribute.FunctionName] || ""),
       ),
+  };
+}
+
+/*
+ * ------------------------------------------------------------------
+ * OpenStack's own tracing
+ * ------------------------------------------------------------------
+ *
+ * oslo.middleware 8.2.0 and oslo.messaging 18.3.1 trace with nothing signed. What they write was
+ * read from Tests/Ops/openstack-e2e/traces-record.sh's native-* scenes, and is plainer than the
+ * driver's: a span is what it says it is, so its kind and parent stand as they came.
+ *
+ *   oslo_middleware.tracing   HTTP POST /servers, SERVER, with http.url and http.status_code
+ *   oslo.messaging            conductor.schedule_and_build_instances, PRODUCER, and
+ *                             schedule_and_build_instances receive, CONSUMER, with
+ *                             openstack.request_id
+ *
+ * Kept by name, for the same reason the driver's are.
+ */
+const OPENSTACK_NATIVE_ATTRIBUTES_KEPT: ReadonlySet<string> = new Set<string>([
+  HTTP_METHOD_ATTRIBUTE,
+  HTTP_ROUTE_ATTRIBUTE,
+  HTTP_STATUS_CODE_ATTRIBUTE,
+  "http.user_agent",
+  "messaging.system",
+  "messaging.operation",
+  "messaging.destination.name",
+  "messaging.message.id",
+  "rpc.method",
+  "rpc.service",
+  OPENSTACK_REQUEST_ID_SPAN_ATTRIBUTE,
+  OPENSTACK_GLOBAL_REQUEST_ID_SPAN_ATTRIBUTE,
+  "openstack.project_id",
+  "openstack.user_id",
+  "openstack.domain_id",
+]);
+
+// A URL's path and query, without reading it twice: this is what anyone could have asked for.
+function readPathAndQueryOfUrl(url: string): { path: string; query: string } {
+  const scheme: number = url.indexOf("://");
+  const pathAt: number = url.indexOf("/", scheme === -1 ? 0 : scheme + 3);
+
+  if (pathAt === -1) {
+    return { path: "", query: "" };
+  }
+
+  const queryAt: number = url.indexOf("?", pathAt);
+
+  return queryAt === -1
+    ? { path: url.slice(pathAt), query: "" }
+    : { path: url.slice(pathAt, queryAt), query: url.slice(queryAt + 1) };
+}
+
+function isErrorStatus(status: unknown): boolean {
+  const code: unknown = (status as JSONObject | null | undefined)?.["code"];
+
+  return code === 2 || code === "STATUS_CODE_ERROR";
+}
+
+/*
+ * One span of oslo's, as it arrives. Its URL becomes the path and query the driver's spans hold,
+ * so a request's name, the parts it names and the log line it is held to are the same whichever
+ * of the two sent it. Its address and what else it held go.
+ */
+export function readOpenStackNativeSpanInPlace(data: {
+  name: string;
+  kind: OpenStackStoredSpanKind;
+  parentSpanId: string;
+  attributes: JSONObject;
+  events: unknown;
+  // As it came, on the wire. oslo.messaging sets it from what a call raised.
+  status: unknown;
+  service: OpenStackDriverService | null;
+}): OpenStackDriverSpan {
+  const attributes: JSONObject = data.attributes;
+  const url: unknown = attributes[HTTP_URL_ATTRIBUTE];
+  const route: unknown = attributes[HTTP_ROUTE_ATTRIBUTE];
+  const asked: { path: string; query: string } =
+    typeof url === "string"
+      ? readPathAndQueryOfUrl(url)
+      : { path: typeof route === "string" ? route : "", query: "" };
+
+  for (const key of Object.keys(attributes)) {
+    if (
+      !OPENSTACK_NATIVE_ATTRIBUTES_KEPT.has(key) &&
+      !ATTRIBUTE_PREFIXES_NOT_THE_DRIVERS.some((prefix: string): boolean => {
+        return key.startsWith(prefix);
+      })
+    ) {
+      delete attributes[key];
+    }
+  }
+
+  // http.route is the path as the service sees it, so a console's token in it goes too.
+  if (typeof route === "string") {
+    attributes[HTTP_ROUTE_ATTRIBUTE] = scrubPath(route);
+  }
+
+  if (asked.path) {
+    attributes[HTTP_PATH_ATTRIBUTE] = scrubPath(asked.path);
+  }
+
+  if (asked.query) {
+    attributes[HTTP_QUERY_ATTRIBUTE] = scrubOpenStackSecrets(asked.query);
+  }
+
+  scrubDriverEventsInPlace(data.events);
+
+  if (data.service) {
+    attributes[OpenStackTraceAttribute.Service] = data.service.service;
+    attributes[OpenStackTraceAttribute.Component] = data.service.component;
+  }
+
+  writeRequestResources(attributes);
+
+  const method: unknown = attributes[HTTP_METHOD_ATTRIBUTE];
+  const path: unknown = attributes[HTTP_PATH_ATTRIBUTE];
+  const statusCode: number = Number(attributes[HTTP_STATUS_CODE_ATTRIBUTE]);
+  const isServerError: boolean =
+    Number.isFinite(statusCode) && statusCode >= 500;
+  const raised: boolean = isErrorStatus(data.status);
+  const raisedMessage: unknown = (
+    data.status as JSONObject | null | undefined
+  )?.["message"];
+
+  return {
+    name:
+      data.name.startsWith("HTTP ") &&
+      typeof method === "string" &&
+      typeof path === "string"
+        ? `${method} ${getOpenStackPathInSpanName(path)}`
+        : data.name,
+    kind: data.kind,
+    parentSpanId: data.parentSpanId,
+    isFailed: isServerError || raised,
+    statusMessage: raised
+      ? scrubOpenStackSecrets(String(raisedMessage || "")).slice(
+          0,
+          MAX_STATUS_MESSAGE_LENGTH,
+        )
+      : isServerError
+        ? `HTTP ${statusCode}`
+        : "",
+    saysNothing: false,
   };
 }
 
@@ -1155,7 +1338,48 @@ export function getOpenStackTraceDeleteCommand(data: {
 export interface OpenStackTraceRow {
   startTime?: Date | string | null | undefined;
   traceId?: string | null | undefined;
+  parentSpanId?: string | { toString: () => string } | null | undefined;
   attributes?: JSONObject | null | undefined;
+}
+
+/*
+ * Who sent a trace. It changes what a page can say of it: OSProfiler only sends what someone
+ * signed, across every service it reached, and oslo sends every API request, joined over RPC
+ * and not over HTTP unless a cloud added the guide's line to keystoneauth.
+ */
+export enum OpenStackTraceSource {
+  OSProfiler = "osprofiler",
+  Native = "native",
+}
+
+export function getOpenStackTraceSource(
+  attributes: JSONObject | null | undefined,
+): OpenStackTraceSource | null {
+  const scope: unknown = attributes?.[OSPROFILER_SCOPE_SPAN_ATTRIBUTE];
+
+  if (scope === OSPROFILER_DRIVER_SCOPE_NAME) {
+    return OpenStackTraceSource.OSProfiler;
+  }
+
+  return scope === OSLO_MESSAGING_SCOPE_NAME ||
+    scope === OSLO_MIDDLEWARE_SCOPE_NAME
+    ? OpenStackTraceSource.Native
+    : null;
+}
+
+/*
+ * Whether a span shows oslo's HTTP span carrying on a trace from another service. oslo.middleware
+ * reads traceparent as it comes in and nothing sends one as OpenStack ships, so a parent here is
+ * the guide's line in keystoneauth at work.
+ */
+export function isOpenStackTraceCarriedOverHttp(row: {
+  parentSpanId?: string | { toString: () => string } | null | undefined;
+  attributes?: JSONObject | null | undefined;
+}): boolean {
+  return (
+    row.attributes?.[OSPROFILER_SCOPE_SPAN_ATTRIBUTE] ===
+      OSLO_MIDDLEWARE_SCOPE_NAME && Boolean(row.parentSpanId?.toString())
+  );
 }
 
 export interface OpenStackTracedServices {
@@ -1164,6 +1388,9 @@ export interface OpenStackTracedServices {
   services: Array<string>;
   // The traces these rows belong to, the newest first.
   traceIds: Array<string>;
+  // Who sent them. Both, on a cloud with oslo's on where someone also signed a request.
+  sources: Array<OpenStackTraceSource>;
+  carriedOverHttp: boolean;
 }
 
 // Whether tracing is working, as far as a cloud's own spans can say.
@@ -1172,10 +1399,21 @@ export function readOpenStackTracedServices(
 ): OpenStackTracedServices {
   const services: Set<string> = new Set<string>();
   const newestOfTrace: Map<string, number> = new Map<string, number>();
+  const sources: Set<OpenStackTraceSource> = new Set<OpenStackTraceSource>();
+  let carriedOverHttp: boolean = false;
   let last: number = 0;
 
   for (const row of rows) {
     const service: unknown = row.attributes?.[OpenStackTraceAttribute.Service];
+    const source: OpenStackTraceSource | null = getOpenStackTraceSource(
+      row.attributes,
+    );
+
+    if (source) {
+      sources.add(source);
+    }
+
+    carriedOverHttp = carriedOverHttp || isOpenStackTraceCarriedOverHttp(row);
 
     if (typeof service === "string" && service) {
       services.add(service);
@@ -1204,6 +1442,8 @@ export function readOpenStackTracedServices(
       .map((entry: [string, number]): string => {
         return entry[0];
       }),
+    sources: Array.from(sources).sort(),
+    carriedOverHttp: carriedOverHttp,
   };
 }
 

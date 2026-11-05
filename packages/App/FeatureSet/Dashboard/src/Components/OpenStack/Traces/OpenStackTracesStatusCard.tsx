@@ -4,6 +4,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   OpenStackTraceGap,
+  OpenStackTraceSource,
   OpenStackTracedServices,
   getOpenStackTraceGap,
 } from "Common/Utils/OpenStack/OpenStackTraces";
@@ -16,6 +17,19 @@ import React, { FunctionComponent, ReactElement } from "react";
  * scheduler in it reads as if nothing was scheduled. Any other that has not sent one is only
  * a fault once a request that uses it was traced, and this says that too.
  */
+
+const SIGNED_ONLY_WORDS: string = translationKey(
+  "Only requests signed with your key are traced, so this says what has been traced, not how the cloud is doing.",
+);
+const NATIVE_WORDS: string = translationKey(
+  "OpenStack's own tracing is on, so every API request is traced with nothing signed. This says what has been traced, not how the cloud is doing.",
+);
+const NATIVE_OVER_RPC_WORDS: string = translationKey(
+  "A trace follows a request over RPC, from nova-api to nova-conductor, nova-scheduler and nova-compute. It does not cross an HTTP call: when Nova asks Neutron something, that is a trace of its own. One line in keystoneauth joins them, in the guide.",
+);
+const NATIVE_OVER_HTTP_WORDS: string = translationKey(
+  "A trace follows a request over RPC and over HTTP calls between services. Work a service does later on a thread of its own, as nova-compute does to build an instance, starts new traces under the same request ID.",
+);
 
 const GAP_WORDS: Record<OpenStackTraceGap, string> = {
   [OpenStackTraceGap.DriverCannotStart]: translationKey(
@@ -78,11 +92,14 @@ const OpenStackTracesStatusCard: FunctionComponent<ComponentProps> = (
   const notYet: Array<string> = notSeen.filter((name: string): boolean => {
     return !getOpenStackTraceGap(name);
   });
+  const isNative: boolean = props.traced.sources.includes(
+    OpenStackTraceSource.Native,
+  );
 
   return (
     <Card
       title="Traces from this cloud"
-      description="Only requests signed with your key are traced, so this says what has been traced, not how the cloud is doing."
+      description={isNative ? NATIVE_WORDS : SIGNED_ONLY_WORDS}
     >
       <div
         className="space-y-3 p-4 text-sm text-gray-700"
@@ -106,6 +123,17 @@ const OpenStackTracesStatusCard: FunctionComponent<ComponentProps> = (
               testId="openstack-traces-services-seen"
             />
           </div>
+        ) : (
+          <></>
+        )}
+        {isNative ? (
+          <p data-testid="openstack-traces-native">
+            {translator.translateText(
+              props.traced.carriedOverHttp
+                ? NATIVE_OVER_HTTP_WORDS
+                : NATIVE_OVER_RPC_WORDS,
+            )}
+          </p>
         ) : (
           <></>
         )}

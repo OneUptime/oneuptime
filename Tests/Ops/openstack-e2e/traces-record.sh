@@ -39,6 +39,10 @@
 #   native-both-*             That and oslo.middleware's, with nothing signed: what an always-on
 #                             feed would be, and what it costs an idle cloud in spans
 #   native-with-osprofiler-boot  Both of those and OSProfiler at once, signed
+#   native-always-on-*        What the guide turns on: OSProfiler's driver and both of oslo's, with
+#                             nothing signed, and what that costs a cloud
+#   native-crossing-boot      That and the guide's line in keystoneauth, which carries a trace
+#                             across an HTTP call between services
 #   off-again-signed-boot     Off again: nothing, and nothing broken
 #
 # Which services a stock boot crosses, and which of them go quiet, is what check.txt and the
@@ -60,6 +64,7 @@
 #   summary.json         each scene's trace, service by service, with its spans and bytes
 #   native-summary.json  what the scenes with nothing signed made, by scope, where they ran
 #   native-settings.txt  what was added to each API's pipeline for them
+#   native-cost.json     how long APIs took and what the services burned, tracing off and on
 #   check.txt            whether the "done when" held on this run
 #   key-check.txt        how many times the key was found in each file, before it was removed
 #   ids.env              the ids of what the scenes made
@@ -155,7 +160,9 @@ restore_files() {
   done
 }
 
-save_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}" "$PLACEMENT_WSGI" "$OSPROFILER_OPTS"
+KEYSTONEAUTH_SESSION="$("$VENV/bin/python" -I -c 'import keystoneauth1.session as module; print(module.__file__)' 2>/dev/null || true)"
+
+save_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}" "$PLACEMENT_WSGI" "$OSPROFILER_OPTS" "$KEYSTONEAUTH_SESSION"
 
 set_in() {
   if sudo test -f "$1"; then
@@ -543,6 +550,31 @@ scene_idle() {
   sleep 60
 }
 
+scene_idle_for_three_minutes() {
+  sleep 180
+}
+
+scene_unsigned_boot_failed_and_delete() {
+  export OS_PROJECT_NAME=ou-payments
+  openstack server create --flavor ou.impossible --image "$IMAGE" --network ou-net "$1"
+  wait_for_server "$1" ERROR
+  openstack server delete --wait "$1"
+}
+
+# Cinder over RPC, attached to an instance so that Nova's part is in it, and all of it unsigned.
+scene_unsigned_volume() {
+  export OS_PROJECT_NAME=ou-payments
+  timeout 300 openstack server create --wait --flavor ou.tiny --image "$IMAGE" --network ou-net "$1"
+  openstack volume create --size 1 "$1-vol"
+  wait_for_volume "$1-vol" available
+  openstack server add volume "$1" "$1-vol"
+  wait_for_volume "$1-vol" in-use
+  openstack server remove volume "$1" "$1-vol"
+  wait_for_volume "$1-vol" available
+  openstack volume delete "$1-vol"
+  openstack server delete --wait "$1"
+}
+
 # ----------------------------------------------------------------------------
 # The agent's traces profile, recording instead of sending
 # ----------------------------------------------------------------------------
@@ -651,6 +683,73 @@ native_middleware_on() {
   done
 }
 
+# What the guide's "Every request, with nothing signed" says to add beside [profiler], and
+# nothing else: OSProfiler's driver gives each service its tracer and its name.
+native_always_on() {
+  local conf file
+  for conf in "${SERVICE_CONFS[@]}"; do
+    set_in "$conf" oslo_messaging_tracing tracing_enabled True
+  done
+  for file in "${PASTE_FILES[@]}"; do
+    if sudo test -f "$file"; then
+      echo "$file: $(sudo python3 -I "$CONFIGURE" paste-otel "$file") pipelines"
+    fi
+  done
+  for pair in /etc/nova/nova.conf:nova-api /etc/neutron/neutron.conf:neutron-server \
+    /etc/cinder/cinder.conf:cinder-api /etc/glance/glance-api.conf:glance-api; do
+    set_in "${pair%%:*}" oslo_middleware_tracing enabled True
+    set_in "${pair%%:*}" oslo_middleware_tracing otlp_endpoint http://127.0.0.1:4318
+    set_in "${pair%%:*}" oslo_middleware_tracing service_name "${pair##*:}"
+  done
+}
+
+# The line the guide gives an operator, exactly: oslo.middleware reads traceparent as a request
+# comes in, and nothing writes it on the way out. OpenStackTracesGuide.test.ts holds the guide to it.
+apply_keystoneauth_line() {
+  if [ -z "$KEYSTONEAUTH_SESSION" ]; then
+    echo "keystoneauth's session module was not found." >&2
+    return 1
+  fi
+  sudo sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$KEYSTONEAUTH_SESSION"
+  sudo grep -c 'opentelemetry.propagate' "$KEYSTONEAUTH_SESSION"
+}
+
+# What leaving tracing on costs, the same way each time: how long three APIs take to answer one
+# reader, and what the services burn and the collector passes on with nobody asking anything.
+# traces-read.py cost turns this into native-cost.json.
+COST_REQUESTS=40
+COST_QUIET_SECONDS=120
+
+measure_cost() {
+  local label="$1" folder="$TRACES_DIR/cost-raw/$1" token type path url i
+  if [ "$SECONDS" -gt "$SCENES_WITHIN" ]; then
+    echo "What $label costs was not measured: this has run for too long already." | tee -a "$TRACES_DIR/scenes-not-run.txt" >&2
+    return 0
+  fi
+  log "What $label costs"
+  mkdir -p "$folder"
+  (
+    export OS_PROJECT_NAME=ou-payments
+    token="$(timeout "$ONE_READ_WITHIN" openstack token issue -f value -c id)"
+    for pair in compute:/servers network:/v2.0/networks image:/v2/images; do
+      type="${pair%%:*}"
+      path="${pair#*:}"
+      url="$(timeout "$ONE_READ_WITHIN" openstack endpoint list --service "$type" --interface public -f value -c URL | head -1)"
+      for i in $(seq 1 "$COST_REQUESTS"); do
+        curl -sS -m 30 -o /dev/null -w '%{time_total}\n' -H "X-Auth-Token: $token" "$url$path" || true
+      done >"$folder/$type.txt"
+    done
+  ) || echo "Timing the APIs failed for $label." >&2
+  systemctl show -p Id -p CPUUsageNSec 'devstack@*' >"$folder/cpu-before.txt" 2>&1 || true
+  sudo stat -c %s "$TRACES_DIR/otlp-agent.json" >"$folder/bytes-before.txt" 2>/dev/null || echo 0 >"$folder/bytes-before.txt"
+  spans_so_far >"$folder/spans-before.txt"
+  sleep "$COST_QUIET_SECONDS"
+  systemctl show -p Id -p CPUUsageNSec 'devstack@*' >"$folder/cpu-after.txt" 2>&1 || true
+  sudo stat -c %s "$TRACES_DIR/otlp-agent.json" >"$folder/bytes-after.txt" 2>/dev/null || echo 0 >"$folder/bytes-after.txt"
+  spans_so_far >"$folder/spans-after.txt"
+  echo "$COST_QUIET_SECONDS" >"$folder/seconds.txt"
+}
+
 # What each service says about all of it, and what it wrote into its pipelines, as a person
 # would look: where this works or fails is in these lines, not in the spans.
 record_native_settings() {
@@ -675,16 +774,18 @@ finish() {
   set +e
   kill "${WATCHDOG_PID:-}" 2>/dev/null
   log "Putting the cloud back"
-  restore_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}" "$PLACEMENT_WSGI" "$OSPROFILER_OPTS"
+  restore_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}" "$PLACEMENT_WSGI" "$OSPROFILER_OPTS" "$KEYSTONEAUTH_SESSION"
   clear_what_is_stuck
   (
     export OS_PROJECT_NAME=ou-payments
     for name in ou-trace-vm ou-trace-failed ou-trace-collector-down ou-trace-sql ou-trace-requests \
       ou-trace-placement ou-trace-whole ou-trace-whole-failed ou-trace-fix ou-trace-native-messaging \
-      ou-trace-native-both ou-trace-native-osprofiler ou-trace-off; do
+      ou-trace-native-both ou-trace-native-osprofiler ou-trace-native-always \
+      ou-trace-native-always-failed ou-trace-native-volume ou-trace-native-crossing ou-trace-off; do
       timeout "$ONE_READ_WITHIN" openstack server delete "$name" >/dev/null 2>&1
     done
     timeout "$ONE_READ_WITHIN" openstack volume delete ou-trace-vol >/dev/null 2>&1
+    timeout "$ONE_READ_WITHIN" openstack volume delete ou-trace-native-volume-vol >/dev/null 2>&1
   )
   restart_services
   # Only now: until the restart has happened, traces-put-back.sh still has work to do.
@@ -701,6 +802,7 @@ finish() {
     | gzip -9 >"$TRACES_DIR/journal.jsonl.gz"
   python3 -I "$READ" summary "$TRACES_DIR"
   python3 -I "$READ" native "$TRACES_DIR"
+  python3 -I "$READ" cost "$TRACES_DIR"
   python3 -I "$READ" check "$TRACES_DIR" && HOLDS=0
   gzip -9f "$TRACES_DIR/otlp-driver.json" "$TRACES_DIR/otlp-agent.json"
   # Last, so it reads everything that will be uploaded.
@@ -854,6 +956,23 @@ if has_native_tracing; then
   restart_services || true
   scene native-with-osprofiler-boot scene_boot_and_delete ou-trace-native-osprofiler
 
+  log "What the guide turns on: OSProfiler's driver and both of oslo's, with nothing signed"
+  restore_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}"
+  profiler_on
+  native_always_on
+  restart_services || true
+  scene native-always-on-boot scene_unsigned_boot_and_delete ou-trace-native-always
+  scene native-always-on-failed-boot scene_unsigned_boot_failed_and_delete ou-trace-native-always-failed
+  scene native-always-on-volume scene_unsigned_volume ou-trace-native-volume
+  scene native-always-on-idle scene_idle_for_three_minutes
+  measure_cost on
+
+  log "And the guide's line in keystoneauth"
+  apply_keystoneauth_line || echo "The line did not apply: check.txt will say what is missing." >&2
+  restart_services || true
+  scene native-crossing-boot scene_unsigned_boot_and_delete ou-trace-native-crossing
+  restore_files "$KEYSTONEAUTH_SESSION"
+
   restore_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}"
   profiler_on
 else
@@ -866,3 +985,6 @@ log "Off again"
 set_profiler enabled False
 restart_services || true
 EXPECT_NO_SPANS=true MUST_SUCCEED=true scene off-again-signed-boot scene_boot_and_delete ou-trace-off
+if has_native_tracing; then
+  measure_cost off
+fi

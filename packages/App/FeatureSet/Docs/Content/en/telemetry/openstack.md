@@ -1479,13 +1479,42 @@ openstack volume list --name 'oneuptime-check-'
 
 ### OpenStack's own tracing
 
-oslo.middleware 8.2.0 and oslo.messaging 18.3.1, on 2026.2, can trace with nothing signed, so they could one day be an always-on feed. We ran them, and OneUptime does not read them yet, because as shipped they do not follow a request across services:
+On 2026.2, oslo.messaging 18.3.1 and oslo.middleware 8.2.0 trace every API request with nothing signed. Earlier releases do not have them. Keep [the steps above](#turn-on-traces): OSProfiler's driver is what gives each service a tracer to send through, and without it oslo.messaging fails on every call with `has no attribute 'trace_exporter'`.
 
-- oslo.messaging on its own sends nothing, and logs `has no attribute 'trace_exporter'` for every call.
-- With oslo.middleware's filter added to each API's pipeline, an API call is a trace of its own. A boot made 83 traces, and none crossed two services, because nothing passes the trace along on an outgoing HTTP call. Keystone and Placement have no pipeline to add it to.
-- Those spans hold no request ID, and the RPC spans do.
+Add this to each service's config, beside `[profiler]`:
 
-If you turn them on, their spans still reach this cloud's **Traces** page through the collector, under their own names.
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+Add this to `nova.conf`, `neutron.conf`, `cinder.conf` and `glance-api.conf`, with `service_name` that API's own name and `otlp_endpoint` the collector `connection_string` names:
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+Add this filter to each of those APIs' paste file, and `otel_tracing` to each pipeline, just before `osprofiler`. Then restart them:
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+A trace now follows a request over RPC: a boot is one trace from `nova-api` through `nova-conductor` and `nova-scheduler` to `nova-compute`, and those spans hold the request ID its logs hold. It does not cross an HTTP call, so Nova asking Neutron is a trace of its own. `keystone` and Placement have no pipeline to add the filter to. The **Traces** page says which of the two a cloud is sending.
+
+To carry a trace across HTTP calls, add one line to keystoneauth where each service runs. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades:
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+`nova-compute` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace even then.
+
+This was run on DevStack on 2026.2, and nowhere else.
 
 ## AI agent
 

@@ -19,6 +19,7 @@ import-recording.py rewrites <release>/ whole:
     key-check.txt           how many times the key was found in each recorded file
     native-summary.json     those scenes, by scope, with what each span was named
     native-settings.txt     what was added to each API's pipeline for them
+    native-cost.json        how long APIs took and what the services burned, tracing off and on
     driver-log-lines.txt    what a service said about OSProfiler or its driver, each thing once
 
 Nothing goes in unread. A span holds what a traced call was handed, written out as Python
@@ -63,7 +64,7 @@ WHOLE_SCENES = (
 )
 SAMPLED_SCENES = {"signed-boot-sql": 60}
 AGENT_SCENES = ("signed-boot", "signed-boot-failed", "signed-boot-whole")
-JOURNAL_SCENES = ("signed-boot", "signed-boot-failed")
+JOURNAL_SCENES = ("signed-boot", "signed-boot-failed", "native-always-on-boot")
 # They name no trace, and an idle minute is a lot of the same span: enough to read its shape.
 NATIVE_SCENES = {
     "native-messaging-boot": 300,
@@ -71,6 +72,11 @@ NATIVE_SCENES = {
     "native-both-boot": 300,
     "native-both-idle": 60,
     "native-with-osprofiler-boot": 300,
+    "native-always-on-boot": 400,
+    "native-always-on-failed-boot": 150,
+    "native-always-on-volume": 300,
+    "native-always-on-idle": 60,
+    "native-crossing-boot": 400,
 }
 NATIVE_SCENE_MARGIN_SECONDS = 15
 
@@ -345,6 +351,7 @@ def main():
         "summary.json",
         "native-summary.json",
         "native-settings.txt",
+        "native-cost.json",
         "which-services-start.txt",
         "scenes-not-run.txt",
         "versions.txt",

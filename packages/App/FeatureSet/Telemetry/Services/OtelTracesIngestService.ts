@@ -74,7 +74,9 @@ import {
   OpenStackDriverService,
   OpenStackDriverSpan,
   isOSProfilerDriverScope,
+  isOpenStackNativeScope,
   normalizeOSProfilerResourceInPlace,
+  readOpenStackNativeSpanInPlace,
   readOSProfilerSpanInPlace,
 } from "Common/Utils/OpenStack/OpenStackTraces";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -671,6 +673,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               const isOSProfilerScope: boolean = isOSProfilerDriverScope(
                 scopeSpan["scope"],
               );
+              const isOsloScope: boolean = isOpenStackNativeScope(
+                scopeSpan["scope"],
+              );
 
               let spanCounter: number = 0;
               for (const span of spans) {
@@ -767,7 +772,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                           events: span["events"],
                           service: openStackDriverService,
                         })
-                      : null;
+                      : isOsloScope
+                        ? readOpenStackNativeSpanInPlace({
+                            name: (span["name"] as string) || "",
+                            kind: OtelTracesIngestService.mapSpanKind(
+                              span["kind"],
+                            ),
+                            parentSpanId: wireParentSpanId,
+                            attributes: spanAttributes as JSONObject,
+                            events: span["events"],
+                            status: span["status"],
+                            service: openStackDriverService,
+                          })
+                        : null;
 
                   // Nothing hangs under one of these, so nothing is orphaned.
                   if (openStackSpan?.saysNothing) {
@@ -1066,10 +1083,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   messagingEntityKeys.appendToSpanRow(spanRow);
 
                   /*
-                   * A span from OSProfiler's driver belongs to each OpenStack
-                   * part its request names, for that part's page to find.
+                   * A span from OSProfiler's driver or from oslo belongs to each
+                   * OpenStack part its request names, for that part's page to find.
                    */
-                  if (isOSProfilerScope) {
+                  if (isOSProfilerScope || isOsloScope) {
                     openStackTraceEntityKeys.appendToSpanRow(spanRow);
                   }
 

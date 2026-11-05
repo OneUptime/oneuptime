@@ -30,6 +30,9 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
+  OPENSTACK_TRACE_SCOPE_NAMES,
+  OSLO_MESSAGING_SCOPE_NAME,
+  OSLO_MIDDLEWARE_SCOPE_NAME,
   OSPROFILER_DRIVER_SCOPE_NAME,
   OSPROFILER_SCOPE_SPAN_ATTRIBUTE,
 } from "../../../Utils/OpenStack/OpenStackTraces";
@@ -561,6 +564,66 @@ describe("with traces", () => {
   });
 });
 
+describe("a cloud sending OpenStack's own tracing", () => {
+  function nativeSpan(parentSpanId: string): Span {
+    return tracedSpan({
+      parentSpanId: parentSpanId,
+      attributes: {
+        "openstack.service": "nova-api",
+        "resource.openstack.cloud.name": CLOUD_NAME,
+        [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSLO_MIDDLEWARE_SCOPE_NAME,
+      },
+    });
+  }
+
+  test("the page says nothing needs signing, and that a trace stops at an HTTP call", async () => {
+    stand.spans = [nativeSpan("")];
+
+    renderPage();
+
+    const native: HTMLElement = await screen.findByTestId(
+      "openstack-traces-native",
+    );
+
+    expect(native).toHaveTextContent("It does not cross an HTTP call");
+    expect(native).toHaveTextContent("keystoneauth");
+    expect(
+      screen.queryByText(/Only requests signed with your key/),
+    ).not.toBeInTheDocument();
+  });
+
+  test("once a trace has crossed one, it says that instead", async () => {
+    stand.spans = [nativeSpan("aaaaaaaaaaaaaaaa")];
+
+    renderPage();
+
+    const native: HTMLElement = await screen.findByTestId(
+      "openstack-traces-native",
+    );
+
+    expect(native).toHaveTextContent("over HTTP calls between services");
+    expect(native).not.toHaveTextContent("It does not cross an HTTP call");
+  });
+
+  test("a cloud that only signs requests sees none of this", async () => {
+    stand.spans = [
+      tracedSpan({
+        attributes: {
+          "openstack.service": "nova-api",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+          [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSPROFILER_DRIVER_SCOPE_NAME,
+        },
+      }),
+    ];
+
+    renderPage();
+
+    await screen.findByTestId("openstack-traces-status");
+
+    expect(screen.queryByTestId("openstack-traces-native")).toBeNull();
+  });
+});
+
 describe("Trace a request", () => {
   async function card(): Promise<void> {
     renderPage();
@@ -699,7 +762,7 @@ describe("the card above a trace", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  test("it asks for this trace's spans in the driver's scope, so a look costs one row or none", async () => {
+  test("it asks for this trace's spans in each scope OpenStack sends from, so a look costs one row or none", async () => {
     stand.spans = [];
 
     renderCard();
@@ -713,12 +776,110 @@ describe("the card above a trace", () => {
         mock: { calls: Array<Array<unknown>> };
       }
     ).mock.calls;
-    const query: JSONObject = (calls[0]![0] as ListQuery).query;
+    const queries: Array<JSONObject> = calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return (call[0] as ListQuery).query;
+      },
+    );
 
-    expect(query["traceId"]).toBe(TRACE);
-    expect(query["attributes"]).toEqual({
-      [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSPROFILER_DRIVER_SCOPE_NAME,
-    });
+    expect(queries).toHaveLength(OPENSTACK_TRACE_SCOPE_NAMES.length);
+
+    for (const query of queries) {
+      expect(query["traceId"]).toBe(TRACE);
+    }
+
+    expect(
+      queries.map((query: JSONObject): unknown => {
+        return (query["attributes"] as JSONObject)[
+          OSPROFILER_SCOPE_SPAN_ATTRIBUTE
+        ];
+      }),
+    ).toEqual([...OPENSTACK_TRACE_SCOPE_NAMES]);
+  });
+
+  test("a trace from OpenStack's own tracing says so, and that it stops at an HTTP call", async () => {
+    stand.spans = [
+      tracedSpan({
+        attributes: {
+          "openstack.service": "nova-conductor",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+          [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSLO_MESSAGING_SCOPE_NAME,
+        },
+      }),
+    ];
+
+    renderCard();
+
+    const source: HTMLElement = await screen.findByTestId(
+      "openstack-trace-source",
+    );
+
+    expect(source).toHaveTextContent("nothing signed");
+    expect(source).toHaveTextContent("stops at an HTTP call");
+  });
+
+  test("one carried over HTTP says that instead", async () => {
+    stand.spans = [
+      tracedSpan({
+        spanId: "bbbbbbbbbbbbbbbb",
+        parentSpanId: "aaaaaaaaaaaaaaaa",
+        attributes: {
+          "openstack.service": "neutron-server",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+          [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSLO_MIDDLEWARE_SCOPE_NAME,
+        },
+      }),
+    ];
+
+    renderCard();
+
+    const source: HTMLElement = await screen.findByTestId(
+      "openstack-trace-source",
+    );
+
+    expect(source).toHaveTextContent("goes on across HTTP calls");
+    expect(source).not.toHaveTextContent("stops at an HTTP call");
+  });
+
+  test("one of OSProfiler's says nothing of the kind", async () => {
+    stand.spans = [
+      tracedSpan({
+        attributes: {
+          "openstack.service": "nova-api",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+          [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSPROFILER_DRIVER_SCOPE_NAME,
+        },
+      }),
+    ];
+
+    renderCard();
+
+    await screen.findByTestId("openstack-trace-services");
+
+    expect(screen.queryByTestId("openstack-trace-source")).toBeNull();
+  });
+
+  test("a request a span names is said to be that, and not a guess", async () => {
+    stand.spans = [
+      tracedSpan({
+        attributes: {
+          "openstack.service": "nova-conductor",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+          "openstack.request_id": "req-named-by-span",
+          [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSLO_MESSAGING_SCOPE_NAME,
+        },
+      }),
+    ];
+
+    renderCard();
+
+    const requests: HTMLElement = await screen.findByTestId(
+      "openstack-trace-requests",
+    );
+
+    expect(requests).toHaveTextContent("req-named-by-span");
+    expect(requests).toHaveTextContent("nothing here is a guess");
+    expect(requests).toHaveTextContent("holds this request's ID");
   });
 
   test("a trace is tied to the instance it made, one step from its page", async () => {
