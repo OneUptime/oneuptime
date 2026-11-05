@@ -1,1 +1,1 @@
-{"statuses": {"loadbalancer": {"id": "e025f7a7-020a-4008-8a53-6831cb9cdf1e", "name": "ou-lb-ovn", "operating_status": "ONLINE", "provisioning_status": "ACTIVE", "listeners": []}}}
+{"statuses": {"loadbalancer": {"id": "fd511df0-8732-465f-a86c-c5ed171bd45a", "name": "ou-lb-ovn", "operating_status": "ONLINE", "provisioning_status": "ACTIVE", "listeners": []}}}
