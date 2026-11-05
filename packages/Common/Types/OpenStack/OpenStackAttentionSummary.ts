@@ -7,6 +7,7 @@ import {
   percentOf,
 } from "./OpenStackHealthRules";
 import {
+  OpenStackControlPlaneRow,
   getOpenStackDependencyOfRow,
   isOpenStackControlPlaneRowCurrent,
 } from "./OpenStackControlPlane";
@@ -95,15 +96,16 @@ function whyOf(row: JSONObject, now: Date): string | null {
   switch (row["kind"]) {
     case OpenStackResourceKind.Api:
       return "not answering";
-    case OpenStackResourceKind.ControlPlane:
-      if (
-        !getOpenStackDependencyOfRow(row as never) ||
-        !isOpenStackControlPlaneRowCurrent({ row: row as never, now }) ||
-        !isOpenStackServiceDown({ status, adminState })
-      ) {
-        return null;
-      }
-      return "down";
+    case OpenStackResourceKind.ControlPlane: {
+      const member: OpenStackControlPlaneRow =
+        row as unknown as OpenStackControlPlaneRow;
+
+      return getOpenStackDependencyOfRow(member) &&
+        isOpenStackControlPlaneRowCurrent({ row: member, now }) &&
+        isOpenStackServiceDown({ status, adminState })
+        ? "down"
+        : null;
+    }
     case OpenStackResourceKind.Service:
       if (!isOpenStackServiceDown({ status, adminState })) {
         return null;

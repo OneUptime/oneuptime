@@ -354,7 +354,7 @@ function heredocLines(script) {
   return heredoc[1].split("\n");
 }
 
-// What the script writes to .env, in order: the heredoc, then the two lists it writes after it.
+// What the script writes to .env, in order: the heredoc, then the lists it writes after it.
 function writtenNames(script) {
   return [
     ...heredocLines(script).map((line) => {
@@ -362,6 +362,7 @@ function writtenNames(script) {
     }),
     ...namesIn(script, "TARGET_LIST_NAMES"),
     ...namesIn(script, "VERY_LARGE_CLOUD_NAMES"),
+    ...namesIn(script, "AI_AGENT_NAMES"),
   ];
 }
 

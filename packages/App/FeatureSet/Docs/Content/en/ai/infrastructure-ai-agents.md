@@ -108,7 +108,7 @@ For Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack and database 
 | Database server      | [Database Agent](/docs/telemetry/databases#ai-agent)        | `oneuptime-database-ai-agent`     | `agents/DatabaseAgent/docker-compose.yml`                                             |
 | OpenStack cloud      | [OpenStack Agent](/docs/telemetry/openstack#ai-agent)       | `oneuptime-openstack-ai-agent`    | `agents/OpenStackAgent/docker-compose.yml`, with the credential in `clouds.yaml`      |
 
-A collector installed before the AI agent existed does not run it yet. Re-run its `install.sh`: it now starts the AI agent too (the Proxmox, VMware, Ceph, database and Docker Swarm installers download the current `docker-compose.yml`, which has the AI agent service). If you manage the files yourself, add the service from the collector's `docker-compose.yml` to yours and run `docker compose up -d`. The resource's AI agent page shows the exact service for that resource, with its name already filled in.
+A collector installed before the AI agent existed does not run it yet. Re-run its `install.sh`: it now starts the AI agent too (the Proxmox, VMware, Ceph, OpenStack, database and Docker Swarm installers download the current `docker-compose.yml`, which has the AI agent service). If you manage the files yourself, add the service from the collector's `docker-compose.yml` to yours and run `docker compose up -d`. The resource's AI agent page shows the exact service for that resource, with its name already filled in.
 
 Without the installers, the Docker AI agent is one `docker run`:
 
@@ -248,13 +248,11 @@ There is no `openstack` binary in the agent, and no shell. A command is written 
 
 An instance's `user_data`, its admin password, an image's `direct_url`, a volume's `provider_auth` and anything else marked secret are masked before the output reaches the model or a log.
 
-A stopped `nova-compute` leaves its instances reading `ACTIVE`, so an investigation goes by the service's `state` (`down`) and the instances' `host_status` (`UNKNOWN`). It also reads what the cloud's page says needs attention, what the part takes with it, and the part's logs and changes, as [Investigations use what the cloud reports](#investigations-use-what-the-cloud-reports) describes.
+A stopped `nova-compute` leaves its instances reading `ACTIVE`, so an investigation goes by the service's `state` (`down`) and the instances' `host_status` (`UNKNOWN`).
 
-### Investigations use what the cloud reports
+An investigation does not start from nothing. On an incident or alert linked to a cloud, OneUptime AI is told what the cloud's page says **Needs attention**: the services that are down, and the hosts, instances, volumes and pools in trouble. Where the incident's series names a part, it also hears what that part takes with it (its blast radius: instances, projects, Kubernetes nodes and hosts), which attributes pick the part's logs out, and what changed on the cloud around that time.
 
-On an incident or alert linked to an OpenStack cloud, OneUptime AI is told what the cloud's page says **Needs attention** when it starts: the services that are down, the hosts, instances, volumes and pools in trouble, in the same words as the page. Where the incident's series names a part it also hears what that part takes with it (its blast radius: instances, projects, Kubernetes nodes and hosts), which attributes pick the part's logs out, and what changed on the cloud around that time.
-
-From there it follows a request. `openstack server event list` prints each action's request ID, and `search_logs` takes that ID as an attribute (`openstack.request_id`) to read every service's lines about it. The report cites each command it ran with its output, as it does for `kubectl`. It needs the [service logs](/docs/telemetry/openstack#service-logs) profile for the logs and the [lifecycle events](/docs/telemetry/openstack#lifecycle-events) for the changes: without them, it says what it could not read.
+From there it follows a request. `server event list` prints each action's request ID, and `search_logs` takes that ID as an attribute (`openstack.request_root_id`) to read what every service wrote about it. The report cites each command it ran with its output, as it does for `kubectl`. The logs need the [service logs](/docs/telemetry/openstack#service-logs) profile and the changes need [lifecycle events](/docs/telemetry/openstack#lifecycle-events): without them, those reads come back empty.
 
 ### Ceph clusters
 
@@ -524,7 +522,7 @@ Every command is an argument list, never a shell line, and the same command poli
 - An environment built for that one command: nothing of the agent's own — not its ingestion key, not its proxy settings — reaches the program, and `docker`, `govc` and `ceph` get a private, empty home directory under `/tmp` for that one command. The `docker` CLI gets an empty private `DOCKER_CONFIG`, so no context or credential helper can change where it points; `govc` gets its credentials in its environment, never on its command line; `ceph` gets the agent's own `--conf`, `--keyring` and `--id`, and a command may not choose others.
 - A time limit (at most 2 minutes), after which the program is killed; output capped at 50 KB.
 - Secrets in the output — environment values in `docker inspect`, Proxmox cloud-init passwords, OpenStack `user_data`, keys, tokens and passwords in logs and command lines — are masked on the agent before the output leaves it, and again by OneUptime before it is stored or shown to the model.
-- The containers run with a read-only root filesystem. The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities, and the OpenStack AI agent as the owner of `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), with none either.
+- The containers run with a read-only root filesystem. The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities. The OpenStack AI agent runs as the owner of `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), with none either.
 - A Cloud AI agent starts no program at all: `cloud` names one operation of its catalog, which the agent carries out as the one API call it maps to, with the credentials of where it runs. The reads run on OneUptime, through the account's read-only connection.
 
 ### The Docker socket and the Host AI agent are root on the host
@@ -551,7 +549,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-Use your resource's container name: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (with `podman` instead of `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. The database agent's service has no fixed container name, so use `docker compose logs --tail=100 oneuptime-database-ai-agent` and `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` in `/opt/oneuptime-database-agent`. The Host AI agent uses the host's network, so `curl -s http://127.0.0.1:3877/status` works on the host itself.
+Use your resource's container name: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (with `podman` instead of `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-openstack-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. The database agent's service has no fixed container name, so use `docker compose logs --tail=100 oneuptime-database-ai-agent` and `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` in `/opt/oneuptime-database-agent`. The Host AI agent uses the host's network, so `curl -s http://127.0.0.1:3877/status` works on the host itself.
 
 A Cloud AI agent runs in its cloud, with no container to `exec` into: read its log in the cloud's shell with `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` or `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (on Cloud Run, `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`), and its status on the account's **AI agent** page, which shows the same command.
 

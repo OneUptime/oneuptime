@@ -904,7 +904,7 @@ export default class LinkedInfrastructureContext {
   }
 
   /*
-   * What needs attention on each linked cloud, by the same lines as its page. Names are whoever
+   * What is in trouble on each linked cloud, by the same lines as its page. Names are whoever
    * wrote them, so each goes in as a field.
    */
   private static describeOpenStackAttention(
@@ -917,14 +917,17 @@ export default class LinkedInfrastructureContext {
 
       if (summary.rows.length === 0) {
         if (summary.hasServiceRows) {
-          lines.push("", `Nothing on ${name}'s page needs attention right now.`);
+          lines.push(
+            "",
+            `Nothing reads as down, failed or full on ${name} right now, from what its Needs attention list reads.`,
+          );
         }
         continue;
       }
 
       lines.push(
         "",
-        `What ${name}'s page says needs attention right now, what everything stands on first. Check each with a command before you rely on it: this is what was last collected.`,
+        `What reads as down, failed or full on ${name} right now, from what its Needs attention list reads, what everything stands on first. This is what was last collected, so check each with a command before you rely on it:`,
       );
 
       for (const row of summary.rows) {

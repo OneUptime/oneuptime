@@ -762,9 +762,9 @@ describe("what the cloud's page says needs attention", () => {
 
   test("nothing wrong is said only when the cloud has reported its services", () => {
     expect(described(summary([service("compute-01", "up")]))).toContain(
-      "Nothing on",
+      "Nothing reads as down",
     );
-    expect(described(summary([]))).not.toContain("Nothing on");
+    expect(described(summary([]))).not.toContain("Nothing reads as down");
   });
 
   test("a name and a fault are a tenant's words, and can't break out of the context", () => {
