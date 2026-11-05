@@ -44,6 +44,7 @@ export interface OpenStackInventorySummary {
    * with what that project owns, and Placement answers everyone.
    */
   bareMetalProviderCount: number;
+  bareMetalProvidersNotListedCount: number;
   // The services a read has heard from, by what Keystone's catalog calls them.
   services: Array<string>;
   vcpuCapacity: number;
@@ -89,6 +90,9 @@ export function toOpenStackInventorySummary(
     downServiceCount: readNumber("downServiceCount"),
     bareMetalNodeCount: readNumber("bareMetalNodeCount"),
     bareMetalProviderCount: readNumber("bareMetalProviderCount"),
+    bareMetalProvidersNotListedCount: readNumber(
+      "bareMetalProvidersNotListedCount",
+    ),
     services: services,
     vcpuCapacity: readNumber("vcpuCapacity"),
     vcpuAllocated: readNumber("vcpuAllocated"),

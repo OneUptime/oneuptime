@@ -126,6 +126,13 @@ export function getInventorySummary(allRows, regionName) {
     }).length,
     bareMetalNodeCount: ofKind(rows, "BareMetalNode").length,
     bareMetalProviderCount: ofKind(rows, "PlacementProvider").length,
+    bareMetalProvidersNotListedCount: ofKind(rows, "PlacementProvider").filter(
+      (provider) => {
+        return !ofKind(rows, "BareMetalNode").some((node) => {
+          return node.externalId === provider.name;
+        });
+      },
+    ).length,
     vcpuCapacity: sum(giving, "vcpuCapacity"),
     vcpuAllocated: sum(giving, "vcpuAllocated"),
     memoryCapacityBytes: sum(giving, "memoryCapacityBytes"),

@@ -292,7 +292,10 @@ describe("MonitorRecommendationCatalog", () => {
   describe("what a cloud is offered", () => {
     const BARE_METAL_IDS: Array<string> = getAllOpenStackAlertTemplates()
       .filter((template: OpenStackAlertTemplate): boolean => {
-        return template.forService === OpenStackServiceType.BareMetal;
+        return (
+          template.forService === OpenStackServiceType.BareMetal &&
+          !template.requiresProbe
+        );
       })
       .map((template: OpenStackAlertTemplate): string => {
         return template.id;
@@ -348,6 +351,24 @@ describe("MonitorRecommendationCatalog", () => {
       expect(list.length).toBe(
         offered(undefined).length + BARE_METAL_IDS.length,
       );
+    });
+
+    it("a stopped conductor is offered only where a probe could say so", () => {
+      const context: { openStackServices: Array<string> } = {
+        openStackServices: [OpenStackServiceType.BareMetal],
+      };
+
+      expect(offered(context)).not.toContain(
+        "openstack-bare-metal-conductor-down",
+      );
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.OpenStack,
+          { ...context, openStackIsCollectedByProbe: true },
+        ).map((recommendation: MonitorRecommendation): string => {
+          return recommendation.templateId;
+        }),
+      ).toContain("openstack-bare-metal-conductor-down");
     });
 
     it("a cloud a probe collects, reporting every one of them, is offered everything", () => {

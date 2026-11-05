@@ -1032,9 +1032,10 @@ function bareMetalNodeEntry(data: {
  * last_error. Every node has a driver, so that is what tells a probe's series from the exporter's,
  * whose silence says nothing about any of these.
  *
- * Why a node failed does not last. Ironic empties last_error about a minute later, with the node
- * still failed (recorded: services-ironic, clean-failed against deploy-failed). So a reason is kept
- * until the node has left a failed state, with when it was read. An empty one never replaces it.
+ * Why a node failed may not last. Ironic emptied a failed clean's last_error 72 seconds later, with
+ * the node still failed, and left a failed deploy's alone (recorded: services-ironic, clean-failed
+ * against deploy-failed). So a reason is kept until the node has left a failed state, with when it
+ * was read. An empty one never replaces it.
  */
 function setNativeBareMetalNodeFacts(
   entry: OpenStackResourceBufferEntry,
@@ -1545,7 +1546,11 @@ function foldImage(data: {
     setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
     setFact(entry, "visibility", getLabel(data.attributes, "visibility"));
     setBooleanFact(entry, "isHidden", getLabel(data.attributes, "hidden"));
-    setBooleanFact(entry, "isProtected", getLabel(data.attributes, "protected"));
+    setBooleanFact(
+      entry,
+      "isProtected",
+      getLabel(data.attributes, "protected"),
+    );
     setFact(entry, "createdAtSeconds", data.value);
   } else {
     entry.diskCapacityBytes = data.value;
@@ -1860,7 +1865,8 @@ function foldStack(data: {
    * says it owns none, and null says nothing has read it. The IDs a label has room for, and how many
    * there are, because a stack can own more than that.
    */
-  const wasRead: boolean = getLabel(data.attributes, "resources_read") === "true";
+  const wasRead: boolean =
+    getLabel(data.attributes, "resources_read") === "true";
   entry.facts["ownedInstanceIds"] = wasRead
     ? getIdListLabel(data.attributes, "owned_instance_ids")
     : null;

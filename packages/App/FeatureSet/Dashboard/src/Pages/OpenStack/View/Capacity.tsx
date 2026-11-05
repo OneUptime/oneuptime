@@ -10,6 +10,7 @@ import {
 } from "Common/Types/OpenStack/OpenStackCapacity";
 import {
   OPENSTACK_CAPACITY_MAIN_CLASSES,
+  OpenStackBareMetalCapacityRow,
   OpenStackCapacityFlavorRow,
   OpenStackCapacityForecastRow,
   OpenStackCapacityHostNotCounted,
@@ -800,6 +801,89 @@ const AggregatesTable: FunctionComponent<{
   );
 };
 
+const BareMetalClassesTable: FunctionComponent<{
+  classes: Array<OpenStackBareMetalCapacityRow>;
+  showRegion: boolean;
+}> = (props: {
+  classes: Array<OpenStackBareMetalCapacityRow>;
+  showRegion: boolean;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div
+      className="overflow-x-auto"
+      data-testid="openstack-capacity-bare-metal-classes"
+    >
+      <table className={TABLE_CLASS_NAME}>
+        <thead>
+          <tr className={HEAD_CLASS_NAME}>
+            <th className={CELL_CLASS_NAME}>
+              {translator.translateText("Resource class")}
+            </th>
+            <th className={CELL_CLASS_NAME}>
+              {translator.translateText("Nodes")}
+            </th>
+            <th className={CELL_CLASS_NAME}>
+              {translator.translateText("Can take an instance")}
+            </th>
+            <th className={CELL_CLASS_NAME}>
+              {translator.translateText("In use")}
+            </th>
+            <th className={CELL_CLASS_NAME}>
+              {translator.translateText("Held back")}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {props.classes.map(
+            (row: OpenStackBareMetalCapacityRow): ReactElement => {
+              return (
+                <tr
+                  key={`${row.regionName || ""}/${row.resourceClass}`}
+                  className={ROW_CLASS_NAME}
+                  data-testid="openstack-capacity-bare-metal-class"
+                >
+                  <td className={CELL_CLASS_NAME}>
+                    <span className="font-medium text-gray-900">
+                      {row.resourceClass}
+                    </span>
+                    {props.showRegion && row.regionName ? (
+                      <div className="text-xs text-gray-500">
+                        {row.regionName}
+                      </div>
+                    ) : (
+                      <></>
+                    )}
+                  </td>
+                  <td className={CELL_CLASS_NAME}>
+                    {row.nodeCount.toLocaleString()}
+                  </td>
+                  <td
+                    className={
+                      row.free === 0 && row.heldBack > 0
+                        ? `${CELL_CLASS_NAME} font-medium text-red-700`
+                        : CELL_CLASS_NAME
+                    }
+                  >
+                    {row.free.toLocaleString()}
+                  </td>
+                  <td className={CELL_CLASS_NAME}>
+                    {row.used.toLocaleString()}
+                  </td>
+                  <td className={CELL_CLASS_NAME}>
+                    {row.heldBack.toLocaleString()}
+                  </td>
+                </tr>
+              );
+            },
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const OpenStackCloudCapacity: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -887,10 +971,15 @@ const OpenStackCloudCapacity: FunctionComponent<
     });
 
   const soonest: OpenStackCapacityForecastRow | undefined = view.forecasts[0];
+  const hasBareMetalRoom: boolean = view.bareMetalClasses.some(
+    (row: OpenStackBareMetalCapacityRow): boolean => {
+      return row.free > 0;
+    },
+  );
 
   return (
     <div data-testid="openstack-capacity">
-      {!hasInventories ? (
+      {!hasInventories && view.bareMetalClasses.length === 0 ? (
         <OpenStackPartNotice
           testId="openstack-capacity-no-placement"
           tone="warning"
@@ -925,10 +1014,15 @@ const OpenStackCloudCapacity: FunctionComponent<
                       flavor: headline.hasRoom.name,
                     },
                   )
-                : translator.translateTemplate(
-                    "No room for {{flavor}}, or for anything else people can ask for.",
-                    { flavor: headline.noRoom?.name || "" },
-                  )}
+                : hasBareMetalRoom
+                  ? translator.translateTemplate(
+                      "No room on a host for {{flavor}}. What bare metal can still take is below.",
+                      { flavor: headline.noRoom?.name || "" },
+                    )
+                  : translator.translateTemplate(
+                      "No room for {{flavor}}, or for anything else people can ask for.",
+                      { flavor: headline.noRoom?.name || "" },
+                    )}
           </p>
           <p
             className="mt-1 text-sm text-gray-600"
@@ -1122,6 +1216,32 @@ const OpenStackCloudCapacity: FunctionComponent<
           )}
         </Card>
       </div>
+
+      {view.bareMetalClasses.length > 0 ? (
+        <div className="mb-6">
+          <Card
+            title={translationKey("By bare metal class")}
+            description={translationKey(
+              "What Placement holds of each resource class a flavor can ask for, whatever Ironic shows this credential. A node takes one instance whole, so these are nodes, and none of it is in the vCPUs and memory above. Held back means Nova's Ironic driver can't use it right now: it has failed, is in maintenance or isn't available, and the Bare Metal section says which.",
+            )}
+          >
+            <BareMetalClassesTable
+              classes={view.bareMetalClasses}
+              showRegion={showRegion}
+            />
+            <p
+              className="mt-2 text-xs text-gray-500"
+              data-testid="openstack-capacity-bare-metal-flavors"
+            >
+              {translator.translateText(
+                "A probe reads which class a flavor asks for, and By flavor counts it against these. The agent's exporter doesn't say, so on the agent a bare metal flavor counts as its vCPUs, memory and disk, on hosts.",
+              )}
+            </p>
+          </Card>
+        </div>
+      ) : (
+        <></>
+      )}
 
       {view.zones.length > 0 ? (
         <div className="mb-6">

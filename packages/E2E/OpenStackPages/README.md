@@ -104,7 +104,7 @@ the pages while working on them.
 
 ## What the walks hold
 
-`OpenStackBareMetal.spec.ts`: Ironic on a real DevStack with fake hardware: no trace of it on a cloud without it, its section and alerts on one with it, the Overview naming both failed nodes, the step from the menu to a node's page, a half-enrolled node, what the Services page says of conductors, and a phone. What only a probe reads, and an instance on a node, are in the jsdom suite on rows written by hand.
+`OpenStackBareMetal.spec.ts`: Ironic on a real DevStack with fake hardware: no trace of it on a cloud without it, its section and alerts on one with it, the Overview naming both failed nodes, the step from the menu to a node's page, a half-enrolled node, Capacity by resource class, what the Services page says of conductors, and a phone. What only a probe reads, and an instance on a node, are in the jsdom suite on rows written by hand.
 
 `OpenStackOptionalServices.spec.ts`: a service a cloud may not run. A cloud without it shows no trace of it in the menu, on Services, on the Overview or in Recommendations, and an old link says so rather than breaking. A cloud with it gets its menu entries, its lists and its part's pages, a failed stack and a failed cluster reach Needs attention by name and land on their own pages, and each page says what the agent can't see, at every width.
 

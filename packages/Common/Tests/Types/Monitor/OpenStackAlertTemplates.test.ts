@@ -546,6 +546,10 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-bare-metal-conductor-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-container-infra-conductor-down": {
     filterType: FilterType.LessThan,
     value: 1,
@@ -833,6 +837,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { heat_engine_up: 0 },
     healthy: { heat_engine_up: 1 },
   },
+  "openstack-bare-metal-conductor-down": {
+    breached: { ironic_conductor_up: 0 },
+    healthy: { ironic_conductor_up: 1 },
+  },
   "openstack-container-infra-conductor-down": {
     breached: { magnum_conductor_up: 0 },
     healthy: { magnum_conductor_up: 1 },
@@ -1033,6 +1041,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Image Stuck",
         // #5742. The issue's four, and what its API says of itself where anything can say so.
         "Bare Metal API Down",
+        "Bare Metal Conductor Down",
         "Bare Metal Node in Error",
         "Bare Metal Node Stuck Transitioning",
         "Bare Metal Node in Maintenance Too Long",
@@ -1941,6 +1950,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       });
 
       expect(probeOnly.sort()).toEqual([
+        "openstack-bare-metal-conductor-down",
         "openstack-container-infra-conductor-down",
         "openstack-orchestration-engine-down",
         "openstack-share-service-down",
@@ -2223,9 +2233,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         for (const word of ["clean failed", "deploy failed"]) {
           expect(OPENSTACK_BARE_METAL_ERROR_STATES.has(word)).toBe(true);
         }
-        expect(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back")).toBe(
-          true,
-        );
+        expect(
+          OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back"),
+        ).toBe(true);
       });
 
       test("API Down never reads the scrape's own up, which reads 0 for this job on every cloud when the exporter is down", () => {
