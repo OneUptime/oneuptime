@@ -1474,6 +1474,10 @@ The cloud's **AI agent** page offers a runbook for each of these, to add and mak
 | RabbitMQ partition | By hand, on the machines: RabbitMQ is below OpenStack, and no command OneUptime AI has reaches it |
 | Galera lost quorum | By hand, on the machines, from the node with the highest `wsrep_last_committed` |
 
+### Fixes from a workflow
+
+A workflow can start from an OpenStack alert and propose a fix: the **Propose an OpenStack fix** step takes the alert or incident, and the command. It goes through the same policy, the same write scope and the same read of what a change touches as a fix OneUptime AI proposes, it needs no AI model, and a person approves it on the alert. A workflow can't make the change itself or approve what it proposes, whatever the cloud's fix mode is. The **Propose taking a failing OpenStack compute service out of scheduling** template is a place to start.
+
 ## Run as a systemd service
 
 To start the agent with the machine and restart it when it fails, install its systemd unit. It assumes the agent lives in `/opt/oneuptime-openstack-agent`, where the install script puts it. An install without Docker is a systemd service already.

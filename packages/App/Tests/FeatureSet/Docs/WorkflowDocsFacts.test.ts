@@ -103,6 +103,9 @@ const ENVIRONMENT_CONFIG: string = readSource(
 const GENERATE_TEXT: string = readSource(
   "Common/Server/Types/Workflow/Components/AI/GenerateText.ts",
 );
+const OPENSTACK_WORKFLOW_FIX: string = readSource(
+  "Common/Server/Utils/OpenStack/OpenStackWorkflowFix.ts",
+);
 const AI_SERVICE: string = readSource("Common/Server/Services/AIService.ts");
 const PROJECT_AI_DAILY_LIMITS: string = readSource(
   "Common/Types/AI/ProjectAiDailyLimits.ts",
@@ -825,6 +828,28 @@ describe("the components page", () => {
     expect(tableRow(api, "**Request Headers**")[1]).toBe(
       "Headers to send, such as an API key. Under **More fields**. Their values are hidden in the run's log.",
     );
+  });
+
+  it("gives Propose an OpenStack fix's settings and values as the step has them", () => {
+    const step: ComponentMetadata = component(ComponentID.OpenStackProposeFix);
+    const page: string = section(COMPONENTS, "### Propose an OpenStack fix");
+
+    expect(tableRowLabels(page)).toEqual(settingNames(step));
+
+    for (const name of returnValueNames(step)) {
+      expect({ name, named: page.includes(`**${name}**`) }).toEqual({
+        name,
+        named: true,
+      });
+    }
+
+    expect(
+      numberConstant(
+        OPENSTACK_WORKFLOW_FIX,
+        "MAX_OPENSTACK_WORKFLOW_PROPOSALS_PER_PROJECT_PER_HOUR",
+      ),
+    ).toBe(20);
+    expect(page).toContain("proposed 20 fixes in the last hour");
   });
 
   it("gives Generate Text with AI's settings, values, defaults and limits as the step has them", () => {
