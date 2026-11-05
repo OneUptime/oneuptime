@@ -86,6 +86,8 @@ https://oneuptime.com/heartbeat/<secret key>
 > [!WARNING]
 > 1 つの通知内でアラートごとに異なる値でグループ化してください。Alertmanager の `fingerprint` はアラートのラベルセット全体のハッシュなので、常に異なります。ルートの `group_by` にあるラベルは決して異なりません。それこそがアラートを 1 つの通知にまとめているものだからです。以下のルートで `requestBody.alerts[*].labels.alertname` でグループ化すると、通知内のすべてのアラートが 1 つのインシデントにまとめられ、そのインシデントは最初のアラートのステータスになります。
 
+OpenStack クラウドでは、モニターをそのクラウドにもリンクしてください。受信リクエストモニター自身の設定にはクラウドが指定されないため、そのインシデントは **インシデント** には届いてもクラウドには届きません。モニターの **概要 → リンクされたリソース** を開いて OpenStack クラウドを追加すると、各インシデントがそのクラウドの **インシデント** ページにも表示されます。[デプロイツール別の OpenStack](/docs/telemetry/openstack-deployment-tools) には、Alertmanager を動かす各ツールについて、そのツールが読み込む場所に置くレシーバーがあります。
+
 ## インシデントに名前を付ける
 
 上のタイトルは、通知内のすべてのアラートが共有するラベルを読みます。`commonLabels` にはそれらのラベルが、`commonAnnotations` には共有されるアノテーションが含まれます。`alertname` と `instance` でグループ化する以下のルートでは、どちらも含まれます。**説明** の下で、インシデントに次のような **インシデントの説明** を設定します。
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-`fingerprint` ごとに 1 つずつ、2 つのインシデントが作成され、どちらのタイトルも `DiskFull on web-1` になります。各 `status` を `resolved` にして同じリクエストを送ると、両方が解決されます。
+`fingerprint` ごとに 1 つずつ、2 つのインシデントが作成され、どちらのタイトルも `DiskFull on web-1` に、両者を区別するもの(`DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001` のように)が続いたものになります。各 `status` を `resolved` にして同じリクエストを送ると、両方が解決されます。
 
 Alertmanager からの経路全体をテストするには、`amtool` でアラートを発火させます。Alertmanager は `group_wait` の後にアラートを送信し、数分後にアラートが期限切れになると回復を送信します。
 

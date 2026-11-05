@@ -35,6 +35,7 @@ flowchart LR
 | Runbook | OneUptime が実行した Runbook が、開始後に完了、失敗、またはキャンセルされたとき | `runbook` |
 | クラウドの変更 | 接続したクラウド アカウントのアクティビティ ログが変更を記録したとき: AWS CloudTrail、Azure のアクティビティ ログ、または Google Cloud の Admin Activity 監査ログ | `cloud` |
 | プロバイダーのイベント | クラウド プロバイダーがアカウントについてヘルス イベントを公開したとき: AWS Health、Azure Service Health または Resource Health、または Google Cloud Service Health | `cloud-health` |
+| OpenStack の変更 | OpenStack クラウド自身の通知が、その一部に起きたことを伝えたとき、またはプローブによる Nova の読み取りで分かったとき: [ライフサイクルイベント](/docs/telemetry/openstack#ライフサイクルイベント)を参照 | `openstack` |
 
 - **サービスが最初に報告したバージョンは、デプロイではなくベースラインです。** 何か月も稼働しているサービスが、OneUptime がそのテレメトリを受信し始めた瞬間にデプロイされたわけではありません。
 - **過去 30 日間に見られたバージョンへのロールバックは記録されません。** そのバージョンは新しくないからです。OneUptime AI が実行したロールバックは、修正として記録されます。
@@ -50,7 +51,7 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 
 アプリのデプロイには、[マネージドなアプリプラットフォーム](/docs/telemetry/cloud-environments#アプリとデプロイ) 上で動くアプリが必要です。デプロイはアプリの環境に記録され、環境のグラフとアプリ自身のグラフに描かれます。そこでは、アプリが以前に実行していたリビジョンへのロールバックも記録されます。
 
-クラウドの変更とプロバイダーのイベントには、[接続したクラウド アカウント](/docs/telemetry/cloud-accounts) が必要です。どちらも、OneUptime がそのリソースを一覧にしていれば、名前が挙がったクラウド リソースに結び付けられ、そのリソースのグラフに描かれます。種類は操作から決まります。操作の名前がそう示していれば `deployment`、`scaling`、`rollback`、それ以外は `config-change`、ヘルス イベントは `provider-event` です。どのリソースにも絞り込まれていないグラフにはクラウド アカウントのアクティビティ ログは表示されないため、忙しいアカウントでデプロイが埋もれることはありません。プロバイダーのヘルス イベントは表示されたままです。
+クラウドの変更とプロバイダーのイベントには、[接続したクラウド アカウント](/docs/telemetry/cloud-accounts) が必要です。どちらも、OneUptime がそのリソースを一覧にしていれば、名前が挙がったクラウド リソースに結び付けられ、そのリソースのグラフに描かれます。種類は操作から決まります。操作の名前がそう示していれば `deployment`、`scaling`、`rollback`、それ以外は `config-change`、ヘルス イベントは `provider-event` です。どのリソースにも絞り込まれていないグラフにはクラウド アカウントのアクティビティ ログと OpenStack クラウドの変更は表示されないため、忙しいアカウントでデプロイが埋もれることはありません。プロバイダーのヘルス イベントは表示されたままです。
 
 ## パイプラインからデプロイを記録する
 

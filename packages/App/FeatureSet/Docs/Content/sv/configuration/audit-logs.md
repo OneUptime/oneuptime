@@ -99,6 +99,7 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 | Inventarieobjekt | `Inventory Item` |
 | Insamlarkonfigurationer | `Collector Config` |
 | vCenter-servrar | `vCenter` |
+| OpenStack-moln och kontrollerna som körs mot dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
 | Säkerhetsärenden och deras prioriteter och statusar, playbooks och deras körningar, skyddade entiteter, entitetskritikalitet samt en entitets risk när någon återställer den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Regelundantag | `Rule Exception` |

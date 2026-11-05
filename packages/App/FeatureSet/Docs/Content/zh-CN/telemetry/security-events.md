@@ -193,6 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS CloudTrail | 投递到 CloudWatch Logs 的跟踪，由收集器的 `awscloudwatch` 接收器读取；对于在 **云** 下连接的账户，也可以用 [云审计日志](#读取云账户的审计日志) |
 | Google Cloud 审计日志 | 指向 Pub/Sub 的日志接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 读取；对于在 **云** 下连接的项目，也可以用 [云审计日志](#读取云账户的审计日志) |
 | Azure 活动和 Entra ID 日志 | 流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取；对于在 **云** 下连接的订阅的活动日志，也可以用 [云审计日志](#读取云账户的审计日志) |
+| OpenStack 审计轨迹 | 云的通知和审计过滤器以 `driver = log` 发送到其日志，由代理的[日志配置档](/docs/telemetry/openstack#谁做了什么)读取 |
 | CEF、LEEF | 产品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
 | Palo Alto Networks、FortiGate、Cisco ASA | 防火墙自身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
 | Kubernetes 审计日志 | API 服务器的审计日志文件，由收集器的 `filelog` 接收器读取 |

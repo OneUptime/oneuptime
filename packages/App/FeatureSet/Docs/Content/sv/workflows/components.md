@@ -29,6 +29,7 @@ Du behöver sällan ha den öppen medan du bygger. Varje blocks inställningar s
 | Läsa eller ändra incidenter, monitorer och andra poster       | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Öppna, bekräfta och lösa incidenter eller larm för ett annat verktygs problem | [Incidenter och larm från andra verktyg](#incidenter-och-larm-från-andra-verktyg) |
 | Bekräfta eller stänga ett Zabbix-problem                      | [Zabbix](#zabbix)                                                 |
+| Be en person godkänna en åtgärd i ett OpenStack-moln          | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 Ett dedikerat block slår ett generiskt: Slack-blocket känner till Slacks gränser och ett postblock känner till postens fält, så du får tydligare fel och loggar än från ett **API**-block som gör samma jobb.
 
@@ -427,6 +428,28 @@ Bekräfta eller stäng ett problem i Zabbix, eller lägg till ett meddelande på
 För att bekräfta eller stänga läser blocket problemet först. Ett problem som Zabbix redan har löst, eller redan har bekräftat när det är allt du ber om, lämnas som det är, och blocket tar **Unchanged**, som det gör för ett problem som Zabbix inte har, eller som tokens användare inte kan se. Ett problem vars trigger inte tillåter att problem stängs manuellt bekräftas i stället, och dess meddelande säger att det förblir öppet tills Zabbix ser att det återhämtar sig.
 
 **Updated** aktiveras när Zabbix tog emot uppdateringen, och **Error** när Zabbix inte gick att nå eller avvisade den, med Zabbix motivering: Zabbix svarar på en avvisad förfrågan med en lyckad status, så blocket läser vad Zabbix svarade i stället för statusen. Det returnerar **Summary**, det det gjorde, i en mening.
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+Ber en person godkänna en ändring i det OpenStack-moln som ett larm eller en incident gäller. Blocket gör aldrig ändringen själv. Åtgärden väntar på larmet eller incidenten, och i de kanaler den postar i, som en OneUptime AI föreslår, oavsett molnets åtgärdsläge. Ett arbetsflöde kan inte godkänna det det föreslår.
+
+Det behöver ingen AI-modell, och det följer samma regler som en åtgärd som OneUptime AI föreslår: kommandopolicyn, agentens skrivmål och skyddade mål, och agentens läsning av vad ändringen rör vid. En evakuering av en värd som fortfarande är uppe, eller en som agenten inte kan läsa i sin helhet, föreslås inte.
+
+| Inställning | Vad den gör |
+| ----------- | ----------- |
+| **Alert ID** | Larmet som åtgärden gäller, oftast det ID som din trigger returnerade. Fyll i antingen det här eller **Incident ID**, så hämtas molnet från det som posten är länkad till. |
+| **Incident ID** | Incidenten som åtgärden gäller, oftast det ID som din trigger returnerade. Fyll i antingen det här eller **Alert ID**. |
+| **Kommando** | Ändringen som ska föreslås, i den enda stavning som OneUptime tar emot. Se [ändringarna en åtgärd kan göra](/docs/telemetry/openstack#åtgärder). Den kan använda värden från tidigare block, och läses efter att de har fyllts i. |
+| **Varför** | Det som personen som godkänner den läser först. Om den lämnas tom anges vilket arbetsflöde som bad om den. |
+| **OpenStack Cloud ID** | Under **Fler fält**. Bara för en post som är länkad till fler än ett moln, eller till inget. |
+
+Det returnerar **Suggestion ID** (åtgärden som väntar på godkännande), **Tier** (Safe eller Riskier, så som OneUptime läser kommandot) och **Already Waiting** (sant när samma ändring i det molnet redan väntade, så ingen andra lades till).
+
+**Success** aktiveras när en person har blivit tillfrågad, utan att vänta på svaret. **Error** aktiveras när inget föreslogs, med orsaken i **Error**: kommandot nekas, åtgärder är inte tillåtna i det molnet ännu, eller ett projekts arbetsflöden har föreslagit 20 åtgärder den senaste timmen.
+
+Mallen [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) är ett ställe att börja på.
 
 ## OneUptime-datakomponenter
 

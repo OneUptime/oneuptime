@@ -193,6 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS CloudTrail | 傳遞到 CloudWatch Logs 的追蹤，由收集器的 `awscloudwatch` 接收器讀取；對於在 **雲端** 下連線的帳戶，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
 | Google Cloud 稽核日誌 | 指向 Pub/Sub 的日誌接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 讀取；對於在 **雲端** 下連線的專案，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
 | Azure 活動與 Entra ID 日誌 | 串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取；對於在 **雲端** 下連線的訂用帳戶的活動記錄，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
+| OpenStack 稽核軌跡 | 雲端的通知與稽核過濾器以 `driver = log` 送到其日誌，由代理程式的 [日誌設定檔](/docs/telemetry/openstack#誰做了什麼) 讀取 |
 | CEF、LEEF | 產品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
 | Palo Alto Networks、FortiGate、Cisco ASA | 防火牆本身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
 | Kubernetes 稽核日誌 | API 伺服器的稽核日誌檔案，由收集器的 `filelog` 接收器讀取 |

@@ -193,6 +193,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | AWS CloudTrail | CloudWatch Logs로 전달되는 추적을 컬렉터의 `awscloudwatch` 리시버로 읽음. **클라우드**에서 연결한 계정이면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음. **클라우드**에서 연결한 프로젝트면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음. **클라우드**에서 연결한 구독의 활동 로그면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
+| OpenStack 감사 기록 | 클라우드의 알림과 감사 필터를 `driver = log`로 로그에 보내고, 에이전트의 [로그 프로필](/docs/telemetry/openstack#누가-무엇을-했는가)이 읽음 |
 | CEF, LEEF | 제품의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
 | Palo Alto Networks, FortiGate, Cisco ASA | 방화벽 자체의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
 | Kubernetes 감사 로그 | API 서버의 감사 로그 파일을 컬렉터의 `filelog` 리시버로 읽음 |

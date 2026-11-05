@@ -29,6 +29,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Leggere o modificare incidenti, monitor e altri record        | [Componenti dati di OneUptime](#componenti-dati-di-oneuptime)        |
 | Aprire, prendere in carico e risolvere incidenti o avvisi per i problemi di un altro strumento | [Incidenti e avvisi da altri strumenti](#incidenti-e-avvisi-da-altri-strumenti) |
 | Prendere in carico o chiudere un problema di Zabbix | [Zabbix](#zabbix) |
+| Chiedere a una persona di approvare una correzione a un cloud OpenStack   | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 Un blocco dedicato è meglio di uno generico: il blocco Slack conosce i limiti di Slack, e un blocco record conosce i campi del record, così ottieni errori e registri più chiari che con un blocco **API** che fa lo stesso lavoro.
 
@@ -428,6 +429,28 @@ Per prendere in carico o chiudere, il blocco legge prima il problema. Un problem
 
 **Updated** scatta quando Zabbix ha accettato l'aggiornamento, ed **Error** quando Zabbix non era raggiungibile o l'ha rifiutato, con il motivo di Zabbix: Zabbix risponde a una richiesta rifiutata con uno stato di successo, quindi il blocco legge ciò che Zabbix ha risposto anziché il suo stato. Restituisce **Summary**, ciò che ha fatto in una frase.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Chiede a una persona di approvare una modifica al cloud OpenStack a cui si riferisce un avviso o un incidente. Non fa mai la modifica. La correzione attende sull'avviso o sull'incidente, e nei canali in cui pubblica, come una che propone OneUptime AI, qualunque sia la modalità di correzione del cloud. Un workflow non può approvare ciò che propone.
+
+Non richiede alcun modello IA e passa per le stesse regole di una correzione proposta da OneUptime AI: la policy dei comandi, gli obiettivi di scrittura e gli obiettivi protetti dell'agente, e la lettura che l'agente fa di ciò che la modifica tocca. Un'evacuazione di un host ancora attivo, o che l'agente non riesce a leggere per intero, non viene proposta.
+
+| Impostazione | Cosa fa |
+| ------------ | ------- |
+| **Alert ID** | L'avviso a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Incident ID**, e il cloud deriva da ciò a cui è collegato il record. |
+| **Incident ID** | L'incidente a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Alert ID**. |
+| **Comando** | La modifica da proporre, nell'unica grafia che OneUptime accetta. Vedi [le modifiche che una correzione può fare](/docs/telemetry/openstack#correzioni). Può usare valori dei blocchi precedenti, e viene letto dopo che sono stati compilati. |
+| **Perché** | Ciò che la persona che approva legge per primo. Se vuoto, indica quale workflow l'ha chiesto. |
+| **OpenStack Cloud ID** | In **Altri campi**. Solo per un record collegato a più di un cloud, o a nessuno. |
+
+Restituisce **Suggestion ID** (la correzione in attesa di approvazione), **Tier** (Safe o Riskier, come OneUptime legge il comando) e **Already Waiting** (true quando la stessa modifica su quel cloud era già in attesa, quindi non ne è stata aggiunta una seconda).
+
+**Success** scatta quando una persona è stata interpellata, senza attendere la sua risposta. **Error** scatta quando non è stato proposto nulla, con il motivo in **Error**: il comando è rifiutato, le correzioni non sono ancora consentite su quel cloud, oppure i workflow di un progetto hanno proposto 20 correzioni nell'ultima ora.
+
+Il modello [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) è un punto di partenza.
+
 ## Componenti dati di OneUptime
 
 Per ogni tipo di record in OneUptime (monitor, incidenti, avvisi, pagine di stato, policy di reperibilità e molti altri), il pannello **Aggiungi componente** ha questi componenti: sotto **Risorse OneUptime**, fai clic sul tipo di record (**Sfoglia tutte le risorse** contiene quelli non mostrati), oppure cerca per nome del tipo. Ogni titolo è generato dal tipo di record, quindi l'insieme di Monitor è questo:
@@ -487,7 +510,7 @@ Una query è sempre limitata al progetto in cui viene eseguito il workflow. Non 
 
 Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Fields to pass on**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`. I campi di un record collegato vanno sotto la sua chiave, come in `{"monitor": {"name": true}}`: `{"monitor": true}` trasmette solo il suo ID.
 
-I **campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
+I **Campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
 
 ```json
 { "customFields": { "Notification Count": 1 } }

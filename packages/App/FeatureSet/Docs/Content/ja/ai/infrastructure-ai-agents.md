@@ -64,6 +64,7 @@ Kubernetes AI エージェントと同じく、リソース AI エージェン�
 | AWS アカウント | `aws` | クラウド AI エージェント | `AWS_ACCOUNT_ID`(空の場合は動作しているアカウント) | `cloud` — 固定のカタログの操作を一つ実行し、`aws` コマンドは決して実行しない | AWS の API、専用の IAM ロールを使用 |
 | Azure サブスクリプション | `azure` | クラウド AI エージェント | `AZURE_SUBSCRIPTION_ID`(セットアップコマンドが設定) | `cloud` — 固定のカタログの操作を一つ実行し、`az` コマンドは決して実行しない | Azure Resource Manager、Container App のマネージド ID として |
 | Google Cloud プロジェクト | `gcp`(または `google-cloud`) | クラウド AI エージェント | `GOOGLE_CLOUD_PROJECT`(空の場合は動作しているプロジェクト) | `cloud` — 固定のカタログの操作を一つ実行し、`gcloud` コマンドは決して実行しない | Google Cloud の API、専用のサービス アカウントとして |
+| OpenStack クラウド | `openstack` | OpenStack AI エージェント | `OPENSTACK_CLOUD_NAME` | `openstack` コマンドをクラウドの API に送る(エージェントに `openstack` バイナリはありません)— 読み取りのみで、クラウドを変更するコマンドはありません |
 
 データベースサーバー: データベース AI エージェントには、PostgreSQL、MySQL(および MariaDB と Percona Server)、Redis(および Valkey、KeyDB、Dragonfly)、MongoDB 向けの診断があります。それ以外のエンジンでは何も実行せず、データベースの AI エージェントのページでその旨を表示します。
 
@@ -82,6 +83,7 @@ AI エージェントのページでエージェントの状態の隣にある *
 | AWS アカウント | `cloud whoami` |
 | Azure サブスクリプション | `cloud whoami` |
 | Google Cloud プロジェクト | `cloud whoami` |
+| OpenStack クラウド | `openstack endpoint list`、`openstack compute service list` |
 
 Docker Swarm のワーカーでは `docker node ls` が失敗します。Docker Swarm AI エージェントはマネージャーノードで実行する必要があります。ワーカーで起動したエージェントは、そのノードがマネージャーになるまでクラスターに登録されず、Docker Swarm のインストーラーはマネージャーでないノードにはエージェントを含めません。
 
@@ -93,7 +95,7 @@ Docker Swarm のワーカーでは `docker node ls` が失敗します。Docker 
 
 ### コレクターの隣で
 
-Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、データベースサーバーでは、エージェントはそのリソースですでに使っているコレクターの隣で動作し、その `.env` を共有します。`ONEUPTIME_URL`、取り込みキー、リソース名はすでに揃っています。各コレクターの `docker-compose.yml` にはエージェントがもう一つのサービスとして含まれており、その `install.sh` がエージェントを起動します。
+Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、OpenStack、データベースサーバーでは、エージェントはそのリソースですでに使っているコレクターの隣で動作し、その `.env` を共有します。`ONEUPTIME_URL`、取り込みキー、リソース名はすでに揃っています。各コレクターの `docker-compose.yml` にはエージェントがもう一つのサービスとして含まれており、その `install.sh` がエージェントを起動します。
 
 | リソース | コレクター | AI エージェントのサービス(とコンテナ) | 設定場所 |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -104,8 +106,9 @@ Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、データベースサ
 | VMware vCenter | [VMware エージェント](/docs/telemetry/vmware#ai-エージェント) | `oneuptime-vmware-ai-agent` | `agents/VMwareAgent/docker-compose.yml` |
 | Ceph クラスター | [Ceph エージェント](/docs/telemetry/ceph#ai-エージェント) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`、エージェント専用の Ceph クライアントを `./ceph` に配置 |
 | データベースサーバー | [データベースエージェント](/docs/telemetry/databases#ai-エージェント) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
+| OpenStack クラウド | [OpenStack エージェント](/docs/telemetry/openstack#ai-エージェント) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`。認証情報は `clouds.yaml` に置く |
 
-AI エージェントが存在する前にインストールしたコレクターは、まだエージェントを実行していません。その `install.sh` を再実行すると、AI エージェントも起動するようになります(Proxmox、VMware、Ceph、データベース、Docker Swarm のインストーラーは、AI エージェントのサービスを含む最新の `docker-compose.yml` をダウンロードします)。ファイルを自分で管理している場合は、コレクターの `docker-compose.yml` からサービスを自分のファイルに追加し、`docker compose up -d` を実行してください。リソースの AI エージェントのページには、そのリソース用の正確なサービスが、名前を入力済みの状態で表示されます。
+AI エージェントが存在する前にインストールしたコレクターは、まだエージェントを実行していません。その `install.sh` を再実行すると、AI エージェントも起動するようになります(Proxmox、VMware、Ceph、OpenStack、データベース、Docker Swarm のインストーラーは、AI エージェントのサービスを含む最新の `docker-compose.yml` をダウンロードします)。ファイルを自分で管理している場合は、コレクターの `docker-compose.yml` からサービスを自分のファイルに追加し、`docker compose up -d` を実行してください。リソースの AI エージェントのページには、そのリソース用の正確なサービスが、名前を入力済みの状態で表示されます。
 
 インストーラーを使わない場合、Docker AI エージェントは `docker run` 一回で起動できます:
 
@@ -160,9 +163,9 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 
 ### OneUptime への接続
 
-エージェントは **コレクターが報告するのと同じ識別子** (`DOCKER_HOST_NAME`、`PROXMOX_CLUSTER_NAME`、`CEPH_CLUSTER_NAME`、…。`ONEUPTIME_AI_AGENT_RESOURCE_NAME` で上書き可能)で登録するため、コレクターのテレメトリが作成したリソースにぴったり対応します。OneUptime にその名前のリソースがまだない場合は登録時に作成されるため、コレクターと異なる名前を使うと、エラーではなく空の二つ目のリソースができます。データベースは、`DATABASE_SERVER_ID` が設定されていればそれで、なければエンジン、アドレス、ポートで登録します。このプロジェクトのデータベースではない `DATABASE_SERVER_ID` は拒否されます。
+エージェントは **コレクターが報告するのと同じ識別子** (`DOCKER_HOST_NAME`、`PROXMOX_CLUSTER_NAME`、`CEPH_CLUSTER_NAME`、`OPENSTACK_CLOUD_NAME`、…。`ONEUPTIME_AI_AGENT_RESOURCE_NAME` で上書き可能)で登録するため、コレクターのテレメトリが作成したリソースにぴったり対応します。OneUptime にその名前のリソースがまだない場合は登録時に作成されるため、コレクターと異なる名前を使うと、エラーではなく空の二つ目のリソースができます。データベースは、`DATABASE_SERVER_ID` が設定されていればそれで、なければエンジン、アドレス、ポートで登録します。このプロジェクトのデータベースではない `DATABASE_SERVER_ID` は拒否されます。
 
-コレクターがまだデフォルトの名前(`docker-host`、`podman-host`、`docker-swarm`、`proxmox-cluster`、`vmware-vcenter`、`ceph`)を使っている場合、そのデフォルトでインストールしたすべてのリソースが OneUptime の同じリソースに報告し、そのリソース向けのコマンドがどれにでも届く可能性があります。エージェントはこのことをログで警告します。コレクターとエージェントの両方で、各リソースに一意の名前を付けてください。
+コレクターがまだデフォルトの名前(`docker-host`、`podman-host`、`docker-swarm`、`proxmox-cluster`、`vmware-vcenter`、`ceph`、`openstack`)を使っている場合、そのデフォルトでインストールしたすべてのリソースが OneUptime の同じリソースに報告し、そのリソース向けのコマンドがどれにでも届く可能性があります。エージェントはこのことをログで警告します。コレクターとエージェントの両方で、各リソースに一意の名前を付けてください。
 
 エージェントはプロジェクトのテレメトリ取り込みキー(`ONEUPTIME_API_KEY`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`ONEUPTIME_SERVICE_TOKEN` のうち最初に設定されているもの。コレクターがすでに設定しています)で認証し、自身専用のキーを受け取ります。呼び出しはすべて `<ONEUPTIME_URL>/resource-ai-agent-ingest/…` への HTTPS の `POST` です。起動時に一度登録し、30 秒ごとにハートビートを送り(最後のハートビートから 5 分間はオンラインとみなされます)、3 秒ごとに作業を問い合わせ、停止時にサインオフします。同じ識別子を持つ二つ目のエージェントは、一つ目がオンラインの間は拒否されます。正常に停止したコンテナはサインオフするので代わりのエージェントはすぐに受け入れられ、クラッシュや kill の後は、最初に拒否されてから古いエージェントが 40 秒間何も送らなければ代わりのエージェントが引き継ぎます。10 分後も拒否される場合は、別の稼働中のエージェントが同じ識別子を使っています。エージェントはその旨のエラーをログに記録し、各リソースに固有の名前を付けるか別のエージェントを停止するまで、5 分ごとにしか問い合わせません。一つのプロジェクトに置けるリソース AI エージェントは最大 250 個で、一時間に新しく登録できるのは最大 30 個です。250 個に達すると、7 日間応答のないエージェントが削除されて新しいエージェントのための枠が空きます(リソースは AI 設定を保持し、戻ってきたそのようなエージェントは単に再登録されます)。
 
@@ -231,6 +234,27 @@ Podman ホストは、Podman の Docker 互換 API を通じて同じ `docker` C
 - `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`、`govc metric.ls /DC/vm/web-01`、`govc object.collect -s /DC/vm/web-01 runtime.powerState`(ランタイムとヘルスのプロパティのみ)、`govc host.service.ls -host esx-01`、`govc host.date.info -host esx-01`、`govc tags.ls`。
 - 決して不可: 接続、認証情報、TLS、デバッグのフラグ(`-u`、`-k`、`-cert`、`-debug`、`-dump`、…)、ゲスト操作(`guest.*`)、データストアのファイルアクセス、`esxcli`、`env`、および一覧にないすべてのコマンド。
 
+### OpenStack クラウド
+
+エージェントには `openstack` バイナリもシェルもありません。コマンドは `openstack` の文法(コマンドの単語、続いて ID、続いて `--name value` 形式のオプション)で書き、エージェントはそれを、答えを持つサービス(Nova、Neutron、Cinder、Glance、Placement、Keystone)への `GET` ちょうど一つに変換して、自身の認証情報で送ります。`-f table|json` で出力形式を、`--os-region-name REGION` で別のリージョンを選べます。`--name=value` は拒否され、`-c` も拒否されます。ID は ID でなければなりません。一覧が ID を出力するので、名前から ID を引くことは決してありません。
+
+- インスタンス: `openstack server list --all-projects --limit 50 --host compute-01`。絞り込みには `--status`、`--name`、`--project`、`--availability-zone`、`--changes-since` を使えます。`openstack server show 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11` と `openstack server event list 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11` もあり、後者はインスタンスに起きた出来事ごとに、その元になったリクエスト(`req-...`)を示します。そのリクエストの ID を指定する `server event show` もあります。
+- コンピュートと容量: `openstack compute service list`、`openstack hypervisor list`、`openstack aggregate list`、`openstack availability zone list`、`openstack flavor list`、`openstack resource provider list`、そして ID を指定する `hypervisor show`、`resource provider show`、`resource provider usage show`、`resource provider inventory list`。
+- ネットワーク: `openstack network agent list`、`openstack network list`、`openstack subnet list`、`openstack router list`、`openstack floating ip list`、`openstack ip availability list`。最後を除く各コマンドには、ID を指定する `show` があります。ID を指定する `port show`、そして `--server`、`--network`、`--router`、`--device-id`、`--host`、`--project` のいずれか一つを付ける `openstack port list --limit 50 --host compute-01` もあります。
+- ストレージとイメージ: `openstack volume service list`、`openstack volume backend pool list`、`openstack volume list --all-projects --limit 50`、`openstack volume snapshot list --all-projects --limit 50`、`openstack volume backup list --all-projects --limit 50`、`openstack image list`、そして ID を指定する `volume show` と `image show`。
+- クラウドが実行していないこともあるもの(カタログに名前がある場合のみ): Manila では `openstack share list --all-projects --limit 50`、`openstack share service list`、`openstack share pool list`。Designate では `openstack zone list --all-projects --limit 50` と、一つのゾーンのレコードセットを見る `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`。Swift では `openstack container list`(この認証情報自身のプロジェクトのものだけ)。Trove では `openstack database instance list`(すべてのプロジェクトのもので、管理者だけが実行できます)。Gnocchi のバックログとプロセッサーには `openstack metric status`。
+- クラウドの構成: `openstack endpoint list`、`openstack service list`、`openstack region list`、`openstack project list`、`openstack domain list`、そして ID を指定する `project show`。
+- テナントをまたぐ一覧には `--limit N`(200 まで)が必須で、続きは `--marker ID` で取得します。それ以外の一覧は、指定がなければ 100 行で止まり、まだ続きがあることを示します。エージェントが `next` リンクを自分でたどることはありません。
+- 決して不可: クラウドを変更するものすべて(そのようなコマンドは存在しません)、Keystone のユーザー、認証情報、ロール割り当て、トークン、コンソールとコンソールログ、Barbican のシークレット、`--os-cloud` とそのほかすべてのログインやエンドポイントのオプション。
+
+インスタンスの `user_data`、管理者パスワード、イメージの `direct_url`、ボリュームの `provider_auth`、そのほかシークレットとされるものは、出力がモデルやログに届く前にマスクされます。
+
+`nova-compute` が停止しても、そのインスタンスは `ACTIVE` のままに見えるため、調査ではサービスの `state`(`down`)とインスタンスの `host_status`(`UNKNOWN`)を手がかりにします。
+
+調査は何もない状態からは始まりません。クラウドにリンクされたインシデントやアラートでは、そのクラウドのページの **対応が必要** に載っている内容、つまりダウンしているサービスと、問題のあるホスト、インスタンス、ボリューム、プールが OneUptime AI に伝えられます。インシデントの系列が一つの部分を指している場合は、その部分が巻き込むもの(影響範囲: インスタンス、プロジェクト、Kubernetes ノード、ホスト)、どの属性でその部分のログを絞り込めるか、そしてその時期にクラウドで何が変わったかも伝えられます。
+
+そこからリクエストをたどります。`server event list` は各操作のリクエスト ID を出力し、`search_logs` はその ID を属性(`openstack.request_root_id`)として受け取り、すべてのサービスがそれについて書いた内容を読み取ります。レポートは、`kubectl` と同様に、実行した各コマンドとその出力を引用します。ログには[サービスログ](/docs/telemetry/openstack#サービスログ)のプロファイルが、変更には[ライフサイクルイベント](/docs/telemetry/openstack#ライフサイクルイベント)が必要です。これらがなければ、その読み取りは空で返ります。
+
 ### Ceph クラスター
 
 - クラスター: `ceph status`(または `ceph -s`)、`ceph health detail`、`ceph df detail`、`ceph versions`、`ceph progress`、`ceph quorum_status`、`ceph log last 100`。
@@ -291,7 +315,7 @@ OneUptime は、AWS アカウント、Azure サブスクリプション、Google
 
 修正の実行後、OneUptime はインシデントやアラートのモニターを監視します。回復しない場合は計画のロールバックが実行され、OneUptime AI は失敗した試みを踏まえてもう一つ計画を作成します。インシデントやアラートごとに最大で二ラウンドです。**自動** モードではその二ラウンド目は承認を求め、**承認をバイパス** ではそれも自動で実行されます。無人の修正にはリソースごと一時間あたり三件のサーキットブレーカーがあり、それを超えた場合や、OneUptime AI の別の無人ラウンドが同じリソースをまだ変更または検証している間は、ラウンドは計画を実行せずに承認用に提案します。
 
-一つのインシデントやアラートには、AI の修正レーンが一つだけ割り当てられます。修正がオンの Kubernetes クラスターにリンクされている場合は、そのクラスターのラウンドが実行され、リソースのラウンドは実行されません。それ以外の場合は、修正がオンで準備のできたエージェントを持つ最初のリンク済みリソースが、次の順でラウンドを得ます: Docker ホスト、Podman ホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、データベースサーバー、ホスト、AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクト。ラウンドが変更するのはそのリソースだけです。
+一つのインシデントやアラートには、AI の修正レーンが一つだけ割り当てられます。修正がオンの Kubernetes クラスターにリンクされている場合は、そのクラスターのラウンドが実行され、リソースのラウンドは実行されません。それ以外の場合は、修正がオンで準備のできたエージェントを持つ最初のリンク済みリソースが、次の順でラウンドを得ます: Docker ホスト、Podman ホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、データベースサーバー、ホスト、AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクト、OpenStack クラウド。ラウンドが変更するのはそのリソースだけです。
 
 ### 安全、よりリスクが高い、決して不可
 
@@ -357,6 +381,21 @@ VM はすべて正確に名前で指定します。govc は単なる名前を、
 | **常に人が必要** | `ceph osd set pause`(クライアントの I/O をすべて停止します)、`ceph osd pool set rbd size 3`(`min_size` も) |
 | **決して不可** | `ceph osd purge 3`(destroy、rm、lost、CRUSH の変更も)、`ceph osd pool delete rbd`(プールの作成、名前変更、そのほかのプール設定も)、`ceph auth ls`、`ceph config-key ls`、`ceph tell osd.3 injectargs --debug-osd 20`、`ceph --id admin status`、`config`、`daemon`、fs と mon の変更、`mgr module enable`、`orch apply`、`crash rm` |
 
+### OpenStack クラウドでの修正
+
+エージェントには `openstack` バイナリがありません。各変更は、それが指定するクラウドの API への呼び出し一回で、エージェントが変更専用に保持している認証情報で行われます。変更の書き方は下の順序の一通りだけです。フラグの順序が違うもの、省略形、実際のクライアントが受け付けるフラグは拒否されるため、人が承認するもの、許可リストのエントリが指すもの、実行されるものは同じ文言になります。エージェントは変更を行う前に、その対象を読み取り、読み取れない場合は拒否します。
+
+| | コマンド |
+| ------------------- | -------- |
+| **安全** | `openstack server start 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack server reboot --soft 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack compute service set --enable compute-01 nova-compute`、`openstack network agent set --enable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **よりリスクが高い** | `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack server migrate 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack server migrate live 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack compute service set --disable --disable-reason maintenance compute-01 nova-compute`、`openstack network agent set --disable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **常に人が必要** | `openstack server evacuate 358ee736-ba74-40ba-a354-7ead413c5df6` — 何台のインスタンスの退避でも、どのモードでも、許可リストの内容にかかわらず。Nova はホストがダウンしてからでないと退避を受け付けないためです |
+| **決して不可** | `openstack server delete 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack volume delete 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack project delete 9aee824cac87464292adffc328de1662`、`openstack user list`、`openstack role add --user a --project b c`、`openstack quota set --instances 100 abc`、`openstack security group delete abc`、`openstack server set --state active 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack volume set --state available 358ee736-ba74-40ba-a354-7ead413c5df6`、`openstack compute service set --down compute-01 nova-compute`、`openstack server stop 358ee736-ba74-40ba-a354-7ead413c5df6`、およびここに載っていないすべてのコマンド |
+
+修正のカードには、エージェントが読み取った内容に基づいて、変更が影響するインスタンスとプロジェクトの数と、それが何かが表示されます。`openstack dry-run <change>` がその読み取りで、調査でも実行できます。エージェントが全体を読み取れない退避は提案されません。各修正は、影響した各部分のフィードと、クラウドのフィードに、承認した人とともに変更イベントとして残ります。コールドの `server migrate` は、人が確定するまでインスタンスを `VERIFY_RESIZE` のままにし、OneUptime AI がそれを確定することは決してありません。
+
+ほかのリソースと異なり、ここでの修正は、あなたが二段階でオプトインするまでオフのままです。`ONEUPTIME_AI_ALLOW_WRITES=true` だけでは **AI に許可する操作** は **オフ** のままで、変更用の認証情報がなければ何も行いません。[OpenStack エージェントのガイド](/docs/telemetry/openstack#変更用の認証情報)に、クラウドのデプロイ方法ごとに、必要最小限の権限でその認証情報を作る方法があります。
+
 ### データベースサーバーでの修正
 
 以下の `12345` は、`db sessions` が出力するセッション ID です。PostgreSQL の pid、MySQL の processlist ID、Redis のクライアント ID、MongoDB の opid に当たります。エージェントはまずセッションを確認し、自身の接続、サーバーやレプリケーションのスレッド、存在しないセッションには決して触れません。
@@ -413,9 +452,10 @@ VM はすべて正確に名前で指定します。govc は単なる名前を、
 - 変更を事前承認することが決してできないエントリは拒否されます。読み取り専用のコマンド(読み取りに承認は不要)、ポリシーが拒否するコマンド、別の種類のリソース向けのコマンドです。一つのリストには最大 500 文字のエントリを最大 50 個まで含められます。
 - 対象の位置に `*` があるエントリ(`docker stop *` は **すべての** コンテナの停止を事前承認します)は、保存前に確認を求めます。
 - Proxmox のパスは一つの単語なので、`*` を含めることはできません。ゲストごとに一つずつ、`pvesh create /nodes/pve1/qemu/100/status/shutdown` のようなエントリを書いてください。
+- OpenStack クラウドでは、インスタンスの退避(evacuate)のエントリは保存時に拒否されます。退避は常に人の承認を求めるため、何も事前承認しないことになるからです。
 - 許可リストのどのエントリも、常に人を必要とする変更や、ポリシーが拒否するコマンドを覆すことはできません。
 
-リソースごとの有効なエントリの例: `docker stop web`(Docker と Podman)、`docker service update --image nginx:1.27 web`(Docker Swarm)、`pvesh create /nodes/pve1/qemu/100/status/shutdown`(Proxmox)、`govc vm.power -off web-01`(VMware)、`ceph osd out 3`(Ceph)、`db terminate-session 12345`(データベース)、`systemctl stop nginx`(ホスト)、`cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`(AWS)、`cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`(Azure)、`cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`(Google Cloud)。
+リソースごとの有効なエントリの例: `docker stop web`(Docker と Podman)、`docker service update --image nginx:1.27 web`(Docker Swarm)、`pvesh create /nodes/pve1/qemu/100/status/shutdown`(Proxmox)、`govc vm.power -off web-01`(VMware)、`ceph osd out 3`(Ceph)、`db terminate-session 12345`(データベース)、`systemctl stop nginx`(ホスト)、`cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`(AWS)、`cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`(Azure)、`cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`(Google Cloud)、`openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`(OpenStack クラウド)。
 
 ### 変更できる人
 
@@ -449,6 +489,7 @@ AI エージェントのページが何を示していても、エージェン�
 | データベースサーバー | `session:<id>` | `session:*` |
 | ホスト | 完全なユニット名(`nginx.service`)、プロセスには `pid:<pid>`、ジャーナルの削減には `journal` | `nginx.service,app-*` |
 | クラウド アカウント | リソースの ID: ARN、小文字の Azure のリソース ID、または Google Cloud の完全なリソース名 | `arn:aws:ecs:*:123456789012:service/prod/*` |
+| OpenStack クラウド | 変更が指定するものには `instance:<id>`、`host:<name>`、`agent:<id>`、移動先には `destination:<name>`。エントリは `project:<id>`、`host:<name>`、`instance:<id>` のみで、それ以外があるとエージェントは読み取り専用のままになります。エージェントは変更の直前に、インスタンスがどのプロジェクトとホストにあるかを読み取ります |
 
 ### エージェントが自ら保護するもの
 
@@ -459,6 +500,7 @@ AI エージェントのページが何を示していても、エージェン�
 - **データベースサーバー:** エージェント自身のセッション。
 - **ホスト:** OneUptime のすべてのユニット(ホスト AI エージェント自身のものを含む `oneuptime-*`)、OpenTelemetry コレクター(`otelcol-contrib.service`、`otelcol.service`)、エージェントが動作する Docker エンジン(`docker.service`、`docker.socket`、`containerd.service`)、そしてエージェント自身のプロセスとその上位のプロセス。
 - **Proxmox:** エージェントは自分がどのゲストで動作しているかを判別できません。同じクラスターの VM やコンテナで動作している場合は、その VMID を `ONEUPTIME_AI_PROTECTED_TARGETS` に追加してください。VMware 上のエージェントの VM についても同様です。
+- **OpenStack クラウド:** エージェントは自分がどのインスタンスで動いているかを判別できません。同じクラウド上で動かす場合は、そのインスタンスを `instance:<id>` として `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。クラウドでは、このリストはあなた自身のもので、人の承認も含め、ほかのどの設定よりも優先されます。
 - **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウントです。
 
 ## 認証情報と最小権限
@@ -474,6 +516,7 @@ AI エージェントのページが何を示していても、エージェン�
 | データベースサーバー | `DATABASE_USERNAME` / `DATABASE_PASSWORD`(コレクターのログイン)、または設定されていれば `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`。`DATABASE_ENDPOINT` と TLS の設定 | コレクターの監視用ログイン(PostgreSQL では `pg_monitor`) | ほかのセッションにシグナルを送れるエージェント専用のログイン: `pg_signal_backend`(PostgreSQL)、`CONNECTION_ADMIN`(MySQL 8)、`+client\|kill`(Redis ACL)、`killop` アクション(MongoDB) |
 | ホスト | なし。ホストの名前空間で root として特権実行される | `ONEUPTIME_AI_ALLOW_WRITES` は未設定のままにする | `ONEUPTIME_AI_WRITE_TARGETS` に AI が変更してよいユニットを指定 |
 | クラウド アカウント | 動作する場所の ID。AWS では ECS タスクのロールで、`ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` の書き込みロールしか引き受けられない。Azure では Container App のマネージド ID、Google Cloud では VM または Cloud Run サービスが動作するサービス アカウント | なし。OneUptime は読み取り専用の接続を通じてアカウントを読み取る | セットアップコマンドが書き出すロール: 有効にした変更の権限と、それに必要な読み取りだけ。AWS では、変更のたびに、その一つのリソースに対するその一つの変更だけを許すセッション ポリシー付きで `OneUptimeAiAgentWrite` を引き受ける |
+| OpenStack クラウド | 変更用には、専用のアプリケーション認証情報である `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` と `_SECRET`。作り方は[ガイド](/docs/telemetry/openstack#変更用の認証情報)にあります。読み取り用には、コレクターのエクスポーターが読む `clouds.yaml` のアプリケーション認証情報(`OS_CLIENT_CONFIG_FILE`、`OPENSTACK_EXPORTER_CLOUDS`、別のエントリを使う場合は `ONEUPTIME_AI_OPENSTACK_CLOUD`)、または設定されていれば `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` と `OPENSTACK_AUTH_URL`。ほかに `ONEUPTIME_AI_OPENSTACK_REGION`、`ONEUPTIME_AI_OPENSTACK_INTERFACE`、`ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
 各コレクターの README には正確なコマンドが載っています。Proxmox の修正用トークンを作る `pveum` コマンド([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent))、vSphere の修正用ロール([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent))、Ceph の読み取り用と修正用の caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent))、エンジンごとのデータベースの権限([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent))です。クラウド AI エージェントのロールはセットアップコマンドが書き出します。変更をオフにしてコマンドをもう一度実行すると、その権限はロールから外れます。
 
@@ -492,8 +535,8 @@ AI エージェントのページが何を示していても、エージェン�
 - プログラムは一つだけで、引数のリストとして実行し、シェルを経由することはありません。パイプ、リダイレクト、`;`、`&&`、`$(…)` は何かが実行される前に拒否され、`sudo` も同様です。
 - そのコマンドのためだけに構築された環境。エージェント自身のもの(取り込みキーもプロキシ設定も)はプログラムに渡らず、`docker`、`govc`、`ceph` にはそのコマンドのためだけに `/tmp` 配下の空のプライベートなホームディレクトリが与えられます。`docker` CLI には空のプライベートな `DOCKER_CONFIG` が与えられるため、コンテキストや認証情報ヘルパーが接続先を変えることはできません。`govc` は認証情報をコマンドラインではなく環境で受け取ります。`ceph` はエージェント自身の `--conf`、`--keyring`、`--id` を受け取り、コマンドが別のものを選ぶことはできません。
 - 制限時間(最大 2 分)。過ぎるとプログラムは強制終了されます。出力は 50 KB までに制限されます。
-- 出力内のシークレット(`docker inspect` の環境変数の値、Proxmox の cloud-init のパスワード、ログやコマンドライン中のキー、トークン、パスワード)は、出力がエージェントを離れる前にエージェント上でマスクされ、保存またはモデルへの表示の前に OneUptime でも再びマスクされます。
-- コンテナは読み取り専用のルートファイルシステムで動作します。Proxmox、VMware、Ceph、データベースの AI エージェントは、capability を一切持たない UID 1000 として動作します。
+- 出力内のシークレット(`docker inspect` の環境変数の値、Proxmox の cloud-init のパスワード、OpenStack の `user_data`、ログやコマンドライン中のキー、トークン、パスワード)は、出力がエージェントを離れる前にエージェント上でマスクされ、保存またはモデルへの表示の前に OneUptime でも再びマスクされます。
+- コンテナは読み取り専用のルートファイルシステムで動作します。Proxmox、VMware、Ceph、データベースの AI エージェントは、capability を一切持たない UID 1000 として動作します。OpenStack の AI エージェントは `clouds.yaml` の所有者(`OPENSTACK_EXPORTER_USER`)として動作し、やはり capability を持ちません。
 - クラウド AI エージェントはプログラムを一切起動しません。`cloud` はカタログの操作を一つ指定し、エージェントはそれを、対応する一つの API 呼び出しとして、動作する場所の認証情報で実行します。読み取りは OneUptime 上で、アカウントの読み取り専用の接続を通じて実行されます。
 
 ### Docker ソケットとホスト AI エージェントはホストの root に等しい
@@ -520,7 +563,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-リソースのコンテナ名を使ってください: `oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`(`docker` の代わりに `podman` を使用)、`oneuptime-docker-swarm-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。データベースエージェントのサービスには固定のコンテナ名がないため、`/opt/oneuptime-database-agent` で `docker compose logs --tail=100 oneuptime-database-ai-agent` と `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` を使います。ホスト AI エージェントはホストのネットワークを使うため、`curl -s http://127.0.0.1:3877/status` はホスト上でそのまま動作します。
+リソースのコンテナ名を使ってください: `oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`(`docker` の代わりに `podman` を使用)、`oneuptime-docker-swarm-ai-agent`、`oneuptime-openstack-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。データベースエージェントのサービスには固定のコンテナ名がないため、`/opt/oneuptime-database-agent` で `docker compose logs --tail=100 oneuptime-database-ai-agent` と `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` を使います。ホスト AI エージェントはホストのネットワークを使うため、`curl -s http://127.0.0.1:3877/status` はホスト上でそのまま動作します。
 
 クラウド AI エージェントはクラウドで動作するため、`exec` で入れるコンテナはありません。ログはクラウドのシェルで `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100`、または `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（Cloud Run の場合は `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） を使って読み、状態はアカウントの **AI エージェント** ページで確認します。このページにも同じコマンドが表示されます。
 

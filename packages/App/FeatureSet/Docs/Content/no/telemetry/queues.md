@@ -303,7 +303,7 @@ service:
 - `delay` venter på at CloudWatch publiserer en periode (det tar noen minutter), så med denne konfigurasjonen kommer brokermetrikkene for en kø 11 til 17 minutter for sent: en monitor over dem trenger et lengre vindu (se **Forsinkede metrikker** under [Varsling](#varsling)).
 - Én receiver leser én region og ett namespace: legg til en instans per region.
 
-**Strømming** sender metrikkene etter hvert som CloudWatch publiserer dem. Opprett en CloudWatch Metric Stream for namespacene `AWS/SQS` (og `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som leverer til en Amazon Data Firehose-strøm der destinasjonen er et HTTP-endepunkt: collectoren din, med en tilgangsnøkkel. Firehose leverer bare til `https://` på port 443, så collectoren trenger et sertifikat og en offentlig port 443 (for eksempel bak en lastbalanserer):
+**Strømmer**: sender metrikkene etter hvert som CloudWatch publiserer dem. Opprett en CloudWatch Metric Stream for namespacene `AWS/SQS` (og `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som leverer til en Amazon Data Firehose-strøm der destinasjonen er et HTTP-endepunkt: collectoren din, med en tilgangsnøkkel. Firehose leverer bare til `https://` på port 443, så collectoren trenger et sertifikat og en offentlig port 443 (for eksempel bak en lastbalanserer):
 
 ```yaml
 extensions:
@@ -994,7 +994,7 @@ service:
 
 Hvert punkt i `rabbitmq.message.published.delta` er antallet meldinger publisert siden forrige skraping, så en metrikkmonitor på den, filtrert på `resource.rabbitmq.queue.name` og summert over vinduet sitt, teller det som ble publisert i det vinduet: under 1 over 15 minutter betyr at ingen publiserer. Etter hver start av collectoren har prosessoren ingen tidligere verdi å trekke det første punktet til en kø fra, og som standard sender den det punktet som det er: hele den løpende totalen til telleren, som om hver melding køen noen gang har hatt, ble publisert i én skraping. `initial_value: drop` holder det punktet tilbake, så kopien for en kø starter med den andre skrapingen som rapporterer telleren dens. Kopier en annen teller på samme måte, med én `copy_metric`-setning og én `include`-oppføring for hver. JMX Scraper for ActiveMQ må da sende gjennom en slik collector, til en `otlp`-receiver i stedet for `rabbitmq`; tellerne til RocketMQ tar de samme to prosessorene i pipelinen for `prometheus`-receiveren sin.
 
-**Manuelt** filtrerer du på attributtet som navngir køen i den metrikken; det er det samme for hver kø i et system:
+**By hand** filtrerer du på attributtet som navngir køen i den metrikken; det er det samme for hver kø i et system:
 
 | Varsle når | Metrikk | Filter | Aggregering |
 | --- | --- | --- | --- |

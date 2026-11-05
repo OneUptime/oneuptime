@@ -99,6 +99,7 @@ flowchart TB
 | 資產清單項目 | `Inventory Item` |
 | 收集器設定 | `Collector Config` |
 | vCenter 伺服器 | `vCenter` |
+| OpenStack 雲端，以及對它們執行的檢查 | `OpenStack Cloud`、`OpenStack Cloud Check` |
 | 封包擷取及其下載 | `Packet Capture` |
 | 安全案件及其優先順序與狀態、劇本及其執行、受保護的實體、實體重要性，以及被重設的實體風險 | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
 | 規則例外 | `Rule Exception` |

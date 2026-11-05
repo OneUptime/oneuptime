@@ -193,6 +193,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | AWS CloudTrail | CloudWatch Logs に配信される証跡を、コレクターの `awscloudwatch` レシーバーで読み取り。**クラウド** で接続したアカウントなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
 | Google Cloud 監査ログ | Pub/Sub へのログシンクを、コレクターの `googlecloudpubsub` レシーバーで `encoding: raw_text` を指定して読み取り。**クラウド** で接続したプロジェクトなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
 | Azure アクティビティと Entra ID のログ | Event Hub にストリーミングする診断設定を、コレクターの `azureeventhub` レシーバーで `format: raw` を指定して読み取り。**クラウド** で接続したサブスクリプションのアクティビティ ログなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
+| OpenStack 監査証跡 | クラウドの通知と監査フィルターを `driver = log` でログに送り、エージェントの [ログプロファイル](/docs/telemetry/openstack#誰が何をしたか) で読み取り |
 | CEF、LEEF | 製品の syslog を [rsyslog](/docs/telemetry/syslog) で中継 |
 | Palo Alto Networks、FortiGate、Cisco ASA | ファイアウォール独自の syslog を [rsyslog](/docs/telemetry/syslog) で中継 |
 | Kubernetes 監査ログ | API サーバーの監査ログファイルを、コレクターの `filelog` レシーバーで読み取り |

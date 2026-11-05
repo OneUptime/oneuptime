@@ -193,6 +193,7 @@ Varje typ når OneUptime som vanliga loggar:
 | AWS CloudTrail | Ett trail som levereras till CloudWatch Logs, läst av collectorns `awscloudwatch`-receiver, eller, för ett konto som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
 | Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, för ett projekt som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
 | Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller, för aktivitetsloggen i en prenumeration som är ansluten under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Granskningsspår för OpenStack | Ett moln notifieringar och granskningsfilter skickade till dess loggar med `driver = log`, lästa av agentens [loggprofil](/docs/telemetry/openstack#vem-gjorde-vad) |
 | CEF, LEEF | Produktens syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brandväggens egen syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-granskningsloggar | API-serverns granskningsloggfil, läst av collectorns `filelog`-receiver |

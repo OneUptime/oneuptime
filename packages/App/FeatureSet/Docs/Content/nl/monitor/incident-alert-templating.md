@@ -452,7 +452,7 @@ De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.co
 
 ### Metriek- en infrastructuurmonitoren
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- en IoT Device-monitoren hebben één eigen variabele:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- en IoT Device-monitoren hebben één eigen variabele:
 
 | Variabele | Wat ze bevat | Type |
 | --- | --- | --- |

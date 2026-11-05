@@ -85,6 +85,7 @@ const KUBERNETES_AGENT: string = "monitor/kubernetes-agent";
 const STORAGE: string = "monitor/storage-array-monitor";
 const IOT: string = "monitor/iot-device-monitor";
 const VMWARE: string = "monitor/vmware-monitor";
+const OPENSTACK: string = "monitor/openstack-monitor";
 
 const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: TEMPLATING, navTitle: "Incident & Alert Templating" },
@@ -92,13 +93,14 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: STORAGE, navTitle: "Storage Array Monitor" },
   { page: IOT, navTitle: "IoT Device Monitor" },
   { page: VMWARE, navTitle: "VMware Monitor" },
+  { page: OPENSTACK, navTitle: "OpenStack Monitor" },
 ];
 
 const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
   return entry.page;
 });
 
-const MONITOR_PAGES: Array<string> = [STORAGE, IOT, VMWARE];
+const MONITOR_PAGES: Array<string> = [STORAGE, IOT, VMWARE, OPENSTACK];
 
 const ANOMALY_CONDITIONS: Array<string> = [
   "Anomalously High",
@@ -153,6 +155,22 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     ...FORM_NAMES,
     "vCenter Stopped Reporting",
     "Datacenter Hosts Not Responding",
+    ...CRITERIA_NAMES,
+  ],
+  /*
+   * Templates' names, as the template picker shows them (OpenStackAlertTemplates
+   * and OpenStackControlPlaneAlertTemplates): the one every new monitor
+   * starts on, and the ones the page names to say what a template reads.
+   */
+  [OPENSTACK]: [
+    ...FORM_NAMES,
+    "Cloud Stopped Reporting",
+    "Metrics API Down",
+    "Placement API Down",
+    "Compute API Down",
+    "Compute Service Down",
+    "Project Quota Nearly Reached",
+    "Identity API Down",
     ...CRITERIA_NAMES,
   ],
 };
@@ -214,6 +232,7 @@ const PROSE: Record<string, Array<string>> = {
   [STORAGE]: ["Filter", "Max", ...SENSITIVITY_SHORT],
   [IOT]: SENSITIVITY_SHORT,
   [VMWARE]: SENSITIVITY_SHORT,
+  [OPENSTACK]: SENSITIVITY_SHORT,
 };
 
 /*
@@ -283,7 +302,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   ],
   [VMWARE]: [
     "The VMware Agent",
-    "A probe",
     "Collect the vCenter's metrics",
     "Check the vCenter is registered.",
     "and",
@@ -303,6 +321,38 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A cluster lost a host:",
     "Fewer VMs run than expected:",
     "A VM is being host-swapped:",
+  ],
+  [OPENSTACK]: [
+    "Collect the cloud's metrics",
+    "Check the cloud is registered.",
+    "resource attribute",
+    "past 15 minutes",
+    "past 10 minutes",
+    "past 1 hour",
+    "past 30 minutes",
+    "past 2 hours",
+    "past 7 days",
+    "past 3 hours",
+    "past 5 minutes",
+    "per flavor per region",
+    "per zone and resource class, external network or storage pool",
+    "per zone",
+    "Up, alive and state series use Min",
+    "Counts and info series use Max.",
+    "Every template but Cloud Stopped Reporting groups by what one incident is about:",
+    "A status series' value is a code",
+    "A series that only just appeared waits for a full window,",
+    "A series that goes away counts as recovered:",
+    "When an API is down, its own series go too",
+    "A cloud that has no such service stays quiet.",
+    "Block Storage",
+    "One failure opens one incident.",
+    "API checks",
+    "The lifecycle check",
+    "A zone's nova-compute is down:",
+    "A host carries too many instances:",
+    "A storage pool has little space left:",
+    "Too many instances are building at once:",
   ],
 };
 

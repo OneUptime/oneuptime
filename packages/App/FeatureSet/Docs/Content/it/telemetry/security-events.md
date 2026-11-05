@@ -193,6 +193,7 @@ Ogni tipo arriva a OneUptime come normali log:
 | AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector, oppure, per un account collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Audit trail di OpenStack | Le notifiche e il filtro di audit di un cloud inviati ai suoi log con `driver = log`, letti dal [profilo dei log](/docs/telemetry/openstack#chi-ha-fatto-cosa) dell'agente |
 | CEF, LEEF | Il syslog del prodotto, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Il syslog del firewall stesso, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Log di audit di Kubernetes | Il file di log di audit dell'API server, letto dal receiver `filelog` del collector |

@@ -62,6 +62,7 @@ flowchart LR
 | AWS CloudTrail | 콘솔 로그인, AWS 계정에서의 변경, AWS가 거부한 호출 |
 | Google Cloud 감사 로그 | Google Cloud 프로젝트에서의 변경, Google이 거부한 호출, Google Cloud와 공유되는 Google Workspace 로그인 |
 | Azure 활동 및 Entra ID 로그 | Azure 구독에서의 변경, Defender for Cloud 알림, Microsoft Entra ID 로그인과 디렉터리 변경 |
+| OpenStack 감사 기록 | Keystone의 로그인 실패, 역할 부여와 변경, 감사 필터가 각 API에서 본 내용, 전 세계에 열린 보안 그룹, 공개로 전환된 이미지 |
 | CEF | Common Event Format을 보내는 방화벽, IDS, WAF 및 기타 보안 제품의 위협, 차단된 연결, 로그인 |
 | LEEF | Log Event Extended Format을 보내는 제품의 같은 내용. 많은 제품이 IBM QRadar용으로 이 형식을 보냅니다 |
 | Palo Alto Networks | PAN-OS 자체 syslog의 위협, 차단된 연결, GlobalProtect 및 관리자 로그인, 구성 변경 |

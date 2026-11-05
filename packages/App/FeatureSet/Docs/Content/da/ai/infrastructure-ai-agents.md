@@ -64,6 +64,7 @@ Ligesom Kubernetes-AI-agenten er en ressource-AI-agent ikke en Runner. Den vises
 | AWS-konto | `aws` | Cloud-AI-agent | `AWS_ACCOUNT_ID` (tom: den konto, den kører i) | `cloud`: én operation fra et fast katalog, aldrig en `aws`-kommando | AWS' API'er med sine egne IAM-roller |
 | Azure-abonnement | `azure` | Cloud-AI-agent | `AZURE_SUBSCRIPTION_ID` (dens opsætningskommando sætter den) | `cloud`: én operation fra et fast katalog, aldrig en `az`-kommando | Azure Resource Manager som dens Container Apps administrerede identitet |
 | Google Cloud-projekt | `gcp` (eller `google-cloud`) | Cloud-AI-agent | `GOOGLE_CLOUD_PROJECT` (tom: det projekt, den kører i) | `cloud`: én operation fra et fast katalog, aldrig en `gcloud`-kommando | Google Clouds API'er som en tjenestekonto, den selv har |
+| OpenStack-cloud | `openstack` | OpenStack-AI-agent | `OPENSTACK_CLOUD_NAME` | `openstack`-kommandoer, sendt til cloudens API'er (der er ingen `openstack`-binær i agenten) — den læser kun og har ingen kommando, der ændrer en cloud |
 
 Databaseservere: Database-AI-agenten har diagnostik til PostgreSQL, MySQL (og MariaDB og Percona Server), Redis (og Valkey, KeyDB og Dragonfly) og MongoDB. For enhver anden motor kører den intet og siger det på databasens AI-agent-side.
 
@@ -82,6 +83,7 @@ Databaseservere: Database-AI-agenten har diagnostik til PostgreSQL, MySQL (og Ma
 | AWS-konto | `cloud whoami` |
 | Azure-abonnement | `cloud whoami` |
 | Google Cloud-projekt | `cloud whoami` |
+| OpenStack-cloud | `openstack endpoint list`, `openstack compute service list` |
 
 På en Docker Swarm-worker fejler `docker node ls`: Docker Swarm-AI-agenten skal køre på en managernode. En agent, der er startet på en worker, registrerer sig først for clusteret, når dens node er en manager, og Docker Swarm-installationsprogrammet udelader den på en node, der ikke er manager.
 
@@ -93,7 +95,7 @@ Hver ressource-AI-agent er det samme image, `oneuptime/resource-ai-agent:release
 
 ### Ved siden af en collector
 
-For Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph og databaseservere kører agenten ved siden af den collector, du allerede bruger til den ressource, og deler dens `.env`: den har allerede `ONEUPTIME_URL`, ingestionsnøglen og ressourcens navn. Hver collectors `docker-compose.yml` leverer agenten som én tjeneste mere, og dens `install.sh` starter den.
+For Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack og databaseservere kører agenten ved siden af den collector, du allerede bruger til den ressource, og deler dens `.env`: den har allerede `ONEUPTIME_URL`, ingestionsnøglen og ressourcens navn. Hver collectors `docker-compose.yml` leverer agenten som én tjeneste mere, og dens `install.sh` starter den.
 
 | Ressource | Collector | AI-agentens tjeneste (og container) | Hvor den sættes op |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -104,8 +106,9 @@ For Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph og databaseservere køre
 | VMware vCenter | [VMware-agent](/docs/telemetry/vmware#ai-agent) | `oneuptime-vmware-ai-agent` | `agents/VMwareAgent/docker-compose.yml` |
 | Ceph-cluster | [Ceph-agent](/docs/telemetry/ceph#ai-agent) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`, med agentens egen Ceph-klient i `./ceph` |
 | Databaseserver | [Database-agent](/docs/telemetry/databases#ai-agent) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
+| OpenStack-cloud | [OpenStack-agent](/docs/telemetry/openstack#ai-agent) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`, med loginoplysningerne i `clouds.yaml` |
 
-En collector, der blev installeret, før AI-agenten fandtes, kører den ikke endnu. Kør dens `install.sh` igen: den starter nu også AI-agenten (installationsprogrammerne til Proxmox, VMware, Ceph, databaser og Docker Swarm henter den aktuelle `docker-compose.yml`, som har AI-agentens tjeneste). Hvis du selv styrer filerne, så tilføj tjenesten fra collectorens `docker-compose.yml` til din egen og kør `docker compose up -d`. Ressourcens AI-agent-side viser den præcise tjeneste til den ressource med navnet allerede udfyldt.
+En collector, der blev installeret, før AI-agenten fandtes, kører den ikke endnu. Kør dens `install.sh` igen: den starter nu også AI-agenten (installationsprogrammerne til Proxmox, VMware, Ceph, OpenStack, databaser og Docker Swarm henter den aktuelle `docker-compose.yml`, som har AI-agentens tjeneste). Hvis du selv styrer filerne, så tilføj tjenesten fra collectorens `docker-compose.yml` til din egen og kør `docker compose up -d`. Ressourcens AI-agent-side viser den præcise tjeneste til den ressource med navnet allerede udfyldt.
 
 Uden installationsprogrammerne er Docker-AI-agenten én `docker run`:
 
@@ -160,9 +163,9 @@ Kør kommandoen igen for at ændre noget: åbn **Lad AI rette problemer** igen, 
 
 ### Forbind til OneUptime
 
-Agenten registrerer sig med **den samme identitet, som collectoren rapporterer** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, …; `ONEUPTIME_AI_AGENT_RESOURCE_NAME` tilsidesætter den), så den betjener præcis den ressource, som collectorens telemetri oprettede. Når OneUptime endnu ikke har nogen ressource med det navn, opretter registreringen den, så et navn, der afviger fra collectorens, giver dig en anden, tom ressource i stedet for en fejl. En database registrerer sig med `DATABASE_SERVER_ID`, når den er sat, og ellers med sin motor, adresse og port; et `DATABASE_SERVER_ID`, der ikke er en database i dette projekt, afvises.
+Agenten registrerer sig med **den samme identitet, som collectoren rapporterer** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, `OPENSTACK_CLOUD_NAME`, …; `ONEUPTIME_AI_AGENT_RESOURCE_NAME` tilsidesætter den), så den betjener præcis den ressource, som collectorens telemetri oprettede. Når OneUptime endnu ikke har nogen ressource med det navn, opretter registreringen den, så et navn, der afviger fra collectorens, giver dig en anden, tom ressource i stedet for en fejl. En database registrerer sig med `DATABASE_SERVER_ID`, når den er sat, og ellers med sin motor, adresse og port; et `DATABASE_SERVER_ID`, der ikke er en database i dette projekt, afvises.
 
-Hvis collectoren stadig bruger sit standardnavn (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`), rapporterer hver ressource, der er installeret med den standard, til den samme ressource i OneUptime, og kommandoer til den kan nå en hvilken som helst af dem. Agenten advarer om dette i sin log; giv hver ressource et unikt navn, både på collectoren og på agenten.
+Hvis collectoren stadig bruger sit standardnavn (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`, `openstack`), rapporterer hver ressource, der er installeret med den standard, til den samme ressource i OneUptime, og kommandoer til den kan nå en hvilken som helst af dem. Agenten advarer om dette i sin log; giv hver ressource et unikt navn, både på collectoren og på agenten.
 
 Den godkender sig med projektets telemetri-ingestionsnøgle (den første, der er sat, af `ONEUPTIME_API_KEY`, `ONEUPTIME_TELEMETRY_INGESTION_KEY` og `ONEUPTIME_SERVICE_TOKEN`, som collectorerne allerede sætter) og modtager sin egen nøgle. Alle dens kald er HTTPS-`POST`s til `<ONEUPTIME_URL>/resource-ai-agent-ingest/…`: den registrerer sig én gang ved start, sender et heartbeat hvert 30. sekund (den regnes som online i 5 minutter efter det seneste), beder om arbejde hvert 3. sekund og melder sig af, når den stopper. En anden agent med samme identitet afvises, så længe den første er online: en container, der stopper pænt, melder sig af, så dens afløser bliver lukket ind med det samme, og efter et nedbrud eller et kill overtager afløseren, så snart den gamle ikke har sendt noget i 40 sekunder efter den første afvisning. Afvises den stadig efter 10 minutter, bruger en anden aktiv agent samme identitet: agenten logger en fejl, der siger det, og spørger kun hvert 5. minut, indtil du giver hver ressource sit eget navn eller stopper den anden agent. Et projekt rummer højst 250 ressource-AI-agenter, og højst 30 nye registrerer sig i timen. Når de 250 er nået, fjernes agenter, der ikke har været hørt fra i 7 dage, for at gøre plads til en ny (ressourcen beholder sine AI-indstillinger, og en sådan agent, der vender tilbage, registrerer sig bare igen).
 
@@ -231,6 +234,27 @@ Kommandoen kommer først, så dens flag og derefter navne eller inventarstier (g
 - `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`, `govc metric.ls /DC/vm/web-01`, `govc object.collect -s /DC/vm/web-01 runtime.powerState` (kun runtime- og tilstandsegenskaber), `govc host.service.ls -host esx-01`, `govc host.date.info -host esx-01`, `govc tags.ls`.
 - Aldrig: flagene til forbindelse, loginoplysninger, TLS og fejlfinding (`-u`, `-k`, `-cert`, `-debug`, `-dump`, …), gæsteoperationer (`guest.*`), filadgang til datastores, `esxcli`, `env` og enhver kommando, der ikke står på listen.
 
+### OpenStack-clouds
+
+Der er ingen `openstack`-binær i agenten og ingen shell. En kommando skrives i `openstack`-grammatik — kommandoens ord, derefter id'er, derefter valgmuligheder som `--name value` — og agenten gør den om til præcis ét `GET` til den tjeneste, der svarer på den (Nova, Neutron, Cinder, Glance, Placement eller Keystone), med sine egne loginoplysninger. `-f table|json` vælger outputtet og `--os-region-name REGION` en anden region. `--name=value` afvises, og det samme gør `-c`. Et id skal være et id: en liste udskriver dem, og et navn slås aldrig op.
+
+- Instanser: `openstack server list --all-projects --limit 50 --host compute-01`, med `--status`, `--name`, `--project`, `--availability-zone` og `--changes-since` til at indsnævre den; `openstack server show 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11` og `openstack server event list 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11`, som navngiver den anmodning, der ligger bag hver ting, der er sket med en instans (`req-...`), samt `server event show` med den anmodnings id.
+- Compute og kapacitet: `openstack compute service list`, `openstack hypervisor list`, `openstack aggregate list`, `openstack availability zone list`, `openstack flavor list`, `openstack resource provider list` og `hypervisor show`, `resource provider show`, `resource provider usage show` og `resource provider inventory list` med et id.
+- Netværk: `openstack network agent list`, `openstack network list`, `openstack subnet list`, `openstack router list`, `openstack floating ip list`, `openstack ip availability list` og `show` med et id for hver undtagen den sidste; `port show` med et id og `openstack port list --limit 50 --host compute-01` med én af `--server`, `--network`, `--router`, `--device-id`, `--host` eller `--project`.
+- Lager og images: `openstack volume service list`, `openstack volume backend pool list`, `openstack volume list --all-projects --limit 50`, `openstack volume snapshot list --all-projects --limit 50`, `openstack volume backup list --all-projects --limit 50`, `openstack image list` samt `volume show` og `image show` med et id.
+- Det, en cloud måske ikke kører, hvor dens katalog navngiver det: `openstack share list --all-projects --limit 50`, `openstack share service list` og `openstack share pool list` til Manila; `openstack zone list --all-projects --limit 50` og `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` til én zones recordsets i Designate; `openstack container list` til Swift, som kun er dette logins eget projekts; `openstack database instance list` til Trove, alle projekters, hvilket kun en administrator må; og `openstack metric status` til Gnocchis efterslæb og processorer.
+- Cloudens form: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list` og `project show` med et id.
+- En liste på tværs af tenants skal angive `--limit N`, op til 200, og fortsætter med `--marker ID`. Hver anden liste stopper ved 100 rækker, medmindre andet er angivet, og siger til, når der er flere. Agenten følger aldrig et `next`-link af sig selv.
+- Aldrig: noget, der ændrer cloudens tilstand — der er ingen sådan kommando at køre — Keystones brugere, loginoplysninger, rolletildelinger og tokens, konsoller og konsollogs, Barbicans hemmeligheder, `--os-cloud` og alle andre login- eller endpoint-valgmuligheder.
+
+En instans' `user_data`, dens administratoradgangskode, et images `direct_url`, et volumens `provider_auth` og alt andet, der er markeret som hemmeligt, maskeres, før outputtet når modellen eller en log.
+
+En stoppet `nova-compute` lader sine instanser stå som `ACTIVE`, så en undersøgelse går efter tjenestens `state` (`down`) og instansernes `host_status` (`UNKNOWN`).
+
+En undersøgelse starter ikke fra nul. På en hændelse eller advarsel, der er knyttet til en cloud, får OneUptime AI at vide, hvad cloudens side siger, der **Kræver opmærksomhed**: de tjenester, der er nede, og de værter, instanser, volumener og pools, der er i vanskeligheder. Hvor hændelsens serie navngiver en del, hører den også, hvad den del tager med sig (dens sprængradius: instanser, projekter, Kubernetes-noder og værter), hvilke attributter der udpeger delens logs, og hvad der ændrede sig på cloudens side omkring det tidspunkt.
+
+Derfra følger den en anmodning. `server event list` udskriver hver handlings anmodnings-id, og `search_logs` tager det id som en attribut (`openstack.request_root_id`) for at læse, hvad hver tjeneste skrev om den. Rapporten citerer hver kommando, den kørte, med dens output, som den gør for `kubectl`. Logs kræver profilen [tjenestelogs](/docs/telemetry/openstack#tjenesteprotokoller), og ændringerne kræver [livscyklushændelser](/docs/telemetry/openstack#livscyklushændelser): uden dem kommer de læsninger tilbage tomme.
+
 ### Ceph-clustre
 
 - Clusteret: `ceph status` (eller `ceph -s`), `ceph health detail`, `ceph df detail`, `ceph versions`, `ceph progress`, `ceph quorum_status`, `ceph log last 100`.
@@ -291,7 +315,7 @@ Rettelser har de samme fire tilstande som på et Kubernetes-cluster; `ONEUPTIME_
 
 Når en rettelse har kørt, holder OneUptime øje med hændelsens eller advarslens monitorer. Kommer de sig ikke, kører planens rollback, og OneUptime AI sammensætter én plan mere med det mislykkede forsøg for øje: højst to runder pr. hændelse eller advarsel. I tilstanden **Automatisk** beder den anden runde om godkendelse; med **Spring godkendelse over** kører den også af sig selv. Uovervågede rettelser har en sikring på tre pr. ressource pr. time: ud over det, eller mens en anden uovervåget runde fra OneUptime AI stadig ændrer eller verificerer den samme ressource, foreslår en runde sin plan til godkendelse i stedet for at køre den.
 
-En hændelse eller advarsel får ét AI-rettelsesspor. Når den er knyttet til et Kubernetes-cluster med rettelser slået til, kører clusterets runde og ingen ressourcerunde. Ellers får den første knyttede ressource med rettelser slået til og en klar agent runden, i denne rækkefølge: Docker-vært, Podman-vært, Docker Swarm-cluster, Proxmox-cluster, VMware vCenter, Ceph-cluster, databaseserver, vært, AWS-konto, Azure-abonnement, Google Cloud-projekt. Runden ændrer kun den ressource.
+En hændelse eller advarsel får ét AI-rettelsesspor. Når den er knyttet til et Kubernetes-cluster med rettelser slået til, kører clusterets runde og ingen ressourcerunde. Ellers får den første knyttede ressource med rettelser slået til og en klar agent runden, i denne rækkefølge: Docker-vært, Podman-vært, Docker Swarm-cluster, Proxmox-cluster, VMware vCenter, Ceph-cluster, databaseserver, vært, AWS-konto, Azure-abonnement, Google Cloud-projekt, OpenStack-cloud. Runden ændrer kun den ressource.
 
 ### Sikker, mere risikabel og aldrig
 
@@ -357,6 +381,21 @@ Hver rettelse navngiver én OSD (`3` eller `osd.3`), PG (`1.2f`), dæmon (som `c
 | **Altid et menneske** | `ceph osd set pause` (den stopper al klient-I/O), `ceph osd pool set rbd size 3` (og `min_size`) |
 | **Aldrig** | `ceph osd purge 3` (og destroy, rm, lost, ændringer af CRUSH-kortet), `ceph osd pool delete rbd` (og oprettelse, omdøbning eller enhver anden pool-indstilling), `ceph auth ls`, `ceph config-key ls`, `ceph tell osd.3 injectargs --debug-osd 20`, `ceph --id admin status`, `config`, `daemon`, ændringer af fs og mon, `mgr module enable`, `orch apply`, `crash rm` |
 
+### Rettelser på OpenStack-clouds
+
+Der er ingen `openstack`-binær i agenten. Hver ændring er det ene kald til cloudens API, den navngiver, foretaget med loginoplysninger, som agenten kun har til ændringer. En ændring har én stavemåde i rækkefølgen nedenfor: en anden rækkefølge af flag, en forkortelse eller et flag, som den rigtige klient også tager, afvises, så det, et menneske godkender, det, en tilladelsesposter navngiver, og det, der kører, er de samme ord. Før agenten foretager en ændring, læser den, hvad den berører, og afviser den, når den ikke kan.
+
+|                     | Kommandoer |
+| ------------------- | -------- |
+| **Sikker**            | `openstack server start 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server reboot --soft 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --enable compute-01 nova-compute`, `openstack network agent set --enable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **Mere risikabel**         | `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate live 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --disable --disable-reason maintenance compute-01 nova-compute`, `openstack network agent set --disable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **Altid et menneske** | `openstack server evacuate 358ee736-ba74-40ba-a354-7ead413c5df6` — en evakuering af et vilkårligt antal instanser, i enhver tilstand, uanset hvad tilladelseslisten siger, fordi Nova først tager imod en, når værten er nede |
+| **Aldrig**           | `openstack server delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack project delete 9aee824cac87464292adffc328de1662`, `openstack user list`, `openstack role add --user a --project b c`, `openstack quota set --instances 100 abc`, `openstack security group delete abc`, `openstack server set --state active 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume set --state available 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --down compute-01 nova-compute`, `openstack server stop 358ee736-ba74-40ba-a354-7ead413c5df6` og enhver kommando, der ikke står her |
+
+Rettelsens kort viser, hvor mange instanser og projekter en ændring berører, og hvilke, som agenten læste dem: `openstack dry-run <change>` er læsningen, og en undersøgelse kan også køre den. En evakuering, som agenten ikke kan læse fuldt ud, foreslås ikke. Hver rettelse er en ændringshændelse i feedet for hver del, den berørte, og for cloudens, med hvem der godkendte den. En kold `server migrate` lader instansen stå i `VERIFY_RESIZE`, indtil et menneske bekræfter den, hvilket OneUptime AI aldrig gør.
+
+Rettelser her er slået fra, indtil du siger ja to gange, i modsætning til andre ressourcer: `ONEUPTIME_AI_ALLOW_WRITES=true` alene lader **Hvad AI må gøre** stå på Fra og kræver loginoplysningerne til ændringer, før den gør noget som helst. [OpenStack-agentens guide](/docs/telemetry/openstack#legitimationen-til-ændringer) forklarer, hvordan du laver de loginoplysninger med det mindst nødvendige, ved hver måde at udrulle en cloud på.
+
 ### Rettelser på databaseservere
 
 `12345` nedenfor er et sessions-id, som `db sessions` udskriver det: PostgreSQL-pid'et, MySQL-processlist-id'et, Redis-klient-id'et eller MongoDB-opid'et. Agenten slår først sessionen op og rører aldrig sin egen forbindelse, en server- eller replikeringstråd eller en session, der ikke findes.
@@ -413,9 +452,10 @@ I tilstanden **Automatisk** lader ressourcens **Tilladte kommandoer** på AI-age
 - En post, der aldrig kan forhåndsgodkende en ændring, afvises: en skrivebeskyttet kommando (læsninger kræver aldrig godkendelse), en kommando, politikken nægter, eller en til en anden slags ressource. En liste rummer højst 50 poster på højst 500 tegn.
 - En post med en `*` dér, hvor målet står (`docker stop *` forhåndsgodkender at stoppe **hver** container), beder dig bekræfte, før den gemmes.
 - En Proxmox-sti er ét ord, så den kan ikke indeholde en `*`: skriv én post pr. gæst, for eksempel `pvesh create /nodes/pve1/qemu/100/status/shutdown`.
+- På en OpenStack-cloud afvises en post til en evakuering, når den gemmes: den beder altid et menneske, så den ville ikke forhåndsgodkende noget.
 - Intet på listen tilsidesætter en ændring, der altid kræver et menneske, eller en kommando, politikken nægter.
 
-Én gyldig post pr. ressource: `docker stop web` (Docker og Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (databaser), `systemctl stop nginx` (værter), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud).
+Én gyldig post pr. ressource: `docker stop web` (Docker og Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (databaser), `systemctl stop nginx` (værter), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud), `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6` (OpenStack-clouds).
 
 ### Hvem der må ændre den
 
@@ -449,6 +489,7 @@ Agenten rapporterer disse indstillinger til OneUptime ved hvert heartbeat, så O
 | Databaseservere | `session:<id>` | `session:*` |
 | Værter | fulde unit-navne (`nginx.service`), `pid:<pid>` for en proces, `journal` for oprydning i journalen | `nginx.service,app-*` |
 | Cloudkonti | ressourcens id: en ARN, et Azure-ressource-id med små bogstaver eller et fuldt Google Cloud-ressourcenavn | `arn:aws:ecs:*:123456789012:service/prod/*` |
+| OpenStack-clouds | `instance:<id>`, `host:<name>` og `agent:<id>` for det, en ændring navngiver, og `destination:<name>` for hvor en flytning lander. En post er `project:<id>`, `host:<name>` eller `instance:<id>` og kun disse: alt andet holder agenten skrivebeskyttet. Agenten læser, hvilket projekt og hvilken vært en instans er på, lige før den ændrer den |
 
 ### Hvad agenten selv beskytter
 
@@ -459,6 +500,7 @@ OneUptime AI ændrer aldrig agenten selv eller det, den kører i, uanset hvad `O
 - **Databaseservere:** agentens egen session.
 - **Værter:** hver OneUptime-unit (`oneuptime-*`, inklusive Værts-AI-agentens egen), OpenTelemetry-collectoren (`otelcol-contrib.service`, `otelcol.service`), den Docker-motor, den kører i (`docker.service`, `docker.socket`, `containerd.service`), samt agentens egen proces og processerne over den.
 - **Proxmox:** agenten kan ikke se, hvilken gæst den kører i. Kører den i en VM eller container i det samme cluster, så sæt det VMID i `ONEUPTIME_AI_PROTECTED_TARGETS`; gør det samme med agentens VM på VMware.
+- **OpenStack-clouds:** agenten kan ikke se, hvilken instans den kører i. Kører den på samme cloud, så sæt den instans i `ONEUPTIME_AI_PROTECTED_TARGETS` som `instance:<id>`. På en cloud er denne liste din, og den vinder over alle andre indstillinger, også et menneskes godkendelse.
 - **Cloudkonti:** alt, hvad dens opsætningskommando oprettede: på AWS stakken `oneuptime-ai-agent`, dens ECS-cluster og ECS-tjeneste og rollerne `OneUptimeAiAgentTask` og `OneUptimeAiAgentWrite`; på Azure ressourcegruppen `oneuptime-ai-agent`; på Google Cloud VM'en eller Cloud Run-tjenesten `oneuptime-ai-agent` og dens tjenestekonto.
 
 ## Loginoplysninger og mindste rettighed
@@ -474,6 +516,7 @@ Agenten bruger kun loginoplysningerne i sit eget miljø og sine mounts, for det 
 | Databaseserver | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (collectorens login) eller `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`, når de er sat; `DATABASE_ENDPOINT` og TLS-indstillingerne | Collectorens overvågningslogin (`pg_monitor` på PostgreSQL) | Et login, der tilhører agenten selv, og som må sende signaler til andre sessioner: `pg_signal_backend` (PostgreSQL), `CONNECTION_ADMIN` (MySQL 8), `+client\|kill` (Redis-ACL), handlingen `killop` (MongoDB) |
 | Vært | Intet: den kører privilegeret som root i værtens namespaces | Lad `ONEUPTIME_AI_ALLOW_WRITES` være usat | `ONEUPTIME_AI_WRITE_TARGETS` til de units, AI må ændre |
 | Cloudkonti | Identiteten der, hvor den kører: på AWS dens ECS-opgaves rolle, som kun må påtage sig skriverollen i `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN`; på Azure dens Container Apps administrerede identitet; på Google Cloud den tjenestekonto, dens VM eller Cloud Run-tjeneste kører som | Intet: OneUptime læser kontoen gennem dens skrivebeskyttede forbindelse | Den rolle, dens opsætningskommando skriver: tilladelserne til de ændringer, der er slået til, og de læsninger, de har brug for, intet andet. På AWS påtager hver ændring sig `OneUptimeAiAgentWrite` med en sessionspolitik for netop den ene ændring på dens ene ressource |
+| OpenStack-cloud | Til ændringer `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` og `_SECRET`, en application credential for sig: [guiden](/docs/telemetry/openstack#legitimationen-til-ændringer) forklarer, hvordan du laver den. Til læsninger den application credential i `clouds.yaml`, som collectorens exporter læser (`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS` eller `ONEUPTIME_AI_OPENSTACK_CLOUD` for en anden post), eller `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, når de er sat, med `OPENSTACK_AUTH_URL`; `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
 Collectorernes README'er har de præcise kommandoer: `pveum`-kommandoerne til et Proxmox-token til rettelser ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), vSphere-rollen til rettelser ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), Ceph-caps til læsning og rettelser ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) og databaserettighederne pr. motor ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)). En Cloud-AI-agents rolle skrives af dens opsætningskommando: slå en ændring fra, og kør kommandoen igen, så forsvinder dens tilladelser fra rollen.
 
@@ -492,8 +535,8 @@ Hver kommando er en argumentliste, aldrig en shell-linje, og den samme kommandop
 - Ét program, som en argumentliste, aldrig gennem en shell: pipes, omdirigeringer, `;`, `&&` og `$(…)` afvises, før noget kører, og det samme gør `sudo`.
 - Et miljø, der bygges til den ene kommando: intet af agentens eget (hverken dens ingestionsnøgle eller dens proxyindstillinger) når programmet, og `docker`, `govc` og `ceph` får til den ene kommando en privat, tom hjemmemappe under `/tmp`. `docker`-CLI'en får en tom privat `DOCKER_CONFIG`, så ingen kontekst eller credential helper kan ændre, hvor den peger hen; `govc` får sine loginoplysninger i sit miljø, aldrig på sin kommandolinje; `ceph` får agentens egne `--conf`, `--keyring` og `--id`, og en kommando må ikke vælge andre.
 - En tidsgrænse (højst 2 minutter), hvorefter programmet dræbes; output begrænset til 50 KB.
-- Hemmeligheder i outputtet (miljøværdier i `docker inspect`, Proxmox' cloud-init-adgangskoder, nøgler, tokens og adgangskoder i logs og kommandolinjer) maskeres på agenten, før outputtet forlader den, og igen af OneUptime, før det gemmes eller vises for modellen.
-- Containerne kører med et skrivebeskyttet rodfilsystem. AI-agenterne til Proxmox, VMware, Ceph og databaser kører som UID 1000 uden capabilities.
+- Hemmeligheder i outputtet (miljøværdier i `docker inspect`, Proxmox' cloud-init-adgangskoder, OpenStack-`user_data`, nøgler, tokens og adgangskoder i logs og kommandolinjer) maskeres på agenten, før outputtet forlader den, og igen af OneUptime, før det gemmes eller vises for modellen.
+- Containerne kører med et skrivebeskyttet rodfilsystem. AI-agenterne til Proxmox, VMware, Ceph og databaser kører som UID 1000 uden capabilities. OpenStack-AI-agenten kører som ejeren af `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), også uden capabilities.
 - En Cloud-AI-agent starter slet ikke noget program: `cloud` navngiver én operation i dens katalog, som agenten udfører som det ene API-kald, den svarer til, med loginoplysningerne der, hvor den kører. Læsningerne kører på OneUptime gennem kontoens skrivebeskyttede forbindelse.
 
 ### Docker-socketten og Værts-AI-agenten er root på værten
@@ -520,7 +563,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-Brug containernavnet for din ressource: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (med `podman` i stedet for `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. Database-agentens tjeneste har intet fast containernavn, så brug `docker compose logs --tail=100 oneuptime-database-ai-agent` og `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` i `/opt/oneuptime-database-agent`. Værts-AI-agenten bruger værtens netværk, så `curl -s http://127.0.0.1:3877/status` virker på selve værten.
+Brug containernavnet for din ressource: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (med `podman` i stedet for `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-openstack-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. Database-agentens tjeneste har intet fast containernavn, så brug `docker compose logs --tail=100 oneuptime-database-ai-agent` og `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` i `/opt/oneuptime-database-agent`. Værts-AI-agenten bruger værtens netværk, så `curl -s http://127.0.0.1:3877/status` virker på selve værten.
 
 En Cloud-AI-agent kører i sin cloud uden en container at gå ind i med `exec`: læs dens log i cloudens shell med `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` eller `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (på Cloud Run: `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`), og dens status på kontoens side **AI-agent**, som viser den samme kommando.
 

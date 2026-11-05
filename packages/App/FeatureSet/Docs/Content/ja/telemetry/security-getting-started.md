@@ -62,6 +62,7 @@ flowchart LR
 | AWS CloudTrail | コンソールへのサインイン、AWS アカウントでの変更、AWS が拒否した呼び出し |
 | Google Cloud 監査ログ | Google Cloud プロジェクトでの変更、Google が拒否した呼び出し、Google Cloud と共有される Google Workspace のサインイン |
 | Azure アクティビティと Entra ID のログ | Azure サブスクリプションでの変更、Defender for Cloud のアラート、Microsoft Entra ID のサインインとディレクトリの変更 |
+| OpenStack 監査証跡 | Keystone での失敗したサインイン、ロールの付与と変更、監査フィルターが各 API について捉えた内容、全世界に開放されたセキュリティグループ、公開されたイメージ |
 | CEF | Common Event Format を送信するファイアウォール、IDS、WAF などのセキュリティ製品からの脅威、ブロックされた接続、サインイン |
 | LEEF | Log Event Extended Format を送信する製品からの同様の内容。IBM QRadar 向けに多くの製品が送信しています |
 | Palo Alto Networks | PAN-OS 独自の syslog からの脅威、ブロックされた接続、GlobalProtect と管理者のサインイン、設定の変更 |

@@ -306,7 +306,7 @@ Der er fem veje ind på listen over ejere:
 - **Fra en hændelsesskabelon** — skabeloner har et felt **Ejere**: de personer og teams, der ejer hændelsen og får besked, når den oprettes eller opdateres, valgt fra den samme liste som **Tilføj ejer**. At oprette en hændelse fra skabelonen udfylder dem på forhånd, og de tilføjes, når hændelsens Slack- og Microsoft Teams-kanaler findes, så en notifikationsregel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem. Dashboardet, og et workflows trin **Create One Incident** med en valgt **Incident Template**, tilføjer dem uden beskeden "du er blevet tilføjet"; en [formular](/docs/forms/on-submit) med en skabelon giver dem besked og holder hændelsens notifikation **Hændelse oprettet** tilbage, indtil de er tilføjet. Se [Opret en hændelse](/docs/incidents/declaring-incidents).
 - **Fra Ejerregler for hændelse** — matchende regler tilføjer ejere automatisk ved oprettelsen.
 - **Ved oprettelse via API'et** — brugere og teams, der angives som ejere med oprettelseskaldet, tilføjes på samme måde, når kanalerne findes, og uden beskeden "du er blevet tilføjet".
-- **I hånden** — elementet **Tilføj ejer** på siden **Ejere**, når som helst under hændelsen, eller **Tilføj** under ejerne i hovedet på **Oversigt**, så længe den er åben.
+- **By hand** — elementet **Tilføj ejer** på siden **Ejere**, når som helst under hændelsen, eller **Tilføj** under ejerne i hovedet på **Oversigt**, så længe den er åben.
 
 At tilføje den samme person to gange er ufarligt; ejere, der allerede er tildelt, kommer ikke med to gange.
 

@@ -167,7 +167,7 @@ Sommige attribuutnamen zijn van OneUptime zelf, en een script kan ze niet schrij
 
 - De identiteit van de monitor: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Alles in de naamruimten `oneuptime.` of `resource.`: die dragen de identificatoren die OneUptime bij het innemen toevoegt.
-- Attributen voor de identiteit van resources: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` en `docker.swarm.cluster.name`.
+- Attributen voor de identiteit van resources: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` en `docker.swarm.cluster.name`.
 
 Deze namen zijn niet zomaar labels: OneUptime leest ze terug als de bewering bij welke resource een datapunt hoort. Een metriek met `service.name: payments-api` zou op het tabblad Metrieken van die service verschijnen, en als u later een metriekmonitor gegroepeerd op `service.name` zou bouwen, zouden de waarschuwingen ervan aan die service gekoppeld worden, de eigenaren van die service oproepen en tijdens een onderhoudsvenster op die service zwijgen. Gebruik in plaats daarvan de eigen labels van de monitor om een monitor aan een service of host te koppelen.
 

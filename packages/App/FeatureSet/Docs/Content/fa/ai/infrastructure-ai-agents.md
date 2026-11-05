@@ -64,6 +64,7 @@ flowchart TB
 | حساب AWS | `aws` | عامل هوش مصنوعی ابری | `AWS_ACCOUNT_ID` (خالی: حسابی که در آن اجرا می‌شود) | `cloud` — یک عملیات از یک کاتالوگ ثابت، هرگز یک فرمان `aws` | APIهای AWS، با نقش‌های IAM مخصوص خودش |
 | اشتراک Azure | `azure` | عامل هوش مصنوعی ابری | `AZURE_SUBSCRIPTION_ID` (فرمان راه‌اندازی‌اش آن را تنظیم می‌کند) | `cloud` — یک عملیات از یک کاتالوگ ثابت، هرگز یک فرمان `az` | Azure Resource Manager، به‌عنوان هویت مدیریت‌شدهٔ Container App خودش |
 | پروژهٔ Google Cloud | `gcp` (یا `google-cloud`) | عامل هوش مصنوعی ابری | `GOOGLE_CLOUD_PROJECT` (خالی: پروژه‌ای که در آن اجرا می‌شود) | `cloud` — یک عملیات از یک کاتالوگ ثابت، هرگز یک فرمان `gcloud` | APIهای Google Cloud، به‌عنوان یک حساب سرویس مخصوص خودش |
+| ابر OpenStack | `openstack` | عامل هوش مصنوعی OpenStack | `OPENSTACK_CLOUD_NAME` | فرمان‌های `openstack`، که به APIهای ابر فرستاده می‌شوند (در عامل هیچ فایل اجرایی `openstack` وجود ندارد) — فقط می‌خواند و هیچ فرمانی ندارد که ابر را تغییر دهد |
 
 سرورهای پایگاه داده: عامل هوش مصنوعی پایگاه داده برای PostgreSQL، MySQL (و MariaDB و Percona Server)، Redis (و Valkey، KeyDB و Dragonfly) و MongoDB ابزار تشخیص دارد. برای هر موتور دیگری هیچ چیزی اجرا نمی‌کند و این را در صفحهٔ عامل هوش مصنوعی پایگاه داده می‌گوید.
 
@@ -82,6 +83,7 @@ flowchart TB
 | حساب AWS | `cloud whoami` |
 | اشتراک Azure | `cloud whoami` |
 | پروژهٔ Google Cloud | `cloud whoami` |
+| ابر OpenStack | `openstack endpoint list`، `openstack compute service list` |
 
 روی یک worker در Docker Swarm، `docker node ls` شکست می‌خورد: عامل هوش مصنوعی Docker Swarm باید روی یک گرهٔ manager اجرا شود. عاملی که روی یک worker راه افتاده تا وقتی گره‌اش manager نشود برای خوشه ثبت نمی‌شود، و نصب‌کنندهٔ Docker Swarm آن را روی گره‌ای که manager نیست کنار می‌گذارد.
 
@@ -93,7 +95,7 @@ flowchart TB
 
 ### کنار یک کالکتور
 
-برای Docker، Podman، Docker Swarm، Proxmox، VMware، Ceph و سرورهای پایگاه داده، عامل کنار کالکتوری اجرا می‌شود که از قبل برای آن منبع به کار می‌برید، و `.env` آن را به اشتراک می‌گذارد: از قبل `ONEUPTIME_URL`، کلید دریافت و نام منبع را دارد. `docker-compose.yml` هر کالکتور عامل را به‌صورت یک سرویس دیگر همراه دارد، و `install.sh` آن، عامل را راه می‌اندازد.
+برای Docker، Podman، Docker Swarm، Proxmox، VMware، Ceph، OpenStack و سرورهای پایگاه داده، عامل کنار کالکتوری اجرا می‌شود که از قبل برای آن منبع به کار می‌برید، و `.env` آن را به اشتراک می‌گذارد: از قبل `ONEUPTIME_URL`، کلید دریافت و نام منبع را دارد. `docker-compose.yml` هر کالکتور عامل را به‌صورت یک سرویس دیگر همراه دارد، و `install.sh` آن، عامل را راه می‌اندازد.
 
 | منبع | کالکتور | سرویس عامل هوش مصنوعی (و کانتینر) | جای راه‌اندازی |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -104,8 +106,9 @@ flowchart TB
 | VMware vCenter | [عامل VMware](/docs/telemetry/vmware#عامل-هوش-مصنوعی) | `oneuptime-vmware-ai-agent` | `agents/VMwareAgent/docker-compose.yml` |
 | خوشهٔ Ceph | [عامل Ceph](/docs/telemetry/ceph#عامل-هوش-مصنوعی) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`، با کلاینت Ceph ویژهٔ عامل در `./ceph` |
 | سرور پایگاه داده | [عامل پایگاه داده](/docs/telemetry/databases#عامل-هوش-مصنوعی) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
+| ابر OpenStack | [عامل OpenStack](/docs/telemetry/openstack#عامل-هوش-مصنوعی) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`، با اعتبارنامه در `clouds.yaml` |
 
-کالکتوری که پیش از به وجود آمدن عامل هوش مصنوعی نصب شده، هنوز آن را اجرا نمی‌کند. `install.sh` آن را دوباره اجرا کنید: اکنون عامل هوش مصنوعی را هم راه می‌اندازد (نصب‌کننده‌های Proxmox، VMware، Ceph، پایگاه داده و Docker Swarm نسخهٔ فعلی `docker-compose.yml` را دانلود می‌کنند که سرویس عامل هوش مصنوعی را دارد). اگر فایل‌ها را خودتان مدیریت می‌کنید، سرویس را از `docker-compose.yml` کالکتور به فایل خودتان اضافه کنید و `docker compose up -d` را اجرا کنید. صفحهٔ عامل هوش مصنوعی منبع، سرویس دقیق آن منبع را با نام ازپیش‌پرشده نشان می‌دهد.
+کالکتوری که پیش از به وجود آمدن عامل هوش مصنوعی نصب شده، هنوز آن را اجرا نمی‌کند. `install.sh` آن را دوباره اجرا کنید: اکنون عامل هوش مصنوعی را هم راه می‌اندازد (نصب‌کننده‌های Proxmox، VMware، Ceph، OpenStack، پایگاه داده و Docker Swarm نسخهٔ فعلی `docker-compose.yml` را دانلود می‌کنند که سرویس عامل هوش مصنوعی را دارد). اگر فایل‌ها را خودتان مدیریت می‌کنید، سرویس را از `docker-compose.yml` کالکتور به فایل خودتان اضافه کنید و `docker compose up -d` را اجرا کنید. صفحهٔ عامل هوش مصنوعی منبع، سرویس دقیق آن منبع را با نام ازپیش‌پرشده نشان می‌دهد.
 
 بدون نصب‌کننده‌ها، عامل هوش مصنوعی Docker فقط یک `docker run` است:
 
@@ -160,9 +163,9 @@ sudo bash install.sh
 
 ### اتصال به OneUptime
 
-عامل با **همان شناسه‌ای که کالکتور گزارش می‌دهد** ثبت می‌شود — `DOCKER_HOST_NAME`، `PROXMOX_CLUSTER_NAME`، `CEPH_CLUSTER_NAME`، … (`ONEUPTIME_AI_AGENT_RESOURCE_NAME` آن را جایگزین می‌کند) — پس دقیقاً به همان منبعی خدمت می‌دهد که تله‌متری کالکتور ساخته است. وقتی OneUptime هنوز منبعی با آن نام ندارد، ثبت آن را می‌سازد، پس نامی متفاوت از نام کالکتور به‌جای خطا یک منبع دوم و خالی به شما می‌دهد. یک پایگاه داده وقتی `DATABASE_SERVER_ID` تنظیم شده باشد با آن ثبت می‌شود، وگرنه با موتور، نشانی و پورتش؛ `DATABASE_SERVER_ID`ای که پایگاه داده‌ای از این پروژه نباشد رد می‌شود.
+عامل با **همان شناسه‌ای که کالکتور گزارش می‌دهد** ثبت می‌شود — `DOCKER_HOST_NAME`، `PROXMOX_CLUSTER_NAME`، `CEPH_CLUSTER_NAME`، `OPENSTACK_CLOUD_NAME`، … (`ONEUPTIME_AI_AGENT_RESOURCE_NAME` آن را جایگزین می‌کند) — پس دقیقاً به همان منبعی خدمت می‌دهد که تله‌متری کالکتور ساخته است. وقتی OneUptime هنوز منبعی با آن نام ندارد، ثبت آن را می‌سازد، پس نامی متفاوت از نام کالکتور به‌جای خطا یک منبع دوم و خالی به شما می‌دهد. یک پایگاه داده وقتی `DATABASE_SERVER_ID` تنظیم شده باشد با آن ثبت می‌شود، وگرنه با موتور، نشانی و پورتش؛ `DATABASE_SERVER_ID`ای که پایگاه داده‌ای از این پروژه نباشد رد می‌شود.
 
-اگر کالکتور هنوز نام پیش‌فرضش (`docker-host`، `podman-host`، `docker-swarm`، `proxmox-cluster`، `vmware-vcenter`، `ceph`) را به کار می‌برد، هر منبعی که با آن پیش‌فرض نصب شده در OneUptime به یک منبع واحد گزارش می‌دهد، و فرمان‌هایی که برای آن فرستاده می‌شوند می‌توانند به هر کدام از آن‌ها برسند. عامل در لاگ خود دربارهٔ این هشدار می‌دهد؛ به هر منبع، هم روی کالکتور و هم روی عامل، نامی یکتا بدهید.
+اگر کالکتور هنوز نام پیش‌فرضش (`docker-host`، `podman-host`، `docker-swarm`، `proxmox-cluster`، `vmware-vcenter`، `ceph`، `openstack`) را به کار می‌برد، هر منبعی که با آن پیش‌فرض نصب شده در OneUptime به یک منبع واحد گزارش می‌دهد، و فرمان‌هایی که برای آن فرستاده می‌شوند می‌توانند به هر کدام از آن‌ها برسند. عامل در لاگ خود دربارهٔ این هشدار می‌دهد؛ به هر منبع، هم روی کالکتور و هم روی عامل، نامی یکتا بدهید.
 
 عامل با کلید دریافت تله‌متری پروژه احراز هویت می‌کند — نخستین مقدار تنظیم‌شده از میان `ONEUPTIME_API_KEY`، `ONEUPTIME_TELEMETRY_INGESTION_KEY` و `ONEUPTIME_SERVICE_TOKEN` که کالکتورها از قبل تنظیمشان می‌کنند — و کلیدی ویژهٔ خودش دریافت می‌کند. همهٔ فراخوانی‌هایش درخواست‌های HTTPS از نوع `POST` به `<ONEUPTIME_URL>/resource-ai-agent-ingest/…` هستند: یک بار هنگام آغاز ثبت می‌شود، هر ۳۰ ثانیه یک heartbeat می‌فرستد (تا ۵ دقیقه پس از آخرین heartbeat آنلاین به حساب می‌آید)، هر ۳ ثانیه کار درخواست می‌کند، و هنگام توقف خارج می‌شود. عامل دومی با همان شناسه تا وقتی عامل نخست آنلاین است رد می‌شود: کانتینری که به‌درستی متوقف شود خارج می‌شود، پس جایگزینش بی‌درنگ پذیرفته می‌شود، و پس از یک crash یا kill، اگر عامل قدیمی از نخستین رد شدن تا ۴۰ ثانیه چیزی نفرستد، جایگزین جای آن را می‌گیرد. اگر پس از ۱۰ دقیقه همچنان رد شود، عامل فعال دیگری از همان شناسه استفاده می‌کند: عامل خطایی ثبت می‌کند که همین را می‌گوید و فقط هر ۵ دقیقه یک بار درخواست می‌کند، تا وقتی به هر منبع نام خودش را بدهید یا عامل دیگر را متوقف کنید. یک پروژه حداکثر ۲۵۰ عامل هوش مصنوعی منبع دارد، و در هر ساعت حداکثر ۳۰ عامل تازه ثبت می‌شوند. وقتی به ۲۵۰ برسد، عامل‌هایی که ۷ روز از آن‌ها خبری نبوده حذف می‌شوند تا جا برای عامل تازه باز شود (منبع تنظیمات هوش مصنوعی‌اش را نگه می‌دارد، و چنین عاملی اگر برگردد به‌سادگی دوباره ثبت می‌شود).
 
@@ -231,6 +234,27 @@ ONEUPTIME_AI_ALLOW_WRITES=true
 - `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`، `govc metric.ls /DC/vm/web-01`، `govc object.collect -s /DC/vm/web-01 runtime.powerState` (فقط ویژگی‌های زمان اجرا و سلامت)، `govc host.service.ls -host esx-01`، `govc host.date.info -host esx-01`، `govc tags.ls`.
 - هرگز: پرچم‌های اتصال، اعتبارنامه، TLS و اشکال‌زدایی (`-u`، `-k`، `-cert`، `-debug`، `-dump`، …)، عملیات مهمان (`guest.*`)، دسترسی به فایل‌های datastore، `esxcli`، `env` و هر فرمانی که در فهرست نیامده است.
 
+### ابرهای OpenStack
+
+در عامل هیچ فایل اجرایی `openstack` و هیچ shell ای وجود ندارد. فرمان به گرامر `openstack` نوشته می‌شود — کلمه‌های فرمان، سپس شناسه‌ها، سپس گزینه‌ها به شکل `--name value` — و عامل آن را با اعتبارنامهٔ خودش دقیقاً به یک `GET` به سرویسی که پاسخش را دارد (Nova، Neutron، Cinder، Glance، Placement یا Keystone) تبدیل می‌کند. `-f table|json` خروجی را انتخاب می‌کند و `--os-region-name REGION` یک ناحیهٔ دیگر را. `--name=value` رد می‌شود و `-c` هم. شناسه باید شناسه باشد: یک فهرست آن‌ها را چاپ می‌کند و هرگز نامی جست‌وجو نمی‌شود.
+
+- نمونه‌ها: `openstack server list --all-projects --limit 50 --host compute-01`، که با `--status`، `--name`، `--project`، `--availability-zone` و `--changes-since` محدودتر می‌شود؛ `openstack server show 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11` و `openstack server event list 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11`، که درخواستِ پشت هر اتفاقی را که برای یک نمونه افتاده نام می‌برد (`req-...`)، و `server event show` با شناسهٔ آن درخواست.
+- محاسبه و ظرفیت: `openstack compute service list`، `openstack hypervisor list`، `openstack aggregate list`، `openstack availability zone list`، `openstack flavor list`، `openstack resource provider list`، و `hypervisor show`، `resource provider show`، `resource provider usage show` و `resource provider inventory list` با یک شناسه.
+- شبکه: `openstack network agent list`، `openstack network list`، `openstack subnet list`، `openstack router list`، `openstack floating ip list`، `openstack ip availability list`، و `show` با یک شناسه برای همه به‌جز آخری؛ `port show` با یک شناسه، و `openstack port list --limit 50 --host compute-01` با یکی از `--server`، `--network`، `--router`، `--device-id`، `--host` یا `--project`.
+- ذخیره‌سازی و ایمیج‌ها: `openstack volume service list`، `openstack volume backend pool list`، `openstack volume list --all-projects --limit 50`، `openstack volume snapshot list --all-projects --limit 50`، `openstack volume backup list --all-projects --limit 50`، `openstack image list`، و `volume show` و `image show` با یک شناسه.
+- آنچه ممکن است یک ابر نداشته باشد، جایی که کاتالوگش آن را نام برده است: `openstack share list --all-projects --limit 50`، `openstack share service list` و `openstack share pool list` برای Manila؛ `openstack zone list --all-projects --limit 50` و `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` برای recordsetهای یک zone در Designate؛ `openstack container list` برای Swift، که فقط مال پروژهٔ خود این اعتبارنامه است؛ `openstack database instance list` برای Trove، مال همهٔ پروژه‌ها، که فقط یک ادمین می‌تواند؛ و `openstack metric status` برای صف و پردازنده‌های Gnocchi.
+- شکل ابر: `openstack endpoint list`، `openstack service list`، `openstack region list`، `openstack project list`، `openstack domain list`، و `project show` با یک شناسه.
+- فهرستی که چند tenant را در بر بگیرد باید `--limit N` داشته باشد، تا ۲۰۰، و با `--marker ID` ادامه می‌یابد. هر فهرست دیگر، مگر خلافش گفته شود، در ۱۰۰ ردیف متوقف می‌شود و می‌گوید که ردیف‌های بیشتری هست. عامل هرگز خودش پیوند `next` را دنبال نمی‌کند.
+- هرگز: هر چیزی که ابر را تغییر دهد — چنین فرمانی برای اجرا وجود ندارد — کاربران، اعتبارنامه‌ها، انتساب نقش‌ها و توکن‌های Keystone، کنسول‌ها و لاگ‌های کنسول، رازهای Barbican، `--os-cloud` و هر گزینهٔ ورود یا endpoint دیگر.
+
+`user_data` یک نمونه، گذرواژهٔ ادمین آن، `direct_url` یک ایمیج، `provider_auth` یک حجم و هر چیز دیگری که محرمانه علامت خورده باشد، پیش از رسیدن خروجی به مدل یا یک لاگ پوشانده می‌شود.
+
+`nova-compute` متوقف‌شده نمونه‌هایش را در وضعیت `ACTIVE` باقی می‌گذارد، پس بررسی از روی `state` سرویس (`down`) و `host_status` نمونه‌ها (`UNKNOWN`) پیش می‌رود.
+
+یک بررسی از هیچ شروع نمی‌شود. در حادثه یا هشداری که به یک ابر پیوند خورده، به OneUptime AI گفته می‌شود صفحهٔ ابر زیر **نیاز به توجه** چه می‌گوید: سرویس‌هایی که از کار افتاده‌اند، و میزبان‌ها، نمونه‌ها، حجم‌ها و pool هایی که مشکل دارند. جایی که سری حادثه یک بخش را نام ببرد، همچنین می‌شنود که آن بخش چه چیزهایی را با خود می‌برد (شعاع انفجارش: نمونه‌ها، پروژه‌ها، گره‌های Kubernetes و میزبان‌ها)، کدام ویژگی‌ها لاگ‌های آن بخش را جدا می‌کنند، و در آن زمان چه چیزی در ابر تغییر کرده است.
+
+از آنجا یک درخواست را دنبال می‌کند. `server event list` شناسهٔ درخواست هر اقدام را چاپ می‌کند، و `search_logs` آن شناسه را به‌عنوان یک ویژگی (`openstack.request_root_id`) می‌گیرد تا آنچه هر سرویس دربارهٔ آن نوشته را بخواند. گزارش هر فرمانی را که اجرا کرده، با خروجی‌اش، نقل می‌کند، همان‌طور که برای `kubectl` می‌کند. لاگ‌ها به پروفایل [لاگ‌های سرویس](/docs/telemetry/openstack#لاگهای-سرویس) نیاز دارند و تغییرها به [رویدادهای چرخهٔ حیات](/docs/telemetry/openstack#رویدادهای-چرخه-عمر): بدون آن‌ها، آن خواندن‌ها خالی برمی‌گردند.
+
 ### خوشه‌های Ceph
 
 - خوشه: `ceph status` (یا `ceph -s`)، `ceph health detail`، `ceph df detail`، `ceph versions`، `ceph progress`، `ceph quorum_status`، `ceph log last 100`.
@@ -291,7 +315,7 @@ OneUptime یک حساب AWS، یک اشتراک Azure یا یک پروژهٔ Goo
 
 پس از اجرای یک اصلاح، OneUptime مانیتورهای حادثه یا هشدار را زیر نظر می‌گیرد. اگر بهبود نیابند، بازگردانی طرح اجرا می‌شود و OneUptime AI با تلاش ناموفق پیش چشم یک طرح دیگر می‌سازد — حداکثر دو دور برای هر حادثه یا هشدار. در حالت **خودکار** آن دور دوم درخواست تأیید می‌کند؛ در **رد شدن از تأیید** آن هم خودش اجرا می‌شود. اصلاح‌های بی‌نظارت یک قطع‌کنندهٔ مدار با سقف سه اصلاح برای هر منبع در هر ساعت دارند: فراتر از آن، یا تا وقتی دور بی‌نظارت دیگری از OneUptime AI هنوز در حال تغییر یا راستی‌آزمایی همان منبع است، یک دور طرحش را به‌جای اجرا برای تأیید پیشنهاد می‌کند.
 
-هر حادثه یا هشدار فقط یک مسیر اصلاح هوش مصنوعی می‌گیرد. وقتی به یک خوشهٔ Kubernetes با اصلاح‌های روشن پیوند داشته باشد، دور خوشه اجرا می‌شود و هیچ دور منبعی اجرا نمی‌شود. در غیر این صورت، نخستین منبع پیوندشده‌ای که اصلاح‌هایش روشن و عاملش آماده است دور را می‌گیرد، به این ترتیب: میزبان Docker، میزبان Podman، خوشهٔ Docker Swarm، خوشهٔ Proxmox، VMware vCenter، خوشهٔ Ceph، سرور پایگاه داده، میزبان، حساب AWS، اشتراک Azure، پروژهٔ Google Cloud. دور فقط همان منبع را تغییر می‌دهد.
+هر حادثه یا هشدار فقط یک مسیر اصلاح هوش مصنوعی می‌گیرد. وقتی به یک خوشهٔ Kubernetes با اصلاح‌های روشن پیوند داشته باشد، دور خوشه اجرا می‌شود و هیچ دور منبعی اجرا نمی‌شود. در غیر این صورت، نخستین منبع پیوندشده‌ای که اصلاح‌هایش روشن و عاملش آماده است دور را می‌گیرد، به این ترتیب: میزبان Docker، میزبان Podman، خوشهٔ Docker Swarm، خوشهٔ Proxmox، VMware vCenter، خوشهٔ Ceph، سرور پایگاه داده، میزبان، حساب AWS، اشتراک Azure، پروژهٔ Google Cloud، ابر OpenStack. دور فقط همان منبع را تغییر می‌دهد.
 
 ### امن، پرخطرتر و هرگز
 
@@ -357,6 +381,21 @@ OneUptime یک حساب AWS، یک اشتراک Azure یا یک پروژهٔ Goo
 | **همیشه یک انسان** | `ceph osd set pause` (همهٔ I/O کلاینت‌ها را متوقف می‌کند)، `ceph osd pool set rbd size 3` (و `min_size`) |
 | **هرگز** | `ceph osd purge 3` (و destroy، rm، lost، تغییرات crush)، `ceph osd pool delete rbd` (و ساختن، تغییر نام یا هر تنظیم دیگر pool)، `ceph auth ls`، `ceph config-key ls`، `ceph tell osd.3 injectargs --debug-osd 20`، `ceph --id admin status`، `config`، `daemon`، تغییرات fs و mon، `mgr module enable`، `orch apply`، `crash rm` |
 
+### اصلاح‌ها روی ابرهای OpenStack
+
+در عامل هیچ فایل اجرایی `openstack` وجود ندارد. هر تغییر همان یک فراخوانی به API ابر است که نامش را می‌برد، و با اعتبارنامه‌ای انجام می‌شود که عامل فقط برای تغییرها نگه می‌دارد و برای هیچ چیز دیگر. هر تغییر یک املا دارد، به ترتیب زیر: ترتیب دیگر پرچم‌ها، یک مخفف یا پرچمی که کلاینت واقعی هم می‌پذیرد رد می‌شود، پس آنچه یک انسان تأیید می‌کند، آنچه یک مدخل فهرست مجاز نام می‌برد و آنچه اجرا می‌شود یک عبارت‌اند. عامل پیش از انجام یک تغییر آنچه را به آن دست می‌زند می‌خواند، و اگر نتواند، آن را رد می‌کند.
+
+| | فرمان‌ها |
+| ------------------- | -------- |
+| **امن** | `openstack server start 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack server reboot --soft 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack compute service set --enable compute-01 nova-compute`، `openstack network agent set --enable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **پرخطرتر** | `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack server migrate 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack server migrate live 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack compute service set --disable --disable-reason maintenance compute-01 nova-compute`، `openstack network agent set --disable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **همیشه یک انسان** | `openstack server evacuate 358ee736-ba74-40ba-a354-7ead413c5df6` — تخلیهٔ هر تعداد نمونه، در هر حالت، هر چه فهرست مجاز بگوید، چون Nova تنها وقتی یکی را می‌پذیرد که میزبان از کار افتاده باشد |
+| **هرگز** | `openstack server delete 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack volume delete 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack project delete 9aee824cac87464292adffc328de1662`، `openstack user list`، `openstack role add --user a --project b c`، `openstack quota set --instances 100 abc`، `openstack security group delete abc`، `openstack server set --state active 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack volume set --state available 358ee736-ba74-40ba-a354-7ead413c5df6`، `openstack compute service set --down compute-01 nova-compute`، `openstack server stop 358ee736-ba74-40ba-a354-7ead413c5df6` و هر فرمانی که اینجا فهرست نشده است |
+
+کارت اصلاح می‌گوید یک تغییر به چند نمونه و پروژه دست می‌زند و کدام‌ها، آن‌طور که عامل خوانده است: `openstack dry-run <change>` همان خواندن است، و یک بررسی هم می‌تواند آن را اجرا کند. تخلیه‌ای که عامل نتواند کامل بخواند پیشنهاد نمی‌شود. هر اصلاح یک رویداد تغییر در فید هر بخشی است که به آن دست زده، و در فید ابر، همراه با اینکه چه کسی تأییدش کرده است. یک `server migrate` سرد نمونه را در `VERIFY_RESIZE` رها می‌کند تا یک انسان تأیید کند، که OneUptime AI هرگز آن را نمی‌کند.
+
+برخلاف منابع دیگر، اصلاح‌ها اینجا خاموش شروع می‌شوند تا دو بار فعالشان کنید: `ONEUPTIME_AI_ALLOW_WRITES=true` به‌تنهایی **کارهای مجاز هوش مصنوعی** را روی خاموش می‌گذارد، و پیش از آنکه اصلاً کاری بکند به اعتبارنامهٔ تغییرها نیاز دارد. [راهنمای عامل OpenStack](/docs/telemetry/openstack#اعتبارنامه-برای-تغییرها) می‌گوید این اعتبارنامه را با کمترین دسترسی لازم، در هر روش استقرار ابر، چگونه بسازید.
+
 ### اصلاح‌ها روی سرورهای پایگاه داده
 
 `12345` در پایین یک شناسهٔ نشست است، آن‌طور که `db sessions` چاپش می‌کند: pid در PostgreSQL، شناسهٔ processlist در MySQL، شناسهٔ کلاینت در Redis یا opid در MongoDB. عامل نخست نشست را جست‌وجو می‌کند، و هرگز به اتصال خودش، یک thread سرور یا تکثیر، یا نشستی که وجود ندارد دست نمی‌زند.
@@ -413,9 +452,10 @@ unitها با نام کاملشان نام برده می‌شوند: `systemctl 
 - مدخلی که هرگز نمی‌تواند تغییری را از پیش تأیید کند رد می‌شود: یک فرمان فقط‌خواندنی (خواندن هرگز به تأیید نیاز ندارد)، فرمانی که سیاست ردش می‌کند، یا فرمانی برای نوع دیگری از منبع. یک فهرست حداکثر ۵۰ مدخل با حداکثر ۵۰۰ نویسه دارد.
 - مدخلی با یک `*` در جای هدف — `docker stop *` توقف **همهٔ** کانتینرها را از پیش تأیید می‌کند — پیش از ذخیره از شما تأیید می‌خواهد.
 - یک مسیر Proxmox یک کلمه است، پس نمی‌تواند `*` داشته باشد: برای هر مهمان یک مدخل بنویسید، مانند `pvesh create /nodes/pve1/qemu/100/status/shutdown`.
+- روی یک ابر OpenStack، مدخلی برای تخلیه (evacuation) هنگام ذخیره رد می‌شود: تخلیه همیشه از یک انسان می‌پرسد، پس هیچ چیزی را از پیش تأیید نمی‌کرد.
 - هیچ چیزی در فهرست مجاز بر تغییری که همیشه به یک انسان نیاز دارد، یا فرمانی که سیاست ردش می‌کند، غلبه نمی‌کند.
 
-یک مدخل معتبر برای هر منبع: `docker stop web` (Docker و Podman)، `docker service update --image nginx:1.27 web` (Docker Swarm)، `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox)، `govc vm.power -off web-01` (VMware)، `ceph osd out 3` (Ceph)، `db terminate-session 12345` (پایگاه‌های داده)، `systemctl stop nginx` (میزبان‌ها)، `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS)، `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure)، `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud).
+یک مدخل معتبر برای هر منبع: `docker stop web` (Docker و Podman)، `docker service update --image nginx:1.27 web` (Docker Swarm)، `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox)، `govc vm.power -off web-01` (VMware)، `ceph osd out 3` (Ceph)، `db terminate-session 12345` (پایگاه‌های داده)، `systemctl stop nginx` (میزبان‌ها)، `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS)، `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure)، `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud)، `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6` (ابرهای OpenStack).
 
 ### چه کسی می‌تواند آن را تغییر دهد
 
@@ -449,6 +489,7 @@ unitها با نام کاملشان نام برده می‌شوند: `systemctl 
 | سرورهای پایگاه داده | `session:<id>` | `session:*` |
 | میزبان‌ها | نام کامل unitها (`nginx.service`)، `pid:<pid>` برای یک فرایند، `journal` برای پاک‌سازی journal | `nginx.service,app-*` |
 | حساب‌های ابری | شناسهٔ منبع: یک ARN، یک شناسهٔ منبع Azure با حروف کوچک، یا نام کامل یک منبع Google Cloud | `arn:aws:ecs:*:123456789012:service/prod/*` |
+| ابرهای OpenStack | `instance:<id>`، `host:<name>` و `agent:<id>` برای آنچه یک تغییر نام می‌برد، و `destination:<name>` برای جایی که یک جابه‌جایی می‌نشیند. یک مدخل `project:<id>`، `host:<name>` یا `instance:<id>` است، و فقط همین‌ها: هر چیز دیگری عامل را فقط‌خواندنی نگه می‌دارد. عامل پیش از تغییر یک نمونه می‌خواند که در کدام پروژه و میزبان است |
 
 ### آنچه عامل خودش از آن محافظت می‌کند
 
@@ -459,6 +500,7 @@ unitها با نام کاملشان نام برده می‌شوند: `systemctl 
 - **سرورهای پایگاه داده:** نشست خود عامل.
 - **میزبان‌ها:** هر unit از OneUptime (`oneuptime-*`، از جمله unit خود عامل هوش مصنوعی میزبان)، کالکتور OpenTelemetry (`otelcol-contrib.service`، `otelcol.service`)، موتور Docker که عامل در آن اجرا می‌شود (`docker.service`، `docker.socket`، `containerd.service`)، و فرایند خود عامل و فرایندهای بالای آن.
 - **Proxmox:** عامل نمی‌تواند تشخیص دهد در کدام مهمان اجرا می‌شود. اگر در یک ماشین مجازی یا کانتینر از همان خوشه اجرا می‌شود، آن VMID را در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید؛ همین کار را با ماشین مجازی عامل روی VMware هم انجام دهید.
+- **ابرهای OpenStack:** عامل نمی‌تواند تشخیص دهد در کدام نمونه اجرا می‌شود. اگر روی همان ابر اجرا می‌شود، آن نمونه را به‌صورت `instance:<id>` در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید. روی یک ابر، این فهرست مال شماست و بر هر تنظیم دیگر، از جمله تأیید یک انسان، غلبه می‌کند.
 - **حساب‌های ابری:** هر چیزی که فرمان راه‌اندازی‌اش ساخته است: روی AWS پشتهٔ `oneuptime-ai-agent`، خوشه و سرویس ECS آن، و نقش‌های `OneUptimeAiAgentTask` و `OneUptimeAiAgentWrite`؛ روی Azure گروه منابع `oneuptime-ai-agent`؛ روی Google Cloud ماشین مجازی یا سرویس Cloud Run با نام `oneuptime-ai-agent` و حساب سرویس آن.
 
 ## اعتبارنامه‌ها و کمترین دسترسی
@@ -474,6 +516,7 @@ unitها با نام کاملشان نام برده می‌شوند: `systemctl 
 | سرور پایگاه داده | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (ورود کالکتور)، یا `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` وقتی تنظیم شده باشند؛ `DATABASE_ENDPOINT` و تنظیمات TLS | ورود پایش کالکتور (`pg_monitor` در PostgreSQL) | ورودی ویژهٔ عامل که بتواند به نشست‌های دیگر سیگنال بفرستد: `pg_signal_backend` (PostgreSQL)، `CONNECTION_ADMIN` (MySQL 8)، `+client\|kill` (ACL در Redis)، کنش `killop` (MongoDB) |
 | میزبان | هیچ: با امتیاز ویژه و به‌عنوان root در namespaceهای میزبان اجرا می‌شود | `ONEUPTIME_AI_ALLOW_WRITES` را تنظیم نکنید | `ONEUPTIME_AI_WRITE_TARGETS` روی unitهایی که هوش مصنوعی می‌تواند تغییر دهد |
 | حساب‌های ابری | هویتِ جایی که اجرا می‌شود: روی AWS نقش وظیفهٔ ECS آن، که فقط می‌تواند نقش نوشتن در `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` را به خود بگیرد؛ روی Azure هویت مدیریت‌شدهٔ Container App آن؛ روی Google Cloud حساب سرویسی که ماشین مجازی یا سرویس Cloud Run آن با آن اجرا می‌شود | هیچ: OneUptime حساب را از راه اتصال فقط‌خواندنی‌اش می‌خواند | نقشی که فرمان راه‌اندازی‌اش می‌نویسد: مجوزهای تغییرهای روشن‌شده و خواندن‌هایی که لازم دارند، و نه بیشتر. روی AWS هر تغییر `OneUptimeAiAgentWrite` را با یک سیاست نشست برای همان یک تغییر روی همان یک منبع به خود می‌گیرد |
+| ابر OpenStack | برای تغییرها، `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` و `_SECRET`، یک application credential مخصوص خودش: [راهنما](/docs/telemetry/openstack#اعتبارنامه-برای-تغییرها) می‌گوید چگونه بسازیدش. برای خواندن‌ها، application credential در `clouds.yaml` که exporter کالکتور می‌خواند (`OS_CLIENT_CONFIG_FILE`، `OPENSTACK_EXPORTER_CLOUDS`، یا `ONEUPTIME_AI_OPENSTACK_CLOUD` برای مدخلی دیگر)، یا وقتی تنظیم شده باشند `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET`، همراه با `OPENSTACK_AUTH_URL`؛ `ONEUPTIME_AI_OPENSTACK_REGION`، `ONEUPTIME_AI_OPENSTACK_INTERFACE`، `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
 READMEهای کالکتورها فرمان‌های دقیق را دارند: فرمان‌های `pveum` برای یک توکن اصلاح Proxmox ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent))، نقش اصلاح vSphere ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent))، capهای خواندن و اصلاح Ceph ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) و مجوزهای پایگاه داده برای هر موتور ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)). نقش یک عامل هوش مصنوعی ابری را فرمان راه‌اندازی‌اش می‌نویسد: یک تغییر را خاموش کنید و فرمان را دوباره اجرا کنید تا مجوزهایش از نقش بیرون برود.
 
@@ -492,8 +535,8 @@ READMEهای کالکتورها فرمان‌های دقیق را دارند: ف
 - یک برنامه، به‌صورت فهرست آرگومان، هرگز از طریق یک shell: pipeها، تغییر مسیرها، `;`، `&&` و `$(…)` پیش از اجرای هر چیزی رد می‌شوند، و `sudo` هم همین‌طور.
 - محیطی که برای همان یک فرمان ساخته می‌شود: هیچ چیزی از خود عامل — نه کلید دریافتش، نه تنظیمات proxy آن — به برنامه نمی‌رسد، و `docker`، `govc` و `ceph` برای همان یک فرمان یک پوشهٔ خانگی خصوصی و خالی زیر `/tmp` می‌گیرند. CLI مربوط به `docker` یک `DOCKER_CONFIG` خصوصی و خالی می‌گیرد، پس هیچ context یا credential helperای نمی‌تواند مقصدش را تغییر دهد؛ `govc` اعتبارنامه‌هایش را در محیط خودش می‌گیرد، هرگز در خط فرمانش؛ `ceph`، `--conf`، `--keyring` و `--id` خود عامل را می‌گیرد، و یک فرمان نمی‌تواند موارد دیگری را انتخاب کند.
 - یک محدودیت زمانی (حداکثر ۲ دقیقه) که پس از آن برنامه kill می‌شود؛ خروجی به ۵۰ KB محدود است.
-- رازهای موجود در خروجی — مقدارهای متغیرهای محیطی در `docker inspect`، گذرواژه‌های cloud-init در Proxmox، کلیدها، توکن‌ها و گذرواژه‌ها در لاگ‌ها و خط فرمان‌ها — پیش از آنکه خروجی عامل را ترک کند روی عامل پوشانده می‌شوند، و دوباره به‌دست OneUptime پیش از آنکه ذخیره یا به مدل نشان داده شوند.
-- کانتینرها با یک فایل‌سیستم ریشهٔ فقط‌خواندنی اجرا می‌شوند. عامل‌های هوش مصنوعی Proxmox، VMware، Ceph و پایگاه داده با UID ۱۰۰۰ و بدون هیچ capability اجرا می‌شوند.
+- رازهای موجود در خروجی — مقدارهای متغیرهای محیطی در `docker inspect`، گذرواژه‌های cloud-init در Proxmox، `user_data` در OpenStack، کلیدها، توکن‌ها و گذرواژه‌ها در لاگ‌ها و خط فرمان‌ها — پیش از آنکه خروجی عامل را ترک کند روی عامل پوشانده می‌شوند، و دوباره به‌دست OneUptime پیش از آنکه ذخیره یا به مدل نشان داده شوند.
+- کانتینرها با یک فایل‌سیستم ریشهٔ فقط‌خواندنی اجرا می‌شوند. عامل‌های هوش مصنوعی Proxmox، VMware، Ceph و پایگاه داده با UID ۱۰۰۰ و بدون هیچ capability اجرا می‌شوند. عامل هوش مصنوعی OpenStack به‌عنوان مالک `clouds.yaml` (`OPENSTACK_EXPORTER_USER`) اجرا می‌شود، آن هم بدون هیچ capability.
 - یک عامل هوش مصنوعی ابری اصلاً هیچ برنامه‌ای را اجرا نمی‌کند: `cloud` یک عملیات از کاتالوگش را نام می‌برد، که عامل آن را به‌صورت همان یک فراخوانی API که به آن نگاشت شده، با اعتبارنامه‌های جایی که اجرا می‌شود، انجام می‌دهد. خواندن‌ها روی OneUptime، از راه اتصال فقط‌خواندنی حساب، اجرا می‌شوند.
 
 ### سوکت Docker و عامل هوش مصنوعی میزبان روی میزبان root هستند
@@ -520,7 +563,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-از نام کانتینر منبع خود استفاده کنید: `oneuptime-docker-ai-agent`، `oneuptime-podman-ai-agent` (با `podman` به‌جای `docker`)، `oneuptime-docker-swarm-ai-agent`، `oneuptime-proxmox-ai-agent`، `oneuptime-vmware-ai-agent`، `oneuptime-ceph-ai-agent`، `oneuptime-host-ai-agent`. سرویس عامل پایگاه داده نام کانتینر ثابتی ندارد، پس در `/opt/oneuptime-database-agent` از `docker compose logs --tail=100 oneuptime-database-ai-agent` و `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` استفاده کنید. عامل هوش مصنوعی میزبان از شبکهٔ میزبان استفاده می‌کند، پس `curl -s http://127.0.0.1:3877/status` روی خود میزبان کار می‌کند.
+از نام کانتینر منبع خود استفاده کنید: `oneuptime-docker-ai-agent`، `oneuptime-podman-ai-agent` (با `podman` به‌جای `docker`)، `oneuptime-docker-swarm-ai-agent`، `oneuptime-openstack-ai-agent`، `oneuptime-proxmox-ai-agent`، `oneuptime-vmware-ai-agent`، `oneuptime-ceph-ai-agent`، `oneuptime-host-ai-agent`. سرویس عامل پایگاه داده نام کانتینر ثابتی ندارد، پس در `/opt/oneuptime-database-agent` از `docker compose logs --tail=100 oneuptime-database-ai-agent` و `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` استفاده کنید. عامل هوش مصنوعی میزبان از شبکهٔ میزبان استفاده می‌کند، پس `curl -s http://127.0.0.1:3877/status` روی خود میزبان کار می‌کند.
 
 یک عامل هوش مصنوعی ابری در ابر خودش اجرا می‌شود و کانتینری ندارد که با `exec` واردش شوید: لاگش را در پوستهٔ ابر با `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`، `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` یا `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (روی Cloud Run: `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`) بخوانید، و وضعیتش را در صفحهٔ **عامل هوش مصنوعی** حساب ببینید، که همین فرمان را نشان می‌دهد.
 

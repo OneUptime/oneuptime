@@ -167,7 +167,7 @@ return {
 
 - 모니터의 식별 정보: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - `oneuptime.` 또는 `resource.` 네임스페이스의 모든 것. 여기에는 OneUptime이 수집 시점에 붙이는 식별자가 들어 있습니다.
-- 리소스 식별 속성: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name`, `docker.swarm.cluster.name`.
+- 리소스 식별 속성: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name`, `docker.swarm.cluster.name`.
 
 이 이름들은 단순한 레이블이 아닙니다. OneUptime은 이를 데이터 포인트가 어느 리소스에 속하는지에 대한 주장으로 읽습니다. `service.name: payments-api` 가 붙은 메트릭은 그 서비스의 메트릭 탭에 나타나고, 나중에 `service.name` 으로 그룹화한 메트릭 모니터를 만들면 그 알림은 그 서비스에 연결되고, 서비스 소유자를 호출하며, 그 서비스의 유지 관리 기간에는 울리지 않게 됩니다. 모니터를 서비스나 호스트와 연결하려면 대신 모니터 자체의 레이블을 사용하세요.
 

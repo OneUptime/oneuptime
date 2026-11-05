@@ -14,7 +14,7 @@ Un monitor VMware osserva un vCenter - i suoi datacenter, cluster, host ESXi, ma
 Le metriche provengono dall'API di vCenter, lette con un account in sola lettura in uno di due modi:
 
 - **Il VMware Agent**, un OpenTelemetry Collector con il suo receiver `vcenter`, che esegui su una macchina in grado di raggiungere vCenter. Vedi [Agent VMware](/docs/telemetry/vmware).
-- **Una sonda**, senza nulla da installare: colleghi il vCenter in OneUptime e scegli la sonda che lo raggiunge. Vedi [VMware senza agent](/docs/telemetry/vmware-agentless).
+- **A probe**, senza nulla da installare: colleghi il vCenter in OneUptime e scegli la sonda che lo raggiunge. Vedi [VMware senza agent](/docs/telemetry/vmware-agentless).
 
 Entrambi inviano le stesse serie a ogni intervallo di raccolta (2 minuti per impostazione predefinita), contrassegnate con il nome del vCenter, `vmware.vcenter.name`. Un vCenter è un endpoint vSphere: un vCenter Server o un host ESXi autonomo. Un monitor VMware è legato a un vCenter. Ogni minuto esegue la sua query sulle metriche di quel vCenter e confronta il risultato con i suoi criteri.
 

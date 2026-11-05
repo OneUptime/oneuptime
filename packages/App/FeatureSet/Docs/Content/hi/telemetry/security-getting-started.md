@@ -62,6 +62,7 @@ flowchart LR
 | AWS CloudTrail | कंसोल साइन-इन, आपके AWS खातों में किए गए बदलाव और वे कॉल जिन्हें AWS ने अस्वीकार किया |
 | Google Cloud ऑडिट लॉग | आपके Google Cloud प्रोजेक्ट में किए गए बदलाव, वे कॉल जिन्हें Google ने अस्वीकार किया, और Google Cloud के साथ शेयर किए गए Google Workspace साइन-इन |
 | Azure गतिविधि और Entra ID लॉग | आपकी Azure सदस्यताओं में किए गए बदलाव, Defender for Cloud अलर्ट, और Microsoft Entra ID के साइन-इन और डायरेक्टरी बदलाव |
+| OpenStack ऑडिट ट्रेल | Keystone में असफल साइन-इन, रोल ग्रांट और बदलाव, ऑडिट फ़िल्टर ने हर API का जो देखा, दुनिया भर के लिए खोले गए सिक्योरिटी ग्रुप और सार्वजनिक की गई इमेज |
 | CEF | Common Event Format भेजने वाले फ़ायरवॉल, IDS, WAF और दूसरे सुरक्षा उत्पादों से खतरे, ब्लॉक किए गए कनेक्शन और साइन-इन |
 | LEEF | Log Event Extended Format भेजने वाले उत्पादों से यही सब, जैसा कई उत्पाद IBM QRadar के लिए करते हैं |
 | Palo Alto Networks | PAN-OS के अपने syslog से ख़तरे, ब्लॉक किए गए कनेक्शन, GlobalProtect और व्यवस्थापक साइन-इन, और कॉन्फ़िगरेशन बदलाव |
