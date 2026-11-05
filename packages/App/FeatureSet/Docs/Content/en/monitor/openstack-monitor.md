@@ -4,7 +4,7 @@ An OpenStack monitor watches one cloud - its APIs, the workers behind them, hype
 
 :::cards
 - [Create the monitor](#create-an-openstack-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Thirty ready-made alerts, one incident per worker, instance, network or region.
+- [Templates](#pre-built-alert-templates): Thirty-five ready-made alerts, one incident per worker, instance, network or region.
 - [Identity attributes](#identity-attributes): How to target one region, host or project.
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
 :::
@@ -105,7 +105,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 34 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 35 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -144,6 +144,7 @@ Every template reads at least three collections of what it watches, and fires on
 | Storage Pool Critical | Storage | Critical | The same | Above 95% | At or below 85.5% |
 | Volumes in Error | Storage | Warning | `openstack_cinder_volume_status_counter` for each error word, Max per region and word, **past 10 minutes** | Above 0 | At 0 |
 | Volume Stuck | Storage | Warning | `openstack_cinder_volume_gb` for each passing status word, Max per volume, **past 30 minutes** | In that status at every collection for 30 minutes | Left it |
+| Image Stuck | Storage | Warning | `openstack_glance_image_created_at` for each passing status word, Max per image, **past 1 hour** | In that status at every collection for an hour | Left it, or was deleted |
 | Project Quota Nearly Reached | Projects | Warning | `openstack_nova_limits_*` and `openstack_cinder_limits_volume_*`, used / max per project, **past 10 minutes** | Above 90% of its vCPU, memory, instance or volume quota. Needs the [limits series on](#turn-on-the-limits-series) | At or below 81% |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
