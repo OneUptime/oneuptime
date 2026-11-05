@@ -1,11 +1,11 @@
 # HELP openstack_glance_image_bytes image_bytes
 # TYPE openstack_glance_image_bytes gauge
-openstack_glance_image_bytes{id="2325ca95-b464-4075-ba39-5dd55e0ce7a4",name="ou-image-stuck",tenant_id="fb8cb6f8f58f4bf797e637768e47c312"} 0
-openstack_glance_image_bytes{id="ff6775fc-e939-477b-897e-eabb07df571d",name="cirros",tenant_id="fb8cb6f8f58f4bf797e637768e47c312"} 2.1692416e+07
+openstack_glance_image_bytes{id="162faf1a-11d1-462e-83d7-320a66a04e88",name="cirros",tenant_id="3ef9c5bef1b74b14a5bedfd56a79eafb"} 2.1692416e+07
+openstack_glance_image_bytes{id="cf753cc5-0cc3-42c3-9b7a-0ef6a5519edb",name="ou-image-stuck",tenant_id="3ef9c5bef1b74b14a5bedfd56a79eafb"} 0
 # HELP openstack_glance_image_created_at image_created_at
 # TYPE openstack_glance_image_created_at gauge
-openstack_glance_image_created_at{hidden="false",id="2325ca95-b464-4075-ba39-5dd55e0ce7a4",name="ou-image-stuck",status="queued",tenant_id="fb8cb6f8f58f4bf797e637768e47c312",visibility="public"} 1.793880505e+09
-openstack_glance_image_created_at{hidden="false",id="ff6775fc-e939-477b-897e-eabb07df571d",name="cirros",status="active",tenant_id="fb8cb6f8f58f4bf797e637768e47c312",visibility="public"} 1.793880485e+09
+openstack_glance_image_created_at{hidden="false",id="162faf1a-11d1-462e-83d7-320a66a04e88",name="cirros",status="active",tenant_id="3ef9c5bef1b74b14a5bedfd56a79eafb",visibility="public"} 1.793885236e+09
+openstack_glance_image_created_at{hidden="false",id="cf753cc5-0cc3-42c3-9b7a-0ef6a5519edb",name="ou-image-stuck",status="queued",tenant_id="3ef9c5bef1b74b14a5bedfd56a79eafb",visibility="public"} 1.79388525e+09
 # HELP openstack_glance_images images
 # TYPE openstack_glance_images gauge
 openstack_glance_images 2

@@ -1,7 +1,7 @@
 openstack-ansible: d4eb954f9aa4bdefa398d2136b3d22f81f52ae4b Incorporate regression fixes for 2026.1
 7.0.0-1017-azure
                total        used        free      shared  buff/cache   available
-Mem:           15983        4231         726          89       11469       11752
+Mem:           15983        4137         771          89       11520       11846
 Swap:           3071           0        3071
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/root       145G   84G   62G  58% /

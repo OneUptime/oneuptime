@@ -28,8 +28,8 @@ quay.io/openstack.kolla/prometheus-libvirt-exporter:2026.1-ubuntu-noble 299MB
 quay.io/openstack.kolla/prometheus-blackbox-exporter:2026.1-ubuntu-noble 339MB
 quay.io/openstack.kolla/prometheus-memcached-exporter:2026.1-ubuntu-noble 307MB
 quay.io/openstack.kolla/prometheus-mysqld-exporter:2026.1-ubuntu-noble 310MB
-quay.io/openstack.kolla/prometheus-node-exporter:2026.1-ubuntu-noble 318MB
 quay.io/openstack.kolla/prometheus-openstack-exporter:2026.1-ubuntu-noble 296MB
+quay.io/openstack.kolla/prometheus-node-exporter:2026.1-ubuntu-noble 318MB
 quay.io/openstack.kolla/mariadb-server:2026.1-ubuntu-noble 606MB
 quay.io/openstack.kolla/haproxy:2026.1-ubuntu-noble 282MB
 quay.io/openstack.kolla/kolla-toolbox:2026.1-ubuntu-noble 943MB

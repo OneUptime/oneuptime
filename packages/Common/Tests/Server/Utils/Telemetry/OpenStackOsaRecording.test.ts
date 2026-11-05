@@ -49,40 +49,14 @@ describe("what the agent sent from a real OpenStack-Ansible", () => {
     },
   );
 
-  test("on the first credential Cinder refused every read, though the cloud holds its volumes", () => {
-    // keystonemiddleware refuses access rules when service_type is not in the catalog: the guide says.
-    const cinderUp: Array<number> = [];
-
-    for (const metric of metricsOfPart(TOOL, "full-view")) {
-      if (metric["name"] === "openstack_cinder_up") {
-        for (const point of ((metric["gauge"] || metric["sum"]) as JSONObject)[
-          "dataPoints"
-        ] as JSONArray) {
-          cinderUp.push(
-            Number(
-              (point as JSONObject)["asDouble"] ??
-                (point as JSONObject)["asInt"],
-            ),
-          );
-        }
-      }
-    }
-
-    expect(cinderUp).toEqual([0]);
-    expect(namesOf(fullView, OpenStackResourceKind.Volume)).toEqual([]);
-
-    const answered: string = fs.readFileSync(
-      path.join(
-        __dirname,
-        "../../../Fixtures/OpenStack",
-        TOOL,
-        "healthy/exporter/volume.prom",
-      ),
-      "utf8",
+  test("with the guide's setting for Cinder, the first credential names each volume, with its status", () => {
+    const volumes: Record<string, string | null> = statusByName(
+      fullView,
+      OpenStackResourceKind.Volume,
     );
 
-    for (const name of Object.keys(ESTATE_VOLUMES)) {
-      expect(answered).toContain(`name="${name}"`);
+    for (const [name, status] of Object.entries(ESTATE_VOLUMES)) {
+      expect({ name, status: volumes[name] }).toEqual({ name, status });
     }
   });
 
