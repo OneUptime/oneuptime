@@ -905,6 +905,7 @@ import { AddOpenStackRuleProjectAndDomain1808993750000 } from "./1808993750000-A
 import { AddOpenStackCloudCheck1808993900000 } from "./1808993900000-AddOpenStackCloudCheck";
 import { AddOpenStackUsageAndBudgets1808993950000 } from "./1808993950000-AddOpenStackUsageAndBudgets";
 import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpenStackProjectNotices";
+import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
 
 export default [
   InitialMigration,
@@ -1814,4 +1815,5 @@ export default [
   AddOpenStackCloudCheck1808993900000,
   AddOpenStackUsageAndBudgets1808993950000,
   AddOpenStackProjectNotices1808994120000,
+  AddWorkflowLogRunAgain1808994200000,
 ];

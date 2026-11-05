@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "Pasa todos los campos personalizados: {{fields}}",
   "Choice": "Opción",
   "Choices": "Opciones",
-  "This project has no custom fields for these records yet.": "Este proyecto aún no tiene campos personalizados para estos registros."
+  "This project has no custom fields for these records yet.": "Este proyecto aún no tiene campos personalizados para estos registros.",
+  "Run this workflow again?": "¿Ejecutar de nuevo este flujo de trabajo?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "Una nueva ejecución comienza desde el disparador, con los mismos valores y el flujo de trabajo tal como está ahora. Cada paso se ejecuta de verdad: todo lo que envía, escribe o elimina ocurre realmente.",
+  "Run with the last run's values": "Ejecutar con los valores de la última ejecución",
+  "Starts a new run with what the run of {{date}} started with.": "Inicia una nueva ejecución con lo que recibió al comenzar la ejecución del {{date}}."
 }

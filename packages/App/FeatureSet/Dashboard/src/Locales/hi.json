@@ -17367,7 +17367,7 @@
   "This is the Community Edition image": "This is the Community Edition image",
   "This is the newest session in the window": "This is the newest session in the window",
   "This is the oldest session in the window": "This is the oldest session in the window",
-  "This is the run you just started.": "This is the run you just started.",
+  "This is the run you just started.": "यह वही रन है जिसे आपने अभी शुरू किया।",
   "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.": "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
   "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.": "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
   "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.": "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.",
@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "सभी कस्टम फ़ील्ड आगे भेजता है: {{fields}}",
   "Choice": "विकल्प",
   "Choices": "कई विकल्प",
-  "This project has no custom fields for these records yet.": "इस प्रोजेक्ट में इन रिकॉर्ड के लिए अभी कोई कस्टम फ़ील्ड नहीं है।"
+  "This project has no custom fields for these records yet.": "इस प्रोजेक्ट में इन रिकॉर्ड के लिए अभी कोई कस्टम फ़ील्ड नहीं है।",
+  "Run this workflow again?": "क्या इस वर्कफ़्लो को फिर से चलाएँ?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "एक नया रन ट्रिगर से शुरू होता है, उन्हीं मानों और वर्कफ़्लो के मौजूदा रूप के साथ। हर चरण वास्तव में चलता है: वह जो कुछ भी भेजता, लिखता या हटाता है, वह सचमुच होता है।",
+  "Run with the last run's values": "पिछले रन के मानों के साथ चलाएँ",
+  "Starts a new run with what the run of {{date}} started with.": "{{date}} के रन को शुरू में जो मिला था, उसी से एक नया रन शुरू करता है।"
 }

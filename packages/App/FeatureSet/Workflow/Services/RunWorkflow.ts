@@ -52,6 +52,10 @@ import {
 } from "Common/Types/Workflow/EmptyValues";
 import { WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE } from "Common/Types/Workflow/WorkflowProjectBlocked";
 import {
+  RunAgainColumns,
+  getRunAgainColumns,
+} from "Common/Types/Workflow/WorkflowRunAgain";
+import {
   UnhandledStepFailure,
   getUnhandledStepFailureLogLine,
   isUnhandledStepFailure,
@@ -759,10 +763,21 @@ export default class RunWorkflow {
          * create a new workflow log here.
          * if the workflow is to be run immediately.
          */
+        const runAgain: RunAgainColumns = getRunAgainColumns({
+          returnValues: runProps.arguments,
+          runOnlyComponentId: runProps.runOnlyComponentId,
+        });
+
         const runLog: WorkflowLog = new WorkflowLog();
         runLog.workflowId = runProps.workflowId;
         runLog.projectId = workflow.projectId!;
         runLog.workflowStatus = WorkflowStatus.Scheduled;
+        runLog.canRunAgain = runAgain.canRunAgain;
+
+        if (runAgain.triggerValues) {
+          runLog.triggerValues = runAgain.triggerValues;
+        }
+
         runLog.logs =
           OneUptimeDate.getCurrentDateAsFormattedString({
             showSeconds: true,

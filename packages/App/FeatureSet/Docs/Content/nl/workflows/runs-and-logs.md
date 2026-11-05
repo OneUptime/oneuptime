@@ -18,6 +18,8 @@ Elke keer dat een workflow draait, slaat OneUptime op wat er gebeurde — wannee
 
 Als je een uitvoering vanuit de **Bouwer** start, opent dezelfde weergave **Workflow-uitvoering**, die de uitvoering al volgt, zodat je haar ziet gebeuren in plaats van haar achteraf te moeten zoeken.
 
+Om een uitvoering opnieuw te proberen met dezelfde waarden, druk je op Opnieuw uitvoeren in de weergave ervan of in het ⋯-menu van de rij. Een nieuwe uitvoering start bij de trigger met waarmee die uitvoering begon, zodat de payload van een webhook niet opnieuw hoeft te worden verzonden, en voert de workflow uit zoals die nu is, zodat je een stap kunt wijzigen en het meteen kunt proberen. De stappen worden echt uitgevoerd, en zolang de workflow uit staat is het een testuitvoering. Het paneel voor het uitvoeren van de workflow in de Builder biedt de waarden van de laatste uitvoering op dezelfde manier aan. De test van één stap wordt opnieuw uitgevoerd vanuit de stap. Een uitvoering die begon met meer dan 1 MB aan waarden kan niet opnieuw worden uitgevoerd, en een uitvoering van voordat OneUptime deze waarden bewaarde ook niet. Ze zijn versleuteld en niemand kan ze via de API lezen.
+
 ## Statussen van een uitvoering
 
 ```mermaid title="De statussen die een uitvoering doorloopt"

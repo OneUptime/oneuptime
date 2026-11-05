@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "Gibt jedes benutzerdefinierte Feld weiter: {{fields}}",
   "Choice": "Auswahl",
   "Choices": "Mehrfachauswahl",
-  "This project has no custom fields for these records yet.": "Dieses Projekt hat noch keine benutzerdefinierten Felder für diese Datensätze."
+  "This project has no custom fields for these records yet.": "Dieses Projekt hat noch keine benutzerdefinierten Felder für diese Datensätze.",
+  "Run this workflow again?": "Diesen Workflow erneut ausführen?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "Ein neuer Lauf beginnt beim Auslöser, mit denselben Werten und dem Workflow in seinem aktuellen Zustand. Jeder Schritt wird wirklich ausgeführt: Alles, was er sendet, schreibt oder löscht, geschieht tatsächlich.",
+  "Run with the last run's values": "Mit den Werten des letzten Laufs ausführen",
+  "Starts a new run with what the run of {{date}} started with.": "Startet einen neuen Lauf mit dem, womit der Lauf vom {{date}} begonnen hat."
 }

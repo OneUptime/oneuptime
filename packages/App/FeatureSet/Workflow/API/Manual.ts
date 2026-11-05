@@ -5,8 +5,14 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  WORKFLOW_RUN_CANNOT_RUN_AGAIN_MESSAGE,
+  readTriggerValues,
+} from "Common/Types/Workflow/WorkflowRunAgain";
+import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -33,6 +39,98 @@ export default class ManualAPI {
       UserMiddleware.getUserMiddleware,
       this.manuallyRunWorkflow,
     );
+
+    /*
+     * Run again: a new run with what an earlier run started with. POST for the
+     * same reason as above.
+     */
+    this.router.post(
+      `/run-again/:workflowLogId`,
+      UserMiddleware.getUserMiddleware,
+      this.runAgain,
+    );
+  }
+
+  /*
+   * A new run of the workflow as it is now, with what an earlier run's trigger
+   * started with (Types/Workflow/WorkflowRunAgain). The gates are Run Workflow's,
+   * for the reasons given there: this runs the workflow's steps just the same.
+   */
+  public async runAgain(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      if (!req.params["workflowLogId"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("workflowLogId not found in URL"),
+        );
+      }
+
+      const workflowLogId: ObjectID = new ObjectID(
+        req.params["workflowLogId"] as string,
+      );
+
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+      /*
+       * Read as OneUptime: nobody may read triggerValues through the API. So
+       * the project is checked first and nothing of the row is answered with -
+       * a run of another project and one that does not exist are refused alike.
+       */
+      const run: WorkflowLog | null = await WorkflowLogService.findOneById({
+        id: workflowLogId,
+        select: {
+          projectId: true,
+          workflowId: true,
+          triggerValues: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: run?.projectId,
+        projectId: projectId,
+      });
+
+      if (!run?.workflowId) {
+        throw new BadDataException(WORKFLOW_RUN_CANNOT_RUN_AGAIN_MESSAGE);
+      }
+
+      await WorkflowRunAccess.assertMayRunWorkflow({
+        databaseProps: databaseProps,
+        projectId: projectId,
+        workflowId: run.workflowId,
+      });
+
+      const values: JSONObject | null = readTriggerValues(run.triggerValues);
+
+      if (!values) {
+        throw new BadDataException(WORKFLOW_RUN_CANNOT_RUN_AGAIN_MESSAGE);
+      }
+
+      // This person's run, so it goes ahead as a test run while the workflow is off.
+      await QueueWorkflow.addWorkflowToQueue({
+        workflowId: run.workflowId,
+        returnValues: values,
+        startedByUserId: databaseProps.userId,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        status: "Scheduled",
+      });
+    } catch (err) {
+      next(err);
+    }
   }
 
   public async manuallyRunWorkflow(

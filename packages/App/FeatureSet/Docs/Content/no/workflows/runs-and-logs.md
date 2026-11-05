@@ -18,6 +18,8 @@ Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skje
 
 Starter du en kjøring fra **Bygger**, åpnes den samme visningen **Arbeidsflytkjøring**, som allerede følger kjøringen, slik at du kan se den skje i stedet for å måtte lete etter den etterpå.
 
+For å prøve en kjøring på nytt med de samme verdiene trykker du på Kjør på nytt i visningen av den, eller i ⋯-menyen på raden. En ny kjøring starter fra utløseren med det den kjøringen startet med, så nyttelasten til en webhook ikke må sendes på nytt, og den kjører arbeidsflyten slik den er nå, så du kan endre et trinn og prøve med en gang. Trinnene kjøres på ekte, og så lenge arbeidsflyten er av, er det en testkjøring. Panelet for å kjøre arbeidsflyten i Builder tilbyr verdiene fra siste kjøring på samme måte. En test av ett trinn kjøres på nytt fra trinnet. En kjøring som startet med mer enn 1 MB verdier, kan ikke kjøres på nytt, og heller ikke en kjøring fra før OneUptime tok vare på disse verdiene. De er kryptert, og ingen kan lese dem gjennom API-et.
+
 ## Status for en kjøring
 
 ```mermaid title="Statusene en kjøring går gjennom"

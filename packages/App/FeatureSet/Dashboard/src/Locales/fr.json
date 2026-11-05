@@ -17367,7 +17367,7 @@
   "This is the Community Edition image": "This is the Community Edition image",
   "This is the newest session in the window": "This is the newest session in the window",
   "This is the oldest session in the window": "This is the oldest session in the window",
-  "This is the run you just started.": "This is the run you just started.",
+  "This is the run you just started.": "Voici l'exécution que vous venez de démarrer.",
   "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.": "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
   "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.": "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
   "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.": "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.",
@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "Transmet tous les champs personnalisés : {{fields}}",
   "Choice": "Choix",
   "Choices": "Choix multiples",
-  "This project has no custom fields for these records yet.": "Ce projet n'a pas encore de champs personnalisés pour ces enregistrements."
+  "This project has no custom fields for these records yet.": "Ce projet n'a pas encore de champs personnalisés pour ces enregistrements.",
+  "Run this workflow again?": "Exécuter à nouveau ce workflow ?",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "Une nouvelle exécution démarre depuis le déclencheur, avec les mêmes valeurs et le workflow tel qu'il est maintenant. Chaque étape s'exécute pour de vrai : tout ce qu'elle envoie, écrit ou supprime se produit réellement.",
+  "Run with the last run's values": "Exécuter avec les valeurs de la dernière exécution",
+  "Starts a new run with what the run of {{date}} started with.": "Démarre une nouvelle exécution avec ce avec quoi l'exécution du {{date}} a commencé."
 }

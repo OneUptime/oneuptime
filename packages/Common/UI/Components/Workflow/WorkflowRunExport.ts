@@ -61,6 +61,11 @@ export interface WorkflowRunDetails {
    * by email when they have no name (WorkflowLog.startedByUser).
    */
   startedBy?: string | null | undefined;
+  /**
+   * What it started with was kept, so it can be run again
+   * (Types/Workflow/WorkflowRunAgain). Not part of a downloaded run.
+   */
+  canRunAgain?: boolean | null | undefined;
 }
 
 /** A run, with everything a download writes. */
@@ -469,6 +474,7 @@ export const getWorkflowRunExportFromWorkflowLog: GetWorkflowRunExportFromWorkfl
       completedAt: log.completedAt || null,
       isTestRun: log.isTestRun === true,
       startedBy: getWorkflowRunStartedBy(log.startedByUser),
+      canRunAgain: log.canRunAgain === true,
       logs: typeof log.logs === "string" ? log.logs : "",
       stepTrace: parseTrace((log.stepTrace as JSONValue) || null),
     };

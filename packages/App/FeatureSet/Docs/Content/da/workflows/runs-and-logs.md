@@ -18,6 +18,8 @@ Hver gang et workflow kører, gemmer OneUptime en registrering af, hvad der sket
 
 Starter du en kørsel fra **Bygger**, åbner den samme visning **Arbejdsgangskørsel**, som allerede følger kørslen, så du kan se den ske i stedet for at skulle lede efter den bagefter.
 
+For at prøve en kørsel igen med de samme værdier skal du trykke på Kør igen i dens visning eller i ⋯-menuen på dens række. En ny kørsel starter fra triggeren med det, den kørsel startede med, så en webhooks data ikke skal sendes igen, og den kører workflowet, som det er nu, så du kan ændre et trin og prøve det med det samme. Dens trin køres for alvor, og mens workflowet er slået fra, er det en testkørsel. Panelet til at køre workflowet i Builder tilbyder værdierne fra den seneste kørsel på samme måde. En test af ét trin køres igen fra trinnet. En kørsel, der startede med mere end 1 MB værdier, kan ikke køres igen, og det kan en kørsel fra før OneUptime gemte disse værdier heller ikke. De er krypteret, og ingen kan læse dem via API'et.
+
 ## Status for en kørsel
 
 ```mermaid title="De statusser, en kørsel går igennem"

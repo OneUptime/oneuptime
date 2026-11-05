@@ -18,6 +18,8 @@ Every time a workflow runs, OneUptime saves a record of what happened — when i
 
 Starting a run from the **Builder** opens the same **Workflow Run** view already following the run, so you can watch it happen rather than going looking for it afterwards.
 
+To try a run again with the same values, press Run again in its view, or in the ⋯ menu of its row. A new run starts from the trigger with what that run started with, so a webhook's payload does not have to be sent again, and it runs the workflow as it is now, so you can change a step and try it straight away. Its steps run for real, and while the workflow is off it is a test run. The Run Workflow panel in the Builder offers the last run's values in the same way. A test of one step is run again from the step. A run that started with more than 1 MB of values can't be run again, and neither can a run from before OneUptime kept these values. They are encrypted, and nobody can read them through the API.
+
 ## Run statuses
 
 ```mermaid title="The statuses a run goes through"
